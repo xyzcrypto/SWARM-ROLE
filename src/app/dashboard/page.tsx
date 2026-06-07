@@ -58,7 +58,7 @@ export default async function DashboardPage() {
     <>
       <Navbar />
       <main className="relative min-h-screen pt-24">
-        <div className="pointer-events-none absolute inset-0 bg-radial-fade" />
+        <div className="mesh" />
         <div className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
           <DashboardClient
             stats={stats}

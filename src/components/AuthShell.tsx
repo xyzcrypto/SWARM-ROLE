@@ -15,10 +15,9 @@ export function AuthShell({
 }) {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4 py-12">
-      <div className="pointer-events-none absolute inset-0 bg-radial-fade" />
-      <div className="pointer-events-none absolute inset-0 bg-grid" />
-      <div className="glow-orb left-[15%] top-[10%] h-64 w-64 bg-gold-600/20" />
-      <div className="glow-orb right-[12%] bottom-[10%] h-72 w-72 bg-gold-400/15" />
+      <div className="mesh" />
+      <div className="grid-bg" />
+      <div className="grain" />
 
       <div className="relative w-full max-w-md">
         <div className="mb-8 flex flex-col items-center text-center">
@@ -31,7 +30,7 @@ export function AuthShell({
           <p className="mt-2 text-sm text-zinc-400">{subtitle}</p>
         </div>
 
-        <div className="glass rounded-3xl p-7 shadow-gold-sm">{children}</div>
+        <div className="glass rounded-3xl p-7 shadow-elevate">{children}</div>
 
         <p className="mt-6 text-center text-sm text-zinc-500">{footer}</p>
         <p className="mt-4 text-center">

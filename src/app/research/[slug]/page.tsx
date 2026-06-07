@@ -53,7 +53,7 @@ export default async function PostPage({
     <>
       <Navbar />
       <main className="relative min-h-screen pt-28">
-        <div className="pointer-events-none absolute inset-0 bg-radial-fade" />
+        <div className="mesh" />
         <article className="relative mx-auto max-w-3xl px-4 pb-24 sm:px-6">
           <Link
             href="/research"

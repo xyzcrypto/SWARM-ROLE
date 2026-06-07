@@ -104,9 +104,9 @@ function Overview({ stats }: { stats: Stats }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {cards.map((c) => (
-        <div key={c.label} className="card-gold-border rounded-2xl p-6">
+        <div key={c.label} className="surface rounded-2xl p-6">
           <p className="text-sm text-zinc-500">{c.label}</p>
-          <p className="mt-2 font-display text-4xl font-bold text-gold-gradient">
+          <p className="mt-2 mono text-4xl font-semibold text-gold-gradient">
             {c.value}
           </p>
           <p className="mt-1 text-xs text-zinc-600">{c.hint}</p>
