@@ -21,6 +21,8 @@ model User {
   passwordHash  String?
   role          String    @default("USER") // "USER" | "ADMIN"
   provider      String    @default("credentials") // "credentials" | "google"
+  isMember      Boolean   @default(false)
+  lastLoginAt   DateTime?
   createdAt     DateTime  @default(now())
 
   posts    Post[]

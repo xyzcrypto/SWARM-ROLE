@@ -30,6 +30,8 @@ export default async function DashboardPage() {
           email: true,
           provider: true,
           role: true,
+          isMember: true,
+          lastLoginAt: true,
           createdAt: true,
         },
       }),
@@ -64,6 +66,7 @@ export default async function DashboardPage() {
             stats={stats}
             recentUsers={recentUsers.map((u) => ({
               ...u,
+              lastLoginAt: u.lastLoginAt?.toISOString() ?? null,
               createdAt: u.createdAt.toISOString(),
             }))}
             posts={posts.map((p) => ({

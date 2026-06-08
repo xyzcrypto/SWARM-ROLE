@@ -19,6 +19,8 @@ type UserRow = {
   email: string;
   provider: string;
   role: string;
+  isMember: boolean;
+  lastLoginAt: string | null;
   createdAt: string;
 };
 
@@ -275,13 +277,16 @@ function Content({ posts }: { posts: PostRow[] }) {
 }
 
 /* ------------------------------ Members ----------------------------- */
-function Members({ users }: { users: UserRow[] }) {
+function Members({ users: initial }: { users: UserRow[] }) {
+  const [users, setUsers] = useState(initial);
+  const [toggling, setToggling] = useState<string | null>(null);
+
   function exportCsv() {
-    const header = "Name,Email,Provider,Role,Joined\n";
+    const header = "Name,Email,Provider,Role,Member,Last Login,Joined\n";
     const rows = users
       .map(
         (u) =>
-          `"${u.name ?? ""}","${u.email}","${u.provider}","${u.role}","${formatDate(u.createdAt)}"`
+          `"${u.name ?? ""}","${u.email}","${u.provider}","${u.role}","${u.isMember ? "Yes" : "No"}","${u.lastLoginAt ? formatDate(u.lastLoginAt) : "Never"}","${formatDate(u.createdAt)}"`
       )
       .join("\n");
     const blob = new Blob([header + rows], { type: "text/csv" });
@@ -291,6 +296,21 @@ function Members({ users }: { users: UserRow[] }) {
     a.download = "xyz-crypto-members.csv";
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function toggleMembership(u: UserRow) {
+    setToggling(u.id);
+    const res = await fetch(`/api/admin/users/${u.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isMember: !u.isMember }),
+    });
+    setToggling(null);
+    if (res.ok) {
+      setUsers((prev) =>
+        prev.map((x) => (x.id === u.id ? { ...x, isMember: !u.isMember } : x))
+      );
+    }
   }
 
   return (
@@ -311,6 +331,8 @@ function Members({ users }: { users: UserRow[] }) {
               <th className="px-5 py-3">Email</th>
               <th className="px-5 py-3">Method</th>
               <th className="px-5 py-3">Role</th>
+              <th className="px-5 py-3">Member</th>
+              <th className="px-5 py-3">Last Login</th>
               <th className="px-5 py-3">Joined</th>
             </tr>
           </thead>
@@ -334,6 +356,22 @@ function Members({ users }: { users: UserRow[] }) {
                   >
                     {u.role}
                   </span>
+                </td>
+                <td className="px-5 py-3">
+                  <button
+                    onClick={() => toggleMembership(u)}
+                    disabled={toggling === u.id}
+                    className={`rounded-full px-2.5 py-0.5 text-xs ring-1 transition-colors disabled:opacity-50 ${
+                      u.isMember
+                        ? "bg-emerald-500/10 text-emerald-300 ring-emerald-500/30 hover:bg-emerald-500/20"
+                        : "bg-white/5 text-zinc-400 ring-white/10 hover:bg-white/10"
+                    }`}
+                  >
+                    {toggling === u.id ? "…" : u.isMember ? "Active" : "Inactive"}
+                  </button>
+                </td>
+                <td className="px-5 py-3 text-zinc-500">
+                  {u.lastLoginAt ? formatDate(u.lastLoginAt) : <span className="text-zinc-700">Never</span>}
                 </td>
                 <td className="px-5 py-3 text-zinc-500">{formatDate(u.createdAt)}</td>
               </tr>
