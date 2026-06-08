@@ -74,7 +74,7 @@ export function Navbar() {
                 Log in
               </Link>
               <Link href="/signup" className="btn-gold !px-5 !py-2">
-                Join Now
+                Get Started
               </Link>
             </>
           )}
@@ -126,7 +126,7 @@ export function Navbar() {
                     Log in
                   </Link>
                   <Link href="/signup" onClick={() => setOpen(false)} className="btn-gold">
-                    Join Now
+                    Get Started
                   </Link>
                 </>
               )}

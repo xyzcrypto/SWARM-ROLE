@@ -3,7 +3,6 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { site } from "@/lib/site";
 
 const marquee = [
   "Web3 Research",
@@ -32,28 +31,22 @@ export function Hero() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/5 px-4 py-1.5 text-xs font-medium text-gold-100 lg:mx-0"
+            className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest text-gold-300 lg:mx-0"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-300 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-gold-300" />
-            </span>
-            Next-Gen Web3 Ecosystem
+            # NEXT-GEN WEB3 ECOSYSTEM
           </motion.div>
 
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.05 }}
-            className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl"
+            className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl"
           >
-            <span className="text-gold-gradient">XYZ Crypto</span>
-            <span className="mt-2 block text-zinc-100">
-              {site.slogan.split(" ").slice(0, 2).join(" ")}{" "}
-              <span className="text-shine">
-                {site.slogan.split(" ").slice(2).join(" ")}
-              </span>
+            <span className="text-zinc-100">The home of</span>
+            <span className="mt-1 block text-gold-gradient">
+              next-gen
             </span>
+            <span className="text-gold-gradient">Web3.</span>
           </motion.h1>
 
           <motion.p
@@ -63,7 +56,7 @@ export function Hero() {
             className="mx-auto mt-6 max-w-xl text-base text-zinc-400 sm:text-lg lg:mx-0"
           >
             Research, trading tools, a perp DEX, airdrop tools, premium
-            intelligence & education — one ecosystem engineered for the
+            intel and education — one ecosystem engineered for the
             builders, traders and degens of tomorrow.
           </motion.p>
 
@@ -74,34 +67,14 @@ export function Hero() {
             className="mt-9 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
           >
             <Link href="/signup" className="btn-gold w-full sm:w-auto">
-              Join the Movement
+              Get early access
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
                 <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
             <Link href="/research" className="btn-ghost w-full sm:w-auto">
-              Explore Research
+              Explore research
             </Link>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="mt-10 grid max-w-md grid-cols-3 gap-4 lg:max-w-none"
-          >
-            {[
-              { k: "6+", v: "Products in pipeline" },
-              { k: "24/7", v: "On-chain coverage" },
-              { k: "100%", v: "Community first" },
-            ].map((s) => (
-              <div key={s.v} className="text-center lg:text-left">
-                <div className="font-display text-2xl font-bold text-gold-gradient sm:text-3xl">
-                  {s.k}
-                </div>
-                <div className="mt-1 text-xs text-zinc-500">{s.v}</div>
-              </div>
-            ))}
           </motion.div>
         </div>
 
