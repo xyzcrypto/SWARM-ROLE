@@ -8,6 +8,13 @@ import {
 } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { Container, Section, SectionHeading, Badge } from "./ui/primitives";
+import {
+  TradingVisual,
+  AirdropVisual,
+  PremiumVisual,
+  AcademyVisual,
+  MoreVisual,
+} from "./ProductVisuals";
 
 type Status = "Live" | "Coming Soon" | "In Development" | "Planned" | "Next Version";
 const tone: Record<Status, "mint" | "gold" | "sky" | "zinc" | "violet"> = {
@@ -28,10 +35,10 @@ function Chip({ s }: { s: Status }) {
 }
 
 const small = [
-  { name: "Airdrop Tools", status: "Planned" as Status, desc: "Track, qualify and farm airdrops with automated checklists and eligibility.", Icon: Gift },
-  { name: "XYZ Premium", status: "Planned" as Status, desc: "Early calls, private research and members-only tooling.", Icon: Crown },
-  { name: "Web3 Academy", status: "Live" as Status, desc: "Structured education from zero to on-chain pro.", Icon: GraduationCap },
-  { name: "& More", status: "Next Version" as Status, desc: "New products and integrations ship every version.", Icon: Plus },
+  { name: "Airdrop Tools", status: "Planned" as Status, desc: "Track, qualify and farm airdrops with automated checklists and eligibility.", Icon: Gift, Visual: AirdropVisual },
+  { name: "XYZ Premium", status: "Planned" as Status, desc: "Early calls, private research and members-only tooling.", Icon: Crown, Visual: PremiumVisual },
+  { name: "Web3 Academy", status: "Live" as Status, desc: "Structured education from zero to on-chain pro.", Icon: GraduationCap, Visual: AcademyVisual },
+  { name: "& More", status: "Next Version" as Status, desc: "New products and integrations ship every version.", Icon: Plus, Visual: MoreVisual },
 ];
 
 export function Products() {
@@ -89,15 +96,11 @@ export function Products() {
                 <Chip s="In Development" />
               </div>
               <h3 className="mt-6 font-display text-xl font-semibold text-zinc-50">Trading Tools</h3>
-              <p className="mt-2 flex-1 text-sm leading-relaxed text-zinc-400">
+              <p className="mt-2 text-sm leading-relaxed text-zinc-400">
                 Pro-grade screeners, on-chain scanners, alerts and analytics to
                 give you a real, repeatable trading edge.
               </p>
-              <div className="mt-5 flex flex-wrap gap-2">
-                {["Screeners", "Scanners", "Alerts", "Analytics"].map((t) => (
-                  <span key={t} className="mono rounded-md border border-line px-2 py-1 text-[10px] text-zinc-500">{t}</span>
-                ))}
-              </div>
+              <TradingVisual />
             </div>
           </Reveal>
         </div>
@@ -105,7 +108,7 @@ export function Products() {
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {small.map((p, i) => (
             <Reveal key={p.name} delay={i}>
-              <div className="surface surface-hover lift group h-full rounded-4xl p-6">
+              <div className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-6">
                 <div className="flex items-start justify-between">
                   <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20">
                     <p.Icon className="h-5 w-5" strokeWidth={1.7} />
@@ -114,6 +117,7 @@ export function Products() {
                 </div>
                 <h3 className="mt-5 font-display text-base font-semibold text-zinc-50">{p.name}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.desc}</p>
+                <p.Visual />
               </div>
             </Reveal>
           ))}

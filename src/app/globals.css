@@ -49,6 +49,7 @@
   left: -10%;
   top: -20%;
   background: radial-gradient(circle, rgba(226, 167, 47, 0.28), transparent 60%);
+  animation: drift-a 18s ease-in-out infinite alternate;
 }
 .mesh::after {
   width: 45vw;
@@ -56,6 +57,81 @@
   right: -8%;
   top: 4%;
   background: radial-gradient(circle, rgba(11, 187, 124, 0.16), transparent 60%);
+  animation: drift-b 22s ease-in-out infinite alternate;
+}
+@keyframes drift-a {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(12vw, 8vh) scale(1.18); }
+}
+@keyframes drift-b {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-10vw, 6vh) scale(1.12); }
+}
+
+/* Animated aurora ribbon */
+.aurora {
+  position: absolute;
+  inset: -20% -10% auto -10%;
+  height: 60vh;
+  pointer-events: none;
+  background:
+    conic-gradient(from 120deg at 50% 50%,
+      rgba(226, 167, 47, 0) 0deg,
+      rgba(226, 167, 47, 0.12) 90deg,
+      rgba(11, 187, 124, 0.10) 200deg,
+      rgba(226, 167, 47, 0) 360deg);
+  filter: blur(70px);
+  opacity: 0.6;
+  animation: aurora-spin 28s linear infinite;
+}
+@keyframes aurora-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Floating particles */
+.particle {
+  position: absolute;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(243, 212, 136, 0.9), rgba(243, 212, 136, 0));
+  animation: floatY var(--dur, 9s) ease-in-out infinite;
+  opacity: 0.5;
+}
+@keyframes floatY {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.25; }
+  50% { transform: translateY(-26px) translateX(8px); opacity: 0.7; }
+}
+
+/* Intro reveal for the logo medallion */
+@keyframes ring-in {
+  0% { transform: scale(0.4) rotate(-40deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes badge-orbit {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Product mini-visual animations */
+@keyframes bar-pulse {
+  0%, 100% { transform: scaleY(0.55); }
+  50% { transform: scaleY(1); }
+}
+@keyframes coin-drop {
+  0% { transform: translateY(-120%); opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translateY(140%); opacity: 0; }
+}
+@keyframes dash-move {
+  to { stroke-dashoffset: -1000; }
+}
+@keyframes sheen {
+  0% { transform: translateX(-120%); }
+  60%, 100% { transform: translateX(220%); }
+}
+@keyframes ping-soft {
+  0% { transform: scale(0.8); opacity: 0.7; }
+  100% { transform: scale(2.2); opacity: 0; }
 }
 
 .grain {
