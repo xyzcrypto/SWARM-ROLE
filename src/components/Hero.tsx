@@ -45,15 +45,11 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.05 }}
-            className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl"
+            className="font-display text-5xl font-extrabold leading-[1.05] tracking-tight sm:text-7xl lg:text-8xl"
           >
-            <span className="text-gold-gradient">XYZ Crypto</span>
-            <span className="mt-2 block text-zinc-100">
-              {site.slogan.split(" ").slice(0, 2).join(" ")}{" "}
-              <span className="text-shine">
-                {site.slogan.split(" ").slice(2).join(" ")}
-              </span>
-            </span>
+            <span className="block text-zinc-100">The home of</span>
+            <span className="block text-gold-gradient">next-gen</span>
+            <span className="block text-zinc-100">Web3.</span>
           </motion.h1>
 
           <motion.p
