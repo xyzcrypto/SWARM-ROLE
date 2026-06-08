@@ -14,7 +14,7 @@ export default async function DashboardPage() {
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
   if ((session.user as any).role !== "ADMIN") redirect("/");
 
-  const [totalUsers, googleUsers, last7days, activeMembers, recentUsers, posts] =
+  const [totalUsers, googleUsers, last7days, activeMembers, publishedPosts, recentUsers, posts] =
     await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { provider: "google" } }),
@@ -22,6 +22,7 @@ export default async function DashboardPage() {
         where: { createdAt: { gte: new Date(Date.now() - 7 * 864e5) } },
       }),
       prisma.user.count({ where: { isMember: true } }),
+      prisma.post.count({ where: { published: true } }),
       prisma.user.findMany({
         orderBy: { createdAt: "desc" },
         take: 50,
@@ -36,14 +37,21 @@ export default async function DashboardPage() {
           createdAt: true,
         },
       }),
+      // Fetch all posts (drafts + published) for the CMS content tab.
+      // Full content is included so the inline editor can be pre-populated.
       prisma.post.findMany({
         orderBy: { createdAt: "desc" },
         select: {
           id: true,
           title: true,
           slug: true,
+          excerpt: true,
+          content: true,
+          cover: true,
           category: true,
+          tags: true,
           published: true,
+          featured: true,
           createdAt: true,
         },
       }),
@@ -55,7 +63,7 @@ export default async function DashboardPage() {
     emailUsers: totalUsers - googleUsers,
     last7days,
     activeMembers,
-    totalPosts: posts.length,
+    totalPosts: publishedPosts,
   };
 
   return (

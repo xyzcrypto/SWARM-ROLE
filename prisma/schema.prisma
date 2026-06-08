@@ -40,7 +40,8 @@ model Post {
   cover     String?  // image URL
   category  String   @default("Research") // Research | Article | Post
   tags      String   @default("") // comma separated
-  published Boolean  @default(true)
+  published Boolean  @default(false) // false = draft, true = published
+  featured  Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
