@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Sora } from "next/font/google";
+import { Inter, Sora, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 
@@ -15,31 +15,30 @@ const sora = Sora({
   display: "swap",
 });
 
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
 const SITE_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "XYZ Crypto — Built for the Next Generation of Web3",
+    default: "XYZ Crypto — The home of next-gen Web3",
     template: "%s · XYZ Crypto",
   },
   description:
     "XYZ Crypto is a next-generation Web3 ecosystem — research, trading tools, a perp DEX, airdrop tools, premium intelligence and education. Built for the next generation of Web3.",
   keywords: [
-    "XYZ Crypto",
-    "Web3",
-    "crypto research",
-    "perp dex",
-    "trading tools",
-    "airdrop",
-    "DeFi",
-    "blockchain",
-    "TradeKaroVerse",
-    "Web3 academy",
+    "XYZ Crypto", "Web3", "crypto research", "perp dex",
+    "trading tools", "airdrop", "DeFi", "blockchain",
+    "TradeKaroVerse", "Web3 academy",
   ],
   authors: [{ name: "XYZ Crypto" }],
   openGraph: {
-    title: "XYZ Crypto — Built for the Next Generation of Web3",
+    title: "XYZ Crypto — The home of next-gen Web3",
     description:
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium intelligence & education.",
     url: SITE_URL,
@@ -49,7 +48,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "XYZ Crypto — Built for the Next Generation of Web3",
+    title: "XYZ Crypto — The home of next-gen Web3",
     description:
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium & education.",
     site: "@XYZCryptos",
@@ -59,18 +58,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#05060a",
+  themeColor: "#000000",
   width: "device-width",
   initialScale: 1,
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${inter.variable} ${sora.variable}`}>
+    <html lang="en" className={`${inter.variable} ${sora.variable} ${mono.variable}`}>
       <body>
         <Providers>{children}</Providers>
       </body>

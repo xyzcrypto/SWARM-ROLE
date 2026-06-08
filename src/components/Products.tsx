@@ -16,7 +16,7 @@ const products = [
   {
     name: "Trading Tools",
     status: "In Development",
-    desc: "Pro-grade screeners, on-chain scanners, real-time alerts and analytics to give you a genuine trading edge.",
+    desc: "Pro-grade screeners, on-chain scanners, real-time alerts and analytics for a genuine trading edge.",
     icon: (
       <>
         <rect x="2" y="2" width="5" height="20" rx="1" />
@@ -72,16 +72,16 @@ const products = [
 ];
 
 const statusStyle: Record<string, string> = {
-  Live:             "text-emerald-300 bg-emerald-500/12 ring-emerald-500/25",
-  "Coming Soon":    "text-gold-200   bg-gold-500/12    ring-gold-500/30",
-  "In Development": "text-sky-300    bg-sky-500/12     ring-sky-500/25",
-  Planned:          "text-zinc-300   bg-zinc-500/12    ring-zinc-500/20",
-  "Next Version":   "text-fuchsia-300 bg-fuchsia-500/12 ring-fuchsia-500/25",
+  Live:             "text-emerald-300 bg-emerald-500/10 ring-emerald-500/22",
+  "Coming Soon":    "text-gold-100    bg-gold-400/10   ring-gold-400/28",
+  "In Development": "text-sky-300    bg-sky-500/10    ring-sky-500/22",
+  Planned:          "text-zinc-400   bg-zinc-500/10   ring-zinc-500/18",
+  "Next Version":   "text-fuchsia-300 bg-fuchsia-500/10 ring-fuchsia-500/22",
 };
 
 const statusDot: Record<string, string> = {
   Live:             "bg-emerald-400",
-  "Coming Soon":    "bg-gold-400",
+  "Coming Soon":    "bg-gold-200",
   "In Development": "bg-sky-400",
   Planned:          "bg-zinc-500",
   "Next Version":   "bg-fuchsia-400",
@@ -93,62 +93,62 @@ export function Products() {
       <hr className="section-sep" />
 
       <div className="pointer-events-none absolute inset-0">
-        <div className="glow-orb left-1/2 top-12 h-80 w-80 -translate-x-1/2 bg-gold-500/8" />
+        <div className="glow-orb left-1/2 top-16 h-96 w-96 -translate-x-1/2 bg-gold-400/6" />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 pt-20 sm:px-6 lg:px-8">
         <Reveal>
-          <p className="text-center text-xs font-bold uppercase tracking-[0.22em] text-gold-500">
+          <p className="text-center text-xs font-bold uppercase tracking-[0.22em] text-gold-400">
             The Ecosystem
           </p>
           <h2 className="mx-auto mt-4 max-w-3xl text-center font-display text-3xl font-bold text-zinc-50 sm:text-5xl">
             Products built to{" "}
             <span className="text-gold-gradient">power your edge</span>
           </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-center text-base leading-relaxed text-zinc-400">
-            A full product suite, shipping in stages. Here&apos;s what&apos;s
-            live, what&apos;s building, and what&apos;s next.
+          <p className="mx-auto mt-5 max-w-xl text-center text-base leading-[1.8] text-zinc-500">
+            A full product suite, shipping in stages — live, building, and next.
           </p>
         </Reveal>
 
-        <div className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Bento grid — Perp DEX featured */}
+        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {products.map((p, i) => (
             <Reveal key={p.name} delay={i}>
               <div
-                className={`group relative h-full overflow-hidden rounded-2xl p-7 transition-all duration-300 ${
+                className={`group relative h-full overflow-hidden rounded-2xl p-7 transition-all duration-350 ${
                   p.featured
-                    ? "feature-card hover:-translate-y-2 hover:shadow-gold"
-                    : "card-gold-border hover:-translate-y-1.5 hover:shadow-gold-sm"
+                    ? "feature-card sm:col-span-2 lg:col-span-1 lg:row-span-1"
+                    : "card-gold-border hover:-translate-y-1.5"
                 }`}
               >
-                {/* Top accent line */}
+                {/* Top accent */}
                 <div className={`absolute inset-x-0 top-0 h-[2px] rounded-t-2xl ${
                   p.featured
-                    ? "bg-gradient-to-r from-gold-700 via-gold-400 to-gold-700"
-                    : "bg-gradient-to-r from-transparent via-gold-500/25 to-transparent"
+                    ? "bg-gradient-to-r from-gold-700 via-gold-200 to-gold-700"
+                    : "bg-gradient-to-r from-transparent via-gold-400/22 to-transparent"
                 }`} />
 
                 <div className="mb-6 flex items-start justify-between gap-3">
-                  <div className="icon-box h-12 w-12 shrink-0">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="icon-box h-11 w-11 shrink-0">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                       {p.icon}
                     </svg>
                   </div>
-                  <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold ring-1 ${statusStyle[p.status]}`}>
+                  <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ${statusStyle[p.status]}`}>
                     <span className={`h-1.5 w-1.5 rounded-full ${statusDot[p.status]}`} />
                     {p.status}
                   </span>
                 </div>
 
-                <h3 className="font-display text-xl font-bold text-zinc-50">
+                <h3 className={`font-display font-bold text-zinc-50 ${p.featured ? "text-2xl" : "text-lg"}`}>
                   {p.name}
                 </h3>
-                <p className="mt-2.5 text-sm leading-relaxed text-zinc-400">
+                <p className="mt-2.5 text-[0.83rem] leading-[1.72] text-zinc-500">
                   {p.desc}
                 </p>
 
-                {/* Hover glow spot */}
-                <div className="pointer-events-none absolute -bottom-10 -right-10 h-36 w-36 rounded-full bg-gold-500/0 blur-2xl transition-all duration-500 group-hover:bg-gold-500/12" />
+                {/* Hover glow */}
+                <div className="pointer-events-none absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-gold-400/0 blur-3xl transition-all duration-500 group-hover:bg-gold-400/10" />
               </div>
             </Reveal>
           ))}
