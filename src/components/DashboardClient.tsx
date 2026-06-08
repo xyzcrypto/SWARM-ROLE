@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 
 type Stats = {
   totalUsers: number;
   googleUsers: number;
   emailUsers: number;
   last7days: number;
+  premiumUsers: number;
   totalPosts: number;
 };
 
@@ -19,7 +20,9 @@ type UserRow = {
   email: string;
   provider: string;
   role: string;
+  membership: string;
   createdAt: string;
+  lastLoginAt: string | null;
 };
 
 type PostRow = {
@@ -99,6 +102,7 @@ function Overview({ stats }: { stats: Stats }) {
     { label: "New (7 days)", value: stats.last7days, hint: "Signed up this week" },
     { label: "Google sign-ins", value: stats.googleUsers, hint: "Via Gmail / Google" },
     { label: "Email sign-ups", value: stats.emailUsers, hint: "Email + password" },
+    { label: "Premium members", value: stats.premiumUsers, hint: "Upgraded accounts" },
     { label: "Published content", value: stats.totalPosts, hint: "Research, articles & posts" },
   ];
   return (
@@ -276,15 +280,44 @@ function Content({ posts }: { posts: PostRow[] }) {
 
 /* ------------------------------ Members ----------------------------- */
 function Members({ users }: { users: UserRow[] }) {
+  const router = useRouter();
+  const [rows, setRows] = useState(users);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const filtered = rows.filter(
+    (u) =>
+      !query ||
+      u.email.toLowerCase().includes(query.toLowerCase()) ||
+      (u.name ?? "").toLowerCase().includes(query.toLowerCase())
+  );
+
+  async function toggleMembership(u: UserRow) {
+    const next = u.membership === "Premium" ? "Free" : "Premium";
+    setBusy(u.id);
+    const res = await fetch(`/api/users/${u.id}/membership`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ membership: next }),
+    });
+    setBusy(null);
+    if (res.ok) {
+      setRows((arr) =>
+        arr.map((x) => (x.id === u.id ? { ...x, membership: next } : x))
+      );
+      router.refresh();
+    }
+  }
+
   function exportCsv() {
-    const header = "Name,Email,Provider,Role,Joined\n";
-    const rows = users
+    const header = "Name,Email,Membership,Role,Method,Signup Date,Last Login\n";
+    const body = rows
       .map(
         (u) =>
-          `"${u.name ?? ""}","${u.email}","${u.provider}","${u.role}","${formatDate(u.createdAt)}"`
+          `"${u.name ?? ""}","${u.email}","${u.membership}","${u.role}","${u.provider}","${formatDate(u.createdAt)}","${u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Never"}"`
       )
       .join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv" });
+    const blob = new Blob([header + body], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -295,49 +328,95 @@ function Members({ users }: { users: UserRow[] }) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-zinc-500">
-          Showing latest {users.length} members
-        </p>
-        <button onClick={exportCsv} className="btn-ghost !px-4 !py-2 text-xs">
-          Export CSV
-        </button>
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by email or name…"
+          className="w-full max-w-xs rounded-xl border border-line bg-ink-700/60 px-4 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/50"
+        />
+        <div className="flex items-center gap-3">
+          <span className="mono text-xs text-zinc-500">
+            {filtered.length} member{filtered.length === 1 ? "" : "s"}
+          </span>
+          <button onClick={exportCsv} className="btn-ghost !px-4 !py-2 text-xs">
+            Export CSV
+          </button>
+        </div>
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-white/8">
-        <table className="w-full text-left text-sm">
-          <thead className="bg-ink-700/60 text-xs uppercase tracking-wide text-zinc-500">
+
+      <div className="overflow-x-auto rounded-2xl border border-line">
+        <table className="w-full min-w-[680px] text-left text-sm">
+          <thead className="bg-ink-700/60 mono text-[11px] uppercase tracking-wider text-zinc-500">
             <tr>
-              <th className="px-5 py-3">Name</th>
-              <th className="px-5 py-3">Email</th>
-              <th className="px-5 py-3">Method</th>
-              <th className="px-5 py-3">Role</th>
-              <th className="px-5 py-3">Joined</th>
+              <th className="px-5 py-3 font-medium">Email</th>
+              <th className="px-5 py-3 font-medium">Signup Date</th>
+              <th className="px-5 py-3 font-medium">Last Login</th>
+              <th className="px-5 py-3 font-medium">Membership</th>
+              <th className="px-5 py-3 text-right font-medium">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {users.map((u) => (
+            {filtered.map((u) => (
               <tr key={u.id} className="hover:bg-white/[0.02]">
-                <td className="px-5 py-3 font-medium text-zinc-200">{u.name ?? "—"}</td>
-                <td className="px-5 py-3 text-zinc-400">{u.email}</td>
                 <td className="px-5 py-3">
-                  <span className="rounded-full bg-white/5 px-2 py-0.5 text-xs text-zinc-400 ring-1 ring-white/10">
-                    {u.provider}
-                  </span>
+                  <div className="font-medium text-zinc-200">{u.email}</div>
+                  <div className="mono text-[11px] text-zinc-600">
+                    {u.name ?? "—"} · {u.provider}
+                  </div>
+                </td>
+                <td className="px-5 py-3 mono text-xs text-zinc-400">
+                  {formatDate(u.createdAt)}
+                </td>
+                <td className="px-5 py-3 mono text-xs text-zinc-400">
+                  {u.lastLoginAt ? (
+                    formatDateTime(u.lastLoginAt)
+                  ) : (
+                    <span className="text-zinc-600">Never</span>
+                  )}
                 </td>
                 <td className="px-5 py-3">
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs ring-1 ${
-                      u.role === "ADMIN"
-                        ? "bg-gold-500/10 text-gold-200 ring-gold-500/30"
-                        : "bg-white/5 text-zinc-400 ring-white/10"
-                    }`}
-                  >
-                    {u.role}
-                  </span>
+                  {u.role === "ADMIN" ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
+                      Admin
+                    </span>
+                  ) : u.membership === "Premium" ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-500/12 px-2.5 py-1 text-[11px] font-medium text-mint-300 ring-1 ring-mint-500/30">
+                      <span className="h-1.5 w-1.5 rounded-full bg-mint-400" />
+                      Premium
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-400 ring-1 ring-white/10">
+                      Free
+                    </span>
+                  )}
                 </td>
-                <td className="px-5 py-3 text-zinc-500">{formatDate(u.createdAt)}</td>
+                <td className="px-5 py-3 text-right">
+                  {u.role === "ADMIN" ? (
+                    <span className="text-xs text-zinc-600">—</span>
+                  ) : (
+                    <button
+                      onClick={() => toggleMembership(u)}
+                      disabled={busy === u.id}
+                      className="text-xs font-medium text-gold-200 transition-colors hover:text-gold-100 disabled:opacity-50"
+                    >
+                      {busy === u.id
+                        ? "…"
+                        : u.membership === "Premium"
+                          ? "Downgrade"
+                          : "Make Premium"}
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={5} className="px-5 py-10 text-center text-sm text-zinc-500">
+                  No members match “{query}”.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

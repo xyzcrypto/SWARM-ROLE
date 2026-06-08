@@ -20,8 +20,10 @@ model User {
   image         String?
   passwordHash  String?
   role          String    @default("USER") // "USER" | "ADMIN"
+  membership    String    @default("Free") // "Free" | "Premium"
   provider      String    @default("credentials") // "credentials" | "google"
   createdAt     DateTime  @default(now())
+  lastLoginAt   DateTime?
 
   posts    Post[]
   accounts Account[]

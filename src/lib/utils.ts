@@ -21,6 +21,16 @@ export function formatDate(date: Date | string): string {
   });
 }
 
+export function formatDateTime(date: Date | string | null): string {
+  if (!date) return "Never";
+  return new Date(date).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

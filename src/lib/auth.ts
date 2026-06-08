@@ -76,6 +76,13 @@ export const authOptions: NextAuthOptions = {
     },
   },
   events: {
+    // Record last login time on every successful sign-in (email or Google).
+    async signIn({ user }) {
+      if (!user?.id) return;
+      await prisma.user
+        .update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
+        .catch(() => null);
+    },
     // Promote the configured admin email & tag the provider for OAuth users.
     async createUser({ user }) {
       const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();

@@ -14,13 +14,14 @@ export default async function DashboardPage() {
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
   if ((session.user as any).role !== "ADMIN") redirect("/");
 
-  const [totalUsers, googleUsers, last7days, recentUsers, posts] =
+  const [totalUsers, googleUsers, last7days, premiumUsers, recentUsers, posts] =
     await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { provider: "google" } }),
       prisma.user.count({
         where: { createdAt: { gte: new Date(Date.now() - 7 * 864e5) } },
       }),
+      prisma.user.count({ where: { membership: "Premium" } }),
       prisma.user.findMany({
         orderBy: { createdAt: "desc" },
         take: 50,
@@ -30,7 +31,9 @@ export default async function DashboardPage() {
           email: true,
           provider: true,
           role: true,
+          membership: true,
           createdAt: true,
+          lastLoginAt: true,
         },
       }),
       prisma.post.findMany({
@@ -51,6 +54,7 @@ export default async function DashboardPage() {
     googleUsers,
     emailUsers: totalUsers - googleUsers,
     last7days,
+    premiumUsers,
     totalPosts: posts.length,
   };
 
@@ -65,6 +69,7 @@ export default async function DashboardPage() {
             recentUsers={recentUsers.map((u) => ({
               ...u,
               createdAt: u.createdAt.toISOString(),
+              lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
             }))}
             posts={posts.map((p) => ({
               ...p,
