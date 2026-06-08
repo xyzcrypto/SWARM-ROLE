@@ -47,6 +47,14 @@ model Post {
   authorId String?
 }
 
+// Email waitlist / newsletter capture (low-friction, no account needed)
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String   @default("website") // where the signup came from
+  createdAt DateTime @default(now())
+}
+
 // --- NextAuth adapter models ---
 model Account {
   id                String  @id @default(cuid())

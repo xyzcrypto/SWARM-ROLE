@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { Container, Section } from "./ui/primitives";
+import { WaitlistForm } from "./WaitlistForm";
 
 const benefits = [
   "Early access to the Perp DEX & trading tools",
@@ -9,7 +10,7 @@ const benefits = [
   "Airdrop alerts & eligibility tracking",
 ];
 
-export function CtaBand() {
+export function CtaBand({ memberCount = 0 }: { memberCount?: number }) {
   return (
     <Section>
       <Container>
@@ -42,22 +43,28 @@ export function CtaBand() {
               <div className="lg:pl-8">
                 <div className="surface rounded-3xl p-6">
                   <p className="font-display text-base font-semibold text-zinc-100">
-                    Start free in seconds
+                    Join the waitlist
                   </p>
                   <p className="mt-1 text-sm text-zinc-500">
-                    No wallet required. Email or Google — your choice.
+                    Drop your email for early access — no wallet, no account
+                    needed to start.
                   </p>
-                  <div className="mt-5 flex flex-col gap-3">
-                    <Link href="/signup" className="btn-primary w-full">
-                      Create free account
-                    </Link>
-                    <Link href="/research" className="btn-ghost w-full">
-                      Browse research first
-                    </Link>
+                  <div className="mt-5">
+                    <WaitlistForm source="cta-band" cta="Join" />
                   </div>
-                  <p className="mt-4 text-center mono text-[11px] text-zinc-600">
-                    Trusted by the XYZ Crypto community
-                  </p>
+                  <div className="my-5 flex items-center gap-3 text-[11px] text-zinc-600">
+                    <span className="h-px flex-1 bg-line" />
+                    or
+                    <span className="h-px flex-1 bg-line" />
+                  </div>
+                  <Link href="/signup" className="btn-ghost w-full">
+                    Create a full account
+                  </Link>
+                  {memberCount > 0 && (
+                    <p className="mt-4 text-center mono text-[11px] text-zinc-500">
+                      Join {memberCount.toLocaleString()}+ members already inside
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

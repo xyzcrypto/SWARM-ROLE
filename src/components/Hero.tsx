@@ -64,9 +64,9 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             transition={{ duration: 0.6, delay: 0.05 }}
             className="font-display text-display-xl font-semibold text-zinc-50"
           >
-            The home of
+            Everything you need
             <br />
-            <span className="text-gold-gradient">next-gen Web3.</span>
+            to <span className="text-gold-gradient">win in Web3.</span>
           </motion.h1>
 
           <motion.p
@@ -75,9 +75,9 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             transition={{ duration: 0.6, delay: 0.12 }}
             className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-zinc-400 lg:mx-0"
           >
-            Research, trading tools, a perp DEX, airdrop tools, premium intel and
-            education — one ecosystem engineered for the builders, traders and
-            degens of tomorrow.
+            Free Web3 research, pro trading tools, a perp DEX, airdrop tools and a
+            free academy — one trusted ecosystem built for the next generation of
+            traders, builders and degens.
           </motion.p>
 
           <motion.div

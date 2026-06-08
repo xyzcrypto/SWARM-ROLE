@@ -11,6 +11,7 @@ type Stats = {
   emailUsers: number;
   last7days: number;
   premiumUsers: number;
+  subscribers: number;
   totalPosts: number;
 };
 
@@ -103,6 +104,7 @@ function Overview({ stats }: { stats: Stats }) {
     { label: "Google sign-ins", value: stats.googleUsers, hint: "Via Gmail / Google" },
     { label: "Email sign-ups", value: stats.emailUsers, hint: "Email + password" },
     { label: "Premium members", value: stats.premiumUsers, hint: "Upgraded accounts" },
+    { label: "Waitlist emails", value: stats.subscribers, hint: "Captured via email forms" },
     { label: "Published content", value: stats.totalPosts, hint: "Research, articles & posts" },
   ];
   return (

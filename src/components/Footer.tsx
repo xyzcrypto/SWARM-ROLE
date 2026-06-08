@@ -3,6 +3,7 @@ import Image from "next/image";
 import { site, navLinks } from "@/lib/site";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "./BrandIcons";
 import { Container } from "./ui/primitives";
+import { WaitlistForm } from "./WaitlistForm";
 
 const socialList = [
   { href: site.socials.youtube, Icon: YouTubeIcon, label: "YouTube" },
@@ -15,6 +16,19 @@ export function Footer() {
   return (
     <footer className="relative border-t border-line bg-ink-950">
       <Container>
+        <div className="grid items-center gap-6 border-b border-line py-12 md:grid-cols-2">
+          <div>
+            <h3 className="font-display text-xl font-semibold text-zinc-50">
+              Get alpha in your inbox
+            </h3>
+            <p className="mt-2 max-w-sm text-sm text-zinc-500">
+              Research drops, product launches and airdrop alerts — straight to
+              your email. No spam.
+            </p>
+          </div>
+          <WaitlistForm source="footer" cta="Subscribe" />
+        </div>
+
         <div className="grid gap-10 py-14 lg:grid-cols-[1.6fr_1fr_1fr]">
           <div>
             <Link href="/" className="flex items-center gap-3">
