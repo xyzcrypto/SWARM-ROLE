@@ -1,15 +1,16 @@
-// XYZ Crypto database schema
-// Default: SQLite for instant local dev. For production (Vercel/hosted),
-// switch `provider` to "postgresql" and set DATABASE_URL to your Postgres URL
-// (Vercel Postgres / Supabase / Neon). No other change needed.
+// XYZ Crypto — Production database schema
+// Provider: Supabase PostgreSQL
+// Set DATABASE_URL to your Supabase transaction-mode pooler URL (port 6543)
+// Set DIRECT_URL to your Supabase direct connection URL (port 5432) for migrations
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -19,9 +20,14 @@ model User {
   emailVerified DateTime?
   image         String?
   passwordHash  String?
-  role          String    @default("USER") // "USER" | "ADMIN"
+  role          String    @default("USER")       // "USER" | "PREMIUM" | "ADMIN"
+  membership    String    @default("standard")   // "standard" | "premium" | "enterprise"
   provider      String    @default("credentials") // "credentials" | "google"
+  status        String    @default("active")     // "active" | "disabled"
+  lastLogin     DateTime?
+  signupDate    DateTime  @default(now())
   createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   posts    Post[]
   accounts Account[]
@@ -29,17 +35,18 @@ model User {
 }
 
 model Post {
-  id        String   @id @default(cuid())
-  title     String
-  slug      String   @unique
-  excerpt   String
-  content   String   // markdown / long text
-  cover     String?  // image URL
-  category  String   @default("Research") // Research | Article | Post
-  tags      String   @default("") // comma separated
-  published Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  excerpt     String
+  content     String
+  cover       String?   // cover image URL (Supabase Storage or external)
+  category    String    @default("Research")  // "Research" | "Article" | "Post"
+  tags        String    @default("")          // comma-separated
+  published   Boolean   @default(true)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
   authorId String?

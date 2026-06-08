@@ -9,14 +9,24 @@ import { slugify } from "@/lib/utils";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
+  const includeDrafts = searchParams.get("drafts") === "1";
+
+  // Only admins can request drafts
+  let showDrafts = false;
+  if (includeDrafts) {
+    const session = await getServerSession(authOptions);
+    showDrafts = (session?.user as any)?.role === "ADMIN";
+  }
+
   const posts = await prisma.post.findMany({
     where: {
-      published: true,
+      ...(showDrafts ? {} : { published: true }),
       ...(category && category !== "All" ? { category } : {}),
     },
     orderBy: { createdAt: "desc" },
     include: { author: { select: { name: true } } },
   });
+
   return NextResponse.json({ posts });
 }
 
@@ -27,7 +37,7 @@ const createSchema = z.object({
   category: z.enum(["Research", "Article", "Post"]).default("Research"),
   cover: z.string().trim().url().optional().or(z.literal("")),
   tags: z.string().trim().max(200).optional(),
-  published: z.boolean().optional(),
+  published: z.boolean().optional().default(true),
 });
 
 // POST /api/research — admin only
@@ -63,6 +73,7 @@ export async function POST(req: Request) {
       cover: data.cover || null,
       tags: data.tags || "",
       published: data.published ?? true,
+      publishedAt: data.published ? new Date() : null,
       authorId: (session.user as any).id ?? null,
     },
   });

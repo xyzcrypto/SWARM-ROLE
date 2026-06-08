@@ -14,10 +14,11 @@ export default async function DashboardPage() {
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
   if ((session.user as any).role !== "ADMIN") redirect("/");
 
-  const [totalUsers, googleUsers, last7days, recentUsers, posts] =
+  const [totalUsers, googleUsers, premiumUsers, last7days, recentUsers, posts] =
     await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { provider: "google" } }),
+      prisma.user.count({ where: { role: "PREMIUM" } }),
       prisma.user.count({
         where: { createdAt: { gte: new Date(Date.now() - 7 * 864e5) } },
       }),
@@ -30,6 +31,10 @@ export default async function DashboardPage() {
           email: true,
           provider: true,
           role: true,
+          membership: true,
+          status: true,
+          lastLogin: true,
+          signupDate: true,
           createdAt: true,
         },
       }),
@@ -41,6 +46,7 @@ export default async function DashboardPage() {
           slug: true,
           category: true,
           published: true,
+          publishedAt: true,
           createdAt: true,
         },
       }),
@@ -50,8 +56,11 @@ export default async function DashboardPage() {
     totalUsers,
     googleUsers,
     emailUsers: totalUsers - googleUsers,
+    premiumUsers,
     last7days,
     totalPosts: posts.length,
+    publishedPosts: posts.filter((p) => p.published).length,
+    draftPosts: posts.filter((p) => !p.published).length,
   };
 
   return (
@@ -64,10 +73,13 @@ export default async function DashboardPage() {
             stats={stats}
             recentUsers={recentUsers.map((u) => ({
               ...u,
+              lastLogin: u.lastLogin?.toISOString() ?? null,
+              signupDate: u.signupDate.toISOString(),
               createdAt: u.createdAt.toISOString(),
             }))}
             posts={posts.map((p) => ({
               ...p,
+              publishedAt: p.publishedAt?.toISOString() ?? null,
               createdAt: p.createdAt.toISOString(),
             }))}
             adminName={session.user.name ?? "Admin"}

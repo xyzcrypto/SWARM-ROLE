@@ -36,14 +36,23 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email.toLowerCase().trim() },
         });
         if (!user || !user.passwordHash) return null;
+        // Reject disabled accounts
+        if (user.status === "disabled") return null;
         const ok = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!ok) return null;
+        // Update lastLogin timestamp
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { lastLogin: new Date() },
+        });
         return {
           id: user.id,
           name: user.name,
           email: user.email,
           image: user.image,
           role: user.role,
+          membership: user.membership,
+          status: user.status,
         } as any;
       },
     }),
@@ -53,16 +62,20 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.uid = (user as any).id;
         token.role = (user as any).role ?? "USER";
+        token.membership = (user as any).membership ?? "standard";
+        token.status = (user as any).status ?? "active";
       }
-      // Keep role fresh from DB on each refresh when possible
-      if (token.email && !token.role) {
+      // Refresh role, membership, status from DB on each token refresh
+      if (token.email) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
-          select: { id: true, role: true },
+          select: { id: true, role: true, membership: true, status: true },
         });
         if (dbUser) {
           token.uid = dbUser.id;
           token.role = dbUser.role;
+          token.membership = dbUser.membership;
+          token.status = dbUser.status;
         }
       }
       return token;
@@ -71,24 +84,44 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.uid;
         (session.user as any).role = token.role ?? "USER";
+        (session.user as any).membership = token.membership ?? "standard";
+        (session.user as any).status = token.status ?? "active";
       }
       return session;
     },
+    async signIn({ user }) {
+      // Block disabled accounts from signing in via OAuth
+      if (user.email) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: user.email },
+          select: { status: true },
+        });
+        if (dbUser?.status === "disabled") return false;
+      }
+      return true;
+    },
   },
   events: {
-    // Promote the configured admin email & tag the provider for OAuth users.
     async createUser({ user }) {
       const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-      if (user.email && adminEmail && user.email.toLowerCase() === adminEmail) {
+      const isAdmin =
+        user.email && adminEmail && user.email.toLowerCase() === adminEmail;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          role: isAdmin ? "ADMIN" : "USER",
+          provider: "google",
+          lastLogin: new Date(),
+        },
+      });
+    },
+    async signIn({ user, account }) {
+      // Track lastLogin for OAuth sign-ins
+      if (account?.provider !== "credentials" && user.id) {
         await prisma.user.update({
           where: { id: user.id },
-          data: { role: "ADMIN", provider: "google" },
-        });
-      } else if (user.email) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { provider: "google" },
-        });
+          data: { lastLogin: new Date() },
+        }).catch(() => null);
       }
     },
   },

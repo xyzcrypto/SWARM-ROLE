@@ -6,7 +6,10 @@ import { prisma } from "@/lib/prisma";
 const schema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(60),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters").max(100),
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .max(100),
 });
 
 export async function POST(req: Request) {
@@ -30,7 +33,8 @@ export async function POST(req: Request) {
     }
 
     const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-    const passwordHash = await bcrypt.hash(password, 10);
+    const isAdmin = adminEmail && email === adminEmail;
+    const passwordHash = await bcrypt.hash(password, 12); // 12 rounds for production
 
     await prisma.user.create({
       data: {
@@ -38,7 +42,10 @@ export async function POST(req: Request) {
         email,
         passwordHash,
         provider: "credentials",
-        role: adminEmail && email === adminEmail ? "ADMIN" : "USER",
+        role: isAdmin ? "ADMIN" : "USER",
+        membership: "standard",
+        status: "active",
+        signupDate: new Date(),
       },
     });
 

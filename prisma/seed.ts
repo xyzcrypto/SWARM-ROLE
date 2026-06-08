@@ -85,22 +85,33 @@ async function main() {
       email: adminEmail,
       name: "XYZ Crypto Admin",
       role: "ADMIN",
+      membership: "enterprise",
       provider: "credentials",
-      passwordHash: await bcrypt.hash("changeme123", 10),
+      status: "active",
+      signupDate: new Date(),
+      passwordHash: await bcrypt.hash("changeme123", 12),
     },
   });
 
+  const now = new Date();
   for (const p of posts) {
     const slug = slugify(p.title);
     await prisma.post.upsert({
       where: { slug },
       update: {},
-      create: { ...p, slug, published: true, authorId: admin.id },
+      create: {
+        ...p,
+        slug,
+        published: true,
+        publishedAt: now,
+        authorId: admin.id,
+      },
     });
   }
 
   console.log("Seed complete. Sample posts + admin user ready.");
-  console.log(`Admin login (email/password): ${adminEmail} / changeme123`);
+  console.log(`Admin login: ${adminEmail} / changeme123`);
+  console.log("IMPORTANT: Change the admin password immediately after seeding.");
 }
 
 main()
