@@ -263,6 +263,63 @@ body {
   to   { transform: translateX(-50%); }
 }
 
+/* ─── Animated gradient border (featured card) ───────────────────────── */
+.feature-card-glow {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* ─── Scan line for stats band ────────────────────────────────────────── */
+.animate-scan-line {
+  animation: scan-line 4.5s linear infinite;
+}
+
+/* ─── Floating particles ──────────────────────────────────────────────── */
+.particle {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* ─── Clip reveal container ───────────────────────────────────────────── */
+.clip-reveal {
+  overflow: hidden;
+  display: block;
+}
+
+/* ─── Text shimmer on hover ───────────────────────────────────────────── */
+.shimmer-hover:hover {
+  background: linear-gradient(
+    100deg,
+    #a06210 20%,
+    #f7c948 40%,
+    #fdf0c8 50%,
+    #f7c948 60%,
+    #a06210 80%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shine 1.5s linear infinite;
+}
+
+/* ─── Spotlight overlay for cards ────────────────────────────────────── */
+.spotlight {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    400px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    rgba(233, 160, 32, 0.07),
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.group:hover .spotlight { opacity: 1; }
+
 /* ─── Scrollbar ───────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #000000; }

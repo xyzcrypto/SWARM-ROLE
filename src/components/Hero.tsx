@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { useRef, useState, useEffect } from "react";
+import { motion, useInView, useMotionValue, useTransform, animate } from "framer-motion";
 
+/* ─── Marquee items ────────────────────────────────────────────────────── */
 const marqueeItems = [
   "Web3 Research",
   "Perp DEX",
@@ -16,20 +18,105 @@ const marqueeItems = [
   "TradeKaroVerse",
 ];
 
+/* ─── Stat counter ─────────────────────────────────────────────────────── */
+function Counter({ to, suffix }: { to: number; suffix: string }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => Math.round(v));
+  const inView = useInView(ref, { once: true });
+
+  useEffect(() => {
+    if (!inView) return;
+    const c = animate(count, to, { duration: 2, ease: "easeOut" });
+    return () => c.stop();
+  }, [inView, count, to]);
+
+  return (
+    <span ref={ref} className="stat-num">
+      <motion.span>{rounded}</motion.span>
+      {suffix}
+    </span>
+  );
+}
+
 const stats = [
-  { k: "6+",    v: "Products in pipeline" },
-  { k: "24/7",  v: "On-chain coverage" },
-  { k: "100%",  v: "Community first" },
+  { to: 6,   suffix: "+",  label: "Products building" },
+  { to: 24,  suffix: "/7", label: "On-chain coverage" },
+  { to: 100, suffix: "%",  label: "Community first" },
 ];
 
-export function Hero() {
+/* ─── Particle config ──────────────────────────────────────────────────── */
+const particles = [
+  { pos: "top-[18%] right-[14%]", size: "h-1.5 w-1.5", delay: "0s",    dur: "6s"  },
+  { pos: "top-[32%] left-[10%]",  size: "h-1 w-1",     delay: "1.2s",  dur: "8s"  },
+  { pos: "bottom-[24%] right-[12%]", size: "h-1.5 w-1.5", delay: "0.6s", dur: "7s" },
+  { pos: "bottom-[20%] left-[16%]",  size: "h-1 w-1",   delay: "2s",   dur: "9s"  },
+  { pos: "top-[50%] right-[4%]",     size: "h-1 w-1",   delay: "1.5s", dur: "10s" },
+  { pos: "top-[10%] left-[20%]",     size: "h-0.5 w-0.5", delay: "3s", dur: "7s"  },
+  { pos: "bottom-[36%] left-[4%]",   size: "h-0.5 w-0.5", delay: "0.3s", dur: "8s" },
+  { pos: "top-[68%] right-[22%]",    size: "h-1 w-1",   delay: "2.5s", dur: "6s"  },
+];
+
+/* ─── Clip-reveal line component ───────────────────────────────────────── */
+function RevealLine({
+  children,
+  delay = 0,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+}) {
   return (
-    <section className="relative overflow-hidden pt-24 pb-0 sm:pt-32">
-      {/* Ambient layers */}
+    <span className="clip-reveal">
+      <motion.span
+        className="block"
+        initial={{ y: "110%" }}
+        animate={{ y: "0%" }}
+        transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], delay }}
+      >
+        {children}
+      </motion.span>
+    </span>
+  );
+}
+
+export function Hero() {
+  const heroRef = useRef<HTMLElement>(null);
+  const [spotlight, setSpotlight] = useState({ x: 0, y: 0, active: false });
+
+  useEffect(() => {
+    const el = heroRef.current;
+    if (!el) return;
+
+    const move = (e: MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      setSpotlight({ x: e.clientX - rect.left, y: e.clientY - rect.top, active: true });
+    };
+    const leave = () => setSpotlight((s) => ({ ...s, active: false }));
+
+    el.addEventListener("mousemove", move);
+    el.addEventListener("mouseleave", leave);
+    return () => {
+      el.removeEventListener("mousemove", move);
+      el.removeEventListener("mouseleave", leave);
+    };
+  }, []);
+
+  return (
+    <section ref={heroRef} className="relative overflow-hidden pt-24 pb-0 sm:pt-32">
+      {/* ── Ambient layers ──────────────────────────────────────────── */}
       <div className="pointer-events-none absolute inset-0 bg-radial-fade" />
       <div className="pointer-events-none absolute inset-0 bg-grid" />
-      <div className="glow-orb left-[5%] top-[4%] h-[500px] w-[500px] bg-gold-400/14" />
-      <div className="glow-orb right-[2%] top-[10%] h-[600px] w-[600px] bg-gold-500/9" />
+      <div className="glow-orb left-[5%] top-[4%] h-[500px] w-[500px] bg-gold-400/12" />
+      <div className="glow-orb right-[2%] top-[10%] h-[600px] w-[600px] bg-gold-500/7" />
+
+      {/* Mouse spotlight */}
+      <div
+        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-500"
+        style={{
+          opacity: spotlight.active ? 1 : 0,
+          background: `radial-gradient(700px circle at ${spotlight.x}px ${spotlight.y}px, rgba(233,160,32,0.055), transparent 65%)`,
+        }}
+      />
 
       <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pb-24 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
 
@@ -38,7 +125,7 @@ export function Hero() {
 
           {/* Badge */}
           <motion.div
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
@@ -51,29 +138,30 @@ export function Hero() {
             </span>
           </motion.div>
 
-          {/* Headline — locked production copy */}
-          <motion.h1
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.08 }}
-            className="mt-7 font-display leading-[1.02] tracking-tight"
-          >
-            <span className="block text-4xl font-light text-zinc-400 sm:text-5xl lg:text-6xl">
-              The home of
-            </span>
-            <span className="block text-gold-gradient text-5xl font-extrabold sm:text-7xl lg:text-[5.5rem]">
-              next-gen
-            </span>
-            <span className="block text-4xl font-extrabold text-zinc-50 sm:text-6xl lg:text-7xl">
-              Web3.
-            </span>
-          </motion.h1>
+          {/* Headline — clip reveal per line */}
+          <h1 className="mt-7 font-display leading-[1.02] tracking-tight">
+            <RevealLine delay={0.12}>
+              <span className="text-4xl font-light text-zinc-400 sm:text-5xl lg:text-6xl">
+                The home of
+              </span>
+            </RevealLine>
+            <RevealLine delay={0.26}>
+              <span className="text-gold-gradient text-5xl font-extrabold sm:text-7xl lg:text-[5.5rem]">
+                next-gen
+              </span>
+            </RevealLine>
+            <RevealLine delay={0.4}>
+              <span className="text-4xl font-extrabold text-zinc-50 sm:text-6xl lg:text-7xl">
+                Web3.
+              </span>
+            </RevealLine>
+          </h1>
 
           {/* Subheading */}
           <motion.p
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.2 }}
+            transition={{ duration: 0.65, delay: 0.55 }}
             className="mx-auto mt-7 max-w-lg text-[0.95rem] leading-[1.75] text-zinc-500 sm:text-base lg:mx-0"
           >
             Research, trading tools, a perp DEX, airdrop tools, premium
@@ -83,9 +171,9 @@ export function Hero() {
 
           {/* CTAs */}
           <motion.div
-            initial={{ opacity: 0, y: 14 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.3 }}
+            transition={{ duration: 0.65, delay: 0.65 }}
             className="mt-10 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
           >
             <Link href="/signup" className="btn-gold w-full sm:w-auto">
@@ -99,20 +187,20 @@ export function Hero() {
             </Link>
           </motion.div>
 
-          {/* Stats — JetBrains Mono numbers */}
+          {/* Stats — animated counters */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.9, delay: 0.46 }}
+            transition={{ duration: 0.9, delay: 0.78 }}
             className="mt-12 flex max-w-sm items-center divide-x divide-white/[0.07] lg:max-w-none"
           >
             {stats.map((s) => (
-              <div key={s.v} className="flex-1 px-5 first:pl-0 last:pr-0 text-center lg:text-left">
-                <div className="stat-num text-2xl font-bold text-gold-gradient sm:text-[1.75rem]">
-                  {s.k}
+              <div key={s.label} className="flex-1 px-5 first:pl-0 last:pr-0 text-center lg:text-left">
+                <div className="text-2xl font-bold text-gold-gradient sm:text-[1.75rem]">
+                  <Counter to={s.to} suffix={s.suffix} />
                 </div>
                 <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
-                  {s.v}
+                  {s.label}
                 </div>
               </div>
             ))}
@@ -121,28 +209,31 @@ export function Hero() {
 
         {/* ── Right: medallion ────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+          initial={{ opacity: 0, scale: 0.88 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
           className="relative mx-auto flex aspect-square w-full max-w-[400px] items-center justify-center"
         >
-          {/* Concentric rings */}
+          {/* Rings */}
           <div className="absolute inset-0 animate-spin-slow rounded-full border border-gold-400/10" />
           <div className="absolute inset-7 animate-spin-rev rounded-full border border-dashed border-gold-400/14" />
           <div className="absolute inset-14 animate-spin-slow rounded-full border border-gold-300/8" />
           <div className="absolute inset-20 animate-spin-rev rounded-full border border-dashed border-gold-400/6" />
 
           {/* Core glow */}
-          <div className="absolute inset-[22%] rounded-full bg-gold-400/14 blur-3xl" />
-          <div className="absolute inset-[28%] rounded-full bg-gold-300/10 blur-2xl" />
+          <div className="absolute inset-[22%] rounded-full bg-gold-400/12 blur-3xl" />
+          <div className="absolute inset-[28%] rounded-full bg-gold-300/8 blur-2xl" />
 
-          {/* Floating logo */}
+          {/* Pulsing outer ring */}
+          <div className="absolute inset-[8%] animate-pulse-ring rounded-full border border-gold-400/12" />
+
+          {/* Logo */}
           <motion.div
             animate={{ y: [0, -14, 0] }}
             transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
             className="relative h-[60%] w-[60%]"
           >
-            <div className="absolute inset-0 rounded-full shadow-gold-xl opacity-60" />
+            <div className="absolute inset-0 rounded-full shadow-gold-xl opacity-50" />
             <Image
               src="/logo.jpg"
               alt="XYZ Crypto"
@@ -153,17 +244,12 @@ export function Hero() {
             />
           </motion.div>
 
-          {/* Particle dots */}
-          {[
-            "top-[20%] right-[14%]",
-            "top-[32%] left-[10%]",
-            "bottom-[24%] right-[12%]",
-            "bottom-[20%] left-[16%]",
-            "top-[50%] right-[4%]",
-          ].map((pos, i) => (
+          {/* Particles */}
+          {particles.map((p, i) => (
             <div
               key={i}
-              className={`absolute ${pos} h-1 w-1 rounded-full bg-gold-400/50`}
+              className={`particle ${p.pos} ${p.size} bg-gold-400/55 animate-float-particle`}
+              style={{ animationDelay: p.delay, animationDuration: p.dur }}
             />
           ))}
         </motion.div>
@@ -175,10 +261,10 @@ export function Hero() {
           {[...marqueeItems, ...marqueeItems].map((m, i) => (
             <span
               key={i}
-              className="flex shrink-0 items-center gap-10 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-700"
+              className="flex shrink-0 items-center gap-10 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-700 transition-colors hover:text-gold-600"
             >
               {m}
-              <span className="text-gold-400/40">◆</span>
+              <span className="text-gold-400/35">◆</span>
             </span>
           ))}
         </div>

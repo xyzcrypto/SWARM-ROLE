@@ -1,4 +1,5 @@
 import { Reveal } from "./Reveal";
+import { TiltCard } from "./TiltCard";
 
 const pillars = [
   {
@@ -73,31 +74,35 @@ export function About() {
           </p>
         </Reveal>
 
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4" style={{ perspective: "1200px" }}>
           {pillars.map((p, i) => (
             <Reveal key={p.title} delay={i}>
-              <div className="card-gold-border group relative h-full overflow-hidden rounded-2xl p-7 hover:-translate-y-1.5">
-                {/* Top accent */}
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-400/35 to-transparent" />
+              <TiltCard intensity={6}>
+                <div className="card-gold-border group relative h-full overflow-hidden rounded-2xl p-7 hover:-translate-y-1.5">
+                  {/* Spotlight overlay */}
+                  <div className="spotlight" />
+                  {/* Top accent */}
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-400/35 to-transparent" />
 
-                {/* Number — large ghost watermark */}
-                <div className="absolute -right-2 -top-4 font-display text-[5rem] font-extrabold leading-none text-white/[0.03] select-none">
-                  {p.num}
+                  {/* Ghost number watermark */}
+                  <div className="absolute -right-2 -top-4 font-display text-[5rem] font-extrabold leading-none text-white/[0.03] select-none">
+                    {p.num}
+                  </div>
+
+                  <div className="mb-6 icon-box h-11 w-11">
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
+                      {p.icon}
+                    </svg>
+                  </div>
+
+                  <h3 className="font-display text-[1rem] font-semibold text-zinc-100">
+                    {p.title}
+                  </h3>
+                  <p className="mt-2.5 text-[0.83rem] leading-[1.7] text-zinc-500">
+                    {p.body}
+                  </p>
                 </div>
-
-                <div className="mb-6 icon-box h-11 w-11">
-                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-                    {p.icon}
-                  </svg>
-                </div>
-
-                <h3 className="font-display text-[1rem] font-semibold text-zinc-100">
-                  {p.title}
-                </h3>
-                <p className="mt-2.5 text-[0.83rem] leading-[1.7] text-zinc-500">
-                  {p.body}
-                </p>
-              </div>
+              </TiltCard>
             </Reveal>
           ))}
         </div>

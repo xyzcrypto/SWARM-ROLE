@@ -1,4 +1,5 @@
 import { Reveal } from "./Reveal";
+import { TiltCard } from "./TiltCard";
 
 const products = [
   {
@@ -93,7 +94,7 @@ export function Products() {
       <hr className="section-sep" />
 
       <div className="pointer-events-none absolute inset-0">
-        <div className="glow-orb left-1/2 top-16 h-96 w-96 -translate-x-1/2 bg-gold-400/6" />
+        <div className="glow-orb left-1/2 top-16 h-96 w-96 -translate-x-1/2 bg-gold-400/5" />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 pt-20 sm:px-6 lg:px-8">
@@ -110,46 +111,52 @@ export function Products() {
           </p>
         </Reveal>
 
-        {/* Bento grid — Perp DEX featured */}
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" style={{ perspective: "1400px" }}>
           {products.map((p, i) => (
             <Reveal key={p.name} delay={i}>
-              <div
-                className={`group relative h-full overflow-hidden rounded-2xl p-7 transition-all duration-350 ${
-                  p.featured
-                    ? "feature-card sm:col-span-2 lg:col-span-1 lg:row-span-1"
-                    : "card-gold-border hover:-translate-y-1.5"
-                }`}
-              >
-                {/* Top accent */}
-                <div className={`absolute inset-x-0 top-0 h-[2px] rounded-t-2xl ${
-                  p.featured
-                    ? "bg-gradient-to-r from-gold-700 via-gold-200 to-gold-700"
-                    : "bg-gradient-to-r from-transparent via-gold-400/22 to-transparent"
-                }`} />
+              <TiltCard intensity={p.featured ? 5 : 7} className={p.featured ? "sm:col-span-2 lg:col-span-1" : ""}>
+                <div
+                  className={`group relative h-full overflow-hidden rounded-2xl p-7 transition-all duration-300 ${
+                    p.featured
+                      ? "feature-card feature-card-glow"
+                      : "card-gold-border hover:-translate-y-1.5"
+                  }`}
+                >
+                  {/* Spotlight */}
+                  <div className="spotlight" />
 
-                <div className="mb-6 flex items-start justify-between gap-3">
-                  <div className="icon-box h-11 w-11 shrink-0">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-                      {p.icon}
-                    </svg>
+                  {/* Top accent */}
+                  <div className={`absolute inset-x-0 top-0 h-[2px] rounded-t-2xl ${
+                    p.featured
+                      ? "bg-gradient-to-r from-gold-700 via-gold-200 to-gold-700"
+                      : "bg-gradient-to-r from-transparent via-gold-400/22 to-transparent"
+                  }`} />
+
+                  <div className="mb-6 flex items-start justify-between gap-3">
+                    <div className="icon-box h-11 w-11 shrink-0">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+                        {p.icon}
+                      </svg>
+                    </div>
+                    <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ${statusStyle[p.status]}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${
+                        p.status === "Live" ? "animate-pulse " : ""
+                      }${statusDot[p.status]}`} />
+                      {p.status}
+                    </span>
                   </div>
-                  <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ${statusStyle[p.status]}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${statusDot[p.status]}`} />
-                    {p.status}
-                  </span>
+
+                  <h3 className={`font-display font-bold text-zinc-50 ${p.featured ? "text-2xl" : "text-lg"}`}>
+                    {p.name}
+                  </h3>
+                  <p className="mt-2.5 text-[0.83rem] leading-[1.72] text-zinc-500">
+                    {p.desc}
+                  </p>
+
+                  {/* Hover glow */}
+                  <div className="pointer-events-none absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-gold-400/0 blur-3xl transition-all duration-500 group-hover:bg-gold-400/10" />
                 </div>
-
-                <h3 className={`font-display font-bold text-zinc-50 ${p.featured ? "text-2xl" : "text-lg"}`}>
-                  {p.name}
-                </h3>
-                <p className="mt-2.5 text-[0.83rem] leading-[1.72] text-zinc-500">
-                  {p.desc}
-                </p>
-
-                {/* Hover glow */}
-                <div className="pointer-events-none absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-gold-400/0 blur-3xl transition-all duration-500 group-hover:bg-gold-400/10" />
-              </div>
+              </TiltCard>
             </Reveal>
           ))}
         </div>
