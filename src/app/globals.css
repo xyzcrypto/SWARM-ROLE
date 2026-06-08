@@ -23,33 +23,48 @@ body {
   overflow-x: hidden;
 }
 
-/* --- Layered ambient background --- */
+/* ─── Ambient background ──────────────────────────────────────────────── */
 .bg-grid {
   background-image:
-    linear-gradient(rgba(224, 168, 47, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(224, 168, 47, 0.05) 1px, transparent 1px);
-  background-size: 56px 56px;
-  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 75%);
-  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 75%);
+    linear-gradient(rgba(224, 168, 47, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(224, 168, 47, 0.04) 1px, transparent 1px);
+  background-size: 64px 64px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 65% at 50% 0%, #000 20%, transparent 80%);
+  mask-image: radial-gradient(ellipse 80% 65% at 50% 0%, #000 20%, transparent 80%);
 }
 
 .glow-orb {
   position: absolute;
   border-radius: 9999px;
-  filter: blur(90px);
-  opacity: 0.5;
+  filter: blur(100px);
+  opacity: 0.45;
   pointer-events: none;
 }
 
-/* --- Gold gradient text --- */
+/* ─── Section separator ───────────────────────────────────────────────── */
+.section-sep {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(224, 168, 47, 0.18) 25%,
+    rgba(224, 168, 47, 0.18) 75%,
+    transparent 100%
+  );
+  border: none;
+  margin: 0;
+}
+
+/* ─── Gold gradient text ──────────────────────────────────────────────── */
 .text-gold-gradient {
   background: linear-gradient(
     135deg,
     #8a560d 0%,
-    #e0a82f 30%,
-    #f2d488 50%,
+    #d4901c 22%,
+    #f2d488 48%,
     #fdf6e3 60%,
-    #d4901c 80%
+    #e0a82f 78%,
+    #b5740f 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
@@ -75,106 +90,159 @@ body {
 }
 
 @keyframes shine {
-  to {
-    background-position: 200% center;
-  }
+  to { background-position: 200% center; }
 }
 
-/* --- Glass panels --- */
+/* ─── Glass panels ────────────────────────────────────────────────────── */
 .glass {
   background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.045),
-    rgba(255, 255, 255, 0.015)
+    160deg,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.02)
   );
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
+/* ─── Cards ───────────────────────────────────────────────────────────── */
 .card-gold-border {
   position: relative;
-  background: linear-gradient(180deg, rgba(23, 27, 39, 0.7), rgba(10, 12, 18, 0.7));
-  border: 1px solid rgba(224, 168, 47, 0.16);
+  background: linear-gradient(160deg, rgba(23, 27, 39, 0.8), rgba(10, 12, 18, 0.88));
+  border: 1px solid rgba(224, 168, 47, 0.14);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
 .card-gold-border:hover {
-  border-color: rgba(224, 168, 47, 0.45);
+  border-color: rgba(224, 168, 47, 0.42);
 }
 
-/* --- Buttons --- */
+/* Brand / Ecosystem card */
+.brand-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(160deg, rgba(20, 24, 36, 0.9), rgba(8, 10, 16, 0.95));
+  border: 1px solid rgba(224, 168, 47, 0.16);
+  transition: border-color 0.35s ease, transform 0.35s ease, box-shadow 0.35s ease;
+}
+.brand-card:hover {
+  border-color: rgba(224, 168, 47, 0.45);
+  transform: translateY(-5px);
+  box-shadow: 0 24px 64px -24px rgba(224, 168, 47, 0.28);
+}
+
+/* Featured product card */
+.feature-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(145deg, rgba(224, 168, 47, 0.1), rgba(8, 10, 16, 0.95) 60%);
+  border: 1px solid rgba(224, 168, 47, 0.38);
+}
+.feature-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(224, 168, 47, 0.2), transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.feature-card:hover::after { opacity: 1; }
+
+/* ─── Pill / label ────────────────────────────────────────────────────── */
+.pill-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(224, 168, 47, 0.28);
+  background: rgba(224, 168, 47, 0.06);
+  padding: 0.3rem 0.875rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f9e9c0;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ─── Icon box ────────────────────────────────────────────────────────── */
+.icon-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.875rem;
+  background: rgba(224, 168, 47, 0.07);
+  border: 1px solid rgba(224, 168, 47, 0.16);
+  color: #e9bd54;
+  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  flex-shrink: 0;
+}
+.group:hover .icon-box {
+  background: rgba(224, 168, 47, 0.15);
+  box-shadow: 0 0 24px -6px rgba(224, 168, 47, 0.45);
+  transform: scale(1.06);
+}
+
+/* ─── Buttons ─────────────────────────────────────────────────────────── */
 .btn-gold {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-ink transition-all duration-300;
-  background: linear-gradient(135deg, #f2d488, #e0a82f 55%, #b5740f);
-  box-shadow: 0 10px 30px -10px rgba(224, 168, 47, 0.6);
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-bold text-ink transition-all duration-300;
+  background: linear-gradient(135deg, #f2d488 0%, #e0a82f 45%, #b5740f 100%);
+  box-shadow: 0 8px 28px -8px rgba(224, 168, 47, 0.6), inset 0 1px 0 rgba(255,255,255,0.12);
+  letter-spacing: 0.01em;
 }
 .btn-gold:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 40px -12px rgba(224, 168, 47, 0.8);
+  box-shadow: 0 14px 40px -10px rgba(224, 168, 47, 0.8), inset 0 1px 0 rgba(255,255,255,0.18);
+  background: linear-gradient(135deg, #fdf6e3 0%, #f2d488 35%, #d4901c 100%);
 }
+.btn-gold:active { transform: translateY(0px); }
 
 .btn-ghost {
-  @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-zinc-200 transition-all duration-300;
-  border: 1px solid rgba(224, 168, 47, 0.3);
-  background: rgba(255, 255, 255, 0.02);
+  @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-zinc-300 transition-all duration-300;
+  border: 1px solid rgba(224, 168, 47, 0.25);
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(8px);
 }
 .btn-ghost:hover {
-  border-color: rgba(224, 168, 47, 0.6);
+  border-color: rgba(224, 168, 47, 0.55);
   color: #fdf6e3;
+  background: rgba(224, 168, 47, 0.06);
 }
 
-/* --- Marquee --- */
+/* ─── Marquee ─────────────────────────────────────────────────────────── */
 .marquee {
   display: flex;
   width: max-content;
-  animation: marquee 26s linear infinite;
+  animation: marquee 32s linear infinite;
 }
+.marquee:hover { animation-play-state: paused; }
 @keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
 }
 
-/* --- Scrollbar --- */
-::-webkit-scrollbar {
-  width: 10px;
-}
-::-webkit-scrollbar-track {
-  background: #05060a;
-}
+/* ─── Scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #05060a; }
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(#b5740f, #5e3a0c);
-  border-radius: 10px;
+  background: linear-gradient(180deg, #b5740f, #5e3a0c);
+  border-radius: 8px;
+  border: 2px solid #05060a;
 }
 
-/* --- Prose for articles --- */
-.prose-xyz {
-  @apply text-zinc-300 leading-relaxed;
-}
+/* ─── Prose for articles ──────────────────────────────────────────────── */
+.prose-xyz { @apply text-zinc-300 leading-relaxed; }
 .prose-xyz h1,
 .prose-xyz h2,
-.prose-xyz h3 {
-  @apply text-zinc-50 font-display font-semibold mt-8 mb-3;
-}
-.prose-xyz h2 {
-  @apply text-2xl;
-}
-.prose-xyz h3 {
-  @apply text-xl;
-}
-.prose-xyz p {
-  @apply my-4;
-}
-.prose-xyz a {
-  @apply text-gold-200 underline underline-offset-4;
-}
-.prose-xyz ul {
-  @apply list-disc pl-6 my-4 space-y-2;
-}
+.prose-xyz h3 { @apply text-zinc-50 font-display font-semibold mt-8 mb-3; }
+.prose-xyz h2  { @apply text-2xl; }
+.prose-xyz h3  { @apply text-xl; }
+.prose-xyz p   { @apply my-4; }
+.prose-xyz a   { @apply text-gold-200 underline underline-offset-4; }
+.prose-xyz ul  { @apply list-disc pl-6 my-4 space-y-2; }
 .prose-xyz code {
-  @apply bg-ink-600 text-gold-100 px-1.5 py-0.5 rounded text-sm;
+  @apply bg-ink-600 text-gold-100 px-1.5 py-0.5 rounded text-sm font-mono;
 }
 .prose-xyz blockquote {
-  @apply border-l-2 border-gold-500 pl-4 italic text-zinc-400 my-4;
+  @apply border-l-2 border-gold-500 pl-5 italic text-zinc-400 my-5;
 }
