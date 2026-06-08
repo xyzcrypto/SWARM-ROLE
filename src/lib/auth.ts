@@ -51,18 +51,24 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // Initial sign-in: seed token from the authenticated user object
         token.uid = (user as any).id;
         token.role = (user as any).role ?? "USER";
+        token.isMember = (user as any).isMember ?? false;
+        token.refreshedAt = Date.now();
       }
-      // Keep role fresh from DB on each refresh when possible
-      if (token.email && !token.role) {
+      // Re-read role + membership from DB every 5 minutes so permission
+      // changes (e.g. admin toggle) propagate without waiting for JWT expiry.
+      const FIVE_MIN = 5 * 60 * 1000;
+      if (token.uid && Date.now() - (token.refreshedAt ?? 0) > FIVE_MIN) {
         const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-          select: { id: true, role: true },
+          where: { id: token.uid },
+          select: { role: true, isMember: true },
         });
         if (dbUser) {
-          token.uid = dbUser.id;
           token.role = dbUser.role;
+          token.isMember = dbUser.isMember;
+          token.refreshedAt = Date.now();
         }
       }
       return token;
@@ -71,6 +77,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.uid;
         (session.user as any).role = token.role ?? "USER";
+        (session.user as any).isMember = token.isMember ?? false;
       }
       return session;
     },

@@ -17,6 +17,7 @@ export default async function ResearchPage() {
     .findMany({
       where: { published: true },
       orderBy: { createdAt: "desc" },
+      take: 100, // Phase 3 will replace this with cursor-based pagination
       include: { author: { select: { name: true } } },
     })
     .catch(() => []);

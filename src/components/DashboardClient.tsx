@@ -10,6 +10,7 @@ type Stats = {
   googleUsers: number;
   emailUsers: number;
   last7days: number;
+  activeMembers: number;
   totalPosts: number;
 };
 
@@ -99,6 +100,7 @@ function Overview({ stats }: { stats: Stats }) {
   const cards = [
     { label: "Total signups", value: stats.totalUsers, hint: "All registered users" },
     { label: "New (7 days)", value: stats.last7days, hint: "Signed up this week" },
+    { label: "Active members", value: stats.activeMembers, hint: "isMember toggled on" },
     { label: "Google sign-ins", value: stats.googleUsers, hint: "Via Gmail / Google" },
     { label: "Email sign-ups", value: stats.emailUsers, hint: "Email + password" },
     { label: "Published content", value: stats.totalPosts, hint: "Research, articles & posts" },

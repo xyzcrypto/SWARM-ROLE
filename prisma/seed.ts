@@ -76,7 +76,7 @@ Security first — a single bad signature can undo months of farming. XYZ Crypto
 ];
 
 async function main() {
-  const adminEmail = (process.env.ADMIN_EMAIL || "niralekhan321@gmail.com").toLowerCase();
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@xyzcrypto.io").toLowerCase();
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
@@ -86,6 +86,7 @@ async function main() {
       name: "XYZ Crypto Admin",
       role: "ADMIN",
       provider: "credentials",
+      isMember: true,
       passwordHash: await bcrypt.hash("changeme123", 10),
     },
   });
