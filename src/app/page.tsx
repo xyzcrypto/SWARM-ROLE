@@ -1,6 +1,7 @@
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
 import { MarketTicker } from "@/components/MarketTicker";
+import { EcosystemPills } from "@/components/EcosystemPills";
 import { ProofStrip } from "@/components/ProofStrip";
 import { About } from "@/components/About";
 import { Products } from "@/components/Products";
@@ -23,6 +24,7 @@ export default async function HomePage() {
       <main>
         <Hero memberCount={memberCount} />
         <MarketTicker />
+        <EcosystemPills />
         <ProofStrip />
         <About />
         <Products />

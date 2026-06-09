@@ -23,6 +23,7 @@ function fmt(price: number) {
 export function MarketTicker() {
   const [coins, setCoins] = useState<Coin[]>(fallback);
   const [live, setLive] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
@@ -37,6 +38,8 @@ export function MarketTicker() {
         setLive(Boolean(data.live));
       } catch {
         if (active) setLive(false);
+      } finally {
+        if (active) setLoading(false);
       }
     }
     load();
@@ -47,32 +50,41 @@ export function MarketTicker() {
     };
   }, []);
 
+  const statusLabel = loading ? "Loading" : live ? "Live Market" : "Market";
+
   return (
     <div className="relative border-y border-line bg-ink-950/60">
       <Container className="flex items-center gap-4 py-3">
         <div className="flex shrink-0 items-center gap-2 pr-3 sm:pr-4">
           <span className="relative flex h-2 w-2">
-            {live && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />}
-            <span className={`relative inline-flex h-2 w-2 rounded-full ${live ? "bg-mint-400" : "bg-zinc-500"}`} />
+            {live && !loading && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />}
+            <span className={`relative inline-flex h-2 w-2 rounded-full ${loading ? "animate-pulse bg-zinc-500" : live ? "bg-mint-400" : "bg-amber-400"}`} />
           </span>
           <span className="mono text-[10px] uppercase tracking-[0.18em] text-zinc-500">
-            {live ? "Live Market" : "Market"}
+            {statusLabel}
           </span>
         </div>
         <div className="flex flex-1 items-center gap-6 overflow-x-auto sm:gap-8 [&::-webkit-scrollbar]:hidden">
-          {coins.map((c) => {
-            const up = c.change >= 0;
-            return (
-              <div key={c.symbol} className="flex shrink-0 items-center gap-2.5">
-                <span className="mono text-xs font-semibold text-zinc-200">{c.symbol}</span>
-                <span className="mono text-xs text-zinc-400">${fmt(c.price)}</span>
-                <span className={`mono inline-flex items-center gap-0.5 text-[11px] ${up ? "text-mint-400" : "text-red-400"}`}>
-                  {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                  {up ? "+" : ""}{c.change.toFixed(2)}%
-                </span>
-              </div>
-            );
-          })}
+          {loading
+            ? [0, 1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex shrink-0 items-center gap-2.5">
+                  <span className="h-3 w-9 animate-pulse rounded bg-white/10" />
+                  <span className="h-3 w-12 animate-pulse rounded bg-white/5" />
+                </div>
+              ))
+            : coins.map((c) => {
+                const up = c.change >= 0;
+                return (
+                  <div key={c.symbol} className="flex shrink-0 items-center gap-2.5">
+                    <span className="mono text-xs font-semibold text-zinc-200">{c.symbol}</span>
+                    <span className="mono text-xs text-zinc-400">${fmt(c.price)}</span>
+                    <span className={`mono inline-flex items-center gap-0.5 text-[11px] ${up ? "text-mint-400" : "text-red-400"}`}>
+                      {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {up ? "+" : ""}{c.change.toFixed(2)}%
+                    </span>
+                  </div>
+                );
+              })}
         </div>
       </Container>
     </div>
