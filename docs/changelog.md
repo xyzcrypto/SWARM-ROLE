@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-XX — Analytics & SEO Foundation
+- **Files:** new `src/lib/seo.ts`, `src/lib/jsonld.tsx`, `src/components/Analytics.tsx`,
+  `src/app/robots.ts`, `src/app/sitemap.ts`; modified `src/app/layout.tsx`,
+  `src/app/research/[slug]/page.tsx`, `.env.example`.
+- **Added:** robots.txt (disallow /dashboard, /api, /login), dynamic sitemap.xml
+  (static routes + published posts), canonical URLs, completed Open Graph +
+  Twitter cards, GA4 (env-gated `NEXT_PUBLIC_GA_ID`), Google Search Console
+  verification (`NEXT_PUBLIC_GSC_VERIFICATION`), JSON-LD structured data
+  (Organization + WebSite site-wide; BlogPosting + BreadcrumbList per article),
+  per-article metadata (article OG type, published/modified time, keywords).
+- **Env:** `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_GSC_VERIFICATION`.
+- **Perf:** GA loads `afterInteractive`; sitemap is force-dynamic (no DB at build).
+- Backend-phase plan Step 8. No frontend visual changes.
+
 ## 2026-06-XX — Memory system + baseline snapshot
 - **Files:** added `/docs/{project-state, frontend-roadmap, design-system,
   brand-guidelines, component-registry, changelog}.md`.

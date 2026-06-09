@@ -4,11 +4,19 @@ import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "./providers";
 import { SmoothScroll } from "@/components/SmoothScroll";
-
-const SITE_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
+import { Analytics } from "@/components/Analytics";
+import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
+import { SITE_URL, GSC_VERIFICATION } from "@/lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  ...(GSC_VERIFICATION ? { verification: { google: GSC_VERIFICATION } } : {}),
   title: {
     default: "XYZ Crypto · The Home Of Next Gen Web3",
     template: "%s · XYZ Crypto",
@@ -62,8 +70,11 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
+        <JsonLd data={organizationJsonLd()} />
+        <JsonLd data={websiteJsonLd()} />
         <SmoothScroll />
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );

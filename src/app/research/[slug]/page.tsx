@@ -7,6 +7,7 @@ import { Footer } from "@/components/Footer";
 import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
 import { formatDate, readingTime } from "@/lib/utils";
+import { JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +27,31 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const post = await getPost(params.slug);
   if (!post) return { title: "Not found" };
+  const url = `/research/${post.slug}`;
+  const images = post.cover ? [post.cover] : ["/logo.jpg"];
+  const keywords = post.tags
+    ? post.tags.split(",").map((t) => t.trim()).filter(Boolean)
+    : undefined;
   return {
     title: post.title,
     description: post.excerpt,
+    keywords,
+    alternates: { canonical: url },
+    authors: [{ name: post.author?.name ?? "XYZ Crypto" }],
     openGraph: {
+      type: "article",
       title: post.title,
       description: post.excerpt,
-      images: post.cover ? [post.cover] : ["/logo.jpg"],
+      url,
+      images,
+      publishedTime: new Date(post.createdAt).toISOString(),
+      modifiedTime: new Date(post.updatedAt).toISOString(),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+      images,
     },
   };
 }
@@ -51,6 +70,14 @@ export default async function PostPage({
 
   return (
     <>
+      <JsonLd data={articleJsonLd(post)} />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Research", path: "/research" },
+          { name: post.title, path: `/research/${post.slug}` },
+        ])}
+      />
       <Navbar />
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
