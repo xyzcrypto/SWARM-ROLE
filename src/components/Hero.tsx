@@ -48,7 +48,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
     <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-36">
       <AnimatedBackground />
 
-      <Container className="relative grid items-center gap-10 sm:gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+      <Container className="relative grid items-center gap-10 sm:gap-12 lg:min-h-[76vh] lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 2xl:gap-20">
         {/* Copy */}
         <div className="text-center lg:text-left">
           <motion.div
@@ -140,7 +140,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
           onMouseMove={onMove}
           onMouseLeave={onLeave}
           style={{ perspective: 1000 }}
-          className="relative mx-auto flex aspect-square w-full max-w-[18rem] items-center justify-center sm:max-w-sm lg:max-w-md"
+          className="relative mx-auto flex aspect-square w-full max-w-[18rem] items-center justify-center sm:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl"
         >
           <motion.div
             style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
