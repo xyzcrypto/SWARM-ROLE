@@ -1,5 +1,6 @@
 import type { ComponentType, SVGProps } from "react";
 import { Container } from "./ui/primitives";
+import { Reveal } from "./Reveal";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "./BrandIcons";
 import { site } from "@/lib/site";
 
@@ -25,15 +26,17 @@ export function ProofStrip() {
   return (
     <div className="border-b border-line py-10">
       <Container>
-        <p className="text-center mono text-[11px] uppercase tracking-[0.2em] text-zinc-600">
-          One ecosystem · trusted across every platform
-        </p>
+        <Reveal>
+          <p className="text-center mono text-[11px] uppercase tracking-[0.2em] text-zinc-600">
+            One ecosystem · trusted across every platform
+          </p>
+        </Reveal>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-          {items.map((it) => {
+          {items.map((it, i) => {
             const Icon = it.Icon;
             return (
+              <Reveal key={it.label} delay={i} variant="pop">
               <a
-                key={it.label}
                 href={it.href}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -48,6 +51,7 @@ export function ProofStrip() {
                 ) : null}
                 <span className="text-sm font-medium">{it.label}</span>
               </a>
+              </Reveal>
             );
           })}
         </div>

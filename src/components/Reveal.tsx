@@ -6,30 +6,31 @@ import type { ReactNode } from "react";
 type RevealVariant = "up" | "pop" | "fade";
 
 const presets: Record<RevealVariant, Variants> = {
-  // soft fade + rise (default, premium)
+  // rise from below (under -> up) with a premium spring
   up: {
-    hidden: { opacity: 0, y: 28 },
+    hidden: { opacity: 0, y: 56 },
     show: (i: number = 0) => ({
       opacity: 1,
       y: 0,
-      transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1], delay: i * 0.08 },
+      transition: { type: "spring", stiffness: 90, damping: 16, mass: 0.9, delay: i * 0.09 },
     }),
   },
-  // popup with a subtle bounce overshoot
+  // popup + bounce overshoot (cards)
   pop: {
-    hidden: { opacity: 0, y: 22, scale: 0.94 },
+    hidden: { opacity: 0, y: 40, scale: 0.9 },
     show: (i: number = 0) => ({
       opacity: 1,
       y: 0,
       scale: 1,
-      transition: { duration: 0.6, ease: [0.34, 1.56, 0.64, 1], delay: i * 0.09 },
+      transition: { type: "spring", stiffness: 120, damping: 12, mass: 0.8, delay: i * 0.1 },
     }),
   },
   fade: {
-    hidden: { opacity: 0 },
+    hidden: { opacity: 0, y: 16 },
     show: (i: number = 0) => ({
       opacity: 1,
-      transition: { duration: 0.7, ease: "easeOut", delay: i * 0.08 },
+      y: 0,
+      transition: { duration: 0.8, ease: "easeOut", delay: i * 0.08 },
     }),
   },
 };

@@ -3,6 +3,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "./providers";
+import { SmoothScroll } from "@/components/SmoothScroll";
 
 const SITE_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 
@@ -61,6 +62,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
+        <SmoothScroll />
         <Providers>{children}</Providers>
       </body>
     </html>
