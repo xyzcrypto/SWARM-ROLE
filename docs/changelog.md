@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-XX — Backend hardening (Steps 1,3–7)
+- **Files:** new `src/lib/env.ts`, `src/lib/api.ts`, `src/lib/ratelimit.ts`,
+  `src/app/error.tsx`, `src/app/global-error.tsx`, `src/app/not-found.tsx`,
+  `vitest.config.ts`, `src/lib/__tests__/*`, `.github/workflows/ci.yml`;
+  modified all `src/app/api/*` routes, `src/lib/auth.ts`,
+  `src/lib/markdown.tsx`, `.env.example`, `package.json`.
+- **Hardening:** centralized error handling (Zod→400, P2002→409, P2025→404,
+  safe 500); env validation (warn-only) + multi-admin (`ADMIN_EMAILS`);
+  Upstash rate limiting w/ no-op fallback (signup/subscribe/admin); real 404s +
+  cuid guards on admin routes; fixed slug N+1; `allowDangerousEmailAccountLinking
+  =false`; markdown link-protocol XSS guard; error/not-found boundaries.
+- **Quality gate:** Vitest (15 tests) + GitHub Actions CI (typecheck→lint→
+  test→build).
+- **Pending:** Step 2 — Supabase Postgres migration (needs connection strings).
+
 ## 2026-06-XX — Analytics & SEO Foundation
 - **Files:** new `src/lib/seo.ts`, `src/lib/jsonld.tsx`, `src/components/Analytics.tsx`,
   `src/app/robots.ts`, `src/app/sitemap.ts`; modified `src/app/layout.tsx`,
