@@ -141,6 +141,10 @@
   0%, 100% { transform: scaleX(0.55); opacity: 0.55; }
   50% { transform: scaleX(1); opacity: 1; }
 }
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
 
 .grain {
   position: absolute;
@@ -343,8 +347,7 @@
   .mesh::after,
   .aurora,
   .particle,
-  .grid-pan,
-  .marquee {
+  .grid-pan {
     animation: none !important;
   }
 }

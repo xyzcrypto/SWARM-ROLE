@@ -100,24 +100,38 @@ export function PremiumVisual() {
 }
 
 export function AcademyVisual() {
+  const rows = [
+    { l: "Wallets & security", w: "100%" },
+    { l: "DeFi & trading", w: "72%" },
+    { l: "On-chain mastery", w: "40%" },
+  ];
   return (
     <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
       <div className="flex items-center justify-between mono text-[9px] text-zinc-500">
         <span>COURSE PROGRESS</span>
-        <span className="text-mint-300">LIVE</span>
+        <span className="inline-flex items-center gap-1 text-mint-300">
+          <span className="h-1.5 w-1.5 rounded-full bg-mint-400 animate-pulse-dot" /> LIVE
+        </span>
       </div>
       <div className="mt-3 space-y-2">
-        {[
-          { l: "Wallets & security", w: "100%" },
-          { l: "DeFi & trading", w: "72%" },
-          { l: "On-chain mastery", w: "40%" },
-        ].map((r) => (
+        {rows.map((r, i) => (
           <div key={r.l}>
             <div className="mb-0.5 flex justify-between text-[10px] text-zinc-400">
               <span>{r.l}</span>
+              <span className="mono text-mint-300/70">{r.w}</span>
             </div>
-            <div className="h-1 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full rounded-full bg-mint-shine" style={{ width: r.w }} />
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+              <div className="relative h-full rounded-full" style={{ width: r.w }}>
+                {/* fill grows in, then a shimmer keeps sweeping */}
+                <div
+                  className="h-full origin-left rounded-full bg-mint-shine"
+                  style={{ animation: `grow-x 1.1s cubic-bezier(0.22,1,0.36,1) ${i * 0.18}s both` }}
+                />
+                <div
+                  className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                  style={{ animation: `sheen ${2.6 + i * 0.4}s ease-in-out ${i * 0.3}s infinite` }}
+                />
+              </div>
             </div>
           </div>
         ))}
