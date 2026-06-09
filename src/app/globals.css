@@ -336,12 +336,15 @@
    Accessibility — respect reduced motion
 ----------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-    scroll-behavior: auto !important;
+  html { scroll-behavior: auto; }
+  /* Calm only the heavy full-screen ambient loops; keep meaningful UI
+     motion (reveals, hover, logo orbit, product previews) visible. */
+  .mesh::before,
+  .mesh::after,
+  .aurora,
+  .particle,
+  .grid-pan,
+  .marquee {
+    animation: none !important;
   }
 }

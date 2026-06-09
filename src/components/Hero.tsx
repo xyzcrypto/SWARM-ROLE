@@ -45,10 +45,10 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
   const members = memberCount > 0 ? memberCount.toLocaleString() : "—";
 
   return (
-    <section className="relative overflow-hidden pt-28 sm:pt-36">
+    <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-36">
       <AnimatedBackground />
 
-      <Container className="relative grid items-center gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
+      <Container className="relative grid items-center gap-10 sm:gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14">
         {/* Copy */}
         <div className="text-center lg:text-left">
           <motion.div

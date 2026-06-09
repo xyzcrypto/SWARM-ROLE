@@ -1,4 +1,5 @@
 // Lightweight, CSS-animated mini-visuals for the product cards.
+import { Crown } from "lucide-react";
 
 export function TradingVisual() {
   const bars = [0.5, 0.8, 0.45, 0.95, 0.65, 0.85, 0.55, 1];
@@ -55,21 +56,42 @@ export function AirdropVisual() {
 
 export function PremiumVisual() {
   return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-gradient-to-br from-gold-500/10 to-ink-950/60 p-3">
-      {/* sheen sweep */}
+    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-gold-500/20 bg-gradient-to-br from-gold-500/12 to-ink-950/70 p-3">
+      {/* pulsing premium glow */}
+      <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gold-500/25 blur-2xl animate-pulse-dot" />
+      {/* sheen sweep (gold, stronger) */}
       <div
-        className="absolute inset-y-0 left-0 w-1/3 skew-x-12 bg-white/10 blur-md"
-        style={{ animation: "sheen 4s ease-in-out infinite" }}
+        className="absolute inset-y-0 -left-1/4 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-gold-200/30 to-transparent blur-md"
+        style={{ animation: "sheen 3.2s ease-in-out infinite" }}
       />
+
       <div className="relative flex items-center justify-between">
         <span className="mono text-[10px] uppercase tracking-wider text-gold-200">Members only</span>
-        <span className="rounded-full bg-gold-500/20 px-2 py-0.5 mono text-[9px] text-gold-100 ring-1 ring-gold-500/40">VIP</span>
+        {/* animated VIP medallion with rotating shine ring */}
+        <span className="relative inline-flex h-6 w-6 items-center justify-center">
+          <span
+            className="absolute inset-0 rounded-full"
+            style={{
+              background:
+                "conic-gradient(from 0deg, transparent, rgba(243,212,136,0.9), transparent 60%)",
+              animation: "badge-orbit 3s linear infinite",
+            }}
+          />
+          <span className="relative grid h-5 w-5 place-items-center rounded-full bg-ink-950 ring-1 ring-gold-500/50">
+            <Crown className="h-3 w-3 text-gold-200" strokeWidth={2} />
+          </span>
+        </span>
       </div>
+
       <div className="relative mt-3 space-y-1.5">
-        {["Early calls", "Private research", "Alpha drops"].map((t) => (
+        {["Early calls", "Private research", "Alpha drops"].map((t, i) => (
           <div key={t} className="flex items-center gap-2 text-[11px] text-zinc-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+            <span
+              className="h-1.5 w-1.5 rounded-full bg-gold-400"
+              style={{ animation: `pulse-dot 1.8s ease-in-out ${i * 0.35}s infinite` }}
+            />
             {t}
+            <span className="ml-auto mono text-[9px] text-gold-300/70">PRO</span>
           </div>
         ))}
       </div>
