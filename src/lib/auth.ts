@@ -4,9 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-
-const googleEnabled =
-  !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
+import { googleEnabled, isAdminEmail } from "@/lib/env";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -20,7 +18,9 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-            allowDangerousEmailAccountLinking: true,
+            // Safer default: do not auto-link an OAuth login to an existing
+            // credentials account with the same email (prevents takeover).
+            allowDangerousEmailAccountLinking: false,
           }),
         ]
       : []),
@@ -85,18 +85,14 @@ export const authOptions: NextAuthOptions = {
     },
     // Promote the configured admin email & tag the provider for OAuth users.
     async createUser({ user }) {
-      const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase().trim();
-      if (user.email && adminEmail && user.email.toLowerCase() === adminEmail) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { role: "ADMIN", provider: "google" },
-        });
-      } else if (user.email) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { provider: "google" },
-        });
-      }
+      if (!user.email) return;
+      await prisma.user.update({
+        where: { id: user.id },
+        data: {
+          provider: "google",
+          ...(isAdminEmail(user.email) ? { role: "ADMIN" } : {}),
+        },
+      });
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

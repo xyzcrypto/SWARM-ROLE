@@ -1,23 +1,27 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
 import { z } from "zod";
-import { authOptions } from "@/lib/auth";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { ok, fail, handleError, getAdminSession } from "@/lib/api";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 
-// GET /api/research, public list (optionally filter by category)
+// GET /api/research — public list (optionally filter by category)
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const category = searchParams.get("category");
-  const posts = await prisma.post.findMany({
-    where: {
-      published: true,
-      ...(category && category !== "All" ? { category } : {}),
-    },
-    orderBy: { createdAt: "desc" },
-    include: { author: { select: { name: true } } },
-  });
-  return NextResponse.json({ posts });
+  try {
+    const { searchParams } = new URL(req.url);
+    const category = searchParams.get("category");
+    const posts = await prisma.post.findMany({
+      where: {
+        published: true,
+        ...(category && category !== "All" ? { category } : {}),
+      },
+      orderBy: { createdAt: "desc" },
+      include: { author: { select: { name: true } } },
+    });
+    return ok({ posts });
+  } catch (err) {
+    return handleError(err, "research:list");
+  }
 }
 
 const createSchema = z.object({
@@ -30,42 +34,48 @@ const createSchema = z.object({
   published: z.boolean().optional(),
 });
 
-// POST /api/research, admin only
+// POST /api/research — admin only
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const session = await getAdminSession();
+    if (!session) return fail("Unauthorized", 401);
 
-  const parsed = createSchema.safeParse(await req.json());
-  if (!parsed.success) {
-    return NextResponse.json(
-      { error: parsed.error.issues[0]?.message ?? "Invalid input" },
-      { status: 400 }
-    );
-  }
-  const data = parsed.data;
+    const { success } = await rateLimit("admin", clientIp(req));
+    if (!success) return fail("Too many requests. Please slow down.", 429);
 
-  let base = slugify(data.title) || "post";
-  let slug = base;
-  let i = 1;
-  while (await prisma.post.findUnique({ where: { slug } })) {
-    slug = `${base}-${i++}`;
-  }
+    const parsed = createSchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return fail(parsed.error.issues[0]?.message ?? "Invalid input", 400);
+    }
+    const data = parsed.data;
+    const base = slugify(data.title) || "post";
+    const authorId = (session.user as any).id ?? null;
 
-  const post = await prisma.post.create({
-    data: {
+    const payload = {
       title: data.title,
-      slug,
       excerpt: data.excerpt,
       content: data.content,
       category: data.category,
       cover: data.cover || null,
       tags: data.tags || "",
       published: data.published ?? true,
-      authorId: (session.user as any).id ?? null,
-    },
-  });
+      authorId,
+    };
 
-  return NextResponse.json({ post }, { status: 201 });
+    // Try the clean slug; on a unique collision, retry once with a short suffix
+    // (avoids the previous unbounded findUnique loop).
+    try {
+      const post = await prisma.post.create({ data: { ...payload, slug: base } });
+      return ok({ post }, 201);
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+        const slug = `${base}-${Math.random().toString(36).slice(2, 6)}`;
+        const post = await prisma.post.create({ data: { ...payload, slug } });
+        return ok({ post }, 201);
+      }
+      throw e;
+    }
+  } catch (err) {
+    return handleError(err, "research:create");
+  }
 }
