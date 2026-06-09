@@ -15,6 +15,7 @@ import {
   AcademyVisual,
   MoreVisual,
 } from "./ProductVisuals";
+import { PerpChart } from "./PerpChart";
 
 type Status = "Live" | "Coming Soon" | "In Development" | "Planned" | "Next Version";
 const tone: Record<Status, "mint" | "gold" | "sky" | "zinc" | "violet"> = {
@@ -69,51 +70,8 @@ export function Products() {
                 liquidity, low fees and full self-custody. Built for serious
                 on-chain traders.
               </p>
-              {/* animated trading chart with live order-flow feel */}
-              <div className="relative mt-7 h-28 overflow-hidden rounded-2xl border border-line bg-ink-950/60">
-                <svg viewBox="0 0 400 110" className="h-full w-full" preserveAspectRatio="none">
-                  <defs>
-                    <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="rgba(34,214,146,0.35)" />
-                      <stop offset="100%" stopColor="rgba(34,214,146,0)" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0 80 L40 70 L80 76 L120 50 L160 58 L200 38 L240 46 L280 26 L320 34 L360 16 L400 22 L400 110 L0 110 Z" fill="url(#fill)" />
-                  <path
-                    d="M0 80 L40 70 L80 76 L120 50 L160 58 L200 38 L240 46 L280 26 L320 34 L360 16 L400 22"
-                    fill="none"
-                    stroke="#22d692"
-                    strokeWidth="2"
-                    pathLength={1}
-                    style={{ strokeDasharray: 1, strokeDashoffset: 1, animation: "draw-line 2.4s ease-out forwards" }}
-                  />
-                </svg>
-                {/* sweeping scan line */}
-                <div className="absolute inset-y-0 left-0 w-16 -skew-x-12 bg-gradient-to-r from-transparent via-mint-400/10 to-transparent" style={{ animation: "sheen 3.5s ease-in-out infinite" }} />
-                {/* pulsing last price */}
-                <span className="absolute right-3 top-3 flex items-center gap-1.5">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-400" />
-                  </span>
-                  <span className="mono text-[11px] text-mint-300">+24.7%</span>
-                </span>
-                {/* order flow rows */}
-                <div className="absolute bottom-2 left-3 flex gap-1.5">
-                  {[
-                    { c: "bg-mint-400/70", w: "w-8" },
-                    { c: "bg-red-400/60", w: "w-5" },
-                    { c: "bg-mint-400/70", w: "w-10" },
-                    { c: "bg-mint-400/50", w: "w-6" },
-                  ].map((b, i) => (
-                    <span
-                      key={i}
-                      className={`h-1 rounded-full ${b.c} ${b.w}`}
-                      style={{ animation: `flow ${1.4 + i * 0.3}s ease-in-out infinite`, transformOrigin: "left" }}
-                    />
-                  ))}
-                </div>
-              </div>
+              {/* live BTC perp chart (real CoinGecko data) */}
+              <PerpChart />
             </div>
           </Reveal>
 
