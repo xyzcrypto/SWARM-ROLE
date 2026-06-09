@@ -51,19 +51,19 @@ export function Ecosystem() {
                 href={b.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="surface surface-hover lift group relative block h-full overflow-hidden rounded-4xl p-8"
+                className="surface surface-hover lift group relative block h-full overflow-hidden rounded-4xl p-5 sm:p-8"
               >
                 <div className={`glow-orb -right-12 -top-12 h-44 w-44 ${b.glow}`} />
-                <div className="relative flex items-start gap-5">
-                  <BrandLogo logo={b.logo} initials={b.initials} name={b.name} className="h-20 w-20" />
-                  <div className="flex-1 pt-1">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-display text-2xl font-semibold text-zinc-50">{b.name}</h3>
+                <div className="relative flex items-start gap-3.5 sm:gap-5">
+                  <BrandLogo logo={b.logo} initials={b.initials} name={b.name} className="h-14 w-14 sm:h-20 sm:w-20" />
+                  <div className="min-w-0 flex-1 pt-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-display text-lg font-semibold text-zinc-50 sm:text-2xl">{b.name}</h3>
                       <Badge tone="gold"><span className="mono text-[10px] uppercase">{b.tag}</span></Badge>
                     </div>
                     <p className="mt-1 mono text-xs text-zinc-500">{b.handle}</p>
                   </div>
-                  <ArrowUpRight className="h-5 w-5 text-zinc-600 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold-200" />
+                  <ArrowUpRight className="h-5 w-5 shrink-0 text-zinc-600 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold-200" />
                 </div>
                 <p className="relative mt-5 text-sm leading-relaxed text-zinc-400">{b.blurb}</p>
                 <div className="relative mt-6 inline-flex items-center gap-2 text-sm font-semibold text-mint-300">
