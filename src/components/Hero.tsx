@@ -89,9 +89,9 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             transition={{ duration: 0.6, delay: 0.12 }}
             className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0"
           >
-            Free Web3 research, pro trading tools, a perp DEX, airdrop tools and a
-            free academy — one trusted ecosystem built for the next generation of
-            traders, builders and degens.
+            On-chain research, pro trading tools, a perpetual DEX, airdrop
+            intelligence and a free academy — the complete Web3 toolkit, built
+            for the next generation of traders and builders.
           </motion.p>
 
           <motion.div

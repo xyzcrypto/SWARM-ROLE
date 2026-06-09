@@ -208,13 +208,20 @@
    Surfaces — glass + hairline cards (Vercel/Jupiter)
 ----------------------------------------------------------------- */
 .glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(16px);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
+    0 20px 50px -28px rgba(0, 0, 0, 0.8);
 }
+/* Rich glassmorphism for cards (blurs the animated backdrop behind) */
 .surface {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012));
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(10px) saturate(130%);
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset;
 }
 .surface-hover {
   transition: border-color 0.3s, transform 0.3s, background 0.3s;
