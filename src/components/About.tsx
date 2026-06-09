@@ -10,9 +10,9 @@ const credibility = [
 ];
 
 const pillars = [
-  { title: "Research-driven", body: "Unbiased Web3 research and on-chain analysis — act on signal, not noise.", Icon: Search },
+  { title: "Research-driven", body: "Unbiased Web3 research and on-chain analysis, act on signal, not noise.", Icon: Search },
   { title: "Builder tooling", body: "Trading tools, an upcoming perp DEX and automation built for performance.", Icon: Wrench },
-  { title: "Community first", body: "An open ecosystem where the community shares the upside — airdrops to academies.", Icon: Users },
+  { title: "Community first", body: "An open ecosystem where the community shares the upside, airdrops to academies.", Icon: Users },
   { title: "Security & trust", body: "Transparency by default. Every product ships with safety and clarity in mind.", Icon: ShieldCheck },
 ];
 
@@ -29,7 +29,7 @@ export function About() {
           <p className="mt-5 max-w-md text-base leading-relaxed text-zinc-400">
             XYZ Crypto unifies research, tooling, education and community into a
             single, trusted brand. We help newcomers learn, traders win, and
-            builders ship — all on-chain, all in one place.
+            builders ship, all on-chain, all in one place.
           </p>
           <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3">
             {[

@@ -31,7 +31,7 @@ export function StickyCta() {
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-ink-900/90 px-4 py-3 shadow-elevate backdrop-blur-xl">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-zinc-100">
-            Join XYZ Crypto — free
+            Join XYZ Crypto, free
           </p>
           <p className="truncate text-[11px] text-zinc-500">
             Research, tools & early access

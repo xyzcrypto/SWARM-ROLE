@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
-// GET /api/research — public list (optionally filter by category)
+// GET /api/research, public list (optionally filter by category)
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const category = searchParams.get("category");
@@ -30,7 +30,7 @@ const createSchema = z.object({
   published: z.boolean().optional(),
 });
 
-// POST /api/research — admin only
+// POST /api/research, admin only
 export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user || (session.user as any).role !== "ADMIN") {

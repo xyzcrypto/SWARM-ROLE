@@ -10,11 +10,11 @@ const SITE_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "XYZ Crypto — Built for the Next Generation of Web3",
+    default: "XYZ Crypto · The Home Of Next Gen Web3",
     template: "%s · XYZ Crypto",
   },
   description:
-    "XYZ Crypto is a next-generation Web3 ecosystem — research, trading tools, a perp DEX, airdrop tools, premium intelligence and education. Built for the next generation of Web3.",
+    "XYZ Crypto is a next-generation Web3 ecosystem, research, trading tools, a perp DEX, airdrop tools, premium intelligence and education. Built for the next generation of Web3.",
   keywords: [
     "XYZ Crypto",
     "Web3",
@@ -29,7 +29,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "XYZ Crypto" }],
   openGraph: {
-    title: "XYZ Crypto — Built for the Next Generation of Web3",
+    title: "XYZ Crypto · The Home Of Next Gen Web3",
     description:
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium intelligence & education.",
     url: SITE_URL,
@@ -39,7 +39,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "XYZ Crypto — Built for the Next Generation of Web3",
+    title: "XYZ Crypto · The Home Of Next Gen Web3",
     description:
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium & education.",
     site: "@XYZCryptos",

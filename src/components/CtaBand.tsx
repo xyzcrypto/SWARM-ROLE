@@ -46,7 +46,7 @@ export function CtaBand({ memberCount = 0 }: { memberCount?: number }) {
                     Join the waitlist
                   </p>
                   <p className="mt-1 text-sm text-zinc-500">
-                    Drop your email for early access — no wallet, no account
+                    Drop your email for early access, no wallet, no account
                     needed to start.
                   </p>
                   <div className="mt-5">

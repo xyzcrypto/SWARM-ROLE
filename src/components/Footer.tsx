@@ -22,7 +22,7 @@ export function Footer() {
               Get alpha in your inbox
             </h3>
             <p className="mt-2 max-w-sm text-sm text-zinc-500">
-              Research drops, product launches and airdrop alerts — straight to
+              Research drops, product launches and airdrop alerts, straight to
               your email. No spam.
             </p>
           </div>
@@ -41,7 +41,7 @@ export function Footer() {
               </span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-zinc-500">
-              {site.slogan}. A next-generation Web3 ecosystem — research,
+              {site.slogan}. A next-generation Web3 ecosystem, research,
               tooling, education and community in one trusted brand.
             </p>
             <div className="mt-6 flex gap-2.5">

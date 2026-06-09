@@ -15,7 +15,7 @@ const brands = [
     handle: "@X_Y_Z_Web3",
     tag: "Learn",
     blurb:
-      "Free, structured Web3 education — from wallets and security to DeFi, trading and on-chain mastery. Built for absolute beginners to advanced degens.",
+      "Free, structured Web3 education, from wallets and security to DeFi, trading and on-chain mastery. Built for absolute beginners to advanced degens.",
     href: site.ecosystem.web3Academy,
     logo: "/web3-academy.jpg",
     initials: "W3",
@@ -26,7 +26,7 @@ const brands = [
     handle: "@TradeKaro_Verse",
     tag: "Trade",
     blurb:
-      "A trading-first community universe — calls, setups, market breakdowns and a place to grow as a trader alongside the XYZ Crypto family.",
+      "A trading-first community universe, calls, setups, market breakdowns and a place to grow as a trader alongside the XYZ Crypto family.",
     href: site.ecosystem.tradeKaroVerse,
     logo: "/tradekaroverse.jpg",
     initials: "TKV",
@@ -41,7 +41,7 @@ export function Ecosystem() {
         <SectionHeading
           eyebrow="Our Communities"
           title={<>The <span className="text-gold-gradient">XYZ Verse.</span></>}
-          subtitle="Two thriving communities under the XYZ Crypto umbrella — one to learn, one to trade. Join the conversation on Telegram."
+          subtitle="Two thriving communities under the XYZ Crypto umbrella, one to learn, one to trade. Join the conversation on Telegram."
         />
 
         <div className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-2">

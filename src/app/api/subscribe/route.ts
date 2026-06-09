@@ -7,7 +7,7 @@ const schema = z.object({
   source: z.string().trim().max(40).optional(),
 });
 
-// POST /api/subscribe — public, one-field email capture (idempotent)
+// POST /api/subscribe, public, one-field email capture (idempotent)
 export async function POST(req: Request) {
   try {
     const parsed = schema.safeParse(await req.json());

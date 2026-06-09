@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export const metadata: Metadata = {
   title: "Research Hub",
   description:
-    "Web3 research, articles and posts from XYZ Crypto — on-chain analysis, market intelligence and education.",
+    "Web3 research, articles and posts from XYZ Crypto, on-chain analysis, market intelligence and education.",
 };
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ export default async function ResearchPage() {
               Web3 <span className="text-gold-gradient">Research & Insights</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
-              Deep dives, market intelligence and educational content — written
+              Deep dives, market intelligence and educational content, written
               to keep you ahead in the on-chain economy.
             </p>
           </div>

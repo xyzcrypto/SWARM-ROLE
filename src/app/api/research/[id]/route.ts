@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
-// DELETE /api/research/:id — admin only
+// DELETE /api/research/:id, admin only
 export async function DELETE(
   _req: Request,
   { params }: { params: { id: string } }

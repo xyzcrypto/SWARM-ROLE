@@ -49,7 +49,7 @@ export function Products() {
         <SectionHeading
           eyebrow="The Ecosystem"
           title={<>Products built to <span className="text-gold-gradient">power your edge.</span></>}
-          subtitle="A full product suite, shipping in stages — what's live, what's building, and what's next."
+          subtitle="A full product suite, shipping in stages, what's live, what's building, and what's next."
         />
 
         <div className="mt-10 grid gap-4 sm:mt-12 lg:grid-cols-3">
@@ -65,7 +65,7 @@ export function Products() {
               </div>
               <h3 className="relative mt-6 font-display text-2xl font-semibold text-zinc-50">Perp DEX</h3>
               <p className="relative mt-2 max-w-md text-sm leading-relaxed text-zinc-400">
-                A high-performance decentralized perpetuals exchange — deep
+                A high-performance decentralized perpetuals exchange, deep
                 liquidity, low fees and full self-custody. Built for serious
                 on-chain traders.
               </p>

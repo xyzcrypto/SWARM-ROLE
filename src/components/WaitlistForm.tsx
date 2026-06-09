@@ -49,7 +49,7 @@ export function WaitlistForm({
           <Check className="h-3.5 w-3.5" strokeWidth={3} />
         </span>
         <p className="text-sm text-mint-100">
-          You&apos;re on the list — we&apos;ll be in touch. 🎉
+          You&apos;re on the list, we&apos;ll be in touch. 🎉
         </p>
       </div>
     );

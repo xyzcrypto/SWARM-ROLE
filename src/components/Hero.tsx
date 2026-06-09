@@ -90,7 +90,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0"
           >
             On-chain research, pro trading tools, a perpetual DEX, airdrop
-            intelligence and a free academy — the complete Web3 toolkit, built
+            intelligence and a free academy, the complete Web3 toolkit, built
             for the next generation of traders and builders.
           </motion.p>
 
@@ -153,7 +153,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
             className="relative flex h-full w-full items-center justify-center"
           >
-            {/* rings — animate in on open */}
+            {/* rings, animate in on open */}
             <motion.div
               initial={{ scale: 0.3, opacity: 0, rotate: -50 }}
               animate={{ scale: 1, opacity: 1, rotate: 0 }}
@@ -174,7 +174,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             />
             <div className="absolute inset-16 animate-pulse-dot rounded-full bg-gold-500/20 blur-3xl" />
 
-            {/* logo — pops in then floats */}
+            {/* logo, pops in then floats */}
             <motion.div
               initial={{ scale: 0, rotate: -30, opacity: 0 }}
               animate={{ scale: 1, rotate: 0, opacity: 1 }}
@@ -199,7 +199,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
               </motion.div>
             </motion.div>
 
-            {/* orbiting badges (WEB3 + more) — continuous rotation */}
+            {/* orbiting badges (WEB3 + more), continuous rotation */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

@@ -28,7 +28,7 @@ export function Social() {
                 href={c.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`${c.name} — ${c.handle}`}
+                aria-label={`${c.name}, ${c.handle}`}
                 className={`surface lift group relative flex h-full flex-col items-start rounded-3xl p-6 transition-all duration-300 ${c.hover} ${c.glow}`}
               >
                 <div className="flex w-full items-start justify-between">
