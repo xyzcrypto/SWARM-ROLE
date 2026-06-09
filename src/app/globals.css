@@ -227,17 +227,25 @@
   @apply inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all duration-300;
   padding: 0.7rem 1.4rem;
 }
-/* Primary = gold (single brand accent / CTA) */
+/* Primary = premium green (high-conversion CTA) */
 .btn-primary {
   @apply btn text-ink;
-  background: linear-gradient(135deg, #f6dd96, #e2a72f 52%, #b5740f);
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.22) inset,
-    0 10px 28px -12px rgba(226, 167, 47, 0.55);
+  background: linear-gradient(135deg, #6df0b8 0%, #22d692 45%, #0bbb7c 100%);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.35) inset,
+    0 0 0 1px rgba(11, 187, 124, 0.25),
+    0 12px 30px -10px rgba(11, 187, 124, 0.6);
 }
 .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.28) inset,
-    0 18px 44px -14px rgba(226, 167, 47, 0.7);
+  background: linear-gradient(135deg, #7df5c2 0%, #2ee0a0 45%, #11c986 100%);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.45) inset,
+    0 0 0 1px rgba(11, 187, 124, 0.35),
+    0 20px 48px -12px rgba(11, 187, 124, 0.75);
+}
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.25) inset,
+    0 6px 18px -8px rgba(11, 187, 124, 0.6);
 }
 /* Secondary = soft surface */
 .btn-secondary {

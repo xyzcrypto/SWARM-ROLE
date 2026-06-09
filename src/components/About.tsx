@@ -1,6 +1,13 @@
-import { Search, Wrench, Users, ShieldCheck } from "lucide-react";
+import { Search, Wrench, Users, ShieldCheck, CalendarClock, Boxes } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { Container, Section, Eyebrow } from "./ui/primitives";
+
+const credibility = [
+  { label: "Active since 2019", Icon: CalendarClock },
+  { label: "Research driven", Icon: Search },
+  { label: "Community first", Icon: Users },
+  { label: "Web3 native", Icon: Boxes },
+];
 
 const pillars = [
   { title: "Research-driven", body: "Unbiased Web3 research and on-chain analysis — act on signal, not noise.", Icon: Search },
@@ -35,6 +42,26 @@ export function About() {
                 <div className="text-xs text-zinc-500">{s.v}</div>
               </div>
             ))}
+          </div>
+
+          {/* Credibility / trust block (Since 2019) */}
+          <div className="mt-8 rounded-2xl border border-gold-500/20 bg-gold-500/[0.04] p-4">
+            <div className="flex items-center gap-2">
+              <span className="mono text-[11px] font-semibold tracking-[0.16em] text-gold-200">
+                SINCE 2019
+              </span>
+              <span className="h-px flex-1 bg-gold-500/20" />
+            </div>
+            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+              {credibility.map((c) => (
+                <div key={c.label} className="flex items-center gap-2.5">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20">
+                    <c.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
+                  </span>
+                  <span className="text-xs font-medium text-zinc-300">{c.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </Reveal>
 

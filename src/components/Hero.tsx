@@ -87,21 +87,6 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             traders, builders and degens.
           </motion.p>
 
-          {/* Since 2019 credibility line */}
-          <motion.div
-            initial={{ opacity: 0, y: 14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.18 }}
-            className="mx-auto mt-5 inline-flex max-w-xl items-center gap-2.5 rounded-full border border-gold-500/20 bg-gold-500/5 px-4 py-2 text-left lg:mx-0"
-          >
-            <span className="mono text-xs font-semibold text-gold-200">SINCE 2019</span>
-            <span className="h-3 w-px bg-gold-500/30" />
-            <span className="text-xs text-zinc-400">
-              In crypto since 2019, already delivering real value — and this is just
-              the beginning.
-            </span>
-          </motion.div>
-
           <motion.div
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
