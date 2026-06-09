@@ -316,11 +316,67 @@ html.lenis body {
   background: rgba(255, 255, 255, 0.05);
 }
 
+/* Premium auto + hover shine sweep on solid CTAs */
+.btn-primary,
+.btn-gold {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-primary::after,
+.btn-gold::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 65%
+  );
+  transform: translateX(-160%);
+  animation: btn-shine 5s ease-in-out infinite;
+}
+.btn-primary:hover::after,
+.btn-gold:hover::after {
+  animation: btn-shine 0.9s ease;
+}
+@keyframes btn-shine {
+  0% { transform: translateX(-160%); }
+  55%, 100% { transform: translateX(160%); }
+}
+
 /* Eyebrow / pill */
 .eyebrow {
   @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
+}
+/* Transparent glass eyebrow with a gold shine sweep (hero) */
+.eyebrow-glass {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.1) inset,
+    0 8px 24px -16px rgba(0, 0, 0, 0.7);
+}
+.eyebrow-glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    rgba(243, 212, 136, 0.45) 50%,
+    transparent 65%
+  );
+  transform: translateX(-150%);
+  animation: btn-shine 4.2s ease-in-out infinite;
 }
 
 /* ----------------------------------------------------------------

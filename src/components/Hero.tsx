@@ -66,7 +66,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             transition={{ duration: 0.5 }}
             className="mb-6 flex justify-center lg:justify-start"
           >
-            <span className="eyebrow text-zinc-300">
+            <span className="eyebrow eyebrow-glass text-zinc-200">
               <Sparkles className="h-3.5 w-3.5 text-gold-300" />
               <span className="mono text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">
                 The Home Of Next Gen Web3..
