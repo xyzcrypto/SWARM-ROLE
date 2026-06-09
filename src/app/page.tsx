@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
+import { MarketTicker } from "@/components/MarketTicker";
 import { ProofStrip } from "@/components/ProofStrip";
 import { About } from "@/components/About";
 import { Products } from "@/components/Products";
@@ -21,6 +22,7 @@ export default async function HomePage() {
       <Navbar />
       <main>
         <Hero memberCount={memberCount} />
+        <MarketTicker />
         <ProofStrip />
         <About />
         <Products />
