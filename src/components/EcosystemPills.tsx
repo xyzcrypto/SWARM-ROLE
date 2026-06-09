@@ -14,7 +14,7 @@ const pills = [
 
 export function EcosystemPills() {
   return (
-    <div className="relative overflow-hidden border-b border-line py-12">
+    <div className="relative overflow-hidden border-b border-line py-9 sm:py-12">
       <Container>
         <p className="text-center mono text-[11px] uppercase tracking-[0.22em] text-zinc-600">
           One ecosystem · built across the entire stack

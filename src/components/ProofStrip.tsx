@@ -24,7 +24,7 @@ const items: ProofItem[] = [
 
 export function ProofStrip() {
   return (
-    <div className="border-b border-line py-10">
+    <div className="border-b border-line py-8 sm:py-10">
       <Container>
         <Reveal>
           <p className="text-center mono text-[11px] uppercase tracking-[0.2em] text-zinc-600">
