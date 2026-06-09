@@ -44,7 +44,7 @@ export function Ecosystem() {
           subtitle="Two thriving communities under the XYZ Crypto umbrella — one to learn, one to trade. Join the conversation on Telegram."
         />
 
-        <div className="mt-14 grid gap-5 md:grid-cols-2">
+        <div className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-2">
           {brands.map((b, i) => (
             <Reveal key={b.name} delay={i}>
               <a

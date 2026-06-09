@@ -52,7 +52,7 @@ export function Products() {
           subtitle="A full product suite, shipping in stages — what's live, what's building, and what's next."
         />
 
-        <div className="mt-14 grid gap-4 lg:grid-cols-3">
+        <div className="mt-10 grid gap-4 sm:mt-12 lg:grid-cols-3">
           {/* Perp DEX spotlight */}
           <Reveal className="lg:col-span-2">
             <div className="surface lift group relative h-full overflow-hidden rounded-4xl p-7 sm:p-9">

@@ -56,9 +56,9 @@ const config: Config = {
       },
       fontSize: {
         // Refined display ramp
-        "display-xl": ["clamp(2.75rem,7vw,5.5rem)", { lineHeight: "1.02", letterSpacing: "-0.03em" }],
-        "display-lg": ["clamp(2.25rem,5.5vw,4rem)", { lineHeight: "1.05", letterSpacing: "-0.025em" }],
-        "display-md": ["clamp(1.875rem,4vw,2.75rem)", { lineHeight: "1.1", letterSpacing: "-0.02em" }],
+        "display-xl": ["clamp(2.15rem,8.5vw,5.25rem)", { lineHeight: "1.05", letterSpacing: "-0.03em" }],
+        "display-lg": ["clamp(1.85rem,6vw,3.75rem)", { lineHeight: "1.08", letterSpacing: "-0.025em" }],
+        "display-md": ["clamp(1.6rem,4.5vw,2.6rem)", { lineHeight: "1.12", letterSpacing: "-0.02em" }],
       },
       maxWidth: {
         container: "1200px",

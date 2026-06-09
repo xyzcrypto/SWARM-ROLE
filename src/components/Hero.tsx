@@ -222,7 +222,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
       </Container>
 
       {/* ticker */}
-      <div className="marquee-mask relative mt-16 overflow-hidden border-y border-line py-4 sm:mt-20">
+      <div className="marquee-mask relative mt-10 overflow-hidden border-y border-line py-4 sm:mt-14">
         <div className="marquee gap-8">
           {[...ticker, ...ticker].map((m, i) => (
             <span
