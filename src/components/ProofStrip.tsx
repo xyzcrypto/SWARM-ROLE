@@ -1,8 +1,18 @@
+import type { ComponentType, SVGProps } from "react";
 import { Container } from "./ui/primitives";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "./BrandIcons";
 import { site } from "@/lib/site";
 
-const items = [
+type ProofItem = {
+  label: string;
+  href: string;
+  hover: string;
+  Icon?: ComponentType<SVGProps<SVGSVGElement>>;
+  logo?: string;
+  color?: string;
+};
+
+const items: ProofItem[] = [
   { label: "YouTube", href: site.socials.youtube, Icon: YouTubeIcon, color: "text-red-500", hover: "hover:border-red-500/50 hover:text-red-400" },
   { label: "X", href: site.socials.x, Icon: XIcon, color: "text-zinc-100", hover: "hover:border-white/40 hover:text-white" },
   { label: "Telegram", href: site.socials.telegram, Icon: TelegramIcon, color: "text-sky-400", hover: "hover:border-sky-500/50 hover:text-sky-300" },
@@ -19,24 +29,27 @@ export function ProofStrip() {
           One ecosystem · trusted across every platform
         </p>
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-          {items.map((it) => (
-            <a
-              key={it.label}
-              href={it.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={it.label}
-              className={`group flex items-center gap-2.5 rounded-xl border border-line bg-ink-900/50 px-4 py-2.5 text-zinc-400 transition-all duration-300 hover:-translate-y-0.5 ${it.hover}`}
-            >
-              {it.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={it.logo} alt={it.label} className="h-5 w-5 rounded-full object-cover ring-1 ring-white/10" />
-              ) : (
-                <it.Icon className={`h-5 w-5 transition-colors ${it.color}`} />
-              )}
-              <span className="text-sm font-medium">{it.label}</span>
-            </a>
-          ))}
+          {items.map((it) => {
+            const Icon = it.Icon;
+            return (
+              <a
+                key={it.label}
+                href={it.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={it.label}
+                className={`group flex items-center gap-2.5 rounded-xl border border-line bg-ink-900/50 px-4 py-2.5 text-zinc-400 transition-all duration-300 hover:-translate-y-0.5 ${it.hover}`}
+              >
+                {it.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={it.logo} alt={it.label} className="h-5 w-5 rounded-full object-cover ring-1 ring-white/10" />
+                ) : Icon ? (
+                  <Icon className={`h-5 w-5 transition-colors ${it.color ?? ""}`} />
+                ) : null}
+                <span className="text-sm font-medium">{it.label}</span>
+              </a>
+            );
+          })}
         </div>
       </Container>
     </div>
