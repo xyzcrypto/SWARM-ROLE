@@ -3,18 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 
-const FALLBACK = (() => {
+type CoinCfg = { id: string; symbol: string; base: number };
+
+function makeFallback(base: number) {
   const pts: number[] = [];
-  let v = 64000;
+  let v = base;
   for (let i = 0; i < 48; i++) {
-    v += Math.sin(i / 4) * 320 + (i - 24) * 55;
-    pts.push(Math.round(v));
+    v += Math.sin(i / 4) * (base * 0.005) + (i - 24) * (base * 0.0009);
+    pts.push(Math.round(v * 100) / 100);
   }
   return pts;
-})();
+}
 
-export function PerpChart() {
-  const [points, setPoints] = useState<number[]>(FALLBACK);
+export function PerpChart({ coin }: { coin: CoinCfg }) {
+  const [points, setPoints] = useState<number[]>(() => makeFallback(coin.base));
   const [price, setPrice] = useState<number | null>(null);
   const [change, setChange] = useState(0);
   const [live, setLive] = useState(false);
@@ -23,7 +25,7 @@ export function PerpChart() {
     let active = true;
     async function load() {
       try {
-        const r = await fetch("/api/chart", { cache: "no-store" });
+        const r = await fetch(`/api/chart?coin=${coin.id}`, { cache: "no-store" });
         if (!r.ok) throw new Error("bad");
         const d = await r.json();
         if (!active || !Array.isArray(d.points) || d.points.length < 2) return;
@@ -41,7 +43,7 @@ export function PerpChart() {
       active = false;
       clearInterval(t);
     };
-  }, []);
+  }, [coin.id]);
 
   const { line, area, lastY } = useMemo(() => {
     const W = 400, H = 110, pad = 10;
@@ -60,25 +62,22 @@ export function PerpChart() {
 
   const up = change >= 0;
   const stroke = up ? "#22d692" : "#f87171";
+  const gradId = `perpfill-${coin.symbol}`;
   const priceLabel =
-    price != null ? `$${price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : "$—";
+    price != null
+      ? `$${price.toLocaleString(undefined, { maximumFractionDigits: coin.base >= 1000 ? 0 : 2 })}`
+      : "$—";
 
   return (
-    <div className="relative mt-7 h-28 overflow-hidden rounded-2xl border border-line bg-ink-950/60">
+    <div className="relative h-28 overflow-hidden rounded-2xl border border-line bg-ink-950/60">
       <svg viewBox="0 0 400 110" className="h-full w-full" preserveAspectRatio="none">
         <defs>
-          <linearGradient id="perpfill" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={up ? "rgba(34,214,146,0.35)" : "rgba(248,113,113,0.3)"} />
             <stop offset="100%" stopColor="rgba(0,0,0,0)" />
           </linearGradient>
         </defs>
-        <motion.path
-          d={area}
-          fill="url(#perpfill)"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        />
+        <motion.path d={area} fill={`url(#${gradId})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }} />
         <motion.path
           key={line}
           d={line}
@@ -92,13 +91,11 @@ export function PerpChart() {
         />
       </svg>
 
-      {/* sweeping scan line */}
       <div
         className="absolute inset-y-0 left-0 w-16 -skew-x-12 bg-gradient-to-r from-transparent via-white/8 to-transparent"
         style={{ animation: "sheen 3.5s ease-in-out infinite" }}
       />
 
-      {/* live price + change */}
       <div className="absolute right-3 top-2.5 flex items-center gap-1.5">
         <span className="relative flex h-2 w-2">
           {live && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />}
@@ -110,14 +107,13 @@ export function PerpChart() {
         </span>
       </div>
 
-      {/* pulsing last-price marker (right edge) */}
       <span
         className="absolute right-0 h-2 w-2 -translate-x-1 -translate-y-1/2 rounded-full"
         style={{ top: `${(lastY / 110) * 100}%`, background: stroke, boxShadow: `0 0 10px ${stroke}` }}
       />
 
-      <div className="absolute left-3 top-2.5 mono text-[9px] uppercase tracking-wider text-zinc-500">
-        BTC · Perp
+      <div className="absolute left-3 top-2.5 mono text-[9px] uppercase tracking-wider text-zinc-400">
+        {coin.symbol} · Perp
       </div>
     </div>
   );

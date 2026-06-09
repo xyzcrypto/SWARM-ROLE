@@ -70,8 +70,11 @@ export function Products() {
                 liquidity, low fees and full self-custody. Built for serious
                 on-chain traders.
               </p>
-              {/* live BTC perp chart (real CoinGecko data) */}
-              <PerpChart />
+              {/* live BTC + ETH perp charts (real CoinGecko data) */}
+              <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                <PerpChart coin={{ id: "bitcoin", symbol: "BTC", base: 64000 }} />
+                <PerpChart coin={{ id: "ethereum", symbol: "ETH", base: 3400 }} />
+              </div>
             </div>
           </Reveal>
 
