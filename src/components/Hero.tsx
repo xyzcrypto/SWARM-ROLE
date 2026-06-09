@@ -20,11 +20,18 @@ const ticker = [
 
 // Orbiting badges around the logo, anchored to the ring edges.
 const orbitBadges = [
-  { label: "WEB3", pos: "left-1/2 top-0 -translate-x-1/2 -translate-y-1/2", tone: "gold" },
-  { label: "DEX", pos: "right-0 top-1/2 translate-x-1/2 -translate-y-1/2", tone: "mint" },
-  { label: "DEFI", pos: "left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2", tone: "gold" },
-  { label: "ALPHA", pos: "left-0 top-1/2 -translate-x-1/2 -translate-y-1/2", tone: "mint" },
+  { label: "WEB3", tone: "gold" },
+  { label: "DEX", tone: "mint" },
+  { label: "DEFI", tone: "gold" },
+  { label: "NFT", tone: "violet" },
+  { label: "ALPHA", tone: "mint" },
 ];
+
+const toneClass: Record<string, string> = {
+  gold: "border-gold-500/45 text-gold-100 shadow-[0_0_18px_-4px_rgba(226,167,47,0.6)]",
+  mint: "border-mint-500/45 text-mint-200 shadow-[0_0_18px_-4px_rgba(11,187,124,0.6)]",
+  violet: "border-violet-500/45 text-violet-200 shadow-[0_0_18px_-4px_rgba(139,92,246,0.6)]",
+};
 
 export function Hero({ memberCount = 0 }: { memberCount?: number }) {
   const mx = useMotionValue(0);
@@ -200,22 +207,31 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
               className="absolute inset-0"
               style={{ animation: "badge-orbit 22s linear infinite", transform: "translateZ(40px)" }}
             >
-              {orbitBadges.map((b) => (
-                <div key={b.label} className={`absolute ${b.pos}`}>
-                  {/* counter-rotate to keep text upright while the ring spins */}
-                  <div style={{ animation: "badge-orbit 22s linear infinite reverse" }}>
-                    <span
-                      className={`block rounded-full border bg-ink-900/90 px-2.5 py-1 mono text-[9px] font-semibold tracking-widest backdrop-blur sm:text-[10px] ${
-                        b.tone === "mint"
-                          ? "border-mint-500/40 text-mint-200"
-                          : "border-gold-500/40 text-gold-100"
-                      }`}
-                    >
-                      {b.label}
-                    </span>
+              {orbitBadges.map((b, i) => {
+                // evenly distribute around the ring (start at top, go clockwise)
+                const angle = (-90 + i * (360 / orbitBadges.length)) * (Math.PI / 180);
+                const r = 50; // % radius
+                const left = 50 + r * Math.cos(angle);
+                const top = 50 + r * Math.sin(angle);
+                return (
+                  <div
+                    key={b.label}
+                    className="absolute"
+                    style={{ left: `${left}%`, top: `${top}%`, transform: "translate(-50%,-50%)" }}
+                  >
+                    {/* counter-rotate to keep text upright + gentle bob */}
+                    <div style={{ animation: "badge-orbit 22s linear infinite reverse" }}>
+                      <motion.span
+                        animate={{ scale: [1, 1.08, 1] }}
+                        transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
+                        className={`block rounded-full border bg-ink-900/85 px-2.5 py-1 mono text-[9px] font-semibold tracking-widest backdrop-blur-md sm:text-[10px] ${toneClass[b.tone]}`}
+                      >
+                        {b.label}
+                      </motion.span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </motion.div>
           </motion.div>
         </motion.div>

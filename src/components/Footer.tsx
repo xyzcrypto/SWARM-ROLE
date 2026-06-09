@@ -6,10 +6,10 @@ import { Container } from "./ui/primitives";
 import { WaitlistForm } from "./WaitlistForm";
 
 const socialList = [
-  { href: site.socials.youtube, Icon: YouTubeIcon, label: "YouTube" },
-  { href: site.socials.x, Icon: XIcon, label: "X" },
-  { href: site.socials.telegram, Icon: TelegramIcon, label: "Telegram" },
-  { href: site.socials.linkedin, Icon: LinkedInIcon, label: "LinkedIn" },
+  { href: site.socials.youtube, Icon: YouTubeIcon, label: "YouTube", color: "text-red-500", hover: "hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10" },
+  { href: site.socials.x, Icon: XIcon, label: "X", color: "text-zinc-100", hover: "hover:border-white/40 hover:text-white hover:bg-white/10" },
+  { href: site.socials.telegram, Icon: TelegramIcon, label: "Telegram", color: "text-sky-400", hover: "hover:border-sky-500/50 hover:text-sky-300 hover:bg-sky-500/10" },
+  { href: site.socials.linkedin, Icon: LinkedInIcon, label: "LinkedIn", color: "text-blue-500", hover: "hover:border-blue-500/50 hover:text-blue-400 hover:bg-blue-500/10" },
 ];
 
 export function Footer() {
@@ -52,7 +52,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.label}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-400 transition-all hover:border-gold-500/40 hover:text-gold-200"
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 transition-all hover:-translate-y-0.5 ${s.color} ${s.hover}`}
                 >
                   <s.Icon className="h-5 w-5" />
                 </a>
