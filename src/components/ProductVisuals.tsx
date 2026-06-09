@@ -26,6 +26,11 @@ export function TradingVisual() {
 export function AirdropVisual() {
   return (
     <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60">
+      {/* eligibility badge */}
+      <div className="absolute left-3 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-mint-500/40 bg-mint-500/15 px-2 py-0.5">
+        <span className="grid h-3 w-3 place-items-center rounded-full bg-mint-400 text-[7px] font-bold text-ink">✓</span>
+        <span className="mono text-[9px] font-semibold uppercase tracking-wide text-mint-200">You are eligible</span>
+      </div>
       {/* dropping coins */}
       {[12, 30, 50, 68, 86].map((left, i) => (
         <span

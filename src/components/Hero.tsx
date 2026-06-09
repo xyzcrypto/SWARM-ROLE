@@ -21,10 +21,12 @@ const ticker = [
 // Orbiting badges around the logo, anchored to the ring edges.
 const orbitBadges = [
   { label: "WEB3", tone: "gold" },
-  { label: "DEX", tone: "mint" },
+  { label: "PERP DEX", tone: "mint" },
   { label: "DEFI", tone: "gold" },
   { label: "NFT", tone: "violet" },
-  { label: "ALPHA", tone: "mint" },
+  { label: "RWA", tone: "mint" },
+  { label: "ALPHA", tone: "gold" },
+  { label: "DEX", tone: "violet" },
 ];
 
 const toneClass: Record<string, string> = {
@@ -49,7 +51,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
     my.set(0);
   }
 
-  const members = memberCount > 0 ? memberCount.toLocaleString() : "—";
+  const members = "50K+";
 
   return (
     <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-36">
