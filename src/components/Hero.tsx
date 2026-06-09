@@ -59,7 +59,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
           >
             <span className="eyebrow text-zinc-300">
               <Sparkles className="h-3.5 w-3.5 text-gold-300" />
-              <span className="mono text-[11px] uppercase tracking-[0.16em]">
+              <span className="mono text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">
                 The Home Of Next Gen Web3..
               </span>
             </span>
@@ -80,7 +80,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.12 }}
-            className="mx-auto mt-5 max-w-xl text-base leading-relaxed text-zinc-400 sm:text-lg lg:mx-0"
+            className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0"
           >
             Free Web3 research, pro trading tools, a perp DEX, airdrop tools and a
             free academy — one trusted ecosystem built for the next generation of
@@ -91,7 +91,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.24 }}
-            className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
+            className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
           >
             <Link href="/signup" className="btn-primary w-full sm:w-auto">
               Get early access
@@ -106,7 +106,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.7, delay: 0.32 }}
-            className="mt-6 flex items-center justify-center gap-2 text-xs text-zinc-500 lg:justify-start"
+            className="mt-5 flex items-center justify-center gap-2 text-xs text-zinc-500 lg:justify-start"
           >
             <ShieldCheck className="h-4 w-4 text-mint-400" />
             Free to join · No wallet required · Community first
@@ -117,7 +117,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="mx-auto mt-9 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-lg"
+            className="mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-lg"
           >
             {[
               { k: members, v: "Members & growing" },
