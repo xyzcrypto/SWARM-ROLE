@@ -23,7 +23,7 @@ export function Social() {
 
         <div className="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4">
           {channels.map((c, i) => (
-            <Reveal key={c.name} delay={i}>
+            <Reveal key={c.name} delay={i} variant="pop">
               <a
                 href={c.href}
                 target="_blank"

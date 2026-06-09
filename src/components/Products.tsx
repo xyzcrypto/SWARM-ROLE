@@ -138,7 +138,7 @@ export function Products() {
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {small.map((p, i) => (
-            <Reveal key={p.name} delay={i}>
+            <Reveal key={p.name} delay={i} variant="pop">
               <div className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-6">
                 <div className="flex items-start justify-between">
                   <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20">

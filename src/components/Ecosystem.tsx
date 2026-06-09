@@ -46,7 +46,7 @@ export function Ecosystem() {
 
         <div className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-2">
           {brands.map((b, i) => (
-            <Reveal key={b.name} delay={i}>
+            <Reveal key={b.name} delay={i} variant="pop">
               <a
                 href={b.href}
                 target="_blank"

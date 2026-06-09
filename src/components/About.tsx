@@ -67,7 +67,7 @@ export function About() {
 
         <div className="grid gap-4 sm:grid-cols-2">
           {pillars.map((p, i) => (
-            <Reveal key={p.title} delay={i}>
+            <Reveal key={p.title} delay={i} variant="pop">
               <div className="surface surface-hover lift group h-full rounded-3xl p-6">
                 <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20 transition-colors group-hover:bg-gold-500/20">
                   <p.Icon className="h-5 w-5" strokeWidth={1.7} />

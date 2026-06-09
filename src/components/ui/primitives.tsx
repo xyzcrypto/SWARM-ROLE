@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Reveal } from "../Reveal";
 
 export function Container({
   children,
@@ -66,14 +67,20 @@ export function SectionHeading({
       )}
     >
       {eyebrow && (
-        <div className={cn("mb-5", align === "center" && "flex justify-center")}>
+        <Reveal delay={0} className={cn("mb-5", align === "center" && "flex justify-center")}>
           <Eyebrow>{eyebrow}</Eyebrow>
-        </div>
+        </Reveal>
       )}
-      <h2 className="font-display text-display-md font-semibold tracking-tight text-zinc-50">
-        {title}
-      </h2>
-      {subtitle && <p className="mt-4 text-base leading-relaxed text-zinc-400">{subtitle}</p>}
+      <Reveal delay={1}>
+        <h2 className="font-display text-display-md font-semibold tracking-tight text-zinc-50">
+          {title}
+        </h2>
+      </Reveal>
+      {subtitle && (
+        <Reveal delay={2}>
+          <p className="mt-4 text-base leading-relaxed text-zinc-400">{subtitle}</p>
+        </Reveal>
+      )}
     </div>
   );
 }
