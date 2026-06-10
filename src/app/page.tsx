@@ -13,7 +13,10 @@ import { Footer } from "@/components/Footer";
 import { StickyCta } from "@/components/StickyCta";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+// Incrementally cached: the page is served instantly from cache and
+// regenerated in the background every 5 minutes (member count / research
+// preview). Publishing content revalidates it on demand (see research routes).
+export const revalidate = 300;
 
 export default async function HomePage() {
   const memberCount = await prisma.user.count().catch(() => 0);

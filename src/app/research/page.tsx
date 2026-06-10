@@ -10,7 +10,8 @@ export const metadata: Metadata = {
     "Web3 research, articles and posts from XYZ Crypto, on-chain analysis, market intelligence and education.",
 };
 
-export const dynamic = "force-dynamic";
+// Cached; revalidated on demand when admin publishes/deletes (research routes).
+export const revalidate = 120;
 
 export default async function ResearchPage() {
   const posts = await prisma.post

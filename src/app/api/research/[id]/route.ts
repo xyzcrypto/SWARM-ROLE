@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getAdminSession, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
@@ -18,11 +19,14 @@ export async function DELETE(
 
     const existing = await prisma.post.findUnique({
       where: { id: params.id },
-      select: { id: true },
+      select: { id: true, slug: true },
     });
     if (!existing) return fail("Post not found.", 404);
 
     await prisma.post.delete({ where: { id: params.id } });
+    revalidatePath("/");
+    revalidatePath("/research");
+    revalidatePath(`/research/${existing.slug}`);
     return ok({ ok: true });
   } catch (err) {
     return handleError(err, "research:delete");

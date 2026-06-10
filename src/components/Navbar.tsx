@@ -13,6 +13,19 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const { data: session } = useSession();
   const isAdmin = (session?.user as any)?.role === "ADMIN";
+  const [signingOut, setSigningOut] = useState(false);
+
+  // Robust sign-out: clear the session via the API (no server redirect that
+  // depends on NEXTAUTH_URL), then hard-navigate home so the UI always updates.
+  async function handleSignOut() {
+    if (signingOut) return;
+    setSigningOut(true);
+    try {
+      await signOut({ redirect: false });
+    } finally {
+      window.location.href = "/";
+    }
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -64,10 +77,11 @@ export function Navbar() {
                 </Link>
               )}
               <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-zinc-100"
+                onClick={handleSignOut}
+                disabled={signingOut}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-zinc-100 disabled:opacity-60"
               >
-                Sign out
+                {signingOut ? "Signing out…" : "Sign out"}
               </button>
             </>
           ) : (
@@ -115,8 +129,8 @@ export function Navbar() {
                       Dashboard
                     </Link>
                   )}
-                  <button onClick={() => signOut({ callbackUrl: "/" })} className="btn-ghost">
-                    Sign out
+                  <button onClick={handleSignOut} disabled={signingOut} className="btn-ghost disabled:opacity-60">
+                    {signingOut ? "Signing out…" : "Sign out"}
                   </button>
                 </>
               ) : (

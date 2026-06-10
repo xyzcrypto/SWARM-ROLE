@@ -1,5 +1,4 @@
-import { randomInt } from "crypto";
-import bcrypt from "bcryptjs";
+import { randomInt, createHmac, timingSafeEqual } from "crypto";
 import { prisma } from "@/lib/prisma";
 
 export type OtpPurpose = "signup" | "login" | "reset";
@@ -10,6 +9,20 @@ const MAX_ATTEMPTS = 5;
 /** Cryptographically-random 6-digit code (zero-padded). */
 export function generateCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
+}
+
+// Codes are short-lived (10 min) and attempt-limited (5), so a keyed HMAC is
+// both fast and secure: an attacker can't brute-force the stored hash offline
+// without NEXTAUTH_SECRET. Much faster than bcrypt on the hot auth path.
+function hashCode(code: string): string {
+  const secret = process.env.NEXTAUTH_SECRET || "insecure-dev-secret";
+  return createHmac("sha256", secret).update(code).digest("hex");
+}
+
+function codesMatch(code: string, storedHash: string): boolean {
+  const a = Buffer.from(hashCode(code));
+  const b = Buffer.from(storedHash);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 /**
@@ -23,7 +36,7 @@ export async function issueCode(
   payload?: Record<string, unknown>
 ): Promise<string> {
   const code = generateCode();
-  const codeHash = await bcrypt.hash(code, 10);
+  const codeHash = hashCode(code);
   await prisma.verificationCode.deleteMany({ where: { email, purpose } });
   await prisma.verificationCode.create({
     data: {
@@ -66,7 +79,7 @@ export async function verifyCode(
     return { ok: false, error: "Too many incorrect attempts. Please request a new code." };
   }
 
-  const match = await bcrypt.compare(code, rec.codeHash);
+  const match = codesMatch(code, rec.codeHash);
   if (!match) {
     await prisma.verificationCode.update({
       where: { id: rec.id },
