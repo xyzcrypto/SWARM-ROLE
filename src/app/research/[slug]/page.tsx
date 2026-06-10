@@ -8,6 +8,7 @@ import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
 import { formatDate, readingTime } from "@/lib/utils";
 import { JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
+import { PostCard } from "@/components/PostCard";
 
 // Cached per-article; revalidated on demand when admin deletes (research route).
 export const revalidate = 300;
@@ -64,6 +65,15 @@ export default async function PostPage({
 }) {
   const post = await getPost(params.slug);
   if (!post) notFound();
+
+  const related = await prisma.post
+    .findMany({
+      where: { published: true, category: post.category, slug: { not: post.slug } },
+      orderBy: { createdAt: "desc" },
+      take: 3,
+      include: { author: { select: { name: true } } },
+    })
+    .catch(() => []);
 
   const tags = post.tags
     ? post.tags.split(",").map((t) => t.trim()).filter(Boolean)
@@ -133,6 +143,24 @@ export default async function PostPage({
             </div>
           )}
         </article>
+
+        {related.length > 0 && (
+          <section className="mx-auto mt-4 max-w-5xl px-4 pb-24 sm:px-6">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="font-display text-xl font-semibold text-zinc-100">
+                More in <span className="text-gold-gradient">{post.category}</span>
+              </h2>
+              <Link href="/research" className="text-sm font-medium text-gold-200 hover:underline">
+                View all →
+              </Link>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {related.map((p) => (
+                <PostCard key={p.slug} post={p} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
       <Footer />
     </>
