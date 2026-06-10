@@ -48,6 +48,7 @@ const nextConfig = {
       { protocol: "https", hostname: "**.googleusercontent.com" },
       { protocol: "https", hostname: "**.githubusercontent.com" },
       { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "**.supabase.co" }, // Supabase Storage uploads
     ],
   },
   async headers() {

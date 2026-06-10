@@ -13,20 +13,41 @@ function revalidateContent(slug?: string) {
   if (slug) revalidatePath(`/research/${slug}`);
 }
 
-// GET /api/research — public list (optionally filter by category)
+// GET /api/research — public list (published only), filterable + paginated.
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
-    const posts = await prisma.post.findMany({
-      where: {
-        published: true,
-        ...(category && category !== "All" ? { category } : {}),
-      },
-      orderBy: { createdAt: "desc" },
-      include: { author: { select: { name: true } } },
-    });
-    return ok({ posts });
+    const q = searchParams.get("q")?.trim();
+    const page = Math.max(1, Number(searchParams.get("page")) || 1);
+    const pageSize = Math.min(48, Math.max(1, Number(searchParams.get("pageSize")) || 12));
+
+    const where = {
+      published: true,
+      ...(category && category !== "All" ? { category } : {}),
+      ...(q
+        ? {
+            OR: [
+              { title: { contains: q, mode: "insensitive" as const } },
+              { excerpt: { contains: q, mode: "insensitive" as const } },
+              { tags: { contains: q, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    };
+
+    const [posts, total] = await Promise.all([
+      prisma.post.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        include: { author: { select: { name: true } } },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.post.count({ where }),
+    ]);
+
+    return ok({ posts, total, page, pageSize, hasMore: page * pageSize < total });
   } catch (err) {
     return handleError(err, "research:list");
   }
