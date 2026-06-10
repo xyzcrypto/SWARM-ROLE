@@ -34,6 +34,8 @@ model User {
   posts    Post[]
   accounts Account[]
   sessions Session[]
+
+  @@index([createdAt]) // dashboard "new in last 7 days" aggregate
 }
 
 model Post {
@@ -51,6 +53,9 @@ model Post {
 
   author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
   authorId String?
+
+  // Supports the research list query: where published+category order by createdAt
+  @@index([published, category, createdAt])
 }
 
 // Email waitlist / newsletter capture (low-friction, no account needed)
