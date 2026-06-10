@@ -1,7 +1,12 @@
-// XYZ Crypto database schema
-// Default: SQLite for instant local dev. For production (Vercel/hosted),
-// switch `provider` to "postgresql" and set DATABASE_URL to your Postgres URL
-// (Vercel Postgres / Supabase / Neon). No other change needed.
+// XYZ Crypto database schema — Supabase Postgres.
+//
+// DATABASE_URL  = Supabase POOLED connection (Transaction mode, port 6543).
+//                 MUST include `?pgbouncer=true` — this disables prepared
+//                 statements, which the pgbouncer pooler does not support.
+//                 Without it, serverless requests fail with:
+//                 "42P05 prepared statement \"sN\" already exists".
+//                 Recommended: `?pgbouncer=true&connection_limit=1`.
+// DIRECT_URL    = Supabase DIRECT connection (port 5432) — used for migrations.
 
 generator client {
   provider = "prisma-client-js"
