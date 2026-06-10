@@ -1,17 +1,30 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ok, fail, handleError, getAdminSession, isCuid } from "@/lib/api";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 // DELETE /api/research/:id — admin only
 export async function DELETE(
-  _req: Request,
+  req: Request,
   { params }: { params: { id: string } }
 ) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user || (session.user as any).role !== "ADMIN") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const session = await getAdminSession();
+    if (!session) return fail("Unauthorized", 401);
+
+    const { success } = await rateLimit("admin", clientIp(req));
+    if (!success) return fail("Too many requests. Please slow down.", 429);
+
+    if (!isCuid(params.id)) return fail("Invalid id.", 400);
+
+    const existing = await prisma.post.findUnique({
+      where: { id: params.id },
+      select: { id: true },
+    });
+    if (!existing) return fail("Post not found.", 404);
+
+    await prisma.post.delete({ where: { id: params.id } });
+    return ok({ ok: true });
+  } catch (err) {
+    return handleError(err, "research:delete");
   }
-  await prisma.post.delete({ where: { id: params.id } }).catch(() => null);
-  return NextResponse.json({ ok: true });
 }

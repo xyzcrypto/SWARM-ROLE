@@ -1,6 +1,16 @@
 import { Fragment, type ReactNode } from "react";
 
 /**
+ * Only allow safe link protocols (block javascript:, data:, etc.) to prevent
+ * stored XSS from authored markdown. Returns the href if safe, else null.
+ */
+function safeHref(raw: string): string | null {
+  const url = raw.trim();
+  if (/^(https?:|mailto:|\/|#)/i.test(url)) return url;
+  return null;
+}
+
+/**
  * Minimal, dependency-free markdown renderer covering the basics used in
  * research posts: headings, lists, blockquotes, bold/italic/inline-code and
  * paragraphs. Good enough for clean article rendering without extra packages.
@@ -19,7 +29,16 @@ function inline(text: string, keyBase: string): ReactNode[] {
     else if (t.startsWith("`")) tokens.push(<code key={key}>{t.slice(1, -1)}</code>);
     else if (t.startsWith("[")) {
       const m = /\[([^\]]+)\]\(([^)]+)\)/.exec(t);
-      if (m) tokens.push(<a key={key} href={m[2]} target="_blank" rel="noopener noreferrer">{m[1]}</a>);
+      if (m) {
+        const href = safeHref(m[2]);
+        tokens.push(
+          href ? (
+            <a key={key} href={href} target="_blank" rel="noopener noreferrer">{m[1]}</a>
+          ) : (
+            <span key={key}>{m[1]}</span>
+          )
+        );
+      }
     } else if (t.startsWith("*")) tokens.push(<em key={key}>{t.slice(1, -1)}</em>);
     last = match.index + t.length;
   }

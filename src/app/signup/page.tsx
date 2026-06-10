@@ -11,7 +11,7 @@ export default function SignupPage() {
   return (
     <AuthShell
       title="Join XYZ Crypto"
-      subtitle="Create your free account — built for the next generation of Web3"
+      subtitle="Create your free account, built for the next generation of Web3"
       footer={null}
     >
       <SignupForm googleEnabled={googleEnabled} />

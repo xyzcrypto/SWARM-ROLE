@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { site } from "@/lib/site";
+import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { Container } from "./ui/primitives";
+import { AnimatedBackground } from "./AnimatedBackground";
 
-const marquee = [
+const ticker = [
   "Web3 Research",
   "Perp DEX",
   "Trading Tools",
@@ -16,146 +18,237 @@ const marquee = [
   "DeFi",
 ];
 
-export function Hero() {
-  return (
-    <section className="relative overflow-hidden pt-28 pb-20 sm:pt-36">
-      {/* ambient background */}
-      <div className="pointer-events-none absolute inset-0 bg-radial-fade" />
-      <div className="pointer-events-none absolute inset-0 bg-grid" />
-      <div className="glow-orb left-[10%] top-[8%] h-72 w-72 bg-gold-600/30" />
-      <div className="glow-orb right-[8%] top-[20%] h-80 w-80 bg-gold-400/20" />
+// Orbiting badges around the logo, anchored to the ring edges.
+const orbitBadges = [
+  { label: "WEB3", tone: "gold" },
+  { label: "PERP DEX", tone: "mint" },
+  { label: "DEFI", tone: "gold" },
+  { label: "NFT", tone: "violet" },
+  { label: "RWA", tone: "mint" },
+  { label: "ALPHA", tone: "gold" },
+  { label: "DEX", tone: "violet" },
+];
 
-      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
-        {/* Left: copy */}
+const toneClass: Record<string, string> = {
+  gold: "border-gold-500/45 text-gold-100 shadow-[0_0_18px_-4px_rgba(226,167,47,0.6)]",
+  mint: "border-mint-500/45 text-mint-200 shadow-[0_0_18px_-4px_rgba(11,187,124,0.6)]",
+  violet: "border-violet-500/45 text-violet-200 shadow-[0_0_18px_-4px_rgba(139,92,246,0.6)]",
+};
+
+export function Hero({ memberCount = 0 }: { memberCount?: number }) {
+  const mx = useMotionValue(0);
+  const my = useMotionValue(0);
+  const rx = useSpring(useTransform(my, [-0.5, 0.5], [10, -10]), { stiffness: 120, damping: 14 });
+  const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-10, 10]), { stiffness: 120, damping: 14 });
+
+  function onMove(e: React.MouseEvent<HTMLDivElement>) {
+    const r = e.currentTarget.getBoundingClientRect();
+    mx.set((e.clientX - r.left) / r.width - 0.5);
+    my.set((e.clientY - r.top) / r.height - 0.5);
+  }
+  function onLeave() {
+    mx.set(0);
+    my.set(0);
+  }
+
+  const members = "50K+";
+
+  return (
+    <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-36">
+      <AnimatedBackground />
+
+      <Container className="relative grid items-center gap-10 sm:gap-12 lg:min-h-[76vh] lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 2xl:gap-20">
+        {/* Copy */}
         <div className="text-center lg:text-left">
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-gold-500/5 px-4 py-1.5 text-xs font-medium text-gold-100 lg:mx-0"
+            transition={{ duration: 0.5 }}
+            className="mb-6 flex justify-center lg:justify-start"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-300 opacity-75" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-gold-300" />
+            <span className="eyebrow eyebrow-glass text-zinc-200">
+              <Sparkles className="h-3.5 w-3.5 text-gold-300" />
+              <span className="mono text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">
+                The Home Of Next Gen Web3..
+              </span>
             </span>
-            Next-Gen Web3 Ecosystem
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.05 }}
-            className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl"
+            transition={{ duration: 0.6, delay: 0.05 }}
+            className="font-display text-display-xl font-semibold text-zinc-50"
           >
-            <span className="text-gold-gradient">XYZ Crypto</span>
-            <span className="mt-2 block text-zinc-100">
-              {site.slogan.split(" ").slice(0, 2).join(" ")}{" "}
-              <span className="text-shine">
-                {site.slogan.split(" ").slice(2).join(" ")}
-              </span>
-            </span>
+            Everything you need
+            <br />
+            to <span className="text-gold-gradient">win in Web3.</span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.15 }}
-            className="mx-auto mt-6 max-w-xl text-base text-zinc-400 sm:text-lg lg:mx-0"
+            transition={{ duration: 0.6, delay: 0.12 }}
+            className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0"
           >
-            Research, trading tools, a perp DEX, airdrop tools, premium
-            intelligence & education — one ecosystem engineered for the
-            builders, traders and degens of tomorrow.
+            On-chain research, pro trading tools, a perpetual DEX, airdrop
+            intelligence and a free academy, the complete Web3 toolkit, built
+            for the next generation of traders and builders.
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.25 }}
-            className="mt-9 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
+            transition={{ duration: 0.6, delay: 0.24 }}
+            className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
           >
-            <Link href="/signup" className="btn-gold w-full sm:w-auto">
-              Join the Movement
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                <path d="M5 12h14M13 6l6 6-6 6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            <Link href="/signup" className="btn-primary w-full sm:w-auto">
+              Get early access
+              <ArrowRight className="h-4 w-4" />
             </Link>
             <Link href="/research" className="btn-ghost w-full sm:w-auto">
-              Explore Research
+              Explore research
             </Link>
           </motion.div>
 
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.4 }}
-            className="mt-10 grid max-w-md grid-cols-3 gap-4 lg:max-w-none"
+            transition={{ duration: 0.7, delay: 0.32 }}
+            className="mt-5 flex items-center justify-center gap-2 text-xs text-zinc-500 lg:justify-start"
+          >
+            <ShieldCheck className="h-4 w-4 text-mint-400" />
+            Free to join · No wallet required · Community first
+          </motion.div>
+
+          {/* live stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.4 }}
+            className="mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-lg"
           >
             {[
+              { k: members, v: "Members & growing" },
               { k: "6+", v: "Products in pipeline" },
               { k: "24/7", v: "On-chain coverage" },
-              { k: "100%", v: "Community first" },
             ].map((s) => (
-              <div key={s.v} className="text-center lg:text-left">
-                <div className="font-display text-2xl font-bold text-gold-gradient sm:text-3xl">
-                  {s.k}
-                </div>
-                <div className="mt-1 text-xs text-zinc-500">{s.v}</div>
+              <div key={s.v} className="bg-ink-900 px-3 py-4 text-center sm:px-4 lg:text-left">
+                <div className="mono text-xl font-semibold text-gold-gradient sm:text-2xl">{s.k}</div>
+                <div className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-[11px]">{s.v}</div>
               </div>
             ))}
           </motion.div>
         </div>
 
-        {/* Right: animated logo medallion */}
+        {/* Medallion */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
+          initial={{ opacity: 0, scale: 0.7 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.9, ease: "easeOut" }}
-          className="relative mx-auto flex aspect-square w-full max-w-md items-center justify-center"
+          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          onMouseMove={onMove}
+          onMouseLeave={onLeave}
+          style={{ perspective: 1000 }}
+          className="relative mx-auto flex aspect-square w-full max-w-[18rem] items-center justify-center sm:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl"
         >
-          {/* rotating rings */}
-          <div className="absolute inset-0 animate-spin-slow rounded-full border border-gold-500/20" />
-          <div className="absolute inset-6 animate-spin-rev rounded-full border border-dashed border-gold-400/25" />
-          <div className="absolute inset-12 animate-spin-slow rounded-full border border-gold-300/15" />
-
-          {/* glow */}
-          <div className="absolute inset-16 rounded-full bg-gold-500/20 blur-3xl" />
-
-          {/* logo */}
           <motion.div
-            animate={{ y: [0, -14, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            className="relative h-[68%] w-[68%]"
+            style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
+            className="relative flex h-full w-full items-center justify-center"
           >
-            <div className="absolute inset-0 rounded-full shadow-gold" />
-            <Image
-              src="/logo.jpg"
-              alt="XYZ Crypto logo"
-              fill
-              priority
-              className="rounded-full object-cover ring-2 ring-gold-500/40"
-              sizes="(max-width: 768px) 70vw, 320px"
+            {/* rings, animate in on open */}
+            <motion.div
+              initial={{ scale: 0.3, opacity: 0, rotate: -50 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
+              className="absolute inset-0 animate-spin-slow rounded-full border border-gold-500/25"
             />
+            <motion.div
+              initial={{ scale: 0.3, opacity: 0, rotate: 50 }}
+              animate={{ scale: 1, opacity: 1, rotate: 0 }}
+              transition={{ duration: 0.9, delay: 0.22, ease: "easeOut" }}
+              className="absolute inset-6 animate-spin-rev rounded-full border border-dashed border-gold-400/30 sm:inset-7"
+            />
+            <motion.div
+              initial={{ scale: 0.3, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.9, delay: 0.34, ease: "easeOut" }}
+              className="absolute inset-12 animate-spin-slow rounded-full border border-mint-400/20 sm:inset-14"
+            />
+            <div className="absolute inset-16 animate-pulse-dot rounded-full bg-gold-500/20 blur-3xl" />
+
+            {/* logo, pops in then floats */}
+            <motion.div
+              initial={{ scale: 0, rotate: -30, opacity: 0 }}
+              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.15, ease: [0.34, 1.56, 0.64, 1] }}
+              style={{ transformStyle: "preserve-3d" }}
+              className="relative h-[62%] w-[62%]"
+            >
+              <motion.div
+                animate={{ y: [0, -12, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                style={{ transform: "translateZ(60px)" }}
+                className="relative h-full w-full"
+              >
+                <Image
+                  src="/logo.jpg"
+                  alt="XYZ Crypto"
+                  fill
+                  priority
+                  className="rounded-full object-cover shadow-gold ring-2 ring-gold-500/40"
+                  sizes="(max-width: 768px) 60vw, 300px"
+                />
+              </motion.div>
+            </motion.div>
+
+            {/* orbiting badges (WEB3 + more), continuous rotation */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="absolute inset-0"
+              style={{ animation: "badge-orbit 22s linear infinite", transform: "translateZ(40px)" }}
+            >
+              {orbitBadges.map((b, i) => {
+                // evenly distribute around the ring (start at top, go clockwise)
+                const angle = (-90 + i * (360 / orbitBadges.length)) * (Math.PI / 180);
+                const r = 50; // % radius
+                const left = 50 + r * Math.cos(angle);
+                const top = 50 + r * Math.sin(angle);
+                return (
+                  <div
+                    key={b.label}
+                    className="absolute"
+                    style={{ left: `${left}%`, top: `${top}%`, transform: "translate(-50%,-50%)" }}
+                  >
+                    {/* counter-rotate to keep text upright + gentle bob */}
+                    <div style={{ animation: "badge-orbit 22s linear infinite reverse" }}>
+                      <motion.span
+                        animate={{ scale: [1, 1.08, 1] }}
+                        transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
+                        className={`block rounded-full border bg-ink-900/85 px-2.5 py-1 mono text-[9px] font-semibold tracking-widest backdrop-blur-md sm:text-[10px] ${toneClass[b.tone]}`}
+                      >
+                        {b.label}
+                      </motion.span>
+                    </div>
+                  </div>
+                );
+              })}
+            </motion.div>
           </motion.div>
-
-          {/* orbiting badge */}
-          <div className="absolute inset-0 animate-spin-slow">
-            <div className="absolute -top-2 left-1/2 -translate-x-1/2 rounded-full border border-gold-500/40 bg-ink/90 px-3 py-1 text-[10px] font-semibold text-gold-100 shadow-gold-sm">
-              WEB3
-            </div>
-          </div>
         </motion.div>
-      </div>
+      </Container>
 
-      {/* marquee */}
-      <div className="relative mt-16 overflow-hidden border-y border-white/5 py-4">
+      {/* ticker */}
+      <div className="marquee-mask relative mt-10 overflow-hidden border-y border-line py-4 sm:mt-14">
         <div className="marquee gap-8">
-          {[...marquee, ...marquee].map((m, i) => (
+          {[...ticker, ...ticker].map((m, i) => (
             <span
               key={i}
-              className="flex shrink-0 items-center gap-8 text-sm font-medium uppercase tracking-widest text-zinc-600"
+              className="mono flex shrink-0 items-center gap-8 text-xs uppercase tracking-[0.2em] text-zinc-600"
             >
               {m}
-              <span className="text-gold-500/60">✦</span>
+              <span className="text-gold-500/50">✦</span>
             </span>
           ))}
         </div>

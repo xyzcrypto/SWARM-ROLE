@@ -1,8 +1,8 @@
 export const site = {
   name: "XYZ Crypto",
-  slogan: "Built for the Next Generation of Web3",
+  slogan: "The Home Of Next Gen Web3..",
   description:
-    "A next-generation Web3 ecosystem — research, trading tools, perp DEX, airdrop tools, premium intelligence & education.",
+    "A next-generation Web3 ecosystem, research, trading tools, perp DEX, airdrop tools, premium intelligence & education.",
   email: "niralekhan321@gmail.com",
   socials: {
     youtube: "https://youtube.com/@xyzcrypto?si=FphRZcC3mdSVnN7j",

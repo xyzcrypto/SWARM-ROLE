@@ -1,30 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Sora } from "next/font/google";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "./providers";
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
-  display: "swap",
-});
-
-const sora = Sora({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
-
-const SITE_URL = process.env.NEXTAUTH_URL || "http://localhost:3000";
+import { SmoothScroll } from "@/components/SmoothScroll";
+import { Analytics } from "@/components/Analytics";
+import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
+import { SITE_URL, GSC_VERIFICATION } from "@/lib/seo";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  alternates: { canonical: "/" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  ...(GSC_VERIFICATION ? { verification: { google: GSC_VERIFICATION } } : {}),
   title: {
-    default: "XYZ Crypto — Built for the Next Generation of Web3",
+    default: "XYZ Crypto · The Home Of Next Gen Web3",
     template: "%s · XYZ Crypto",
   },
   description:
-    "XYZ Crypto is a next-generation Web3 ecosystem — research, trading tools, a perp DEX, airdrop tools, premium intelligence and education. Built for the next generation of Web3.",
+    "XYZ Crypto is a next-generation Web3 ecosystem, research, trading tools, a perp DEX, airdrop tools, premium intelligence and education. Built for the next generation of Web3.",
   keywords: [
     "XYZ Crypto",
     "Web3",
@@ -39,7 +37,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "XYZ Crypto" }],
   openGraph: {
-    title: "XYZ Crypto — Built for the Next Generation of Web3",
+    title: "XYZ Crypto · The Home Of Next Gen Web3",
     description:
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium intelligence & education.",
     url: SITE_URL,
@@ -49,7 +47,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "XYZ Crypto — Built for the Next Generation of Web3",
+    title: "XYZ Crypto · The Home Of Next Gen Web3",
     description:
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium & education.",
     site: "@XYZCryptos",
@@ -70,9 +68,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${sora.variable}`}>
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body>
+        <JsonLd data={organizationJsonLd()} />
+        <JsonLd data={websiteJsonLd()} />
+        <SmoothScroll />
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   );

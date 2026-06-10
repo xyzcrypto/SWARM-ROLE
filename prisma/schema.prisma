@@ -8,8 +8,9 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model User {
@@ -20,8 +21,10 @@ model User {
   image         String?
   passwordHash  String?
   role          String    @default("USER") // "USER" | "ADMIN"
+  membership    String    @default("Free") // "Free" | "Premium"
   provider      String    @default("credentials") // "credentials" | "google"
   createdAt     DateTime  @default(now())
+  lastLoginAt   DateTime?
 
   posts    Post[]
   accounts Account[]
@@ -43,6 +46,14 @@ model Post {
 
   author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
   authorId String?
+}
+
+// Email waitlist / newsletter capture (low-friction, no account needed)
+model Subscriber {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  source    String   @default("website") // where the signup came from
+  createdAt DateTime @default(now())
 }
 
 // --- NextAuth adapter models ---
