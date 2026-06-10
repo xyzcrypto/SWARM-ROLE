@@ -28,13 +28,16 @@ export function PostCard({ post }: { post: PostCardData }) {
     >
       <div className="relative aspect-[16/9] w-full overflow-hidden bg-ink-700">
         {post.cover ? (
-          <Image
-            src={post.cover}
-            alt={post.title}
-            fill
-            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-            sizes="(max-width: 768px) 100vw, 400px"
-          />
+          <>
+            <Image
+              src={post.cover}
+              alt={post.title}
+              fill
+              className="object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.05]"
+              sizes="(max-width: 768px) 100vw, 400px"
+            />
+            <div className="absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-ink-900/60 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+          </>
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-ink-700 to-ink-900">
             <span className="font-display text-3xl font-bold text-gold-gradient opacity-40">XYZ</span>

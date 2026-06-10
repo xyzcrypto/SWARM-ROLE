@@ -9,6 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { formatDate, readingTime } from "@/lib/utils";
 import { JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PostCard } from "@/components/PostCard";
+import { ReadingProgress } from "@/components/ReadingProgress";
+import { ShareRow } from "@/components/ShareRow";
 
 // Cached per-article; revalidated on demand when admin deletes (research route).
 export const revalidate = 300;
@@ -90,6 +92,7 @@ export default async function PostPage({
         ])}
       />
       <Navbar />
+      <ReadingProgress />
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
         <article className="relative mx-auto max-w-3xl px-4 pb-24 sm:px-6">
@@ -110,22 +113,41 @@ export default async function PostPage({
             <h1 className="mt-4 font-display text-3xl font-bold leading-tight text-zinc-50 sm:text-5xl">
               {post.title}
             </h1>
-            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
-              <span>{post.author?.name ?? "XYZ Crypto"}</span>
-              <span className="text-zinc-700">•</span>
-              <span>{formatDate(post.createdAt)}</span>
-              <span className="text-zinc-700">•</span>
-              <span>{readingTime(post.content)} min read</span>
+
+            {/* Byline + share */}
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-white/5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gold-500/15 font-display text-sm font-bold text-gold-200 ring-1 ring-gold-500/30">
+                  {(post.author?.name ?? "XYZ Crypto").charAt(0)}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-zinc-200">
+                    {post.author?.name ?? "XYZ Crypto"}
+                  </p>
+                  <p className="mono text-[11px] text-zinc-500">
+                    {formatDate(post.createdAt)} · {readingTime(post.content)} min read
+                  </p>
+                </div>
+              </div>
+              <ShareRow title={post.title} path={`/research/${post.slug}`} />
             </div>
           </div>
 
           {post.cover && (
             <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-2xl ring-1 ring-white/10">
-              <Image src={post.cover} alt={post.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 768px" />
+              <Image
+                src={post.cover}
+                alt={post.title}
+                fill
+                priority
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 768px"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-950/70 to-transparent" />
             </div>
           )}
 
-          <p className="mt-8 text-lg leading-relaxed text-zinc-300">
+          <p className="mt-8 border-l-2 border-gold-500/60 pl-4 text-lg leading-relaxed text-zinc-200">
             {post.excerpt}
           </p>
 

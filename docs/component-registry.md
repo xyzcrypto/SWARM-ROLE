@@ -56,3 +56,13 @@ Reuse these; do not duplicate. Paths under `src/`.
 
 ## Brand assets — `/public/`
 `logo.jpg` · `tradekaroverse.jpg` · `web3-academy.jpg`.
+
+## Backend/CMS components (2026-06-10)
+| Component | File | Purpose |
+|---|---|---|
+| PostEditor | `src/components/PostEditor.tsx` | Create/edit posts: markdown toolbar, Write/Preview (`.prose-xyz`), cover URL or upload, Save-draft vs Publish |
+| PostManager | `src/components/PostManager.tsx` | Dashboard content tab: search, category/status filters, badges, inline edit, publish-toggle, delete-confirm |
+| OtpStep | `src/components/OtpStep.tsx` | Shared 6-digit OTP entry (signup + login 2FA): resend cooldown, devCode hint |
+| ForgotPasswordForm | `src/components/ForgotPasswordForm.tsx` | Email → code → new password flow |
+| ReadingProgress | `src/components/ReadingProgress.tsx` | Gold scroll-progress bar on article pages |
+| ShareRow | `src/components/ShareRow.tsx` | Copy link / X / Telegram share buttons on articles |

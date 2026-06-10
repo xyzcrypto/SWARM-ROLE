@@ -5,6 +5,39 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-10 — OTP delivery fix + premium article + perf (this entry newest)
+- **Files:** `lib/email.ts`, 3 × `api/auth/*/start` routes, `research/[slug]/page.tsx`,
+  `globals.css`, `PostCard.tsx`, new `ReadingProgress.tsx` + `ShareRow.tsx`, docs/.
+- **Fix:** OTP emails — root cause `onboarding@resend.dev` only delivers to the
+  Resend account owner (members got nothing). Send failures now return 502 to the
+  user (no more silent stuck-on-OTP screen) + Sentry capture. Real fix = owner
+  verifies domain in Resend and sets `EMAIL_FROM` to it (steps in RUNBOOK).
+- **Design:** premium article page — reading progress bar, share row (copy/X/
+  Telegram), author byline card, lead excerpt, `.prose-xyz` upgrades.
+- **Perf:** lazy-loaded below-the-fold home sections (dynamic imports).
+
+## 2026-06-10 — CMS upgrade (edit/draft/preview/upload) + feed pagination
+- **Backend:** `GET/PATCH /api/research/[id]` (edit; stable slugs), paginated +
+  searchable `GET /api/research`, `POST /api/upload` (Supabase Storage REST,
+  graceful fallback), dashboard posts bounded. Zero schema changes.
+- **Frontend:** `PostEditor` (toolbar, Write/Preview, cover URL/upload,
+  draft/publish), `PostManager` (search/filter/status/edit/toggle/delete),
+  `/research` search + Load more, related-posts on articles; framer-motion
+  dropped from ResearchGrid. Tests 27.
+
+## 2026-06-10 — Sentry + security hardening + indexes
+- Sentry (client/server/edge, DSN-guarded; handleError 500s reported).
+- Security headers (CSP/HSTS/XFO/nosniff/referrer/permissions), image-host
+  allowlist (was `**`), `next` 14.2.5→14.2.35, DB indexes
+  (`Post(published,category,createdAt)`, `User(createdAt)`), RUNBOOK.md.
+
+## 2026-06-10 — Email OTP auth + Supabase Postgres migration
+- Schema → Supabase Postgres (pooled + `pgbouncer=true`, `DIRECT_URL`).
+- OTP system: `VerificationCode` table, signup verify-then-create, login 2FA,
+  forgot/reset password; Resend integration w/ dev-mode fallback; 2-step
+  Signup/Login UI + `/forgot-password`. Robust sign-out; ISR for home/research
+  + on-demand revalidation; HMAC OTP hashing.
+
 ## 2026-06-XX — Backend hardening (Steps 1,3–7)
 - **Files:** new `src/lib/env.ts`, `src/lib/api.ts`, `src/lib/ratelimit.ts`,
   `src/app/error.tsx`, `src/app/global-error.tsx`, `src/app/not-found.tsx`,

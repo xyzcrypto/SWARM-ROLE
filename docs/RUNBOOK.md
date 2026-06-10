@@ -55,3 +55,16 @@ Optional: `GOOGLE_CLIENT_ID/SECRET`, `UPSTASH_REDIS_REST_URL/TOKEN`,
 Vercel → Deployments → pick the last good build → **Promote to Production**.
 DB changes are not auto-rolled-back — additive migrations (like indexes) are
 safe; destructive ones must be reversed manually.
+
+## 6. Email deliverability (Resend) — REQUIRED for member OTPs
+The test sender `onboarding@resend.dev` delivers ONLY to the Resend account
+owner's email. Members will not receive OTP codes until a domain is verified:
+
+1. Resend dashboard → **Domains** → **Add Domain** → `xyzcrypto.io`.
+2. Resend shows DNS records (DKIM TXT, SPF TXT, optionally MX for the
+   `send.` subdomain). Add them at your DNS provider (where xyzcrypto.io is managed).
+3. Wait for the domain to show **Verified** (minutes up to a few hours).
+4. Vercel → Environment Variables → set
+   `EMAIL_FROM = XYZ Crypto <noreply@xyzcrypto.io>` (Production + Preview) → Redeploy.
+5. Test: sign up with ANY non-owner email → OTP should arrive. Failures appear
+   in Sentry tagged `area:email` and in Vercel logs as `[email] Resend send failed`.

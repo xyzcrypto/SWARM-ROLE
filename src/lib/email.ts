@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { env, emailEnabled } from "@/lib/env";
 
 type SendResult = { ok: boolean; dev?: boolean };
@@ -28,12 +29,24 @@ export async function sendEmail(
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "");
-      console.error("[email] Resend send failed", res.status, body);
+      // Most common cause: EMAIL_FROM is the Resend test sender
+      // (onboarding@resend.dev), which only delivers to the account owner.
+      // Verify your domain in Resend and set EMAIL_FROM to it.
+      const recipientDomain = to.split("@")[1] ?? "unknown";
+      console.error(
+        `[email] Resend send failed status=${res.status} from=${env.EMAIL_FROM} toDomain=${recipientDomain}: ${body}`
+      );
+      Sentry.captureMessage(`Resend send failed (${res.status})`, {
+        level: "error",
+        tags: { area: "email", status: String(res.status), recipientDomain },
+        extra: { body, from: env.EMAIL_FROM },
+      });
       return { ok: false };
     }
     return { ok: true };
   } catch (err) {
     console.error("[email] Resend request error", err);
+    Sentry.captureException(err, { tags: { area: "email" } });
     return { ok: false };
   }
 }
