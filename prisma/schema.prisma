@@ -96,3 +96,18 @@ model VerificationToken {
 
   @@unique([identifier, token])
 }
+
+// One-time codes for email OTP (signup verification, 2FA login, password reset).
+// Only the bcrypt hash of the code is stored; codes are single-use and expire.
+model VerificationCode {
+  id        String   @id @default(cuid())
+  email     String
+  purpose   String // "signup" | "login" | "reset"
+  codeHash  String
+  payload   String? // JSON (e.g. pending signup: name + passwordHash)
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, purpose])
+}

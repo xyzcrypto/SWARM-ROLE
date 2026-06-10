@@ -14,6 +14,8 @@ const schema = z.object({
   ADMIN_EMAILS: z.string().optional(),
   UPSTASH_REDIS_REST_URL: z.string().optional(),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  EMAIL_FROM: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -42,9 +44,15 @@ export const env = {
   GOOGLE_CLIENT_SECRET: raw.GOOGLE_CLIENT_SECRET ?? "",
   UPSTASH_REDIS_REST_URL: raw.UPSTASH_REDIS_REST_URL ?? "",
   UPSTASH_REDIS_REST_TOKEN: raw.UPSTASH_REDIS_REST_TOKEN ?? "",
+  RESEND_API_KEY: raw.RESEND_API_KEY ?? "",
+  EMAIL_FROM: raw.EMAIL_FROM || "XYZ Crypto <onboarding@resend.dev>",
 };
 
 export const googleEnabled = !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET;
+
+// Email (Resend). When unset, OTP codes are logged to the server console so the
+// flow still works for local/testing — set RESEND_API_KEY to actually deliver.
+export const emailEnabled = !!env.RESEND_API_KEY;
 
 // Admins: ADMIN_EMAILS (comma-separated) preferred, ADMIN_EMAIL as fallback.
 export const adminEmails: string[] = (raw.ADMIN_EMAILS || raw.ADMIN_EMAIL || "")
