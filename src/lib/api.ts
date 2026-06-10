@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
@@ -44,6 +45,8 @@ export function handleError(err: unknown, context = "api") {
   }
   const traceId = Math.random().toString(36).slice(2, 8);
   console.error(`[${context}:${traceId}]`, err);
+  // Report unexpected 500s to Sentry (no-op until a DSN is configured).
+  Sentry.captureException(err, { tags: { context, traceId } });
   return fail("Something went wrong. Please try again.", 500);
 }
 

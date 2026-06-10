@@ -1,3 +1,5 @@
+import { withSentryConfig } from "@sentry/nextjs";
+
 /** @type {import('next').NextConfig} */
 
 // Pragmatic CSP: protective without breaking Next hydration, Google sign-in,
@@ -32,6 +34,10 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    // Required on Next 14 for src/instrumentation.ts (Sentry runtime init).
+    instrumentationHook: true,
+  },
   images: {
     // Allowlisted remote image hosts (was "**", an SSRF/abuse vector). Add a
     // host here if you reference cover/avatar images from a new domain.
@@ -49,4 +55,12 @@ const nextConfig = {
   },
 };
 
-export default nextConfig;
+// Sentry build wrapper. Source-map upload only runs when SENTRY_AUTH_TOKEN is
+// set (optional); otherwise this is inert and the build is unchanged.
+export default withSentryConfig(nextConfig, {
+  silent: true,
+  disableLogger: true,
+  widenClientFileUpload: false,
+  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+  telemetry: false,
+});
