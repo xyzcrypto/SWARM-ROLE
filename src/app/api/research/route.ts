@@ -1,9 +1,17 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { ok, fail, handleError, getAdminSession } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+
+// Refresh the ISR-cached pages that list/show posts after a content change.
+function revalidateContent(slug?: string) {
+  revalidatePath("/");
+  revalidatePath("/research");
+  if (slug) revalidatePath(`/research/${slug}`);
+}
 
 // GET /api/research — public list (optionally filter by category)
 export async function GET(req: Request) {
@@ -66,11 +74,13 @@ export async function POST(req: Request) {
     // (avoids the previous unbounded findUnique loop).
     try {
       const post = await prisma.post.create({ data: { ...payload, slug: base } });
+      revalidateContent(post.slug);
       return ok({ post }, 201);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
         const slug = `${base}-${Math.random().toString(36).slice(2, 6)}`;
         const post = await prisma.post.create({ data: { ...payload, slug } });
+        revalidateContent(post.slug);
         return ok({ post }, 201);
       }
       throw e;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { slugify, readingTime, cn } from "@/lib/utils";
+import { slugify, readingTime, cn, csvCell } from "@/lib/utils";
 
 describe("slugify", () => {
   it("lowercases and hyphenates", () => {
@@ -25,5 +25,23 @@ describe("readingTime", () => {
 describe("cn", () => {
   it("merges and dedupes tailwind classes", () => {
     expect(cn("px-2", "px-4")).toBe("px-4");
+  });
+});
+
+describe("csvCell", () => {
+  it("wraps plain values in quotes", () => {
+    expect(csvCell("hello")).toBe('"hello"');
+  });
+  it("doubles embedded quotes (no CSV corruption)", () => {
+    expect(csvCell('John "JD" Doe')).toBe('"John ""JD"" Doe"');
+  });
+  it("neutralises formula injection (leading = + - @)", () => {
+    expect(csvCell("=SUM(A1)")).toBe(`"'=SUM(A1)"`);
+    expect(csvCell("+1")).toBe(`"'+1"`);
+    expect(csvCell("@cmd")).toBe(`"'@cmd"`);
+  });
+  it("handles null/undefined as empty", () => {
+    expect(csvCell(null)).toBe('""');
+    expect(csvCell(undefined)).toBe('""');
   });
 });

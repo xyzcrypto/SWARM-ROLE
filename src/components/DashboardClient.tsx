@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime, csvCell } from "@/lib/utils";
 
 type Stats = {
   totalUsers: number;
@@ -143,20 +143,25 @@ function Publish() {
     e.preventDefault();
     setMsg(null);
     setLoading(true);
-    const res = await fetch("/api/research", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, published: true }),
-    });
-    setLoading(false);
-    const data = await res.json();
-    if (!res.ok) {
-      setMsg({ type: "err", text: data.error || "Could not publish." });
-      return;
+    try {
+      const res = await fetch("/api/research", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, published: true }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg({ type: "err", text: data.error || "Could not publish." });
+        return;
+      }
+      setMsg({ type: "ok", text: "Published! Your post is now live." });
+      setForm({ title: "", excerpt: "", content: "", category: "Research", cover: "", tags: "" });
+      router.refresh();
+    } catch {
+      setMsg({ type: "err", text: "Network error. Please try again." });
+    } finally {
+      setLoading(false);
     }
-    setMsg({ type: "ok", text: "Published! Your post is now live." });
-    setForm({ title: "", excerpt: "", content: "", category: "Research", cover: "", tags: "" });
-    router.refresh();
   }
 
   return (
@@ -224,11 +229,19 @@ function Content({ posts }: { posts: PostRow[] }) {
   async function remove(id: string) {
     if (!confirm("Delete this post permanently?")) return;
     setBusy(id);
-    const res = await fetch(`/api/research/${id}`, { method: "DELETE" });
-    setBusy(null);
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/research/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Could not delete the post. Please try again.");
+        return;
+      }
       setItems((arr) => arr.filter((p) => p.id !== id));
       router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
+    } finally {
+      setBusy(null);
     }
   }
 
@@ -297,26 +310,43 @@ function Members({ users }: { users: UserRow[] }) {
   async function toggleMembership(u: UserRow) {
     const next = u.membership === "Premium" ? "Free" : "Premium";
     setBusy(u.id);
-    const res = await fetch(`/api/users/${u.id}/membership`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ membership: next }),
-    });
-    setBusy(null);
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/users/${u.id}/membership`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membership: next }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        alert(data.error || "Could not update membership. Please try again.");
+        return;
+      }
       setRows((arr) =>
         arr.map((x) => (x.id === u.id ? { ...x, membership: next } : x))
       );
       router.refresh();
+    } catch {
+      alert("Network error. Please try again.");
+    } finally {
+      setBusy(null);
     }
   }
 
   function exportCsv() {
     const header = "Name,Email,Membership,Role,Method,Signup Date,Last Login\n";
     const body = rows
-      .map(
-        (u) =>
-          `"${u.name ?? ""}","${u.email}","${u.membership}","${u.role}","${u.provider}","${formatDate(u.createdAt)}","${u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Never"}"`
+      .map((u) =>
+        [
+          u.name ?? "",
+          u.email,
+          u.membership,
+          u.role,
+          u.provider,
+          formatDate(u.createdAt),
+          u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Never",
+        ]
+          .map(csvCell)
+          .join(",")
       )
       .join("\n");
     const blob = new Blob([header + body], { type: "text/csv" });

@@ -1,7 +1,12 @@
-// XYZ Crypto database schema
-// Default: SQLite for instant local dev. For production (Vercel/hosted),
-// switch `provider` to "postgresql" and set DATABASE_URL to your Postgres URL
-// (Vercel Postgres / Supabase / Neon). No other change needed.
+// XYZ Crypto database schema — Supabase Postgres.
+//
+// DATABASE_URL  = Supabase POOLED connection (Transaction mode, port 6543).
+//                 MUST include `?pgbouncer=true` — this disables prepared
+//                 statements, which the pgbouncer pooler does not support.
+//                 Without it, serverless requests fail with:
+//                 "42P05 prepared statement \"sN\" already exists".
+//                 Recommended: `?pgbouncer=true&connection_limit=1`.
+// DIRECT_URL    = Supabase DIRECT connection (port 5432) — used for migrations.
 
 generator client {
   provider = "prisma-client-js"
@@ -90,4 +95,19 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// One-time codes for email OTP (signup verification, 2FA login, password reset).
+// Only the bcrypt hash of the code is stored; codes are single-use and expire.
+model VerificationCode {
+  id        String   @id @default(cuid())
+  email     String
+  purpose   String // "signup" | "login" | "reset"
+  codeHash  String
+  payload   String? // JSON (e.g. pending signup: name + passwordHash)
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, purpose])
 }

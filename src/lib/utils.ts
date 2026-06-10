@@ -31,6 +31,17 @@ export function formatDateTime(date: Date | string | null): string {
   });
 }
 
+/**
+ * Escape a value for safe inclusion in a CSV cell: wraps in quotes, doubles any
+ * embedded quotes, and neutralises spreadsheet formula injection by prefixing a
+ * leading = + - @ with a single quote.
+ */
+export function csvCell(value: unknown): string {
+  const s = String(value ?? "").replace(/"/g, '""');
+  const safe = /^[=+\-@]/.test(s) ? `'${s}` : s;
+  return `"${safe}"`;
+}
+
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

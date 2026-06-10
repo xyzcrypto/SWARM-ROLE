@@ -5,48 +5,78 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { GoogleButton } from "./GoogleButton";
+import { OtpStep } from "./OtpStep";
 
 export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
   const router = useRouter();
+  const [step, setStep] = useState<"details" | "otp">("details");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [devCode, setDevCode] = useState<string | undefined>();
 
-  async function onSubmit(e: React.FormEvent) {
+  async function startSignup(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/signup", {
+      const res = await fetch("/api/auth/signup/start", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, email, password }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error || "Could not create account.");
-        setLoading(false);
+        setError(data.error || "Could not start signup.");
         return;
       }
-      // auto sign-in after successful signup
-      const login = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
-      });
-      setLoading(false);
-      if (login?.error) {
-        router.push("/login");
-        return;
-      }
-      router.push("/");
-      router.refresh();
+      setDevCode(data.devCode);
+      setStep("otp");
     } catch {
       setError("Network error. Please try again.");
+    } finally {
       setLoading(false);
     }
+  }
+
+  async function verify(code: string) {
+    const login = await signIn("credentials", {
+      email,
+      code,
+      flow: "signup",
+      redirect: false,
+    });
+    if (login?.error) {
+      throw new Error("Incorrect or expired code. Please try again.");
+    }
+    router.push("/");
+    router.refresh();
+  }
+
+  async function resend() {
+    const res = await fetch("/api/auth/signup/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, email, password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Could not resend code.");
+    setDevCode(data.devCode);
+  }
+
+  if (step === "otp") {
+    return (
+      <OtpStep
+        email={email}
+        devCode={devCode}
+        submitLabel="Verify & create account"
+        onVerify={verify}
+        onResend={resend}
+        onBack={() => setStep("details")}
+      />
+    );
   }
 
   return (
@@ -61,7 +91,7 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="space-y-4">
+      <form onSubmit={startSignup} className="space-y-4">
         <Field label="Full name" type="text" value={name} onChange={setName} placeholder="Satoshi Nakamoto" autoComplete="name" />
         <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
         <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="At least 6 characters" autoComplete="new-password" />
@@ -73,13 +103,13 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
         )}
 
         <button type="submit" disabled={loading} className="btn-gold w-full disabled:opacity-60">
-          {loading ? "Creating account…" : "Create account"}
+          {loading ? "Sending code…" : "Continue"}
         </button>
       </form>
 
       <p className="text-center text-xs leading-relaxed text-zinc-600">
-        By creating an account you agree to receive product updates from XYZ
-        Crypto. You can opt out anytime.
+        We&apos;ll email you a 6-digit code to verify your address. By creating an
+        account you agree to receive product updates. Opt out anytime.
       </p>
 
       <p className="text-center text-sm text-zinc-500">

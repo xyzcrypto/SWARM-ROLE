@@ -23,8 +23,21 @@ export function handleError(err: unknown, context = "api") {
     return fail(err.issues[0]?.message ?? "Invalid input", 400);
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    // Always log the Prisma error code so the cause is visible in Vercel logs.
+    const detail = err.message.split("\n").pop()?.trim();
+    console.error(`[${context}] Prisma ${err.code}: ${detail}`);
     if (err.code === "P2002") return fail("That record already exists.", 409);
     if (err.code === "P2025") return fail("Not found.", 404);
+    // Schema drift — a table/column the code expects is missing in the DB.
+    if (err.code === "P2021")
+      return fail("Database not migrated: a required table is missing. Run the latest migration.", 503);
+    if (err.code === "P2022")
+      return fail("Database not migrated: a required column is missing. Run the latest migration.", 503);
+  }
+  // DB unreachable / bad connection string (e.g. missing ?pgbouncer=true).
+  if (err instanceof Prisma.PrismaClientInitializationError) {
+    console.error(`[${context}] Prisma init/connection error:`, err.message);
+    return fail("Database connection error. Please try again shortly.", 503);
   }
   if (err instanceof SyntaxError) {
     return fail("Invalid JSON body.", 400);

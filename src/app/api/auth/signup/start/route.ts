@@ -2,8 +2,10 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError } from "@/lib/api";
-import { isAdminEmail } from "@/lib/env";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { issueCode } from "@/lib/otp";
+import { sendEmail, otpEmail } from "@/lib/email";
+import { emailEnabled } from "@/lib/env";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(60),
@@ -11,6 +13,8 @@ const schema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters").max(100),
 });
 
+// POST /api/auth/signup/start — validate details, email a verification code.
+// The account is created only after the code is verified (in NextAuth authorize).
 export async function POST(req: Request) {
   try {
     const { success } = await rateLimit("signup", clientIp(req));
@@ -26,18 +30,15 @@ export async function POST(req: Request) {
     if (existing) return fail("An account with this email already exists.", 409);
 
     const passwordHash = await bcrypt.hash(password, 10);
-    await prisma.user.create({
-      data: {
-        name,
-        email,
-        passwordHash,
-        provider: "credentials",
-        role: isAdminEmail(email) ? "ADMIN" : "USER",
-      },
-    });
+    const code = await issueCode(email, "signup", { name, passwordHash });
+    const { subject, html, text } = otpEmail(code, "signup");
+    await sendEmail(email, subject, html, text);
 
-    return ok({ ok: true }, 201);
+    return ok({
+      ok: true,
+      ...(!emailEnabled && process.env.NODE_ENV !== "production" ? { devCode: code } : {}),
+    });
   } catch (err) {
-    return handleError(err, "signup");
+    return handleError(err, "signup:start");
   }
 }

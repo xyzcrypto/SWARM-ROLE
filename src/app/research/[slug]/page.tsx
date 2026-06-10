@@ -9,7 +9,8 @@ import { prisma } from "@/lib/prisma";
 import { formatDate, readingTime } from "@/lib/utils";
 import { JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 
-export const dynamic = "force-dynamic";
+// Cached per-article; revalidated on demand when admin deletes (research route).
+export const revalidate = 300;
 
 async function getPost(slug: string) {
   return prisma.post
