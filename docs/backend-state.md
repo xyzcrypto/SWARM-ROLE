@@ -74,3 +74,20 @@ Resend owner). Optional/feature-flags: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_K
 
 ## Verification gate
 `npx tsc --noEmit` · `npx vitest run` (31 tests) · `npm run build` exit 0.
+
+## Profiles (v1.1, 2026-06-11) — addendum
+- **Schema:** `User` += `username` (unique, `[a-z0-9_]{3,20}`), `bio`, `location`,
+  `website`, `twitter/github/telegram` (bare handles), `bannerImage`.
+  ⚠️ One-time prod migration required — idempotent SQL in `HANDOFF.md`.
+- **Routes:** `PATCH/DELETE /api/profile` (update / transactional account delete),
+  `POST /api/profile/avatar` (Supabase upload → `user.image`),
+  `POST /api/profile/password` (current-password verify; OAuth-only rejected),
+  `GET /api/profile/username` (availability). Full details: `api-reference.md`.
+- **Validation:** `src/lib/profile.ts` — zod schemas, reserved handles, social
+  normalization (strips @/URLs). 15 unit tests (`src/lib/__tests__/profile.test.ts`).
+- **Sessions:** jwt/session callbacks also refresh `name/image/username` on
+  `update()` so profile edits reflect without re-login.
+- **Caching:** `/u/[username]` ISR 60s; profile/avatar APIs fire `revalidatePath`
+  (old + new handle) so edits are instant. `getProfile` wrapped in React `cache()`.
+- **Rate limits:** new dedicated `password` bucket (10/min/IP) for the reset flow.
+- Verification gate is now **50 tests**.

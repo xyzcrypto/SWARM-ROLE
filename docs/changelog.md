@@ -5,6 +5,41 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-11 — Docs book + continuity handoff (GitBook-ready)
+- **New:** root `CLAUDE.md` (continuity anchor for any AI/dev session),
+  `docs/SUMMARY.md` + `docs/README.md` (GitBook book structure), `docs/HANDOFF.md`
+  (resume-from-any-account guide, env table names-only, pending-migration SQL),
+  `docs/api-reference.md` (all 24 endpoints), `docs/SECURITY.md` (posture + secrets
+  policy). Changelog/backend-state/frontend-state updated for Profiles v1.1.
+- Docs-only release; no runtime changes.
+
+## 2026-06-11 — Bug fixes + mobile/PC performance pass + audit (PR #11)
+- **Bugs:** dedicated `password` rate-limit bucket (reset spam no longer blocks
+  signups); settings save no longer blocked by stale handle check; `/u/[username]`
+  double DB query → React `cache()`; profiles force-dynamic → **ISR 60s** with
+  `revalidatePath` on profile/avatar edits.
+- **Perf (mobile):** backdrop blur 10–18px+saturate → 8px on ≤768px; Lenis
+  disabled on touch; orbital particles 34 → 14 on phones.
+- **Perf (PC/both):** hero parallax rAF-throttled; ticker pauses in hidden tabs;
+  dashboard 3 user counts → 1 groupBy. Bundle size unchanged.
+- **Audit:** `docs/AUDIT-2026-06-11.md` (scorecard A−/A); backup branch
+  `backup/v1.1-profiles` + source ZIP delivered to owner.
+
+## 2026-06-11 — User profiles: public /u/[handle] + private /settings (PR #10)
+- **Public profile** `/u/[username]`: banner, avatar (initials fallback), bio,
+  location, socials (X/GitHub/Telegram/website), Premium/Team/member-since badges,
+  stats (posts/comments/likes), recent-comment activity. Email never exposed.
+- **Settings** (tabbed Profile/Account/Security): avatar upload (Supabase), name,
+  unique handle w/ live availability, bio/location/website/socials, membership
+  panel + upgrade CTA, change password (current-password verify), delete account
+  (typed confirm, transactional).
+- **Schema:** +username (unique), bio, location, website, twitter, github,
+  telegram, bannerImage. ⚠️ Requires one-time prod migration (see HANDOFF.md).
+- **API:** PATCH/DELETE `/api/profile`, POST `/api/profile/avatar`,
+  POST `/api/profile/password`, GET `/api/profile/username`.
+- Navbar: avatar + account dropdown (Profile/Settings/Dashboard/Sign out).
+- 15 new unit tests (50 total). CI ESLint config fixed (`.eslintrc.json` + deps).
+
 ## 2026-06-11 — Orbital ecosystem section + auth simplification (Phase 4)
 - **Home:** premium 3D Orbital Ecosystem section (additive; rings/nodes/particles,
   in-view + reduced-motion gated, no heavy libs, home stays ISR).

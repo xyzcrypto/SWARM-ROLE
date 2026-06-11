@@ -44,3 +44,15 @@ removed framer-motion from ResearchGrid; bounded/paginated queries.
 ## Verification
 `npx tsc --noEmit` · `npx vitest run` · `npm run build` exit 0. Manual: auth,
 dashboard publish/edit/draft/preview/upload, premium lock+unlock, comments, mobile.
+
+## Profiles + perf pass (v1.1, 2026-06-11) — addendum
+- **Pages:** `/u/[username]` (public profile: banner, Avatar w/ initials fallback,
+  badges, socials, stats, recent activity; ISR 60s) · `/settings` (tabbed
+  Profile/Account/Security; dynamic, auth-gated).
+- **Components:** `Avatar`, `AvatarUploader`, `SettingsClient`, `BrandIcons` +=
+  GitHubIcon. Navbar: account chip → avatar + dropdown (Profile/Settings/
+  Dashboard/Sign out; outside-click + Escape close).
+- **Mobile perf:** backdrop blur reduced to 8px ≤768px; Lenis skipped on
+  `pointer: coarse`; orbital particles 14 on phones (34 desktop).
+- **PC perf:** hero parallax rAF-throttled; ticker pauses when tab hidden.
+- Home First-Load JS unchanged (159 kB shared).
