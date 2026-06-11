@@ -91,3 +91,14 @@ Resend owner). Optional/feature-flags: `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_K
   (old + new handle) so edits are instant. `getProfile` wrapped in React `cache()`.
 - **Rate limits:** new dedicated `password` bucket (10/min/IP) for the reset flow.
 - Verification gate is now **50 tests**.
+
+## Community Chat (v1.3, 2026-06-11) — addendum
+- **Schema:** `ChatMessage` (body ≤500 zod-enforced, `status` visible|hidden,
+  user cascade). ⚠️ One-time prod SQL in `HANDOFF.md`.
+- **Routes:** `GET/POST /api/chat/messages` (public cursor history / auth send,
+  new `chat` limiter 10/min/user) · `DELETE /api/chat/messages/[id]` (author or
+  admin, soft-hide). Details: `api-reference.md`.
+- **Realtime:** `src/lib/chat.ts` — `broadcastChatEvent()` POSTs to
+  `${SUPABASE_URL}/realtime/v1/api/broadcast` (service key, fire-and-forget)
+  after writes; DB stays source of truth. `realtimeEnabled` flag in `env.ts`;
+  clients fall back to polling when `NEXT_PUBLIC_SUPABASE_*` unset.

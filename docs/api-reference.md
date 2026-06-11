@@ -51,6 +51,17 @@ rate-limited `login` 10/min **per account**.
 | `/api/profile/username` | GET | User | — | `?handle=` availability check (own handle counts available). |
 | `/api/users/[id]/membership` | PATCH | Admin | `admin` | Set membership `Free`/`Premium`. |
 
+## Community chat
+
+| Route | Method | Auth | Limit | Purpose |
+|---|---|---|---|---|
+| `/api/chat/messages` | GET | Public | — | History: latest 50 visible w/ author `{name,username,image,membership,role}`; `?cursor=<id>` pages older. Returns `{messages, hasMore, nextCursor}`. |
+| `/api/chat/messages` | POST | User | `chat` 10/min/user | Send (1–500 chars, plain text). Inserts, then broadcasts `new_message` to Supabase Realtime channel `community` (no-op if Supabase env unset). 201 `{message}`. |
+| `/api/chat/messages/[id]` | DELETE | Author or Admin | `chat` | Soft-hide (`status="hidden"`) + broadcast `message_hidden`. |
+
+Delivery: clients subscribe to channel `community` (anon key); polling fallback
+when `NEXT_PUBLIC_SUPABASE_*` unset. Validation: `src/lib/chat.ts`.
+
 ## Misc
 
 | Route | Method | Auth | Limit | Purpose |

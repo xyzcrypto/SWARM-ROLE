@@ -1,0 +1,81 @@
+import type { Metadata } from "next";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { env } from "@/lib/env";
+import { CHAT_PAGE_SIZE } from "@/lib/chat";
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { ChatClient } from "@/components/ChatClient";
+
+export const metadata: Metadata = {
+  title: "Community Chat",
+  description:
+    "The XYZ Crypto community lounge — talk markets, alpha, airdrops and Web3 live with other members.",
+};
+export const dynamic = "force-dynamic";
+
+export default async function CommunityPage() {
+  const session = await getServerSession(authOptions);
+  const me = session?.user as any;
+
+  // Initial history (oldest-first for rendering); resilient to missing table
+  // pre-migration — page renders with an empty room instead of crashing.
+  const rows = await prisma.chatMessage
+    .findMany({
+      where: { status: "visible" },
+      orderBy: { createdAt: "desc" },
+      take: CHAT_PAGE_SIZE + 1,
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        userId: true,
+        user: { select: { name: true, username: true, image: true, membership: true, role: true } },
+      },
+    })
+    .catch(() => []);
+
+  const hasMore = rows.length > CHAT_PAGE_SIZE;
+  const page = hasMore ? rows.slice(0, CHAT_PAGE_SIZE) : rows;
+  const initialMessages = page.reverse().map((m) => ({
+    id: m.id,
+    body: m.body,
+    createdAt: m.createdAt.toISOString(),
+    userId: m.userId,
+    author: m.user,
+  }));
+
+  return (
+    <>
+      <Navbar />
+      <main className="relative min-h-screen pt-28">
+        <div className="mesh" />
+        <div className="relative mx-auto flex max-w-3xl flex-col px-4 pb-10 sm:px-6 lg:px-8">
+          <div className="mb-6 text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">
+              Community
+            </p>
+            <h1 className="mt-2 font-display text-3xl font-bold text-zinc-50 sm:text-4xl">
+              The <span className="text-gold-gradient">XYZ Lounge</span>
+            </h1>
+            <p className="mt-2 text-sm text-zinc-500">
+              Markets, alpha, airdrops &amp; Web3 — live with the community.
+            </p>
+          </div>
+
+          <ChatClient
+            initialMessages={initialMessages}
+            initialHasMore={hasMore}
+            me={me ? { id: me.id as string, isAdmin: me.role === "ADMIN" } : null}
+            realtime={{
+              url: env.NEXT_PUBLIC_SUPABASE_URL,
+              anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+            }}
+          />
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}

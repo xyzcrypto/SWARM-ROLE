@@ -78,6 +78,29 @@ CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");
 CREATE INDEX        IF NOT EXISTS "User_username_idx" ON "User"("username");
 ```
 
+### ⚠️ Community Chat migration (one-time, production Supabase)
+The chat release adds a `ChatMessage` table. Same flow — `npm run db:push`
+**or** this idempotent SQL in Supabase → SQL Editor:
+
+```sql
+CREATE TABLE IF NOT EXISTS "ChatMessage" (
+  "id"        TEXT PRIMARY KEY,
+  "body"      TEXT NOT NULL,
+  "status"    TEXT NOT NULL DEFAULT 'visible',
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "userId"    TEXT NOT NULL,
+  CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId")
+    REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE INDEX IF NOT EXISTS "ChatMessage_status_createdAt_idx"
+  ON "ChatMessage"("status", "createdAt");
+```
+
+**Realtime env (optional but recommended):** add to Vercel —
+`NEXT_PUBLIC_SUPABASE_URL` (same value as `SUPABASE_URL`) and
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` (Supabase → Settings → API → **anon** key; this
+key is public-safe by design). Without them the chat falls back to 10s polling.
+
 ### Verify everything works (run before and after changes)
 ```bash
 npm ci && npx prisma generate

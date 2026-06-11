@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-11 — Community Chat (Supabase Realtime · public read, login to post)
+- **New page `/community`** ("The XYZ Lounge"): live message feed with avatars,
+  Premium ★/Team badges, day separators, smart auto-scroll + jump-to-latest,
+  load-older pagination, optimistic send w/ draft restore, own/admin delete,
+  guests read + "Log in to chat" CTA. Plain-text only (XSS-safe), links via
+  `safeHref`. Performance: own route chunk — shared First-Load JS unchanged;
+  `@supabase/supabase-js` (new dep) lazy-imported inside the chat page only.
+- **Realtime:** server broadcasts `new_message`/`message_hidden` to Supabase
+  channel `community` after DB writes; clients subscribe with the public anon
+  key. Graceful fallback to visibility-aware 10s polling when env unset.
+- **Schema:** `ChatMessage` (body ≤500, status visible|hidden, cascade on user
+  delete). ⚠️ One-time prod migration — SQL in HANDOFF.md.
+- **API:** GET/POST `/api/chat/messages` (cursor history / send, new `chat`
+  rate-limit 10/min/user), DELETE `/api/chat/messages/[id]` (author or admin).
+- Nav "Community" + orbital node now → `/community`; homepage community section
+  gains an "Open Community Chat" CTA. New env (optional):
+  `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+
 ## 2026-06-11 — Docs book + continuity handoff (GitBook-ready)
 - **New:** root `CLAUDE.md` (continuity anchor for any AI/dev session),
   `docs/SUMMARY.md` + `docs/README.md` (GitBook book structure), `docs/HANDOFF.md`

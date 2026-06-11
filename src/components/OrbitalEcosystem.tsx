@@ -17,7 +17,7 @@ const NODES: Node[] = [
   { label: "Analytics", desc: "Real-time charts & on-chain data", href: "/#products", tone: "violet" },
   { label: "Premium", desc: "Exclusive premium research", href: "/research", tone: "gold" },
   { label: "Education", desc: "XYZ Web3 Academy & guides", href: "/#ecosystem", tone: "mint" },
-  { label: "Community", desc: "Join the XYZ Crypto community", href: "/#community", tone: "violet" },
+  { label: "Community", desc: "Join the XYZ Crypto community", href: "/community", tone: "violet" },
 ];
 
 const toneRing: Record<Node["tone"], string> = {

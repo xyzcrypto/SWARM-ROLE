@@ -41,14 +41,30 @@ model User {
   telegram    String? // handle only
   bannerImage String? // optional profile cover image URL
 
-  posts    Post[]
-  accounts Account[]
-  sessions Session[]
-  comments Comment[]
-  likes    PostLike[]
+  posts        Post[]
+  accounts     Account[]
+  sessions     Session[]
+  comments     Comment[]
+  likes        PostLike[]
+  chatMessages ChatMessage[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
+}
+
+// Community chat — single public room, plain-text messages. `status` enables
+// moderation (visible | hidden) without hard deletes; delivery is realtime
+// (Supabase broadcast) with the DB as history/source of truth.
+model ChatMessage {
+  id        String   @id @default(cuid())
+  body      String // plain text, <= 500 chars (zod-enforced)
+  status    String   @default("visible") // "visible" | "hidden"
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([status, createdAt]) // history queries: visible, newest-first
 }
 
 model Post {
