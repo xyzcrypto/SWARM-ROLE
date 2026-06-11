@@ -29,6 +29,7 @@ const limiters = {
   signup: make(5, 60, "signup"), // 5/min/IP
   subscribe: make(10, 60, "subscribe"), // 10/min/IP
   admin: make(30, 60, "admin"), // 30/min/IP
+  comment: make(8, 60, "comment"), // 8/min/IP
 };
 
 export type RateKey = keyof typeof limiters;

@@ -61,3 +61,11 @@ export async function getAdminSession() {
   if (!session?.user || (session.user as any).role !== "ADMIN") return null;
   return session;
 }
+
+/** Returns the authenticated user (any role) with id/role/membership, else null. */
+export async function getSessionUser() {
+  const session = await getServerSession(authOptions);
+  const u = session?.user as any;
+  if (!u?.id) return null;
+  return { id: u.id as string, role: u.role as string, membership: (u.membership as string) ?? "Free", email: u.email as string };
+}

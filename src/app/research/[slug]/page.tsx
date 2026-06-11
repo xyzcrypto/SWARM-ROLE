@@ -7,13 +7,18 @@ import { Footer } from "@/components/Footer";
 import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
 import { formatDate, readingTime } from "@/lib/utils";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 import { PostCard } from "@/components/PostCard";
 import { ReadingProgress } from "@/components/ReadingProgress";
 import { ShareRow } from "@/components/ShareRow";
+import { PremiumLock } from "@/components/PremiumLock";
+import { CommentSection } from "@/components/CommentSection";
 
-// Cached per-article; revalidated on demand when admin deletes (research route).
-export const revalidate = 300;
+// Personalized (premium gating reads the session), so render per-request. The
+// query is a single indexed lookup; the heavy list pages stay ISR-cached.
+export const dynamic = "force-dynamic";
 
 async function getPost(slug: string) {
   return prisma.post
@@ -68,6 +73,12 @@ export default async function PostPage({
   const post = await getPost(params.slug);
   if (!post) notFound();
 
+  // Premium gating: only Premium members or admins can read a premium body.
+  const sessionUser = (await getServerSession(authOptions))?.user as any;
+  const isAdmin = sessionUser?.role === "ADMIN";
+  const canViewPremium = isAdmin || sessionUser?.membership === "Premium";
+  const locked = post.premium && !canViewPremium;
+
   const related = await prisma.post
     .findMany({
       where: { published: true, category: post.category, slug: { not: post.slug } },
@@ -83,7 +94,7 @@ export default async function PostPage({
 
   return (
     <>
-      <JsonLd data={articleJsonLd(post)} />
+      <JsonLd data={articleJsonLd(locked ? { ...post, content: "" } : post)} />
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", path: "/" },
@@ -110,6 +121,11 @@ export default async function PostPage({
             <span className="rounded-full bg-gold-500/10 px-3 py-1 text-xs font-semibold text-gold-200 ring-1 ring-gold-500/30">
               {post.category}
             </span>
+            {post.premium && (
+              <span className="ml-2 rounded-full bg-gold-shine px-3 py-1 text-xs font-bold text-ink ring-1 ring-gold-500/40">
+                Premium
+              </span>
+            )}
             <h1 className="mt-4 font-display text-3xl font-bold leading-tight text-zinc-50 sm:text-5xl">
               {post.title}
             </h1>
@@ -151,9 +167,13 @@ export default async function PostPage({
             {post.excerpt}
           </p>
 
-          <div className="prose-xyz mt-6">
-            <Markdown content={post.content} />
-          </div>
+          {locked ? (
+            <PremiumLock loggedIn={Boolean(sessionUser)} />
+          ) : (
+            <div className="prose-xyz mt-6">
+              <Markdown content={post.content} />
+            </div>
+          )}
 
           {tags.length > 0 && (
             <div className="mt-10 flex flex-wrap gap-2 border-t border-white/5 pt-6">
@@ -166,8 +186,10 @@ export default async function PostPage({
           )}
         </article>
 
+        <CommentSection postId={post.id} isAdmin={isAdmin} />
+
         {related.length > 0 && (
-          <section className="mx-auto mt-4 max-w-5xl px-4 pb-24 sm:px-6">
+          <section className="mx-auto mt-12 max-w-5xl px-4 pb-24 sm:px-6">
             <div className="mb-6 flex items-center justify-between">
               <h2 className="font-display text-xl font-semibold text-zinc-100">
                 More in <span className="text-gold-gradient">{post.category}</span>

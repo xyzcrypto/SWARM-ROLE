@@ -12,6 +12,7 @@ export type PostRow = {
   slug: string;
   category: string;
   published: boolean;
+  premium: boolean;
   createdAt: string;
 };
 
@@ -60,6 +61,7 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
         cover: p.cover ?? "",
         tags: p.tags ?? "",
         published: p.published,
+        premium: p.premium ?? false,
       });
     } catch {
       setError("Network error. Please try again.");
@@ -178,7 +180,14 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
             <tbody className="divide-y divide-white/5">
               {filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-white/[0.02]">
-                  <td className="px-5 py-3 font-medium text-zinc-200">{p.title}</td>
+                  <td className="px-5 py-3 font-medium text-zinc-200">
+                    {p.title}
+                    {p.premium && (
+                      <span className="ml-2 align-middle rounded bg-gold-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-gold-200 ring-1 ring-gold-500/30">
+                        Premium
+                      </span>
+                    )}
+                  </td>
                   <td className="px-5 py-3 text-zinc-400">{p.category}</td>
                   <td className="px-5 py-3">
                     {p.published ? (

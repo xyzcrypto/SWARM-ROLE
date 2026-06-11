@@ -10,6 +10,7 @@ export type PostCardData = {
   cover: string | null;
   category: string;
   content: string;
+  premium?: boolean;
   createdAt: Date | string;
   author?: { name: string | null } | null;
 };
@@ -43,10 +44,15 @@ export function PostCard({ post }: { post: PostCardData }) {
             <span className="font-display text-3xl font-bold text-gold-gradient opacity-40">XYZ</span>
           </div>
         )}
-        <div className="absolute left-3 top-3">
+        <div className="absolute left-3 top-3 flex gap-1.5">
           <Badge tone={catTone[post.category] ?? "gold"}>
             <span className="mono text-[10px] uppercase tracking-wider">{post.category}</span>
           </Badge>
+          {post.premium && (
+            <span className="inline-flex items-center rounded-full bg-gold-shine px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink">
+              Premium
+            </span>
+          )}
         </div>
       </div>
       <div className="flex flex-1 flex-col p-5">
@@ -56,7 +62,7 @@ export function PostCard({ post }: { post: PostCardData }) {
         <p className="mt-2 line-clamp-2 flex-1 text-sm text-zinc-400">{post.excerpt}</p>
         <div className="mt-4 flex items-center justify-between mono text-[11px] text-zinc-500">
           <span>{post.author?.name ?? "XYZ Crypto"}</span>
-          <span>{formatDate(post.createdAt)} · {readingTime(post.content)}m</span>
+          <span>{formatDate(post.createdAt)}{post.premium ? " · 🔒" : ` · ${readingTime(post.content)}m`}</span>
         </div>
       </div>
     </Link>

@@ -46,6 +46,7 @@ export default async function DashboardPage() {
           slug: true,
           category: true,
           published: true,
+          premium: true,
           createdAt: true,
         },
       }),

@@ -35,6 +35,7 @@ const updateSchema = z.object({
   cover: z.string().trim().url().optional().or(z.literal("")),
   tags: z.string().trim().max(200).optional(),
   published: z.boolean().optional(),
+  premium: z.boolean().optional(),
 });
 
 // PATCH /api/research/:id — admin only; partial update.
@@ -77,6 +78,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       ...(data.cover !== undefined ? { cover: data.cover || null } : {}),
       ...(data.tags !== undefined ? { tags: data.tags } : {}),
       ...(data.published !== undefined ? { published: data.published } : {}),
+      ...(data.premium !== undefined ? { premium: data.premium } : {}),
     };
 
     async function update(slug: string) {

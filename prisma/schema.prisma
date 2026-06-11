@@ -34,6 +34,7 @@ model User {
   posts    Post[]
   accounts Account[]
   sessions Session[]
+  comments Comment[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
 }
@@ -48,14 +49,32 @@ model Post {
   category  String   @default("Research") // Research | Article | Post
   tags      String   @default("") // comma separated
   published Boolean  @default(true)
+  premium   Boolean  @default(false) // Premium Content — body gated to Premium users
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  author   User?   @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  author   User?     @relation(fields: [authorId], references: [id], onDelete: SetNull)
   authorId String?
+  comments Comment[]
 
   // Supports the research list query: where published+category order by createdAt
   @@index([published, category, createdAt])
+}
+
+// Post comments — auto-published, logged-in users only; `status` enables
+// moderation (visible | hidden) without deleting.
+model Comment {
+  id        String   @id @default(cuid())
+  body      String
+  status    String   @default("visible") // "visible" | "hidden"
+  createdAt DateTime @default(now())
+
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([postId, createdAt])
 }
 
 // Email waitlist / newsletter capture (low-friction, no account needed)

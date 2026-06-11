@@ -33,6 +33,7 @@ type PostRow = {
   slug: string;
   category: string;
   published: boolean;
+  premium: boolean;
   createdAt: string;
 };
 

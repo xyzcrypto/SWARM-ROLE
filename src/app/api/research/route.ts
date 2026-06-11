@@ -47,7 +47,10 @@ export async function GET(req: Request) {
       prisma.post.count({ where }),
     ]);
 
-    return ok({ posts, total, page, pageSize, hasMore: page * pageSize < total });
+    // Never ship a premium post's body to the list/cards (no leak via JSON).
+    const safe = posts.map((p) => (p.premium ? { ...p, content: "" } : p));
+
+    return ok({ posts: safe, total, page, pageSize, hasMore: page * pageSize < total });
   } catch (err) {
     return handleError(err, "research:list");
   }
@@ -61,6 +64,7 @@ const createSchema = z.object({
   cover: z.string().trim().url().optional().or(z.literal("")),
   tags: z.string().trim().max(200).optional(),
   published: z.boolean().optional(),
+  premium: z.boolean().optional(),
 });
 
 // POST /api/research — admin only
@@ -88,6 +92,7 @@ export async function POST(req: Request) {
       cover: data.cover || null,
       tags: data.tags || "",
       published: data.published ?? true,
+      premium: data.premium ?? false,
       authorId,
     };
 

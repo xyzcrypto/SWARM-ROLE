@@ -12,6 +12,7 @@ export type EditablePost = {
   cover: string;
   tags: string;
   published: boolean;
+  premium: boolean;
 };
 
 const EMPTY: EditablePost = {
@@ -22,7 +23,11 @@ const EMPTY: EditablePost = {
   cover: "",
   tags: "",
   published: false,
+  premium: false,
 };
+
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+const MAX_BYTES = 5 * 1024 * 1024;
 
 type Fmt = "bold" | "italic" | "h2" | "h3" | "list" | "quote" | "code" | "link";
 
@@ -74,6 +79,15 @@ export function PostEditor({
 
   async function uploadCover(file: File) {
     setMsg(null);
+    // Client-side guards mirror the server so users get instant feedback.
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setMsg({ type: "err", text: "Use a JPG, PNG, WebP, GIF or AVIF image." });
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      setMsg({ type: "err", text: "Image is too large (max 5 MB)." });
+      return;
+    }
     setUploading(true);
     try {
       const body = new FormData();
@@ -81,10 +95,13 @@ export function PostEditor({
       const res = await fetch("/api/upload", { method: "POST", body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setMsg({ type: "err", text: data.error || "Upload failed." });
+        // 501 = Supabase Storage not configured yet → guide to the URL fallback.
+        const hint = res.status === 501 ? " You can paste an image URL instead." : "";
+        setMsg({ type: "err", text: (data.error || "Upload failed.") + hint });
         return;
       }
       set("cover", data.url);
+      setMsg({ type: "ok", text: "Image uploaded." });
     } catch {
       setMsg({ type: "err", text: "Upload failed. Please try again." });
     } finally {
@@ -248,11 +265,31 @@ export function PostEditor({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault();
+              const f = e.dataTransfer.files?.[0];
+              if (f) uploadCover(f);
+            }}
             className="mt-2 w-full rounded-xl border border-dashed border-white/15 px-4 py-2.5 text-sm text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-100 disabled:opacity-60"
           >
-            {uploading ? "Uploading…" : form.cover ? "Replace by upload" : "Upload an image"}
+            {uploading ? "Uploading…" : form.cover ? "Replace (click or drop)" : "Upload an image (click or drop)"}
           </button>
         </div>
+
+        {/* Premium content toggle */}
+        <label className="flex cursor-pointer items-center justify-between rounded-xl border border-gold-500/20 bg-gold-500/[0.04] px-4 py-3">
+          <span>
+            <span className="block text-sm font-semibold text-gold-100">Premium content</span>
+            <span className="block text-[11px] text-zinc-500">Body locked to Premium members</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={form.premium}
+            onChange={(e) => set("premium", e.target.checked)}
+            className="h-5 w-5 accent-gold-500"
+          />
+        </label>
 
         <Field label="Tags (comma separated)" value={form.tags} onChange={(v) => set("tags", v)} placeholder="defi, l2, airdrop" />
 

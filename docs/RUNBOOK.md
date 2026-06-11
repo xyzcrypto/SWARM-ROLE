@@ -68,3 +68,18 @@ owner's email. Members will not receive OTP codes until a domain is verified:
    `EMAIL_FROM = XYZ Crypto <noreply@xyzcrypto.io>` (Production + Preview) → Redeploy.
 5. Test: sign up with ANY non-owner email → OTP should arrive. Failures appear
    in Sentry tagged `area:email` and in Vercel logs as `[email] Resend send failed`.
+
+## 7. Image upload (Supabase Storage) — REQUIRED for publish-tab uploads
+Uploads return 501 until configured (URL field still works):
+1. Supabase → **Storage** → **New bucket** → name `post-covers` → make it **Public**.
+2. Vercel env: `SUPABASE_URL=https://PROJECT.supabase.co`,
+   `SUPABASE_SERVICE_ROLE_KEY=<Settings → API → service_role>` → Redeploy.
+3. Test: dashboard → Publish → Upload an image → it previews and saves as a
+   `…supabase.co/storage/v1/object/public/post-covers/…` URL.
+
+## 8. Apply migration 3_premium_comments (Premium + Comments)
+Run in Supabase SQL Editor (additive, safe — see prisma/migrations/3_premium_comments/migration.sql):
+- `ALTER TABLE "Post" ADD COLUMN "premium" BOOLEAN NOT NULL DEFAULT false;`
+- `CREATE TABLE "Comment" (...)` + index + 2 FKs (Post, User; ON DELETE CASCADE).
+Without it, premium/comments features will error (missing column/table → handled
+as 503 "Database not migrated" by handleError).

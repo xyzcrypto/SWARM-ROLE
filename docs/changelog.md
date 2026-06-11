@@ -5,7 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
-## 2026-06-10 — OTP delivery fix + premium article + perf (this entry newest)
+## 2026-06-11 — Pre-merge audit + Premium Content + Comments + account privacy
+- **Audit:** PASS, 88/100, no critical/regressions; image-upload "issue" = config (Storage env+bucket).
+- **Premium Content:** `Post.premium` flag + editor toggle; **2-layer gating** — list
+  API redacts body, `[slug]` server-renders `PremiumLock` (no body in HTML/JSON-LD)
+  unless `membership==="Premium"`/admin. Premium badges on cards + manager. `[slug]` now dynamic.
+- **Comments:** `Comment` table; `/api/posts/[id]/comments` (GET public, POST logged-in,
+  auto-publish, Zod 1–1000, `comment` rate-limit) + admin `DELETE /api/comments/[id]`;
+  `CommentSection` on articles (never exposes commenter email).
+- **Account/privacy:** `membership` added to JWT+session; Navbar account chip with
+  **masked email** (`maskEmail`) + Free/Premium pill + easy sign-out (desktop + mobile).
+- **Upload hardening:** client type/size pre-check, drag-and-drop, 501→URL-fallback hint.
+- **Migration:** `3_premium_comments` (additive; run in Supabase SQL Editor).
+- **Docs:** new `backend-state.md` + `frontend-state.md`. Files unchanged in auth-login
+  logic/deploy/existing columns. Verified: tsc, 31 tests, build exit 0.
+
+## 2026-06-10 — OTP delivery fix + premium article + perf
 - **Files:** `lib/email.ts`, 3 × `api/auth/*/start` routes, `research/[slug]/page.tsx`,
   `globals.css`, `PostCard.tsx`, new `ReadingProgress.tsx` + `ShareRow.tsx`, docs/.
 - **Fix:** OTP emails — root cause `onboarding@resend.dev` only delivers to the
