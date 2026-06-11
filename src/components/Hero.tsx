@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
@@ -43,12 +44,25 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [10, -10]), { stiffness: 120, damping: 14 });
   const ry = useSpring(useTransform(mx, [-0.5, 0.5], [-10, 10]), { stiffness: 120, damping: 14 });
 
+  // rAF-throttled: high-Hz mice fire mousemove 120+/s; one layout read +
+  // spring update per frame is all the eye can use.
+  const moveRaf = useRef(0);
   function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    const r = e.currentTarget.getBoundingClientRect();
-    mx.set((e.clientX - r.left) / r.width - 0.5);
-    my.set((e.clientY - r.top) / r.height - 0.5);
+    if (moveRaf.current) return;
+    const el = e.currentTarget;
+    const { clientX, clientY } = e;
+    moveRaf.current = requestAnimationFrame(() => {
+      moveRaf.current = 0;
+      const r = el.getBoundingClientRect();
+      mx.set((clientX - r.left) / r.width - 0.5);
+      my.set((clientY - r.top) / r.height - 0.5);
+    });
   }
   function onLeave() {
+    if (moveRaf.current) {
+      cancelAnimationFrame(moveRaf.current);
+      moveRaf.current = 0;
+    }
     mx.set(0);
     my.set(0);
   }

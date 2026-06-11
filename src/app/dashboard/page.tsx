@@ -14,14 +14,17 @@ export default async function DashboardPage() {
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
   if ((session.user as any).role !== "ADMIN") redirect("/");
 
-  const [totalUsers, googleUsers, last7days, premiumUsers, subscribers, recentUsers, posts] =
+  // One groupBy replaces three separate user counts (total/google/premium are
+  // derived from the provider+membership buckets).
+  const [userBuckets, last7days, subscribers, recentUsers, posts] =
     await Promise.all([
-      prisma.user.count(),
-      prisma.user.count({ where: { provider: "google" } }),
+      prisma.user.groupBy({
+        by: ["provider", "membership"],
+        _count: { _all: true },
+      }),
       prisma.user.count({
         where: { createdAt: { gte: new Date(Date.now() - 7 * 864e5) } },
       }),
-      prisma.user.count({ where: { membership: "Premium" } }),
       prisma.subscriber.count(),
       prisma.user.findMany({
         orderBy: { createdAt: "desc" },
@@ -51,6 +54,14 @@ export default async function DashboardPage() {
         },
       }),
     ]);
+
+  const totalUsers = userBuckets.reduce((n, b) => n + b._count._all, 0);
+  const googleUsers = userBuckets
+    .filter((b) => b.provider === "google")
+    .reduce((n, b) => n + b._count._all, 0);
+  const premiumUsers = userBuckets
+    .filter((b) => b.membership === "Premium")
+    .reduce((n, b) => n + b._count._all, 0);
 
   const stats = {
     totalUsers,

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ComponentType } from "react";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Globe, MapPin, MessageSquare, Heart, FileText } from "lucide-react";
@@ -12,12 +13,15 @@ import { XIcon, GitHubIcon, TelegramIcon } from "@/components/BrandIcons";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
 
-export const dynamic = "force-dynamic";
+// ISR: profiles render on demand (never at build) and cache for 60s; profile
+// edits call revalidatePath so changes show immediately.
+export const revalidate = 60;
 
 type Props = { params: { username: string } };
 
-// Look the user up by their canonical (lowercased) handle.
-async function getProfile(usernameParam: string) {
+// Look the user up by their canonical (lowercased) handle. Wrapped in
+// React cache() so generateMetadata + the page share one DB query per request.
+const getProfile = cache(async (usernameParam: string) => {
   const username = normalizeUsername(decodeURIComponent(usernameParam));
   if (!username) return null;
   return prisma.user
@@ -31,7 +35,7 @@ async function getProfile(usernameParam: string) {
       },
     })
     .catch(() => null);
-}
+});
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const user = await getProfile(params.username);

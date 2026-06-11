@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError } from "@/lib/api";
 import { getSessionUser } from "@/lib/api";
@@ -35,11 +36,21 @@ export async function PATCH(req: Request) {
     // Only write keys the user actually sent (so blanks don't wipe other fields).
     const data = parsed.data;
     try {
+      const before = await prisma.user.findUnique({
+        where: { id: me.id },
+        select: { username: true },
+      });
       const user = await prisma.user.update({
         where: { id: me.id },
         data,
         select: PUBLIC_SELECT,
       });
+      // The public profile is ISR-cached (60s) — bust it so edits show instantly,
+      // including the old handle's page when the handle changed.
+      if (user.username) revalidatePath(`/u/${user.username}`);
+      if (before?.username && before.username !== user.username) {
+        revalidatePath(`/u/${before.username}`);
+      }
       return ok({ user });
     } catch (err: any) {
       // Unique handle collision -> friendly message.
