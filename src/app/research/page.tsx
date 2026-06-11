@@ -16,7 +16,7 @@ export const revalidate = 120;
 const PAGE_SIZE = 12;
 
 export default async function ResearchPage() {
-  const [posts, total] = await Promise.all([
+  const [rawPosts, total] = await Promise.all([
     prisma.post
       .findMany({
         where: { published: true },
@@ -27,6 +27,8 @@ export default async function ResearchPage() {
       .catch(() => []),
     prisma.post.count({ where: { published: true } }).catch(() => 0),
   ]);
+  // Never ship a premium post's body in the public list payload.
+  const posts = rawPosts.map((p) => (p.premium ? { ...p, content: "" } : p));
 
   return (
     <>

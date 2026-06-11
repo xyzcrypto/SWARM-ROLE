@@ -7,7 +7,7 @@ import { EarlyAccessCta } from "./EarlyAccessCta";
 import { Container, Section, Eyebrow } from "./ui/primitives";
 
 export async function ResearchPreview() {
-  const posts = await prisma.post
+  const rawPosts = await prisma.post
     .findMany({
       where: { published: true },
       orderBy: { createdAt: "desc" },
@@ -15,6 +15,8 @@ export async function ResearchPreview() {
       include: { author: { select: { name: true } } },
     })
     .catch(() => []);
+  // Never ship a premium post's body in the public home payload.
+  const posts = rawPosts.map((p) => (p.premium ? { ...p, content: "" } : p));
 
   return (
     <Section id="research">

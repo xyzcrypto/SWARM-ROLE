@@ -71,11 +71,15 @@ export default async function PostPage({
 }: {
   params: { slug: string };
 }) {
-  const post = await getPost(params.slug);
+  // Fetch the post and the session in parallel (saves a round-trip per view).
+  const [post, session] = await Promise.all([
+    getPost(params.slug),
+    getServerSession(authOptions),
+  ]);
   if (!post) notFound();
 
   // Premium gating: only Premium members or admins can read a premium body.
-  const sessionUser = (await getServerSession(authOptions))?.user as any;
+  const sessionUser = session?.user as any;
   const isAdmin = sessionUser?.role === "ADMIN";
   const canViewPremium = isAdmin || sessionUser?.membership === "Premium";
   const locked = post.premium && !canViewPremium;

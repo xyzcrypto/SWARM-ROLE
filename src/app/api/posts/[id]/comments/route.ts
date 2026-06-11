@@ -36,7 +36,9 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       author: c.user?.name || (c.user?.email ? c.user.email.split("@")[0] : "Member"),
     }));
 
-    return ok({ comments: safe, total, page, pageSize, hasMore: page * pageSize < total });
+    const res = ok({ comments: safe, total, page, pageSize, hasMore: page * pageSize < total });
+    res.headers.set("Cache-Control", "public, s-maxage=15, stale-while-revalidate=60");
+    return res;
   } catch (err) {
     return handleError(err, "comments:list");
   }
