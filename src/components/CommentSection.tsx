@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { formatDateTime } from "@/lib/utils";
@@ -9,6 +9,8 @@ type Comment = { id: string; body: string; createdAt: string; author: string };
 
 export function CommentSection({ postId, isAdmin = false }: { postId: string; isAdmin?: boolean }) {
   const { data: session } = useSession();
+  const rootRef = useRef<HTMLElement>(null);
+  const [inView, setInView] = useState(false);
   const [items, setItems] = useState<Comment[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -16,7 +18,28 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
 
+  // Perf: don't fetch comments until the section is scrolled near the viewport.
   useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setInView(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInView(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: "400px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return;
     let active = true;
     (async () => {
       try {
@@ -33,7 +56,7 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
     return () => {
       active = false;
     };
-  }, [postId]);
+  }, [postId, inView]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -71,7 +94,7 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
   }
 
   return (
-    <section className="mx-auto mt-12 max-w-3xl px-4 sm:px-6">
+    <section ref={rootRef} className="mx-auto mt-12 max-w-3xl px-4 sm:px-6">
       <h2 className="font-display text-xl font-semibold text-zinc-100">
         Comments {total > 0 && <span className="text-zinc-500">({total})</span>}
       </h2>

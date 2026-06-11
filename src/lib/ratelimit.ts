@@ -30,6 +30,7 @@ const limiters = {
   subscribe: make(10, 60, "subscribe"), // 10/min/IP
   admin: make(30, 60, "admin"), // 30/min/IP
   comment: make(8, 60, "comment"), // 8/min/IP
+  like: make(20, 60, "like"), // 20/min/IP
 };
 
 export type RateKey = keyof typeof limiters;

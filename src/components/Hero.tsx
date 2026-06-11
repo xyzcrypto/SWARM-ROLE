@@ -3,6 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { useSession } from "next-auth/react";
 import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import { Container } from "./ui/primitives";
 import { AnimatedBackground } from "./AnimatedBackground";
@@ -36,6 +37,7 @@ const toneClass: Record<string, string> = {
 };
 
 export function Hero({ memberCount = 0 }: { memberCount?: number }) {
+  const { data: session } = useSession();
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [10, -10]), { stiffness: 120, damping: 14 });
@@ -102,13 +104,28 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             transition={{ duration: 0.6, delay: 0.24 }}
             className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
           >
-            <Link href="/signup" className="btn-primary w-full sm:w-auto">
-              Get early access
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link href="/research" className="btn-ghost w-full sm:w-auto">
-              Explore research
-            </Link>
+            {session ? (
+              // Account holders already have access — point them at the content.
+              <>
+                <Link href="/research" className="btn-primary w-full sm:w-auto">
+                  Explore Research
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/#products" className="btn-ghost w-full sm:w-auto">
+                  View products
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/signup" className="btn-primary w-full sm:w-auto">
+                  Get early access
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link href="/research" className="btn-ghost w-full sm:w-auto">
+                  Explore research
+                </Link>
+              </>
+            )}
           </motion.div>
 
           <motion.div

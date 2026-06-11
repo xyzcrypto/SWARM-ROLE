@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-11 — Final pre-merge batch: session CTAs, Likes, perf, polish
+- **Logged-in CTAs:** WaitlistForm/Hero/CtaBand/ResearchPreview now session-aware —
+  account holders see "Explore Research" instead of early-access/waitlist (client-side
+  checks; home stays ISR). New `EarlyAccessCta`.
+- **Likes:** `PostLike` table (migration `4_likes`), `POST /api/posts/[id]/like`
+  toggle (auth, rate-limited), `LikeButton` (optimistic) beside ShareRow on articles.
+- **Perf:** CommentSection fetch deferred until in-view; AVIF/WebP image formats.
+- **Polish:** PostManager alert() → inline errors.
+- Verified: tsc, 31 tests, build exit 0, home ○ ISR intact.
+
 ## 2026-06-11 — Pre-merge audit + Premium Content + Comments + account privacy
 - **Audit:** PASS, 88/100, no critical/regressions; image-upload "issue" = config (Storage env+bucket).
 - **Premium Content:** `Post.premium` flag + editor toggle; **2-layer gating** — list

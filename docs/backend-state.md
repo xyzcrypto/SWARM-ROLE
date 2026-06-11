@@ -25,6 +25,7 @@
 | `/api/posts/[id]/comments` | GET | public | visible comments, paginated; **never returns commenter email** |
 | `/api/posts/[id]/comments` | POST | logged-in | auto-publish; Zod 1–1000; rate-limited (`comment` 8/min) |
 | `/api/comments/[id]` | DELETE | ADMIN | moderation |
+| `/api/posts/[id]/like` | POST | logged-in | like toggle; rate-limited (`like` 20/min) |
 | `/api/upload` | POST | ADMIN | image → Supabase Storage; 5 MB; jpeg/png/webp/gif/avif; 501 if unconfigured |
 | `/api/users/[id]/membership` | PATCH | ADMIN | Free/Premium toggle |
 | `/api/subscribe` | POST | public | waitlist upsert |
@@ -42,9 +43,9 @@
 
 ## Schema (Postgres) & migrations
 Tables: User, Post (+`premium`), Subscriber, Account, Session,
-VerificationToken, VerificationCode, **Comment**. Draft = `Post.published=false`.
+VerificationToken, VerificationCode, **Comment**, **PostLike**. Draft = `Post.published=false`.
 Migrations in `prisma/migrations/`: `0_init`, `1_verification_code`, `2_indexes`,
-**`3_premium_comments`** (ALTER Post ADD premium; CREATE Comment + FKs + index).
+**`3_premium_comments`**, **`4_likes`** (CREATE PostLike + unique + FKs).
 Apply 3_premium_comments in Supabase SQL Editor before this code goes live.
 
 ## Env (Vercel)

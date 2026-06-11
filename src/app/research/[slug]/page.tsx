@@ -15,6 +15,7 @@ import { ReadingProgress } from "@/components/ReadingProgress";
 import { ShareRow } from "@/components/ShareRow";
 import { PremiumLock } from "@/components/PremiumLock";
 import { CommentSection } from "@/components/CommentSection";
+import { LikeButton } from "@/components/LikeButton";
 
 // Personalized (premium gating reads the session), so render per-request. The
 // query is a single indexed lookup; the heavy list pages stay ISR-cached.
@@ -79,14 +80,25 @@ export default async function PostPage({
   const canViewPremium = isAdmin || sessionUser?.membership === "Premium";
   const locked = post.premium && !canViewPremium;
 
-  const related = await prisma.post
-    .findMany({
-      where: { published: true, category: post.category, slug: { not: post.slug } },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-      include: { author: { select: { name: true } } },
-    })
-    .catch(() => []);
+  const [related, likeCount, myLike] = await Promise.all([
+    prisma.post
+      .findMany({
+        where: { published: true, category: post.category, slug: { not: post.slug } },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+        include: { author: { select: { name: true } } },
+      })
+      .catch(() => []),
+    prisma.postLike.count({ where: { postId: post.id } }).catch(() => 0),
+    sessionUser?.id
+      ? prisma.postLike
+          .findUnique({
+            where: { postId_userId: { postId: post.id, userId: sessionUser.id } },
+            select: { id: true },
+          })
+          .catch(() => null)
+      : Promise.resolve(null),
+  ]);
 
   const tags = post.tags
     ? post.tags.split(",").map((t) => t.trim()).filter(Boolean)
@@ -145,7 +157,10 @@ export default async function PostPage({
                   </p>
                 </div>
               </div>
-              <ShareRow title={post.title} path={`/research/${post.slug}`} />
+              <div className="flex items-center gap-2">
+                <LikeButton postId={post.id} initialCount={likeCount} initialLiked={Boolean(myLike)} />
+                <ShareRow title={post.title} path={`/research/${post.slug}`} />
+              </div>
             </div>
           </div>
 

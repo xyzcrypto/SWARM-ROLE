@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Reveal } from "./Reveal";
 import { PostCard } from "./PostCard";
+import { EarlyAccessCta } from "./EarlyAccessCta";
 import { Container, Section, Eyebrow } from "./ui/primitives";
 
 export async function ResearchPreview() {
@@ -49,7 +50,7 @@ export async function ResearchPreview() {
                 Our first reports, articles and deep-dives are being prepared.
                 Sign up to be the first to read them.
               </p>
-              <Link href="/signup" className="btn-primary mt-6">Get early access</Link>
+              <EarlyAccessCta className="btn-primary mt-6" />
             </div>
           </Reveal>
         )}

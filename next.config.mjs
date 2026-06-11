@@ -39,6 +39,8 @@ const nextConfig = {
     instrumentationHook: true,
   },
   images: {
+    // Serve modern formats (smaller payloads on both PC and mobile).
+    formats: ["image/avif", "image/webp"],
     // Allowlisted remote image hosts (was "**", an SSRF/abuse vector). Add a
     // host here if you reference cover/avatar images from a new domain.
     remotePatterns: [

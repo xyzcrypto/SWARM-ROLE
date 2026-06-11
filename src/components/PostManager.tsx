@@ -71,6 +71,7 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
   }
 
   async function togglePublish(p: PostRow) {
+    setError("");
     setBusy(p.id);
     try {
       const res = await fetch(`/api/research/${p.id}`, {
@@ -80,13 +81,13 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "Could not update status.");
+        setError(data.error || "Could not update the post status.");
         return;
       }
       setRows((arr) => arr.map((x) => (x.id === p.id ? { ...x, published: !x.published } : x)));
       router.refresh();
     } catch {
-      alert("Network error. Please try again.");
+      setError("Network error. Please try again.");
     } finally {
       setBusy(null);
     }
@@ -94,18 +95,19 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
 
   async function remove(p: PostRow) {
     if (!confirm(`Delete "${p.title}" permanently?`)) return;
+    setError("");
     setBusy(p.id);
     try {
       const res = await fetch(`/api/research/${p.id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error || "Could not delete the post.");
+        setError(data.error || "Could not delete the post.");
         return;
       }
       setRows((arr) => arr.filter((x) => x.id !== p.id));
       router.refresh();
     } catch {
-      alert("Network error. Please try again.");
+      setError("Network error. Please try again.");
     } finally {
       setBusy(null);
     }
