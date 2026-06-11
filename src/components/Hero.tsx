@@ -80,7 +80,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.05 }}
-            className="font-display text-display-xl font-semibold text-zinc-50"
+            className="font-display text-display-xl font-semibold text-zinc-50 lg:whitespace-nowrap lg:text-[2.5rem] lg:leading-[1.1] xl:text-[3.15rem] 2xl:text-[3.6rem]"
           >
             Everything you need
             <br />
