@@ -52,10 +52,12 @@ export function OrbitalEcosystem() {
   }, []);
 
   // Particle field generated client-side (no SSR/hydration mismatch, no CLS).
+  // Fewer on phones — each particle is an animated paint layer.
   useEffect(() => {
     if (!active) return;
+    const count = window.matchMedia("(max-width: 768px)").matches ? 14 : 34;
     setParticles(
-      Array.from({ length: 34 }, () => ({
+      Array.from({ length: count }, () => ({
         x: Math.random() * 100,
         y: Math.random() * 100,
         s: 1 + Math.random() * 2,

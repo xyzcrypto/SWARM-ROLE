@@ -32,6 +32,7 @@ const limiters = {
   comment: make(8, 60, "comment"), // 8/min/IP
   like: make(20, 60, "like"), // 20/min/IP
   login: make(10, 60, "login"), // 10/min per account (brute-force guard)
+  password: make(10, 60, "password"), // 10/min/IP — reset flow, isolated from signup
 };
 
 export type RateKey = keyof typeof limiters;

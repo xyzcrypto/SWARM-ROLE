@@ -123,8 +123,10 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
     e.preventDefault();
     setError("");
     setSaved(false);
-    if (handleState === "taken" || handleState === "invalid") {
-      setError("Please choose a valid, available handle.");
+    // Only block on locally-knowable problems; "taken" may be stale, so the
+    // server's uniqueness check (409) stays the source of truth on save.
+    if (handleState === "invalid") {
+      setError("Please choose a valid handle.");
       return;
     }
     setSaving(true);

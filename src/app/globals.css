@@ -248,6 +248,17 @@ html.lenis body {
   -webkit-backdrop-filter: blur(10px) saturate(130%);
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset;
 }
+/* Mobile GPUs stall on heavy backdrop blur during scroll (30fps jank) — keep
+   the glass look but cut the filter cost on small screens. Visual difference
+   is negligible at phone card sizes. */
+@media (max-width: 768px) {
+  .glass,
+  .surface,
+  .eyebrow-glass {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
 .surface-hover {
   transition: border-color 0.3s, transform 0.3s, background 0.3s;
 }

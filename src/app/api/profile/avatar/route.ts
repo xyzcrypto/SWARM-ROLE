@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
@@ -23,7 +24,13 @@ export async function POST(req: Request) {
     const result = await uploadImage(await file.arrayBuffer(), file.type);
     if (!result.ok) return fail(result.error, result.status);
 
-    await prisma.user.update({ where: { id: me.id }, data: { image: result.url } });
+    const user = await prisma.user.update({
+      where: { id: me.id },
+      data: { image: result.url },
+      select: { username: true },
+    });
+    // Bust the ISR-cached public profile so the new photo shows immediately.
+    if (user.username) revalidatePath(`/u/${user.username}`);
 
     return ok({ url: result.url }, 201);
   } catch (err) {

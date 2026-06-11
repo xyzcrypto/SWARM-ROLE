@@ -90,10 +90,19 @@ export function MarketTicker() {
       }
     }
     load();
-    const t = setInterval(load, 10_000); // auto-refresh every 10s
+    // Auto-refresh every 10s, but never while the tab is hidden (saves data +
+    // battery, esp. on mobile); catch up immediately when it's visible again.
+    const t = setInterval(() => {
+      if (!document.hidden) load();
+    }, 10_000);
+    const onVisible = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
       clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, []);
 

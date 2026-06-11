@@ -15,7 +15,7 @@ const schema = z.object({
 // when a credentials account actually exists.
 export async function POST(req: Request) {
   try {
-    const { success } = await rateLimit("signup", clientIp(req));
+    const { success } = await rateLimit("password", clientIp(req));
     if (!success) return fail("Too many attempts. Please try again shortly.", 429);
 
     const parsed = schema.safeParse(await req.json());
