@@ -80,7 +80,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.05 }}
-            className="font-display text-display-xl font-semibold text-zinc-50"
+            className="font-display text-display-xl font-semibold text-zinc-50 lg:whitespace-nowrap lg:text-[2.5rem] lg:leading-[1.1] xl:text-[3.15rem] 2xl:text-[3.6rem]"
           >
             Everything you need
             <br />
@@ -192,6 +192,25 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
               className="absolute inset-12 animate-spin-slow rounded-full border border-mint-400/20 sm:inset-14"
             />
             <div className="absolute inset-16 animate-pulse-dot rounded-full bg-gold-500/20 blur-3xl" />
+
+            {/* DEMO: transparent holographic sheen — additive layer, easy to remove.
+                A slow rotating translucent gold/mint arc + a soft glass highlight. */}
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-3 animate-spin-slow rounded-full opacity-70 blur-[2px]"
+              style={{
+                background:
+                  "conic-gradient(from 0deg, transparent 0deg, rgba(224,179,65,0.14) 55deg, transparent 130deg, rgba(34,214,146,0.12) 215deg, transparent 300deg)",
+              }}
+            />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-6 rounded-full ring-1 ring-white/5"
+              style={{
+                background:
+                  "radial-gradient(circle at 32% 24%, rgba(255,255,255,0.07), transparent 56%)",
+              }}
+            />
 
             {/* logo, pops in then floats */}
             <motion.div
