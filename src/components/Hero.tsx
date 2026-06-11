@@ -193,25 +193,6 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             />
             <div className="absolute inset-16 animate-pulse-dot rounded-full bg-gold-500/20 blur-3xl" />
 
-            {/* DEMO: transparent holographic sheen — additive layer, easy to remove.
-                A slow rotating translucent gold/mint arc + a soft glass highlight. */}
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-3 animate-spin-slow rounded-full opacity-70 blur-[2px]"
-              style={{
-                background:
-                  "conic-gradient(from 0deg, transparent 0deg, rgba(224,179,65,0.14) 55deg, transparent 130deg, rgba(34,214,146,0.12) 215deg, transparent 300deg)",
-              }}
-            />
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-6 rounded-full ring-1 ring-white/5"
-              style={{
-                background:
-                  "radial-gradient(circle at 32% 24%, rgba(255,255,255,0.07), transparent 56%)",
-              }}
-            />
-
             {/* logo, pops in then floats */}
             <motion.div
               initial={{ scale: 0, rotate: -30, opacity: 0 }}
