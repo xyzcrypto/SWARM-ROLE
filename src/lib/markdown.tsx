@@ -1,23 +1,15 @@
 import { Fragment, type ReactNode } from "react";
-
-/**
- * Only allow safe link protocols (block javascript:, data:, etc.) to prevent
- * stored XSS from authored markdown. Returns the href if safe, else null.
- */
-function safeHref(raw: string): string | null {
-  const url = raw.trim();
-  if (/^(https?:|mailto:|\/|#)/i.test(url)) return url;
-  return null;
-}
+import { safeHref, cleanBareUrl } from "./links";
 
 /**
  * Minimal, dependency-free markdown renderer covering the basics used in
- * research posts: headings, lists, blockquotes, bold/italic/inline-code and
- * paragraphs. Good enough for clean article rendering without extra packages.
+ * research posts: headings, lists, blockquotes, bold/italic/inline-code,
+ * explicit + bare links, and paragraphs.
  */
 function inline(text: string, keyBase: string): ReactNode[] {
   const tokens: ReactNode[] = [];
-  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+  // [text](url) is matched before bare URLs so it wins; then bare http(s) links.
+  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s<]+)/g;
   let last = 0;
   let match: RegExpExecArray | null;
   let i = 0;
@@ -39,6 +31,19 @@ function inline(text: string, keyBase: string): ReactNode[] {
           )
         );
       }
+    } else if (t.startsWith("http")) {
+      // Bare pasted URL → clickable; trailing punctuation kept as plain text.
+      const url = cleanBareUrl(t);
+      const trailing = t.slice(url.length);
+      const href = safeHref(url);
+      tokens.push(
+        href ? (
+          <a key={key} href={href} target="_blank" rel="noopener noreferrer">{url}</a>
+        ) : (
+          <span key={key}>{url}</span>
+        )
+      );
+      if (trailing) tokens.push(trailing);
     } else if (t.startsWith("*")) tokens.push(<em key={key}>{t.slice(1, -1)}</em>);
     last = match.index + t.length;
   }

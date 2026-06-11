@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
 import { PostCard, type PostCardData } from "./PostCard";
 
 const categories = ["All", "Research", "Article", "Post"] as const;
-type Category = (typeof categories)[number];
+// "Premium" is a special filter (premium=1), not a Post category.
+type Category = (typeof categories)[number] | "Premium";
 
 export function ResearchGrid({
   initial,
@@ -34,7 +35,8 @@ export function ResearchGrid({
         page: String(nextPage),
         pageSize: String(pageSize),
       });
-      if (active !== "All") params.set("category", active);
+      if (active === "Premium") params.set("premium", "1");
+      else if (active !== "All") params.set("category", active);
       if (query.trim()) params.set("q", query.trim());
       const res = await fetch(`/api/research?${params.toString()}`);
       const data = await res.json().catch(() => ({}));
@@ -89,6 +91,24 @@ export function ResearchGrid({
               {c}
             </button>
           ))}
+          {/* Premium Content — special green filter with icon + shine animation */}
+          <button
+            onClick={() => setActive("Premium")}
+            aria-pressed={active === "Premium"}
+            className={`group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full px-5 py-2 text-sm font-semibold transition-all ${
+              active === "Premium"
+                ? "bg-mint-500 text-ink shadow-mint"
+                : "border border-mint-500/40 bg-mint-500/10 text-mint-300 hover:border-mint-500/70 hover:bg-mint-500/15"
+            }`}
+          >
+            <Sparkles
+              className={`h-4 w-4 transition-transform group-hover:rotate-12 ${
+                active === "Premium" ? "text-ink" : "text-mint-300 animate-pulse"
+              }`}
+            />
+            Premium Content
+            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+          </button>
         </div>
       </div>
 
@@ -104,7 +124,9 @@ export function ResearchGrid({
           <p className="mt-2 text-sm text-zinc-500">
             {query
               ? `No results for “${query}”.`
-              : `New ${active === "All" ? "content" : active.toLowerCase() + "s"} will appear here soon.`}
+              : active === "Premium"
+                ? "New premium research will appear here soon."
+                : `New ${active === "All" ? "content" : active.toLowerCase() + "s"} will appear here soon.`}
           </p>
         </div>
       ) : (

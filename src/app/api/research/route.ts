@@ -18,12 +18,14 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
+    const premiumOnly = searchParams.get("premium") === "1";
     const q = searchParams.get("q")?.trim();
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const pageSize = Math.min(48, Math.max(1, Number(searchParams.get("pageSize")) || 12));
 
     const where = {
       published: true,
+      ...(premiumOnly ? { premium: true } : {}),
       ...(category && category !== "All" ? { category } : {}),
       ...(q
         ? {
@@ -50,7 +52,10 @@ export async function GET(req: Request) {
     // Never ship a premium post's body to the list/cards (no leak via JSON).
     const safe = posts.map((p) => (p.premium ? { ...p, content: "" } : p));
 
-    return ok({ posts: safe, total, page, pageSize, hasMore: page * pageSize < total });
+    // Public + identical for all users (premium redacted) → CDN-cacheable.
+    const res = ok({ posts: safe, total, page, pageSize, hasMore: page * pageSize < total });
+    res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+    return res;
   } catch (err) {
     return handleError(err, "research:list");
   }
