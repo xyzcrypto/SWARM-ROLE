@@ -1,0 +1,480 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
+import { Check, Loader2, MapPin, Globe, ExternalLink, ShieldAlert } from "lucide-react";
+import { XIcon, GitHubIcon, TelegramIcon } from "./BrandIcons";
+import { AvatarUploader } from "./AvatarUploader";
+import { PasswordField } from "./PasswordField";
+import { Badge } from "./ui/primitives";
+import { USERNAME_RE, normalizeUsername } from "@/lib/profile";
+import { formatDate } from "@/lib/utils";
+
+type SettingsUser = {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  username: string | null;
+  bio: string | null;
+  location: string | null;
+  website: string | null;
+  twitter: string | null;
+  github: string | null;
+  telegram: string | null;
+  role: string;
+  membership: string;
+  provider: string;
+  hasPassword: boolean;
+  createdAt: string;
+};
+
+type Tab = "profile" | "account" | "security";
+
+export function SettingsClient({ user }: { user: SettingsUser }) {
+  const [tab, setTab] = useState<Tab>("profile");
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: "profile", label: "Profile" },
+    { id: "account", label: "Account" },
+    { id: "security", label: "Security" },
+  ];
+
+  return (
+    <div>
+      <div className="mb-8">
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">Settings</p>
+        <h1 className="mt-2 font-display text-3xl font-bold text-zinc-50 sm:text-4xl">
+          Your account
+        </h1>
+        <p className="mt-2 text-sm text-zinc-500">
+          Manage your public profile, photo, password and account.
+        </p>
+      </div>
+
+      <div className="mb-8 flex flex-wrap gap-2 border-b border-white/5 pb-1">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-t-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
+              tab === t.id ? "border-b-2 border-gold-400 text-gold-100" : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "profile" && <ProfilePanel user={user} />}
+      {tab === "account" && <AccountPanel user={user} />}
+      {tab === "security" && <SecurityPanel user={user} />}
+    </div>
+  );
+}
+
+/* ------------------------------- Profile ------------------------------- */
+function ProfilePanel({ user }: { user: SettingsUser }) {
+  const { update } = useSession();
+  const [image, setImage] = useState(user.image);
+  const [name, setName] = useState(user.name ?? "");
+  const [username, setUsername] = useState(user.username ?? "");
+  const [bio, setBio] = useState(user.bio ?? "");
+  const [location, setLocation] = useState(user.location ?? "");
+  const [website, setWebsite] = useState(user.website ?? "");
+  const [twitter, setTwitter] = useState(user.twitter ?? "");
+  const [github, setGithub] = useState(user.github ?? "");
+  const [telegram, setTelegram] = useState(user.telegram ?? "");
+
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  // Live handle availability check (debounced).
+  const [handleState, setHandleState] = useState<"idle" | "checking" | "ok" | "taken" | "invalid">("idle");
+  const normalizedHandle = normalizeUsername(username);
+  const handleChanged = normalizedHandle !== (user.username ?? "");
+
+  useEffect(() => {
+    if (!handleChanged || normalizedHandle === "") {
+      setHandleState("idle");
+      return;
+    }
+    if (!USERNAME_RE.test(normalizedHandle)) {
+      setHandleState("invalid");
+      return;
+    }
+    setHandleState("checking");
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/profile/username?handle=${encodeURIComponent(normalizedHandle)}`);
+        const data = await res.json().catch(() => ({}));
+        setHandleState(data.available ? "ok" : "taken");
+      } catch {
+        setHandleState("idle");
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [normalizedHandle, handleChanged]);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setSaved(false);
+    if (handleState === "taken" || handleState === "invalid") {
+      setError("Please choose a valid, available handle.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          username: normalizedHandle || undefined,
+          bio,
+          location,
+          website,
+          twitter,
+          github,
+          telegram,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Could not save changes.");
+        return;
+      }
+      setSaved(true);
+      await update(); // refresh session so navbar/name/avatar update immediately
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="space-y-6">
+      <div className="surface rounded-2xl p-5 sm:p-6">
+        <AvatarUploader
+          name={name}
+          image={image}
+          onUploaded={async (url) => {
+            setImage(url);
+            await update();
+          }}
+        />
+      </div>
+
+      <div className="surface space-y-4 rounded-2xl p-5 sm:p-6">
+        <Field label="Display name" value={name} onChange={setName} placeholder="Satoshi Nakamoto" />
+
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Handle
+          </span>
+          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-ink-700/60 px-3 transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/20">
+            <span className="text-sm text-zinc-500">@</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="yourhandle"
+              autoCapitalize="none"
+              autoComplete="off"
+              className="w-full bg-transparent py-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-600"
+            />
+            {handleChanged && (
+              <span className="shrink-0 text-xs">
+                {handleState === "checking" && <Loader2 className="h-4 w-4 animate-spin text-zinc-500" />}
+                {handleState === "ok" && <span className="text-mint-300">Available</span>}
+                {handleState === "taken" && <span className="text-red-300">Taken</span>}
+                {handleState === "invalid" && <span className="text-amber-300">Invalid</span>}
+              </span>
+            )}
+          </div>
+          <p className="mt-1.5 text-[11px] text-zinc-600">
+            3–20 chars: lowercase letters, numbers or _. Your public profile lives at{" "}
+            <span className="mono text-zinc-500">/u/{normalizedHandle || "handle"}</span>.
+          </p>
+        </label>
+
+        <label className="block">
+          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Bio
+          </span>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={280}
+            rows={3}
+            placeholder="Web3 builder, trader, researcher…"
+            className="w-full resize-none rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+          />
+          <p className="mt-1 text-right text-[11px] text-zinc-600">{bio.length}/280</p>
+        </label>
+
+        <Field label="Location" value={location} onChange={setLocation} placeholder="Dubai, UAE" icon={<MapPin className="h-4 w-4" />} />
+        <Field label="Website" value={website} onChange={setWebsite} placeholder="https://yoursite.com" icon={<Globe className="h-4 w-4" />} />
+      </div>
+
+      <div className="surface space-y-4 rounded-2xl p-5 sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Social links</p>
+        <Field label="X (Twitter)" value={twitter} onChange={setTwitter} placeholder="handle" icon={<XIcon className="h-3.5 w-3.5" />} prefix="x.com/" />
+        <Field label="GitHub" value={github} onChange={setGithub} placeholder="handle" icon={<GitHubIcon className="h-4 w-4" />} prefix="github.com/" />
+        <Field label="Telegram" value={telegram} onChange={setTelegram} placeholder="handle" icon={<TelegramIcon className="h-4 w-4" />} prefix="t.me/" />
+      </div>
+
+      {error && (
+        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">{error}</p>
+      )}
+      {saved && !error && (
+        <p className="inline-flex items-center gap-2 rounded-lg bg-mint-500/10 px-3 py-2 text-sm text-mint-200 ring-1 ring-mint-500/20">
+          <Check className="h-4 w-4" /> Profile saved.
+        </p>
+      )}
+
+      <div className="flex items-center gap-3">
+        <button type="submit" disabled={saving} className="btn-gold disabled:opacity-60">
+          {saving ? "Saving…" : "Save changes"}
+        </button>
+        {user.username && (
+          <Link
+            href={`/u/${user.username}`}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-gold-200 hover:underline"
+          >
+            View public profile <ExternalLink className="h-3.5 w-3.5" />
+          </Link>
+        )}
+      </div>
+    </form>
+  );
+}
+
+/* ------------------------------- Account ------------------------------- */
+function AccountPanel({ user }: { user: SettingsUser }) {
+  const isPremium = user.membership === "Premium";
+  return (
+    <div className="space-y-5">
+      <div className="surface rounded-2xl p-5 sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Membership</p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <Badge tone={isPremium ? "gold" : "neutral"}>{isPremium ? "★ Premium" : "Free"}</Badge>
+            <span className="text-sm text-zinc-400">
+              {isPremium ? "You have full access to premium research." : "Upgrade to unlock premium research & tools."}
+            </span>
+          </div>
+          {!isPremium && (
+            <Link href="/#community" className="btn-gold !py-2 text-[13px]">
+              Upgrade to Premium
+            </Link>
+          )}
+        </div>
+      </div>
+
+      <div className="surface rounded-2xl p-5 sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Account details</p>
+        <dl className="mt-3 space-y-2.5 text-sm">
+          <Row label="Email" value={user.email} />
+          <Row label="Sign-in method" value={user.provider === "google" ? "Google" : "Email & password"} />
+          <Row label="Member since" value={formatDate(user.createdAt)} />
+          {user.role === "ADMIN" && <Row label="Role" value="Admin" />}
+        </dl>
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------- Security ------------------------------ */
+function SecurityPanel({ user }: { user: SettingsUser }) {
+  return (
+    <div className="space-y-6">
+      {user.hasPassword ? (
+        <ChangePassword />
+      ) : (
+        <div className="surface rounded-2xl p-5 text-sm text-zinc-400 sm:p-6">
+          You sign in with Google, so there&apos;s no password to change. You can set one
+          anytime via{" "}
+          <Link href="/forgot-password" className="font-medium text-gold-200 hover:underline">
+            Forgot password
+          </Link>
+          .
+        </div>
+      )}
+      <DangerZone />
+    </div>
+  );
+}
+
+function ChangePassword() {
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setDone(false);
+    setSaving(true);
+    try {
+      const res = await fetch("/api/profile/password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: current, newPassword: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Could not change password.");
+        return;
+      }
+      setDone(true);
+      setCurrent("");
+      setNext("");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="surface space-y-4 rounded-2xl p-5 sm:p-6">
+      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Change password</p>
+      <PasswordField label="Current password" value={current} onChange={setCurrent} autoComplete="current-password" />
+      <PasswordField label="New password" value={next} onChange={setNext} autoComplete="new-password" strength />
+      {error && (
+        <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">{error}</p>
+      )}
+      {done && !error && (
+        <p className="inline-flex items-center gap-2 rounded-lg bg-mint-500/10 px-3 py-2 text-sm text-mint-200 ring-1 ring-mint-500/20">
+          <Check className="h-4 w-4" /> Password updated.
+        </p>
+      )}
+      <button type="submit" disabled={saving} className="btn-gold disabled:opacity-60">
+        {saving ? "Updating…" : "Update password"}
+      </button>
+    </form>
+  );
+}
+
+function DangerZone() {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [confirm, setConfirm] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function remove() {
+    setError("");
+    setBusy(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Could not delete account.");
+        setBusy(false);
+        return;
+      }
+      await signOut({ redirect: false });
+      router.push("/");
+    } catch {
+      setError("Network error. Please try again.");
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-5 sm:p-6">
+      <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-red-300">
+        <ShieldAlert className="h-4 w-4" /> Danger zone
+      </p>
+      <p className="mt-2 text-sm text-zinc-400">
+        Permanently delete your account, profile, comments and likes. This cannot be undone.
+      </p>
+      {!open ? (
+        <button onClick={() => setOpen(true)} className="btn-ghost mt-4 !border-red-500/30 text-red-200">
+          Delete account
+        </button>
+      ) : (
+        <div className="mt-4 space-y-3">
+          <label className="block">
+            <span className="mb-1.5 block text-xs text-zinc-400">
+              Type <span className="mono text-red-300">DELETE</span> to confirm
+            </span>
+            <input
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20"
+            />
+          </label>
+          {error && <p className="text-sm text-red-300">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={remove}
+              disabled={confirm !== "DELETE" || busy}
+              className="btn-ghost !border-red-500/40 bg-red-500/10 text-red-200 disabled:opacity-50"
+            >
+              {busy ? "Deleting…" : "Permanently delete"}
+            </button>
+            <button onClick={() => { setOpen(false); setConfirm(""); setError(""); }} className="btn-ghost">
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ------------------------------- shared -------------------------------- */
+function Field({
+  label,
+  value,
+  onChange,
+  placeholder,
+  icon,
+  prefix,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  icon?: React.ReactNode;
+  prefix?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">{label}</span>
+      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-ink-700/60 px-3 transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/20">
+        {icon && <span className="shrink-0 text-zinc-500">{icon}</span>}
+        {prefix && <span className="shrink-0 text-sm text-zinc-600">{prefix}</span>}
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          autoComplete="off"
+          className="w-full bg-transparent py-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-600"
+        />
+      </div>
+    </label>
+  );
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-2.5 last:border-0 last:pb-0">
+      <dt className="text-zinc-500">{label}</dt>
+      <dd className="text-right text-zinc-200">{value}</dd>
+    </div>
+  );
+}

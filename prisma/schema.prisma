@@ -31,6 +31,16 @@ model User {
   createdAt     DateTime  @default(now())
   lastLoginAt   DateTime?
 
+  // --- Public profile fields (see /u/[username] + /settings) ---
+  username    String? @unique // handle for the public profile URL, 3–20 [a-z0-9_]
+  bio         String? // short about, <= 280 chars
+  location    String? // free text, <= 80 chars
+  website     String? // full URL
+  twitter     String? // handle only (no @ / URL)
+  github      String? // handle only
+  telegram    String? // handle only
+  bannerImage String? // optional profile cover image URL
+
   posts    Post[]
   accounts Account[]
   sessions Session[]
@@ -38,6 +48,7 @@ model User {
   likes    PostLike[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
+  @@index([username]) // public profile lookup
 }
 
 model Post {

@@ -100,17 +100,21 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role ?? "USER";
         token.membership = (user as any).membership ?? "Free";
       }
-      // Refresh role+membership from DB when missing, or on an explicit update
-      // (membership is the client UI hint only — server routes always re-check DB).
+      // Refresh from DB when missing, or on an explicit `update()` call. This
+      // also pulls fresh name/image/username so profile edits reflect in the UI
+      // without a re-login (membership is a client hint — routes re-check DB).
       if (token.email && (!token.role || !token.membership || trigger === "update")) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
-          select: { id: true, role: true, membership: true },
+          select: { id: true, role: true, membership: true, name: true, image: true, username: true },
         });
         if (dbUser) {
           token.uid = dbUser.id;
           token.role = dbUser.role;
           token.membership = dbUser.membership;
+          token.name = dbUser.name;
+          token.picture = dbUser.image;
+          token.username = dbUser.username;
         }
       }
       return token;
@@ -120,6 +124,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).id = token.uid;
         (session.user as any).role = token.role ?? "USER";
         (session.user as any).membership = token.membership ?? "Free";
+        (session.user as any).username = token.username ?? null;
       }
       return session;
     },

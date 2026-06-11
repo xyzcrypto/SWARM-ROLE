@@ -1,21 +1,26 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, LayoutDashboard } from "lucide-react";
+import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown } from "lucide-react";
 import { navLinks } from "@/lib/site";
 import { cn, maskEmail } from "@/lib/utils";
+import { Avatar } from "./Avatar";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [menu, setMenu] = useState(false);
   const { data: session } = useSession();
-  const isAdmin = (session?.user as any)?.role === "ADMIN";
-  const isPremium = (session?.user as any)?.membership === "Premium";
+  const user = session?.user as any;
+  const isAdmin = user?.role === "ADMIN";
+  const isPremium = user?.membership === "Premium";
+  const username = user?.username as string | undefined;
   const masked = maskEmail(session?.user?.email);
   const [signingOut, setSigningOut] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   // Robust sign-out: clear the session via the API (no server redirect that
   // depends on NEXTAUTH_URL), then hard-navigate home so the UI always updates.
@@ -35,6 +40,23 @@ export function Navbar() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Close the account dropdown on outside click / Escape.
+  useEffect(() => {
+    if (!menu) return;
+    const onClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenu(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenu(false);
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menu]);
+
+  const profileHref = username ? `/u/${username}` : "/settings";
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3">
@@ -71,29 +93,47 @@ export function Navbar() {
 
         <div className="hidden items-center gap-2 md:flex">
           {session ? (
-            <>
-              {/* Account chip — masked email + membership (privacy-safe) */}
-              <div className="flex items-center gap-2 rounded-xl border border-line bg-white/5 py-1.5 pl-3 pr-1.5">
-                <span className="flex flex-col leading-tight">
+            <div className="relative" ref={menuRef}>
+              {/* Account button — avatar + membership, opens a dropdown */}
+              <button
+                onClick={() => setMenu((v) => !v)}
+                className="flex items-center gap-2 rounded-xl border border-line bg-white/5 py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-gold-500/30 hover:bg-white/[0.07]"
+              >
+                <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" />
+                <span className="flex flex-col items-start leading-tight">
                   <span className="mono text-[12px] text-zinc-200">{masked}</span>
                   <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
                     {isPremium ? "Premium" : "Free"}
                   </span>
                 </span>
-                {isAdmin && (
-                  <Link href="/dashboard" title="Dashboard" className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-300 transition-colors hover:bg-white/10 hover:text-gold-100">
-                    <LayoutDashboard className="h-4 w-4" />
-                  </Link>
-                )}
-                <button
-                  onClick={handleSignOut}
-                  disabled={signingOut}
-                  className="rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100 disabled:opacity-60"
-                >
-                  {signingOut ? "…" : "Sign out"}
-                </button>
-              </div>
-            </>
+                <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-500 transition-transform", menu && "rotate-180")} />
+              </button>
+
+              {menu && (
+                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-line bg-ink-900/95 p-1.5 shadow-elevate backdrop-blur-xl">
+                  <MenuItem href={profileHref} icon={<User className="h-4 w-4" />} onClick={() => setMenu(false)}>
+                    Profile
+                  </MenuItem>
+                  <MenuItem href="/settings" icon={<Settings className="h-4 w-4" />} onClick={() => setMenu(false)}>
+                    Settings
+                  </MenuItem>
+                  {isAdmin && (
+                    <MenuItem href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />} onClick={() => setMenu(false)}>
+                      Dashboard
+                    </MenuItem>
+                  )}
+                  <div className="my-1 h-px bg-white/5" />
+                  <button
+                    onClick={handleSignOut}
+                    disabled={signingOut}
+                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-60"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    {signingOut ? "Signing out…" : "Sign out"}
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <>
               <Link
@@ -134,12 +174,21 @@ export function Navbar() {
             <div className="mt-2 flex flex-col gap-2 border-t border-line pt-3">
               {session ? (
                 <>
-                  <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
-                    <span className="mono text-[12px] text-zinc-200">{masked}</span>
-                    <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
-                      {isPremium ? "Premium" : "Free"}
+                  <div className="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2">
+                    <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" />
+                    <span className="flex flex-col leading-tight">
+                      <span className="mono text-[12px] text-zinc-200">{masked}</span>
+                      <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
+                        {isPremium ? "Premium" : "Free"}
+                      </span>
                     </span>
                   </div>
+                  <Link href={profileHref} onClick={() => setOpen(false)} className="btn-ghost">
+                    Profile
+                  </Link>
+                  <Link href="/settings" onClick={() => setOpen(false)} className="btn-ghost">
+                    Settings
+                  </Link>
                   {isAdmin && (
                     <Link href="/dashboard" onClick={() => setOpen(false)} className="btn-ghost">
                       Dashboard
@@ -164,5 +213,28 @@ export function Navbar() {
         </div>
       )}
     </header>
+  );
+}
+
+function MenuItem({
+  href,
+  icon,
+  children,
+  onClick,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-gold-100"
+    >
+      {icon}
+      {children}
+    </Link>
   );
 }
