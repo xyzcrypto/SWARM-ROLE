@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { GoogleButton } from "./GoogleButton";
 import { OtpStep } from "./OtpStep";
+import { PasswordField } from "./PasswordField";
 
 export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
   const router = useRouter();
@@ -94,7 +95,7 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
       <form onSubmit={startSignup} className="space-y-4">
         <Field label="Full name" type="text" value={name} onChange={setName} placeholder="Satoshi Nakamoto" autoComplete="name" />
         <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
-        <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="At least 6 characters" autoComplete="new-password" />
+        <PasswordField label="Password" value={password} onChange={setPassword} placeholder="At least 6 characters" autoComplete="new-password" strength />
 
         {error && (
           <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">

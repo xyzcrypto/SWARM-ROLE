@@ -2,9 +2,11 @@ import type { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { googleEnabled, isAdminEmail } from "@/lib/env";
 import { verifyCode } from "@/lib/otp";
+import { rateLimit } from "@/lib/ratelimit";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -24,28 +26,27 @@ export const authOptions: NextAuthOptions = {
           }),
         ]
       : []),
-    // Email + one-time code. Password is verified earlier (in /api/auth/*/start,
-    // which then emails the OTP); this step completes the session only when a
-    // valid, unexpired code is presented — giving us 2FA login and verified
-    // signup. `flow` selects whether we are completing a signup or a login.
+    // Credentials: `login` uses email + password (rate-limited); `signup`
+    // completes a verified-email registration with a one-time code.
     CredentialsProvider({
       name: "Email",
       credentials: {
         email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
         code: { label: "Code", type: "text" },
         flow: { label: "Flow", type: "text" },
       },
       async authorize(credentials) {
         const email = credentials?.email?.toLowerCase().trim();
-        const code = credentials?.code?.trim();
         const flow = credentials?.flow === "signup" ? "signup" : "login";
-        if (!email || !code) return null;
-
-        const result = await verifyCode(email, flow, code);
-        if (!result.ok) return null;
+        if (!email) return null;
 
         if (flow === "signup") {
-          // Complete the pending signup stored with the code (name + hash).
+          // Verified-email registration: complete the pending signup (name+hash).
+          const code = credentials?.code?.trim();
+          if (!code) return null;
+          const result = await verifyCode(email, "signup", code);
+          if (!result.ok) return null;
           const payload = (result.payload ?? {}) as {
             name?: string;
             passwordHash?: string;
@@ -72,9 +73,15 @@ export const authOptions: NextAuthOptions = {
           } as any;
         }
 
-        // login flow — the code was only issued after a correct password.
+        // login flow — standard email + password (per-account rate limited).
+        const password = credentials?.password;
+        if (!password) return null;
+        const { success } = await rateLimit("login", email);
+        if (!success) return null;
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return null;
+        if (!user || !user.passwordHash) return null;
+        const ok = await bcrypt.compare(password, user.passwordHash);
+        if (!ok) return null;
         return {
           id: user.id,
           name: user.name,
