@@ -52,6 +52,11 @@ export const env = {
   SUPABASE_URL: (raw.SUPABASE_URL ?? "").replace(/\/$/, ""),
   SUPABASE_SERVICE_ROLE_KEY: raw.SUPABASE_SERVICE_ROLE_KEY ?? "",
   SUPABASE_STORAGE_BUCKET: raw.SUPABASE_STORAGE_BUCKET || "post-covers",
+  // Public (client-safe by design) — used by the chat page for Supabase
+  // Realtime subscriptions. The anon key only grants what RLS/channel policy
+  // allows; the service-role key above must NEVER be exposed client-side.
+  NEXT_PUBLIC_SUPABASE_URL: (raw.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, ""),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: raw.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
 };
 
 export const googleEnabled = !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET;
@@ -63,6 +68,10 @@ export const emailEnabled = !!env.RESEND_API_KEY;
 // Image upload (Supabase Storage). When unset, the cover URL field still works
 // and the upload endpoint reports that uploads are disabled.
 export const storageEnabled = !!env.SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY;
+
+// Realtime chat broadcast (server-side send). Falls back to client polling
+// when unset — chat still works, just not instant.
+export const realtimeEnabled = storageEnabled; // same creds: SUPABASE_URL + service key
 
 // Admins: ADMIN_EMAILS (comma-separated) preferred, ADMIN_EMAIL as fallback.
 export const adminEmails: string[] = (raw.ADMIN_EMAILS || raw.ADMIN_EMAIL || "")

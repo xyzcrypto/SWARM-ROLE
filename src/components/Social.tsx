@@ -1,4 +1,5 @@
-import { ArrowUpRight } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, MessagesSquare } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { site } from "@/lib/site";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "./BrandIcons";
@@ -43,6 +44,14 @@ export function Social() {
             </Reveal>
           ))}
         </div>
+
+        {/* Live community chat entry point */}
+        <Reveal delay={4} variant="fade" className="mt-8 flex justify-center">
+          <Link href="/community" className="btn-gold inline-flex items-center gap-2">
+            <MessagesSquare className="h-4 w-4" />
+            Open Community Chat
+          </Link>
+        </Reveal>
       </Container>
     </Section>
   );

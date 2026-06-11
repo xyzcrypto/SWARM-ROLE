@@ -56,3 +56,14 @@ dashboard publish/edit/draft/preview/upload, premium lock+unlock, comments, mobi
   `pointer: coarse`; orbital particles 14 on phones (34 desktop).
 - **PC perf:** hero parallax rAF-throttled; ticker pauses when tab hidden.
 - Home First-Load JS unchanged (159 kB shared).
+
+## Community Chat (v1.3, 2026-06-11) — addendum
+- **`/community`** (force-dynamic): `ChatClient` — glass chat panel (68vh),
+  avatars + Premium ★/Team badges, day separators, stick-to-bottom scroll w/
+  jump-to-latest, load-older w/ anchored viewport, optimistic send + draft
+  restore on failure, Enter-to-send, 500-char counter, own/admin delete,
+  guest read + login CTA. Plain-text rendering, `safeHref` linkify.
+- supabase-js is **lazy-imported inside ChatClient** → stays in the /community
+  chunk; shared First-Load JS unchanged. Realtime subscribe via anon key;
+  10s visibility-aware polling fallback.
+- Nav "Community" + orbital Community node → `/community`; Social section CTA.
