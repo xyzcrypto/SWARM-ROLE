@@ -39,12 +39,14 @@ export default async function DashboardPage() {
       }),
       prisma.post.findMany({
         orderBy: { createdAt: "desc" },
+        take: 200, // bounded; client-side search/filter handles the rest
         select: {
           id: true,
           title: true,
           slug: true,
           category: true,
           published: true,
+          premium: true,
           createdAt: true,
         },
       }),

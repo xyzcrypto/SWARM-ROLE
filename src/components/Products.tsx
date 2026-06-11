@@ -15,7 +15,7 @@ import {
   AcademyVisual,
   MoreVisual,
 } from "./ProductVisuals";
-import { PerpChart } from "./PerpChart";
+import { PerpChartLazy as PerpChart } from "./PerpChartLazy";
 
 type Status = "Live" | "Coming Soon" | "In Development" | "Planned" | "Next Version";
 const tone: Record<Status, "mint" | "gold" | "sky" | "zinc" | "violet"> = {

@@ -13,14 +13,20 @@ export const metadata: Metadata = {
 // Cached; revalidated on demand when admin publishes/deletes (research routes).
 export const revalidate = 120;
 
+const PAGE_SIZE = 12;
+
 export default async function ResearchPage() {
-  const posts = await prisma.post
-    .findMany({
-      where: { published: true },
-      orderBy: { createdAt: "desc" },
-      include: { author: { select: { name: true } } },
-    })
-    .catch(() => []);
+  const [posts, total] = await Promise.all([
+    prisma.post
+      .findMany({
+        where: { published: true },
+        orderBy: { createdAt: "desc" },
+        include: { author: { select: { name: true } } },
+        take: PAGE_SIZE,
+      })
+      .catch(() => []),
+    prisma.post.count({ where: { published: true } }).catch(() => 0),
+  ]);
 
   return (
     <>
@@ -42,7 +48,7 @@ export default async function ResearchPage() {
           </div>
 
           <div className="mt-14">
-            <ResearchGrid posts={posts} />
+            <ResearchGrid initial={posts} total={total} pageSize={PAGE_SIZE} />
           </div>
         </div>
       </main>

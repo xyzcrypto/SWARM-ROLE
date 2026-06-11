@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
@@ -44,6 +45,8 @@ export function handleError(err: unknown, context = "api") {
   }
   const traceId = Math.random().toString(36).slice(2, 8);
   console.error(`[${context}:${traceId}]`, err);
+  // Report unexpected 500s to Sentry (no-op until a DSN is configured).
+  Sentry.captureException(err, { tags: { context, traceId } });
   return fail("Something went wrong. Please try again.", 500);
 }
 
@@ -57,4 +60,12 @@ export async function getAdminSession() {
   const session = await getServerSession(authOptions);
   if (!session?.user || (session.user as any).role !== "ADMIN") return null;
   return session;
+}
+
+/** Returns the authenticated user (any role) with id/role/membership, else null. */
+export async function getSessionUser() {
+  const session = await getServerSession(authOptions);
+  const u = session?.user as any;
+  if (!u?.id) return null;
+  return { id: u.id as string, role: u.role as string, membership: (u.membership as string) ?? "Free", email: u.email as string };
 }

@@ -7,10 +7,19 @@ import { Footer } from "@/components/Footer";
 import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
 import { formatDate, readingTime } from "@/lib/utils";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
+import { PostCard } from "@/components/PostCard";
+import { ReadingProgress } from "@/components/ReadingProgress";
+import { ShareRow } from "@/components/ShareRow";
+import { PremiumLock } from "@/components/PremiumLock";
+import { CommentSection } from "@/components/CommentSection";
+import { LikeButton } from "@/components/LikeButton";
 
-// Cached per-article; revalidated on demand when admin deletes (research route).
-export const revalidate = 300;
+// Personalized (premium gating reads the session), so render per-request. The
+// query is a single indexed lookup; the heavy list pages stay ISR-cached.
+export const dynamic = "force-dynamic";
 
 async function getPost(slug: string) {
   return prisma.post
@@ -65,13 +74,39 @@ export default async function PostPage({
   const post = await getPost(params.slug);
   if (!post) notFound();
 
+  // Premium gating: only Premium members or admins can read a premium body.
+  const sessionUser = (await getServerSession(authOptions))?.user as any;
+  const isAdmin = sessionUser?.role === "ADMIN";
+  const canViewPremium = isAdmin || sessionUser?.membership === "Premium";
+  const locked = post.premium && !canViewPremium;
+
+  const [related, likeCount, myLike] = await Promise.all([
+    prisma.post
+      .findMany({
+        where: { published: true, category: post.category, slug: { not: post.slug } },
+        orderBy: { createdAt: "desc" },
+        take: 3,
+        include: { author: { select: { name: true } } },
+      })
+      .catch(() => []),
+    prisma.postLike.count({ where: { postId: post.id } }).catch(() => 0),
+    sessionUser?.id
+      ? prisma.postLike
+          .findUnique({
+            where: { postId_userId: { postId: post.id, userId: sessionUser.id } },
+            select: { id: true },
+          })
+          .catch(() => null)
+      : Promise.resolve(null),
+  ]);
+
   const tags = post.tags
     ? post.tags.split(",").map((t) => t.trim()).filter(Boolean)
     : [];
 
   return (
     <>
-      <JsonLd data={articleJsonLd(post)} />
+      <JsonLd data={articleJsonLd(locked ? { ...post, content: "" } : post)} />
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", path: "/" },
@@ -80,6 +115,7 @@ export default async function PostPage({
         ])}
       />
       <Navbar />
+      <ReadingProgress />
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
         <article className="relative mx-auto max-w-3xl px-4 pb-24 sm:px-6">
@@ -97,31 +133,62 @@ export default async function PostPage({
             <span className="rounded-full bg-gold-500/10 px-3 py-1 text-xs font-semibold text-gold-200 ring-1 ring-gold-500/30">
               {post.category}
             </span>
+            {post.premium && (
+              <span className="ml-2 rounded-full bg-gold-shine px-3 py-1 text-xs font-bold text-ink ring-1 ring-gold-500/40">
+                Premium
+              </span>
+            )}
             <h1 className="mt-4 font-display text-3xl font-bold leading-tight text-zinc-50 sm:text-5xl">
               {post.title}
             </h1>
-            <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
-              <span>{post.author?.name ?? "XYZ Crypto"}</span>
-              <span className="text-zinc-700">•</span>
-              <span>{formatDate(post.createdAt)}</span>
-              <span className="text-zinc-700">•</span>
-              <span>{readingTime(post.content)} min read</span>
+
+            {/* Byline + share */}
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-white/5 py-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gold-500/15 font-display text-sm font-bold text-gold-200 ring-1 ring-gold-500/30">
+                  {(post.author?.name ?? "XYZ Crypto").charAt(0)}
+                </span>
+                <div>
+                  <p className="text-sm font-semibold text-zinc-200">
+                    {post.author?.name ?? "XYZ Crypto"}
+                  </p>
+                  <p className="mono text-[11px] text-zinc-500">
+                    {formatDate(post.createdAt)} · {readingTime(post.content)} min read
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <LikeButton postId={post.id} initialCount={likeCount} initialLiked={Boolean(myLike)} />
+                <ShareRow title={post.title} path={`/research/${post.slug}`} />
+              </div>
             </div>
           </div>
 
           {post.cover && (
             <div className="relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-2xl ring-1 ring-white/10">
-              <Image src={post.cover} alt={post.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 768px" />
+              <Image
+                src={post.cover}
+                alt={post.title}
+                fill
+                priority
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 768px"
+              />
+              <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-950/70 to-transparent" />
             </div>
           )}
 
-          <p className="mt-8 text-lg leading-relaxed text-zinc-300">
+          <p className="mt-8 border-l-2 border-gold-500/60 pl-4 text-lg leading-relaxed text-zinc-200">
             {post.excerpt}
           </p>
 
-          <div className="prose-xyz mt-6">
-            <Markdown content={post.content} />
-          </div>
+          {locked ? (
+            <PremiumLock loggedIn={Boolean(sessionUser)} />
+          ) : (
+            <div className="prose-xyz mt-6">
+              <Markdown content={post.content} />
+            </div>
+          )}
 
           {tags.length > 0 && (
             <div className="mt-10 flex flex-wrap gap-2 border-t border-white/5 pt-6">
@@ -133,6 +200,26 @@ export default async function PostPage({
             </div>
           )}
         </article>
+
+        <CommentSection postId={post.id} isAdmin={isAdmin} />
+
+        {related.length > 0 && (
+          <section className="mx-auto mt-12 max-w-5xl px-4 pb-24 sm:px-6">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="font-display text-xl font-semibold text-zinc-100">
+                More in <span className="text-gold-gradient">{post.category}</span>
+              </h2>
+              <Link href="/research" className="text-sm font-medium text-gold-200 hover:underline">
+                View all →
+              </Link>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {related.map((p) => (
+                <PostCard key={p.slug} post={p} />
+              ))}
+            </div>
+          </section>
+        )}
       </main>
       <Footer />
     </>

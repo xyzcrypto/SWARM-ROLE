@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { slugify, readingTime, cn, csvCell } from "@/lib/utils";
+import { slugify, readingTime, cn, csvCell, maskEmail } from "@/lib/utils";
 
 describe("slugify", () => {
   it("lowercases and hyphenates", () => {
@@ -25,6 +25,26 @@ describe("readingTime", () => {
 describe("cn", () => {
   it("merges and dedupes tailwind classes", () => {
     expect(cn("px-2", "px-4")).toBe("px-4");
+  });
+});
+
+describe("maskEmail", () => {
+  it("keeps first 2 chars + domain", () => {
+    expect(maskEmail("rahul@gmail.com")).toBe("ra***@gmail.com");
+    expect(maskEmail("md.something@xyzcrypto.io")).toBe("md***@xyzcrypto.io");
+  });
+  it("keeps 1 char for very short locals", () => {
+    expect(maskEmail("a@x.com")).toBe("a***@x.com");
+  });
+  it("never exposes the full local part", () => {
+    const out = maskEmail("longusername@gmail.com");
+    expect(out).not.toContain("longusername");
+    expect(out.endsWith("@gmail.com")).toBe(true);
+  });
+  it("handles empty/invalid", () => {
+    expect(maskEmail("")).toBe("");
+    expect(maskEmail(null)).toBe("");
+    expect(maskEmail("notanemail")).toBe("notanemail");
   });
 });
 

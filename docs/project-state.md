@@ -164,3 +164,68 @@ Bento grid:
 
 > The recurring red curvy line / floating circle some screenshots show is the
 > **in-app browser overlay** (Telegram/IG webview), NOT the site.
+
+---
+
+## Backend state (updated 2026-06-10 — authoritative)
+
+> **Frontend = LOCKED baseline** (owner-approved). Build features on top;
+> never redesign existing sections without explicit owner request.
+
+### Stack & infra
+- DB: **Supabase Postgres** via Prisma. `DATABASE_URL` = pooled 6543 **must
+  include `?pgbouncer=true`** (else 42P05). `DIRECT_URL` = 5432 (migrations).
+- Auth: NextAuth JWT + **email OTP**: signup = verify-then-create; login =
+  password + emailed 2FA code; forgot-password = emailed reset code.
+- Email: **Resend** (`RESEND_API_KEY`, `EMAIL_FROM`). ⚠️ `onboarding@resend.dev`
+  delivers ONLY to the Resend account owner — production needs a **verified
+  domain** + `EMAIL_FROM` on that domain, else members get no OTP.
+- Monitoring: Sentry (DSN-guarded; `NEXT_PUBLIC_SENTRY_DSN`). Errors from
+  `handleError`, email failures, global-error boundary.
+- Rate limiting: Upstash (optional env; fail-open no-op without it).
+- Image upload: Supabase Storage REST (`SUPABASE_URL` +
+  `SUPABASE_SERVICE_ROLE_KEY`, public bucket `post-covers`); URL field works without it.
+
+### API routes (all follow: rateLimit → Zod → auth gate → Prisma → handleError)
+| Route | Methods | Auth | Notes |
+|---|---|---|---|
+| `/api/auth/[...nextauth]` | * | — | OTP-credentials provider + Google |
+| `/api/auth/signup/start` | POST | public | validates, emails OTP; 502 if email fails |
+| `/api/auth/login/start` | POST | public | password check → 2FA OTP email |
+| `/api/auth/password/start` | POST | public | reset OTP (anti-enumeration generic reply) |
+| `/api/auth/password/reset` | POST | public | code + new password |
+| `/api/research` | GET | public | published-only; `page/pageSize/q/category`, returns total/hasMore |
+| `/api/research` | POST | ADMIN | create; stable slug + P2002 retry; revalidates / + /research |
+| `/api/research/[id]` | GET | ADMIN | full post (incl. drafts) for editor |
+| `/api/research/[id]` | PATCH | ADMIN | partial update; slug stable unless draft+title-change |
+| `/api/research/[id]` | DELETE | ADMIN | delete + revalidate |
+| `/api/upload` | POST | ADMIN | image → Supabase Storage, 5MB, jpeg/png/webp/gif/avif |
+| `/api/users/[id]/membership` | PATCH | ADMIN | Free/Premium toggle |
+| `/api/subscribe` | POST | public | waitlist upsert |
+| `/api/ticker`, `/api/chart` | GET | public | CoinGecko cached |
+
+### Schema (7 tables, Postgres) & migrations
+User, Post, Subscriber, Account, Session, VerificationToken, **VerificationCode**
+(OTP: hashed code, purpose, attempts, expiry). Draft = `Post.published=false`.
+Migrations in `prisma/migrations/`: `0_init`, `1_verification_code`, `2_indexes`
+— **applied manually via Supabase SQL Editor** (not via `migrate deploy`;
+baselining steps in RUNBOOK). Never hand-edit schema without a migration file.
+
+### Key lib modules
+`lib/api.ts` (ok/fail/handleError/getAdminSession/isCuid) · `lib/otp.ts` (HMAC
+codes, single-use, 10min, 5 attempts) · `lib/email.ts` (Resend + dev fallback)
+· `lib/storage.ts` (Storage REST) · `lib/env.ts` (validated env + feature flags)
+· `lib/ratelimit.ts` · `lib/markdown.tsx` (XSS-safe renderer, `.prose-xyz`).
+
+### CMS (dashboard)
+`PostEditor` (create+edit, markdown toolbar, Write/Preview via `.prose-xyz`,
+cover URL/upload, Save-draft vs Publish) · `PostManager` (search, category +
+status filter, Draft/Published badges, inline edit, publish-toggle, delete-confirm).
+
+### Rendering / perf
+Home + /research + /research/[slug] = **ISR** (300/120/300s) + on-demand
+`revalidatePath` on content changes. All list queries bounded/paginated.
+Security headers (CSP/HSTS/XFO…) in `next.config.mjs`; image hosts allowlisted.
+
+### Verification gate (run before every push)
+`npx tsc --noEmit` · `npx vitest run` (27+ tests) · `npm run build` exit 0.

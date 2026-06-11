@@ -16,6 +16,9 @@ const schema = z.object({
   UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+  SUPABASE_URL: z.string().optional(),
+  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
+  SUPABASE_STORAGE_BUCKET: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -46,6 +49,9 @@ export const env = {
   UPSTASH_REDIS_REST_TOKEN: raw.UPSTASH_REDIS_REST_TOKEN ?? "",
   RESEND_API_KEY: raw.RESEND_API_KEY ?? "",
   EMAIL_FROM: raw.EMAIL_FROM || "XYZ Crypto <onboarding@resend.dev>",
+  SUPABASE_URL: (raw.SUPABASE_URL ?? "").replace(/\/$/, ""),
+  SUPABASE_SERVICE_ROLE_KEY: raw.SUPABASE_SERVICE_ROLE_KEY ?? "",
+  SUPABASE_STORAGE_BUCKET: raw.SUPABASE_STORAGE_BUCKET || "post-covers",
 };
 
 export const googleEnabled = !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET;
@@ -53,6 +59,10 @@ export const googleEnabled = !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRE
 // Email (Resend). When unset, OTP codes are logged to the server console so the
 // flow still works for local/testing — set RESEND_API_KEY to actually deliver.
 export const emailEnabled = !!env.RESEND_API_KEY;
+
+// Image upload (Supabase Storage). When unset, the cover URL field still works
+// and the upload endpoint reports that uploads are disabled.
+export const storageEnabled = !!env.SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Admins: ADMIN_EMAILS (comma-separated) preferred, ADMIN_EMAIL as fallback.
 export const adminEmails: string[] = (raw.ADMIN_EMAILS || raw.ADMIN_EMAIL || "")

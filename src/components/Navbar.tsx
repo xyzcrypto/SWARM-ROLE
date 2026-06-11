@@ -6,13 +6,15 @@ import Image from "next/image";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, X, LayoutDashboard } from "lucide-react";
 import { navLinks } from "@/lib/site";
-import { cn } from "@/lib/utils";
+import { cn, maskEmail } from "@/lib/utils";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { data: session } = useSession();
   const isAdmin = (session?.user as any)?.role === "ADMIN";
+  const isPremium = (session?.user as any)?.membership === "Premium";
+  const masked = maskEmail(session?.user?.email);
   const [signingOut, setSigningOut] = useState(false);
 
   // Robust sign-out: clear the session via the API (no server redirect that
@@ -70,19 +72,27 @@ export function Navbar() {
         <div className="hidden items-center gap-2 md:flex">
           {session ? (
             <>
-              {isAdmin && (
-                <Link href="/dashboard" className="btn-ghost !px-3.5 !py-2 text-[13px]">
-                  <LayoutDashboard className="h-4 w-4" />
-                  Dashboard
-                </Link>
-              )}
-              <button
-                onClick={handleSignOut}
-                disabled={signingOut}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-zinc-100 disabled:opacity-60"
-              >
-                {signingOut ? "Signing out…" : "Sign out"}
-              </button>
+              {/* Account chip — masked email + membership (privacy-safe) */}
+              <div className="flex items-center gap-2 rounded-xl border border-line bg-white/5 py-1.5 pl-3 pr-1.5">
+                <span className="flex flex-col leading-tight">
+                  <span className="mono text-[12px] text-zinc-200">{masked}</span>
+                  <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
+                    {isPremium ? "Premium" : "Free"}
+                  </span>
+                </span>
+                {isAdmin && (
+                  <Link href="/dashboard" title="Dashboard" className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-zinc-300 transition-colors hover:bg-white/10 hover:text-gold-100">
+                    <LayoutDashboard className="h-4 w-4" />
+                  </Link>
+                )}
+                <button
+                  onClick={handleSignOut}
+                  disabled={signingOut}
+                  className="rounded-lg px-2.5 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100 disabled:opacity-60"
+                >
+                  {signingOut ? "…" : "Sign out"}
+                </button>
+              </div>
             </>
           ) : (
             <>
@@ -124,6 +134,12 @@ export function Navbar() {
             <div className="mt-2 flex flex-col gap-2 border-t border-line pt-3">
               {session ? (
                 <>
+                  <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
+                    <span className="mono text-[12px] text-zinc-200">{masked}</span>
+                    <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
+                      {isPremium ? "Premium" : "Free"}
+                    </span>
+                  </div>
                   {isAdmin && (
                     <Link href="/dashboard" onClick={() => setOpen(false)} className="btn-ghost">
                       Dashboard

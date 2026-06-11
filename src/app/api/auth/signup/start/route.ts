@@ -32,7 +32,10 @@ export async function POST(req: Request) {
     const passwordHash = await bcrypt.hash(password, 10);
     const code = await issueCode(email, "signup", { name, passwordHash });
     const { subject, html, text } = otpEmail(code, "signup");
-    await sendEmail(email, subject, html, text);
+    const sent = await sendEmail(email, subject, html, text);
+    if (!sent.ok) {
+      return fail("We couldn't send the verification email. Please try again shortly.", 502);
+    }
 
     return ok({
       ok: true,

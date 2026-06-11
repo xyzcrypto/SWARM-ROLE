@@ -32,6 +32,19 @@ export function formatDateTime(date: Date | string | null): string {
 }
 
 /**
+ * Privacy-safe email mask: keeps the first 2 chars of the local part, masks the
+ * rest, keeps the domain. "rahul@gmail.com" -> "ra***@gmail.com". Short locals
+ * keep 1 char. Returns "" for falsy input.
+ */
+export function maskEmail(email?: string | null): string {
+  if (!email || !email.includes("@")) return email ?? "";
+  const [local, domain] = email.split("@");
+  if (!local) return email;
+  const keep = local.length <= 2 ? 1 : 2;
+  return `${local.slice(0, keep)}***@${domain}`;
+}
+
+/**
  * Escape a value for safe inclusion in a CSV cell: wraps in quotes, doubles any
  * embedded quotes, and neutralises spreadsheet formula injection by prefixing a
  * leading = + - @ with a single quote.

@@ -68,6 +68,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             image: user.image,
             role: user.role,
+            membership: user.membership,
           } as any;
         }
 
@@ -80,25 +81,29 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           image: user.image,
           role: user.role,
+          membership: user.membership,
         } as any;
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
         token.uid = (user as any).id;
         token.role = (user as any).role ?? "USER";
+        token.membership = (user as any).membership ?? "Free";
       }
-      // Keep role fresh from DB on each refresh when possible
-      if (token.email && !token.role) {
+      // Refresh role+membership from DB when missing, or on an explicit update
+      // (membership is the client UI hint only — server routes always re-check DB).
+      if (token.email && (!token.role || !token.membership || trigger === "update")) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
-          select: { id: true, role: true },
+          select: { id: true, role: true, membership: true },
         });
         if (dbUser) {
           token.uid = dbUser.id;
           token.role = dbUser.role;
+          token.membership = dbUser.membership;
         }
       }
       return token;
@@ -107,6 +112,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).id = token.uid;
         (session.user as any).role = token.role ?? "USER";
+        (session.user as any).membership = token.membership ?? "Free";
       }
       return session;
     },

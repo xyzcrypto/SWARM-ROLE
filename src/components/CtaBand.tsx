@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { Check } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { Container, Section } from "./ui/primitives";
 import { WaitlistForm } from "./WaitlistForm";
+import { EarlyAccessCta } from "./EarlyAccessCta";
 
 const benefits = [
   "Early access to the Perp DEX & trading tools",
@@ -57,9 +57,7 @@ export function CtaBand({ memberCount = 0 }: { memberCount?: number }) {
                     or
                     <span className="h-px flex-1 bg-line" />
                   </div>
-                  <Link href="/signup" className="btn-ghost w-full">
-                    Create a full account
-                  </Link>
+                  <EarlyAccessCta className="btn-ghost w-full" label="Create a full account" />
                   {memberCount > 0 && (
                     <p className="mt-4 text-center mono text-[11px] text-zinc-500">
                       Join {memberCount.toLocaleString()}+ members already inside

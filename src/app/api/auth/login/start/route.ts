@@ -33,7 +33,10 @@ export async function POST(req: Request) {
 
     const code = await issueCode(email, "login");
     const { subject, html, text } = otpEmail(code, "login");
-    await sendEmail(email, subject, html, text);
+    const sent = await sendEmail(email, subject, html, text);
+    if (!sent.ok) {
+      return fail("We couldn't send the sign-in code email. Please try again shortly.", 502);
+    }
 
     return ok({
       ok: true,

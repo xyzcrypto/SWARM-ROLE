@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,9 +17,27 @@ export function WaitlistForm({
   placeholder?: string;
   cta?: string;
 }) {
+  const { data: session } = useSession();
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [error, setError] = useState("");
+
+  // Account holders are already "in" — no early-access capture for them.
+  if (session) {
+    return (
+      <div className={cn("flex items-center justify-between gap-3 rounded-2xl border border-mint-500/30 bg-mint-500/10 px-4 py-3.5", className)}>
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-mint-500/20 text-mint-300">
+            <Check className="h-3.5 w-3.5" strokeWidth={3} />
+          </span>
+          <p className="truncate text-sm text-mint-100">You&apos;re in — your account has early access.</p>
+        </div>
+        <Link href="/research" className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-mint-200 hover:underline">
+          Explore <ArrowRight className="h-3.5 w-3.5" />
+        </Link>
+      </div>
+    );
+  }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
