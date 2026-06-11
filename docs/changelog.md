@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-11 — Orbital ecosystem section + auth simplification (Phase 4)
+- **Home:** premium 3D Orbital Ecosystem section (additive; rings/nodes/particles,
+  in-view + reduced-motion gated, no heavy libs, home stays ISR).
+- **Auth:** login is now standard email+password (removed OTP 2FA step); authorize
+  verifies bcrypt + rate-limit (login 10/min/account). Signup still OTP-verified;
+  forgot-password unchanged. New PasswordField (show/hide + strength meter on signup).
+  Removed dead /api/auth/login/start route.
+- Verified: tsc clean, 35 tests, build exit 0.
+
 ## 2026-06-11 — Final pre-merge batch: session CTAs, Likes, perf, polish
 - **Logged-in CTAs:** WaitlistForm/Hero/CtaBand/ResearchPreview now session-aware —
   account holders see "Explore Research" instead of early-access/waitlist (client-side

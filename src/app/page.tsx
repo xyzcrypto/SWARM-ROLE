@@ -4,6 +4,7 @@ import { MarketTicker } from "@/components/MarketTicker";
 import { EcosystemPills } from "@/components/EcosystemPills";
 import { ProofStrip } from "@/components/ProofStrip";
 import { About } from "@/components/About";
+import { OrbitalSection } from "@/components/OrbitalSection";
 import { Products } from "@/components/Products";
 import { ResearchPreview } from "@/components/ResearchPreview";
 import { Ecosystem } from "@/components/Ecosystem";
@@ -30,6 +31,7 @@ export default async function HomePage() {
         <EcosystemPills />
         <ProofStrip />
         <About />
+        <OrbitalSection />
         <Products />
         <ResearchPreview />
         <Ecosystem />

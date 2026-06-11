@@ -12,9 +12,8 @@
 ## API routes (pattern: rateLimit → Zod → auth gate → Prisma → handleError)
 | Route | Methods | Auth | Notes |
 |---|---|---|---|
-| `/api/auth/[...nextauth]` | * | — | OTP-credentials + Google |
-| `/api/auth/signup/start` | POST | public | emails OTP; **502 if email send fails** |
-| `/api/auth/login/start` | POST | public | password → 2FA OTP email (502 on fail) |
+| `/api/auth/[...nextauth]` | * | — | Credentials (login=email+password, signup=OTP code) + Google |
+| `/api/auth/signup/start` | POST | public | emails signup OTP; **502 if email send fails** |
 | `/api/auth/password/start` | POST | public | reset OTP (generic reply, anti-enumeration) |
 | `/api/auth/password/reset` | POST | public | code + new password |
 | `/api/research` | GET | public | published-only; `page/pageSize/q/category`; **premium posts have body redacted** |
@@ -37,6 +36,9 @@
 - Session carries `role` + `membership` (added to JWT+session callbacks in
   `src/lib/auth.ts`). **Membership in the token is a UI hint only — premium
   access is always re-checked against the DB server-side.**
+- **Login = standard email + password** (bcrypt, rate-limited `login` 10/min per
+  account). No 2FA. **Signup is still email-verified via OTP** (verify-then-create);
+  forgot-password uses an OTP reset code.
 - **Premium gating (2 layers):** list API redacts premium body; `[slug]` server
   page renders `PremiumLock` (no body in HTML) unless `membership==="Premium"`
   or ADMIN. JSON-LD content redacted when locked.

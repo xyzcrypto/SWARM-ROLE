@@ -5,80 +5,40 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { GoogleButton } from "./GoogleButton";
-import { OtpStep } from "./OtpStep";
+import { PasswordField } from "./PasswordField";
 
 export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
   const callbackUrl = params.get("callbackUrl") || "/";
   const justReset = params.get("reset") === "1";
-  const [step, setStep] = useState<"creds" | "otp">("creds");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [devCode, setDevCode] = useState<string | undefined>();
 
-  async function startLogin(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const res = await signIn("credentials", {
+        email,
+        password,
+        flow: "login",
+        redirect: false,
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(data.error || "Could not sign in.");
+      if (res?.error) {
+        setError("Invalid email or password.");
         return;
       }
-      setDevCode(data.devCode);
-      setStep("otp");
+      router.push(callbackUrl);
+      router.refresh();
     } catch {
-      setError("Network error. Please try again.");
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
-  }
-
-  async function verify(code: string) {
-    const res = await signIn("credentials", {
-      email,
-      code,
-      flow: "login",
-      redirect: false,
-    });
-    if (res?.error) {
-      throw new Error("Incorrect or expired code. Please try again.");
-    }
-    router.push(callbackUrl);
-    router.refresh();
-  }
-
-  async function resend() {
-    const res = await fetch("/api/auth/login/start", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || "Could not resend code.");
-    setDevCode(data.devCode);
-  }
-
-  if (step === "otp") {
-    return (
-      <OtpStep
-        email={email}
-        devCode={devCode}
-        submitLabel="Verify & sign in"
-        onVerify={verify}
-        onResend={resend}
-        onBack={() => setStep("creds")}
-      />
-    );
   }
 
   return (
@@ -98,10 +58,10 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
         </div>
       )}
 
-      <form onSubmit={startLogin} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4">
         <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
         <div>
-          <Field label="Password" type="password" value={password} onChange={setPassword} placeholder="••••••••" autoComplete="current-password" />
+          <PasswordField label="Password" value={password} onChange={setPassword} placeholder="••••••••" autoComplete="current-password" />
           <div className="mt-1.5 text-right">
             <Link href="/forgot-password" className="text-xs font-medium text-gold-200 hover:underline">
               Forgot password?
@@ -116,13 +76,9 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
         )}
 
         <button type="submit" disabled={loading} className="btn-gold w-full disabled:opacity-60">
-          {loading ? "Sending code…" : "Continue"}
+          {loading ? "Signing in…" : "Sign in"}
         </button>
       </form>
-
-      <p className="text-center text-xs text-zinc-600">
-        For your security we&apos;ll email a 6-digit code to finish signing in.
-      </p>
 
       <p className="text-center text-sm text-zinc-500">
         New to XYZ Crypto?{" "}
