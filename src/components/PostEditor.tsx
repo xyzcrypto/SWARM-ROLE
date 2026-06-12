@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Markdown } from "@/lib/markdown";
+import { uploadFileWithProgress } from "@/lib/upload";
 
 export type EditablePost = {
   id?: string;
@@ -47,6 +48,8 @@ export function PostEditor({
   const [msg, setMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [dragging, setDragging] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -89,14 +92,12 @@ export function PostEditor({
       return;
     }
     setUploading(true);
+    setProgress(0);
     try {
-      const body = new FormData();
-      body.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      const { ok, status, data } = await uploadFileWithProgress("/api/upload", file, setProgress);
+      if (!ok) {
         // 501 = Supabase Storage not configured yet → guide to the URL fallback.
-        const hint = res.status === 501 ? " You can paste an image URL instead." : "";
+        const hint = status === 501 ? " You can paste an image URL instead." : "";
         setMsg({ type: "err", text: (data.error || "Upload failed.") + hint });
         return;
       }
@@ -265,16 +266,33 @@ export function PostEditor({
             type="button"
             onClick={() => fileRef.current?.click()}
             disabled={uploading}
-            onDragOver={(e) => e.preventDefault()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragging(true);
+            }}
+            onDragLeave={() => setDragging(false)}
             onDrop={(e) => {
               e.preventDefault();
+              setDragging(false);
               const f = e.dataTransfer.files?.[0];
               if (f) uploadCover(f);
             }}
-            className="mt-2 w-full rounded-xl border border-dashed border-white/15 px-4 py-2.5 text-sm text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-100 disabled:opacity-60"
+            className={`mt-2 w-full rounded-xl border border-dashed px-4 py-2.5 text-sm transition-all disabled:opacity-60 ${
+              dragging
+                ? "scale-[1.01] border-mint-500/60 bg-mint-500/10 text-mint-100"
+                : "border-white/15 text-zinc-400 hover:border-gold-500/40 hover:text-gold-100"
+            }`}
           >
-            {uploading ? "Uploading…" : form.cover ? "Replace (click or drop)" : "Upload an image (click or drop)"}
+            {uploading ? `Uploading… ${progress}%` : form.cover ? "Replace (click or drop)" : "Upload an image (click or drop)"}
           </button>
+          {uploading && (
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-white/10">
+              <div
+                className="h-full rounded-full bg-mint-shine transition-all duration-200"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
         </div>
 
         {/* Premium content toggle */}
