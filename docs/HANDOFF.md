@@ -123,6 +123,21 @@ CREATE INDEX IF NOT EXISTS "ChatReaction_messageId_idx"
   ON "ChatReaction"("messageId");
 ```
 
+### ⚠️ Analytics + post views migration (one-time, production Supabase)
+Adds visit tracking + per-post view counts. `npm run db:push` **or** this
+idempotent SQL in Supabase → SQL Editor:
+
+```sql
+ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "views" INTEGER NOT NULL DEFAULT 0;
+
+CREATE TABLE IF NOT EXISTS "PageView" (
+  "id"        TEXT PRIMARY KEY,
+  "path"      TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS "PageView_createdAt_idx" ON "PageView"("createdAt");
+```
+
 **Realtime env (optional but recommended):** add to Vercel —
 `NEXT_PUBLIC_SUPABASE_URL` (same value as `SUPABASE_URL`) and
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` (Supabase → Settings → API → **anon** key; this

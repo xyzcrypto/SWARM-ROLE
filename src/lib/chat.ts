@@ -4,7 +4,7 @@
 // When the Supabase env is unset, broadcast is a silent no-op and the client
 // falls back to polling — chat still works end-to-end.
 import { z } from "zod";
-import { env, realtimeEnabled } from "@/lib/env";
+import { broadcastEvent } from "@/lib/realtime";
 
 export const CHAT_CHANNEL = "community";
 export const CHAT_PAGE_SIZE = 50;
@@ -77,25 +77,7 @@ type ChatEvent =
  * source of truth and clients reconcile via polling/refresh.
  */
 export async function broadcastChatEvent(evt: ChatEvent): Promise<void> {
-  if (!realtimeEnabled) return;
-  try {
-    const res = await fetch(`${env.SUPABASE_URL}/realtime/v1/api/broadcast`, {
-      method: "POST",
-      headers: {
-        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messages: [{ topic: CHAT_CHANNEL, event: evt.event, payload: evt.payload, private: false }],
-      }),
-    });
-    if (!res.ok) {
-      console.error("[chat] broadcast failed", res.status, await res.text().catch(() => ""));
-    }
-  } catch (err) {
-    console.error("[chat] broadcast error", err);
-  }
+  await broadcastEvent(CHAT_CHANNEL, evt.event, evt.payload);
 }
 
 // Shared Prisma selection for a chat message + everything the UI needs.
