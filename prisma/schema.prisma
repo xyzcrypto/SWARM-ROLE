@@ -41,12 +41,13 @@ model User {
   telegram    String? // handle only
   bannerImage String? // optional profile cover image URL
 
-  posts        Post[]
-  accounts     Account[]
-  sessions     Session[]
-  comments     Comment[]
-  likes        PostLike[]
-  chatMessages ChatMessage[]
+  posts         Post[]
+  accounts      Account[]
+  sessions      Session[]
+  comments      Comment[]
+  likes         PostLike[]
+  chatMessages  ChatMessage[]
+  chatReactions ChatReaction[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -64,7 +65,29 @@ model ChatMessage {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
+  // Reply / quote (self-relation). Detaches (null) if the parent is removed.
+  replyToId String?
+  replyTo   ChatMessage?  @relation("ChatReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies   ChatMessage[] @relation("ChatReply")
+
+  reactions ChatReaction[]
+
   @@index([status, createdAt]) // history queries: visible, newest-first
+}
+
+// Emoji reactions on chat messages — one row per (message, user, emoji).
+model ChatReaction {
+  id        String   @id @default(cuid())
+  emoji     String // from a fixed allowlist (see src/lib/chat.ts)
+  createdAt DateTime @default(now())
+
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
 }
 
 model Post {

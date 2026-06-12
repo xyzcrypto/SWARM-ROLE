@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-11 — Community Chat → advanced group chat
+- **Nav:** "Community" link renamed to "Community Chat" (href unchanged).
+- **Reactions:** emoji reactions (👍❤️😂🔥🚀🎉👀💯) — `ChatReaction` table,
+  `POST /api/chat/messages/[id]/react` toggle (reuses `like` limiter), live
+  `reaction` broadcast + optimistic chips.
+- **Replies:** quote/reply to any message — `ChatMessage.replyToId` self-relation,
+  composer reply preview, in-message quoted snippet (click → scroll to original).
+- **Realtime presence + typing:** "N online" count and "X is typing…" indicator
+  via Supabase channel presence/broadcast (hidden gracefully on polling fallback).
+- **Polish (framer-motion, /community chunk only):** animated message enter/exit,
+  reaction pop, typing dots, jump-to-latest w/ unread count; consecutive-author
+  message grouping; hover action bar (react/reply/copy/delete); emoji picker in
+  composer (curated, no new dep); @mention highlighting → profile links.
+- **Schema:** +`ChatReaction`, +`ChatMessage.replyToId`. ⚠️ Combined one-time SQL
+  in HANDOFF.md. Chat-scoped change only; shared First-Load JS unchanged.
+
 ## 2026-06-11 — Community Chat (Supabase Realtime · public read, login to post)
 - **New page `/community`** ("The XYZ Lounge"): live message feed with avatars,
   Premium ★/Team badges, day separators, smart auto-scroll + jump-to-latest,
