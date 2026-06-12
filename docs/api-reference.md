@@ -55,12 +55,15 @@ rate-limited `login` 10/min **per account**.
 
 | Route | Method | Auth | Limit | Purpose |
 |---|---|---|---|---|
-| `/api/chat/messages` | GET | Public | — | History: latest 50 visible w/ author `{name,username,image,membership,role}`; `?cursor=<id>` pages older. Returns `{messages, hasMore, nextCursor}`. |
-| `/api/chat/messages` | POST | User | `chat` 10/min/user | Send (1–500 chars, plain text). Inserts, then broadcasts `new_message` to Supabase Realtime channel `community` (no-op if Supabase env unset). 201 `{message}`. |
+| `/api/chat/messages` | GET | Public | — | History: latest 50 visible w/ author, `replyTo` (id/body/author) and grouped `reactions` (emoji→count+userIds); `?cursor=<id>` pages older. Returns `{messages, hasMore, nextCursor}`. |
+| `/api/chat/messages` | POST | User | `chat` 10/min/user | Send (1–500 chars, optional `replyToId`). Inserts, then broadcasts `new_message` to Supabase Realtime channel `community` (no-op if Supabase env unset). 201 `{message}`. |
 | `/api/chat/messages/[id]` | DELETE | Author or Admin | `chat` | Soft-hide (`status="hidden"`) + broadcast `message_hidden`. |
+| `/api/chat/messages/[id]/react` | POST | User | `like` 20/min/user | Toggle an emoji reaction (allowlist: 👍❤️😂🔥🚀🎉👀💯). Broadcasts `reaction` `{messageId,emoji,userId,op}`. Returns `{op,emoji}`. |
 
-Delivery: clients subscribe to channel `community` (anon key); polling fallback
-when `NEXT_PUBLIC_SUPABASE_*` unset. Validation: `src/lib/chat.ts`.
+Delivery: clients subscribe to channel `community` (anon key) for `new_message`,
+`message_hidden`, `reaction` broadcasts plus **presence** (online count) and a
+client-only `typing` broadcast; polling fallback when `NEXT_PUBLIC_SUPABASE_*`
+unset (presence/typing disabled in that mode). Validation: `src/lib/chat.ts`.
 
 ## Misc
 

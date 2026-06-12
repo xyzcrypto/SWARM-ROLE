@@ -21,5 +21,5 @@ export const navLinks = [
   { label: "Products", href: "/#products" },
   { label: "Research", href: "/research" },
   { label: "Ecosystem", href: "/#ecosystem" },
-  { label: "Community", href: "/community" },
+  { label: "Community Chat", href: "/community" },
 ];

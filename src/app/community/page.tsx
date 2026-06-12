@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
-import { CHAT_PAGE_SIZE } from "@/lib/chat";
+import { CHAT_PAGE_SIZE, CHAT_MESSAGE_SELECT, toChatPayload } from "@/lib/chat";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ChatClient } from "@/components/ChatClient";
@@ -26,25 +26,13 @@ export default async function CommunityPage() {
       where: { status: "visible" },
       orderBy: { createdAt: "desc" },
       take: CHAT_PAGE_SIZE + 1,
-      select: {
-        id: true,
-        body: true,
-        createdAt: true,
-        userId: true,
-        user: { select: { name: true, username: true, image: true, membership: true, role: true } },
-      },
+      select: CHAT_MESSAGE_SELECT,
     })
     .catch(() => []);
 
   const hasMore = rows.length > CHAT_PAGE_SIZE;
   const page = hasMore ? rows.slice(0, CHAT_PAGE_SIZE) : rows;
-  const initialMessages = page.reverse().map((m) => ({
-    id: m.id,
-    body: m.body,
-    createdAt: m.createdAt.toISOString(),
-    userId: m.userId,
-    author: m.user,
-  }));
+  const initialMessages = page.reverse().map(toChatPayload);
 
   return (
     <>
@@ -67,7 +55,15 @@ export default async function CommunityPage() {
           <ChatClient
             initialMessages={initialMessages}
             initialHasMore={hasMore}
-            me={me ? { id: me.id as string, isAdmin: me.role === "ADMIN" } : null}
+            me={
+              me
+                ? {
+                    id: me.id as string,
+                    isAdmin: me.role === "ADMIN",
+                    name: (me.name as string | null) ?? "Member",
+                  }
+                : null
+            }
             realtime={{
               url: env.NEXT_PUBLIC_SUPABASE_URL,
               anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,

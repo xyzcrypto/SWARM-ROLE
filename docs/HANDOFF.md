@@ -79,10 +79,12 @@ CREATE INDEX        IF NOT EXISTS "User_username_idx" ON "User"("username");
 ```
 
 ### ⚠️ Community Chat migration (one-time, production Supabase)
-The chat release adds a `ChatMessage` table. Same flow — `npm run db:push`
-**or** this idempotent SQL in Supabase → SQL Editor:
+The chat (incl. reactions + replies) needs these tables/columns. Same flow —
+`npm run db:push` **or** this **combined idempotent SQL** in Supabase → SQL
+Editor. Safe to run whether or not an earlier version was already applied:
 
 ```sql
+-- Base messages table
 CREATE TABLE IF NOT EXISTS "ChatMessage" (
   "id"        TEXT PRIMARY KEY,
   "body"      TEXT NOT NULL,
@@ -94,6 +96,31 @@ CREATE TABLE IF NOT EXISTS "ChatMessage" (
 );
 CREATE INDEX IF NOT EXISTS "ChatMessage_status_createdAt_idx"
   ON "ChatMessage"("status", "createdAt");
+
+-- Reply / quote (self-reference)
+ALTER TABLE "ChatMessage" ADD COLUMN IF NOT EXISTS "replyToId" TEXT;
+DO $$ BEGIN
+  ALTER TABLE "ChatMessage" ADD CONSTRAINT "ChatMessage_replyToId_fkey"
+    FOREIGN KEY ("replyToId") REFERENCES "ChatMessage"("id")
+    ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- Emoji reactions
+CREATE TABLE IF NOT EXISTS "ChatReaction" (
+  "id"        TEXT PRIMARY KEY,
+  "emoji"     TEXT NOT NULL,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "messageId" TEXT NOT NULL,
+  "userId"    TEXT NOT NULL,
+  CONSTRAINT "ChatReaction_messageId_fkey" FOREIGN KEY ("messageId")
+    REFERENCES "ChatMessage"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "ChatReaction_userId_fkey" FOREIGN KEY ("userId")
+    REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "ChatReaction_messageId_userId_emoji_key"
+  ON "ChatReaction"("messageId", "userId", "emoji");
+CREATE INDEX IF NOT EXISTS "ChatReaction_messageId_idx"
+  ON "ChatReaction"("messageId");
 ```
 
 **Realtime env (optional but recommended):** add to Vercel —
