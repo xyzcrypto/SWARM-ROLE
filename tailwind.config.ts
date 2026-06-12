@@ -7,6 +7,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      // Extra breakpoint for small/large phone distinction (default sm = 640px).
+      screens: {
+        xs: "400px",
+      },
       colors: {
         // Base surfaces — near-black with cool depth (Vercel/Hyperliquid)
         ink: {

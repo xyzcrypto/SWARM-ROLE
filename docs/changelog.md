@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-12 — Mobile responsiveness pass (Phase 3/3)
+- New `xs` (400px) breakpoint to distinguish small vs large phones.
+- Hero medallion + Orbital ecosystem: smaller base `max-w` on tiny phones
+  (15/16.5rem) scaling up at `xs`/`sm` → no crowding/overflow at 320–360px.
+- MarketTicker cell padding `px-5 → px-3.5 sm:px-5` (kills horizontal-scroll
+  risk on narrow phones).
+- Chat hover action bar (react/reply/copy/delete) now **always visible on touch**
+  (`opacity-100 sm:opacity-0 sm:group-hover:opacity-100`) — was hover-only and
+  unreachable on mobile.
+
 ## 2026-06-12 — Polish: interactive upload, green dashboard, animations, speed (Phase 2/3)
 - **Interactive upload:** real progress bar (XHR `upload.onprogress`) + animated
   drag-drop highlight on the post cover uploader and the avatar uploader

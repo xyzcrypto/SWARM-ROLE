@@ -180,7 +180,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
           onMouseMove={onMove}
           onMouseLeave={onLeave}
           style={{ perspective: 1000 }}
-          className="relative mx-auto flex aspect-square w-full max-w-[18rem] items-center justify-center sm:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl"
+          className="relative mx-auto flex aspect-square w-full max-w-[15rem] items-center justify-center xs:max-w-[17rem] sm:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl"
         >
           <motion.div
             style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
