@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Camera, Loader2 } from "lucide-react";
 import { Avatar } from "./Avatar";
+import { uploadFileWithProgress } from "@/lib/upload";
 
 // Uploads a profile picture to /api/profile/avatar and reports the new URL up.
 export function AvatarUploader({
@@ -16,6 +17,7 @@ export function AvatarUploader({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState("");
 
   async function onPick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -28,12 +30,10 @@ export function AvatarUploader({
     }
     setError("");
     setBusy(true);
+    setProgress(0);
     try {
-      const body = new FormData();
-      body.append("file", file);
-      const res = await fetch("/api/profile/avatar", { method: "POST", body });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+      const { ok, data } = await uploadFileWithProgress("/api/profile/avatar", file, setProgress);
+      if (!ok) {
         setError(data.error || "Upload failed.");
         return;
       }
@@ -70,8 +70,13 @@ export function AvatarUploader({
           disabled={busy}
           className="btn-secondary !py-2 text-[13px] disabled:opacity-60"
         >
-          {busy ? "Uploading…" : "Change photo"}
+          {busy ? `Uploading… ${progress}%` : "Change photo"}
         </button>
+        {busy && (
+          <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-mint-shine transition-all duration-200" style={{ width: `${progress}%` }} />
+          </div>
+        )}
         <p className="mt-1.5 text-[11px] text-zinc-600">JPG, PNG, WebP or GIF · max 5 MB.</p>
         {error && <p className="mt-1 text-[11px] text-red-300">{error}</p>}
       </div>

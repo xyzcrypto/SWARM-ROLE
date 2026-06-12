@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-12 — Polish: interactive upload, green dashboard, animations, speed (Phase 2/3)
+- **Interactive upload:** real progress bar (XHR `upload.onprogress`) + animated
+  drag-drop highlight on the post cover uploader and the avatar uploader
+  (shared `src/lib/upload.ts`).
+- **Green profile dashboard** (`/settings`): mint-accented identity card (avatar,
+  badge, member-since, view-profile link), mint active tabs + primary actions,
+  animated tab transitions (framer-motion).
+- **Speed:** homepage orbital lazy-loaded (`next/dynamic`, ssr:false, same-size
+  placeholder) → homepage page JS 11.4 → 10.1 kB; shared JS unchanged (159 kB).
+- **Colors:** primary actions standardized to mint, premium/brand stays gold.
+
 ## 2026-06-12 — Real-time admin: live visitors, analytics, post views, instant membership (Phase 1/3)
 - **Real-time membership:** admin downgrade/upgrade now pushes to the affected
   user's browser via Supabase channel `user:<id>` → session refreshes → the

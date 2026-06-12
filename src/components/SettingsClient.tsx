@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Check, Loader2, MapPin, Globe, ExternalLink, ShieldAlert } from "lucide-react";
 import { XIcon, GitHubIcon, TelegramIcon } from "./BrandIcons";
+import { Avatar } from "./Avatar";
 import { AvatarUploader } from "./AvatarUploader";
 import { PasswordField } from "./PasswordField";
 import { Badge } from "./ui/primitives";
@@ -42,16 +44,46 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
     { id: "security", label: "Security" },
   ];
 
+  const isPremium = user.membership === "Premium";
+  const isAdmin = user.role === "ADMIN";
+
   return (
     <div>
-      <div className="mb-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">Settings</p>
+      <div className="mb-6">
+        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-mint-400">Your dashboard</p>
         <h1 className="mt-2 font-display text-3xl font-bold text-zinc-50 sm:text-4xl">
-          Your account
+          Account &amp; profile
         </h1>
-        <p className="mt-2 text-sm text-zinc-500">
-          Manage your public profile, photo, password and account.
-        </p>
+      </div>
+
+      {/* Identity card */}
+      <div className="mb-8 overflow-hidden rounded-3xl border border-mint-500/20 bg-gradient-to-br from-mint-500/[0.07] via-white/[0.02] to-transparent p-5 sm:p-6">
+        <div className="flex flex-wrap items-center gap-4">
+          <Avatar name={user.name} image={user.image} size="lg" />
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-display text-lg font-semibold text-zinc-50">{user.name ?? "Member"}</h2>
+              {isAdmin ? (
+                <Badge tone="mint">Team</Badge>
+              ) : isPremium ? (
+                <Badge tone="gold">★ Premium</Badge>
+              ) : (
+                <Badge tone="neutral">Free</Badge>
+              )}
+            </div>
+            <p className="mono text-sm text-zinc-500">
+              {user.username ? `@${user.username}` : "Set a handle below"} · Member since {formatDate(user.createdAt)}
+            </p>
+          </div>
+          {user.username && (
+            <Link
+              href={`/u/${user.username}`}
+              className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-mint-500/30 bg-mint-500/10 px-3 py-2 text-[13px] font-medium text-mint-200 transition-colors hover:bg-mint-500/20"
+            >
+              View public profile <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          )}
+        </div>
       </div>
 
       <div className="mb-8 flex flex-wrap gap-2 border-b border-white/5 pb-1">
@@ -60,7 +92,7 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`rounded-t-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
-              tab === t.id ? "border-b-2 border-gold-400 text-gold-100" : "text-zinc-500 hover:text-zinc-300"
+              tab === t.id ? "border-b-2 border-mint-400 text-mint-100" : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             {t.label}
@@ -68,9 +100,19 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
         ))}
       </div>
 
-      {tab === "profile" && <ProfilePanel user={user} />}
-      {tab === "account" && <AccountPanel user={user} />}
-      {tab === "security" && <SecurityPanel user={user} />}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.18 }}
+        >
+          {tab === "profile" && <ProfilePanel user={user} />}
+          {tab === "account" && <AccountPanel user={user} />}
+          {tab === "security" && <SecurityPanel user={user} />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }
@@ -240,7 +282,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
       )}
 
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={saving} className="btn-gold disabled:opacity-60">
+        <button type="submit" disabled={saving} className="btn-primary disabled:opacity-60">
           {saving ? "Saving…" : "Save changes"}
         </button>
         {user.username && (
