@@ -518,7 +518,7 @@ export function ChatClient({
 
                   {/* hover action bar */}
                   {me && (
-                    <div className="absolute -top-3 right-2 flex items-center gap-0.5 rounded-lg border border-line bg-ink-800/95 p-0.5 opacity-0 shadow-elevate backdrop-blur transition-opacity group-hover:opacity-100">
+                    <div className="absolute -top-3 right-2 flex items-center gap-0.5 rounded-lg border border-line bg-ink-800/95 p-0.5 opacity-100 shadow-elevate backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                       <div className="relative">
                         <button
                           onClick={() => setReactOpenId((id) => (id === m.id ? null : m.id))}

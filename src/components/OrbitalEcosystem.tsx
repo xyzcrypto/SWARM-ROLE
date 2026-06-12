@@ -107,7 +107,7 @@ export function OrbitalEcosystem() {
   return (
     <div
       ref={wrapRef}
-      className="relative mx-auto aspect-square w-full max-w-[20rem] sm:max-w-md lg:max-w-xl"
+      className="relative mx-auto aspect-square w-full max-w-[16.5rem] xs:max-w-[19rem] sm:max-w-md lg:max-w-xl"
       style={{ perspective: "1000px" }}
     >
       {/* soft particle field */}

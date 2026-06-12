@@ -27,7 +27,7 @@ function fmt(price: number) {
 function Cell({ c, fl }: { c: Coin; fl?: "up" | "down" }) {
   const up = c.change >= 0;
   return (
-    <div className="flex shrink-0 items-center gap-2.5 border-r border-line/60 px-5">
+    <div className="flex shrink-0 items-center gap-2.5 border-r border-line/60 px-3.5 sm:px-5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={c.image}
