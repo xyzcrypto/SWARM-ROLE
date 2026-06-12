@@ -101,6 +101,7 @@ model Post {
   tags      String   @default("") // comma separated
   published Boolean  @default(true)
   premium   Boolean  @default(false) // Premium Content — body gated to Premium users
+  views     Int      @default(0) // total opens (incremented on the article page)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -140,6 +141,16 @@ model Comment {
   userId String
 
   @@index([postId, createdAt])
+}
+
+// Lightweight self-hosted page-view analytics. One row per tracked view
+// (deduped per session client-side); admin aggregates totals + today.
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // Email waitlist / newsletter capture (low-friction, no account needed)

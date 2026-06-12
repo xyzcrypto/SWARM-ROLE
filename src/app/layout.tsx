@@ -5,8 +5,10 @@ import "./globals.css";
 import { Providers } from "./providers";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { Analytics } from "@/components/Analytics";
+import { RealtimeSession } from "@/components/RealtimeSession";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
 import { SITE_URL, GSC_VERIFICATION } from "@/lib/seo";
+import { env } from "@/lib/env";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -73,7 +75,13 @@ export default function RootLayout({
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={websiteJsonLd()} />
         <SmoothScroll />
-        <Providers>{children}</Providers>
+        <Providers>
+          <RealtimeSession
+            url={env.NEXT_PUBLIC_SUPABASE_URL}
+            anonKey={env.NEXT_PUBLIC_SUPABASE_ANON_KEY}
+          />
+          {children}
+        </Providers>
         <Analytics />
       </body>
     </html>

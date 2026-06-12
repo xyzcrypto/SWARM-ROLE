@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -77,6 +78,14 @@ export default async function PostPage({
     getServerSession(authOptions),
   ]);
   if (!post) notFound();
+
+  // Count the view — but skip router prefetches (hover/viewport) so the number
+  // reflects real opens, not Next.js prefetch traffic. Fire-and-forget.
+  const h = headers();
+  const isPrefetch = h.get("next-router-prefetch") === "1" || h.get("purpose") === "prefetch";
+  if (!isPrefetch) {
+    prisma.post.update({ where: { id: post.id }, data: { views: { increment: 1 } } }).catch(() => {});
+  }
 
   // Premium gating: only Premium members or admins can read a premium body.
   const sessionUser = session?.user as any;
@@ -158,6 +167,8 @@ export default async function PostPage({
                   </p>
                   <p className="mono text-[11px] text-zinc-500">
                     {formatDate(post.createdAt)} · {readingTime(post.content)} min read
+                    {" · "}
+                    {(post.views + (isPrefetch ? 0 : 1)).toLocaleString()} views
                   </p>
                 </div>
               </div>

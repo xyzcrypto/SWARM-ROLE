@@ -49,7 +49,7 @@ rate-limited `login` 10/min **per account**.
 | `/api/profile/avatar` | POST | User | `admin` | Avatar upload (same constraints as `/api/upload`); sets `user.image`; revalidates profile. |
 | `/api/profile/password` | POST | User | `login` 10/min/account | Change password; verifies current; rejects OAuth-only accounts. |
 | `/api/profile/username` | GET | User | — | `?handle=` availability check (own handle counts available). |
-| `/api/users/[id]/membership` | PATCH | Admin | `admin` | Set membership `Free`/`Premium`. |
+| `/api/users/[id]/membership` | PATCH | Admin | `admin` | Set membership `Free`/`Premium`; broadcasts `membership_changed` to `user:<id>` + `members` for real-time UI updates. |
 
 ## Community chat
 
@@ -70,6 +70,7 @@ unset (presence/typing disabled in that mode). Validation: `src/lib/chat.ts`.
 | Route | Method | Auth | Limit | Purpose |
 |---|---|---|---|---|
 | `/api/subscribe` | POST | Public | `subscribe` 10/min/IP | Waitlist email capture (idempotent upsert). |
+| `/api/track` | POST | Public | `subscribe` 10/min/IP | Record a page view (`{path}`) for self-hosted analytics. Best-effort, always 200. |
 | `/api/ticker` | GET | Public | — | Top-coin prices (CoinGecko), `revalidate 10`, graceful fallback payload. |
 | `/api/chart` | GET | Public | — | OHLC candles (BTC/ETH; 1/7/30d), `revalidate 120`. |
 

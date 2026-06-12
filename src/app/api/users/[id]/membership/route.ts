@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getAdminSession, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { broadcastEvent, userChannel, CH_MEMBERS } from "@/lib/realtime";
 
 const schema = z.object({
   membership: z.enum(["Free", "Premium"]),
@@ -35,6 +36,14 @@ export async function PATCH(
       data: { membership: parsed.data.membership },
       select: { id: true, membership: true },
     });
+
+    // Real-time: tell the affected user's browser (so their Premium icon updates
+    // instantly) and refresh the admin member list live.
+    await Promise.allSettled([
+      broadcastEvent(userChannel(user.id), "membership_changed", { membership: user.membership }),
+      broadcastEvent(CH_MEMBERS, "membership_changed", { id: user.id, membership: user.membership }),
+    ]);
+
     return ok({ user });
   } catch (err) {
     return handleError(err, "membership:update");

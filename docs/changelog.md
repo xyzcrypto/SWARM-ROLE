@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-12 — Real-time admin: live visitors, analytics, post views, instant membership (Phase 1/3)
+- **Real-time membership:** admin downgrade/upgrade now pushes to the affected
+  user's browser via Supabase channel `user:<id>` → session refreshes → the
+  Premium icon appears/disappears **instantly** (no re-login). New
+  `RealtimeSession` mounted in the root layout.
+- **Self-hosted analytics:** `PageView` table + `POST /api/track` ping (deduped
+  per navigation) → admin Overview shows **Total visits / Visits today**, and a
+  **Live online** count via Supabase presence (channel `site-visitors`).
+- **Post views:** `Post.views` counter (prefetch-guarded increment on the article
+  page), shown on the post byline + aggregated in admin.
+- **Admin Premium tab:** dedicated section listing all Premium members with
+  one-click downgrade; updates live via channel `members`.
+- Generic `src/lib/realtime.ts` `broadcastEvent` (chat broadcast refactored onto
+  it). ⚠️ One-time SQL (Post.views + PageView) in HANDOFF.md.
+
 ## 2026-06-11 — Community Chat → advanced group chat
 - **Nav:** "Community" link renamed to "Community Chat" (href unchanged).
 - **Reactions:** emoji reactions (👍❤️😂🔥🚀🎉👀💯) — `ChatReaction` table,
