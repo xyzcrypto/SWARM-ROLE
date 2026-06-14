@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-14 — Production hardening: audit fixes, perf, profile-photo (see docs/AUDIT-2026-06-14.md)
+**Resilience/DB**
+- Added real migration `prisma/migrations/5_post_views_pageview/` (idempotent).
+- `getPost` (`research/[slug]/page.tsx`) + dashboard posts query now retry without
+  `views` on Prisma P2022 → missing migration no longer 404s posts / 500s dashboard.
+
+**Bugs/security**
+- New per-user `profile` rate-limit bucket; `api/profile/avatar` + `api/profile`
+  PATCH/DELETE switched from `admin`(IP) → `profile`(user id).
+- `auth/password/start`: returns 502 when email delivery fails (enumeration-safe).
+- `auth.ts` signup: recover from P2002 race (re-read winning row).
+- `research/[slug]`: premium gating re-checks live role/membership from DB.
+- Research `content` capped at 100k chars (`api/research` + `[id]`).
+
+**Profile photo (both approaches)**
+- `AvatarUploader`: added validated **"Use a link"** URL fallback (works without
+  Supabase Storage); saves via existing `PATCH /api/profile`.
+- `profile.ts`: new optional `image` field + `isAllowedImageHost()` (host allowlist
+  synced with next/image `remotePatterns`); +unit tests.
+- Setup/ops steps added to `HANDOFF.md` (Storage bucket + env, migration).
+
+**Performance (no design change)**
+- `PerpChart`: poll skips hidden tabs + refresh on focus.
+- `MarketTicker`: `decoding="async"` on coin logos.
+- Tuned `next/image` `sizes`: `PostCard`, article cover, Hero logo.
+
+DoD: typecheck + lint + test (60) + build all green; shared First-Load JS 159 kB (unchanged).
+
 ## 2026-06-12 — Mobile responsiveness pass (Phase 3/3)
 - New `xs` (400px) breakpoint to distinguish small vs large phones.
 - Hero medallion + Orbital ecosystem: smaller base `max-w` on tiny phones

@@ -23,12 +23,30 @@ import { LikeButton } from "@/components/LikeButton";
 export const dynamic = "force-dynamic";
 
 async function getPost(slug: string) {
-  return prisma.post
-    .findFirst({
+  try {
+    return await prisma.post.findFirst({
       where: { slug, published: true },
       include: { author: { select: { name: true } } },
-    })
-    .catch(() => null);
+    });
+  } catch (err: any) {
+    // Resilience: if the `views` column hasn't been migrated yet (P2022), don't
+    // 404 the whole article — re-query the needed fields and default views to 0.
+    if (err?.code === "P2022") {
+      const post = await prisma.post
+        .findFirst({
+          where: { slug, published: true },
+          select: {
+            id: true, slug: true, title: true, excerpt: true, content: true,
+            cover: true, category: true, tags: true, premium: true,
+            createdAt: true, updatedAt: true,
+            author: { select: { name: true } },
+          },
+        })
+        .catch(() => null);
+      return post ? { ...post, views: 0 } : null;
+    }
+    return null;
+  }
 }
 
 export async function generateMetadata({
@@ -89,8 +107,20 @@ export default async function PostPage({
 
   // Premium gating: only Premium members or admins can read a premium body.
   const sessionUser = session?.user as any;
-  const isAdmin = sessionUser?.role === "ADMIN";
-  const canViewPremium = isAdmin || sessionUser?.membership === "Premium";
+  let isAdmin = sessionUser?.role === "ADMIN";
+  let isPremium = sessionUser?.membership === "Premium";
+  // For premium posts, re-check live role/membership from the DB so an admin
+  // up/downgrade takes effect immediately — the JWT is only a stale client hint.
+  if (post.premium && sessionUser?.id) {
+    const fresh = await prisma.user
+      .findUnique({ where: { id: sessionUser.id }, select: { role: true, membership: true } })
+      .catch(() => null);
+    if (fresh) {
+      isAdmin = fresh.role === "ADMIN";
+      isPremium = fresh.membership === "Premium";
+    }
+  }
+  const canViewPremium = isAdmin || isPremium;
   const locked = post.premium && !canViewPremium;
 
   const [related, likeCount, myLike] = await Promise.all([
@@ -187,7 +217,7 @@ export default async function PostPage({
                 fill
                 priority
                 className="object-cover"
-                sizes="(max-width: 768px) 100vw, 768px"
+                sizes="(max-width: 1024px) 100vw, 768px"
               />
               <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-950/70 to-transparent" />
             </div>

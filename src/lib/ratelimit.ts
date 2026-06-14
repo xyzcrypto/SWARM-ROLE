@@ -29,6 +29,7 @@ const limiters = {
   signup: make(5, 60, "signup"), // 5/min/IP
   subscribe: make(10, 60, "subscribe"), // 10/min/IP
   admin: make(30, 60, "admin"), // 30/min/IP
+  profile: make(10, 60, "profile"), // 10/min per user — avatar + profile edits
   comment: make(8, 60, "comment"), // 8/min/IP
   like: make(20, 60, "like"), // 20/min/IP
   login: make(10, 60, "login"), // 10/min per account (brute-force guard)

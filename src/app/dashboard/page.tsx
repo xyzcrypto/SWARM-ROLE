@@ -10,6 +10,28 @@ import { DashboardClient } from "@/components/DashboardClient";
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
 
+// Resilience: if the `views` column hasn't been migrated yet (P2022), retry the
+// query without it (defaulting views to 0) so the dashboard never 500s.
+async function getDashboardPosts() {
+  const base = {
+    orderBy: { createdAt: "desc" },
+    take: 200, // bounded; client-side search/filter handles the rest
+  } as const;
+  try {
+    return await prisma.post.findMany({
+      ...base,
+      select: { id: true, title: true, slug: true, category: true, published: true, premium: true, views: true, createdAt: true },
+    });
+  } catch (err: any) {
+    if (err?.code !== "P2022") throw err;
+    const rows = await prisma.post.findMany({
+      ...base,
+      select: { id: true, title: true, slug: true, category: true, published: true, premium: true, createdAt: true },
+    });
+    return rows.map((r) => ({ ...r, views: 0 }));
+  }
+}
+
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
@@ -38,11 +60,7 @@ export default async function DashboardPage() {
       prisma.subscriber.count(),
       prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: userSelect }),
       prisma.user.findMany({ where: { membership: "Premium" }, orderBy: { createdAt: "desc" }, select: userSelect }),
-      prisma.post.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 200, // bounded; client-side search/filter handles the rest
-        select: { id: true, title: true, slug: true, category: true, published: true, premium: true, views: true, createdAt: true },
-      }),
+      getDashboardPosts(),
       prisma.pageView.count().catch(() => 0),
       prisma.pageView.count({ where: { createdAt: { gte: startOfToday } } }).catch(() => 0),
       prisma.post.aggregate({ _sum: { views: true } }).catch(() => ({ _sum: { views: 0 } })),

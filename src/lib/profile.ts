@@ -60,6 +60,31 @@ const handleField = z
   .transform((v) => (v === "" ? undefined : v))
   .optional();
 
+// Hosts allowed for an externally-pasted avatar URL. MUST stay in sync with the
+// next/image `remotePatterns` in next.config.mjs — otherwise next/image refuses
+// to render the avatar. Used by the profile schema's optional `image` field
+// (the URL fallback for when Supabase Storage uploads aren't configured).
+const ALLOWED_IMAGE_HOST_SUFFIXES = [
+  ".unsplash.com",
+  ".googleusercontent.com",
+  ".githubusercontent.com",
+  "res.cloudinary.com",
+  ".supabase.co",
+];
+
+export function isAllowedImageHost(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:") return false;
+    const host = u.hostname.toLowerCase();
+    return ALLOWED_IMAGE_HOST_SUFFIXES.some(
+      (s) => host === s.replace(/^\./, "") || host.endsWith(s)
+    );
+  } catch {
+    return false;
+  }
+}
+
 const optionalText = (max: number, label: string) =>
   z
     .string()
@@ -77,6 +102,18 @@ export const profileSchema = z.object({
     .max(60, "Name must be 60 characters or fewer.")
     .optional(),
   username: usernameField.optional(),
+  // Avatar URL fallback (when Supabase Storage isn't configured). Must be an
+  // https URL from an allowlisted host so next/image can render it.
+  image: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine((v) => v === "" || isAllowedImageHost(v), {
+      message:
+        "Use an https image URL from a supported host (Unsplash, Cloudinary, GitHub, Google, or Supabase).",
+    })
+    .transform((v) => (v === "" ? undefined : v))
+    .optional(),
   bio: optionalText(280, "Bio"),
   location: optionalText(80, "Location"),
   website: z

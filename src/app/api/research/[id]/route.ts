@@ -30,7 +30,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 const updateSchema = z.object({
   title: z.string().trim().min(4).max(160).optional(),
   excerpt: z.string().trim().min(8).max(320).optional(),
-  content: z.string().trim().min(20).optional(),
+  content: z.string().trim().min(20).max(100_000, "Article is too long (100k characters max).").optional(),
   category: z.enum(["Research", "Article", "Post"]).optional(),
   cover: z.string().trim().url().optional().or(z.literal("")),
   tags: z.string().trim().max(200).optional(),

@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
-import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { rateLimit } from "@/lib/ratelimit";
 import { uploadImage, isAllowedImageType, MAX_UPLOAD_BYTES } from "@/lib/storage";
 
 // POST /api/profile/avatar — any signed-in user uploads a new profile picture.
@@ -12,7 +12,7 @@ export async function POST(req: Request) {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
 
-    const { success } = await rateLimit("admin", clientIp(req));
+    const { success } = await rateLimit("profile", me.id);
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
     const form = await req.formData().catch(() => null);

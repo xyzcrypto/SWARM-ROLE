@@ -35,6 +35,7 @@ function Cell({ c, fl }: { c: Coin; fl?: "up" | "down" }) {
         width={18}
         height={18}
         loading="lazy"
+        decoding="async"
         className="h-[18px] w-[18px] rounded-full ring-1 ring-white/10"
         onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
       />

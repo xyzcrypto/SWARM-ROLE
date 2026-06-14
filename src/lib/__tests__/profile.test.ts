@@ -4,9 +4,28 @@ import {
   normalizeHandle,
   profileSchema,
   passwordChangeSchema,
+  isAllowedImageHost,
   RESERVED_USERNAMES,
   USERNAME_RE,
 } from "@/lib/profile";
+
+describe("isAllowedImageHost", () => {
+  it("accepts https URLs from allowlisted hosts", () => {
+    expect(isAllowedImageHost("https://images.unsplash.com/photo-1.jpg")).toBe(true);
+    expect(isAllowedImageHost("https://lh3.googleusercontent.com/a/x")).toBe(true);
+    expect(isAllowedImageHost("https://avatars.githubusercontent.com/u/1")).toBe(true);
+    expect(isAllowedImageHost("https://res.cloudinary.com/demo/image.png")).toBe(true);
+    expect(isAllowedImageHost("https://abc.supabase.co/storage/v1/object/public/x.png")).toBe(true);
+  });
+
+  it("rejects non-https, non-allowlisted hosts, and junk", () => {
+    expect(isAllowedImageHost("http://images.unsplash.com/x.jpg")).toBe(false);
+    expect(isAllowedImageHost("https://evil.example.com/x.jpg")).toBe(false);
+    expect(isAllowedImageHost("https://notunsplash.com/x.jpg")).toBe(false);
+    expect(isAllowedImageHost("not a url")).toBe(false);
+    expect(isAllowedImageHost("")).toBe(false);
+  });
+});
 
 describe("normalizeUsername", () => {
   it("lowercases, trims and strips a leading @", () => {

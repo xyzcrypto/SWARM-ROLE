@@ -227,7 +227,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
                   fill
                   priority
                   className="rounded-full object-cover shadow-gold ring-2 ring-gold-500/40"
-                  sizes="(max-width: 768px) 60vw, 300px"
+                  sizes="(max-width: 640px) 70vw, (max-width: 1024px) 45vw, 400px"
                 />
               </motion.div>
             </motion.div>

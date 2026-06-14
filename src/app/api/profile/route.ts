@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError } from "@/lib/api";
 import { getSessionUser } from "@/lib/api";
-import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { rateLimit } from "@/lib/ratelimit";
 import { profileSchema } from "@/lib/profile";
 
 // Fields returned to the client after an update (safe, no secrets).
@@ -25,7 +25,7 @@ export async function PATCH(req: Request) {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
 
-    const { success } = await rateLimit("admin", clientIp(req));
+    const { success } = await rateLimit("profile", me.id);
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
     const parsed = profileSchema.safeParse(await req.json());
@@ -69,7 +69,7 @@ export async function DELETE(req: Request) {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
 
-    const { success } = await rateLimit("admin", clientIp(req));
+    const { success } = await rateLimit("profile", me.id);
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
     const body = await req.json().catch(() => ({}));

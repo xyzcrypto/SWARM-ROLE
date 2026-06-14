@@ -50,10 +50,19 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
       }
     }
     load();
-    const t = setInterval(load, 60_000);
+    // Don't poll while the tab is hidden — saves API calls/bandwidth; refresh
+    // immediately when the user returns so the chart isn't stale.
+    const t = setInterval(() => {
+      if (!document.hidden) load();
+    }, 60_000);
+    const onVisible = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVisible);
     return () => {
       active = false;
       clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [coin.id, days]);
 

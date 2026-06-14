@@ -72,15 +72,21 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   on demand. Bust profile cache with `revalidatePath("/u/<handle>")` after edits.
 - lucide-react v1 has no Twitter/Github icons — use `src/components/BrandIcons.tsx`.
 
-## Current state (2026-06-11)
+## Current state (2026-06-14)
 - ✅ Live: homepage (orbital ecosystem), research hub + premium gating, likes,
   comments, auth (email+password, OTP signup, Google optional), profiles
-  (`/u/[handle]` + `/settings`), admin dashboard, audit + perf pass (see
-  `docs/AUDIT-2026-06-11.md`).
-- ⚠️ Pending op: profile columns migration in production Supabase — idempotent SQL
-  in `docs/HANDOFF.md`. Until run, `/settings` & `/u/*` return graceful 503.
-- 🔜 Next phase (agreed with owner): **Community Chat**. Later roadmap in
-  `docs/frontend-roadmap.md`.
+  (`/u/[handle]` + `/settings`), admin dashboard with real-time analytics +
+  membership + per-post views, community chat.
+- ✅ Production-hardening pass (`docs/AUDIT-2026-06-14.md`): migration resilience
+  (missing `views` no longer 404s posts / 500s dashboard), per-user rate limits on
+  profile/avatar, password-reset email check, signup race fix, server-side premium
+  re-check, research content cap, perf (PerpChart visibility-gating, image `sizes`),
+  and the **profile-photo fix** — upload **+ validated "Use a link" URL fallback**.
+- ⚠️ Pending ops (idempotent, in `docs/HANDOFF.md §4`): apply the analytics/views
+  migration (`prisma/migrations/5_post_views_pageview`) and, for native uploads,
+  configure Supabase Storage + a public `post-covers` bucket. Code degrades
+  gracefully until both are done.
+- 🔜 Next phase (agreed with owner): **UI/UX polish + navbar**, then roadmap.
 
 ## Docs book
 `docs/SUMMARY.md` is the GitBook-compatible table of contents for the full
