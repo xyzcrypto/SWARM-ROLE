@@ -23,7 +23,7 @@ export function PremiumLock({ loggedIn }: { loggedIn: boolean }) {
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         {loggedIn ? (
-          <Link href="/#premium" className="btn-gold !px-6">
+          <Link href="/premium" className="btn-gold !px-6">
             Upgrade to Premium
           </Link>
         ) : (

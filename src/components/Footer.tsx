@@ -3,7 +3,7 @@ import Image from "next/image";
 import { site, navLinks } from "@/lib/site";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "./BrandIcons";
 import { Container } from "./ui/primitives";
-import { WaitlistForm } from "./WaitlistForm";
+import { FooterNewsletter } from "./FooterNewsletter";
 
 const socialList = [
   { href: site.socials.youtube, Icon: YouTubeIcon, label: "YouTube", color: "text-red-500", hover: "hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10" },
@@ -16,18 +16,7 @@ export function Footer() {
   return (
     <footer className="relative border-t border-line bg-ink-950">
       <Container>
-        <div className="grid items-center gap-6 border-b border-line py-12 md:grid-cols-2">
-          <div>
-            <h3 className="font-display text-xl font-semibold text-zinc-50">
-              Get alpha in your inbox
-            </h3>
-            <p className="mt-2 max-w-sm text-sm text-zinc-500">
-              Research drops, product launches and airdrop alerts, straight to
-              your email. No spam.
-            </p>
-          </div>
-          <WaitlistForm source="footer" cta="Subscribe" />
-        </div>
+        <FooterNewsletter />
 
         <div className="grid gap-10 py-14 lg:grid-cols-[1.6fr_1fr_1fr]">
           <div>
@@ -77,7 +66,7 @@ export function Footer() {
               <li><Link href="/signup" className="text-zinc-500 transition-colors hover:text-gold-200">Create account</Link></li>
               <li><Link href="/login" className="text-zinc-500 transition-colors hover:text-gold-200">Log in</Link></li>
               <li><Link href="/research" className="text-zinc-500 transition-colors hover:text-gold-200">Research hub</Link></li>
-              <li><a href={`mailto:${site.email}`} className="text-zinc-500 transition-colors hover:text-gold-200">Contact us</a></li>
+              <li><Link href="/contact" className="text-zinc-500 transition-colors hover:text-gold-200">Contact us</Link></li>
             </ul>
           </div>
         </div>

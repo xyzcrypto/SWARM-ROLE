@@ -182,20 +182,37 @@ export function DashboardClient({
 }
 
 /* ----------------------------- Overview ----------------------------- */
+type Accent = "gold" | "mint" | "plain";
+
+function StatCard({ label, value, hint, accent = "plain" }: { label: string; value: number; hint: string; accent?: Accent }) {
+  const num =
+    accent === "mint" ? "text-mint-gradient" : accent === "gold" ? "text-gold-gradient" : "text-zinc-50";
+  return (
+    <div className="surface surface-hover rounded-2xl p-6">
+      <p className="text-sm text-zinc-500">{label}</p>
+      <p className={`mt-2 mono text-4xl font-semibold ${num}`}>{value.toLocaleString()}</p>
+      <p className="mt-1 text-xs text-zinc-600">{hint}</p>
+    </div>
+  );
+}
+
 function Overview({ stats, liveOnline }: { stats: Stats; liveOnline: number }) {
-  const analytics = [
-    { label: "Total visits", value: stats.totalVisits, hint: "All page views tracked", tone: "mint" as const },
-    { label: "Visits today", value: stats.todayVisits, hint: "Since midnight", tone: "mint" as const },
-    { label: "Post views", value: stats.totalPostViews, hint: "Across all articles", tone: "gold" as const },
+  // Traffic/engagement → mint; headline business metrics → gold; the rest stay
+  // neutral white. Consistent accent system gives the grid hierarchy instead of
+  // a wall of identical gold numbers.
+  const analytics: { label: string; value: number; hint: string; accent: Accent }[] = [
+    { label: "Total visits", value: stats.totalVisits, hint: "All page views tracked", accent: "mint" },
+    { label: "Visits today", value: stats.todayVisits, hint: "Since midnight", accent: "mint" },
+    { label: "Post views", value: stats.totalPostViews, hint: "Across all articles", accent: "mint" },
   ];
-  const cards = [
-    { label: "Total signups", value: stats.totalUsers, hint: "All registered users" },
-    { label: "New (7 days)", value: stats.last7days, hint: "Signed up this week" },
-    { label: "Google sign-ins", value: stats.googleUsers, hint: "Via Gmail / Google" },
-    { label: "Email sign-ups", value: stats.emailUsers, hint: "Email + password" },
-    { label: "Premium members", value: stats.premiumUsers, hint: "Upgraded accounts" },
-    { label: "Waitlist emails", value: stats.subscribers, hint: "Captured via email forms" },
-    { label: "Published content", value: stats.totalPosts, hint: "Research, articles & posts" },
+  const cards: { label: string; value: number; hint: string; accent: Accent }[] = [
+    { label: "Total signups", value: stats.totalUsers, hint: "All registered users", accent: "gold" },
+    { label: "New (7 days)", value: stats.last7days, hint: "Signed up this week", accent: "plain" },
+    { label: "Google sign-ins", value: stats.googleUsers, hint: "Via Gmail / Google", accent: "plain" },
+    { label: "Email sign-ups", value: stats.emailUsers, hint: "Email + password", accent: "plain" },
+    { label: "Premium members", value: stats.premiumUsers, hint: "Upgraded accounts", accent: "gold" },
+    { label: "Waitlist emails", value: stats.subscribers, hint: "Captured via email forms", accent: "plain" },
+    { label: "Published content", value: stats.totalPosts, hint: "Research, articles & posts", accent: "gold" },
   ];
   return (
     <div className="space-y-6">
@@ -213,24 +230,14 @@ function Overview({ stats, liveOnline }: { stats: Stats; liveOnline: number }) {
           <p className="mt-1 text-xs text-zinc-600">Visitors on the site right now</p>
         </div>
         {analytics.map((c) => (
-          <div key={c.label} className="surface rounded-2xl p-6">
-            <p className="text-sm text-zinc-500">{c.label}</p>
-            <p className={`mt-2 mono text-4xl font-semibold ${c.tone === "mint" ? "text-mint-gradient" : "text-gold-gradient"}`}>
-              {c.value.toLocaleString()}
-            </p>
-            <p className="mt-1 text-xs text-zinc-600">{c.hint}</p>
-          </div>
+          <StatCard key={c.label} {...c} />
         ))}
       </div>
 
       {/* Signups / content */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
-          <div key={c.label} className="surface rounded-2xl p-6">
-            <p className="text-sm text-zinc-500">{c.label}</p>
-            <p className="mt-2 mono text-4xl font-semibold text-gold-gradient">{c.value.toLocaleString()}</p>
-            <p className="mt-1 text-xs text-zinc-600">{c.hint}</p>
-          </div>
+          <StatCard key={c.label} {...c} />
         ))}
       </div>
     </div>

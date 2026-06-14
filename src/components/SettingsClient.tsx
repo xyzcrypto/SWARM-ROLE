@@ -313,7 +313,7 @@ function AccountPanel({ user }: { user: SettingsUser }) {
             </span>
           </div>
           {!isPremium && (
-            <Link href="/#community" className="btn-gold !py-2 text-[13px]">
+            <Link href="/premium" className="btn-gold !py-2 text-[13px]">
               Upgrade to Premium
             </Link>
           )}

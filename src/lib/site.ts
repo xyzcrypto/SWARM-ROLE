@@ -17,9 +17,9 @@ export const site = {
 };
 
 export const navLinks = [
-  { label: "About", href: "/#about" },
-  { label: "Products", href: "/#products" },
+  { label: "Home", href: "/" },
   { label: "Research", href: "/research" },
-  { label: "Ecosystem", href: "/#ecosystem" },
-  { label: "Community Chat", href: "/community" },
+  { label: "Community", href: "/community" },
+  { label: "Premium", href: "/premium" },
+  { label: "Contact", href: "/contact" },
 ];
