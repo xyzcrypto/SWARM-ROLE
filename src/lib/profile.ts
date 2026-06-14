@@ -114,6 +114,17 @@ export const profileSchema = z.object({
     })
     .transform((v) => (v === "" ? undefined : v))
     .optional(),
+  // Profile cover/banner image URL (same allowlist + rules as the avatar URL).
+  bannerImage: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine((v) => v === "" || isAllowedImageHost(v), {
+      message:
+        "Use an https image URL from a supported host (Unsplash, Cloudinary, GitHub, Google, or Supabase).",
+    })
+    .transform((v) => (v === "" ? undefined : v))
+    .optional(),
   bio: optionalText(280, "Bio"),
   location: optionalText(80, "Location"),
   website: z

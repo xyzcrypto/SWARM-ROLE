@@ -17,7 +17,7 @@ export function OrbitalSection() {
           }
           subtitle="Research, trading, a perp DEX, AI tools, airdrops, premium intel, education and community, one connected Web3 platform."
         />
-        <Reveal>
+        <Reveal variant="scale">
           <div className="mt-12 sm:mt-16">
             <OrbitalLazy />
           </div>

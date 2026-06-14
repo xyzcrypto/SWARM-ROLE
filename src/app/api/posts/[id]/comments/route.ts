@@ -22,18 +22,23 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           id: true,
           body: true,
           createdAt: true,
-          user: { select: { name: true, email: true } },
+          user: { select: { name: true, email: true, username: true, image: true } },
         },
       }),
       prisma.comment.count({ where }),
     ]);
 
-    // Only expose a display name, never the commenter's email.
+    // Expose a display name + public handle/avatar (for linking to /u/<handle>),
+    // never the commenter's email.
     const safe = comments.map((c) => ({
       id: c.id,
       body: c.body,
       createdAt: c.createdAt,
-      author: c.user?.name || (c.user?.email ? c.user.email.split("@")[0] : "Member"),
+      author: {
+        name: c.user?.name || (c.user?.email ? c.user.email.split("@")[0] : "Member"),
+        username: c.user?.username ?? null,
+        image: c.user?.image ?? null,
+      },
     }));
 
     const res = ok({ comments: safe, total, page, pageSize, hasMore: page * pageSize < total });
@@ -70,7 +75,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const created = await prisma.comment.create({
       data: { body: parsed.data.body, postId: params.id, userId: user.id },
-      select: { id: true, body: true, createdAt: true, user: { select: { name: true, email: true } } },
+      select: { id: true, body: true, createdAt: true, user: { select: { name: true, email: true, username: true, image: true } } },
     });
 
     return ok(
@@ -79,7 +84,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           id: created.id,
           body: created.body,
           createdAt: created.createdAt,
-          author: created.user?.name || created.user?.email?.split("@")[0] || "Member",
+          author: {
+            name: created.user?.name || created.user?.email?.split("@")[0] || "Member",
+            username: created.user?.username ?? null,
+            image: created.user?.image ?? null,
+          },
         },
       },
       201

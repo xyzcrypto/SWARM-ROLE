@@ -11,6 +11,7 @@ const PUBLIC_SELECT = {
   name: true,
   username: true,
   image: true,
+  bannerImage: true,
   bio: true,
   location: true,
   website: true,

@@ -107,7 +107,7 @@ export function OrbitalEcosystem() {
   return (
     <div
       ref={wrapRef}
-      className="relative mx-auto aspect-square w-full max-w-[16.5rem] xs:max-w-[19rem] sm:max-w-md lg:max-w-xl"
+      className="relative mx-auto aspect-square w-full max-w-[17.5rem] xs:max-w-[20rem] sm:max-w-lg lg:max-w-2xl"
       style={{ perspective: "1000px" }}
     >
       {/* soft particle field */}
@@ -129,6 +129,15 @@ export function OrbitalEcosystem() {
 
       {/* orbital system (parallax target) */}
       <div ref={orbitRef} className="absolute inset-0 transition-transform duration-300 ease-out will-change-transform">
+        {/* rotating conic aurora glow (gold -> mint) for depth */}
+        <div
+          className={`absolute inset-[16%] rounded-full ${active ? "animate-spin [animation-duration:30s]" : ""}`}
+          style={{
+            background:
+              "conic-gradient(from 0deg, rgba(226,167,47,0) 0deg, rgba(226,167,47,0.18) 90deg, rgba(34,214,146,0.16) 200deg, rgba(226,167,47,0) 360deg)",
+            filter: "blur(26px)",
+          }}
+        />
         {/* rotating rings at different speeds (GPU transform) */}
         <div className={`absolute inset-0 rounded-full border border-gold-500/25 ${active ? "animate-spin [animation-duration:48s]" : ""}`} />
         <div className={`absolute inset-[12%] rounded-full border border-dashed border-mint-400/25 ${active ? "animate-spin [animation-duration:34s] [animation-direction:reverse]" : ""}`} />

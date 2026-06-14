@@ -1,5 +1,6 @@
 import { Search, Wrench, Users, ShieldCheck, CalendarClock, Boxes } from "lucide-react";
 import { Reveal } from "./Reveal";
+import { AnimatedIcon } from "./AnimatedIcon";
 import { Container, Section, Eyebrow } from "./ui/primitives";
 
 const credibility = [
@@ -20,7 +21,7 @@ export function About() {
   return (
     <Section id="about">
       <Container className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
-        <Reveal>
+        <Reveal variant="left">
           <Eyebrow>Who we are</Eyebrow>
           <h2 className="mt-5 font-display text-display-md font-semibold tracking-tight text-zinc-50">
             One ecosystem for the{" "}
@@ -69,9 +70,9 @@ export function About() {
           {pillars.map((p, i) => (
             <Reveal key={p.title} delay={i} variant="pop">
               <div className="surface surface-hover lift group h-full rounded-3xl p-6">
-                <div className="mb-5 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20 transition-colors group-hover:bg-gold-500/20">
+                <AnimatedIcon tone={i % 2 === 0 ? "gold" : "mint"} className="mb-5 h-11 w-11">
                   <p.Icon className="h-5 w-5" strokeWidth={1.7} />
-                </div>
+                </AnimatedIcon>
                 <h3 className="font-display text-base font-semibold text-zinc-100">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.body}</p>
               </div>

@@ -18,7 +18,7 @@ export default async function SettingsPage() {
     .findUnique({
       where: { id },
       select: {
-        id: true, name: true, email: true, image: true, username: true,
+        id: true, name: true, email: true, image: true, bannerImage: true, username: true,
         bio: true, location: true, website: true, twitter: true, github: true,
         telegram: true, role: true, membership: true, provider: true,
         passwordHash: true, createdAt: true,

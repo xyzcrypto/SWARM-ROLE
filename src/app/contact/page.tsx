@@ -71,6 +71,26 @@ export default function ContactPage() {
                   </div>
 
                   <div className="surface flex items-start gap-3.5 rounded-2xl p-5">
+                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-sky-500/12 text-sky-300 ring-1 ring-sky-500/30">
+                      <TelegramIcon className="h-5 w-5" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-100">Telegram</p>
+                      <a
+                        href={site.support.telegramUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mono text-[13px] text-mint-300 transition-colors hover:text-mint-200"
+                      >
+                        @{site.support.telegram}
+                      </a>
+                      <p className="mt-1 text-[12px] text-zinc-500">
+                        Fastest way to reach us directly.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="surface flex items-start gap-3.5 rounded-2xl p-5">
                     <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-500/12 text-mint-300 ring-1 ring-mint-500/30">
                       <Clock className="h-5 w-5" />
                     </span>

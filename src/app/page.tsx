@@ -1,10 +1,12 @@
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
 import { MarketTicker } from "@/components/MarketTicker";
+import { OrbitalSection } from "@/components/OrbitalSection";
 import { ProofStrip } from "@/components/ProofStrip";
 import { About } from "@/components/About";
 import { Products } from "@/components/Products";
 import { ResearchPreview } from "@/components/ResearchPreview";
+import { MembersShowcase } from "@/components/MembersShowcase";
 import { Ecosystem } from "@/components/Ecosystem";
 import { Social } from "@/components/Social";
 import { CtaBand } from "@/components/CtaBand";
@@ -27,10 +29,13 @@ export default async function HomePage() {
       <main>
         <Hero memberCount={memberCount} />
         <MarketTicker />
+        {/* Orbital ecosystem — the signature centerpiece showcase. */}
+        <OrbitalSection />
         <ProofStrip />
         <About />
         <Products />
         <ResearchPreview />
+        <MembersShowcase memberCount={memberCount} />
         <Ecosystem />
         <Social />
         {/* Sign-up CTA — shown to guests only (members already have an account). */}
