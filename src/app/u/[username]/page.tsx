@@ -9,6 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/primitives";
+import { Reveal } from "@/components/Reveal";
 import { XIcon, GitHubIcon, TelegramIcon } from "@/components/BrandIcons";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
@@ -80,10 +81,15 @@ export default async function ProfilePage({ params }: Props) {
   ].filter(Boolean) as { href: string; Icon: SocialIcon; label: string }[];
 
   const stats = [
-    { label: "Posts", value: postCount, Icon: FileText },
-    { label: "Comments", value: user._count.comments, Icon: MessageSquare },
-    { label: "Likes given", value: user._count.likes, Icon: Heart },
+    { label: "Posts", value: postCount, Icon: FileText, tone: "gold" as const },
+    { label: "Comments", value: user._count.comments, Icon: MessageSquare, tone: "mint" as const },
+    { label: "Likes given", value: user._count.likes, Icon: Heart, tone: "violet" as const },
   ];
+  const statTone = {
+    gold: { icon: "text-gold-400/80", value: "text-gold-gradient" },
+    mint: { icon: "text-mint-400/80", value: "text-mint-gradient" },
+    violet: { icon: "text-violet-400/80", value: "text-violet-200" },
+  };
 
   return (
     <>
@@ -92,6 +98,7 @@ export default async function ProfilePage({ params }: Props) {
         <div className="mesh" />
         <div className="relative mx-auto max-w-4xl px-4 pb-24 sm:px-6 lg:px-8">
           {/* Hero card */}
+          <Reveal variant="blur">
           <div className="glass overflow-hidden rounded-3xl">
             <div
               className="h-32 w-full bg-gold-shine sm:h-40"
@@ -145,20 +152,23 @@ export default async function ProfilePage({ params }: Props) {
               </div>
             </div>
           </div>
+          </Reveal>
 
           {/* Stats */}
           <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
-            {stats.map((s) => (
-              <div key={s.label} className="surface rounded-2xl p-4 text-center sm:p-6">
-                <s.Icon className="mx-auto h-5 w-5 text-gold-400/80" />
-                <p className="mono mt-2 text-2xl font-semibold text-gold-gradient sm:text-3xl">{s.value}</p>
-                <p className="mt-1 text-xs text-zinc-500">{s.label}</p>
-              </div>
+            {stats.map((s, i) => (
+              <Reveal key={s.label} variant="pop" delay={i}>
+                <div className="surface surface-hover lift h-full rounded-2xl p-4 text-center sm:p-6">
+                  <s.Icon className={`mx-auto h-5 w-5 ${statTone[s.tone].icon}`} />
+                  <p className={`mono mt-2 text-2xl font-semibold sm:text-3xl ${statTone[s.tone].value}`}>{s.value}</p>
+                  <p className="mt-1 text-xs text-zinc-500">{s.label}</p>
+                </div>
+              </Reveal>
             ))}
           </div>
 
           {/* Recent activity */}
-          <div className="mt-8">
+          <Reveal variant="up" className="mt-8 block">
             <h2 className="font-display text-lg font-semibold text-zinc-100">Recent activity</h2>
             {recentComments.length === 0 ? (
               <p className="mt-3 rounded-2xl border border-line bg-white/[0.02] px-5 py-8 text-center text-sm text-zinc-500">
@@ -185,7 +195,7 @@ export default async function ProfilePage({ params }: Props) {
                 ))}
               </ul>
             )}
-          </div>
+          </Reveal>
         </div>
       </main>
       <Footer />
