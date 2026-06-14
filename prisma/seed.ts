@@ -7,6 +7,40 @@ function slugify(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").slice(0, 80);
 }
 
+const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
+
+function handleBase(seed: string): string {
+  const raw = (seed.split("@")[0] || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const v = raw.length < 3 ? `user${raw}` : raw;
+  return v.slice(0, 16) || "user";
+}
+
+// Backfill: give every account without a public handle a unique username so
+// /u/<username> works and navbar "Profile" never falls back to Settings.
+// Idempotent - only touches rows where username is null.
+async function backfillUsernames() {
+  const users = await prisma.user.findMany({
+    where: { username: null },
+    select: { id: true, name: true, email: true },
+  });
+  for (const u of users) {
+    const base = handleBase(u.name || u.email);
+    let assigned: string | null = null;
+    for (let i = 0; i < 12 && !assigned; i++) {
+      let candidate = i === 0 ? base : `${base.slice(0, 14)}_${Math.random().toString(36).slice(2, 7)}`;
+      candidate = candidate.slice(0, 20);
+      if (!USERNAME_RE.test(candidate)) continue;
+      try {
+        await prisma.user.update({ where: { id: u.id }, data: { username: candidate } });
+        assigned = candidate;
+      } catch {
+        // unique collision - try the next candidate
+      }
+    }
+  }
+  if (users.length) console.log(`Backfilled handles for ${users.length} user(s).`);
+}
+
 const posts = [
   {
     title: "Welcome to XYZ Crypto: Built for the Next Generation of Web3",
@@ -104,6 +138,8 @@ async function main() {
       create: { ...p, slug, published: true, authorId: admin.id },
     });
   }
+
+  await backfillUsernames();
 
   console.log("Seed complete. Sample posts + admin user ready.");
   console.log(`Admin login: ${adminEmail} (password from SEED_ADMIN_PASSWORD or default)`);

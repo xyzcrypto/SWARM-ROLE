@@ -16,6 +16,11 @@ export function generateCode(): string {
 // without NEXTAUTH_SECRET. Much faster than bcrypt on the hot auth path.
 function hashCode(code: string): string {
   const secret = process.env.NEXTAUTH_SECRET || "insecure-dev-secret";
+  // Fail closed: never hash OTP codes with the guessable dev fallback in
+  // production - that would let an attacker precompute the stored hashes.
+  if (process.env.NODE_ENV === "production" && secret === "insecure-dev-secret") {
+    throw new Error("NEXTAUTH_SECRET must be set in production (OTP hashing).");
+  }
   return createHmac("sha256", secret).update(code).digest("hex");
 }
 
@@ -28,7 +33,7 @@ function codesMatch(code: string, storedHash: string): boolean {
 /**
  * Issue a fresh code for an email + purpose. Any previous codes for the same
  * email/purpose are removed (only the latest is valid). Returns the plaintext
- * code for the caller to email — only the bcrypt hash is stored.
+ * code for the caller to email - only the bcrypt hash is stored.
  */
 export async function issueCode(
   email: string,

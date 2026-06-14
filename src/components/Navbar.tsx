@@ -3,11 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown } from "lucide-react";
 import { navLinks } from "@/lib/site";
 import { cn, maskEmail } from "@/lib/utils";
 import { Avatar } from "./Avatar";
+import { ActionLink } from "./ActionLink";
+import { NavActivity } from "./NavActivity";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -56,7 +59,9 @@ export function Navbar() {
     };
   }, [menu]);
 
-  const profileHref = username ? `/u/${username}` : "/settings";
+  // Always resolve to a real profile: /u/<handle> when known, else /profile
+  // (a server route that mints a handle and redirects). Never Settings.
+  const profileHref = username ? `/u/${username}` : "/profile";
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3">
@@ -93,13 +98,22 @@ export function Navbar() {
 
         <div className="hidden items-center gap-2 md:flex">
           {session ? (
+            <>
+              <NavActivity />
             <div className="relative" ref={menuRef}>
-              {/* Account button — avatar + membership, opens a dropdown */}
-              <button
+              {/* Account button - avatar + membership, opens a dropdown */}
+              <motion.button
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
                 onClick={() => setMenu((v) => !v)}
                 className="flex items-center gap-2 rounded-xl border border-line bg-white/5 py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-gold-500/30 hover:bg-white/[0.07]"
               >
-                <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" />
+                {/* Avatar with a gentle gold ring pulse (active presence cue). */}
+                <span className="relative inline-flex">
+                  <span className="pointer-events-none absolute -inset-0.5 rounded-full ring-1 ring-gold-500/40 [animation:ping-soft_3s_ease-in-out_infinite]" />
+                  <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" />
+                </span>
                 <span className="flex flex-col items-start leading-tight">
                   <span className="mono text-[12px] text-zinc-200">{masked}</span>
                   <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
@@ -107,33 +121,42 @@ export function Navbar() {
                   </span>
                 </span>
                 <ChevronDown className={cn("h-3.5 w-3.5 text-zinc-500 transition-transform", menu && "rotate-180")} />
-              </button>
+              </motion.button>
 
-              {menu && (
-                <div className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-line bg-ink-900/95 p-1.5 shadow-elevate backdrop-blur-xl">
-                  <MenuItem href={profileHref} icon={<User className="h-4 w-4" />} onClick={() => setMenu(false)}>
-                    Profile
-                  </MenuItem>
-                  <MenuItem href="/settings" icon={<Settings className="h-4 w-4" />} onClick={() => setMenu(false)}>
-                    Settings
-                  </MenuItem>
-                  {isAdmin && (
-                    <MenuItem href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />} onClick={() => setMenu(false)}>
-                      Dashboard
-                    </MenuItem>
-                  )}
-                  <div className="my-1 h-px bg-white/5" />
-                  <button
-                    onClick={handleSignOut}
-                    disabled={signingOut}
-                    className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-60"
+              <AnimatePresence>
+                {menu && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                    transition={{ duration: 0.16, ease: "easeOut" }}
+                    className="absolute right-0 mt-2 w-52 overflow-hidden rounded-2xl border border-line bg-ink-900/95 p-1.5 shadow-elevate backdrop-blur-xl"
                   >
-                    <LogOut className="h-4 w-4" />
-                    {signingOut ? "Signing out…" : "Sign out"}
-                  </button>
-                </div>
-              )}
+                    <MenuItem href={profileHref} icon={<User className="h-4 w-4" />} onClick={() => setMenu(false)}>
+                      Profile
+                    </MenuItem>
+                    <MenuItem href="/settings" icon={<Settings className="h-4 w-4" />} onClick={() => setMenu(false)}>
+                      Settings
+                    </MenuItem>
+                    {isAdmin && (
+                      <MenuItem href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />} onClick={() => setMenu(false)}>
+                        Dashboard
+                      </MenuItem>
+                    )}
+                    <div className="my-1 h-px bg-white/5" />
+                    <button
+                      onClick={handleSignOut}
+                      disabled={signingOut}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-60"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      {signingOut ? "Signing out…" : "Sign out"}
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
+            </>
           ) : (
             <>
               <Link
@@ -142,9 +165,9 @@ export function Navbar() {
               >
                 Log in
               </Link>
-              <Link href="/signup" className="btn-primary !px-4 !py-2 text-[13px]">
+              <ActionLink href="/signup" className="btn-primary !px-4 !py-2 text-[13px]">
                 Get Started
-              </Link>
+              </ActionLink>
             </>
           )}
         </div>
@@ -203,9 +226,9 @@ export function Navbar() {
                   <Link href="/login" onClick={() => setOpen(false)} className="btn-ghost">
                     Log in
                   </Link>
-                  <Link href="/signup" onClick={() => setOpen(false)} className="btn-primary">
+                  <ActionLink href="/signup" onClick={() => setOpen(false)} className="btn-primary">
                     Get Started
-                  </Link>
+                  </ActionLink>
                 </>
               )}
             </div>

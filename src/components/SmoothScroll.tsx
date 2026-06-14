@@ -5,12 +5,19 @@ import Lenis from "lenis";
 
 /**
  * Buttery momentum smooth-scrolling (Lenis). Disabled automatically when the
- * user prefers reduced motion, and on touch devices — native momentum scroll
+ * user prefers reduced motion, and on touch devices - native momentum scroll
  * is smoother there and skipping the rAF loop saves main-thread time/battery.
  */
 export function SmoothScroll() {
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    // Always start at the top on a fresh load - never restore a previous scroll
+    // position or jump to an in-page section - unless the URL targets an anchor.
+    // (Fixes the homepage opening part-way down at the About section.)
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+    if (!window.location.hash) window.scrollTo(0, 0);
+
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (window.matchMedia("(pointer: coarse)").matches) return;
 

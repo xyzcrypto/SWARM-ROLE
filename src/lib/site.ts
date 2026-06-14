@@ -3,12 +3,17 @@ export const site = {
   slogan: "The Home Of Next Gen Web3..",
   description:
     "A next-generation Web3 ecosystem, research, trading tools, perp DEX, airdrop tools, premium intelligence & education.",
-  email: "niralekhan321@gmail.com",
+  email: "shorttechinfo@gmail.com",
   socials: {
     youtube: "https://youtube.com/@xyzcrypto?si=FphRZcC3mdSVnN7j",
     x: "https://x.com/XYZCryptos",
     telegram: "https://t.me/X_Y_Z_Crypto",
     linkedin: "https://www.linkedin.com/company/xyzcrypto/",
+  },
+  // Direct support contact (personal Telegram).
+  support: {
+    telegram: "AneQueM",
+    telegramUrl: "https://t.me/AneQueM",
   },
   ecosystem: {
     web3Academy: "https://t.me/X_Y_Z_Web3",
@@ -17,9 +22,9 @@ export const site = {
 };
 
 export const navLinks = [
-  { label: "About", href: "/#about" },
-  { label: "Products", href: "/#products" },
+  { label: "Home", href: "/" },
   { label: "Research", href: "/research" },
-  { label: "Ecosystem", href: "/#ecosystem" },
-  { label: "Community Chat", href: "/community" },
+  { label: "Community", href: "/community" },
+  { label: "Premium", href: "/premium" },
+  { label: "Contact", href: "/contact" },
 ];

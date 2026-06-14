@@ -29,7 +29,7 @@ export function handleError(err: unknown, context = "api") {
     console.error(`[${context}] Prisma ${err.code}: ${detail}`);
     if (err.code === "P2002") return fail("That record already exists.", 409);
     if (err.code === "P2025") return fail("Not found.", 404);
-    // Schema drift — a table/column the code expects is missing in the DB.
+    // Schema drift - a table/column the code expects is missing in the DB.
     if (err.code === "P2021")
       return fail("Database not migrated: a required table is missing. Run the latest migration.", 503);
     if (err.code === "P2022")

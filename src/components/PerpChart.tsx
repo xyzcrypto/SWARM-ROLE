@@ -50,7 +50,7 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
       }
     }
     load();
-    // Don't poll while the tab is hidden — saves API calls/bandwidth; refresh
+    // Don't poll while the tab is hidden - saves API calls/bandwidth; refresh
     // immediately when the user returns so the chart isn't stale.
     const t = setInterval(() => {
       if (!document.hidden) load();
@@ -79,7 +79,7 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
   const priceLabel =
     price != null
       ? `$${price.toLocaleString(undefined, { maximumFractionDigits: coin.base >= 1000 ? 0 : 2 })}`
-      : "$—";
+      : "$-";
 
   return (
     <div className="rounded-2xl border border-line bg-ink-950/60 p-3">

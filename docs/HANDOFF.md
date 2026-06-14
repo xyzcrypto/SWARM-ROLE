@@ -55,6 +55,16 @@ Settings → Environment Variables is the canonical store for runtime).
 Every optional integration **degrades gracefully** when unset — the app never
 crashes from missing env. Local dev: copy names into `.env` (gitignored).
 
+## 3b. Recovery / rollback (Phase-1 stable point)
+
+A verified Phase-1 recovery point exists on origin (created before the pre-Phase-2
+hardening pass — see `docs/AUDIT-PRE-PHASE2.md`):
+- Backup branches: **`phase1-stable`** and **`pre-phase2-backup`** (identical HEADs).
+- To roll back instantly: `git checkout -b restore phase1-stable` then redeploy that
+  branch (Vercel: promote/deploy it), or hard-reset the working branch to it.
+- (An annotated `phase1-production` tag exists locally; tag pushes are blocked by
+  this environment's git proxy, so the backup **branches** are the source of truth.)
+
 ## 4. Pending operational state (check before building new features)
 
 ### ⚠️ Profiles DB migration (one-time, production Supabase)
@@ -143,6 +153,34 @@ CREATE INDEX IF NOT EXISTS "PageView_createdAt_idx" ON "PageView"("createdAt");
 The app is now **resilient** if this lags: a missing `views` column (P2022) no
 longer 404s research posts or 500s the dashboard — views just read as 0 until
 the migration runs. Apply it to enable real view/visit numbers.
+
+### ⚠️ Notifications migration (one-time, production Supabase) — APPLY THIS
+Adds the in-app notification system (navbar bell + unread badges). Shipped as a
+real Prisma migration: `prisma/migrations/6_notifications/`. Apply with
+`npx prisma migrate deploy` (or `npm run db:push`) **or** paste this idempotent
+SQL in Supabase → SQL Editor:
+
+```sql
+CREATE TABLE IF NOT EXISTS "Notification" (
+  "id"        TEXT PRIMARY KEY,
+  "type"      TEXT NOT NULL,
+  "title"     TEXT NOT NULL,
+  "body"      TEXT,
+  "href"      TEXT,
+  "read"      BOOLEAN NOT NULL DEFAULT false,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "userId"    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "Notification_userId_read_createdAt_idx"
+  ON "Notification"("userId", "read", "createdAt");
+-- FK (cascade on user delete); skipped if it already exists.
+```
+
+The app is **resilient** if this lags: `/api/notifications` maps a missing table
+(P2021/P2022) to a quiet empty state, so the bell just shows no notifications
+until the migration runs. After applying, run `npm run seed` once to **backfill
+public usernames** for any pre-existing accounts (so every member has a working
+`/u/<handle>` profile).
 
 ### ⚠️ Profile photo uploads — Supabase Storage setup (production)
 Avatar/cover uploads need Storage configured, **else they return 501** ("Image

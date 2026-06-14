@@ -12,7 +12,7 @@ function revalidateContent(slug?: string) {
   if (slug) revalidatePath(`/research/${slug}`);
 }
 
-// GET /api/research/:id — admin only; full post (incl. drafts) for the editor.
+// GET /api/research/:id - admin only; full post (incl. drafts) for the editor.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getAdminSession();
@@ -38,7 +38,7 @@ const updateSchema = z.object({
   premium: z.boolean().optional(),
 });
 
-// PATCH /api/research/:id — admin only; partial update.
+// PATCH /api/research/:id - admin only; partial update.
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getAdminSession();
@@ -92,7 +92,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     try {
       post = await update(nextSlug);
     } catch (e) {
-      // Slug collided with another post — retry once with a short suffix.
+      // Slug collided with another post - retry once with a short suffix.
       if (nextSlug !== existing.slug && e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
         post = await update(`${nextSlug}-${Math.random().toString(36).slice(2, 6)}`);
       } else {
@@ -108,7 +108,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-// DELETE /api/research/:id — admin only
+// DELETE /api/research/:id - admin only
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getAdminSession();

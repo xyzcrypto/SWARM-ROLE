@@ -48,9 +48,28 @@ model User {
   likes         PostLike[]
   chatMessages  ChatMessage[]
   chatReactions ChatReaction[]
+  notifications Notification[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
+}
+
+// In-app notifications (bell dropdown). Created server-side when a new post is
+// published or someone comments on your post; delivery is in-app (polled by the
+// navbar). Best-effort: creation never blocks the triggering action.
+model Notification {
+  id        String   @id @default(cuid())
+  type      String // "new_post" | "new_comment" | "new_message" | "system"
+  title     String
+  body      String? // optional preview line
+  href      String? // where clicking the notification navigates
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([userId, read, createdAt]) // unread badge + recent list per user
 }
 
 // Community chat — single public room, plain-text messages. `status` enables

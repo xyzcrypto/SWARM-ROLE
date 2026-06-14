@@ -7,6 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { googleEnabled, isAdminEmail } from "@/lib/env";
 import { verifyCode } from "@/lib/otp";
 import { rateLimit } from "@/lib/ratelimit";
+import { generateUniqueUsername } from "@/lib/username";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
@@ -56,6 +57,9 @@ export const authOptions: NextAuthOptions = {
           // unique-email collision (P2002) by re-reading the winning row.
           let user = await prisma.user.findUnique({ where: { email } });
           if (!user) {
+            // Auto-assign a unique public handle so /u/<username> works (and the
+            // navbar "Profile" link is never ambiguous with Settings).
+            const username = await generateUniqueUsername(payload.name ?? email);
             try {
               user = await prisma.user.create({
                 data: {
@@ -64,10 +68,13 @@ export const authOptions: NextAuthOptions = {
                   passwordHash: payload.passwordHash ?? null,
                   provider: "credentials",
                   role: isAdminEmail(email) ? "ADMIN" : "USER",
+                  username,
                 },
               });
             } catch (err: any) {
               if (err?.code === "P2002") {
+                // Email or handle collided with a concurrent signup - re-read the
+                // winning row (it already has a handle).
                 user = await prisma.user.findUnique({ where: { email } });
               } else {
                 throw err;
@@ -85,7 +92,7 @@ export const authOptions: NextAuthOptions = {
           } as any;
         }
 
-        // login flow — standard email + password (per-account rate limited).
+        // login flow - standard email + password (per-account rate limited).
         const password = credentials?.password;
         if (!password) return null;
         const { success } = await rateLimit("login", email);
@@ -114,7 +121,7 @@ export const authOptions: NextAuthOptions = {
       }
       // Refresh from DB when missing, or on an explicit `update()` call. This
       // also pulls fresh name/image/username so profile edits reflect in the UI
-      // without a re-login (membership is a client hint — routes re-check DB).
+      // without a re-login (membership is a client hint - routes re-check DB).
       if (token.email && (!token.role || !token.membership || trigger === "update")) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },
@@ -149,16 +156,29 @@ export const authOptions: NextAuthOptions = {
         .update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
         .catch(() => null);
     },
-    // Promote the configured admin email & tag the provider for OAuth users.
+    // Promote the configured admin email, tag the provider, and mint a public
+    // handle for new OAuth users (so their /u/<username> profile works at once).
     async createUser({ user }) {
       if (!user.email) return;
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          provider: "google",
-          ...(isAdminEmail(user.email) ? { role: "ADMIN" } : {}),
-        },
-      });
+      const username = await generateUniqueUsername(user.name ?? user.email);
+      await prisma.user
+        .update({
+          where: { id: user.id },
+          data: {
+            provider: "google",
+            username,
+            ...(isAdminEmail(user.email) ? { role: "ADMIN" } : {}),
+          },
+        })
+        // Handle race on the unique username - retry once without it.
+        .catch(async () => {
+          await prisma.user
+            .update({
+              where: { id: user.id },
+              data: { provider: "google", ...(isAdminEmail(user.email!) ? { role: "ADMIN" } : {}) },
+            })
+            .catch(() => null);
+        });
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

@@ -2,7 +2,11 @@ import type { Metadata } from "next";
 import { AuthShell } from "@/components/AuthShell";
 import { SignupForm } from "@/components/SignupForm";
 
-export const metadata: Metadata = { title: "Create account" };
+export const metadata: Metadata = {
+  title: "Create account",
+  description: "Create a free XYZ Crypto account for Web3 research, trading tools, airdrops and a free academy.",
+  alternates: { canonical: "/signup" },
+};
 
 export default function SignupPage() {
   const googleEnabled =

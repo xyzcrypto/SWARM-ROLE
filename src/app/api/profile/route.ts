@@ -11,6 +11,7 @@ const PUBLIC_SELECT = {
   name: true,
   username: true,
   image: true,
+  bannerImage: true,
   bio: true,
   location: true,
   website: true,
@@ -19,7 +20,7 @@ const PUBLIC_SELECT = {
   telegram: true,
 } as const;
 
-// PATCH /api/profile — update the signed-in user's profile (partial).
+// PATCH /api/profile - update the signed-in user's profile (partial).
 export async function PATCH(req: Request) {
   try {
     const me = await getSessionUser();
@@ -45,7 +46,7 @@ export async function PATCH(req: Request) {
         data,
         select: PUBLIC_SELECT,
       });
-      // The public profile is ISR-cached (60s) — bust it so edits show instantly,
+      // The public profile is ISR-cached (60s) - bust it so edits show instantly,
       // including the old handle's page when the handle changed.
       if (user.username) revalidatePath(`/u/${user.username}`);
       if (before?.username && before.username !== user.username) {
@@ -62,7 +63,7 @@ export async function PATCH(req: Request) {
   }
 }
 
-// DELETE /api/profile — permanently delete the signed-in user's account.
+// DELETE /api/profile - permanently delete the signed-in user's account.
 // Requires a JSON body { confirm: true } to avoid accidental deletes.
 export async function DELETE(req: Request) {
   try {

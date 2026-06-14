@@ -2,7 +2,7 @@ import { Container, Section, SectionHeading } from "./ui/primitives";
 import { Reveal } from "./Reveal";
 import { OrbitalLazy } from "./OrbitalLazy";
 
-// Premium 3D orbital ecosystem showcase. Additive homepage section — no backend
+// Premium 3D orbital ecosystem showcase. Additive homepage section - no backend
 // impact. The interactive orbital is a self-contained client component.
 export function OrbitalSection() {
   return (
@@ -17,7 +17,7 @@ export function OrbitalSection() {
           }
           subtitle="Research, trading, a perp DEX, AI tools, airdrops, premium intel, education and community, one connected Web3 platform."
         />
-        <Reveal>
+        <Reveal variant="scale">
           <div className="mt-12 sm:mt-16">
             <OrbitalLazy />
           </div>

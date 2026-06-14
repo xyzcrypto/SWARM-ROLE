@@ -3,7 +3,7 @@ import { Lock, Sparkles } from "lucide-react";
 
 /**
  * Locked teaser shown in place of a premium post's body for non-Premium users.
- * The full content is never rendered/sent here — gating happens server-side.
+ * The full content is never rendered/sent here - gating happens server-side.
  */
 export function PremiumLock({ loggedIn }: { loggedIn: boolean }) {
   return (
@@ -23,7 +23,7 @@ export function PremiumLock({ loggedIn }: { loggedIn: boolean }) {
       </p>
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
         {loggedIn ? (
-          <Link href="/#premium" className="btn-gold !px-6">
+          <Link href="/premium" className="btn-gold !px-6">
             Upgrade to Premium
           </Link>
         ) : (

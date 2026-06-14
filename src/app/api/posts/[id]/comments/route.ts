@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
-import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { rateLimit } from "@/lib/ratelimit";
+import { notifyNewComment } from "@/lib/notifications";
 
-// GET /api/posts/:id/comments — public; visible comments, newest first, paginated.
+// GET /api/posts/:id/comments - public; visible comments, newest first, paginated.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     if (!isCuid(params.id)) return fail("Invalid id.", 400);
@@ -22,18 +23,23 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           id: true,
           body: true,
           createdAt: true,
-          user: { select: { name: true, email: true } },
+          user: { select: { name: true, email: true, username: true, image: true } },
         },
       }),
       prisma.comment.count({ where }),
     ]);
 
-    // Only expose a display name, never the commenter's email.
+    // Expose a display name + public handle/avatar (for linking to /u/<handle>),
+    // never the commenter's email.
     const safe = comments.map((c) => ({
       id: c.id,
       body: c.body,
       createdAt: c.createdAt,
-      author: c.user?.name || (c.user?.email ? c.user.email.split("@")[0] : "Member"),
+      author: {
+        name: c.user?.name || (c.user?.email ? c.user.email.split("@")[0] : "Member"),
+        username: c.user?.username ?? null,
+        image: c.user?.image ?? null,
+      },
     }));
 
     const res = ok({ comments: safe, total, page, pageSize, hasMore: page * pageSize < total });
@@ -48,13 +54,14 @@ const createSchema = z.object({
   body: z.string().trim().min(1, "Comment can't be empty").max(1000, "Comment is too long"),
 });
 
-// POST /api/posts/:id/comments — any logged-in user; auto-published.
+// POST /api/posts/:id/comments - any logged-in user; auto-published.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser();
     if (!user) return fail("Please log in to comment.", 401);
 
-    const { success } = await rateLimit("comment", clientIp(req));
+    // Per authenticated user - can't be bypassed by rotating IPs.
+    const { success } = await rateLimit("comment", user.id);
     if (!success) return fail("You're commenting too fast. Please slow down.", 429);
 
     if (!isCuid(params.id)) return fail("Invalid id.", 400);
@@ -64,13 +71,22 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const post = await prisma.post.findUnique({
       where: { id: params.id },
-      select: { id: true, published: true },
+      select: { id: true, published: true, title: true, slug: true, authorId: true },
     });
     if (!post || !post.published) return fail("Post not found.", 404);
 
     const created = await prisma.comment.create({
       data: { body: parsed.data.body, postId: params.id, userId: user.id },
-      select: { id: true, body: true, createdAt: true, user: { select: { name: true, email: true } } },
+      select: { id: true, body: true, createdAt: true, user: { select: { name: true, email: true, username: true, image: true } } },
+    });
+
+    // Notify the post author (best-effort, skips self-comments).
+    await notifyNewComment({
+      postAuthorId: post.authorId,
+      commenterId: user.id,
+      commenterName: created.user?.name || created.user?.email?.split("@")[0] || "Someone",
+      postTitle: post.title,
+      postSlug: post.slug,
     });
 
     return ok(
@@ -79,7 +95,11 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           id: created.id,
           body: created.body,
           createdAt: created.createdAt,
-          author: created.user?.name || created.user?.email?.split("@")[0] || "Member",
+          author: {
+            name: created.user?.name || created.user?.email?.split("@")[0] || "Member",
+            username: created.user?.username ?? null,
+            image: created.user?.image ?? null,
+          },
         },
       },
       201

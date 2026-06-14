@@ -1,6 +1,6 @@
 import * as Sentry from "@sentry/nextjs";
 
-// Next.js instrumentation hook — loads the right Sentry config per runtime.
+// Next.js instrumentation hook - loads the right Sentry config per runtime.
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("../sentry.server.config");

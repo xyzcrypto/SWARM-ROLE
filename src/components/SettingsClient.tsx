@@ -19,6 +19,7 @@ type SettingsUser = {
   name: string | null;
   email: string;
   image: string | null;
+  bannerImage: string | null;
   username: string | null;
   bio: string | null;
   location: string | null;
@@ -121,6 +122,7 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
 function ProfilePanel({ user }: { user: SettingsUser }) {
   const { update } = useSession();
   const [image, setImage] = useState(user.image);
+  const [banner, setBanner] = useState(user.bannerImage ?? "");
   const [name, setName] = useState(user.name ?? "");
   const [username, setUsername] = useState(user.username ?? "");
   const [bio, setBio] = useState(user.bio ?? "");
@@ -179,6 +181,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
         body: JSON.stringify({
           name,
           username: normalizedHandle || undefined,
+          bannerImage: banner.trim() || undefined,
           bio,
           location,
           website,
@@ -214,6 +217,34 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
         />
       </div>
 
+      <div className="surface space-y-3 rounded-2xl p-5 sm:p-6">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Profile cover image</p>
+          <p className="mt-1 text-[11px] text-zinc-600">
+            Paste a direct https image link (Unsplash, Cloudinary, GitHub, Google or Supabase). It shows
+            as the banner on your public profile. Saved with the button below.
+          </p>
+        </div>
+        <div
+          className="h-24 w-full overflow-hidden rounded-xl border border-white/10 bg-gold-shine"
+          style={
+            banner.trim()
+              ? { backgroundImage: `url(${banner.trim()})`, backgroundSize: "cover", backgroundPosition: "center" }
+              : undefined
+          }
+        />
+        <input
+          value={banner}
+          onChange={(e) => setBanner(e.target.value)}
+          placeholder="https://…"
+          inputMode="url"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20"
+        />
+      </div>
+
       <div className="surface space-y-4 rounded-2xl p-5 sm:p-6">
         <Field label="Display name" value={name} onChange={setName} placeholder="Satoshi Nakamoto" />
 
@@ -241,7 +272,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
             )}
           </div>
           <p className="mt-1.5 text-[11px] text-zinc-600">
-            3–20 chars: lowercase letters, numbers or _. Your public profile lives at{" "}
+            3-20 chars: lowercase letters, numbers or _. Your public profile lives at{" "}
             <span className="mono text-zinc-500">/u/{normalizedHandle || "handle"}</span>.
           </p>
         </label>
@@ -313,7 +344,7 @@ function AccountPanel({ user }: { user: SettingsUser }) {
             </span>
           </div>
           {!isPremium && (
-            <Link href="/#community" className="btn-gold !py-2 text-[13px]">
+            <Link href="/premium" className="btn-gold !py-2 text-[13px]">
               Upgrade to Premium
             </Link>
           )}

@@ -3,7 +3,7 @@
 import { motion, type Variants } from "framer-motion";
 import type { ReactNode } from "react";
 
-type RevealVariant = "up" | "pop" | "fade";
+type RevealVariant = "up" | "pop" | "fade" | "blur" | "left" | "right" | "scale";
 
 const presets: Record<RevealVariant, Variants> = {
   // rise from below (under -> up) with a premium spring
@@ -31,6 +31,43 @@ const presets: Record<RevealVariant, Variants> = {
       opacity: 1,
       y: 0,
       transition: { duration: 0.8, ease: "easeOut", delay: i * 0.08 },
+    }),
+  },
+  // soft focus-in - feels premium on headings/imagery
+  blur: {
+    hidden: { opacity: 0, y: 24, filter: "blur(14px)" },
+    show: (i: number = 0) => ({
+      opacity: 1,
+      y: 0,
+      filter: "blur(0px)",
+      transition: { duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: i * 0.09 },
+    }),
+  },
+  // slide in from the left
+  left: {
+    hidden: { opacity: 0, x: -64 },
+    show: (i: number = 0) => ({
+      opacity: 1,
+      x: 0,
+      transition: { type: "spring", stiffness: 80, damping: 17, mass: 0.9, delay: i * 0.09 },
+    }),
+  },
+  // slide in from the right
+  right: {
+    hidden: { opacity: 0, x: 64 },
+    show: (i: number = 0) => ({
+      opacity: 1,
+      x: 0,
+      transition: { type: "spring", stiffness: 80, damping: 17, mass: 0.9, delay: i * 0.09 },
+    }),
+  },
+  // gentle zoom-in
+  scale: {
+    hidden: { opacity: 0, scale: 0.86 },
+    show: (i: number = 0) => ({
+      opacity: 1,
+      scale: 1,
+      transition: { type: "spring", stiffness: 110, damping: 15, mass: 0.8, delay: i * 0.08 },
     }),
   },
 };

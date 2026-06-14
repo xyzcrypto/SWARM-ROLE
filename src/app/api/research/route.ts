@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { ok, fail, handleError, getAdminSession } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { notifyNewPost } from "@/lib/notifications";
 
 // Refresh the ISR-cached pages that list/show posts after a content change.
 function revalidateContent(slug?: string) {
@@ -13,7 +14,7 @@ function revalidateContent(slug?: string) {
   if (slug) revalidatePath(`/research/${slug}`);
 }
 
-// GET /api/research — public list (published only), filterable + paginated.
+// GET /api/research - public list (published only), filterable + paginated.
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -72,7 +73,7 @@ const createSchema = z.object({
   premium: z.boolean().optional(),
 });
 
-// POST /api/research — admin only
+// POST /api/research - admin only
 export async function POST(req: Request) {
   try {
     const session = await getAdminSession();
@@ -106,12 +107,15 @@ export async function POST(req: Request) {
     try {
       const post = await prisma.post.create({ data: { ...payload, slug: base } });
       revalidateContent(post.slug);
+      // Fan out an in-app notification to members (only for published posts).
+      if (post.published) await notifyNewPost(post);
       return ok({ post }, 201);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
         const slug = `${base}-${Math.random().toString(36).slice(2, 6)}`;
         const post = await prisma.post.create({ data: { ...payload, slug } });
         revalidateContent(post.slug);
+        if (post.published) await notifyNewPost(post);
         return ok({ post }, 201);
       }
       throw e;

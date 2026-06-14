@@ -45,7 +45,15 @@ export function ProofStrip() {
               >
                 {it.logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={it.logo} alt={it.label} className="h-5 w-5 rounded-full object-cover ring-1 ring-white/10" />
+                  <img
+                    src={it.logo}
+                    alt={it.label}
+                    width={20}
+                    height={20}
+                    loading="lazy"
+                    decoding="async"
+                    className="h-5 w-5 rounded-full object-cover ring-1 ring-white/10"
+                  />
                 ) : Icon ? (
                   <Icon className={`h-5 w-5 transition-colors ${it.color ?? ""}`} />
                 ) : null}

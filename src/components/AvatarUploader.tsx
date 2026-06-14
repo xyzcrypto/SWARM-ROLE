@@ -4,11 +4,12 @@ import { useRef, useState } from "react";
 import { Camera, Loader2, Link2 } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { uploadFileWithProgress } from "@/lib/upload";
+import { compressImage } from "@/lib/image";
 
 // Sets a profile picture two ways and reports the new URL up:
-//  1) Upload a file to /api/profile/avatar (Supabase Storage) — shows progress.
+//  1) Upload a file to /api/profile/avatar (Supabase Storage) - shows progress.
 //  2) Paste an image URL (fallback that works even when Storage isn't configured)
-//     — saved via PATCH /api/profile, validated server-side against allowed hosts.
+//     - saved via PATCH /api/profile, validated server-side against allowed hosts.
 export function AvatarUploader({
   name,
   image,
@@ -31,15 +32,18 @@ export function AvatarUploader({
     const file = e.target.files?.[0];
     e.target.value = ""; // allow re-selecting the same file
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image is too large (max 5 MB).");
-      return;
-    }
     setError("");
     setBusy(true);
     setProgress(0);
     try {
-      const { ok, status, data } = await uploadFileWithProgress("/api/profile/avatar", file, setProgress);
+      // Downscale/re-encode large photos client-side so the upload is small and
+      // reliably under the 5 MB cap (no-op for GIFs / already-small images).
+      const upload = await compressImage(file);
+      if (upload.size > 5 * 1024 * 1024) {
+        setError("Image is too large (max 5 MB).");
+        return;
+      }
+      const { ok, status, data } = await uploadFileWithProgress("/api/profile/avatar", upload, setProgress);
       if (!ok) {
         // 501 = Supabase Storage not configured → nudge toward the URL fallback.
         const hint = status === 501 ? " You can paste an image URL instead." : "";

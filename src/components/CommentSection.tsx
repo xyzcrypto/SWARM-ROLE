@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { formatDateTime } from "@/lib/utils";
+import { Avatar } from "./Avatar";
 
-type Comment = { id: string; body: string; createdAt: string; author: string };
+type CommentAuthor = { name: string; username: string | null; image: string | null };
+type Comment = { id: string; body: string; createdAt: string; author: CommentAuthor };
 
 export function CommentSection({ postId, isAdmin = false }: { postId: string; isAdmin?: boolean }) {
   const { data: session } = useSession();
@@ -133,10 +135,17 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
             <div key={c.id} className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gold-500/15 text-xs font-bold text-gold-200 ring-1 ring-gold-500/30">
-                    {c.author.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="text-sm font-semibold text-zinc-200">{c.author}</span>
+                  {c.author.username ? (
+                    <Link href={`/u/${c.author.username}`} className="flex items-center gap-2.5 transition-opacity hover:opacity-80">
+                      <Avatar name={c.author.name} image={c.author.image} size="sm" />
+                      <span className="text-sm font-semibold text-zinc-200 hover:text-gold-200">{c.author.name}</span>
+                    </Link>
+                  ) : (
+                    <>
+                      <Avatar name={c.author.name} image={c.author.image} size="sm" />
+                      <span className="text-sm font-semibold text-zinc-200">{c.author.name}</span>
+                    </>
+                  )}
                   <span className="mono text-[11px] text-zinc-600">{formatDateTime(c.createdAt)}</span>
                 </div>
                 {isAdmin && (

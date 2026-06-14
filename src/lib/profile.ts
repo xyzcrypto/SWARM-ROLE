@@ -3,7 +3,7 @@
 // the other route schemas (trim/lowercase/normalize before validating).
 import { z } from "zod";
 
-// Handles we never let a user claim — they collide with real routes or are
+// Handles we never let a user claim - they collide with real routes or are
 // reserved for the brand / system accounts.
 export const RESERVED_USERNAMES = new Set([
   "admin", "administrator", "root", "system", "support", "help", "api",
@@ -17,7 +17,7 @@ export const USERNAME_RE = /^[a-z0-9_]{3,20}$/;
 
 /**
  * Normalize a raw username input to its canonical form (lowercase, trimmed,
- * `@` stripped). Does not validate — pair with `USERNAME_RE` / the schema.
+ * `@` stripped). Does not validate - pair with `USERNAME_RE` / the schema.
  */
 export function normalizeUsername(input: string): string {
   return input.trim().toLowerCase().replace(/^@+/, "");
@@ -44,7 +44,7 @@ const usernameField = z
   .trim()
   .transform(normalizeUsername)
   .refine((v) => USERNAME_RE.test(v), {
-    message: "Handle must be 3–20 characters: lowercase letters, numbers or _.",
+    message: "Handle must be 3-20 characters: lowercase letters, numbers or _.",
   })
   .refine((v) => !RESERVED_USERNAMES.has(v), { message: "That handle is reserved." });
 
@@ -61,7 +61,7 @@ const handleField = z
   .optional();
 
 // Hosts allowed for an externally-pasted avatar URL. MUST stay in sync with the
-// next/image `remotePatterns` in next.config.mjs — otherwise next/image refuses
+// next/image `remotePatterns` in next.config.mjs - otherwise next/image refuses
 // to render the avatar. Used by the profile schema's optional `image` field
 // (the URL fallback for when Supabase Storage uploads aren't configured).
 const ALLOWED_IMAGE_HOST_SUFFIXES = [
@@ -114,6 +114,17 @@ export const profileSchema = z.object({
     })
     .transform((v) => (v === "" ? undefined : v))
     .optional(),
+  // Profile cover/banner image URL (same allowlist + rules as the avatar URL).
+  bannerImage: z
+    .string()
+    .trim()
+    .max(2048)
+    .refine((v) => v === "" || isAllowedImageHost(v), {
+      message:
+        "Use an https image URL from a supported host (Unsplash, Cloudinary, GitHub, Google, or Supabase).",
+    })
+    .transform((v) => (v === "" ? undefined : v))
+    .optional(),
   bio: optionalText(280, "Bio"),
   location: optionalText(80, "Location"),
   website: z
@@ -140,5 +151,5 @@ export const passwordChangeSchema = z.object({
     .max(100, "Password is too long."),
 });
 
-// GET /api/profile/username?handle= — availability check input.
+// GET /api/profile/username?handle= - availability check input.
 export const usernameQuerySchema = z.object({ handle: usernameField });

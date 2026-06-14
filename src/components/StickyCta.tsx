@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowRight } from "lucide-react";
+import { ActionLink } from "./ActionLink";
 
 /**
  * Persistent bottom CTA bar on mobile only. Appears after the user scrolls
@@ -37,10 +37,10 @@ export function StickyCta() {
             Research, tools & early access
           </p>
         </div>
-        <Link href="/signup" className="btn-primary shrink-0 !px-4 !py-2 text-[13px]">
+        <ActionLink href="/signup" className="btn-primary shrink-0 !px-4 !py-2 text-[13px]">
           Get started
           <ArrowRight className="h-4 w-4" />
-        </Link>
+        </ActionLink>
       </div>
     </div>
   );

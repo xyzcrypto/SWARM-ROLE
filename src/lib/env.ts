@@ -1,5 +1,5 @@
 // Centralized, validated environment access. Validation is **warn-only** so it
-// never crashes the build or a request — but it surfaces misconfiguration loudly
+// never crashes the build or a request - but it surfaces misconfiguration loudly
 // in logs. Read config from here instead of raw process.env.
 import { z } from "zod";
 
@@ -23,7 +23,7 @@ const schema = z.object({
 
 const parsed = schema.safeParse(process.env);
 
-// In production, required-but-missing config is a real problem — log it clearly.
+// In production, required-but-missing config is a real problem - log it clearly.
 const REQUIRED_IN_PROD = ["DATABASE_URL", "NEXTAUTH_SECRET"] as const;
 if (process.env.NODE_ENV === "production") {
   for (const key of REQUIRED_IN_PROD) {
@@ -52,7 +52,7 @@ export const env = {
   SUPABASE_URL: (raw.SUPABASE_URL ?? "").replace(/\/$/, ""),
   SUPABASE_SERVICE_ROLE_KEY: raw.SUPABASE_SERVICE_ROLE_KEY ?? "",
   SUPABASE_STORAGE_BUCKET: raw.SUPABASE_STORAGE_BUCKET || "post-covers",
-  // Public (client-safe by design) — used by the chat page for Supabase
+  // Public (client-safe by design) - used by the chat page for Supabase
   // Realtime subscriptions. The anon key only grants what RLS/channel policy
   // allows; the service-role key above must NEVER be exposed client-side.
   NEXT_PUBLIC_SUPABASE_URL: (raw.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, ""),
@@ -62,7 +62,7 @@ export const env = {
 export const googleEnabled = !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET;
 
 // Email (Resend). When unset, OTP codes are logged to the server console so the
-// flow still works for local/testing — set RESEND_API_KEY to actually deliver.
+// flow still works for local/testing - set RESEND_API_KEY to actually deliver.
 export const emailEnabled = !!env.RESEND_API_KEY;
 
 // Image upload (Supabase Storage). When unset, the cover URL field still works
@@ -70,7 +70,7 @@ export const emailEnabled = !!env.RESEND_API_KEY;
 export const storageEnabled = !!env.SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_KEY;
 
 // Realtime chat broadcast (server-side send). Falls back to client polling
-// when unset — chat still works, just not instant.
+// when unset - chat still works, just not instant.
 export const realtimeEnabled = storageEnabled; // same creds: SUPABASE_URL + service key
 
 // Admins: ADMIN_EMAILS (comma-separated) preferred, ADMIN_EMAIL as fallback.

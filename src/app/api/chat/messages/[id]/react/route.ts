@@ -3,7 +3,7 @@ import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { reactionSchema, broadcastChatEvent } from "@/lib/chat";
 
-// POST /api/chat/messages/[id]/react — toggle an emoji reaction on a message.
+// POST /api/chat/messages/[id]/react - toggle an emoji reaction on a message.
 // One row per (message, user, emoji); posting the same emoji again removes it.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {

@@ -5,6 +5,88 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-14 — Pre-Phase-2 hardening, audit & recovery point (see docs/AUDIT-PRE-PHASE2.md)
+**Recovery point:** backup branches `phase1-stable` + `pre-phase2-backup` pushed
+to origin (tag `phase1-production` local; tag push blocked by env git proxy).
+**Security:** like/comment routes rate-limit per `user.id` (was IP); `api/chart`
+only interpolates an allowlisted coin key (SSRF fix); `lib/otp.ts` fails closed in
+prod without `NEXTAUTH_SECRET`; `auth/password/start` no longer leaks account
+existence on email-send failure; `notifications/read` ids constrained to CUID.
+**Observability:** `app/error.tsx` now reports to Sentry.
+**SEO:** homepage `metadata` + canonical; `WebSite` JSON-LD `SearchAction`;
+canonicals on premium/contact/community/u/login/signup; `app/manifest.ts` (PWA);
+sitemap adds premium/community/contact.
+**Frontend:** ProofStrip `<img>` width/height + lazy/async (CLS); Hero parallax
+skipped under reduced-motion.
+**Quality:** removed dead `MembersShowcase.tsx`; added `clientIp` unit tests
+(64 tests green). No architecture/UI/feature changes. Verdict: READY FOR MERGE.
+
+## 2026-06-14 — Demo 3: branded loader, live emoji, orbital fix, realtime data
+**Branded route loader**
+- New `BrandLoader` (XYZ logo + orbiting/pulsing rings on mesh); `RouteSkeleton`
+  now renders it, so every suspending navigation shows a branded transition.
+
+**Emoji (real + actively animated)**
+- Stronger keyframes in `globals.css`: `emoji-launch` (fly/lift loop),
+  `emoji-wobble` (hourglass flip), new `emoji-twinkle` + `emoji-spin`;
+  `AnimatedEmoji` gains `twinkle`/`spin` variants.
+- Premium: heading rocket 🚀 flies, "Coming soon" ⏳ flips, "Most popular" now an
+  animated ⭐ (twinkle) instead of the lucide Sparkles.
+- Contact: real animated emoji (👋 ✉️ 💬 ⏱️) on the header badge + info cards,
+  and the community social icons are now **brand-coloured** (red/white/sky/blue,
+  reusing the `Social.tsx` map) instead of monochrome.
+
+**Orbital desktop fix** (`OrbitalEcosystem.tsx`)
+- Rings/aurora/logo-glow now animate on mount (gated only by
+  prefers-reduced-motion) instead of waiting for an in-view `active` flag, and
+  rotation speeds sped up (18/24/14s, aurora 16s) so it visibly runs on desktop.
+  Particle field + parallax stay in-view/perf-gated.
+
+**Real-time data for end users**
+- New `useLivePresence` hook (observes the `site-visitors` presence channel),
+  `GET /api/live/stats` (visits today/total + members), and `LiveStats` strip
+  ("N online now · visits today · total · members") in the Footer + homepage.
+- Live bell: `CH_NOTIFY` broadcast "ping" from `lib/notifications.ts` on every
+  notification; `NavActivity` subscribes (+ community `new_message`) to refetch
+  instantly, poll relaxed to 60s fallback. All degrade gracefully without
+  Supabase.
+
+## 2026-06-14 — Demo 2: UI/UX polish, in-app notifications, profile fix, speed
+**Profile / Settings**
+- Fixed "Profile opens Settings": every account now gets an auto-assigned unique
+  handle on signup (`lib/username.ts`, wired in `auth.ts` credentials + Google
+  `createUser`); new `/profile` route resolves/mints a handle and redirects to
+  `/u/<handle>`; navbar Profile falls back to `/profile` (never Settings).
+  `prisma/seed.ts` backfills handles for existing users (idempotent).
+- Research post byline + (existing) chat/comment authors link to `/u/<handle>`.
+
+**In-app notifications (new)**
+- New `Notification` model + idempotent migration `6_notifications/`.
+- `lib/notifications.ts` (new-post fan-out + new-comment to author, best-effort);
+  triggers wired into `api/research` (publish) and `api/posts/[id]/comments`.
+- `GET /api/notifications` (+ unread count) and `POST /api/notifications/read`,
+  new `notifications` rate-limit bucket; both degrade gracefully pre-migration.
+- `NavActivity`: navbar bell (gold unread count + animated dropdown) + community
+  chat icon (mint unread dot vs per-device last-seen). Email left dormant via the
+  existing `sendEmail` console fallback until a verified Resend domain is set.
+- Homepage **"What's New"** section (`lib/whatsnew.ts` + `WhatsNew.tsx`) replacing
+  the removed Members showcase.
+
+**UI / animation polish**
+- `ActionLink` + `.btn-press` (tap-scale + click/redirect sheen) on all primary
+  CTAs (Hero, Navbar, Premium, StickyCta); reduced-motion aware.
+- `AnimatedEmoji` (rocket/hourglass) — Premium "Coming Soon" + "Get started".
+- Global page-transition `app/template.tsx` (fade/rise, reduced-motion aware).
+- Navbar signed-in widget: avatar gold-ring pulse + animated account dropdown.
+- Premium hero restacked to "Premium Plans" / "Coming Soon" (two lines).
+- About: `lg:items-start` so "Who we are" / "Since 2019" align with the pillars.
+- Orbital: reliable desktop activation (activate-if-near-viewport on mount).
+- Hero CTAs centered below `lg` (mobile-desktop), left-aligned at `lg`.
+
+**Performance**
+- `loading.tsx` skeletons (`RouteSkeleton`) for `/research/[slug]`, `/community`,
+  `/settings`, `/u/[username]`, `/dashboard` → instant paint on navigation.
+
 ## 2026-06-14 — Production hardening: audit fixes, perf, profile-photo (see docs/AUDIT-2026-06-14.md)
 **Resilience/DB**
 - Added real migration `prisma/migrations/5_post_views_pageview/` (idempotent).

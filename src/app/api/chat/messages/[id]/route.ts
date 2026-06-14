@@ -3,7 +3,7 @@ import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { broadcastChatEvent } from "@/lib/chat";
 
-// DELETE /api/chat/messages/[id] — hide a message. Allowed for the author
+// DELETE /api/chat/messages/[id] - hide a message. Allowed for the author
 // (delete your own) or an admin (moderation). Soft-delete via status so the
 // record survives for audit.
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {

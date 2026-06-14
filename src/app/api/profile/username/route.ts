@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { usernameQuerySchema } from "@/lib/profile";
 
-// GET /api/profile/username?handle=foo — is this handle available for me?
+// GET /api/profile/username?handle=foo - is this handle available for me?
 // Returns { available, handle, reason? }. The user's own current handle counts
 // as available so the form doesn't flag it while editing.
 export async function GET(req: Request) {

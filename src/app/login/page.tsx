@@ -3,7 +3,11 @@ import type { Metadata } from "next";
 import { AuthShell } from "@/components/AuthShell";
 import { LoginForm } from "@/components/LoginForm";
 
-export const metadata: Metadata = { title: "Log in" };
+export const metadata: Metadata = {
+  title: "Log in",
+  description: "Log in to XYZ Crypto for Web3 research, trading tools and the community.",
+  alternates: { canonical: "/login" },
+};
 
 export default function LoginPage() {
   const googleEnabled =

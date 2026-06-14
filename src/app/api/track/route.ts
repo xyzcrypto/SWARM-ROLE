@@ -5,7 +5,7 @@ import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 const schema = z.object({ path: z.string().trim().max(200) });
 
-// POST /api/track — record a page view (public, rate-limited). Best-effort:
+// POST /api/track - record a page view (public, rate-limited). Best-effort:
 // always returns ok so a tracking blip never affects the user's page.
 export async function POST(req: Request) {
   try {

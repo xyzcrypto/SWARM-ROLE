@@ -1,14 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
-import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { rateLimit } from "@/lib/ratelimit";
 
-// POST /api/posts/:id/like — logged-in toggle. Returns { liked, count }.
+// POST /api/posts/:id/like - logged-in toggle. Returns { liked, count }.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser();
     if (!user) return fail("Please log in to like posts.", 401);
 
-    const { success } = await rateLimit("like", clientIp(req));
+    // Rate-limit per authenticated user (not IP) - an authed user must not be
+    // able to bypass the limit by rotating IPs.
+    const { success } = await rateLimit("like", user.id);
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
     if (!isCuid(params.id)) return fail("Invalid id.", 400);

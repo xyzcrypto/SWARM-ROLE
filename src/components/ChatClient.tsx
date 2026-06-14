@@ -122,7 +122,7 @@ export function ChatClient({
     setMessages((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
-  // Idempotent reaction delta — safe to apply for both optimistic + echoed events.
+  // Idempotent reaction delta - safe to apply for both optimistic + echoed events.
   const applyReaction = useCallback(
     (messageId: string, emoji: string, userId: string, op: "add" | "remove") => {
       setMessages((prev) =>
@@ -300,6 +300,29 @@ export function ChatClient({
     setBody("");
     const reply = replyTarget;
     setReplyTarget(null);
+
+    // Optimistic UI: render the message instantly with a temporary id, then
+    // reconcile with the server's copy (dedup against the realtime echo).
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: Message = {
+      id: tempId,
+      body: text,
+      createdAt: new Date().toISOString(),
+      userId: me.id,
+      author: { name: me.name, username: null, image: null, membership: "Free", role: me.isAdmin ? "ADMIN" : "USER" },
+      replyTo: reply ? { id: reply.id, body: reply.body, authorName: reply.authorName } : null,
+      reactions: [],
+      pending: true,
+    };
+    setMessages((prev) => [...prev, optimistic]);
+    jumpToLatest();
+
+    const rollback = () => {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      setBody(text);
+      setReplyTarget(reply);
+    };
+
     try {
       const res = await fetch("/api/chat/messages", {
         method: "POST",
@@ -308,17 +331,22 @@ export function ChatClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        rollback();
         setError(data.error || "Could not send. Try again.");
-        setBody(text);
-        setReplyTarget(reply);
         return;
       }
-      appendMessage(data.message as Message);
+      const server = data.message as Message;
+      // Swap the temp message for the server copy; if the realtime echo already
+      // delivered it, just drop the temp one (no duplicate).
+      setMessages((prev) => {
+        const without = prev.filter((m) => m.id !== tempId);
+        if (without.some((m) => m.id === server.id)) return without;
+        return [...without, { ...server, reactions: normalizeReactions(server.reactions) }];
+      });
       jumpToLatest();
     } catch {
+      rollback();
       setError("Network error. Please try again.");
-      setBody(text);
-      setReplyTarget(reply);
     } finally {
       setSending(false);
     }
@@ -407,7 +435,7 @@ export function ChatClient({
         )}
 
         {messages.length === 0 && (
-          <p className="py-16 text-center text-sm text-zinc-600">No messages yet — be the first to say gm. 👋</p>
+          <p className="py-16 text-center text-sm text-zinc-600">No messages yet - be the first to say gm. 👋</p>
         )}
 
         <AnimatePresence initial={false}>
@@ -443,7 +471,8 @@ export function ChatClient({
                   transition={{ duration: 0.18 }}
                   className={cn(
                     "group relative flex items-start gap-3 rounded-xl px-2 transition-colors hover:bg-white/[0.03]",
-                    grouped ? "py-0.5" : "py-1.5"
+                    grouped ? "py-0.5" : "py-1.5",
+                    m.pending && "opacity-60"
                   )}
                 >
                   <div className="w-9 shrink-0">
@@ -470,7 +499,9 @@ export function ChatClient({
                         {isTeam && <Badge tone="mint" className="!px-1.5 !py-0">Team</Badge>}
                         {isPremium && !isTeam && <Badge tone="gold" className="!px-1.5 !py-0">★</Badge>}
                         <span className="text-[11px] text-zinc-600">
-                          {new Date(m.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                          {m.pending
+                            ? "sending…"
+                            : new Date(m.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
                         </span>
                       </div>
                     )}
@@ -670,7 +701,7 @@ export function ChatClient({
           </>
         ) : (
           <div className="flex flex-col items-center justify-between gap-2 py-1 sm:flex-row">
-            <p className="text-sm text-zinc-400">Join the conversation — it&apos;s free.</p>
+            <p className="text-sm text-zinc-400">Join the conversation - it&apos;s free.</p>
             <Link href="/login?callbackUrl=/community" className="btn-gold !py-2 text-[13px]">
               Log in to chat
             </Link>

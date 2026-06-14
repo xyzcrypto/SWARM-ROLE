@@ -1,13 +1,13 @@
 "use client";
 
 import { useRef } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
 import { Container } from "./ui/primitives";
 import { AnimatedBackground } from "./AnimatedBackground";
+import { ActionLink } from "./ActionLink";
 
 const ticker = [
   "Web3 Research",
@@ -48,6 +48,8 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
   // spring update per frame is all the eye can use.
   const moveRaf = useRef(0);
   function onMove(e: React.MouseEvent<HTMLDivElement>) {
+    // Respect reduced-motion: skip the 3D parallax spring entirely.
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (moveRaf.current) return;
     const el = e.currentTarget;
     const { clientX, clientY } = e;
@@ -116,28 +118,28 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.24 }}
-            className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
+            className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start"
           >
             {session ? (
-              // Account holders already have access — point them at the content.
+              // Account holders already have access - point them at the content.
               <>
-                <Link href="/research" className="btn-primary w-full sm:w-auto">
+                <ActionLink href="/research" className="btn-primary w-full sm:w-auto">
                   Explore Research
                   <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link href="/#products" className="btn-ghost w-full sm:w-auto">
+                </ActionLink>
+                <ActionLink href="/#products" className="btn-ghost w-full sm:w-auto">
                   View products
-                </Link>
+                </ActionLink>
               </>
             ) : (
               <>
-                <Link href="/signup" className="btn-primary w-full sm:w-auto">
+                <ActionLink href="/signup" className="btn-primary w-full sm:w-auto">
                   Get early access
                   <ArrowRight className="h-4 w-4" />
-                </Link>
-                <Link href="/research" className="btn-ghost w-full sm:w-auto">
+                </ActionLink>
+                <ActionLink href="/research" className="btn-ghost w-full sm:w-auto">
                   Explore research
-                </Link>
+                </ActionLink>
               </>
             )}
           </motion.div>

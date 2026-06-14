@@ -4,7 +4,7 @@ import { uploadImage, isAllowedImageType, MAX_UPLOAD_BYTES } from "@/lib/storage
 
 export const runtime = "nodejs";
 
-// POST /api/upload — admin only. Accepts multipart form-data with a `file`
+// POST /api/upload - admin only. Accepts multipart form-data with a `file`
 // field, stores it in Supabase Storage and returns the public URL.
 export async function POST(req: Request) {
   try {

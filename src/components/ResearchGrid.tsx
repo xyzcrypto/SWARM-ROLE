@@ -91,7 +91,7 @@ export function ResearchGrid({
               {c}
             </button>
           ))}
-          {/* Premium Content — special green filter with icon + shine animation */}
+          {/* Premium Content - special green filter with icon + shine animation */}
           <button
             onClick={() => setActive("Premium")}
             aria-pressed={active === "Premium"}

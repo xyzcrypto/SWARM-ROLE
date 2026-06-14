@@ -52,7 +52,7 @@ html.lenis body {
 }
 
 /* ----------------------------------------------------------------
-   Ambient backgrounds — Stripe-style mesh + grain + grid
+   Ambient backgrounds - Stripe-style mesh + grain + grid
 ----------------------------------------------------------------- */
 .mesh {
   position: absolute;
@@ -65,32 +65,32 @@ html.lenis body {
   content: "";
   position: absolute;
   border-radius: 9999px;
-  filter: blur(100px);
-  opacity: 0.5;
+  filter: blur(130px);
+  opacity: 0.42;
 }
 .mesh::before {
-  width: 50vw;
-  height: 50vw;
-  left: -10%;
-  top: -20%;
-  background: radial-gradient(circle, rgba(226, 167, 47, 0.28), transparent 60%);
-  animation: drift-a 18s ease-in-out infinite alternate;
+  width: 52vw;
+  height: 52vw;
+  left: -12%;
+  top: -22%;
+  background: radial-gradient(circle, rgba(226, 167, 47, 0.22), transparent 62%);
+  animation: drift-a 24s ease-in-out infinite alternate;
 }
 .mesh::after {
-  width: 45vw;
-  height: 45vw;
-  right: -8%;
+  width: 46vw;
+  height: 46vw;
+  right: -10%;
   top: 4%;
-  background: radial-gradient(circle, rgba(11, 187, 124, 0.16), transparent 60%);
-  animation: drift-b 22s ease-in-out infinite alternate;
+  background: radial-gradient(circle, rgba(11, 187, 124, 0.13), transparent 62%);
+  animation: drift-b 30s ease-in-out infinite alternate;
 }
 @keyframes drift-a {
   0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(12vw, 8vh) scale(1.18); }
+  100% { transform: translate(9vw, 6vh) scale(1.1); }
 }
 @keyframes drift-b {
   0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(-10vw, 6vh) scale(1.12); }
+  100% { transform: translate(-8vw, 5vh) scale(1.08); }
 }
 
 /* Animated aurora ribbon */
@@ -105,9 +105,9 @@ html.lenis body {
       rgba(226, 167, 47, 0.12) 90deg,
       rgba(11, 187, 124, 0.10) 200deg,
       rgba(226, 167, 47, 0) 360deg);
-  filter: blur(70px);
-  opacity: 0.6;
-  animation: aurora-spin 28s linear infinite;
+  filter: blur(88px);
+  opacity: 0.48;
+  animation: aurora-spin 36s linear infinite;
 }
 @keyframes aurora-spin {
   to { transform: rotate(360deg); }
@@ -175,7 +175,7 @@ html.lenis body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.035;
+  opacity: 0.025;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -230,7 +230,7 @@ html.lenis body {
 }
 
 /* ----------------------------------------------------------------
-   Surfaces — glass + hairline cards (Vercel/Jupiter)
+   Surfaces - glass + hairline cards (Vercel/Jupiter)
 ----------------------------------------------------------------- */
 .glass {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
@@ -248,7 +248,7 @@ html.lenis body {
   -webkit-backdrop-filter: blur(10px) saturate(130%);
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset;
 }
-/* Mobile GPUs stall on heavy backdrop blur during scroll (30fps jank) — keep
+/* Mobile GPUs stall on heavy backdrop blur during scroll (30fps jank) - keep
    the glass look but cut the filter cost on small screens. Visual difference
    is negligible at phone card sizes. */
 @media (max-width: 768px) {
@@ -276,7 +276,7 @@ html.lenis body {
 }
 
 /* ----------------------------------------------------------------
-   Buttons — mint = primary action, gold = premium/brand
+   Buttons - mint = primary action, gold = premium/brand
 ----------------------------------------------------------------- */
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all duration-300;
@@ -363,6 +363,62 @@ html.lenis body {
   55%, 100% { transform: translateX(160%); }
 }
 
+/* Tactile press feedback for primary actions / redirects. A quick radial sheen
+   blooms from the center on click (paired with a framer-motion whileTap scale in
+   <ActionLink>). Purely additive - layers over existing button styles. */
+.btn-press {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-press::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.6), transparent 60%);
+  opacity: 0;
+  transform: scale(0.2);
+}
+.btn-press:active::before {
+  animation: btn-ripple 0.5s ease-out;
+}
+@keyframes btn-ripple {
+  0% { opacity: 0.55; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+/* Animated emoji motion presets (used by <AnimatedEmoji>). */
+@keyframes emoji-launch {
+  0%   { transform: translateY(2px) rotate(-12deg); }
+  35%  { transform: translateY(-7px) rotate(-2deg); }
+  60%  { transform: translateY(-4px) rotate(-10deg) translateX(1px); }
+  100% { transform: translateY(2px) rotate(-12deg); }
+}
+@keyframes emoji-wobble {
+  0%   { transform: rotate(0deg); }
+  45%  { transform: rotate(8deg); }
+  50%  { transform: rotate(180deg); }
+  95%  { transform: rotate(172deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes emoji-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+@keyframes emoji-twinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.28) rotate(18deg); opacity: 0.75; }
+}
+@keyframes emoji-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-press:active::before { animation: none; }
+}
+
 /* Eyebrow / pill */
 .eyebrow {
   @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium;
@@ -444,7 +500,7 @@ html.lenis body {
 .prose-xyz strong { @apply text-zinc-100; }
 
 /* ----------------------------------------------------------------
-   Accessibility — respect reduced motion
+   Accessibility - respect reduced motion
 ----------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

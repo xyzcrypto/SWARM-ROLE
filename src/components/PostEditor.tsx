@@ -130,7 +130,7 @@ export function PostEditor({
       }
       setMsg({
         type: "ok",
-        text: publish ? "Published — your post is live." : "Saved as draft.",
+        text: publish ? "Published - your post is live." : "Saved as draft.",
       });
       if (mode === "create") setForm(EMPTY);
       onDone();
@@ -157,7 +157,7 @@ export function PostEditor({
       {/* Main column */}
       <div className="space-y-4 lg:col-span-2">
         <Field label="Title" value={form.title} onChange={(v) => set("title", v)} placeholder="e.g. The State of L2s in 2026" />
-        <Field label="Excerpt / summary" value={form.excerpt} onChange={(v) => set("excerpt", v)} placeholder="A short 1–2 line summary shown on cards." textarea rows={2} />
+        <Field label="Excerpt / summary" value={form.excerpt} onChange={(v) => set("excerpt", v)} placeholder="A short 1-2 line summary shown on cards." textarea rows={2} />
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
