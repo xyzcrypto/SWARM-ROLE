@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { notifyNewComment } from "@/lib/notifications";
 
 // GET /api/posts/:id/comments - public; visible comments, newest first, paginated.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
@@ -69,13 +70,22 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const post = await prisma.post.findUnique({
       where: { id: params.id },
-      select: { id: true, published: true },
+      select: { id: true, published: true, title: true, slug: true, authorId: true },
     });
     if (!post || !post.published) return fail("Post not found.", 404);
 
     const created = await prisma.comment.create({
       data: { body: parsed.data.body, postId: params.id, userId: user.id },
       select: { id: true, body: true, createdAt: true, user: { select: { name: true, email: true, username: true, image: true } } },
+    });
+
+    // Notify the post author (best-effort, skips self-comments).
+    await notifyNewComment({
+      postAuthorId: post.authorId,
+      commenterId: user.id,
+      commenterName: created.user?.name || created.user?.email?.split("@")[0] || "Someone",
+      postTitle: post.title,
+      postSlug: post.slug,
     });
 
     return ok(

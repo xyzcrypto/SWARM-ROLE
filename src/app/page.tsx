@@ -6,7 +6,7 @@ import { ProofStrip } from "@/components/ProofStrip";
 import { About } from "@/components/About";
 import { Products } from "@/components/Products";
 import { ResearchPreview } from "@/components/ResearchPreview";
-import { MembersShowcase } from "@/components/MembersShowcase";
+import { WhatsNew } from "@/components/WhatsNew";
 import { Ecosystem } from "@/components/Ecosystem";
 import { Social } from "@/components/Social";
 import { CtaBand } from "@/components/CtaBand";
@@ -35,7 +35,8 @@ export default async function HomePage() {
         <About />
         <Products />
         <ResearchPreview />
-        <MembersShowcase memberCount={memberCount} />
+        {/* "What's New" - dynamic feature feed (src/lib/whatsnew.ts). */}
+        <WhatsNew />
         <Ecosystem />
         <Social />
         {/* Sign-up CTA - shown to guests only (members already have an account). */}

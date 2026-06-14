@@ -38,6 +38,14 @@ export function OrbitalEcosystem() {
     if (!el) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
+    // If it's already on/near screen at mount (common on desktop where the
+    // section sits high), activate immediately - don't wait for an intersection
+    // change that may never fire. Otherwise observe and activate on scroll-in.
+    const r = el.getBoundingClientRect();
+    if (r.top < window.innerHeight * 1.2 && r.bottom > -window.innerHeight * 0.2) {
+      setActive(true);
+      return;
+    }
     const io = new IntersectionObserver(
       ([e]) => {
         if (e.isIntersecting) {
@@ -45,7 +53,7 @@ export function OrbitalEcosystem() {
           io.disconnect();
         }
       },
-      { rootMargin: "120px" }
+      { rootMargin: "200px", threshold: 0.01 }
     );
     io.observe(el);
     return () => io.disconnect();

@@ -35,6 +35,7 @@ const limiters = {
   login: make(10, 60, "login"), // 10/min per account (brute-force guard)
   password: make(10, 60, "password"), // 10/min/IP - reset flow, isolated from signup
   chat: make(10, 60, "chat"), // 10 messages/min per user (community chat)
+  notifications: make(60, 60, "notifications"), // 60/min per user - bell polling + mark-read
 };
 
 export type RateKey = keyof typeof limiters;

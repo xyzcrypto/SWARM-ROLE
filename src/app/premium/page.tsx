@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Check, Sparkles, Clock } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Container, Section, SectionHeading, Badge } from "@/components/ui/primitives";
 import { Reveal } from "@/components/Reveal";
+import { ActionLink } from "@/components/ActionLink";
+import { AnimatedEmoji } from "@/components/AnimatedEmoji";
 
 export const metadata: Metadata = {
   title: "Premium Plans - Coming Soon",
@@ -51,13 +52,16 @@ export default function PremiumPage() {
             <div className="mx-auto max-w-2xl text-center">
               <Reveal>
                 <Badge tone="gold" className="!px-3 !py-1">
-                  <Clock className="h-3.5 w-3.5" /> Coming soon
+                  <AnimatedEmoji emoji="⏳" variant="wobble" className="text-sm" /> Coming soon
                 </Badge>
               </Reveal>
               <Reveal delay={1}>
                 <h1 className="mt-5 font-display text-display-lg font-semibold tracking-tight text-zinc-50">
-                  Premium Plans -{" "}
-                  <span className="text-gold-gradient">Coming Soon</span>
+                  Premium Plans
+                  <span className="mt-1 block text-gold-gradient">
+                    Coming Soon{" "}
+                    <AnimatedEmoji emoji="🚀" variant="launch" className="align-middle text-[0.9em]" />
+                  </span>
                 </h1>
               </Reveal>
               <Reveal delay={2}>
@@ -69,12 +73,12 @@ export default function PremiumPage() {
               </Reveal>
               <Reveal delay={3}>
                 <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-                  <Link href="/signup" className="btn-gold !px-6">
+                  <ActionLink href="/signup" className="btn-gold !px-6">
                     Create a free account
-                  </Link>
-                  <Link href="/research" className="btn-ghost !px-6">
+                  </ActionLink>
+                  <ActionLink href="/research" className="btn-ghost !px-6">
                     Explore research
-                  </Link>
+                  </ActionLink>
                 </div>
               </Reveal>
             </div>
@@ -110,9 +114,10 @@ export default function PremiumPage() {
                     </ul>
                     <div className="mt-6 pt-1">
                       {t.available ? (
-                        <Link href="/signup" className="btn-secondary w-full">
-                          Get started
-                        </Link>
+                        <ActionLink href="/signup" className="group btn-secondary w-full">
+                          Get started{" "}
+                          <AnimatedEmoji emoji="🚀" variant="launch" hoverOnly className="text-[0.95em]" />
+                        </ActionLink>
                       ) : (
                         <button
                           type="button"
@@ -135,9 +140,9 @@ export default function PremiumPage() {
               subtitle="A free account gets you research, community and early-access perks today - and a front-row seat for the Premium launch."
             />
             <div className="mt-7 flex justify-center">
-              <Link href="/signup" className="btn-gold !px-7">
+              <ActionLink href="/signup" className="btn-gold !px-7">
                 Create your free account
-              </Link>
+              </ActionLink>
             </div>
           </Container>
         </Section>

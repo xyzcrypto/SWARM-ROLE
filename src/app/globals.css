@@ -363,6 +363,51 @@ html.lenis body {
   55%, 100% { transform: translateX(160%); }
 }
 
+/* Tactile press feedback for primary actions / redirects. A quick radial sheen
+   blooms from the center on click (paired with a framer-motion whileTap scale in
+   <ActionLink>). Purely additive - layers over existing button styles. */
+.btn-press {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-press::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.6), transparent 60%);
+  opacity: 0;
+  transform: scale(0.2);
+}
+.btn-press:active::before {
+  animation: btn-ripple 0.5s ease-out;
+}
+@keyframes btn-ripple {
+  0% { opacity: 0.55; transform: scale(0.2); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+/* Animated emoji motion presets (used by <AnimatedEmoji>). */
+@keyframes emoji-launch {
+  0%, 100% { transform: translateY(0) rotate(-8deg); }
+  45% { transform: translateY(-5px) rotate(-2deg); }
+  70% { transform: translateY(-2px) rotate(-10deg); }
+}
+@keyframes emoji-wobble {
+  0%, 100% { transform: rotate(-10deg); }
+  50% { transform: rotate(12deg); }
+}
+@keyframes emoji-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-press:active::before { animation: none; }
+}
+
 /* Eyebrow / pill */
 .eyebrow {
   @apply inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-medium;

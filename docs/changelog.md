@@ -5,6 +5,42 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-14 — Demo 2: UI/UX polish, in-app notifications, profile fix, speed
+**Profile / Settings**
+- Fixed "Profile opens Settings": every account now gets an auto-assigned unique
+  handle on signup (`lib/username.ts`, wired in `auth.ts` credentials + Google
+  `createUser`); new `/profile` route resolves/mints a handle and redirects to
+  `/u/<handle>`; navbar Profile falls back to `/profile` (never Settings).
+  `prisma/seed.ts` backfills handles for existing users (idempotent).
+- Research post byline + (existing) chat/comment authors link to `/u/<handle>`.
+
+**In-app notifications (new)**
+- New `Notification` model + idempotent migration `6_notifications/`.
+- `lib/notifications.ts` (new-post fan-out + new-comment to author, best-effort);
+  triggers wired into `api/research` (publish) and `api/posts/[id]/comments`.
+- `GET /api/notifications` (+ unread count) and `POST /api/notifications/read`,
+  new `notifications` rate-limit bucket; both degrade gracefully pre-migration.
+- `NavActivity`: navbar bell (gold unread count + animated dropdown) + community
+  chat icon (mint unread dot vs per-device last-seen). Email left dormant via the
+  existing `sendEmail` console fallback until a verified Resend domain is set.
+- Homepage **"What's New"** section (`lib/whatsnew.ts` + `WhatsNew.tsx`) replacing
+  the removed Members showcase.
+
+**UI / animation polish**
+- `ActionLink` + `.btn-press` (tap-scale + click/redirect sheen) on all primary
+  CTAs (Hero, Navbar, Premium, StickyCta); reduced-motion aware.
+- `AnimatedEmoji` (rocket/hourglass) — Premium "Coming Soon" + "Get started".
+- Global page-transition `app/template.tsx` (fade/rise, reduced-motion aware).
+- Navbar signed-in widget: avatar gold-ring pulse + animated account dropdown.
+- Premium hero restacked to "Premium Plans" / "Coming Soon" (two lines).
+- About: `lg:items-start` so "Who we are" / "Since 2019" align with the pillars.
+- Orbital: reliable desktop activation (activate-if-near-viewport on mount).
+- Hero CTAs centered below `lg` (mobile-desktop), left-aligned at `lg`.
+
+**Performance**
+- `loading.tsx` skeletons (`RouteSkeleton`) for `/research/[slug]`, `/community`,
+  `/settings`, `/u/[username]`, `/dashboard` → instant paint on navigation.
+
 ## 2026-06-14 — Production hardening: audit fixes, perf, profile-photo (see docs/AUDIT-2026-06-14.md)
 **Resilience/DB**
 - Added real migration `prisma/migrations/5_post_views_pageview/` (idempotent).

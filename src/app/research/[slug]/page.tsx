@@ -26,7 +26,7 @@ async function getPost(slug: string) {
   try {
     return await prisma.post.findFirst({
       where: { slug, published: true },
-      include: { author: { select: { name: true } } },
+      include: { author: { select: { name: true, username: true, image: true } } },
     });
   } catch (err: any) {
     // Resilience: if the `views` column hasn't been migrated yet (P2022), don't
@@ -39,7 +39,7 @@ async function getPost(slug: string) {
             id: true, slug: true, title: true, excerpt: true, content: true,
             cover: true, category: true, tags: true, premium: true,
             createdAt: true, updatedAt: true,
-            author: { select: { name: true } },
+            author: { select: { name: true, username: true, image: true } },
           },
         })
         .catch(() => null);
@@ -187,21 +187,33 @@ export default async function PostPage({
 
             {/* Byline + share */}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-white/5 py-4">
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gold-500/15 font-display text-sm font-bold text-gold-200 ring-1 ring-gold-500/30">
-                  {(post.author?.name ?? "XYZ Crypto").charAt(0)}
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-zinc-200">
-                    {post.author?.name ?? "XYZ Crypto"}
-                  </p>
-                  <p className="mono text-[11px] text-zinc-500">
-                    {formatDate(post.createdAt)} · {readingTime(post.content)} min read
-                    {" · "}
-                    {(post.views + (isPrefetch ? 0 : 1)).toLocaleString()} views
-                  </p>
-                </div>
-              </div>
+              {(() => {
+                const byline = (
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gold-500/15 font-display text-sm font-bold text-gold-200 ring-1 ring-gold-500/30">
+                      {(post.author?.name ?? "XYZ Crypto").charAt(0)}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold text-zinc-200">
+                        {post.author?.name ?? "XYZ Crypto"}
+                      </p>
+                      <p className="mono text-[11px] text-zinc-500">
+                        {formatDate(post.createdAt)} · {readingTime(post.content)} min read
+                        {" · "}
+                        {(post.views + (isPrefetch ? 0 : 1)).toLocaleString()} views
+                      </p>
+                    </div>
+                  </div>
+                );
+                // Link to the author's public profile when they have a handle.
+                return post.author?.username ? (
+                  <Link href={`/u/${post.author.username}`} className="transition-opacity hover:opacity-80">
+                    {byline}
+                  </Link>
+                ) : (
+                  byline
+                );
+              })()}
               <div className="flex items-center gap-2">
                 <LikeButton postId={post.id} initialCount={likeCount} initialLiked={Boolean(myLike)} />
                 <ShareRow title={post.title} path={`/research/${post.slug}`} />

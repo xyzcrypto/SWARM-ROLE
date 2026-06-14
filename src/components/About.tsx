@@ -20,7 +20,7 @@ const pillars = [
 export function About() {
   return (
     <Section id="about">
-      <Container className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+      <Container className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
         <Reveal variant="left">
           <Eyebrow>Who we are</Eyebrow>
           <h2 className="mt-5 font-display text-display-md font-semibold tracking-tight text-zinc-50">

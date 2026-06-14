@@ -144,6 +144,34 @@ The app is now **resilient** if this lags: a missing `views` column (P2022) no
 longer 404s research posts or 500s the dashboard — views just read as 0 until
 the migration runs. Apply it to enable real view/visit numbers.
 
+### ⚠️ Notifications migration (one-time, production Supabase) — APPLY THIS
+Adds the in-app notification system (navbar bell + unread badges). Shipped as a
+real Prisma migration: `prisma/migrations/6_notifications/`. Apply with
+`npx prisma migrate deploy` (or `npm run db:push`) **or** paste this idempotent
+SQL in Supabase → SQL Editor:
+
+```sql
+CREATE TABLE IF NOT EXISTS "Notification" (
+  "id"        TEXT PRIMARY KEY,
+  "type"      TEXT NOT NULL,
+  "title"     TEXT NOT NULL,
+  "body"      TEXT,
+  "href"      TEXT,
+  "read"      BOOLEAN NOT NULL DEFAULT false,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "userId"    TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS "Notification_userId_read_createdAt_idx"
+  ON "Notification"("userId", "read", "createdAt");
+-- FK (cascade on user delete); skipped if it already exists.
+```
+
+The app is **resilient** if this lags: `/api/notifications` maps a missing table
+(P2021/P2022) to a quiet empty state, so the bell just shows no notifications
+until the migration runs. After applying, run `npm run seed` once to **backfill
+public usernames** for any pre-existing accounts (so every member has a working
+`/u/<handle>` profile).
+
 ### ⚠️ Profile photo uploads — Supabase Storage setup (production)
 Avatar/cover uploads need Storage configured, **else they return 501** ("Image
 upload is not configured") and the avatar uploader falls back to its "Use a link"
