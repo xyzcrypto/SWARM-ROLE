@@ -64,7 +64,7 @@ export async function GET(req: Request) {
 const createSchema = z.object({
   title: z.string().trim().min(4).max(160),
   excerpt: z.string().trim().min(8).max(320),
-  content: z.string().trim().min(20),
+  content: z.string().trim().min(20).max(100_000, "Article is too long (100k characters max)."),
   category: z.enum(["Research", "Article", "Post"]).default("Research"),
   cover: z.string().trim().url().optional().or(z.literal("")),
   tags: z.string().trim().max(200).optional(),

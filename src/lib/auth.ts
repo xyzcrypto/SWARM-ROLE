@@ -51,18 +51,30 @@ export const authOptions: NextAuthOptions = {
             name?: string;
             passwordHash?: string;
           };
-          const existing = await prisma.user.findUnique({ where: { email } });
-          const user =
-            existing ??
-            (await prisma.user.create({
-              data: {
-                email,
-                name: payload.name ?? null,
-                passwordHash: payload.passwordHash ?? null,
-                provider: "credentials",
-                role: isAdminEmail(email) ? "ADMIN" : "USER",
-              },
-            }));
+          // Create-or-get, race-safe: two parallel completions of the same
+          // pending signup could both pass findUnique, so recover from the
+          // unique-email collision (P2002) by re-reading the winning row.
+          let user = await prisma.user.findUnique({ where: { email } });
+          if (!user) {
+            try {
+              user = await prisma.user.create({
+                data: {
+                  email,
+                  name: payload.name ?? null,
+                  passwordHash: payload.passwordHash ?? null,
+                  provider: "credentials",
+                  role: isAdminEmail(email) ? "ADMIN" : "USER",
+                },
+              });
+            } catch (err: any) {
+              if (err?.code === "P2002") {
+                user = await prisma.user.findUnique({ where: { email } });
+              } else {
+                throw err;
+              }
+            }
+          }
+          if (!user) return null;
           return {
             id: user.id,
             name: user.name,

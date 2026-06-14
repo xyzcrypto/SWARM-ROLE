@@ -29,7 +29,13 @@ export async function POST(req: Request) {
     if (user && user.passwordHash) {
       const code = await issueCode(email, "reset");
       const { subject, html, text } = otpEmail(code, "reset");
-      await sendEmail(email, subject, html, text);
+      const sent = await sendEmail(email, subject, html, text);
+      // Surface a real delivery failure so the user isn't left waiting for an
+      // email that never arrives. Enumeration stays safe: in normal operation
+      // sends succeed and every request returns the same generic success.
+      if (emailEnabled && !sent.ok) {
+        return fail("We couldn't send the reset email. Please try again shortly.", 502);
+      }
       if (!emailEnabled && process.env.NODE_ENV !== "production") devCode = code;
     }
 

@@ -123,9 +123,11 @@ CREATE INDEX IF NOT EXISTS "ChatReaction_messageId_idx"
   ON "ChatReaction"("messageId");
 ```
 
-### ⚠️ Analytics + post views migration (one-time, production Supabase)
-Adds visit tracking + per-post view counts. `npm run db:push` **or** this
-idempotent SQL in Supabase → SQL Editor:
+### ⚠️ Analytics + post views migration (one-time, production Supabase) — APPLY THIS
+Adds visit tracking + per-post view counts. Now also shipped as a real Prisma
+migration: `prisma/migrations/5_post_views_pageview/`. Apply with
+`npx prisma migrate deploy` (or `npm run db:push`) **or** paste this idempotent
+SQL in Supabase → SQL Editor:
 
 ```sql
 ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "views" INTEGER NOT NULL DEFAULT 0;
@@ -137,6 +139,21 @@ CREATE TABLE IF NOT EXISTS "PageView" (
 );
 CREATE INDEX IF NOT EXISTS "PageView_createdAt_idx" ON "PageView"("createdAt");
 ```
+
+The app is now **resilient** if this lags: a missing `views` column (P2022) no
+longer 404s research posts or 500s the dashboard — views just read as 0 until
+the migration runs. Apply it to enable real view/visit numbers.
+
+### ⚠️ Profile photo uploads — Supabase Storage setup (production)
+Avatar/cover uploads need Storage configured, **else they return 501** ("Image
+upload is not configured") and the avatar uploader falls back to its "Use a link"
+(paste image URL) option.
+1. Vercel env: set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (and
+   `SUPABASE_STORAGE_BUCKET` if not the default `post-covers`).
+2. Supabase → Storage → create a **public** bucket named `post-covers`.
+3. `next.config.mjs` already allowlists `**.supabase.co`, so saved photos render.
+The URL fallback works without any of this (https image from Unsplash, Cloudinary,
+GitHub, Google or Supabase — hosts allowlisted for `next/image`).
 
 **Realtime env (optional but recommended):** add to Vercel —
 `NEXT_PUBLIC_SUPABASE_URL` (same value as `SUPABASE_URL`) and
