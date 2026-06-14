@@ -28,10 +28,13 @@ function makeFallback(base: number) {
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const coin = (searchParams.get("coin") || "bitcoin").toLowerCase();
+  // Only ever interpolate a value from our own allowlist into the upstream URL
+  // (never the raw user input) - prevents SSRF / URL injection on the coin id.
+  const requested = (searchParams.get("coin") || "bitcoin").toLowerCase();
+  const coin = COINS[requested] ? requested : "bitcoin";
   let days = parseInt(searchParams.get("days") || "1", 10);
   if (!ALLOWED_DAYS.has(days)) days = 1;
-  const meta = COINS[coin] ?? COINS.bitcoin;
+  const meta = COINS[coin];
 
   try {
     const url = `https://api.coingecko.com/api/v3/coins/${coin}/ohlc?vs_currency=usd&days=${days}`;

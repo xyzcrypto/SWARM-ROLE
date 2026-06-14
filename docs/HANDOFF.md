@@ -55,6 +55,16 @@ Settings → Environment Variables is the canonical store for runtime).
 Every optional integration **degrades gracefully** when unset — the app never
 crashes from missing env. Local dev: copy names into `.env` (gitignored).
 
+## 3b. Recovery / rollback (Phase-1 stable point)
+
+A verified Phase-1 recovery point exists on origin (created before the pre-Phase-2
+hardening pass — see `docs/AUDIT-PRE-PHASE2.md`):
+- Backup branches: **`phase1-stable`** and **`pre-phase2-backup`** (identical HEADs).
+- To roll back instantly: `git checkout -b restore phase1-stable` then redeploy that
+  branch (Vercel: promote/deploy it), or hard-reset the working branch to it.
+- (An annotated `phase1-production` tag exists locally; tag pushes are blocked by
+  this environment's git proxy, so the backup **branches** are the source of truth.)
+
 ## 4. Pending operational state (check before building new features)
 
 ### ⚠️ Profiles DB migration (one-time, production Supabase)

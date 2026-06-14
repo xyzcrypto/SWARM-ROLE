@@ -37,6 +37,15 @@ export function websiteJsonLd() {
     name: site.name,
     url: SITE_URL,
     description: site.description,
+    // Enables a Google sitelinks search box for branded queries.
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: absoluteUrl("/research?q={search_term_string}"),
+      },
+      "query-input": "required name=search_term_string",
+    },
   };
 }
 

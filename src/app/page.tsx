@@ -15,6 +15,16 @@ import { Footer } from "@/components/Footer";
 import { StickyCta } from "@/components/StickyCta";
 import { GuestOnly } from "@/components/GuestOnly";
 import { prisma } from "@/lib/prisma";
+import type { Metadata } from "next";
+
+// Brand-tuned homepage metadata (absolute title so it isn't suffixed by the
+// layout template) + self-canonical for clean indexing of "XYZ Crypto" searches.
+export const metadata: Metadata = {
+  title: { absolute: "XYZ Crypto - Web3 Research, Trading Tools, Perp DEX & Academy" },
+  description:
+    "XYZ Crypto is a next-generation Web3 ecosystem: on-chain research, pro trading tools, an upcoming perpetual DEX, airdrop intelligence, premium intel and a free academy - all in one trusted brand.",
+  alternates: { canonical: "/" },
+};
 
 // Incrementally cached: the page is served instantly from cache and
 // regenerated in the background every 5 minutes (member count / research

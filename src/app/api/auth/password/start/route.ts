@@ -30,11 +30,11 @@ export async function POST(req: Request) {
       const code = await issueCode(email, "reset");
       const { subject, html, text } = otpEmail(code, "reset");
       const sent = await sendEmail(email, subject, html, text);
-      // Surface a real delivery failure so the user isn't left waiting for an
-      // email that never arrives. Enumeration stays safe: in normal operation
-      // sends succeed and every request returns the same generic success.
+      // A delivery failure must NOT change the response shape - returning a 502
+      // only for real accounts would let an attacker enumerate which emails
+      // exist. Log server-side; the client always gets the same generic success.
       if (emailEnabled && !sent.ok) {
-        return fail("We couldn't send the reset email. Please try again shortly.", 502);
+        console.error("[password:start] reset email send failed (generic success still returned)");
       }
       if (!emailEnabled && process.env.NODE_ENV !== "production") devCode = code;
     }

@@ -48,6 +48,8 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
   // spring update per frame is all the eye can use.
   const moveRaf = useRef(0);
   function onMove(e: React.MouseEvent<HTMLDivElement>) {
+    // Respect reduced-motion: skip the 3D parallax spring entirely.
+    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     if (moveRaf.current) return;
     const el = e.currentTarget;
     const { clientX, clientY } = e;

@@ -12,6 +12,7 @@ export const metadata: Metadata = {
   title: "Community Chat",
   description:
     "The XYZ Crypto community lounge - talk markets, alpha, airdrops and Web3 live with other members.",
+  alternates: { canonical: "/community" },
 };
 export const dynamic = "force-dynamic";
 

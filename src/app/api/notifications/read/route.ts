@@ -7,7 +7,10 @@ import { rateLimit } from "@/lib/ratelimit";
 export const dynamic = "force-dynamic";
 
 // Mark all unread, or a specific set of ids, as read.
-const bodySchema = z.object({ ids: z.array(z.string()).max(100).optional() });
+const bodySchema = z.object({
+  // CUID-shaped ids only (defense-in-depth; Prisma would ignore others anyway).
+  ids: z.array(z.string().regex(/^c[a-z0-9]{20,}$/i)).max(100).optional(),
+});
 
 // POST /api/notifications/read - mark notifications read for the signed-in user.
 export async function POST(req: Request) {

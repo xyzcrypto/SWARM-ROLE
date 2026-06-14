@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
-import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { rateLimit } from "@/lib/ratelimit";
 import { notifyNewComment } from "@/lib/notifications";
 
 // GET /api/posts/:id/comments - public; visible comments, newest first, paginated.
@@ -60,7 +60,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const user = await getSessionUser();
     if (!user) return fail("Please log in to comment.", 401);
 
-    const { success } = await rateLimit("comment", clientIp(req));
+    // Per authenticated user - can't be bypassed by rotating IPs.
+    const { success } = await rateLimit("comment", user.id);
     if (!success) return fail("You're commenting too fast. Please slow down.", 429);
 
     if (!isCuid(params.id)) return fail("Invalid id.", 400);

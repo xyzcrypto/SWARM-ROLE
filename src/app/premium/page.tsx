@@ -11,6 +11,7 @@ export const metadata: Metadata = {
   title: "Premium Plans - Coming Soon",
   description:
     "XYZ Crypto Premium is on the way: private research, early product access, airdrop intelligence and more. Join the waitlist for launch.",
+  alternates: { canonical: "/premium" },
 };
 
 const tiers = [

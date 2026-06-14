@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-14 — Pre-Phase-2 hardening, audit & recovery point (see docs/AUDIT-PRE-PHASE2.md)
+**Recovery point:** backup branches `phase1-stable` + `pre-phase2-backup` pushed
+to origin (tag `phase1-production` local; tag push blocked by env git proxy).
+**Security:** like/comment routes rate-limit per `user.id` (was IP); `api/chart`
+only interpolates an allowlisted coin key (SSRF fix); `lib/otp.ts` fails closed in
+prod without `NEXTAUTH_SECRET`; `auth/password/start` no longer leaks account
+existence on email-send failure; `notifications/read` ids constrained to CUID.
+**Observability:** `app/error.tsx` now reports to Sentry.
+**SEO:** homepage `metadata` + canonical; `WebSite` JSON-LD `SearchAction`;
+canonicals on premium/contact/community/u/login/signup; `app/manifest.ts` (PWA);
+sitemap adds premium/community/contact.
+**Frontend:** ProofStrip `<img>` width/height + lazy/async (CLS); Hero parallax
+skipped under reduced-motion.
+**Quality:** removed dead `MembersShowcase.tsx`; added `clientIp` unit tests
+(64 tests green). No architecture/UI/feature changes. Verdict: READY FOR MERGE.
+
 ## 2026-06-14 — Demo 3: branded loader, live emoji, orbital fix, realtime data
 **Branded route loader**
 - New `BrandLoader` (XYZ logo + orbiting/pulsing rings on mesh); `RouteSkeleton`

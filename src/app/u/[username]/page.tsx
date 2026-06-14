@@ -45,6 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title,
     description: user.bio ?? `${title} on XYZ Crypto.`,
+    alternates: { canonical: `/u/${user.username}` },
     openGraph: { title, description: user.bio ?? undefined, images: user.image ? [user.image] : undefined },
   };
 }

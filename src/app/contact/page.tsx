@@ -13,6 +13,7 @@ export const metadata: Metadata = {
   title: "Contact Us",
   description:
     "Get in touch with the XYZ Crypto team - questions, partnerships, support and feedback. Reach us by email or on our community channels.",
+  alternates: { canonical: "/contact" },
 };
 
 // Brand colours mirror src/components/Social.tsx so the icons read as their real
