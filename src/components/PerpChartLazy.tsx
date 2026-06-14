@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-// The candlestick chart is a below-the-fold, purely-visual client component —
+// The candlestick chart is a below-the-fold, purely-visual client component -
 // skip SSR and load its JS after hydration so it never blocks first paint.
 export const PerpChartLazy = dynamic(
   () => import("./PerpChart").then((m) => m.PerpChart),

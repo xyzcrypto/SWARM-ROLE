@@ -1,6 +1,6 @@
 // Generic server-side Supabase Realtime "broadcast" helper (pub/sub). Used by
 // chat, membership updates, and the admin members feed. Fire-and-forget: a
-// realtime hiccup must never fail an API request — the DB stays the source of
+// realtime hiccup must never fail an API request - the DB stays the source of
 // truth. No-op when the Supabase env is unset (clients fall back to polling).
 import { env, realtimeEnabled } from "@/lib/env";
 

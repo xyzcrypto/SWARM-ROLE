@@ -52,7 +52,7 @@ html.lenis body {
 }
 
 /* ----------------------------------------------------------------
-   Ambient backgrounds — Stripe-style mesh + grain + grid
+   Ambient backgrounds - Stripe-style mesh + grain + grid
 ----------------------------------------------------------------- */
 .mesh {
   position: absolute;
@@ -230,7 +230,7 @@ html.lenis body {
 }
 
 /* ----------------------------------------------------------------
-   Surfaces — glass + hairline cards (Vercel/Jupiter)
+   Surfaces - glass + hairline cards (Vercel/Jupiter)
 ----------------------------------------------------------------- */
 .glass {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
@@ -248,7 +248,7 @@ html.lenis body {
   -webkit-backdrop-filter: blur(10px) saturate(130%);
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset;
 }
-/* Mobile GPUs stall on heavy backdrop blur during scroll (30fps jank) — keep
+/* Mobile GPUs stall on heavy backdrop blur during scroll (30fps jank) - keep
    the glass look but cut the filter cost on small screens. Visual difference
    is negligible at phone card sizes. */
 @media (max-width: 768px) {
@@ -276,7 +276,7 @@ html.lenis body {
 }
 
 /* ----------------------------------------------------------------
-   Buttons — mint = primary action, gold = premium/brand
+   Buttons - mint = primary action, gold = premium/brand
 ----------------------------------------------------------------- */
 .btn {
   @apply inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all duration-300;
@@ -444,7 +444,7 @@ html.lenis body {
 .prose-xyz strong { @apply text-zinc-100; }
 
 /* ----------------------------------------------------------------
-   Accessibility — respect reduced motion
+   Accessibility - respect reduced motion
 ----------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }

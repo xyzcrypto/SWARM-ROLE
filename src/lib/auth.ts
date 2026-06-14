@@ -85,7 +85,7 @@ export const authOptions: NextAuthOptions = {
           } as any;
         }
 
-        // login flow — standard email + password (per-account rate limited).
+        // login flow - standard email + password (per-account rate limited).
         const password = credentials?.password;
         if (!password) return null;
         const { success } = await rateLimit("login", email);
@@ -114,7 +114,7 @@ export const authOptions: NextAuthOptions = {
       }
       // Refresh from DB when missing, or on an explicit `update()` call. This
       // also pulls fresh name/image/username so profile edits reflect in the UI
-      // without a re-login (membership is a client hint — routes re-check DB).
+      // without a re-login (membership is a client hint - routes re-check DB).
       if (token.email && (!token.role || !token.membership || trigger === "update")) {
         const dbUser = await prisma.user.findUnique({
           where: { email: token.email },

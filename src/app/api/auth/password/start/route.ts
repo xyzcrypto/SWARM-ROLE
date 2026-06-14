@@ -10,7 +10,7 @@ const schema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
 });
 
-// POST /api/auth/password/start — begin a password reset. Always returns a
+// POST /api/auth/password/start - begin a password reset. Always returns a
 // generic success (never leaks whether the email exists); only sends a code
 // when a credentials account actually exists.
 export async function POST(req: Request) {

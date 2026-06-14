@@ -33,7 +33,7 @@ const presets: Record<RevealVariant, Variants> = {
       transition: { duration: 0.8, ease: "easeOut", delay: i * 0.08 },
     }),
   },
-  // soft focus-in — feels premium on headings/imagery
+  // soft focus-in - feels premium on headings/imagery
   blur: {
     hidden: { opacity: 0, y: 24, filter: "blur(14px)" },
     show: (i: number = 0) => ({

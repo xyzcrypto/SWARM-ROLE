@@ -30,7 +30,7 @@ async function getPost(slug: string) {
     });
   } catch (err: any) {
     // Resilience: if the `views` column hasn't been migrated yet (P2022), don't
-    // 404 the whole article — re-query the needed fields and default views to 0.
+    // 404 the whole article - re-query the needed fields and default views to 0.
     if (err?.code === "P2022") {
       const post = await prisma.post
         .findFirst({
@@ -97,7 +97,7 @@ export default async function PostPage({
   ]);
   if (!post) notFound();
 
-  // Count the view — but skip router prefetches (hover/viewport) so the number
+  // Count the view - but skip router prefetches (hover/viewport) so the number
   // reflects real opens, not Next.js prefetch traffic. Fire-and-forget.
   const h = headers();
   const isPrefetch = h.get("next-router-prefetch") === "1" || h.get("purpose") === "prefetch";
@@ -110,7 +110,7 @@ export default async function PostPage({
   let isAdmin = sessionUser?.role === "ADMIN";
   let isPremium = sessionUser?.membership === "Premium";
   // For premium posts, re-check live role/membership from the DB so an admin
-  // up/downgrade takes effect immediately — the JWT is only a stale client hint.
+  // up/downgrade takes effect immediately - the JWT is only a stale client hint.
   if (post.premium && sessionUser?.id) {
     const fresh = await prisma.user
       .findUnique({ where: { id: sessionUser.id }, select: { role: true, membership: true } })

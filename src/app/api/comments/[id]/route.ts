@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getAdminSession, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
-// DELETE /api/comments/:id — admin only (moderation).
+// DELETE /api/comments/:id - admin only (moderation).
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const session = await getAdminSession();

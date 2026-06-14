@@ -28,7 +28,7 @@ function codesMatch(code: string, storedHash: string): boolean {
 /**
  * Issue a fresh code for an email + purpose. Any previous codes for the same
  * email/purpose are removed (only the latest is valid). Returns the plaintext
- * code for the caller to email — only the bcrypt hash is stored.
+ * code for the caller to email - only the bcrypt hash is stored.
  */
 export async function issueCode(
   email: string,

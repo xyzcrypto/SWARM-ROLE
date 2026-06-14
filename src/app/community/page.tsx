@@ -11,7 +11,7 @@ import { ChatClient } from "@/components/ChatClient";
 export const metadata: Metadata = {
   title: "Community Chat",
   description:
-    "The XYZ Crypto community lounge — talk markets, alpha, airdrops and Web3 live with other members.",
+    "The XYZ Crypto community lounge - talk markets, alpha, airdrops and Web3 live with other members.",
 };
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export default async function CommunityPage() {
   const me = session?.user as any;
 
   // Initial history (oldest-first for rendering); resilient to missing table
-  // pre-migration — page renders with an empty room instead of crashing.
+  // pre-migration - page renders with an empty room instead of crashing.
   const rows = await prisma.chatMessage
     .findMany({
       where: { status: "visible" },
@@ -48,7 +48,7 @@ export default async function CommunityPage() {
               The <span className="text-gold-gradient">XYZ Lounge</span>
             </h1>
             <p className="mt-2 text-sm text-zinc-500">
-              Markets, alpha, airdrops &amp; Web3 — live with the community.
+              Markets, alpha, airdrops &amp; Web3 - live with the community.
             </p>
           </div>
 

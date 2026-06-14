@@ -3,7 +3,7 @@ import { Lock, Sparkles } from "lucide-react";
 
 /**
  * Locked teaser shown in place of a premium post's body for non-Premium users.
- * The full content is never rendered/sent here — gating happens server-side.
+ * The full content is never rendered/sent here - gating happens server-side.
  */
 export function PremiumLock({ loggedIn }: { loggedIn: boolean }) {
   return (

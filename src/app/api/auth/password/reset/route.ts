@@ -11,7 +11,7 @@ const schema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters").max(100),
 });
 
-// POST /api/auth/password/reset — verify the reset code and set a new password.
+// POST /api/auth/password/reset - verify the reset code and set a new password.
 export async function POST(req: Request) {
   try {
     const { success } = await rateLimit("password", clientIp(req));

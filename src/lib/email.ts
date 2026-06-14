@@ -74,7 +74,7 @@ export function otpEmail(code: string, purpose: "signup" | "login" | "reset") {
           <p style="font-size:13px;color:#71717a;margin:18px 0 0">This code expires in <b style="color:#a1a1aa">10 minutes</b>. If you didn't request it, ignore this email.</p>
         </td></tr>
         <tr><td style="padding:24px 32px;border-top:1px solid #26262b;margin-top:20px">
-          <p style="font-size:11px;color:#52525b;margin:0">© XYZ Crypto — Built for the Next Generation of Web3</p>
+          <p style="font-size:11px;color:#52525b;margin:0">© XYZ Crypto - Built for the Next Generation of Web3</p>
         </td></tr>
       </table>
     </td></tr>

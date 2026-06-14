@@ -416,7 +416,7 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
               <tr key={u.id} className="hover:bg-white/[0.02]">
                 <td className="px-5 py-3">
                   <div className="font-medium text-zinc-200">{u.email}</div>
-                  <div className="mono text-[11px] text-zinc-600">{u.name ?? "—"} · {u.provider}</div>
+                  <div className="mono text-[11px] text-zinc-600">{u.name ?? "-"} · {u.provider}</div>
                 </td>
                 <td className="px-5 py-3 mono text-xs text-zinc-400">{formatDate(u.createdAt)}</td>
                 <td className="px-5 py-3 mono text-xs text-zinc-400">
@@ -440,7 +440,7 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
                 </td>
                 <td className="px-5 py-3 text-right">
                   {u.role === "ADMIN" ? (
-                    <span className="text-xs text-zinc-600">—</span>
+                    <span className="text-xs text-zinc-600">-</span>
                   ) : (
                     <button
                       onClick={() => toggleMembership(u)}

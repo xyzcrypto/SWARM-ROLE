@@ -7,7 +7,7 @@ import { Container, Section, SectionHeading, Badge } from "@/components/ui/primi
 import { Reveal } from "@/components/Reveal";
 
 export const metadata: Metadata = {
-  title: "Premium Plans — Coming Soon",
+  title: "Premium Plans - Coming Soon",
   description:
     "XYZ Crypto Premium is on the way: private research, early product access, airdrop intelligence and more. Join the waitlist for launch.",
 };
@@ -56,13 +56,13 @@ export default function PremiumPage() {
               </Reveal>
               <Reveal delay={1}>
                 <h1 className="mt-5 font-display text-display-lg font-semibold tracking-tight text-zinc-50">
-                  Premium Plans —{" "}
+                  Premium Plans -{" "}
                   <span className="text-gold-gradient">Coming Soon</span>
                 </h1>
               </Reveal>
               <Reveal delay={2}>
                 <p className="mt-4 text-base leading-relaxed text-zinc-400">
-                  We&apos;re putting the finishing touches on XYZ Crypto Premium — private
+                  We&apos;re putting the finishing touches on XYZ Crypto Premium - private
                   research, early product access and airdrop intelligence. Plans and pricing
                   will be announced here. Create a free account to be first in line.
                 </p>
@@ -132,7 +132,7 @@ export default function PremiumPage() {
               className="mt-20"
               eyebrow="Stay in the loop"
               title={<>Be first to know when Premium goes live</>}
-              subtitle="A free account gets you research, community and early-access perks today — and a front-row seat for the Premium launch."
+              subtitle="A free account gets you research, community and early-access perks today - and a front-row seat for the Premium launch."
             />
             <div className="mt-7 flex justify-center">
               <Link href="/signup" className="btn-gold !px-7">

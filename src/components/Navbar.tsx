@@ -94,7 +94,7 @@ export function Navbar() {
         <div className="hidden items-center gap-2 md:flex">
           {session ? (
             <div className="relative" ref={menuRef}>
-              {/* Account button — avatar + membership, opens a dropdown */}
+              {/* Account button - avatar + membership, opens a dropdown */}
               <button
                 onClick={() => setMenu((v) => !v)}
                 className="flex items-center gap-2 rounded-xl border border-line bg-white/5 py-1.5 pl-1.5 pr-2.5 transition-colors hover:border-gold-500/30 hover:bg-white/[0.07]"

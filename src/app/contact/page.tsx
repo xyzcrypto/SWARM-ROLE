@@ -11,7 +11,7 @@ import { site } from "@/lib/site";
 export const metadata: Metadata = {
   title: "Contact Us",
   description:
-    "Get in touch with the XYZ Crypto team — questions, partnerships, support and feedback. Reach us by email or on our community channels.",
+    "Get in touch with the XYZ Crypto team - questions, partnerships, support and feedback. Reach us by email or on our community channels.",
 };
 
 const socials = [
@@ -42,7 +42,7 @@ export default function ContactPage() {
               </Reveal>
               <Reveal delay={2}>
                 <p className="mt-4 text-base leading-relaxed text-zinc-400">
-                  Questions, partnerships, support or feedback — send us a message and the team
+                  Questions, partnerships, support or feedback - send us a message and the team
                   will get back to you. You can also reach us directly on any of our channels.
                 </p>
               </Reveal>
@@ -97,7 +97,7 @@ export default function ContactPage() {
                     <div>
                       <p className="text-sm font-semibold text-zinc-100">Response time</p>
                       <p className="mt-0.5 text-[13px] text-zinc-400">
-                        We typically reply within 1–2 business days.
+                        We typically reply within 1-2 business days.
                       </p>
                     </div>
                   </div>

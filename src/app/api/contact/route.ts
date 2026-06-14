@@ -13,7 +13,7 @@ const schema = z.object({
 const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
-// POST /api/contact — public contact form. Emails the site owner via Resend
+// POST /api/contact - public contact form. Emails the site owner via Resend
 // (logs to console when email isn't configured). Reuses the subscribe limiter.
 export async function POST(req: Request) {
   try {

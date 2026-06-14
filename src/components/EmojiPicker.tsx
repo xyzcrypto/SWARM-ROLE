@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 
-// Curated emoji set — no external library (keeps the bundle small). Grouped
+// Curated emoji set - no external library (keeps the bundle small). Grouped
 // loosely by vibe; enough for a lively crypto community chat.
 const EMOJIS = [
   "😀", "😂", "🤣", "😅", "😊", "😍", "😎", "🤩",

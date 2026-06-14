@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-// Below-the-fold, animation-only — defer its JS so it never blocks the
+// Below-the-fold, animation-only - defer its JS so it never blocks the
 // homepage's first paint/hydration. A same-size placeholder avoids layout shift.
 const OrbitalEcosystem = dynamic(
   () => import("./OrbitalEcosystem").then((m) => m.OrbitalEcosystem),

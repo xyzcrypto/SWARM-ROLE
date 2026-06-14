@@ -9,7 +9,7 @@ import {
   CHAT_PAGE_SIZE,
 } from "@/lib/chat";
 
-// GET /api/chat/messages[?cursor=<id>] — public chat history, newest page
+// GET /api/chat/messages[?cursor=<id>] - public chat history, newest page
 // first; pass the oldest message id as cursor to page further back.
 export async function GET(req: Request) {
   try {
@@ -35,7 +35,7 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/chat/messages — send a message (logged-in only, rate-limited).
+// POST /api/chat/messages - send a message (logged-in only, rate-limited).
 export async function POST(req: Request) {
   try {
     const me = await getSessionUser();

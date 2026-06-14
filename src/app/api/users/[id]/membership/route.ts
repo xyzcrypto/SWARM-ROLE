@@ -8,7 +8,7 @@ const schema = z.object({
   membership: z.enum(["Free", "Premium"]),
 });
 
-// PATCH /api/users/:id/membership — admin only
+// PATCH /api/users/:id/membership - admin only
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }

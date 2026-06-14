@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 
-/** Score a password 0–4 for the strength meter (purely UI feedback). */
+/** Score a password 0-4 for the strength meter (purely UI feedback). */
 export function passwordScore(pw: string): number {
   if (!pw) return 0;
   let s = 0;

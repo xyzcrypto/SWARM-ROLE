@@ -4,7 +4,7 @@ import { useSession } from "next-auth/react";
 import { WaitlistForm } from "./WaitlistForm";
 
 /**
- * The footer "Get alpha in your inbox" capture. Hidden for signed-in members —
+ * The footer "Get alpha in your inbox" capture. Hidden for signed-in members -
  * they already have an account, so the repeated waitlist/subscribe band on every
  * page is redundant (and was reported as a duplicate). Guests still see it.
  */

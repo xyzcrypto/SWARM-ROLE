@@ -52,7 +52,7 @@ export function OrbitalEcosystem() {
   }, []);
 
   // Particle field generated client-side (no SSR/hydration mismatch, no CLS).
-  // Fewer on phones — each particle is an animated paint layer.
+  // Fewer on phones - each particle is an animated paint layer.
   useEffect(() => {
     if (!active) return;
     const count = window.matchMedia("(max-width: 768px)").matches ? 14 : 34;
@@ -161,7 +161,7 @@ export function OrbitalEcosystem() {
           <Link
             key={n.label}
             href={n.href}
-            aria-label={`${n.label} — ${n.desc}`}
+            aria-label={`${n.label} - ${n.desc}`}
             className="group absolute z-10 -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${n.left}%`, top: `${n.top}%` }}
           >

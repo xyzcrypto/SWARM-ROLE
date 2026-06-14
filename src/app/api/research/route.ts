@@ -13,7 +13,7 @@ function revalidateContent(slug?: string) {
   if (slug) revalidatePath(`/research/${slug}`);
 }
 
-// GET /api/research — public list (published only), filterable + paginated.
+// GET /api/research - public list (published only), filterable + paginated.
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -72,7 +72,7 @@ const createSchema = z.object({
   premium: z.boolean().optional(),
 });
 
-// POST /api/research — admin only
+// POST /api/research - admin only
 export async function POST(req: Request) {
   try {
     const session = await getAdminSession();

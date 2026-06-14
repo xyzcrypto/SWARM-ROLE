@@ -46,7 +46,7 @@ export function ContactForm() {
         </span>
         <p className="mt-4 font-display text-lg font-semibold text-zinc-50">Message sent</p>
         <p className="mt-1.5 max-w-sm text-sm text-zinc-400">
-          Thanks for reaching out — we&apos;ll get back to you at {email || "your email"} soon.
+          Thanks for reaching out - we&apos;ll get back to you at {email || "your email"} soon.
         </p>
       </div>
     );

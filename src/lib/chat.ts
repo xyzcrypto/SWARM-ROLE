@@ -1,8 +1,8 @@
-// Community chat — validation schemas + server-side realtime broadcast.
+// Community chat - validation schemas + server-side realtime broadcast.
 // Delivery model: Postgres is the source of truth (history), Supabase Realtime
 // "broadcast" pushes new/hidden/reaction events to subscribed clients instantly.
 // When the Supabase env is unset, broadcast is a silent no-op and the client
-// falls back to polling — chat still works end-to-end.
+// falls back to polling - chat still works end-to-end.
 import { z } from "zod";
 import { broadcastEvent } from "@/lib/realtime";
 
@@ -73,7 +73,7 @@ type ChatEvent =
 /**
  * Push a chat event to the public `community` Realtime channel via Supabase's
  * HTTP broadcast endpoint (server-side, service-role key). Fire-and-forget:
- * a realtime hiccup must never fail the API request — history (DB) is the
+ * a realtime hiccup must never fail the API request - history (DB) is the
  * source of truth and clients reconcile via polling/refresh.
  */
 export async function broadcastChatEvent(evt: ChatEvent): Promise<void> {

@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
-// POST /api/posts/:id/like — logged-in toggle. Returns { liked, count }.
+// POST /api/posts/:id/like - logged-in toggle. Returns { liked, count }.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser();

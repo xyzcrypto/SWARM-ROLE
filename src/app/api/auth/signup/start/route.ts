@@ -13,7 +13,7 @@ const schema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters").max(100),
 });
 
-// POST /api/auth/signup/start — validate details, email a verification code.
+// POST /api/auth/signup/start - validate details, email a verification code.
 // The account is created only after the code is verified (in NextAuth authorize).
 export async function POST(req: Request) {
   try {

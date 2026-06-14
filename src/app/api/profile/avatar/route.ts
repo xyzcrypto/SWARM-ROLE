@@ -4,7 +4,7 @@ import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { uploadImage, isAllowedImageType, MAX_UPLOAD_BYTES } from "@/lib/storage";
 
-// POST /api/profile/avatar — any signed-in user uploads a new profile picture.
+// POST /api/profile/avatar - any signed-in user uploads a new profile picture.
 // Reuses the same Supabase storage path as cover uploads; persists the URL to
 // the user's `image` so it shows everywhere (navbar, profile, comments).
 export async function POST(req: Request) {

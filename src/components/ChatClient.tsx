@@ -122,7 +122,7 @@ export function ChatClient({
     setMessages((prev) => prev.filter((m) => m.id !== id));
   }, []);
 
-  // Idempotent reaction delta — safe to apply for both optimistic + echoed events.
+  // Idempotent reaction delta - safe to apply for both optimistic + echoed events.
   const applyReaction = useCallback(
     (messageId: string, emoji: string, userId: string, op: "add" | "remove") => {
       setMessages((prev) =>
@@ -435,7 +435,7 @@ export function ChatClient({
         )}
 
         {messages.length === 0 && (
-          <p className="py-16 text-center text-sm text-zinc-600">No messages yet — be the first to say gm. 👋</p>
+          <p className="py-16 text-center text-sm text-zinc-600">No messages yet - be the first to say gm. 👋</p>
         )}
 
         <AnimatePresence initial={false}>
@@ -701,7 +701,7 @@ export function ChatClient({
           </>
         ) : (
           <div className="flex flex-col items-center justify-between gap-2 py-1 sm:flex-row">
-            <p className="text-sm text-zinc-400">Join the conversation — it&apos;s free.</p>
+            <p className="text-sm text-zinc-400">Join the conversation - it&apos;s free.</p>
             <Link href="/login?callbackUrl=/community" className="btn-gold !py-2 text-[13px]">
               Log in to chat
             </Link>

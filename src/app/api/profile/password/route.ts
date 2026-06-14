@@ -4,7 +4,7 @@ import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { passwordChangeSchema } from "@/lib/profile";
 
-// POST /api/profile/password — change password for credentials accounts.
+// POST /api/profile/password - change password for credentials accounts.
 // Requires the current password; OAuth-only accounts (no passwordHash) are
 // directed to set a password via the reset flow instead.
 export async function POST(req: Request) {

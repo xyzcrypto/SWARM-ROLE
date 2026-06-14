@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
-// GET /api/posts/:id/comments — public; visible comments, newest first, paginated.
+// GET /api/posts/:id/comments - public; visible comments, newest first, paginated.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     if (!isCuid(params.id)) return fail("Invalid id.", 400);
@@ -53,7 +53,7 @@ const createSchema = z.object({
   body: z.string().trim().min(1, "Comment can't be empty").max(1000, "Comment is too long"),
 });
 
-// POST /api/posts/:id/comments — any logged-in user; auto-published.
+// POST /api/posts/:id/comments - any logged-in user; auto-published.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
     const user = await getSessionUser();

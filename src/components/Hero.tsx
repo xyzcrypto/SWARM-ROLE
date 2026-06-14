@@ -119,7 +119,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
           >
             {session ? (
-              // Account holders already have access — point them at the content.
+              // Account holders already have access - point them at the content.
               <>
                 <Link href="/research" className="btn-primary w-full sm:w-auto">
                   Explore Research

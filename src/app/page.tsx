@@ -29,7 +29,7 @@ export default async function HomePage() {
       <main>
         <Hero memberCount={memberCount} />
         <MarketTicker />
-        {/* Orbital ecosystem — the signature centerpiece showcase. */}
+        {/* Orbital ecosystem - the signature centerpiece showcase. */}
         <OrbitalSection />
         <ProofStrip />
         <About />
@@ -38,7 +38,7 @@ export default async function HomePage() {
         <MembersShowcase memberCount={memberCount} />
         <Ecosystem />
         <Social />
-        {/* Sign-up CTA — shown to guests only (members already have an account). */}
+        {/* Sign-up CTA - shown to guests only (members already have an account). */}
         <GuestOnly>
           <CtaBand memberCount={memberCount} />
         </GuestOnly>

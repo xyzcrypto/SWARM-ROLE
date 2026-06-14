@@ -272,7 +272,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
             )}
           </div>
           <p className="mt-1.5 text-[11px] text-zinc-600">
-            3–20 chars: lowercase letters, numbers or _. Your public profile lives at{" "}
+            3-20 chars: lowercase letters, numbers or _. Your public profile lives at{" "}
             <span className="mono text-zinc-500">/u/{normalizedHandle || "handle"}</span>.
           </p>
         </label>

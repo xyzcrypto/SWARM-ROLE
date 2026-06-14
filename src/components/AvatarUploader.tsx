@@ -7,9 +7,9 @@ import { uploadFileWithProgress } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
 
 // Sets a profile picture two ways and reports the new URL up:
-//  1) Upload a file to /api/profile/avatar (Supabase Storage) — shows progress.
+//  1) Upload a file to /api/profile/avatar (Supabase Storage) - shows progress.
 //  2) Paste an image URL (fallback that works even when Storage isn't configured)
-//     — saved via PATCH /api/profile, validated server-side against allowed hosts.
+//     - saved via PATCH /api/profile, validated server-side against allowed hosts.
 export function AvatarUploader({
   name,
   image,

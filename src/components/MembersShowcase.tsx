@@ -4,7 +4,7 @@ import { Container, Section, SectionHeading, Badge } from "./ui/primitives";
 import { Reveal } from "./Reveal";
 import { Avatar } from "./Avatar";
 
-// Live community showcase — recent members who set a public handle. Mint/green
+// Live community showcase - recent members who set a public handle. Mint/green
 // themed to contrast the gold sections. Server component; only public profiles
 // (users with a username) are shown, each linking to /u/<handle>.
 export async function MembersShowcase({ memberCount = 0 }: { memberCount?: number }) {

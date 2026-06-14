@@ -1,5 +1,5 @@
 // Client-side image downscale + re-encode before upload. Shrinks large photos
-// (phone cameras easily produce 5–10 MB files) so uploads are fast and reliably
+// (phone cameras easily produce 5-10 MB files) so uploads are fast and reliably
 // under the server's size cap. Falls back to the original file on any failure or
 // when compression wouldn't help (e.g. animated GIFs, already-small images).
 export async function compressImage(
