@@ -7,6 +7,7 @@ import { About } from "@/components/About";
 import { Products } from "@/components/Products";
 import { ResearchPreview } from "@/components/ResearchPreview";
 import { WhatsNew } from "@/components/WhatsNew";
+import { LiveStats } from "@/components/LiveStats";
 import { Ecosystem } from "@/components/Ecosystem";
 import { Social } from "@/components/Social";
 import { CtaBand } from "@/components/CtaBand";
@@ -32,6 +33,8 @@ export default async function HomePage() {
         {/* Orbital ecosystem - the signature centerpiece showcase. */}
         <OrbitalSection />
         <ProofStrip />
+        {/* Real-time pulse: online now + visits today/total + members. */}
+        <LiveStats className="mx-auto max-w-5xl px-4 py-6" />
         <About />
         <Products />
         <ResearchPreview />

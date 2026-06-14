@@ -3,8 +3,15 @@
 // migration is applied) is swallowed so it never breaks the action that
 // triggered it (publishing a post, posting a comment, etc.).
 import { prisma } from "@/lib/prisma";
+import { broadcastEvent, CH_NOTIFY } from "@/lib/realtime";
 
 export type NotificationType = "new_post" | "new_comment" | "new_message" | "system";
+
+// Fire a lightweight global "ping" so connected clients refetch their own
+// unread count/list in near-real-time. Best-effort (no-op without Supabase).
+function pingClients(): void {
+  void broadcastEvent(CH_NOTIFY, "ping", { at: Date.now() });
+}
 
 type NewNotification = {
   userId: string;
@@ -26,6 +33,7 @@ export async function createNotification(input: NewNotification): Promise<void> 
         href: input.href ?? null,
       },
     });
+    pingClients();
   } catch (err) {
     console.error("[notifications] create failed", err);
   }
@@ -54,6 +62,7 @@ export async function notifyNewPost(post: {
         href: `/research/${post.slug}`,
       })),
     });
+    pingClients();
   } catch (err) {
     console.error("[notifications] notifyNewPost failed", err);
   }

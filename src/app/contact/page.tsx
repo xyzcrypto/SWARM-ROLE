@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Mail, MessageCircle, Clock } from "lucide-react";
+import { Mail, Clock } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Container, Section, Badge } from "@/components/ui/primitives";
 import { Reveal } from "@/components/Reveal";
+import { AnimatedEmoji } from "@/components/AnimatedEmoji";
 import { ContactForm } from "@/components/ContactForm";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "@/components/BrandIcons";
 import { site } from "@/lib/site";
@@ -14,11 +15,13 @@ export const metadata: Metadata = {
     "Get in touch with the XYZ Crypto team - questions, partnerships, support and feedback. Reach us by email or on our community channels.",
 };
 
+// Brand colours mirror src/components/Social.tsx so the icons read as their real
+// platform colours (with a matching hover border).
 const socials = [
-  { href: site.socials.youtube, Icon: YouTubeIcon, label: "YouTube" },
-  { href: site.socials.x, Icon: XIcon, label: "X (Twitter)" },
-  { href: site.socials.telegram, Icon: TelegramIcon, label: "Telegram" },
-  { href: site.socials.linkedin, Icon: LinkedInIcon, label: "LinkedIn" },
+  { href: site.socials.youtube, Icon: YouTubeIcon, label: "YouTube", color: "text-red-400", hover: "hover:border-red-500/40" },
+  { href: site.socials.x, Icon: XIcon, label: "X (Twitter)", color: "text-zinc-100", hover: "hover:border-white/30" },
+  { href: site.socials.telegram, Icon: TelegramIcon, label: "Telegram", color: "text-sky-400", hover: "hover:border-sky-500/40" },
+  { href: site.socials.linkedin, Icon: LinkedInIcon, label: "LinkedIn", color: "text-blue-400", hover: "hover:border-blue-500/40" },
 ];
 
 export default function ContactPage() {
@@ -32,7 +35,7 @@ export default function ContactPage() {
             <div className="mx-auto max-w-2xl text-center">
               <Reveal>
                 <Badge tone="mint" className="!px-3 !py-1">
-                  <MessageCircle className="h-3.5 w-3.5" /> We&apos;d love to hear from you
+                  <AnimatedEmoji emoji="👋" variant="wobble" className="text-sm" /> We&apos;d love to hear from you
                 </Badge>
               </Reveal>
               <Reveal delay={1}>
@@ -57,7 +60,10 @@ export default function ContactPage() {
                       <Mail className="h-5 w-5" />
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-zinc-100">Email us</p>
+                      <p className="text-sm font-semibold text-zinc-100">
+                        <AnimatedEmoji emoji="✉️" variant="float" className="mr-1.5 text-sm" />
+                        Email us
+                      </p>
                       <a
                         href={`mailto:${site.email}`}
                         className="mono text-[13px] text-mint-300 transition-colors hover:text-mint-200"
@@ -75,7 +81,10 @@ export default function ContactPage() {
                       <TelegramIcon className="h-5 w-5" />
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-zinc-100">Telegram</p>
+                      <p className="text-sm font-semibold text-zinc-100">
+                        <AnimatedEmoji emoji="💬" variant="float" className="mr-1.5 text-sm" />
+                        Telegram
+                      </p>
                       <a
                         href={site.support.telegramUrl}
                         target="_blank"
@@ -95,7 +104,10 @@ export default function ContactPage() {
                       <Clock className="h-5 w-5" />
                     </span>
                     <div>
-                      <p className="text-sm font-semibold text-zinc-100">Response time</p>
+                      <p className="text-sm font-semibold text-zinc-100">
+                        <AnimatedEmoji emoji="⏱️" variant="wobble" className="mr-1.5 text-sm" />
+                        Response time
+                      </p>
                       <p className="mt-0.5 text-[13px] text-zinc-400">
                         We typically reply within 1-2 business days.
                       </p>
@@ -113,7 +125,7 @@ export default function ContactPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label={s.label}
-                          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-300 transition-all hover:-translate-y-0.5 hover:border-gold-500/30 hover:text-gold-200"
+                          className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 transition-all hover:-translate-y-0.5 ${s.color} ${s.hover}`}
                         >
                           <s.Icon className="h-5 w-5" />
                         </a>

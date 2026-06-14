@@ -7,6 +7,7 @@ import { env, realtimeEnabled } from "@/lib/env";
 // Channel / topic names shared by server (broadcast) and clients (subscribe).
 export const CH_SITE = "site-visitors"; // global presence → live-online count
 export const CH_MEMBERS = "members"; // admin member-list live updates
+export const CH_NOTIFY = "notifications"; // global "new notification" ping → bell refetch
 export const userChannel = (userId: string) => `user:${userId}`; // per-user events
 
 export async function broadcastEvent(topic: string, event: string, payload: unknown): Promise<void> {

@@ -5,6 +5,36 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-14 — Demo 3: branded loader, live emoji, orbital fix, realtime data
+**Branded route loader**
+- New `BrandLoader` (XYZ logo + orbiting/pulsing rings on mesh); `RouteSkeleton`
+  now renders it, so every suspending navigation shows a branded transition.
+
+**Emoji (real + actively animated)**
+- Stronger keyframes in `globals.css`: `emoji-launch` (fly/lift loop),
+  `emoji-wobble` (hourglass flip), new `emoji-twinkle` + `emoji-spin`;
+  `AnimatedEmoji` gains `twinkle`/`spin` variants.
+- Premium: heading rocket 🚀 flies, "Coming soon" ⏳ flips, "Most popular" now an
+  animated ⭐ (twinkle) instead of the lucide Sparkles.
+- Contact: real animated emoji (👋 ✉️ 💬 ⏱️) on the header badge + info cards,
+  and the community social icons are now **brand-coloured** (red/white/sky/blue,
+  reusing the `Social.tsx` map) instead of monochrome.
+
+**Orbital desktop fix** (`OrbitalEcosystem.tsx`)
+- Rings/aurora/logo-glow now animate on mount (gated only by
+  prefers-reduced-motion) instead of waiting for an in-view `active` flag, and
+  rotation speeds sped up (18/24/14s, aurora 16s) so it visibly runs on desktop.
+  Particle field + parallax stay in-view/perf-gated.
+
+**Real-time data for end users**
+- New `useLivePresence` hook (observes the `site-visitors` presence channel),
+  `GET /api/live/stats` (visits today/total + members), and `LiveStats` strip
+  ("N online now · visits today · total · members") in the Footer + homepage.
+- Live bell: `CH_NOTIFY` broadcast "ping" from `lib/notifications.ts` on every
+  notification; `NavActivity` subscribes (+ community `new_message`) to refetch
+  instantly, poll relaxed to 60s fallback. All degrade gracefully without
+  Supabase.
+
 ## 2026-06-14 — Demo 2: UI/UX polish, in-app notifications, profile fix, speed
 **Profile / Settings**
 - Fixed "Profile opens Settings": every account now gets an auto-assigned unique

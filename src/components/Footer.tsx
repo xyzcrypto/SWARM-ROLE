@@ -4,6 +4,7 @@ import { site, navLinks } from "@/lib/site";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "./BrandIcons";
 import { Container } from "./ui/primitives";
 import { FooterNewsletter } from "./FooterNewsletter";
+import { LiveStats } from "./LiveStats";
 
 const socialList = [
   { href: site.socials.youtube, Icon: YouTubeIcon, label: "YouTube", color: "text-red-500", hover: "hover:border-red-500/50 hover:text-red-400 hover:bg-red-500/10" },
@@ -70,6 +71,9 @@ export function Footer() {
             </ul>
           </div>
         </div>
+
+        {/* Live site stats (real-time online + visits) */}
+        <LiveStats className="border-t border-line py-5" />
 
         <div className="flex flex-col items-center justify-between gap-3 border-t border-line py-6 sm:flex-row">
           <p className="mono text-[11px] text-zinc-600">© {new Date().getFullYear()} XYZ Crypto. All rights reserved.</p>

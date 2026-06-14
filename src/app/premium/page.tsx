@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Check, Sparkles } from "lucide-react";
+import { Check } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Container, Section, SectionHeading, Badge } from "@/components/ui/primitives";
@@ -96,7 +96,7 @@ export default function PremiumPage() {
                   >
                     {t.highlight && (
                       <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gold-200 ring-1 ring-gold-500/30">
-                        <Sparkles className="h-3.5 w-3.5" /> Most popular
+                        <AnimatedEmoji emoji="⭐" variant="twinkle" className="text-xs" /> Most popular
                       </span>
                     )}
                     <p className="font-display text-lg font-semibold text-zinc-100">{t.name}</p>

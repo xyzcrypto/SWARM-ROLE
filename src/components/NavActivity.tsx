@@ -16,7 +16,7 @@ type Note = {
   createdAt: string;
 };
 
-const POLL_MS = 45_000;
+const POLL_MS = 60_000; // fallback poll - realtime "ping" handles instant updates
 const CHAT_SEEN_KEY = "xyz:chatSeen";
 
 function timeAgo(iso: string): string {
@@ -80,6 +80,45 @@ export function NavActivity() {
       }
     }, POLL_MS);
     return () => clearInterval(id);
+  }, [loadNotes, loadChat]);
+
+  // Real-time: refetch the moment the server pings (new post/comment), so the
+  // bell + chat dot update instantly instead of waiting for the next poll.
+  // No-op (poll-only) when Supabase realtime isn't configured.
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !anon) return;
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      const { createClient } = await import("@supabase/supabase-js");
+      if (cancelled) return;
+      const client = createClient(url, anon, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const ch = client.channel("notifications");
+      ch.on("broadcast", { event: "ping" }, () => {
+        loadNotes();
+        loadChat();
+      }).subscribe();
+      // Live chat dot: light up on a new community message unless the user is
+      // currently on the chat page (which marks messages seen).
+      const chat = client.channel("community");
+      chat
+        .on("broadcast", { event: "new_message" }, () => {
+          if (!window.location.pathname.startsWith("/community")) setChatDot(true);
+        })
+        .subscribe();
+      cleanup = () => {
+        client.removeChannel(ch);
+        client.removeChannel(chat);
+      };
+    })();
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
   }, [loadNotes, loadChat]);
 
   // Opening the community page marks chat as seen.

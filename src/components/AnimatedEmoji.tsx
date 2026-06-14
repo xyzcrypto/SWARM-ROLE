@@ -2,20 +2,24 @@
 
 import { useReducedMotion } from "framer-motion";
 
-type Variant = "launch" | "wobble" | "float";
+type Variant = "launch" | "wobble" | "float" | "twinkle" | "spin";
 
 const loopAnimation: Record<Variant, string> = {
-  launch: "emoji-launch 1.6s ease-in-out infinite",
-  wobble: "emoji-wobble 2.4s ease-in-out infinite",
+  launch: "emoji-launch 1.5s ease-in-out infinite",
+  wobble: "emoji-wobble 3s ease-in-out infinite",
   float: "emoji-float 3s ease-in-out infinite",
+  twinkle: "emoji-twinkle 2.2s ease-in-out infinite",
+  spin: "emoji-spin 4s linear infinite",
 };
 
 // Tailwind arbitrary animation that only runs while a parent `.group` is hovered
 // (spaces written as underscores). Used for CTA emojis that animate on hover.
 const hoverClass: Record<Variant, string> = {
-  launch: "group-hover:[animation:emoji-launch_1.6s_ease-in-out_infinite]",
-  wobble: "group-hover:[animation:emoji-wobble_2.4s_ease-in-out_infinite]",
+  launch: "group-hover:[animation:emoji-launch_1.5s_ease-in-out_infinite]",
+  wobble: "group-hover:[animation:emoji-wobble_3s_ease-in-out_infinite]",
   float: "group-hover:[animation:emoji-float_3s_ease-in-out_infinite]",
+  twinkle: "group-hover:[animation:emoji-twinkle_2.2s_ease-in-out_infinite]",
+  spin: "group-hover:[animation:emoji-spin_4s_linear_infinite]",
 };
 
 /**
