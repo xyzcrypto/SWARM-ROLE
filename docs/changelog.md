@@ -5,6 +5,49 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (foundation): design system + light/dark theming
+Recovery point: branch `backup/pre-phase2`. Brand identity preserved; **dark mode
+pixel-identical** to before (zero regression); backward-compatible.
+- **Theming:** Tailwind `darkMode: "class"`; semantic CSS-var tokens in `globals.css`
+  (`:root` light / `.dark` dark = current values); `body` wired to tokens; no-FOUC
+  inline script + default `dark` class in `layout.tsx`; new `ThemeToggle` in the navbar
+  (desktop + mobile). Dark stays default for first-time visitors.
+- **Design tokens:** semantic Tailwind aliases (`base`, `surface`, `surface-2`,
+  `content`, `content-muted`, `hairline`), motion tokens (`ease-premium`,
+  `duration-250/400`); documented in new `docs/DESIGN-SYSTEM.md`.
+- **Libraries:** installed `animejs` (v4) + `iconsax-react` (additive); lazy
+  `src/lib/anime.ts` helper. (R3F deferred to the hero increment.)
+- No UI redesign in this pass — foundation only. Per-area premium polish + R3F hero
+  are the next increments.
+
+## 2026-06-15 — Phase 1: performance & stability
+Recovery point: branch `backup/pre-phase1` (@ d5e9b63). All backward-compatible,
+no UI/architecture change. First-Load JS unchanged (159 kB shared).
+- **DB indexes** (`prisma/schema.prisma` + idempotent migration
+  `7_phase1_indexes/`): `Notification[userId,createdAt]`, `User[membership,createdAt]`,
+  `PageView[path,createdAt]`. Additive; app already tolerant if unapplied.
+- **PageView retention** (`api/track`): opportunistic (~1.5%) fire-and-forget prune
+  of rows older than 90 days → table stays bounded without cron/infra.
+- **Dashboard premium list** (`dashboard/page.tsx`): bounded with `take: 100`
+  (newest-first) to avoid an unbounded scan at scale.
+- **Chat realtime hygiene** (`ChatClient.tsx`): `channel.unsubscribe()` before
+  `removeChannel` on cleanup → no subscription buildup on repeated mounts.
+- Image/bundle review: `next/image` lazy defaults already in place; only an
+  admin-only preview `<img>` remains (non-public). No risky refactors.
+
+## 2026-06-15 — Phase 0 deep audit + critical fixes (see docs/AUDIT-PHASE0.md)
+Recovery point: branch `backup/pre-audit-fixes` (@ ca969f7) pushed to origin.
+**Fixes (safe, backward-compatible):**
+- **Upload content-type spoofing** — `src/lib/storage.ts` now magic-byte–sniffs
+  uploads (`sniffImageType`) and rejects non-images regardless of client MIME;
+  applies to `api/profile/avatar` (any user) + `api/upload` (admin). +unit tests (67 total).
+- **Unbounded notification fan-out** — `notifyNewPost` (`src/lib/notifications.ts`)
+  now caps recipients (50k) and inserts in 500-row batches.
+- **Admin upload rate-limit** keyed per-user (`api/upload`) instead of IP.
+- **Mobile** — notification dropdown `max-w-[calc(100vw-1rem)]` so it doesn't clip.
+Deep audit report (chat/upload/CMS/scale/mobile) added. Not merged to main —
+held for owner review. No architecture/UI/feature changes.
+
 ## 2026-06-14 — Pre-Phase-2 hardening, audit & recovery point (see docs/AUDIT-PRE-PHASE2.md)
 **Recovery point:** backup branches `phase1-stable` + `pre-phase2-backup` pushed
 to origin (tag `phase1-production` local; tag push blocked by env git proxy).

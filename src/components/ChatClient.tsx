@@ -178,6 +178,9 @@ export function ChatClient({
           });
         channelRef.current = channel;
         cleanup = () => {
+          // Fully tear down the subscription (socket) before dropping the channel
+          // so repeated mounts don't accumulate connections.
+          channel.unsubscribe();
           client.removeChannel(channel);
           channelRef.current = null;
           setLive(false);

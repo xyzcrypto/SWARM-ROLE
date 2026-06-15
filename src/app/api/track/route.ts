@@ -16,6 +16,15 @@ export async function POST(req: Request) {
     const path = parsed.success ? parsed.data.path : "/";
 
     await prisma.pageView.create({ data: { path } }).catch(() => null);
+
+    // Opportunistic retention: on ~1.5% of writes, prune rows older than 90 days
+    // so the table stays bounded without any cron/infra. Fire-and-forget - never
+    // awaited, never affects the response.
+    if (Math.random() < 0.015) {
+      const cutoff = new Date(Date.now() - 90 * 864e5);
+      prisma.pageView.deleteMany({ where: { createdAt: { lt: cutoff } } }).catch(() => null);
+    }
+
     return ok({ ok: true });
   } catch (err) {
     return handleError(err, "track");

@@ -195,7 +195,7 @@ export function NavActivity() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.97 }}
               transition={{ duration: 0.16, ease: "easeOut" }}
-              className="absolute right-0 mt-2 w-80 overflow-hidden rounded-2xl border border-line bg-ink-900/95 shadow-elevate backdrop-blur-xl"
+              className="absolute right-0 mt-2 w-80 max-w-[calc(100vw-1rem)] overflow-hidden rounded-2xl border border-line bg-ink-900/95 shadow-elevate backdrop-blur-xl"
             >
               <div className="border-b border-white/5 px-4 py-3">
                 <span className="text-sm font-semibold text-zinc-100">Notifications</span>
