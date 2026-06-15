@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (increment 2): R3F orbital hero (lazy + CSS fallback)
+Recovery point: branch `backup/pre-hero`. Stability/perf-first; brand palette only.
+- New `OrbitalScene3D.tsx` — React-Three-Fiber premium orbital (gold core +
+  mint/gold orbiting nodes + sparkles, auto-rotate + pointer parallax). Perf-budgeted:
+  `dpr={[1,1.5]}`, low-poly, paused when offscreen/tab-hidden, no heavy postprocessing.
+- `OrbitalLazy.tsx` — capability gate: renders the 3D scene only on capable desktop
+  (WebGL + pointer:fine + ≥lg + not reduced-motion + ≥4 cores/4GB); otherwise the
+  existing CSS `OrbitalEcosystem` (fallback unchanged). three.js is a **separate
+  async chunk** (~672 KB) — only downloaded when the 3D scene mounts; **shared
+  First-Load JS unchanged (159 kB)**, mobile/low-power never fetch it.
+- Deps (pinned for React 18): `three@0.169` · `@react-three/fiber@8` ·
+  `@react-three/drei@9` (+ `@types/three`). Noted in `docs/DESIGN-SYSTEM.md`.
+- Hero/navbar premium polish kept minimal this pass (stability-first); deeper
+  per-area passes follow.
+
 ## 2026-06-15 — Phase 2 (foundation): design system + light/dark theming
 Recovery point: branch `backup/pre-phase2`. Brand identity preserved; **dark mode
 pixel-identical** to before (zero regression); backward-compatible.
