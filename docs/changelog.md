@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (increment 5): Research/Articles reading-experience polish
+Recovery point: branch `backup/pre-research-polish`. No behavior/feature change; brand kept.
+- **Reading typography** (`globals.css` `.prose-xyz`): added styling for previously
+  unstyled elements — fenced **code blocks** (`pre` + `pre code` reset), **ordered
+  lists**, `h4`, **images** (rounded + ring), **tables**, and a gold **`hr`** divider;
+  refined list/line rhythm. Article column stays `max-w-3xl`.
+- **Premium gate** (`PremiumLock.tsx`): premium visual upgrade — soft gold glow,
+  blurred "hidden content" teaser lines, gold-shine lock badge, and a 3-perk value
+  list. Gating logic + buttons unchanged (content still never sent to non-Premium).
+- Shared First-Load JS unchanged (159 kB).
+
 ## 2026-06-15 — Phase 2 (increment 4): Anime.js micro-interactions + Iconsax accents
 Recovery point: branch `backup/pre-fx`. Hero-scoped; brand palette; reduced-motion safe.
 - **Iconsax accents** (`Hero.tsx`): eyebrow `Sparkles`→`MagicStar` (gold), trust-line
