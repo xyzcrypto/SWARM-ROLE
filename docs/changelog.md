@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 0 deep audit + critical fixes (see docs/AUDIT-PHASE0.md)
+Recovery point: branch `backup/pre-audit-fixes` (@ ca969f7) pushed to origin.
+**Fixes (safe, backward-compatible):**
+- **Upload content-type spoofing** — `src/lib/storage.ts` now magic-byte–sniffs
+  uploads (`sniffImageType`) and rejects non-images regardless of client MIME;
+  applies to `api/profile/avatar` (any user) + `api/upload` (admin). +unit tests (67 total).
+- **Unbounded notification fan-out** — `notifyNewPost` (`src/lib/notifications.ts`)
+  now caps recipients (50k) and inserts in 500-row batches.
+- **Admin upload rate-limit** keyed per-user (`api/upload`) instead of IP.
+- **Mobile** — notification dropdown `max-w-[calc(100vw-1rem)]` so it doesn't clip.
+Deep audit report (chat/upload/CMS/scale/mobile) added. Not merged to main —
+held for owner review. No architecture/UI/feature changes.
+
 ## 2026-06-14 — Pre-Phase-2 hardening, audit & recovery point (see docs/AUDIT-PRE-PHASE2.md)
 **Recovery point:** backup branches `phase1-stable` + `pre-phase2-backup` pushed
 to origin (tag `phase1-production` local; tag push blocked by env git proxy).

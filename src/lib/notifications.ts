@@ -49,19 +49,26 @@ export async function notifyNewPost(post: {
   slug: string;
   authorId?: string | null;
 }): Promise<void> {
+  // Cap the fan-out and insert in batches so a large user base can't turn a
+  // single publish into one giant query/insert (bounded memory + transaction
+  // size). Behavior is identical at small scale.
+  const MAX_RECIPIENTS = 50_000;
+  const BATCH = 500;
   try {
-    const users = await prisma.user.findMany({ select: { id: true } });
+    const users = await prisma.user.findMany({ select: { id: true }, take: MAX_RECIPIENTS });
     const recipients = users.filter((u) => u.id !== post.authorId);
     if (recipients.length === 0) return;
-    await prisma.notification.createMany({
-      data: recipients.map((u) => ({
-        userId: u.id,
-        type: "new_post" as const,
-        title: "New research published",
-        body: post.title,
-        href: `/research/${post.slug}`,
-      })),
-    });
+    for (let i = 0; i < recipients.length; i += BATCH) {
+      await prisma.notification.createMany({
+        data: recipients.slice(i, i + BATCH).map((u) => ({
+          userId: u.id,
+          type: "new_post" as const,
+          title: "New research published",
+          body: post.title,
+          href: `/research/${post.slug}`,
+        })),
+      });
+    }
     pingClients();
   } catch (err) {
     console.error("[notifications] notifyNewPost failed", err);
