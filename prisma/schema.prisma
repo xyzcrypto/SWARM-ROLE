@@ -52,6 +52,7 @@ model User {
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
+  @@index([membership, createdAt]) // dashboard premium-member list (Phase 1)
 }
 
 // In-app notifications (bell dropdown). Created server-side when a new post is
@@ -70,6 +71,7 @@ model Notification {
   userId String
 
   @@index([userId, read, createdAt]) // unread badge + recent list per user
+  @@index([userId, createdAt]) // recent list ORDER BY createdAt (Phase 1)
 }
 
 // Community chat — single public room, plain-text messages. `status` enables
@@ -170,6 +172,7 @@ model PageView {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+  @@index([path, createdAt]) // analytics filters/sorts (Phase 1)
 }
 
 // Email waitlist / newsletter capture (low-friction, no account needed)

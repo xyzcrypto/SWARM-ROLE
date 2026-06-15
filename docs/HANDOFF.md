@@ -65,6 +65,19 @@ hardening pass — see `docs/AUDIT-PRE-PHASE2.md`):
 - (An annotated `phase1-production` tag exists locally; tag pushes are blocked by
   this environment's git proxy, so the backup **branches** are the source of truth.)
 
+### ⚠️ Phase 1 performance indexes (one-time, production Supabase)
+Additive indexes shipped as migration `prisma/migrations/7_phase1_indexes/`.
+Apply with `npx prisma migrate deploy` (or `npm run db:push`) **or** paste in
+Supabase → SQL Editor (idempotent):
+
+```sql
+CREATE INDEX IF NOT EXISTS "Notification_userId_createdAt_idx" ON "Notification"("userId", "createdAt");
+CREATE INDEX IF NOT EXISTS "User_membership_createdAt_idx"     ON "User"("membership", "createdAt");
+CREATE INDEX IF NOT EXISTS "PageView_path_createdAt_idx"        ON "PageView"("path", "createdAt");
+```
+Purely additive — the app behaves identically whether or not they're applied;
+they just keep the bell list, dashboard premium list, and analytics fast at scale.
+
 ## 4. Pending operational state (check before building new features)
 
 ### ⚠️ Profiles DB migration (one-time, production Supabase)

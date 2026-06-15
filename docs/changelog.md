@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 1: performance & stability
+Recovery point: branch `backup/pre-phase1` (@ d5e9b63). All backward-compatible,
+no UI/architecture change. First-Load JS unchanged (159 kB shared).
+- **DB indexes** (`prisma/schema.prisma` + idempotent migration
+  `7_phase1_indexes/`): `Notification[userId,createdAt]`, `User[membership,createdAt]`,
+  `PageView[path,createdAt]`. Additive; app already tolerant if unapplied.
+- **PageView retention** (`api/track`): opportunistic (~1.5%) fire-and-forget prune
+  of rows older than 90 days → table stays bounded without cron/infra.
+- **Dashboard premium list** (`dashboard/page.tsx`): bounded with `take: 100`
+  (newest-first) to avoid an unbounded scan at scale.
+- **Chat realtime hygiene** (`ChatClient.tsx`): `channel.unsubscribe()` before
+  `removeChannel` on cleanup → no subscription buildup on repeated mounts.
+- Image/bundle review: `next/image` lazy defaults already in place; only an
+  admin-only preview `<img>` remains (non-public). No risky refactors.
+
 ## 2026-06-15 — Phase 0 deep audit + critical fixes (see docs/AUDIT-PHASE0.md)
 Recovery point: branch `backup/pre-audit-fixes` (@ ca969f7) pushed to origin.
 **Fixes (safe, backward-compatible):**

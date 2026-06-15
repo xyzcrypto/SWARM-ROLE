@@ -59,7 +59,7 @@ export default async function DashboardPage() {
       prisma.user.count({ where: { createdAt: { gte: new Date(Date.now() - 7 * 864e5) } } }),
       prisma.subscriber.count(),
       prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: userSelect }),
-      prisma.user.findMany({ where: { membership: "Premium" }, orderBy: { createdAt: "desc" }, select: userSelect }),
+      prisma.user.findMany({ where: { membership: "Premium" }, orderBy: { createdAt: "desc" }, take: 100, select: userSelect }),
       getDashboardPosts(),
       prisma.pageView.count().catch(() => 0),
       prisma.pageView.count({ where: { createdAt: { gte: startOfToday } } }).catch(() => 0),
