@@ -5,6 +5,12 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (increment 8): Admin Dashboard premium polish
+Recovery point: branch `backup/pre-research-polish` (chained). Styling only; no logic change.
+- **DashboardClient**: header eyebrow → premium glass pill; active tab gold glow +
+  stronger divider (matches Settings/Community); stat cards get `lift` hover.
+- Shared First-Load JS unchanged (159 kB). Closes the user-facing + admin premium sweep.
+
 ## 2026-06-15 — Phase 2 (increment 7): Community/Chat premium polish
 Recovery point: branch `backup/pre-research-polish` (chained). **Styling only** —
 no realtime/state/handler changes; chat logic untouched.

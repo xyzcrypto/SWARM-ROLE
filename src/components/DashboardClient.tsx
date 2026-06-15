@@ -144,7 +144,10 @@ export function DashboardClient({
   return (
     <div>
       <div className="mb-8">
-        <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">Admin</p>
+        <span className="eyebrow eyebrow-glass text-gold-200">
+          <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+          <span className="mono text-[11px] uppercase tracking-[0.18em]">Admin</span>
+        </span>
         <h1 className="mt-2 font-display text-3xl font-bold text-zinc-50 sm:text-4xl">
           Welcome, {adminName.split(" ")[0]} 👋
         </h1>
@@ -153,13 +156,15 @@ export function DashboardClient({
         </p>
       </div>
 
-      <div className="mb-8 flex flex-wrap gap-2 border-b border-white/5 pb-1">
+      <div className="mb-8 flex flex-wrap gap-2 border-b border-white/10 pb-1">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`rounded-t-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
-              tab === t.id ? "border-b-2 border-gold-400 text-gold-100" : "text-zinc-500 hover:text-zinc-300"
+              tab === t.id
+                ? "border-b-2 border-gold-400 text-gold-100 shadow-[0_6px_16px_-8px_rgba(226,167,47,0.6)]"
+                : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             {t.label}
@@ -188,7 +193,7 @@ function StatCard({ label, value, hint, accent = "plain" }: { label: string; val
   const num =
     accent === "mint" ? "text-mint-gradient" : accent === "gold" ? "text-gold-gradient" : "text-zinc-50";
   return (
-    <div className="surface surface-hover rounded-2xl p-6">
+    <div className="surface surface-hover lift rounded-2xl p-6">
       <p className="text-sm text-zinc-500">{label}</p>
       <p className={`mt-2 mono text-4xl font-semibold ${num}`}>{value.toLocaleString()}</p>
       <p className="mt-1 text-xs text-zinc-600">{hint}</p>
