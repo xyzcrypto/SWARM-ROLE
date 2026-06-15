@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (increment 4): Anime.js micro-interactions + Iconsax accents
+Recovery point: branch `backup/pre-fx`. Hero-scoped; brand palette; reduced-motion safe.
+- **Iconsax accents** (`Hero.tsx`): eyebrow `Sparkles`→`MagicStar` (gold), trust-line
+  `ShieldCheck`→`ShieldTick` (mint). Homepage First-Load JS +2 kB (244 kB); shared 159 kB.
+- **Anime.js magnetic CTA** — new `MagneticButton.tsx`: primary hero CTAs ease toward
+  the cursor and spring back (elastic) on leave. Disabled for reduced-motion / touch;
+  anime.js **lazy** (only fetched on first hover — not in the initial bundle).
+- No layout/section changes; backward-compatible.
+
 ## 2026-06-15 — Phase 2 (increment 3): Homepage + Navbar premium pass
 Recovery point: branch `backup/pre-homepage-polish`. Brand kept; no new deps;
 shared First-Load JS unchanged (159 kB).
