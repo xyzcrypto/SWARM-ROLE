@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (increment 6): Profile + Settings premium polish
+Recovery point: branch `backup/pre-research-polish` (chained). No behavior/data change.
+- **Public profile** (`u/[username]/page.tsx`): banner depth (gradient + hairline),
+  stronger avatar ring + gold glow, social/location rendered as premium pills, wider
+  stat spacing, hover on activity items, and a richer empty state (icon + subcopy).
+- **Settings** (`SettingsClient.tsx`): active tab gets a subtle mint glow + stronger
+  divider; input focus ring bumped (gold/20 → /30). Forms/logic unchanged.
+- Shared First-Load JS unchanged (159 kB).
+
 ## 2026-06-15 — Phase 2 (increment 5): Research/Articles reading-experience polish
 Recovery point: branch `backup/pre-research-polish`. No behavior/feature change; brand kept.
 - **Reading typography** (`globals.css` `.prose-xyz`): added styling for previously
