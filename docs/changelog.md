@@ -5,6 +5,14 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (increment 7): Community/Chat premium polish
+Recovery point: branch `backup/pre-research-polish` (chained). **Styling only** —
+no realtime/state/handler changes; chat logic untouched.
+- **ChatClient**: own messages get a subtle mint tint (clearer own-vs-others),
+  richer empty state (emoji + subcopy), typing dots brightened to mint.
+- **Community page**: header eyebrow upgraded to the premium glass pill.
+- Shared First-Load JS unchanged (159 kB).
+
 ## 2026-06-15 — Phase 2 (increment 6): Profile + Settings premium polish
 Recovery point: branch `backup/pre-research-polish` (chained). No behavior/data change.
 - **Public profile** (`u/[username]/page.tsx`): banner depth (gradient + hairline),
