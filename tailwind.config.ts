@@ -5,6 +5,8 @@ const config: Config = {
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
+  // Class-based theming (light/dark). Dark is the default (see <html class="dark">).
+  darkMode: "class",
   theme: {
     extend: {
       // Extra breakpoint for small/large phone distinction (default sm = 640px).
@@ -52,6 +54,14 @@ const config: Config = {
           strong: "rgba(255,255,255,0.14)",
           gold: "rgba(226,167,47,0.22)",
         },
+        // Semantic, theme-aware tokens (resolve via CSS vars per light/dark).
+        // Components adopt these incrementally; brand gold/mint stay constant.
+        base: "var(--bg)",
+        surface: "var(--surface)",
+        "surface-2": "var(--surface-2)",
+        content: "var(--content)",
+        "content-muted": "var(--content-muted)",
+        hairline: "var(--hairline)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
@@ -69,6 +79,15 @@ const config: Config = {
       },
       borderRadius: {
         "4xl": "2rem",
+      },
+      // Shared motion tokens (design system) - additive.
+      transitionTimingFunction: {
+        premium: "cubic-bezier(0.22, 1, 0.36, 1)",
+        "premium-in": "cubic-bezier(0.4, 0, 0.2, 1)",
+      },
+      transitionDuration: {
+        "250": "250ms",
+        "400": "400ms",
       },
       backgroundImage: {
         "gold-shine":

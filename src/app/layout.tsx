@@ -70,8 +70,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} dark`}>
       <body>
+        {/* No-FOUC theme: apply the saved choice before paint. Dark is the default. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark');}else{document.documentElement.classList.add('dark');}}catch(e){}})();",
+          }}
+        />
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={websiteJsonLd()} />
         <SmoothScroll />

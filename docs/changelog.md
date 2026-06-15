@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (foundation): design system + light/dark theming
+Recovery point: branch `backup/pre-phase2`. Brand identity preserved; **dark mode
+pixel-identical** to before (zero regression); backward-compatible.
+- **Theming:** Tailwind `darkMode: "class"`; semantic CSS-var tokens in `globals.css`
+  (`:root` light / `.dark` dark = current values); `body` wired to tokens; no-FOUC
+  inline script + default `dark` class in `layout.tsx`; new `ThemeToggle` in the navbar
+  (desktop + mobile). Dark stays default for first-time visitors.
+- **Design tokens:** semantic Tailwind aliases (`base`, `surface`, `surface-2`,
+  `content`, `content-muted`, `hairline`), motion tokens (`ease-premium`,
+  `duration-250/400`); documented in new `docs/DESIGN-SYSTEM.md`.
+- **Libraries:** installed `animejs` (v4) + `iconsax-react` (additive); lazy
+  `src/lib/anime.ts` helper. (R3F deferred to the hero increment.)
+- No UI redesign in this pass — foundation only. Per-area premium polish + R3F hero
+  are the next increments.
+
 ## 2026-06-15 — Phase 1: performance & stability
 Recovery point: branch `backup/pre-phase1` (@ d5e9b63). All backward-compatible,
 no UI/architecture change. First-Load JS unchanged (159 kB shared).

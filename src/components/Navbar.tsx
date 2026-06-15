@@ -11,6 +11,7 @@ import { cn, maskEmail } from "@/lib/utils";
 import { Avatar } from "./Avatar";
 import { ActionLink } from "./ActionLink";
 import { NavActivity } from "./NavActivity";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -97,6 +98,7 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
+          <ThemeToggle />
           {session ? (
             <>
               <NavActivity />
@@ -195,6 +197,10 @@ export function Navbar() {
               </Link>
             ))}
             <div className="mt-2 flex flex-col gap-2 border-t border-line pt-3">
+              <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
+                <span className="text-sm font-medium text-zinc-300">Theme</span>
+                <ThemeToggle />
+              </div>
               {session ? (
                 <>
                   <div className="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2">
