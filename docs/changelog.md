@@ -5,6 +5,74 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (increment 8): Admin Dashboard premium polish
+Recovery point: branch `backup/pre-research-polish` (chained). Styling only; no logic change.
+- **DashboardClient**: header eyebrow → premium glass pill; active tab gold glow +
+  stronger divider (matches Settings/Community); stat cards get `lift` hover.
+- Shared First-Load JS unchanged (159 kB). Closes the user-facing + admin premium sweep.
+
+## 2026-06-15 — Phase 2 (increment 7): Community/Chat premium polish
+Recovery point: branch `backup/pre-research-polish` (chained). **Styling only** —
+no realtime/state/handler changes; chat logic untouched.
+- **ChatClient**: own messages get a subtle mint tint (clearer own-vs-others),
+  richer empty state (emoji + subcopy), typing dots brightened to mint.
+- **Community page**: header eyebrow upgraded to the premium glass pill.
+- Shared First-Load JS unchanged (159 kB).
+
+## 2026-06-15 — Phase 2 (increment 6): Profile + Settings premium polish
+Recovery point: branch `backup/pre-research-polish` (chained). No behavior/data change.
+- **Public profile** (`u/[username]/page.tsx`): banner depth (gradient + hairline),
+  stronger avatar ring + gold glow, social/location rendered as premium pills, wider
+  stat spacing, hover on activity items, and a richer empty state (icon + subcopy).
+- **Settings** (`SettingsClient.tsx`): active tab gets a subtle mint glow + stronger
+  divider; input focus ring bumped (gold/20 → /30). Forms/logic unchanged.
+- Shared First-Load JS unchanged (159 kB).
+
+## 2026-06-15 — Phase 2 (increment 5): Research/Articles reading-experience polish
+Recovery point: branch `backup/pre-research-polish`. No behavior/feature change; brand kept.
+- **Reading typography** (`globals.css` `.prose-xyz`): added styling for previously
+  unstyled elements — fenced **code blocks** (`pre` + `pre code` reset), **ordered
+  lists**, `h4`, **images** (rounded + ring), **tables**, and a gold **`hr`** divider;
+  refined list/line rhythm. Article column stays `max-w-3xl`.
+- **Premium gate** (`PremiumLock.tsx`): premium visual upgrade — soft gold glow,
+  blurred "hidden content" teaser lines, gold-shine lock badge, and a 3-perk value
+  list. Gating logic + buttons unchanged (content still never sent to non-Premium).
+- Shared First-Load JS unchanged (159 kB).
+
+## 2026-06-15 — Phase 2 (increment 4): Anime.js micro-interactions + Iconsax accents
+Recovery point: branch `backup/pre-fx`. Hero-scoped; brand palette; reduced-motion safe.
+- **Iconsax accents** (`Hero.tsx`): eyebrow `Sparkles`→`MagicStar` (gold), trust-line
+  `ShieldCheck`→`ShieldTick` (mint). Homepage First-Load JS +2 kB (244 kB); shared 159 kB.
+- **Anime.js magnetic CTA** — new `MagneticButton.tsx`: primary hero CTAs ease toward
+  the cursor and spring back (elastic) on leave. Disabled for reduced-motion / touch;
+  anime.js **lazy** (only fetched on first hover — not in the initial bundle).
+- No layout/section changes; backward-compatible.
+
+## 2026-06-15 — Phase 2 (increment 3): Homepage + Navbar premium pass
+Recovery point: branch `backup/pre-homepage-polish`. Brand kept; no new deps;
+shared First-Load JS unchanged (159 kB).
+- **Navbar** (`Navbar.tsx`): active-route indicator via `usePathname` (desktop
+  underline persists + `text-zinc-50`; mobile gets `bg-white/5 text-gold-200`;
+  `aria-current`); subtle gold ring on the scrolled glass bar.
+- **Hero** (`Hero.tsx`): interactive hover on the live-stat cards. Medallion,
+  parallax, badges, ticker, reduced-motion handling all unchanged.
+- Anime.js micro-interactions + Iconsax accents remain a separate upcoming pass.
+
+## 2026-06-15 — Phase 2 (increment 2): R3F orbital hero (lazy + CSS fallback)
+Recovery point: branch `backup/pre-hero`. Stability/perf-first; brand palette only.
+- New `OrbitalScene3D.tsx` — React-Three-Fiber premium orbital (gold core +
+  mint/gold orbiting nodes + sparkles, auto-rotate + pointer parallax). Perf-budgeted:
+  `dpr={[1,1.5]}`, low-poly, paused when offscreen/tab-hidden, no heavy postprocessing.
+- `OrbitalLazy.tsx` — capability gate: renders the 3D scene only on capable desktop
+  (WebGL + pointer:fine + ≥lg + not reduced-motion + ≥4 cores/4GB); otherwise the
+  existing CSS `OrbitalEcosystem` (fallback unchanged). three.js is a **separate
+  async chunk** (~672 KB) — only downloaded when the 3D scene mounts; **shared
+  First-Load JS unchanged (159 kB)**, mobile/low-power never fetch it.
+- Deps (pinned for React 18): `three@0.169` · `@react-three/fiber@8` ·
+  `@react-three/drei@9` (+ `@types/three`). Noted in `docs/DESIGN-SYSTEM.md`.
+- Hero/navbar premium polish kept minimal this pass (stability-first); deeper
+  per-area passes follow.
+
 ## 2026-06-15 — Phase 2 (foundation): design system + light/dark theming
 Recovery point: branch `backup/pre-phase2`. Brand identity preserved; **dark mode
 pixel-identical** to before (zero regression); backward-compatible.

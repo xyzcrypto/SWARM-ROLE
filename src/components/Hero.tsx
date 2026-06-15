@@ -4,10 +4,12 @@ import { useRef } from "react";
 import Image from "next/image";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { useSession } from "next-auth/react";
-import { ArrowRight, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { MagicStar, ShieldTick } from "iconsax-react";
 import { Container } from "./ui/primitives";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { ActionLink } from "./ActionLink";
+import { MagneticButton } from "./MagneticButton";
 
 const ticker = [
   "Web3 Research",
@@ -85,7 +87,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             className="mb-6 flex justify-center lg:justify-start"
           >
             <span className="eyebrow eyebrow-glass text-zinc-200">
-              <Sparkles className="h-3.5 w-3.5 text-gold-300" />
+              <MagicStar size={14} variant="Bold" color="#e2a72f" />
               <span className="mono text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">
                 The Home Of Next Gen Web3..
               </span>
@@ -123,20 +125,24 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             {session ? (
               // Account holders already have access - point them at the content.
               <>
-                <ActionLink href="/research" className="btn-primary w-full sm:w-auto">
-                  Explore Research
-                  <ArrowRight className="h-4 w-4" />
-                </ActionLink>
+                <MagneticButton className="w-full sm:w-auto">
+                  <ActionLink href="/research" className="btn-primary w-full sm:w-auto">
+                    Explore Research
+                    <ArrowRight className="h-4 w-4" />
+                  </ActionLink>
+                </MagneticButton>
                 <ActionLink href="/#products" className="btn-ghost w-full sm:w-auto">
                   View products
                 </ActionLink>
               </>
             ) : (
               <>
-                <ActionLink href="/signup" className="btn-primary w-full sm:w-auto">
-                  Get early access
-                  <ArrowRight className="h-4 w-4" />
-                </ActionLink>
+                <MagneticButton className="w-full sm:w-auto">
+                  <ActionLink href="/signup" className="btn-primary w-full sm:w-auto">
+                    Get early access
+                    <ArrowRight className="h-4 w-4" />
+                  </ActionLink>
+                </MagneticButton>
                 <ActionLink href="/research" className="btn-ghost w-full sm:w-auto">
                   Explore research
                 </ActionLink>
@@ -150,7 +156,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             transition={{ duration: 0.7, delay: 0.32 }}
             className="mt-5 flex items-center justify-center gap-2 text-xs text-zinc-500 lg:justify-start"
           >
-            <ShieldCheck className="h-4 w-4 text-mint-400" />
+            <ShieldTick size={16} variant="Bold" color="#22d692" />
             Free to join · No wallet required · Community first
           </motion.div>
 
@@ -166,7 +172,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
               { k: "6+", v: "Products in pipeline" },
               { k: "24/7", v: "On-chain coverage" },
             ].map((s) => (
-              <div key={s.v} className="bg-ink-900 px-3 py-4 text-center sm:px-4 lg:text-left">
+              <div key={s.v} className="bg-ink-900 px-3 py-4 text-center transition-colors hover:bg-ink-800 sm:px-4 lg:text-left">
                 <div className="mono text-xl font-semibold text-gold-gradient sm:text-2xl">{s.k}</div>
                 <div className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-[11px]">{s.v}</div>
               </div>

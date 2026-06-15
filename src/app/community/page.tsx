@@ -42,9 +42,10 @@ export default async function CommunityPage() {
         <div className="mesh" />
         <div className="relative mx-auto flex max-w-3xl flex-col px-4 pb-10 sm:px-6 lg:px-8">
           <div className="mb-6 text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">
-              Community
-            </p>
+            <span className="eyebrow eyebrow-glass text-gold-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
+              <span className="mono text-[11px] uppercase tracking-[0.18em]">Community</span>
+            </span>
             <h1 className="mt-2 font-display text-3xl font-bold text-zinc-50 sm:text-4xl">
               The <span className="text-gold-gradient">XYZ Lounge</span>
             </h1>

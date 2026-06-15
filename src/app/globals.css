@@ -521,6 +521,22 @@ html.lenis body {
   @apply border-l-2 border-gold-500 pl-5 pr-4 py-3 italic text-zinc-300 my-6 rounded-r-xl bg-white/[0.03];
 }
 .prose-xyz strong { @apply text-zinc-100; }
+.prose-xyz h4 { @apply text-zinc-50 font-display font-semibold text-lg mt-8 mb-2 tracking-tight; }
+.prose-xyz ol { @apply list-decimal pl-6 my-4 space-y-2 marker:text-gold-400 marker:font-semibold; }
+.prose-xyz li { @apply leading-relaxed; }
+.prose-xyz li > ul, .prose-xyz li > ol { @apply my-2; }
+/* Fenced code blocks — distinct from inline `code` pills. */
+.prose-xyz pre {
+  @apply my-6 overflow-x-auto rounded-2xl border border-white/10 bg-ink-950/80 p-4 text-sm leading-relaxed ring-1 ring-white/5;
+}
+.prose-xyz pre code { @apply bg-transparent p-0 text-zinc-200 ring-0; }
+.prose-xyz img {
+  @apply my-6 w-full rounded-2xl ring-1 ring-white/10;
+}
+.prose-xyz hr { @apply my-10 border-0 h-px bg-gradient-to-r from-transparent via-gold-500/30 to-transparent; }
+.prose-xyz table { @apply my-6 w-full overflow-hidden rounded-xl border border-white/10 text-left text-sm; }
+.prose-xyz th { @apply bg-white/[0.04] px-4 py-2.5 font-semibold text-zinc-100; }
+.prose-xyz td { @apply border-t border-white/5 px-4 py-2.5 text-zinc-300; }
 
 /* ----------------------------------------------------------------
    Accessibility - respect reduced motion

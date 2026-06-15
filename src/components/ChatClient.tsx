@@ -438,7 +438,11 @@ export function ChatClient({
         )}
 
         {messages.length === 0 && (
-          <p className="py-16 text-center text-sm text-zinc-600">No messages yet - be the first to say gm. 👋</p>
+          <div className="py-16 text-center">
+            <div className="mb-3 text-3xl">👋</div>
+            <p className="text-sm text-zinc-400">No messages yet — be the first to say gm.</p>
+            <p className="mt-1 text-xs text-zinc-600">Markets, alpha &amp; Web3 — keep it friendly.</p>
+          </div>
         )}
 
         <AnimatePresence initial={false}>
@@ -475,6 +479,7 @@ export function ChatClient({
                   className={cn(
                     "group relative flex items-start gap-3 rounded-xl px-2 transition-colors hover:bg-white/[0.03]",
                     grouped ? "py-0.5" : "py-1.5",
+                    m.userId === me?.id && "bg-mint-500/[0.04] hover:bg-mint-500/[0.07]",
                     m.pending && "opacity-60"
                   )}
                 >
@@ -612,7 +617,7 @@ export function ChatClient({
             >
               <span className="flex gap-0.5">
                 {[0, 1, 2].map((i) => (
-                  <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-zinc-500"
+                  <motion.span key={i} className="h-1.5 w-1.5 rounded-full bg-mint-400"
                     animate={{ opacity: [0.3, 1, 0.3] }} transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
                 ))}
               </span>

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
@@ -17,6 +18,9 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
+  const pathname = usePathname();
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
   const { data: session } = useSession();
   const user = session?.user as any;
   const isAdmin = user?.role === "ADMIN";
@@ -70,7 +74,7 @@ export function Navbar() {
         className={cn(
           "mx-auto flex h-14 max-w-[1200px] items-center justify-between rounded-2xl px-3 transition-all duration-300 sm:px-4 xl:max-w-[1320px] 2xl:max-w-[1480px]",
           scrolled
-            ? "border border-line bg-ink-900/80 shadow-elevate backdrop-blur-xl"
+            ? "border border-line bg-ink-900/80 shadow-elevate ring-1 ring-gold-500/10 backdrop-blur-xl"
             : "border border-transparent"
         )}
       >
@@ -89,10 +93,19 @@ export function Navbar() {
             <Link
               key={l.href}
               href={l.href}
-              className="group relative rounded-lg px-3.5 py-2 text-sm font-medium text-zinc-400 transition-colors hover:text-zinc-100"
+              aria-current={isActive(l.href) ? "page" : undefined}
+              className={cn(
+                "group relative rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
+                isActive(l.href) ? "text-zinc-50" : "text-zinc-400 hover:text-zinc-100"
+              )}
             >
               {l.label}
-              <span className="absolute inset-x-3.5 -bottom-0.5 h-px scale-x-0 bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300 group-hover:scale-x-100" />
+              <span
+                className={cn(
+                  "absolute inset-x-3.5 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300",
+                  isActive(l.href) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                )}
+              />
             </Link>
           ))}
         </div>
@@ -191,7 +204,13 @@ export function Navbar() {
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-sm font-medium text-zinc-300 hover:bg-white/5"
+                aria-current={isActive(l.href) ? "page" : undefined}
+                className={cn(
+                  "rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive(l.href)
+                    ? "bg-white/5 text-gold-200"
+                    : "text-zinc-300 hover:bg-white/5 hover:text-zinc-100"
+                )}
               >
                 {l.label}
               </Link>

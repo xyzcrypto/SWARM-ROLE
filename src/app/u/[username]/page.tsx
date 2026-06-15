@@ -101,18 +101,22 @@ export default async function ProfilePage({ params }: Props) {
           {/* Hero card */}
           <Reveal variant="blur">
           <div className="glass overflow-hidden rounded-3xl">
-            <div
-              className="h-32 w-full bg-gold-shine sm:h-40"
-              style={
-                user.bannerImage
-                  ? { backgroundImage: `url(${user.bannerImage})`, backgroundSize: "cover", backgroundPosition: "center" }
-                  : undefined
-              }
-            />
+            <div className="relative h-32 w-full sm:h-40">
+              <div
+                className="absolute inset-0 bg-gold-shine"
+                style={
+                  user.bannerImage
+                    ? { backgroundImage: `url(${user.bannerImage})`, backgroundSize: "cover", backgroundPosition: "center" }
+                    : undefined
+                }
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-ink-900/60 to-transparent" />
+              <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
+            </div>
             <div className="px-5 pb-6 sm:px-8 sm:pb-8">
               <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
                 <div className="flex items-end gap-4">
-                  <Avatar name={user.name} image={user.image} size="xl" className="ring-2 ring-ink-900" />
+                  <Avatar name={user.name} image={user.image} size="xl" className="ring-[3px] ring-ink-900 shadow-gold" />
                   <div className="pb-1">
                     <h1 className="font-display text-2xl font-bold text-zinc-50 sm:text-3xl">
                       {user.name ?? `@${user.username}`}
@@ -131,9 +135,9 @@ export default async function ProfilePage({ params }: Props) {
                 <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-zinc-300">{user.bio}</p>
               )}
 
-              <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-zinc-400">
+              <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
                 {user.location && (
-                  <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-zinc-400">
                     <MapPin className="h-4 w-4 text-zinc-500" />
                     {user.location}
                   </span>
@@ -144,7 +148,7 @@ export default async function ProfilePage({ params }: Props) {
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    className="inline-flex items-center gap-1.5 text-zinc-400 transition-colors hover:text-gold-200"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-zinc-400 transition-colors hover:border-gold-500/30 hover:text-gold-200"
                   >
                     <Icon className="h-4 w-4" />
                     {label}
@@ -156,7 +160,7 @@ export default async function ProfilePage({ params }: Props) {
           </Reveal>
 
           {/* Stats */}
-          <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-4">
+          <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-5">
             {stats.map((s, i) => (
               <Reveal key={s.label} variant="pop" delay={i}>
                 <div className="surface surface-hover lift h-full rounded-2xl p-4 text-center sm:p-6">
@@ -172,13 +176,15 @@ export default async function ProfilePage({ params }: Props) {
           <Reveal variant="up" className="mt-8 block">
             <h2 className="font-display text-lg font-semibold text-zinc-100">Recent activity</h2>
             {recentComments.length === 0 ? (
-              <p className="mt-3 rounded-2xl border border-line bg-white/[0.02] px-5 py-8 text-center text-sm text-zinc-500">
-                No public activity yet.
-              </p>
+              <div className="mt-3 rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center">
+                <MessageSquare className="mx-auto h-6 w-6 text-zinc-600" />
+                <p className="mt-3 text-sm text-zinc-400">No public activity yet.</p>
+                <p className="mt-1 text-xs text-zinc-600">Comments on research will show up here.</p>
+              </div>
             ) : (
               <ul className="mt-3 space-y-3">
                 {recentComments.map((c) => (
-                  <li key={c.id} className="surface rounded-2xl p-4 sm:p-5">
+                  <li key={c.id} className="surface surface-hover rounded-2xl p-4 transition-colors sm:p-5">
                     <div className="flex items-center gap-2 text-xs text-zinc-500">
                       <MessageSquare className="h-3.5 w-3.5" />
                       <span>Commented{c.post?.title ? " on" : ""}</span>

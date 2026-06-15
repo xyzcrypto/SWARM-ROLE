@@ -87,13 +87,15 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
         </div>
       </div>
 
-      <div className="mb-8 flex flex-wrap gap-2 border-b border-white/5 pb-1">
+      <div className="mb-8 flex flex-wrap gap-2 border-b border-white/10 pb-1">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
             className={`rounded-t-lg px-4 py-2.5 text-sm font-semibold transition-colors ${
-              tab === t.id ? "border-b-2 border-mint-400 text-mint-100" : "text-zinc-500 hover:text-zinc-300"
+              tab === t.id
+                ? "border-b-2 border-mint-400 text-mint-100 shadow-[0_6px_16px_-8px_rgba(11,187,124,0.6)]"
+                : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
             {t.label}
@@ -252,7 +254,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
             Handle
           </span>
-          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-ink-700/60 px-3 transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/20">
+          <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-ink-700/60 px-3 transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/30">
             <span className="text-sm text-zinc-500">@</span>
             <input
               value={username}
@@ -530,7 +532,7 @@ function Field({
   return (
     <label className="block">
       <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">{label}</span>
-      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-ink-700/60 px-3 transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/20">
+      <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-ink-700/60 px-3 transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/30">
         {icon && <span className="shrink-0 text-zinc-500">{icon}</span>}
         {prefix && <span className="shrink-0 text-sm text-zinc-600">{prefix}</span>}
         <input
