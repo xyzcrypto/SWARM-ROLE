@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 (increment 3): Homepage + Navbar premium pass
+Recovery point: branch `backup/pre-homepage-polish`. Brand kept; no new deps;
+shared First-Load JS unchanged (159 kB).
+- **Navbar** (`Navbar.tsx`): active-route indicator via `usePathname` (desktop
+  underline persists + `text-zinc-50`; mobile gets `bg-white/5 text-gold-200`;
+  `aria-current`); subtle gold ring on the scrolled glass bar.
+- **Hero** (`Hero.tsx`): interactive hover on the live-stat cards. Medallion,
+  parallax, badges, ticker, reduced-motion handling all unchanged.
+- Anime.js micro-interactions + Iconsax accents remain a separate upcoming pass.
+
 ## 2026-06-15 — Phase 2 (increment 2): R3F orbital hero (lazy + CSS fallback)
 Recovery point: branch `backup/pre-hero`. Stability/perf-first; brand palette only.
 - New `OrbitalScene3D.tsx` — React-Three-Fiber premium orbital (gold core +

@@ -166,7 +166,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
               { k: "6+", v: "Products in pipeline" },
               { k: "24/7", v: "On-chain coverage" },
             ].map((s) => (
-              <div key={s.v} className="bg-ink-900 px-3 py-4 text-center sm:px-4 lg:text-left">
+              <div key={s.v} className="bg-ink-900 px-3 py-4 text-center transition-colors hover:bg-ink-800 sm:px-4 lg:text-left">
                 <div className="mono text-xl font-semibold text-gold-gradient sm:text-2xl">{s.k}</div>
                 <div className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-[11px]">{s.v}</div>
               </div>
