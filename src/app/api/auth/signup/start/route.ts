@@ -6,11 +6,12 @@ import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { issueCode } from "@/lib/otp";
 import { sendEmail, otpEmail } from "@/lib/email";
 import { emailEnabled } from "@/lib/env";
+import { passwordSchema } from "@/lib/profile";
 
 const schema = z.object({
   name: z.string().trim().min(2, "Name is too short").max(60),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
-  password: z.string().min(6, "Password must be at least 6 characters").max(100),
+  password: passwordSchema,
 });
 
 // POST /api/auth/signup/start - validate details, email a verification code.

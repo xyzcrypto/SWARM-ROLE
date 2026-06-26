@@ -4,11 +4,12 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { verifyCode } from "@/lib/otp";
+import { passwordSchema } from "@/lib/profile";
 
 const schema = z.object({
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   code: z.string().trim().regex(/^\d{6}$/, "Enter the 6-digit code"),
-  password: z.string().min(6, "Password must be at least 6 characters").max(100),
+  password: passwordSchema,
 });
 
 // POST /api/auth/password/reset - verify the reset code and set a new password.

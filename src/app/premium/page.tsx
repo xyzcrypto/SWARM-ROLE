@@ -6,6 +6,8 @@ import { Container, Section, SectionHeading, Badge } from "@/components/ui/primi
 import { Reveal } from "@/components/Reveal";
 import { ActionLink } from "@/components/ActionLink";
 import { AnimatedEmoji } from "@/components/AnimatedEmoji";
+import { GuestOnly } from "@/components/GuestOnly";
+import { SignedIn } from "@/components/SignedIn";
 
 export const metadata: Metadata = {
   title: "Premium Plans - Coming Soon",
@@ -73,14 +75,28 @@ export default function PremiumPage() {
                 </p>
               </Reveal>
               <Reveal delay={3}>
-                <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-                  <ActionLink href="/signup" className="btn-gold !px-6">
-                    Create a free account
-                  </ActionLink>
-                  <ActionLink href="/research" className="btn-ghost !px-6">
-                    Explore research
-                  </ActionLink>
-                </div>
+                {/* Guests are prompted to sign up; members already have an account,
+                    so they get a member-appropriate CTA instead. */}
+                <GuestOnly>
+                  <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+                    <ActionLink href="/signup" className="btn-gold !px-6">
+                      Create a free account
+                    </ActionLink>
+                    <ActionLink href="/research" className="btn-ghost !px-6">
+                      Explore research
+                    </ActionLink>
+                  </div>
+                </GuestOnly>
+                <SignedIn>
+                  <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
+                    <ActionLink href="/research" className="btn-gold !px-6">
+                      Explore research
+                    </ActionLink>
+                    <ActionLink href="/profile" className="btn-ghost !px-6">
+                      Your profile
+                    </ActionLink>
+                  </div>
+                </SignedIn>
               </Reveal>
             </div>
 
@@ -141,9 +157,16 @@ export default function PremiumPage() {
               subtitle="A free account gets you research, community and early-access perks today - and a front-row seat for the Premium launch."
             />
             <div className="mt-7 flex justify-center">
-              <ActionLink href="/signup" className="btn-gold !px-7">
-                Create your free account
-              </ActionLink>
+              <GuestOnly>
+                <ActionLink href="/signup" className="btn-gold !px-7">
+                  Create your free account
+                </ActionLink>
+              </GuestOnly>
+              <SignedIn>
+                <ActionLink href="/research" className="btn-gold !px-7">
+                  Explore the research hub
+                </ActionLink>
+              </SignedIn>
             </div>
           </Container>
         </Section>

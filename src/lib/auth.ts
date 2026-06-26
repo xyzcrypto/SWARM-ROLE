@@ -97,10 +97,48 @@ export const authOptions: NextAuthOptions = {
         if (!password) return null;
         const { success } = await rateLimit("login", email);
         if (!success) return null;
-        const user = await prisma.user.findUnique({ where: { email } });
+        // Explicit select keeps the login path independent of the lockout
+        // columns, so auth keeps working even before that migration is applied.
+        const user = await prisma.user.findUnique({
+          where: { email },
+          select: {
+            id: true, passwordHash: true, name: true, email: true,
+            image: true, role: true, membership: true,
+          },
+        });
         if (!user || !user.passwordHash) return null;
+
+        // Brute-force lockout. Read/write the counters in guarded queries so a
+        // not-yet-migrated DB (no lockout columns) simply skips the feature
+        // rather than blocking sign-in.
+        const MAX_FAILED = 5;
+        const LOCK_MS = 15 * 60 * 1000;
+        const lock = await prisma.user
+          .findUnique({ where: { id: user.id }, select: { failedLoginCount: true, lockedUntil: true } })
+          .catch(() => null);
+        if (lock?.lockedUntil && lock.lockedUntil.getTime() > Date.now()) return null;
+
         const ok = await bcrypt.compare(password, user.passwordHash);
-        if (!ok) return null;
+        if (!ok) {
+          const fails = (lock?.failedLoginCount ?? 0) + 1;
+          const locked = fails >= MAX_FAILED;
+          await prisma.user
+            .update({
+              where: { id: user.id },
+              data: {
+                failedLoginCount: locked ? 0 : fails,
+                lockedUntil: locked ? new Date(Date.now() + LOCK_MS) : lock?.lockedUntil ?? null,
+              },
+            })
+            .catch(() => null);
+          return null;
+        }
+        // Success: clear any accumulated failure state.
+        if (lock && (lock.failedLoginCount || lock.lockedUntil)) {
+          await prisma.user
+            .update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null } })
+            .catch(() => null);
+        }
         return {
           id: user.id,
           name: user.name,

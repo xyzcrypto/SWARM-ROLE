@@ -4,7 +4,7 @@ import { useState } from "react";
 import { Loader2, Send, CheckCircle2 } from "lucide-react";
 
 const inputCls =
-  "w-full rounded-xl border border-white/10 bg-ink-700/60 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20";
+  "w-full rounded-xl border border-white/10 bg-ink-700/60 px-3.5 py-3 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20";
 
 export function ContactForm() {
   const [name, setName] = useState("");
