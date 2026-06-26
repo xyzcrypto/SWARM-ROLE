@@ -620,9 +620,10 @@ html:not(.dark) .bg-white\/\[0\.04\] { background-color: rgba(0, 0, 0, 0.045); }
 html:not(.dark) .bg-ink-700\/60 { background-color: var(--surface-2); }
 html:not(.dark) .bg-ink-800\/95,
 html:not(.dark) .bg-ink-900\/95,
+html:not(.dark) .bg-ink-900\/85,
 html:not(.dark) .bg-ink-900\/80,
 html:not(.dark) .bg-ink-950\/80,
-html:not(.dark) .bg-ink-950\/60 { background-color: rgba(255, 255, 255, 0.97); }
+html:not(.dark) .bg-ink-950\/60 { background-color: rgba(255, 255, 255, 0.92); }
 html:not(.dark) .bg-ink-950 { background-color: var(--surface-2); }
 html:not(.dark) .bg-ink-900 { background-color: var(--surface); }
 html:not(.dark) .placeholder\:text-zinc-600::placeholder { color: #9a9aa2; }

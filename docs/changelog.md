@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-26 — Desktop orbital: fix static animation + light rendering; park 3D
+Reported on desktop (light preview): the orbital centerpiece was **static** and the
+node pills rendered **dark on the light background**.
+- **Root cause:** the WebGL gate fell back to the CSS orbital on the device, whose
+  rotation was gated by `prefers-reduced-motion` (→ static); the node pills used
+  `bg-ink-900/85`, a level not yet remapped for light (→ dark pills).
+- **Fix:** `OrbitalEcosystem.tsx` now always animates the signature rings / aurora /
+  logo glow / node float (deliberate always-on motion for the branded centerpiece);
+  ring opacities bumped for visibility. `globals.css` remaps `bg-ink-900/85` → light
+  surface so pills are light-on-light.
+- **Consolidated to the CSS orbital on all devices** (`OrbitalLazy.tsx`): dropped the
+  capability-gated R3F path. The branded, labeled CSS orbital is lighter, reliable,
+  theme-correct and animates everywhere; **three.js is no longer fetched on the
+  homepage** (bundle win). `OrbitalScene3D.tsx` parked in-repo for a future art pass.
+- **Verified (Playwright + Chromium):** rings confirmed rotating in light, dark, and
+  under emulated reduced-motion; pills render light-on-light (light) and dark (dark);
+  dark unchanged. Shared First-Load JS 159 kB.
+
 ## 2026-06-26 — Phase 2 completion (B): light-theme migration (foundation + high-traffic)
 Recovery point: branch `backup/pre-light-theme`. **Dark mode byte-for-byte unchanged**
 — every rule is scoped to `html:not(.dark)`. CSS-only; no component classNames touched
