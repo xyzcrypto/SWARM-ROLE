@@ -29,25 +29,16 @@ const toneRing: Record<Node["tone"], string> = {
 export function OrbitalEcosystem() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(false); // in-view (gates particles + parallax)
+  const [active, setActive] = useState(false); // in-view (gates particle paint cost)
   const [particles, setParticles] = useState<{ x: number; y: number; s: number; d: number; delay: number }[]>([]);
-  // The signature rings/aurora/logo-glow animate as soon as the component mounts
-  // (this is the centerpiece - it must visibly run on desktop, not wait for an
-  // in-view trigger). Only `prefers-reduced-motion` turns them off. Read once at
-  // mount (client-only component, so window is available - no hydration flash).
-  const [reduced] = useState(
-    () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches
-  );
 
-  // Activate animations only when in view and motion is allowed (perf + a11y).
+  // Activate the particle field once the section is on/near screen. The rings,
+  // aurora and logo glow animate from mount regardless — this is the homepage
+  // centerpiece and is intentionally always alive on every device (a deliberate
+  // product choice; the motion is slow, GPU-cheap transforms).
   useEffect(() => {
     const el = wrapRef.current;
     if (!el) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
-    // If it's already on/near screen at mount (common on desktop where the
-    // section sits high), activate immediately - don't wait for an intersection
-    // change that may never fire. Otherwise observe and activate on scroll-in.
     const r = el.getBoundingClientRect();
     if (r.top < window.innerHeight * 1.2 && r.bottom > -window.innerHeight * 0.2) {
       setActive(true);
@@ -146,7 +137,7 @@ export function OrbitalEcosystem() {
       <div ref={orbitRef} className="absolute inset-0 transition-transform duration-300 ease-out will-change-transform">
         {/* rotating conic aurora glow (gold -> mint) for depth */}
         <div
-          className={`absolute inset-[16%] rounded-full ${!reduced ? "animate-spin [animation-duration:16s]" : ""}`}
+          className="absolute inset-[16%] rounded-full animate-spin [animation-duration:16s]"
           style={{
             background:
               "conic-gradient(from 0deg, rgba(226,167,47,0) 0deg, rgba(226,167,47,0.18) 90deg, rgba(34,214,146,0.16) 200deg, rgba(226,167,47,0) 360deg)",
@@ -154,14 +145,14 @@ export function OrbitalEcosystem() {
           }}
         />
         {/* rotating rings at different speeds (GPU transform) - always live */}
-        <div className={`absolute inset-0 rounded-full border border-gold-500/25 ${!reduced ? "animate-spin [animation-duration:18s]" : ""}`} />
-        <div className={`absolute inset-[12%] rounded-full border border-dashed border-mint-400/25 ${!reduced ? "animate-spin [animation-duration:24s] [animation-direction:reverse]" : ""}`} />
-        <div className={`absolute inset-[24%] rounded-full border border-gold-400/20 ${!reduced ? "animate-spin [animation-duration:14s]" : ""}`} />
+        <div className="absolute inset-0 rounded-full border border-gold-500/30 animate-spin [animation-duration:18s]" />
+        <div className="absolute inset-[12%] rounded-full border border-dashed border-mint-400/30 animate-spin [animation-duration:24s] [animation-direction:reverse]" />
+        <div className="absolute inset-[24%] rounded-full border border-gold-400/25 animate-spin [animation-duration:14s]" />
         <div className="absolute inset-[34%] rounded-full bg-gold-500/10 blur-2xl" />
 
         {/* center logo with subtle pulse */}
         <div className="absolute left-1/2 top-1/2 h-[28%] w-[28%] -translate-x-1/2 -translate-y-1/2">
-          <div className={`absolute inset-0 rounded-full bg-gold-500/30 blur-xl ${!reduced ? "[animation:ping-soft_3.4s_ease-in-out_infinite]" : ""}`} />
+          <div className="absolute inset-0 rounded-full bg-gold-500/30 blur-xl [animation:ping-soft_3.4s_ease-in-out_infinite]" />
           <Image
             src="/logo.jpg"
             alt="XYZ Crypto"
@@ -180,7 +171,7 @@ export function OrbitalEcosystem() {
             className="group absolute z-10 -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${n.left}%`, top: `${n.top}%` }}
           >
-            <div style={!reduced ? { animation: `floatY ${5 + (i % 4)}s ease-in-out ${i * 0.3}s infinite` } : undefined}>
+            <div style={{ animation: `floatY ${5 + (i % 4)}s ease-in-out ${i * 0.3}s infinite` }}>
               <span
                 className={`flex items-center gap-1.5 rounded-full border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-[10px] font-semibold tracking-wide ring-1 backdrop-blur-md transition-all duration-300 group-hover:scale-110 sm:text-[11px] ${toneRing[n.tone]}`}
               >

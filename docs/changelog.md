@@ -5,6 +5,56 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-26 — Desktop orbital: fix static animation + light rendering; park 3D
+Reported on desktop (light preview): the orbital centerpiece was **static** and the
+node pills rendered **dark on the light background**.
+- **Root cause:** the WebGL gate fell back to the CSS orbital on the device, whose
+  rotation was gated by `prefers-reduced-motion` (→ static); the node pills used
+  `bg-ink-900/85`, a level not yet remapped for light (→ dark pills).
+- **Fix:** `OrbitalEcosystem.tsx` now always animates the signature rings / aurora /
+  logo glow / node float (deliberate always-on motion for the branded centerpiece);
+  ring opacities bumped for visibility. `globals.css` remaps `bg-ink-900/85` → light
+  surface so pills are light-on-light.
+- **Consolidated to the CSS orbital on all devices** (`OrbitalLazy.tsx`): dropped the
+  capability-gated R3F path. The branded, labeled CSS orbital is lighter, reliable,
+  theme-correct and animates everywhere; **three.js is no longer fetched on the
+  homepage** (bundle win). `OrbitalScene3D.tsx` parked in-repo for a future art pass.
+- **Verified (Playwright + Chromium):** rings confirmed rotating in light, dark, and
+  under emulated reduced-motion; pills render light-on-light (light) and dark (dark);
+  dark unchanged. Shared First-Load JS 159 kB.
+
+## 2026-06-26 — Phase 2 completion (B): light-theme migration (foundation + high-traffic)
+Recovery point: branch `backup/pre-light-theme`. **Dark mode byte-for-byte unchanged**
+— every rule is scoped to `html:not(.dark)`. CSS-only; no component classNames touched
+(so zero dark-mode regression risk, hierarchy preserved).
+- **B1 additions** (on top of the B0 foundation below): white `ring-*` outlines,
+  gold/mint `text-*-400/500`, status text (`red`/`amber`/`sky`/`violet`/`blue`/
+  `emerald` 200–400) lifted to readable shades, remaining dark chips (`bg-ink-800/600`),
+  the `.eyebrow`/`.eyebrow-glass` pills, and the scrollbar track — all themed for light.
+- **Visual verification (Playwright + Chromium, this repo):** rendered light mode at
+  1440px on homepage, login, and contact and confirmed parity with dark — themed
+  navbar, eyebrow pills, darkened gold-gradient headings, `.surface` cards, form
+  inputs/labels, mint/gold buttons, and status/icon accents all read correctly. Dark
+  re-rendered identical. (Covers the shared Field/card/prose/overlay patterns used by
+  Settings, Dashboard, articles, and chat.)
+- Shared First-Load JS unchanged (159 kB).
+
+### B0 foundation
+- `src/app/globals.css`: a consolidated light foundation that remaps the design's
+  actual utilities under `html:not(.dark)`:
+  - **Text ramp** (`text-zinc-50…700`, `text-white`) → a dark-on-light hierarchy.
+  - **Brand accent text** (`text-gold-100/200/300`, `text-mint-200/300`, gradients,
+    `text-shine`) → readable shades on white.
+  - **Hairlines/tints** (`border-line`, `border-white/5,10`, `bg-white/…`) → dark tints.
+  - **Inputs & overlays** (`bg-ink-700/60`, `bg-ink-9xx/8xx` dropdowns, `bg-ink-950`)
+    → light surfaces.
+  - **Primitives**: `.glass`/`.surface`/`.surface-hover`, `.btn-secondary`/`.btn-ghost`,
+    `.prose-xyz` (headings/body/code/pre/blockquote/tables/links) → light treatments.
+  - **Ambient FX** (`.mesh`/`.aurora`/`.particle`) hidden in light; `.grid-bg` softened.
+- Shared First-Load JS unchanged (159 kB).
+- ⏳ Next (B1, after preview review): targeted high-traffic className cleanups for the
+  few spots the CSS remap can't reach (rings, inline gradient overlays, hero specifics).
+
 ## 2026-06-15 — Phase 2 completion (A): section polish + anime/iconsax rollout
 Recovery point: branch `backup/pre-polish-rollout`. Styling-only, brand-consistent,
 no behavior/feature change. First small checkpoint of the "complete the sweep" work.
