@@ -9,6 +9,7 @@ import {
 import { Avatar } from "./Avatar";
 import { Badge } from "./ui/primitives";
 import { EmojiPicker } from "./EmojiPicker";
+import { MagneticButton } from "./MagneticButton";
 import { cn } from "@/lib/utils";
 import { safeHref, cleanBareUrl } from "@/lib/links";
 
@@ -710,9 +711,11 @@ export function ChatClient({
         ) : (
           <div className="flex flex-col items-center justify-between gap-2 py-1 sm:flex-row">
             <p className="text-sm text-zinc-400">Join the conversation - it&apos;s free.</p>
-            <Link href="/login?callbackUrl=/community" className="btn-gold !py-2 text-[13px]">
-              Log in to chat
-            </Link>
+            <MagneticButton>
+              <Link href="/login?callbackUrl=/community" className="btn-gold !py-2 text-[13px]">
+                Log in to chat
+              </Link>
+            </MagneticButton>
           </div>
         )}
       </div>

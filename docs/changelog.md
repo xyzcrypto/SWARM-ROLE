@@ -5,6 +5,26 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-15 — Phase 2 completion (A): section polish + anime/iconsax rollout
+Recovery point: branch `backup/pre-polish-rollout`. Styling-only, brand-consistent,
+no behavior/feature change. First small checkpoint of the "complete the sweep" work.
+- **Homepage sections** brought up to the polished standard (`Social`/`WhatsNew`):
+  - `About.tsx`: credibility box → `surface surface-hover lift` + `glow-orb`; Learn/
+    Trade/Earn get a mint left-accent; credential icons scale on hover.
+  - `Products.tsx`: gold hover-glow on the Perp spotlight; icon `group-hover:scale`
+    across all product cards.
+  - `Ecosystem.tsx`: tone-aware hover glow (gold/mint) per card, logo scale, livelier
+    Telegram CTA.
+  - `Footer.tsx`: gold-dot column headers, social-icon `scale-110`, link hover shift,
+    centered disclaimer; `FooterNewsletter.tsx` → contained premium glass card + eyebrow.
+- **MagneticButton rollout** (desktop/fine-pointer only — auto-disabled on touch &
+  reduced-motion; anime.js stays lazy): Navbar "Get Started", ChatClient "Log in to
+  chat", PremiumLock CTAs. (Hero already covered.) Mobile-only CTAs intentionally
+  skipped (magnetic no-ops there).
+- **Iconsax accents** (standalone premium spots only — not mixed into uniform lucide
+  icon arrays): `PremiumLock` `Lock`→iconsax `Lock`, `Sparkles`→`MagicStar`.
+- Shared First-Load JS unchanged (159 kB); homepage First-Load unchanged (244 kB).
+
 ## 2026-06-15 — Phase 2 (increment 8): Admin Dashboard premium polish
 Recovery point: branch `backup/pre-research-polish` (chained). Styling only; no logic change.
 - **DashboardClient**: header eyebrow → premium glass pill; active tab gold glow +

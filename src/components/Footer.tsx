@@ -42,7 +42,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.label}
-                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 transition-all hover:-translate-y-0.5 ${s.color} ${s.hover}`}
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 transition-all hover:-translate-y-0.5 hover:scale-110 ${s.color} ${s.hover}`}
                 >
                   <s.Icon className="h-5 w-5" />
                 </a>
@@ -51,23 +51,29 @@ export function Footer() {
           </div>
 
           <div>
-            <h4 className="mono text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Explore</h4>
+            <h4 className="flex items-center gap-2 mono text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">
+              <span className="h-1 w-1 rounded-full bg-gold-400/80" />
+              Explore
+            </h4>
             <ul className="mt-4 space-y-3 text-sm">
               {navLinks.map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-zinc-500 transition-colors hover:text-gold-200">{l.label}</Link>
+                  <Link href={l.href} className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">{l.label}</Link>
                 </li>
               ))}
             </ul>
           </div>
 
           <div>
-            <h4 className="mono text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">Account</h4>
+            <h4 className="flex items-center gap-2 mono text-xs font-semibold uppercase tracking-[0.16em] text-zinc-400">
+              <span className="h-1 w-1 rounded-full bg-gold-400/80" />
+              Account
+            </h4>
             <ul className="mt-4 space-y-3 text-sm">
-              <li><Link href="/signup" className="text-zinc-500 transition-colors hover:text-gold-200">Create account</Link></li>
-              <li><Link href="/login" className="text-zinc-500 transition-colors hover:text-gold-200">Log in</Link></li>
-              <li><Link href="/research" className="text-zinc-500 transition-colors hover:text-gold-200">Research hub</Link></li>
-              <li><Link href="/contact" className="text-zinc-500 transition-colors hover:text-gold-200">Contact us</Link></li>
+              <li><Link href="/signup" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Create account</Link></li>
+              <li><Link href="/login" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Log in</Link></li>
+              <li><Link href="/research" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Research hub</Link></li>
+              <li><Link href="/contact" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Contact us</Link></li>
             </ul>
           </div>
         </div>
@@ -79,7 +85,7 @@ export function Footer() {
           <p className="mono text-[11px] text-zinc-600">© {new Date().getFullYear()} XYZ Crypto. All rights reserved.</p>
           <p className="mono text-[11px] text-zinc-600">Built for the Next Generation of Web3 · v2.0</p>
         </div>
-        <p className="pb-8 text-center text-[11px] leading-relaxed text-zinc-700">
+        <p className="mx-auto max-w-2xl pb-8 text-center text-[11px] leading-relaxed text-zinc-700">
           Disclaimer: Nothing on this site is financial advice. Crypto assets are
           volatile and high-risk. Always do your own research.
         </p>
