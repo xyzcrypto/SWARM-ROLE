@@ -38,7 +38,7 @@ export function About() {
               { k: "Trade", v: "Tools & Perp DEX" },
               { k: "Earn", v: "Airdrops & alpha" },
             ].map((s) => (
-              <div key={s.k}>
+              <div key={s.k} className="border-l-2 border-mint-500/30 pl-3">
                 <div className="mono text-sm font-semibold text-mint-300">{s.k}</div>
                 <div className="text-xs text-zinc-500">{s.v}</div>
               </div>
@@ -46,17 +46,18 @@ export function About() {
           </div>
 
           {/* Credibility / trust block (Since 2019) */}
-          <div className="mt-8 rounded-2xl border border-gold-500/20 bg-gold-500/[0.04] p-4">
-            <div className="flex items-center gap-2">
+          <div className="surface surface-hover lift group relative mt-8 overflow-hidden rounded-2xl p-4">
+            <div className="glow-orb -right-10 -top-10 h-32 w-32 bg-gold-500/15" />
+            <div className="relative flex items-center gap-2">
               <span className="mono text-[11px] font-semibold tracking-[0.16em] text-gold-200">
                 SINCE 2019
               </span>
               <span className="h-px flex-1 bg-gold-500/20" />
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+            <div className="relative mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
               {credibility.map((c) => (
-                <div key={c.label} className="flex items-center gap-2.5">
-                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20">
+                <div key={c.label} className="group/c flex items-center gap-2.5">
+                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20 transition-transform group-hover/c:scale-110">
                     <c.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
                   </span>
                   <span className="text-xs font-medium text-zinc-300">{c.label}</span>

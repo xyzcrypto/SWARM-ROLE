@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { Lock, Sparkles, Check } from "lucide-react";
+import { Check } from "lucide-react";
+import { Lock, MagicStar } from "iconsax-react";
+import { MagneticButton } from "./MagneticButton";
 
 const PERKS = ["Full breakdown & thesis", "On-chain data & charts", "Actionable analysis"];
 
@@ -25,10 +27,10 @@ export function PremiumLock({ loggedIn }: { loggedIn: boolean }) {
 
       <div className="relative">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-shine text-ink shadow-gold ring-1 ring-gold-500/40">
-          <Lock className="h-6 w-6" />
+          <Lock size={24} variant="Bold" color="#0a0a0d" />
         </div>
         <p className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-gold-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gold-200 ring-1 ring-gold-500/30">
-          <Sparkles className="h-3.5 w-3.5" /> Premium Content
+          <MagicStar size={14} variant="Bold" color="#f3d488" /> Premium Content
         </p>
         <h2 className="mt-4 font-display text-2xl font-bold text-zinc-50 sm:text-3xl">
           This is a Premium research piece
@@ -51,17 +53,23 @@ export function PremiumLock({ loggedIn }: { loggedIn: boolean }) {
 
         <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
           {loggedIn ? (
-            <Link href="/premium" className="btn-gold !px-6">
-              Upgrade to Premium
-            </Link>
+            <MagneticButton>
+              <Link href="/premium" className="btn-gold !px-6">
+                Upgrade to Premium
+              </Link>
+            </MagneticButton>
           ) : (
             <>
-              <Link href="/signup" className="btn-gold !px-6">
-                Create account
-              </Link>
-              <Link href="/login" className="btn-ghost !px-6">
-                Log in
-              </Link>
+              <MagneticButton>
+                <Link href="/signup" className="btn-gold !px-6">
+                  Create account
+                </Link>
+              </MagneticButton>
+              <MagneticButton>
+                <Link href="/login" className="btn-ghost !px-6">
+                  Log in
+                </Link>
+              </MagneticButton>
             </>
           )}
         </div>

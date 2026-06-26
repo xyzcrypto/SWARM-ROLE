@@ -20,6 +20,7 @@ const brands = [
     logo: "/web3-academy.jpg",
     initials: "W3",
     glow: "bg-gold-500/15",
+    shadow: "hover:shadow-[0_0_50px_-15px_rgba(226,167,47,0.35)]",
   },
   {
     name: "TradeKaroVerse",
@@ -31,6 +32,7 @@ const brands = [
     logo: "/tradekaroverse.jpg",
     initials: "TKV",
     glow: "bg-mint-500/12",
+    shadow: "hover:shadow-[0_0_50px_-15px_rgba(34,214,146,0.30)]",
   },
 ];
 
@@ -51,11 +53,11 @@ export function Ecosystem() {
                 href={b.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="surface surface-hover lift group relative block h-full overflow-hidden rounded-4xl p-5 sm:p-8"
+                className={`surface surface-hover lift group relative block h-full overflow-hidden rounded-4xl p-5 transition-all duration-300 sm:p-8 ${b.shadow}`}
               >
                 <div className={`glow-orb -right-12 -top-12 h-44 w-44 ${b.glow}`} />
                 <div className="relative flex items-start gap-3.5 sm:gap-5">
-                  <BrandLogo logo={b.logo} initials={b.initials} name={b.name} className="h-14 w-14 sm:h-20 sm:w-20" />
+                  <BrandLogo logo={b.logo} initials={b.initials} name={b.name} className="h-14 w-14 transition-transform duration-300 group-hover:scale-105 sm:h-20 sm:w-20" />
                   <div className="min-w-0 flex-1 pt-0.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-display text-lg font-semibold text-zinc-50 sm:text-2xl">{b.name}</h3>
@@ -66,8 +68,8 @@ export function Ecosystem() {
                   <ArrowUpRight className="h-5 w-5 shrink-0 text-zinc-600 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold-200" />
                 </div>
                 <p className="relative mt-5 text-sm leading-relaxed text-zinc-400">{b.blurb}</p>
-                <div className="relative mt-6 inline-flex items-center gap-2 text-sm font-semibold text-mint-300">
-                  <TelegramIcon className="h-4 w-4" />
+                <div className="relative mt-6 inline-flex items-center gap-2 text-sm font-semibold text-mint-300 transition-colors group-hover:text-mint-200">
+                  <TelegramIcon className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
                   Join on Telegram
                 </div>
               </a>

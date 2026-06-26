@@ -11,6 +11,7 @@ import { navLinks } from "@/lib/site";
 import { cn, maskEmail } from "@/lib/utils";
 import { Avatar } from "./Avatar";
 import { ActionLink } from "./ActionLink";
+import { MagneticButton } from "./MagneticButton";
 import { NavActivity } from "./NavActivity";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -180,9 +181,11 @@ export function Navbar() {
               >
                 Log in
               </Link>
-              <ActionLink href="/signup" className="btn-primary !px-4 !py-2 text-[13px]">
-                Get Started
-              </ActionLink>
+              <MagneticButton>
+                <ActionLink href="/signup" className="btn-primary !px-4 !py-2 text-[13px]">
+                  Get Started
+                </ActionLink>
+              </MagneticButton>
             </>
           )}
         </div>
