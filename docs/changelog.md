@@ -5,6 +5,25 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-26 — Phase 2 completion (B0): light-theme CSS foundation
+Recovery point: branch `backup/pre-light-theme`. **Dark mode byte-for-byte unchanged**
+— every rule is scoped to `html:not(.dark)`. CSS-only; no component classNames touched
+(so zero dark-mode regression risk, hierarchy preserved). First light-theme checkpoint.
+- `src/app/globals.css`: a consolidated light foundation that remaps the design's
+  actual utilities under `html:not(.dark)`:
+  - **Text ramp** (`text-zinc-50…700`, `text-white`) → a dark-on-light hierarchy.
+  - **Brand accent text** (`text-gold-100/200/300`, `text-mint-200/300`, gradients,
+    `text-shine`) → readable shades on white.
+  - **Hairlines/tints** (`border-line`, `border-white/5,10`, `bg-white/…`) → dark tints.
+  - **Inputs & overlays** (`bg-ink-700/60`, `bg-ink-9xx/8xx` dropdowns, `bg-ink-950`)
+    → light surfaces.
+  - **Primitives**: `.glass`/`.surface`/`.surface-hover`, `.btn-secondary`/`.btn-ghost`,
+    `.prose-xyz` (headings/body/code/pre/blockquote/tables/links) → light treatments.
+  - **Ambient FX** (`.mesh`/`.aurora`/`.particle`) hidden in light; `.grid-bg` softened.
+- Shared First-Load JS unchanged (159 kB).
+- ⏳ Next (B1, after preview review): targeted high-traffic className cleanups for the
+  few spots the CSS remap can't reach (rings, inline gradient overlays, hero specifics).
+
 ## 2026-06-15 — Phase 2 completion (A): section polish + anime/iconsax rollout
 Recovery point: branch `backup/pre-polish-rollout`. Styling-only, brand-consistent,
 no behavior/feature change. First small checkpoint of the "complete the sweep" work.
