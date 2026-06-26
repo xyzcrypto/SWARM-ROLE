@@ -5,10 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
-## 2026-06-26 — Phase 2 completion (B0): light-theme CSS foundation
+## 2026-06-26 — Phase 2 completion (B): light-theme migration (foundation + high-traffic)
 Recovery point: branch `backup/pre-light-theme`. **Dark mode byte-for-byte unchanged**
 — every rule is scoped to `html:not(.dark)`. CSS-only; no component classNames touched
-(so zero dark-mode regression risk, hierarchy preserved). First light-theme checkpoint.
+(so zero dark-mode regression risk, hierarchy preserved).
+- **B1 additions** (on top of the B0 foundation below): white `ring-*` outlines,
+  gold/mint `text-*-400/500`, status text (`red`/`amber`/`sky`/`violet`/`blue`/
+  `emerald` 200–400) lifted to readable shades, remaining dark chips (`bg-ink-800/600`),
+  the `.eyebrow`/`.eyebrow-glass` pills, and the scrollbar track — all themed for light.
+- **Visual verification (Playwright + Chromium, this repo):** rendered light mode at
+  1440px on homepage, login, and contact and confirmed parity with dark — themed
+  navbar, eyebrow pills, darkened gold-gradient headings, `.surface` cards, form
+  inputs/labels, mint/gold buttons, and status/icon accents all read correctly. Dark
+  re-rendered identical. (Covers the shared Field/card/prose/overlay patterns used by
+  Settings, Dashboard, articles, and chat.)
+- Shared First-Load JS unchanged (159 kB).
+
+### B0 foundation
 - `src/app/globals.css`: a consolidated light foundation that remaps the design's
   actual utilities under `html:not(.dark)`:
   - **Text ramp** (`text-zinc-50…700`, `text-white`) → a dark-on-light hierarchy.
