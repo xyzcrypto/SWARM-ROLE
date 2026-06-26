@@ -80,6 +80,17 @@ they just keep the bell list, dashboard premium list, and analytics fast at scal
 
 ## 4. Pending operational state (check before building new features)
 
+### ⚠️ Login lockout columns (one-time, production Supabase) — Milestone 1
+M1 added brute-force account lockout. It needs two `User` columns:
+`failedLoginCount Int @default(0)` and `lockedUntil DateTime?`. Apply with
+`npm run db:push` (prod env) or idempotent SQL:
+```sql
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "failedLoginCount" INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP(3);
+```
+Login works without it (lockout simply inactive until applied — the auth path is
+guarded). Also: `npm run backfill:usernames` mints handles for any legacy NULL users.
+
 ### ⚠️ Profiles DB migration (one-time, production Supabase)
 The v1.1 Profiles release added columns that must exist in the prod DB. Until
 applied, `/settings` and `/u/*` return a graceful 503 (rest of site unaffected).

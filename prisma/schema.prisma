@@ -31,6 +31,11 @@ model User {
   createdAt     DateTime  @default(now())
   lastLoginAt   DateTime?
 
+  // Brute-force defence (works without Upstash): lock the account for a short
+  // window after repeated failed password attempts; reset on success.
+  failedLoginCount Int       @default(0)
+  lockedUntil      DateTime?
+
   // --- Public profile fields (see /u/[username] + /settings) ---
   username    String? @unique // handle for the public profile URL, 3–20 [a-z0-9_]
   bio         String? // short about, <= 280 chars

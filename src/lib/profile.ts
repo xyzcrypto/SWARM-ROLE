@@ -142,13 +142,25 @@ export const profileSchema = z.object({
 
 export type ProfileInput = z.infer<typeof profileSchema>;
 
+/**
+ * Shared strong-password policy, used by signup, password reset and password
+ * change so the rules are enforced server-side everywhere (the client strength
+ * meter in PasswordField is only UI feedback). Min 8 with a mix of cases + a
+ * digit — a reasonable bar that resists casual brute-force without frustrating
+ * users. Keep messages specific so the form can guide the user.
+ */
+export const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters.")
+  .max(100, "Password is too long.")
+  .refine((v) => /[a-z]/.test(v), { message: "Add a lowercase letter." })
+  .refine((v) => /[A-Z]/.test(v), { message: "Add an uppercase letter." })
+  .refine((v) => /\d/.test(v), { message: "Add a number." });
+
 // POST /api/profile/password body.
 export const passwordChangeSchema = z.object({
   currentPassword: z.string().min(1, "Enter your current password."),
-  newPassword: z
-    .string()
-    .min(6, "New password must be at least 6 characters.")
-    .max(100, "Password is too long."),
+  newPassword: passwordSchema,
 });
 
 // GET /api/profile/username?handle= - availability check input.

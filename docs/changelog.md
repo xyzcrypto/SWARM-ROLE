@@ -5,6 +5,27 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-26 — Milestone 1: security hardening + critical bugs + mobile (#4,#5,#8,#2)
+Recovery point: branch `backup/pre-m1`. First of the 4-milestone roadmap program.
+- **#4 Premium CTA bug:** `/premium` "Create account" CTAs are now wrapped in
+  `GuestOnly`; signed-in members get a member CTA instead (new `SignedIn.tsx`, the
+  inverse of `GuestOnly`). Logged-in users no longer see "create account".
+- **#5 Password + brute-force:** shared strong `passwordSchema` (min 8 + upper/lower/
+  digit) enforced server-side at signup, reset and change (`src/lib/profile.ts`,
+  signup/reset routes; `PasswordField` minLength→8). **DB-backed account lockout**
+  (5 fails → 15 min) in `src/lib/auth.ts authorize()` — works even without Upstash;
+  login path kept independent of the new columns so it degrades gracefully pre-migration.
+  New User columns `failedLoginCount`, `lockedUntil`. +6 unit tests.
+- **#8 Auto @handle:** handles already auto-assign on signup/OAuth + on-the-fly; added a
+  standalone idempotent backfill (`prisma/backfill-usernames.ts`, `npm run
+  backfill:usernames`) for any legacy NULL handles. Navbar already resolves `/u/<handle>`.
+- **#2 Mobile/responsive:** dashboard members table no longer forces horizontal scroll
+  on phones (date columns hidden < md, relaxed min-width); contact form inputs → 44px
+  tap target (`py-3`).
+- typecheck + lint(0) + test(73) + build green; shared First-Load JS 159 kB.
+- ⚙️ Ops: apply the migration adding `User.failedLoginCount`/`lockedUntil`
+  (lockout activates once applied); optionally run `npm run backfill:usernames`.
+
 ## 2026-06-26 — Desktop orbital: fix static animation + light rendering; park 3D
 Reported on desktop (light preview): the orbital centerpiece was **static** and the
 node pills rendered **dark on the light background**.

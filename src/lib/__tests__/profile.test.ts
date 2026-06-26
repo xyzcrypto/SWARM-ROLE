@@ -115,15 +115,21 @@ describe("profileSchema", () => {
 });
 
 describe("passwordChangeSchema", () => {
-  it("requires a current password and a 6+ char new password", () => {
+  it("requires a current password and a strong new password (8+, mixed case, digit)", () => {
     expect(
-      passwordChangeSchema.safeParse({ currentPassword: "x", newPassword: "abcdef" }).success
+      passwordChangeSchema.safeParse({ currentPassword: "x", newPassword: "Abcdef12" }).success
     ).toBe(true);
+    // empty current password
     expect(
-      passwordChangeSchema.safeParse({ currentPassword: "", newPassword: "abcdef" }).success
+      passwordChangeSchema.safeParse({ currentPassword: "", newPassword: "Abcdef12" }).success
     ).toBe(false);
+    // too short
     expect(
-      passwordChangeSchema.safeParse({ currentPassword: "x", newPassword: "123" }).success
+      passwordChangeSchema.safeParse({ currentPassword: "x", newPassword: "Ab1cd" }).success
+    ).toBe(false);
+    // missing complexity (no uppercase / digit)
+    expect(
+      passwordChangeSchema.safeParse({ currentPassword: "x", newPassword: "abcdefgh" }).success
     ).toBe(false);
   });
 });

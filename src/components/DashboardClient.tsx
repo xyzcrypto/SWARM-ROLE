@@ -406,28 +406,28 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-line">
-        <table className="w-full min-w-[680px] text-left text-sm">
+        <table className="w-full min-w-[340px] text-left text-sm md:min-w-[640px]">
           <thead className="bg-ink-700/60 mono text-[11px] uppercase tracking-wider text-zinc-500">
             <tr>
-              <th className="px-5 py-3 font-medium">Email</th>
-              <th className="px-5 py-3 font-medium">Signup Date</th>
-              <th className="px-5 py-3 font-medium">Last Login</th>
-              <th className="px-5 py-3 font-medium">Membership</th>
-              <th className="px-5 py-3 text-right font-medium">Action</th>
+              <th className="px-4 py-3 font-medium sm:px-5">Email</th>
+              <th className="hidden px-5 py-3 font-medium md:table-cell">Signup Date</th>
+              <th className="hidden px-5 py-3 font-medium md:table-cell">Last Login</th>
+              <th className="px-4 py-3 font-medium sm:px-5">Membership</th>
+              <th className="px-4 py-3 text-right font-medium sm:px-5">Action</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
             {filtered.map((u) => (
               <tr key={u.id} className="hover:bg-white/[0.02]">
-                <td className="px-5 py-3">
+                <td className="px-4 py-3 sm:px-5">
                   <div className="font-medium text-zinc-200">{u.email}</div>
                   <div className="mono text-[11px] text-zinc-600">{u.name ?? "-"} · {u.provider}</div>
                 </td>
-                <td className="px-5 py-3 mono text-xs text-zinc-400">{formatDate(u.createdAt)}</td>
-                <td className="px-5 py-3 mono text-xs text-zinc-400">
+                <td className="hidden px-5 py-3 mono text-xs text-zinc-400 md:table-cell">{formatDate(u.createdAt)}</td>
+                <td className="hidden px-5 py-3 mono text-xs text-zinc-400 md:table-cell">
                   {u.lastLoginAt ? formatDateTime(u.lastLoginAt) : <span className="text-zinc-600">Never</span>}
                 </td>
-                <td className="px-5 py-3">
+                <td className="px-4 py-3 sm:px-5">
                   {u.role === "ADMIN" ? (
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
                       Admin
@@ -443,7 +443,7 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
                     </span>
                   )}
                 </td>
-                <td className="px-5 py-3 text-right">
+                <td className="px-4 py-3 text-right sm:px-5">
                   {u.role === "ADMIN" ? (
                     <span className="text-xs text-zinc-600">-</span>
                   ) : (

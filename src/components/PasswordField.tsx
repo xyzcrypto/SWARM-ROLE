@@ -49,7 +49,7 @@ export function PasswordField({
           placeholder={placeholder}
           autoComplete={autoComplete}
           required
-          minLength={6}
+          minLength={8}
           className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 pr-11 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
         />
         <button
