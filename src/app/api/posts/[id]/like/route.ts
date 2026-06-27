@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { broadcastEvent } from "@/lib/realtime";
 
 // POST /api/posts/:id/like - logged-in toggle. Returns { liked, count }.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -36,6 +37,8 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     }
 
     const count = await prisma.postLike.count({ where: { postId: params.id } });
+    // Live count for everyone viewing this post (best-effort; no-op without realtime).
+    void broadcastEvent(`post:${params.id}`, "like", { count, postId: params.id });
     return ok({ liked, count });
   } catch (err) {
     return handleError(err, "like:toggle");

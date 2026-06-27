@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { notifyNewComment } from "@/lib/notifications";
+import { broadcastEvent } from "@/lib/realtime";
 
 // GET /api/posts/:id/comments - public; visible comments, newest first, paginated.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
@@ -88,6 +89,9 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       postTitle: post.title,
       postSlug: post.slug,
     });
+
+    // Live: tell everyone viewing this post a new comment landed (they refetch).
+    void broadcastEvent(`post:${params.id}`, "comment", { id: created.id });
 
     return ok(
       {

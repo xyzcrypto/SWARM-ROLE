@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { formatDateTime } from "@/lib/utils";
+import { useRealtime } from "@/lib/useRealtime";
 import { Avatar } from "./Avatar";
 
 type CommentAuthor = { name: string; username: string | null; image: string | null };
@@ -40,25 +41,30 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
     return () => io.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!inView) return;
-    let active = true;
-    (async () => {
-      try {
-        const res = await fetch(`/api/posts/${postId}/comments`);
-        const data = await res.json().catch(() => ({}));
-        if (active && res.ok) {
-          setItems(data.comments ?? []);
-          setTotal(data.total ?? 0);
-        }
-      } finally {
-        if (active) setLoading(false);
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setItems(data.comments ?? []);
+        setTotal(data.total ?? 0);
       }
-    })();
-    return () => {
-      active = false;
-    };
-  }, [postId, inView]);
+    } finally {
+      setLoading(false);
+    }
+  }, [postId]);
+
+  useEffect(() => {
+    if (inView) load();
+  }, [inView, load]);
+
+  // Live: refetch when anyone posts a new comment on this post (once in view).
+  useRealtime({
+    channel: `post:${postId}`,
+    event: "comment",
+    enabled: inView,
+    onMessage: () => load(),
+  });
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
