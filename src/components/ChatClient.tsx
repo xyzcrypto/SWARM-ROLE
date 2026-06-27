@@ -236,6 +236,9 @@ export function ChatClient({
           .on("broadcast", { event: "reaction" }, ({ payload }) => {
             const p = payload as { messageId: string; emoji: string; userId: string; op: "add" | "remove" };
             applyReaction(p.messageId, p.emoji, p.userId, p.op);
+            // Blip when ANOTHER member reacts (adds an emoji) — same opt-in rule
+            // as new messages; never your own reactions. "remove" is silent.
+            if (soundOnRef.current && p.op === "add" && p.userId !== me?.id) playBlip(audioCtxRef.current);
           })
           .on("broadcast", { event: "typing" }, ({ payload }) => {
             const p = payload as { userId: string; name: string };

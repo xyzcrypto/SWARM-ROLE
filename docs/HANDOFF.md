@@ -80,6 +80,14 @@ they just keep the bell list, dashboard premium list, and analytics fast at scal
 
 ## 4. Pending operational state (check before building new features)
 
+### ⚠️ Community chat realtime (live "who's online" + instant sound) — optional but recommended
+Presence + instant message/reaction sound are **realtime-only**. Set
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY` in Vercel and redeploy. Full step-by-step (keys →
+Vercel → redeploy → verify → troubleshooting): **`docs/REALTIME-SETUP.md`**. Until
+set, the chat falls back to 10s polling (no presence, no instant blip).
+
+
 ### ✅ Migrations now auto-apply on deploy (`vercel-build`)
 `package.json` has a `vercel-build` script that runs `prisma db push` (best-effort,
 non-fatal) before `next build`, so **Vercel syncs the schema on every deploy** — you no

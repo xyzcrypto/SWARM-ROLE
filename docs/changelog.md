@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Community Chat: emoji-reaction sound + realtime setup guide
+Recovery point: branch `backup/pre-reaction-sound`. Follow-up to the sound/live-online fix.
+- **Sound on emoji reactions:** the `reaction` broadcast handler now plays the same
+  subtle blip when **another** member adds an emoji reaction (opt-in toggle; never your
+  own; `remove` is silent), mirroring the new-message rule. Reuses the existing shared
+  `AudioContext` + `playBlip` — no new audio plumbing.
+- **Realtime-only note:** reaction sound (like presence + instant message push) needs
+  Supabase Realtime configured; the 10s polling fallback stays message-list-only and
+  doesn't blip on reactions (no per-user reaction delta to key off → would misfire).
+- **New ops guide `docs/REALTIME-SETUP.md`:** exact step-by-step to turn on live
+  "who's online" + instant sound — copy the 3 Supabase keys → set 4 Vercel env vars →
+  redeploy → 2-device verification + troubleshooting. Linked from `docs/HANDOFF.md §4`.
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+
 ## 2026-06-27 — Community Chat: sound + live-online fix
 Recovery point: branch `backup/pre-sound-fix`. Targeted fix for "sound & live online
 real-time showcase not working" — both bugs were client-side; the message core is untouched.
