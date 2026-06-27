@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Community Chat: futuristic overhaul v1 (#7) — live presence
+Recovery point: branch `backup/pre-chat-overhaul`. Visual + presence only — the message
+send/broadcast/reaction core is untouched (it's the fragile part).
+- **Live "who's online" presence strip:** presence now tracks each member's name + avatar
+  + handle, de-duped by user id; the header shows a stack of online members' avatars
+  (linking to their `/u/<handle>` profiles) + a live count. Real social proof / "who's here".
+- **Futuristic header + room identity:** "XYZ Lounge" with a pulsing live/connecting dot,
+  `#general` subtitle, a mint gradient header bar and a mint "N online" pill.
+- **Ambient glow** behind the room (mint top + gold corner), content layered above it.
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+- Next iterations (optional): @mention autocomplete from online members, quick double-tap
+  reactions, sound/streak cues — all layer on top of this without touching the core.
+
 ## 2026-06-27 — UX fixes + security audit + perf (items #2–#6)
 Recovery point: branch `backup/pre-batch-fixes`.
 - **#4 Footer:** "Create account"/"Log in" now hidden when signed in (GuestOnly) — members

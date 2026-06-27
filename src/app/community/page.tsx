@@ -63,6 +63,8 @@ export default async function CommunityPage() {
                     id: me.id as string,
                     isAdmin: me.role === "ADMIN",
                     name: (me.name as string | null) ?? "Member",
+                    image: (me.image as string | null) ?? null,
+                    username: (me.username as string | null) ?? null,
                   }
                 : null
             }
