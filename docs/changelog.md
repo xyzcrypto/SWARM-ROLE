@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Community Chat: engagement v2 (#7) — mentions, quick-react, sound
+Recovery point: branch `backup/pre-chat-v2`. Additive on top of v1; send/broadcast core untouched.
+- **@mention autocomplete:** typing `@partial` in the composer suggests online members
+  (with a handle), with avatar + name; selecting inserts `@username` (links to their profile).
+- **Double-tap to ❤️:** double-click any message to toggle a heart (reuses `toggleReaction`).
+- **Sound toggle:** a header speaker button (opt-in, persisted) plays a subtle Web-Audio
+  blip on incoming messages (never your own) — that "new message" dopamine hit.
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+
 ## 2026-06-27 — Community Chat: futuristic overhaul v1 (#7) — live presence
 Recovery point: branch `backup/pre-chat-overhaul`. Visual + presence only — the message
 send/broadcast/reaction core is untouched (it's the fragile part).

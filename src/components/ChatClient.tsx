@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowDown, Check, Copy, Loader2, Reply, SendHorizonal, Smile, Trash2, X,
+  ArrowDown, Check, Copy, Loader2, Reply, SendHorizonal, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { Badge } from "./ui/primitives";
@@ -78,6 +78,30 @@ function dayLabel(iso: string): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
+// Soft, asset-free "blip" for incoming messages (Web Audio). Best-effort.
+function playBlip() {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = 680;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    const t = ctx.currentTime;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.05, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+    osc.start(t);
+    osc.stop(t + 0.24);
+    osc.onended = () => ctx.close();
+  } catch {
+    /* audio not available / blocked */
+  }
+}
+
 export function ChatClient({
   initialMessages,
   initialHasMore,
@@ -107,6 +131,23 @@ export function ChatClient({
   const [reactOpenId, setReactOpenId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [soundOn, setSoundOn] = useState(false);
+  const soundOnRef = useRef(false);
+
+  // Sound preference: opt-in, persisted per device. A subtle blip plays on
+  // incoming messages (never your own) when enabled.
+  useEffect(() => {
+    setSoundOn(localStorage.getItem("xyz:chatSound") === "1");
+  }, []);
+  useEffect(() => {
+    soundOnRef.current = soundOn;
+  }, [soundOn]);
+  const toggleSound = () =>
+    setSoundOn((v) => {
+      const next = !v;
+      localStorage.setItem("xyz:chatSound", next ? "1" : "0");
+      return next;
+    });
 
   const listRef = useRef<HTMLDivElement>(null);
   const channelRef = useRef<any>(null);
@@ -161,7 +202,11 @@ export function ChatClient({
         });
         const channel = client.channel(CHANNEL, { config: { presence: { key: me?.id || `guest-${Math.random().toString(36).slice(2)}` } } });
         channel
-          .on("broadcast", { event: "new_message" }, ({ payload }) => appendMessage(payload as Message))
+          .on("broadcast", { event: "new_message" }, ({ payload }) => {
+            const msg = payload as Message;
+            appendMessage(msg);
+            if (soundOnRef.current && msg.userId !== me?.id) playBlip();
+          })
           .on("broadcast", { event: "message_hidden" }, ({ payload }) => hideMessage((payload as { id: string }).id))
           .on("broadcast", { event: "reaction" }, ({ payload }) => {
             const p = payload as { messageId: string; emoji: string; userId: string; op: "add" | "remove" };
@@ -439,6 +484,24 @@ export function ChatClient({
 
   let lastDay = "";
 
+  // @mention autocomplete: when the composer ends in `@partial`, suggest online
+  // members (with a public handle) to insert. Selecting replaces the token.
+  const mentionMatch = body.match(/@([a-zA-Z0-9_]*)$/);
+  const mentionQuery = mentionMatch ? mentionMatch[1].toLowerCase() : null;
+  const mentionSuggestions =
+    mentionQuery !== null
+      ? members
+          .filter(
+            (u) =>
+              u.username &&
+              u.id !== me?.id &&
+              (u.username.toLowerCase().includes(mentionQuery) || u.name.toLowerCase().includes(mentionQuery))
+          )
+          .slice(0, 6)
+      : [];
+  const insertMention = (username: string) =>
+    setBody((b) => b.replace(/@[a-zA-Z0-9_]*$/, `@${username} `).slice(0, MAX_LENGTH));
+
   return (
     <div className="glass relative flex h-[68vh] min-h-[440px] flex-col overflow-hidden rounded-3xl">
       {/* Ambient futuristic glow behind the room. */}
@@ -460,6 +523,15 @@ export function ChatClient({
         </div>
 
         <div className="flex shrink-0 items-center gap-2.5">
+          <button
+            type="button"
+            onClick={toggleSound}
+            aria-label={soundOn ? "Mute message sounds" : "Enable message sounds"}
+            title={soundOn ? "Sounds on" : "Sounds off"}
+            className={cn("rounded-lg p-1.5 transition-colors", soundOn ? "text-mint-300 hover:text-mint-200" : "text-zinc-500 hover:text-zinc-300")}
+          >
+            {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+          </button>
           {members.length > 0 && (
             <div className="hidden -space-x-2 xs:flex">
               {members.slice(0, 5).map((m) =>
@@ -541,6 +613,9 @@ export function ChatClient({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.18 }}
+                  onDoubleClick={() => {
+                    if (me && !m.pending) toggleReaction(m.id, "❤️");
+                  }}
                   className={cn(
                     "group relative flex items-start gap-3 rounded-xl px-2 transition-colors hover:bg-white/[0.03]",
                     grouped ? "py-0.5" : "py-1.5",
@@ -754,6 +829,28 @@ export function ChatClient({
                     />
                   )}
                 </AnimatePresence>
+                {mentionSuggestions.length > 0 && (
+                  <div className="absolute bottom-full left-0 z-30 mb-2 w-60 max-w-[80vw] overflow-hidden rounded-xl border border-line bg-ink-900/95 p-1 shadow-elevate backdrop-blur-xl">
+                    <p className="px-2 py-1 mono text-[10px] uppercase tracking-wider text-zinc-600">Mention</p>
+                    {mentionSuggestions.map((u) => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          if (u.username) insertMention(u.username);
+                        }}
+                        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/10"
+                      >
+                        <Avatar name={u.name} image={u.image} size="sm" className="h-6 w-6" />
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm text-zinc-100">{u.name}</span>
+                          <span className="mono text-[10px] text-zinc-500">@{u.username}</span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
                 <div className="mt-1 flex items-center justify-between text-[11px]">
                   <span className="text-red-300">{error}</span>
                   <span className={cn("text-zinc-600", body.length > MAX_LENGTH - 50 && "text-amber-300")}>
