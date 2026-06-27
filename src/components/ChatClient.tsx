@@ -31,7 +31,8 @@ type Message = {
   reactions: Reaction[];
   pending?: boolean;
 };
-type Me = { id: string; isAdmin: boolean; name: string };
+type Me = { id: string; isAdmin: boolean; name: string; image?: string | null; username?: string | null };
+type PresenceMember = { id: string; name: string; image: string | null; username: string | null };
 
 const normalizeReactions = (rs: { emoji: string; userIds: string[] }[]): Reaction[] =>
   rs.map((r) => ({ emoji: r.emoji, userIds: [...r.userIds] }));
@@ -98,6 +99,7 @@ export function ChatClient({
   const [error, setError] = useState("");
   const [live, setLive] = useState(false);
   const [online, setOnline] = useState(0);
+  const [members, setMembers] = useState<PresenceMember[]>([]);
   const [typers, setTypers] = useState<Record<string, { name: string; until: number }>>({});
   const [stickToBottom, setStickToBottom] = useState(true);
   const [unread, setUnread] = useState(0);
@@ -171,11 +173,38 @@ export function ChatClient({
             setTypers((t) => ({ ...t, [p.userId]: { name: p.name, until: Date.now() + 4000 } }));
           })
           .on("presence", { event: "sync" }, () => {
-            setOnline(Object.keys(channel.presenceState()).length);
+            // Build the live "who's online" list, de-duped by user id (a member
+            // open in two tabs counts once).
+            const state = channel.presenceState() as Record<string, Array<Record<string, unknown>>>;
+            const seen = new Map<string, PresenceMember>();
+            for (const entries of Object.values(state)) {
+              for (const e of entries) {
+                const id = (e.id as string) || (e.name as string) || Math.random().toString(36);
+                if (!seen.has(id)) {
+                  seen.set(id, {
+                    id,
+                    name: (e.name as string) ?? "Guest",
+                    image: (e.image as string | null) ?? null,
+                    username: (e.username as string | null) ?? null,
+                  });
+                }
+              }
+            }
+            const list = [...seen.values()];
+            setMembers(list);
+            setOnline(list.length);
           })
           .subscribe((status) => {
             setLive(status === "SUBSCRIBED");
-            if (status === "SUBSCRIBED") channel.track({ at: Date.now(), name: me?.name ?? "Guest" });
+            if (status === "SUBSCRIBED") {
+              channel.track({
+                at: Date.now(),
+                id: me?.id,
+                name: me?.name ?? "Guest",
+                image: me?.image ?? null,
+                username: me?.username ?? null,
+              });
+            }
           });
         channelRef.current = channel;
         cleanup = () => {
@@ -186,6 +215,7 @@ export function ChatClient({
           channelRef.current = null;
           setLive(false);
           setOnline(0);
+          setMembers([]);
         };
         return;
       }
@@ -224,7 +254,7 @@ export function ChatClient({
       cancelled = true;
       cleanup?.();
     };
-  }, [realtime.url, realtime.anonKey, me?.id, me?.name, appendMessage, hideMessage, applyReaction]);
+  }, [realtime.url, realtime.anonKey, me?.id, me?.name, me?.image, me?.username, appendMessage, hideMessage, applyReaction]);
 
   // Expire stale typing indicators.
   useEffect(() => {
@@ -411,25 +441,59 @@ export function ChatClient({
 
   return (
     <div className="glass relative flex h-[68vh] min-h-[440px] flex-col overflow-hidden rounded-3xl">
-      {/* status strip */}
-      <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
-        <span className="inline-flex items-center gap-2 text-xs text-zinc-400">
-          <span className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse-dot bg-mint-400" : "bg-zinc-600")} />
-          {live ? "Live" : "Connected"} · General
-        </span>
-        <span className="inline-flex items-center gap-3 text-[11px] text-zinc-500">
-          {online > 0 && (
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-1.5 w-1.5 rounded-full bg-mint-400" />
-              {online} online
+      {/* Ambient futuristic glow behind the room. */}
+      <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[130%] -translate-x-1/2 rounded-full bg-mint-500/10 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-28 right-0 h-56 w-72 rounded-full bg-gold-500/10 blur-3xl" />
+
+      {/* Header: room identity + live "who's online" presence strip */}
+      <div className="relative flex items-center justify-between gap-3 border-b border-line bg-gradient-to-r from-mint-500/[0.05] via-transparent to-gold-500/[0.05] px-4 py-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className={cn("absolute inline-flex h-full w-full rounded-full", live ? "animate-pulse-dot bg-mint-400" : "bg-zinc-600")} />
+              <span className={cn("relative inline-flex h-2 w-2 rounded-full", live ? "bg-mint-400" : "bg-zinc-600")} />
             </span>
+            <span className="font-display text-sm font-semibold text-zinc-100">XYZ Lounge</span>
+            <span className="mono text-[10px] uppercase tracking-wider text-mint-300/80">{live ? "Live" : "Connecting…"}</span>
+          </div>
+          <p className="mt-0.5 mono text-[11px] text-zinc-500">#general · markets, alpha &amp; Web3</p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2.5">
+          {members.length > 0 && (
+            <div className="hidden -space-x-2 xs:flex">
+              {members.slice(0, 5).map((m) =>
+                m.username ? (
+                  <Link
+                    key={m.id}
+                    href={`/u/${m.username}`}
+                    title={m.name}
+                    className="transition-transform duration-200 hover:z-10 hover:-translate-y-0.5"
+                  >
+                    <Avatar name={m.name} image={m.image} size="sm" className="ring-2 ring-ink-900" />
+                  </Link>
+                ) : (
+                  <span key={m.id} title={m.name}>
+                    <Avatar name={m.name} image={m.image} size="sm" className="ring-2 ring-ink-900" />
+                  </span>
+                )
+              )}
+              {members.length > 5 && (
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-700 text-[10px] font-semibold text-zinc-300 ring-2 ring-ink-900">
+                  +{members.length - 5}
+                </span>
+              )}
+            </div>
           )}
-          <span className="hidden sm:inline text-zinc-600">Be respectful. No spam.</span>
-        </span>
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-mint-500/10 px-2.5 py-1 text-[11px] font-medium text-mint-200 ring-1 ring-mint-500/25">
+            <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-mint-400" />
+            {online} online
+          </span>
+        </div>
       </div>
 
       {/* messages */}
-      <div ref={listRef} onScroll={onScroll} className="flex-1 overflow-y-auto px-3 py-4 sm:px-4">
+      <div ref={listRef} onScroll={onScroll} className="relative z-[1] flex-1 overflow-y-auto px-3 py-4 sm:px-4">
         {hasMore && (
           <div className="mb-4 text-center">
             <button onClick={loadOlder} disabled={loadingOlder} className="btn-ghost !px-4 !py-1.5 text-xs disabled:opacity-60">
@@ -643,7 +707,7 @@ export function ChatClient({
       </AnimatePresence>
 
       {/* composer */}
-      <div className="border-t border-line px-3 py-3 sm:px-4">
+      <div className="relative z-[1] border-t border-line px-3 py-3 sm:px-4">
         {me ? (
           <>
             {replyTarget && (
