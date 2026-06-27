@@ -195,7 +195,7 @@ export function DashboardClient({
       {tab === "content" && <PostManager posts={posts} />}
       {tab === "members" && <Members users={recentUsers} realtime={realtime} />}
       {tab === "whatsnew" && <WhatsNewManager />}
-      {tab === "access" && <AccessPanel users={recentUsers} viewer={viewer} />}
+      {tab === "access" && <AccessPanel viewer={viewer} />}
     </div>
   );
 }
@@ -510,66 +510,122 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
 }
 
 /* ------------------------- Team / Access ------------------------- */
-function AccessPanel({ users, viewer }: { users: UserRow[]; viewer: Viewer }) {
+type StaffUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  role: string;
+  permissions: string[];
+  isSuperAdmin: boolean;
+};
+
+function AccessPanel({ viewer }: { viewer: Viewer }) {
   const [query, setQuery] = useState("");
-  const [editing, setEditing] = useState<UserRow | null>(null);
-  const q = query.trim().toLowerCase();
-  const filtered = q ? users.filter((u) => `${u.name ?? ""} ${u.email}`.toLowerCase().includes(q)) : users;
+  const [results, setResults] = useState<StaffUser[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<StaffUser | null>(null);
+
+  const search = useCallback(async (q: string) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, { cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      setResults(Array.isArray(d.users) ? d.users : []);
+    } catch {
+      /* keep last results */
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Debounced server-side search; empty query lists the most recent members.
+  useEffect(() => {
+    const id = setTimeout(() => search(query.trim()), 250);
+    return () => clearTimeout(id);
+  }, [query, search]);
 
   return (
     <div className="space-y-5">
       <div className="surface rounded-2xl p-5 sm:p-6">
         <h2 className="font-display text-lg font-semibold text-zinc-100">Team &amp; access</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Grant staff capabilities to members. Super Admins (set via{" "}
+          Search <strong className="text-zinc-300">any member</strong> by name or email and grant them staff
+          capabilities — you can adjust or revoke them any time. Super Admins (set via{" "}
           <span className="mono text-zinc-400">ADMIN_EMAILS</span>) have full access and can&apos;t be edited here.
         </p>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search members by name or email…"
+          placeholder="Search all members by name or email…"
           className="mt-4 w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
         />
-        <p className="mt-2 text-[11px] text-zinc-600">Showing the 50 most recent members. Search to narrow.</p>
       </div>
 
       <ul className="space-y-2">
-        {filtered.slice(0, 50).map((u) => {
-          const superAdmin = u.role === "ADMIN";
-          return (
+        {loading && results.length === 0 ? (
+          <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-8 text-center text-sm text-zinc-500">
+            Searching…
+          </li>
+        ) : results.length === 0 ? (
+          <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-8 text-center text-sm text-zinc-500">
+            {query.trim() ? `No members match “${query}”.` : "No members yet."}
+          </li>
+        ) : (
+          results.map((u) => (
             <li key={u.id} className="surface flex items-center justify-between gap-3 rounded-2xl p-4">
               <div className="min-w-0">
                 <div className="truncate text-sm font-medium text-zinc-200">{u.email}</div>
                 <div className="mono text-[11px] text-zinc-600">{u.name ?? "—"}</div>
               </div>
-              {superAdmin ? (
-                <span className="shrink-0 rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
-                  Super Admin
-                </span>
-              ) : (
-                <button
-                  onClick={() => setEditing(u)}
-                  className="shrink-0 text-xs font-medium text-gold-200 transition-colors hover:text-gold-100"
-                >
-                  Manage access
-                </button>
-              )}
+              <div className="flex shrink-0 items-center gap-3">
+                {u.isSuperAdmin ? (
+                  <span className="rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
+                    Super Admin
+                  </span>
+                ) : (
+                  <>
+                    <span className="mono hidden text-[11px] text-zinc-500 xs:inline">
+                      {u.permissions.length
+                        ? `${u.permissions.length} ${u.permissions.length === 1 ? "capability" : "capabilities"}`
+                        : "No access"}
+                    </span>
+                    <button
+                      onClick={() => setEditing(u)}
+                      className="text-xs font-medium text-gold-200 transition-colors hover:text-gold-100"
+                    >
+                      {u.permissions.length ? "Edit access" : "Grant access"}
+                    </button>
+                  </>
+                )}
+              </div>
             </li>
-          );
-        })}
-        {filtered.length === 0 && (
-          <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-8 text-center text-sm text-zinc-500">
-            No members match “{query}”.
-          </li>
+          ))
         )}
       </ul>
 
-      {editing && <AccessEditor user={editing} viewer={viewer} onClose={() => setEditing(null)} />}
+      {editing && (
+        <AccessEditor
+          user={editing}
+          viewer={viewer}
+          onClose={() => setEditing(null)}
+          onSaved={() => search(query.trim())}
+        />
+      )}
     </div>
   );
 }
 
-function AccessEditor({ user, viewer, onClose }: { user: UserRow; viewer: Viewer; onClose: () => void }) {
+function AccessEditor({
+  user,
+  viewer,
+  onClose,
+  onSaved,
+}: {
+  user: { id: string; email: string };
+  viewer: Viewer;
+  onClose: () => void;
+  onSaved?: () => void;
+}) {
   const [perms, setPerms] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -609,6 +665,7 @@ function AccessEditor({ user, viewer, onClose }: { user: UserRow; viewer: Viewer
         throw new Error(d.error || "Could not save access.");
       }
       setSaved(true);
+      onSaved?.();
       setTimeout(() => setSaved(false), 2000);
     } catch (e: any) {
       setError(e.message || "Could not save access.");
