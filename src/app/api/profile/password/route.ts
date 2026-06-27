@@ -32,7 +32,7 @@ export async function POST(req: Request) {
     const valid = await bcrypt.compare(currentPassword, user.passwordHash);
     if (!valid) return fail("Current password is incorrect.", 400);
 
-    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const passwordHash = await bcrypt.hash(newPassword, 12);
     await prisma.user.update({ where: { id: me.id }, data: { passwordHash } });
 
     return ok({ ok: true });

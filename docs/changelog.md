@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — UX fixes + security audit + perf (items #2–#6)
+Recovery point: branch `backup/pre-batch-fixes`.
+- **#4 Footer:** "Create account"/"Log in" now hidden when signed in (GuestOnly) — members
+  see "Your profile"/"Settings" instead.
+- **#5 Emoji animations:** keyframes made subtle/professional (the `emoji-wobble` 360° flip
+  and `emoji-launch` -7px jump are gone) — no more "out of box" motion; contained, no layout shift.
+- **#6 Profile name:** added `min-w-0`/`break-words` so a long display name no longer gets
+  clipped by the badges row on desktop.
+- **#2 Security audit** (`docs/SECURITY-AUDIT.md`, full report): fixed **F-001 open redirect**
+  (login `callbackUrl` now same-origin only), **F-005** bcrypt cost 10→12, **F-006** research
+  edit/delete now `post:manage` (granular, not Super-Admin-only), **F-008** prod warning when
+  rate-limiting is disabled. Documented the rest (realtime RLS, CSP nonce — ops/deferred).
+- **#3 Performance** (`docs/PERFORMANCE.md`): comments lazy-load threshold 400→150px;
+  `/api/users/staff` cached 30s; prioritized roadmap for the deeper wins.
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+
 ## 2026-06-27 — Navbar: show Dashboard link to all staff (not just Super Admins)
 Recovery point: branch `backup/pre-navbar-staff`.
 - **Root cause of "granted user can't reach the dashboard":** the navbar only showed the

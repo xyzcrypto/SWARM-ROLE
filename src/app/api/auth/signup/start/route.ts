@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) return fail("An account with this email already exists.", 409);
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
     const code = await issueCode(email, "signup", { name, passwordHash });
     const { subject, html, text } = otpEmail(code, "signup");
     const sent = await sendEmail(email, subject, html, text);
