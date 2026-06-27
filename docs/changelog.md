@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Access fixes: dashboard gate trap + "who has access" + What's-New emoji
+Recovery point: branch `backup/pre-access-fixes`.
+- **Granted access now works (core bug):** the dashboard required the specific
+  `dashboard:view` capability and defaulted to a hardcoded "overview" tab — so granting
+  any *other* capability (e.g. `whatsnew:manage`) let the member past nothing. Now the
+  page gates on **`isStaff`** (Super Admin OR ≥1 capability) and the active tab defaults
+  to the **first tab the viewer can see**. A member granted What's New now opens the
+  dashboard straight onto the What's New tab.
+- **"Who has access" Team section:** new `GET /api/users/staff` (gated `users:roles`,
+  pre-migration-safe) lists everyone with a capability + Super Admins. The Access panel
+  now shows a **Team** list (with capability counts + Edit) above the grant-access search.
+- **What's New emoji picker:** the composer body has an emoji button (reuses the chat
+  `EmojiPicker`) so entries can include emojis.
+- AccessEditor hint clarifies that any capability grants dashboard access (refresh if
+  already signed in).
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+
 ## 2026-06-27 — Milestone 4: animations/emoji polish (#3) + professional SEO (#9)
 Recovery point: branch `backup/pre-m4`. Final milestone of the program.
 - **#3 Animations/emoji:** consistent `AnimatedEmoji` accents added to every marketing

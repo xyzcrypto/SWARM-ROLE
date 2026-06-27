@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Smile } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { WHATS_NEW_TAGS, type WhatsNewTag } from "@/lib/whatsnew";
 import { formatDate } from "@/lib/utils";
+import { EmojiPicker } from "./EmojiPicker";
 
 type Entry = { id: string; date: string; tag: string; title: string; body: string };
 
@@ -20,6 +23,7 @@ export function WhatsNewManager() {
   const [tag, setTag] = useState<WhatsNewTag>("New");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const load = () => {
     setLoading(true);
@@ -74,15 +78,30 @@ export function WhatsNewManager() {
           maxLength={120}
           className={inputCls}
         />
-        <textarea
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          placeholder="Short description of what changed…"
-          required
-          maxLength={1000}
-          rows={3}
-          className={`${inputCls} resize-none`}
-        />
+        <div className="relative">
+          <textarea
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Short description of what changed… 🎉"
+            required
+            maxLength={1000}
+            rows={3}
+            className={`${inputCls} resize-none pr-10`}
+          />
+          <button
+            type="button"
+            onClick={() => setPickerOpen((o) => !o)}
+            aria-label="Insert emoji"
+            className="absolute bottom-2.5 right-2 rounded-lg p-1 text-zinc-500 transition-colors hover:text-gold-200"
+          >
+            <Smile className="h-4 w-4" />
+          </button>
+          <AnimatePresence>
+            {pickerOpen && (
+              <EmojiPicker onPick={(e) => setBody((b) => b + e)} onClose={() => setPickerOpen(false)} />
+            )}
+          </AnimatePresence>
+        </div>
         <div className="flex flex-wrap items-center gap-3">
           <select value={tag} onChange={(e) => setTag(e.target.value as WhatsNewTag)} className={`${inputCls} sm:w-auto`}>
             {WHATS_NEW_TAGS.map((t) => (
