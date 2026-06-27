@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Milestone 3: realtime data + notifications (#7, #11)
+Recovery point: branch `backup/pre-m3`. No schema changes (pure realtime layer).
+- **Reusable `useRealtime` hook** (`src/lib/useRealtime.ts`): subscribes to a Supabase
+  broadcast channel/event when configured, else **polls** a cached endpoint — broadcast-
+  driven invalidation (server pushes a tiny ping, client refetches) so it never streams
+  rows or hammers the DB. Pure `realtimeMode()` decision is unit-tested. Degrades to no-op.
+- **#11 Live data:** likes update live for all viewers (broadcast on `post:<id>` from the
+  like route → `LikeButton` refreshes the count); new comments appear without reload
+  (`CommentSection` refetches on a `post:<id>` `comment` broadcast); **dashboard stats
+  live-refresh** — new shared `getDashboardStats()` + cached `GET /api/dashboard/stats`
+  (gated `dashboard:view`), Overview refreshes instantly on the notifications ping + a 30s
+  backstop. `LiveStats` presence + membership realtime unchanged.
+- **#7 Notifications + chat icon:** verified the existing realtime path — `notifyNewPost`/
+  `notifyNewComment` ping clients so the bell updates instantly; the chat icon lights up on
+  the `new_message` broadcast. (Already realtime; extended likes/comments to broadcast too.)
+- typecheck + lint(0) + test(85) + build green; shared First-Load JS 159 kB.
+
 ## 2026-06-26 — Milestone 2: admin permissions (#10) + What's New CMS (#6)
 Recovery point: branch `backup/pre-m2`. Scalable, production-ready. No re-architecture.
 - **Granular permissions (#10):** new `src/lib/permissions.ts` capability **catalog**

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Heart } from "lucide-react";
+import { useRealtime } from "@/lib/useRealtime";
 
 /** Heart + count. Optimistic toggle for logged-in users; others go to login. */
 export function LikeButton({
@@ -20,6 +21,16 @@ export function LikeButton({
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [busy, setBusy] = useState(false);
+
+  // Live like count: update when anyone else likes/unlikes this post.
+  useRealtime({
+    channel: `post:${postId}`,
+    event: "like",
+    onMessage: (p) => {
+      const c = (p as { count?: number } | null)?.count;
+      if (typeof c === "number") setCount(c);
+    },
+  });
 
   async function toggle() {
     if (!session) {

@@ -7,6 +7,7 @@ import { PostEditor } from "./PostEditor";
 import { PostManager } from "./PostManager";
 import { PERMISSIONS, ALL_PERMISSIONS, hasPermission, type Permission } from "@/lib/permissions";
 import { WhatsNewManager } from "./WhatsNewManager";
+import { useRealtime } from "@/lib/useRealtime";
 
 type Viewer = { id: string; permissions: string[]; isSuperAdmin: boolean };
 
@@ -214,7 +215,30 @@ function StatCard({ label, value, hint, accent = "plain" }: { label: string; val
   );
 }
 
-function Overview({ stats, liveOnline }: { stats: Stats; liveOnline: number }) {
+function Overview({ stats: initialStats, liveOnline }: { stats: Stats; liveOnline: number }) {
+  const [stats, setStats] = useState(initialStats);
+
+  const refresh = useCallback(async () => {
+    try {
+      const res = await fetch("/api/dashboard/stats", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data?.stats) setStats(data.stats as Stats);
+    } catch {
+      /* keep last known numbers */
+    }
+  }, []);
+
+  // Live refresh: instant on new post/comment (notifications ping) + a gentle
+  // 30s backstop for signups/visits. The endpoint is cached → negligible DB load.
+  useRealtime({ channel: "notifications", event: "ping", onMessage: refresh });
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
   // Traffic/engagement → mint; headline business metrics → gold; the rest stay
   // neutral white. Consistent accent system gives the grid hierarchy instead of
   // a wall of identical gold numbers.
