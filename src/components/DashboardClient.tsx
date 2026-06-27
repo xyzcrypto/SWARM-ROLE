@@ -137,7 +137,6 @@ export function DashboardClient({
   realtime: Realtime;
   viewer: Viewer;
 }) {
-  const [tab, setTab] = useState<Tab>("overview");
   const liveOnline = useLiveOnline(realtime);
 
   // Only show tabs the viewer is allowed to use (Super Admins see all). Server
@@ -152,6 +151,10 @@ export function DashboardClient({
     { id: "access", label: "Access", perm: "users:roles" },
   ];
   const tabs = allTabs.filter((t) => hasPermission(viewer, t.perm));
+
+  // Default to the first tab the viewer can actually see (a staff member with only,
+  // say, What's New shouldn't land on a hidden "overview" tab and see a blank page).
+  const [tab, setTab] = useState<Tab>(tabs[0]?.id ?? "overview");
 
   return (
     <div>
@@ -519,14 +522,48 @@ type StaffUser = {
   isSuperAdmin: boolean;
 };
 
+function StaffRow({ u, onEdit }: { u: StaffUser; onEdit: (u: StaffUser) => void }) {
+  return (
+    <li className="surface flex items-center justify-between gap-3 rounded-2xl p-4">
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium text-zinc-200">{u.email}</div>
+        <div className="mono text-[11px] text-zinc-600">{u.name ?? "—"}</div>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        {u.isSuperAdmin ? (
+          <span className="rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
+            Super Admin
+          </span>
+        ) : (
+          <>
+            <span className="mono hidden text-[11px] text-zinc-500 xs:inline">
+              {u.permissions.length
+                ? `${u.permissions.length} ${u.permissions.length === 1 ? "capability" : "capabilities"}`
+                : "No access"}
+            </span>
+            <button
+              onClick={() => onEdit(u)}
+              className="text-xs font-medium text-gold-200 transition-colors hover:text-gold-100"
+            >
+              {u.permissions.length ? "Edit access" : "Grant access"}
+            </button>
+          </>
+        )}
+      </div>
+    </li>
+  );
+}
+
 function AccessPanel({ viewer }: { viewer: Viewer }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<StaffUser[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingResults, setLoadingResults] = useState(true);
+  const [staff, setStaff] = useState<StaffUser[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(true);
   const [editing, setEditing] = useState<StaffUser | null>(null);
 
   const search = useCallback(async (q: string) => {
-    setLoading(true);
+    setLoadingResults(true);
     try {
       const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`, { cache: "no-store" });
       const d = await res.json().catch(() => ({}));
@@ -534,9 +571,26 @@ function AccessPanel({ viewer }: { viewer: Viewer }) {
     } catch {
       /* keep last results */
     } finally {
-      setLoading(false);
+      setLoadingResults(false);
     }
   }, []);
+
+  const loadStaff = useCallback(async () => {
+    setLoadingStaff(true);
+    try {
+      const res = await fetch("/api/users/staff", { cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      setStaff(Array.isArray(d.users) ? d.users : []);
+    } catch {
+      /* keep last */
+    } finally {
+      setLoadingStaff(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadStaff();
+  }, [loadStaff]);
 
   // Debounced server-side search; empty query lists the most recent members.
   useEffect(() => {
@@ -544,72 +598,65 @@ function AccessPanel({ viewer }: { viewer: Viewer }) {
     return () => clearTimeout(id);
   }, [query, search]);
 
+  const refreshAll = () => {
+    loadStaff();
+    search(query.trim());
+  };
+
   return (
-    <div className="space-y-5">
-      <div className="surface rounded-2xl p-5 sm:p-6">
-        <h2 className="font-display text-lg font-semibold text-zinc-100">Team &amp; access</h2>
+    <div className="space-y-6">
+      {/* Who currently has access */}
+      <div>
+        <h2 className="font-display text-lg font-semibold text-zinc-100">Team — who has access</h2>
         <p className="mt-1 text-sm text-zinc-500">
-          Search <strong className="text-zinc-300">any member</strong> by name or email and grant them staff
-          capabilities — you can adjust or revoke them any time. Super Admins (set via{" "}
-          <span className="mono text-zinc-400">ADMIN_EMAILS</span>) have full access and can&apos;t be edited here.
+          Everyone with staff capabilities. Super Admins (set via{" "}
+          <span className="mono text-zinc-400">ADMIN_EMAILS</span>) have full access.
+        </p>
+        <ul className="mt-4 space-y-2">
+          {loadingStaff && staff.length === 0 ? (
+            <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-6 text-center text-sm text-zinc-500">
+              Loading team…
+            </li>
+          ) : staff.length === 0 ? (
+            <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-6 text-center text-sm text-zinc-500">
+              No one has staff access yet — grant some below.
+            </li>
+          ) : (
+            staff.map((u) => <StaffRow key={u.id} u={u} onEdit={setEditing} />)
+          )}
+        </ul>
+      </div>
+
+      {/* Grant access to a new member */}
+      <div>
+        <h3 className="font-display text-base font-semibold text-zinc-100">Grant access</h3>
+        <p className="mt-1 text-sm text-zinc-500">
+          Search <strong className="text-zinc-300">any member</strong> by name or email, then grant or adjust their
+          capabilities any time.
         </p>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search all members by name or email…"
-          className="mt-4 w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+          className="mt-3 w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
         />
+        <ul className="mt-3 space-y-2">
+          {loadingResults && results.length === 0 ? (
+            <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-6 text-center text-sm text-zinc-500">
+              Searching…
+            </li>
+          ) : results.length === 0 ? (
+            <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-6 text-center text-sm text-zinc-500">
+              {query.trim() ? `No members match “${query}”.` : "No members yet."}
+            </li>
+          ) : (
+            results.map((u) => <StaffRow key={u.id} u={u} onEdit={setEditing} />)
+          )}
+        </ul>
       </div>
 
-      <ul className="space-y-2">
-        {loading && results.length === 0 ? (
-          <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-8 text-center text-sm text-zinc-500">
-            Searching…
-          </li>
-        ) : results.length === 0 ? (
-          <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-8 text-center text-sm text-zinc-500">
-            {query.trim() ? `No members match “${query}”.` : "No members yet."}
-          </li>
-        ) : (
-          results.map((u) => (
-            <li key={u.id} className="surface flex items-center justify-between gap-3 rounded-2xl p-4">
-              <div className="min-w-0">
-                <div className="truncate text-sm font-medium text-zinc-200">{u.email}</div>
-                <div className="mono text-[11px] text-zinc-600">{u.name ?? "—"}</div>
-              </div>
-              <div className="flex shrink-0 items-center gap-3">
-                {u.isSuperAdmin ? (
-                  <span className="rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
-                    Super Admin
-                  </span>
-                ) : (
-                  <>
-                    <span className="mono hidden text-[11px] text-zinc-500 xs:inline">
-                      {u.permissions.length
-                        ? `${u.permissions.length} ${u.permissions.length === 1 ? "capability" : "capabilities"}`
-                        : "No access"}
-                    </span>
-                    <button
-                      onClick={() => setEditing(u)}
-                      className="text-xs font-medium text-gold-200 transition-colors hover:text-gold-100"
-                    >
-                      {u.permissions.length ? "Edit access" : "Grant access"}
-                    </button>
-                  </>
-                )}
-              </div>
-            </li>
-          ))
-        )}
-      </ul>
-
       {editing && (
-        <AccessEditor
-          user={editing}
-          viewer={viewer}
-          onClose={() => setEditing(null)}
-          onSaved={() => search(query.trim())}
-        />
+        <AccessEditor user={editing} viewer={viewer} onClose={() => setEditing(null)} onSaved={refreshAll} />
       )}
     </div>
   );
@@ -720,6 +767,11 @@ function AccessEditor({
             })}
           </div>
         )}
+
+        <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
+          Any capability lets this member open the dashboard (they&apos;ll see only the tabs they&apos;re
+          allowed to use). If they&apos;re already signed in, they may need to refresh to pick up the change.
+        </p>
 
         {error && (
           <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">{error}</p>

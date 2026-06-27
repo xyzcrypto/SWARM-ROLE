@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { Navbar } from "@/components/Navbar";
 import { DashboardClient } from "@/components/DashboardClient";
-import { hasPermission } from "@/lib/permissions";
+import { isStaff } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -37,8 +37,11 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
   const me = session.user as any;
-  // Capability-gated: Super Admins and any staff granted `dashboard:view` get in.
-  if (!hasPermission(me, "dashboard:view")) redirect("/");
+  // Anyone with staff access (Super Admin OR at least one granted capability) gets
+  // in — the tabs themselves are then filtered to what they're allowed to use. (A
+  // specific capability like `dashboard:view` is NOT required just to enter, so
+  // granting e.g. `whatsnew:manage` works as expected.)
+  if (!isStaff(me)) redirect("/");
   const viewer = {
     id: me.id as string,
     permissions: (Array.isArray(me.permissions) ? me.permissions : []) as string[],
