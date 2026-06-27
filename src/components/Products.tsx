@@ -7,6 +7,7 @@ import {
   Plus,
 } from "lucide-react";
 import { Reveal } from "./Reveal";
+import { AnimatedEmoji } from "./AnimatedEmoji";
 import { Container, Section, SectionHeading, Badge } from "./ui/primitives";
 import {
   TradingVisual,
@@ -49,7 +50,12 @@ export function Products() {
       <Container className="relative">
         <SectionHeading
           eyebrow="The Ecosystem"
-          title={<>Products built to <span className="text-gold-gradient">power your edge.</span></>}
+          title={
+            <>
+              Products built to <span className="text-gold-gradient">power your edge.</span>{" "}
+              <AnimatedEmoji emoji="⚡" variant="twinkle" className="align-middle text-[0.8em]" />
+            </>
+          }
           subtitle="A full product suite, shipping in stages, what's live, what's building, and what's next."
         />
 

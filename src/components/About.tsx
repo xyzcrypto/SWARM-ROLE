@@ -1,6 +1,7 @@
 import { Search, Wrench, Users, ShieldCheck, CalendarClock, Boxes } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { AnimatedIcon } from "./AnimatedIcon";
+import { AnimatedEmoji } from "./AnimatedEmoji";
 import { Container, Section, Eyebrow } from "./ui/primitives";
 
 const credibility = [
@@ -25,7 +26,8 @@ export function About() {
           <Eyebrow>Who we are</Eyebrow>
           <h2 className="mt-5 font-display text-display-md font-semibold tracking-tight text-zinc-50">
             One ecosystem for the{" "}
-            <span className="text-gold-gradient">entire Web3 journey.</span>
+            <span className="text-gold-gradient">entire Web3 journey.</span>{" "}
+            <AnimatedEmoji emoji="🚀" variant="launch" className="align-middle text-[0.8em]" />
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed text-zinc-400">
             XYZ Crypto unifies research, tooling, education and community into a
