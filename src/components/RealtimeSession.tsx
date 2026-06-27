@@ -60,6 +60,10 @@ export function RealtimeSession({ url, anonKey }: { url: string; anonKey: string
           .on("broadcast", { event: "membership_changed" }, () => {
             update();
           })
+          // Staff permissions changed → refresh the session so gates update live.
+          .on("broadcast", { event: "access_changed" }, () => {
+            update();
+          })
           .subscribe();
       }
 

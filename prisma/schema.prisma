@@ -36,6 +36,10 @@ model User {
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
 
+  // Granular staff capabilities (catalog in src/lib/permissions.ts). Super Admins
+  // (ADMIN_EMAILS) implicitly hold all permissions regardless of this column.
+  permissions String[] @default([])
+
   // --- Public profile fields (see /u/[username] + /settings) ---
   username    String? @unique // handle for the public profile URL, 3–20 [a-z0-9_]
   bio         String? // short about, <= 280 chars
@@ -54,6 +58,7 @@ model User {
   chatMessages  ChatMessage[]
   chatReactions ChatReaction[]
   notifications Notification[]
+  adminAudits   AdminAudit[]   @relation("AdminAuditActor")
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -237,4 +242,35 @@ model VerificationCode {
   createdAt DateTime @default(now())
 
   @@index([email, purpose])
+}
+
+// "What's New" feed — admin-managed changelog surfaced on the homepage. Entries
+// are created automatically when research is published (postId set) and manually
+// by staff with the `whatsnew:manage` permission. Filterable/searchable by tag.
+model WhatsNewEntry {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  tag       String   @default("New") // New | Improved | Fixed | Announcement | Security | Roadmap
+  date      DateTime @default(now())
+  postId    String? // linked research post for auto-generated entries
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([published, date]) // public feed ordering
+  @@index([tag, date]) // tab filtering
+}
+
+// Audit trail for sensitive admin actions (role/permission grants). Append-only;
+// keeps a who/what/when record so access changes are reviewable.
+model AdminAudit {
+  id        String   @id @default(cuid())
+  actorId   String
+  actor     User     @relation("AdminAuditActor", fields: [actorId], references: [id], onDelete: Cascade)
+  action    String // e.g. "access.update"
+  targetId  String? // affected user id
+  detail    String? // short JSON summary of the change
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }

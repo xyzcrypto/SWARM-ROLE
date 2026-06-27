@@ -5,6 +5,28 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-26 — Milestone 2: admin permissions (#10) + What's New CMS (#6)
+Recovery point: branch `backup/pre-m2`. Scalable, production-ready. No re-architecture.
+- **Granular permissions (#10):** new `src/lib/permissions.ts` capability **catalog**
+  (`dashboard:view`, `post:publish`/`post:manage`, `users:manage`/`users:roles`,
+  `premium:manage`, `whatsnew:manage`) — add a new capability in one line. `User.permissions
+  String[]`; **Super Admin** (ADMIN_EMAILS / legacy role=ADMIN) implicitly holds all and is
+  immutable. Session carries `permissions` + `isSuperAdmin` (`auth.ts`, guarded for
+  pre-migration). `requirePermission()` gate in `src/lib/api.ts`; gates moved to capabilities
+  (dashboard → `dashboard:view`, research publish → `post:publish`, membership → `premium:manage`).
+  New `PATCH/GET /api/users/[id]/access` with **no-escalation** guards + `AdminAudit` trail +
+  live `access_changed` broadcast (session refreshes via `RealtimeSession`). Dashboard
+  **"Access"** tab: search members, grant/revoke capabilities; tabs now capability-gated. +7 tests.
+- **What's New CMS (#6):** new `WhatsNewEntry` model (tags New/Improved/Fixed/Announcement/
+  Security/Roadmap). `GET /api/whatsnew` (public, `?tag=&q=` filter/search, cached, **static
+  fallback** when empty/unmigrated) + `POST`/`PATCH`/`DELETE` (gated `whatsnew:manage`).
+  **Auto-entry** created on research publish (linked to the post); manual entries via the new
+  dashboard **"What's New"** tab. Homepage `WhatsNew` is now DB-driven with **tabs** (filter by
+  tag) + **realtime** refresh (`whatsnew_updated` broadcast) + `revalidatePath`. Seeded
+  idempotently from the old static list. +2 tests.
+- typecheck + lint(0) + test(82) + build green; shared First-Load JS 159 kB.
+- ⚙️ Ops: apply the M2 migration (User.permissions, WhatsNewEntry, AdminAudit) — see HANDOFF §4.
+
 ## 2026-06-26 — Milestone 1: security hardening + critical bugs + mobile (#4,#5,#8,#2)
 Recovery point: branch `backup/pre-m1`. First of the 4-milestone roadmap program.
 - **#4 Premium CTA bug:** `/premium` "Create account" CTAs are now wrapped in

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { ok, fail, handleError, getAdminSession, isCuid } from "@/lib/api";
+import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { broadcastEvent, userChannel, CH_MEMBERS } from "@/lib/realtime";
 
@@ -8,14 +8,14 @@ const schema = z.object({
   membership: z.enum(["Free", "Premium"]),
 });
 
-// PATCH /api/users/:id/membership - admin only
+// PATCH /api/users/:id/membership - requires the `premium:manage` capability.
 export async function PATCH(
   req: Request,
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getAdminSession();
-    if (!session) return fail("Unauthorized", 401);
+    const actor = await requirePermission("premium:manage");
+    if (!actor) return fail("Forbidden", 403);
 
     const { success } = await rateLimit("admin", clientIp(req));
     if (!success) return fail("Too many requests. Please slow down.", 429);

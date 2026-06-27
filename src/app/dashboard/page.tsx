@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { Navbar } from "@/components/Navbar";
 import { DashboardClient } from "@/components/DashboardClient";
+import { hasPermission } from "@/lib/permissions";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -35,7 +36,14 @@ async function getDashboardPosts() {
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
-  if ((session.user as any).role !== "ADMIN") redirect("/");
+  const me = session.user as any;
+  // Capability-gated: Super Admins and any staff granted `dashboard:view` get in.
+  if (!hasPermission(me, "dashboard:view")) redirect("/");
+  const viewer = {
+    id: me.id as string,
+    permissions: (Array.isArray(me.permissions) ? me.permissions : []) as string[],
+    isSuperAdmin: Boolean(me.isSuperAdmin) || me.role === "ADMIN",
+  };
 
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
@@ -105,6 +113,7 @@ export default async function DashboardPage() {
             premiumMembers={premiumMembers.map(serializeUser)}
             posts={posts.map((p) => ({ ...p, createdAt: p.createdAt.toISOString() }))}
             adminName={session.user.name ?? "Admin"}
+            viewer={viewer}
             realtime={{
               url: env.NEXT_PUBLIC_SUPABASE_URL,
               anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,

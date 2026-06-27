@@ -4,6 +4,7 @@ import { ZodError } from "zod";
 import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { hasPermission, type Permission } from "@/lib/permissions";
 
 /** JSON success response. */
 export function ok<T>(data: T, status = 200) {
@@ -62,10 +63,39 @@ export async function getAdminSession() {
   return session;
 }
 
-/** Returns the authenticated user (any role) with id/role/membership, else null. */
-export async function getSessionUser() {
+/** The authenticated principal (any role) with access metadata, else null. */
+export type SessionUser = {
+  id: string;
+  role: string;
+  membership: string;
+  email: string;
+  permissions: string[];
+  isSuperAdmin: boolean;
+};
+
+/** Returns the authenticated user (any role) with access metadata, else null. */
+export async function getSessionUser(): Promise<SessionUser | null> {
   const session = await getServerSession(authOptions);
   const u = session?.user as any;
   if (!u?.id) return null;
-  return { id: u.id as string, role: u.role as string, membership: (u.membership as string) ?? "Free", email: u.email as string };
+  return {
+    id: u.id as string,
+    role: u.role as string,
+    membership: (u.membership as string) ?? "Free",
+    email: u.email as string,
+    permissions: Array.isArray(u.permissions) ? (u.permissions as string[]) : [],
+    // `role === "ADMIN"` is the legacy Super Admin marker (kept for back-compat).
+    isSuperAdmin: Boolean(u.isSuperAdmin) || u.role === "ADMIN",
+  };
+}
+
+/**
+ * Returns the session-user if it holds `perm`, else null. Use at the top of any
+ * staff-gated route: `const me = await requirePermission("post:publish"); if
+ * (!me) return fail("Forbidden", 403);`. Super Admins pass every check.
+ */
+export async function requirePermission(perm: Permission): Promise<SessionUser | null> {
+  const user = await getSessionUser();
+  if (!user) return null;
+  return hasPermission(user, perm) ? user : null;
 }
