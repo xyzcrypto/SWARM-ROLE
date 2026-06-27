@@ -13,6 +13,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
     .catch(() => [] as { slug: string; updatedAt: Date }[]);
 
+  // Public member profiles (capped) so /u/<handle> pages are discoverable.
+  const profiles = await prisma.user
+    .findMany({
+      where: { username: { not: null } },
+      select: { username: true },
+      orderBy: { createdAt: "desc" },
+      take: 5000,
+    })
+    .catch(() => [] as { username: string | null }[]);
+
   const now = new Date();
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: SITE_URL, lastModified: now, changeFrequency: "daily", priority: 1 },
@@ -30,5 +40,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.6,
   }));
 
-  return [...staticRoutes, ...postRoutes];
+  const profileRoutes: MetadataRoute.Sitemap = profiles
+    .filter((u): u is { username: string } => Boolean(u.username))
+    .map((u) => ({
+      url: `${SITE_URL}/u/${u.username}`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.3,
+    }));
+
+  return [...staticRoutes, ...postRoutes, ...profileRoutes];
 }

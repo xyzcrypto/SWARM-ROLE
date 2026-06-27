@@ -10,8 +10,11 @@ import { WhatsNew } from "@/components/WhatsNew";
 import { LiveStats } from "@/components/LiveStats";
 import { Ecosystem } from "@/components/Ecosystem";
 import { Social } from "@/components/Social";
+import { Faq } from "@/components/Faq";
 import { CtaBand } from "@/components/CtaBand";
 import { Footer } from "@/components/Footer";
+import { JsonLd, faqJsonLd } from "@/lib/jsonld";
+import { FAQ } from "@/lib/faq";
 import { StickyCta } from "@/components/StickyCta";
 import { GuestOnly } from "@/components/GuestOnly";
 import { prisma } from "@/lib/prisma";
@@ -52,6 +55,8 @@ export default async function HomePage() {
         <WhatsNew />
         <Ecosystem />
         <Social />
+        <Faq />
+        <JsonLd data={faqJsonLd(FAQ)} />
         {/* Sign-up CTA - shown to guests only (members already have an account). */}
         <GuestOnly>
           <CtaBand memberCount={memberCount} />

@@ -5,6 +5,26 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Milestone 4: animations/emoji polish (#3) + professional SEO (#9)
+Recovery point: branch `backup/pre-m4`. Final milestone of the program.
+- **#3 Animations/emoji:** consistent `AnimatedEmoji` accents added to every marketing
+  section heading — About 🚀, Products ⚡, Ecosystem 🌐, Social 👋, What's New ✨, plus
+  the new FAQ 💬 (Hero/Premium/Contact already had them). All reduced-motion-safe via
+  the existing `AnimatedEmoji` (renders a static glyph when motion is reduced).
+- **#9 SEO (brand-rank "XYZ Crypto"):**
+  - JSON-LD builders moved to JSX-free `src/lib/seo-schema.ts` (unit-testable);
+    `jsonld.tsx` re-exports them. **Organization** gains `foundingDate` (2019), sized
+    `logo` ImageObject, `slogan`, `knowsAbout`, `email`, `areaServed`, `alternateName`.
+    **Article** uses a `Person` author + a 640×640 publisher logo.
+  - New **FAQPage** schema + a visible homepage **FAQ** section (shared `src/lib/faq.ts`
+    source) targeting brand queries (what is XYZ Crypto, is it free, is it legit…).
+  - **sitemap.ts** now includes public `/u/<handle>` profiles (capped).
+  - Per-article **dynamic OG images** via `next/og`
+    (`research/[slug]/opengraph-image.tsx`) — branded card with the post title (Node
+    runtime, graceful fallback).
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+- ⚙️ Ops: set `GSC_VERIFICATION` + submit the sitemap in Google Search Console.
+
 ## 2026-06-27 — Pre-M4 fixes: admin access search + migration auto-apply
 Recovery point: branch `backup/pre-fixes`. Two owner-reported blockers.
 - **Admin Access search:** the dashboard "Access" tab now searches **any member** by
