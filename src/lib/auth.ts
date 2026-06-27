@@ -158,13 +158,29 @@ export const authOptions: NextAuthOptions = {
         token.membership = (user as any).membership ?? "Free";
       }
       // Refresh from DB when missing, or on an explicit `update()` call. This
-      // also pulls fresh name/image/username so profile edits reflect in the UI
-      // without a re-login (membership is a client hint - routes re-check DB).
-      if (token.email && (!token.role || !token.membership || trigger === "update")) {
-        const dbUser = await prisma.user.findUnique({
-          where: { email: token.email },
-          select: { id: true, role: true, membership: true, name: true, image: true, username: true },
-        });
+      // also pulls fresh name/image/username/permissions so profile + access edits
+      // reflect in the UI without a re-login (routes always re-check DB anyway).
+      if (
+        token.email &&
+        (!token.role || !token.membership || (token as any).isSuperAdmin === undefined || trigger === "update")
+      ) {
+        // Include `permissions`, but tolerate a not-yet-migrated DB (no column)
+        // by falling back to the pre-permissions select so auth never breaks.
+        let dbUser = await prisma.user
+          .findUnique({
+            where: { email: token.email },
+            select: { id: true, role: true, membership: true, name: true, image: true, username: true, permissions: true },
+          })
+          .catch(() => null);
+        if (!dbUser) {
+          dbUser = await prisma.user
+            .findUnique({
+              where: { email: token.email },
+              select: { id: true, role: true, membership: true, name: true, image: true, username: true },
+            })
+            .then((u) => (u ? { ...u, permissions: [] as string[] } : null))
+            .catch(() => null);
+        }
         if (dbUser) {
           token.uid = dbUser.id;
           token.role = dbUser.role;
@@ -172,6 +188,8 @@ export const authOptions: NextAuthOptions = {
           token.name = dbUser.name;
           token.picture = dbUser.image;
           token.username = dbUser.username;
+          (token as any).permissions = (dbUser as any).permissions ?? [];
+          (token as any).isSuperAdmin = isAdminEmail(token.email);
         }
       }
       return token;
@@ -182,6 +200,8 @@ export const authOptions: NextAuthOptions = {
         (session.user as any).role = token.role ?? "USER";
         (session.user as any).membership = token.membership ?? "Free";
         (session.user as any).username = token.username ?? null;
+        (session.user as any).permissions = (token as any).permissions ?? [];
+        (session.user as any).isSuperAdmin = (token as any).isSuperAdmin ?? false;
       }
       return session;
     },

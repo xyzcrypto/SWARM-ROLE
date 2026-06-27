@@ -3,9 +3,21 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
-import { ok, fail, handleError, getAdminSession } from "@/lib/api";
+import { ok, fail, handleError, requirePermission } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { notifyNewPost } from "@/lib/notifications";
+import { broadcastEvent, CH_NOTIFY } from "@/lib/realtime";
+
+// On publish: fan out the in-app notification AND auto-create a linked "What's
+// New" entry so newly-shipped research shows up in the homepage feed. Both are
+// best-effort — a hiccup here never fails the publish.
+async function afterPublish(post: { id: string; title: string; excerpt: string }) {
+  await notifyNewPost(post as never);
+  await prisma.whatsNewEntry
+    .create({ data: { title: post.title, body: post.excerpt, tag: "New", postId: post.id } })
+    .then(() => broadcastEvent(CH_NOTIFY, "whatsnew_updated", { postId: post.id }))
+    .catch(() => null);
+}
 
 // Refresh the ISR-cached pages that list/show posts after a content change.
 function revalidateContent(slug?: string) {
@@ -76,8 +88,8 @@ const createSchema = z.object({
 // POST /api/research - admin only
 export async function POST(req: Request) {
   try {
-    const session = await getAdminSession();
-    if (!session) return fail("Unauthorized", 401);
+    const author = await requirePermission("post:publish");
+    if (!author) return fail("Forbidden", 403);
 
     const { success } = await rateLimit("admin", clientIp(req));
     if (!success) return fail("Too many requests. Please slow down.", 429);
@@ -88,7 +100,7 @@ export async function POST(req: Request) {
     }
     const data = parsed.data;
     const base = slugify(data.title) || "post";
-    const authorId = (session.user as any).id ?? null;
+    const authorId = author.id ?? null;
 
     const payload = {
       title: data.title,
@@ -108,14 +120,14 @@ export async function POST(req: Request) {
       const post = await prisma.post.create({ data: { ...payload, slug: base } });
       revalidateContent(post.slug);
       // Fan out an in-app notification to members (only for published posts).
-      if (post.published) await notifyNewPost(post);
+      if (post.published) await afterPublish(post);
       return ok({ post }, 201);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
         const slug = `${base}-${Math.random().toString(36).slice(2, 6)}`;
         const post = await prisma.post.create({ data: { ...payload, slug } });
         revalidateContent(post.slug);
-        if (post.published) await notifyNewPost(post);
+        if (post.published) await afterPublish(post);
         return ok({ post }, 201);
       }
       throw e;

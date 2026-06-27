@@ -41,6 +41,22 @@ async function backfillUsernames() {
   if (users.length) console.log(`Backfilled handles for ${users.length} user(s).`);
 }
 
+// Seed the initial "What's New" entries (idempotent: only when the table is empty).
+async function seedWhatsNew() {
+  const count = await prisma.whatsNewEntry.count().catch(() => -1);
+  if (count !== 0) return; // already has entries, or table not migrated yet
+  const date = new Date("2026-06-14");
+  await prisma.whatsNewEntry.createMany({
+    data: [
+      { tag: "New", title: "In-app notifications", body: "A bell in the navbar now alerts you to new research and replies, with unread badges on the bell and community chat.", date },
+      { tag: "Improved", title: "Faster, smoother navigation", body: "Pages now open instantly with polished transitions and tactile button animations across the site.", date },
+      { tag: "New", title: "Clickable member profiles", body: "Tap any name or avatar in the community chat or post comments to view that member's public profile.", date },
+      { tag: "Improved", title: "Refined orbital ecosystem", body: "The signature ecosystem showcase has a richer, smoother animation on desktop.", date },
+    ],
+  });
+  console.log("Seeded initial What's New entries.");
+}
+
 const posts = [
   {
     title: "Welcome to XYZ Crypto: Built for the Next Generation of Web3",
@@ -140,6 +156,7 @@ async function main() {
   }
 
   await backfillUsernames();
+  await seedWhatsNew();
 
   console.log("Seed complete. Sample posts + admin user ready.");
   console.log(`Admin login: ${adminEmail} (password from SEED_ADMIN_PASSWORD or default)`);

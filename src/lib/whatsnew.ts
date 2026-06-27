@@ -1,12 +1,30 @@
-// "What's New" homepage feed. Add an entry to the TOP of this array whenever a
-// new feature ships - the homepage section updates automatically. Keep it short
-// (the section shows the most recent few). Dates are ISO yyyy-mm-dd.
+// "What's New" feed types + seed/fallback content. Live entries are now stored in
+// the DB (model WhatsNewEntry) and managed from the dashboard (auto-created on
+// research publish + manual staff entries). This array seeds the DB and is shown
+// as a graceful fallback if the table is empty or not migrated yet.
+
+export const WHATS_NEW_TAGS = [
+  "New",
+  "Improved",
+  "Fixed",
+  "Announcement",
+  "Security",
+  "Roadmap",
+] as const;
+
+export type WhatsNewTag = (typeof WHATS_NEW_TAGS)[number];
+
 export type WhatsNewEntry = {
-  date: string;
-  tag: "New" | "Improved" | "Fixed";
+  id?: string;
+  date: string; // ISO date/datetime
+  tag: WhatsNewTag;
   title: string;
   body: string;
 };
+
+export function isWhatsNewTag(v: unknown): v is WhatsNewTag {
+  return typeof v === "string" && (WHATS_NEW_TAGS as readonly string[]).includes(v);
+}
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {

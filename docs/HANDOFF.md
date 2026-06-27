@@ -80,6 +80,32 @@ they just keep the bell list, dashboard premium list, and analytics fast at scal
 
 ## 4. Pending operational state (check before building new features)
 
+### ⚠️ Admin permissions + What's New (one-time, production Supabase) — Milestone 2
+M2 added a permissions column + two tables. Apply with `npm run db:push` (prod env) or
+idempotent SQL:
+```sql
+ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "permissions" TEXT[] NOT NULL DEFAULT '{}';
+
+CREATE TABLE IF NOT EXISTS "WhatsNewEntry" (
+  "id" TEXT PRIMARY KEY, "title" TEXT NOT NULL, "body" TEXT NOT NULL,
+  "tag" TEXT NOT NULL DEFAULT 'New', "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "postId" TEXT, "published" BOOLEAN NOT NULL DEFAULT true,
+  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS "WhatsNewEntry_published_date_idx" ON "WhatsNewEntry"("published","date");
+CREATE INDEX IF NOT EXISTS "WhatsNewEntry_tag_date_idx" ON "WhatsNewEntry"("tag","date");
+
+CREATE TABLE IF NOT EXISTS "AdminAudit" (
+  "id" TEXT PRIMARY KEY, "actorId" TEXT NOT NULL, "action" TEXT NOT NULL,
+  "targetId" TEXT, "detail" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS "AdminAudit_createdAt_idx" ON "AdminAudit"("createdAt");
+```
+Until applied: Super Admins (ADMIN_EMAILS) keep full access, the homepage What's New shows
+the static fallback, and staff-permission / What's New management features return a graceful
+503/empty. After applying, `npm run seed` seeds the initial What's New entries. To create a
+non-email staff admin: dashboard → **Access** → search the member → tick capabilities.
+
 ### ⚠️ Login lockout columns (one-time, production Supabase) — Milestone 1
 M1 added brute-force account lockout. It needs two `User` columns:
 `failedLoginCount Int @default(0)` and `lockedUntil DateTime?`. Apply with
