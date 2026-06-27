@@ -38,7 +38,9 @@ export async function GET() {
       permissions: u.permissions ?? [],
       isSuperAdmin: isAdminEmail(u.email) || u.role === "ADMIN",
     }));
-    return ok({ users });
+    const res = ok({ users });
+    res.headers.set("Cache-Control", "private, max-age=30");
+    return res;
   } catch (err) {
     return handleError(err, "users:staff");
   }

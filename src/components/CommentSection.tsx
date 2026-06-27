@@ -35,7 +35,7 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
           io.disconnect();
         }
       },
-      { rootMargin: "400px" }
+      { rootMargin: "150px" }
     );
     io.observe(el);
     return () => io.disconnect();

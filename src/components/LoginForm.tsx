@@ -10,7 +10,10 @@ import { PasswordField } from "./PasswordField";
 export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
   const router = useRouter();
   const params = useSearchParams();
-  const callbackUrl = params.get("callbackUrl") || "/";
+  // Open-redirect guard: only allow same-origin relative paths (block //evil.com,
+  // https://…, and backslash tricks) so a crafted ?callbackUrl can't phish users.
+  const rawCallback = params.get("callbackUrl") || "/";
+  const callbackUrl = /^\/(?!\/)[^\\]*$/.test(rawCallback) ? rawCallback : "/";
   const justReset = params.get("reset") === "1";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
-import { ok, fail, handleError, getAdminSession, isCuid } from "@/lib/api";
+import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 function revalidateContent(slug?: string) {
@@ -15,8 +15,8 @@ function revalidateContent(slug?: string) {
 // GET /api/research/:id - admin only; full post (incl. drafts) for the editor.
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
-    const session = await getAdminSession();
-    if (!session) return fail("Unauthorized", 401);
+    const actor = await requirePermission("post:manage");
+    if (!actor) return fail("Forbidden", 403);
     if (!isCuid(params.id)) return fail("Invalid id.", 400);
 
     const post = await prisma.post.findUnique({ where: { id: params.id } });
@@ -41,8 +41,8 @@ const updateSchema = z.object({
 // PATCH /api/research/:id - admin only; partial update.
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
-    const session = await getAdminSession();
-    if (!session) return fail("Unauthorized", 401);
+    const actor = await requirePermission("post:manage");
+    if (!actor) return fail("Forbidden", 403);
 
     const { success } = await rateLimit("admin", clientIp(req));
     if (!success) return fail("Too many requests. Please slow down.", 429);
@@ -111,8 +111,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 // DELETE /api/research/:id - admin only
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
-    const session = await getAdminSession();
-    if (!session) return fail("Unauthorized", 401);
+    const actor = await requirePermission("post:manage");
+    if (!actor) return fail("Forbidden", 403);
 
     const { success } = await rateLimit("admin", clientIp(req));
     if (!success) return fail("Too many requests. Please slow down.", 429);

@@ -7,6 +7,14 @@ import { env } from "@/lib/env";
 // app never crashes - limits only apply once UPSTASH_* env vars exist.
 const enabled = !!env.UPSTASH_REDIS_REST_URL && !!env.UPSTASH_REDIS_REST_TOKEN;
 
+// Loudly flag the no-op fallback in production so a misconfigured Upstash (which
+// silently disables ALL brute-force protection) can't go unnoticed.
+if (!enabled && process.env.NODE_ENV === "production") {
+  console.warn(
+    "[ratelimit] SECURITY: Upstash is not configured — rate limiting is DISABLED in production. Set UPSTASH_REDIS_REST_URL/TOKEN."
+  );
+}
+
 const redis = enabled
   ? new Redis({
       url: env.UPSTASH_REDIS_REST_URL,

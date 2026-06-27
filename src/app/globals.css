@@ -412,27 +412,25 @@ html.lenis body {
   100% { opacity: 0; transform: scale(1.6); }
 }
 
-/* Animated emoji motion presets (used by <AnimatedEmoji>). */
+/* Animated emoji motion presets (used by <AnimatedEmoji>). Deliberately subtle +
+   contained — small transforms that read as premium and never jump out of place
+   or shift layout. */
 @keyframes emoji-launch {
-  0%   { transform: translateY(2px) rotate(-12deg); }
-  35%  { transform: translateY(-7px) rotate(-2deg); }
-  60%  { transform: translateY(-4px) rotate(-10deg) translateX(1px); }
-  100% { transform: translateY(2px) rotate(-12deg); }
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-2.5px); }
 }
 @keyframes emoji-wobble {
-  0%   { transform: rotate(0deg); }
-  45%  { transform: rotate(8deg); }
-  50%  { transform: rotate(180deg); }
-  95%  { transform: rotate(172deg); }
-  100% { transform: rotate(360deg); }
+  0%, 100% { transform: rotate(0deg); }
+  25%      { transform: rotate(-7deg); }
+  75%      { transform: rotate(7deg); }
 }
 @keyframes emoji-float {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  50%      { transform: translateY(-2.5px); }
 }
 @keyframes emoji-twinkle {
-  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
-  50% { transform: scale(1.28) rotate(18deg); opacity: 0.75; }
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.12); opacity: 0.85; }
 }
 @keyframes emoji-spin {
   to { transform: rotate(360deg); }

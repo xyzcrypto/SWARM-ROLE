@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) return fail("Account not found.", 404);
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const passwordHash = await bcrypt.hash(password, 12);
     await prisma.user.update({ where: { email }, data: { passwordHash } });
 
     return ok({ ok: true });

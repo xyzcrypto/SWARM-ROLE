@@ -3,6 +3,8 @@ import Image from "next/image";
 import { site, navLinks } from "@/lib/site";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "./BrandIcons";
 import { Container } from "./ui/primitives";
+import { GuestOnly } from "./GuestOnly";
+import { SignedIn } from "./SignedIn";
 import { FooterNewsletter } from "./FooterNewsletter";
 import { LiveStats } from "./LiveStats";
 
@@ -70,8 +72,15 @@ export function Footer() {
               Account
             </h4>
             <ul className="mt-4 space-y-3 text-sm">
-              <li><Link href="/signup" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Create account</Link></li>
-              <li><Link href="/login" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Log in</Link></li>
+              {/* Guests get sign-up / log-in; members get profile / settings. */}
+              <GuestOnly>
+                <li><Link href="/signup" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Create account</Link></li>
+                <li><Link href="/login" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Log in</Link></li>
+              </GuestOnly>
+              <SignedIn>
+                <li><Link href="/profile" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Your profile</Link></li>
+                <li><Link href="/settings" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Settings</Link></li>
+              </SignedIn>
               <li><Link href="/research" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Research hub</Link></li>
               <li><Link href="/contact" className="inline-block text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Contact us</Link></li>
             </ul>

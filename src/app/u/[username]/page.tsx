@@ -115,13 +115,13 @@ export default async function ProfilePage({ params }: Props) {
             </div>
             <div className="px-5 pb-6 sm:px-8 sm:pb-8">
               <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
-                <div className="flex items-end gap-4">
-                  <Avatar name={user.name} image={user.image} size="xl" className="ring-[3px] ring-ink-900 shadow-gold" />
-                  <div className="pb-1">
-                    <h1 className="font-display text-2xl font-bold text-zinc-50 sm:text-3xl">
+                <div className="flex min-w-0 items-end gap-4">
+                  <Avatar name={user.name} image={user.image} size="xl" className="shrink-0 ring-[3px] ring-ink-900 shadow-gold" />
+                  <div className="min-w-0 pb-1">
+                    <h1 className="font-display text-2xl font-bold leading-tight text-zinc-50 break-words sm:text-3xl">
                       {user.name ?? `@${user.username}`}
                     </h1>
-                    <p className="mono text-sm text-zinc-500">@{user.username}</p>
+                    <p className="mono truncate text-sm text-zinc-500">@{user.username}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
