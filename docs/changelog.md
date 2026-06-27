@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Pre-M4 fixes: admin access search + migration auto-apply
+Recovery point: branch `backup/pre-fixes`. Two owner-reported blockers.
+- **Admin Access search:** the dashboard "Access" tab now searches **any member** by
+  email/name via a new `GET /api/users/search` (gated `users:roles`, permission select
+  guarded for pre-migration) instead of filtering only the recent 50 client-side. Each
+  result shows current capability count + Grant/Edit access; grants are repeatable
+  (grant → save → adjust → save), and the list refreshes after each save.
+- **What's New "add" failed = DB not migrated:** the M1/M2 schema (login-lockout cols,
+  `permissions`, `WhatsNewEntry`, `AdminAudit`) wasn't applied to prod. Added idempotent
+  migration files `prisma/migrations/8_login_lockout` + `9_permissions_whatsnew_audit`,
+  and a **`vercel-build`** script that runs `prisma db push` (best-effort, non-fatal) on
+  every Vercel deploy so the schema auto-syncs. CI `build` unchanged (no DB) → stays green.
+- typecheck + lint(0 errors) + test(85) + build green; shared First-Load JS 159 kB.
+- ⚙️ Immediate unblock (before next deploy): `npm run db:push` (prod env) + `npm run seed`.
+
 ## 2026-06-27 — Milestone 3: realtime data + notifications (#7, #11)
 Recovery point: branch `backup/pre-m3`. No schema changes (pure realtime layer).
 - **Reusable `useRealtime` hook** (`src/lib/useRealtime.ts`): subscribes to a Supabase

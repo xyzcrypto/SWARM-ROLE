@@ -80,6 +80,17 @@ they just keep the bell list, dashboard premium list, and analytics fast at scal
 
 ## 4. Pending operational state (check before building new features)
 
+### ✅ Migrations now auto-apply on deploy (`vercel-build`)
+`package.json` has a `vercel-build` script that runs `prisma db push` (best-effort,
+non-fatal) before `next build`, so **Vercel syncs the schema on every deploy** — you no
+longer need to run migrations by hand for additive changes. (CI uses `build`, which has
+no DB, so CI stays green.) Migration SQL files also live in `prisma/migrations/` (0–9,
+idempotent). The manual commands below are only needed to fix something **immediately**,
+before the next deploy:
+- One-shot: `npm run db:push` (with prod `DATABASE_URL`+`DIRECT_URL`), then `npm run seed`.
+- Or paste the idempotent SQL from the sub-sections below into Supabase → SQL Editor.
+
+
 ### ⚠️ Admin permissions + What's New (one-time, production Supabase) — Milestone 2
 M2 added a permissions column + two tables. Apply with `npm run db:push` (prod env) or
 idempotent SQL:
