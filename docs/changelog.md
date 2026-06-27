@@ -5,6 +5,25 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Community Chat: sound + live-online fix
+Recovery point: branch `backup/pre-sound-fix`. Targeted fix for "sound & live online
+real-time showcase not working" — both bugs were client-side; the message core is untouched.
+- **Sound now actually plays:** `playBlip()` previously created a *new* `AudioContext` on
+  every incoming message — under browser autoplay policy a context created outside a user
+  gesture stays `suspended`, so it was silent. Now a single shared `AudioContext`
+  (`audioCtxRef`) is created **and resumed inside a user gesture** (`ensureAudio()` on the
+  sound-toggle click and on send), and `playBlip(ctx)` only plays when `ctx.state === "running"`.
+  Enabling sound also plays an immediate confirmation blip. Sound now fires on the polling
+  fallback path too (not just realtime broadcast).
+- **Live-online strip visible on mobile:** the online-members avatar stack was
+  `hidden … xs:flex` (hidden below the `xs` breakpoint), so on phones the "who's online"
+  showcase never appeared even when presence worked — changed to `flex` so it always shows.
+- **Ops note (the other half):** presence ("live online") and new-message broadcast are
+  **realtime-only** — they need `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  (+ server `SUPABASE_SERVICE_ROLE_KEY` for broadcasts) set in prod with Supabase Realtime
+  enabled. Without them the chat degrades to 10s polling and presence/sound can't surface.
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+
 ## 2026-06-27 — Community Chat: engagement v2 (#7) — mentions, quick-react, sound
 Recovery point: branch `backup/pre-chat-v2`. Additive on top of v1; send/broadcast core untouched.
 - **@mention autocomplete:** typing `@partial` in the composer suggests online members

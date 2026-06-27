@@ -79,11 +79,12 @@ function dayLabel(iso: string): string {
 }
 
 // Soft, asset-free "blip" for incoming messages (Web Audio). Best-effort.
-function playBlip() {
+// Reuses a single shared AudioContext that must be unlocked inside a user
+// gesture (see ensureAudio): a context created/resumed outside a gesture stays
+// "suspended" under browser autoplay policy and would play nothing.
+function playBlip(ctx: AudioContext | null) {
   try {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-    if (!Ctx) return;
-    const ctx = new Ctx();
+    if (!ctx || ctx.state !== "running") return;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = "sine";
@@ -96,7 +97,6 @@ function playBlip() {
     gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
     osc.start(t);
     osc.stop(t + 0.24);
-    osc.onended = () => ctx.close();
   } catch {
     /* audio not available / blocked */
   }
@@ -133,6 +133,25 @@ export function ChatClient({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [soundOn, setSoundOn] = useState(false);
   const soundOnRef = useRef(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  // Lazily create + resume a single AudioContext. MUST be called from inside a
+  // user gesture (click/keypress) — browsers keep a context "suspended" unless
+  // it's unlocked by a gesture, so without this the blip is silent.
+  const ensureAudio = useCallback(() => {
+    try {
+      if (!audioCtxRef.current) {
+        const Ctx =
+          window.AudioContext ||
+          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+        if (!Ctx) return;
+        audioCtxRef.current = new Ctx();
+      }
+      if (audioCtxRef.current.state === "suspended") void audioCtxRef.current.resume();
+    } catch {
+      /* audio not available / blocked */
+    }
+  }, []);
 
   // Sound preference: opt-in, persisted per device. A subtle blip plays on
   // incoming messages (never your own) when enabled.
@@ -146,6 +165,12 @@ export function ChatClient({
     setSoundOn((v) => {
       const next = !v;
       localStorage.setItem("xyz:chatSound", next ? "1" : "0");
+      // Unlock audio on the enabling click (a user gesture) so the very next
+      // incoming message can play, and give immediate feedback that it works.
+      if (next) {
+        ensureAudio();
+        playBlip(audioCtxRef.current);
+      }
       return next;
     });
 
@@ -205,7 +230,7 @@ export function ChatClient({
           .on("broadcast", { event: "new_message" }, ({ payload }) => {
             const msg = payload as Message;
             appendMessage(msg);
-            if (soundOnRef.current && msg.userId !== me?.id) playBlip();
+            if (soundOnRef.current && msg.userId !== me?.id) playBlip(audioCtxRef.current);
           })
           .on("broadcast", { event: "message_hidden" }, ({ payload }) => hideMessage((payload as { id: string }).id))
           .on("broadcast", { event: "reaction" }, ({ payload }) => {
@@ -284,6 +309,10 @@ export function ChatClient({
               return fresh ? { ...m, reactions: normalizeReactions(fresh.reactions) } : m;
             });
             if (incoming.length && !stickRef.current) setUnread((u) => u + incoming.length);
+            // Blip for messages from others, same as the realtime path.
+            if (soundOnRef.current && incoming.some((m) => m.userId !== me?.id)) {
+              playBlip(audioCtxRef.current);
+            }
             return incoming.length ? [...merged, ...incoming] : merged;
           });
         } catch {
@@ -374,6 +403,9 @@ export function ChatClient({
     e.preventDefault();
     const text = body.trim();
     if (!text || sending || !me) return;
+    // Sending is a user gesture — unlock audio here too so incoming-message
+    // blips work even if the toggle was already on at page load.
+    if (soundOnRef.current) ensureAudio();
     setError("");
     setSending(true);
     setBody("");
@@ -533,7 +565,7 @@ export function ChatClient({
             {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
           </button>
           {members.length > 0 && (
-            <div className="hidden -space-x-2 xs:flex">
+            <div className="flex -space-x-2">
               {members.slice(0, 5).map((m) =>
                 m.username ? (
                   <Link
