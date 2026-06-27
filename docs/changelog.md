@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Navbar: show Dashboard link to all staff (not just Super Admins)
+Recovery point: branch `backup/pre-navbar-staff`.
+- **Root cause of "granted user can't reach the dashboard":** the navbar only showed the
+  Dashboard link when `role === "ADMIN"`, so a member granted a capability (role `USER` +
+  permissions) had no link to /dashboard even though the page now lets them in. The link
+  (desktop account menu + mobile drawer) now shows for **any staff** via `isStaff(user)`
+  (Super Admin OR ≥1 capability). After a refresh/re-login the granted member sees
+  Dashboard and lands on their allowed tab(s).
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+
 ## 2026-06-27 — Access fixes: dashboard gate trap + "who has access" + What's-New emoji
 Recovery point: branch `backup/pre-access-fixes`.
 - **Granted access now works (core bug):** the dashboard required the specific

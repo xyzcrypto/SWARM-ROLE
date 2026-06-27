@@ -12,6 +12,7 @@ import { cn, maskEmail } from "@/lib/utils";
 import { Avatar } from "./Avatar";
 import { ActionLink } from "./ActionLink";
 import { MagneticButton } from "./MagneticButton";
+import { isStaff } from "@/lib/permissions";
 import { NavActivity } from "./NavActivity";
 import { ThemeToggle } from "./ThemeToggle";
 
@@ -24,7 +25,9 @@ export function Navbar() {
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
   const { data: session } = useSession();
   const user = session?.user as any;
-  const isAdmin = user?.role === "ADMIN";
+  // Show the Dashboard link to any staff member — Super Admin OR anyone granted
+  // at least one capability — not just role === "ADMIN".
+  const canSeeDashboard = isStaff(user);
   const isPremium = user?.membership === "Premium";
   const username = user?.username as string | undefined;
   const masked = maskEmail(session?.user?.email);
@@ -154,7 +157,7 @@ export function Navbar() {
                     <MenuItem href="/settings" icon={<Settings className="h-4 w-4" />} onClick={() => setMenu(false)}>
                       Settings
                     </MenuItem>
-                    {isAdmin && (
+                    {canSeeDashboard && (
                       <MenuItem href="/dashboard" icon={<LayoutDashboard className="h-4 w-4" />} onClick={() => setMenu(false)}>
                         Dashboard
                       </MenuItem>
@@ -240,7 +243,7 @@ export function Navbar() {
                   <Link href="/settings" onClick={() => setOpen(false)} className="btn-ghost">
                     Settings
                   </Link>
-                  {isAdmin && (
+                  {canSeeDashboard && (
                     <Link href="/dashboard" onClick={() => setOpen(false)} className="btn-ghost">
                       Dashboard
                     </Link>
