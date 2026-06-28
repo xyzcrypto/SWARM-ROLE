@@ -25,6 +25,13 @@ Supabase dashboard → your project → **Settings → API**. Copy three values:
 | **Project API keys → `anon` `public`** | public, client-safe key |
 | **Project API keys → `service_role`** | **secret** server key — never expose client-side |
 
+> **Already handled in code — don't remove it:** the site's Content-Security-Policy
+> (`next.config.mjs`, `connect-src`) must allow `https://*.supabase.co` and
+> `wss://*.supabase.co`, or the browser silently blocks the Realtime WebSocket and
+> presence/sound never connect (symptom: header stuck on "Connecting…", console shows
+> a `Refused to connect to 'wss://…supabase.co'` CSP error). This is configured —
+> just don't tighten `connect-src` back without re-adding Supabase.
+
 ## Step 2 — Confirm Realtime is on (usually nothing to do)
 
 Supabase enables **Broadcast** and **Presence** by default. This app uses two

@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-06-27 — Fix: CSP was blocking Supabase Realtime (the real "still not working")
+Recovery point: branch `backup/pre-csp-fix`. **Root cause** of live-online + instant
+sound being dead in prod despite correct env vars: the Content-Security-Policy
+`connect-src` (`next.config.mjs`) didn't allow Supabase, so the browser silently blocked
+the Realtime WebSocket (`wss://<ref>.supabase.co`). The channel never reached
+`SUBSCRIBED` → no presence ("0 online" / "Connecting…"), no broadcasts, no sound.
+- **Fix:** added `https://*.supabase.co wss://*.supabase.co` to `connect-src` (one line).
+  Mirrors the `**.supabase.co` already allowlisted for images.
+- Ruled out (all verified correct): the broadcast endpoint `/realtime/v1/api/broadcast`
+  (current per Supabase docs, returns 202), NEXT_PUBLIC build-time inlining, Vercel
+  "Sensitive" flag, and the entire client subscription/presence/event wiring.
+- Documented in `docs/REALTIME-SETUP.md` so `connect-src` isn't tightened back.
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+
 ## 2026-06-27 — Community Chat: emoji-reaction sound + realtime setup guide
 Recovery point: branch `backup/pre-reaction-sound`. Follow-up to the sound/live-online fix.
 - **Sound on emoji reactions:** the `reaction` broadcast handler now plays the same
