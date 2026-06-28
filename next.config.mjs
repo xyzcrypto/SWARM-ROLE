@@ -12,7 +12,11 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' https://fonts.gstatic.com data:",
-  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com",
+  // Supabase Realtime (community chat live presence + broadcasts) opens a
+  // WebSocket to wss://<ref>.supabase.co; the https origin covers the initial
+  // handshake / REST broadcast fallback. Without these the browser silently
+  // blocks the connection and presence/sound never work.
+  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.supabase.co wss://*.supabase.co",
   "frame-src 'self' https://accounts.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
