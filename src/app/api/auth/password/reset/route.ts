@@ -31,7 +31,13 @@ export async function POST(req: Request) {
     if (!user) return fail("Account not found.", 404);
 
     const passwordHash = await bcrypt.hash(password, 12);
-    await prisma.user.update({ where: { email }, data: { passwordHash } });
+    // Clear brute-force lockout state atomically with the password change: a user
+    // who locked their account by guessing before resetting must be able to sign in
+    // with the new password immediately, not wait out the lock window.
+    await prisma.user.update({
+      where: { email },
+      data: { passwordHash, failedLoginCount: 0, lockedUntil: null },
+    });
 
     return ok({ ok: true });
   } catch (err) {

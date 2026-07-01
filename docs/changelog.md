@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-01 — Fix: password reset now clears account lockout
+Recovery point: branch `backup/pre-reset-lockout-fix`. **Bug:** a user who locked their
+account by guessing (5 failed logins → 15-min `lockedUntil`) and then reset their password
+still couldn't sign in with the new password — `authorize()` (`src/lib/auth.ts`) checks the
+lock *before* comparing the password, and the reset handler updated only `passwordHash`.
+- **Fix:** `src/app/api/auth/password/reset/route.ts` now clears `failedLoginCount` and
+  `lockedUntil` in the same update that sets the new hash, so a reset unlocks the account
+  immediately (no more ~15-min wait).
+- Scope: one file; lockout policy and the authenticated change-password path are unchanged.
+- typecheck + lint(0 err) + test(88) + build green.
+
 ## 2026-06-27 — Fix: CSP was blocking Supabase Realtime (the real "still not working")
 Recovery point: branch `backup/pre-csp-fix`. **Root cause** of live-online + instant
 sound being dead in prod despite correct env vars: the Content-Security-Policy
