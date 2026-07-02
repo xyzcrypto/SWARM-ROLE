@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { ResearchGrid } from "@/components/ResearchGrid";
 import { prisma } from "@/lib/prisma";
+import { readingTime } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Research Hub",
@@ -27,8 +28,13 @@ export default async function ResearchPage() {
       .catch(() => []),
     prisma.post.count({ where: { published: true } }).catch(() => 0),
   ]);
-  // Never ship a premium post's body in the public list payload.
-  const posts = rawPosts.map((p) => (p.premium ? { ...p, content: "" } : p));
+  // Never ship article bodies in the list payload (premium must never leak;
+  // free bodies just bloat the RSC payload). Cards get a precomputed read time.
+  const posts = rawPosts.map(({ content, ...p }) => ({
+    ...p,
+    content: "",
+    readMinutes: readingTime(content),
+  }));
 
   return (
     <>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { readingTime } from "@/lib/utils";
 import { Reveal } from "./Reveal";
 import { PostCard } from "./PostCard";
 import { EarlyAccessCta } from "./EarlyAccessCta";
@@ -15,8 +16,12 @@ export async function ResearchPreview() {
       include: { author: { select: { name: true } } },
     })
     .catch(() => []);
-  // Never ship a premium post's body in the public home payload.
-  const posts = rawPosts.map((p) => (p.premium ? { ...p, content: "" } : p));
+  // Never ship article bodies in the home payload — precomputed read time only.
+  const posts = rawPosts.map(({ content, ...p }) => ({
+    ...p,
+    content: "",
+    readMinutes: readingTime(content),
+  }));
 
   return (
     <Section id="research">

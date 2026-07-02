@@ -2,7 +2,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { slugify } from "@/lib/utils";
+import { slugify, readingTime } from "@/lib/utils";
 import { ok, fail, handleError, requirePermission } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { notifyNewPost } from "@/lib/notifications";
@@ -62,8 +62,13 @@ export async function GET(req: Request) {
       prisma.post.count({ where }),
     ]);
 
-    // Never ship a premium post's body to the list/cards (no leak via JSON).
-    const safe = posts.map((p) => (p.premium ? { ...p, content: "" } : p));
+    // Never ship article bodies in list payloads (premium must never leak; free
+    // bodies just ballooned the JSON). Cards show a precomputed reading time.
+    const safe = posts.map(({ content, ...p }) => ({
+      ...p,
+      content: "",
+      readMinutes: readingTime(content),
+    }));
 
     // Public + identical for all users (premium redacted) → CDN-cacheable.
     const res = ok({ posts: safe, total, page, pageSize, hasMore: page * pageSize < total });

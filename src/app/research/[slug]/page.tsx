@@ -123,7 +123,7 @@ export default async function PostPage({
   const canViewPremium = isAdmin || isPremium;
   const locked = post.premium && !canViewPremium;
 
-  const [related, likeCount, myLike] = await Promise.all([
+  const [relatedRaw, likeCount, myLike] = await Promise.all([
     prisma.post
       .findMany({
         where: { published: true, category: post.category, slug: { not: post.slug } },
@@ -142,6 +142,13 @@ export default async function PostPage({
           .catch(() => null)
       : Promise.resolve(null),
   ]);
+
+  // Related cards never need bodies — strip + precompute read time.
+  const related = relatedRaw.map(({ content, ...p }) => ({
+    ...p,
+    content: "",
+    readMinutes: readingTime(content),
+  }));
 
   const tags = post.tags
     ? post.tags.split(",").map((t) => t.trim()).filter(Boolean)

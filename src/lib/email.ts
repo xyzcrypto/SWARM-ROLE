@@ -15,7 +15,12 @@ export async function sendEmail(
   text: string
 ): Promise<SendResult> {
   if (!emailEnabled) {
-    console.log(`\n[email:dev] to=${to}\n[email:dev] subject=${subject}\n[email:dev] ${text}\n`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`\n[email:dev] to=${to}\n[email:dev] subject=${subject}\n[email:dev] ${text}\n`);
+    } else {
+      // Never dump message bodies (OTP codes, contact messages) into prod logs.
+      console.warn(`[email] RESEND_API_KEY not set — email to ${to} ("${subject}") was NOT sent.`);
+    }
     return { ok: true, dev: true };
   }
   try {

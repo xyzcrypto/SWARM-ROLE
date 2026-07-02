@@ -5,6 +5,32 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-02 — Phase 2: all functional bugs fixed (audit §1.2, §2.1, §3)
+Recovery point: branch `backup/pre-p2-bugfixes`. 20+ confirmed bugs from the audit, fixed:
+- **Chat correctness (`ChatClient.tsx`):** polling now reconciles deletions (hidden
+  messages disappear without realtime); presence uses stable presence-key fallback ids
+  (guest online-count no longer drifts); reply-quote jump pages backwards (bounded) until
+  the target loads; the realtime channel no longer re-subscribes on profile edits (deps on
+  identity only, profile fields via ref); loadOlder guards all-deduped pages (no scroll
+  jump) and reports whether rows were added; reaction popover closes on outside press;
+  failed-send rollback no longer clobbers re-typed input; send/doSend split (no fake
+  FormEvent); single steady typing-expiry interval; AudioContext closed on unmount.
+- **Dashboard data:** new `GET /api/users` (users:manage) — paginated, server-searchable
+  members + `?format=csv` **full** export; Members panel now searches ALL members
+  (debounced, server-side) with Load-more, not just the 50 most recent; CSV button uses
+  the full export; PremiumMembers re-seeds on server refresh; Content table shows
+  per-post **Views**.
+- **Site-wide:** comment "Load older" pagination (older comments were unreachable);
+  MarketTicker light-mode remap (`/70`,`/90` opacities); research list/home/related no
+  longer ship article bodies — cards use precomputed `readMinutes` (payload trim,
+  PERFORMANCE.md win #1); notifications without a target render as non-links (no more
+  jump-to-top `#`); `en-US` locale pinned in ticker/chart (hydration-safe); email fallback
+  no longer logs OTP/message bodies in production; signup no longer reveals registered
+  emails (generic response + "you already have an account" notice email); LikeButton
+  ignores broadcasts while its own toggle is in flight; footer `/profile` link verified
+  intentional (self-resolving redirect to `/u/<handle>`).
+- typecheck + lint(0 err) + test(88) + build green; shared First-Load JS 159 kB.
+
 ## 2026-07-01 — Complete site audit (docs/AUDIT-2026-07-01.md)
 Full-stack audit: chat (mobile + correctness + features), dashboard (bugs + missing
 features + API gaps), site-wide bugs, UI/UX "AI-generic" review, security verification,

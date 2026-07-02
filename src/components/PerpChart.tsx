@@ -78,7 +78,7 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
   const up = change >= 0;
   const priceLabel =
     price != null
-      ? `$${price.toLocaleString(undefined, { maximumFractionDigits: coin.base >= 1000 ? 0 : 2 })}`
+      ? `$${price.toLocaleString("en-US", { maximumFractionDigits: coin.base >= 1000 ? 0 : 2 })}`
       : "$-";
 
   return (
