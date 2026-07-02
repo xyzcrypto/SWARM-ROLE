@@ -28,7 +28,17 @@ export async function POST(req: Request) {
     const { name, email, password } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
-    if (existing) return fail("An account with this email already exists.", 409);
+    if (existing) {
+      // Don't reveal whether an email is registered (user enumeration — login
+      // and password-reset are already generic). Respond exactly like success;
+      // the real owner gets a notice instead of a code.
+      const subject = "You already have an XYZ Crypto account";
+      const text =
+        "Someone (probably you) tried to sign up with this email, but an account already exists. " +
+        "Just log in — or use “Forgot password” if you can't get in. If this wasn't you, you can ignore this email.";
+      await sendEmail(email, subject, `<p>${text}</p>`, text).catch(() => null);
+      return ok({ ok: true });
+    }
 
     const passwordHash = await bcrypt.hash(password, 12);
     const code = await issueCode(email, "signup", { name, passwordHash });

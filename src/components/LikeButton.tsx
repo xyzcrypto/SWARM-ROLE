@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Heart } from "lucide-react";
@@ -21,12 +21,16 @@ export function LikeButton({
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [busy, setBusy] = useState(false);
+  const busyRef = useRef(false);
 
-  // Live like count: update when anyone else likes/unlikes this post.
+  // Live like count: update when anyone else likes/unlikes this post. Ignored
+  // while our own toggle is in flight — the broadcast can race the optimistic
+  // update and flash an off-by-one count; our POST response settles the truth.
   useRealtime({
     channel: `post:${postId}`,
     event: "like",
     onMessage: (p) => {
+      if (busyRef.current) return;
       const c = (p as { count?: number } | null)?.count;
       if (typeof c === "number") setCount(c);
     },
@@ -43,6 +47,7 @@ export function LikeButton({
     setLiked(!liked);
     setCount((c) => c + (liked ? -1 : 1));
     setBusy(true);
+    busyRef.current = true;
     try {
       const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
       const data = await res.json().catch(() => ({}));
@@ -58,6 +63,7 @@ export function LikeButton({
       setCount(prev.count);
     } finally {
       setBusy(false);
+      busyRef.current = false;
     }
   }
 

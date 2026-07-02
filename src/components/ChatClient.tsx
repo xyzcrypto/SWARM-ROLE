@@ -157,6 +157,11 @@ export function ChatClient({
   // incoming messages (never your own) when enabled.
   useEffect(() => {
     setSoundOn(localStorage.getItem("xyz:chatSound") === "1");
+    return () => {
+      // Release the audio device across mount/unmount cycles (client-side nav).
+      audioCtxRef.current?.close().catch(() => {});
+      audioCtxRef.current = null;
+    };
   }, []);
   useEffect(() => {
     soundOnRef.current = soundOn;
@@ -179,6 +184,16 @@ export function ChatClient({
   const lastTyping = useRef(0);
   const stickRef = useRef(true);
   stickRef.current = stickToBottom;
+  // Profile fields ride in a ref so a name/avatar edit doesn't tear down and
+  // re-subscribe the realtime socket (only an identity change should).
+  const meRef = useRef(me);
+  meRef.current = me;
+  // Mirror of messages for async flows (loadOlder loops) that outlive a render.
+  const messagesRef = useRef<Message[]>([]);
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   const appendMessage = useCallback((m: Message) => {
     setMessages((prev) => {
@@ -247,12 +262,14 @@ export function ChatClient({
           })
           .on("presence", { event: "sync" }, () => {
             // Build the live "who's online" list, de-duped by user id (a member
-            // open in two tabs counts once).
+            // open in two tabs counts once). Entries without a user id fall back
+            // to their presence key — stable per client, so guests are counted
+            // once instead of re-counted on every sync.
             const state = channel.presenceState() as Record<string, Array<Record<string, unknown>>>;
             const seen = new Map<string, PresenceMember>();
-            for (const entries of Object.values(state)) {
+            for (const [presenceKey, entries] of Object.entries(state)) {
               for (const e of entries) {
-                const id = (e.id as string) || (e.name as string) || Math.random().toString(36);
+                const id = (e.id as string) || presenceKey;
                 if (!seen.has(id)) {
                   seen.set(id, {
                     id,
@@ -270,12 +287,13 @@ export function ChatClient({
           .subscribe((status) => {
             setLive(status === "SUBSCRIBED");
             if (status === "SUBSCRIBED") {
+              const self = meRef.current;
               channel.track({
                 at: Date.now(),
-                id: me?.id,
-                name: me?.name ?? "Guest",
-                image: me?.image ?? null,
-                username: me?.username ?? null,
+                id: self?.id,
+                name: self?.name ?? "Guest",
+                image: self?.image ?? null,
+                username: self?.username ?? null,
               });
             }
           });
@@ -301,19 +319,29 @@ export function ChatClient({
           const data = await res.json().catch(() => null);
           if (!res.ok || !data?.messages) return;
           setMessages((prev) => {
+            const fresh = data.messages as Message[]; // oldest-first window of latest visible
             const known = new Set(prev.map((m) => m.id));
-            const incoming = (data.messages as Message[])
+            const incoming = fresh
               .filter((m) => !known.has(m.id))
               .map((m) => ({ ...m, reactions: normalizeReactions(m.reactions) }));
             // also refresh reactions on known messages
-            const byId = new Map((data.messages as Message[]).map((m) => [m.id, m]));
-            const merged = prev.map((m) => {
-              const fresh = byId.get(m.id);
-              return fresh ? { ...m, reactions: normalizeReactions(fresh.reactions) } : m;
+            const byId = new Map(fresh.map((m) => [m.id, m]));
+            let merged = prev.map((m) => {
+              const f = byId.get(m.id);
+              return f ? { ...m, reactions: normalizeReactions(f.reactions) } : m;
             });
+            // Reconcile deletions: a known message inside the fetched window that
+            // is no longer returned was hidden — drop it (realtime clients get
+            // this via the message_hidden broadcast; polling must infer it).
+            if (fresh.length) {
+              const windowStart = new Date(fresh[0]!.createdAt).getTime();
+              merged = merged.filter(
+                (m) => m.pending || byId.has(m.id) || new Date(m.createdAt).getTime() < windowStart
+              );
+            }
             if (incoming.length && !stickRef.current) setUnread((u) => u + incoming.length);
             // Blip for messages from others, same as the realtime path.
-            if (soundOnRef.current && incoming.some((m) => m.userId !== me?.id)) {
+            if (soundOnRef.current && incoming.some((m) => m.userId !== meRef.current?.id)) {
               playBlip(audioCtxRef.current);
             }
             return incoming.length ? [...merged, ...incoming] : merged;
@@ -331,20 +359,34 @@ export function ChatClient({
       cancelled = true;
       cleanup?.();
     };
-  }, [realtime.url, realtime.anonKey, me?.id, me?.name, me?.image, me?.username, appendMessage, hideMessage, applyReaction]);
+    // Re-subscribe only when the connection target or the signed-in identity
+    // changes; profile fields (name/image/username) ride in meRef.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [realtime.url, realtime.anonKey, me?.id, appendMessage, hideMessage, applyReaction]);
 
-  // Expire stale typing indicators.
+  // Close the reaction popover on any press outside it (its toggle + panel are
+  // tagged data-react-ui); mirrors EmojiPicker's outside-click behaviour.
   useEffect(() => {
-    if (Object.keys(typers).length === 0) return;
+    if (!reactOpenId) return;
+    const onDown = (e: PointerEvent) => {
+      if (!(e.target as Element | null)?.closest?.("[data-react-ui]")) setReactOpenId(null);
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [reactOpenId]);
+
+  // Expire stale typing indicators (single steady interval; no-op when empty).
+  useEffect(() => {
     const t = setInterval(() => {
       setTypers((prev) => {
+        if (Object.keys(prev).length === 0) return prev;
         const now = Date.now();
         const next = Object.fromEntries(Object.entries(prev).filter(([, v]) => v.until > now));
         return Object.keys(next).length === Object.keys(prev).length ? prev : next;
       });
     }, 1000);
     return () => clearInterval(t);
-  }, [typers]);
+  }, []);
 
   // Stick to bottom unless the user scrolled up.
   useEffect(() => {
@@ -376,34 +418,45 @@ export function ChatClient({
     ch.send({ type: "broadcast", event: "typing", payload: { userId: me.id, name: me.name } });
   }
 
-  async function loadOlder() {
-    if (!messages.length || loadingOlder) return;
+  // Loads one older page. Returns true when new rows were actually added (used
+  // by scrollToMessage's bounded search). Reads the oldest cursor from
+  // messagesRef so repeated awaited calls see fresh state, and only restores
+  // scroll when something was prepended (avoids a jump on all-deduped pages).
+  async function loadOlder(): Promise<boolean> {
+    const current = messagesRef.current;
+    if (!current.length || loadingOlder) return false;
     setLoadingOlder(true);
     const el = listRef.current;
     const prevHeight = el?.scrollHeight ?? 0;
     try {
-      const res = await fetch(`/api/chat/messages?cursor=${messages[0]!.id}`, { cache: "no-store" });
+      const res = await fetch(`/api/chat/messages?cursor=${current[0]!.id}`, { cache: "no-store" });
       const data = await res.json().catch(() => null);
       if (res.ok && data?.messages) {
-        setMessages((prev) => {
-          const known = new Set(prev.map((m) => m.id));
-          const older = (data.messages as Message[])
-            .filter((m) => !known.has(m.id))
-            .map((m) => ({ ...m, reactions: normalizeReactions(m.reactions) }));
-          return [...older, ...prev];
-        });
-        setHasMore(Boolean(data.hasMore));
-        requestAnimationFrame(() => {
-          if (el) el.scrollTop = el.scrollHeight - prevHeight;
-        });
+        const known = new Set(current.map((m) => m.id));
+        const older = (data.messages as Message[])
+          .filter((m) => !known.has(m.id))
+          .map((m) => ({ ...m, reactions: normalizeReactions(m.reactions) }));
+        if (older.length) {
+          setMessages((prev) => [...older.filter((o) => !prev.some((p) => p.id === o.id)), ...prev]);
+          requestAnimationFrame(() => {
+            if (el) el.scrollTop = el.scrollHeight - prevHeight;
+          });
+        }
+        setHasMore(Boolean(data.hasMore) && (older.length > 0 || (data.messages as Message[]).length > 0));
+        return older.length > 0;
       }
+      return false;
     } finally {
       setLoadingOlder(false);
     }
   }
 
-  async function send(e: React.FormEvent) {
+  function send(e: { preventDefault: () => void }) {
     e.preventDefault();
+    void doSend();
+  }
+
+  async function doSend() {
     const text = body.trim();
     if (!text || sending || !me) return;
     // Sending is a user gesture — unlock audio here too so incoming-message
@@ -433,8 +486,10 @@ export function ChatClient({
 
     const rollback = () => {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      setBody(text);
-      setReplyTarget(reply);
+      // Restore the failed text/reply only if the user hasn't started composing
+      // a new message in the meantime — never clobber fresh input.
+      setBody((b) => (b.trim() ? b : text));
+      setReplyTarget((r) => r ?? reply);
     };
 
     try {
@@ -488,12 +543,20 @@ export function ChatClient({
     if (!res || !res.ok) applyReaction(messageId, emoji, me.id, mine ? "add" : "remove"); // rollback
   }
 
-  function scrollToMessage(id: string) {
-    const el = document.getElementById(`msg-${id}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("ring-1", "ring-gold-500/50");
-      setTimeout(() => el.classList.remove("ring-1", "ring-gold-500/50"), 1200);
+  // Jump to a message; if it isn't loaded (reply to an older message), page
+  // backwards a bounded number of times until it appears, then highlight.
+  async function scrollToMessage(id: string) {
+    for (let attempt = 0; attempt < 6; attempt++) {
+      const el = document.getElementById(`msg-${id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-1", "ring-gold-500/50");
+        setTimeout(() => el.classList.remove("ring-1", "ring-gold-500/50"), 1200);
+        return;
+      }
+      const added = await loadOlder();
+      if (!added) return; // history exhausted or request failed
+      await new Promise((r) => requestAnimationFrame(() => r(null))); // let rows render
     }
   }
 
@@ -733,7 +796,7 @@ export function ChatClient({
                   {/* hover action bar */}
                   {me && (
                     <div className="absolute -top-3 right-2 flex items-center gap-0.5 rounded-lg border border-line bg-ink-800/95 p-0.5 opacity-100 shadow-elevate backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                      <div className="relative">
+                      <div className="relative" data-react-ui>
                         <button
                           onClick={() => setReactOpenId((id) => (id === m.id ? null : m.id))}
                           className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200"

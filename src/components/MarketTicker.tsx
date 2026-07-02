@@ -19,9 +19,9 @@ const fallback: Coin[] = [
 ];
 
 function fmt(price: number) {
-  if (price >= 1000) return price.toLocaleString(undefined, { maximumFractionDigits: 0 });
-  if (price >= 1) return price.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  return price.toLocaleString(undefined, { maximumFractionDigits: 4 });
+  if (price >= 1000) return price.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (price >= 1) return price.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  return price.toLocaleString("en-US", { maximumFractionDigits: 4 });
 }
 
 function Cell({ c, fl }: { c: Coin; fl?: "up" | "down" }) {

@@ -13,6 +13,7 @@ export type PostRow = {
   category: string;
   published: boolean;
   premium: boolean;
+  views: number;
   createdAt: string;
 };
 
@@ -175,6 +176,7 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
                 <th className="px-5 py-3">Title</th>
                 <th className="px-5 py-3">Category</th>
                 <th className="px-5 py-3">Status</th>
+                <th className="px-5 py-3 text-right">Views</th>
                 <th className="px-5 py-3">Date</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
@@ -201,6 +203,9 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
                         Draft
                       </span>
                     )}
+                  </td>
+                  <td className="mono px-5 py-3 text-right text-xs text-zinc-400">
+                    {(p.views ?? 0).toLocaleString("en-US")}
                   </td>
                   <td className="px-5 py-3 text-zinc-500">{formatDate(p.createdAt)}</td>
                   <td className="px-5 py-3">

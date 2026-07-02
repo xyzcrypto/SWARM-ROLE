@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatDate, formatDateTime, csvCell } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import { PostEditor } from "./PostEditor";
 import { PostManager } from "./PostManager";
 import { PERMISSIONS, ALL_PERMISSIONS, hasPermission, type Permission } from "@/lib/permissions";
@@ -302,6 +302,12 @@ function PremiumMembers({ initial, realtime }: { initial: UserRow[]; realtime: R
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState("");
 
+  // Re-seed when the server component re-renders (router.refresh), so fresh
+  // data actually lands instead of being discarded by the initial useState.
+  useEffect(() => {
+    setRows(initial);
+  }, [initial]);
+
   // Live: if anyone is downgraded elsewhere, drop them from this list instantly.
   useMembersChannel(
     realtime,
@@ -368,10 +374,12 @@ function PremiumMembers({ initial, realtime }: { initial: UserRow[]; realtime: R
 
 /* ------------------------------ Members ----------------------------- */
 function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) {
-  const router = useRouter();
   const [rows, setRows] = useState(users);
+  const [nextCursor, setNextCursor] = useState<string | null>(users.length >= 50 ? "seed" : null);
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
 
   // Live: reflect membership changes made anywhere (this admin or another).
@@ -382,12 +390,50 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
     }, [])
   );
 
-  const filtered = rows.filter(
-    (u) =>
-      !query ||
-      u.email.toLowerCase().includes(query.toLowerCase()) ||
-      (u.name ?? "").toLowerCase().includes(query.toLowerCase())
-  );
+  // Server-side search over ALL members (the server prop only carries the 50
+  // most recent — filtering that client-side hid everyone older). Debounced;
+  // empty query lists most-recent with cursor pagination.
+  const fetchPage = useCallback(async (q: string, cursor?: string | null) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (cursor && cursor !== "seed") params.set("cursor", cursor);
+    const res = await fetch(`/api/users?${params}`, { cache: "no-store" });
+    const d = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(d.error || "Could not load members.");
+    return { users: (d.users ?? []) as UserRow[], nextCursor: (d.nextCursor ?? null) as string | null };
+  }, []);
+
+  useEffect(() => {
+    const id = setTimeout(async () => {
+      setSearching(true);
+      setError("");
+      try {
+        const page = await fetchPage(query.trim());
+        setRows(page.users);
+        setNextCursor(page.nextCursor);
+      } catch (e: any) {
+        setError(e.message || "Could not load members.");
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => clearTimeout(id);
+  }, [query, fetchPage]);
+
+  async function loadMore() {
+    if (!nextCursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const cursor = nextCursor === "seed" ? rows[rows.length - 1]?.id : nextCursor;
+      const page = await fetchPage(query.trim(), cursor);
+      setRows((prev) => [...prev, ...page.users.filter((u) => !prev.some((p) => p.id === u.id))]);
+      setNextCursor(page.nextCursor);
+    } catch (e: any) {
+      setError(e.message || "Could not load more.");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
 
   async function toggleMembership(u: UserRow) {
     const next = u.membership === "Premium" ? "Free" : "Premium";
@@ -396,7 +442,6 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
     try {
       await setMembership(u.id, next);
       setRows((arr) => arr.map((x) => (x.id === u.id ? { ...x, membership: next } : x)));
-      router.refresh();
     } catch (e: any) {
       setError(e.message || "Network error. Please try again.");
     } finally {
@@ -404,22 +449,13 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
     }
   }
 
+  // Full export from the server (the old client export only covered the rows
+  // already loaded — silently truncating to 50 on real userbases).
   function exportCsv() {
-    const header = "Name,Email,Membership,Role,Method,Signup Date,Last Login\n";
-    const body = rows
-      .map((u) =>
-        [u.name ?? "", u.email, u.membership, u.role, u.provider, formatDate(u.createdAt), u.lastLoginAt ? formatDateTime(u.lastLoginAt) : "Never"]
-          .map(csvCell)
-          .join(",")
-      )
-      .join("\n");
-    const blob = new Blob([header + body], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "xyz-crypto-members.csv";
-    a.click();
-    URL.revokeObjectURL(url);
+    const params = new URLSearchParams({ format: "csv" });
+    const q = query.trim();
+    if (q) params.set("q", q);
+    window.open(`/api/users?${params}`, "_blank");
   }
 
   return (
@@ -428,15 +464,15 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search by email or name…"
+          placeholder="Search all members by email or name…"
           className="w-full max-w-xs rounded-xl border border-line bg-ink-700/60 px-4 py-2 text-sm text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/50"
         />
         <div className="flex items-center gap-3">
           <span className="mono text-xs text-zinc-500">
-            {filtered.length} member{filtered.length === 1 ? "" : "s"}
+            {searching ? "Searching…" : `${rows.length}${nextCursor ? "+" : ""} member${rows.length === 1 ? "" : "s"}`}
           </span>
           <button onClick={exportCsv} className="btn-ghost !px-4 !py-2 text-xs">
-            Export CSV
+            Export CSV (all)
           </button>
         </div>
       </div>
@@ -457,7 +493,7 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {filtered.map((u) => (
+            {rows.map((u) => (
               <tr key={u.id} className="hover:bg-white/[0.02]">
                 <td className="px-4 py-3 sm:px-5">
                   <div className="font-medium text-zinc-200">{u.email}</div>
@@ -498,7 +534,7 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
                 </td>
               </tr>
             ))}
-            {filtered.length === 0 && (
+            {rows.length === 0 && !searching && (
               <tr>
                 <td colSpan={5} className="px-5 py-10 text-center text-sm text-zinc-500">
                   No members match “{query}”.
@@ -508,6 +544,13 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
           </tbody>
         </table>
       </div>
+      {nextCursor && (
+        <div className="mt-4 text-center">
+          <button onClick={loadMore} disabled={loadingMore} className="btn-ghost !px-4 !py-2 text-xs disabled:opacity-60">
+            {loadingMore ? "Loading…" : "Load more members"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

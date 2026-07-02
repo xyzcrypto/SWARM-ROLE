@@ -204,20 +204,29 @@ export function NavActivity() {
                 {items.length === 0 ? (
                   <p className="px-4 py-8 text-center text-sm text-zinc-500">You&apos;re all caught up.</p>
                 ) : (
-                  items.map((n) => (
-                    <Link
-                      key={n.id}
-                      href={n.href ?? "#"}
-                      onClick={() => setOpen(false)}
-                      className={`block border-b border-white/5 px-4 py-3 transition-colors hover:bg-white/5 ${
-                        n.read ? "" : "bg-gold-500/[0.04]"
-                      }`}
-                    >
-                      <p className="text-sm font-medium text-zinc-200">{n.title}</p>
-                      {n.body && <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">{n.body}</p>}
-                      <p className="mono mt-1 text-[10px] text-zinc-600">{timeAgo(n.createdAt)}</p>
-                    </Link>
-                  ))
+                  items.map((n) => {
+                    const inner = (
+                      <>
+                        <p className="text-sm font-medium text-zinc-200">{n.title}</p>
+                        {n.body && <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">{n.body}</p>}
+                        <p className="mono mt-1 text-[10px] text-zinc-600">{timeAgo(n.createdAt)}</p>
+                      </>
+                    );
+                    const cls = `block border-b border-white/5 px-4 py-3 transition-colors hover:bg-white/5 ${
+                      n.read ? "" : "bg-gold-500/[0.04]"
+                    }`;
+                    // A notification without a target isn't a link — an href="#"
+                    // anchor would jump the page to the top on click.
+                    return n.href ? (
+                      <Link key={n.id} href={n.href} onClick={() => setOpen(false)} className={cls}>
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div key={n.id} className={cls}>
+                        {inner}
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </motion.div>

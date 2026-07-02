@@ -17,6 +17,9 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
   const [items, setItems] = useState<Comment[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
@@ -48,11 +51,32 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
       if (res.ok) {
         setItems(data.comments ?? []);
         setTotal(data.total ?? 0);
+        setHasMore(Boolean(data.hasMore));
+        setPage(1);
       }
     } finally {
       setLoading(false);
     }
   }, [postId]);
+
+  // Older pages: the API has always supported ?page=, but no control ever
+  // called it — comments beyond the first 20 were unreachable.
+  const loadOlder = useCallback(async () => {
+    setLoadingMore(true);
+    try {
+      const next = page + 1;
+      const res = await fetch(`/api/posts/${postId}/comments?page=${next}`, { cache: "no-store" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const older = (data.comments ?? []) as Comment[];
+        setItems((prev) => [...prev, ...older.filter((c) => !prev.some((p) => p.id === c.id))]);
+        setHasMore(Boolean(data.hasMore));
+        setPage(next);
+      }
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [postId, page]);
 
   useEffect(() => {
     if (inView) load();
@@ -163,6 +187,13 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
               <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-zinc-300">{c.body}</p>
             </div>
           ))
+        )}
+        {hasMore && !loading && (
+          <div className="text-center">
+            <button onClick={loadOlder} disabled={loadingMore} className="btn-ghost !px-4 !py-2 text-xs disabled:opacity-60">
+              {loadingMore ? "Loading…" : "Load older comments"}
+            </button>
+          </div>
         )}
       </div>
     </section>
