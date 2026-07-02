@@ -88,10 +88,11 @@ model Notification {
 // moderation (visible | hidden) without hard deletes; delivery is realtime
 // (Supabase broadcast) with the DB as history/source of truth.
 model ChatMessage {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   body      String // plain text, <= 500 chars (zod-enforced)
-  status    String   @default("visible") // "visible" | "hidden"
-  createdAt DateTime @default(now())
+  status    String    @default("visible") // "visible" | "hidden"
+  createdAt DateTime  @default(now())
+  editedAt  DateTime? // set when the author edits (15-min window)
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String

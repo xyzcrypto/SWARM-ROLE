@@ -59,6 +59,7 @@ export type ChatMessagePayload = {
   id: string;
   body: string;
   createdAt: string; // ISO
+  editedAt: string | null; // ISO, set when the author edits
   userId: string;
   author: ChatAuthor;
   replyTo: ChatReplyRef | null;
@@ -68,6 +69,7 @@ export type ChatMessagePayload = {
 type ChatEvent =
   | { event: "new_message"; payload: ChatMessagePayload }
   | { event: "message_hidden"; payload: { id: string } }
+  | { event: "message_edited"; payload: { id: string; body: string; editedAt: string } }
   | { event: "reaction"; payload: { messageId: string; emoji: string; userId: string; op: "add" | "remove" } };
 
 /**
@@ -85,6 +87,7 @@ export const CHAT_MESSAGE_SELECT = {
   id: true,
   body: true,
   createdAt: true,
+  editedAt: true,
   userId: true,
   user: { select: { name: true, username: true, image: true, membership: true, role: true } },
   replyTo: { select: { id: true, body: true, user: { select: { name: true, username: true } } } },
@@ -96,6 +99,7 @@ export function toChatPayload(m: {
   id: string;
   body: string;
   createdAt: Date;
+  editedAt?: Date | null;
   userId: string;
   user: ChatAuthor;
   replyTo: { id: string; body: string; user: { name: string | null; username: string | null } } | null;
@@ -115,6 +119,7 @@ export function toChatPayload(m: {
     id: m.id,
     body: m.body,
     createdAt: m.createdAt.toISOString(),
+    editedAt: m.editedAt ? m.editedAt.toISOString() : null,
     userId: m.userId,
     author: m.user,
     replyTo: m.replyTo
