@@ -14,6 +14,10 @@
     --content: #1b1b22;
     --content-muted: #5b5b66;
     --hairline: rgba(0, 0, 0, 0.10);
+    /* Dashboard chart hues — per-surface steps validated with the dataviz
+       six-checks (lightness band, chroma, CVD separation, contrast). */
+    --chart-mint: #0bbb7c;
+    --chart-gold: #d18f1b;
     color-scheme: light;
   }
   /* Semantic theme tokens — DARK (default). Values match the current design
@@ -25,6 +29,8 @@
     --content: #d4d4d8;
     --content-muted: #a1a1aa;
     --hairline: rgba(255, 255, 255, 0.08);
+    --chart-mint: #039567;
+    --chart-gold: #ad6f10;
     color-scheme: dark;
   }
   * {

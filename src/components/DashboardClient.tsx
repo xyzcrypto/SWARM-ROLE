@@ -47,7 +47,19 @@ type PostRow = {
 };
 
 type Realtime = { url: string; anonKey: string };
-type Tab = "overview" | "premium" | "publish" | "content" | "members" | "access" | "whatsnew";
+type Tab =
+  | "overview"
+  | "premium"
+  | "publish"
+  | "content"
+  | "members"
+  | "access"
+  | "whatsnew"
+  | "moderation"
+  | "subscribers"
+  | "activity";
+/** Integration status booleans (names only — never values/secrets). */
+export type HealthFlags = { storage: boolean; realtime: boolean; upstash: boolean; email: boolean; google: boolean };
 
 /* ----------------------- realtime hooks (admin) ----------------------- */
 function useLiveOnline(realtime: Realtime) {
@@ -128,6 +140,7 @@ export function DashboardClient({
   adminName,
   realtime,
   viewer,
+  health,
 }: {
   stats: Stats;
   recentUsers: UserRow[];
@@ -136,6 +149,7 @@ export function DashboardClient({
   adminName: string;
   realtime: Realtime;
   viewer: Viewer;
+  health: HealthFlags;
 }) {
   const liveOnline = useLiveOnline(realtime);
 
@@ -146,9 +160,12 @@ export function DashboardClient({
     { id: "premium", label: "Premium", perm: "premium:manage" },
     { id: "publish", label: "Publish", perm: "post:publish" },
     { id: "content", label: "Content", perm: "post:manage" },
+    { id: "moderation", label: "Moderation", perm: "post:manage" },
     { id: "members", label: "Members", perm: "users:manage" },
+    { id: "subscribers", label: "Subscribers", perm: "users:manage" },
     { id: "whatsnew", label: "What's New", perm: "whatsnew:manage" },
     { id: "access", label: "Access", perm: "users:roles" },
+    { id: "activity", label: "Activity", perm: "users:roles" },
   ];
   const tabs = allTabs.filter((t) => hasPermission(viewer, t.perm));
 
@@ -192,19 +209,121 @@ export function DashboardClient({
         ))}
       </div>
 
-      {tab === "overview" && <Overview stats={stats} liveOnline={liveOnline} />}
+      {tab === "overview" && <Overview stats={stats} liveOnline={liveOnline} health={health} />}
       {tab === "premium" && <PremiumMembers initial={premiumMembers} realtime={realtime} />}
       {tab === "publish" && <PublishPanel />}
       {tab === "content" && <PostManager posts={posts} />}
+      {tab === "moderation" && <ModerationPanel />}
       {tab === "members" && <Members users={recentUsers} realtime={realtime} />}
+      {tab === "subscribers" && <SubscribersPanel />}
       {tab === "whatsnew" && <WhatsNewManager />}
       {tab === "access" && <AccessPanel viewer={viewer} />}
+      {tab === "activity" && <ActivityPanel />}
     </div>
   );
 }
 
 /* ----------------------------- Overview ----------------------------- */
 type Accent = "gold" | "mint" | "plain";
+
+type DailyPoint = { day: string; count: number };
+
+/**
+ * Compact single-series area chart (30 daily points). Follows the dataviz
+ * rules: one series (title names it — no legend), recessive grid, thin 2px
+ * line, hover crosshair + tooltip, direct max label, sr-only data table as
+ * the low-contrast relief. Hues come from --chart-* (validated per theme).
+ */
+function TrendChart({ title, points, tone }: { title: string; points: DailyPoint[]; tone: "mint" | "gold" }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const W = 300;
+  const H = 72;
+  const PAD = 4;
+  const max = Math.max(1, ...points.map((p) => p.count));
+  const total = points.reduce((s, p) => s + p.count, 0);
+  const stepX = points.length > 1 ? (W - PAD * 2) / (points.length - 1) : 0;
+  const x = (i: number) => PAD + i * stepX;
+  const y = (c: number) => H - PAD - (c / max) * (H - PAD * 2);
+  const line = points.map((p, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(p.count).toFixed(1)}`).join(" ");
+  const area = `${line} L${x(points.length - 1).toFixed(1)},${H - PAD} L${PAD},${H - PAD} Z`;
+  const color = tone === "mint" ? "var(--chart-mint)" : "var(--chart-gold)";
+  const maxIdx = points.reduce((best, p, i) => (p.count > points[best]!.count ? i : best), 0);
+  const fmtDay = (d: string) =>
+    new Date(`${d}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+
+  function onMove(e: React.MouseEvent<SVGSVGElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = ((e.clientX - rect.left) / rect.width) * W;
+    const i = Math.round((px - PAD) / (stepX || 1));
+    setHover(Math.min(points.length - 1, Math.max(0, i)));
+  }
+
+  return (
+    <div className="surface rounded-2xl p-5">
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-sm text-zinc-500">{title}</p>
+        <p className="mono text-sm font-semibold text-zinc-300">{total.toLocaleString("en-US")} / 30d</p>
+      </div>
+      <div className="relative mt-3">
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          className="block h-20 w-full"
+          role="img"
+          aria-label={`${title}: ${total} total over the last 30 days`}
+          onMouseMove={onMove}
+          onMouseLeave={() => setHover(null)}
+        >
+          {/* recessive grid: midline only */}
+          <line x1={PAD} x2={W - PAD} y1={y(max / 2)} y2={y(max / 2)} stroke="currentColor" className="text-zinc-500/20" strokeWidth="1" />
+          <path d={area} fill={color} opacity="0.16" />
+          <path d={line} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+          {/* direct label on the peak (relief for low-contrast fills) */}
+          {points[maxIdx]!.count > 0 && hover === null && (
+            <text x={Math.min(W - 24, Math.max(14, x(maxIdx)))} y={Math.max(10, y(points[maxIdx]!.count) - 5)} textAnchor="middle" className="fill-zinc-400 mono" fontSize="9">
+              {points[maxIdx]!.count.toLocaleString("en-US")}
+            </text>
+          )}
+          {hover !== null && (
+            <>
+              <line x1={x(hover)} x2={x(hover)} y1={PAD} y2={H - PAD} stroke="currentColor" className="text-zinc-500/40" strokeWidth="1" />
+              <circle cx={x(hover)} cy={y(points[hover]!.count)} r="3.5" fill={color} stroke="var(--surface)" strokeWidth="2" />
+            </>
+          )}
+        </svg>
+        {hover !== null && (
+          <div
+            className="pointer-events-none absolute -top-1 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-ink-800/95 px-2 py-1 mono text-[10px] text-zinc-200 shadow-elevate"
+            style={{ left: `${((x(hover) / W) * 100).toFixed(1)}%` }}
+          >
+            {fmtDay(points[hover]!.day)} · {points[hover]!.count.toLocaleString("en-US")}
+          </div>
+        )}
+      </div>
+      <div className="mt-1 flex justify-between mono text-[9px] text-zinc-600">
+        <span>{points.length ? fmtDay(points[0]!.day) : ""}</span>
+        <span>{points.length ? fmtDay(points[points.length - 1]!.day) : ""}</span>
+      </div>
+      {/* Accessible data table (also the contrast-relief required by the palette check). */}
+      <table className="sr-only">
+        <caption>{title} — daily values, last 30 days</caption>
+        <thead>
+          <tr>
+            <th>Day</th>
+            <th>Count</th>
+          </tr>
+        </thead>
+        <tbody>
+          {points.map((p) => (
+            <tr key={p.day}>
+              <td>{p.day}</td>
+              <td>{p.count}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function StatCard({ label, value, hint, accent = "plain" }: { label: string; value: number; hint: string; accent?: Accent }) {
   const num =
@@ -218,8 +337,28 @@ function StatCard({ label, value, hint, accent = "plain" }: { label: string; val
   );
 }
 
-function Overview({ stats: initialStats, liveOnline }: { stats: Stats; liveOnline: number }) {
+function Overview({ stats: initialStats, liveOnline, health }: { stats: Stats; liveOnline: number; health: HealthFlags }) {
   const [stats, setStats] = useState(initialStats);
+  const [series, setSeries] = useState<{ signups: DailyPoint[]; views: DailyPoint[] } | null>(null);
+
+  // 30-day trends (cached endpoint; fetched once per mount).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/dashboard/timeseries", { cache: "no-store" });
+        const d = await res.json().catch(() => null);
+        if (!cancelled && res.ok && d?.signups && d?.views) {
+          setSeries({ signups: d.signups, views: d.views });
+        }
+      } catch {
+        /* charts are progressive enhancement */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     try {
@@ -279,12 +418,392 @@ function Overview({ stats: initialStats, liveOnline }: { stats: Stats; liveOnlin
         ))}
       </div>
 
+      {/* 30-day trends */}
+      {series && (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <TrendChart title="Signups per day" points={series.signups} tone="gold" />
+          <TrendChart title="Page views per day" points={series.views} tone="mint" />
+        </div>
+      )}
+
       {/* Signups / content */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
           <StatCard key={c.label} {...c} />
         ))}
       </div>
+
+      {/* Integration health — booleans only, never values. */}
+      <div className="surface rounded-2xl p-5">
+        <p className="text-sm text-zinc-500">Integrations</p>
+        <div className="mt-3 flex flex-wrap gap-2">
+          {(
+            [
+              ["Database", true],
+              ["Realtime", health.realtime],
+              ["Storage", health.storage],
+              ["Rate limits", health.upstash],
+              ["Email", health.email],
+              ["Google login", health.google],
+            ] as const
+          ).map(([label, on]) => (
+            <span
+              key={label}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${
+                on ? "bg-mint-500/10 text-mint-200 ring-mint-500/25" : "bg-white/5 text-zinc-500 ring-white/10"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${on ? "bg-mint-400" : "bg-zinc-600"}`} />
+              {label}
+              {!on && <span className="text-zinc-600">· not configured</span>}
+            </span>
+          ))}
+        </div>
+        <p className="mt-2 text-xs text-zinc-600">
+          Unconfigured integrations degrade gracefully — see docs/HANDOFF.md for setup.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* --------------------------- Moderation ---------------------------- */
+type ModComment = {
+  id: string;
+  body: string;
+  status: string;
+  createdAt: string;
+  authorName: string;
+  postTitle: string;
+  postSlug: string;
+};
+type ModMessage = {
+  id: string;
+  body: string;
+  status: string;
+  createdAt: string;
+  author: { name: string | null; username: string | null };
+};
+
+function ModerationPanel() {
+  const [view, setView] = useState<"comments" | "chat">("comments");
+  const [statusFilter, setStatusFilter] = useState<"all" | "visible" | "hidden">("all");
+  const [comments, setComments] = useState<ModComment[]>([]);
+  const [messages, setMessages] = useState<ModMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const url =
+        view === "comments"
+          ? `/api/comments?status=${statusFilter}`
+          : `/api/chat/messages/moderate?status=${statusFilter}`;
+      const res = await fetch(url, { cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Could not load.");
+      if (view === "comments") setComments(d.comments ?? []);
+      else setMessages(d.messages ?? []);
+    } catch (e: any) {
+      setError(e.message || "Could not load.");
+    } finally {
+      setLoading(false);
+    }
+  }, [view, statusFilter]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function setCommentStatus(id: string, status: "visible" | "hidden") {
+    setBusy(id);
+    try {
+      const res = await fetch(`/api/comments/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed.");
+      setComments((arr) => arr.map((c) => (c.id === id ? { ...c, status } : c)));
+    } catch (e: any) {
+      setError(e.message || "Failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function setMessageStatus(id: string, action: "hide" | "restore") {
+    setBusy(id);
+    try {
+      const res = await fetch("/api/chat/messages/moderate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, action }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed.");
+      setMessages((arr) => arr.map((m) => (m.id === id ? { ...m, status: action === "hide" ? "hidden" : "visible" } : m)));
+    } catch (e: any) {
+      setError(e.message || "Failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const StatusBadge = ({ status }: { status: string }) =>
+    status === "hidden" ? (
+      <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-300 ring-1 ring-red-500/25">Hidden</span>
+    ) : (
+      <span className="rounded-full bg-mint-500/10 px-2 py-0.5 text-[10px] font-medium text-mint-300 ring-1 ring-mint-500/25">Visible</span>
+    );
+
+  return (
+    <div>
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        {(["comments", "chat"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              view === v ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "text-zinc-500 hover:text-zinc-300"
+            }`}
+          >
+            {v === "comments" ? "Comments" : "Chat messages"}
+          </button>
+        ))}
+        <div className="ml-auto flex gap-1.5">
+          {(["all", "visible", "hidden"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
+                statusFilter === s ? "bg-white/10 text-zinc-200" : "text-zinc-500 hover:text-zinc-300"
+              }`}
+            >
+              {s[0]!.toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error && <p className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">{error}</p>}
+      {loading ? (
+        <p className="rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">Loading…</p>
+      ) : view === "comments" ? (
+        comments.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">Nothing to review.</p>
+        ) : (
+          <ul className="space-y-2">
+            {comments.map((c) => (
+              <li key={c.id} className="surface rounded-2xl p-4">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+                  <span className="font-medium text-zinc-300">{c.authorName}</span>
+                  <span>on</span>
+                  <a href={`/research/${c.postSlug}`} target="_blank" className="text-gold-200 hover:underline">
+                    {c.postTitle}
+                  </a>
+                  <span>· {formatDateTime(c.createdAt)}</span>
+                  <StatusBadge status={c.status} />
+                </div>
+                <p className="mt-2 whitespace-pre-wrap break-words text-sm text-zinc-300">{c.body}</p>
+                <div className="mt-2 flex gap-3 text-xs">
+                  {c.status === "visible" ? (
+                    <button onClick={() => setCommentStatus(c.id, "hidden")} disabled={busy === c.id} className="font-medium text-red-300 hover:underline disabled:opacity-50">
+                      {busy === c.id ? "…" : "Hide"}
+                    </button>
+                  ) : (
+                    <button onClick={() => setCommentStatus(c.id, "visible")} disabled={busy === c.id} className="font-medium text-mint-300 hover:underline disabled:opacity-50">
+                      {busy === c.id ? "…" : "Restore"}
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )
+      ) : messages.length === 0 ? (
+        <p className="rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">Nothing to review.</p>
+      ) : (
+        <ul className="space-y-2">
+          {messages.map((m) => (
+            <li key={m.id} className="surface rounded-2xl p-4">
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+                <span className="font-medium text-zinc-300">
+                  {m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member")}
+                </span>
+                <span>· {formatDateTime(m.createdAt)}</span>
+                <StatusBadge status={m.status} />
+              </div>
+              <p className="mt-2 whitespace-pre-wrap break-words text-sm text-zinc-300">{m.body}</p>
+              <div className="mt-2 flex gap-3 text-xs">
+                {m.status === "visible" ? (
+                  <button onClick={() => setMessageStatus(m.id, "hide")} disabled={busy === m.id} className="font-medium text-red-300 hover:underline disabled:opacity-50">
+                    {busy === m.id ? "…" : "Hide"}
+                  </button>
+                ) : (
+                  <button onClick={() => setMessageStatus(m.id, "restore")} disabled={busy === m.id} className="font-medium text-mint-300 hover:underline disabled:opacity-50">
+                    {busy === m.id ? "…" : "Restore"}
+                  </button>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/* --------------------------- Subscribers --------------------------- */
+type SubscriberRow = { id: string; email: string; source: string; createdAt: string };
+
+function SubscribersPanel() {
+  const [rows, setRows] = useState<SubscriberRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async (cursor?: string | null) => {
+    try {
+      const res = await fetch(`/api/subscribers${cursor ? `?cursor=${cursor}` : ""}`, { cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Could not load subscribers.");
+      setTotal(d.total ?? 0);
+      setRows((prev) => (cursor ? [...prev, ...(d.subscribers ?? [])] : d.subscribers ?? []));
+      setNextCursor(d.nextCursor ?? null);
+    } catch (e: any) {
+      setError(e.message || "Could not load subscribers.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <h2 className="font-display text-lg font-semibold text-zinc-100">Subscribers</h2>
+          <p className="text-sm text-zinc-500">Waitlist &amp; newsletter emails ({total.toLocaleString("en-US")}).</p>
+        </div>
+        <button onClick={() => window.open("/api/subscribers?format=csv", "_blank")} className="btn-ghost !px-4 !py-2 text-xs">
+          Export CSV (all)
+        </button>
+      </div>
+      {error && <p className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">{error}</p>}
+      {loading ? (
+        <p className="rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">Loading…</p>
+      ) : rows.length === 0 ? (
+        <p className="rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">No subscribers yet.</p>
+      ) : (
+        <>
+          <div className="overflow-x-auto rounded-2xl border border-line">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-ink-700/60 mono text-[11px] uppercase tracking-wider text-zinc-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium sm:px-5">Email</th>
+                  <th className="hidden px-5 py-3 font-medium sm:table-cell">Source</th>
+                  <th className="px-4 py-3 font-medium sm:px-5">Subscribed</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {rows.map((s) => (
+                  <tr key={s.id} className="hover:bg-white/[0.02]">
+                    <td className="px-4 py-3 font-medium text-zinc-200 sm:px-5">{s.email}</td>
+                    <td className="mono hidden px-5 py-3 text-xs text-zinc-400 sm:table-cell">{s.source}</td>
+                    <td className="mono px-4 py-3 text-xs text-zinc-400 sm:px-5">{formatDate(s.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {nextCursor && (
+            <div className="mt-4 text-center">
+              <button onClick={() => load(nextCursor)} className="btn-ghost !px-4 !py-2 text-xs">
+                Load more
+              </button>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/* ----------------------------- Activity ---------------------------- */
+type AuditEntry = {
+  id: string;
+  action: string;
+  targetId: string | null;
+  detail: string | null;
+  createdAt: string;
+  actorName: string;
+};
+
+function ActivityPanel() {
+  const [entries, setEntries] = useState<AuditEntry[]>([]);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async (cursor?: string | null) => {
+    try {
+      const res = await fetch(`/api/admin/audit${cursor ? `?cursor=${cursor}` : ""}`, { cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Could not load activity.");
+      setEntries((prev) => (cursor ? [...prev, ...(d.entries ?? [])] : d.entries ?? []));
+      setNextCursor(d.nextCursor ?? null);
+    } catch (e: any) {
+      setError(e.message || "Could not load activity.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return (
+    <div>
+      <h2 className="font-display text-lg font-semibold text-zinc-100">Admin activity</h2>
+      <p className="mt-1 text-sm text-zinc-500">
+        Append-only audit trail of role &amp; permission changes.
+      </p>
+      {error && <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">{error}</p>}
+      {loading ? (
+        <p className="mt-4 rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">Loading…</p>
+      ) : entries.length === 0 ? (
+        <p className="mt-4 rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">
+          No admin activity recorded yet.
+        </p>
+      ) : (
+        <>
+          <ul className="mt-4 space-y-2">
+            {entries.map((e) => (
+              <li key={e.id} className="surface flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-2xl p-4 text-sm">
+                <span className="font-medium text-zinc-200">{e.actorName}</span>
+                <span className="mono rounded bg-white/5 px-1.5 py-0.5 text-[11px] text-gold-200">{e.action}</span>
+                {e.detail && <span className="mono min-w-0 break-all text-[11px] text-zinc-500">{e.detail}</span>}
+                <span className="ml-auto mono text-[11px] text-zinc-600">{formatDateTime(e.createdAt)}</span>
+              </li>
+            ))}
+          </ul>
+          {nextCursor && (
+            <div className="mt-4 text-center">
+              <button onClick={() => load(nextCursor)} className="btn-ghost !px-4 !py-2 text-xs">
+                Load more
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

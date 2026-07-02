@@ -5,6 +5,28 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-02 — Phase 4: Dashboard v2 — analytics, moderation, audit trail, subscribers (audit §2.2)
+Recovery point: branch `backup/pre-p4-dashboard`. Four write-only/invisible datasets got
+professional surfaces, plus real analytics:
+- **30-day trend charts** in Overview — signups/day + page-views/day. New
+  `GET /api/dashboard/timeseries` (dashboard:view, Postgres `date_trunc` bucketing,
+  zero-filled server-side, cached 60s). Hand-rolled SVG area charts (no chart lib):
+  hover crosshair + tooltip, peak label, sr-only data table; hues validated per theme
+  with the dataviz six-checks (`--chart-mint`/`--chart-gold`).
+- **Moderation tab** (post:manage) — global comment queue (`GET /api/comments`, new
+  soft-hide `PATCH /api/comments/[id]`) and chat-message review incl. hidden
+  (`GET/POST /api/chat/messages/moderate`, hide/restore with live broadcasts).
+- **Activity tab** (users:roles) — the `AdminAudit` trail finally has a reader:
+  `GET /api/admin/audit` + paginated panel (who changed whose access, when).
+- **Subscribers tab** (users:manage) — `GET /api/subscribers` list + full CSV export
+  (the table previously had no read endpoint at all).
+- **Integration health strip** in Overview — Realtime/Storage/Rate-limits/Email/Google
+  configured-or-not (booleans only, never values).
+- **Content table**: mobile no longer forces a 640px scroll (Category/Views/Date fold
+  into the title line, back at md:), and Views/Date column sorting.
+- 6 new unit tests for the pure timeseries helpers (103 total).
+- typecheck + lint(0 err) + test(103) + build green; /dashboard 247 kB first-load.
+
 ## 2026-07-02 — Phase 3: Community Chat — professional + full mobile parity (audit §1.1, §1.3)
 Recovery point: branch `backup/pre-p3-chat-pro`. The chat now behaves like a native app on
 phones and gains the "finished product" features:
