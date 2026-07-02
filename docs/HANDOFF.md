@@ -88,6 +88,13 @@ Vercel → redeploy → verify → troubleshooting): **`docs/REALTIME-SETUP.md`*
 set, the chat falls back to 10s polling (no presence, no instant blip).
 
 
+### ℹ️ Chat message editing (migration `10_chat_edited`)
+Adds `ChatMessage.editedAt` (nullable). Auto-applies on the next deploy via
+`vercel-build`; manual unblock if needed:
+```sql
+ALTER TABLE "ChatMessage" ADD COLUMN IF NOT EXISTS "editedAt" TIMESTAMP(3);
+```
+
 ### ✅ Migrations now auto-apply on deploy (`vercel-build`)
 `package.json` has a `vercel-build` script that runs `prisma db push` (best-effort,
 non-fatal) before `next build`, so **Vercel syncs the schema on every deploy** — you no

@@ -43,7 +43,7 @@ export function EmojiPicker({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 8, scale: 0.96 }}
       transition={{ duration: 0.15 }}
-      className="absolute bottom-full right-0 z-20 mb-2 w-64 rounded-2xl border border-line bg-ink-900/95 p-2 shadow-elevate backdrop-blur-xl"
+      className="absolute bottom-full right-0 z-20 mb-2 w-64 max-w-[88vw] rounded-2xl border border-line bg-ink-900/95 p-2 shadow-elevate backdrop-blur-xl"
     >
       <div className="grid grid-cols-8 gap-0.5">
         {EMOJIS.map((e) => (

@@ -5,6 +5,30 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-02 — Phase 3: Community Chat — professional + full mobile parity (audit §1.1, §1.3)
+Recovery point: branch `backup/pre-p3-chat-pro`. The chat now behaves like a native app on
+phones and gains the "finished product" features:
+- **Mobile parity:** container uses `dvh` (composer stays visible above the keyboard);
+  message actions open on TAP on touch devices (the always-visible bar overlapped text);
+  Enter inserts a newline on touch (send via button) and still sends on desktop; 16px
+  composer font (no more iOS zoom-on-focus); safe-area padding (home-indicator clear);
+  double-tap-❤️ is desktop-only (touch gets a ❤️ button in the tap menu — no zoom fight);
+  header decluttered <640px (subtitle hidden, 3 avatars max); reaction/emoji popovers
+  clamp to the viewport.
+- **Message editing:** authors can edit within 15 min — `PATCH /api/chat/messages/[id]`,
+  `message_edited` broadcast, inline edit UI, "(edited)" label. New `ChatMessage.editedAt`
+  column (idempotent migration `10_chat_edited`, auto-applies via vercel-build).
+- **"New messages" divider** marks where unread starts when you're scrolled up.
+- **Honest connection state:** Live / Reconnecting… / Auto-refresh (was a forever
+  "Connecting…" when realtime wasn't configured).
+- **Removal tombstone:** deleted messages show "Message removed." in-session instead of
+  silently vanishing mid-read.
+- **Grouped-message timestamps** reveal in the gutter on hover / while the tap menu is open.
+- Extracted pure helpers to `src/lib/chat-view.ts` (`canEditMessage`, `reconcilePoll`) with
+  **9 new unit tests** (97 total).
+- typecheck + lint(0 err) + test(97) + build green; `/community` 245 kB first-load;
+  Playwright-verified at 390px + desktop.
+
 ## 2026-07-02 — Phase 2: all functional bugs fixed (audit §1.2, §2.1, §3)
 Recovery point: branch `backup/pre-p2-bugfixes`. 20+ confirmed bugs from the audit, fixed:
 - **Chat correctness (`ChatClient.tsx`):** polling now reconciles deletions (hidden

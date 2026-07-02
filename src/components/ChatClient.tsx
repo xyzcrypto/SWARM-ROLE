@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowDown, Check, Copy, Loader2, Reply, SendHorizonal, Smile, Trash2, X, Volume2, VolumeX,
+  ArrowDown, Check, Copy, Edit3, Heart, Loader2, Reply, SendHorizonal, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
+import { canEditMessage, reconcilePoll } from "@/lib/chat-view";
 import { Avatar } from "./Avatar";
 import { Badge } from "./ui/primitives";
 import { EmojiPicker } from "./EmojiPicker";
@@ -25,11 +26,14 @@ type Message = {
   id: string;
   body: string;
   createdAt: string;
+  editedAt?: string | null;
   userId: string;
   author: Author;
   replyTo: ReplyRef | null;
   reactions: Reaction[];
   pending?: boolean;
+  /** Session-local tombstone: removed by author/moderator while we watched. */
+  hidden?: boolean;
 };
 type Me = { id: string; isAdmin: boolean; name: string; image?: string | null; username?: string | null };
 type PresenceMember = { id: string; name: string; image: string | null; username: string | null };
@@ -132,8 +136,23 @@ export function ChatClient({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [soundOn, setSoundOn] = useState(false);
+  // Touch UI (no hover): actions open on tap instead of hover, Enter makes a
+  // newline instead of sending. Detected client-side to stay hydration-safe.
+  const [touchUi, setTouchUi] = useState(false);
+  const [actionOpenId, setActionOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
+  const firstUnreadRef = useRef<string | null>(null);
   const soundOnRef = useRef(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
+
+  useEffect(() => {
+    setTouchUi(window.matchMedia("(hover: none)").matches);
+  }, []);
+
+  const realtimeConfigured = Boolean(realtime.url && realtime.anonKey);
 
   // Lazily create + resume a single AudioContext. MUST be called from inside a
   // user gesture (click/keypress) — browsers keep a context "suspended" unless
@@ -198,12 +217,25 @@ export function ChatClient({
   const appendMessage = useCallback((m: Message) => {
     setMessages((prev) => {
       if (prev.some((x) => x.id === m.id)) return prev;
-      if (!stickRef.current) setUnread((u) => u + 1);
+      if (!stickRef.current) {
+        setUnread((u) => u + 1);
+        // First message that arrived while scrolled up ⇒ anchor for the
+        // in-stream "New messages" divider.
+        if (!firstUnreadRef.current) {
+          firstUnreadRef.current = m.id;
+          setFirstUnreadId(m.id);
+        }
+      }
       return [...prev, { ...m, reactions: normalizeReactions(m.reactions) }];
     });
   }, []);
+  // In-place tombstone (this session only) — keeps conversation context
+  // instead of messages silently vanishing mid-read. Gone after reload.
   const hideMessage = useCallback((id: string) => {
-    setMessages((prev) => prev.filter((m) => m.id !== id));
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, hidden: true, body: "" } : m)));
+  }, []);
+  const applyEdit = useCallback((id: string, body: string, editedAt: string) => {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, body, editedAt } : m)));
   }, []);
 
   // Idempotent reaction delta - safe to apply for both optimistic + echoed events.
@@ -248,6 +280,10 @@ export function ChatClient({
             if (soundOnRef.current && msg.userId !== me?.id) playBlip(audioCtxRef.current);
           })
           .on("broadcast", { event: "message_hidden" }, ({ payload }) => hideMessage((payload as { id: string }).id))
+          .on("broadcast", { event: "message_edited" }, ({ payload }) => {
+            const p = payload as { id: string; body: string; editedAt: string };
+            applyEdit(p.id, p.body, p.editedAt);
+          })
           .on("broadcast", { event: "reaction" }, ({ payload }) => {
             const p = payload as { messageId: string; emoji: string; userId: string; op: "add" | "remove" };
             applyReaction(p.messageId, p.emoji, p.userId, p.op);
@@ -319,27 +355,21 @@ export function ChatClient({
           const data = await res.json().catch(() => null);
           if (!res.ok || !data?.messages) return;
           setMessages((prev) => {
-            const fresh = data.messages as Message[]; // oldest-first window of latest visible
-            const known = new Set(prev.map((m) => m.id));
-            const incoming = fresh
-              .filter((m) => !known.has(m.id))
-              .map((m) => ({ ...m, reactions: normalizeReactions(m.reactions) }));
-            // also refresh reactions on known messages
-            const byId = new Map(fresh.map((m) => [m.id, m]));
-            let merged = prev.map((m) => {
-              const f = byId.get(m.id);
-              return f ? { ...m, reactions: normalizeReactions(f.reactions) } : m;
-            });
-            // Reconcile deletions: a known message inside the fetched window that
-            // is no longer returned was hidden — drop it (realtime clients get
-            // this via the message_hidden broadcast; polling must infer it).
-            if (fresh.length) {
-              const windowStart = new Date(fresh[0]!.createdAt).getTime();
-              merged = merged.filter(
-                (m) => m.pending || byId.has(m.id) || new Date(m.createdAt).getTime() < windowStart
-              );
+            // Pure reconcile (unit-tested in chat-view): refresh edits/reactions
+            // on known messages, infer deletions inside the fetched window, and
+            // split out genuinely new messages.
+            const fresh = (data.messages as Message[]).map((m) => ({
+              ...m,
+              reactions: normalizeReactions(m.reactions),
+            }));
+            const { merged, incoming } = reconcilePoll(prev, fresh);
+            if (incoming.length && !stickRef.current) {
+              setUnread((u) => u + incoming.length);
+              if (!firstUnreadRef.current && incoming[0]) {
+                firstUnreadRef.current = incoming[0].id;
+                setFirstUnreadId(incoming[0].id);
+              }
             }
-            if (incoming.length && !stickRef.current) setUnread((u) => u + incoming.length);
             // Blip for messages from others, same as the realtime path.
             if (soundOnRef.current && incoming.some((m) => m.userId !== meRef.current?.id)) {
               playBlip(audioCtxRef.current);
@@ -362,7 +392,7 @@ export function ChatClient({
     // Re-subscribe only when the connection target or the signed-in identity
     // changes; profile fields (name/image/username) ride in meRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [realtime.url, realtime.anonKey, me?.id, appendMessage, hideMessage, applyReaction]);
+  }, [realtime.url, realtime.anonKey, me?.id, appendMessage, hideMessage, applyReaction, applyEdit]);
 
   // Close the reaction popover on any press outside it (its toggle + panel are
   // tagged data-react-ui); mirrors EmojiPicker's outside-click behaviour.
@@ -394,19 +424,67 @@ export function ChatClient({
     if (el && stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, typers]);
 
+  function clearUnread() {
+    setUnread(0);
+    firstUnreadRef.current = null;
+    setFirstUnreadId(null);
+  }
+
   function onScroll() {
     const el = listRef.current;
     if (!el) return;
     const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
     setStickToBottom(nearBottom);
-    if (nearBottom) setUnread(0);
+    if (nearBottom) clearUnread();
   }
 
   function jumpToLatest() {
     const el = listRef.current;
     if (el) el.scrollTop = el.scrollHeight;
     setStickToBottom(true);
-    setUnread(0);
+    clearUnread();
+  }
+
+  function startEdit(m: Message) {
+    setActionOpenId(null);
+    setEditingId(m.id);
+    setEditText(m.body);
+  }
+
+  async function saveEdit(id: string) {
+    const text = editText.trim();
+    const original = messages.find((m) => m.id === id);
+    if (!text || !original || savingEdit) return;
+    if (text === original.body) {
+      setEditingId(null);
+      return;
+    }
+    setSavingEdit(true);
+    const prevBody = original.body;
+    const prevEditedAt = original.editedAt ?? null;
+    applyEdit(id, text, new Date().toISOString()); // optimistic
+    setEditingId(null);
+    try {
+      const res = await fetch(`/api/chat/messages/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: text }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        applyEdit(id, prevBody, prevEditedAt ?? ""); // rollback
+        setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, editedAt: prevEditedAt } : m)));
+        setError(data.error || "Could not edit the message.");
+      } else {
+        applyEdit(id, data.body ?? text, data.editedAt ?? new Date().toISOString());
+      }
+    } catch {
+      applyEdit(id, prevBody, prevEditedAt ?? "");
+      setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, editedAt: prevEditedAt } : m)));
+      setError("Network error. Please try again.");
+    } finally {
+      setSavingEdit(false);
+    }
   }
 
   function sendTyping() {
@@ -600,8 +678,10 @@ export function ChatClient({
   const insertMention = (username: string) =>
     setBody((b) => b.replace(/@[a-zA-Z0-9_]*$/, `@${username} `).slice(0, MAX_LENGTH));
 
+  // dvh (where supported) tracks the *visible* viewport, so the composer
+  // stays above the mobile keyboard instead of being pushed off-screen.
   return (
-    <div className="glass relative flex h-[68vh] min-h-[440px] flex-col overflow-hidden rounded-3xl">
+    <div className="glass relative flex h-[68vh] min-h-[380px] flex-col overflow-hidden rounded-3xl supports-[height:100dvh]:h-[68dvh]">
       {/* Ambient futuristic glow behind the room. */}
       <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[130%] -translate-x-1/2 rounded-full bg-mint-500/10 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-28 right-0 h-56 w-72 rounded-full bg-gold-500/10 blur-3xl" />
@@ -615,9 +695,18 @@ export function ChatClient({
               <span className={cn("relative inline-flex h-2 w-2 rounded-full", live ? "bg-mint-400" : "bg-zinc-600")} />
             </span>
             <span className="font-display text-sm font-semibold text-zinc-100">XYZ Lounge</span>
-            <span className="mono text-[10px] uppercase tracking-wider text-mint-300/80">{live ? "Live" : "Connecting…"}</span>
+            {/* Honest connection state: live socket, reconnecting, or the
+                polling fallback (never a forever-"Connecting…"). */}
+            <span
+              className={cn(
+                "mono text-[10px] uppercase tracking-wider",
+                live ? "text-mint-300/80" : realtimeConfigured ? "text-amber-300/80" : "text-zinc-500"
+              )}
+            >
+              {live ? "Live" : realtimeConfigured ? "Reconnecting…" : "Auto-refresh"}
+            </span>
           </div>
-          <p className="mt-0.5 mono text-[11px] text-zinc-500">#general · markets, alpha &amp; Web3</p>
+          <p className="mt-0.5 hidden mono text-[11px] text-zinc-500 sm:block">#general · markets, alpha &amp; Web3</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-2.5">
@@ -632,7 +721,7 @@ export function ChatClient({
           </button>
           {members.length > 0 && (
             <div className="flex -space-x-2">
-              {members.slice(0, 5).map((m) =>
+              {members.slice(0, 3).map((m) =>
                 m.username ? (
                   <Link
                     key={m.id}
@@ -648,9 +737,9 @@ export function ChatClient({
                   </span>
                 )
               )}
-              {members.length > 5 && (
+              {members.length > 3 && (
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-700 text-[10px] font-semibold text-zinc-300 ring-2 ring-ink-900">
-                  +{members.length - 5}
+                  +{members.length - 3}
                 </span>
               )}
             </div>
@@ -695,6 +784,18 @@ export function ChatClient({
             const isPremium = m.author.membership === "Premium";
             const isTeam = m.author.role === "ADMIN";
             const canDelete = !!me && (me.isAdmin || me.id === m.userId);
+            const canEdit = !!me && me.id === m.userId && !m.pending && !m.hidden && canEditMessage(m.createdAt);
+            const actionsOpen = actionOpenId === m.id;
+
+            // Session-local tombstone for a removed message (keeps context).
+            if (m.hidden) {
+              return (
+                <div key={m.id} id={`msg-${m.id}`} className="flex items-center gap-3 rounded-xl px-2 py-1.5">
+                  <div className="w-9 shrink-0" />
+                  <p className="text-[13px] italic text-zinc-600">Message removed.</p>
+                </div>
+              );
+            }
 
             return (
               <div key={m.id}>
@@ -705,6 +806,13 @@ export function ChatClient({
                     <span className="h-px flex-1 bg-white/5" />
                   </div>
                 )}
+                {firstUnreadId === m.id && (
+                  <div className="my-3 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-wider text-gold-300">
+                    <span className="h-px flex-1 bg-gold-500/30" />
+                    New messages
+                    <span className="h-px flex-1 bg-gold-500/30" />
+                  </div>
+                )}
                 <motion.div
                   id={`msg-${m.id}`}
                   initial={{ opacity: 0, y: 10 }}
@@ -712,7 +820,12 @@ export function ChatClient({
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.18 }}
                   onDoubleClick={() => {
-                    if (me && !m.pending) toggleReaction(m.id, "❤️");
+                    // Desktop-only shortcut: on touch, dblclick fights the
+                    // browser's double-tap zoom — ❤️ lives in the tap menu there.
+                    if (!touchUi && me && !m.pending) toggleReaction(m.id, "❤️");
+                  }}
+                  onClick={() => {
+                    if (touchUi && me && !m.pending) setActionOpenId((id) => (id === m.id ? null : m.id));
                   }}
                   className={cn(
                     "group relative flex items-start gap-3 rounded-xl px-2 transition-colors hover:bg-white/[0.03]",
@@ -722,14 +835,26 @@ export function ChatClient({
                   )}
                 >
                   <div className="w-9 shrink-0">
-                    {!grouped &&
-                      (m.author.username ? (
+                    {!grouped ? (
+                      m.author.username ? (
                         <Link href={`/u/${m.author.username}`}>
                           <Avatar name={m.author.name} image={m.author.image} size="sm" />
                         </Link>
                       ) : (
                         <Avatar name={m.author.name} image={m.author.image} size="sm" />
-                      ))}
+                      )
+                    ) : (
+                      // Grouped rows reveal their timestamp in the gutter on
+                      // hover (desktop) or while the tap menu is open (touch).
+                      <span
+                        className={cn(
+                          "mt-0.5 hidden text-[9px] leading-4 text-zinc-600 group-hover:inline",
+                          actionsOpen && "inline"
+                        )}
+                      >
+                        {new Date(m.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" ", "")}
+                      </span>
+                    )}
                   </div>
 
                   <div className="min-w-0 flex-1">
@@ -765,7 +890,42 @@ export function ChatClient({
                       </button>
                     )}
 
-                    <MessageBody text={m.body} />
+                    {editingId === m.id ? (
+                      <div onClick={(e) => e.stopPropagation()}>
+                        <textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value.slice(0, MAX_LENGTH))}
+                          onKeyDown={(e) => {
+                            if (e.key === "Escape") setEditingId(null);
+                            if (e.key === "Enter" && !e.shiftKey && !touchUi) {
+                              e.preventDefault();
+                              saveEdit(m.id);
+                            }
+                          }}
+                          rows={2}
+                          autoFocus
+                          className="w-full resize-none rounded-lg border border-gold-500/40 bg-ink-700/60 px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-gold-500/20 sm:text-sm"
+                        />
+                        <div className="mt-1 flex items-center gap-3 text-[11px]">
+                          <button onClick={() => saveEdit(m.id)} disabled={savingEdit} className="font-medium text-gold-200 hover:text-gold-100 disabled:opacity-50">
+                            {savingEdit ? "Saving…" : "Save"}
+                          </button>
+                          <button onClick={() => setEditingId(null)} className="text-zinc-500 hover:text-zinc-300">
+                            Cancel
+                          </button>
+                          <span className="ml-auto text-zinc-600">esc to cancel · enter to save</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <MessageBody text={m.body} />
+                        {m.editedAt && (
+                          <span className="mono text-[10px] text-zinc-600" title={new Date(m.editedAt).toLocaleString("en-US")}>
+                            (edited)
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* reactions */}
                     {m.reactions.length > 0 && (
@@ -793,9 +953,21 @@ export function ChatClient({
                     )}
                   </div>
 
-                  {/* hover action bar */}
+                  {/* Action bar: hover-revealed on pointer devices; on touch it
+                      opens by tapping the message (no hover exists, and an
+                      always-on bar overlapped message text). */}
                   {me && (
-                    <div className="absolute -top-3 right-2 flex items-center gap-0.5 rounded-lg border border-line bg-ink-800/95 p-0.5 opacity-100 shadow-elevate backdrop-blur transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                    <div
+                      onClick={(e) => e.stopPropagation()}
+                      className={cn(
+                        "absolute -top-3 right-2 flex items-center gap-0.5 rounded-lg border border-line bg-ink-800/95 p-0.5 shadow-elevate backdrop-blur transition-opacity",
+                        touchUi
+                          ? actionsOpen
+                            ? "pointer-events-auto opacity-100"
+                            : "pointer-events-none opacity-0"
+                          : "pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100"
+                      )}
+                    >
                       <div className="relative" data-react-ui>
                         <button
                           onClick={() => setReactOpenId((id) => (id === m.id ? null : m.id))}
@@ -811,7 +983,7 @@ export function ChatClient({
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 6, scale: 0.9 }}
                               transition={{ duration: 0.14 }}
-                              className="absolute bottom-full right-0 z-20 mb-1 flex gap-0.5 rounded-full border border-line bg-ink-900/95 px-1.5 py-1 shadow-elevate backdrop-blur-xl"
+                              className="absolute bottom-full right-0 z-20 mb-1 flex max-w-[88vw] flex-wrap gap-0.5 rounded-2xl border border-line bg-ink-900/95 px-1.5 py-1 shadow-elevate backdrop-blur-xl"
                             >
                               {REACTIONS.map((e) => (
                                 <button key={e} onClick={() => toggleReaction(m.id, e)}
@@ -823,13 +995,37 @@ export function ChatClient({
                           )}
                         </AnimatePresence>
                       </div>
+                      {touchUi && (
+                        <button
+                          onClick={() => {
+                            setActionOpenId(null);
+                            toggleReaction(m.id, "❤️");
+                          }}
+                          className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-red-300"
+                          aria-label="Love"
+                        >
+                          <Heart className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button
-                        onClick={() => setReplyTarget({ id: m.id, body: m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") })}
+                        onClick={() => {
+                          setActionOpenId(null);
+                          setReplyTarget({ id: m.id, body: m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
+                        }}
                         className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200"
                         aria-label="Reply"
                       >
                         <Reply className="h-3.5 w-3.5" />
                       </button>
+                      {canEdit && (
+                        <button
+                          onClick={() => startEdit(m)}
+                          className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200"
+                          aria-label="Edit"
+                        >
+                          <Edit3 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button onClick={() => copyMessage(m.id, m.body)} className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200" aria-label="Copy">
                         {copiedId === m.id ? <Check className="h-3.5 w-3.5 text-mint-300" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
@@ -880,7 +1076,8 @@ export function ChatClient({
       </AnimatePresence>
 
       {/* composer */}
-      <div className="relative z-[1] border-t border-line px-3 py-3 sm:px-4">
+      {/* pb: keep the composer clear of the iPhone home indicator. */}
+      <div className="relative z-[1] border-t border-line px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
         {me ? (
           <>
             {replyTarget && (
@@ -902,14 +1099,17 @@ export function ChatClient({
                     sendTyping();
                   }}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
+                    // Touch keyboards have no Shift: Enter inserts a newline
+                    // there and the send button submits. Desktop keeps
+                    // Enter-to-send / Shift+Enter for newline.
+                    if (e.key === "Enter" && !e.shiftKey && !touchUi) {
                       e.preventDefault();
                       send(e);
                     }
                   }}
                   rows={1}
-                  placeholder="Say something… (Enter to send)"
-                  className="max-h-28 w-full resize-none rounded-xl border border-white/10 bg-ink-700/60 px-4 py-2.5 pr-10 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+                  placeholder={touchUi ? "Say something…" : "Say something… (Enter to send)"}
+                  className="max-h-28 w-full resize-none rounded-xl border border-white/10 bg-ink-700/60 px-4 py-2.5 pr-10 text-base text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20 sm:text-sm"
                 />
                 <button
                   type="button"
