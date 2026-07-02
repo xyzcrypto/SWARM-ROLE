@@ -29,18 +29,22 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<EditablePost | null>(null);
   const [loadingEdit, setLoadingEdit] = useState<string | null>(null);
+  const [sort, setSort] = useState<"date" | "views">("date");
   const [error, setError] = useState("");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return rows.filter((p) => {
+    const list = rows.filter((p) => {
       if (cat !== "All" && p.category !== cat) return false;
       if (status === "Published" && !p.published) return false;
       if (status === "Draft" && p.published) return false;
       if (q && !p.title.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [rows, query, cat, status]);
+    return sort === "views"
+      ? [...list].sort((a, b) => (b.views ?? 0) - (a.views ?? 0))
+      : list; // server order is already newest-first
+  }, [rows, query, cat, status, sort]);
 
   async function openEditor(id: string) {
     setError("");
@@ -170,30 +174,51 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-white/8">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          {/* Mobile keeps Title/Status/Actions in view (no 640px forced scroll);
+              Category/Views/Date reappear from md: up. */}
+          <table className="w-full min-w-[360px] text-left text-sm md:min-w-[640px]">
             <thead className="bg-ink-700/60 text-xs uppercase tracking-wide text-zinc-500">
               <tr>
-                <th className="px-5 py-3">Title</th>
-                <th className="px-5 py-3">Category</th>
-                <th className="px-5 py-3">Status</th>
-                <th className="px-5 py-3 text-right">Views</th>
-                <th className="px-5 py-3">Date</th>
-                <th className="px-5 py-3 text-right">Actions</th>
+                <th className="px-4 py-3 sm:px-5">Title</th>
+                <th className="hidden px-5 py-3 md:table-cell">Category</th>
+                <th className="px-4 py-3 sm:px-5">Status</th>
+                <th className="hidden px-5 py-3 text-right md:table-cell">
+                  <button
+                    onClick={() => setSort((s) => (s === "views" ? "date" : "views"))}
+                    className={sort === "views" ? "text-gold-200" : "hover:text-zinc-300"}
+                    title="Sort by views"
+                  >
+                    Views {sort === "views" ? "↓" : ""}
+                  </button>
+                </th>
+                <th className="hidden px-5 py-3 md:table-cell">
+                  <button
+                    onClick={() => setSort("date")}
+                    className={sort === "date" ? "text-gold-200" : "hover:text-zinc-300"}
+                    title="Sort by date"
+                  >
+                    Date {sort === "date" ? "↓" : ""}
+                  </button>
+                </th>
+                <th className="px-4 py-3 text-right sm:px-5">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {filtered.map((p) => (
                 <tr key={p.id} className="hover:bg-white/[0.02]">
-                  <td className="px-5 py-3 font-medium text-zinc-200">
+                  <td className="px-4 py-3 font-medium text-zinc-200 sm:px-5">
                     {p.title}
                     {p.premium && (
                       <span className="ml-2 align-middle rounded bg-gold-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-gold-200 ring-1 ring-gold-500/30">
                         Premium
                       </span>
                     )}
+                    <span className="mono mt-0.5 block text-[10px] text-zinc-600 md:hidden">
+                      {p.category} · {(p.views ?? 0).toLocaleString("en-US")} views · {formatDate(p.createdAt)}
+                    </span>
                   </td>
-                  <td className="px-5 py-3 text-zinc-400">{p.category}</td>
-                  <td className="px-5 py-3">
+                  <td className="hidden px-5 py-3 text-zinc-400 md:table-cell">{p.category}</td>
+                  <td className="px-4 py-3 sm:px-5">
                     {p.published ? (
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-500/12 px-2.5 py-1 text-[11px] font-medium text-mint-300 ring-1 ring-mint-500/30">
                         <span className="h-1.5 w-1.5 rounded-full bg-mint-400" /> Published
@@ -204,11 +229,11 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
                       </span>
                     )}
                   </td>
-                  <td className="mono px-5 py-3 text-right text-xs text-zinc-400">
+                  <td className="mono hidden px-5 py-3 text-right text-xs text-zinc-400 md:table-cell">
                     {(p.views ?? 0).toLocaleString("en-US")}
                   </td>
-                  <td className="px-5 py-3 text-zinc-500">{formatDate(p.createdAt)}</td>
-                  <td className="px-5 py-3">
+                  <td className="hidden px-5 py-3 text-zinc-500 md:table-cell">{formatDate(p.createdAt)}</td>
+                  <td className="px-4 py-3 sm:px-5">
                     <div className="flex justify-end gap-3 text-xs">
                       <button
                         onClick={() => openEditor(p.id)}

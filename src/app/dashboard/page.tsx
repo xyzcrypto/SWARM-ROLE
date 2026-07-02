@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { env } from "@/lib/env";
+import { env, storageEnabled, realtimeEnabled, emailEnabled, googleEnabled } from "@/lib/env";
 import { Navbar } from "@/components/Navbar";
 import { DashboardClient } from "@/components/DashboardClient";
 import { isStaff } from "@/lib/permissions";
@@ -120,6 +120,13 @@ export default async function DashboardPage() {
             realtime={{
               url: env.NEXT_PUBLIC_SUPABASE_URL,
               anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+            }}
+            health={{
+              storage: storageEnabled,
+              realtime: realtimeEnabled,
+              upstash: Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN),
+              email: emailEnabled,
+              google: googleEnabled,
             }}
           />
         </div>
