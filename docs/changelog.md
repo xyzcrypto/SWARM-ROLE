@@ -5,6 +5,13 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-01 — Complete site audit (docs/AUDIT-2026-07-01.md)
+Full-stack audit: chat (mobile + correctness + features), dashboard (bugs + missing
+features + API gaps), site-wide bugs, UI/UX "AI-generic" review, security verification,
+performance. Graded scorecard + every finding with severity/file:line/fix, mapped to a
+6-phase remediation program (P2 bugs → P3 chat → P4 dashboard → P5 UI/UX → P6 security).
+Docs-only change.
+
 ## 2026-07-01 — Fix: password reset now clears account lockout
 Recovery point: branch `backup/pre-reset-lockout-fix`. **Bug:** a user who locked their
 account by guessing (5 failed logins → 15-min `lockedUntil`) and then reset their password
