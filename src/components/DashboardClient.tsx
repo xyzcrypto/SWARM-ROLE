@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime, maskEmail } from "@/lib/utils";
 import { PostEditor } from "./PostEditor";
 import { PostManager } from "./PostManager";
 import { PERMISSIONS, ALL_PERMISSIONS, hasPermission, type Permission } from "@/lib/permissions";
@@ -895,6 +895,7 @@ function PremiumMembers({ initial, realtime }: { initial: UserRow[]; realtime: R
 function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) {
   const [rows, setRows] = useState(users);
   const [nextCursor, setNextCursor] = useState<string | null>(users.length >= 50 ? "seed" : null);
+  const [revealedId, setRevealedId] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
@@ -1015,7 +1016,16 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
             {rows.map((u) => (
               <tr key={u.id} className="hover:bg-white/[0.02]">
                 <td className="px-4 py-3 sm:px-5">
-                  <div className="font-medium text-zinc-200">{u.email}</div>
+                  {/* PII-light by default: masked email, tap to reveal (staff-
+                      gated view, but no need to show every address on screen). */}
+                  <button
+                    type="button"
+                    onClick={() => setRevealedId((id) => (id === u.id ? null : u.id))}
+                    title={revealedId === u.id ? "Hide email" : "Reveal email"}
+                    className="font-medium text-zinc-200 hover:text-gold-200"
+                  >
+                    {revealedId === u.id ? u.email : maskEmail(u.email)}
+                  </button>
                   <div className="mono text-[11px] text-zinc-600">{u.name ?? "-"} · {u.provider}</div>
                 </td>
                 <td className="hidden px-5 py-3 mono text-xs text-zinc-400 md:table-cell">{formatDate(u.createdAt)}</td>

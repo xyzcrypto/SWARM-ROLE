@@ -3,12 +3,13 @@ import { withSentryConfig } from "@sentry/nextjs";
 /** @type {import('next').NextConfig} */
 
 // Pragmatic CSP: protective without breaking Next hydration, Google sign-in,
-// Google Analytics, web fonts or remote images. Script/style allow inline
-// because we don't run a nonce pipeline; everything else is locked to known
-// origins. Tighten script-src with nonces later if you add nonce middleware.
+// Google Analytics, web fonts or remote images. 'unsafe-inline' for script/
+// style is an ACCEPTED RISK until a nonce pipeline exists (SECURITY-AUDIT
+// F-015). 'unsafe-eval' was dropped 2026-07-03 — production Next.js does not
+// eval; only dev tooling does, and this header only matters in production.
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
+  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' https://fonts.gstatic.com data:",

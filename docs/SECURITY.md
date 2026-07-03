@@ -32,9 +32,12 @@ Security posture of XYZ Crypto, current as of 2026-06-11 (post-audit, see
 - Markdown renderer is custom + `safeHref()` blocks `javascript:`/`data:` URLs.
 
 ## PII & privacy
-- User emails are **never** rendered publicly: navbar/dashboard use `maskEmail()`;
-  the public profile (`/u/[handle]`) exposes only opt-in fields (name, handle,
-  bio, socials, stats). Public APIs never select email.
+- User emails are **never** rendered publicly; the public profile (`/u/[handle]`)
+  exposes only opt-in fields (name, handle, bio, socials, stats) and public APIs
+  never select email. Inside the staff-gated dashboard, the Members table shows
+  `maskEmail()` with reveal-on-click; staff APIs (`/api/users*`) and the CSV
+  export do return raw emails — that's within the `users:manage`/`users:roles`
+  trust boundary, stated here so the doc matches reality.
 - Password-reset returns a generic success whether or not the account exists.
 - CSV export escapes cells against spreadsheet formula injection (`csvCell`).
 
