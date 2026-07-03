@@ -10,11 +10,15 @@ import {
 } from "@/lib/chat";
 
 // GET /api/chat/messages[?cursor=<id>] - public chat history, newest page
-// first; pass the oldest message id as cursor to page further back.
+// first; pass the oldest message id as cursor to page further back. Includes
+// the requester's poll votes (myVote) and, on the first page, the latest
+// pinned message for the banner.
 export async function GET(req: Request) {
   try {
     const cursor = new URL(req.url).searchParams.get("cursor");
     if (cursor && !isCuid(cursor)) return fail("Invalid cursor.", 400);
+
+    const me = await getSessionUser().catch(() => null);
 
     const rows = await prisma.chatMessage.findMany({
       where: { status: "visible" },
@@ -27,9 +31,40 @@ export async function GET(req: Request) {
     const hasMore = rows.length > CHAT_PAGE_SIZE;
     const page = hasMore ? rows.slice(0, CHAT_PAGE_SIZE) : rows;
     // Oldest-first for rendering; cursor = oldest id of this page.
-    const messages = page.reverse().map(toChatPayload);
+    let messages = page.reverse().map(toChatPayload);
 
-    return ok({ messages, hasMore, nextCursor: hasMore ? page[0]!.id : null });
+    // Latest pinned message (first page only — the banner needs exactly one).
+    let pinned = null;
+    if (!cursor) {
+      const pinnedRow = await prisma.chatMessage
+        .findFirst({
+          where: { status: "visible", pinnedAt: { not: null } },
+          orderBy: { pinnedAt: "desc" },
+          select: CHAT_MESSAGE_SELECT,
+        })
+        .catch(() => null);
+      pinned = pinnedRow ? toChatPayload(pinnedRow) : null;
+    }
+
+    // Stamp the requester's own poll votes (never part of broadcasts).
+    if (me) {
+      const pollIds = [
+        ...messages.filter((m) => m.poll).map((m) => m.poll!.id),
+        ...(pinned?.poll ? [pinned.poll.id] : []),
+      ];
+      if (pollIds.length) {
+        const votes = await prisma.chatPollVote
+          .findMany({ where: { userId: me.id, pollId: { in: pollIds } }, select: { pollId: true, optionId: true } })
+          .catch(() => []);
+        const mine = new Map(votes.map((v) => [v.pollId, v.optionId]));
+        messages = messages.map((m) =>
+          m.poll ? { ...m, poll: { ...m.poll, myVote: mine.get(m.poll.id) ?? null } } : m
+        );
+        if (pinned?.poll) pinned = { ...pinned, poll: { ...pinned.poll, myVote: mine.get(pinned.poll.id) ?? null } };
+      }
+    }
+
+    return ok({ messages, hasMore, nextCursor: hasMore ? page[0]!.id : null, pinned });
   } catch (err) {
     return handleError(err, "chat:list");
   }

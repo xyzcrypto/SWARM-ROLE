@@ -5,6 +5,26 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-03 — Chat v3: message recovery + Telegram-style polls + pinned messages
+Recovery point: branch `backup/pre-p6-security` (same base). Owner-requested chat upgrade:
+- **Deleted messages recovered:** chat deletes were always soft (`status='hidden'`) —
+  new one-click **"Restore all hidden (N)"** in Dashboard → Moderation → Chat
+  (`action: "restore_all"` on the moderate API), plus per-message Restore (existing) and
+  a HANDOFF SQL fallback. Nothing was ever destroyed.
+- **Polls (Telegram semantics):** create from the composer "📊" button (question +
+  2–8 options); one vote per member, tap another option to move your vote, tap your own
+  to retract. Live results with share bars + counts via `poll_vote` broadcasts
+  (anonymous counts only — voter identity never leaves the server; your own `myVote` is
+  stamped per-request). New models `ChatPoll`/`ChatPollOption`/`ChatPollVote` +
+  `ChatMessage.kind`, APIs `POST /api/chat/polls` + `POST /api/chat/polls/[id]/vote`,
+  idempotent migration `11_chat_polls` (auto-applies via vercel-build).
+- **Pinned messages:** admins pin/unpin from the message action bar; a gold banner above
+  the chat shows the latest pin (tap → jump to message). `ChatMessage.pinnedAt`,
+  `message_pinned` broadcast, pin state included in history + initial render.
+- Poll math extracted to pure helpers (`applyPollVote`, `pollShares`) — 6 new unit tests
+  (109 total). Poll messages aren't editable (question integrity); hiding a pinned
+  message clears the banner; polls flow through moderation like any message.
+
 ## 2026-07-03 — Phase 6: security verification + hardening (audit §5 closed out)
 Recovery point: branch `backup/pre-p6-security`. The audit's security section is now fully
 verified/fixed/accepted (see AUDIT-2026-07-01 §5):
