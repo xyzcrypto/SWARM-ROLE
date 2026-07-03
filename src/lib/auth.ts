@@ -2,9 +2,11 @@ import type { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
+import GitHubProvider from "next-auth/providers/github";
+import TwitterProvider from "next-auth/providers/twitter";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { googleEnabled, isAdminEmail } from "@/lib/env";
+import { googleEnabled, githubEnabled, twitterEnabled, isAdminEmail } from "@/lib/env";
 import { verifyCode } from "@/lib/otp";
 import { rateLimit } from "@/lib/ratelimit";
 import { generateUniqueUsername } from "@/lib/username";
@@ -24,6 +26,49 @@ export const authOptions: NextAuthOptions = {
             // Safer default: do not auto-link an OAuth login to an existing
             // credentials account with the same email (prevents takeover).
             allowDangerousEmailAccountLinking: false,
+          }),
+        ]
+      : []),
+    ...(githubEnabled
+      ? [
+          GitHubProvider({
+            clientId: process.env.GITHUB_CLIENT_ID!,
+            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+            allowDangerousEmailAccountLinking: false,
+            // GitHub can hide the email (private-email setting). Our User.email
+            // is required+unique, so fall back to a non-deliverable but stable
+            // placeholder — login still works; email features simply no-op.
+            profile(profile) {
+              return {
+                id: String(profile.id),
+                name: profile.name ?? profile.login,
+                email: profile.email ?? `gh-${profile.id}@users.noreply.xyzcrypto.io`,
+                image: profile.avatar_url,
+              };
+            },
+          }),
+        ]
+      : []),
+    ...(twitterEnabled
+      ? [
+          TwitterProvider({
+            clientId: process.env.TWITTER_CLIENT_ID!,
+            clientSecret: process.env.TWITTER_CLIENT_SECRET!,
+            version: "2.0", // OAuth 2.0 (X developer app)
+            allowDangerousEmailAccountLinking: false,
+            // X's OAuth 2.0 userinfo has NO email at all — same stable
+            // placeholder strategy as GitHub so account creation works.
+            profile(profile) {
+              // version "2.0" always yields the v2 shape ({ data: {...} });
+              // the type is a legacy/v2 union, so narrow it.
+              const data = (profile as { data: { id: string; name?: string; username: string; profile_image_url?: string } }).data;
+              return {
+                id: data.id,
+                name: data.name ?? data.username,
+                email: `x-${data.id}@users.noreply.xyzcrypto.io`,
+                image: data.profile_image_url?.replace("_normal", "") ?? null,
+              };
+            },
           }),
         ]
       : []),
@@ -214,8 +259,9 @@ export const authOptions: NextAuthOptions = {
         .update({ where: { id: user.id }, data: { lastLoginAt: new Date() } })
         .catch(() => null);
     },
-    // Promote the configured admin email, tag the provider, and mint a public
-    // handle for new OAuth users (so their /u/<username> profile works at once).
+    // Promote the configured admin email and mint a public handle for new
+    // OAuth users (so their /u/<username> profile works at once). The actual
+    // provider name is stamped in linkAccount below (google/github/twitter).
     async createUser({ user }) {
       if (!user.email) return;
       const username = await generateUniqueUsername(user.name ?? user.email);
@@ -223,7 +269,6 @@ export const authOptions: NextAuthOptions = {
         .update({
           where: { id: user.id },
           data: {
-            provider: "google",
             username,
             ...(isAdminEmail(user.email) ? { role: "ADMIN" } : {}),
           },
@@ -233,10 +278,18 @@ export const authOptions: NextAuthOptions = {
           await prisma.user
             .update({
               where: { id: user.id },
-              data: { provider: "google", ...(isAdminEmail(user.email!) ? { role: "ADMIN" } : {}) },
+              data: { ...(isAdminEmail(user.email!) ? { role: "ADMIN" } : {}) },
             })
             .catch(() => null);
         });
+    },
+    // Fires when an OAuth account is attached (incl. first sign-up) — stamp
+    // which provider this user came from (was hardcoded "google" before).
+    async linkAccount({ user, account }) {
+      if (!user?.id || !account?.provider) return;
+      await prisma.user
+        .update({ where: { id: user.id }, data: { provider: account.provider } })
+        .catch(() => null);
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
