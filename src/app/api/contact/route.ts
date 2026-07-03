@@ -14,10 +14,11 @@ const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
 // POST /api/contact - public contact form. Emails the site owner via Resend
-// (logs to console when email isn't configured). Reuses the subscribe limiter.
+// (logs to console when email isn't configured). Own rate bucket: sharing with
+// subscribe meant /track pings from the same NAT could 429 real submissions.
 export async function POST(req: Request) {
   try {
-    const { success } = await rateLimit("subscribe", clientIp(req));
+    const { success } = await rateLimit("contact", clientIp(req));
     if (!success) return fail("Too many attempts. Please try again shortly.", 429);
 
     const parsed = schema.safeParse(await req.json());

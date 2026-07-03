@@ -5,6 +5,27 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-03 — Phase 6: security verification + hardening (audit §5 closed out)
+Recovery point: branch `backup/pre-p6-security`. The audit's security section is now fully
+verified/fixed/accepted (see AUDIT-2026-07-01 §5):
+- **CSP: `'unsafe-eval'` dropped from script-src** — browser-verified on a prod build
+  across home/research/community/login/premium: 0 CSP violations, 0 chunk/hydration
+  errors. `'unsafe-inline'` remains an accepted risk pending a nonce pipeline
+  (documented in `next.config.mjs`).
+- **Dashboard email exposure**: Members table now shows `maskEmail()` with
+  reveal-on-click; `SECURITY.md` reconciled (staff APIs/CSV intentionally return raw
+  emails inside the `users:manage` trust boundary).
+- **`/api/contact` gets its own rate bucket** (5/min/IP) — previously shared `subscribe`
+  with `/track`, so page-view pings from one NAT could 429 real contact submissions.
+- **Ops flags for the owner**: `UPSTASH_REDIS_REST_URL`/`TOKEN` are NOT set in prod
+  (per the Vercel env screenshot) → all rate limits are permissive no-ops until added.
+  Supabase private channels/RLS stays on the roadmap (privileged state is re-checked
+  server-side, so public channels leak only presence/ping metadata).
+- typecheck + lint(0 err) + test(103) + build green.
+
+Note: Phase 5 (UI/UX polish) was **discarded by owner decision** — PR #42 closed
+unmerged, original design retained; the work is preserved on `backup/pre-p5-uiux`.
+
 ## 2026-07-02 — Phase 4: Dashboard v2 — analytics, moderation, audit trail, subscribers (audit §2.2)
 Recovery point: branch `backup/pre-p4-dashboard`. Four write-only/invisible datasets got
 professional surfaces, plus real analytics:
