@@ -33,7 +33,43 @@ export default async function CommunityPage() {
 
   const hasMore = rows.length > CHAT_PAGE_SIZE;
   const page = hasMore ? rows.slice(0, CHAT_PAGE_SIZE) : rows;
-  const initialMessages = page.reverse().map(toChatPayload);
+  let initialMessages = page.reverse().map(toChatPayload);
+
+  // Latest pinned message for the banner (resilient pre-migration).
+  const pinnedRow = await prisma.chatMessage
+    .findFirst({
+      where: { status: "visible", pinnedAt: { not: null } },
+      orderBy: { pinnedAt: "desc" },
+      select: CHAT_MESSAGE_SELECT,
+    })
+    .catch(() => null);
+  let initialPinned = pinnedRow ? toChatPayload(pinnedRow) : null;
+
+  // Stamp the viewer's own poll votes (myVote) for initial render.
+  if (me?.id) {
+    const pollIds = [
+      ...initialMessages.filter((m) => m.poll).map((m) => m.poll!.id),
+      ...(initialPinned?.poll ? [initialPinned.poll.id] : []),
+    ];
+    if (pollIds.length) {
+      const votes = await prisma.chatPollVote
+        .findMany({
+          where: { userId: me.id as string, pollId: { in: pollIds } },
+          select: { pollId: true, optionId: true },
+        })
+        .catch(() => []);
+      const mine = new Map(votes.map((v) => [v.pollId, v.optionId]));
+      initialMessages = initialMessages.map((m) =>
+        m.poll ? { ...m, poll: { ...m.poll, myVote: mine.get(m.poll.id) ?? null } } : m
+      );
+      if (initialPinned?.poll) {
+        initialPinned = {
+          ...initialPinned,
+          poll: { ...initialPinned.poll, myVote: mine.get(initialPinned.poll.id) ?? null },
+        };
+      }
+    }
+  }
 
   return (
     <>
@@ -57,6 +93,7 @@ export default async function CommunityPage() {
           <ChatClient
             initialMessages={initialMessages}
             initialHasMore={hasMore}
+            initialPinned={initialPinned}
             me={
               me
                 ? {

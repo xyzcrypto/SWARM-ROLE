@@ -552,6 +552,30 @@ function ModerationPanel() {
     }
   }
 
+  // One-click recovery: un-hide EVERY hidden chat message (soft-deletes only —
+  // nothing is ever destroyed, so "deleted" messages can always come back).
+  async function restoreAllMessages() {
+    if (!confirm("Restore ALL hidden chat messages? They will reappear for everyone.")) return;
+    setBusy("restore_all");
+    setError("");
+    try {
+      const res = await fetch("/api/chat/messages/moderate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "restore_all" }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Failed.");
+      setMessages((arr) => arr.map((m) => ({ ...m, status: "visible" })));
+    } catch (e: any) {
+      setError(e.message || "Failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  const hiddenCount = view === "chat" ? messages.filter((m) => m.status === "hidden").length : 0;
+
   const StatusBadge = ({ status }: { status: string }) =>
     status === "hidden" ? (
       <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-300 ring-1 ring-red-500/25">Hidden</span>
@@ -573,7 +597,7 @@ function ModerationPanel() {
             {v === "comments" ? "Comments" : "Chat messages"}
           </button>
         ))}
-        <div className="ml-auto flex gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5">
           {(["all", "visible", "hidden"] as const).map((s) => (
             <button
               key={s}
@@ -585,6 +609,15 @@ function ModerationPanel() {
               {s[0]!.toUpperCase() + s.slice(1)}
             </button>
           ))}
+          {view === "chat" && hiddenCount > 0 && (
+            <button
+              onClick={restoreAllMessages}
+              disabled={busy === "restore_all"}
+              className="ml-2 rounded-lg border border-mint-500/30 px-2.5 py-1 text-xs font-medium text-mint-200 transition-colors hover:bg-mint-500/10 disabled:opacity-50"
+            >
+              {busy === "restore_all" ? "Restoring…" : `Restore all hidden (${hiddenCount})`}
+            </button>
+          )}
         </div>
       </div>
 

@@ -57,6 +57,7 @@ model User {
   likes         PostLike[]
   chatMessages  ChatMessage[]
   chatReactions ChatReaction[]
+  chatPollVotes ChatPollVote[]
   notifications Notification[]
   adminAudits   AdminAudit[]   @relation("AdminAuditActor")
 
@@ -90,9 +91,11 @@ model Notification {
 model ChatMessage {
   id        String    @id @default(cuid())
   body      String // plain text, <= 500 chars (zod-enforced)
+  kind      String    @default("text") // "text" | "poll"
   status    String    @default("visible") // "visible" | "hidden"
   createdAt DateTime  @default(now())
   editedAt  DateTime? // set when the author edits (15-min window)
+  pinnedAt  DateTime? // set when staff pins (Telegram-style; latest pinned shows in the banner)
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
@@ -103,8 +106,53 @@ model ChatMessage {
   replies   ChatMessage[] @relation("ChatReply")
 
   reactions ChatReaction[]
+  poll      ChatPoll?
 
   @@index([status, createdAt]) // history queries: visible, newest-first
+}
+
+// Telegram-style poll attached to a chat message (kind = "poll"; the message
+// body carries the question for graceful fallback rendering).
+model ChatPoll {
+  id        String   @id @default(cuid())
+  question  String // <= 200 chars (zod-enforced)
+  createdAt DateTime @default(now())
+
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String      @unique
+
+  options ChatPollOption[]
+  votes   ChatPollVote[]
+}
+
+model ChatPollOption {
+  id    String @id @default(cuid())
+  text  String // <= 80 chars (zod-enforced)
+  order Int    @default(0)
+
+  poll   ChatPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  pollId String
+
+  votes ChatPollVote[]
+
+  @@index([pollId, order])
+}
+
+// One vote per user per poll; changing your vote updates the row, voting the
+// same option again retracts it (Telegram behaviour).
+model ChatPollVote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  poll     ChatPoll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  pollId   String
+  option   ChatPollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  optionId String
+  user     User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId   String
+
+  @@unique([pollId, userId])
+  @@index([optionId])
 }
 
 // Emoji reactions on chat messages — one row per (message, user, emoji).

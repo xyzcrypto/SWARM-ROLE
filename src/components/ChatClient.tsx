@@ -4,9 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowDown, Check, Copy, Edit3, Heart, Loader2, Reply, SendHorizonal, Smile, Trash2, X, Volume2, VolumeX,
+  ArrowDown, BarChart3, Check, Copy, Edit3, Heart, Loader2, Pin, PinOff, Plus, Reply, SendHorizonal, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
-import { canEditMessage, reconcilePoll } from "@/lib/chat-view";
+import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { Avatar } from "./Avatar";
 import { Badge } from "./ui/primitives";
 import { EmojiPicker } from "./EmojiPicker";
@@ -22,15 +22,20 @@ const GROUP_WINDOW_MS = 5 * 60 * 1000;
 type Author = { name: string | null; username: string | null; image: string | null; membership: string; role: string };
 type Reaction = { emoji: string; userIds: string[] };
 type ReplyRef = { id: string; body: string; authorName: string };
+type PollOption = { id: string; text: string; order: number; count: number };
+type Poll = { id: string; question: string; options: PollOption[]; total: number; myVote?: string | null };
 type Message = {
   id: string;
   body: string;
+  kind?: string; // "text" | "poll"
   createdAt: string;
   editedAt?: string | null;
+  pinnedAt?: string | null;
   userId: string;
   author: Author;
   replyTo: ReplyRef | null;
   reactions: Reaction[];
+  poll?: Poll | null;
   pending?: boolean;
   /** Session-local tombstone: removed by author/moderator while we watched. */
   hidden?: boolean;
@@ -109,11 +114,13 @@ function playBlip(ctx: AudioContext | null) {
 export function ChatClient({
   initialMessages,
   initialHasMore,
+  initialPinned = null,
   me,
   realtime,
 }: {
   initialMessages: Message[];
   initialHasMore: boolean;
+  initialPinned?: Message | null;
   me: Me | null;
   realtime: { url: string; anonKey: string };
 }) {
@@ -143,6 +150,8 @@ export function ChatClient({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   const [savingEdit, setSavingEdit] = useState(false);
+  const [pinned, setPinned] = useState<Message | null>(initialPinned);
+  const [pollOpen, setPollOpen] = useState(false);
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
   const firstUnreadRef = useRef<string | null>(null);
   const soundOnRef = useRef(false);
@@ -233,9 +242,50 @@ export function ChatClient({
   // instead of messages silently vanishing mid-read. Gone after reload.
   const hideMessage = useCallback((id: string) => {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, hidden: true, body: "" } : m)));
+    setPinned((p) => (p?.id === id ? null : p));
   }, []);
   const applyEdit = useCallback((id: string, body: string, editedAt: string) => {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, body, editedAt } : m)));
+  }, []);
+
+  // Live poll results: swap in fresh anonymous counts (myVote is local-only).
+  const applyPollCounts = useCallback(
+    (messageId: string, counts: { optionId: string; count: number }[], total: number) => {
+      const patch = (m: Message): Message => {
+        if (m.id !== messageId || !m.poll) return m;
+        const byId = new Map(counts.map((c) => [c.optionId, c.count]));
+        return {
+          ...m,
+          poll: {
+            ...m.poll,
+            total,
+            options: m.poll.options.map((o) => ({ ...o, count: byId.get(o.id) ?? o.count })),
+          },
+        };
+      };
+      setMessages((prev) => prev.map(patch));
+      setPinned((p) => (p ? patch(p) : p));
+    },
+    []
+  );
+
+  const applyPinned = useCallback((id: string, isPinned: boolean) => {
+    setMessages((prev) => {
+      const target = prev.find((m) => m.id === id);
+      if (isPinned) {
+        // The pinned message is usually loaded; fall back to a refetch if not.
+        if (target) setPinned({ ...target, pinnedAt: new Date().toISOString() });
+        else {
+          fetch("/api/chat/messages", { cache: "no-store" })
+            .then((r) => r.json())
+            .then((d) => d?.pinned && setPinned(d.pinned as Message))
+            .catch(() => {});
+        }
+      } else {
+        setPinned((p) => (p?.id === id ? null : p));
+      }
+      return prev.map((m) => (m.id === id ? { ...m, pinnedAt: isPinned ? new Date().toISOString() : null } : m));
+    });
   }, []);
 
   // Idempotent reaction delta - safe to apply for both optimistic + echoed events.
@@ -283,6 +333,14 @@ export function ChatClient({
           .on("broadcast", { event: "message_edited" }, ({ payload }) => {
             const p = payload as { id: string; body: string; editedAt: string };
             applyEdit(p.id, p.body, p.editedAt);
+          })
+          .on("broadcast", { event: "message_pinned" }, ({ payload }) => {
+            const p = payload as { id: string; pinned: boolean };
+            applyPinned(p.id, p.pinned);
+          })
+          .on("broadcast", { event: "poll_vote" }, ({ payload }) => {
+            const p = payload as { messageId: string; counts: { optionId: string; count: number }[]; total: number };
+            applyPollCounts(p.messageId, p.counts, p.total);
           })
           .on("broadcast", { event: "reaction" }, ({ payload }) => {
             const p = payload as { messageId: string; emoji: string; userId: string; op: "add" | "remove" };
@@ -392,7 +450,7 @@ export function ChatClient({
     // Re-subscribe only when the connection target or the signed-in identity
     // changes; profile fields (name/image/username) ride in meRef.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [realtime.url, realtime.anonKey, me?.id, appendMessage, hideMessage, applyReaction, applyEdit]);
+  }, [realtime.url, realtime.anonKey, me?.id, appendMessage, hideMessage, applyReaction, applyEdit, applyPinned, applyPollCounts]);
 
   // Close the reaction popover on any press outside it (its toggle + panel are
   // tagged data-react-ui); mirrors EmojiPicker's outside-click behaviour.
@@ -621,6 +679,61 @@ export function ChatClient({
     if (!res || !res.ok) applyReaction(messageId, emoji, me.id, mine ? "add" : "remove"); // rollback
   }
 
+  // Vote / retract / move (Telegram semantics), optimistic with rollback.
+  async function vote(m: Message, optionId: string) {
+    if (!me || !m.poll || m.pending) return;
+    const prevPoll = m.poll;
+    const from = m.poll.myVote ?? null;
+    const to = from === optionId ? null : optionId; // same option again = retract
+    const nextCounts = applyPollVote(
+      m.poll.options.map((o) => ({ optionId: o.id, count: o.count })),
+      from,
+      to
+    );
+    const byId = new Map(nextCounts.map((c) => [c.optionId, c.count]));
+    const optimistic: Poll = {
+      ...m.poll,
+      myVote: to,
+      total: nextCounts.reduce((s, c) => s + c.count, 0),
+      options: m.poll.options.map((o) => ({ ...o, count: byId.get(o.id) ?? o.count })),
+    };
+    const patch = (msg: Message) => (msg.id === m.id ? { ...msg, poll: optimistic } : msg);
+    setMessages((prev) => prev.map(patch));
+    setPinned((p) => (p ? patch(p) : p));
+
+    const res = await fetch(`/api/chat/polls/${m.poll.id}/vote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ optionId }),
+    }).catch(() => null);
+    const data = res ? await res.json().catch(() => null) : null;
+    if (!res || !res.ok || !data) {
+      const rollback = (msg: Message) => (msg.id === m.id ? { ...msg, poll: prevPoll } : msg);
+      setMessages((prev) => prev.map(rollback));
+      setPinned((p) => (p ? rollback(p) : p));
+      setError(data?.error || "Could not record your vote.");
+      return;
+    }
+    // Settle with server truth (counts + myVote).
+    applyPollCounts(m.id, data.counts ?? [], data.total ?? optimistic.total);
+    const settle = (msg: Message) =>
+      msg.id === m.id && msg.poll ? { ...msg, poll: { ...msg.poll, myVote: data.myVote ?? null } } : msg;
+    setMessages((prev) => prev.map(settle));
+    setPinned((p) => (p ? settle(p) : p));
+  }
+
+  async function togglePin(m: Message) {
+    setActionOpenId(null);
+    const action = m.pinnedAt ? "unpin" : "pin";
+    const res = await fetch("/api/chat/messages/moderate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: m.id, action }),
+    }).catch(() => null);
+    if (res?.ok) applyPinned(m.id, action === "pin");
+    else setError("Could not update the pin.");
+  }
+
   // Jump to a message; if it isn't loaded (reply to an older message), page
   // backwards a bounded number of times until it appears, then highlight.
   async function scrollToMessage(id: string) {
@@ -751,6 +864,31 @@ export function ChatClient({
         </div>
       </div>
 
+      {/* Pinned message banner (latest pin; tap to jump) */}
+      {pinned && !pinned.hidden && (
+        <div className="relative z-[1] flex items-center gap-2 border-b border-gold-500/20 bg-gold-500/[0.06] px-3 py-2 sm:px-4">
+          <Pin className="h-3.5 w-3.5 shrink-0 text-gold-300" />
+          <button
+            onClick={() => scrollToMessage(pinned.id)}
+            className="min-w-0 flex-1 truncate text-left text-[12px] text-zinc-300 hover:text-gold-100"
+            title="Jump to pinned message"
+          >
+            <span className="font-medium text-gold-200">{pinned.author.name ?? "Member"}:</span>{" "}
+            {pinned.kind === "poll" ? `📊 ${pinned.poll?.question ?? pinned.body}` : pinned.body}
+          </button>
+          {me?.isAdmin && (
+            <button
+              onClick={() => togglePin(pinned)}
+              className="shrink-0 rounded p-1 text-zinc-500 hover:text-zinc-200"
+              aria-label="Unpin"
+              title="Unpin"
+            >
+              <PinOff className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
       {/* messages */}
       <div ref={listRef} onScroll={onScroll} className="relative z-[1] flex-1 overflow-y-auto px-3 py-4 sm:px-4">
         {hasMore && (
@@ -784,7 +922,8 @@ export function ChatClient({
             const isPremium = m.author.membership === "Premium";
             const isTeam = m.author.role === "ADMIN";
             const canDelete = !!me && (me.isAdmin || me.id === m.userId);
-            const canEdit = !!me && me.id === m.userId && !m.pending && !m.hidden && canEditMessage(m.createdAt);
+            const canEdit =
+              !!me && me.id === m.userId && !m.pending && !m.hidden && m.kind !== "poll" && canEditMessage(m.createdAt);
             const actionsOpen = actionOpenId === m.id;
 
             // Session-local tombstone for a removed message (keeps context).
@@ -890,7 +1029,9 @@ export function ChatClient({
                       </button>
                     )}
 
-                    {editingId === m.id ? (
+                    {m.kind === "poll" && m.poll ? (
+                      <PollBlock poll={m.poll} canVote={!!me && !m.pending} onVote={(optionId) => vote(m, optionId)} />
+                    ) : editingId === m.id ? (
                       <div onClick={(e) => e.stopPropagation()}>
                         <textarea
                           value={editText}
@@ -1026,6 +1167,16 @@ export function ChatClient({
                           <Edit3 className="h-3.5 w-3.5" />
                         </button>
                       )}
+                      {me?.isAdmin && !m.pending && (
+                        <button
+                          onClick={() => togglePin(m)}
+                          className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200"
+                          aria-label={m.pinnedAt ? "Unpin" : "Pin"}
+                          title={m.pinnedAt ? "Unpin" : "Pin"}
+                        >
+                          {m.pinnedAt ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
                       <button onClick={() => copyMessage(m.id, m.body)} className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200" aria-label="Copy">
                         {copiedId === m.id ? <Check className="h-3.5 w-3.5 text-mint-300" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
@@ -1091,6 +1242,16 @@ export function ChatClient({
               </div>
             )}
             <form onSubmit={send} className="flex items-end gap-2">
+              {/* attach menu (polls) — Telegram-style "+" */}
+              <button
+                type="button"
+                onClick={() => setPollOpen(true)}
+                className="mb-5 shrink-0 rounded-xl border border-white/10 bg-ink-700/60 p-2.5 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
+                aria-label="Create a poll"
+                title="Create a poll"
+              >
+                <BarChart3 className="h-4 w-4" />
+              </button>
               <div className="relative flex-1">
                 <textarea
                   value={body}
@@ -1178,6 +1339,198 @@ export function ChatClient({
           </div>
         )}
       </div>
+
+      {/* Poll composer modal */}
+      <AnimatePresence>
+        {pollOpen && me && (
+          <PollComposer
+            onClose={() => setPollOpen(false)}
+            onCreated={(msg) => {
+              setPollOpen(false);
+              appendMessage(msg);
+              jumpToLatest();
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+/* ----------------------------- Poll UI ----------------------------- */
+
+function PollBlock({
+  poll,
+  canVote,
+  onVote,
+}: {
+  poll: Poll;
+  canVote: boolean;
+  onVote: (optionId: string) => void;
+}) {
+  const shares = pollShares(poll.options.map((o) => ({ optionId: o.id, count: o.count })));
+  return (
+    <div className="mt-0.5 max-w-md rounded-xl border border-line bg-white/[0.02] p-3" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center gap-2">
+        <BarChart3 className="h-3.5 w-3.5 shrink-0 text-gold-300" />
+        <p className="text-[14px] font-semibold leading-snug text-zinc-100">{poll.question}</p>
+      </div>
+      <div className="mt-2.5 space-y-1.5">
+        {poll.options.map((o) => {
+          const mine = poll.myVote === o.id;
+          const share = shares.get(o.id) ?? 0;
+          return (
+            <button
+              key={o.id}
+              type="button"
+              disabled={!canVote}
+              onClick={() => onVote(o.id)}
+              title={mine ? "Tap to retract your vote" : "Vote"}
+              className={cn(
+                "relative block w-full overflow-hidden rounded-lg border px-3 py-2 text-left transition-colors",
+                mine ? "border-gold-500/50 bg-gold-500/10" : "border-line bg-white/[0.03]",
+                canVote ? "hover:border-gold-500/40" : "cursor-default"
+              )}
+            >
+              {/* share bar behind the label */}
+              <span
+                aria-hidden
+                className={cn("absolute inset-y-0 left-0 transition-all duration-500", mine ? "bg-gold-500/20" : "bg-white/[0.06]")}
+                style={{ width: `${share}%` }}
+              />
+              <span className="relative flex items-center justify-between gap-2 text-[13px]">
+                <span className={cn("min-w-0 truncate", mine ? "font-medium text-gold-100" : "text-zinc-200")}>
+                  {mine && <Check className="mr-1 inline h-3.5 w-3.5 text-gold-300" />}
+                  {o.text}
+                </span>
+                <span className="mono shrink-0 text-[11px] text-zinc-500">
+                  {share}% · {o.count.toLocaleString("en-US")}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 mono text-[10px] text-zinc-600">
+        {poll.total === 0 ? "No votes yet" : `${poll.total.toLocaleString("en-US")} vote${poll.total === 1 ? "" : "s"}`}
+        {canVote ? " · tap an option to vote" : " · log in to vote"}
+      </p>
+    </div>
+  );
+}
+
+function PollComposer({ onClose, onCreated }: { onClose: () => void; onCreated: (msg: Message) => void }) {
+  const [question, setQuestion] = useState("");
+  const [options, setOptions] = useState<string[]>(["", ""]);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const setOption = (i: number, v: string) =>
+    setOptions((prev) => prev.map((o, idx) => (idx === i ? v.slice(0, 80) : o)));
+  const filled = options.filter((o) => o.trim().length > 0);
+  const canCreate = question.trim().length >= 3 && filled.length >= 2 && !saving;
+
+  async function create() {
+    if (!canCreate) return;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/chat/polls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: question.trim(), options: filled.map((o) => o.trim()) }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Could not create the poll.");
+        return;
+      }
+      onCreated(data.message as Message);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="absolute inset-0 z-30 flex items-center justify-center bg-ink-950/70 p-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 14, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 14, scale: 0.97 }}
+        transition={{ duration: 0.16 }}
+        className="w-full max-w-md rounded-2xl border border-line bg-ink-900/95 p-5 shadow-elevate"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between">
+          <h3 className="flex items-center gap-2 font-display text-base font-semibold text-zinc-100">
+            <BarChart3 className="h-4 w-4 text-gold-300" />
+            Create a poll
+          </h3>
+          <button onClick={onClose} className="rounded p-1 text-zinc-500 hover:text-zinc-200" aria-label="Close">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value.slice(0, 200))}
+          placeholder="Ask the community…"
+          autoFocus
+          className="mt-4 w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-2.5 text-base text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/50 sm:text-sm"
+        />
+
+        <div className="mt-3 space-y-2">
+          {options.map((o, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <input
+                value={o}
+                onChange={(e) => setOption(i, e.target.value)}
+                placeholder={`Option ${i + 1}`}
+                className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-2 text-base text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/50 sm:text-sm"
+              />
+              {options.length > 2 && (
+                <button
+                  type="button"
+                  onClick={() => setOptions((prev) => prev.filter((_, idx) => idx !== i))}
+                  className="shrink-0 rounded p-1.5 text-zinc-500 hover:text-red-300"
+                  aria-label={`Remove option ${i + 1}`}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {options.length < 8 && (
+          <button
+            type="button"
+            onClick={() => setOptions((prev) => [...prev, ""])}
+            className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-gold-200 hover:text-gold-100"
+          >
+            <Plus className="h-3.5 w-3.5" /> Add option
+          </button>
+        )}
+
+        {error && <p className="mt-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">{error}</p>}
+
+        <div className="mt-5 flex items-center justify-end gap-3">
+          <button onClick={onClose} className="text-sm text-zinc-500 hover:text-zinc-300">
+            Cancel
+          </button>
+          <button onClick={create} disabled={!canCreate} className="btn-gold !px-5 !py-2 text-[13px] disabled:opacity-50">
+            {saving ? "Creating…" : "Create poll"}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

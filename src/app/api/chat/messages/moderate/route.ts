@@ -41,13 +41,14 @@ export async function GET(req: Request) {
 }
 
 const actionSchema = z.object({
-  id: z.string(),
-  action: z.enum(["hide", "restore"]),
+  id: z.string().optional(),
+  action: z.enum(["hide", "restore", "restore_all", "pin", "unpin"]),
 });
 
-// POST /api/chat/messages/moderate - hide or restore a message (post:manage).
-// Broadcasts so live clients update: hide → message_hidden (tombstone);
-// restore → new_message (clients ignore duplicates by id).
+// POST /api/chat/messages/moderate - moderation actions (post:manage):
+//  - hide / restore a single message (broadcast so live clients update)
+//  - restore_all: un-hide EVERY hidden message (bulk recovery)
+//  - pin / unpin: Telegram-style pinned message (staff only)
 export async function POST(req: Request) {
   try {
     const actor = await requirePermission("post:manage");
@@ -57,14 +58,33 @@ export async function POST(req: Request) {
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
     const parsed = actionSchema.safeParse(await req.json());
-    if (!parsed.success || !isCuid(parsed.data.id)) return fail("Invalid input.", 400);
+    if (!parsed.success) return fail("Invalid input.", 400);
     const { id, action } = parsed.data;
 
+    if (action === "restore_all") {
+      const { count } = await prisma.chatMessage.updateMany({
+        where: { status: "hidden" },
+        data: { status: "visible" },
+      });
+      // No per-message broadcast for bulk restore — clients pick the messages
+      // up on their next poll/refresh (realtime clients too, on reload).
+      return ok({ ok: true, restored: count });
+    }
+
+    if (!id || !isCuid(id)) return fail("Invalid input.", 400);
     const msg = await prisma.chatMessage.findUnique({
       where: { id },
-      select: { id: true, status: true },
+      select: { id: true, status: true, pinnedAt: true },
     });
     if (!msg) return fail("Message not found.", 404);
+
+    if (action === "pin" || action === "unpin") {
+      if (msg.status !== "visible") return fail("Only visible messages can be pinned.", 400);
+      const pinnedAt = action === "pin" ? new Date() : null;
+      await prisma.chatMessage.update({ where: { id }, data: { pinnedAt } });
+      await broadcastChatEvent({ event: "message_pinned", payload: { id, pinned: action === "pin" } });
+      return ok({ ok: true, pinned: action === "pin" });
+    }
 
     const nextStatus = action === "hide" ? "hidden" : "visible";
     if (msg.status !== nextStatus) {

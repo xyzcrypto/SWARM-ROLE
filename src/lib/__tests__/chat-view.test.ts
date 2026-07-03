@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { EDIT_WINDOW_MS, canEditMessage, reconcilePoll } from "@/lib/chat-view";
+import { EDIT_WINDOW_MS, applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 
 const NOW = 1_800_000_000_000;
 const iso = (t: number) => new Date(t).toISOString();
@@ -78,5 +78,39 @@ describe("reconcilePoll", () => {
     const { merged, incoming } = reconcilePoll(prev, []);
     expect(merged.map((m) => m.id)).toEqual(["a"]);
     expect(incoming).toEqual([]);
+  });
+});
+
+const counts = (a: number, b: number, c = 0) => [
+  { optionId: "o1", count: a },
+  { optionId: "o2", count: b },
+  { optionId: "o3", count: c },
+];
+
+describe("applyPollVote", () => {
+  it("adds a first-time vote", () => {
+    expect(applyPollVote(counts(1, 2), null, "o1")).toEqual(counts(2, 2));
+  });
+  it("moves a vote between options", () => {
+    expect(applyPollVote(counts(1, 2), "o2", "o1")).toEqual(counts(2, 1));
+  });
+  it("retracts a vote", () => {
+    expect(applyPollVote(counts(1, 2), "o2", null)).toEqual(counts(1, 1));
+  });
+  it("never goes below zero", () => {
+    expect(applyPollVote(counts(0, 0), "o1", null)).toEqual(counts(0, 0));
+  });
+});
+
+describe("pollShares", () => {
+  it("computes integer percentage shares", () => {
+    const shares = pollShares(counts(1, 3));
+    expect(shares.get("o1")).toBe(25);
+    expect(shares.get("o2")).toBe(75);
+    expect(shares.get("o3")).toBe(0);
+  });
+  it("is safe for zero totals", () => {
+    const shares = pollShares(counts(0, 0));
+    expect(shares.get("o1")).toBe(0);
   });
 });

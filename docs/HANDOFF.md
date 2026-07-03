@@ -88,6 +88,18 @@ Vercel → redeploy → verify → troubleshooting): **`docs/REALTIME-SETUP.md`*
 set, the chat falls back to 10s polling (no presence, no instant blip).
 
 
+### ℹ️ Chat v3: polls + pins (migration `11_chat_polls`) + message recovery
+Adds `ChatMessage.kind`/`pinnedAt` and the `ChatPoll`/`ChatPollOption`/`ChatPollVote`
+tables. Auto-applies on the next deploy via `vercel-build` (idempotent SQL in
+`prisma/migrations/11_chat_polls/`).
+
+**Recovering "deleted" chat messages:** chat deletes are soft (`status='hidden'`) —
+nothing is destroyed. Restore from Dashboard → Moderation → Chat ("Restore all hidden"
+or per-message Restore), or run this SQL in Supabase → SQL Editor:
+```sql
+UPDATE "ChatMessage" SET "status" = 'visible' WHERE "status" = 'hidden';
+```
+
 ### ℹ️ Chat message editing (migration `10_chat_edited`)
 Adds `ChatMessage.editedAt` (nullable). Auto-applies on the next deploy via
 `vercel-build`; manual unblock if needed:
