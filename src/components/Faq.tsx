@@ -1,6 +1,5 @@
 import { Container, Section, SectionHeading } from "./ui/primitives";
 import { Reveal } from "./Reveal";
-import { AnimatedEmoji } from "./AnimatedEmoji";
 import { FAQ } from "@/lib/faq";
 
 // Visible FAQ — pairs with the FAQPage JSON-LD (same `FAQ` source) so the answers
@@ -13,8 +12,7 @@ export function Faq() {
           eyebrow="FAQ"
           title={
             <>
-              Questions about <span className="text-gold-gradient">XYZ Crypto</span>{" "}
-              <AnimatedEmoji emoji="💬" variant="float" className="align-middle text-[0.8em]" />
+              Questions about XYZ Crypto
             </>
           }
           subtitle="The quick answers — what XYZ Crypto is, what's free, and how to get started."

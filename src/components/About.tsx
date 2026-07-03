@@ -26,7 +26,7 @@ export function About() {
           <Eyebrow>Who we are</Eyebrow>
           <h2 className="mt-5 font-display text-display-md font-semibold tracking-tight text-zinc-50">
             One ecosystem for the{" "}
-            <span className="text-gold-gradient">entire Web3 journey.</span>{" "}
+            entire Web3 journey.{" "}
             <AnimatedEmoji emoji="🚀" variant="launch" className="align-middle text-[0.8em]" />
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed text-zinc-400">

@@ -1,7 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { Container, Section, SectionHeading } from "./ui/primitives";
-import { AnimatedEmoji } from "./AnimatedEmoji";
 import { WhatsNewFeed } from "./WhatsNewFeed";
 import { WHATS_NEW, type WhatsNewEntry } from "@/lib/whatsnew";
 
@@ -40,8 +39,7 @@ export async function WhatsNew() {
           eyebrow="What's new"
           title={
             <>
-              Fresh from the <span className="text-gold-gradient">XYZ Crypto</span> lab{" "}
-              <AnimatedEmoji emoji="✨" variant="twinkle" className="align-middle text-[0.8em]" />
+              Fresh from the XYZ Crypto lab
             </>
           }
           subtitle="The latest features and improvements shipping across the ecosystem."

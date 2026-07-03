@@ -185,7 +185,7 @@ export function Navbar() {
                 Log in
               </Link>
               <MagneticButton>
-                <ActionLink href="/signup" className="btn-primary !px-4 !py-2 text-[13px]">
+                <ActionLink href="/signup" className="btn-gold !px-4 !py-2 text-[13px]">
                   Get Started
                 </ActionLink>
               </MagneticButton>
@@ -257,7 +257,7 @@ export function Navbar() {
                   <Link href="/login" onClick={() => setOpen(false)} className="btn-ghost">
                     Log in
                   </Link>
-                  <ActionLink href="/signup" onClick={() => setOpen(false)} className="btn-primary">
+                  <ActionLink href="/signup" onClick={() => setOpen(false)} className="btn-gold">
                     Get Started
                   </ActionLink>
                 </>

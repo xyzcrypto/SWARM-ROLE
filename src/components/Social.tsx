@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { ArrowUpRight, MessagesSquare } from "lucide-react";
 import { Reveal } from "./Reveal";
-import { AnimatedEmoji } from "./AnimatedEmoji";
 import { site } from "@/lib/site";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "./BrandIcons";
 import { Container, Section, SectionHeading } from "./ui/primitives";
@@ -21,8 +20,7 @@ export function Social() {
           eyebrow="Stay Connected"
           title={
             <>
-              Join the <span className="text-gold-gradient">community.</span>{" "}
-              <AnimatedEmoji emoji="👋" variant="wobble" className="align-middle text-[0.8em]" />
+              Join the community.
             </>
           }
           subtitle="Follow XYZ Crypto across every platform for research drops, alpha, product launches and live market coverage."

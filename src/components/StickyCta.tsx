@@ -37,7 +37,7 @@ export function StickyCta() {
             Research, tools & early access
           </p>
         </div>
-        <ActionLink href="/signup" className="btn-primary shrink-0 !px-4 !py-2 text-[13px]">
+        <ActionLink href="/signup" className="btn-gold shrink-0 !px-4 !py-2 text-[13px]">
           Get started
           <ArrowRight className="h-4 w-4" />
         </ActionLink>

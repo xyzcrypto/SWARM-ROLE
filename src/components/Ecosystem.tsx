@@ -1,6 +1,5 @@
 import { ArrowUpRight } from "lucide-react";
 import { Reveal } from "./Reveal";
-import { AnimatedEmoji } from "./AnimatedEmoji";
 import { site } from "@/lib/site";
 import { TelegramIcon } from "./BrandIcons";
 import { BrandLogo } from "./BrandLogo";
@@ -45,8 +44,7 @@ export function Ecosystem() {
           eyebrow="Our Communities"
           title={
             <>
-              The <span className="text-gold-gradient">XYZ Verse.</span>{" "}
-              <AnimatedEmoji emoji="🌐" variant="spin" className="align-middle text-[0.8em]" />
+              The XYZ Verse.
             </>
           }
           subtitle="Two thriving communities under the XYZ Crypto umbrella, one to learn, one to trade. Join the conversation on Telegram."

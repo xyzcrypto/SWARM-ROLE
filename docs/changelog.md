@@ -5,6 +5,28 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-03 — Phase 5: UI/UX de-AI polish — honest stats, one conversion path, restrained accents (audit §4)
+Recovery point: branch `backup/pre-p5-uiux`. Copy + visual pass so the site reads as a
+crafted brand, not a template:
+- **Honest hero stats (owner-directed):** "50K+" stays (real overall social-media
+  community) but is relabeled "Social media community" — it no longer implies site
+  accounts, so it can't contradict CtaBand's real DB member count on the same page.
+  "6+ products" / "24/7 coverage" untouched (owner's claims).
+- **One conversion path:** free account = THE primary CTA (gold) — Hero, Navbar, StickyCta
+  and CtaBand now agree; CtaBand's waitlist is demoted to a "not ready yet?" fallback
+  below the signup button (was a co-equal stack). Button rule: gold = marketing
+  conversion, mint = in-app functional actions.
+- **Copy:** hero eyebrow typo "The Home Of Next Gen Web3.." → "Research · Tools ·
+  Community"; the phrase "next generation of Web3" no longer repeats across
+  Hero/Footer/CtaBand/metadata (kept once, in the hero paragraph); footer "· v2.0" dev
+  artifact removed; page metadata (title/description/OG/Twitter) rewritten concrete.
+- **Accent restraint:** heading emoji kept ONLY on About 🚀 (removed from What's New ✨,
+  FAQ 💬, Social 👋, Products ⚡, Ecosystem 🌐); `text-gold-gradient` reserved for the
+  hero H1 / wordmark / page-H1s — the 7 homepage section titles are now solid, restoring
+  hierarchy.
+- typecheck + lint(0 err) + test(103) + build green; Playwright-verified at 390px +
+  1280px in dark AND light themes.
+
 ## 2026-07-02 — Phase 4: Dashboard v2 — analytics, moderation, audit trail, subscribers (audit §2.2)
 Recovery point: branch `backup/pre-p4-dashboard`. Four write-only/invisible datasets got
 professional surfaces, plus real analytics:

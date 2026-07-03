@@ -20,11 +20,11 @@ export const metadata: Metadata = {
   },
   ...(GSC_VERIFICATION ? { verification: { google: GSC_VERIFICATION } } : {}),
   title: {
-    default: "XYZ Crypto · The Home Of Next Gen Web3",
+    default: "XYZ Crypto · Web3 Research, Tools & Community",
     template: "%s · XYZ Crypto",
   },
   description:
-    "XYZ Crypto is a next-generation Web3 ecosystem, research, trading tools, a perp DEX, airdrop tools, premium intelligence and education. Built for the next generation of Web3.",
+    "XYZ Crypto is a Web3 ecosystem in one place: on-chain research, pro trading tools, a perp DEX, airdrop intelligence, premium insights and a free academy.",
   keywords: [
     "XYZ Crypto",
     "Web3",
@@ -39,9 +39,9 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "XYZ Crypto" }],
   openGraph: {
-    title: "XYZ Crypto · The Home Of Next Gen Web3",
+    title: "XYZ Crypto · Web3 Research, Tools & Community",
     description:
-      "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium intelligence & education.",
+      "On-chain research, pro trading tools, a perp DEX, airdrop intelligence, premium insights and a free academy — one ecosystem.",
     url: SITE_URL,
     siteName: "XYZ Crypto",
     images: [{ url: "/logo.jpg", width: 640, height: 640, alt: "XYZ Crypto" }],
@@ -49,9 +49,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "XYZ Crypto · The Home Of Next Gen Web3",
+    title: "XYZ Crypto · Web3 Research, Tools & Community",
     description:
-      "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium & education.",
+      "On-chain research, pro trading tools, a perp DEX, airdrop intelligence, premium insights and a free academy — one ecosystem.",
     site: "@XYZCryptos",
     images: ["/logo.jpg"],
   },

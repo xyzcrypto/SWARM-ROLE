@@ -21,12 +21,11 @@ export function CtaBand({ memberCount = 0 }: { memberCount?: number }) {
             <div className="relative grid items-center gap-10 lg:grid-cols-2">
               <div>
                 <h2 className="font-display text-display-md font-semibold tracking-tight text-zinc-50">
-                  Ready to join the{" "}
-                  <span className="text-gold-gradient">next generation of Web3?</span>
+                  Your edge in Web3 starts here.
                 </h2>
                 <p className="mt-4 max-w-md text-zinc-400">
-                  Create your free XYZ Crypto account to unlock research, early
-                  product access and the full ecosystem.
+                  One free account unlocks the research hub, early product
+                  access and the community.
                 </p>
                 <ul className="mt-6 space-y-2.5">
                   {benefits.map((b) => (
@@ -40,29 +39,34 @@ export function CtaBand({ memberCount = 0 }: { memberCount?: number }) {
                 </ul>
               </div>
 
+              {/* ONE primary conversion path: the free account (gold). The
+                  waitlist is the low-commitment fallback, demoted below it —
+                  previously both competed as equals inside the same card. */}
               <div className="lg:pl-8">
                 <div className="surface rounded-3xl p-6">
                   <p className="font-display text-base font-semibold text-zinc-100">
-                    Join the waitlist
+                    Create your free account
                   </p>
                   <p className="mt-1 text-sm text-zinc-500">
-                    Drop your email for early access, no wallet, no account
-                    needed to start.
+                    Takes under a minute — no wallet required.
                   </p>
                   <div className="mt-5">
-                    <WaitlistForm source="cta-band" cta="Join" />
+                    <EarlyAccessCta className="btn-gold w-full" label="Get started free" />
                   </div>
-                  <div className="my-5 flex items-center gap-3 text-[11px] text-zinc-600">
-                    <span className="h-px flex-1 bg-line" />
-                    or
-                    <span className="h-px flex-1 bg-line" />
-                  </div>
-                  <EarlyAccessCta className="btn-ghost w-full" label="Create a full account" />
                   {memberCount > 0 && (
-                    <p className="mt-4 text-center mono text-[11px] text-zinc-500">
-                      Join {memberCount.toLocaleString()}+ members already inside
+                    <p className="mt-3 text-center mono text-[11px] text-zinc-500">
+                      {memberCount.toLocaleString("en-US")}+ registered members
                     </p>
                   )}
+                  <div className="my-5 flex items-center gap-3 text-[11px] text-zinc-600">
+                    <span className="h-px flex-1 bg-line" />
+                    not ready yet?
+                    <span className="h-px flex-1 bg-line" />
+                  </div>
+                  <p className="text-sm text-zinc-500">Just get the updates by email:</p>
+                  <div className="mt-3">
+                    <WaitlistForm source="cta-band" cta="Join" />
+                  </div>
                 </div>
               </div>
             </div>

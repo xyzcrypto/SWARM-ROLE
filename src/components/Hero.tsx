@@ -89,7 +89,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             <span className="eyebrow eyebrow-glass text-zinc-200">
               <MagicStar size={14} variant="Bold" color="#e2a72f" />
               <span className="mono text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">
-                The Home Of Next Gen Web3..
+                Research · Tools · Community
               </span>
             </span>
           </motion.div>
@@ -122,11 +122,14 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             transition={{ duration: 0.6, delay: 0.24 }}
             className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start"
           >
+            {/* Button hierarchy: GOLD = the one primary conversion action per
+                view; ghost = secondary. (Mint stays for in-app functional
+                actions like chat send — not marketing CTAs.) */}
             {session ? (
               // Account holders already have access - point them at the content.
               <>
                 <MagneticButton className="w-full sm:w-auto">
-                  <ActionLink href="/research" className="btn-primary w-full sm:w-auto">
+                  <ActionLink href="/research" className="btn-gold w-full sm:w-auto">
                     Explore Research
                     <ArrowRight className="h-4 w-4" />
                   </ActionLink>
@@ -138,7 +141,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             ) : (
               <>
                 <MagneticButton className="w-full sm:w-auto">
-                  <ActionLink href="/signup" className="btn-primary w-full sm:w-auto">
+                  <ActionLink href="/signup" className="btn-gold w-full sm:w-auto">
                     Get early access
                     <ArrowRight className="h-4 w-4" />
                   </ActionLink>
@@ -168,7 +171,9 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             className="mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-lg"
           >
             {[
-              { k: members, v: "Members & growing" },
+              // "50K+" = overall social-media community (owner's real reach);
+              // on-site account count lives in CtaBand with its own label.
+              { k: members, v: "Social media community" },
               { k: "6+", v: "Products in pipeline" },
               { k: "24/7", v: "On-chain coverage" },
             ].map((s) => (
