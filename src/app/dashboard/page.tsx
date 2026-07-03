@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { env, storageEnabled, realtimeEnabled, emailEnabled, googleEnabled } from "@/lib/env";
+import { env, storageEnabled, realtimeEnabled, emailEnabled, googleEnabled, githubEnabled, twitterEnabled } from "@/lib/env";
 import { Navbar } from "@/components/Navbar";
 import { DashboardClient } from "@/components/DashboardClient";
 import { isStaff } from "@/lib/permissions";
@@ -127,6 +127,8 @@ export default async function DashboardPage() {
               upstash: Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN),
               email: emailEnabled,
               google: googleEnabled,
+              github: githubEnabled,
+              twitter: twitterEnabled,
             }}
           />
         </div>

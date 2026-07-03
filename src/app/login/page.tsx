@@ -10,8 +10,11 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  const googleEnabled =
-    !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET;
+  const providers = {
+    google: !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET,
+    github: !!process.env.GITHUB_CLIENT_ID && !!process.env.GITHUB_CLIENT_SECRET,
+    twitter: !!process.env.TWITTER_CLIENT_ID && !!process.env.TWITTER_CLIENT_SECRET,
+  };
 
   return (
     <AuthShell
@@ -20,7 +23,7 @@ export default function LoginPage() {
       footer={null}
     >
       <Suspense fallback={<div className="h-72" />}>
-        <LoginForm googleEnabled={googleEnabled} />
+        <LoginForm providers={providers} />
       </Suspense>
     </AuthShell>
   );

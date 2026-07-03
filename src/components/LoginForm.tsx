@@ -4,10 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { GoogleButton } from "./GoogleButton";
+import { SocialButtons, type SocialProviders } from "./SocialButtons";
 import { PasswordField } from "./PasswordField";
 
-export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function LoginForm({ providers }: { providers: SocialProviders }) {
   const router = useRouter();
   const params = useSearchParams();
   // Open-redirect guard: only allow same-origin relative paths (block //evil.com,
@@ -51,9 +51,9 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
           Password reset. Please log in with your new password.
         </p>
       )}
-      <GoogleButton enabled={googleEnabled} label="Sign in with Google" />
+      <SocialButtons providers={providers} mode="in" />
 
-      {googleEnabled && (
+      {(providers.google || providers.github || providers.twitter) && (
         <div className="flex items-center gap-3 text-xs text-zinc-600">
           <span className="h-px flex-1 bg-white/10" />
           or

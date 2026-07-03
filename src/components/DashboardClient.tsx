@@ -59,7 +59,7 @@ type Tab =
   | "subscribers"
   | "activity";
 /** Integration status booleans (names only — never values/secrets). */
-export type HealthFlags = { storage: boolean; realtime: boolean; upstash: boolean; email: boolean; google: boolean };
+export type HealthFlags = { storage: boolean; realtime: boolean; upstash: boolean; email: boolean; google: boolean; github: boolean; twitter: boolean };
 
 /* ----------------------- realtime hooks (admin) ----------------------- */
 function useLiveOnline(realtime: Realtime) {
@@ -445,6 +445,8 @@ function Overview({ stats: initialStats, liveOnline, health }: { stats: Stats; l
               ["Rate limits", health.upstash],
               ["Email", health.email],
               ["Google login", health.google],
+              ["GitHub login", health.github],
+              ["X login", health.twitter],
             ] as const
           ).map(([label, on]) => (
             <span

@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-03 — Social login: GitHub + X (Twitter) providers, unified buttons
+- **New OAuth providers** (env-gated like Google): `GITHUB_CLIENT_ID/SECRET` and
+  `TWITTER_CLIENT_ID/SECRET` (OAuth 2.0). Buttons appear on /login + /signup only when
+  configured — zero UI change until keys are added.
+- **Unified `SocialButtons`** (Google/GitHub/X) replaces the single GoogleButton; forms
+  take a `providers` flags object from the server pages.
+- **Provider stamping fixed**: `linkAccount` event now records the real provider
+  (was hardcoded "google" for every OAuth signup).
+- **Email caveat handled**: GitHub can hide email and X never shares it — such accounts
+  get a stable placeholder (`gh-<id>/x-<id>@users.noreply.xyzcrypto.io`) so login works;
+  email features simply no-op for them (documented in .env.example).
+- Dashboard Integrations strip now shows GitHub login + X login status pills.
+- typecheck + lint(0 err) + test(109) + build green.
+
 ## 2026-07-03 — Chat v3: message recovery + Telegram-style polls + pinned messages
 Recovery point: branch `backup/pre-p6-security` (same base). Owner-requested chat upgrade:
 - **Deleted messages recovered:** chat deletes were always soft (`status='hidden'`) —

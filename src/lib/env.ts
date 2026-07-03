@@ -10,6 +10,10 @@ const schema = z.object({
   NEXTAUTH_URL: z.string().url().optional(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  TWITTER_CLIENT_ID: z.string().optional(),
+  TWITTER_CLIENT_SECRET: z.string().optional(),
   ADMIN_EMAIL: z.string().optional(),
   ADMIN_EMAILS: z.string().optional(),
   UPSTASH_REDIS_REST_URL: z.string().optional(),
@@ -45,6 +49,10 @@ export const env = {
   NEXTAUTH_URL: raw.NEXTAUTH_URL ?? "",
   GOOGLE_CLIENT_ID: raw.GOOGLE_CLIENT_ID ?? "",
   GOOGLE_CLIENT_SECRET: raw.GOOGLE_CLIENT_SECRET ?? "",
+  GITHUB_CLIENT_ID: raw.GITHUB_CLIENT_ID ?? "",
+  GITHUB_CLIENT_SECRET: raw.GITHUB_CLIENT_SECRET ?? "",
+  TWITTER_CLIENT_ID: raw.TWITTER_CLIENT_ID ?? "",
+  TWITTER_CLIENT_SECRET: raw.TWITTER_CLIENT_SECRET ?? "",
   UPSTASH_REDIS_REST_URL: raw.UPSTASH_REDIS_REST_URL ?? "",
   UPSTASH_REDIS_REST_TOKEN: raw.UPSTASH_REDIS_REST_TOKEN ?? "",
   RESEND_API_KEY: raw.RESEND_API_KEY ?? "",
@@ -60,6 +68,8 @@ export const env = {
 };
 
 export const googleEnabled = !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET;
+export const githubEnabled = !!env.GITHUB_CLIENT_ID && !!env.GITHUB_CLIENT_SECRET;
+export const twitterEnabled = !!env.TWITTER_CLIENT_ID && !!env.TWITTER_CLIENT_SECRET;
 
 // Email (Resend). When unset, OTP codes are logged to the server console so the
 // flow still works for local/testing - set RESEND_API_KEY to actually deliver.

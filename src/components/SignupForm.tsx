@@ -4,11 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import { GoogleButton } from "./GoogleButton";
+import { SocialButtons, type SocialProviders } from "./SocialButtons";
 import { OtpStep } from "./OtpStep";
 import { PasswordField } from "./PasswordField";
 
-export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
+export function SignupForm({ providers }: { providers: SocialProviders }) {
   const router = useRouter();
   const [step, setStep] = useState<"details" | "otp">("details");
   const [name, setName] = useState("");
@@ -82,9 +82,9 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
 
   return (
     <div className="space-y-5">
-      <GoogleButton enabled={googleEnabled} label="Sign up with Google" />
+      <SocialButtons providers={providers} mode="up" />
 
-      {googleEnabled && (
+      {(providers.google || providers.github || providers.twitter) && (
         <div className="flex items-center gap-3 text-xs text-zinc-600">
           <span className="h-px flex-1 bg-white/10" />
           or
