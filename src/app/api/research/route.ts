@@ -7,16 +7,41 @@ import { ok, fail, handleError, requirePermission } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { notifyNewPost } from "@/lib/notifications";
 import { broadcastEvent, CH_NOTIFY } from "@/lib/realtime";
+import { summarize } from "@/lib/ai-tasks";
+
+// Explicit post field list that OMITS the AI `summary` column. Used by every
+// query that doesn't render the TL;DR so the site keeps working before the
+// `12_post_summary` migration lands (a missing column would otherwise throw
+// P2022 → "Database not migrated" on the public research list). Only the article
+// detail page + the summarize endpoint read/write `summary`.
+const POST_SCALARS = {
+  id: true, title: true, slug: true, excerpt: true, content: true,
+  cover: true, category: true, tags: true, published: true, premium: true,
+  views: true, createdAt: true, updatedAt: true, authorId: true,
+} satisfies Prisma.PostSelect;
+
+// Best-effort: generate + store an AI TL;DR for a post. Never throws (summarize
+// already swallows errors and returns null when AI is off), so callers can await
+// it without risking the publish/update.
+async function generateSummary(post: { id: string; title: string; content: string }) {
+  const summary = await summarize(post.title, post.content);
+  if (summary) {
+    await prisma.post.update({ where: { id: post.id }, data: { summary } }).catch(() => null);
+  }
+}
 
 // On publish: fan out the in-app notification AND auto-create a linked "What's
 // New" entry so newly-shipped research shows up in the homepage feed. Both are
 // best-effort — a hiccup here never fails the publish.
-async function afterPublish(post: { id: string; title: string; excerpt: string }) {
+async function afterPublish(post: { id: string; title: string; excerpt: string; content: string; premium: boolean }) {
   await notifyNewPost(post as never);
   await prisma.whatsNewEntry
     .create({ data: { title: post.title, body: post.excerpt, tag: "New", postId: post.id } })
     .then(() => broadcastEvent(CH_NOTIFY, "whatsnew_updated", { postId: post.id }))
     .catch(() => null);
+  // AI TL;DR — only for FREE articles (never tease premium content). Best-effort;
+  // no-op when AI is disabled.
+  if (!post.premium) await generateSummary(post);
 }
 
 // Refresh the ISR-cached pages that list/show posts after a content change.
@@ -55,7 +80,7 @@ export async function GET(req: Request) {
       prisma.post.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        include: { author: { select: { name: true } } },
+        select: { ...POST_SCALARS, author: { select: { name: true } } },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -122,7 +147,7 @@ export async function POST(req: Request) {
     // Try the clean slug; on a unique collision, retry once with a short suffix
     // (avoids the previous unbounded findUnique loop).
     try {
-      const post = await prisma.post.create({ data: { ...payload, slug: base } });
+      const post = await prisma.post.create({ data: { ...payload, slug: base }, select: POST_SCALARS });
       revalidateContent(post.slug);
       // Fan out an in-app notification to members (only for published posts).
       if (post.published) await afterPublish(post);
@@ -130,7 +155,7 @@ export async function POST(req: Request) {
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
         const slug = `${base}-${Math.random().toString(36).slice(2, 6)}`;
-        const post = await prisma.post.create({ data: { ...payload, slug } });
+        const post = await prisma.post.create({ data: { ...payload, slug }, select: POST_SCALARS });
         revalidateContent(post.slug);
         if (post.published) await afterPublish(post);
         return ok({ post }, 201);

@@ -181,6 +181,7 @@ model Post {
   tags      String   @default("") // comma separated
   published Boolean  @default(true)
   premium   Boolean  @default(false) // Premium Content — body gated to Premium users
+  summary   String?  // AI-generated TL;DR (XYZ AI) — shown atop the article
   views     Int      @default(0) // total opens (incremented on the article page)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -48,7 +48,7 @@ Settings → Environment Variables is the canonical store for runtime).
 | `UPSTASH_REDIS_REST_URL/_TOKEN` | Rate limits (optional) | Limits become no-ops | Vercel ← Upstash console |
 | `RESEND_API_KEY`, `EMAIL_FROM` | OTP emails (optional) | Codes log to server console | Vercel ← Resend dashboard |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | Image uploads (optional) | Uploads return 501 | Vercel ← Supabase → API keys |
-| `GEMINI_API_KEY` | **XYZ AI** assistant (optional) | AI features no-op (assistant 503, launcher shows "not configured") | Vercel ← Google AI Studio (aistudio.google.com/apikey) — free, no card |
+| `GROQ_API_KEY` | **XYZ AI** assistant (optional) | AI features no-op (assistant 503, launcher shows "not configured") | Vercel ← Groq console (console.groq.com/keys) — free, no card |
 | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_GSC_VERIFICATION` | SEO/analytics (optional) | Wrong canonical / no GA | Vercel |
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | Error monitoring (optional) | Sentry no-op | Vercel ← Sentry project |
 | `SEED_ADMIN_PASSWORD` | `npm run seed` only | Insecure default `changeme123` — **always set, change after first login** | Local shell only |
@@ -81,22 +81,35 @@ they just keep the bell list, dashboard premium list, and analytics fast at scal
 
 ## 4. Pending operational state (check before building new features)
 
-### 🆕 XYZ AI research assistant (env: `GEMINI_API_KEY`) — optional, FREE
+### 🆕 XYZ AI research assistant (env: `GROQ_API_KEY`) — optional, FREE
 The site ships an in-product AI assistant ("XYZ AI") — a floating chat launcher open to
-**all signed-in members**, grounded in published research. Provider is **Google Gemini
-(free tier)**. It's **off until configured**:
-1. **Google AI Studio → https://aistudio.google.com/apikey** → create an API key
-   (free, no credit card).
-2. Vercel → Project → Settings → Environment Variables → add `GEMINI_API_KEY`
+**all signed-in members**, grounded in published research. Provider is **Groq (free tier,
+Llama models — fast, generous limits)**. It's **off until configured**:
+1. **Groq console → https://console.groq.com/keys** → create an API key (free, no card).
+2. Vercel → Project → Settings → Environment Variables → add `GROQ_API_KEY`
    (Production + Preview) → redeploy.
 Until set, `aiEnabled` is false everywhere: the assistant returns 503 and the launcher
-shows "not configured" (no crash, no cost). **Model:** `gemini-2.5-flash` (free tier);
+shows "not configured" (no crash, no cost). **Model:** `llama-3.3-70b-versatile`;
 rate-limited to 15 turns/min per user. **Premium article bodies are redacted from the
 assistant's grounding corpus** (only public title+excerpt), so the open assistant can't
 leak paid content. No DB migration required. The dashboard Integrations strip shows an
 **"XYZ AI"** pill (green when the key is present).
-**Later:** to move to Claude (paid), edit only `src/lib/ai.ts` + swap the env var — the
-route, widget and grounding stay as-is (single-wrapper design).
+**Provider swap:** edit only `src/lib/ai.ts` + the env var — the route, widget and
+grounding stay as-is (single-wrapper design). This is how we moved Claude → Gemini → Groq.
+
+**XYZ AI phase 2 (same `GROQ_API_KEY`, model `llama-3.1-8b-instant`):**
+- **Article TL;DRs** — an AI summary is generated when a post is published or its body is
+  edited, and shown atop the article. Migration `12_post_summary` adds a **nullable**
+  `Post.summary` (auto-applies via `vercel-build` `db push`; no backfill needed — old
+  posts get a summary on next edit, or via the admin endpoint below). SQL fallback:
+  `ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "summary" TEXT;`
+  Backfill one post on demand: `POST /api/ai/summarize {postId}` (admin, `post:publish`).
+- **Chat auto-moderation** — each new chat message is classified; clearly toxic ones are
+  auto-hidden through the existing moderation path (fully recoverable from Dashboard →
+  Moderation → Chat). **Fail-open**: on any AI error/timeout/quota the message stays
+  visible, so a mod outage never blocks chat. No-op when the key is unset.
+- Free-tier note: summaries + moderation share Groq's free quota; if it's exhausted
+  those calls fail-open (summary skipped / message not hidden) — the site keeps working.
 
 ### ⚠️ Community chat realtime (live "who's online" + instant sound) — optional but recommended
 Presence + instant message/reaction sound are **realtime-only**. Set

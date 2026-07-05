@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { readingTime } from "@/lib/utils";
+import { POST_CARD_SELECT } from "@/lib/post-select";
 import { Reveal } from "./Reveal";
 import { PostCard } from "./PostCard";
 import { EarlyAccessCta } from "./EarlyAccessCta";
@@ -13,7 +14,7 @@ export async function ResearchPreview() {
       where: { published: true },
       orderBy: { createdAt: "desc" },
       take: 3,
-      include: { author: { select: { name: true } } },
+      select: POST_CARD_SELECT,
     })
     .catch(() => []);
   // Never ship article bodies in the home payload — precomputed read time only.

@@ -4,6 +4,7 @@ import { Footer } from "@/components/Footer";
 import { ResearchGrid } from "@/components/ResearchGrid";
 import { prisma } from "@/lib/prisma";
 import { readingTime } from "@/lib/utils";
+import { POST_CARD_SELECT } from "@/lib/post-select";
 
 export const metadata: Metadata = {
   title: "Research Hub",
@@ -22,7 +23,7 @@ export default async function ResearchPage() {
       .findMany({
         where: { published: true },
         orderBy: { createdAt: "desc" },
-        include: { author: { select: { name: true } } },
+        select: POST_CARD_SELECT,
         take: PAGE_SIZE,
       })
       .catch(() => []),

@@ -17,6 +17,7 @@ import { ShareRow } from "@/components/ShareRow";
 import { PremiumLock } from "@/components/PremiumLock";
 import { CommentSection } from "@/components/CommentSection";
 import { LikeButton } from "@/components/LikeButton";
+import { POST_CARD_SELECT } from "@/lib/post-select";
 
 // Personalized (premium gating reads the session), so render per-request. The
 // query is a single indexed lookup; the heavy list pages stay ISR-cached.
@@ -129,7 +130,7 @@ export default async function PostPage({
         where: { published: true, category: post.category, slug: { not: post.slug } },
         orderBy: { createdAt: "desc" },
         take: 3,
-        include: { author: { select: { name: true } } },
+        select: POST_CARD_SELECT,
       })
       .catch(() => []),
     prisma.postLike.count({ where: { postId: post.id } }).catch(() => 0),
@@ -245,6 +246,20 @@ export default async function PostPage({
           <p className="mt-8 border-l-2 border-gold-500/60 pl-4 text-lg leading-relaxed text-zinc-200">
             {post.excerpt}
           </p>
+
+          {(() => {
+            // AI TL;DR (XYZ AI). FREE articles only — never tease premium content.
+            // Optional column — hidden pre-migration or until generated.
+            const summary = post.premium ? null : (post as { summary?: string | null }).summary;
+            return summary ? (
+              <div className="mt-6 rounded-xl border border-mint-500/25 bg-mint-500/[0.06] p-4">
+                <p className="mono text-[11px] font-semibold uppercase tracking-wide text-mint-300">
+                  TL;DR · XYZ AI
+                </p>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-zinc-200">{summary}</p>
+              </div>
+            ) : null;
+          })()}
 
           {locked ? (
             <PremiumLock loggedIn={Boolean(sessionUser)} />

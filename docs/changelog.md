@@ -5,6 +5,36 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-05 — XYZ AI: switch provider to Groq (free, faster, higher limits)
+Gemini's free tier limits were being hit. Moved to **Groq** (Llama models) for a more
+generous free quota + faster inference. Single-wrapper design meant only `src/lib/ai.ts`
++ the env var changed — assistant, summaries, moderation, widget all unchanged.
+- `src/lib/ai.ts`: `groq-sdk` client; models `llama-3.3-70b-versatile` (assistant),
+  `llama-3.1-8b-instant` (bulk). `streamAssistant` still returns a provider-agnostic
+  `AsyncIterable<string>`; `completeText` uses OpenAI-style chat messages.
+- env: `GEMINI_API_KEY` → `GROQ_API_KEY` (free key at console.groq.com/keys).
+- deps: remove `@google/genai`, add `groq-sdk`.
+- Also: the assistant now shows a **specific** failure reason (usage-limit / not-configured
+  / rephrase) instead of a generic message (`aiErrorMessage`).
+
+## 2026-07-05 — XYZ AI Phase B PR 2: article summaries + chat auto-moderation
+Two more in-product AI features (Google Gemini, model `gemini-2.5-flash-lite`, same
+`GEMINI_API_KEY`; both no-op cleanly when AI is off).
+- **AI article TL;DRs:** `Post.summary` (nullable) + idempotent migration
+  `12_post_summary`. Generated on publish (`afterPublish`) and on body edits (research
+  PATCH), plus an admin backfill endpoint `POST /api/ai/summarize` (`post:publish`).
+  Rendered as a mint "TL;DR · XYZ AI" block atop the article; hidden pre-migration /
+  until generated (P2022-safe read).
+- **AI chat auto-moderation:** each new message is classified (`classifyToxic`); clearly
+  toxic ones are auto-hidden via the existing moderation path (broadcast
+  `message_hidden`), fully restorable from Dashboard → Moderation. **Fail-open + bounded
+  (4s)** — any error/timeout/quota leaves the message visible; runs after create+broadcast
+  so the (optimistic) send stays instant.
+- **New:** `src/lib/ai-summary.ts` (pure prompt builders + parsers, unit-tested) ·
+  `src/lib/ai-tasks.ts` (server `summarize` / `classifyToxic`, best-effort) ·
+  `src/app/api/ai/summarize/route.ts`.
+- typecheck + lint(0) + test(**129**, +9 for ai-summary) + build green.
+
 ## 2026-07-05 — XYZ AI: dedicated navbar entry + 3D robot + green look
 Small UX polish on the shipped assistant (owner request, before PR 2):
 - **Dedicated "XYZ AI" navbar item** (desktop + mobile). Clicking it opens the

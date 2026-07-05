@@ -5,6 +5,15 @@ import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { summarize } from "@/lib/ai-tasks";
+
+// Post fields WITHOUT the AI `summary` column, so the editor GET + updates keep
+// working before the `12_post_summary` migration lands (missing column → P2022).
+const POST_SCALARS = {
+  id: true, title: true, slug: true, excerpt: true, content: true,
+  cover: true, category: true, tags: true, published: true, premium: true,
+  views: true, createdAt: true, updatedAt: true, authorId: true,
+} satisfies Prisma.PostSelect;
 
 function revalidateContent(slug?: string) {
   revalidatePath("/");
@@ -19,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     if (!actor) return fail("Forbidden", 403);
     if (!isCuid(params.id)) return fail("Invalid id.", 400);
 
-    const post = await prisma.post.findUnique({ where: { id: params.id } });
+    const post = await prisma.post.findUnique({ where: { id: params.id }, select: POST_SCALARS });
     if (!post) return fail("Post not found.", 404);
     return ok({ post });
   } catch (err) {
@@ -85,10 +94,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return prisma.post.update({
         where: { id: params.id },
         data: { ...payload, slug },
+        select: POST_SCALARS,
       });
     }
 
-    let post;
+    let post: Awaited<ReturnType<typeof update>>;
     try {
       post = await update(nextSlug);
     } catch (e) {
@@ -97,6 +107,22 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         post = await update(`${nextSlug}-${Math.random().toString(36).slice(2, 6)}`);
       } else {
         throw e;
+      }
+    }
+
+    // AI TL;DR is FREE-articles only. Regenerate when a free post's body changes;
+    // if a post is premium, make sure no stale summary lingers. Best-effort — a
+    // missing `summary` column (pre-migration) throws P2022 and is swallowed.
+    if (post.premium) {
+      post = await prisma.post
+        .update({ where: { id: params.id }, data: { summary: null }, select: POST_SCALARS })
+        .catch(() => post);
+    } else if (data.content !== undefined) {
+      const summary = await summarize(post.title, post.content);
+      if (summary) {
+        post = await prisma.post
+          .update({ where: { id: params.id }, data: { summary }, select: POST_SCALARS })
+          .catch(() => post);
       }
     }
 

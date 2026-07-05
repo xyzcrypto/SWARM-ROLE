@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
-import { aiEnabled, streamAssistant, type AiMessage } from "@/lib/ai";
+import { aiEnabled, streamAssistant, aiErrorMessage, type AiMessage } from "@/lib/ai";
 import { buildAssistantSystemPrompt, type GroundingPost } from "@/lib/ai-ground";
 
 export const runtime = "nodejs";
@@ -81,11 +81,9 @@ export async function POST(req: Request) {
             if (text) controller.enqueue(encoder.encode(text));
           }
         } catch (err) {
-          // Mid-stream failure: surface a short line rather than a silent cut.
+          // Mid-stream failure: surface a specific reason rather than a silent cut.
           console.error("[ai:assistant] stream error", err);
-          controller.enqueue(
-            encoder.encode("\n\n_XYZ AI ran into an issue finishing that answer. Please try again._")
-          );
+          controller.enqueue(encoder.encode(`\n\n_${aiErrorMessage(err)}_`));
         } finally {
           controller.close();
         }
