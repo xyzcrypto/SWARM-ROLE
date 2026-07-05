@@ -3,9 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Sparkles, SendHorizonal, X, Loader2 } from "lucide-react";
+import { Bot, SendHorizonal, X, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
+
+// Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
+export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
@@ -40,6 +43,13 @@ export function XyzAiWidget() {
   }, [messages, busy, open, reduce]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Let the navbar (or any surface) open the assistant by dispatching the event.
+  useEffect(() => {
+    const openWidget = () => setOpen(true);
+    window.addEventListener(XYZ_AI_OPEN_EVENT, openWidget);
+    return () => window.removeEventListener(XYZ_AI_OPEN_EVENT, openWidget);
+  }, []);
 
   async function send(text: string) {
     const q = text.trim();
@@ -105,7 +115,7 @@ export function XyzAiWidget() {
       <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
         <div className="flex items-center gap-2">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gold-shine text-ink ring-1 ring-gold-500/40">
-            <Sparkles className="h-4 w-4" />
+            <Bot className="h-4 w-4" />
           </span>
           <div className="leading-tight">
             <p className="text-sm font-semibold text-zinc-100">XYZ AI</p>
@@ -235,7 +245,7 @@ export function XyzAiWidget() {
             </motion.span>
           ) : (
             <motion.span key="s" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
-              <Sparkles className="h-6 w-6" />
+              <Bot className="h-6 w-6" />
             </motion.span>
           )}
         </AnimatePresence>
@@ -275,7 +285,7 @@ function GateCard({
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
       <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gold-500/10 text-gold-200 ring-1 ring-gold-500/30">
-        <Sparkles className="h-5 w-5" />
+        <Bot className="h-5 w-5" />
       </span>
       <p className="text-sm font-semibold text-zinc-100">{title}</p>
       <p className="text-xs leading-relaxed text-zinc-400">{body}</p>

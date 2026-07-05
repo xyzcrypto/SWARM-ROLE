@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown, Bot } from "lucide-react";
 import { navLinks } from "@/lib/site";
+import { XYZ_AI_OPEN_EVENT } from "./XyzAiWidget";
 import { cn, maskEmail } from "@/lib/utils";
 import { Avatar } from "./Avatar";
 import { ActionLink } from "./ActionLink";
@@ -112,6 +113,15 @@ export function Navbar() {
               />
             </Link>
           ))}
+          {/* Dedicated XYZ AI launcher — opens the floating assistant. */}
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT))}
+            className="ml-1 inline-flex items-center gap-1.5 rounded-lg border border-gold-500/30 bg-gold-500/5 px-3 py-1.5 text-sm font-semibold text-gold-200 transition-colors hover:border-gold-500/50 hover:bg-gold-500/15 hover:text-gold-100"
+          >
+            <Bot className="h-4 w-4" />
+            XYZ AI
+          </button>
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
@@ -221,6 +231,18 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
+            {/* Dedicated XYZ AI launcher (mobile). */}
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT));
+              }}
+              className="mt-0.5 inline-flex items-center gap-2 rounded-lg border border-gold-500/30 bg-gold-500/5 px-3 py-2.5 text-sm font-semibold text-gold-200 transition-colors hover:bg-gold-500/15 hover:text-gold-100"
+            >
+              <Bot className="h-4 w-4" />
+              XYZ AI
+            </button>
             <div className="mt-2 flex flex-col gap-2 border-t border-line pt-3">
               <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
                 <span className="text-sm font-medium text-zinc-300">Theme</span>

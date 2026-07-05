@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-05 — XYZ AI: dedicated navbar entry + robot icon
+Small UX polish on the shipped assistant (owner request, before PR 2):
+- **Dedicated "XYZ AI" navbar item** (desktop + mobile), gold-accented, robot icon.
+  Clicking it opens the floating assistant via a `window` `xyz-ai:open` event
+  (`XYZ_AI_OPEN_EVENT` exported from `XyzAiWidget`) — no page nav, no refactor.
+- **Robot icon** (`lucide-react` `Bot`) replaces the sparkle across the launcher,
+  header, and gate — matches the "AI bot" identity.
+- Verified (Playwright): navbar item visible, opens the dialog, robot icon renders,
+  0 page errors. typecheck + lint(0) + test(120) + build green.
+
 ## 2026-07-05 — XYZ AI: research assistant (Phase B, PR 1) — Google Gemini (free)
 First in-product AI feature — a floating **"XYZ AI"** chat assistant, open to **all
 signed-in members**, grounded in the site's own published research. Provider: **Google
