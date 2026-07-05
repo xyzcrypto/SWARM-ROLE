@@ -455,8 +455,39 @@ html.lenis body {
   0%, 100% { box-shadow: 0 8px 22px -8px rgba(11, 187, 124, 0.5); }
   50% { box-shadow: 0 0 22px 3px rgba(34, 214, 146, 0.45), 0 10px 28px -8px rgba(11, 187, 124, 0.72); }
 }
+/* The launcher's robot gently idles (float + tiny tilt). */
+.ai-fab-bot { animation: ai-fab-float 3s ease-in-out infinite; transform-origin: center; }
+@keyframes ai-fab-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  35% { transform: translateY(-1.5px) rotate(-5deg); }
+  70% { transform: translateY(1px) rotate(5deg); }
+}
+
+/* Robot comes alive: the antenna light pulses and the eyes blink. Applies to
+   every RobotIcon (navbar, launcher, header, gate). Reduced-motion safe. */
+.robot-antenna {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: robot-antenna 1.6s ease-in-out infinite;
+}
+@keyframes robot-antenna {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(1.28); }
+}
+.robot-eye {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: robot-blink 4.2s ease-in-out infinite;
+}
+@keyframes robot-blink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.12); }
+}
 @media (prefers-reduced-motion: reduce) {
-  .ai-fab { animation: none; }
+  .ai-fab,
+  .ai-fab-bot,
+  .robot-antenna,
+  .robot-eye { animation: none; }
 }
 
 /* Tactile press feedback for primary actions / redirects. A quick radial sheen

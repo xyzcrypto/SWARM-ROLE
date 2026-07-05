@@ -35,10 +35,12 @@ export function RobotIcon({ className }: { className?: string }) {
         </filter>
       </defs>
 
-      {/* antenna */}
+      {/* antenna (light pulses) */}
       <line x1="24" y1="8" x2="24" y2="14" stroke="#0bbb7c" strokeWidth="2" strokeLinecap="round" />
-      <circle cx="24" cy="6.5" r="2.6" fill="#9bf7d0" />
-      <circle cx="24" cy="6.5" r="2.6" fill={`url(#${gloss})`} />
+      <g className="robot-antenna">
+        <circle cx="24" cy="6.5" r="2.6" fill="#9bf7d0" />
+        <circle cx="24" cy="6.5" r="2.6" fill={`url(#${gloss})`} />
+      </g>
 
       {/* side ears */}
       <rect x="5" y="22" width="4.5" height="9" rx="2.25" fill="#0a8f66" filter={`url(#${glow})`} />
@@ -49,11 +51,15 @@ export function RobotIcon({ className }: { className?: string }) {
       {/* top gloss */}
       <rect x="12" y="15.5" width="24" height="15" rx="7.5" fill={`url(#${gloss})`} />
 
-      {/* eyes */}
-      <circle cx="18.5" cy="26.5" r="3.4" fill={`url(#${eye})`} />
-      <circle cx="29.5" cy="26.5" r="3.4" fill={`url(#${eye})`} />
-      <circle cx="17.6" cy="25.4" r="1.05" fill="#ffffff" />
-      <circle cx="28.6" cy="25.4" r="1.05" fill="#ffffff" />
+      {/* eyes (blink) */}
+      <g className="robot-eye">
+        <circle cx="18.5" cy="26.5" r="3.4" fill={`url(#${eye})`} />
+        <circle cx="17.6" cy="25.4" r="1.05" fill="#ffffff" />
+      </g>
+      <g className="robot-eye">
+        <circle cx="29.5" cy="26.5" r="3.4" fill={`url(#${eye})`} />
+        <circle cx="28.6" cy="25.4" r="1.05" fill="#ffffff" />
+      </g>
 
       {/* mouth */}
       <rect x="17.5" y="33" width="13" height="3.2" rx="1.6" fill="#0a3f2c" fillOpacity="0.55" />

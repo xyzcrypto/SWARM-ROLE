@@ -21,6 +21,10 @@ Small UX polish on the shipped assistant (owner request, before PR 2):
 - Verified (Playwright + screenshots): navbar transparent + `ai-active` animation +
   robot SVG, green launcher gradient, opens the assistant, 0 page errors.
   typecheck + lint(0) + test(120) + build green.
+- **Robot idle life** (follow-up): the `RobotIcon` now blinks its eyes and pulses
+  its antenna light everywhere it appears; the floating launcher's robot gently
+  floats/tilts. Reduced-motion safe. Verified: `robot-antenna`/`robot-blink`/
+  `ai-fab-float` animations live, 0 errors.
 
 ## 2026-07-05 — XYZ AI: research assistant (Phase B, PR 1) — Google Gemini (free)
 First in-product AI feature — a floating **"XYZ AI"** chat assistant, open to **all
