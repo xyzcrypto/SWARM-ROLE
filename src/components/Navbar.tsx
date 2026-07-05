@@ -6,9 +6,10 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown, Bot } from "lucide-react";
+import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown } from "lucide-react";
 import { navLinks } from "@/lib/site";
 import { XYZ_AI_OPEN_EVENT } from "./XyzAiWidget";
+import { RobotIcon } from "./RobotIcon";
 import { cn, maskEmail } from "@/lib/utils";
 import { Avatar } from "./Avatar";
 import { ActionLink } from "./ActionLink";
@@ -113,14 +114,14 @@ export function Navbar() {
               />
             </Link>
           ))}
-          {/* Dedicated XYZ AI launcher — animated green CTA, opens the assistant. */}
+          {/* Dedicated XYZ AI launcher — transparent glass, live green pulse, 3D robot. */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT))}
-            className="ai-nav-btn ml-1 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-mint-500 to-mint-400 px-3 py-1.5 text-sm font-semibold text-ink ring-1 ring-mint-300/50 transition-transform"
+            className="ai-nav-btn ml-1 inline-flex items-center gap-1.5 rounded-lg border border-mint-400/40 bg-transparent px-3 py-1.5 text-sm font-semibold text-mint-100 transition-transform"
           >
             <span className="relative z-10 inline-flex items-center gap-1.5">
-              <Bot className="ai-bot h-4 w-4" />
+              <RobotIcon className="ai-bot h-5 w-5" />
               XYZ AI
             </span>
           </button>
@@ -233,17 +234,17 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
-            {/* Dedicated XYZ AI launcher (mobile) — animated green CTA. */}
+            {/* Dedicated XYZ AI launcher (mobile) — transparent glass, live green pulse, 3D robot. */}
             <button
               type="button"
               onClick={() => {
                 setOpen(false);
                 window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT));
               }}
-              className="ai-nav-btn mt-0.5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-mint-500 to-mint-400 px-3 py-2.5 text-sm font-semibold text-ink ring-1 ring-mint-300/50"
+              className="ai-nav-btn mt-0.5 inline-flex items-center gap-2 rounded-lg border border-mint-400/40 bg-transparent px-3 py-2.5 text-sm font-semibold text-mint-100"
             >
               <span className="relative z-10 inline-flex items-center gap-2">
-                <Bot className="ai-bot h-4 w-4" />
+                <RobotIcon className="ai-bot h-5 w-5" />
                 XYZ AI
               </span>
             </button>
