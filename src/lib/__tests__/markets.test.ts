@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactUsd, pct, fngLabel, topByTvl } from "@/lib/markets";
+import { compactUsd, pct, fngLabel, topByTvl, topBy, apyFmt, toGwei } from "@/lib/markets";
 
 describe("compactUsd", () => {
   it("formats trillions/billions/millions/thousands", () => {
@@ -51,5 +51,34 @@ describe("topByTvl", () => {
     expect(topByTvl(list, 5).map((x) => x.tvl)).toEqual([9, 5]);
     expect(topByTvl(null, 3)).toEqual([]);
     expect(topByTvl(undefined, 3)).toEqual([]);
+  });
+});
+
+describe("topBy", () => {
+  it("sorts desc by a key and slices", () => {
+    const rows = [{ v: 3 }, { v: 10 }, { v: 1 }];
+    expect(topBy(rows, (r) => r.v, 2).map((r) => r.v)).toEqual([10, 3]);
+  });
+  it("skips non-finite + tolerates non-array", () => {
+    const rows = [{ v: 5 }, { v: NaN }, { v: 8 }];
+    expect(topBy(rows, (r) => r.v, 5).map((r) => r.v)).toEqual([8, 5]);
+    expect(topBy(null, (r: any) => r.v, 3)).toEqual([]);
+  });
+});
+
+describe("apyFmt", () => {
+  it("formats percent", () => {
+    expect(apyFmt(12.345)).toBe("12.35%");
+    expect(apyFmt(null)).toBe("—");
+    expect(apyFmt(NaN)).toBe("—");
+  });
+});
+
+describe("toGwei", () => {
+  it("converts hex or number wei to gwei", () => {
+    expect(toGwei(0x59682f00)).toBe("1.5 gwei"); // 1.5e9 wei
+    expect(toGwei(23_400_000_000)).toBe("23.4 gwei");
+    expect(toGwei(null)).toBe("—");
+    expect(toGwei("0x")).toBe("—");
   });
 });

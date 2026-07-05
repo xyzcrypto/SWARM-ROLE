@@ -13,6 +13,7 @@ export type GlobalMarket = {
   fearGreed: FearGreed | null;
   defiMcap: number | null; // CoinMarketCap enrichment (null when no CMC key)
   stableMcap: number | null;
+  gasGwei: number | null; // Ethereum base gas price (keyless RPC)
 };
 
 export type DefiProtocol = { name: string; tvl: number; chain: string; change1d: number; logo: string | null };
@@ -60,3 +61,35 @@ export function topByTvl<T extends { tvl: number }>(list: T[] | null | undefined
     .sort((a, b) => b.tvl - a.tvl)
     .slice(0, Math.max(0, n));
 }
+
+/** Generic top-N by a numeric key, descending. Skips non-finite values. */
+export function topBy<T>(list: T[] | null | undefined, key: (x: T) => number, n: number): T[] {
+  if (!Array.isArray(list)) return [];
+  return list
+    .filter((x) => x != null && Number.isFinite(key(x)))
+    .sort((a, b) => key(b) - key(a))
+    .slice(0, Math.max(0, n));
+}
+
+/** Format a percent that is already a fraction/number as APY, e.g. 12.3 → "12.30%". */
+export function apyFmt(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  return `${n.toFixed(2)}%`;
+}
+
+/** Wei (hex or number) → gwei string, e.g. "23.4 gwei". */
+export function toGwei(weiHexOrNum: string | number | null | undefined): string {
+  if (weiHexOrNum == null) return "—";
+  const wei = typeof weiHexOrNum === "string" ? Number.parseInt(weiHexOrNum, 16) : weiHexOrNum;
+  if (!Number.isFinite(wei)) return "—";
+  return `${(wei / 1e9).toFixed(1)} gwei`;
+}
+
+// --- Extra section types (Perp DEX, DEX volume, fees, yields, coins) ---
+export type PerpDex = { name: string; volume24h: number; change1d: number; logo: string | null };
+export type PerpMarket = { coin: string; price: number; funding: number; openInterest: number };
+export type DexProtocol = { name: string; volume24h: number; change1d: number; logo: string | null };
+export type FeeProtocol = { name: string; fees24h: number; logo: string | null };
+export type YieldPool = { project: string; symbol: string; chain: string; apy: number; tvl: number };
+export type TrendingCoin = { name: string; symbol: string; thumb: string | null; change24h: number };
+export type MoverCoin = { name: string; symbol: string; image: string | null; price: number; change24h: number };

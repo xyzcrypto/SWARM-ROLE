@@ -17,7 +17,26 @@ const FALLBACK: GlobalMarket = {
   fearGreed: { value: 50, label: "Neutral" },
   defiMcap: null,
   stableMcap: null,
+  gasGwei: null,
 };
+
+// Ethereum gas price via Cloudflare's public, keyless JSON-RPC. Best-effort.
+async function ethGas(): Promise<number | null> {
+  try {
+    const res = await fetch("https://cloudflare-eth.com", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 1 }),
+      next: { revalidate: 30 },
+    });
+    if (!res.ok) return null;
+    const j = await res.json();
+    const wei = Number.parseInt(j?.result, 16);
+    return Number.isFinite(wei) ? Math.round((wei / 1e9) * 10) / 10 : null;
+  } catch {
+    return null;
+  }
+}
 
 async function coingeckoGlobal() {
   const res = await fetch("https://api.coingecko.com/api/v3/global", {
@@ -72,8 +91,8 @@ async function cmcMetrics() {
 
 export async function GET() {
   try {
-    const [core, fng, cmc] = await Promise.all([coingeckoGlobal(), fearGreed(), cmcMetrics()]);
-    const payload: GlobalMarket = { ...core, fearGreed: fng, defiMcap: cmc.defiMcap, stableMcap: cmc.stableMcap };
+    const [core, fng, cmc, gas] = await Promise.all([coingeckoGlobal(), fearGreed(), cmcMetrics(), ethGas()]);
+    const payload: GlobalMarket = { ...core, fearGreed: fng, defiMcap: cmc.defiMcap, stableMcap: cmc.stableMcap, gasGwei: gas };
     return NextResponse.json(
       { ...payload, live: true, ts: Date.now() },
       { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=180" } }

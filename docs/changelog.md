@@ -19,7 +19,13 @@ New **/markets** page aggregating live market + DeFi data in one place (owner re
   `PerpChart`. **Markets** added to the navbar.
 - **env:** `CMC_API_KEY` (optional) + `cmcEnabled` — hub works fully without it via the
   free sources; the CMC key just adds DeFi/stablecoin market-cap tiles.
-- typecheck + lint(0) + test(**137**, +8 for markets) + build green; page verified.
+- typecheck + lint(0) + test(137, +8 for markets) + build green; page verified.
+- **Expanded (same PR):** professional **tabbed** hub (Overview · DeFi · Perp DEX · DEX &
+  Fees · Yields · Trending) + always-visible 5-KPI strip (incl. **ETH gas** via keyless
+  Cloudflare RPC). New routes: `/api/markets/perp` (**Perp DEX** — DefiLlama derivatives
+  volumes + **Hyperliquid live funding/OI markets**), `/api/markets/dex` (DEX volume +
+  fees), `/api/markets/coins` (trending + top gainers/losers), `/api/markets/yields`
+  (top yield pools). All keyless/free, cached, graceful. test(**141**).
 
 ## 2026-07-05 — XYZ AI: switch provider to Groq (free, faster, higher limits)
 Gemini's free tier limits were being hit. Moved to **Groq** (Llama models) for a more
