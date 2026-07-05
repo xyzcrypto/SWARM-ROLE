@@ -395,7 +395,9 @@ html.lenis body {
 /* Animated "XYZ AI" navbar launcher — transparent glass with a LIVE green pulse:
    the glow, border and tint all breathe together (reads as "active"), a faint
    sheen sweeps across, and the 3D robot turns its head. Content sits above the
-   sheen via a relative z-10 wrapper. Fully disabled under reduced-motion. */
+   sheen via a relative z-10 wrapper. These are subtle, decorative brand
+   animations kept ALWAYS-ON (owner decision) so they show even when the OS/browser
+   has "reduce motion" enabled. */
 .ai-nav-btn {
   position: relative;
   overflow: hidden;
@@ -443,11 +445,6 @@ html.lenis body {
   30% { transform: translateY(-1px) rotateY(-22deg); }
   70% { transform: translateY(0) rotateY(22deg); }
 }
-@media (prefers-reduced-motion: reduce) {
-  .ai-nav-btn,
-  .ai-nav-btn::after,
-  .ai-nav-btn .ai-bot { animation: none; }
-}
 
 /* Floating assistant launcher — soft green glow so the green 3D bot feels alive. */
 .ai-fab { animation: ai-fab-glow 2.4s ease-in-out infinite; }
@@ -464,7 +461,8 @@ html.lenis body {
 }
 
 /* Robot comes alive: the antenna light pulses and the eyes blink. Applies to
-   every RobotIcon (navbar, launcher, header, gate). Reduced-motion safe. */
+   every RobotIcon (navbar, launcher, header, gate). Kept always-on (owner
+   decision) so it animates even under "reduce motion". */
 .robot-antenna {
   transform-box: fill-box;
   transform-origin: center;
@@ -482,12 +480,6 @@ html.lenis body {
 @keyframes robot-blink {
   0%, 90%, 100% { transform: scaleY(1); }
   95% { transform: scaleY(0.12); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ai-fab,
-  .ai-fab-bot,
-  .robot-antenna,
-  .robot-eye { animation: none; }
 }
 
 /* Tactile press feedback for primary actions / redirects. A quick radial sheen

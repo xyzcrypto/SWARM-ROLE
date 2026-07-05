@@ -23,8 +23,13 @@ Small UX polish on the shipped assistant (owner request, before PR 2):
   typecheck + lint(0) + test(120) + build green.
 - **Robot idle life** (follow-up): the `RobotIcon` now blinks its eyes and pulses
   its antenna light everywhere it appears; the floating launcher's robot gently
-  floats/tilts. Reduced-motion safe. Verified: `robot-antenna`/`robot-blink`/
-  `ai-fab-float` animations live, 0 errors.
+  floats/tilts. Verified: `robot-antenna`/`robot-blink`/`ai-fab-float` animations
+  live, 0 errors.
+- **Always-on** (follow-up): these XYZ AI brand animations were being disabled by
+  the desktop "reduce motion" OS/browser setting (why they looked static on some
+  desktops). By owner decision they now run regardless of that preference — verified
+  the pulse animates under emulated `prefers-reduced-motion: reduce`. (Trade-off:
+  intentionally overrides reduce-motion for these subtle decorative animations only.)
 
 ## 2026-07-05 — XYZ AI: research assistant (Phase B, PR 1) — Google Gemini (free)
 First in-product AI feature — a floating **"XYZ AI"** chat assistant, open to **all
