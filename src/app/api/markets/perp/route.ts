@@ -7,10 +7,12 @@ import { topBy, type PerpDex, type PerpMarket } from "@/lib/markets";
 export const revalidate = 60;
 
 async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> {
-  const res = await fetch("https://api.llama.fi/overview/derivatives", {
-    headers: { accept: "application/json" },
-    next: { revalidate },
-  });
+  // Exclude the (huge) chart arrays so the payload is small + fast; some hosts
+  // also 403 requests without a User-Agent, so send one.
+  const res = await fetch(
+    "https://api.llama.fi/overview/derivatives?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true",
+    { headers: { accept: "application/json", "user-agent": "xyzcrypto-markets/1.0" }, next: { revalidate } }
+  );
   if (!res.ok) throw new Error(`derivatives ${res.status}`);
   const j = await res.json();
   const list: any[] = j?.protocols ?? [];
@@ -25,8 +27,10 @@ async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> 
   return { dexs, totalVolume24h };
 }
 
-// Hyperliquid live perp markets — funding + open interest per coin.
-async function hyperliquidMarkets(): Promise<PerpMarket[]> {
+// Hyperliquid live perp markets — funding + open interest + 24h volume per coin.
+// Returns the top markets plus venue totals (used as a reliable fallback for the
+// aggregate volume/OI numbers when the DefiLlama overview is unavailable).
+async function hyperliquid(): Promise<{ markets: PerpMarket[]; totalVolume24h: number; totalOi: number }> {
   try {
     const res = await fetch("https://api.hyperliquid.xyz/info", {
       method: "POST",
@@ -34,7 +38,7 @@ async function hyperliquidMarkets(): Promise<PerpMarket[]> {
       body: JSON.stringify({ type: "metaAndAssetCtxs" }),
       next: { revalidate },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return { markets: [], totalVolume24h: 0, totalOi: 0 };
     const data = await res.json();
     const universe: any[] = data?.[0]?.universe ?? [];
     const ctxs: any[] = data?.[1] ?? [];
@@ -44,22 +48,33 @@ async function hyperliquidMarkets(): Promise<PerpMarket[]> {
       funding: Number(ctxs[i]?.funding) || 0, // hourly funding fraction
       openInterest: (Number(ctxs[i]?.openInterest) || 0) * (Number(ctxs[i]?.markPx) || 0),
     }));
-    return topBy(rows, (r) => r.openInterest, 8);
+    const totalVolume24h = ctxs.reduce((s, c) => s + (Number(c?.dayNtlVlm) || 0), 0);
+    const totalOi = rows.reduce((s, r) => s + r.openInterest, 0);
+    return { markets: topBy(rows, (r) => r.openInterest, 8), totalVolume24h, totalOi };
   } catch {
-    return [];
+    return { markets: [], totalVolume24h: 0, totalOi: 0 };
   }
 }
 
 export async function GET() {
-  // Both halves are independent so one flaky upstream can't blank the whole tab.
-  const [dexRes, markets] = await Promise.all([
+  // Both sources are independent so one flaky upstream can't blank the tab.
+  const [dexRes, hl] = await Promise.all([
     perpDexs().catch(() => ({ dexs: [] as PerpDex[], totalVolume24h: 0 })),
-    hyperliquidMarkets().catch(() => [] as PerpMarket[]),
+    hyperliquid().catch(() => ({ markets: [] as PerpMarket[], totalVolume24h: 0, totalOi: 0 })),
   ]);
-  const totalOi = markets.reduce((s, m) => s + (m.openInterest || 0), 0);
-  const live = dexRes.dexs.length > 0 || markets.length > 0;
+
+  // Prefer DefiLlama's cross-venue rankings; if it's down, still surface
+  // Hyperliquid as a single entry so the "top perp DEXs" list is never empty.
+  let dexs = dexRes.dexs;
+  if (!dexs.length && hl.totalVolume24h > 0) {
+    dexs = [{ name: "Hyperliquid", volume24h: hl.totalVolume24h, change1d: 0, logo: null }];
+  }
+  const totalVolume24h = dexRes.totalVolume24h || hl.totalVolume24h;
+  const totalOi = hl.totalOi;
+  const live = dexs.length > 0 || hl.markets.length > 0;
+
   return NextResponse.json(
-    { dexs: dexRes.dexs, markets, totalVolume24h: dexRes.totalVolume24h, totalOi, live, ts: Date.now() },
+    { dexs, markets: hl.markets, totalVolume24h, totalOi, live, ts: Date.now() },
     { headers: { "Cache-Control": live ? "public, s-maxage=60, stale-while-revalidate=180" : "public, s-maxage=20" } }
   );
 }

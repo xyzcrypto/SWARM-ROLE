@@ -6,10 +6,10 @@ import { topBy, type DexProtocol, type FeeProtocol } from "@/lib/markets";
 export const revalidate = 300;
 
 async function overview(kind: "dexs" | "fees") {
-  const res = await fetch(`https://api.llama.fi/overview/${kind}`, {
-    headers: { accept: "application/json" },
-    next: { revalidate },
-  });
+  const res = await fetch(
+    `https://api.llama.fi/overview/${kind}?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true`,
+    { headers: { accept: "application/json", "user-agent": "xyzcrypto-markets/1.0" }, next: { revalidate } }
+  );
   if (!res.ok) throw new Error(`${kind} ${res.status}`);
   const j = await res.json();
   return (j?.protocols ?? []) as any[];
