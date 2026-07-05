@@ -5,6 +5,14 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-05 — News: personalized "For You" feed
+Members can now follow topics and get a personalized news feed.
+- **`User.newsInterests String[]`** (migration `13_news_interests`, idempotent) + a
+  **"For You"** chip on /news (signed-in) that filters to the followed categories, and a
+  **Customize** modal to pick topics. `/api/news/interests` GET/POST (auth, P2022-safe so
+  it no-ops cleanly before the migration lands).
+- typecheck + lint(0) + test(154) + build green.
+
 ## 2026-07-05 — Live Web3 News & Intelligence Hub (/news)
 A real-time crypto news hub aggregated from reputable RSS feeds — **keyless, no API
 key** (owner request; CryptoPanic free tier had closed).
