@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-05 — XYZ AI: switch provider to Groq (free, faster, higher limits)
+Gemini's free tier limits were being hit. Moved to **Groq** (Llama models) for a more
+generous free quota + faster inference. Single-wrapper design meant only `src/lib/ai.ts`
++ the env var changed — assistant, summaries, moderation, widget all unchanged.
+- `src/lib/ai.ts`: `groq-sdk` client; models `llama-3.3-70b-versatile` (assistant),
+  `llama-3.1-8b-instant` (bulk). `streamAssistant` still returns a provider-agnostic
+  `AsyncIterable<string>`; `completeText` uses OpenAI-style chat messages.
+- env: `GEMINI_API_KEY` → `GROQ_API_KEY` (free key at console.groq.com/keys).
+- deps: remove `@google/genai`, add `groq-sdk`.
+- Also: the assistant now shows a **specific** failure reason (usage-limit / not-configured
+  / rephrase) instead of a generic message (`aiErrorMessage`).
+
 ## 2026-07-05 — XYZ AI Phase B PR 2: article summaries + chat auto-moderation
 Two more in-product AI features (Google Gemini, model `gemini-2.5-flash-lite`, same
 `GEMINI_API_KEY`; both no-op cleanly when AI is off).
