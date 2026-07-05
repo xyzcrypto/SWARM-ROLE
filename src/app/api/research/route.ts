@@ -33,14 +33,15 @@ async function generateSummary(post: { id: string; title: string; content: strin
 // On publish: fan out the in-app notification AND auto-create a linked "What's
 // New" entry so newly-shipped research shows up in the homepage feed. Both are
 // best-effort — a hiccup here never fails the publish.
-async function afterPublish(post: { id: string; title: string; excerpt: string; content: string }) {
+async function afterPublish(post: { id: string; title: string; excerpt: string; content: string; premium: boolean }) {
   await notifyNewPost(post as never);
   await prisma.whatsNewEntry
     .create({ data: { title: post.title, body: post.excerpt, tag: "New", postId: post.id } })
     .then(() => broadcastEvent(CH_NOTIFY, "whatsnew_updated", { postId: post.id }))
     .catch(() => null);
-  // AI TL;DR (best-effort; no-op when AI is disabled).
-  await generateSummary(post);
+  // AI TL;DR — only for FREE articles (never tease premium content). Best-effort;
+  // no-op when AI is disabled.
+  if (!post.premium) await generateSummary(post);
 }
 
 // Refresh the ISR-cached pages that list/show posts after a content change.

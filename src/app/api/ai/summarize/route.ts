@@ -27,9 +27,11 @@ export async function POST(req: Request) {
 
     const post = await prisma.post.findUnique({
       where: { id: parsed.data.postId },
-      select: { id: true, slug: true, title: true, content: true },
+      select: { id: true, slug: true, title: true, content: true, premium: true },
     });
     if (!post) return fail("Post not found.", 404);
+    // TL;DR is generated for FREE articles only (never tease premium content).
+    if (post.premium) return fail("TL;DR is only generated for free articles.", 400);
 
     const summary = await summarize(post.title, post.content);
     if (!summary) return fail("Couldn't generate a summary. Please try again.", 502);

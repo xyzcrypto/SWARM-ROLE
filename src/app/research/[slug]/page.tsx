@@ -248,8 +248,9 @@ export default async function PostPage({
           </p>
 
           {(() => {
-            // AI TL;DR (XYZ AI). Optional column — hidden pre-migration or until generated.
-            const summary = (post as { summary?: string | null }).summary;
+            // AI TL;DR (XYZ AI). FREE articles only — never tease premium content.
+            // Optional column — hidden pre-migration or until generated.
+            const summary = post.premium ? null : (post as { summary?: string | null }).summary;
             return summary ? (
               <div className="mt-6 rounded-xl border border-mint-500/25 bg-mint-500/[0.06] p-4">
                 <p className="mono text-[11px] font-semibold uppercase tracking-wide text-mint-300">
