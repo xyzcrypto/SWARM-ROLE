@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { aiEnabled } from "@/lib/ai";
+import { classifyToxic } from "@/lib/ai-tasks";
 import {
   chatMessageSchema,
   broadcastChatEvent,
@@ -101,6 +103,17 @@ export async function POST(req: Request) {
 
     const message = toChatPayload(created);
     await broadcastChatEvent({ event: "new_message", payload: message });
+
+    // AI auto-moderation (best-effort, fail-open + bounded). The message is
+    // already created + broadcast, so this only decides whether to *hide* it a
+    // beat later via the existing moderation path — staff can always restore it
+    // from Dashboard → Moderation. No-op when AI is disabled.
+    if (aiEnabled && (await classifyToxic(parsed.data.body))) {
+      await prisma.chatMessage
+        .update({ where: { id: created.id }, data: { status: "hidden" } })
+        .then(() => broadcastChatEvent({ event: "message_hidden", payload: { id: created.id } }))
+        .catch(() => null);
+    }
 
     return ok({ message }, 201);
   } catch (err) {

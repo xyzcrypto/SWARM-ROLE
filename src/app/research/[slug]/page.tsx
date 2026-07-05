@@ -246,6 +246,19 @@ export default async function PostPage({
             {post.excerpt}
           </p>
 
+          {(() => {
+            // AI TL;DR (XYZ AI). Optional column — hidden pre-migration or until generated.
+            const summary = (post as { summary?: string | null }).summary;
+            return summary ? (
+              <div className="mt-6 rounded-xl border border-mint-500/25 bg-mint-500/[0.06] p-4">
+                <p className="mono text-[11px] font-semibold uppercase tracking-wide text-mint-300">
+                  TL;DR · XYZ AI
+                </p>
+                <p className="mt-1.5 text-[15px] leading-relaxed text-zinc-200">{summary}</p>
+              </div>
+            ) : null;
+          })()}
+
           {locked ? (
             <PremiumLock loggedIn={Boolean(sessionUser)} />
           ) : (

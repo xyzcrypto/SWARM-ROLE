@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { summarize } from "@/lib/ai-tasks";
 
 function revalidateContent(slug?: string) {
   revalidatePath("/");
@@ -88,7 +89,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       });
     }
 
-    let post;
+    let post: Awaited<ReturnType<typeof update>>;
     try {
       post = await update(nextSlug);
     } catch (e) {
@@ -97,6 +98,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         post = await update(`${nextSlug}-${Math.random().toString(36).slice(2, 6)}`);
       } else {
         throw e;
+      }
+    }
+
+    // Regenerate the AI TL;DR when the body changed (best-effort, no-op if AI off).
+    if (data.content !== undefined) {
+      const summary = await summarize(post.title, post.content);
+      if (summary) {
+        post = await prisma.post.update({ where: { id: params.id }, data: { summary } }).catch(() => post);
       }
     }
 

@@ -7,16 +7,29 @@ import { ok, fail, handleError, requirePermission } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { notifyNewPost } from "@/lib/notifications";
 import { broadcastEvent, CH_NOTIFY } from "@/lib/realtime";
+import { summarize } from "@/lib/ai-tasks";
+
+// Best-effort: generate + store an AI TL;DR for a post. Never throws (summarize
+// already swallows errors and returns null when AI is off), so callers can await
+// it without risking the publish/update.
+async function generateSummary(post: { id: string; title: string; content: string }) {
+  const summary = await summarize(post.title, post.content);
+  if (summary) {
+    await prisma.post.update({ where: { id: post.id }, data: { summary } }).catch(() => null);
+  }
+}
 
 // On publish: fan out the in-app notification AND auto-create a linked "What's
 // New" entry so newly-shipped research shows up in the homepage feed. Both are
 // best-effort — a hiccup here never fails the publish.
-async function afterPublish(post: { id: string; title: string; excerpt: string }) {
+async function afterPublish(post: { id: string; title: string; excerpt: string; content: string }) {
   await notifyNewPost(post as never);
   await prisma.whatsNewEntry
     .create({ data: { title: post.title, body: post.excerpt, tag: "New", postId: post.id } })
     .then(() => broadcastEvent(CH_NOTIFY, "whatsnew_updated", { postId: post.id }))
     .catch(() => null);
+  // AI TL;DR (best-effort; no-op when AI is disabled).
+  await generateSummary(post);
 }
 
 // Refresh the ISR-cached pages that list/show posts after a content change.

@@ -1,0 +1,43 @@
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { aiEnabled } from "@/lib/ai";
+import { summarize } from "@/lib/ai-tasks";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+const bodySchema = z.object({ postId: z.string() });
+
+// POST /api/ai/summarize — (re)generate a post's AI TL;DR on demand. Admin only;
+// useful to backfill summaries for posts published before this feature.
+export async function POST(req: Request) {
+  try {
+    const actor = await requirePermission("post:publish");
+    if (!actor) return fail("Forbidden", 403);
+    if (!aiEnabled) return fail("XYZ AI is not configured yet.", 503);
+
+    const { success } = await rateLimit("admin", clientIp(req));
+    if (!success) return fail("Too many requests. Please slow down.", 429);
+
+    const parsed = bodySchema.safeParse(await req.json());
+    if (!parsed.success || !isCuid(parsed.data.postId)) return fail("Invalid input.", 400);
+
+    const post = await prisma.post.findUnique({
+      where: { id: parsed.data.postId },
+      select: { id: true, slug: true, title: true, content: true },
+    });
+    if (!post) return fail("Post not found.", 404);
+
+    const summary = await summarize(post.title, post.content);
+    if (!summary) return fail("Couldn't generate a summary. Please try again.", 502);
+
+    await prisma.post.update({ where: { id: post.id }, data: { summary } });
+    revalidatePath(`/research/${post.slug}`);
+    return ok({ summary });
+  } catch (err) {
+    return handleError(err, "ai:summarize");
+  }
+}

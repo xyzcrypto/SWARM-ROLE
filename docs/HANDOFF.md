@@ -98,6 +98,20 @@ leak paid content. No DB migration required. The dashboard Integrations strip sh
 **Later:** to move to Claude (paid), edit only `src/lib/ai.ts` + swap the env var — the
 route, widget and grounding stay as-is (single-wrapper design).
 
+**XYZ AI phase 2 (same `GEMINI_API_KEY`, model `gemini-2.5-flash-lite`):**
+- **Article TL;DRs** — an AI summary is generated when a post is published or its body is
+  edited, and shown atop the article. Migration `12_post_summary` adds a **nullable**
+  `Post.summary` (auto-applies via `vercel-build` `db push`; no backfill needed — old
+  posts get a summary on next edit, or via the admin endpoint below). SQL fallback:
+  `ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "summary" TEXT;`
+  Backfill one post on demand: `POST /api/ai/summarize {postId}` (admin, `post:publish`).
+- **Chat auto-moderation** — each new chat message is classified; clearly toxic ones are
+  auto-hidden through the existing moderation path (fully recoverable from Dashboard →
+  Moderation → Chat). **Fail-open**: on any AI error/timeout/quota the message stays
+  visible, so a mod outage never blocks chat. No-op when the key is unset.
+- Free-tier note: summaries + moderation share Gemini's free quota; if it's exhausted
+  those calls fail-open (summary skipped / message not hidden) — the site keeps working.
+
 ### ⚠️ Community chat realtime (live "who's online" + instant sound) — optional but recommended
 Presence + instant message/reaction sound are **realtime-only**. Set
 `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`,
