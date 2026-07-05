@@ -6,6 +6,7 @@ import { Providers } from "./providers";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { Analytics } from "@/components/Analytics";
 import { RealtimeSession } from "@/components/RealtimeSession";
+import { XyzAiWidget } from "@/components/XyzAiWidget";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
 import { SITE_URL, GSC_VERIFICATION } from "@/lib/seo";
 import { env } from "@/lib/env";
@@ -88,6 +89,7 @@ export default function RootLayout({
             anonKey={env.NEXT_PUBLIC_SUPABASE_ANON_KEY}
           />
           {children}
+          <XyzAiWidget />
         </Providers>
         <Analytics />
       </body>

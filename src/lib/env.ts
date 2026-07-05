@@ -23,6 +23,7 @@ const schema = z.object({
   SUPABASE_URL: z.string().optional(),
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   SUPABASE_STORAGE_BUCKET: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -60,6 +61,8 @@ export const env = {
   SUPABASE_URL: (raw.SUPABASE_URL ?? "").replace(/\/$/, ""),
   SUPABASE_SERVICE_ROLE_KEY: raw.SUPABASE_SERVICE_ROLE_KEY ?? "",
   SUPABASE_STORAGE_BUCKET: raw.SUPABASE_STORAGE_BUCKET || "post-covers",
+  // Google Gemini (XYZ AI features). Server-only — NEVER exposed client-side.
+  GEMINI_API_KEY: raw.GEMINI_API_KEY ?? "",
   // Public (client-safe by design) - used by the chat page for Supabase
   // Realtime subscriptions. The anon key only grants what RLS/channel policy
   // allows; the service-role key above must NEVER be exposed client-side.
@@ -82,6 +85,12 @@ export const storageEnabled = !!env.SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_
 // Realtime chat broadcast (server-side send). Falls back to client polling
 // when unset - chat still works, just not instant.
 export const realtimeEnabled = storageEnabled; // same creds: SUPABASE_URL + service key
+
+// XYZ AI (Google Gemini). When unset, every AI surface no-ops gracefully: the
+// assistant route returns 503, summaries/auto-moderation simply skip. Set
+// GEMINI_API_KEY (Vercel env) to activate. Server-only flag — never read the key
+// client-side.
+export const aiEnabled = !!env.GEMINI_API_KEY;
 
 // Admins: ADMIN_EMAILS (comma-separated) preferred, ADMIN_EMAIL as fallback.
 export const adminEmails: string[] = (raw.ADMIN_EMAILS || raw.ADMIN_EMAIL || "")
