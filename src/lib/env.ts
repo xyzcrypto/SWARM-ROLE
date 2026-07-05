@@ -24,6 +24,7 @@ const schema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   SUPABASE_STORAGE_BUCKET: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
+  CMC_API_KEY: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -63,6 +64,8 @@ export const env = {
   SUPABASE_STORAGE_BUCKET: raw.SUPABASE_STORAGE_BUCKET || "post-covers",
   // Groq (XYZ AI features). Server-only — NEVER exposed client-side.
   GROQ_API_KEY: raw.GROQ_API_KEY ?? "",
+  // CoinMarketCap (Markets hub — optional enrichment). Server-only.
+  CMC_API_KEY: raw.CMC_API_KEY ?? "",
   // Public (client-safe by design) - used by the chat page for Supabase
   // Realtime subscriptions. The anon key only grants what RLS/channel policy
   // allows; the service-role key above must NEVER be exposed client-side.
@@ -90,6 +93,11 @@ export const realtimeEnabled = storageEnabled; // same creds: SUPABASE_URL + ser
 // route returns 503, summaries/auto-moderation simply skip. Set GROQ_API_KEY
 // (Vercel env) to activate. Server-only flag — never read the key client-side.
 export const aiEnabled = !!env.GROQ_API_KEY;
+
+// CoinMarketCap enrichment on the Markets hub. Optional — the hub works from the
+// free keyless sources (CoinGecko + DefiLlama + Fear&Greed) without it; when set,
+// the global route adds CMC's DeFi / stablecoin market-cap metrics.
+export const cmcEnabled = !!env.CMC_API_KEY;
 
 // Admins: ADMIN_EMAILS (comma-separated) preferred, ADMIN_EMAIL as fallback.
 export const adminEmails: string[] = (raw.ADMIN_EMAILS || raw.ADMIN_EMAIL || "")

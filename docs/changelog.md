@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-05 — Markets: live Web3 data hub (Phase C, PR C1)
+New **/markets** page aggregating live market + DeFi data in one place (owner request).
+- **Cached proxy routes** (graceful always-200 `live` flag, model on `/api/ticker`):
+  `/api/markets/global` (CoinGecko `/global` + Fear & Greed + optional CoinMarketCap
+  DeFi/stablecoin enrichment) and `/api/markets/defi` (DefiLlama — total TVL + trend,
+  top protocols, top chains, stablecoin mcap). All free/keyless except CMC.
+- **`src/lib/markets.ts`** (pure, unit-tested): `compactUsd`, `pct`, `fngLabel`,
+  `topByTvl` + shared types.
+- **`/markets` page** + **`MarketsClient`** (visibility-gated polling like MarketTicker):
+  global KPI tiles, Fear & Greed gauge, DeFi TVL + sparkline, top protocols/chains,
+  BTC/ETH candlesticks, live ticker. Reuses `.surface`/`.lift`, `mono`, `--chart-*`,
+  `PerpChart`. **Markets** added to the navbar.
+- **env:** `CMC_API_KEY` (optional) + `cmcEnabled` — hub works fully without it via the
+  free sources; the CMC key just adds DeFi/stablecoin market-cap tiles.
+- typecheck + lint(0) + test(**137**, +8 for markets) + build green; page verified.
+
 ## 2026-07-05 — XYZ AI: switch provider to Groq (free, faster, higher limits)
 Gemini's free tier limits were being hit. Moved to **Groq** (Llama models) for a more
 generous free quota + faster inference. Single-wrapper design meant only `src/lib/ai.ts`
