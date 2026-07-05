@@ -5,20 +5,25 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
-## 2026-07-05 — XYZ AI: research assistant (Phase B, PR 1)
-First in-product AI feature — a floating **"XYZ AI"** chat assistant, Premium-gated,
-grounded in the site's own published research.
-- **New:** `src/lib/ai.ts` (single Anthropic/Claude wrapper, `aiEnabled` graceful-degrade
-  flag, `streamAssistant`/`completeText`, model constants) · `src/lib/ai-ground.ts`
+## 2026-07-05 — XYZ AI: research assistant (Phase B, PR 1) — Google Gemini (free)
+First in-product AI feature — a floating **"XYZ AI"** chat assistant, open to **all
+signed-in members**, grounded in the site's own published research. Provider: **Google
+Gemini free tier** (owner's call: free now, easy swap to Claude later).
+- **New:** `src/lib/ai.ts` (single AI-provider wrapper — `GoogleGenAI`, `aiEnabled`
+  graceful-degrade flag, `streamAssistant` returning a provider-agnostic
+  `AsyncIterable<string>`, `completeText`, model constants) · `src/lib/ai-ground.ts`
   (pure, unit-tested grounding: keyword ranking + capped corpus + system prompt) ·
-  `src/app/api/ai/assistant/route.ts` (streaming, Premium/admin gate, `ai` rate bucket,
-  zod, article grounding) · `src/components/XyzAiWidget.tsx` (launcher + streaming chat;
-  login/upgrade/premium states; Markdown answers with `/research` citations).
-- **Model:** assistant uses `claude-opus-4-8` with adaptive thinking + streaming.
-- **Env:** `ANTHROPIC_API_KEY` (optional — everything no-ops cleanly when unset, house
+  `src/app/api/ai/assistant/route.ts` (streaming, logged-in gate, `ai` rate bucket, zod,
+  article grounding) · `src/components/XyzAiWidget.tsx` (launcher + streaming chat;
+  login gate; Markdown answers with `/research` citations).
+- **Model:** `gemini-2.5-flash` (free), streamed. Single-wrapper design → switching to
+  Claude later touches only `ai.ts`.
+- **Env:** `GEMINI_API_KEY` (optional — everything no-ops cleanly when unset, house
   degradation pattern). Dashboard Integrations strip gains an **"XYZ AI"** health pill.
-- **Access & cost control:** Premium members + admins only; 15 turns/min per user;
-  bounded grounding corpus (≤8 articles / ≤12k chars) + capped history (12 turns).
+- **Access & safety:** any signed-in member; 15 turns/min per user; bounded grounding
+  corpus (≤8 articles / ≤12k chars) + capped history (12 turns). **Premium article
+  bodies are redacted from the corpus** (title+excerpt only) so the open assistant
+  can't leak paid content.
 - typecheck + lint(0 err) + test(**120**, +11 for ai-ground) + build green.
 
 ## 2026-07-03 — Social login: GitHub + X (Twitter) providers, unified buttons

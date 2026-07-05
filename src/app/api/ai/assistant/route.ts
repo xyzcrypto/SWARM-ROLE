@@ -32,10 +32,6 @@ export async function POST(req: Request) {
     const me = await getSessionUser();
     if (!me) return fail("Please log in to use XYZ AI.", 401);
 
-    // Premium feature: only Premium members (and staff/admins) may use it.
-    const allowed = me.membership === "Premium" || me.isSuperAdmin;
-    if (!allowed) return fail("XYZ AI is a Premium feature. Upgrade to unlock it.", 403);
-
     if (!aiEnabled) return fail("XYZ AI is not configured yet. Please check back soon.", 503);
 
     const { success } = await rateLimit("ai", me.id);
@@ -50,16 +46,26 @@ export async function POST(req: Request) {
     const lastUser = [...history].reverse().find((m) => m.role === "user");
     if (!lastUser) return fail("Ask a question to start.", 400);
 
-    // Grounding corpus: latest published research (title/excerpt/body). Only
-    // Premium/admin reach this route, so including premium bodies is safe.
-    const posts = (await prisma.post
+    // Grounding corpus: latest published research. The assistant is open to all
+    // logged-in members (incl. free), so **premium article bodies must never enter
+    // the prompt** — a free user could otherwise ask the model to reproduce paid
+    // content. For premium posts we pass only the public title + excerpt (already
+    // shown on cards); free posts contribute their body.
+    const rows = await prisma.post
       .findMany({
         where: { published: true },
         orderBy: { createdAt: "desc" },
         take: 30,
         select: { title: true, slug: true, excerpt: true, content: true, premium: true },
       })
-      .catch(() => [])) as GroundingPost[];
+      .catch(() => []);
+    const posts: GroundingPost[] = rows.map((p) => ({
+      title: p.title,
+      slug: p.slug,
+      excerpt: p.excerpt,
+      premium: p.premium,
+      content: p.premium ? "" : p.content, // redact premium bodies from the corpus
+    }));
 
     const system = buildAssistantSystemPrompt(posts, lastUser.content);
 
@@ -70,14 +76,9 @@ export async function POST(req: Request) {
     const readable = new ReadableStream<Uint8Array>({
       async start(controller) {
         try {
-          for await (const event of stream) {
-            if (
-              event.type === "content_block_delta" &&
-              event.delta.type === "text_delta" &&
-              event.delta.text
-            ) {
-              controller.enqueue(encoder.encode(event.delta.text));
-            }
+          // `stream` is a provider-agnostic async iterable of text deltas.
+          for await (const text of stream) {
+            if (text) controller.enqueue(encoder.encode(text));
           }
         } catch (err) {
           // Mid-stream failure: surface a short line rather than a silent cut.
@@ -88,10 +89,6 @@ export async function POST(req: Request) {
         } finally {
           controller.close();
         }
-      },
-      cancel() {
-        // Client navigated away / aborted — stop the upstream request.
-        stream.abort();
       },
     });
 

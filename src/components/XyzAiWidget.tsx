@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Sparkles, SendHorizonal, X, Loader2, Lock } from "lucide-react";
+import { Sparkles, SendHorizonal, X, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
 
@@ -21,7 +21,8 @@ const SUGGESTIONS = [
 export function XyzAiWidget() {
   const { data: session, status } = useSession();
   const user = session?.user as any;
-  const canUse = Boolean(user) && (user?.membership === "Premium" || user?.role === "ADMIN" || user?.isSuperAdmin);
+  // Open to every signed-in member (free provider — no Premium gate).
+  const canUse = Boolean(user);
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -108,7 +109,7 @@ export function XyzAiWidget() {
           </span>
           <div className="leading-tight">
             <p className="text-sm font-semibold text-zinc-100">XYZ AI</p>
-            <p className="mono text-[10px] text-gold-200/80">Research assistant · Premium</p>
+            <p className="mono text-[10px] text-gold-200/80">Research assistant</p>
           </div>
         </div>
         <button
@@ -125,20 +126,12 @@ export function XyzAiWidget() {
         <div className="flex flex-1 items-center justify-center text-zinc-500">
           <Loader2 className="h-5 w-5 animate-spin" />
         </div>
-      ) : !user ? (
+      ) : !canUse ? (
         <GateCard
           title="Log in to use XYZ AI"
           body="XYZ AI is available to signed-in members. Log in to start asking."
           href="/login?callbackUrl=/"
           cta="Log in"
-        />
-      ) : !canUse ? (
-        <GateCard
-          title="XYZ AI is a Premium feature"
-          body="Upgrade to Premium to unlock the research assistant — grounded in every XYZ Crypto article."
-          href="/premium"
-          cta="Upgrade to Premium"
-          locked
         />
       ) : (
         <>
@@ -273,18 +266,16 @@ function GateCard({
   body,
   href,
   cta,
-  locked,
 }: {
   title: string;
   body: string;
   href: string;
   cta: string;
-  locked?: boolean;
 }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
       <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gold-500/10 text-gold-200 ring-1 ring-gold-500/30">
-        {locked ? <Lock className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+        <Sparkles className="h-5 w-5" />
       </span>
       <p className="text-sm font-semibold text-zinc-100">{title}</p>
       <p className="text-xs leading-relaxed text-zinc-400">{body}</p>
