@@ -62,7 +62,7 @@ function usePolledJson<T>(url: string, everyMs: number) {
 
 type GlobalResp = GlobalMarket & { live: boolean };
 type DefiResp = DefiMarket & { live: boolean };
-type PerpResp = { dexs: PerpDex[]; markets: PerpMarket[]; live: boolean };
+type PerpResp = { dexs: PerpDex[]; markets: PerpMarket[]; totalVolume24h: number; totalOi: number; live: boolean };
 type DexResp = { dexs: DexProtocol[]; fees: FeeProtocol[]; live: boolean };
 type YieldResp = { pools: YieldPool[]; live: boolean };
 type CoinsResp = { list: CoinRow[]; trending: TrendingCoin[]; gainers: MoverCoin[]; losers: MoverCoin[]; live: boolean };
@@ -258,6 +258,10 @@ function DefiPanel({ d, loading }: { d: DefiMarket | null; loading: boolean }) {
 function PerpPanel({ p, loading }: { p: PerpResp | null; loading: boolean }) {
   return (
     <div className="space-y-6">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <StatCardMini label="Perp DEX Volume (24h)" value={compactUsd(p?.totalVolume24h)} accent="gold" />
+        <StatCardMini label="Open Interest (Hyperliquid)" value={compactUsd(p?.totalOi)} accent="mint" />
+      </div>
       <Panel title="Top Perp DEXs (24h Volume)" icon={<Activity className="h-4 w-4 text-gold-300" />}>
         <RankList loading={loading} rows={(p?.dexs ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.volume24h), change: r.change1d }))} />
       </Panel>
