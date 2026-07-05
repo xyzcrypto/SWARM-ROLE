@@ -5,6 +5,32 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-05 — XYZ AI: dedicated navbar entry + 3D robot + green look
+Small UX polish on the shipped assistant (owner request, before PR 2):
+- **Dedicated "XYZ AI" navbar item** (desktop + mobile). Clicking it opens the
+  floating assistant via a `window` `xyz-ai:open` event (`XYZ_AI_OPEN_EVENT`
+  exported from `XyzAiWidget`) — no page nav, no refactor.
+- **3D robot icon** — new `RobotIcon` (`src/components/RobotIcon.tsx`): a glossy
+  green robot head built from gradients + gloss highlight + drop shadow (per-instance
+  gradient ids via `useId`). Replaces the flat sparkle/`Bot` across navbar, launcher,
+  header, and gate.
+- **Look** — navbar button is a **transparent glass** pill with a **live "active"
+  green pulse** (glow + border + tint breathe together) and a subtle robot head-turn;
+  the **floating launcher is green** (mint gradient) with a soft glow pulse. All
+  animations disabled under `prefers-reduced-motion` (house convention).
+- Verified (Playwright + screenshots): navbar transparent + `ai-active` animation +
+  robot SVG, green launcher gradient, opens the assistant, 0 page errors.
+  typecheck + lint(0) + test(120) + build green.
+- **Robot idle life** (follow-up): the `RobotIcon` now blinks its eyes and pulses
+  its antenna light everywhere it appears; the floating launcher's robot gently
+  floats/tilts. Verified: `robot-antenna`/`robot-blink`/`ai-fab-float` animations
+  live, 0 errors.
+- **Always-on** (follow-up): these XYZ AI brand animations were being disabled by
+  the desktop "reduce motion" OS/browser setting (why they looked static on some
+  desktops). By owner decision they now run regardless of that preference — verified
+  the pulse animates under emulated `prefers-reduced-motion: reduce`. (Trade-off:
+  intentionally overrides reduce-motion for these subtle decorative animations only.)
+
 ## 2026-07-05 — XYZ AI: research assistant (Phase B, PR 1) — Google Gemini (free)
 First in-product AI feature — a floating **"XYZ AI"** chat assistant, open to **all
 signed-in members**, grounded in the site's own published research. Provider: **Google

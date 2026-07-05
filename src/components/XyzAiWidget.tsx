@@ -3,9 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Sparkles, SendHorizonal, X, Loader2 } from "lucide-react";
+import { SendHorizonal, X, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
+import { RobotIcon } from "./RobotIcon";
+
+// Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
+export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
@@ -40,6 +44,13 @@ export function XyzAiWidget() {
   }, [messages, busy, open, reduce]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Let the navbar (or any surface) open the assistant by dispatching the event.
+  useEffect(() => {
+    const openWidget = () => setOpen(true);
+    window.addEventListener(XYZ_AI_OPEN_EVENT, openWidget);
+    return () => window.removeEventListener(XYZ_AI_OPEN_EVENT, openWidget);
+  }, []);
 
   async function send(text: string) {
     const q = text.trim();
@@ -104,12 +115,12 @@ export function XyzAiWidget() {
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
         <div className="flex items-center gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-gold-shine text-ink ring-1 ring-gold-500/40">
-            <Sparkles className="h-4 w-4" />
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-950/60 ring-1 ring-mint-400/40">
+            <RobotIcon className="h-5 w-5" />
           </span>
           <div className="leading-tight">
             <p className="text-sm font-semibold text-zinc-100">XYZ AI</p>
-            <p className="mono text-[10px] text-gold-200/80">Research assistant</p>
+            <p className="mono text-[10px] text-mint-200/80">Research assistant</p>
           </div>
         </div>
         <button
@@ -226,7 +237,7 @@ export function XyzAiWidget() {
         animate={{ opacity: 1, scale: 1 }}
         whileHover={reduce ? undefined : { scale: 1.05 }}
         whileTap={reduce ? undefined : { scale: 0.95 }}
-        className="fixed bottom-5 right-4 z-[60] inline-flex h-14 w-14 items-center justify-center rounded-full bg-gold-shine text-ink shadow-lg shadow-gold-500/20 ring-1 ring-gold-500/40 sm:right-6"
+        className="ai-fab fixed bottom-5 right-4 z-[60] inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-mint-400 to-mint-600 text-ink shadow-lg shadow-mint-500/30 ring-1 ring-mint-300/50 sm:right-6"
       >
         <AnimatePresence mode="wait" initial={false}>
           {open ? (
@@ -235,7 +246,7 @@ export function XyzAiWidget() {
             </motion.span>
           ) : (
             <motion.span key="s" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
-              <Sparkles className="h-6 w-6" />
+              <RobotIcon className="ai-fab-bot h-8 w-8" />
             </motion.span>
           )}
         </AnimatePresence>
@@ -274,8 +285,8 @@ function GateCard({
 }) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-      <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-gold-500/10 text-gold-200 ring-1 ring-gold-500/30">
-        <Sparkles className="h-5 w-5" />
+      <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-ink-950/60 ring-1 ring-mint-400/30">
+        <RobotIcon className="h-7 w-7" />
       </span>
       <p className="text-sm font-semibold text-zinc-100">{title}</p>
       <p className="text-xs leading-relaxed text-zinc-400">{body}</p>
