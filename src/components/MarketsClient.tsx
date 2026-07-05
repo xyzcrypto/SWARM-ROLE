@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins, LineChart } from "lucide-react";
 import { PerpChartLazy as PerpChart } from "./PerpChartLazy";
 import {
   compactUsd,
   pct,
   apyFmt,
   fngLabel,
+  coinPrice,
   type GlobalMarket,
   type DefiMarket,
   type PerpDex,
@@ -17,6 +18,7 @@ import {
   type YieldPool,
   type TrendingCoin,
   type MoverCoin,
+  type CoinRow,
 } from "@/lib/markets";
 import { cn } from "@/lib/utils";
 
@@ -63,10 +65,11 @@ type DefiResp = DefiMarket & { live: boolean };
 type PerpResp = { dexs: PerpDex[]; markets: PerpMarket[]; live: boolean };
 type DexResp = { dexs: DexProtocol[]; fees: FeeProtocol[]; live: boolean };
 type YieldResp = { pools: YieldPool[]; live: boolean };
-type CoinsResp = { trending: TrendingCoin[]; gainers: MoverCoin[]; losers: MoverCoin[]; live: boolean };
+type CoinsResp = { list: CoinRow[]; trending: TrendingCoin[]; gainers: MoverCoin[]; losers: MoverCoin[]; live: boolean };
 
 const TABS = [
   { id: "overview", label: "Overview", icon: BarChart3 },
+  { id: "coins", label: "Coins", icon: LineChart },
   { id: "defi", label: "DeFi", icon: Layers },
   { id: "perps", label: "Perp DEX", icon: Activity },
   { id: "dex", label: "DEX & Fees", icon: Coins },
@@ -76,12 +79,12 @@ const TABS = [
 
 export function MarketsClient() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("overview");
-  const g = usePolledJson<GlobalResp>("/api/markets/global", 60_000);
-  const d = usePolledJson<DefiResp>("/api/markets/defi", 120_000);
-  const p = usePolledJson<PerpResp>("/api/markets/perp", 60_000);
+  const g = usePolledJson<GlobalResp>("/api/markets/global", 30_000);
+  const d = usePolledJson<DefiResp>("/api/markets/defi", 90_000);
+  const p = usePolledJson<PerpResp>("/api/markets/perp", 30_000);
   const x = usePolledJson<DexResp>("/api/markets/dex", 300_000);
   const y = usePolledJson<YieldResp>("/api/markets/yields", 300_000);
-  const c = usePolledJson<CoinsResp>("/api/markets/coins", 60_000);
+  const c = usePolledJson<CoinsResp>("/api/markets/coins", 30_000);
   const anyLive = g.live || d.live || p.live || x.live || y.live || c.live;
 
   return (
@@ -127,6 +130,7 @@ export function MarketsClient() {
 
       {/* Tab panels */}
       {tab === "overview" && <Overview g={g.data} d={d.data} c={c.data} />}
+      {tab === "coins" && <CoinsPanel c={c.data} loading={c.loading} />}
       {tab === "defi" && <DefiPanel d={d.data} loading={d.loading} />}
       {tab === "perps" && <PerpPanel p={p.data} loading={p.loading} />}
       {tab === "dex" && <DexPanel x={x.data} loading={x.loading} />}
@@ -163,6 +167,71 @@ function Overview({ g, d, c }: { g: GlobalMarket | null; d: DefiMarket | null; c
         <PerpChart coin={{ id: "ethereum", symbol: "ETH", base: 3400 }} />
       </section>
     </div>
+  );
+}
+
+function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
+  const rows = c?.list ?? [];
+  return (
+    <Panel title="Top Coins by Market Cap" icon={<LineChart className="h-4 w-4 text-gold-300" />}>
+      {loading && !rows.length ? (
+        <SkeletonRows />
+      ) : rows.length ? (
+        <div className="-mx-2 overflow-x-auto">
+          <table className="w-full min-w-[720px] text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-[11px] uppercase tracking-wide text-zinc-500">
+                <th className="px-2 py-2 text-left font-medium">#</th>
+                <th className="px-2 py-2 text-left font-medium">Coin</th>
+                <th className="px-2 py-2 text-right font-medium">Price</th>
+                <th className="px-2 py-2 text-right font-medium">1h</th>
+                <th className="px-2 py-2 text-right font-medium">24h</th>
+                <th className="px-2 py-2 text-right font-medium">7d</th>
+                <th className="hidden px-2 py-2 text-right font-medium md:table-cell">Market Cap</th>
+                <th className="hidden px-2 py-2 text-right font-medium lg:table-cell">Volume (24h)</th>
+                <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">Last 7d</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {rows.map((r) => (
+                <tr key={r.symbol + r.rank} className="transition-colors hover:bg-white/[0.03]">
+                  <td className="mono px-2 py-2.5 text-left text-[11px] text-zinc-600">{r.rank}</td>
+                  <td className="px-2 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      {r.image && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[22px] w-[22px] rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+                      )}
+                      <span className="font-semibold text-zinc-100">{r.name}</span>
+                      <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
+                    </div>
+                  </td>
+                  <td className="mono px-2 py-2.5 text-right font-medium text-zinc-100">{coinPrice(r.price)}</td>
+                  <ChangeCell v={r.change1h} />
+                  <ChangeCell v={r.change24h} />
+                  <ChangeCell v={r.change7d} />
+                  <td className="mono hidden px-2 py-2.5 text-right text-zinc-300 md:table-cell">{compactUsd(r.marketCap)}</td>
+                  <td className="mono hidden px-2 py-2.5 text-right text-zinc-400 lg:table-cell">{compactUsd(r.volume24h)}</td>
+                  <td className="hidden px-2 py-2.5 sm:table-cell">
+                    <div className="ml-auto w-24">
+                      <Sparkline data={r.sparkline} />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="py-4 text-center text-sm text-zinc-500">Coin data is loading…</p>
+      )}
+    </Panel>
+  );
+}
+
+function ChangeCell({ v }: { v: number }) {
+  return (
+    <td className={cn("mono px-2 py-2.5 text-right text-[13px]", v >= 0 ? "text-mint-400" : "text-red-400")}>{pct(v, 1)}</td>
   );
 }
 
@@ -386,7 +455,11 @@ function StatCardMini({ label, value, sub, accent, trend }: { label: string; val
       <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">{label}</p>
       <p className={cn("mono mt-1.5 text-2xl font-bold", accent === "mint" ? "text-mint-gradient" : accent === "gold" ? "text-gold-gradient" : "text-zinc-50")}>{value}</p>
       {sub && <p className="mt-1 text-[11px] text-zinc-600">{sub}</p>}
-      {trend && trend.length > 1 && <Sparkline data={trend} />}
+      {trend && trend.length > 1 && (
+        <div className="mt-3">
+          <Sparkline data={trend} />
+        </div>
+      )}
     </div>
   );
 }
@@ -411,7 +484,7 @@ function FearGreedTile({ fg, loading }: { fg: { value: number; label: string } |
 }
 
 function Sparkline({ data }: { data: number[] }) {
-  if (!data || data.length < 2) return <div className="mt-3 h-8" />;
+  if (!data || data.length < 2) return <div className="h-8" />;
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
@@ -420,7 +493,7 @@ function Sparkline({ data }: { data: number[] }) {
   const pts = data.map((v, i) => `${((i / (data.length - 1)) * w).toFixed(2)},${(h - ((v - min) / range) * h).toFixed(2)}`).join(" ");
   const up = data[data.length - 1] >= data[0];
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="mt-3 h-8 w-full" aria-hidden>
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-8 w-full" aria-hidden>
       <polyline points={pts} fill="none" stroke={up ? "var(--chart-mint)" : "var(--chart-gold)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );

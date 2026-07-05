@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
-import { MarketTicker } from "@/components/MarketTicker";
 import { MarketsClient } from "@/components/MarketsClient";
 
 export const metadata: Metadata = {
@@ -18,10 +17,9 @@ export default function MarketsPage() {
   return (
     <>
       <Navbar />
-      <MarketTicker />
-      <main className="relative min-h-screen pt-14">
+      <main className="relative min-h-screen pt-28">
         <div className="mesh" />
-        <div className="relative mx-auto max-w-7xl px-4 pb-24 pt-10 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">
               Live Data

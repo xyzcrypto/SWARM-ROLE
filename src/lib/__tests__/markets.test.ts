@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactUsd, pct, fngLabel, topByTvl, topBy, apyFmt, toGwei } from "@/lib/markets";
+import { compactUsd, pct, fngLabel, topByTvl, topBy, apyFmt, toGwei, coinPrice } from "@/lib/markets";
 
 describe("compactUsd", () => {
   it("formats trillions/billions/millions/thousands", () => {
@@ -71,6 +71,16 @@ describe("apyFmt", () => {
     expect(apyFmt(12.345)).toBe("12.35%");
     expect(apyFmt(null)).toBe("—");
     expect(apyFmt(NaN)).toBe("—");
+  });
+});
+
+describe("coinPrice", () => {
+  it("scales precision by magnitude", () => {
+    expect(coinPrice(68420)).toBe("$68,420");
+    expect(coinPrice(3.54)).toBe("$3.54");
+    expect(coinPrice(0.062)).toBe("$0.0620");
+    expect(coinPrice(0.0000123)).toBe("$0.000012");
+    expect(coinPrice(null)).toBe("—");
   });
 });
 

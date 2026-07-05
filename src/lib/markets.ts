@@ -93,3 +93,25 @@ export type FeeProtocol = { name: string; fees24h: number; logo: string | null }
 export type YieldPool = { project: string; symbol: string; chain: string; apy: number; tvl: number };
 export type TrendingCoin = { name: string; symbol: string; thumb: string | null; change24h: number };
 export type MoverCoin = { name: string; symbol: string; image: string | null; price: number; change24h: number };
+export type CoinRow = {
+  rank: number;
+  name: string;
+  symbol: string;
+  image: string | null;
+  price: number;
+  change1h: number;
+  change24h: number;
+  change7d: number;
+  marketCap: number;
+  volume24h: number;
+  sparkline: number[];
+};
+
+/** Price with sensible precision for a coin table (more decimals for sub-$1). */
+export function coinPrice(n: number | null | undefined): string {
+  if (n == null || !Number.isFinite(n)) return "—";
+  if (n >= 1000) return `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  if (n >= 1) return `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  if (n >= 0.01) return `$${n.toFixed(4)}`;
+  return `$${n.toPrecision(2)}`;
+}

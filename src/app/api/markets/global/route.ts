@@ -20,22 +20,27 @@ const FALLBACK: GlobalMarket = {
   gasGwei: null,
 };
 
-// Ethereum gas price via Cloudflare's public, keyless JSON-RPC. Best-effort.
+// Ethereum gas price via public, keyless JSON-RPC (tries several endpoints so a
+// single flaky node doesn't blank the number). Best-effort → null.
+const GAS_RPCS = ["https://eth.llamarpc.com", "https://rpc.ankr.com/eth", "https://ethereum-rpc.publicnode.com"];
 async function ethGas(): Promise<number | null> {
-  try {
-    const res = await fetch("https://cloudflare-eth.com", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 1 }),
-      next: { revalidate: 30 },
-    });
-    if (!res.ok) return null;
-    const j = await res.json();
-    const wei = Number.parseInt(j?.result, 16);
-    return Number.isFinite(wei) ? Math.round((wei / 1e9) * 10) / 10 : null;
-  } catch {
-    return null;
+  for (const rpc of GAS_RPCS) {
+    try {
+      const res = await fetch(rpc, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 1 }),
+        next: { revalidate: 20 },
+      });
+      if (!res.ok) continue;
+      const j = await res.json();
+      const wei = Number.parseInt(j?.result, 16);
+      if (Number.isFinite(wei) && wei > 0) return Math.round((wei / 1e9) * 10) / 10;
+    } catch {
+      /* try next */
+    }
   }
+  return null;
 }
 
 async function coingeckoGlobal() {

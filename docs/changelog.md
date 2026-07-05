@@ -25,7 +25,13 @@ New **/markets** page aggregating live market + DeFi data in one place (owner re
   Cloudflare RPC). New routes: `/api/markets/perp` (**Perp DEX** — DefiLlama derivatives
   volumes + **Hyperliquid live funding/OI markets**), `/api/markets/dex` (DEX volume +
   fees), `/api/markets/coins` (trending + top gainers/losers), `/api/markets/yields`
-  (top yield pools). All keyless/free, cached, graceful. test(**141**).
+  (top yield pools). All keyless/free, cached, graceful. test(141).
+- **Polish (same PR):** removed the running ticker from the top of /markets (it overlapped
+  the fixed navbar → glitch) and fixed the page padding. Added a **Coins** tab: a full
+  CMC-style **market table** (rank, price, 1h/24h/7d %, market cap, 24h volume, 7d
+  sparkline, top 50). **ETH gas** fixed (keyless public RPCs w/ fallback — Cloudflare
+  gateway was dead); **Perp DEX** made resilient (DefiLlama + Hyperliquid independent).
+  Realtime intervals tightened (prices/perp/gas 30s). test(**142**).
 
 ## 2026-07-05 — XYZ AI: switch provider to Groq (free, faster, higher limits)
 Gemini's free tier limits were being hit. Moved to **Groq** (Llama models) for a more

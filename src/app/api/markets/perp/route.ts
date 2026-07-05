@@ -48,17 +48,14 @@ async function hyperliquidMarkets(): Promise<PerpMarket[]> {
 }
 
 export async function GET() {
-  try {
-    const dexs = await perpDexs();
-    const markets = await hyperliquidMarkets();
-    return NextResponse.json(
-      { dexs, markets, live: true, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=180" } }
-    );
-  } catch {
-    return NextResponse.json(
-      { dexs: [], markets: [], live: false, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=30" } }
-    );
-  }
+  // Both halves are independent so one flaky upstream can't blank the whole tab.
+  const [dexs, markets] = await Promise.all([
+    perpDexs().catch(() => [] as PerpDex[]),
+    hyperliquidMarkets().catch(() => [] as PerpMarket[]),
+  ]);
+  const live = dexs.length > 0 || markets.length > 0;
+  return NextResponse.json(
+    { dexs, markets, live, ts: Date.now() },
+    { headers: { "Cache-Control": live ? "public, s-maxage=60, stale-while-revalidate=180" : "public, s-maxage=20" } }
+  );
 }

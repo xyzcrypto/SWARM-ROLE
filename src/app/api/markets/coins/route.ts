@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
-import type { TrendingCoin, MoverCoin } from "@/lib/markets";
+import type { TrendingCoin, MoverCoin, CoinRow } from "@/lib/markets";
 
-// Trending coins + 24h top gainers/losers (CoinGecko, keyless). Graceful.
-export const revalidate = 60;
+// Coins snapshot (CoinGecko, keyless): a full top-50 market table (price, 1h/24h/7d
+// %, mcap, volume, 7d sparkline) + trending + 24h gainers/losers, all derived from
+// one markets call. Graceful always-200 `live` flag.
+export const revalidate = 45;
 
 async function trending(): Promise<TrendingCoin[]> {
   try {
     const res = await fetch("https://api.coingecko.com/api/v3/search/trending", {
       headers: { accept: "application/json" },
-      next: { revalidate },
+      next: { revalidate: 120 },
     });
     if (!res.ok) return [];
     const j = await res.json();
@@ -23,37 +25,48 @@ async function trending(): Promise<TrendingCoin[]> {
   }
 }
 
-async function movers(): Promise<{ gainers: MoverCoin[]; losers: MoverCoin[] }> {
+async function markets(): Promise<CoinRow[]> {
   const res = await fetch(
-    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&price_change_percentage=24h",
+    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&price_change_percentage=1h,24h,7d&sparkline=true",
     { headers: { accept: "application/json" }, next: { revalidate } }
   );
   if (!res.ok) throw new Error(`markets ${res.status}`);
   const data: any[] = await res.json();
-  const rows: MoverCoin[] = data
-    .map((d) => ({
-      name: String(d.name ?? "—"),
-      symbol: String(d.symbol ?? "").toUpperCase(),
-      image: typeof d.image === "string" ? d.image : null,
-      price: Number(d.current_price) || 0,
-      change24h: Number(d.price_change_percentage_24h) || 0,
-    }))
-    .filter((r) => Number.isFinite(r.change24h));
-  const sorted = [...rows].sort((a, b) => b.change24h - a.change24h);
-  return { gainers: sorted.slice(0, 6), losers: sorted.slice(-6).reverse() };
+  return data.map((d, i) => ({
+    rank: Number(d.market_cap_rank) || i + 1,
+    name: String(d.name ?? "—"),
+    symbol: String(d.symbol ?? "").toUpperCase(),
+    image: typeof d.image === "string" ? d.image : null,
+    price: Number(d.current_price) || 0,
+    change1h: Number(d.price_change_percentage_1h_in_currency) || 0,
+    change24h: Number(d.price_change_percentage_24h_in_currency ?? d.price_change_percentage_24h) || 0,
+    change7d: Number(d.price_change_percentage_7d_in_currency) || 0,
+    marketCap: Number(d.market_cap) || 0,
+    volume24h: Number(d.total_volume) || 0,
+    sparkline: Array.isArray(d.sparkline_in_7d?.price) ? d.sparkline_in_7d.price.filter((x: any) => Number.isFinite(x)) : [],
+  }));
 }
 
 export async function GET() {
   try {
-    const [trend, mv] = await Promise.all([trending(), movers()]);
+    const [list, trend] = await Promise.all([markets(), trending()]);
+    const byChange = [...list].filter((r) => Number.isFinite(r.change24h)).sort((a, b) => b.change24h - a.change24h);
+    const toMover = (r: CoinRow): MoverCoin => ({ name: r.name, symbol: r.symbol, image: r.image, price: r.price, change24h: r.change24h });
     return NextResponse.json(
-      { trending: trend, gainers: mv.gainers, losers: mv.losers, live: true, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=180" } }
+      {
+        list,
+        trending: trend,
+        gainers: byChange.slice(0, 6).map(toMover),
+        losers: byChange.slice(-6).reverse().map(toMover),
+        live: true,
+        ts: Date.now(),
+      },
+      { headers: { "Cache-Control": "public, s-maxage=45, stale-while-revalidate=150" } }
     );
   } catch {
     return NextResponse.json(
-      { trending: [], gainers: [], losers: [], live: false, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=30" } }
+      { list: [], trending: [], gainers: [], losers: [], live: false, ts: Date.now() },
+      { headers: { "Cache-Control": "public, s-maxage=20" } }
     );
   }
 }
