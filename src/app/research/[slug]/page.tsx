@@ -17,6 +17,7 @@ import { ShareRow } from "@/components/ShareRow";
 import { PremiumLock } from "@/components/PremiumLock";
 import { CommentSection } from "@/components/CommentSection";
 import { LikeButton } from "@/components/LikeButton";
+import { POST_CARD_SELECT } from "@/lib/post-select";
 
 // Personalized (premium gating reads the session), so render per-request. The
 // query is a single indexed lookup; the heavy list pages stay ISR-cached.
@@ -129,7 +130,7 @@ export default async function PostPage({
         where: { published: true, category: post.category, slug: { not: post.slug } },
         orderBy: { createdAt: "desc" },
         take: 3,
-        include: { author: { select: { name: true } } },
+        select: POST_CARD_SELECT,
       })
       .catch(() => []),
     prisma.postLike.count({ where: { postId: post.id } }).catch(() => 0),
