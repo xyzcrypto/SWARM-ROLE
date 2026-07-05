@@ -403,6 +403,7 @@ html.lenis body {
   overflow: hidden;
   isolation: isolate;
   perspective: 320px;
+  will-change: box-shadow, border-color; /* keep the pulse on its own layer (mobile-smooth) */
   animation: ai-active 1.9s ease-in-out infinite;
 }
 .ai-nav-btn::after {
@@ -423,6 +424,7 @@ html.lenis body {
 .ai-nav-btn:hover { transform: translateY(-1px) scale(1.03); }
 .ai-nav-btn .ai-bot {
   transform-origin: center;
+  will-change: transform;
   animation: ai-bot-turn 2.4s ease-in-out infinite;
   filter: drop-shadow(0 2px 3px rgba(2, 92, 63, 0.5));
 }
@@ -447,13 +449,13 @@ html.lenis body {
 }
 
 /* Floating assistant launcher — soft green glow so the green 3D bot feels alive. */
-.ai-fab { animation: ai-fab-glow 2.4s ease-in-out infinite; }
+.ai-fab { will-change: box-shadow; animation: ai-fab-glow 2.4s ease-in-out infinite; }
 @keyframes ai-fab-glow {
   0%, 100% { box-shadow: 0 8px 22px -8px rgba(11, 187, 124, 0.5); }
   50% { box-shadow: 0 0 22px 3px rgba(34, 214, 146, 0.45), 0 10px 28px -8px rgba(11, 187, 124, 0.72); }
 }
 /* The launcher's robot gently idles (float + tiny tilt). */
-.ai-fab-bot { animation: ai-fab-float 3s ease-in-out infinite; transform-origin: center; }
+.ai-fab-bot { animation: ai-fab-float 3s ease-in-out infinite; transform-origin: center; will-change: transform; }
 @keyframes ai-fab-float {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   35% { transform: translateY(-1.5px) rotate(-5deg); }

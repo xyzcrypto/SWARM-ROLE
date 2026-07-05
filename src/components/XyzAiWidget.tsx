@@ -108,7 +108,7 @@ export function XyzAiWidget() {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.96 }}
       transition={{ type: "spring", stiffness: 240, damping: 24 }}
-      className="glass fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-2xl ring-1 ring-gold-500/25 sm:right-6"
+      className="fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950 shadow-2xl shadow-black/60 ring-1 ring-gold-500/25 sm:right-6"
       role="dialog"
       aria-label="XYZ AI assistant"
     >
