@@ -45,6 +45,7 @@ const limiters = {
   chat: make(10, 60, "chat"), // 10 messages/min per user (community chat)
   notifications: make(60, 60, "notifications"), // 60/min per user - bell polling + mark-read
   contact: make(5, 60, "contact"), // 5/min/IP - contact form (own bucket so /track bursts can't 429 it)
+  ai: make(15, 60, "ai"), // 15/min per user - XYZ AI assistant turns (keyed by user id)
 };
 
 export type RateKey = keyof typeof limiters;

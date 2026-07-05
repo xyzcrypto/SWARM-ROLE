@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-05 — XYZ AI: research assistant (Phase B, PR 1)
+First in-product AI feature — a floating **"XYZ AI"** chat assistant, Premium-gated,
+grounded in the site's own published research.
+- **New:** `src/lib/ai.ts` (single Anthropic/Claude wrapper, `aiEnabled` graceful-degrade
+  flag, `streamAssistant`/`completeText`, model constants) · `src/lib/ai-ground.ts`
+  (pure, unit-tested grounding: keyword ranking + capped corpus + system prompt) ·
+  `src/app/api/ai/assistant/route.ts` (streaming, Premium/admin gate, `ai` rate bucket,
+  zod, article grounding) · `src/components/XyzAiWidget.tsx` (launcher + streaming chat;
+  login/upgrade/premium states; Markdown answers with `/research` citations).
+- **Model:** assistant uses `claude-opus-4-8` with adaptive thinking + streaming.
+- **Env:** `ANTHROPIC_API_KEY` (optional — everything no-ops cleanly when unset, house
+  degradation pattern). Dashboard Integrations strip gains an **"XYZ AI"** health pill.
+- **Access & cost control:** Premium members + admins only; 15 turns/min per user;
+  bounded grounding corpus (≤8 articles / ≤12k chars) + capped history (12 turns).
+- typecheck + lint(0 err) + test(**120**, +11 for ai-ground) + build green.
+
 ## 2026-07-03 — Social login: GitHub + X (Twitter) providers, unified buttons
 - **New OAuth providers** (env-gated like Google): `GITHUB_CLIENT_ID/SECRET` and
   `TWITTER_CLIENT_ID/SECRET` (OAuth 2.0). Buttons appear on /login + /signup only when

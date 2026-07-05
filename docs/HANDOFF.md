@@ -48,6 +48,7 @@ Settings → Environment Variables is the canonical store for runtime).
 | `UPSTASH_REDIS_REST_URL/_TOKEN` | Rate limits (optional) | Limits become no-ops | Vercel ← Upstash console |
 | `RESEND_API_KEY`, `EMAIL_FROM` | OTP emails (optional) | Codes log to server console | Vercel ← Resend dashboard |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | Image uploads (optional) | Uploads return 501 | Vercel ← Supabase → API keys |
+| `ANTHROPIC_API_KEY` | **XYZ AI** assistant (optional) | AI features no-op (assistant 503, launcher shows "not configured") | Vercel ← Anthropic Console → API keys |
 | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_GSC_VERIFICATION` | SEO/analytics (optional) | Wrong canonical / no GA | Vercel |
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | Error monitoring (optional) | Sentry no-op | Vercel ← Sentry project |
 | `SEED_ADMIN_PASSWORD` | `npm run seed` only | Insecure default `changeme123` — **always set, change after first login** | Local shell only |
@@ -79,6 +80,19 @@ Purely additive — the app behaves identically whether or not they're applied;
 they just keep the bell list, dashboard premium list, and analytics fast at scale.
 
 ## 4. Pending operational state (check before building new features)
+
+### 🆕 XYZ AI research assistant (env: `ANTHROPIC_API_KEY`) — optional
+The site now ships an in-product AI assistant ("XYZ AI") — a floating chat launcher,
+Premium-gated, grounded in published research. It's **off until configured**:
+1. Anthropic Console → create an API key.
+2. Vercel → Project → Settings → Environment Variables → add `ANTHROPIC_API_KEY`
+   (Production + Preview) → redeploy.
+Until set, `aiEnabled` is false everywhere: the assistant returns 503 and the launcher
+shows "not configured" (no crash, no cost). **Cost note:** the assistant uses
+`claude-opus-4-8` (premium quality; ~$5/$25 per 1M in/out tokens). Access is limited to
+**Premium members + admins** and rate-limited (15 turns/min per user) to bound spend.
+No DB migration required for the assistant. The dashboard Integrations strip shows an
+**"XYZ AI"** pill (green when the key is present).
 
 ### ⚠️ Community chat realtime (live "who's online" + instant sound) — optional but recommended
 Presence + instant message/reaction sound are **realtime-only**. Set
