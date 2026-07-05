@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-05 — Live Web3 News & Intelligence Hub (/news)
+A real-time crypto news hub aggregated from reputable RSS feeds — **keyless, no API
+key** (owner request; CryptoPanic free tier had closed).
+- **`/api/news`** aggregates ~9 reputable feeds (CoinDesk, Cointelegraph, Decrypt, The
+  Defiant, Bitcoin Magazine, Crypto Briefing, BeInCrypto, Bitcoinist, NewsBTC) server-
+  side, classifies each story, **de-duplicates the same event across outlets**, filters
+  (category + search) + paginates. Cached, graceful (200 even if all feeds fail).
+- **`src/lib/news.ts`** (pure, unit-tested): RSS/Atom parser, `categorize` (26 Web3
+  categories), `sentiment` (bullish/bearish), `impact` (Low/Med/High), `relatedTokens`,
+  `timeAgo`, `dedupe`. **`news-sources.ts`** = the feed list + favicon helper.
+- **`/news` page + `NewsClient`**: category filter chips, debounced search, **Breaking
+  News banner**, rich cards (source + favicon, headline, summary, "3 min ago", category,
+  bullish/bearish, impact, related tokens, Read, Share, Bookmark), **infinite scroll**,
+  **live auto-refresh** (90s), **Saved** (localStorage bookmarks), and per-card
+  **"Why this matters" AI** (`/api/ai/why-matters`, Groq). **News** added to the navbar.
+- typecheck + lint(0) + test(**154**, +12 for news) + build green; page verified.
+
 ## 2026-07-05 — Markets: live Web3 data hub (Phase C, PR C1)
 New **/markets** page aggregating live market + DeFi data in one place (owner request).
 - **Cached proxy routes** (graceful always-200 `live` flag, model on `/api/ticker`):
