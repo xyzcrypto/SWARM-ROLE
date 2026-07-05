@@ -29,6 +29,22 @@ function getAiClient(): GoogleGenAI | null {
 
 export type AiMessage = { role: "user" | "assistant"; content: string };
 
+/**
+ * Map a provider error to a short, user-facing reason. Lets the assistant show
+ * WHY it failed (usage limit vs misconfigured key vs blocked) instead of a
+ * generic "try again", which also makes the cause diagnosable from a screenshot.
+ */
+export function aiErrorMessage(err: unknown): string {
+  const s = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  if (/(429|resource_exhausted|quota|rate.?limit|too many requests)/.test(s))
+    return "XYZ AI has hit its usage limit for now. Please try again in a little while.";
+  if (/(api.?key|401|403|permission.?denied|unauthenticated|unauthorized|invalid argument.*key)/.test(s))
+    return "XYZ AI isn't configured correctly right now. Please check back soon.";
+  if (/(safety|blocked|recitation|prohibited)/.test(s))
+    return "XYZ AI couldn't answer that one. Try rephrasing your question.";
+  return "XYZ AI ran into an issue finishing that answer. Please try again.";
+}
+
 // Map our neutral {user|assistant} history to Gemini's contents shape
 // (Gemini uses the role name "model" for assistant turns).
 function toContents(messages: AiMessage[]) {
