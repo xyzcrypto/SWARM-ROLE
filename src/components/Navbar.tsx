@@ -113,14 +113,16 @@ export function Navbar() {
               />
             </Link>
           ))}
-          {/* Dedicated XYZ AI launcher — opens the floating assistant. */}
+          {/* Dedicated XYZ AI launcher — animated green CTA, opens the assistant. */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT))}
-            className="ml-1 inline-flex items-center gap-1.5 rounded-lg border border-gold-500/30 bg-gold-500/5 px-3 py-1.5 text-sm font-semibold text-gold-200 transition-colors hover:border-gold-500/50 hover:bg-gold-500/15 hover:text-gold-100"
+            className="ai-nav-btn ml-1 inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-mint-500 to-mint-400 px-3 py-1.5 text-sm font-semibold text-ink ring-1 ring-mint-300/50 transition-transform"
           >
-            <Bot className="h-4 w-4" />
-            XYZ AI
+            <span className="relative z-10 inline-flex items-center gap-1.5">
+              <Bot className="ai-bot h-4 w-4" />
+              XYZ AI
+            </span>
           </button>
         </div>
 
@@ -231,17 +233,19 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
-            {/* Dedicated XYZ AI launcher (mobile). */}
+            {/* Dedicated XYZ AI launcher (mobile) — animated green CTA. */}
             <button
               type="button"
               onClick={() => {
                 setOpen(false);
                 window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT));
               }}
-              className="mt-0.5 inline-flex items-center gap-2 rounded-lg border border-gold-500/30 bg-gold-500/5 px-3 py-2.5 text-sm font-semibold text-gold-200 transition-colors hover:bg-gold-500/15 hover:text-gold-100"
+              className="ai-nav-btn mt-0.5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-mint-500 to-mint-400 px-3 py-2.5 text-sm font-semibold text-ink ring-1 ring-mint-300/50"
             >
-              <Bot className="h-4 w-4" />
-              XYZ AI
+              <span className="relative z-10 inline-flex items-center gap-2">
+                <Bot className="ai-bot h-4 w-4" />
+                XYZ AI
+              </span>
             </button>
             <div className="mt-2 flex flex-col gap-2 border-t border-line pt-3">
               <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">

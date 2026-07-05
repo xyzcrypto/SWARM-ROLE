@@ -392,6 +392,47 @@ html.lenis body {
   55%, 100% { transform: translateX(160%); }
 }
 
+/* Animated "XYZ AI" navbar launcher — green (mint) CTA with a breathing glow, a
+   periodic light sheen and a gently bobbing robot. Content sits above the sheen
+   via a relative z-10 wrapper. Fully disabled under reduced-motion. */
+.ai-nav-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  animation: ai-glow 2.6s ease-in-out infinite;
+}
+.ai-nav-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: linear-gradient(
+    110deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.45) 50%,
+    transparent 70%
+  );
+  transform: translateX(-150%);
+  animation: sheen 3.4s ease-in-out infinite;
+}
+.ai-nav-btn:hover { transform: translateY(-1px); }
+.ai-nav-btn .ai-bot { animation: ai-bot-bob 2.6s ease-in-out infinite; }
+@keyframes ai-glow {
+  0%, 100% { box-shadow: 0 6px 20px -10px rgba(11, 187, 124, 0.55); }
+  50% { box-shadow: 0 0 16px 1px rgba(34, 214, 146, 0.5), 0 8px 26px -8px rgba(11, 187, 124, 0.75); }
+}
+@keyframes ai-bot-bob {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(-1.5px) rotate(-6deg); }
+  60% { transform: translateY(0) rotate(6deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-nav-btn,
+  .ai-nav-btn::after,
+  .ai-nav-btn .ai-bot { animation: none; }
+}
+
 /* Tactile press feedback for primary actions / redirects. A quick radial sheen
    blooms from the center on click (paired with a framer-motion whileTap scale in
    <ActionLink>). Purely additive - layers over existing button styles. */
