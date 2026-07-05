@@ -7,6 +7,14 @@ import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { summarize } from "@/lib/ai-tasks";
 
+// Post fields WITHOUT the AI `summary` column, so the editor GET + updates keep
+// working before the `12_post_summary` migration lands (missing column → P2022).
+const POST_SCALARS = {
+  id: true, title: true, slug: true, excerpt: true, content: true,
+  cover: true, category: true, tags: true, published: true, premium: true,
+  views: true, createdAt: true, updatedAt: true, authorId: true,
+} satisfies Prisma.PostSelect;
+
 function revalidateContent(slug?: string) {
   revalidatePath("/");
   revalidatePath("/research");
@@ -20,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
     if (!actor) return fail("Forbidden", 403);
     if (!isCuid(params.id)) return fail("Invalid id.", 400);
 
-    const post = await prisma.post.findUnique({ where: { id: params.id } });
+    const post = await prisma.post.findUnique({ where: { id: params.id }, select: POST_SCALARS });
     if (!post) return fail("Post not found.", 404);
     return ok({ post });
   } catch (err) {
@@ -86,6 +94,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
       return prisma.post.update({
         where: { id: params.id },
         data: { ...payload, slug },
+        select: POST_SCALARS,
       });
     }
 
@@ -105,7 +114,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (data.content !== undefined) {
       const summary = await summarize(post.title, post.content);
       if (summary) {
-        post = await prisma.post.update({ where: { id: params.id }, data: { summary } }).catch(() => post);
+        // Writing `summary` needs the column; if the migration hasn't landed the
+        // update throws P2022 and we keep the prior post (best-effort).
+        post = await prisma.post
+          .update({ where: { id: params.id }, data: { summary }, select: POST_SCALARS })
+          .catch(() => post);
       }
     }
 
