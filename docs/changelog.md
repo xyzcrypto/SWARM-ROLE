@@ -5,6 +5,51 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-05 — Live Web3 News & Intelligence Hub (/news)
+A real-time crypto news hub aggregated from reputable RSS feeds — **keyless, no API
+key** (owner request; CryptoPanic free tier had closed).
+- **`/api/news`** aggregates ~9 reputable feeds (CoinDesk, Cointelegraph, Decrypt, The
+  Defiant, Bitcoin Magazine, Crypto Briefing, BeInCrypto, Bitcoinist, NewsBTC) server-
+  side, classifies each story, **de-duplicates the same event across outlets**, filters
+  (category + search) + paginates. Cached, graceful (200 even if all feeds fail).
+- **`src/lib/news.ts`** (pure, unit-tested): RSS/Atom parser, `categorize` (26 Web3
+  categories), `sentiment` (bullish/bearish), `impact` (Low/Med/High), `relatedTokens`,
+  `timeAgo`, `dedupe`. **`news-sources.ts`** = the feed list + favicon helper.
+- **`/news` page + `NewsClient`**: category filter chips, debounced search, **Breaking
+  News banner**, rich cards (source + favicon, headline, summary, "3 min ago", category,
+  bullish/bearish, impact, related tokens, Read, Share, Bookmark), **infinite scroll**,
+  **live auto-refresh** (90s), **Saved** (localStorage bookmarks), and per-card
+  **"Why this matters" AI** (`/api/ai/why-matters`, Groq). **News** added to the navbar.
+- typecheck + lint(0) + test(**154**, +12 for news) + build green; page verified.
+
+## 2026-07-05 — Markets: live Web3 data hub (Phase C, PR C1)
+New **/markets** page aggregating live market + DeFi data in one place (owner request).
+- **Cached proxy routes** (graceful always-200 `live` flag, model on `/api/ticker`):
+  `/api/markets/global` (CoinGecko `/global` + Fear & Greed + optional CoinMarketCap
+  DeFi/stablecoin enrichment) and `/api/markets/defi` (DefiLlama — total TVL + trend,
+  top protocols, top chains, stablecoin mcap). All free/keyless except CMC.
+- **`src/lib/markets.ts`** (pure, unit-tested): `compactUsd`, `pct`, `fngLabel`,
+  `topByTvl` + shared types.
+- **`/markets` page** + **`MarketsClient`** (visibility-gated polling like MarketTicker):
+  global KPI tiles, Fear & Greed gauge, DeFi TVL + sparkline, top protocols/chains,
+  BTC/ETH candlesticks, live ticker. Reuses `.surface`/`.lift`, `mono`, `--chart-*`,
+  `PerpChart`. **Markets** added to the navbar.
+- **env:** `CMC_API_KEY` (optional) + `cmcEnabled` — hub works fully without it via the
+  free sources; the CMC key just adds DeFi/stablecoin market-cap tiles.
+- typecheck + lint(0) + test(137, +8 for markets) + build green; page verified.
+- **Expanded (same PR):** professional **tabbed** hub (Overview · DeFi · Perp DEX · DEX &
+  Fees · Yields · Trending) + always-visible 5-KPI strip (incl. **ETH gas** via keyless
+  Cloudflare RPC). New routes: `/api/markets/perp` (**Perp DEX** — DefiLlama derivatives
+  volumes + **Hyperliquid live funding/OI markets**), `/api/markets/dex` (DEX volume +
+  fees), `/api/markets/coins` (trending + top gainers/losers), `/api/markets/yields`
+  (top yield pools). All keyless/free, cached, graceful. test(141).
+- **Polish (same PR):** removed the running ticker from the top of /markets (it overlapped
+  the fixed navbar → glitch) and fixed the page padding. Added a **Coins** tab: a full
+  CMC-style **market table** (rank, price, 1h/24h/7d %, market cap, 24h volume, 7d
+  sparkline, top 50). **ETH gas** fixed (keyless public RPCs w/ fallback — Cloudflare
+  gateway was dead); **Perp DEX** made resilient (DefiLlama + Hyperliquid independent).
+  Realtime intervals tightened (prices/perp/gas 30s). test(**142**).
+
 ## 2026-07-05 — XYZ AI: switch provider to Groq (free, faster, higher limits)
 Gemini's free tier limits were being hit. Moved to **Groq** (Llama models) for a more
 generous free quota + faster inference. Single-wrapper design meant only `src/lib/ai.ts`

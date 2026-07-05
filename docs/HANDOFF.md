@@ -49,6 +49,7 @@ Settings → Environment Variables is the canonical store for runtime).
 | `RESEND_API_KEY`, `EMAIL_FROM` | OTP emails (optional) | Codes log to server console | Vercel ← Resend dashboard |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | Image uploads (optional) | Uploads return 501 | Vercel ← Supabase → API keys |
 | `GROQ_API_KEY` | **XYZ AI** assistant (optional) | AI features no-op (assistant 503, launcher shows "not configured") | Vercel ← Groq console (console.groq.com/keys) — free, no card |
+| `CMC_API_KEY` | **Markets** hub CMC enrichment (optional) | /markets still works from free sources; just no CMC DeFi/stablecoin tiles | Vercel ← coinmarketcap.com/api (free tier) |
 | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_GSC_VERIFICATION` | SEO/analytics (optional) | Wrong canonical / no GA | Vercel |
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | Error monitoring (optional) | Sentry no-op | Vercel ← Sentry project |
 | `SEED_ADMIN_PASSWORD` | `npm run seed` only | Insecure default `changeme123` — **always set, change after first login** | Local shell only |

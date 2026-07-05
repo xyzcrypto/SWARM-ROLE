@@ -46,3 +46,14 @@ export function parseModerationVerdict(raw: string): boolean {
   const v = raw.toLowerCase();
   return /\btoxic\b/.test(v) && !/\bsafe\b/.test(v);
 }
+
+/** Prompt for a punchy "why this matters" take on a news headline (for the News hub). */
+export function buildWhyMattersPrompt(title: string, summary: string): string {
+  return (
+    "You are XYZ AI, a crypto analyst. In 2 short sentences, explain WHY this news " +
+    "matters for the crypto market and who it affects — practical and plain, no hype, " +
+    "no preamble, not financial advice.\n\n" +
+    `Headline: ${title}\n` +
+    (summary ? `Summary: ${cleanSummary(summary).slice(0, 500)}\n` : "")
+  );
+}
