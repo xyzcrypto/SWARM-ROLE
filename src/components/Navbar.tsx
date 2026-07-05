@@ -9,9 +9,11 @@ import { navLinks } from "@/lib/site";
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState("");
   const { data: session } = useSession();
   const isAdmin = (session?.user as any)?.role === "ADMIN";
 
+  /* Scroll → frosted glass */
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 24);
     onScroll();
@@ -19,11 +21,40 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  /* Active section via IntersectionObserver */
+  useEffect(() => {
+    const sectionIds = navLinks
+      .map((l) => l.href.replace("/#", ""))
+      .filter((id) => !id.startsWith("/"));
+
+    const observers: IntersectionObserver[] = [];
+
+    sectionIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) setActiveSection(id);
+        },
+        { threshold: 0.25, rootMargin: "-80px 0px -55% 0px" }
+      );
+      obs.observe(el);
+      observers.push(obs);
+    });
+
+    return () => observers.forEach((o) => o.disconnect());
+  }, []);
+
+  const isActive = (href: string) => {
+    if (href.startsWith("/#")) return activeSection === href.replace("/#", "");
+    return false;
+  };
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "border-b border-white/[0.05] bg-black/90 shadow-[0_1px_60px_-12px_rgba(0,0,0,1)] backdrop-blur-2xl"
+          ? "border-b border-white/[0.05] bg-black/92 shadow-[0_1px_60px_-12px_rgba(0,0,0,1)] backdrop-blur-2xl"
           : "bg-transparent"
       }`}
     >
@@ -31,7 +62,7 @@ export function Navbar() {
 
         {/* Logo */}
         <Link href="/" className="group flex shrink-0 items-center gap-2.5">
-          <span className="relative inline-flex h-8 w-8 overflow-hidden rounded-full ring-1 ring-gold-400/35 shadow-[0_0_12px_-3px_rgba(233,160,32,0.45)] transition-all duration-300 group-hover:shadow-[0_0_20px_-3px_rgba(233,160,32,0.7)]">
+          <span className="relative inline-flex h-8 w-8 overflow-hidden rounded-full ring-1 ring-gold-400/35 shadow-[0_0_14px_-3px_rgba(233,160,32,0.45)] transition-all duration-300 group-hover:shadow-[0_0_22px_-3px_rgba(233,160,32,0.75)] group-hover:ring-gold-400/60">
             <Image src="/logo.jpg" alt="XYZ Crypto" fill className="object-cover" sizes="32px" />
           </span>
           <span className="font-display text-[0.98rem] font-bold tracking-tight">
@@ -40,14 +71,18 @@ export function Navbar() {
           </span>
         </Link>
 
-        {/* Desktop nav — pill container */}
+        {/* Desktop nav pill */}
         <div className="hidden md:flex">
           <div className="flex items-center gap-0.5 rounded-full border border-white/[0.06] bg-white/[0.025] px-1 py-0.5 backdrop-blur-md">
             {navLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
-                className="rounded-full px-4 py-1.5 text-[0.82rem] font-medium text-zinc-400 transition-all duration-200 hover:bg-white/[0.07] hover:text-gold-100"
+                className={`rounded-full px-4 py-1.5 text-[0.82rem] font-medium transition-all duration-200 ${
+                  isActive(l.href)
+                    ? "nav-active"
+                    : "text-zinc-400 hover:bg-white/[0.07] hover:text-gold-100"
+                }`}
               >
                 {l.label}
               </Link>
@@ -111,14 +146,18 @@ export function Navbar() {
 
       {/* Mobile panel */}
       {open && (
-        <div className="border-t border-white/[0.05] bg-black/95 px-4 pb-6 pt-3 backdrop-blur-2xl md:hidden">
+        <div className="border-t border-white/[0.05] bg-black/96 px-4 pb-6 pt-3 backdrop-blur-2xl md:hidden">
           <nav className="flex flex-col gap-0.5">
             {navLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="rounded-xl px-4 py-3 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/[0.04] hover:text-gold-100"
+                className={`rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+                  isActive(l.href)
+                    ? "text-gold-100 bg-gold-400/8"
+                    : "text-zinc-300 hover:bg-white/[0.04] hover:text-gold-100"
+                }`}
               >
                 {l.label}
               </Link>

@@ -13,6 +13,7 @@ const products = [
       </>
     ),
     featured: true,
+    badge: "Flagship",
   },
   {
     name: "Trading Tools",
@@ -81,7 +82,7 @@ const statusStyle: Record<string, string> = {
 };
 
 const statusDot: Record<string, string> = {
-  Live:             "bg-emerald-400",
+  Live:             "bg-emerald-400 animate-pulse",
   "Coming Soon":    "bg-gold-200",
   "In Development": "bg-sky-400",
   Planned:          "bg-zinc-500",
@@ -95,6 +96,8 @@ export function Products() {
 
       <div className="pointer-events-none absolute inset-0">
         <div className="glow-orb left-1/2 top-16 h-96 w-96 -translate-x-1/2 bg-gold-400/5" />
+        <div className="glow-orb left-[10%] bottom-20 h-64 w-64 bg-gold-500/3" />
+        <div className="glow-orb right-[10%] top-32 h-64 w-64 bg-gold-400/3" />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-4 pt-20 sm:px-6 lg:px-8">
@@ -132,29 +135,51 @@ export function Products() {
                       : "bg-gradient-to-r from-transparent via-gold-400/22 to-transparent"
                   }`} />
 
+                  {/* Featured: animated shine sweep */}
+                  {p.featured && (
+                    <div className="pointer-events-none absolute inset-0 -translate-x-full animate-[shine-sweep_4s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-gold-400/8 to-transparent" />
+                  )}
+
                   <div className="mb-6 flex items-start justify-between gap-3">
-                    <div className="icon-box h-11 w-11 shrink-0">
+                    <div className={`icon-box h-11 w-11 shrink-0 ${p.featured ? "bg-gold-400/10 border-gold-400/25" : ""}`}>
                       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
                         {p.icon}
                       </svg>
                     </div>
-                    <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ${statusStyle[p.status]}`}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${
-                        p.status === "Live" ? "animate-pulse " : ""
-                      }${statusDot[p.status]}`} />
-                      {p.status}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {p.badge && (
+                        <span className="rounded-full bg-gold-400/15 px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-[0.14em] text-gold-200 ring-1 ring-gold-400/30">
+                          {p.badge}
+                        </span>
+                      )}
+                      <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold ring-1 ${statusStyle[p.status]}`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${statusDot[p.status]}`} />
+                        {p.status}
+                      </span>
+                    </div>
                   </div>
 
-                  <h3 className={`font-display font-bold text-zinc-50 ${p.featured ? "text-2xl" : "text-lg"}`}>
+                  <h3 className={`font-display font-bold text-zinc-50 transition-colors duration-300 group-hover:text-gold-100 ${p.featured ? "text-2xl" : "text-lg"}`}>
                     {p.name}
                   </h3>
                   <p className="mt-2.5 text-[0.83rem] leading-[1.72] text-zinc-500">
                     {p.desc}
                   </p>
 
+                  {/* Featured: bottom "Learn more" affordance */}
+                  {p.featured && (
+                    <div className="mt-6 inline-flex items-center gap-1.5 text-[11px] font-semibold text-gold-300 opacity-0 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0.5">
+                      Learn more
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
+                    </div>
+                  )}
+
                   {/* Hover glow */}
-                  <div className="pointer-events-none absolute -bottom-10 -right-10 h-40 w-40 rounded-full bg-gold-400/0 blur-3xl transition-all duration-500 group-hover:bg-gold-400/10" />
+                  <div className={`pointer-events-none absolute -bottom-10 -right-10 h-40 w-40 rounded-full blur-3xl transition-all duration-500 group-hover:opacity-100 ${
+                    p.featured ? "opacity-30 bg-gold-400/20" : "opacity-0 bg-gold-400/10"
+                  }`} />
                 </div>
               </TiltCard>
             </Reveal>

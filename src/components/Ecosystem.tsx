@@ -14,8 +14,10 @@ const communities = [
     href: site.ecosystem.web3Academy,
     logo: "/web3-academy.jpg",
     initials: "W3",
-    glowColor: "bg-gold-400/15",
+    glowColor: "bg-gold-400/14",
     cta: "Join on Telegram",
+    accentLine: "from-gold-700/0 via-gold-400/40 to-gold-700/0",
+    memberCount: "2K+ Members",
   },
   {
     name: "TradeKaroVerse",
@@ -27,8 +29,10 @@ const communities = [
     href: site.ecosystem.tradeKaroVerse,
     logo: "/tradekaroverse.jpg",
     initials: "TKV",
-    glowColor: "bg-sky-500/12",
+    glowColor: "bg-sky-500/10",
     cta: "Join on Telegram",
+    accentLine: "from-sky-700/0 via-sky-400/35 to-sky-700/0",
+    memberCount: "1.5K+ Members",
   },
 ];
 
@@ -51,22 +55,22 @@ export function Ecosystem() {
           </p>
         </Reveal>
 
-        {/* XYZ Crypto — parent brand card (full-width) */}
+        {/* XYZ Crypto — parent hub card (full-width) */}
         <Reveal>
           <a
             href="/#about"
             className="brand-card mt-14 block rounded-3xl p-8 sm:p-10 lg:p-12"
           >
             {/* Glows */}
-            <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-gold-400/14 blur-3xl" />
-            <div className="pointer-events-none absolute -left-10 bottom-0 h-44 w-44 rounded-full bg-gold-500/8 blur-2xl" />
+            <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-gold-400/12 blur-3xl" />
+            <div className="pointer-events-none absolute -left-10 bottom-0 h-48 w-48 rounded-full bg-gold-500/7 blur-2xl" />
 
             {/* Top accent */}
-            <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-3xl bg-gradient-to-r from-transparent via-gold-400/50 to-transparent" />
+            <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-3xl bg-gradient-to-r from-transparent via-gold-400/55 to-transparent" />
 
             <div className="relative flex flex-col items-start gap-6 sm:flex-row sm:items-center">
               {/* Logo */}
-              <span className="relative inline-flex h-20 w-20 shrink-0 overflow-hidden rounded-2xl ring-1 ring-gold-400/35 shadow-gold-lg">
+              <span className="relative inline-flex h-20 w-20 shrink-0 overflow-hidden rounded-2xl ring-1 ring-gold-400/35 shadow-gold-lg transition-all duration-300 group-hover:shadow-gold-xl">
                 <img src="/logo.jpg" alt="XYZ Crypto" className="h-full w-full object-cover" />
               </span>
 
@@ -78,12 +82,13 @@ export function Ecosystem() {
                   <span className="rounded-full bg-gold-400/10 px-3 py-0.5 text-xs font-bold text-gold-100 ring-1 ring-gold-400/28">
                     The Hub
                   </span>
-                  <span className="rounded-full bg-emerald-500/10 px-3 py-0.5 text-xs font-bold text-emerald-300 ring-1 ring-emerald-500/22">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-0.5 text-xs font-bold text-emerald-300 ring-1 ring-emerald-500/22 animate-badge-live">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Live
                   </span>
                 </div>
-                <p className="mt-2 text-sm text-zinc-600">xyzcrypto.io</p>
-                <p className="mt-3 max-w-2xl text-[0.88rem] leading-[1.75] text-zinc-400">
+                <p className="mt-1.5 text-sm text-zinc-600">xyzcrypto.io</p>
+                <p className="mt-3 max-w-2xl text-[0.88rem] leading-[1.78] text-zinc-400">
                   The unified Web3 ecosystem — research, trading tools, a perp DEX,
                   airdrop tools, premium intelligence and education in one trusted brand.
                   Built for the next generation of Web3.
@@ -91,7 +96,7 @@ export function Ecosystem() {
               </div>
 
               <div className="shrink-0 self-start sm:self-center">
-                <span className="inline-flex items-center gap-2 rounded-full border border-gold-400/28 bg-gold-400/6 px-5 py-2.5 text-sm font-semibold text-gold-100 transition-all duration-300 hover:bg-gold-400/12">
+                <span className="inline-flex items-center gap-2 rounded-full border border-gold-400/28 bg-gold-400/6 px-5 py-2.5 text-sm font-semibold text-gold-100 transition-all duration-300 hover:bg-gold-400/12 hover:border-gold-400/50">
                   Explore Products
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 12h14M13 6l6 6-6 6" />
@@ -102,8 +107,18 @@ export function Ecosystem() {
           </a>
         </Reveal>
 
+        {/* Visual connector: hub → communities */}
+        <div className="relative mx-auto my-0 flex flex-col items-center">
+          <div className="h-8 w-px bg-gradient-to-b from-gold-400/40 to-transparent" />
+          <div className="flex w-full items-start justify-center gap-4 md:justify-between">
+            <div className="hidden h-px flex-1 bg-gradient-to-r from-transparent to-gold-400/25 md:block" style={{ marginTop: "0.5px" }} />
+            <div className="h-4 w-px bg-gradient-to-b from-gold-400/25 to-transparent" />
+            <div className="hidden h-px flex-1 bg-gradient-to-l from-transparent to-gold-400/25 md:block" style={{ marginTop: "0.5px" }} />
+          </div>
+        </div>
+
         {/* Community arms — 2-col grid */}
-        <div className="mt-4 grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {communities.map((b, i) => (
             <Reveal key={b.name} delay={i}>
               <a
@@ -113,7 +128,10 @@ export function Ecosystem() {
                 className="brand-card group block h-full rounded-3xl p-8"
               >
                 {/* Corner glow */}
-                <div className={`pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full ${b.glowColor} blur-2xl opacity-70`} />
+                <div className={`pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full ${b.glowColor} blur-2xl opacity-70 transition-opacity duration-500 group-hover:opacity-100`} />
+
+                {/* Top accent line */}
+                <div className={`absolute inset-x-0 top-0 h-[1.5px] rounded-t-3xl bg-gradient-to-r ${b.accentLine}`} />
 
                 <div className="relative flex items-start gap-5">
                   <BrandLogo logo={b.logo} initials={b.initials} name={b.name} />
@@ -130,19 +148,24 @@ export function Ecosystem() {
                   </div>
                 </div>
 
-                <p className="relative mt-5 text-[0.83rem] leading-[1.72] text-zinc-500">
+                <p className="relative mt-5 text-[0.83rem] leading-[1.75] text-zinc-500">
                   {b.blurb}
                 </p>
 
-                <div className="relative mt-6 inline-flex items-center gap-2 text-sm font-semibold text-gold-300 transition-colors group-hover:text-gold-100">
-                  <TelegramIcon className="h-4 w-4 opacity-75" />
-                  {b.cta}
-                  <svg
-                    className="transition-transform duration-200 group-hover:translate-x-1"
-                    width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"
-                  >
-                    <path d="M5 12h14M13 6l6 6-6 6" />
-                  </svg>
+                <div className="relative mt-6 flex items-center justify-between">
+                  <div className="inline-flex items-center gap-2 text-sm font-semibold text-gold-300 transition-colors group-hover:text-gold-100">
+                    <TelegramIcon className="h-4 w-4 opacity-75" />
+                    {b.cta}
+                    <svg
+                      className="transition-transform duration-200 group-hover:translate-x-1"
+                      width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <path d="M5 12h14M13 6l6 6-6 6" />
+                    </svg>
+                  </div>
+                  <span className="text-[10px] font-semibold text-zinc-700 transition-colors group-hover:text-zinc-500">
+                    {b.memberCount}
+                  </span>
                 </div>
               </a>
             </Reveal>

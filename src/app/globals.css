@@ -136,11 +136,22 @@ body {
   border: 1px solid rgba(233, 160, 32, 0.14);
   transition: border-color 0.4s ease, transform 0.4s cubic-bezier(0.2, 0, 0.2, 1), box-shadow 0.4s ease;
 }
-.brand-card:hover {
-  border-color: rgba(233, 160, 32, 0.42);
-  transform: translateY(-6px);
-  box-shadow: 0 32px 80px -24px rgba(233, 160, 32, 0.25);
+.brand-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(ellipse 70% 50% at 50% 0%, rgba(233,160,32,0.06), transparent 65%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
 }
+.brand-card:hover {
+  border-color: rgba(233, 160, 32, 0.45);
+  transform: translateY(-6px);
+  box-shadow: 0 36px 88px -24px rgba(233, 160, 32, 0.28);
+}
+.brand-card:hover::before { opacity: 1; }
 
 /* Featured product card */
 .feature-card {
@@ -263,6 +274,12 @@ body {
   to   { transform: translateX(-50%); }
 }
 
+/* Fade edges for marquee container */
+.marquee-fade {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 7%, #000 93%, transparent 100%);
+}
+
 /* ─── Animated gradient border (featured card) ───────────────────────── */
 .feature-card-glow {
   animation: glow-pulse 3s ease-in-out infinite;
@@ -319,6 +336,92 @@ body {
   transition: opacity 0.3s ease;
 }
 .group:hover .spotlight { opacity: 1; }
+
+/* ─── Noise grain overlay ─────────────────────────────────────────────── */
+.noise-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.028;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.72' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  background-repeat: repeat;
+}
+
+/* ─── Active nav indicator ────────────────────────────────────────────── */
+.nav-active {
+  color: #f9e0a8 !important;
+  background: rgba(233, 160, 32, 0.09) !important;
+}
+
+/* ─── Stat cell hover ─────────────────────────────────────────────────── */
+.stat-cell {
+  cursor: default;
+  transition: background 0.3s ease;
+}
+.stat-cell:hover {
+  background: rgba(233, 160, 32, 0.04);
+}
+.stat-cell:hover .stat-num {
+  color: #f7c948;
+}
+
+/* ─── Ecosystem connector ─────────────────────────────────────────────── */
+.eco-connector {
+  position: absolute;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(180deg, rgba(233,160,32,0.35) 0%, rgba(233,160,32,0.08) 100%);
+  transform: translateX(-50%);
+}
+
+/* ─── Scroll indicator bounce ─────────────────────────────────────────── */
+@keyframes scroll-bounce {
+  0%, 100% { transform: translateY(0px); opacity: 0.4; }
+  50%       { transform: translateY(5px); opacity: 0.9; }
+}
+.animate-scroll-bounce {
+  animation: scroll-bounce 2s ease-in-out infinite;
+}
+
+/* ─── Platform card glow on hover ────────────────────────────────────── */
+.platform-card {
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.35s ease, transform 0.35s cubic-bezier(0.2,0,0.2,1), box-shadow 0.35s ease;
+}
+.platform-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  border-radius: inherit;
+}
+.platform-card:hover::after { opacity: 1; }
+.platform-card:hover { transform: translateY(-5px); }
+
+/* ─── CTA band inner glow ring ───────────────────────────────────────── */
+.cta-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(233,160,32,0.12);
+  animation: glow-pulse 4s ease-in-out infinite;
+}
+
+/* ─── Hero gradient mesh ──────────────────────────────────────────────── */
+.hero-mesh {
+  background:
+    radial-gradient(ellipse 80% 50% at 20% 40%, rgba(233,160,32,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 70% at 80% 10%, rgba(233,160,32,0.04) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 50% 100%, rgba(233,160,32,0.05) 0%, transparent 50%);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
 
 /* ─── Scrollbar ───────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; }

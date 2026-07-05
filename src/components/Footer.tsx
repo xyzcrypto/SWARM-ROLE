@@ -9,10 +9,10 @@ import {
 } from "./BrandIcons";
 
 const socialList = [
-  { href: site.socials.youtube,  Icon: YouTubeIcon,  label: "YouTube" },
-  { href: site.socials.x,        Icon: XIcon,        label: "X" },
-  { href: site.socials.telegram, Icon: TelegramIcon, label: "Telegram" },
-  { href: site.socials.linkedin, Icon: LinkedInIcon, label: "LinkedIn" },
+  { href: site.socials.youtube,  Icon: YouTubeIcon,  label: "YouTube",  color: "hover:border-red-500/35 hover:bg-red-500/8 hover:text-red-400" },
+  { href: site.socials.x,        Icon: XIcon,        label: "X",        color: "hover:border-zinc-400/30 hover:bg-white/[0.06] hover:text-zinc-100" },
+  { href: site.socials.telegram, Icon: TelegramIcon, label: "Telegram", color: "hover:border-sky-500/35 hover:bg-sky-500/8 hover:text-sky-400" },
+  { href: site.socials.linkedin, Icon: LinkedInIcon, label: "LinkedIn", color: "hover:border-blue-500/35 hover:bg-blue-500/8 hover:text-blue-400" },
 ];
 
 const ecosystemLinks = [
@@ -24,16 +24,20 @@ const ecosystemLinks = [
 export function Footer() {
   return (
     <footer className="relative border-t border-white/[0.04] bg-ink-950">
-      {/* Top gradient line */}
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-400/18 to-transparent" />
+      {/* Animated top gradient line */}
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-gold-400/22 to-transparent" />
+      <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-transparent via-gold-400/8 to-transparent blur-sm" />
 
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      {/* Subtle ambient glow */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-48 w-96 -translate-x-1/2 rounded-full bg-gold-400/4 blur-3xl" />
+
+      <div className="relative mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-12 lg:grid-cols-[1.8fr_1fr_1fr_1fr]">
 
           {/* Brand column */}
           <div>
-            <Link href="/" className="flex items-center gap-3">
-              <span className="relative inline-flex h-10 w-10 overflow-hidden rounded-full ring-1 ring-gold-400/32 shadow-[0_0_14px_-4px_rgba(233,160,32,0.35)]">
+            <Link href="/" className="group flex items-center gap-3">
+              <span className="relative inline-flex h-10 w-10 overflow-hidden rounded-full ring-1 ring-gold-400/32 shadow-[0_0_14px_-4px_rgba(233,160,32,0.35)] transition-all duration-300 group-hover:ring-gold-400/55 group-hover:shadow-[0_0_22px_-4px_rgba(233,160,32,0.55)]">
                 <Image src="/logo.jpg" alt="XYZ Crypto" fill className="object-cover" sizes="40px" />
               </span>
               <span className="font-display text-lg font-bold">
@@ -53,7 +57,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.label}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03] text-zinc-600 transition-all duration-200 hover:border-gold-400/30 hover:bg-gold-400/6 hover:text-gold-200"
+                  className={`inline-flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.06] bg-white/[0.03] text-zinc-600 transition-all duration-200 ${s.color}`}
                 >
                   <s.Icon className="h-3.5 w-3.5" />
                 </a>
@@ -71,7 +75,7 @@ export function Footer() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
-                    className="text-zinc-600 transition-colors hover:text-gold-100"
+                    className="text-zinc-600 transition-colors duration-200 hover:text-gold-100"
                   >
                     {l.label}
                   </Link>
@@ -93,14 +97,14 @@ export function Footer() {
                       href={l.href}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-zinc-600 transition-colors hover:text-gold-100"
+                      className="text-zinc-600 transition-colors duration-200 hover:text-gold-100"
                     >
                       {l.label}
                     </a>
                   ) : (
                     <Link
                       href={l.href}
-                      className="text-zinc-600 transition-colors hover:text-gold-100"
+                      className="text-zinc-600 transition-colors duration-200 hover:text-gold-100"
                     >
                       {l.label}
                     </Link>
@@ -117,22 +121,22 @@ export function Footer() {
             </h4>
             <ul className="mt-5 space-y-3 text-[0.82rem]">
               <li>
-                <Link href="/signup" className="text-zinc-600 transition-colors hover:text-gold-100">
+                <Link href="/signup" className="text-zinc-600 transition-colors duration-200 hover:text-gold-100">
                   Create account
                 </Link>
               </li>
               <li>
-                <Link href="/login" className="text-zinc-600 transition-colors hover:text-gold-100">
+                <Link href="/login" className="text-zinc-600 transition-colors duration-200 hover:text-gold-100">
                   Log in
                 </Link>
               </li>
               <li>
-                <Link href="/research" className="text-zinc-600 transition-colors hover:text-gold-100">
+                <Link href="/research" className="text-zinc-600 transition-colors duration-200 hover:text-gold-100">
                   Research hub
                 </Link>
               </li>
               <li>
-                <a href={`mailto:${site.email}`} className="text-zinc-600 transition-colors hover:text-gold-100">
+                <a href={`mailto:${site.email}`} className="text-zinc-600 transition-colors duration-200 hover:text-gold-100">
                   Contact us
                 </a>
               </li>
@@ -145,9 +149,13 @@ export function Footer() {
           <p className="text-[11px] text-zinc-700">
             © {new Date().getFullYear()} XYZ Crypto. All rights reserved.
           </p>
-          <p className="text-[11px] text-zinc-700">
-            The home of next-gen Web3 · v3.0
-          </p>
+          <div className="flex items-center gap-3">
+            <span className="text-[11px] text-zinc-700">The home of next-gen Web3</span>
+            <span className="h-3 w-px bg-zinc-800" />
+            <span className="rounded-full border border-gold-400/18 bg-gold-400/5 px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.14em] text-gold-400/60">
+              v3.2
+            </span>
+          </div>
         </div>
       </div>
     </footer>

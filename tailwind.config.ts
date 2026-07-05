@@ -94,6 +94,27 @@ const config: Config = {
           "0%":   { transform: "translateY(110%)" },
           "100%": { transform: "translateY(0%)" },
         },
+        "scroll-bounce": {
+          "0%,100%": { transform: "translateY(0px)", opacity: "0.4" },
+          "50%":     { transform: "translateY(5px)", opacity: "0.9" },
+        },
+        "badge-live": {
+          "0%,100%": { boxShadow: "0 0 0 0 rgba(52,211,153,0.5)" },
+          "60%":     { boxShadow: "0 0 0 6px rgba(52,211,153,0)" },
+        },
+        "orb-drift": {
+          "0%,100%": { transform: "translate(0px, 0px) scale(1)" },
+          "33%":     { transform: "translate(18px, -12px) scale(1.04)" },
+          "66%":     { transform: "translate(-10px, 8px) scale(0.97)" },
+        },
+        "counter-up": {
+          "0%":   { transform: "translateY(100%)", opacity: "0" },
+          "100%": { transform: "translateY(0%)",   opacity: "1" },
+        },
+        "shine-sweep": {
+          "0%":   { transform: "translateX(-100%)" },
+          "60%,100%": { transform: "translateX(200%)" },
+        },
       },
       animation: {
         "spin-slow":      "spin-slow 30s linear infinite",
@@ -107,6 +128,9 @@ const config: Config = {
         "scan-line":      "scan-line 4s linear infinite",
         "float-particle": "float-particle 6s ease-in-out infinite",
         "border-flow":    "border-flow 5s ease infinite",
+        "scroll-bounce":  "scroll-bounce 2s ease-in-out infinite",
+        "badge-live":     "badge-live 2.2s ease-out infinite",
+        "orb-drift":      "orb-drift 12s ease-in-out infinite",
       },
     },
   },

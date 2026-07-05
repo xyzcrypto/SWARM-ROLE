@@ -16,9 +16,10 @@ const marqueeItems = [
   "Web3 Academy",
   "DeFi",
   "TradeKaroVerse",
+  "Blockchain",
 ];
 
-/* ─── Stat counter ─────────────────────────────────────────────────────── */
+/* ─── Animated stat counter ────────────────────────────────────────────── */
 function Counter({ to, suffix }: { to: number; suffix: string }) {
   const ref = useRef<HTMLSpanElement>(null);
   const count = useMotionValue(0);
@@ -27,7 +28,7 @@ function Counter({ to, suffix }: { to: number; suffix: string }) {
 
   useEffect(() => {
     if (!inView) return;
-    const c = animate(count, to, { duration: 2, ease: "easeOut" });
+    const c = animate(count, to, { duration: 2.2, ease: [0.16, 1, 0.3, 1] });
     return () => c.stop();
   }, [inView, count, to]);
 
@@ -45,33 +46,29 @@ const stats = [
   { to: 100, suffix: "%",  label: "Community first" },
 ];
 
-/* ─── Particle config ──────────────────────────────────────────────────── */
+/* ─── Particles ────────────────────────────────────────────────────────── */
 const particles = [
-  { pos: "top-[18%] right-[14%]", size: "h-1.5 w-1.5", delay: "0s",    dur: "6s"  },
-  { pos: "top-[32%] left-[10%]",  size: "h-1 w-1",     delay: "1.2s",  dur: "8s"  },
-  { pos: "bottom-[24%] right-[12%]", size: "h-1.5 w-1.5", delay: "0.6s", dur: "7s" },
-  { pos: "bottom-[20%] left-[16%]",  size: "h-1 w-1",   delay: "2s",   dur: "9s"  },
-  { pos: "top-[50%] right-[4%]",     size: "h-1 w-1",   delay: "1.5s", dur: "10s" },
-  { pos: "top-[10%] left-[20%]",     size: "h-0.5 w-0.5", delay: "3s", dur: "7s"  },
-  { pos: "bottom-[36%] left-[4%]",   size: "h-0.5 w-0.5", delay: "0.3s", dur: "8s" },
-  { pos: "top-[68%] right-[22%]",    size: "h-1 w-1",   delay: "2.5s", dur: "6s"  },
+  { pos: "top-[16%] right-[12%]",    size: "h-1.5 w-1.5", delay: "0s",    dur: "6s"  },
+  { pos: "top-[30%] left-[8%]",      size: "h-1 w-1",     delay: "1.2s",  dur: "8s"  },
+  { pos: "bottom-[22%] right-[10%]", size: "h-1.5 w-1.5", delay: "0.6s",  dur: "7s"  },
+  { pos: "bottom-[18%] left-[14%]",  size: "h-1 w-1",     delay: "2s",    dur: "9s"  },
+  { pos: "top-[50%] right-[3%]",     size: "h-1 w-1",     delay: "1.5s",  dur: "10s" },
+  { pos: "top-[8%] left-[18%]",      size: "h-0.5 w-0.5", delay: "3s",    dur: "7s"  },
+  { pos: "bottom-[38%] left-[3%]",   size: "h-0.5 w-0.5", delay: "0.3s",  dur: "8s"  },
+  { pos: "top-[66%] right-[20%]",    size: "h-1 w-1",     delay: "2.5s",  dur: "6s"  },
+  { pos: "top-[42%] left-[26%]",     size: "h-0.5 w-0.5", delay: "1.8s",  dur: "11s" },
+  { pos: "bottom-[10%] right-[28%]", size: "h-1 w-1",     delay: "0.9s",  dur: "7s"  },
 ];
 
-/* ─── Clip-reveal line component ───────────────────────────────────────── */
-function RevealLine({
-  children,
-  delay = 0,
-}: {
-  children: React.ReactNode;
-  delay?: number;
-}) {
+/* ─── Clip-reveal line ─────────────────────────────────────────────────── */
+function RevealLine({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   return (
     <span className="clip-reveal">
       <motion.span
         className="block"
         initial={{ y: "110%" }}
         animate={{ y: "0%" }}
-        transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1], delay }}
+        transition={{ duration: 0.88, ease: [0.16, 1, 0.3, 1], delay }}
       >
         {children}
       </motion.span>
@@ -86,44 +83,45 @@ export function Hero() {
   useEffect(() => {
     const el = heroRef.current;
     if (!el) return;
-
     const move = (e: MouseEvent) => {
       const rect = el.getBoundingClientRect();
       setSpotlight({ x: e.clientX - rect.left, y: e.clientY - rect.top, active: true });
     };
     const leave = () => setSpotlight((s) => ({ ...s, active: false }));
-
     el.addEventListener("mousemove", move);
     el.addEventListener("mouseleave", leave);
-    return () => {
-      el.removeEventListener("mousemove", move);
-      el.removeEventListener("mouseleave", leave);
-    };
+    return () => { el.removeEventListener("mousemove", move); el.removeEventListener("mouseleave", leave); };
   }, []);
 
   return (
     <section ref={heroRef} className="relative overflow-hidden pt-24 pb-0 sm:pt-32">
-      {/* ── Ambient layers ──────────────────────────────────────────── */}
+
+      {/* ── Ambient layers ─────────────────────────────────────────────── */}
       <div className="pointer-events-none absolute inset-0 bg-radial-fade" />
       <div className="pointer-events-none absolute inset-0 bg-grid" />
-      <div className="glow-orb left-[5%] top-[4%] h-[500px] w-[500px] bg-gold-400/12" />
-      <div className="glow-orb right-[2%] top-[10%] h-[600px] w-[600px] bg-gold-500/7" />
+      <div className="hero-mesh" />
+      <div className="noise-overlay" />
+
+      {/* Drifting glow orbs */}
+      <div className="glow-orb animate-orb-drift left-[4%] top-[2%] h-[520px] w-[520px] bg-gold-400/10" />
+      <div className="glow-orb animate-orb-drift [animation-delay:4s] right-[1%] top-[8%] h-[640px] w-[640px] bg-gold-500/6" />
+      <div className="glow-orb [animation-delay:8s] left-[40%] bottom-0 h-[300px] w-[300px] bg-gold-400/5" />
 
       {/* Mouse spotlight */}
       <div
-        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-500"
+        className="pointer-events-none absolute inset-0 z-0 transition-opacity duration-600"
         style={{
           opacity: spotlight.active ? 1 : 0,
-          background: `radial-gradient(700px circle at ${spotlight.x}px ${spotlight.y}px, rgba(233,160,32,0.055), transparent 65%)`,
+          background: `radial-gradient(800px circle at ${spotlight.x}px ${spotlight.y}px, rgba(233,160,32,0.06), transparent 65%)`,
         }}
       />
 
-      <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pb-24 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
+      <div className="relative mx-auto grid max-w-7xl items-center gap-14 px-4 pb-28 sm:px-6 lg:grid-cols-2 lg:gap-12 lg:px-8">
 
-        {/* ── Left: copy ─────────────────────────────────────────────── */}
+        {/* ── Left: copy ──────────────────────────────────────────────── */}
         <div className="text-center lg:text-left">
 
-          {/* Badge */}
+          {/* Live badge */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -138,7 +136,7 @@ export function Hero() {
             </span>
           </motion.div>
 
-          {/* Headline — clip reveal per line */}
+          {/* Headline — clip-reveal per line */}
           <h1 className="mt-7 font-display leading-[1.02] tracking-tight">
             <RevealLine delay={0.12}>
               <span className="text-4xl font-light text-zinc-400 sm:text-5xl lg:text-6xl">
@@ -162,7 +160,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.65, delay: 0.55 }}
-            className="mx-auto mt-7 max-w-lg text-[0.95rem] leading-[1.75] text-zinc-500 sm:text-base lg:mx-0"
+            className="mx-auto mt-7 max-w-lg text-[0.95rem] leading-[1.78] text-zinc-500 sm:text-base lg:mx-0"
           >
             Research, trading tools, a perp DEX, airdrop tools, premium
             intel and education — one ecosystem engineered for the
@@ -177,7 +175,7 @@ export function Hero() {
             className="mt-10 flex flex-col items-center gap-3 sm:flex-row lg:justify-start"
           >
             <Link href="/signup" className="btn-gold w-full sm:w-auto">
-              Join the Movement
+              Get Early Access
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M5 12h14M13 6l6 6-6 6" />
               </svg>
@@ -187,27 +185,51 @@ export function Hero() {
             </Link>
           </motion.div>
 
-          {/* Stats — animated counters */}
+          {/* Stats row */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.9, delay: 0.78 }}
-            className="mt-12 flex max-w-sm items-center divide-x divide-white/[0.07] lg:max-w-none"
+            className="mt-12 flex max-w-sm items-stretch lg:max-w-none"
           >
-            {stats.map((s) => (
-              <div key={s.label} className="flex-1 px-5 first:pl-0 last:pr-0 text-center lg:text-left">
-                <div className="text-2xl font-bold text-gold-gradient sm:text-[1.75rem]">
+            {stats.map((s, i) => (
+              <div
+                key={s.label}
+                className={`stat-cell flex-1 px-5 text-center lg:text-left ${
+                  i > 0 ? "border-l border-white/[0.07]" : ""
+                } ${i === 0 ? "pl-0" : ""} ${i === stats.length - 1 ? "pr-0" : ""}`}
+              >
+                <div className="text-2xl font-bold text-gold-gradient sm:text-[1.8rem] transition-colors duration-300">
                   <Counter to={s.to} suffix={s.suffix} />
                 </div>
-                <div className="mt-1 text-[10px] font-semibold uppercase tracking-widest text-zinc-600">
+                <div className="mt-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-600">
                   {s.label}
                 </div>
               </div>
             ))}
           </motion.div>
+
+          {/* Scroll indicator */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.4, duration: 0.8 }}
+            className="mt-10 hidden lg:flex items-center gap-2.5 text-zinc-700"
+          >
+            <div className="flex flex-col items-center gap-1.5">
+              <span className="text-[9px] font-bold uppercase tracking-[0.22em]">Scroll</span>
+              <svg
+                className="animate-scroll-bounce"
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+              >
+                <path d="M7 10l5 5 5-5" />
+              </svg>
+            </div>
+          </motion.div>
         </div>
 
-        {/* ── Right: medallion ────────────────────────────────────────── */}
+        {/* ── Right: medallion ─────────────────────────────────────────── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.88 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -244,6 +266,13 @@ export function Hero() {
             />
           </motion.div>
 
+          {/* Orbiting label */}
+          <div className="absolute inset-0 animate-spin-slow" style={{ animationDuration: "20s" }}>
+            <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-gold-400/30 bg-black/90 px-3 py-1 text-[9px] font-bold uppercase tracking-[0.2em] text-gold-200 shadow-gold-sm">
+              WEB3
+            </div>
+          </div>
+
           {/* Particles */}
           {particles.map((p, i) => (
             <div
@@ -255,13 +284,13 @@ export function Hero() {
         </motion.div>
       </div>
 
-      {/* ── Marquee ticker ──────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden border-y border-white/[0.04] py-3.5">
+      {/* ── Marquee ticker ───────────────────────────────────────────────── */}
+      <div className="marquee-fade relative overflow-hidden border-y border-white/[0.04] py-3.5">
         <div className="marquee gap-10">
           {[...marqueeItems, ...marqueeItems].map((m, i) => (
             <span
               key={i}
-              className="flex shrink-0 items-center gap-10 text-[10px] font-bold uppercase tracking-[0.2em] text-zinc-700 transition-colors hover:text-gold-600"
+              className="flex shrink-0 items-center gap-10 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-700 transition-colors hover:text-gold-600"
             >
               {m}
               <span className="text-gold-400/35">◆</span>
