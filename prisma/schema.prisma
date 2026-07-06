@@ -40,6 +40,9 @@ model User {
   // (ADMIN_EMAILS) implicitly hold all permissions regardless of this column.
   permissions String[] @default([])
 
+  // News hub: categories the member follows for their personalized "For You" feed.
+  newsInterests String[] @default([])
+
   // --- Public profile fields (see /u/[username] + /settings) ---
   username    String? @unique // handle for the public profile URL, 3–20 [a-z0-9_]
   bio         String? // short about, <= 280 chars

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Sparkles, Zap, Loader2,
-  TrendingUp, TrendingDown, Minus, X,
+  TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star,
 } from "lucide-react";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,9 @@ export function NewsClient() {
   const [live, setLive] = useState(false);
   const [now, setNow] = useState(() => 0);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [interests, setInterests] = useState<string[]>([]);
+  const [customizing, setCustomizing] = useState(false);
+  const loggedIn = Boolean(session?.user);
 
   const sentinel = useRef<HTMLDivElement>(null);
 
@@ -46,9 +49,21 @@ export function NewsClient() {
     return () => clearTimeout(t);
   }, [rawQuery]);
 
+  // Load the member's followed categories (for the "For You" feed).
+  useEffect(() => {
+    if (!loggedIn) { setInterests([]); return; }
+    let active = true;
+    fetch("/api/news/interests", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (active && Array.isArray(j?.interests)) setInterests(j.interests); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [loggedIn]);
+
   const fetchPage = useCallback(async (p: number): Promise<Resp | null> => {
     const params = new URLSearchParams({ page: String(p) });
-    if (category !== "All") params.set("category", category);
+    // "For You" pulls the full feed and filters to the member's interests client-side.
+    if (category !== "All" && category !== "For You") params.set("category", category);
     if (query) params.set("q", query);
     try {
       const res = await fetch(`/api/news?${params.toString()}`, { cache: "no-store" });
@@ -126,10 +141,22 @@ export function NewsClient() {
     });
   }, []);
 
-  const visible = useMemo(
-    () => (savedOnly ? items.filter((i) => bookmarks.has(i.id)) : items),
-    [items, savedOnly, bookmarks]
-  );
+  const saveInterests = useCallback(async (next: string[]) => {
+    setInterests(next); // optimistic
+    try {
+      await fetch("/api/news/interests", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interests: next }),
+      });
+    } catch { /* best-effort */ }
+  }, []);
+
+  const visible = useMemo(() => {
+    let list = items;
+    if (category === "For You" && interests.length) list = list.filter((i) => i.categories.some((c) => interests.includes(c)));
+    if (savedOnly) list = list.filter((i) => bookmarks.has(i.id));
+    return list;
+  }, [items, savedOnly, bookmarks, category, interests]);
   const breaking = useMemo(() => items.find((i) => i.impact === "High"), [items]);
 
   return (
@@ -178,20 +205,47 @@ export function NewsClient() {
       </div>
 
       {/* Category chips */}
-      <div className="-mx-1 flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {["All", ...CATEGORIES].map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
-              category === cat ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
-            )}
-          >
-            {cat}
+      <div className="flex items-center gap-2">
+        <div className="-mx-1 flex flex-1 gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {loggedIn && (
+            <button
+              onClick={() => setCategory("For You")}
+              className={cn(
+                "inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors",
+                category === "For You" ? "bg-mint-500/15 text-mint-200 ring-1 ring-mint-500/30" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+              )}
+            >
+              <Star className="h-3.5 w-3.5" /> For You
+            </button>
+          )}
+          {["All", ...CATEGORIES].map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setCategory(cat)}
+              className={cn(
+                "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+                category === cat ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+              )}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+        {loggedIn && (
+          <button onClick={() => setCustomizing(true)} aria-label="Customize feed" className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:text-zinc-100">
+            <SlidersHorizontal className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Customize</span>
           </button>
-        ))}
+        )}
       </div>
+
+      {/* Empty "For You" hint */}
+      {category === "For You" && !interests.length && (
+        <div className="rounded-2xl border border-dashed border-mint-500/25 bg-mint-500/[0.04] py-8 text-center">
+          <p className="text-sm font-semibold text-zinc-200">Build your personalized feed</p>
+          <p className="mt-1 text-sm text-zinc-500">Pick the topics you care about to see only what matters to you.</p>
+          <button onClick={() => setCustomizing(true)} className="btn-primary mt-4 px-4 py-2 text-sm">Choose topics</button>
+        </div>
+      )}
 
       {/* Feed */}
       {loading ? (
@@ -228,6 +282,58 @@ export function NewsClient() {
       <p className="text-center text-[11px] text-zinc-600">
         Aggregated from CoinDesk, Cointelegraph, Decrypt & more. Not financial advice.
       </p>
+
+      {customizing && (
+        <CustomizeModal
+          initial={interests}
+          onClose={() => setCustomizing(false)}
+          onSave={(next) => { saveInterests(next); setCustomizing(false); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClose: () => void; onSave: (next: string[]) => void }) {
+  const [picked, setPicked] = useState<Set<string>>(new Set(initial));
+  const toggle = (c: string) => setPicked((prev) => {
+    const next = new Set(prev);
+    if (next.has(c)) next.delete(c);
+    else next.add(c);
+    return next;
+  });
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center" onClick={onClose}>
+      <div className="glass w-full max-w-lg overflow-hidden rounded-2xl ring-1 ring-gold-500/20" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3.5">
+          <div>
+            <p className="text-sm font-semibold text-zinc-100">Customize your feed</p>
+            <p className="text-[11px] text-zinc-500">Pick the topics for your “For You” news.</p>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"><X className="h-4 w-4" /></button>
+        </div>
+        <div className="max-h-[55vh] overflow-y-auto p-4">
+          <div className="flex flex-wrap gap-2">
+            {CATEGORIES.map((c) => {
+              const on = picked.has(c);
+              return (
+                <button key={c} onClick={() => toggle(c)}
+                  className={cn("inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+                    on ? "bg-mint-500/15 text-mint-200 ring-1 ring-mint-500/40" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100")}>
+                  {on && <Check className="h-3 w-3" />} {c}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t border-white/10 px-5 py-3.5">
+          <span className="text-[11px] text-zinc-500">{picked.size} selected</span>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="btn-ghost px-4 py-2 text-sm">Cancel</button>
+            <button onClick={() => onSave([...picked])} className="btn-primary px-4 py-2 text-sm">Save</button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
