@@ -230,7 +230,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
                 className="relative h-full w-full"
               >
                 <Image
-                  src="/logo.jpg"
+                  src="/logo.png"
                   alt="XYZ Crypto"
                   fill
                   priority

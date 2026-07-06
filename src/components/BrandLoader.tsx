@@ -38,7 +38,7 @@ export function BrandLoader({ label = "Loading" }: { label?: string }) {
           transition={reduced ? undefined : { duration: 2.2, ease: "easeInOut", repeat: Infinity }}
           className="relative h-[46%] w-[46%] overflow-hidden rounded-full ring-2 ring-gold-500/50 shadow-gold"
         >
-          <Image src="/logo.jpg" alt="XYZ Crypto" fill sizes="120px" className="object-cover" />
+          <Image src="/logo.png" alt="XYZ Crypto" fill sizes="120px" className="object-cover" />
         </motion.span>
       </div>
       <p className="mono mt-6 text-[11px] uppercase tracking-[0.22em] text-zinc-500">

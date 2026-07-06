@@ -63,7 +63,7 @@ export function PwaSetup() {
   return (
     <div className="fixed inset-x-3 bottom-3 z-[60] mx-auto flex max-w-sm items-center gap-3 rounded-2xl border border-gold-500/25 bg-ink-900/95 p-3 shadow-elevate backdrop-blur sm:left-4 sm:right-auto">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.jpg" alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded-xl" />
+      <img src="/logo.png" alt="" width={40} height={40} className="h-10 w-10 shrink-0 rounded-xl" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-zinc-100">Install XYZ Crypto</p>
         <p className="truncate text-[11px] text-zinc-500">Add to your home screen — fast, app-like, works offline.</p>

@@ -46,7 +46,7 @@ export const metadata: Metadata = {
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium intelligence & education.",
     url: SITE_URL,
     siteName: "XYZ Crypto",
-    images: [{ url: "/logo.jpg", width: 640, height: 640, alt: "XYZ Crypto" }],
+    images: [{ url: "/logo.png", width: 640, height: 640, alt: "XYZ Crypto" }],
     type: "website",
   },
   twitter: {
@@ -55,9 +55,9 @@ export const metadata: Metadata = {
     description:
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium & education.",
     site: "@XYZCryptos",
-    images: ["/logo.jpg"],
+    images: ["/logo.png"],
   },
-  icons: { icon: "/logo.jpg", apple: "/logo.jpg" },
+  icons: { icon: "/logo.png", apple: "/logo.png" },
   applicationName: "XYZ Crypto",
   appleWebApp: {
     capable: true,

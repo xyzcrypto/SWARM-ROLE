@@ -23,7 +23,7 @@ export function AuthShell({
         <div className="mb-8 flex flex-col items-center text-center">
           <Link href="/" className="mb-5 inline-flex">
             <span className="relative inline-flex h-16 w-16 overflow-hidden rounded-full ring-2 ring-gold-500/40">
-              <Image src="/logo.jpg" alt="XYZ Crypto" fill className="object-cover" sizes="64px" />
+              <Image src="/logo.png" alt="XYZ Crypto" fill className="object-cover" sizes="64px" />
             </span>
           </Link>
           <h1 className="font-display text-3xl font-bold text-zinc-50">{title}</h1>

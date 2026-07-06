@@ -86,7 +86,7 @@ export function Navbar() {
       >
         <Link href="/" className="group flex items-center gap-2.5">
           <span className="relative inline-flex h-8 w-8 overflow-hidden rounded-lg ring-1 ring-gold-500/40 transition-transform group-hover:scale-105">
-            <Image src="/logo.jpg" alt="XYZ Crypto" fill className="object-cover" sizes="32px" />
+            <Image src="/logo.png" alt="XYZ Crypto" fill className="object-cover" sizes="32px" />
           </span>
           <span className="font-display text-[15px] font-semibold tracking-tight">
             <span className="text-gold-gradient">XYZ</span>{" "}
