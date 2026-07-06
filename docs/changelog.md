@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-06 — PWA: installable + offline app
+XYZ Crypto is now an installable Progressive Web App — "Add to Home Screen" on
+mobile/desktop gives an app-like, standalone experience that opens fast and
+works offline for already-visited pages.
+- **`public/sw.js`** upgraded from push-only to a full PWA service worker:
+  network-first navigations (fresh online, cached offline, `/offline.html`
+  fallback), cache-first for immutable `/_next/static` assets, and APIs/auth/
+  realtime never cached. Push handlers remain (dormant while alerts are paused).
+- **`manifest.ts`** enriched: `id`/`scope`/`orientation`/`categories`, a
+  maskable icon, and app **shortcuts** (Markets / News / Research).
+- **`PwaSetup`** (mounted in layout) registers the SW globally and shows a
+  subtle, dismissible **"Install app"** pill when the browser reports the app is
+  installable (Android + desktop Chrome/Edge); iOS installs via Share → Add to
+  Home Screen. **`public/offline.html`** = branded offline fallback.
+- Layout gains `appleWebApp` metadata (standalone title + status bar style).
+- typecheck + lint(0) + test(158) + build green.
+
 ## 2026-07-06 — News: Web Push alerts for major events
 Members can opt in to browser push notifications for high-impact crypto news.
 - **`NewsAlertsToggle`** on /news (signed-in, supported browsers only): registers the

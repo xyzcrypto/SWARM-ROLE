@@ -7,6 +7,7 @@ import { SmoothScroll } from "@/components/SmoothScroll";
 import { Analytics } from "@/components/Analytics";
 import { RealtimeSession } from "@/components/RealtimeSession";
 import { XyzAiWidget } from "@/components/XyzAiWidget";
+import { PwaSetup } from "@/components/PwaSetup";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
 import { SITE_URL, GSC_VERIFICATION } from "@/lib/seo";
 import { env } from "@/lib/env";
@@ -57,6 +58,12 @@ export const metadata: Metadata = {
     images: ["/logo.jpg"],
   },
   icons: { icon: "/logo.jpg", apple: "/logo.jpg" },
+  applicationName: "XYZ Crypto",
+  appleWebApp: {
+    capable: true,
+    title: "XYZ Crypto",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
@@ -90,6 +97,7 @@ export default function RootLayout({
           />
           {children}
           <XyzAiWidget />
+          <PwaSetup />
         </Providers>
         <Analytics />
       </body>
