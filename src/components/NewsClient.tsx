@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Sparkles, Zap, Loader2,
-  TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star,
+  TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
 } from "lucide-react";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
@@ -346,6 +346,7 @@ function NewsCard({
   item: NewsItem; now: number; bookmarked: boolean; onBookmark: () => void; loggedIn: boolean;
 }) {
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
+  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
 
   async function share() {
     const data = { title: item.title, url: item.url };
@@ -369,6 +370,24 @@ function NewsCard({
       setWhy({ loading: false, text: j.text, err: null });
     } catch {
       setWhy({ loading: false, text: null, err: "Network error." });
+    }
+  }
+
+  // Fuller AI digest so readers get the whole story on our site (no click-out).
+  async function readSummary() {
+    if (!loggedIn) { setDigest({ loading: false, text: null, err: "Log in to use XYZ AI." }); return; }
+    if (digest.text || digest.loading) return;
+    setDigest({ loading: true, text: null, err: null });
+    try {
+      const res = await fetch("/api/ai/why-matters", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: item.title, summary: item.summary, mode: "digest" }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok) { setDigest({ loading: false, text: null, err: j.error || "Couldn't generate." }); return; }
+      setDigest({ loading: false, text: j.text, err: null });
+    } catch {
+      setDigest({ loading: false, text: null, err: "Network error." });
     }
   }
 
@@ -415,8 +434,20 @@ function NewsCard({
       )}
       {why.err && <p className="mt-2 text-[11px] text-amber-300">{why.err}</p>}
 
+      {/* AI digest — read the whole story on-site */}
+      {digest.text && (
+        <div className="mt-3 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3">
+          <p className="mono text-[10px] font-semibold uppercase tracking-wide text-gold-200">AI Summary · XYZ AI</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-zinc-200">{digest.text}</p>
+        </div>
+      )}
+      {digest.err && <p className="mt-2 text-[11px] text-amber-300">{digest.err}</p>}
+
       {/* actions */}
-      <div className="mt-3 flex items-center gap-1 border-t border-white/5 pt-3 text-zinc-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-1.5 border-t border-white/5 pt-3 text-zinc-500">
+        <button onClick={readSummary} disabled={digest.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-gold-200 transition-colors hover:bg-gold-500/10 disabled:opacity-50">
+          {digest.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookOpen className="h-3.5 w-3.5" />} AI Summary
+        </button>
         <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-mint-300 transition-colors hover:bg-mint-500/10 disabled:opacity-50">
           {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Why this matters
         </button>
