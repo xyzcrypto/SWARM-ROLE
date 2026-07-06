@@ -16,7 +16,7 @@ async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> 
   if (!res.ok) throw new Error(`derivatives ${res.status}`);
   const j = await res.json();
   const list: any[] = j?.protocols ?? [];
-  const dexs = topBy(list, (p) => Number(p.total24h) || 0, 8).map((p: any) => ({
+  const dexs = topBy(list, (p) => Number(p.total24h) || 0, 30).map((p: any) => ({
     name: String(p.name ?? "—"),
     volume24h: Number(p.total24h) || 0,
     change1d: Number(p.change_1d) || 0,
@@ -50,7 +50,7 @@ async function hyperliquid(): Promise<{ markets: PerpMarket[]; totalVolume24h: n
     }));
     const totalVolume24h = ctxs.reduce((s, c) => s + (Number(c?.dayNtlVlm) || 0), 0);
     const totalOi = rows.reduce((s, r) => s + r.openInterest, 0);
-    return { markets: topBy(rows, (r) => r.openInterest, 8), totalVolume24h, totalOi };
+    return { markets: topBy(rows, (r) => r.openInterest, 20), totalVolume24h, totalOi };
   } catch {
     return { markets: [], totalVolume24h: 0, totalOi: 0 };
   }

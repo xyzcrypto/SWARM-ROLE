@@ -36,8 +36,8 @@ async function fetchLiveSnapshot(origin: string): Promise<LiveSnapshot> {
   ]);
   return {
     global: global ?? null,
-    coins: Array.isArray(coins?.coins)
-      ? coins.coins.slice(0, 8).map((c: { symbol?: string; price?: number; change24h?: number }) => ({
+    coins: Array.isArray(coins?.list)
+      ? coins.list.slice(0, 8).map((c: { symbol?: string; price?: number; change24h?: number }) => ({
           symbol: String(c.symbol ?? ""),
           price: Number(c.price) || 0,
           change24h: Number(c.change24h) || 0,

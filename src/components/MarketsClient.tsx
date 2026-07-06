@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins, LineChart } from "lucide-react";
+import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins, LineChart, Search, Newspaper } from "lucide-react";
 import { PerpChartLazy as PerpChart } from "./PerpChartLazy";
 import {
   compactUsd,
@@ -171,10 +171,49 @@ function Overview({ g, d, c }: { g: GlobalMarket | null; d: DefiMarket | null; c
 }
 
 function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
-  const rows = c?.list ?? [];
+  const base = c?.list ?? [];
+  const [q, setQ] = useState("");
+  const [remote, setRemote] = useState<CoinRow[]>([]);
+  const [searching, setSearching] = useState(false);
+  const query = q.trim().toLowerCase();
+
+  // Any coin — not just the top 250 — via the on-demand search route (debounced).
+  useEffect(() => {
+    if (query.length < 2) { setRemote([]); setSearching(false); return; }
+    setSearching(true);
+    const id = setTimeout(() => {
+      fetch(`/api/markets/search?q=${encodeURIComponent(query)}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((j) => setRemote(Array.isArray(j.list) ? j.list : []))
+        .catch(() => setRemote([]))
+        .finally(() => setSearching(false));
+    }, 350);
+    return () => clearTimeout(id);
+  }, [query]);
+
+  const local = query ? base.filter((r) => r.name.toLowerCase().includes(query) || r.symbol.toLowerCase().includes(query)) : base;
+  const seen = new Set(local.map((r) => r.symbol));
+  const rows = query ? [...local, ...remote.filter((r) => !seen.has(r.symbol))] : base;
+
   return (
-    <Panel title="Top Coins by Market Cap" icon={<LineChart className="h-4 w-4 text-gold-300" />}>
-      {loading && !rows.length ? (
+    <Panel title={query ? `Coins matching "${q.trim()}"` : "Top Coins by Market Cap"} icon={<LineChart className="h-4 w-4 text-gold-300" />}>
+      <div className="relative mb-3">
+        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search any coin — name or symbol (BTC, Solana, PEPE…)"
+          className="w-full rounded-xl border border-white/10 bg-ink-950/60 py-2.5 pl-9 pr-9 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-2 focus:ring-gold-500/15"
+        />
+        {q && (
+          <button onClick={() => setQ("")} aria-label="Clear" className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-zinc-500 hover:text-zinc-200">
+            <span className="text-sm">×</span>
+          </button>
+        )}
+      </div>
+      {query && !rows.length && !searching ? (
+        <p className="py-6 text-center text-sm text-zinc-500">No coins match “{q.trim()}”.</p>
+      ) : loading && !rows.length ? (
         <SkeletonRows />
       ) : rows.length ? (
         <div className="-mx-2 overflow-x-auto">
@@ -375,7 +414,56 @@ function TrendingPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }
           <MoverList rows={c?.losers ?? []} />
         </Panel>
       </section>
+      <TrendingNews />
     </div>
+  );
+}
+
+type NewsHeadline = { title: string; url: string; source: string; category: string; publishedAt: number };
+
+// Latest trading/market news inside the Markets hub (from the /news aggregator).
+function TrendingNews() {
+  const [items, setItems] = useState<NewsHeadline[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    let stop = false;
+    const load = () =>
+      fetch("/api/news?pageSize=10", { cache: "no-store" })
+        .then((r) => r.json())
+        .then((j) => { if (!stop) setItems(Array.isArray(j.items) ? j.items : []); })
+        .catch(() => {})
+        .finally(() => { if (!stop) setLoading(false); });
+    load();
+    const id = setInterval(() => { if (document.visibilityState === "visible") load(); }, 120_000);
+    return () => { stop = true; clearInterval(id); };
+  }, []);
+  return (
+    <Panel title="Latest Trading News" icon={<Newspaper className="h-4 w-4 text-gold-300" />}>
+      {loading && !items.length ? (
+        <SkeletonRows />
+      ) : items.length ? (
+        <ul className="divide-y divide-white/5">
+          {items.map((n) => (
+            <li key={n.url}>
+              <a href={n.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 py-2.5 transition-colors hover:bg-white/[0.03]">
+                <span className="mt-0.5 shrink-0 rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{n.category}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="line-clamp-2 text-sm text-zinc-200">{n.title}</span>
+                  <span className="mt-0.5 block text-[11px] text-zinc-500">{n.source}</span>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="py-4 text-center text-sm text-zinc-500">
+          News is loading… see the full <a href="/news" className="text-gold-200 hover:underline">news hub</a>.
+        </p>
+      )}
+      <div className="mt-3 text-right">
+        <a href="/news" className="text-[12px] font-medium text-gold-200 hover:underline">Open full news hub →</a>
+      </div>
+    </Panel>
   );
 }
 

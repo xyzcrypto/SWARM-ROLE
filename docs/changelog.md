@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-06 — Markets: more coins, coin search, all perp DEXs, trending news
+- **Coins**: table expanded from top-50 to **top-250**, with a **search box** that
+  filters instantly and, for coins beyond the top 250, looks up **any coin** via a
+  new keyless **`/api/markets/search`** route (CoinGecko search → live market data).
+- **Perp DEX**: DefiLlama derivatives list expanded 8 → **30** protocols; Hyperliquid
+  markets 8 → **20** — a far more complete perp picture (volume + OI + funding).
+- **Trending tab**: added **Latest Trading News** (from the /news aggregator, auto-
+  refreshing) alongside trending coins and 24h gainers/losers.
+- Also fixed the AI live-context coins key (`list`, not `coins`) so the assistant
+  actually sees current prices.
+- typecheck + lint(0) + test(163) + build green.
+
 ## 2026-07-06 — PWA: installable + offline app
 XYZ Crypto is now an installable Progressive Web App — "Add to Home Screen" on
 mobile/desktop gives an app-like, standalone experience that opens fast and
