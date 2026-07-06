@@ -17,7 +17,9 @@ Members can opt in to browser push notifications for high-impact crypto news.
 - **`src/lib/push.ts`** = `web-push` wrapper (`sendPush` → ok/gone/error); `pushEnabled`
   gates the whole feature so it **no-ops gracefully when VAPID keys are absent**.
 - **Schema** (migration `14_push`, idempotent): `PushSubscription` + `PushedStory`.
-  **`vercel.json`** cron runs dispatch every 30 min (Vercel Pro; Hobby = daily).
+  **`vercel.json`** cron runs dispatch **daily** (`0 8 * * *`) — Hobby-safe (a
+  sub-daily schedule makes Vercel reject the whole deployment on the Hobby plan).
+  On **Vercel Pro**, bump the schedule to `*/30 * * * *` for 30-min dispatch.
 - New env (names only): `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
   `VAPID_SUBJECT`, `CRON_SECRET`.
 - typecheck + lint(0) + test(154) + build green.
