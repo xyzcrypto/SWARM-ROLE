@@ -19,9 +19,9 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#05060a",
     categories: ["finance", "news", "productivity"],
     icons: [
-      { src: "/logo.jpg", sizes: "192x192", type: "image/jpeg", purpose: "any" },
-      { src: "/logo.jpg", sizes: "512x512", type: "image/jpeg", purpose: "any" },
-      { src: "/logo.jpg", sizes: "512x512", type: "image/jpeg", purpose: "maskable" },
+      { src: "/logo.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/logo.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/logo.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
       { name: "Markets", short_name: "Markets", url: "/markets" },

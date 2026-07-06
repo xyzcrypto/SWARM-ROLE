@@ -11,8 +11,8 @@ export function organizationJsonLd() {
     name: site.name,
     alternateName: "XYZ Crypto Ecosystem",
     url: SITE_URL,
-    logo: { "@type": "ImageObject", url: absoluteUrl("/logo.jpg"), width: 640, height: 640 },
-    image: absoluteUrl("/logo.jpg"),
+    logo: { "@type": "ImageObject", url: absoluteUrl("/logo.png"), width: 640, height: 640 },
+    image: absoluteUrl("/logo.png"),
     description: site.description,
     slogan: site.slogan,
     // Strengthens the brand entity for "XYZ Crypto" queries (knowledge panel).
@@ -80,7 +80,7 @@ export function articleJsonLd(post: {
     "@type": "BlogPosting",
     headline: post.title,
     description: post.excerpt,
-    image: [post.cover || absoluteUrl("/logo.jpg")],
+    image: [post.cover || absoluteUrl("/logo.png")],
     datePublished: new Date(post.createdAt).toISOString(),
     dateModified: new Date(post.updatedAt).toISOString(),
     author: post.author?.name
@@ -89,7 +89,7 @@ export function articleJsonLd(post: {
     publisher: {
       "@type": "Organization",
       name: site.name,
-      logo: { "@type": "ImageObject", url: absoluteUrl("/logo.jpg"), width: 640, height: 640 },
+      logo: { "@type": "ImageObject", url: absoluteUrl("/logo.png"), width: 640, height: 640 },
     },
     mainEntityOfPage: {
       "@type": "WebPage",

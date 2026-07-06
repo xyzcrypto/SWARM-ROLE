@@ -58,7 +58,7 @@ export async function generateMetadata({
   const post = await getPost(params.slug);
   if (!post) return { title: "Not found" };
   const url = `/research/${post.slug}`;
-  const images = post.cover ? [post.cover] : ["/logo.jpg"];
+  const images = post.cover ? [post.cover] : ["/logo.png"];
   const keywords = post.tags
     ? post.tags.split(",").map((t) => t.trim()).filter(Boolean)
     : undefined;

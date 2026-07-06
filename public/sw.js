@@ -5,9 +5,9 @@
  *  - Hashed static assets (/_next/static, fonts): cache-first (immutable).
  *  - Everything else (APIs, auth, real-time): straight to the network, never cached.
  */
-const CACHE = "xyz-pwa-v1";
+const CACHE = "xyz-pwa-v2";
 const OFFLINE_URL = "/offline.html";
-const PRECACHE = [OFFLINE_URL, "/logo.jpg"];
+const PRECACHE = [OFFLINE_URL, "/logo.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -79,8 +79,8 @@ self.addEventListener("push", (event) => {
   const title = data.title || "XYZ Crypto";
   const options = {
     body: data.body || "",
-    icon: "/logo.jpg",
-    badge: "/logo.jpg",
+    icon: "/logo.png",
+    badge: "/logo.png",
     tag: data.tag || undefined,
     data: { url: data.url || "/news" },
   };

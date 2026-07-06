@@ -154,7 +154,7 @@ export function OrbitalEcosystem() {
         <div className="absolute left-1/2 top-1/2 h-[28%] w-[28%] -translate-x-1/2 -translate-y-1/2">
           <div className="absolute inset-0 rounded-full bg-gold-500/30 blur-xl [animation:ping-soft_3.4s_ease-in-out_infinite]" />
           <Image
-            src="/logo.jpg"
+            src="/logo.png"
             alt="XYZ Crypto"
             fill
             sizes="160px"
