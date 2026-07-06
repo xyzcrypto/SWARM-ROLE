@@ -58,11 +58,6 @@ export function CtaBand({ memberCount = 0 }: { memberCount?: number }) {
                     <span className="h-px flex-1 bg-line" />
                   </div>
                   <EarlyAccessCta className="btn-ghost w-full" label="Create a full account" />
-                  {memberCount > 0 && (
-                    <p className="mt-4 text-center mono text-[11px] text-zinc-500">
-                      Join {memberCount.toLocaleString()}+ members already inside
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
