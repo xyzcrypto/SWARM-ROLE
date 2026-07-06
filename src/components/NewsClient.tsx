@@ -7,6 +7,7 @@ import {
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star,
 } from "lucide-react";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
+import { NewsAlertsToggle } from "./NewsAlertsToggle";
 import { cn } from "@/lib/utils";
 
 type Resp = { items: NewsItem[]; hasMore: boolean; live: boolean; page: number };
@@ -198,6 +199,7 @@ export function NewsClient() {
         >
           <Bookmark className="h-4 w-4" /> Saved{bookmarks.size ? ` (${bookmarks.size})` : ""}
         </button>
+        <NewsAlertsToggle loggedIn={loggedIn} />
         <span className="hidden items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 sm:flex">
           <span className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse bg-mint-400" : "bg-amber-400")} />
           {live ? "Live" : "Cached"}

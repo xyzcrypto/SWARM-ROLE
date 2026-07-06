@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-06 — News: Web Push alerts for major events
+Members can opt in to browser push notifications for high-impact crypto news.
+- **`NewsAlertsToggle`** on /news (signed-in, supported browsers only): registers the
+  service worker (`public/sw.js`), requests permission, subscribes to Web Push, and
+  stores the subscription server-side. A second tap unsubscribes.
+- **`/api/push/subscribe|unsubscribe`** (auth, rate-limited) upsert/delete the browser's
+  `PushSubscription`. **`/api/push/dispatch`** = a `CRON_SECRET`-guarded cron entrypoint
+  that finds NEW `High`-impact stories from the last 6h, de-dupes via `PushedStory`, and
+  pushes the newest few (`MAX_PER_RUN=2`) to all subscribers — pruning dead endpoints.
+- **`src/lib/push.ts`** = `web-push` wrapper (`sendPush` → ok/gone/error); `pushEnabled`
+  gates the whole feature so it **no-ops gracefully when VAPID keys are absent**.
+- **Schema** (migration `14_push`, idempotent): `PushSubscription` + `PushedStory`.
+  **`vercel.json`** cron runs dispatch every 30 min (Vercel Pro; Hobby = daily).
+- New env (names only): `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+  `VAPID_SUBJECT`, `CRON_SECRET`.
+- typecheck + lint(0) + test(154) + build green.
+
 ## 2026-07-05 — News: personalized "For You" feed
 Members can now follow topics and get a personalized news feed.
 - **`User.newsInterests String[]`** (migration `13_news_interests`, idempotent) + a

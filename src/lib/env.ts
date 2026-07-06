@@ -25,6 +25,10 @@ const schema = z.object({
   SUPABASE_STORAGE_BUCKET: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
   CMC_API_KEY: z.string().optional(),
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().optional(),
+  CRON_SECRET: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -66,6 +70,12 @@ export const env = {
   GROQ_API_KEY: raw.GROQ_API_KEY ?? "",
   // CoinMarketCap (Markets hub — optional enrichment). Server-only.
   CMC_API_KEY: raw.CMC_API_KEY ?? "",
+  // Web Push (news alerts). Public key is client-safe; private key + cron secret
+  // are server-only.
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: raw.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
+  VAPID_PRIVATE_KEY: raw.VAPID_PRIVATE_KEY ?? "",
+  VAPID_SUBJECT: raw.VAPID_SUBJECT || "mailto:niralekhan321@gmail.com",
+  CRON_SECRET: raw.CRON_SECRET ?? "",
   // Public (client-safe by design) - used by the chat page for Supabase
   // Realtime subscriptions. The anon key only grants what RLS/channel policy
   // allows; the service-role key above must NEVER be exposed client-side.
@@ -98,6 +108,10 @@ export const aiEnabled = !!env.GROQ_API_KEY;
 // free keyless sources (CoinGecko + DefiLlama + Fear&Greed) without it; when set,
 // the global route adds CMC's DeFi / stablecoin market-cap metrics.
 export const cmcEnabled = !!env.CMC_API_KEY;
+
+// Web Push (news alerts). Off until both VAPID keys are set — then the /news
+// "Enable alerts" toggle activates and the cron dispatch can send.
+export const pushEnabled = !!env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && !!env.VAPID_PRIVATE_KEY;
 
 // Admins: ADMIN_EMAILS (comma-separated) preferred, ADMIN_EMAIL as fallback.
 export const adminEmails: string[] = (raw.ADMIN_EMAILS || raw.ADMIN_EMAIL || "")
