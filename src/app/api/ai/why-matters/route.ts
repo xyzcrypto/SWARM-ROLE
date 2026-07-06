@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { aiEnabled, completeText, AI_MODEL_FAST } from "@/lib/ai";
-import { buildWhyMattersPrompt } from "@/lib/ai-summary";
+import { buildWhyMattersPrompt, buildNewsDigestPrompt } from "@/lib/ai-summary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,9 +10,12 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   title: z.string().trim().min(4).max(300),
   summary: z.string().trim().max(1200).optional().default(""),
+  // "why" = a 2-sentence take; "digest" = a fuller read-on-site summary.
+  mode: z.enum(["why", "digest"]).optional().default("why"),
 });
 
-// POST /api/ai/why-matters — a short AI "why this matters" take on a news story.
+// POST /api/ai/why-matters — an AI take on a news story: a short "why this
+// matters" (default) or a fuller on-site "digest" summary.
 // Logged-in only + rate-limited; graceful 503 when AI is off.
 export async function POST(req: Request) {
   try {
@@ -26,10 +29,12 @@ export async function POST(req: Request) {
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.", 400);
 
+    const { title, summary, mode } = parsed.data;
+    const prompt = mode === "digest" ? buildNewsDigestPrompt(title, summary) : buildWhyMattersPrompt(title, summary);
     const text = await completeText({
       model: AI_MODEL_FAST,
-      prompt: buildWhyMattersPrompt(parsed.data.title, parsed.data.summary),
-      maxTokens: 160,
+      prompt,
+      maxTokens: mode === "digest" ? 320 : 160,
     });
     if (!text) return fail("Couldn't generate that right now. Please try again.", 502);
     return ok({ text });

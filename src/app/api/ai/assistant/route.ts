@@ -4,6 +4,7 @@ import { fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { aiEnabled, streamAssistant, aiErrorMessage, type AiMessage } from "@/lib/ai";
 import { buildAssistantSystemPrompt, type GroundingPost } from "@/lib/ai-ground";
+import { formatLiveContext, type LiveSnapshot } from "@/lib/ai-live";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -11,6 +12,46 @@ export const dynamic = "force-dynamic";
 // Keep the request bounded: only the tail of the conversation is sent to the
 // model (older turns rarely matter for a research Q&A and only cost tokens).
 const MAX_TURNS = 12;
+
+// Pull the cached market + news snapshots so the assistant can answer with
+// current numbers/headlines. Best-effort with a tight timeout — if anything is
+// slow or down we simply omit the live block (the answer still works).
+async function fetchLiveSnapshot(origin: string): Promise<LiveSnapshot> {
+  const get = async (path: string) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 1800);
+    try {
+      const res = await fetch(`${origin}${path}`, { signal: ctrl.signal, cache: "no-store" });
+      return res.ok ? await res.json() : null;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timer);
+    }
+  };
+  const [global, coins, news] = await Promise.all([
+    get("/api/markets/global"),
+    get("/api/markets/coins"),
+    get("/api/news?pageSize=6"),
+  ]);
+  return {
+    global: global ?? null,
+    coins: Array.isArray(coins?.list)
+      ? coins.list.slice(0, 8).map((c: { symbol?: string; price?: number; change24h?: number }) => ({
+          symbol: String(c.symbol ?? ""),
+          price: Number(c.price) || 0,
+          change24h: Number(c.change24h) || 0,
+        }))
+      : [],
+    headlines: Array.isArray(news?.items)
+      ? news.items.slice(0, 6).map((i: { title?: string; source?: string; category?: string }) => ({
+          title: String(i.title ?? ""),
+          source: String(i.source ?? ""),
+          category: i.category ? String(i.category) : undefined,
+        }))
+      : [],
+  };
+}
 
 const bodySchema = z.object({
   messages: z
@@ -67,7 +108,10 @@ export async function POST(req: Request) {
       content: p.premium ? "" : p.content, // redact premium bodies from the corpus
     }));
 
-    const system = buildAssistantSystemPrompt(posts, lastUser.content);
+    // Live market + news grounding (best-effort; never blocks the answer).
+    const origin = new URL(req.url).origin;
+    const live = await fetchLiveSnapshot(origin).catch(() => ({} as LiveSnapshot));
+    const system = buildAssistantSystemPrompt(posts, lastUser.content, formatLiveContext(live));
 
     const stream = streamAssistant({ system, messages: history });
     if (!stream) return fail("XYZ AI is not configured yet. Please check back soon.", 503);

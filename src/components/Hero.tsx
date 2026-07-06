@@ -168,7 +168,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             className="mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-lg"
           >
             {[
-              { k: members, v: "Members & growing" },
+              { k: members, v: "Overall social community" },
               { k: "6+", v: "Products in pipeline" },
               { k: "24/7", v: "On-chain coverage" },
             ].map((s) => (

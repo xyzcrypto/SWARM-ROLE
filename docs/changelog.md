@@ -5,6 +5,54 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-06 — Markets: more coins, coin search, all perp DEXs, trending news
+- **Coins**: table expanded from top-50 to **top-250**, with a **search box** that
+  filters instantly and, for coins beyond the top 250, looks up **any coin** via a
+  new keyless **`/api/markets/search`** route (CoinGecko search → live market data).
+- **Perp DEX**: DefiLlama derivatives list expanded 8 → **30** protocols; Hyperliquid
+  markets 8 → **20** — a far more complete perp picture (volume + OI + funding).
+- **Trending tab**: added **Latest Trading News** (from the /news aggregator, auto-
+  refreshing) alongside trending coins and 24h gainers/losers.
+- Also fixed the AI live-context coins key (`list`, not `coins`) so the assistant
+  actually sees current prices.
+- typecheck + lint(0) + test(163) + build green.
+
+## 2026-07-06 — PWA: installable + offline app
+XYZ Crypto is now an installable Progressive Web App — "Add to Home Screen" on
+mobile/desktop gives an app-like, standalone experience that opens fast and
+works offline for already-visited pages.
+- **`public/sw.js`** upgraded from push-only to a full PWA service worker:
+  network-first navigations (fresh online, cached offline, `/offline.html`
+  fallback), cache-first for immutable `/_next/static` assets, and APIs/auth/
+  realtime never cached. Push handlers remain (dormant while alerts are paused).
+- **`manifest.ts`** enriched: `id`/`scope`/`orientation`/`categories`, a
+  maskable icon, and app **shortcuts** (Markets / News / Research).
+- **`PwaSetup`** (mounted in layout) registers the SW globally and shows a
+  subtle, dismissible **"Install app"** pill when the browser reports the app is
+  installable (Android + desktop Chrome/Edge); iOS installs via Share → Add to
+  Home Screen. **`public/offline.html`** = branded offline fallback.
+- Layout gains `appleWebApp` metadata (standalone title + status bar style).
+- typecheck + lint(0) + test(158) + build green.
+
+## 2026-07-06 — News: Web Push alerts for major events
+Members can opt in to browser push notifications for high-impact crypto news.
+- **`NewsAlertsToggle`** on /news (signed-in, supported browsers only): registers the
+  service worker (`public/sw.js`), requests permission, subscribes to Web Push, and
+  stores the subscription server-side. A second tap unsubscribes.
+- **`/api/push/subscribe|unsubscribe`** (auth, rate-limited) upsert/delete the browser's
+  `PushSubscription`. **`/api/push/dispatch`** = a `CRON_SECRET`-guarded cron entrypoint
+  that finds NEW `High`-impact stories from the last 6h, de-dupes via `PushedStory`, and
+  pushes the newest few (`MAX_PER_RUN=2`) to all subscribers — pruning dead endpoints.
+- **`src/lib/push.ts`** = `web-push` wrapper (`sendPush` → ok/gone/error); `pushEnabled`
+  gates the whole feature so it **no-ops gracefully when VAPID keys are absent**.
+- **Schema** (migration `14_push`, idempotent): `PushSubscription` + `PushedStory`.
+  **`vercel.json`** cron runs dispatch **daily** (`0 8 * * *`) — Hobby-safe (a
+  sub-daily schedule makes Vercel reject the whole deployment on the Hobby plan).
+  On **Vercel Pro**, bump the schedule to `*/30 * * * *` for 30-min dispatch.
+- New env (names only): `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
+  `VAPID_SUBJECT`, `CRON_SECRET`.
+- typecheck + lint(0) + test(154) + build green.
+
 ## 2026-07-05 — News: personalized "For You" feed
 Members can now follow topics and get a personalized news feed.
 - **`User.newsInterests String[]`** (migration `13_news_interests`, idempotent) + a

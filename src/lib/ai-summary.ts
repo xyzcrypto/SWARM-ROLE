@@ -57,3 +57,19 @@ export function buildWhyMattersPrompt(title: string, summary: string): string {
     (summary ? `Summary: ${cleanSummary(summary).slice(0, 500)}\n` : "")
   );
 }
+
+/**
+ * Fuller on-site digest so a reader gets the whole story WITHOUT leaving the
+ * site — what happened, key names/numbers, and why it matters, in a few
+ * sentences. Used by the News hub's "AI Summary" action.
+ */
+export function buildNewsDigestPrompt(title: string, summary: string): string {
+  return (
+    "You are XYZ AI, a crypto news editor. Summarize this story in 3–4 clear " +
+    "sentences so a reader gets the full picture WITHOUT opening the original " +
+    "article: what happened, the key names/numbers, and why it matters. Plain " +
+    "English, neutral, no hype, no preamble, not financial advice.\n\n" +
+    `Headline: ${title}\n` +
+    (summary ? `Details: ${cleanSummary(summary).slice(0, 800)}\n` : "")
+  );
+}

@@ -23,9 +23,12 @@ export const authOptions: NextAuthOptions = {
           GoogleProvider({
             clientId: process.env.GOOGLE_CLIENT_ID!,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-            // Safer default: do not auto-link an OAuth login to an existing
-            // credentials account with the same email (prevents takeover).
-            allowDangerousEmailAccountLinking: false,
+            // Link to an existing account with the same email. Safe here because
+            // BOTH sides are email-verified: credentials signup requires an OTP
+            // to the address, and Google only returns verified emails — so there
+            // is no unverified-email takeover path. Without this, anyone who
+            // signed up with email+password can't later use "Sign in with Google".
+            allowDangerousEmailAccountLinking: true,
           }),
         ]
       : []),
@@ -34,7 +37,10 @@ export const authOptions: NextAuthOptions = {
           GitHubProvider({
             clientId: process.env.GITHUB_CLIENT_ID!,
             clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-            allowDangerousEmailAccountLinking: false,
+            // Same rationale as Google: GitHub returns the account's verified
+            // primary email, and our credentials signup is OTP-verified, so
+            // linking by email is safe and lets existing users use GitHub.
+            allowDangerousEmailAccountLinking: true,
             // GitHub can hide the email (private-email setting). Our User.email
             // is required+unique, so fall back to a non-deliverable but stable
             // placeholder — login still works; email features simply no-op.

@@ -53,16 +53,17 @@ model User {
   telegram    String? // handle only
   bannerImage String? // optional profile cover image URL
 
-  posts         Post[]
-  accounts      Account[]
-  sessions      Session[]
-  comments      Comment[]
-  likes         PostLike[]
-  chatMessages  ChatMessage[]
-  chatReactions ChatReaction[]
-  chatPollVotes ChatPollVote[]
-  notifications Notification[]
-  adminAudits   AdminAudit[]   @relation("AdminAuditActor")
+  posts             Post[]
+  accounts          Account[]
+  sessions          Session[]
+  comments          Comment[]
+  likes             PostLike[]
+  chatMessages      ChatMessage[]
+  chatReactions     ChatReaction[]
+  chatPollVotes     ChatPollVote[]
+  notifications     Notification[]
+  adminAudits       AdminAudit[]        @relation("AdminAuditActor")
+  pushSubscriptions PushSubscription[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -312,6 +313,29 @@ model WhatsNewEntry {
 
   @@index([published, date]) // public feed ordering
   @@index([tag, date]) // tab filtering
+}
+
+// Web Push subscriptions (news alerts). One row per browser endpoint; tied to a
+// user so we can target + clean up. Dead endpoints are pruned on send (410/404).
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId String?
+
+  @@index([userId])
+}
+
+// Dedupe log so the same news story is never pushed twice.
+model PushedStory {
+  url       String   @id
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 // Audit trail for sensitive admin actions (role/permission grants). Append-only;

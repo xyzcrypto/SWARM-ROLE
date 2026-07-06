@@ -7,6 +7,19 @@ import { signIn } from "next-auth/react";
 import { SocialButtons, type SocialProviders } from "./SocialButtons";
 import { PasswordField } from "./PasswordField";
 
+// Friendly text for the ?error=<code> values NextAuth appends on an OAuth failure.
+const OAUTH_ERRORS: Record<string, string> = {
+  OAuthAccountNotLinked: "That email is already registered with a different sign-in method. Try that method, or use a different account.",
+  OAuthSignin: "Couldn't start sign-in with that provider. Please try again.",
+  OAuthCallback: "Sign-in was interrupted before it finished. Please try again.",
+  OAuthCreateAccount: "Couldn't create your account from that provider. Please try again.",
+  Callback: "Sign-in was interrupted before it finished. Please try again.",
+  AccessDenied: "Access was denied. Please approve the permissions and try again.",
+  Configuration: "Social sign-in is temporarily unavailable. Please try email, or try again later.",
+  Verification: "This sign-in link has expired. Please request a new one.",
+  default: "Couldn't sign you in. Please try again.",
+};
+
 export function LoginForm({ providers }: { providers: SocialProviders }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -15,9 +28,13 @@ export function LoginForm({ providers }: { providers: SocialProviders }) {
   const rawCallback = params.get("callbackUrl") || "/";
   const callbackUrl = /^\/(?!\/)[^\\]*$/.test(rawCallback) ? rawCallback : "/";
   const justReset = params.get("reset") === "1";
+  // NextAuth sends OAuth failures back here as ?error=<code>. Map the common
+  // ones to plain-English messages so a failed Google/GitHub/X sign-in shows a
+  // reason instead of silently dropping the user back on the login screen.
+  const errorParam = params.get("error");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(errorParam ? (OAUTH_ERRORS[errorParam] ?? OAUTH_ERRORS.default) : "");
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {

@@ -109,6 +109,9 @@ export function relatedTokens(text: string): string[] {
 
 /** "just now" / "3 min ago" / "2 h ago" / "4 d ago". */
 export function timeAgo(ms: number, now: number): string {
+  // Guard against missing/garbage timestamps (0 = unparseable) and clock skew
+  // that would otherwise render "20000 d ago" or a negative age.
+  if (!ms || ms <= 0 || ms > now + 60_000) return "recently";
   const s = Math.max(0, Math.floor((now - ms) / 1000));
   if (s < 60) return "just now";
   const m = Math.floor(s / 60);
@@ -117,6 +120,25 @@ export function timeAgo(ms: number, now: number): string {
   if (h < 24) return `${h} h ago`;
   const d = Math.floor(h / 24);
   return `${d} d ago`;
+}
+
+/**
+ * Parse a feed date into ms epoch, tolerant of the formats `Date.parse` alone
+ * trips on. Returns 0 only when genuinely unparseable. Robust parsing matters:
+ * the API drops items with `publishedAt === 0`, so a format miss silently hides
+ * fresh stories (the "latest news isn't showing" bug) and skews "x min ago".
+ */
+export function parseDate(input: string): number {
+  const s = (input || "").trim();
+  if (!s) return 0;
+  let t = Date.parse(s);
+  if (Number.isFinite(t)) return t;
+  // "YYYY-MM-DD HH:MM:SS" (space instead of "T", no zone) → assume UTC.
+  t = Date.parse(s.replace(" ", "T") + (/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? "" : "Z"));
+  if (Number.isFinite(t)) return t;
+  // Last resort: strip a trailing "(UTC)"/timezone name some feeds append.
+  t = Date.parse(s.replace(/\s*\([^)]*\)\s*$/, "").trim());
+  return Number.isFinite(t) ? t : 0;
 }
 
 // --- RSS/Atom parsing (regex-based; robust to the common feed shapes) ---
@@ -170,8 +192,7 @@ export function parseFeed(xml: string): RawItem[] {
     const rawSummary = tag(b, "description") ?? tag(b, "summary") ?? tag(b, "content") ?? "";
     const summary = stripHtml(rawSummary).slice(0, 260);
     const dateStr = tag(b, "pubDate") ?? tag(b, "published") ?? tag(b, "updated") ?? tag(b, "dc:date") ?? "";
-    const t = Date.parse(dateStr);
-    const publishedAt = Number.isFinite(t) ? t : 0;
+    const publishedAt = parseDate(dateStr);
     const image = firstUrlAttr(b, ["media:content", "media:thumbnail", "enclosure"]);
     if (url) items.push({ title, url, summary, image, publishedAt });
   }

@@ -6,6 +6,7 @@ import {
   relatedTokens,
   timeAgo,
   parseFeed,
+  parseDate,
   eventKey,
   dedupe,
   type NewsItem,
@@ -57,6 +58,25 @@ describe("timeAgo", () => {
     expect(timeAgo(now - 3 * 60_000, now)).toBe("3 min ago");
     expect(timeAgo(now - 2 * 3_600_000, now)).toBe("2 h ago");
     expect(timeAgo(now - 4 * 86_400_000, now)).toBe("4 d ago");
+  });
+  it("returns 'recently' for missing/garbage/future timestamps", () => {
+    expect(timeAgo(0, now)).toBe("recently");
+    expect(timeAgo(-5, now)).toBe("recently");
+    expect(timeAgo(now + 10 * 60_000, now)).toBe("recently"); // clock skew
+  });
+});
+
+describe("parseDate", () => {
+  it("parses RFC-822 and ISO-8601", () => {
+    expect(parseDate("Wed, 01 Jan 2025 12:00:00 GMT")).toBe(Date.parse("Wed, 01 Jan 2025 12:00:00 GMT"));
+    expect(parseDate("2025-01-01T12:00:00Z")).toBe(Date.parse("2025-01-01T12:00:00Z"));
+  });
+  it("recovers space-separated dates with no zone (assumed UTC)", () => {
+    expect(parseDate("2025-01-01 12:00:00")).toBe(Date.parse("2025-01-01T12:00:00Z"));
+  });
+  it("returns 0 for empty/garbage", () => {
+    expect(parseDate("")).toBe(0);
+    expect(parseDate("not a date")).toBe(0);
   });
 });
 

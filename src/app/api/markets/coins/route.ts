@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import type { TrendingCoin, MoverCoin, CoinRow } from "@/lib/markets";
 
-// Coins snapshot (CoinGecko, keyless): a full top-50 market table (price, 1h/24h/7d
+// Coins snapshot (CoinGecko, keyless): a top-250 market table (price, 1h/24h/7d
 // %, mcap, volume, 7d sparkline) + trending + 24h gainers/losers, all derived from
-// one markets call. Graceful always-200 `live` flag.
+// one markets call. Graceful always-200 `live` flag. (For coins beyond the top
+// 250, the /api/markets/search route looks up any coin on demand.)
 export const revalidate = 45;
 
 async function trending(): Promise<TrendingCoin[]> {
@@ -27,7 +28,7 @@ async function trending(): Promise<TrendingCoin[]> {
 
 async function markets(): Promise<CoinRow[]> {
   const res = await fetch(
-    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=50&page=1&price_change_percentage=1h,24h,7d&sparkline=true",
+    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&price_change_percentage=1h,24h,7d&sparkline=true",
     { headers: { accept: "application/json" }, next: { revalidate } }
   );
   if (!res.ok) throw new Error(`markets ${res.status}`);

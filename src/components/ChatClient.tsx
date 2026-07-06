@@ -152,6 +152,7 @@ export function ChatClient({
   const [savingEdit, setSavingEdit] = useState(false);
   const [pinned, setPinned] = useState<Message | null>(initialPinned);
   const [pollOpen, setPollOpen] = useState(false);
+  const [membersOpen, setMembersOpen] = useState(false);
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
   const firstUnreadRef = useRef<string | null>(null);
   const soundOnRef = useRef(false);
@@ -851,16 +852,50 @@ export function ChatClient({
                 )
               )}
               {members.length > 3 && (
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-700 text-[10px] font-semibold text-zinc-300 ring-2 ring-ink-900">
+                <button
+                  onClick={() => setMembersOpen(true)}
+                  title="See everyone online"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-700 text-[10px] font-semibold text-zinc-300 ring-2 ring-ink-900 transition-colors hover:bg-ink-600 hover:text-zinc-100"
+                >
                   +{members.length - 3}
-                </span>
+                </button>
               )}
             </div>
           )}
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-mint-500/10 px-2.5 py-1 text-[11px] font-medium text-mint-200 ring-1 ring-mint-500/25">
-            <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-mint-400" />
-            {online} online
-          </span>
+          <div className="relative">
+            <button
+              onClick={() => members.length && setMembersOpen((v) => !v)}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-mint-500/10 px-2.5 py-1 text-[11px] font-medium text-mint-200 ring-1 ring-mint-500/25 transition-colors hover:bg-mint-500/20 disabled:cursor-default"
+              disabled={!members.length}
+            >
+              <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-mint-400" />
+              {online} online
+            </button>
+            {membersOpen && members.length > 0 && (
+              <>
+                <button className="fixed inset-0 z-40 cursor-default" aria-label="Close" onClick={() => setMembersOpen(false)} />
+                <div className="absolute right-0 top-full z-50 mt-2 max-h-72 w-60 overflow-y-auto rounded-xl border border-white/10 bg-ink-900 p-2 shadow-elevate">
+                  <p className="px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Online now · {members.length}</p>
+                  {members.map((m) => {
+                    const inner = (
+                      <>
+                        <Avatar name={m.name} image={m.image} size="sm" />
+                        <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">{m.name}</span>
+                        {m.id === me?.id && <span className="shrink-0 text-[10px] text-zinc-500">you</span>}
+                      </>
+                    );
+                    return m.username ? (
+                      <Link key={m.id} href={`/u/${m.username}`} onClick={() => setMembersOpen(false)} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5">
+                        {inner}
+                      </Link>
+                    ) : (
+                      <div key={m.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">{inner}</div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

@@ -13,7 +13,7 @@ import {
 // Live Web3 news — aggregates reputable RSS/Atom feeds server-side (keyless),
 // classifies each story, de-duplicates the same event across outlets, and
 // filters/paginates. Cached + graceful always-200 (empty on total failure).
-export const revalidate = 120;
+export const revalidate = 60;
 
 async function fetchSource(src: NewsSource): Promise<NewsItem[]> {
   try {
@@ -69,7 +69,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(
       { items: pageItems, total, page, pageSize, hasMore: start + pageSize < total, live, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300" } }
+      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=180" } }
     );
   } catch {
     return NextResponse.json(
