@@ -79,6 +79,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} dark`}>
+      <head>
+        {/* Warm up connections to the third-party image CDNs used on the Markets
+            and News pages (coin logos + source favicons) so those images paint
+            sooner. Cheap DNS/TLS pre-work; the APIs themselves are server-side. */}
+        <link rel="preconnect" href="https://assets.coingecko.com" crossOrigin="" />
+        <link rel="preconnect" href="https://coin-images.coingecko.com" crossOrigin="" />
+        <link rel="dns-prefetch" href="https://assets.coingecko.com" />
+        <link rel="dns-prefetch" href="https://coin-images.coingecko.com" />
+        <link rel="dns-prefetch" href="https://www.google.com" />
+      </head>
       <body>
         {/* No-FOUC theme: apply the saved choice before paint. Dark is the default. */}
         <script
