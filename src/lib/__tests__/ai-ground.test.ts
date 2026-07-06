@@ -76,8 +76,14 @@ describe("buildAssistantSystemPrompt", () => {
   it("embeds the persona and grounding rules", () => {
     const sys = buildAssistantSystemPrompt([post({ slug: "s" })], "hi");
     expect(sys).toContain("XYZ AI");
-    expect(sys).toContain("research assistant");
+    expect(sys.toLowerCase()).toContain("research analyst");
     expect(sys.toLowerCase()).toContain("not financial advice");
+  });
+
+  it("appends live context when provided", () => {
+    const sys = buildAssistantSystemPrompt([post({ slug: "s" })], "hi", "LIVE MARKET DATA:\n- BTC $67,000");
+    expect(sys).toContain("LIVE MARKET DATA");
+    expect(sys).toContain("BTC $67,000");
   });
 
   it("notes an empty library when there are no posts", () => {
