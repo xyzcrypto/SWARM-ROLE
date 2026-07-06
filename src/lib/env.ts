@@ -24,6 +24,11 @@ const schema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   SUPABASE_STORAGE_BUCKET: z.string().optional(),
   GROQ_API_KEY: z.string().optional(),
+  GEMINI_API_KEY: z.string().optional(),
+  AI_PROVIDER_ORDER: z.string().optional(),
+  AI_DAILY_LIMIT_FREE: z.string().optional(),
+  AI_DAILY_LIMIT_PREMIUM: z.string().optional(),
+  AI_DAILY_LIMIT_ADMIN: z.string().optional(),
   CMC_API_KEY: z.string().optional(),
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
@@ -66,8 +71,16 @@ export const env = {
   SUPABASE_URL: (raw.SUPABASE_URL ?? "").replace(/\/$/, ""),
   SUPABASE_SERVICE_ROLE_KEY: raw.SUPABASE_SERVICE_ROLE_KEY ?? "",
   SUPABASE_STORAGE_BUCKET: raw.SUPABASE_STORAGE_BUCKET || "post-covers",
-  // Groq (XYZ AI features). Server-only — NEVER exposed client-side.
+  // XYZ AI providers. All server-only — NEVER exposed client-side. GROQ works
+  // today; adding GEMINI_API_KEY promotes Gemini to primary (Groq auto-fallback).
+  // AI_PROVIDER_ORDER (e.g. "gemini,groq") overrides the default chain order.
   GROQ_API_KEY: raw.GROQ_API_KEY ?? "",
+  GEMINI_API_KEY: raw.GEMINI_API_KEY ?? "",
+  AI_PROVIDER_ORDER: raw.AI_PROVIDER_ORDER ?? "",
+  // Per-plan daily AI request caps (optional overrides of the built-in defaults).
+  AI_DAILY_LIMIT_FREE: raw.AI_DAILY_LIMIT_FREE ?? "",
+  AI_DAILY_LIMIT_PREMIUM: raw.AI_DAILY_LIMIT_PREMIUM ?? "",
+  AI_DAILY_LIMIT_ADMIN: raw.AI_DAILY_LIMIT_ADMIN ?? "",
   // CoinMarketCap (Markets hub — optional enrichment). Server-only.
   CMC_API_KEY: raw.CMC_API_KEY ?? "",
   // Web Push (news alerts). Public key is client-safe; private key + cron secret
@@ -99,10 +112,14 @@ export const storageEnabled = !!env.SUPABASE_URL && !!env.SUPABASE_SERVICE_ROLE_
 // when unset - chat still works, just not instant.
 export const realtimeEnabled = storageEnabled; // same creds: SUPABASE_URL + service key
 
-// XYZ AI (Groq). When unset, every AI surface no-ops gracefully: the assistant
-// route returns 503, summaries/auto-moderation simply skip. Set GROQ_API_KEY
-// (Vercel env) to activate. Server-only flag — never read the key client-side.
-export const aiEnabled = !!env.GROQ_API_KEY;
+// XYZ AI providers. Each flag is true when that provider's key is configured;
+// the gateway (src/lib/ai/*) uses whichever are enabled, in AI_PROVIDER_ORDER,
+// with automatic fallback. `aiEnabled` is true when AT LEAST ONE provider is
+// configured — when false, every AI surface no-ops gracefully (assistant route
+// 503, summaries/auto-moderation skip). Server-only — never read keys client-side.
+export const groqEnabled = !!env.GROQ_API_KEY;
+export const geminiEnabled = !!env.GEMINI_API_KEY;
+export const aiEnabled = groqEnabled || geminiEnabled;
 
 // CoinMarketCap enrichment on the Markets hub. Optional — the hub works from the
 // free keyless sources (CoinGecko + DefiLlama + Fear&Greed) without it; when set,

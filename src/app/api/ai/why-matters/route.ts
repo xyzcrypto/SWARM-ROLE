@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
-import { aiEnabled, completeText, AI_MODEL_FAST } from "@/lib/ai";
+import { aiEnabled, completeText } from "@/lib/ai";
+import { aiPlanFor } from "@/lib/ai/gateway";
 import { buildWhyMattersPrompt, buildNewsDigestPrompt } from "@/lib/ai-summary";
 
 export const runtime = "nodejs";
@@ -32,9 +33,10 @@ export async function POST(req: Request) {
     const { title, summary, mode } = parsed.data;
     const prompt = mode === "digest" ? buildNewsDigestPrompt(title, summary) : buildWhyMattersPrompt(title, summary);
     const text = await completeText({
-      model: AI_MODEL_FAST,
+      task: mode === "digest" ? "digest" : "why",
       prompt,
       maxTokens: mode === "digest" ? 320 : 160,
+      ctx: { userId: me.id, plan: aiPlanFor(me) },
     });
     if (!text) return fail("Couldn't generate that right now. Please try again.", 502);
     return ok({ text });
