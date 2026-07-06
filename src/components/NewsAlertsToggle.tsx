@@ -41,23 +41,49 @@ export function NewsAlertsToggle({ loggedIn }: { loggedIn: boolean }) {
     setBusy(true);
     setMsg(null);
     try {
-      const reg = await navigator.serviceWorker.register("/sw.js");
+      // 1) Permission — ask up front so a denial gives a clear message.
       const perm = await Notification.requestPermission();
       if (perm !== "granted") {
-        setMsg("Notifications blocked. Enable them in your browser settings.");
+        setMsg("Notifications are blocked. Allow them for this site in your browser settings, then try again.");
         return;
       }
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID) as BufferSource,
-      });
+
+      // 2) Service worker.
+      let reg: ServiceWorkerRegistration;
+      try {
+        reg = await navigator.serviceWorker.register("/sw.js");
+        await navigator.serviceWorker.ready;
+      } catch {
+        setMsg("Couldn't start the notifications worker. Please refresh and try again.");
+        return;
+      }
+
+      // 3) Subscribe with the VAPID key (fails if the key is malformed).
+      let sub: PushSubscription;
+      try {
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID) as BufferSource,
+        });
+      } catch {
+        setMsg("Your browser refused the subscription. The alert key may be misconfigured.");
+        return;
+      }
+
+      // 4) Store server-side. Surface the real status so config gaps are obvious.
       const json = sub.toJSON() as { endpoint?: string; keys?: { p256dh?: string; auth?: string } };
       const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subscription: { endpoint: json.endpoint, keys: json.keys } }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        await sub.unsubscribe().catch(() => {});
+        if (res.status === 401) setMsg("Please log in, then enable alerts.");
+        else if (res.status === 503) setMsg("Push isn't configured on the server yet (VAPID key missing).");
+        else setMsg(`Couldn't save your subscription (error ${res.status}). Please try again.`);
+        return;
+      }
       setEnabled(true);
     } catch {
       setMsg("Couldn't enable alerts. Please try again.");
