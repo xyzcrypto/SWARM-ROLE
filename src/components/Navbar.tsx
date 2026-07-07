@@ -131,12 +131,11 @@ export function Navbar() {
         <div className="hidden items-center gap-2 md:flex">
           <button
             onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
-            className="inline-flex items-center gap-2 rounded-lg border border-line bg-white/5 px-3 py-2 text-[13px] text-zinc-500 transition-colors hover:border-gold-500/30 hover:text-zinc-300"
-            aria-label="Search"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 transition-colors hover:border-gold-500/30 hover:text-zinc-200"
+            aria-label="Search (⌘K)"
+            title="Search — ⌘K"
           >
             <Search className="h-4 w-4" />
-            <span>Search</span>
-            <kbd className="ml-1 rounded border border-white/10 px-1.5 text-[10px] text-zinc-500">⌘K</kbd>
           </button>
           <ThemeToggle />
           {session ? (
@@ -217,6 +216,8 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center md:hidden">
+          {/* Notifications on mobile too (was desktop-only before). */}
+          {session && <NavActivity />}
           <button
             onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
             className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-zinc-300"

@@ -114,3 +114,48 @@ export function Badge({
     </span>
   );
 }
+
+/* ---------------- Shared loading / empty / error states ---------------- */
+
+/** A single shimmering placeholder bar. Use several to sketch a loading layout. */
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn("animate-pulse rounded-md bg-white/[0.06]", className)} aria-hidden="true" />;
+}
+
+/** N stacked skeleton rows — a quick list/table placeholder. */
+export function SkeletonList({ rows = 5, className }: { rows?: number; className?: string }) {
+  return (
+    <div className={cn("space-y-2", className)} aria-hidden="true">
+      {Array.from({ length: rows }).map((_, i) => (
+        <Skeleton key={i} className="h-11 w-full" />
+      ))}
+    </div>
+  );
+}
+
+/** Neutral empty state — no data yet (not an error). */
+export function EmptyState({ icon, title, hint, action, className }: { icon?: ReactNode; title: string; hint?: string; action?: ReactNode; className?: string }) {
+  return (
+    <div className={cn("flex flex-col items-center justify-center gap-2 px-4 py-12 text-center", className)}>
+      {icon && <div className="text-zinc-600">{icon}</div>}
+      <p className="text-sm font-medium text-zinc-300">{title}</p>
+      {hint && <p className="max-w-xs text-xs text-zinc-500">{hint}</p>}
+      {action && <div className="mt-2">{action}</div>}
+    </div>
+  );
+}
+
+/** Something went wrong, with an optional retry. */
+export function ErrorState({ title = "Something went wrong", hint, onRetry, className }: { title?: string; hint?: string; onRetry?: () => void; className?: string }) {
+  return (
+    <div className={cn("flex flex-col items-center justify-center gap-2 px-4 py-12 text-center", className)}>
+      <p className="text-sm font-medium text-amber-300">{title}</p>
+      {hint && <p className="max-w-xs text-xs text-zinc-500">{hint}</p>}
+      {onRetry && (
+        <button onClick={onRetry} className="mt-2 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-zinc-200 transition-colors hover:bg-white/5">
+          Try again
+        </button>
+      )}
+    </div>
+  );
+}

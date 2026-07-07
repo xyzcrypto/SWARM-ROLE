@@ -9,6 +9,7 @@ import { RealtimeSession } from "@/components/RealtimeSession";
 import { XyzAiWidget } from "@/components/XyzAiWidget";
 import { PwaSetup } from "@/components/PwaSetup";
 import { CommandPaletteMount } from "@/components/CommandPaletteMount";
+import { BottomNavMount } from "@/components/BottomNavMount";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
 import { SITE_URL, GSC_VERIFICATION } from "@/lib/seo";
 import { env } from "@/lib/env";
@@ -110,6 +111,7 @@ export default function RootLayout({
           <XyzAiWidget />
           <PwaSetup />
           <CommandPaletteMount />
+          <BottomNavMount />
         </Providers>
         <Analytics />
       </body>
