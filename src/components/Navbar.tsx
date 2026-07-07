@@ -6,8 +6,9 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown, Search } from "lucide-react";
 import { navLinks } from "@/lib/site";
+import { XYZ_CMDK_EVENT } from "@/lib/command-search";
 import { XYZ_AI_OPEN_EVENT } from "./XyzAiWidget";
 import { RobotIcon } from "./RobotIcon";
 import { cn, maskEmail } from "@/lib/utils";
@@ -128,6 +129,15 @@ export function Navbar() {
         </div>
 
         <div className="hidden items-center gap-2 md:flex">
+          <button
+            onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
+            className="inline-flex items-center gap-2 rounded-lg border border-line bg-white/5 px-3 py-2 text-[13px] text-zinc-500 transition-colors hover:border-gold-500/30 hover:text-zinc-300"
+            aria-label="Search"
+          >
+            <Search className="h-4 w-4" />
+            <span>Search</span>
+            <kbd className="ml-1 rounded border border-white/10 px-1.5 text-[10px] text-zinc-500">⌘K</kbd>
+          </button>
           <ThemeToggle />
           {session ? (
             <>
@@ -206,13 +216,22 @@ export function Navbar() {
           )}
         </div>
 
-        <button
-          onClick={() => setOpen((v) => !v)}
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-zinc-300 md:hidden"
-          aria-label="Menu"
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="flex items-center md:hidden">
+          <button
+            onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-zinc-300"
+            aria-label="Search"
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-zinc-300"
+            aria-label="Menu"
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </nav>
 
       {open && (
