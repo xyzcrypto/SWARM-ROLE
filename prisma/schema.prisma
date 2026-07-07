@@ -64,6 +64,7 @@ model User {
   notifications     Notification[]
   adminAudits       AdminAudit[]        @relation("AdminAuditActor")
   pushSubscriptions PushSubscription[]
+  aiUsage           AiUsage[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -350,4 +351,29 @@ model AdminAudit {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+// Per-call AI usage log — one row per gateway call. Metadata only (NEVER the
+// prompt/response text): powers per-user daily limits, the admin AI dashboard
+// and cost visibility. userId is nullable + SET NULL so analytics survive
+// account deletion. Cost is integer micro-dollars (1e-6 USD) to avoid float drift.
+model AiUsage {
+  id               String   @id @default(cuid())
+  userId           String?
+  user             User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  provider         String // "groq" | "gemini" | "none"
+  model            String
+  task             String // "assistant" | "summary" | "moderation" | "why" | "digest"
+  inputTokens      Int      @default(0)
+  outputTokens     Int      @default(0)
+  latencyMs        Int      @default(0)
+  status           String // "ok" | "fallback" | "error"
+  errorKind        String? // "rate_limit" | "auth" | "timeout" | "safety" | "server" | "unknown"
+  estCostUsdMicros Int      @default(0)
+  cached           Boolean  @default(false)
+  createdAt        DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId, createdAt]) // per-user daily count (limits) + top users
+  @@index([provider, createdAt]) // provider split / health
 }

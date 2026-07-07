@@ -1,6 +1,15 @@
-import { describe, expect, it } from "vitest";
-import { classifyError, runComplete, runStream, AiCapacityError } from "@/lib/ai/gateway";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { AiProvider } from "@/lib/ai/providers/types";
+
+// Mock the DB-writing usage recorder so gateway tests stay hermetic (no Prisma),
+// and so we can assert what gets metered. errorKindOf is kept real.
+const { recordSpy } = vi.hoisted(() => ({ recordSpy: vi.fn() }));
+vi.mock("@/lib/ai/usage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/ai/usage")>();
+  return { ...actual, recordAiUsage: recordSpy };
+});
+
+import { classifyError, runComplete, runStream, AiCapacityError } from "@/lib/ai/gateway";
 
 function mockProvider(
   id: string,
@@ -22,6 +31,8 @@ function mockProvider(
   };
 }
 
+beforeEach(() => recordSpy.mockClear());
+
 describe("classifyError", () => {
   it("marks safety/content blocks fatal", () => {
     expect(classifyError(new Error("response blocked by safety filter"))).toBe("fatal");
@@ -40,13 +51,21 @@ describe("classifyError", () => {
 });
 
 describe("runComplete", () => {
-  it("falls back to the next provider on a rate limit", async () => {
+  it("falls back to the next provider on a rate limit and records status:fallback", async () => {
     const primary = mockProvider("p", { complete: async () => { throw new Error("429 quota exhausted"); } });
     const secondary = mockProvider("s");
     const res = await runComplete("summary", { prompt: "hi", maxTokens: 10 }, {}, [primary, secondary]);
     expect(res.text).toBe("s-ok");
     expect(res.provider).toBe("s");
     expect(res.model).toBe("s-fast");
+    const recorded = recordSpy.mock.calls.map((c) => c[0]);
+    expect(recorded.some((r) => r.status === "fallback" && r.provider === "s" && r.task === "summary")).toBe(true);
+  });
+
+  it("records status:ok when the primary succeeds", async () => {
+    const res = await runComplete("why", { prompt: "hi", maxTokens: 10 }, { userId: "u1" }, [mockProvider("p")]);
+    expect(res.provider).toBe("p");
+    expect(recordSpy).toHaveBeenCalledWith(expect.objectContaining({ status: "ok", provider: "p", userId: "u1" }));
   });
 
   it("surfaces a fatal (safety) error without falling over", async () => {
@@ -55,10 +74,11 @@ describe("runComplete", () => {
     await expect(runComplete("summary", { prompt: "hi", maxTokens: 10 }, {}, [primary, secondary])).rejects.toThrow(/blocked/);
   });
 
-  it("throws AiCapacityError when every provider fails", async () => {
+  it("throws AiCapacityError and records status:error when every provider fails", async () => {
     const p = mockProvider("p", { complete: async () => { throw new Error("429"); } });
     const s = mockProvider("s", { complete: async () => { throw new Error("401 bad key"); } });
     await expect(runComplete("summary", { prompt: "x", maxTokens: 1 }, {}, [p, s])).rejects.toBeInstanceOf(AiCapacityError);
+    expect(recordSpy).toHaveBeenCalledWith(expect.objectContaining({ status: "error", provider: "none" }));
   });
 
   it("throws AiCapacityError(no_provider) with an empty chain", async () => {
@@ -67,7 +87,7 @@ describe("runComplete", () => {
 });
 
 describe("runStream", () => {
-  it("falls back to the next provider before the first byte", async () => {
+  it("falls back before the first byte and meters once consumed", async () => {
     const primary = mockProvider("p", { stream: async () => { throw new Error("429 too many requests"); } });
     const secondary = mockProvider("s");
     const handle = await runStream(
@@ -81,5 +101,6 @@ describe("runStream", () => {
     expect(out).toBe("s-ok");
     expect(handle.provider).toBe("s");
     expect(handle.model).toBe("s-quality");
+    expect(recordSpy).toHaveBeenCalledWith(expect.objectContaining({ status: "fallback", provider: "s", task: "assistant" }));
   });
 });

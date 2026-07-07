@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-06 — XYZ AI gateway (PR-B): per-call usage analytics
+The gateway now records one durable `AiUsage` row per call — the data layer for
+per-user limits (PR-C), the admin AI dashboard (PR-D) and cost visibility.
+- **`AiUsage` model** + idempotent migration **`15_ai_usage`**: provider, model, task,
+  input/output tokens, latency, status (`ok`/`fallback`/`error`), errorKind, estimated
+  cost (integer **micro-dollars**), cached flag, createdAt. **Metadata only — never the
+  prompt or response text.** `userId` is nullable + `SET NULL` so analytics survive account
+  deletion. Indexed by `createdAt`, `(userId, createdAt)`, `(provider, createdAt)`.
+- **`src/lib/ai/usage.ts`**: `recordAiUsage` (best-effort, P2021/P2022-safe — never breaks a
+  request) + `errorKindOf` (stable error bucketing).
+- **gateway**: `runComplete`/`runStream` meter every call — real provider token usage when
+  available, else `estimateTokens`; streams record once fully consumed; failures record a
+  `status:"error"` row. `status` is `fallback` when a non-primary provider served.
+- Tests: `errorKindOf` + gateway assertions that fallback/ok/error rows are recorded (184 total).
+- typecheck + lint(0) + test(184) + build green.
+- **Owner op (later):** apply migration `15_ai_usage` SQL in Supabase; until then metering
+  no-ops cleanly and the app is unaffected.
+
 ## 2026-07-06 — XYZ AI gateway (PR-A): multi-provider abstraction + fallback
 Turned the single-provider `src/lib/ai.ts` into a real gateway (`src/lib/ai/*`) —
 the foundation for provider fallback, usage analytics, plan limits and an admin
