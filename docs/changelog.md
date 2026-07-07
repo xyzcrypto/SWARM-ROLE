@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-07 — UX P1A: global command palette + unified search
+A `⌘K` / `/` command palette that searches **coins, news, research and pages** from one box
+— the hallmark of a top-tier product.
+- **`src/lib/command-search.ts`** (pure, unit-tested): static page/action commands +
+  `scoreCommand`/`filterCommands` with auth/staff visibility rules.
+- **`/api/search/posts`**: lightweight published-post search (title/excerpt) — public,
+  rate-limited, cached, P2021/P2022-safe.
+- **`CommandPalette`** (code-split via `CommandPaletteMount`, `ssr:false` → **~0 initial JS**):
+  debounced (250ms) multi-source search — coins (`/api/markets/search`), news (`/api/news?q=`),
+  posts, plus pages + "Ask XYZ AI"; keyboard nav (↑↓/↵/esc), aborts in-flight requests (no
+  stale/fake states), **mobile full-screen sheet** with safe-area insets + 44px targets.
+- **Navbar**: desktop Search pill (with ⌘K hint) + mobile search icon dispatch the palette.
+- Perf budget honored: palette loads post-hydration in its own chunk; no first-paint cost.
+- typecheck + lint(0) + test(203) + build green.
+
 ## 2026-07-07 — XYZ AI gateway (PR-E): plan-based model routing + docs (final)
 Completes the 5-PR multi-provider AI gateway.
 - **Plan-based routing** (`routing.ts`): the chat assistant now uses the **quality** model

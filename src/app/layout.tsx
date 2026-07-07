@@ -8,6 +8,7 @@ import { Analytics } from "@/components/Analytics";
 import { RealtimeSession } from "@/components/RealtimeSession";
 import { XyzAiWidget } from "@/components/XyzAiWidget";
 import { PwaSetup } from "@/components/PwaSetup";
+import { CommandPaletteMount } from "@/components/CommandPaletteMount";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
 import { SITE_URL, GSC_VERIFICATION } from "@/lib/seo";
 import { env } from "@/lib/env";
@@ -108,6 +109,7 @@ export default function RootLayout({
           {children}
           <XyzAiWidget />
           <PwaSetup />
+          <CommandPaletteMount />
         </Providers>
         <Analytics />
       </body>
