@@ -57,7 +57,8 @@ type Tab =
   | "whatsnew"
   | "moderation"
   | "subscribers"
-  | "activity";
+  | "activity"
+  | "aiusage";
 /** Integration status booleans (names only — never values/secrets). */
 export type HealthFlags = { storage: boolean; realtime: boolean; upstash: boolean; email: boolean; google: boolean; github: boolean; twitter: boolean; ai: boolean };
 
@@ -166,6 +167,7 @@ export function DashboardClient({
     { id: "whatsnew", label: "What's New", perm: "whatsnew:manage" },
     { id: "access", label: "Access", perm: "users:roles" },
     { id: "activity", label: "Activity", perm: "users:roles" },
+    { id: "aiusage", label: "AI Usage", perm: "ai:manage" },
   ];
   const tabs = allTabs.filter((t) => hasPermission(viewer, t.perm));
 
@@ -219,6 +221,7 @@ export function DashboardClient({
       {tab === "whatsnew" && <WhatsNewManager />}
       {tab === "access" && <AccessPanel viewer={viewer} />}
       {tab === "activity" && <ActivityPanel />}
+      {tab === "aiusage" && <AiUsagePanel />}
     </div>
   );
 }
@@ -1400,5 +1403,219 @@ function AccessEditor({
         </div>
       </div>
     </div>
+  );
+}
+
+/* ---------------- AI Usage (gateway analytics + per-user limits) ---------------- */
+
+type AiUsageProvider = { id: string; enabled: boolean; requests: number };
+type AiTopUser = {
+  id: string | null;
+  name: string | null;
+  email: string | null;
+  membership: string;
+  aiDailyLimit: number | null;
+  requests: number;
+  costMicros: number;
+};
+type AiUsageData = {
+  days: number;
+  requests: DailyPoint[];
+  cost: DailyPoint[];
+  totals: {
+    today: number;
+    month: number;
+    inputTokens: number;
+    outputTokens: number;
+    costMicros: number;
+    errors: number;
+    fallbacks: number;
+    cached: number;
+    cacheHitRate: number;
+  };
+  providers: AiUsageProvider[];
+  topUsers: AiTopUser[];
+  abuse: { id: string | null; name: string | null; email: string | null; errors: number }[];
+};
+
+function usd(micros: number): string {
+  return `$${(micros / 1_000_000).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function AiUsagePanel() {
+  const [data, setData] = useState<AiUsageData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch("/api/dashboard/ai-usage", { cache: "no-store" });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Could not load AI usage.");
+      setData(d as AiUsageData);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not load AI usage.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (loading) return <p className="py-8 text-center text-sm text-zinc-500">Loading AI usage…</p>;
+  if (error || !data) return <p className="py-8 text-center text-sm text-amber-300">{error || "No data."}</p>;
+
+  const t = data.totals;
+  const costCents = data.cost.map((p) => ({ day: p.day, count: Math.round(p.count / 10_000) }));
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="font-display text-lg font-semibold text-zinc-100">XYZ AI — Usage & Cost</h2>
+        <p className="text-sm text-zinc-500">Gateway analytics (last 30 days). Metadata only — no prompt or response text is stored.</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Requests today" value={t.today} hint="AI calls today (UTC)" />
+        <StatCard label="Requests (30d)" value={t.month} hint="all AI calls" accent="gold" />
+        <StatCard label="Cache hits (30d)" value={t.cached} hint={`${Math.round(t.cacheHitRate * 100)}% of calls served from cache`} accent="mint" />
+        <StatCard label="Errors (30d)" value={t.errors} hint={`${data.totals.fallbacks} recovered via fallback`} />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <MiniStat label="Est. cost (30d)" value={usd(t.costMicros)} hint="notional — free tiers bill $0" />
+        <MiniStat label="Input tokens (30d)" value={t.inputTokens.toLocaleString("en-US")} hint="prompt tokens" />
+        <MiniStat label="Output tokens (30d)" value={t.outputTokens.toLocaleString("en-US")} hint="completion tokens" />
+      </div>
+
+      <section className="grid gap-6 lg:grid-cols-2">
+        <TrendChart title="Requests / day" points={data.requests} tone="gold" />
+        <TrendChart title="Est. cost / day (¢)" points={costCents} tone="mint" />
+      </section>
+
+      <div className="surface rounded-2xl p-5">
+        <p className="mb-3 text-sm font-semibold text-zinc-100">Provider health</p>
+        <div className="flex flex-wrap gap-2">
+          {data.providers.map((p) => (
+            <span
+              key={p.id}
+              className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium ring-1 ${
+                p.enabled ? "bg-mint-500/10 text-mint-200 ring-mint-500/25" : "bg-white/5 text-zinc-500 ring-white/10"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${p.enabled ? "bg-mint-400" : "bg-zinc-600"}`} />
+              {p.id} · {p.enabled ? "configured" : "off"} · {p.requests.toLocaleString("en-US")}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {data.abuse.length > 0 && (
+        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5">
+          <p className="mb-2 text-sm font-semibold text-amber-200">Abuse watch — members with the most failed calls (30d)</p>
+          <ul className="space-y-1 text-sm text-zinc-300">
+            {data.abuse.map((a, i) => (
+              <li key={a.id ?? `abuse-${i}`} className="flex items-center justify-between">
+                <span className="truncate">{a.name || (a.email ? maskEmail(a.email) : "—")}</span>
+                <span className="mono text-amber-300">{a.errors} errors</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div className="surface rounded-2xl p-5">
+        <p className="mb-3 text-sm font-semibold text-zinc-100">Top members by AI usage (30d) — set per-user daily limits</p>
+        <div className="-mx-2 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-[11px] uppercase tracking-wide text-zinc-500">
+                <th className="px-2 py-2 text-left font-medium">Member</th>
+                <th className="px-2 py-2 text-right font-medium">Requests</th>
+                <th className="px-2 py-2 text-right font-medium">Est. cost</th>
+                <th className="px-2 py-2 text-right font-medium">Daily limit</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {data.topUsers.map((u, i) => (
+                <AiUserRow key={u.id ?? `top-${i}`} user={u} />
+              ))}
+              {!data.topUsers.length && (
+                <tr>
+                  <td colSpan={4} className="px-2 py-4 text-center text-zinc-500">No AI usage recorded yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value, hint }: { label: string; value: string; hint: string }) {
+  return (
+    <div className="surface rounded-2xl p-5">
+      <p className="text-sm text-zinc-500">{label}</p>
+      <p className="mt-2 mono text-2xl font-semibold text-zinc-100">{value}</p>
+      <p className="mt-1 text-xs text-zinc-600">{hint}</p>
+    </div>
+  );
+}
+
+function AiUserRow({ user }: { user: AiTopUser }) {
+  const [limit, setLimit] = useState<string>(user.aiDailyLimit != null ? String(user.aiDailyLimit) : "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function save() {
+    if (!user.id) return;
+    setSaving(true);
+    setSaved(false);
+    try {
+      const n = limit.trim() === "" ? null : Math.max(0, Math.floor(Number(limit)));
+      const res = await fetch(`/api/users/${user.id}/ai-limit`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ aiDailyLimit: Number.isFinite(n as number) ? n : null }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1500);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <tr className="transition-colors hover:bg-white/[0.03]">
+      <td className="px-2 py-2.5">
+        <span className="text-zinc-100">{user.name || (user.email ? maskEmail(user.email) : "—")}</span>
+        <span className="ml-2 rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500">{user.membership}</span>
+      </td>
+      <td className="mono px-2 py-2.5 text-right text-zinc-300">{user.requests.toLocaleString("en-US")}</td>
+      <td className="mono px-2 py-2.5 text-right text-zinc-400">{usd(user.costMicros)}</td>
+      <td className="px-2 py-2.5">
+        <div className="flex items-center justify-end gap-1.5">
+          <input
+            value={limit}
+            onChange={(e) => setLimit(e.target.value.replace(/[^0-9]/g, ""))}
+            placeholder="default"
+            inputMode="numeric"
+            className="w-20 rounded-lg border border-white/10 bg-ink-950/60 px-2 py-1 text-right text-xs text-zinc-100 outline-none focus:border-gold-500/40"
+          />
+          <button
+            onClick={save}
+            disabled={saving || !user.id}
+            className="rounded-lg border border-gold-500/30 bg-gold-500/10 px-2 py-1 text-[11px] font-medium text-gold-200 transition-colors hover:bg-gold-500/20 disabled:opacity-50"
+          >
+            {saving ? "…" : saved ? "✓" : "Set"}
+          </button>
+        </div>
+      </td>
+    </tr>
   );
 }
