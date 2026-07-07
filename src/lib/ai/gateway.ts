@@ -74,7 +74,7 @@ export async function runComplete(
   chain: AiProvider[] = providerChain()
 ): Promise<CompleteResult & { provider: string; model: string }> {
   if (!chain.length) throw new AiCapacityError("no_provider");
-  const tier = routeTier(task);
+  const tier = routeTier(task, ctx.plan ?? "Free");
   const started = Date.now();
   const firstId = chain[0]?.id;
   const inputEst = estimateTokens(`${req.system ?? ""} ${req.prompt}`);
@@ -168,7 +168,7 @@ export async function runStream(
   chain: AiProvider[] = providerChain()
 ): Promise<StreamHandle & { provider: string; model: string }> {
   if (!chain.length) throw new AiCapacityError("no_provider");
-  const tier = routeTier(task);
+  const tier = routeTier(task, ctx.plan ?? "Free");
   const started = Date.now();
   const firstId = chain[0]?.id;
   const inputEst = estimateTokens(`${req.system} ${req.messages.map((m) => m.content).join(" ")}`);

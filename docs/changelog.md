@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-07 — XYZ AI gateway (PR-E): plan-based model routing + docs (final)
+Completes the 5-PR multi-provider AI gateway.
+- **Plan-based routing** (`routing.ts`): the chat assistant now uses the **quality** model
+  for **Premium/Admin** and the **fast** model for **Free** (still capable, keeps the free
+  tier cheap + fast); bulk tasks stay on fast for everyone. The gateway passes the caller's
+  plan into `routeTier`. (Behavior change: Free chat → fast model.)
+- **`docs/ai-gateway.md`**: reference for providers/fallback, routing table, per-plan limits,
+  cache/concurrency, usage analytics, cost behavior, the full env list, and the owner SQL ops.
+- Tests updated for plan tiering (194 total).
+- typecheck + lint(0) + test(194) + build green.
+
 ## 2026-07-07 — XYZ AI gateway (PR-D): admin AI Usage dashboard
 A new **"AI Usage"** admin tab turns the `AiUsage` log into operational insight +
 per-user control. Gated by a new **`ai:manage`** capability (Super Admins have it
