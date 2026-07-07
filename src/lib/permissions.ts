@@ -15,6 +15,7 @@ export const PERMISSIONS = {
   "premium:manage": "Change members' Premium status",
   "whatsnew:manage": "Manage the What's New feed",
   "users:roles": "Grant staff roles & permissions",
+  "ai:manage": "View AI usage & set members' AI limits",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

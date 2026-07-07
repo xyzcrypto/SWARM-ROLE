@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-07 — XYZ AI gateway (PR-D): admin AI Usage dashboard
+A new **"AI Usage"** admin tab turns the `AiUsage` log into operational insight +
+per-user control. Gated by a new **`ai:manage`** capability (Super Admins have it
+implicitly; grant to staff via the Access tab).
+- **`GET /api/dashboard/ai-usage`** (`ai:manage`): 30-day daily **requests + cost**
+  series (raw-SQL `date_trunc`, reusing `fillDailySeries`), 30-day totals (requests,
+  in/out tokens, est cost, errors, fallbacks, cache hits + hit-rate), **provider split +
+  health** (from `providerHealth()`), **top members** by usage, and an **abuse watch**
+  (members with the most failed calls). All best-effort — zeros before the migration lands.
+- **`PATCH /api/users/[id]/ai-limit`** (`ai:manage`, `admin` rate-limit): set/clear a
+  member's `aiDailyLimit`; writes an `AdminAudit` (`ai.limit.update`).
+- **`AiUsagePanel`** in `DashboardClient`: StatCards + two `TrendChart`s (requests, cost),
+  provider-health pills, abuse alerts, and a top-members table with an **inline per-user
+  daily-limit editor** (reuses the existing dashboard primitives).
+- typecheck + lint(0) + test(193) + build green.
+
 ## 2026-07-07 — XYZ AI gateway (PR-C): plan limits + cache + concurrency + graceful UI
 Adds real abuse/cost controls and cost-saving caching on top of the gateway.
 - **Per-plan daily limits** (`src/lib/ai/limits.ts`, pure + DB): defaults **Free 25 /
