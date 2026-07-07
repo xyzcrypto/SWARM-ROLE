@@ -8,6 +8,12 @@ vi.mock("@/lib/ai/usage", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/ai/usage")>();
   return { ...actual, recordAiUsage: recordSpy };
 });
+// Keep the exact-match cache out of the provider-path tests so they're
+// deterministic (no cross-test cache hits). Cache behavior is covered separately.
+vi.mock("@/lib/ai/cache", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/ai/cache")>();
+  return { ...actual, getCached: async () => null, setCached: async () => {} };
+});
 
 import { classifyError, runComplete, runStream, AiCapacityError } from "@/lib/ai/gateway";
 

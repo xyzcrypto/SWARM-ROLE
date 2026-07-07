@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
-import { aiEnabled, completeText } from "@/lib/ai";
-import { aiPlanFor } from "@/lib/ai/gateway";
+import { aiEnabled, completeText, aiErrorMessage } from "@/lib/ai";
+import { aiPlanFor, AiCapacityError } from "@/lib/ai/gateway";
+import { checkDailyLimit, dailyLimitMessage } from "@/lib/ai/limits";
 import { buildWhyMattersPrompt, buildNewsDigestPrompt } from "@/lib/ai-summary";
 
 export const runtime = "nodejs";
@@ -27,6 +28,10 @@ export async function POST(req: Request) {
     const { success } = await rateLimit("ai", me.id);
     if (!success) return fail("You're going too fast. Take a breath.", 429);
 
+    const plan = aiPlanFor(me);
+    const lim = await checkDailyLimit(me.id, plan);
+    if (!lim.allowed) return fail(dailyLimitMessage(lim, plan), 429);
+
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.", 400);
 
@@ -36,11 +41,12 @@ export async function POST(req: Request) {
       task: mode === "digest" ? "digest" : "why",
       prompt,
       maxTokens: mode === "digest" ? 320 : 160,
-      ctx: { userId: me.id, plan: aiPlanFor(me) },
+      ctx: { userId: me.id, plan },
     });
     if (!text) return fail("Couldn't generate that right now. Please try again.", 502);
     return ok({ text });
   } catch (err) {
+    if (err instanceof AiCapacityError) return fail(aiErrorMessage(err), 503);
     return handleError(err, "ai:why-matters");
   }
 }

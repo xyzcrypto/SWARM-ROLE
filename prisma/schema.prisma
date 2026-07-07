@@ -43,6 +43,10 @@ model User {
   // News hub: categories the member follows for their personalized "For You" feed.
   newsInterests String[] @default([])
 
+  // Per-user daily AI request override (null = use the plan default). Set by the
+  // admin AI-usage editor; capped/enforced by src/lib/ai/limits.ts.
+  aiDailyLimit Int?
+
   // --- Public profile fields (see /u/[username] + /settings) ---
   username    String? @unique // handle for the public profile URL, 3–20 [a-z0-9_]
   bio         String? // short about, <= 280 chars

@@ -7,6 +7,7 @@ import { providerChain } from "./registry";
 import { routeTier } from "./routing";
 import { estimateTokens, estimateCostUsdMicros } from "./pricing";
 import { recordAiUsage, errorKindOf } from "./usage";
+import { cacheKey, isCacheable, getCached, setCached } from "./cache";
 
 const STREAM_CONNECT_TIMEOUT_MS = 20_000; // time-to-first-response for streams
 const COMPLETE_TIMEOUT_MS = 15_000;
@@ -77,12 +78,36 @@ export async function runComplete(
   const started = Date.now();
   const firstId = chain[0]?.id;
   const inputEst = estimateTokens(`${req.system ?? ""} ${req.prompt}`);
+
+  // Exact-match cache for deterministic one-shot tasks — a hit skips the provider
+  // entirely (records a cached, $0 usage row so the saving is visible).
+  const key = isCacheable(task) ? cacheKey(task, `${req.system ?? ""}\n${req.prompt}`) : null;
+  if (key) {
+    const hit = await getCached(key);
+    if (hit != null) {
+      await recordAiUsage({
+        userId: ctx.userId ?? null,
+        provider: "cache",
+        model: "cache",
+        task,
+        inputTokens: 0,
+        outputTokens: estimateTokens(hit),
+        latencyMs: Date.now() - started,
+        status: "ok",
+        estCostUsdMicros: 0,
+        cached: true,
+      });
+      return { text: hit, provider: "cache", model: "cache" };
+    }
+  }
+
   let lastErr: unknown;
   for (const provider of chain) {
     const model = provider.models[tier];
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         const res = await withTimeout(COMPLETE_TIMEOUT_MS, (signal) => provider.complete({ ...req, model, signal }));
+        if (key && res.text) void setCached(key, res.text);
         const usage: TokenUsage = res.usage ?? { inputTokens: inputEst, outputTokens: estimateTokens(res.text) };
         await recordAiUsage({
           userId: ctx.userId ?? null,
