@@ -2,7 +2,7 @@
 // best-effort and degrade to a safe default: `summarize` returns null and
 // `classifyToxic` returns false (fail-OPEN — never auto-hide on an error/outage)
 // when AI is disabled, the model errors, or the call times out.
-import { completeText, AI_MODEL_FAST } from "@/lib/ai";
+import { completeText } from "@/lib/ai";
 import {
   buildSummaryPrompt,
   cleanSummary,
@@ -14,7 +14,7 @@ import {
 export async function summarize(title: string, content: string): Promise<string | null> {
   try {
     const raw = await completeText({
-      model: AI_MODEL_FAST,
+      task: "summary",
       prompt: buildSummaryPrompt(title, content),
       maxTokens: 160,
     });
@@ -32,7 +32,7 @@ const MOD_TIMEOUT_MS = 4000;
 export async function classifyToxic(text: string): Promise<boolean> {
   try {
     const verdict = await Promise.race([
-      completeText({ model: AI_MODEL_FAST, prompt: buildModerationPrompt(text), maxTokens: 8 }),
+      completeText({ task: "moderation", prompt: buildModerationPrompt(text), maxTokens: 8 }),
       new Promise<null>((resolve) => setTimeout(() => resolve(null), MOD_TIMEOUT_MS)),
     ]);
     return verdict ? parseModerationVerdict(verdict) : false;

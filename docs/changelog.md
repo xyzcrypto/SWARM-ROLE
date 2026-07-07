@@ -5,6 +5,26 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-06 — XYZ AI gateway (PR-A): multi-provider abstraction + fallback
+Turned the single-provider `src/lib/ai.ts` into a real gateway (`src/lib/ai/*`) —
+the foundation for provider fallback, usage analytics, plan limits and an admin
+dashboard (later PRs). **No behavior change**: with only Groq configured the chain
+resolves to the exact same models as before.
+- **`src/lib/ai/`**: `providers/types.ts` (provider-agnostic contracts), `providers/groq.ts`
+  (wraps the existing Groq calls), `providers/gemini.ts` (Google REST, no new dep — only
+  active with `GEMINI_API_KEY`), `registry.ts` (ordered/enabled provider chain), `routing.ts`
+  (task→model tier), `pricing.ts` (token/cost estimate), `gateway.ts` (timeout + bounded
+  retry with backoff + **automatic fallback to the next provider** on genuine failure).
+- **`ai.ts`** is now a thin back-compat shim (`streamAssistant`/`completeText`/`aiErrorMessage`/
+  `aiEnabled`/`AiMessage` unchanged; adds an optional `ctx`), so all 5 consumers keep working.
+- **env**: `GEMINI_API_KEY`, `AI_PROVIDER_ORDER` (default `gemini,groq` — adding a Gemini key
+  makes it primary with Groq auto-fallback), `AI_DAILY_LIMIT_*`; flags `groqEnabled`/
+  `geminiEnabled`; `aiEnabled` now means "≥1 provider configured". Keys stay server-only.
+- Guardrails: one key per provider, **no key-rotation/quota-evasion**, fallback only on real
+  failure/timeout/legit rate-limit.
+- Tests: routing, pricing, registry ordering, and a gateway fallback/classify suite (+19; 182 total).
+- typecheck + lint(0) + test(182) + build green.
+
 ## 2026-07-06 — Markets: more coins, coin search, all perp DEXs, trending news
 - **Coins**: table expanded from top-50 to **top-250**, with a **search box** that
   filters instantly and, for coins beyond the top 250, looks up **any coin** via a

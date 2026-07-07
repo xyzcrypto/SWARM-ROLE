@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { aiEnabled, streamAssistant, aiErrorMessage, type AiMessage } from "@/lib/ai";
+import { aiPlanFor } from "@/lib/ai/gateway";
 import { buildAssistantSystemPrompt, type GroundingPost } from "@/lib/ai-ground";
 import { formatLiveContext, type LiveSnapshot } from "@/lib/ai-live";
 
@@ -113,7 +114,11 @@ export async function POST(req: Request) {
     const live = await fetchLiveSnapshot(origin).catch(() => ({} as LiveSnapshot));
     const system = buildAssistantSystemPrompt(posts, lastUser.content, formatLiveContext(live));
 
-    const stream = streamAssistant({ system, messages: history });
+    const stream = streamAssistant({
+      system,
+      messages: history,
+      ctx: { userId: me.id, plan: aiPlanFor(me), isAdmin: me.isSuperAdmin },
+    });
     if (!stream) return fail("XYZ AI is not configured yet. Please check back soon.", 503);
 
     const encoder = new TextEncoder();
