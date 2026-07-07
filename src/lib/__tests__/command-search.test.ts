@@ -10,41 +10,23 @@ describe("scoreCommand", () => {
     expect(scoreCommand(item, "xyz")).toBe(0); // no match
   });
   it("treats an empty query as browse-all", () => {
-    expect(scoreCommand({ label: "Home", keywords: [] }, "")).toBe(1);
-  });
-  it("matches a non-first word by prefix", () => {
-    expect(scoreCommand({ label: "Admin Dashboard", keywords: [] }, "dash")).toBe(3);
+    expect(scoreCommand({ label: "Ask XYZ AI", keywords: [] }, "")).toBe(1);
   });
 });
 
-describe("filterCommands", () => {
+describe("filterCommands (content-search: only the Ask AI action is static)", () => {
   const guest = { loggedIn: false, staff: false };
-  const member = { loggedIn: true, staff: false };
-  const staff = { loggedIn: true, staff: true };
 
-  it("hides auth-only and staff-only items from guests", () => {
-    const ids = filterCommands("", guest).map((c) => c.id);
-    expect(ids).not.toContain("settings");
-    expect(ids).not.toContain("dashboard");
-    expect(ids).toContain("markets");
+  it("has exactly one static action — Ask XYZ AI — and no page shortcuts", () => {
+    expect(STATIC_COMMANDS).toHaveLength(1);
+    expect(STATIC_COMMANDS[0].id).toBe("ask-ai");
+    expect(STATIC_COMMANDS.some((c) => c.group === "pages")).toBe(false);
   });
-  it("shows settings to members but not the dashboard", () => {
-    const ids = filterCommands("", member).map((c) => c.id);
-    expect(ids).toContain("settings");
-    expect(ids).not.toContain("dashboard");
+  it("surfaces Ask AI on an empty query and for an ai query", () => {
+    expect(filterCommands("", guest).map((c) => c.id)).toEqual(["ask-ai"]);
+    expect(filterCommands("ai", guest).map((c) => c.id)).toEqual(["ask-ai"]);
   });
-  it("shows the dashboard to staff", () => {
-    expect(filterCommands("", staff).map((c) => c.id)).toContain("dashboard");
-  });
-  it("ranks and filters by query", () => {
-    const res = filterCommands("ai", staff);
-    expect(res[0].id).toBe("ask-ai");
-  });
-  it("returns nothing for a no-match query", () => {
-    expect(filterCommands("zzzzz", staff)).toHaveLength(0);
-  });
-  it("STATIC_COMMANDS all have unique ids", () => {
-    const ids = STATIC_COMMANDS.map((c) => c.id);
-    expect(new Set(ids).size).toBe(ids.length);
+  it("returns nothing for a content query (coins/news handled by live sources)", () => {
+    expect(filterCommands("ethereum", guest)).toHaveLength(0);
   });
 });

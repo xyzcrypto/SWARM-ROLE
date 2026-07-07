@@ -21,15 +21,10 @@ export type CommandItem = {
   staffOnly?: boolean;
 };
 
+// Search is a CONTENT search (coins, news, research) — page navigation lives in
+// the navbar, so we intentionally don't duplicate pages here. The only static
+// entry is a quick "Ask XYZ AI" action.
 export const STATIC_COMMANDS: CommandItem[] = [
-  { id: "home", group: "pages", label: "Home", href: "/", keywords: ["home", "start", "landing"] },
-  { id: "markets", group: "pages", label: "Markets", hint: "Live prices, DeFi, perps", href: "/markets", keywords: ["markets", "price", "coins", "charts", "defi", "perp"] },
-  { id: "news", group: "pages", label: "News", hint: "Live Web3 news", href: "/news", keywords: ["news", "headlines", "breaking"] },
-  { id: "research", group: "pages", label: "Research", hint: "Articles & analysis", href: "/research", keywords: ["research", "articles", "analysis", "posts"] },
-  { id: "community", group: "pages", label: "Community", hint: "Live chat", href: "/community", keywords: ["community", "chat", "talk"] },
-  { id: "premium", group: "pages", label: "Premium", href: "/premium", keywords: ["premium", "upgrade", "membership", "plans"] },
-  { id: "settings", group: "pages", label: "Settings", href: "/settings", keywords: ["settings", "profile", "account"], authOnly: true },
-  { id: "dashboard", group: "pages", label: "Admin Dashboard", href: "/dashboard", keywords: ["dashboard", "admin", "manage"], staffOnly: true },
   { id: "ask-ai", group: "actions", label: "Ask XYZ AI", hint: "Open the AI assistant", action: "ai", keywords: ["ai", "ask", "assistant", "xyz ai", "question", "chatbot"] },
 ];
 

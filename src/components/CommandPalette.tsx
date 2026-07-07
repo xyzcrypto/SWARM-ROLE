@@ -204,7 +204,7 @@ export function CommandPalette() {
             ref={inputRef}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Search coins, news, research, pages…"
+            placeholder="Search coins, news & research…"
             className="h-12 w-full bg-transparent text-[15px] text-zinc-100 outline-none placeholder:text-zinc-600"
             autoComplete="off"
             spellCheck={false}
@@ -216,7 +216,7 @@ export function CommandPalette() {
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain py-1" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-          <Section title="Go to" list={cmds} />
+          <Section title="Actions" list={cmds} />
           <Section title="Coins" list={remote.coins} />
           <Section title="Research" list={remote.posts} />
           <Section title="News" list={remote.news} />
