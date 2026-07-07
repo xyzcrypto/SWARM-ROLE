@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-07 — UX P1B: mobile bottom nav + notifications on mobile + shared states
+Native-app feel on mobile + the two owner-flagged fixes.
+- **`BottomNav`** (code-split, mobile-only, ~0 initial JS): fixed app-style bar — Markets ·
+  News · **XYZ AI** (centered launcher) · Research · Chat — with **real active-route**
+  highlight, `env(safe-area-inset-bottom)`, ≥52px targets, and an in-flow spacer so content/
+  footer clear it. Hidden on immersive/auth/admin routes (`/community`, `/login`, `/signup`,
+  `/forgot-password`, `/dashboard`) that have their own bottom UI. Pure helpers in
+  `src/lib/bottom-nav.ts` (unit-tested). The floating AI FAB is now desktop-only (the bottom
+  bar is the mobile AI entry); PWA install prompt raised above the bar on mobile.
+- **Notifications on mobile**: the `NavActivity` bell (was desktop-only) now also shows in the
+  mobile top bar for signed-in users.
+- **Navbar**: desktop Search pill slimmed to a single icon (⌘K tooltip).
+- **Shared primitives** (`ui/primitives.tsx`): `Skeleton`/`SkeletonList`/`EmptyState`/
+  `ErrorState` for consistent loading/empty/error states going forward.
+- typecheck + lint(0) + test(207) + build green.
+
 ## 2026-07-07 — UX P1A: global command palette + unified search
 A `⌘K` / `/` command palette that searches **coins, news, research and pages** from one box
 — the hallmark of a top-tier product.
