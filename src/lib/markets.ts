@@ -115,3 +115,23 @@ export function coinPrice(n: number | null | undefined): string {
   if (n >= 0.01) return `$${n.toFixed(4)}`;
   return `$${n.toPrecision(2)}`;
 }
+
+/* ---------------- Coins table sorting (pure, for the Markets Coins panel) ---------------- */
+
+export type SortKey = "rank" | "name" | "price" | "change1h" | "change24h" | "change7d" | "marketCap" | "volume24h";
+export type SortDir = "asc" | "desc";
+
+/** Sort a coin list by a column. "name" is alphabetical; the rest are numeric.
+ *  Non-mutating. Default table order is rank asc (i.e. market-cap order). */
+export function sortCoins(rows: CoinRow[], key: SortKey, dir: SortDir): CoinRow[] {
+  const sorted = [...rows].sort((a, b) => {
+    if (key === "name") return a.name.localeCompare(b.name);
+    return (Number(a[key]) || 0) - (Number(b[key]) || 0);
+  });
+  return dir === "desc" ? sorted.reverse() : sorted;
+}
+
+/** The sensible default sort direction when a user first clicks a column. */
+export function defaultDirFor(key: SortKey): SortDir {
+  return key === "rank" || key === "name" ? "asc" : "desc";
+}

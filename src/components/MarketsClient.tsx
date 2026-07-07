@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins, LineChart, Search, Newspaper } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins, LineChart, Search, Newspaper, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { PerpChartLazy as PerpChart } from "./PerpChartLazy";
 import {
   compactUsd,
@@ -9,6 +9,10 @@ import {
   apyFmt,
   fngLabel,
   coinPrice,
+  sortCoins,
+  defaultDirFor,
+  type SortKey,
+  type SortDir,
   type GlobalMarket,
   type DefiMarket,
   type PerpDex,
@@ -65,7 +69,7 @@ type DefiResp = DefiMarket & { live: boolean };
 type PerpResp = { dexs: PerpDex[]; markets: PerpMarket[]; totalVolume24h: number; totalOi: number; live: boolean };
 type DexResp = { dexs: DexProtocol[]; fees: FeeProtocol[]; live: boolean };
 type YieldResp = { pools: YieldPool[]; live: boolean };
-type CoinsResp = { list: CoinRow[]; trending: TrendingCoin[]; gainers: MoverCoin[]; losers: MoverCoin[]; live: boolean };
+type CoinsResp = { list: CoinRow[]; trending: TrendingCoin[]; gainers: MoverCoin[]; losers: MoverCoin[]; live: boolean; ts?: number };
 
 const TABS = [
   { id: "overview", label: "Overview", icon: BarChart3 },
@@ -175,7 +179,26 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
   const [q, setQ] = useState("");
   const [remote, setRemote] = useState<CoinRow[]>([]);
   const [searching, setSearching] = useState(false);
+  const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "rank", dir: "asc" });
   const query = q.trim().toLowerCase();
+
+  // Live price flash — fires ONLY on a real price delta between two real polls.
+  const prevPrices = useRef<Map<string, number>>(new Map());
+  const [flash, setFlash] = useState<Map<string, "up" | "down">>(new Map());
+  useEffect(() => {
+    const list = c?.list ?? [];
+    if (!list.length) return;
+    const next = new Map<string, "up" | "down">();
+    for (const r of list) {
+      const prev = prevPrices.current.get(r.symbol);
+      if (prev != null && r.price !== prev) next.set(r.symbol, r.price > prev ? "up" : "down");
+      prevPrices.current.set(r.symbol, r.price);
+    }
+    if (!next.size) return;
+    setFlash(next);
+    const t = setTimeout(() => setFlash(new Map()), 1200);
+    return () => clearTimeout(t);
+  }, [c]);
 
   // Any coin — not just the top 250 — via the on-demand search route (debounced).
   useEffect(() => {
@@ -193,10 +216,17 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
 
   const local = query ? base.filter((r) => r.name.toLowerCase().includes(query) || r.symbol.toLowerCase().includes(query)) : base;
   const seen = new Set(local.map((r) => r.symbol));
-  const rows = query ? [...local, ...remote.filter((r) => !seen.has(r.symbol))] : base;
+  const merged = query ? [...local, ...remote.filter((r) => !seen.has(r.symbol))] : base;
+  const rows = sortCoins(merged, sort.key, sort.dir);
+
+  const onSort = (key: SortKey) =>
+    setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: defaultDirFor(key) }));
 
   return (
     <Panel title={query ? `Coins matching "${q.trim()}"` : "Top Coins by Market Cap"} icon={<LineChart className="h-4 w-4 text-gold-300" />}>
+      <div className="mb-2 flex items-center justify-end">
+        <UpdatedPill ts={c?.ts} />
+      </div>
       <div className="relative mb-3">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
         <input
@@ -216,18 +246,18 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
       ) : loading && !rows.length ? (
         <SkeletonRows />
       ) : rows.length ? (
-        <div className="-mx-2 overflow-x-auto">
+        <div className="-mx-2 overflow-x-auto md:mx-0 md:max-h-[65vh] md:overflow-auto">
           <table className="w-full min-w-[720px] text-sm">
-            <thead>
-              <tr className="border-b border-white/10 text-[11px] uppercase tracking-wide text-zinc-500">
-                <th className="px-2 py-2 text-left font-medium">#</th>
-                <th className="px-2 py-2 text-left font-medium">Coin</th>
-                <th className="px-2 py-2 text-right font-medium">Price</th>
-                <th className="px-2 py-2 text-right font-medium">1h</th>
-                <th className="px-2 py-2 text-right font-medium">24h</th>
-                <th className="px-2 py-2 text-right font-medium">7d</th>
-                <th className="hidden px-2 py-2 text-right font-medium md:table-cell">Market Cap</th>
-                <th className="hidden px-2 py-2 text-right font-medium lg:table-cell">Volume (24h)</th>
+            <thead className="sticky top-0 z-10">
+              <tr className="border-b border-white/10 bg-ink-950 text-[11px] uppercase tracking-wide text-zinc-500">
+                <SortTh label="#" col="rank" sort={sort} onSort={onSort} align="left" />
+                <SortTh label="Coin" col="name" sort={sort} onSort={onSort} align="left" />
+                <SortTh label="Price" col="price" sort={sort} onSort={onSort} />
+                <SortTh label="1h" col="change1h" sort={sort} onSort={onSort} />
+                <SortTh label="24h" col="change24h" sort={sort} onSort={onSort} />
+                <SortTh label="7d" col="change7d" sort={sort} onSort={onSort} />
+                <SortTh label="Market Cap" col="marketCap" sort={sort} onSort={onSort} className="hidden md:table-cell" />
+                <SortTh label="Volume (24h)" col="volume24h" sort={sort} onSort={onSort} className="hidden lg:table-cell" />
                 <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">Last 7d</th>
               </tr>
             </thead>
@@ -245,7 +275,7 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
                       <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
                     </div>
                   </td>
-                  <td className="mono px-2 py-2.5 text-right font-medium text-zinc-100">{coinPrice(r.price)}</td>
+                  <td className={cn("mono px-2 py-2.5 text-right font-medium text-zinc-100", flash.get(r.symbol) === "up" && "flash-up", flash.get(r.symbol) === "down" && "flash-down")}>{coinPrice(r.price)}</td>
                   <ChangeCell v={r.change1h} />
                   <ChangeCell v={r.change24h} />
                   <ChangeCell v={r.change7d} />
@@ -265,6 +295,46 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
         <p className="py-4 text-center text-sm text-zinc-500">Coin data is loading…</p>
       )}
     </Panel>
+  );
+}
+
+/** A sortable column header cell. Shows the active sort direction. */
+function SortTh({ label, col, sort, onSort, align = "right", className }: { label: string; col: SortKey; sort: { key: SortKey; dir: SortDir }; onSort: (k: SortKey) => void; align?: "left" | "right"; className?: string }) {
+  const active = sort.key === col;
+  return (
+    <th className={cn("px-2 py-2 font-medium", align === "left" ? "text-left" : "text-right", className)}>
+      <button
+        onClick={() => onSort(col)}
+        className={cn(
+          "inline-flex items-center gap-1 uppercase tracking-wide transition-colors hover:text-zinc-200",
+          active ? "text-gold-200" : "text-zinc-500",
+          align === "right" && "flex-row-reverse"
+        )}
+      >
+        {label}
+        {active ? (sort.dir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ChevronsUpDown className="h-3 w-3 opacity-40" />}
+      </button>
+    </th>
+  );
+}
+
+/** Honest data-freshness pill: shows how old the current snapshot's server
+ *  timestamp is (mint when fresh, amber when stale). No fake "live" claim. */
+function UpdatedPill({ ts }: { ts?: number }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => { if (!document.hidden) setNow(Date.now()); }, 1000);
+    return () => clearInterval(id);
+  }, []);
+  if (!ts) return null;
+  const s = Math.max(0, Math.round((now - ts) / 1000));
+  const label = s < 3 ? "just now" : s < 60 ? `${s}s ago` : `${Math.round(s / 60)}m ago`;
+  const fresh = s < 90;
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
+      <span className={cn("h-1.5 w-1.5 rounded-full", fresh ? "bg-mint-400" : "bg-amber-400")} />
+      Updated {label}
+    </span>
   );
 }
 
