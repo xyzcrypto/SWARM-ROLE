@@ -99,7 +99,7 @@ describe("runStream", () => {
     const handle = await runStream(
       "assistant",
       { system: "sys", messages: [{ role: "user", content: "hi" }], maxTokens: 10 },
-      {},
+      { plan: "Premium" }, // quality tier
       [primary, secondary]
     );
     let out = "";
