@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactUsd, pct, fngLabel, topByTvl, topBy, apyFmt, toGwei, coinPrice } from "@/lib/markets";
+import { compactUsd, pct, fngLabel, topByTvl, topBy, apyFmt, toGwei, coinPrice, sortCoins, defaultDirFor, type CoinRow } from "@/lib/markets";
 
 describe("compactUsd", () => {
   it("formats trillions/billions/millions/thousands", () => {
@@ -90,5 +90,37 @@ describe("toGwei", () => {
     expect(toGwei(23_400_000_000)).toBe("23.4 gwei");
     expect(toGwei(null)).toBe("—");
     expect(toGwei("0x")).toBe("—");
+  });
+});
+
+describe("sortCoins", () => {
+  const mk = (rank: number, name: string, price: number, change24h: number): CoinRow => ({
+    rank, name, symbol: name.slice(0, 3).toUpperCase(), image: null, price,
+    change1h: 0, change24h, change7d: 0, marketCap: 1000 - rank, volume24h: price * 10, sparkline: [],
+  });
+  const rows = [mk(1, "Bitcoin", 67000, 2.1), mk(2, "Ethereum", 3400, -0.4), mk(3, "Solana", 150, 8.2)];
+
+  it("sorts numeric columns asc/desc without mutating input", () => {
+    const byPriceDesc = sortCoins(rows, "price", "desc");
+    expect(byPriceDesc.map((r) => r.symbol)).toEqual(["BIT", "ETH", "SOL"]);
+    const byChangeDesc = sortCoins(rows, "change24h", "desc");
+    expect(byChangeDesc[0].symbol).toBe("SOL");
+    expect(rows[0].symbol).toBe("BIT"); // original untouched
+  });
+  it("sorts name alphabetically", () => {
+    expect(sortCoins(rows, "name", "asc").map((r) => r.name)).toEqual(["Bitcoin", "Ethereum", "Solana"]);
+    expect(sortCoins(rows, "name", "desc").map((r) => r.name)).toEqual(["Solana", "Ethereum", "Bitcoin"]);
+  });
+  it("rank asc is the default market-cap order", () => {
+    expect(sortCoins(rows, "rank", "asc").map((r) => r.rank)).toEqual([1, 2, 3]);
+  });
+});
+
+describe("defaultDirFor", () => {
+  it("ascends rank/name, descends value columns", () => {
+    expect(defaultDirFor("rank")).toBe("asc");
+    expect(defaultDirFor("name")).toBe("asc");
+    expect(defaultDirFor("price")).toBe("desc");
+    expect(defaultDirFor("marketCap")).toBe("desc");
   });
 });

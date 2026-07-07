@@ -841,3 +841,19 @@ html:not(.dark) .eyebrow-glass {
 
 /* Scrollbar track on light (thumb stays brand gold). */
 html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
+
+/* Live price-change flash for the Markets coins table. Fires ONLY on a real
+   price delta between two real polls (see CoinsPanel). Respects reduced motion. */
+@keyframes xyzFlashUp {
+  0% { background-color: rgba(16, 185, 129, 0.35); }
+  100% { background-color: transparent; }
+}
+@keyframes xyzFlashDown {
+  0% { background-color: rgba(239, 68, 68, 0.35); }
+  100% { background-color: transparent; }
+}
+.flash-up { animation: xyzFlashUp 1s ease-out; }
+.flash-down { animation: xyzFlashDown 1s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .flash-up, .flash-down { animation: none; }
+}

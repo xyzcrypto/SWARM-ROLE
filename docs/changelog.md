@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-07 — UX P2A: Markets coins table → terminal-grade
+- **Sortable columns**: click any header (#, Coin, Price, 1h/24h/7d, Market Cap, Volume) to
+  sort; direction toggles, sensible default per column. Pure `sortCoins`/`defaultDirFor` in
+  `src/lib/markets.ts` (unit-tested).
+- **Sticky header + bounded scroll** on desktop (`md:max-h-[65vh]`) — the terminal look;
+  mobile keeps simple horizontal scroll (no janky nested scroll).
+- **Real live-price flash**: a coin's price cell pulses green/red **only when its price
+  actually changed** between two real polls (diffed per-symbol) — never fake. Respects
+  reduced-motion.
+- **Freshness pill**: "Updated Ns ago" from the snapshot's real server `ts` (mint when fresh,
+  amber when >90s) — honest, no fake "live" claim.
+- typecheck + lint(0) + test(207) + build green.
+
 ## 2026-07-07 — UX P1B: mobile bottom nav + notifications on mobile + shared states
 Native-app feel on mobile + the two owner-flagged fixes.
 - **`BottomNav`** (code-split, mobile-only, ~0 initial JS): fixed app-style bar — Markets ·
