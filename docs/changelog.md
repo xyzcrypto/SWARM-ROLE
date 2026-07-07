@@ -5,6 +5,29 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-07 — XYZ AI gateway (PR-C): plan limits + cache + concurrency + graceful UI
+Adds real abuse/cost controls and cost-saving caching on top of the gateway.
+- **Per-plan daily limits** (`src/lib/ai/limits.ts`, pure + DB): defaults **Free 25 /
+  Premium 300 / Admin 3000** per day (env `AI_DAILY_LIMIT_*` overrides + per-user
+  `User.aiDailyLimit` override — migration **`16_ai_limits`**). Only user-initiated tasks
+  (assistant / why / digest) count; auto-moderation + article summaries don't. Enforced in
+  the assistant + why-matters routes → a friendly **429** ("you've reached today's limit,
+  resets midnight UTC; upgrade for more"). No plan is "unlimited".
+- **Exact-match response cache** (`cache.ts`): deterministic one-shot tasks (summary /
+  moderation / why / digest) are cached by `sha256(task + normalized input)` — Upstash Redis
+  when configured, else a bounded in-process LRU; both fail-open. **Never caches the
+  live-grounded chat assistant.** A cache hit skips the provider and records a `cached`, $0
+  usage row so the saving is visible.
+- **Per-user concurrency guard** (`concurrency.ts`): one in-flight AI request per member
+  (Redis INCR/DECR with a 60s safety TTL, fail-open) → **429** if a second overlaps.
+- **`kv.ts`**: shared Upstash handle for cache + concurrency (mirrors the rate-limiter).
+- **Graceful capacity**: all-providers-down surfaces a friendly message (why-matters → 503,
+  assistant → inline), rendered by the existing widget/news error states.
+- Tests: limits math, cacheKey + round-trip, isCacheable/isUserTask (193 total).
+- typecheck + lint(0) + test(193) + build green.
+- **Owner op (later):** apply migration `16_ai_limits`; until then the plan defaults apply
+  (no per-user override) and everything degrades cleanly.
+
 ## 2026-07-06 — XYZ AI gateway (PR-B): per-call usage analytics
 The gateway now records one durable `AiUsage` row per call — the data layer for
 per-user limits (PR-C), the admin AI dashboard (PR-D) and cost visibility.

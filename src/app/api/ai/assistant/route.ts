@@ -4,6 +4,8 @@ import { fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { aiEnabled, streamAssistant, aiErrorMessage, type AiMessage } from "@/lib/ai";
 import { aiPlanFor } from "@/lib/ai/gateway";
+import { checkDailyLimit, dailyLimitMessage } from "@/lib/ai/limits";
+import { acquireSlot } from "@/lib/ai/concurrency";
 import { buildAssistantSystemPrompt, type GroundingPost } from "@/lib/ai-ground";
 import { formatLiveContext, type LiveSnapshot } from "@/lib/ai-live";
 
@@ -79,6 +81,10 @@ export async function POST(req: Request) {
     const { success } = await rateLimit("ai", me.id);
     if (!success) return fail("You're sending messages too fast. Take a breath.", 429);
 
+    const plan = aiPlanFor(me);
+    const lim = await checkDailyLimit(me.id, plan);
+    if (!lim.allowed) return fail(dailyLimitMessage(lim, plan), 429);
+
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
       return fail(parsed.error.issues[0]?.message ?? "Invalid request.", 400);
@@ -87,6 +93,10 @@ export async function POST(req: Request) {
     const history: AiMessage[] = parsed.data.messages.slice(-MAX_TURNS);
     const lastUser = [...history].reverse().find((m) => m.role === "user");
     if (!lastUser) return fail("Ask a question to start.", 400);
+
+    // One in-flight AI request per member (abuse/cost guard; fail-open w/o Redis).
+    const slot = await acquireSlot(me.id);
+    if (!slot) return fail("One XYZ AI request at a time, please — let the current answer finish.", 429);
 
     // Grounding corpus: latest published research. The assistant is open to all
     // logged-in members (incl. free), so **premium article bodies must never enter
@@ -119,7 +129,10 @@ export async function POST(req: Request) {
       messages: history,
       ctx: { userId: me.id, plan: aiPlanFor(me), isAdmin: me.isSuperAdmin },
     });
-    if (!stream) return fail("XYZ AI is not configured yet. Please check back soon.", 503);
+    if (!stream) {
+      await slot.release();
+      return fail("XYZ AI is not configured yet. Please check back soon.", 503);
+    }
 
     const encoder = new TextEncoder();
     const readable = new ReadableStream<Uint8Array>({
@@ -134,6 +147,7 @@ export async function POST(req: Request) {
           console.error("[ai:assistant] stream error", err);
           controller.enqueue(encoder.encode(`\n\n_${aiErrorMessage(err)}_`));
         } finally {
+          await slot.release(); // free the concurrency slot when the answer ends
           controller.close();
         }
       },
