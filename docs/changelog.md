@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v2 · NV5: saved stories DB-sync + save-bug fix
+- **Bug fixed**: "Saved" used to filter the *loaded feed* by bookmarked ids, so a saved story
+  vanished once it aged out of the feed. Now the Saved tab renders **stored full stories**, so
+  saves persist across time (and, when signed in, across devices).
+- New **`SavedStory`** model + idempotent migration `17_saved_stories` (`@@unique([userId, url])`).
+- New gated route **`/api/news/saved`** (GET list · POST save/upsert · DELETE unsave); rows are
+  re-hydrated to full `NewsItem`s server-side. Tolerates a not-yet-migrated DB gracefully.
+- `NewsClient`: `saved` (full stories) is the source of truth — DB-synced when signed in,
+  localStorage for guests; Saved count + bookmark state + reader all read from it.
+- ⚠️ Ops: apply migration `17_saved_stories` (`npm run db:push`); code degrades gracefully until then.
+- typecheck + lint(0) + test(212) + build green.
+
 ## 2026-07-08 — News v2 · NV4: more trusted real-time sources
 - **News**: +10 reputable feeds (The Block, Blockworks, DL News, CryptoSlate, CryptoPotato,
   U.Today, AMBCrypto, Watcher Guru, CoinGape, crypto.news) → 19 sources total, broader markets/

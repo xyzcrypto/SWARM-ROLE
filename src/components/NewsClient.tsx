@@ -30,7 +30,7 @@ async function shareStory(item: NewsItem) {
 }
 
 type Resp = { items: NewsItem[]; hasMore: boolean; live: boolean; page: number };
-const BOOKMARK_KEY = "xyz:news:bookmarks";
+const SAVED_KEY = "xyz:news:saved"; // guests: full saved stories in localStorage
 
 export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const { data: session } = useSession();
@@ -46,7 +46,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const [loadingMore, setLoadingMore] = useState(false);
   const [live, setLive] = useState(Boolean(initial?.live));
   const [now, setNow] = useState(() => 0);
-  const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState<NewsItem[]>([]); // full stored stories (source of truth for Saved)
   const [interests, setInterests] = useState<string[]>([]);
   const [customizing, setCustomizing] = useState(false);
   const [readerIndex, setReaderIndex] = useState<number | null>(null);
@@ -60,16 +60,32 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   useEffect(() => { itemsRef.current = items; }, [items]);
   useEffect(() => { notifyRef.current = notify; }, [notify]);
 
-  // Load bookmarks + start the "now" clock (client-only to avoid hydration drift).
+  // Start the "now" clock (client-only to avoid hydration drift).
   useEffect(() => {
     setNow(Date.now());
-    try {
-      const saved = JSON.parse(localStorage.getItem(BOOKMARK_KEY) || "[]");
-      if (Array.isArray(saved)) setBookmarks(new Set(saved));
-    } catch { /* ignore */ }
     const t = setInterval(() => setNow(Date.now()), 60_000);
     return () => clearInterval(t);
   }, []);
+
+  // Load saved stories: from the DB when signed in (follows the account across
+  // devices), else from localStorage for guests. Stored as full objects so the
+  // Saved tab renders even after a story ages out of the live feed.
+  useEffect(() => {
+    if (loggedIn) {
+      let active = true;
+      fetch("/api/news/saved", { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => { if (active && Array.isArray(j?.items)) setSaved(j.items); })
+        .catch(() => {});
+      return () => { active = false; };
+    }
+    try {
+      const raw = JSON.parse(localStorage.getItem(SAVED_KEY) || "[]");
+      if (Array.isArray(raw)) setSaved(raw);
+    } catch { /* ignore */ }
+  }, [loggedIn]);
+
+  const savedUrls = useMemo(() => new Set(saved.map((s) => s.id)), [saved]);
 
   // Debounce the search box.
   useEffect(() => {
@@ -192,15 +208,26 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     setNotify(perm === "granted");
   }, [notify]);
 
-  const toggleBookmark = useCallback((id: string) => {
-    setBookmarks((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      try { localStorage.setItem(BOOKMARK_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
+  // Toggle save. Optimistic local update + DB sync (signed in) or localStorage (guest).
+  const toggleSave = useCallback((item: NewsItem) => {
+    setSaved((prev) => {
+      const exists = prev.some((s) => s.id === item.id);
+      const next = exists ? prev.filter((s) => s.id !== item.id) : [item, ...prev];
+      if (loggedIn) {
+        if (exists) {
+          fetch(`/api/news/saved?url=${encodeURIComponent(item.url)}`, { method: "DELETE" }).catch(() => {});
+        } else {
+          fetch("/api/news/saved", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: item.url, title: item.title, summary: item.summary, source: item.source, image: item.image, category: item.category, publishedAt: item.publishedAt }),
+          }).catch(() => {});
+        }
+      } else {
+        try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      }
       return next;
     });
-  }, []);
+  }, [loggedIn]);
 
   const saveInterests = useCallback(async (next: string[]) => {
     setInterests(next); // optimistic
@@ -213,11 +240,15 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   }, []);
 
   const visible = useMemo(() => {
+    // Saved view renders the stored stories directly (survives feed aging out).
+    if (savedOnly) {
+      const q = query.toLowerCase();
+      return q ? saved.filter((i) => (i.title + " " + i.summary).toLowerCase().includes(q)) : saved;
+    }
     let list = items;
     if (category === "For You" && interests.length) list = list.filter((i) => i.categories.some((c) => interests.includes(c)));
-    if (savedOnly) list = list.filter((i) => bookmarks.has(i.id));
     return list;
-  }, [items, savedOnly, bookmarks, category, interests]);
+  }, [items, savedOnly, saved, category, interests, query]);
   const breakingList = useMemo(() => visible.filter((i) => i.impact === "High").slice(0, 5), [visible]);
   const openById = useCallback((id: string) => {
     const idx = visible.findIndex((v) => v.id === id);
@@ -254,7 +285,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             savedOnly ? "border-gold-500/40 bg-gold-500/15 text-gold-100" : "border-white/10 text-zinc-400 hover:text-zinc-100"
           )}
         >
-          <Bookmark className="h-4 w-4" /> Saved{bookmarks.size ? ` (${bookmarks.size})` : ""}
+          <Bookmark className="h-4 w-4" /> Saved{saved.length ? ` (${saved.length})` : ""}
         </button>
         <button
           onClick={toggleNotify}
@@ -346,8 +377,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               item={item}
               index={i}
               now={now}
-              bookmarked={bookmarks.has(item.id)}
-              onBookmark={() => toggleBookmark(item.id)}
+              bookmarked={savedUrls.has(item.id)}
+              onBookmark={() => toggleSave(item)}
               onOpen={() => setReaderIndex(i)}
               loggedIn={Boolean(session?.user)}
             />
@@ -386,8 +417,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             item={visible[readerIndex]}
             now={now}
             loggedIn={loggedIn}
-            bookmarked={bookmarks.has(visible[readerIndex].id)}
-            onBookmark={() => toggleBookmark(visible[readerIndex].id)}
+            bookmarked={savedUrls.has(visible[readerIndex].id)}
+            onBookmark={() => toggleSave(visible[readerIndex])}
             hasPrev={readerIndex > 0}
             hasNext={readerIndex < visible.length - 1}
             onPrev={() => setReaderIndex((i) => (i !== null && i > 0 ? i - 1 : i))}
