@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins, LineChart, Search, Newspaper, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { PerpChartLazy as PerpChart } from "./PerpChartLazy";
 import {
@@ -266,14 +267,25 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
                 <tr key={r.symbol + r.rank} className="transition-colors hover:bg-white/[0.03]">
                   <td className="mono px-2 py-2.5 text-left text-[11px] text-zinc-600">{r.rank}</td>
                   <td className="px-2 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      {r.image && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[22px] w-[22px] rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
-                      )}
-                      <span className="font-semibold text-zinc-100">{r.name}</span>
-                      <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
-                    </div>
+                    {r.id ? (
+                      <Link href={`/markets/${r.id}`} className="group flex items-center gap-2.5">
+                        {r.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[22px] w-[22px] rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+                        )}
+                        <span className="font-semibold text-zinc-100 transition-colors group-hover:text-gold-200">{r.name}</span>
+                        <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-2.5">
+                        {r.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[22px] w-[22px] rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+                        )}
+                        <span className="font-semibold text-zinc-100">{r.name}</span>
+                        <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
+                      </div>
+                    )}
                   </td>
                   <td className={cn("mono px-2 py-2.5 text-right font-medium text-zinc-100", flash.get(r.symbol) === "up" && "flash-up", flash.get(r.symbol) === "down" && "flash-down")}>{coinPrice(r.price)}</td>
                   <ChangeCell v={r.change1h} />
@@ -464,15 +476,24 @@ function TrendingPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }
     <div className="space-y-6">
       <Panel title="Trending Now" icon={<Flame className="h-4 w-4 text-gold-300" />}>
         <div className="grid gap-2 sm:grid-cols-2">
-          {(c?.trending ?? []).map((t) => (
-            <div key={t.symbol + t.name} className="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              {t.thumb && <img src={t.thumb} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />}
-              <span className="flex-1 truncate text-sm text-zinc-200">{t.name}</span>
-              <span className="mono text-[11px] text-zinc-500">{t.symbol}</span>
-              <span className={cn("mono text-[11px]", t.change24h >= 0 ? "text-mint-400" : "text-red-400")}>{pct(t.change24h, 1)}</span>
-            </div>
-          ))}
+          {(c?.trending ?? []).map((t) => {
+            const inner = (
+              <>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {t.thumb && <img src={t.thumb} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />}
+                <span className="flex-1 truncate text-sm text-zinc-200 group-hover:text-gold-200">{t.name}</span>
+                <span className="mono text-[11px] text-zinc-500">{t.symbol}</span>
+                <span className={cn("mono text-[11px]", t.change24h >= 0 ? "text-mint-400" : "text-red-400")}>{pct(t.change24h, 1)}</span>
+              </>
+            );
+            return t.id ? (
+              <Link key={t.symbol + t.name} href={`/markets/${t.id}`} className="group flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2 transition-colors hover:bg-white/[0.08]">
+                {inner}
+              </Link>
+            ) : (
+              <div key={t.symbol + t.name} className="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2">{inner}</div>
+            );
+          })}
           {!loading && !(c?.trending ?? []).length && <p className="col-span-full py-3 text-center text-sm text-zinc-500">Trending data is loading…</p>}
         </div>
       </Panel>
@@ -580,18 +601,27 @@ function MoverList({ rows }: { rows: MoverCoin[] }) {
   if (!rows.length) return <SkeletonRows />;
   return (
     <div className="divide-y divide-white/5">
-      {rows.map((r, i) => (
-        <div key={r.symbol + i} className="flex items-center gap-3 py-2">
-          {r.image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={r.image} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
-          )}
-          <span className="flex-1 truncate text-sm text-zinc-200">{r.name}</span>
-          <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
-          <span className="mono w-20 shrink-0 text-right text-sm text-zinc-300">${r.price.toLocaleString("en-US", { maximumFractionDigits: r.price >= 1 ? 2 : 6 })}</span>
-          <span className={cn("mono w-16 shrink-0 text-right text-[11px]", r.change24h >= 0 ? "text-mint-400" : "text-red-400")}>{pct(r.change24h, 1)}</span>
-        </div>
-      ))}
+      {rows.map((r, i) => {
+        const inner = (
+          <>
+            {r.image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={r.image} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+            )}
+            <span className="flex-1 truncate text-sm text-zinc-200 group-hover:text-gold-200">{r.name}</span>
+            <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
+            <span className="mono w-20 shrink-0 text-right text-sm text-zinc-300">${r.price.toLocaleString("en-US", { maximumFractionDigits: r.price >= 1 ? 2 : 6 })}</span>
+            <span className={cn("mono w-16 shrink-0 text-right text-[11px]", r.change24h >= 0 ? "text-mint-400" : "text-red-400")}>{pct(r.change24h, 1)}</span>
+          </>
+        );
+        return r.id ? (
+          <Link key={r.symbol + i} href={`/markets/${r.id}`} className="group flex items-center gap-3 py-2 transition-colors hover:bg-white/[0.03]">
+            {inner}
+          </Link>
+        ) : (
+          <div key={r.symbol + i} className="flex items-center gap-3 py-2">{inner}</div>
+        );
+      })}
     </div>
   );
 }

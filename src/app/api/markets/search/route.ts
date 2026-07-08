@@ -30,6 +30,7 @@ export async function GET(req: Request) {
     if (!mres.ok) throw new Error(`markets ${mres.status}`);
     const data: Array<Record<string, unknown>> = await mres.json();
     const list: CoinRow[] = data.map((d, i) => ({
+      id: String(d.id ?? ""),
       rank: Number(d.market_cap_rank) || i + 1,
       name: String(d.name ?? "—"),
       symbol: String(d.symbol ?? "").toUpperCase(),
