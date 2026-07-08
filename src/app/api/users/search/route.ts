@@ -6,7 +6,7 @@ import { isAdminEmail } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/users/search?q= — find any member by email or name for the Access
+// GET /api/users/search?q= - find any member by email or name for the Access
 // editor (requires `users:roles`). Empty q returns the most recent members.
 export async function GET(req: Request) {
   try {

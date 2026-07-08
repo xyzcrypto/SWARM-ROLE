@@ -43,7 +43,7 @@ export function GitHubIcon(props: IconProps) {
 }
 
 export function GoogleIcon(props: IconProps) {
-  // NOTE: the official Google "G" paths are drawn on a 48x48 grid — the
+  // NOTE: the official Google "G" paths are drawn on a 48x48 grid - the
   // viewBox must match or the logo renders cropped/zoomed.
   return (
     <svg viewBox="0 0 48 48" aria-hidden {...props}>

@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const schema = z.object({ endpoint: z.string().url() });
 
-// POST /api/push/unsubscribe — remove this browser's push subscription.
+// POST /api/push/unsubscribe - remove this browser's push subscription.
 export async function POST(req: Request) {
   try {
     const me = await getSessionUser();

@@ -21,7 +21,7 @@ type Realtime = { url: string; anonKey: string };
  * Tabbed, realtime-aware "What's New" feed. Seeded from the server (DB or static
  * fallback); when Supabase realtime is configured it refetches on a
  * `whatsnew_updated` broadcast so newly-shipped entries appear without a reload.
- * Degrades gracefully — without realtime the homepage ISR + revalidatePath on
+ * Degrades gracefully - without realtime the homepage ISR + revalidatePath on
  * publish still surface new entries on the next visit.
  */
 export function WhatsNewFeed({ entries: initial, realtime }: { entries: WhatsNewEntry[]; realtime?: Realtime }) {

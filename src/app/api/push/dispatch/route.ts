@@ -6,7 +6,7 @@ import { pushEnabled, sendPush } from "@/lib/push";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/push/dispatch — cron entrypoint (runs every ~10 min). Finds NEW
+// GET /api/push/dispatch - cron entrypoint (runs every ~10 min). Finds NEW
 // high-impact news since the last run and pushes it to all subscriptions.
 // Secured by CRON_SECRET (Vercel Cron sends it as a Bearer token). Idempotent +
 // deduped via PushedStory, so a frequent schedule never re-sends a story.

@@ -74,7 +74,7 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
       <h1 className="font-display text-2xl font-bold leading-tight text-zinc-50 sm:text-4xl">{story.t}</h1>
       {story.s && <p className="text-[15px] leading-relaxed text-zinc-300">{story.s}</p>}
 
-      {/* Advanced AI briefing — with Listen + Hinglish */}
+      {/* Advanced AI briefing - with Listen + Hinglish */}
       <BriefingBlock
         englishText={brief.text}
         loading={brief.loading}

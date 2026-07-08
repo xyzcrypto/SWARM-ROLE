@@ -1,4 +1,4 @@
-// Command palette — pure, client-safe search logic (no server imports) so the
+// Command palette - pure, client-safe search logic (no server imports) so the
 // ranking and visibility rules are unit-testable. The panel component supplies
 // the viewer context; this module decides what exists and how it ranks.
 
@@ -21,7 +21,7 @@ export type CommandItem = {
   staffOnly?: boolean;
 };
 
-// Search is a CONTENT search (coins, news, research) — page navigation lives in
+// Search is a CONTENT search (coins, news, research) - page navigation lives in
 // the navbar, so we intentionally don't duplicate pages here. The only static
 // entry is a quick "Ask XYZ AI" action.
 export const STATIC_COMMANDS: CommandItem[] = [

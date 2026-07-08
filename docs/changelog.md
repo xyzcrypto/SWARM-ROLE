@@ -5,6 +5,13 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — NX3: remove the em-dash from all user-visible text
+- Replaced every em-dash "—" with a hyphen "-" across `src/components`, `src/app`, `src/lib` and
+  `public` (264 → 0): prose, meta descriptions, string props, and the "no data" placeholder glyphs
+  (`compactUsd`/`pct`/etc. now return "-"). Unit-test expectations updated in lockstep. `docs/` left as-is
+  (not user-visible).
+- typecheck + lint(0) + test(219) + build green.
+
 ## 2026-07-08 — NX2: news important-first + faster + advanced briefing + Live animation
 - **Important news first**: new pure `rankNews` (`src/lib/news.ts`, unit-tested) scores each story by
   impact blended with recency (High ≈ 8h head-start, Medium ≈ 3h), applied in `getNewsPage` — breaking/

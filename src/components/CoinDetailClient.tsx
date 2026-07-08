@@ -43,7 +43,7 @@ export function CoinDetailClient({ id }: { id: string }) {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
 
-  // Live snapshot (cached proxy) — refreshed while the tab is visible.
+  // Live snapshot (cached proxy) - refreshed while the tab is visible.
   useEffect(() => {
     let stop = false;
     const load = async () => {
@@ -128,7 +128,7 @@ export function CoinDetailClient({ id }: { id: string }) {
         <Stat label="24h High" value={coinPrice(coin.high24h)} />
         <Stat label="24h Low" value={coinPrice(coin.low24h)} />
         <Stat label="All-Time High" value={coinPrice(coin.ath)} sub={coin.athChange ? `${pct(coin.athChange)} from ATH` : undefined} />
-        <Stat label="Circulating" value={coin.circulatingSupply ? `${compactUsd(coin.circulatingSupply).replace("$", "")} ${coin.symbol}` : "—"} />
+        <Stat label="Circulating" value={coin.circulatingSupply ? `${compactUsd(coin.circulatingSupply).replace("$", "")} ${coin.symbol}` : "-"} />
         <Stat label="Max Supply" value={coin.maxSupply ? `${compactUsd(coin.maxSupply).replace("$", "")} ${coin.symbol}` : "∞"} />
         <Stat label="1h / 30d" value={`${pct(coin.change1h)} / ${pct(coin.change30d)}`} />
       </div>

@@ -1,4 +1,4 @@
-// Groq provider — the OpenAI-compatible Llama models. Server-only.
+// Groq provider - the OpenAI-compatible Llama models. Server-only.
 import Groq from "groq-sdk";
 import { env, groqEnabled } from "@/lib/env";
 import type { AiProvider, CompleteRequest, CompleteResult, StreamHandle, StreamRequest, TokenUsage } from "./types";

@@ -17,7 +17,7 @@ describe("scoreCommand", () => {
 describe("filterCommands (content-search: only the Ask AI action is static)", () => {
   const guest = { loggedIn: false, staff: false };
 
-  it("has exactly one static action — Ask XYZ AI — and no page shortcuts", () => {
+  it("has exactly one static action - Ask XYZ AI - and no page shortcuts", () => {
     expect(STATIC_COMMANDS).toHaveLength(1);
     expect(STATIC_COMMANDS[0].id).toBe("ask-ai");
     expect(STATIC_COMMANDS.some((c) => c.group === "pages")).toBe(false);

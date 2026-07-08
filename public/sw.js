@@ -1,4 +1,4 @@
-/* XYZ Crypto service worker — PWA (installable + offline) and Web Push.
+/* XYZ Crypto service worker - PWA (installable + offline) and Web Push.
  *
  * Caching strategy is deliberately conservative so the app stays fresh:
  *  - Navigations: network-first, falling back to the cached page, then /offline.html.
@@ -34,7 +34,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // leave cross-origin (CDNs/APIs) alone
 
-  // Never cache APIs, data, or the worker itself — always live.
+  // Never cache APIs, data, or the worker itself - always live.
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/data/") || url.pathname === "/sw.js") {
     return;
   }

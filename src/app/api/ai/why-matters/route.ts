@@ -19,7 +19,7 @@ const bodySchema = z.object({
   text: z.string().trim().max(6000).optional().default(""),
 });
 
-// POST /api/ai/why-matters — an AI take on a news story: a short "why this
+// POST /api/ai/why-matters - an AI take on a news story: a short "why this
 // matters" (default) or a fuller on-site "digest" summary.
 // Logged-in only + rate-limited; graceful 503 when AI is off.
 export async function POST(req: Request) {

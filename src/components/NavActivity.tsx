@@ -215,7 +215,7 @@ export function NavActivity() {
                     const cls = `block border-b border-white/5 px-4 py-3 transition-colors hover:bg-white/5 ${
                       n.read ? "" : "bg-gold-500/[0.04]"
                     }`;
-                    // A notification without a target isn't a link — an href="#"
+                    // A notification without a target isn't a link - an href="#"
                     // anchor would jump the page to the top on click.
                     return n.href ? (
                       <Link key={n.id} href={n.href} onClick={() => setOpen(false)} className={cls}>

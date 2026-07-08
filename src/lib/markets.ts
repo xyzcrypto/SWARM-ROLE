@@ -1,4 +1,4 @@
-// Markets hub — shared types + pure formatters/normalizers. Client-safe (no
+// Markets hub - shared types + pure formatters/normalizers. Client-safe (no
 // server imports) so they're used by both the API routes and the client, and are
 // trivially unit-testable.
 
@@ -26,9 +26,9 @@ export type DefiMarket = {
   stableMcap: number;
 };
 
-/** Compact USD: $1.23T / $45.6B / $12.3M / $999. Returns "—" for bad input. */
+/** Compact USD: $1.23T / $45.6B / $12.3M / $999. Returns "-" for bad input. */
 export function compactUsd(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   const abs = Math.abs(n);
   if (abs >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
   if (abs >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
@@ -37,9 +37,9 @@ export function compactUsd(n: number | null | undefined): string {
   return `$${Math.round(n).toLocaleString("en-US")}`;
 }
 
-/** Signed percent, e.g. "+2.34%" / "-1.10%". "—" for bad input. */
+/** Signed percent, e.g. "+2.34%" / "-1.10%". "-" for bad input. */
 export function pct(n: number | null | undefined, digits = 2): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   return `${n >= 0 ? "+" : ""}${n.toFixed(digits)}%`;
 }
 
@@ -73,15 +73,15 @@ export function topBy<T>(list: T[] | null | undefined, key: (x: T) => number, n:
 
 /** Format a percent that is already a fraction/number as APY, e.g. 12.3 → "12.30%". */
 export function apyFmt(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   return `${n.toFixed(2)}%`;
 }
 
 /** Wei (hex or number) → gwei string, e.g. "23.4 gwei". */
 export function toGwei(weiHexOrNum: string | number | null | undefined): string {
-  if (weiHexOrNum == null) return "—";
+  if (weiHexOrNum == null) return "-";
   const wei = typeof weiHexOrNum === "string" ? Number.parseInt(weiHexOrNum, 16) : weiHexOrNum;
-  if (!Number.isFinite(wei)) return "—";
+  if (!Number.isFinite(wei)) return "-";
   return `${(wei / 1e9).toFixed(1)} gwei`;
 }
 
@@ -94,7 +94,7 @@ export type YieldPool = { project: string; symbol: string; chain: string; apy: n
 export type TrendingCoin = { id: string; name: string; symbol: string; thumb: string | null; change24h: number };
 export type MoverCoin = { id: string; name: string; symbol: string; image: string | null; price: number; change24h: number };
 export type CoinRow = {
-  id: string; // CoinGecko id — links each row to its coin detail page
+  id: string; // CoinGecko id - links each row to its coin detail page
   rank: number;
   name: string;
   symbol: string;
@@ -110,7 +110,7 @@ export type CoinRow = {
 
 /** Price with sensible precision for a coin table (more decimals for sub-$1). */
 export function coinPrice(n: number | null | undefined): string {
-  if (n == null || !Number.isFinite(n)) return "—";
+  if (n == null || !Number.isFinite(n)) return "-";
   if (n >= 1000) return `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
   if (n >= 1) return `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
   if (n >= 0.01) return `$${n.toFixed(4)}`;

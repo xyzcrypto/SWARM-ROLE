@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
-// PATCH /api/users/:id/ai-limit — set a member's per-day AI request override
+// PATCH /api/users/:id/ai-limit - set a member's per-day AI request override
 // (ai:manage). `aiDailyLimit: null` (or 0) clears it back to the plan default.
 const schema = z.object({
   aiDailyLimit: z.number().int().min(0).max(100_000).nullable(),

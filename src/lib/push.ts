@@ -1,4 +1,4 @@
-// Web Push — server-only wrapper around `web-push`. Graceful: when VAPID keys
+// Web Push - server-only wrapper around `web-push`. Graceful: when VAPID keys
 // aren't set, `pushEnabled` is false and `sendPush` is a no-op.
 import webpush from "web-push";
 import { env, pushEnabled } from "@/lib/env";

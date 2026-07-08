@@ -29,7 +29,7 @@ function hydrate(r: any): NewsItem {
   };
 }
 
-// GET /api/news/saved — the signed-in member's saved stories (newest first).
+// GET /api/news/saved - the signed-in member's saved stories (newest first).
 export async function GET() {
   try {
     const me = await getSessionUser();
@@ -53,7 +53,7 @@ const saveSchema = z.object({
   publishedAt: z.number().finite().optional(),
 });
 
-// POST /api/news/saved — save (upsert) a story for the member.
+// POST /api/news/saved - save (upsert) a story for the member.
 export async function POST(req: Request) {
   try {
     const me = await getSessionUser();
@@ -83,7 +83,7 @@ export async function POST(req: Request) {
   }
 }
 
-// DELETE /api/news/saved?url=… — remove a saved story.
+// DELETE /api/news/saved?url=… - remove a saved story.
 export async function DELETE(req: Request) {
   try {
     const me = await getSessionUser();

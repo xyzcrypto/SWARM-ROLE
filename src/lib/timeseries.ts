@@ -1,4 +1,4 @@
-// Pure daily-timeseries helpers for the dashboard charts — unit-tested.
+// Pure daily-timeseries helpers for the dashboard charts - unit-tested.
 
 export type DailyPoint = { day: string; count: number }; // day = YYYY-MM-DD (UTC)
 

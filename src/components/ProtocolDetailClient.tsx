@@ -112,7 +112,7 @@ export function ProtocolDetailClient({ type, slug }: { type: string; slug: strin
       {/* Chart */}
       <div className="surface rounded-2xl p-4 sm:p-5">
         <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-zinc-500">
-          <span>{metricLabel} — recent trend</span>
+          <span>{metricLabel} - recent trend</span>
           <span className="mono">{pct(p.change30d)} (30d)</span>
         </div>
         <TrendChart data={p.chart} up={up7} />

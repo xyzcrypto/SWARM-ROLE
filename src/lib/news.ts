@@ -1,4 +1,4 @@
-// Live Web3 news — pure helpers (RSS/Atom parsing, classification, dedupe,
+// Live Web3 news - pure helpers (RSS/Atom parsing, classification, dedupe,
 // time-ago). Client-safe (no server imports) and unit-tested; the /api/news
 // route fetches the feeds and runs raw items through here.
 
@@ -59,7 +59,7 @@ const CATEGORY_KEYWORDS: [string, RegExp][] = [
   ["Ethereum", /\b(ethereum|\beth\b|vitalik|erc-?20|dencun|pectra)\b/i],
   ["Bitcoin", /\b(bitcoin|\bbtc\b|satoshi|halving|ordinals)\b/i],
   ["Altcoins", /\b(altcoin|\bxrp\b|\bdoge|\bshib|\bada\b|\bbnb\b|memecoin|meme coin)\b/i],
-  // Non-crypto buckets — low priority (crypto keywords above win the primary),
+  // Non-crypto buckets - low priority (crypto keywords above win the primary),
   // so general tech/science stories from those feeds classify sensibly.
   ["Science", /\b(science|scientist|research(ers)?|study|nasa|spacex|space|astronom|physics|quantum|biotech|genome|climate|energy|fusion|neuroscience)\b/i],
   ["Tech", /\b(tech|technology|software|hardware|startup|gadget|smartphone|iphone|android|apple|google|microsoft|chip|semiconductor|robot|\bev\b|electric vehicle|app\b|cybersecurity)\b/i],
@@ -172,7 +172,7 @@ function decodeEntities(s: string): string {
 }
 
 function stripHtml(s: string): string {
-  // Pull CDATA content out FIRST — otherwise the `<![CDATA[…]]>` wrapper looks
+  // Pull CDATA content out FIRST - otherwise the `<![CDATA[…]]>` wrapper looks
   // like an HTML tag and its content gets stripped. Then remove real tags.
   const noCdata = s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, "$1");
   const noTags = noCdata.replace(/<[^>]+>/g, " ");

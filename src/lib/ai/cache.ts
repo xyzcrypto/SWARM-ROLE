@@ -1,13 +1,13 @@
 // Exact-match response cache for deterministic one-shot AI tasks (summaries,
 // moderation, news why-matters/digest). NEVER used for the live-grounded chat
-// assistant — those answers are time-sensitive. Backed by Upstash Redis when
+// assistant - those answers are time-sensitive. Backed by Upstash Redis when
 // configured, else a bounded in-process LRU; both fail open (a cache miss/error
 // just means we call the provider).
 import { createHash } from "node:crypto";
 import { kv } from "./kv";
 import type { AiTask } from "./providers/types";
 
-const TTL_SECONDS = 60 * 60 * 24; // 24h — the prompts are deterministic
+const TTL_SECONDS = 60 * 60 * 24; // 24h - the prompts are deterministic
 const PREFIX = "xyz:ai:cache:";
 const LRU_MAX = 500;
 

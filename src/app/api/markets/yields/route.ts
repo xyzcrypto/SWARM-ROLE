@@ -18,9 +18,9 @@ export async function GET() {
       raw
         .filter((p) => (Number(p.tvlUsd) || 0) >= 1_000_000 && (Number(p.apy) || 0) < 1000)
         .map((p) => ({
-          project: String(p.project ?? "—"),
-          symbol: String(p.symbol ?? "—"),
-          chain: String(p.chain ?? "—"),
+          project: String(p.project ?? "-"),
+          symbol: String(p.symbol ?? "-"),
+          chain: String(p.chain ?? "-"),
           apy: Number(p.apy) || 0,
           tvl: Number(p.tvlUsd) || 0,
         })),

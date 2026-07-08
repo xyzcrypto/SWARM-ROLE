@@ -19,7 +19,7 @@ const bodySchema = z.object({
   chains: z.array(z.string().trim().max(40)).max(12).optional().default([]),
 });
 
-// POST /api/ai/protocol-brief — a short, neutral AI "take" on a DeFi protocol
+// POST /api/ai/protocol-brief - a short, neutral AI "take" on a DeFi protocol
 // (education, not advice). Logged-in + rate-limited + daily-capped; graceful.
 export async function POST(req: Request) {
   try {

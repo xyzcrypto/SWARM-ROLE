@@ -13,7 +13,7 @@ const patchSchema = z.object({
   published: z.boolean().optional(),
 });
 
-// PATCH /api/whatsnew/:id — edit an entry (requires `whatsnew:manage`).
+// PATCH /api/whatsnew/:id - edit an entry (requires `whatsnew:manage`).
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const actor = await requirePermission("whatsnew:manage");
@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   }
 }
 
-// DELETE /api/whatsnew/:id — remove an entry (requires `whatsnew:manage`).
+// DELETE /api/whatsnew/:id - remove an entry (requires `whatsnew:manage`).
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const actor = await requirePermission("whatsnew:manage");

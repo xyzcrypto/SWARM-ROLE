@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     // Oldest-first for rendering; cursor = oldest id of this page.
     let messages = page.reverse().map(toChatPayload);
 
-    // Latest pinned message (first page only — the banner needs exactly one).
+    // Latest pinned message (first page only - the banner needs exactly one).
     let pinned = null;
     if (!cursor) {
       const pinnedRow = await prisma.chatMessage
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
     const message = toChatPayload(created);
     await broadcastChatEvent({ event: "new_message", payload: message });
 
-    // AI auto-moderation — FIRE-AND-FORGET so the send stays instant (never block
+    // AI auto-moderation - FIRE-AND-FORGET so the send stays instant (never block
     // the composer on a classify call). The message is already created + broadcast;
     // this only decides whether to *hide* it a beat later via the existing path
     // (broadcast message_hidden), fully restorable from Dashboard → Moderation.

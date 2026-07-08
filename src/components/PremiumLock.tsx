@@ -18,7 +18,7 @@ export function PremiumLock({ loggedIn }: { loggedIn: boolean }) {
         className="pointer-events-none absolute -top-24 left-1/2 h-48 w-[28rem] max-w-[120%] -translate-x-1/2 rounded-full bg-gold-500/20 blur-3xl"
       />
 
-      {/* Faux preview lines — hint at hidden content, fading into the lock. */}
+      {/* Faux preview lines - hint at hidden content, fading into the lock. */}
       <div aria-hidden className="pointer-events-none mb-8 space-y-2.5 [mask-image:linear-gradient(to_bottom,black,transparent)]">
         {["w-[92%]", "w-[80%]", "w-[88%]", "w-[64%]"].map((w, i) => (
           <div key={i} className={`mx-auto h-3 rounded-full bg-white/[0.07] blur-[2px] ${w}`} />

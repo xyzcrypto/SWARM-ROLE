@@ -1,6 +1,6 @@
 // Per-user AI concurrency guard: caps how many AI requests one member can have
 // in flight at once (abuse/cost protection). Redis-backed when available, with a
-// short TTL so a crashed request can't hold a slot forever. Fail-open — when
+// short TTL so a crashed request can't hold a slot forever. Fail-open - when
 // Upstash isn't configured it always grants (best-effort, like the rate-limiter).
 import { kv } from "./kv";
 

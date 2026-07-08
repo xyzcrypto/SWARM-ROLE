@@ -144,7 +144,7 @@ export default async function PostPage({
       : Promise.resolve(null),
   ]);
 
-  // Related cards never need bodies — strip + precompute read time.
+  // Related cards never need bodies - strip + precompute read time.
   const related = relatedRaw.map(({ content, ...p }) => ({
     ...p,
     content: "",
@@ -248,8 +248,8 @@ export default async function PostPage({
           </p>
 
           {(() => {
-            // AI TL;DR (XYZ AI). FREE articles only — never tease premium content.
-            // Optional column — hidden pre-migration or until generated.
+            // AI TL;DR (XYZ AI). FREE articles only - never tease premium content.
+            // Optional column - hidden pre-migration or until generated.
             const summary = post.premium ? null : (post as { summary?: string | null }).summary;
             return summary ? (
               <div className="mt-6 rounded-xl border border-mint-500/25 bg-mint-500/[0.06] p-4">

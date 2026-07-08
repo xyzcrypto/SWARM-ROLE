@@ -28,8 +28,8 @@ export function Navbar() {
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
   const { data: session } = useSession();
   const user = session?.user as any;
-  // Show the Dashboard link to any staff member — Super Admin OR anyone granted
-  // at least one capability — not just role === "ADMIN".
+  // Show the Dashboard link to any staff member - Super Admin OR anyone granted
+  // at least one capability - not just role === "ADMIN".
   const canSeeDashboard = isStaff(user);
   const isPremium = user?.membership === "Premium";
   const username = user?.username as string | undefined;
@@ -115,7 +115,7 @@ export function Navbar() {
               />
             </Link>
           ))}
-          {/* Dedicated XYZ AI launcher — transparent glass, live green pulse, 3D robot. */}
+          {/* Dedicated XYZ AI launcher - transparent glass, live green pulse, 3D robot. */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT))}
@@ -133,7 +133,7 @@ export function Navbar() {
             onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 transition-colors hover:border-gold-500/30 hover:text-zinc-200"
             aria-label="Search (⌘K)"
-            title="Search — ⌘K"
+            title="Search - ⌘K"
           >
             <Search className="h-4 w-4" />
           </button>
@@ -254,7 +254,7 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
-            {/* Dedicated XYZ AI launcher (mobile) — transparent glass, live green pulse, 3D robot. */}
+            {/* Dedicated XYZ AI launcher (mobile) - transparent glass, live green pulse, 3D robot. */}
             <button
               type="button"
               onClick={() => {

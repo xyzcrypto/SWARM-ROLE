@@ -1,4 +1,4 @@
-// Granular staff capabilities. This catalog is the single source of truth — the
+// Granular staff capabilities. This catalog is the single source of truth - the
 // dashboard checkboxes, the API validation and the server gates all key off it,
 // so adding a new capability is a one-line change here (scalable by design).
 //
@@ -48,7 +48,7 @@ export function hasPermission(user: Principal | null | undefined, perm: Permissi
   return Array.isArray(user.permissions) && user.permissions.includes(perm);
 }
 
-/** Any staff access at all — Super Admin or at least one granted capability. */
+/** Any staff access at all - Super Admin or at least one granted capability. */
 export function isStaff(user: Principal | null | undefined): boolean {
   if (!user) return false;
   if (isSuperAdmin(user)) return true;

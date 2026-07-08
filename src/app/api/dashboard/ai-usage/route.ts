@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const DAYS = 30;
 
-// GET /api/dashboard/ai-usage — AI gateway analytics for the admin dashboard
+// GET /api/dashboard/ai-usage - AI gateway analytics for the admin dashboard
 // (ai:manage). Daily request + cost series, 30-day totals, provider split +
 // health, top users and abuse flags. All best-effort so a not-yet-migrated DB
 // (no AiUsage table) returns zeros instead of erroring.

@@ -7,20 +7,20 @@
     --font-sans: var(--font-geist-sans);
     --font-mono: var(--font-geist-mono);
 
-    /* Semantic theme tokens — LIGHT (softened for smoother, less-harsh surfaces). */
+    /* Semantic theme tokens - LIGHT (softened for smoother, less-harsh surfaces). */
     --bg: #f7f8fa;
     --surface: #ffffff;
     --surface-2: #f1f3f6;
     --content: #1b1b22;
     --content-muted: #5b5b66;
     --hairline: rgba(0, 0, 0, 0.07);
-    /* Dashboard chart hues — per-surface steps validated with the dataviz
+    /* Dashboard chart hues - per-surface steps validated with the dataviz
        six-checks (lightness band, chroma, CVD separation, contrast). */
     --chart-mint: #0bbb7c;
     --chart-gold: #d18f1b;
     color-scheme: light;
   }
-  /* Semantic theme tokens — DARK (default). Values match the current design
+  /* Semantic theme tokens - DARK (default). Values match the current design
      exactly, so dark mode is pixel-identical to before this change. */
   .dark {
     --bg: #08080a;
@@ -392,7 +392,7 @@ html.lenis body {
   55%, 100% { transform: translateX(160%); }
 }
 
-/* Animated "XYZ AI" navbar launcher — transparent glass with a LIVE green pulse:
+/* Animated "XYZ AI" navbar launcher - transparent glass with a LIVE green pulse:
    the glow, border and tint all breathe together (reads as "active"), a faint
    sheen sweeps across, and the 3D robot turns its head. Content sits above the
    sheen via a relative z-10 wrapper. These are subtle, decorative brand
@@ -448,7 +448,7 @@ html.lenis body {
   70% { transform: translateY(0) rotateY(22deg); }
 }
 
-/* Floating assistant launcher — soft green glow so the green 3D bot feels alive. */
+/* Floating assistant launcher - soft green glow so the green 3D bot feels alive. */
 .ai-fab { will-change: box-shadow; animation: ai-fab-glow 2.4s ease-in-out infinite; }
 @keyframes ai-fab-glow {
   0%, 100% { box-shadow: 0 8px 22px -8px rgba(11, 187, 124, 0.5); }
@@ -511,7 +511,7 @@ html.lenis body {
 }
 
 /* Animated emoji motion presets (used by <AnimatedEmoji>). Deliberately subtle +
-   contained — small transforms that read as premium and never jump out of place
+   contained - small transforms that read as premium and never jump out of place
    or shift layout. */
 @keyframes emoji-launch {
   0%, 100% { transform: translateY(0); }
@@ -621,7 +621,7 @@ html.lenis body {
 .prose-xyz ol { @apply list-decimal pl-6 my-4 space-y-2 marker:text-gold-400 marker:font-semibold; }
 .prose-xyz li { @apply leading-relaxed; }
 .prose-xyz li > ul, .prose-xyz li > ol { @apply my-2; }
-/* Fenced code blocks — distinct from inline `code` pills. */
+/* Fenced code blocks - distinct from inline `code` pills. */
 .prose-xyz pre {
   @apply my-6 overflow-x-auto rounded-2xl border border-white/10 bg-ink-950/80 p-4 text-sm leading-relaxed ring-1 ring-white/5;
 }
@@ -651,15 +651,15 @@ html.lenis body {
 }
 
 /* ================================================================
-   LIGHT THEME — CSS-only foundation (no component changes).
+   LIGHT THEME - CSS-only foundation (no component changes).
    Everything is scoped to `html:not(.dark)`, so DARK stays
-   pixel-identical. We remap the design's actual utilities — the zinc
+   pixel-identical. We remap the design's actual utilities - the zinc
    text ramp, gold/mint accent text, ink/white surfaces, hairlines,
-   and the .glass/.surface/.btn/.prose primitives — and hide the
+   and the .glass/.surface/.btn/.prose primitives - and hide the
    dark-only ambient FX. High-traffic component cleanups layer on top.
 ================================================================= */
 
-/* Text ramp — mirror the dark hierarchy as dark-on-light. */
+/* Text ramp - mirror the dark hierarchy as dark-on-light. */
 html:not(.dark) .text-white   { color: #0a0a0f; }
 html:not(.dark) .text-zinc-50  { color: #0a0a0f; }
 html:not(.dark) .text-zinc-100 { color: #16161b; }
@@ -670,7 +670,7 @@ html:not(.dark) .text-zinc-500 { color: #6a6a74; }
 html:not(.dark) .text-zinc-600 { color: #87878f; }
 html:not(.dark) .text-zinc-700 { color: #a6a6ad; }
 
-/* Brand accent text — gold-200/300 & mint-200/300 are too pale on white. */
+/* Brand accent text - gold-200/300 & mint-200/300 are too pale on white. */
 html:not(.dark) .text-gold-100 { color: #7a4a0d; }
 html:not(.dark) .text-gold-200 { color: #9a6310; }
 html:not(.dark) .text-gold-300 { color: #ad6f10; }
@@ -682,7 +682,7 @@ html:not(.dark) .hover\:text-mint-200:hover { color: #057653; }
 html:not(.dark) .group:hover .group-hover\:text-gold-200 { color: #9a6310; }
 html:not(.dark) .group:hover .group-hover\:text-mint-200 { color: #057653; }
 
-/* Gradient text — darken so the pale end doesn't vanish on white. */
+/* Gradient text - darken so the pale end doesn't vanish on white. */
 html:not(.dark) .text-gold-gradient {
   background: linear-gradient(135deg, #824f0e, #ad6f10 40%, #d18f1b 70%, #9a6310);
   -webkit-background-clip: text; background-clip: text;
@@ -727,7 +727,7 @@ html:not(.dark) .bg-ink-950 { background-color: var(--surface-2); }
 html:not(.dark) .bg-ink-900 { background-color: var(--surface); }
 html:not(.dark) .placeholder\:text-zinc-600::placeholder { color: #9a9aa2; }
 
-/* Surface primitives — clean white cards (ambient behind them is hidden). */
+/* Surface primitives - clean white cards (ambient behind them is hidden). */
 html:not(.dark) .glass {
   background: var(--surface);
   border-color: var(--hairline);
@@ -797,7 +797,7 @@ html:not(.dark) .grid-bg {
     linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
 }
 
-/* --- B1: extended light remaps — rings, accent & status text, dark chips --- */
+/* --- B1: extended light remaps - rings, accent & status text, dark chips --- */
 html:not(.dark) .ring-white\/10 { --tw-ring-color: rgba(0, 0, 0, 0.10); }
 html:not(.dark) .ring-white\/5  { --tw-ring-color: rgba(0, 0, 0, 0.06); }
 
@@ -809,7 +809,7 @@ html:not(.dark) .hover\:text-mint-300:hover { color: #039567; }
 html:not(.dark) .group:hover .group-hover\:text-gold-100 { color: #7a4a0d; }
 html:not(.dark) .group:hover .group-hover\:text-gold-300 { color: #ad6f10; }
 
-/* Status / semantic text — lift to readable shades on white. */
+/* Status / semantic text - lift to readable shades on white. */
 html:not(.dark) .text-red-200,
 html:not(.dark) .text-red-300,
 html:not(.dark) .text-red-400 { color: #dc2626; }
@@ -826,7 +826,7 @@ html:not(.dark) .text-emerald-300 { color: #059669; }
 html:not(.dark) .bg-ink-800 { background-color: var(--surface-2); }
 html:not(.dark) .bg-ink-600 { background-color: var(--surface-2); }
 
-/* Eyebrow pills — white borders/bg are invisible on white. */
+/* Eyebrow pills - white borders/bg are invisible on white. */
 html:not(.dark) .eyebrow {
   border-color: rgba(0, 0, 0, 0.10);
   background: rgba(0, 0, 0, 0.03);

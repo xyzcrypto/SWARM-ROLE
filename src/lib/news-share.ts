@@ -1,6 +1,6 @@
 // Encode/decode a news story into a compact, URL-safe token so it can be shared
 // as an on-site link (`/news/read?d=…`) that renders on OUR domain with a rich
-// preview — instead of sharing the raw source URL. Client- and server-safe
+// preview - instead of sharing the raw source URL. Client- and server-safe
 // (uses btoa/atob, available in modern browsers and Node ≥ 18).
 
 export type SharedStory = {

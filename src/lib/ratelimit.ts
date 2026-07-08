@@ -11,7 +11,7 @@ const enabled = !!env.UPSTASH_REDIS_REST_URL && !!env.UPSTASH_REDIS_REST_TOKEN;
 // silently disables ALL brute-force protection) can't go unnoticed.
 if (!enabled && process.env.NODE_ENV === "production") {
   console.warn(
-    "[ratelimit] SECURITY: Upstash is not configured — rate limiting is DISABLED in production. Set UPSTASH_REDIS_REST_URL/TOKEN."
+    "[ratelimit] SECURITY: Upstash is not configured - rate limiting is DISABLED in production. Set UPSTASH_REDIS_REST_URL/TOKEN."
   );
 }
 

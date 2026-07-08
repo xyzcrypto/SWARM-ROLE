@@ -3,7 +3,7 @@ import { Reveal } from "./Reveal";
 import { AnimatedEmoji } from "./AnimatedEmoji";
 import { FAQ } from "@/lib/faq";
 
-// Visible FAQ — pairs with the FAQPage JSON-LD (same `FAQ` source) so the answers
+// Visible FAQ - pairs with the FAQPage JSON-LD (same `FAQ` source) so the answers
 // can surface directly on the "XYZ Crypto" search result. Native <details> = no JS.
 export function Faq() {
   return (
@@ -17,7 +17,7 @@ export function Faq() {
               <AnimatedEmoji emoji="💬" variant="float" className="align-middle text-[0.8em]" />
             </>
           }
-          subtitle="The quick answers — what XYZ Crypto is, what's free, and how to get started."
+          subtitle="The quick answers - what XYZ Crypto is, what's free, and how to get started."
         />
         <div className="mx-auto mt-10 max-w-3xl space-y-3">
           {FAQ.map((f, i) => (

@@ -1,4 +1,4 @@
-// XYZ AI — back-compat facade over the multi-provider gateway (src/lib/ai/*).
+// XYZ AI - back-compat facade over the multi-provider gateway (src/lib/ai/*).
 // Server-only. The rest of the app keeps calling `streamAssistant` / `completeText`
 // exactly as before; provider selection, timeouts, retries and fallback all happen
 // inside the gateway. Keys are read only in the provider modules, never here and
@@ -17,7 +17,7 @@ export type { GatewayCtx } from "@/lib/ai/gateway";
 /**
  * Map any AI error to a short, user-facing reason so the UI can explain WHY a
  * request failed (usage limit vs misconfigured vs blocked) instead of a generic
- * "try again" — also makes the cause diagnosable from a screenshot.
+ * "try again" - also makes the cause diagnosable from a screenshot.
  */
 export function aiErrorMessage(err: unknown): string {
   if (err instanceof AiCapacityError) {
@@ -37,7 +37,7 @@ export function aiErrorMessage(err: unknown): string {
 
 /**
  * Start a streamed assistant completion. Returns an async iterable of **text
- * deltas** (plain strings) — or null when AI is disabled. The provider chain and
+ * deltas** (plain strings) - or null when AI is disabled. The provider chain and
  * fallback are resolved lazily on first iteration, so a thrown error reaches the
  * caller's in-stream error path (same contract as before).
  */

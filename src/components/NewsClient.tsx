@@ -247,7 +247,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
 
   return (
     <div className="space-y-5">
-      {/* Breaking hero — image-rich, auto-rotating, opens the reader */}
+      {/* Breaking hero - image-rich, auto-rotating, opens the reader */}
       {!savedOnly && breakingList.length > 0 && (
         <BreakingHero items={breakingList} now={now} onOpen={openById} />
       )}
@@ -525,7 +525,7 @@ const NewsCard = memo(function NewsCard({
         item.sentiment === "bullish" ? "bg-gradient-to-r from-mint-400/0 via-mint-400 to-mint-400/0"
         : item.sentiment === "bearish" ? "bg-gradient-to-r from-red-400/0 via-red-400 to-red-400/0"
         : "bg-gradient-to-r from-gold-400/0 via-gold-400/60 to-gold-400/0")} />
-      {/* hero image (when the feed provides one) — opens the on-site reader */}
+      {/* hero image (when the feed provides one) - opens the on-site reader */}
       {item.image && (
         <button onClick={open} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -567,7 +567,7 @@ const NewsCard = memo(function NewsCard({
       )}
       {why.err && <p className="mt-2 text-[11px] text-amber-300">{why.err}</p>}
 
-      {/* AI digest — read the whole story on-site */}
+      {/* AI digest - read the whole story on-site */}
       {digest.text && (
         <div className="mt-3 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3">
           <p className="mono text-[10px] font-semibold uppercase tracking-wide text-gold-200">AI Summary · XYZ AI</p>
@@ -735,7 +735,7 @@ function NewsReader({
             <h1 className="font-display text-[22px] font-bold leading-tight tracking-[-0.01em] text-zinc-50 sm:text-[30px] sm:leading-[1.15]">{item.title}</h1>
             {item.summary && <p className="mt-3 text-[15px] leading-relaxed text-zinc-300">{item.summary}</p>}
 
-            {/* Advanced AI briefing — the full story on-site, with Listen + Hinglish */}
+            {/* Advanced AI briefing - the full story on-site, with Listen + Hinglish */}
             <BriefingBlock
               englishText={digest.text}
               loading={digest.loading}

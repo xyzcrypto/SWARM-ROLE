@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { CoinRow } from "@/lib/markets";
 
-// Coin search (CoinGecko, keyless): finds ANY coin by name/symbol — not just the
-// top 250 in the main table — and returns it with live market data. Two cached
+// Coin search (CoinGecko, keyless): finds ANY coin by name/symbol - not just the
+// top 250 in the main table - and returns it with live market data. Two cached
 // calls: /search to resolve matches, then /coins/markets for their prices.
 export const revalidate = 60;
 
@@ -32,7 +32,7 @@ export async function GET(req: Request) {
     const list: CoinRow[] = data.map((d, i) => ({
       id: String(d.id ?? ""),
       rank: Number(d.market_cap_rank) || i + 1,
-      name: String(d.name ?? "—"),
+      name: String(d.name ?? "-"),
       symbol: String(d.symbol ?? "").toUpperCase(),
       image: typeof d.image === "string" ? d.image : null,
       price: Number(d.current_price) || 0,

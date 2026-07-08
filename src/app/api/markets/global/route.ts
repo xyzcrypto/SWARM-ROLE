@@ -5,7 +5,7 @@ import type { GlobalMarket } from "@/lib/markets";
 // Server-side cached proxy: global crypto market snapshot. Aggregates keyless
 // sources (CoinGecko /global + Fear&Greed) and, when a CMC key is set, enriches
 // with CoinMarketCap DeFi/stablecoin market caps. Always returns 200 with a
-// `live` flag (graceful) — the exact pattern used by /api/ticker.
+// `live` flag (graceful) - the exact pattern used by /api/ticker.
 export const revalidate = 60;
 
 const FALLBACK: GlobalMarket = {

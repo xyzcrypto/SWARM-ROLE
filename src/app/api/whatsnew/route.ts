@@ -9,7 +9,7 @@ import { WHATS_NEW, WHATS_NEW_TAGS, isWhatsNewTag, type WhatsNewEntry } from "@/
 export const dynamic = "force-dynamic";
 
 // Static fallback (and search over it) for when the DB has no rows yet or the
-// table isn't migrated — keeps the homepage feed populated from day one.
+// table isn't migrated - keeps the homepage feed populated from day one.
 function staticFallback(tag?: string | null, q?: string | null): WhatsNewEntry[] {
   let list = WHATS_NEW.map((e, i) => ({ id: `static-${i}`, ...e }));
   if (tag && isWhatsNewTag(tag)) list = list.filter((e) => e.tag === tag);
@@ -20,7 +20,7 @@ function staticFallback(tag?: string | null, q?: string | null): WhatsNewEntry[]
   return list;
 }
 
-// GET /api/whatsnew?tag=&q=&limit= — public, filterable/searchable, cached.
+// GET /api/whatsnew?tag=&q=&limit= - public, filterable/searchable, cached.
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const tag = searchParams.get("tag");
@@ -61,7 +61,7 @@ const createSchema = z.object({
   published: z.boolean().optional(),
 });
 
-// POST /api/whatsnew — create an entry (requires `whatsnew:manage`).
+// POST /api/whatsnew - create an entry (requires `whatsnew:manage`).
 export async function POST(req: Request) {
   try {
     const actor = await requirePermission("whatsnew:manage");

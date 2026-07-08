@@ -16,7 +16,7 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
   return out;
 }
 
-// "Enable alerts" toggle — registers the service worker, subscribes to Web Push,
+// "Enable alerts" toggle - registers the service worker, subscribes to Web Push,
 // and stores the subscription server-side. Only renders when push is configured
 // (a VAPID public key is present) and the browser supports it.
 export function NewsAlertsToggle({ loggedIn }: { loggedIn: boolean }) {
@@ -41,7 +41,7 @@ export function NewsAlertsToggle({ loggedIn }: { loggedIn: boolean }) {
     setBusy(true);
     setMsg(null);
     try {
-      // 1) Permission — ask up front so a denial gives a clear message.
+      // 1) Permission - ask up front so a denial gives a clear message.
       const perm = await Notification.requestPermission();
       if (perm !== "granted") {
         setMsg("Notifications are blocked. Allow them for this site in your browser settings, then try again.");

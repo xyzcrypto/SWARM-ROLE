@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   return {
     title,
     description: m
-      ? `Live ${m.name} (${m.symbol}) price, 7-day chart, market cap, supply, all-time high and an AI market take — on XYZ Crypto.`
+      ? `Live ${m.name} (${m.symbol}) price, 7-day chart, market cap, supply, all-time high and an AI market take - on XYZ Crypto.`
       : "Live crypto price, chart and market data on XYZ Crypto.",
     alternates: { canonical: `/markets/${id}` },
   };

@@ -1,7 +1,7 @@
 // The XYZ AI gateway: routes a task to a model, then tries the configured
 // provider chain with per-attempt timeouts, bounded retries (transient errors),
 // and automatic fallback to the next provider on genuine failure. It never
-// rotates keys or multiplies free quota — fallback fires only on real failures.
+// rotates keys or multiplies free quota - fallback fires only on real failures.
 import type { AiPlan, AiProvider, AiTask, CompleteResult, StreamHandle, StreamRequest, TokenUsage } from "./providers/types";
 import { providerChain } from "./registry";
 import { routeTier } from "./routing";
@@ -79,7 +79,7 @@ export async function runComplete(
   const firstId = chain[0]?.id;
   const inputEst = estimateTokens(`${req.system ?? ""} ${req.prompt}`);
 
-  // Exact-match cache for deterministic one-shot tasks — a hit skips the provider
+  // Exact-match cache for deterministic one-shot tasks - a hit skips the provider
   // entirely (records a cached, $0 usage row so the saving is visible).
   const key = isCacheable(task) ? cacheKey(task, `${req.system ?? ""}\n${req.prompt}`) : null;
   if (key) {

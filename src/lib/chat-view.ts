@@ -1,4 +1,4 @@
-// Pure, client-safe chat helpers (no server imports) — unit-tested.
+// Pure, client-safe chat helpers (no server imports) - unit-tested.
 
 /** Authors may edit their own message for this long after sending. */
 export const EDIT_WINDOW_MS = 15 * 60 * 1000;
@@ -45,7 +45,7 @@ export function pollShares(counts: PollCounts): Map<string, number> {
  * messages) into the currently loaded list:
  *  - refresh body/editedAt/reactions on known messages (edits propagate),
  *  - infer deletions: a known, non-pending message that falls inside the
- *    fetched window but is no longer returned was hidden — drop it,
+ *    fetched window but is no longer returned was hidden - drop it,
  *  - return genuinely new messages separately (caller appends + notifies).
  */
 export function reconcilePoll<T extends PollMessage>(

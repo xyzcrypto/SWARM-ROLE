@@ -3,7 +3,7 @@ import { parseFeed, categorize, sentiment, impact, relatedTokens, dedupe, rankNe
 
 // Server-side news aggregation shared by the API route and the /news page (so
 // the first batch can be server-rendered for an instant first paint). Keyless.
-export const NEWS_REVALIDATE = 20; // seconds — keep the feed fresh
+export const NEWS_REVALIDATE = 20; // seconds - keep the feed fresh
 
 export type NewsPage = {
   items: NewsItem[];

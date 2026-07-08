@@ -25,7 +25,7 @@ async function getEntries(): Promise<WhatsNewEntry[]> {
       body: r.body,
     }));
   } catch {
-    return WHATS_NEW; // table not migrated yet — graceful fallback
+    return WHATS_NEW; // table not migrated yet - graceful fallback
   }
 }
 

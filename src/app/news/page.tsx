@@ -7,7 +7,7 @@ import { getNewsPage } from "@/lib/news-fetch";
 export const metadata: Metadata = {
   title: "Live Web3 News",
   description:
-    "Real-time Web3 news & intelligence — breaking news, market updates and everything across crypto, filterable by category, from reputable sources, with AI context.",
+    "Real-time Web3 news & intelligence - breaking news, market updates and everything across crypto, filterable by category, from reputable sources, with AI context.",
 };
 
 // Revalidate the server-rendered first batch often so first paint is fresh + fast.

@@ -1,6 +1,6 @@
 // Per-plan daily AI request limits. Pure math (plan defaults + env overrides +
 // per-user override) is unit-tested; the DB count is best-effort and fails OPEN
-// only when the analytics table itself is missing (pre-migration) — otherwise
+// only when the analytics table itself is missing (pre-migration) - otherwise
 // the cap is enforced. Guardrail: no plan is "unlimited"; Admin is high but finite.
 import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";

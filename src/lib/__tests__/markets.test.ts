@@ -9,10 +9,10 @@ describe("compactUsd", () => {
     expect(compactUsd(4_500)).toBe("$4.5K");
     expect(compactUsd(999)).toBe("$999");
   });
-  it("returns — for bad input", () => {
-    expect(compactUsd(null)).toBe("—");
-    expect(compactUsd(undefined)).toBe("—");
-    expect(compactUsd(NaN)).toBe("—");
+  it("returns - for bad input", () => {
+    expect(compactUsd(null)).toBe("-");
+    expect(compactUsd(undefined)).toBe("-");
+    expect(compactUsd(NaN)).toBe("-");
   });
 });
 
@@ -24,7 +24,7 @@ describe("pct", () => {
   });
   it("honours digits + guards bad input", () => {
     expect(pct(3.14159, 1)).toBe("+3.1%");
-    expect(pct(null)).toBe("—");
+    expect(pct(null)).toBe("-");
   });
 });
 
@@ -69,8 +69,8 @@ describe("topBy", () => {
 describe("apyFmt", () => {
   it("formats percent", () => {
     expect(apyFmt(12.345)).toBe("12.35%");
-    expect(apyFmt(null)).toBe("—");
-    expect(apyFmt(NaN)).toBe("—");
+    expect(apyFmt(null)).toBe("-");
+    expect(apyFmt(NaN)).toBe("-");
   });
 });
 
@@ -80,7 +80,7 @@ describe("coinPrice", () => {
     expect(coinPrice(3.54)).toBe("$3.54");
     expect(coinPrice(0.062)).toBe("$0.0620");
     expect(coinPrice(0.0000123)).toBe("$0.000012");
-    expect(coinPrice(null)).toBe("—");
+    expect(coinPrice(null)).toBe("-");
   });
 });
 
@@ -88,8 +88,8 @@ describe("toGwei", () => {
   it("converts hex or number wei to gwei", () => {
     expect(toGwei(0x59682f00)).toBe("1.5 gwei"); // 1.5e9 wei
     expect(toGwei(23_400_000_000)).toBe("23.4 gwei");
-    expect(toGwei(null)).toBe("—");
-    expect(toGwei("0x")).toBe("—");
+    expect(toGwei(null)).toBe("-");
+    expect(toGwei("0x")).toBe("-");
   });
 });
 

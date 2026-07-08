@@ -4,7 +4,7 @@ import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/search/posts?q= — lightweight research-post search for the command
+// GET /api/search/posts?q= - lightweight research-post search for the command
 // palette. Public (published only, same exposure as /research), rate-limited,
 // cached, and P2021/P2022-safe (returns [] before the DB is migrated).
 export async function GET(req: Request) {

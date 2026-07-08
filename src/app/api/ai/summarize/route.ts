@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 const bodySchema = z.object({ postId: z.string() });
 
-// POST /api/ai/summarize — (re)generate a post's AI TL;DR on demand. Admin only;
+// POST /api/ai/summarize - (re)generate a post's AI TL;DR on demand. Admin only;
 // useful to backfill summaries for posts published before this feature.
 export async function POST(req: Request) {
   try {
