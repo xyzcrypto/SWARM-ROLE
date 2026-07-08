@@ -23,12 +23,12 @@
   /* Semantic theme tokens - DARK (default). Values match the current design
      exactly, so dark mode is pixel-identical to before this change. */
   .dark {
-    --bg: #08080a;
-    --surface: #0e0e12;
-    --surface-2: #15151b;
-    --content: #d4d4d8;
-    --content-muted: #a1a1aa;
-    --hairline: rgba(255, 255, 255, 0.08);
+    --bg: #0b0908;
+    --surface: #15110c;
+    --surface-2: #1c1712;
+    --content: #e6e0d4;
+    --content-muted: #a8a094;
+    --hairline: rgba(255, 240, 220, 0.09);
     --chart-mint: #039567;
     --chart-gold: #ad6f10;
     color-scheme: dark;
@@ -130,10 +130,10 @@ html.lenis body {
   pointer-events: none;
   background:
     conic-gradient(from 120deg at 50% 50%,
-      rgba(226, 167, 47, 0) 0deg,
-      rgba(226, 167, 47, 0.12) 90deg,
-      rgba(11, 187, 124, 0.10) 200deg,
-      rgba(226, 167, 47, 0) 360deg);
+      rgba(233, 160, 60, 0) 0deg,
+      rgba(233, 160, 60, 0.17) 90deg,
+      rgba(11, 187, 124, 0.06) 200deg,
+      rgba(233, 160, 60, 0) 360deg);
   filter: blur(88px);
   opacity: 0.48;
   animation: aurora-spin 36s linear infinite;

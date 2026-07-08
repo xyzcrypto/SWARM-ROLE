@@ -14,15 +14,16 @@ const config: Config = {
         xs: "400px",
       },
       colors: {
-        // Base surfaces — near-black with cool depth (Vercel/Hyperliquid)
+        // Base surfaces — warm-tinted deep charcoals (subtle amber undertone)
+        // for a cozier, more premium feel than pure cold black.
         ink: {
-          DEFAULT: "#08080a",
-          950: "#050507",
-          900: "#0a0a0d",
-          800: "#0e0e12",
-          700: "#15151b",
-          600: "#1c1c24",
-          500: "#26262f",
+          DEFAULT: "#0b0908",
+          950: "#080605",
+          900: "#0e0b09",
+          800: "#15110c",
+          700: "#1c1712",
+          600: "#241e16",
+          500: "#2d261e",
         },
         // Brand gold — premium / identity
         gold: {

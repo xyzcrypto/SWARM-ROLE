@@ -332,9 +332,9 @@ function MenuItem({
     <Link
       href={href}
       onClick={onClick}
-      className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-gold-100"
+      className="group flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-gold-100"
     >
-      {icon}
+      <span className="icon-3d inline-flex text-gold-300">{icon}</span>
       {children}
     </Link>
   );
