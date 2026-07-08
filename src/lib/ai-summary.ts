@@ -59,6 +59,28 @@ export function buildWhyMattersPrompt(title: string, summary: string): string {
 }
 
 /**
+ * A full, structured on-site briefing so a reader gets the WHOLE story without
+ * leaving the site. Returns light markdown (a TL;DR line, a "## Key points"
+ * bullet list, "## Context" and "## Why it matters" sections). Neutral,
+ * education-only, never financial advice.
+ */
+export function buildNewsBriefingPrompt(title: string, summary: string): string {
+  return (
+    "You are XYZ AI, a senior crypto news editor. Write a clear, neutral, " +
+    "well-structured briefing so a reader understands the whole story WITHOUT " +
+    "leaving the site. Use light markdown EXACTLY in this shape:\n\n" +
+    "**TL;DR:** one crisp sentence.\n\n" +
+    "## Key points\n- 3 to 5 short bullet points with the concrete facts, names and numbers.\n\n" +
+    "## Context\nOne short paragraph of background a newcomer needs.\n\n" +
+    "## Why it matters\nOne short paragraph on the significance for the market.\n\n" +
+    "Rules: base it ONLY on the headline and excerpt below (do not invent facts); " +
+    "plain English; no hype; NO buy/sell or price calls; explicitly NOT financial advice.\n\n" +
+    `Headline: ${title}\n` +
+    (summary ? `Excerpt: ${summary}\n` : "")
+  );
+}
+
+/**
  * A short, neutral "AI take" on a DeFi protocol (perp DEX / DEX / fee protocol)
  * for its detail page — grounded in the live numbers passed in. Education only.
  */

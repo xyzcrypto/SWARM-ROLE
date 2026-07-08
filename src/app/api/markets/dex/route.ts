@@ -18,14 +18,14 @@ async function overview(kind: "dexs" | "fees") {
 export async function GET() {
   try {
     const [dexRaw, feeRaw] = await Promise.all([overview("dexs"), overview("fees").catch(() => [] as any[])]);
-    const dexs: DexProtocol[] = topBy(dexRaw, (p) => Number(p.total24h) || 0, 8).map((p: any) => ({
+    const dexs: DexProtocol[] = topBy(dexRaw, (p) => Number(p.total24h) || 0, 12).map((p: any) => ({
       slug: protocolSlug(p.slug, String(p.name ?? "")),
       name: String(p.name ?? "—"),
       volume24h: Number(p.total24h) || 0,
       change1d: Number(p.change_1d) || 0,
       logo: typeof p.logo === "string" ? p.logo : null,
     }));
-    const fees: FeeProtocol[] = topBy(feeRaw, (p) => Number(p.total24h) || 0, 8).map((p: any) => ({
+    const fees: FeeProtocol[] = topBy(feeRaw, (p) => Number(p.total24h) || 0, 12).map((p: any) => ({
       slug: protocolSlug(p.slug, String(p.name ?? "")),
       name: String(p.name ?? "—"),
       fees24h: Number(p.total24h) || 0,

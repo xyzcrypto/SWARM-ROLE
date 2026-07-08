@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { NewsClient } from "@/components/NewsClient";
+import { getNewsPage } from "@/lib/news-fetch";
 
 export const metadata: Metadata = {
   title: "Live Web3 News",
@@ -9,9 +10,12 @@ export const metadata: Metadata = {
     "Real-time Web3 news & intelligence — breaking news, market updates and everything across crypto, filterable by category, from reputable sources, with AI context.",
 };
 
-export const revalidate = 120;
+// Revalidate the server-rendered first batch often so first paint is fresh + fast.
+export const revalidate = 30;
 
-export default function NewsPage() {
+export default async function NewsPage() {
+  // Server-render the first batch so the feed paints instantly (no blank fetch).
+  const initial = await getNewsPage({ page: 1 }).catch(() => null);
   return (
     <>
       <Navbar />
@@ -32,7 +36,7 @@ export default function NewsPage() {
           </div>
 
           <div className="mt-10">
-            <NewsClient />
+            <NewsClient initial={initial} />
           </div>
         </div>
       </main>

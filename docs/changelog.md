@@ -5,6 +5,58 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v2 · NV4: more trusted real-time sources
+- **News**: +10 reputable feeds (The Block, Blockworks, DL News, CryptoSlate, CryptoPotato,
+  U.Today, AMBCrypto, Watcher Guru, CoinGape, crypto.news) → 19 sources total, broader markets/
+  DeFi/institutional coverage. All best-effort (a down feed is skipped, dedupe across outlets).
+- **Markets**: DeFiLlama already aggregates *every* perp DEX / DEX / fee protocol in real time;
+  widened the Top DEXs & Top Fees lists 8→12 for fuller (clickable) coverage.
+- typecheck + lint(0) + test(212) + build green. (NV5 saved-DB + bug fixes next.)
+
+## 2026-07-08 — News v2 · NV3: realtime + super-fast load
+- **Instant first paint**: the `/news` page now **server-renders the first batch** (shared
+  `getNewsPage` in `src/lib/news-fetch.ts`, used by both the page and the API route). NewsClient
+  seeds from it and skips the initial client fetch — no blank-then-skeleton flash.
+- **Faster refresh**: news cache `revalidate` 60→**30s** (route `s-maxage=30`), client poll
+  90→**30s**.
+- **Realtime "N new stories" pill** (Twitter-style): fresh stories are buffered and revealed on
+  tap (smooth scroll to top) instead of jumping the feed.
+- **Breaking browser notifications**: an **Alerts** bell requests permission and fires a native
+  notification for high-impact stories when the tab is backgrounded.
+- typecheck + lint(0) + test(212) + build green. (NV4 more sources · NV5 saved-DB + bug fixes next.)
+
+## 2026-07-08 — News v2 · NV2: futuristic UI + motion + image breaking
+- **Breaking hero** (`BreakingHero`): image-rich, **auto-rotating** through the top high-impact
+  stories with a live pulse badge, source/time, tokens, progress dots, hover "Read on XYZ" — and
+  it **opens the on-site reader** (no more off-site bounce). Pauses on hover.
+- **Motion** (framer-motion): staggered card entrance on scroll, subtle hover-lift, animated
+  reader open/close (AnimatePresence). All gated by `prefers-reduced-motion`.
+- **Polish**: per-card sentiment accent bar, animated title underline on the hero, **shimmer**
+  skeletons (replaces the flat pulse).
+- typecheck + lint(0) + test(212) + build green. (NV3 realtime + speed next.)
+
+## 2026-07-08 — News v2 · NV1: full on-site read + share-our-link + advanced AI
+- **Advanced AI briefing** (`mode: "briefing"` on `why-matters`): a full, structured read —
+  **TL;DR + Key points + Context + Why it matters** in light markdown (~full page), rendered by
+  a new dependency-free `MarkdownLite`. The reader and shared page now auto-generate this so a
+  reader gets the whole story without leaving the site.
+- **Share = our own link**: `encodeStory`/`decodeStory`/`shareUrl` (`src/lib/news-share.ts`,
+  unit-tested) pack a story into a URL-safe token; **`/news/read?d=…`** renders it on OUR domain
+  with **OpenGraph/Twitter preview** (title, excerpt, image) + the AI briefing + "Read original".
+  Card & reader Share buttons now share this link, not the raw source.
+- Better reading typography in the briefing (headings, bullets, bold).
+- typecheck + lint(0) + test(212) + build green. (NV2 futuristic UI/animations next.)
+
+## 2026-07-08 — UX P3A: News reader view (read on-site, no bounce)
+Clicking a story now opens an in-site reader instead of bouncing off-site.
+- **`NewsReader`** modal: hero image, source + time, category/sentiment/impact badges + tokens,
+  full summary, an **auto-generated AI Summary** (reuses the gated `why-matters` digest),
+  **prev/next** through the current list, bookmark + share, and a **"Read original ↗"** link.
+  Keyboard: Esc closes, ←/→ navigate; body scroll-locked; mobile = full-screen sheet.
+- `NewsCard`: title + new "Read" open the reader (the off-site link becomes a small "original"
+  icon); cards now show a **hero image** when the feed provides one.
+- typecheck + lint(0) + test(209) + build green. (DB-synced saved stories land next in P3B.)
+
 ## 2026-07-07 — UX P2D: protocol detail pages (`/markets/protocol/[type]/[slug]`)
 The Markets protocol rows now open real detail pages, like coins do.
 - **`/markets/protocol/[type]/[slug]`** (type ∈ derivatives | dexs | fees; ISR + client
