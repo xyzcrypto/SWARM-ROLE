@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v2 · NV3: realtime + super-fast load
+- **Instant first paint**: the `/news` page now **server-renders the first batch** (shared
+  `getNewsPage` in `src/lib/news-fetch.ts`, used by both the page and the API route). NewsClient
+  seeds from it and skips the initial client fetch — no blank-then-skeleton flash.
+- **Faster refresh**: news cache `revalidate` 60→**30s** (route `s-maxage=30`), client poll
+  90→**30s**.
+- **Realtime "N new stories" pill** (Twitter-style): fresh stories are buffered and revealed on
+  tap (smooth scroll to top) instead of jumping the feed.
+- **Breaking browser notifications**: an **Alerts** bell requests permission and fires a native
+  notification for high-impact stories when the tab is backgrounded.
+- typecheck + lint(0) + test(212) + build green. (NV4 more sources · NV5 saved-DB + bug fixes next.)
+
 ## 2026-07-08 — News v2 · NV2: futuristic UI + motion + image breaking
 - **Breaking hero** (`BreakingHero`): image-rich, **auto-rotating** through the top high-impact
   stories with a live pulse badge, source/time, tokens, progress dots, hover "Read on XYZ" — and

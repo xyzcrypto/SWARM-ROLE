@@ -6,9 +6,10 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Sparkles, Zap, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Bell, BellRing, ArrowUp,
 } from "lucide-react";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
+import type { NewsPage } from "@/lib/news-fetch";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
 import { MarkdownLite } from "./MarkdownLite";
 import { shareUrl, type SharedStory } from "@/lib/news-share";
@@ -31,26 +32,33 @@ async function shareStory(item: NewsItem) {
 type Resp = { items: NewsItem[]; hasMore: boolean; live: boolean; page: number };
 const BOOKMARK_KEY = "xyz:news:bookmarks";
 
-export function NewsClient() {
+export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const { data: session } = useSession();
   const [category, setCategory] = useState("All");
   const [rawQuery, setRawQuery] = useState("");
   const [query, setQuery] = useState("");
   const [savedOnly, setSavedOnly] = useState(false);
-  const [items, setItems] = useState<NewsItem[]>([]);
+  const [items, setItems] = useState<NewsItem[]>(initial?.items ?? []);
+  const [pending, setPending] = useState<NewsItem[]>([]); // fresh stories buffered for the "N new" pill
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(Boolean(initial?.hasMore));
+  const [loading, setLoading] = useState(!initial);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [live, setLive] = useState(false);
+  const [live, setLive] = useState(Boolean(initial?.live));
   const [now, setNow] = useState(() => 0);
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
   const [interests, setInterests] = useState<string[]>([]);
   const [customizing, setCustomizing] = useState(false);
   const [readerIndex, setReaderIndex] = useState<number | null>(null);
+  const [notify, setNotify] = useState(false); // browser notifications for breaking
   const loggedIn = Boolean(session?.user);
 
   const sentinel = useRef<HTMLDivElement>(null);
+  const firstRun = useRef(true);
+  const itemsRef = useRef(items);
+  const notifyRef = useRef(false);
+  useEffect(() => { itemsRef.current = items; }, [items]);
+  useEffect(() => { notifyRef.current = notify; }, [notify]);
 
   // Load bookmarks + start the "now" clock (client-only to avoid hydration drift).
   useEffect(() => {
@@ -94,11 +102,17 @@ export function NewsClient() {
     }
   }, [category, query]);
 
-  // (Re)load page 1 whenever the filter/search changes.
+  // (Re)load page 1 whenever the filter/search changes. Skip the very first run
+  // when the server already rendered the default view (instant first paint).
   useEffect(() => {
+    if (firstRun.current) {
+      firstRun.current = false;
+      if (initial && category === "All" && !query) { setLoading(false); return; }
+    }
     let active = true;
     setLoading(true);
     setPage(1);
+    setPending([]);
     fetchPage(1).then((r) => {
       if (!active) return;
       setItems(r?.items ?? []);
@@ -107,6 +121,7 @@ export function NewsClient() {
       setLoading(false);
     });
     return () => { active = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPage]);
 
   // Infinite scroll.
@@ -134,22 +149,48 @@ export function NewsClient() {
     return () => io.disconnect();
   }, [hasMore, loading, loadingMore, page, fetchPage]);
 
-  // Live: refresh the top of the feed every 90s (only on the unfiltered view).
+  // Realtime: poll fast (30s) on the unfiltered view. Fresh stories are buffered
+  // for a "N new stories" pill (Twitter-style) instead of jumping the feed, and
+  // high-impact ones fire a browser notification when the tab is in the background.
   useEffect(() => {
     if (category !== "All" || query) return;
     const t = setInterval(async () => {
-      if (document.hidden) return;
       const r = await fetchPage(1);
       if (!r?.items?.length) return;
-      setItems((prev) => {
-        const seen = new Set(prev.map((i) => i.id));
-        const fresh = r.items.filter((i) => !seen.has(i.id));
-        return fresh.length ? [...fresh, ...prev] : prev;
-      });
       setLive(Boolean(r.live));
-    }, 90_000);
+      setPending((prevPending) => {
+        const known = new Set([...itemsRef.current.map((i) => i.id), ...prevPending.map((i) => i.id)]);
+        const fresh = r.items.filter((i) => !known.has(i.id));
+        if (!fresh.length) return prevPending;
+        if (notifyRef.current && document.hidden && typeof Notification !== "undefined" && Notification.permission === "granted") {
+          const hot = fresh.find((i) => i.impact === "High") ?? fresh[0];
+          try { new Notification("XYZ Crypto · News", { body: hot.title, icon: "/logo.png", tag: hot.id }); } catch { /* ignore */ }
+        }
+        return [...fresh, ...prevPending];
+      });
+    }, 30_000);
     return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, query, fetchPage]);
+
+  // Reveal buffered stories at the top of the feed.
+  const revealPending = useCallback(() => {
+    setItems((prev) => {
+      const seen = new Set(prev.map((i) => i.id));
+      return [...pending.filter((i) => !seen.has(i.id)), ...prev];
+    });
+    setPending([]);
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [pending]);
+
+  // Toggle browser notifications (request permission on enable).
+  const toggleNotify = useCallback(async () => {
+    if (typeof Notification === "undefined") return;
+    if (notify) { setNotify(false); return; }
+    let perm = Notification.permission;
+    if (perm === "default") { try { perm = await Notification.requestPermission(); } catch { /* ignore */ } }
+    setNotify(perm === "granted");
+  }, [notify]);
 
   const toggleBookmark = useCallback((id: string) => {
     setBookmarks((prev) => {
@@ -215,6 +256,18 @@ export function NewsClient() {
         >
           <Bookmark className="h-4 w-4" /> Saved{bookmarks.size ? ` (${bookmarks.size})` : ""}
         </button>
+        <button
+          onClick={toggleNotify}
+          aria-label={notify ? "Disable breaking notifications" : "Enable breaking notifications"}
+          title="Breaking-news notifications"
+          className={cn(
+            "inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+            notify ? "border-mint-500/40 bg-mint-500/15 text-mint-200" : "border-white/10 text-zinc-400 hover:text-zinc-100"
+          )}
+        >
+          {notify ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+          <span className="hidden sm:inline">{notify ? "Alerts on" : "Alerts"}</span>
+        </button>
         <NewsAlertsToggle loggedIn={loggedIn} />
         <span className="hidden items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 sm:flex">
           <span className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse bg-mint-400" : "bg-amber-400")} />
@@ -264,6 +317,21 @@ export function NewsClient() {
           <button onClick={() => setCustomizing(true)} className="btn-primary mt-4 px-4 py-2 text-sm">Choose topics</button>
         </div>
       )}
+
+      {/* "N new stories" pill (Twitter-style) */}
+      <AnimatePresence>
+        {!savedOnly && pending.length > 0 && (
+          <motion.div
+            key="new-pill"
+            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+            className="sticky top-20 z-20 flex justify-center"
+          >
+            <button onClick={revealPending} className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/40 bg-gold-500/15 px-4 py-1.5 text-[13px] font-semibold text-gold-100 shadow-lg shadow-black/30 backdrop-blur transition-colors hover:bg-gold-500/25">
+              <ArrowUp className="h-3.5 w-3.5" /> {pending.length} new stor{pending.length === 1 ? "y" : "ies"}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Feed */}
       {loading ? (
