@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, ExternalLink, Sparkles, Loader2, Newspaper } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, Newspaper } from "lucide-react";
+import { RobotIcon } from "./RobotIcon";
 import { compactUsd, pct } from "@/lib/markets";
 import { cn } from "@/lib/utils";
 
@@ -248,11 +249,11 @@ function AiTake({ p, kind, loggedIn }: { p: Protocol; kind: string; loggedIn: bo
     <div className="rounded-2xl border border-gold-500/20 bg-gold-500/[0.05] p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
         <p className="inline-flex items-center gap-1.5 text-sm font-semibold text-gold-200">
-          <Sparkles className="h-4 w-4" /> XYZ AI take
+          <RobotIcon className="h-4 w-4" /> XYZ AI take
         </p>
         {!state.text && (
           <button onClick={run} disabled={state.loading} className="inline-flex items-center gap-1.5 rounded-lg border border-gold-500/40 bg-gold-500/10 px-3 py-1.5 text-xs font-semibold text-gold-200 transition-colors hover:bg-gold-500/20 disabled:opacity-50">
-            {state.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Generate
+            {state.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RobotIcon className="h-3.5 w-3.5" />} Generate
           </button>
         )}
       </div>

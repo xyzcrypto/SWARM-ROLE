@@ -119,7 +119,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT))}
-            className="ai-nav-btn ml-1 inline-flex items-center gap-1.5 rounded-lg border border-mint-400/40 bg-transparent px-3 py-1.5 text-sm font-semibold text-mint-100 transition-transform"
+            className="ai-nav-btn ml-1 inline-flex items-center gap-1.5 rounded-lg border border-mint-500/50 bg-transparent px-3 py-1.5 text-sm font-semibold text-mint-700 transition-transform dark:border-mint-400/40 dark:text-mint-100"
           >
             <span className="relative z-10 inline-flex items-center gap-1.5">
               <RobotIcon className="ai-bot h-5 w-5" />
@@ -261,7 +261,7 @@ export function Navbar() {
                 setOpen(false);
                 window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT));
               }}
-              className="ai-nav-btn mt-0.5 inline-flex items-center gap-2 rounded-lg border border-mint-400/40 bg-transparent px-3 py-2.5 text-sm font-semibold text-mint-100"
+              className="ai-nav-btn mt-0.5 inline-flex items-center gap-2 rounded-lg border border-mint-500/50 bg-transparent px-3 py-2.5 text-sm font-semibold text-mint-700 dark:border-mint-400/40 dark:text-mint-100"
             >
               <span className="relative z-10 inline-flex items-center gap-2">
                 <RobotIcon className="ai-bot h-5 w-5" />

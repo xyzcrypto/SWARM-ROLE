@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — NX1: XYZ AI 3D-bot branding + navbar light fix + smoother colors
+- **3D bot everywhere**: the ✨ Sparkles icon in every XYZ-AI-branded spot is now the **`RobotIcon`**
+  (3D robot) — briefing header ("Full briefing · XYZ AI"), coin & protocol "XYZ AI take" (+ Generate),
+  and the News "Why this matters" button. Consistent AI branding.
+- **Navbar light-theme fix**: the "XYZ AI" label was `text-mint-100` (near-invisible on white); now
+  `text-mint-700` in light, `dark:text-mint-100` in dark — readable in both themes.
+- **Smoother colors**: softened light surfaces + hairline (`--bg`, `--surface-2`, `--hairline`) and a
+  gentler theme transition (adds border-color, 0.35s).
+- typecheck + lint(0) + test(216) + build green.
+
 ## 2026-07-08 — News v3 · NW5: performance polish
 - **Fewer re-renders**: `NewsCard` is now `memo`-ized with **stable callbacks** (`onOpen(index)` /
   `onBookmark(item)` via parent `useCallback`), so saving/bookmarking or new stories no longer

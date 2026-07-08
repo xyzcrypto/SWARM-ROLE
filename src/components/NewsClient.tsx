@@ -4,10 +4,11 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type TouchEven
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Sparkles, Zap, Loader2,
+  Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Zap, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
   ChevronLeft, ChevronRight, ArrowUp,
 } from "lucide-react";
+import { RobotIcon } from "./RobotIcon";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import type { NewsPage } from "@/lib/news-fetch";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
@@ -581,7 +582,7 @@ const NewsCard = memo(function NewsCard({
           {digest.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookOpen className="h-3.5 w-3.5" />} AI Summary
         </button>
         <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-mint-300 transition-colors hover:bg-mint-500/10 disabled:opacity-50">
-          {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Why this matters
+          {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RobotIcon className="h-3.5 w-3.5" />} Why this matters
         </button>
         <button onClick={open} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
           <BookOpen className="h-3.5 w-3.5" /> Read

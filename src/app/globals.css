@@ -7,13 +7,13 @@
     --font-sans: var(--font-geist-sans);
     --font-mono: var(--font-geist-mono);
 
-    /* Semantic theme tokens — LIGHT (baseline; refined per-area in later passes). */
-    --bg: #f6f7f9;
+    /* Semantic theme tokens — LIGHT (softened for smoother, less-harsh surfaces). */
+    --bg: #f7f8fa;
     --surface: #ffffff;
-    --surface-2: #eef0f3;
+    --surface-2: #f1f3f6;
     --content: #1b1b22;
     --content-muted: #5b5b66;
-    --hairline: rgba(0, 0, 0, 0.10);
+    --hairline: rgba(0, 0, 0, 0.07);
     /* Dashboard chart hues — per-surface steps validated with the dataviz
        six-checks (lightness band, chroma, CVD separation, contrast). */
     --chart-mint: #0bbb7c;
@@ -49,7 +49,7 @@
     /* Theme-aware base (dark token == previous #08080a / zinc-300 → no change). */
     background-color: var(--bg);
     color: var(--content);
-    transition: background-color 0.3s ease, color 0.3s ease;
+    transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease;
     overflow-x: hidden;
     /* Belt-and-suspenders against horizontal overflow on any device/mode. */
     max-width: 100vw;
