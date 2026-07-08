@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — S3: News likes + comments
+- **Social on stories**: readers can now like a news story and leave comments, keyed by story URL
+  (mirrors the `SavedStory` per-user pattern). New `NewsLike` + `NewsComment` Prisma models, idempotent
+  migration `18_news_social`.
+- **API**: `/api/news/like` (POST toggle, rate-limited `like`) returns `{liked, count}`;
+  `/api/news/social` (GET thread + like state, POST comment <=1000 chars rate-limited `comment`,
+  DELETE own comment). All gated with `getSessionUser` + `handleError`.
+- **UI**: new `NewsSocial` component in the reader (after the briefing) - optimistic heart toggle,
+  expandable comment thread with avatars, `timeAgo`, self-delete, and Cmd/Ctrl+Enter to post.
+- **Graceful**: pre-migration the endpoints return empty/503 and the UI stays quiet. Owner action: apply
+  migration `18_news_social` (`npm run db:push`) to activate.
+
 ## 2026-07-08 — S1: product-page eyebrow animations + News pills fix
 - **Animated eyebrows**: new shared `AnimatedEyebrow` (homepage `eyebrow-glass` sweep + live mint pulse
   + `text-shine` shimmer) applied to Markets ("Live Data"), Research ("Knowledge Hub"), Community, and

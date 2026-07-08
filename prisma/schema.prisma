@@ -70,6 +70,8 @@ model User {
   pushSubscriptions PushSubscription[]
   aiUsage           AiUsage[]
   savedStories      SavedStory[]
+  newsLikes         NewsLike[]
+  newsComments      NewsComment[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -237,6 +239,32 @@ model SavedStory {
 
   @@unique([userId, url])
   @@index([userId, createdAt])
+}
+
+// A like on an external news story, keyed by its URL. One per user per story.
+model NewsLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  url       String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@unique([userId, url])
+  @@index([url])
+}
+
+// A comment on an external news story, keyed by its URL. `status` allows
+// hiding (moderation) without deleting.
+model NewsComment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  url       String
+  body      String
+  status    String   @default("visible") // "visible" | "hidden"
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@index([url, createdAt])
 }
 
 // Post comments — auto-published, logged-in users only; `status` enables
