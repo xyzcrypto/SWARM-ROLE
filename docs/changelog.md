@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v2 · NV1: full on-site read + share-our-link + advanced AI
+- **Advanced AI briefing** (`mode: "briefing"` on `why-matters`): a full, structured read —
+  **TL;DR + Key points + Context + Why it matters** in light markdown (~full page), rendered by
+  a new dependency-free `MarkdownLite`. The reader and shared page now auto-generate this so a
+  reader gets the whole story without leaving the site.
+- **Share = our own link**: `encodeStory`/`decodeStory`/`shareUrl` (`src/lib/news-share.ts`,
+  unit-tested) pack a story into a URL-safe token; **`/news/read?d=…`** renders it on OUR domain
+  with **OpenGraph/Twitter preview** (title, excerpt, image) + the AI briefing + "Read original".
+  Card & reader Share buttons now share this link, not the raw source.
+- Better reading typography in the briefing (headings, bullets, bold).
+- typecheck + lint(0) + test(212) + build green. (NV2 futuristic UI/animations next.)
+
 ## 2026-07-08 — UX P3A: News reader view (read on-site, no bounce)
 Clicking a story now opens an in-site reader instead of bouncing off-site.
 - **`NewsReader`** modal: hero image, source + time, category/sentiment/impact badges + tokens,

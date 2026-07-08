@@ -4,7 +4,7 @@ import { rateLimit } from "@/lib/ratelimit";
 import { aiEnabled, completeText, aiErrorMessage } from "@/lib/ai";
 import { aiPlanFor, AiCapacityError } from "@/lib/ai/gateway";
 import { checkDailyLimit, dailyLimitMessage } from "@/lib/ai/limits";
-import { buildWhyMattersPrompt, buildNewsDigestPrompt } from "@/lib/ai-summary";
+import { buildWhyMattersPrompt, buildNewsDigestPrompt, buildNewsBriefingPrompt } from "@/lib/ai-summary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,8 +12,9 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({
   title: z.string().trim().min(4).max(300),
   summary: z.string().trim().max(1200).optional().default(""),
-  // "why" = a 2-sentence take; "digest" = a fuller read-on-site summary.
-  mode: z.enum(["why", "digest"]).optional().default("why"),
+  // "why" = a 2-sentence take; "digest" = a fuller paragraph; "briefing" = a
+  // full structured on-site read (TL;DR + key points + context + why it matters).
+  mode: z.enum(["why", "digest", "briefing"]).optional().default("why"),
 });
 
 // POST /api/ai/why-matters — an AI take on a news story: a short "why this
@@ -36,11 +37,14 @@ export async function POST(req: Request) {
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.", 400);
 
     const { title, summary, mode } = parsed.data;
-    const prompt = mode === "digest" ? buildNewsDigestPrompt(title, summary) : buildWhyMattersPrompt(title, summary);
+    const prompt =
+      mode === "briefing" ? buildNewsBriefingPrompt(title, summary)
+      : mode === "digest" ? buildNewsDigestPrompt(title, summary)
+      : buildWhyMattersPrompt(title, summary);
     const text = await completeText({
-      task: mode === "digest" ? "digest" : "why",
+      task: mode === "why" ? "why" : "digest",
       prompt,
-      maxTokens: mode === "digest" ? 320 : 160,
+      maxTokens: mode === "briefing" ? 700 : mode === "digest" ? 320 : 160,
       ctx: { userId: me.id, plan },
     });
     if (!text) return fail("Couldn't generate that right now. Please try again.", 502);

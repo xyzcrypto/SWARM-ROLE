@@ -9,7 +9,23 @@ import {
 } from "lucide-react";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
+import { MarkdownLite } from "./MarkdownLite";
+import { shareUrl, type SharedStory } from "@/lib/news-share";
 import { cn } from "@/lib/utils";
+
+// A news item → the compact story we share as an on-site link.
+function storyOf(item: NewsItem): SharedStory {
+  return { u: item.url, t: item.title, s: item.summary, src: item.source, img: item.image, ts: item.publishedAt, cat: item.category };
+}
+// Share OUR on-site link (rich preview on our domain) rather than the raw source.
+async function shareStory(item: NewsItem) {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+  const url = shareUrl(origin, storyOf(item));
+  try {
+    if (navigator.share) await navigator.share({ title: item.title, url });
+    else await navigator.clipboard.writeText(url);
+  } catch { /* cancelled */ }
+}
 
 type Resp = { items: NewsItem[]; hasMore: boolean; live: boolean; page: number };
 const BOOKMARK_KEY = "xyz:news:bookmarks";
@@ -366,13 +382,7 @@ function NewsCard({
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
 
-  async function share() {
-    const data = { title: item.title, url: item.url };
-    try {
-      if (navigator.share) await navigator.share(data);
-      else { await navigator.clipboard.writeText(item.url); }
-    } catch { /* cancelled */ }
-  }
+  const share = () => shareStory(item);
 
   async function whyMatters() {
     if (!loggedIn) { setWhy({ loading: false, text: null, err: "Log in to use XYZ AI." }); return; }
@@ -526,7 +536,7 @@ function NewsReader({
     setDigest({ loading: true, text: null, err: null });
     fetch("/api/ai/why-matters", {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: item.title, summary: item.summary, mode: "digest" }),
+      body: JSON.stringify({ title: item.title, summary: item.summary, mode: "briefing" }),
     })
       .then(async (res) => {
         const j = await res.json().catch(() => ({}));
@@ -538,12 +548,7 @@ function NewsReader({
     return () => { stop = true; };
   }, [item.id, item.title, item.summary, loggedIn]);
 
-  const share = async () => {
-    try {
-      if (navigator.share) await navigator.share({ title: item.title, url: item.url });
-      else await navigator.clipboard.writeText(item.url);
-    } catch { /* cancelled */ }
-  };
+  const share = () => shareStory(item);
 
   const sent =
     item.sentiment === "bullish" ? { cls: "bg-mint-500/15 text-mint-300", icon: <TrendingUp className="h-3 w-3" />, label: "Bullish" }
@@ -592,15 +597,15 @@ function NewsReader({
             <h1 className="font-display text-xl font-bold leading-snug text-zinc-50 sm:text-2xl">{item.title}</h1>
             {item.summary && <p className="mt-3 text-[14px] leading-relaxed text-zinc-300">{item.summary}</p>}
 
-            {/* AI digest */}
-            <div className="mt-4 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3.5">
+            {/* Advanced AI briefing — the full story, on-site */}
+            <div className="mt-4 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3.5 sm:p-4">
               <p className="mono inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gold-200">
-                <Sparkles className="h-3.5 w-3.5" /> AI Summary · XYZ AI
+                <Sparkles className="h-3.5 w-3.5" /> Full briefing · XYZ AI
               </p>
-              {digest.loading && <p className="mt-2 inline-flex items-center gap-2 text-[13px] text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading the story…</p>}
-              {digest.text && <p className="mt-1.5 text-[13.5px] leading-relaxed text-zinc-200">{digest.text}</p>}
+              {digest.loading && <p className="mt-2 inline-flex items-center gap-2 text-[13px] text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Writing the full briefing…</p>}
+              {digest.text && <MarkdownLite text={digest.text} className="mt-1" />}
               {digest.err && <p className="mt-1.5 text-[12px] text-amber-300">{digest.err}</p>}
-              {!loggedIn && !digest.err && <p className="mt-1.5 text-[12px] text-zinc-500">Log in to get an instant AI summary of any story.</p>}
+              {!loggedIn && !digest.err && <p className="mt-1.5 text-[12px] text-zinc-500">Log in to read the full AI briefing of any story.</p>}
               <p className="mt-2 text-[10px] text-zinc-600">AI-generated from the headline &amp; excerpt. Not financial advice.</p>
             </div>
           </div>
