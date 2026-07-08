@@ -5,6 +5,12 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — NX4: free realtime push via GitHub Actions scheduler
+- New `.github/workflows/push-dispatch.yml`: every ~10 min (+ manual run) it pings
+  `${PROD_URL}/api/push/dispatch?secret=${CRON_SECRET}` so breaking-news pushes go out in near
+  real time on **any** Vercel plan (no Pro cron needed). Skips gracefully until the two repo secrets
+  (`PROD_URL`, `CRON_SECRET`) are set; `vercel.json` daily cron stays as the safe fallback.
+
 ## 2026-07-08 — NX3: remove the em-dash from all user-visible text
 - Replaced every em-dash "—" with a hyphen "-" across `src/components`, `src/app`, `src/lib` and
   `public` (264 → 0): prose, meta descriptions, string props, and the "no data" placeholder glyphs
