@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
             clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
             // Link to an existing account with the same email. Safe here because
             // BOTH sides are email-verified: credentials signup requires an OTP
-            // to the address, and Google only returns verified emails — so there
+            // to the address, and Google only returns verified emails - so there
             // is no unverified-email takeover path. Without this, anyone who
             // signed up with email+password can't later use "Sign in with Google".
             allowDangerousEmailAccountLinking: true,
@@ -43,7 +43,7 @@ export const authOptions: NextAuthOptions = {
             allowDangerousEmailAccountLinking: true,
             // GitHub can hide the email (private-email setting). Our User.email
             // is required+unique, so fall back to a non-deliverable but stable
-            // placeholder — login still works; email features simply no-op.
+            // placeholder - login still works; email features simply no-op.
             profile(profile) {
               return {
                 id: String(profile.id),
@@ -62,7 +62,7 @@ export const authOptions: NextAuthOptions = {
             clientSecret: process.env.TWITTER_CLIENT_SECRET!,
             version: "2.0", // OAuth 2.0 (X developer app)
             allowDangerousEmailAccountLinking: false,
-            // X's OAuth 2.0 userinfo has NO email at all — same stable
+            // X's OAuth 2.0 userinfo has NO email at all - same stable
             // placeholder strategy as GitHub so account creation works.
             profile(profile) {
               // version "2.0" always yields the v2 shape ({ data: {...} });
@@ -289,7 +289,7 @@ export const authOptions: NextAuthOptions = {
             .catch(() => null);
         });
     },
-    // Fires when an OAuth account is attached (incl. first sign-up) — stamp
+    // Fires when an OAuth account is attached (incl. first sign-up) - stamp
     // which provider this user came from (was hardcoded "google" before).
     async linkAccount({ user, account }) {
       if (!user?.id || !account?.provider) return;

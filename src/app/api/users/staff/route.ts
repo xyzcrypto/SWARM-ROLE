@@ -4,7 +4,7 @@ import { isAdminEmail } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/users/staff — everyone who currently has access: members with >=1
+// GET /api/users/staff - everyone who currently has access: members with >=1
 // capability, plus Super Admins (role ADMIN / ADMIN_EMAILS). Gated by `users:roles`.
 export async function GET() {
   try {

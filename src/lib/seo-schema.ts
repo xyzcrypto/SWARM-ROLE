@@ -1,4 +1,4 @@
-// Pure JSON-LD builders (no JSX) — kept separate from the <JsonLd> component in
+// Pure JSON-LD builders (no JSX) - kept separate from the <JsonLd> component in
 // jsonld.tsx so they can be imported in node-env unit tests. jsonld.tsx re-exports
 // everything here, so `@/lib/jsonld` remains the single import site for app code.
 import { SITE_URL, absoluteUrl } from "@/lib/seo";
@@ -33,7 +33,7 @@ export function organizationJsonLd() {
   };
 }
 
-// FAQPage structured data — surfaces brand Q&As on the SERP and reinforces the
+// FAQPage structured data - surfaces brand Q&As on the SERP and reinforces the
 // "XYZ Crypto" entity. Pair with the visible FAQ section (same source data).
 export function faqJsonLd(items: { q: string; a: string }[]) {
   return {

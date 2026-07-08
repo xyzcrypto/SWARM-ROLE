@@ -32,10 +32,10 @@ type UseRealtimeOpts = {
  *
  * When Supabase realtime is configured it subscribes to a broadcast
  * channel/event and calls `onMessage(payload)` on each push (the server emits a
- * tiny invalidation ping; the client then refetches a cached endpoint — no row
+ * tiny invalidation ping; the client then refetches a cached endpoint - no row
  * streaming, minimal DB load). When realtime isn't available it falls back to
  * polling `onMessage(null)` every `pollMs` while the tab is visible. Fully
- * degrades — no-op if neither realtime nor `pollMs` is provided.
+ * degrades - no-op if neither realtime nor `pollMs` is provided.
  */
 export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, enabled = true }: UseRealtimeOpts) {
   const cb = useRef(onMessage);

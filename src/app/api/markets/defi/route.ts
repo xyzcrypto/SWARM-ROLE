@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { DefiMarket } from "@/lib/markets";
 import { topByTvl } from "@/lib/markets";
 
-// Server-side cached proxy: DeFi snapshot from DefiLlama (keyless, free) — total
+// Server-side cached proxy: DeFi snapshot from DefiLlama (keyless, free) - total
 // TVL + trend, top protocols, top chains, stablecoin market cap. Always 200 with
 // a `live` flag (graceful), like /api/ticker.
 export const revalidate = 120;
@@ -22,7 +22,7 @@ async function j(url: string, revalidateSec = revalidate) {
 }
 
 async function totalTvlAndTrend() {
-  // All-chains historical TVL: [{ date, tvl }] — last point is current total.
+  // All-chains historical TVL: [{ date, tvl }] - last point is current total.
   const rows: { date: number; tvl: number }[] = await j("https://api.llama.fi/v2/historicalChainTvl");
   const trend = rows.slice(-30).map((r) => Number(r.tvl) || 0);
   const totalTvl = trend.length ? trend[trend.length - 1] : 0;
@@ -32,9 +32,9 @@ async function totalTvlAndTrend() {
 async function topProtocols() {
   const list: any[] = await j("https://api.llama.fi/protocols");
   return topByTvl(list.map((p) => ({ ...p, tvl: Number(p.tvl) || 0 })), 8).map((p: any) => ({
-    name: String(p.name ?? "—"),
+    name: String(p.name ?? "-"),
     tvl: Number(p.tvl) || 0,
-    chain: String(p.chain ?? p.chains?.[0] ?? "—"),
+    chain: String(p.chain ?? p.chains?.[0] ?? "-"),
     change1d: Number(p.change_1d) || 0,
     logo: typeof p.logo === "string" ? p.logo : null,
   }));
@@ -42,7 +42,7 @@ async function topProtocols() {
 
 async function topChains() {
   const list: any[] = await j("https://api.llama.fi/v2/chains");
-  return topByTvl(list.map((c) => ({ name: String(c.name ?? "—"), tvl: Number(c.tvl) || 0 })), 8);
+  return topByTvl(list.map((c) => ({ name: String(c.name ?? "-"), tvl: Number(c.tvl) || 0 })), 8);
 }
 
 async function stableMcap() {

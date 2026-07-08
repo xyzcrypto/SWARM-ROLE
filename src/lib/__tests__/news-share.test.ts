@@ -4,7 +4,7 @@ import { encodeStory, decodeStory, shareUrl } from "@/lib/news-share";
 describe("news-share encode/decode", () => {
   const story = {
     u: "https://example.com/article?id=1&x=2",
-    t: "Bitcoin ETF sees record inflows — what it means",
+    t: "Bitcoin ETF sees record inflows - what it means",
     s: "A short excerpt with unicode: café, 数字货币, 🚀.",
     src: "CoinDesk",
     img: "https://img.example.com/a.jpg",

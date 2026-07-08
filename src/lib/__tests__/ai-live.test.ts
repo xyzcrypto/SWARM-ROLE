@@ -26,7 +26,7 @@ describe("formatLiveContext", () => {
     expect(out).toContain("BTC $67,000 (+2.10%)");
     expect(out).toContain("ETH $3,400 (-0.40%)");
     expect(out).toContain("LATEST CRYPTO HEADLINES");
-    expect(out).toContain("ETF approved — CoinDesk [Bitcoin]");
+    expect(out).toContain("ETF approved - CoinDesk [Bitcoin]");
   });
 
   it("drops zero-price coins", () => {

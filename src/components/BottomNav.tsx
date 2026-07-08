@@ -30,7 +30,7 @@ export function BottomNav() {
   return (
     <>
       {/* In-flow spacer so page content + footer clear the fixed bar (only when
-          the bar is actually shown — immersive routes above return null). */}
+          the bar is actually shown - immersive routes above return null). */}
       <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] md:hidden" />
       <nav
         className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-ink-950/95 backdrop-blur md:hidden"

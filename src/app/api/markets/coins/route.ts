@@ -17,7 +17,7 @@ async function trending(): Promise<TrendingCoin[]> {
     const j = await res.json();
     return (j?.coins ?? []).slice(0, 8).map((c: any) => ({
       id: String(c?.item?.id ?? ""),
-      name: String(c?.item?.name ?? "—"),
+      name: String(c?.item?.name ?? "-"),
       symbol: String(c?.item?.symbol ?? "").toUpperCase(),
       thumb: typeof c?.item?.thumb === "string" ? c.item.thumb : null,
       change24h: Number(c?.item?.data?.price_change_percentage_24h?.usd) || 0,
@@ -37,7 +37,7 @@ async function markets(): Promise<CoinRow[]> {
   return data.map((d, i) => ({
     id: String(d.id ?? ""),
     rank: Number(d.market_cap_rank) || i + 1,
-    name: String(d.name ?? "—"),
+    name: String(d.name ?? "-"),
     symbol: String(d.symbol ?? "").toUpperCase(),
     image: typeof d.image === "string" ? d.image : null,
     price: Number(d.current_price) || 0,

@@ -5,6 +5,40 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — NX4: free realtime push via GitHub Actions scheduler
+- New `.github/workflows/push-dispatch.yml`: every ~10 min (+ manual run) it pings
+  `${PROD_URL}/api/push/dispatch?secret=${CRON_SECRET}` so breaking-news pushes go out in near
+  real time on **any** Vercel plan (no Pro cron needed). Skips gracefully until the two repo secrets
+  (`PROD_URL`, `CRON_SECRET`) are set; `vercel.json` daily cron stays as the safe fallback.
+
+## 2026-07-08 — NX3: remove the em-dash from all user-visible text
+- Replaced every em-dash "—" with a hyphen "-" across `src/components`, `src/app`, `src/lib` and
+  `public` (264 → 0): prose, meta descriptions, string props, and the "no data" placeholder glyphs
+  (`compactUsd`/`pct`/etc. now return "-"). Unit-test expectations updated in lockstep. `docs/` left as-is
+  (not user-visible).
+- typecheck + lint(0) + test(219) + build green.
+
+## 2026-07-08 — NX2: news important-first + faster + advanced briefing + Live animation
+- **Important news first**: new pure `rankNews` (`src/lib/news.ts`, unit-tested) scores each story by
+  impact blended with recency (High ≈ 8h head-start, Medium ≈ 3h), applied in `getNewsPage` — breaking/
+  high-impact surfaces at the top while staying fresh (a stale big story still sinks).
+- **Faster**: news `revalidate` 30→20s and client poll 30→20s.
+- **Advanced AI briefing**: deeper prompt (adds **Key numbers**, **Different angles** bull/bear, richer
+  What-happened; ~450-650 words), tokens 1100→1400 (Hinglish 1500).
+- **Live Intelligence animation**: the News header eyebrow now uses the homepage `eyebrow-glass` sweep +
+  a live mint pulse + `text-shine` shimmer; the "News" accent shimmers too.
+- typecheck + lint(0) + test(219) + build green.
+
+## 2026-07-08 — NX1: XYZ AI 3D-bot branding + navbar light fix + smoother colors
+- **3D bot everywhere**: the ✨ Sparkles icon in every XYZ-AI-branded spot is now the **`RobotIcon`**
+  (3D robot) — briefing header ("Full briefing · XYZ AI"), coin & protocol "XYZ AI take" (+ Generate),
+  and the News "Why this matters" button. Consistent AI branding.
+- **Navbar light-theme fix**: the "XYZ AI" label was `text-mint-100` (near-invisible on white); now
+  `text-mint-700` in light, `dark:text-mint-100` in dark — readable in both themes.
+- **Smoother colors**: softened light surfaces + hairline (`--bg`, `--surface-2`, `--hairline`) and a
+  gentler theme transition (adds border-color, 0.35s).
+- typecheck + lint(0) + test(216) + build green.
+
 ## 2026-07-08 — News v3 · NW5: performance polish
 - **Fewer re-renders**: `NewsCard` is now `memo`-ized with **stable callbacks** (`onOpen(index)` /
   `onBookmark(item)` via parent `useCallback`), so saving/bookmarking or new stories no longer

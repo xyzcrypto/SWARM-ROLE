@@ -38,7 +38,7 @@ export default async function DashboardPage() {
   if (!session?.user) redirect("/login?callbackUrl=/dashboard");
   const me = session.user as any;
   // Anyone with staff access (Super Admin OR at least one granted capability) gets
-  // in — the tabs themselves are then filtered to what they're allowed to use. (A
+  // in - the tabs themselves are then filtered to what they're allowed to use. (A
   // specific capability like `dashboard:view` is NOT required just to enter, so
   // granting e.g. `whatsnew:manage` works as expected.)
   if (!isStaff(me)) redirect("/");

@@ -1,4 +1,4 @@
-// XYZ AI — live-context grounding (pure, client-safe, unit-tested). The
+// XYZ AI - live-context grounding (pure, client-safe, unit-tested). The
 // assistant route fetches the cached market + news snapshots and passes them
 // here to build a compact "what's happening right now" block for the system
 // prompt, so answers can reference current prices, sentiment and headlines.
@@ -53,12 +53,12 @@ export function formatLiveContext(snap: LiveSnapshot): string {
   let out = "";
   if (lines.length) {
     out +=
-      "LIVE MARKET DATA (real-time snapshot — prices move constantly; present as current context, not a fixed fact, and never as financial advice):\n- " +
+      "LIVE MARKET DATA (real-time snapshot - prices move constantly; present as current context, not a fixed fact, and never as financial advice):\n- " +
       lines.join("\n- ");
   }
   if (heads.length) {
     if (out) out += "\n\n";
-    out += "LATEST CRYPTO HEADLINES (from the XYZ Crypto news hub):\n- " + heads.map((h) => `${h.title} — ${h.source}${h.category ? ` [${h.category}]` : ""}`).join("\n- ");
+    out += "LATEST CRYPTO HEADLINES (from the XYZ Crypto news hub):\n- " + heads.map((h) => `${h.title} - ${h.source}${h.category ? ` [${h.category}]` : ""}`).join("\n- ");
   }
   return out;
 }

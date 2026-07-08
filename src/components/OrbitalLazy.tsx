@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 
-// Same-size placeholder — avoids layout shift while the (deferred) JS loads.
+// Same-size placeholder - avoids layout shift while the (deferred) JS loads.
 // Below-the-fold; never blocks first paint/hydration.
 function Placeholder() {
   return (
@@ -10,7 +10,7 @@ function Placeholder() {
   );
 }
 
-// The branded CSS orbital — the signature centerpiece on every device. It's
+// The branded CSS orbital - the signature centerpiece on every device. It's
 // lighter, theme-correct (light + dark) and animates reliably on desktop, so we
 // no longer gate a heavier WebGL variant behind device checks (three.js is no
 // longer fetched on the homepage). The R3F scene (OrbitalScene3D) stays in the

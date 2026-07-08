@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 
 // Shared Prisma selection for post cards / lists. It deliberately OMITS the AI
 // `summary` column so these queries keep working before the `12_post_summary`
-// migration lands — selecting a not-yet-existing column throws P2022, which was
+// migration lands - selecting a not-yet-existing column throws P2022, which was
 // silently emptying the research grid, the homepage preview and related posts
 // (their `.catch(() => [])`), i.e. "Nothing here yet" even with posts present.
 // Only the article detail page + the summarize endpoint read/write `summary`.

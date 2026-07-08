@@ -33,7 +33,7 @@ export function OrbitalEcosystem() {
   const [particles, setParticles] = useState<{ x: number; y: number; s: number; d: number; delay: number }[]>([]);
 
   // Activate the particle field once the section is on/near screen. The rings,
-  // aurora and logo glow animate from mount regardless — this is the homepage
+  // aurora and logo glow animate from mount regardless - this is the homepage
   // centerpiece and is intentionally always alive on every device (a deliberate
   // product choice; the motion is slow, GPU-cheap transforms).
   useEffect(() => {

@@ -1,6 +1,6 @@
-// XYZ AI — server-side task helpers (summaries + chat moderation). Both are
+// XYZ AI - server-side task helpers (summaries + chat moderation). Both are
 // best-effort and degrade to a safe default: `summarize` returns null and
-// `classifyToxic` returns false (fail-OPEN — never auto-hide on an error/outage)
+// `classifyToxic` returns false (fail-OPEN - never auto-hide on an error/outage)
 // when AI is disabled, the model errors, or the call times out.
 import { completeText } from "@/lib/ai";
 import {

@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/lib/site";
 
-// Per-article social share image — a branded card with the post title. Uses the
+// Per-article social share image - a branded card with the post title. Uses the
 // Node runtime (Prisma can't run on edge) and falls back to a generic card if the
 // post can't be loaded, so it never breaks sharing.
 export const runtime = "nodejs";

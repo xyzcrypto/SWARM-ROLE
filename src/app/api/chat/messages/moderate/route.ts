@@ -66,7 +66,7 @@ export async function POST(req: Request) {
         where: { status: "hidden" },
         data: { status: "visible" },
       });
-      // No per-message broadcast for bulk restore — clients pick the messages
+      // No per-message broadcast for bulk restore - clients pick the messages
       // up on their next poll/refresh (realtime clients too, on reload).
       return ok({ ok: true, restored: count });
     }

@@ -3,7 +3,7 @@ import { getDashboardStats } from "@/lib/dashboard-stats";
 
 export const dynamic = "force-dynamic";
 
-// GET /api/dashboard/stats — live dashboard numbers (requires `dashboard:view`).
+// GET /api/dashboard/stats - live dashboard numbers (requires `dashboard:view`).
 // Short private cache so frequent refreshes stay cheap.
 export async function GET() {
   try {

@@ -9,7 +9,7 @@ export type PostCardData = {
   excerpt: string;
   cover: string | null;
   category: string;
-  /** Full body optional — list payloads ship a precomputed readMinutes instead. */
+  /** Full body optional - list payloads ship a precomputed readMinutes instead. */
   content?: string;
   readMinutes?: number;
   premium?: boolean;

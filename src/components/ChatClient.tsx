@@ -165,7 +165,7 @@ export function ChatClient({
   const realtimeConfigured = Boolean(realtime.url && realtime.anonKey);
 
   // Lazily create + resume a single AudioContext. MUST be called from inside a
-  // user gesture (click/keypress) — browsers keep a context "suspended" unless
+  // user gesture (click/keypress) - browsers keep a context "suspended" unless
   // it's unlocked by a gesture, so without this the blip is silent.
   const ensureAudio = useCallback(() => {
     try {
@@ -239,7 +239,7 @@ export function ChatClient({
       return [...prev, { ...m, reactions: normalizeReactions(m.reactions) }];
     });
   }, []);
-  // In-place tombstone (this session only) — keeps conversation context
+  // In-place tombstone (this session only) - keeps conversation context
   // instead of messages silently vanishing mid-read. Gone after reload.
   const hideMessage = useCallback((id: string) => {
     setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, hidden: true, body: "" } : m)));
@@ -346,7 +346,7 @@ export function ChatClient({
           .on("broadcast", { event: "reaction" }, ({ payload }) => {
             const p = payload as { messageId: string; emoji: string; userId: string; op: "add" | "remove" };
             applyReaction(p.messageId, p.emoji, p.userId, p.op);
-            // Blip when ANOTHER member reacts (adds an emoji) — same opt-in rule
+            // Blip when ANOTHER member reacts (adds an emoji) - same opt-in rule
             // as new messages; never your own reactions. "remove" is silent.
             if (soundOnRef.current && p.op === "add" && p.userId !== me?.id) playBlip(audioCtxRef.current);
           })
@@ -358,7 +358,7 @@ export function ChatClient({
           .on("presence", { event: "sync" }, () => {
             // Build the live "who's online" list, de-duped by user id (a member
             // open in two tabs counts once). Entries without a user id fall back
-            // to their presence key — stable per client, so guests are counted
+            // to their presence key - stable per client, so guests are counted
             // once instead of re-counted on every sync.
             const state = channel.presenceState() as Record<string, Array<Record<string, unknown>>>;
             const seen = new Map<string, PresenceMember>();
@@ -596,7 +596,7 @@ export function ChatClient({
   async function doSend() {
     const text = body.trim();
     if (!text || sending || !me) return;
-    // Sending is a user gesture — unlock audio here too so incoming-message
+    // Sending is a user gesture - unlock audio here too so incoming-message
     // blips work even if the toggle was already on at page load.
     if (soundOnRef.current) ensureAudio();
     setError("");
@@ -624,7 +624,7 @@ export function ChatClient({
     const rollback = () => {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       // Restore the failed text/reply only if the user hasn't started composing
-      // a new message in the meantime — never clobber fresh input.
+      // a new message in the meantime - never clobber fresh input.
       setBody((b) => (b.trim() ? b : text));
       setReplyTarget((r) => r ?? reply);
     };
@@ -937,8 +937,8 @@ export function ChatClient({
         {messages.length === 0 && (
           <div className="py-16 text-center">
             <div className="mb-3 text-3xl">👋</div>
-            <p className="text-sm text-zinc-400">No messages yet — be the first to say gm.</p>
-            <p className="mt-1 text-xs text-zinc-600">Markets, alpha &amp; Web3 — keep it friendly.</p>
+            <p className="text-sm text-zinc-400">No messages yet - be the first to say gm.</p>
+            <p className="mt-1 text-xs text-zinc-600">Markets, alpha &amp; Web3 - keep it friendly.</p>
           </div>
         )}
 
@@ -995,7 +995,7 @@ export function ChatClient({
                   transition={{ duration: 0.18 }}
                   onDoubleClick={() => {
                     // Desktop-only shortcut: on touch, dblclick fights the
-                    // browser's double-tap zoom — ❤️ lives in the tap menu there.
+                    // browser's double-tap zoom - ❤️ lives in the tap menu there.
                     if (!touchUi && me && !m.pending) toggleReaction(m.id, "❤️");
                   }}
                   onClick={() => {
@@ -1277,7 +1277,7 @@ export function ChatClient({
               </div>
             )}
             <form onSubmit={send} className="flex items-end gap-2">
-              {/* attach menu (polls) — Telegram-style "+" */}
+              {/* attach menu (polls) - Telegram-style "+" */}
               <button
                 type="button"
                 onClick={() => setPollOpen(true)}

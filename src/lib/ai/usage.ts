@@ -31,7 +31,7 @@ export function errorKindOf(err: unknown): string {
 /**
  * Persist one usage row. Best-effort: a not-yet-migrated DB (P2021/P2022) or any
  * transient error is swallowed so metering never breaks an AI request. Stores
- * metadata only — never the prompt or response text.
+ * metadata only - never the prompt or response text.
  */
 export async function recordAiUsage(row: UsageRow): Promise<void> {
   try {
@@ -51,6 +51,6 @@ export async function recordAiUsage(row: UsageRow): Promise<void> {
       },
     });
   } catch {
-    /* pre-migration or transient — analytics is best-effort, never fatal */
+    /* pre-migration or transient - analytics is best-effort, never fatal */
   }
 }

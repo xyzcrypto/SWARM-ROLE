@@ -17,7 +17,7 @@ export async function ResearchPreview() {
       select: POST_CARD_SELECT,
     })
     .catch(() => []);
-  // Never ship article bodies in the home payload — precomputed read time only.
+  // Never ship article bodies in the home payload - precomputed read time only.
   const posts = rawPosts.map(({ content, ...p }) => ({
     ...p,
     content: "",

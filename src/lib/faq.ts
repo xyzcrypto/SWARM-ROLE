@@ -1,4 +1,4 @@
-// Brand FAQ — the single source for both the visible homepage FAQ section and the
+// Brand FAQ - the single source for both the visible homepage FAQ section and the
 // FAQPage JSON-LD. Answers are written to target "XYZ Crypto" brand queries.
 export const FAQ: { q: string; a: string }[] = [
   {
@@ -15,7 +15,7 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Is XYZ Crypto legit and safe?",
-    a: "XYZ Crypto has been active in Web3 since 2019 with a research-driven, community-first approach and transparency by default. Nothing on the site is financial advice — always do your own research.",
+    a: "XYZ Crypto has been active in Web3 since 2019 with a research-driven, community-first approach and transparency by default. Nothing on the site is financial advice - always do your own research.",
   },
   {
     q: "How do I join the XYZ Crypto community?",

@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 const VALID = new Set<string>(CATEGORIES);
 
-// GET /api/news/interests — the signed-in member's followed categories.
+// GET /api/news/interests - the signed-in member's followed categories.
 export async function GET() {
   try {
     const me = await getSessionUser();
@@ -26,7 +26,7 @@ export async function GET() {
 
 const bodySchema = z.object({ interests: z.array(z.string()).max(30) });
 
-// POST /api/news/interests — save the member's followed categories (validated
+// POST /api/news/interests - save the member's followed categories (validated
 // against the known category list).
 export async function POST(req: Request) {
   try {

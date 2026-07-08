@@ -1,4 +1,4 @@
-// XYZ AI — grounding helpers (pure, client-safe, no server imports so they're
+// XYZ AI - grounding helpers (pure, client-safe, no server imports so they're
 // trivially unit-testable). The route fetches published research from the DB and
 // passes it here to build the system prompt that anchors the assistant to the
 // site's own content.
@@ -15,7 +15,7 @@ export type GroundingPost = {
 // how many articles exist. Newest/most-relevant articles are included until this
 // budget is spent.
 export const MAX_CORPUS_CHARS = 12_000;
-// Per-article body slice — enough to answer from, small enough to fit several.
+// Per-article body slice - enough to answer from, small enough to fit several.
 export const MAX_ARTICLE_CHARS = 2_000;
 // How many articles at most, even if the char budget allows more.
 export const MAX_ARTICLES = 8;
@@ -90,10 +90,10 @@ export function buildCorpus(posts: GroundingPost[], query: string): string {
 export function buildAssistantSystemPrompt(posts: GroundingPost[], query: string, liveContext = ""): string {
   const corpus = buildCorpus(posts, query);
   const persona =
-    "You are XYZ AI — the sharp, proactive Web3 research analyst inside XYZ Crypto, " +
+    "You are XYZ AI - the sharp, proactive Web3 research analyst inside XYZ Crypto, " +
     "a premium crypto research hub. You help members truly understand crypto, DeFi, " +
     "on-chain trends, tokenomics and the site's own research. Think like a top analyst: " +
-    "get to the point, be precise and specific, and add genuine insight — not generic " +
+    "get to the point, be precise and specific, and add genuine insight - not generic " +
     "textbook filler. Use plain language, short paragraphs and tight markdown (bold key " +
     "terms, bullet lists, tables when comparing). Lead with the answer, then the why.";
   const rules = [
@@ -101,14 +101,14 @@ export function buildAssistantSystemPrompt(posts: GroundingPost[], query: string
     "When the live market data below is relevant (prices, sentiment, gas, market cap, dominance) use those CURRENT numbers and note they are real-time and can move.",
     "When recent headlines below are relevant, weave them in and mention the member can read more in the XYZ Crypto news hub (/news).",
     "You may add widely-accepted general crypto knowledge, but never invent XYZ Crypto articles, prices, or facts that are not provided.",
-    "If something isn't covered and you're unsure, say so plainly rather than guessing — being right matters more than sounding complete.",
+    "If something isn't covered and you're unsure, say so plainly rather than guessing - being right matters more than sounding complete.",
     "End substantive answers with a brief, useful next step or a smart follow-up question when it genuinely helps.",
-    "This is not financial advice — never tell users to buy or sell a specific asset; frame everything as research and education.",
+    "This is not financial advice - never tell users to buy or sell a specific asset; frame everything as research and education.",
     "Stay focused on crypto/Web3/the XYZ Crypto platform; politely decline unrelated requests.",
   ];
   const library = corpus
     ? `XYZ Crypto research library (your grounding source):\n\n${corpus}`
-    : "XYZ Crypto research library is currently empty — answer from general crypto knowledge and invite the member to check back as research is published.";
+    : "XYZ Crypto research library is currently empty - answer from general crypto knowledge and invite the member to check back as research is published.";
   const live = liveContext.trim() ? `\n\n${liveContext.trim()}` : "";
   return `${persona}\n\nRules:\n- ${rules.join("\n- ")}\n\n${library}${live}`;
 }

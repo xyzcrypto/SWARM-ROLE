@@ -122,7 +122,7 @@ export function Skeleton({ className }: { className?: string }) {
   return <div className={cn("animate-pulse rounded-md bg-white/[0.06]", className)} aria-hidden="true" />;
 }
 
-/** N stacked skeleton rows — a quick list/table placeholder. */
+/** N stacked skeleton rows - a quick list/table placeholder. */
 export function SkeletonList({ rows = 5, className }: { rows?: number; className?: string }) {
   return (
     <div className={cn("space-y-2", className)} aria-hidden="true">
@@ -133,7 +133,7 @@ export function SkeletonList({ rows = 5, className }: { rows?: number; className
   );
 }
 
-/** Neutral empty state — no data yet (not an error). */
+/** Neutral empty state - no data yet (not an error). */
 export function EmptyState({ icon, title, hint, action, className }: { icon?: ReactNode; title: string; hint?: string; action?: ReactNode; className?: string }) {
   return (
     <div className={cn("flex flex-col items-center justify-center gap-2 px-4 py-12 text-center", className)}>

@@ -5,7 +5,7 @@ import { useLivePresence } from "@/lib/useLivePresence";
 /**
  * Live "online now" pill (Supabase presence, real-time). The visits-today /
  * total-visits / members counters were removed at the owner's request, so only
- * the genuinely-live presence signal remains — and it's hidden entirely when
+ * the genuinely-live presence signal remains - and it's hidden entirely when
  * realtime isn't configured (or nobody is online).
  */
 export function LiveStats({ className = "" }: { className?: string }) {

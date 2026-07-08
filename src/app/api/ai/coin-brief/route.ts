@@ -19,7 +19,7 @@ const bodySchema = z.object({
   marketCap: z.number().finite(),
 });
 
-// POST /api/ai/coin-brief — a short, neutral AI "take" on a coin (education,
+// POST /api/ai/coin-brief - a short, neutral AI "take" on a coin (education,
 // not advice). Logged-in + rate-limited + daily-capped; graceful when AI is off.
 export async function POST(req: Request) {
   try {

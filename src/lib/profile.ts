@@ -146,7 +146,7 @@ export type ProfileInput = z.infer<typeof profileSchema>;
  * Shared strong-password policy, used by signup, password reset and password
  * change so the rules are enforced server-side everywhere (the client strength
  * meter in PasswordField is only UI feedback). Min 8 with a mix of cases + a
- * digit — a reasonable bar that resists casual brute-force without frustrating
+ * digit - a reasonable bar that resists casual brute-force without frustrating
  * users. Keep messages specific so the form can guide the user.
  */
 export const passwordSchema = z

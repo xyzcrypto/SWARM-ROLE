@@ -60,7 +60,7 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
   }, [postId]);
 
   // Older pages: the API has always supported ?page=, but no control ever
-  // called it — comments beyond the first 20 were unreachable.
+  // called it - comments beyond the first 20 were unreachable.
   const loadOlder = useCallback(async () => {
     setLoadingMore(true);
     try {

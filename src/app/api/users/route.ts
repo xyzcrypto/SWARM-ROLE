@@ -32,7 +32,7 @@ function whereFor(q: string): Prisma.UserWhereInput {
 
 const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
 
-// GET /api/users — paginated, server-side-searchable member list for the
+// GET /api/users - paginated, server-side-searchable member list for the
 // dashboard Members panel (`users:manage`). `?q=` searches ALL members by
 // email/name (not just the most recent page); `?cursor=<id>` pages onward;
 // `?format=csv` streams a complete export instead of the 50-row page.

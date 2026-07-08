@@ -22,8 +22,8 @@ export async function generateMetadata({ params }: { params: { type: string; slu
   const name = pretty(slug);
   const kind = LABEL[type] ?? "Protocol";
   return {
-    title: `${name} — ${kind} Volume, Fees & Stats`,
-    description: `Live ${name} ${kind.toLowerCase()} stats on XYZ Crypto — 24h/7d/30d volume & fees, chains, trend chart and an AI market take.`,
+    title: `${name} - ${kind} Volume, Fees & Stats`,
+    description: `Live ${name} ${kind.toLowerCase()} stats on XYZ Crypto - 24h/7d/30d volume & fees, chains, trend chart and an AI market take.`,
     alternates: { canonical: `/markets/protocol/${type}/${slug}` },
   };
 }

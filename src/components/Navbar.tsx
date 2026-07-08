@@ -28,8 +28,8 @@ export function Navbar() {
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
   const { data: session } = useSession();
   const user = session?.user as any;
-  // Show the Dashboard link to any staff member — Super Admin OR anyone granted
-  // at least one capability — not just role === "ADMIN".
+  // Show the Dashboard link to any staff member - Super Admin OR anyone granted
+  // at least one capability - not just role === "ADMIN".
   const canSeeDashboard = isStaff(user);
   const isPremium = user?.membership === "Premium";
   const username = user?.username as string | undefined;
@@ -115,11 +115,11 @@ export function Navbar() {
               />
             </Link>
           ))}
-          {/* Dedicated XYZ AI launcher — transparent glass, live green pulse, 3D robot. */}
+          {/* Dedicated XYZ AI launcher - transparent glass, live green pulse, 3D robot. */}
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT))}
-            className="ai-nav-btn ml-1 inline-flex items-center gap-1.5 rounded-lg border border-mint-400/40 bg-transparent px-3 py-1.5 text-sm font-semibold text-mint-100 transition-transform"
+            className="ai-nav-btn ml-1 inline-flex items-center gap-1.5 rounded-lg border border-mint-500/50 bg-transparent px-3 py-1.5 text-sm font-semibold text-mint-700 transition-transform dark:border-mint-400/40 dark:text-mint-100"
           >
             <span className="relative z-10 inline-flex items-center gap-1.5">
               <RobotIcon className="ai-bot h-5 w-5" />
@@ -133,7 +133,7 @@ export function Navbar() {
             onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 transition-colors hover:border-gold-500/30 hover:text-zinc-200"
             aria-label="Search (⌘K)"
-            title="Search — ⌘K"
+            title="Search - ⌘K"
           >
             <Search className="h-4 w-4" />
           </button>
@@ -254,14 +254,14 @@ export function Navbar() {
                 {l.label}
               </Link>
             ))}
-            {/* Dedicated XYZ AI launcher (mobile) — transparent glass, live green pulse, 3D robot. */}
+            {/* Dedicated XYZ AI launcher (mobile) - transparent glass, live green pulse, 3D robot. */}
             <button
               type="button"
               onClick={() => {
                 setOpen(false);
                 window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT));
               }}
-              className="ai-nav-btn mt-0.5 inline-flex items-center gap-2 rounded-lg border border-mint-400/40 bg-transparent px-3 py-2.5 text-sm font-semibold text-mint-100"
+              className="ai-nav-btn mt-0.5 inline-flex items-center gap-2 rounded-lg border border-mint-500/50 bg-transparent px-3 py-2.5 text-sm font-semibold text-mint-700 dark:border-mint-400/40 dark:text-mint-100"
             >
               <span className="relative z-10 inline-flex items-center gap-2">
                 <RobotIcon className="ai-bot h-5 w-5" />

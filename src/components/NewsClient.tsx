@@ -4,10 +4,11 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState, type TouchEven
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
-  Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Sparkles, Zap, Loader2,
+  Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Zap, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
   ChevronLeft, ChevronRight, ArrowUp,
 } from "lucide-react";
+import { RobotIcon } from "./RobotIcon";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import type { NewsPage } from "@/lib/news-fetch";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
@@ -182,7 +183,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
         const fresh = r.items.filter((i) => !known.has(i.id));
         return fresh.length ? [...fresh, ...prevPending] : prevPending;
       });
-    }, 30_000);
+    }, 20_000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, query, fetchPage]);
@@ -246,7 +247,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
 
   return (
     <div className="space-y-5">
-      {/* Breaking hero — image-rich, auto-rotating, opens the reader */}
+      {/* Breaking hero - image-rich, auto-rotating, opens the reader */}
       {!savedOnly && breakingList.length > 0 && (
         <BreakingHero items={breakingList} now={now} onOpen={openById} />
       )}
@@ -524,7 +525,7 @@ const NewsCard = memo(function NewsCard({
         item.sentiment === "bullish" ? "bg-gradient-to-r from-mint-400/0 via-mint-400 to-mint-400/0"
         : item.sentiment === "bearish" ? "bg-gradient-to-r from-red-400/0 via-red-400 to-red-400/0"
         : "bg-gradient-to-r from-gold-400/0 via-gold-400/60 to-gold-400/0")} />
-      {/* hero image (when the feed provides one) — opens the on-site reader */}
+      {/* hero image (when the feed provides one) - opens the on-site reader */}
       {item.image && (
         <button onClick={open} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -566,7 +567,7 @@ const NewsCard = memo(function NewsCard({
       )}
       {why.err && <p className="mt-2 text-[11px] text-amber-300">{why.err}</p>}
 
-      {/* AI digest — read the whole story on-site */}
+      {/* AI digest - read the whole story on-site */}
       {digest.text && (
         <div className="mt-3 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3">
           <p className="mono text-[10px] font-semibold uppercase tracking-wide text-gold-200">AI Summary · XYZ AI</p>
@@ -581,7 +582,7 @@ const NewsCard = memo(function NewsCard({
           {digest.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookOpen className="h-3.5 w-3.5" />} AI Summary
         </button>
         <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-mint-300 transition-colors hover:bg-mint-500/10 disabled:opacity-50">
-          {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Why this matters
+          {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RobotIcon className="h-3.5 w-3.5" />} Why this matters
         </button>
         <button onClick={open} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
           <BookOpen className="h-3.5 w-3.5" /> Read
@@ -734,7 +735,7 @@ function NewsReader({
             <h1 className="font-display text-[22px] font-bold leading-tight tracking-[-0.01em] text-zinc-50 sm:text-[30px] sm:leading-[1.15]">{item.title}</h1>
             {item.summary && <p className="mt-3 text-[15px] leading-relaxed text-zinc-300">{item.summary}</p>}
 
-            {/* Advanced AI briefing — the full story on-site, with Listen + Hinglish */}
+            {/* Advanced AI briefing - the full story on-site, with Listen + Hinglish */}
             <BriefingBlock
               englishText={digest.text}
               loading={digest.loading}

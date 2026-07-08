@@ -24,7 +24,7 @@ export function LikeButton({
   const busyRef = useRef(false);
 
   // Live like count: update when anyone else likes/unlikes this post. Ignored
-  // while our own toggle is in flight — the broadcast can race the optimistic
+  // while our own toggle is in flight - the broadcast can race the optimistic
   // update and flash an off-by-one count; our POST response settles the truth.
   useRealtime({
     channel: `post:${postId}`,

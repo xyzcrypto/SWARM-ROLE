@@ -5,7 +5,7 @@ import { geminiProvider } from "./providers/gemini";
 
 // All known providers. Default order puts Gemini first so that simply adding a
 // GEMINI_API_KEY promotes it to primary (with Groq as automatic fallback); with
-// no Gemini key the chain collapses to Groq alone — identical to today.
+// no Gemini key the chain collapses to Groq alone - identical to today.
 const ALL: AiProvider[] = [groqProvider, geminiProvider];
 const DEFAULT_ORDER = "gemini,groq";
 

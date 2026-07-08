@@ -6,7 +6,7 @@ import { MarketsClient } from "@/components/MarketsClient";
 export const metadata: Metadata = {
   title: "Markets",
   description:
-    "Live Web3 market data in one place — crypto market cap, volume, BTC dominance, Fear & Greed, DeFi TVL, top protocols and chains. Powered by CoinGecko, DefiLlama and more.",
+    "Live Web3 market data in one place - crypto market cap, volume, BTC dominance, Fear & Greed, DeFi TVL, top protocols and chains. Powered by CoinGecko, DefiLlama and more.",
 };
 
 // The shell is static; all numbers are fetched live client-side (cached proxy
@@ -28,7 +28,7 @@ export default function MarketsPage() {
               Web3 <span className="text-gold-gradient">Markets</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
-              The whole market at a glance — prices, dominance, sentiment and DeFi,
+              The whole market at a glance - prices, dominance, sentiment and DeFi,
               aggregated live from CoinGecko, DefiLlama and more.
             </p>
           </div>

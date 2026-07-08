@@ -59,7 +59,7 @@ type Tab =
   | "subscribers"
   | "activity"
   | "aiusage";
-/** Integration status booleans (names only — never values/secrets). */
+/** Integration status booleans (names only - never values/secrets). */
 export type HealthFlags = { storage: boolean; realtime: boolean; upstash: boolean; email: boolean; google: boolean; github: boolean; twitter: boolean; ai: boolean };
 
 /* ----------------------- realtime hooks (admin) ----------------------- */
@@ -233,7 +233,7 @@ type DailyPoint = { day: string; count: number };
 
 /**
  * Compact single-series area chart (30 daily points). Follows the dataviz
- * rules: one series (title names it — no legend), recessive grid, thin 2px
+ * rules: one series (title names it - no legend), recessive grid, thin 2px
  * line, hover crosshair + tooltip, direct max label, sr-only data table as
  * the low-contrast relief. Hues come from --chart-* (validated per theme).
  */
@@ -308,7 +308,7 @@ function TrendChart({ title, points, tone }: { title: string; points: DailyPoint
       </div>
       {/* Accessible data table (also the contrast-relief required by the palette check). */}
       <table className="sr-only">
-        <caption>{title} — daily values, last 30 days</caption>
+        <caption>{title} - daily values, last 30 days</caption>
         <thead>
           <tr>
             <th>Day</th>
@@ -436,7 +436,7 @@ function Overview({ stats: initialStats, liveOnline, health }: { stats: Stats; l
         ))}
       </div>
 
-      {/* Integration health — booleans only, never values. */}
+      {/* Integration health - booleans only, never values. */}
       <div className="surface rounded-2xl p-5">
         <p className="text-sm text-zinc-500">Integrations</p>
         <div className="mt-3 flex flex-wrap gap-2">
@@ -466,7 +466,7 @@ function Overview({ stats: initialStats, liveOnline, health }: { stats: Stats; l
           ))}
         </div>
         <p className="mt-2 text-xs text-zinc-600">
-          Unconfigured integrations degrade gracefully — see docs/HANDOFF.md for setup.
+          Unconfigured integrations degrade gracefully - see docs/HANDOFF.md for setup.
         </p>
       </div>
     </div>
@@ -558,7 +558,7 @@ function ModerationPanel() {
     }
   }
 
-  // One-click recovery: un-hide EVERY hidden chat message (soft-deletes only —
+  // One-click recovery: un-hide EVERY hidden chat message (soft-deletes only -
   // nothing is ever destroyed, so "deleted" messages can always come back).
   async function restoreAllMessages() {
     if (!confirm("Restore ALL hidden chat messages? They will reappear for everyone.")) return;
@@ -950,7 +950,7 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
   );
 
   // Server-side search over ALL members (the server prop only carries the 50
-  // most recent — filtering that client-side hid everyone older). Debounced;
+  // most recent - filtering that client-side hid everyone older). Debounced;
   // empty query lists most-recent with cursor pagination.
   const fetchPage = useCallback(async (q: string, cursor?: string | null) => {
     const params = new URLSearchParams();
@@ -1009,7 +1009,7 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
   }
 
   // Full export from the server (the old client export only covered the rows
-  // already loaded — silently truncating to 50 on real userbases).
+  // already loaded - silently truncating to 50 on real userbases).
   function exportCsv() {
     const params = new URLSearchParams({ format: "csv" });
     const q = query.trim();
@@ -1138,7 +1138,7 @@ function StaffRow({ u, onEdit }: { u: StaffUser; onEdit: (u: StaffUser) => void 
     <li className="surface flex items-center justify-between gap-3 rounded-2xl p-4">
       <div className="min-w-0">
         <div className="truncate text-sm font-medium text-zinc-200">{u.email}</div>
-        <div className="mono text-[11px] text-zinc-600">{u.name ?? "—"}</div>
+        <div className="mono text-[11px] text-zinc-600">{u.name ?? "-"}</div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
         {u.isSuperAdmin ? (
@@ -1218,7 +1218,7 @@ function AccessPanel({ viewer }: { viewer: Viewer }) {
     <div className="space-y-6">
       {/* Who currently has access */}
       <div>
-        <h2 className="font-display text-lg font-semibold text-zinc-100">Team — who has access</h2>
+        <h2 className="font-display text-lg font-semibold text-zinc-100">Team - who has access</h2>
         <p className="mt-1 text-sm text-zinc-500">
           Everyone with staff capabilities. Super Admins (set via{" "}
           <span className="mono text-zinc-400">ADMIN_EMAILS</span>) have full access.
@@ -1230,7 +1230,7 @@ function AccessPanel({ viewer }: { viewer: Viewer }) {
             </li>
           ) : staff.length === 0 ? (
             <li className="rounded-2xl border border-line bg-white/[0.02] px-5 py-6 text-center text-sm text-zinc-500">
-              No one has staff access yet — grant some below.
+              No one has staff access yet - grant some below.
             </li>
           ) : (
             staff.map((u) => <StaffRow key={u.id} u={u} onEdit={setEditing} />)
@@ -1473,8 +1473,8 @@ function AiUsagePanel() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="font-display text-lg font-semibold text-zinc-100">XYZ AI — Usage & Cost</h2>
-        <p className="text-sm text-zinc-500">Gateway analytics (last 30 days). Metadata only — no prompt or response text is stored.</p>
+        <h2 className="font-display text-lg font-semibold text-zinc-100">XYZ AI - Usage & Cost</h2>
+        <p className="text-sm text-zinc-500">Gateway analytics (last 30 days). Metadata only - no prompt or response text is stored.</p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -1485,7 +1485,7 @@ function AiUsagePanel() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <MiniStat label="Est. cost (30d)" value={usd(t.costMicros)} hint="notional — free tiers bill $0" />
+        <MiniStat label="Est. cost (30d)" value={usd(t.costMicros)} hint="notional - free tiers bill $0" />
         <MiniStat label="Input tokens (30d)" value={t.inputTokens.toLocaleString("en-US")} hint="prompt tokens" />
         <MiniStat label="Output tokens (30d)" value={t.outputTokens.toLocaleString("en-US")} hint="completion tokens" />
       </div>
@@ -1514,11 +1514,11 @@ function AiUsagePanel() {
 
       {data.abuse.length > 0 && (
         <div className="rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-5">
-          <p className="mb-2 text-sm font-semibold text-amber-200">Abuse watch — members with the most failed calls (30d)</p>
+          <p className="mb-2 text-sm font-semibold text-amber-200">Abuse watch - members with the most failed calls (30d)</p>
           <ul className="space-y-1 text-sm text-zinc-300">
             {data.abuse.map((a, i) => (
               <li key={a.id ?? `abuse-${i}`} className="flex items-center justify-between">
-                <span className="truncate">{a.name || (a.email ? maskEmail(a.email) : "—")}</span>
+                <span className="truncate">{a.name || (a.email ? maskEmail(a.email) : "-")}</span>
                 <span className="mono text-amber-300">{a.errors} errors</span>
               </li>
             ))}
@@ -1527,7 +1527,7 @@ function AiUsagePanel() {
       )}
 
       <div className="surface rounded-2xl p-5">
-        <p className="mb-3 text-sm font-semibold text-zinc-100">Top members by AI usage (30d) — set per-user daily limits</p>
+        <p className="mb-3 text-sm font-semibold text-zinc-100">Top members by AI usage (30d) - set per-user daily limits</p>
         <div className="-mx-2 overflow-x-auto">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
@@ -1593,7 +1593,7 @@ function AiUserRow({ user }: { user: AiTopUser }) {
   return (
     <tr className="transition-colors hover:bg-white/[0.03]">
       <td className="px-2 py-2.5">
-        <span className="text-zinc-100">{user.name || (user.email ? maskEmail(user.email) : "—")}</span>
+        <span className="text-zinc-100">{user.name || (user.email ? maskEmail(user.email) : "-")}</span>
         <span className="ml-2 rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500">{user.membership}</span>
       </td>
       <td className="mono px-2 py-2.5 text-right text-zinc-300">{user.requests.toLocaleString("en-US")}</td>

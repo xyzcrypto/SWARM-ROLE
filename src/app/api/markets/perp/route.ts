@@ -18,7 +18,7 @@ async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> 
   const list: any[] = j?.protocols ?? [];
   const dexs = topBy(list, (p) => Number(p.total24h) || 0, 30).map((p: any) => ({
     slug: protocolSlug(p.slug, String(p.name ?? "")),
-    name: String(p.name ?? "—"),
+    name: String(p.name ?? "-"),
     volume24h: Number(p.total24h) || 0,
     change1d: Number(p.change_1d) || 0,
     logo: typeof p.logo === "string" ? p.logo : null,
@@ -28,7 +28,7 @@ async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> 
   return { dexs, totalVolume24h };
 }
 
-// Hyperliquid live perp markets — funding + open interest + 24h volume per coin.
+// Hyperliquid live perp markets - funding + open interest + 24h volume per coin.
 // Returns the top markets plus venue totals (used as a reliable fallback for the
 // aggregate volume/OI numbers when the DefiLlama overview is unavailable).
 async function hyperliquid(): Promise<{ markets: PerpMarket[]; totalVolume24h: number; totalOi: number }> {
@@ -44,7 +44,7 @@ async function hyperliquid(): Promise<{ markets: PerpMarket[]; totalVolume24h: n
     const universe: any[] = data?.[0]?.universe ?? [];
     const ctxs: any[] = data?.[1] ?? [];
     const rows: PerpMarket[] = universe.map((u, i) => ({
-      coin: String(u?.name ?? "—"),
+      coin: String(u?.name ?? "-"),
       price: Number(ctxs[i]?.markPx) || 0,
       funding: Number(ctxs[i]?.funding) || 0, // hourly funding fraction
       openInterest: (Number(ctxs[i]?.openInterest) || 0) * (Number(ctxs[i]?.markPx) || 0),

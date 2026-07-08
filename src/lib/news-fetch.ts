@@ -1,9 +1,9 @@
 import { NEWS_SOURCES, favicon, type NewsSource } from "@/lib/news-sources";
-import { parseFeed, categorize, sentiment, impact, relatedTokens, dedupe, type NewsItem } from "@/lib/news";
+import { parseFeed, categorize, sentiment, impact, relatedTokens, dedupe, rankNews, type NewsItem } from "@/lib/news";
 
 // Server-side news aggregation shared by the API route and the /news page (so
 // the first batch can be server-rendered for an instant first paint). Keyless.
-export const NEWS_REVALIDATE = 30; // seconds — fresher than before (was 60)
+export const NEWS_REVALIDATE = 20; // seconds - keep the feed fresh
 
 export type NewsPage = {
   items: NewsItem[];
@@ -62,6 +62,8 @@ export async function getNewsPage(opts: { category?: string; q?: string; page?: 
   let items = dedupe(batches.flat().filter((i) => i.publishedAt > 0));
   if (category !== "All") items = items.filter((i) => i.categories.includes(category));
   if (q) items = items.filter((i) => (i.title + " " + i.summary).toLowerCase().includes(q));
+  // Surface the most important news first (breaking/high-impact + fresh).
+  items = rankNews(items, Date.now());
 
   const total = items.length;
   const start = (page - 1) * pageSize;

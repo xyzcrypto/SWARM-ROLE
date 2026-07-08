@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 const MAX_TURNS = 12;
 
 // Pull the cached market + news snapshots so the assistant can answer with
-// current numbers/headlines. Best-effort with a tight timeout — if anything is
+// current numbers/headlines. Best-effort with a tight timeout - if anything is
 // slow or down we simply omit the live block (the answer still works).
 async function fetchLiveSnapshot(origin: string): Promise<LiveSnapshot> {
   const get = async (path: string) => {
@@ -68,7 +68,7 @@ const bodySchema = z.object({
     .max(40),
 });
 
-// POST /api/ai/assistant — streamed answer from "XYZ AI", grounded in the site's
+// POST /api/ai/assistant - streamed answer from "XYZ AI", grounded in the site's
 // published research. Premium-gated (admins always allowed). Streams text/plain
 // deltas the client appends live.
 export async function POST(req: Request) {
@@ -96,11 +96,11 @@ export async function POST(req: Request) {
 
     // One in-flight AI request per member (abuse/cost guard; fail-open w/o Redis).
     const slot = await acquireSlot(me.id);
-    if (!slot) return fail("One XYZ AI request at a time, please — let the current answer finish.", 429);
+    if (!slot) return fail("One XYZ AI request at a time, please - let the current answer finish.", 429);
 
     // Grounding corpus: latest published research. The assistant is open to all
     // logged-in members (incl. free), so **premium article bodies must never enter
-    // the prompt** — a free user could otherwise ask the model to reproduce paid
+    // the prompt** - a free user could otherwise ask the model to reproduce paid
     // content. For premium posts we pass only the public title + excerpt (already
     // shown on cards); free posts contribute their body.
     const rows = await prisma.post

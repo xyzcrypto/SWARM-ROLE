@@ -14,7 +14,7 @@ export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
 type ChatMsg = { role: "user" | "assistant"; content: string };
 
 const GREETING =
-  "Hi — I'm **XYZ AI**, your research assistant. Ask me anything about crypto, Web3, or XYZ Crypto's research and I'll answer with links to our articles.";
+  "Hi - I'm **XYZ AI**, your research assistant. Ask me anything about crypto, Web3, or XYZ Crypto's research and I'll answer with links to our articles.";
 
 const SUGGESTIONS = [
   "Summarise the latest research",
@@ -25,7 +25,7 @@ const SUGGESTIONS = [
 export function XyzAiWidget() {
   const { data: session, status } = useSession();
   const user = session?.user as any;
-  // Open to every signed-in member (free provider — no Premium gate).
+  // Open to every signed-in member (free provider - no Premium gate).
   const canUse = Boolean(user);
 
   const [open, setOpen] = useState(false);

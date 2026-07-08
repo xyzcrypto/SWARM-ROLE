@@ -19,7 +19,7 @@ export function estimateTokens(text: string): number {
   return Math.max(0, Math.ceil((text?.length ?? 0) / 4));
 }
 
-/** Estimated cost in integer micro-dollars (1e-6 USD) — avoids float drift in the DB. */
+/** Estimated cost in integer micro-dollars (1e-6 USD) - avoids float drift in the DB. */
 export function estimateCostUsdMicros(model: string, usage: TokenUsage): number {
   const p = PRICES[model];
   if (!p) return 0;

@@ -14,7 +14,7 @@ const schema = z.object({
   }),
 });
 
-// POST /api/push/subscribe — store this browser's push subscription for the
+// POST /api/push/subscribe - store this browser's push subscription for the
 // signed-in member (upsert by endpoint). Auth-gated.
 export async function POST(req: Request) {
   try {

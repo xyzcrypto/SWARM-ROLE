@@ -128,9 +128,9 @@ export function MarketsClient() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Tile label="Market Cap" value={compactUsd(g.data?.marketCap)} sub={g.data ? pct(g.data.mcapChange24h) : undefined} subTone={(g.data?.mcapChange24h ?? 0) >= 0 ? "up" : "down"} loading={g.loading} />
         <Tile label="24h Volume" value={compactUsd(g.data?.volume24h)} loading={g.loading} />
-        <Tile label="BTC Dom." value={g.data ? `${g.data.btcDominance.toFixed(1)}%` : "—"} sub={g.data ? `ETH ${g.data.ethDominance.toFixed(1)}%` : undefined} loading={g.loading} />
+        <Tile label="BTC Dom." value={g.data ? `${g.data.btcDominance.toFixed(1)}%` : "-"} sub={g.data ? `ETH ${g.data.ethDominance.toFixed(1)}%` : undefined} loading={g.loading} />
         <FearGreedTile fg={g.data?.fearGreed ?? null} loading={g.loading} />
-        <Tile label="ETH Gas" value={g.data?.gasGwei != null ? `${g.data.gasGwei} gwei` : "—"} icon={<Fuel className="h-3.5 w-3.5 text-gold-300" />} loading={g.loading} />
+        <Tile label="ETH Gas" value={g.data?.gasGwei != null ? `${g.data.gasGwei} gwei` : "-"} icon={<Fuel className="h-3.5 w-3.5 text-gold-300" />} loading={g.loading} />
       </div>
 
       {/* Tab panels */}
@@ -183,7 +183,7 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "rank", dir: "asc" });
   const query = q.trim().toLowerCase();
 
-  // Live price flash — fires ONLY on a real price delta between two real polls.
+  // Live price flash - fires ONLY on a real price delta between two real polls.
   const prevPrices = useRef<Map<string, number>>(new Map());
   const [flash, setFlash] = useState<Map<string, "up" | "down">>(new Map());
   useEffect(() => {
@@ -201,7 +201,7 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
     return () => clearTimeout(t);
   }, [c]);
 
-  // Any coin — not just the top 250 — via the on-demand search route (debounced).
+  // Any coin - not just the top 250 - via the on-demand search route (debounced).
   useEffect(() => {
     if (query.length < 2) { setRemote([]); setSearching(false); return; }
     setSearching(true);
@@ -233,7 +233,7 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Search any coin — name or symbol (BTC, Solana, PEPE…)"
+          placeholder="Search any coin - name or symbol (BTC, Solana, PEPE…)"
           className="w-full rounded-xl border border-white/10 bg-ink-950/60 py-2.5 pl-9 pr-9 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-2 focus:ring-gold-500/15"
         />
         {q && (
@@ -362,7 +362,7 @@ function DefiPanel({ d, loading }: { d: DefiMarket | null; loading: boolean }) {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCardMini label="Total DeFi TVL" value={compactUsd(d?.totalTvl)} accent="mint" trend={d?.tvlTrend ?? []} />
         <StatCardMini label="Stablecoin Mcap" value={compactUsd(d?.stableMcap)} accent="gold" />
-        <StatCardMini label="Tracked Protocols" value={`${d?.topProtocols?.length ? "Top 8" : "—"}`} />
+        <StatCardMini label="Tracked Protocols" value={`${d?.topProtocols?.length ? "Top 8" : "-"}`} />
       </div>
       <section className="grid gap-6 lg:grid-cols-2">
         <Panel title="Top Protocols by TVL" icon={<Activity className="h-4 w-4 text-gold-300" />}>
@@ -386,7 +386,7 @@ function PerpPanel({ p, loading }: { p: PerpResp | null; loading: boolean }) {
       <Panel title="Top Perp DEXs (24h Volume)" icon={<Activity className="h-4 w-4 text-gold-300" />}>
         <RankList loading={loading} rows={(p?.dexs ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.volume24h), change: r.change1d, href: r.slug ? `/markets/protocol/derivatives/${r.slug}` : undefined }))} />
       </Panel>
-      <Panel title="Live Perp Markets — funding & open interest (Hyperliquid)" icon={<Flame className="h-4 w-4 text-gold-300" />}>
+      <Panel title="Live Perp Markets - funding & open interest (Hyperliquid)" icon={<Flame className="h-4 w-4 text-gold-300" />}>
         {loading && !p?.markets?.length ? (
           <SkeletonRows />
         ) : (p?.markets ?? []).length ? (
