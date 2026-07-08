@@ -34,6 +34,7 @@ async function markets(): Promise<CoinRow[]> {
   if (!res.ok) throw new Error(`markets ${res.status}`);
   const data: any[] = await res.json();
   return data.map((d, i) => ({
+    id: String(d.id ?? ""),
     rank: Number(d.market_cap_rank) || i + 1,
     name: String(d.name ?? "—"),
     symbol: String(d.symbol ?? "").toUpperCase(),

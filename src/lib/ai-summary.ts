@@ -59,6 +59,36 @@ export function buildWhyMattersPrompt(title: string, summary: string): string {
 }
 
 /**
+ * A short, neutral "AI take" on a coin for its detail page — grounded in the
+ * live numbers passed in. Education only, never financial advice.
+ */
+export function buildCoinBriefPrompt(input: {
+  name: string;
+  symbol: string;
+  price: number;
+  change24h: number;
+  change7d: number;
+  rank: number | null;
+  marketCap: number;
+}): string {
+  const facts = [
+    `Coin: ${input.name} (${input.symbol})`,
+    input.rank ? `Market-cap rank: #${input.rank}` : "",
+    `Price: $${input.price}`,
+    `24h change: ${input.change24h.toFixed(2)}%`,
+    `7d change: ${input.change7d.toFixed(2)}%`,
+    `Market cap: $${Math.round(input.marketCap)}`,
+  ].filter(Boolean).join("\n");
+  return (
+    "You are XYZ AI, a crypto analyst. In 3 short sentences give a neutral, " +
+    "educational take on this coin using ONLY the live numbers below: what it is " +
+    "in one line, and what its market position + recent price action suggest. " +
+    "Plain English, no hype, NO buy/sell calls, explicitly NOT financial advice.\n\n" +
+    facts
+  );
+}
+
+/**
  * Fuller on-site digest so a reader gets the whole story WITHOUT leaving the
  * site — what happened, key names/numbers, and why it matters, in a few
  * sentences. Used by the News hub's "AI Summary" action.

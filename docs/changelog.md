@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-07 — UX P2B: coin detail pages (`/markets/[id]`)
+Every coin is now a destination page (SEO long-tail) instead of just a table row.
+- **`/markets/[id]`** (ISR shell + client live refresh): header with logo/name/symbol/rank,
+  big live price + 24h change, **freshness pill**, **7-day area chart** (SVG), **stats grid**
+  (market cap, 24h vol, 24h high/low, ATH + % from ATH, circulating/max supply, 1h/30d), a
+  **24h range bar**, an **XYZ AI take** panel (gated, education-only, grounded in the live
+  numbers), **related news** (filtered from `/api/news`), and an About blurb + official link.
+- New proxy route `GET /api/markets/coin/[id]` (CoinGecko coin + 7d market_chart, id-sanitized,
+  cached, graceful) and gated `POST /api/ai/coin-brief` (reuses the AI gateway + daily limits).
+- Coin rows in the Markets table now **link** to their detail page; `CoinRow` gains a CoinGecko
+  `id` (populated in the coins + search routes).
+- Per-coin **SEO metadata** (title/description/canonical). All USD; freshness shown honestly.
+- typecheck + lint(0) + test(207) + build green.
+
 ## 2026-07-07 — UX P2A: Markets coins table → terminal-grade
 - **Sortable columns**: click any header (#, Coin, Price, 1h/24h/7d, Market Cap, Volume) to
   sort; direction toggles, sensible default per column. Pure `sortCoins`/`defaultDirFor` in

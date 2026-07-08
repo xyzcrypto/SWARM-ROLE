@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins, LineChart, Search, Newspaper, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { PerpChartLazy as PerpChart } from "./PerpChartLazy";
 import {
@@ -266,14 +267,25 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
                 <tr key={r.symbol + r.rank} className="transition-colors hover:bg-white/[0.03]">
                   <td className="mono px-2 py-2.5 text-left text-[11px] text-zinc-600">{r.rank}</td>
                   <td className="px-2 py-2.5">
-                    <div className="flex items-center gap-2.5">
-                      {r.image && (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[22px] w-[22px] rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
-                      )}
-                      <span className="font-semibold text-zinc-100">{r.name}</span>
-                      <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
-                    </div>
+                    {r.id ? (
+                      <Link href={`/markets/${r.id}`} className="group flex items-center gap-2.5">
+                        {r.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[22px] w-[22px] rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+                        )}
+                        <span className="font-semibold text-zinc-100 transition-colors group-hover:text-gold-200">{r.name}</span>
+                        <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
+                      </Link>
+                    ) : (
+                      <div className="flex items-center gap-2.5">
+                        {r.image && (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[22px] w-[22px] rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+                        )}
+                        <span className="font-semibold text-zinc-100">{r.name}</span>
+                        <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
+                      </div>
+                    )}
                   </td>
                   <td className={cn("mono px-2 py-2.5 text-right font-medium text-zinc-100", flash.get(r.symbol) === "up" && "flash-up", flash.get(r.symbol) === "down" && "flash-down")}>{coinPrice(r.price)}</td>
                   <ChangeCell v={r.change1h} />
