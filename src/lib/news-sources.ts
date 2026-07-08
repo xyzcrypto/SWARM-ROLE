@@ -24,6 +24,13 @@ export const NEWS_SOURCES: NewsSource[] = [
   { name: "Watcher Guru", url: "https://watcher.guru/news/feed", domain: "watcher.guru" },
   { name: "CoinGape", url: "https://coingape.com/feed/", domain: "coingape.com" },
   { name: "crypto.news", url: "https://crypto.news/feed/", domain: "crypto.news" },
+  // Tech + science (broader "what's happening" coverage). Best-effort — skipped if down.
+  { name: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/index", domain: "arstechnica.com" },
+  { name: "The Verge", url: "https://www.theverge.com/rss/index.xml", domain: "theverge.com" },
+  { name: "Wired", url: "https://www.wired.com/feed/rss", domain: "wired.com" },
+  { name: "MIT Tech Review", url: "https://www.technologyreview.com/feed/", domain: "technologyreview.com" },
+  { name: "TechCrunch", url: "https://techcrunch.com/feed/", domain: "techcrunch.com" },
+  { name: "ScienceDaily", url: "https://www.sciencedaily.com/rss/top/technology.xml", domain: "sciencedaily.com" },
 ];
 
 export function favicon(domain: string): string {

@@ -877,3 +877,10 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 @media (prefers-reduced-motion: reduce) {
   .shimmer::after { animation: none; }
 }
+
+/* Skip rendering work for offscreen news cards (long feeds stay smooth).
+   The intrinsic size prevents scrollbar jump before a card is rendered. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: 0 340px;
+}

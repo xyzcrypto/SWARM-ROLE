@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Sparkles, Zap, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
-  ChevronLeft, ChevronRight, Bell, BellRing, ArrowUp,
+  ChevronLeft, ChevronRight, ArrowUp,
 } from "lucide-react";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import type { NewsPage } from "@/lib/news-fetch";
@@ -50,15 +50,12 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const [interests, setInterests] = useState<string[]>([]);
   const [customizing, setCustomizing] = useState(false);
   const [readerIndex, setReaderIndex] = useState<number | null>(null);
-  const [notify, setNotify] = useState(false); // browser notifications for breaking
   const loggedIn = Boolean(session?.user);
 
   const sentinel = useRef<HTMLDivElement>(null);
   const firstRun = useRef(true);
   const itemsRef = useRef(items);
-  const notifyRef = useRef(false);
   useEffect(() => { itemsRef.current = items; }, [items]);
-  useEffect(() => { notifyRef.current = notify; }, [notify]);
 
   // Start the "now" clock (client-only to avoid hydration drift).
   useEffect(() => {
@@ -86,6 +83,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   }, [loggedIn]);
 
   const savedUrls = useMemo(() => new Set(saved.map((s) => s.id)), [saved]);
+  const openReader = useCallback((i: number) => setReaderIndex(i), []);
 
   // Debounce the search box.
   useEffect(() => {
@@ -140,34 +138,39 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPage]);
 
+  // Load the next page (shared by infinite scroll + reader swipe-past-the-end).
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const next = page + 1;
+    const r = await fetchPage(next);
+    if (r) {
+      setItems((prev) => {
+        const seen = new Set(prev.map((i) => i.id));
+        return [...prev, ...r.items.filter((i) => !seen.has(i.id))];
+      });
+      setHasMore(Boolean(r.hasMore));
+      setPage(next);
+    } else {
+      setHasMore(false);
+    }
+    setLoadingMore(false);
+  }, [loadingMore, hasMore, page, fetchPage]);
+
   // Infinite scroll.
   useEffect(() => {
     const el = sentinel.current;
     if (!el || !hasMore || loading) return;
-    const io = new IntersectionObserver(async (entries) => {
-      if (!entries[0].isIntersecting || loadingMore) return;
-      setLoadingMore(true);
-      const next = page + 1;
-      const r = await fetchPage(next);
-      if (r) {
-        setItems((prev) => {
-          const seen = new Set(prev.map((i) => i.id));
-          return [...prev, ...r.items.filter((i) => !seen.has(i.id))];
-        });
-        setHasMore(Boolean(r.hasMore));
-        setPage(next);
-      } else {
-        setHasMore(false);
-      }
-      setLoadingMore(false);
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) loadMore();
     }, { rootMargin: "600px" });
     io.observe(el);
     return () => io.disconnect();
-  }, [hasMore, loading, loadingMore, page, fetchPage]);
+  }, [hasMore, loading, loadMore]);
 
   // Realtime: poll fast (30s) on the unfiltered view. Fresh stories are buffered
-  // for a "N new stories" pill (Twitter-style) instead of jumping the feed, and
-  // high-impact ones fire a browser notification when the tab is in the background.
+  // for a "N new stories" pill (Twitter-style) instead of jumping the feed.
+  // (Real device notifications are handled by NewsAlertsToggle / web-push.)
   useEffect(() => {
     if (category !== "All" || query) return;
     const t = setInterval(async () => {
@@ -177,12 +180,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       setPending((prevPending) => {
         const known = new Set([...itemsRef.current.map((i) => i.id), ...prevPending.map((i) => i.id)]);
         const fresh = r.items.filter((i) => !known.has(i.id));
-        if (!fresh.length) return prevPending;
-        if (notifyRef.current && document.hidden && typeof Notification !== "undefined" && Notification.permission === "granted") {
-          const hot = fresh.find((i) => i.impact === "High") ?? fresh[0];
-          try { new Notification("XYZ Crypto · News", { body: hot.title, icon: "/logo.png", tag: hot.id }); } catch { /* ignore */ }
-        }
-        return [...fresh, ...prevPending];
+        return fresh.length ? [...fresh, ...prevPending] : prevPending;
       });
     }, 30_000);
     return () => clearInterval(t);
@@ -198,15 +196,6 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     setPending([]);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }, [pending]);
-
-  // Toggle browser notifications (request permission on enable).
-  const toggleNotify = useCallback(async () => {
-    if (typeof Notification === "undefined") return;
-    if (notify) { setNotify(false); return; }
-    let perm = Notification.permission;
-    if (perm === "default") { try { perm = await Notification.requestPermission(); } catch { /* ignore */ } }
-    setNotify(perm === "granted");
-  }, [notify]);
 
   // Toggle save. Optimistic local update + DB sync (signed in) or localStorage (guest).
   const toggleSave = useCallback((item: NewsItem) => {
@@ -287,18 +276,6 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
         >
           <Bookmark className="h-4 w-4" /> Saved{saved.length ? ` (${saved.length})` : ""}
         </button>
-        <button
-          onClick={toggleNotify}
-          aria-label={notify ? "Disable breaking notifications" : "Enable breaking notifications"}
-          title="Breaking-news notifications"
-          className={cn(
-            "inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
-            notify ? "border-mint-500/40 bg-mint-500/15 text-mint-200" : "border-white/10 text-zinc-400 hover:text-zinc-100"
-          )}
-        >
-          {notify ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-          <span className="hidden sm:inline">{notify ? "Alerts on" : "Alerts"}</span>
-        </button>
         <NewsAlertsToggle loggedIn={loggedIn} />
         <span className="hidden items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 sm:flex">
           <span className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse bg-mint-400" : "bg-amber-400")} />
@@ -325,7 +302,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               key={cat}
               onClick={() => setCategory(cat)}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+                "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-all active:scale-95",
                 category === cat ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
               )}
             >
@@ -378,9 +355,9 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               index={i}
               now={now}
               bookmarked={savedUrls.has(item.id)}
-              onBookmark={() => toggleSave(item)}
-              onOpen={() => setReaderIndex(i)}
-              loggedIn={Boolean(session?.user)}
+              onBookmark={toggleSave}
+              onOpen={openReader}
+              loggedIn={loggedIn}
             />
           ))}
         </div>
@@ -420,9 +397,14 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             bookmarked={savedUrls.has(visible[readerIndex].id)}
             onBookmark={() => toggleSave(visible[readerIndex])}
             hasPrev={readerIndex > 0}
-            hasNext={readerIndex < visible.length - 1}
+            hasNext={readerIndex < visible.length - 1 || (!savedOnly && hasMore)}
             onPrev={() => setReaderIndex((i) => (i !== null && i > 0 ? i - 1 : i))}
-            onNext={() => setReaderIndex((i) => (i !== null && i < visible.length - 1 ? i + 1 : i))}
+            onNext={() => setReaderIndex((i) => {
+              if (i === null) return i;
+              // Prefetch the next page as we near the end so swipe traverses ALL news.
+              if (!savedOnly && i >= visible.length - 3) loadMore();
+              return i < visible.length - 1 ? i + 1 : i;
+            })}
             onClose={() => setReaderIndex(null)}
           />
         )}
@@ -475,12 +457,13 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
   );
 }
 
-function NewsCard({
+const NewsCard = memo(function NewsCard({
   item, index, now, bookmarked, onBookmark, onOpen, loggedIn,
 }: {
-  item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: () => void; onOpen: () => void; loggedIn: boolean;
+  item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: (item: NewsItem) => void; onOpen: (index: number) => void; loggedIn: boolean;
 }) {
   const reduce = useReducedMotion();
+  const open = () => onOpen(index);
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
 
@@ -534,7 +517,7 @@ function NewsCard({
       viewport={{ once: true, margin: "0px 0px -60px 0px" }}
       transition={{ duration: 0.4, delay: Math.min(index, 7) * 0.04, ease: [0.22, 1, 0.36, 1] }}
       whileHover={reduce ? undefined : { y: -3 }}
-      className="surface surface-hover group/card relative flex flex-col overflow-hidden rounded-2xl p-4"
+      className="surface surface-hover group/card cv-auto relative flex flex-col overflow-hidden rounded-2xl p-4"
     >
       {/* sentiment accent bar */}
       <span aria-hidden className={cn("absolute inset-x-0 top-0 h-0.5 opacity-70",
@@ -543,7 +526,7 @@ function NewsCard({
         : "bg-gradient-to-r from-gold-400/0 via-gold-400/60 to-gold-400/0")} />
       {/* hero image (when the feed provides one) — opens the on-site reader */}
       {item.image && (
-        <button onClick={onOpen} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
+        <button onClick={open} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={item.image} alt="" loading="lazy" className="h-36 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = "none")} />
         </button>
@@ -560,7 +543,7 @@ function NewsCard({
         <span className="ml-auto rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{item.category}</span>
       </div>
 
-      <button onClick={onOpen} className="group text-left">
+      <button onClick={open} className="group text-left">
         <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-zinc-100 transition-colors group-hover:text-gold-100">{item.title}</h3>
       </button>
       {item.summary && <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-zinc-500">{item.summary}</p>}
@@ -600,20 +583,20 @@ function NewsCard({
         <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-mint-300 transition-colors hover:bg-mint-500/10 disabled:opacity-50">
           {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Why this matters
         </button>
-        <button onClick={onOpen} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
+        <button onClick={open} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
           <BookOpen className="h-3.5 w-3.5" /> Read
         </button>
         <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Original source" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
         <button onClick={share} aria-label="Share" className="rounded-lg p-1.5 transition-colors hover:bg-white/5 hover:text-zinc-200"><Share2 className="h-3.5 w-3.5" /></button>
-        <button onClick={onBookmark} aria-label="Bookmark" className={cn("rounded-lg p-1.5 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "hover:text-zinc-200")}>
+        <button onClick={() => onBookmark(item)} aria-label="Bookmark" className={cn("rounded-lg p-1.5 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "hover:text-zinc-200")}>
           {bookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
         </button>
       </div>
     </motion.div>
   );
-}
+});
 
 // On-site reader: read the story (headline, image, summary, AI digest) without
 // bouncing off-site, with prev/next through the current list. Keyboard: Esc to
@@ -625,6 +608,26 @@ function NewsReader({
   hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; onClose: () => void;
 }) {
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
+  const [progress, setProgress] = useState(0); // reading scroll progress (0-1)
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  // Mobile swipe: horizontal-dominant swipe → prev/next (doesn't fight vertical scroll).
+  const onTouchStart = (e: ReactTouchEvent) => { touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd = (e: ReactTouchEvent) => {
+    const s = touchStart.current;
+    touchStart.current = null;
+    if (!s) return;
+    const dx = e.changedTouches[0].clientX - s.x;
+    const dy = e.changedTouches[0].clientY - s.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0 && hasNext) onNext();
+      else if (dx > 0 && hasPrev) onPrev();
+    }
+  };
+
+  // Reset scroll + progress to top on each story.
+  useEffect(() => { setProgress(0); if (bodyRef.current) bodyRef.current.scrollTop = 0; }, [item.id]);
 
   // Keyboard nav + scroll lock while open.
   useEffect(() => {
@@ -680,7 +683,13 @@ function NewsReader({
         transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
         className="surface relative flex w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90vh] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
       >
+        {/* reading progress */}
+        <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-transparent">
+          <div className="h-full bg-gradient-to-r from-gold-500 to-gold-300 transition-[width] duration-150" style={{ width: `${Math.round(progress * 100)}%` }} />
+        </div>
         {/* top bar */}
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
           <div className="flex min-w-0 items-center gap-2 text-[12px] text-zinc-400">
@@ -698,7 +707,16 @@ function NewsReader({
         </div>
 
         {/* scrollable body */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div
+          ref={bodyRef}
+          className="min-h-0 flex-1 overflow-y-auto"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            const max = el.scrollHeight - el.clientHeight;
+            setProgress(max > 0 ? Math.min(1, el.scrollTop / max) : 0);
+          }}
+        >
+          <motion.div key={item.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
           {item.image && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={item.image} alt="" className="h-48 w-full object-cover sm:h-60" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
@@ -713,8 +731,8 @@ function NewsReader({
               ))}
             </div>
 
-            <h1 className="font-display text-xl font-bold leading-snug text-zinc-50 sm:text-2xl">{item.title}</h1>
-            {item.summary && <p className="mt-3 text-[14px] leading-relaxed text-zinc-300">{item.summary}</p>}
+            <h1 className="font-display text-[22px] font-bold leading-tight tracking-[-0.01em] text-zinc-50 sm:text-[30px] sm:leading-[1.15]">{item.title}</h1>
+            {item.summary && <p className="mt-3 text-[15px] leading-relaxed text-zinc-300">{item.summary}</p>}
 
             {/* Advanced AI briefing — the full story on-site, with Listen + Hinglish */}
             <BriefingBlock
@@ -727,6 +745,7 @@ function NewsReader({
               className="mt-4"
             />
           </div>
+          </motion.div>
         </div>
 
         {/* action bar */}
@@ -737,6 +756,7 @@ function NewsReader({
           <button onClick={onNext} disabled={!hasNext} aria-label="Next story" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-30">
             <ChevronRight className="h-5 w-5" />
           </button>
+          <span className="text-[10px] text-zinc-600 sm:hidden">swipe ‹ ›</span>
           <button onClick={onBookmark} aria-label="Bookmark" className={cn("rounded-lg p-2 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "text-zinc-400 hover:text-zinc-100")}>
             {bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
           </button>

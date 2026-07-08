@@ -5,6 +5,44 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v3 · NW5: performance polish
+- **Fewer re-renders**: `NewsCard` is now `memo`-ized with **stable callbacks** (`onOpen(index)` /
+  `onBookmark(item)` via parent `useCallback`), so saving/bookmarking or new stories no longer
+  re-render the whole feed — only the affected card.
+- **Offscreen skipping**: cards use `content-visibility: auto` (`.cv-auto`, with intrinsic size) so a
+  long feed only paints what's visible — smoother scroll on mobile.
+- typecheck + lint(0) + test(216) + build green.
+
+## 2026-07-08 — News v3 · NW4: more trusted sources + Tech/Science
+- **+6 reputable tech/science feeds** (Ars Technica, The Verge, Wired, MIT Tech Review, TechCrunch,
+  ScienceDaily) → 25 sources total, for broader "what's happening" coverage beyond crypto.
+- New **"Tech"** + **"Science"** categories with low-priority keyword rules in `categorize()` — crypto
+  keywords still win the primary category, so only genuinely non-crypto items land in these buckets
+  (and get their own filter chips). Best-effort fetch + cross-outlet dedupe unchanged.
+- typecheck + lint(0) + test(216) + build green.
+
+## 2026-07-08 — News v3 · NW3: real-time push notifications
+- **Live cron**: push `dispatch` now runs **every ~10 min** (`vercel.json` `*/10 * * * *`, was once/day)
+  so breaking news actually reaches devices soon after it lands. Window tightened to the last 2h,
+  up to 3 sends/run; still deduped via `PushedStory` (no repeats).
+- **Single, clear control**: removed the duplicate in-app "Alerts" bell (only fired with a tab open);
+  `NewsAlertsToggle` (real web-push, works when the site is closed) is now the one notifications control.
+  The realtime "N new stories" pill stays.
+- ⚠️ Ops: notifications need **VAPID keys** in Vercel env (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`) + `CRON_SECRET`; keys generated separately and handed to the owner. Everything
+  degrades gracefully (toggle hidden, dispatch skips) until they're set + redeployed.
+- typecheck + lint(0) + test(216) + build green.
+
+## 2026-07-08 — News v3 · NW2: swipe-through-all-news + motion + typography
+- **Swipe navigation**: in the reader, a horizontal-dominant touch swipe (doesn't fight vertical
+  scroll) moves to the prev/next story; as you near the end the next page **prefetches** (shared
+  `loadMore`), so you can swipe through **all** news, not just the loaded page. Mobile "swipe ‹ ›" hint.
+- **Motion (next-level)**: a **reading-progress bar** at the top of the reader, a direction-in
+  **slide+fade** on each story change, and tactile `active:scale` on category chips. All reduced-
+  motion friendly.
+- **Typography**: larger, tighter reader headline (22/30px) + roomier body for a premium read.
+- typecheck + lint(0) + test(216) + build green.
+
 ## 2026-07-08 — News v3 · NW1: article-length briefing + voice + Hinglish
 - **Full read**: `buildNewsBriefingPrompt` rewritten to an article-length explainer (TL;DR ·
   What happened · Key details · Background · Why it matters · What to watch next, ~350-550 words);

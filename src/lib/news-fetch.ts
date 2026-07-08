@@ -17,9 +17,12 @@ export type NewsPage = {
 
 async function fetchSource(src: NewsSource): Promise<NewsItem[]> {
   try {
+    // Hard timeout so no single slow/hanging feed can stall the request (or the
+    // build-time prerender of /news). AbortSignal.timeout is available on Node 18+.
     const res = await fetch(src.url, {
       headers: { accept: "application/rss+xml, application/xml, text/xml", "user-agent": "Mozilla/5.0 (compatible; XYZCryptoNews/1.0)" },
       next: { revalidate: NEWS_REVALIDATE },
+      signal: AbortSignal.timeout(8000),
     });
     if (!res.ok) return [];
     const xml = await res.text();

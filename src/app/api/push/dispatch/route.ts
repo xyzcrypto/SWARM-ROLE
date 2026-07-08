@@ -6,11 +6,12 @@ import { pushEnabled, sendPush } from "@/lib/push";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/push/dispatch — cron entrypoint. Finds NEW high-impact news since the
-// last run and pushes it to all subscriptions. Secured by CRON_SECRET (Vercel
-// Cron sends it as a Bearer token). Idempotent + deduped via PushedStory.
-const FRESH_MS = 6 * 60 * 60 * 1000; // only alert on stories from the last 6h
-const MAX_PER_RUN = 2; // never spam more than this many pushes per run
+// GET /api/push/dispatch — cron entrypoint (runs every ~10 min). Finds NEW
+// high-impact news since the last run and pushes it to all subscriptions.
+// Secured by CRON_SECRET (Vercel Cron sends it as a Bearer token). Idempotent +
+// deduped via PushedStory, so a frequent schedule never re-sends a story.
+const FRESH_MS = 2 * 60 * 60 * 1000; // only alert on stories from the last 2h
+const MAX_PER_RUN = 3; // never send more than this many pushes per run
 
 function authorized(req: Request): boolean {
   if (!env.CRON_SECRET) return false; // disabled unless a secret is configured
