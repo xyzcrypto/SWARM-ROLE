@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown, Search } from "lucide-react";
+import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown, Search, MessageCircle } from "lucide-react";
 import { navLinks } from "@/lib/site";
 import { XYZ_CMDK_EVENT } from "@/lib/command-search";
 import { XYZ_AI_OPEN_EVENT } from "./XyzAiWidget";
@@ -176,6 +176,9 @@ export function Navbar() {
                     <MenuItem href={profileHref} icon={<User className="h-4 w-4" />} onClick={() => setMenu(false)}>
                       Profile
                     </MenuItem>
+                    <MenuItem href="/messages" icon={<MessageCircle className="h-4 w-4" />} onClick={() => setMenu(false)}>
+                      Messages
+                    </MenuItem>
                     <MenuItem href="/settings" icon={<Settings className="h-4 w-4" />} onClick={() => setMenu(false)}>
                       Settings
                     </MenuItem>
@@ -286,6 +289,9 @@ export function Navbar() {
                   </div>
                   <Link href={profileHref} onClick={() => setOpen(false)} className="btn-ghost">
                     Profile
+                  </Link>
+                  <Link href="/messages" onClick={() => setOpen(false)} className="btn-ghost">
+                    Messages
                   </Link>
                   <Link href="/settings" onClick={() => setOpen(false)} className="btn-ghost">
                     Settings

@@ -70,6 +70,11 @@ model User {
   pushSubscriptions PushSubscription[]
   aiUsage           AiUsage[]
   savedStories      SavedStory[]
+  newsLikes         NewsLike[]
+  newsComments      NewsComment[]
+  conversationsA    Conversation[]     @relation("ConvUserA")
+  conversationsB    Conversation[]     @relation("ConvUserB")
+  directMessages    DirectMessage[]    @relation("DMSender")
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -237,6 +242,67 @@ model SavedStory {
 
   @@unique([userId, url])
   @@index([userId, createdAt])
+}
+
+// A like on an external news story, keyed by its URL. One per user per story.
+model NewsLike {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  url       String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@unique([userId, url])
+  @@index([url])
+}
+
+// A comment on an external news story, keyed by its URL. `status` allows
+// hiding (moderation) without deleting.
+model NewsComment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  url       String
+  body      String
+  status    String   @default("visible") // "visible" | "hidden"
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  @@index([url, createdAt])
+}
+
+// Direct messages (Telegram-style 1-on-1). A Conversation is the canonical pair
+// of two users, stored with userAId < userBId so the pair is unique regardless
+// of who opens it. Denormalized last-message fields let the inbox render in a
+// single query (no join to messages) and drive the unread badge.
+model Conversation {
+  id            String    @id @default(cuid())
+  createdAt     DateTime  @default(now())
+  lastMessageAt DateTime  @default(now())
+  lastBody      String? // preview snippet of the most recent message
+  lastSenderId  String? // who sent the last message (for the unread calc)
+  userAId       String
+  userBId       String
+  readAAt       DateTime? // when user A last opened the thread
+  readBAt       DateTime? // when user B last opened the thread
+  userA         User      @relation("ConvUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB         User      @relation("ConvUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  messages      DirectMessage[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId, lastMessageAt])
+  @@index([userBId, lastMessageAt])
+}
+
+model DirectMessage {
+  id             String       @id @default(cuid())
+  createdAt      DateTime     @default(now())
+  body           String
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  sender         User         @relation("DMSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
 }
 
 // Post comments — auto-published, logged-in users only; `status` enables

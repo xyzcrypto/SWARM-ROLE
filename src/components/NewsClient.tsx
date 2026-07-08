@@ -13,6 +13,7 @@ import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import type { NewsPage } from "@/lib/news-fetch";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
 import { BriefingBlock } from "./BriefingBlock";
+import { NewsSocial } from "./NewsSocial";
 import { shareUrl, type SharedStory } from "@/lib/news-share";
 import { cn } from "@/lib/utils";
 
@@ -745,6 +746,7 @@ function NewsReader({
               loggedIn={loggedIn}
               className="mt-4"
             />
+            <NewsSocial url={item.url} loggedIn={loggedIn} now={now} />
           </div>
           </motion.div>
         </div>

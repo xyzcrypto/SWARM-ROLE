@@ -5,6 +5,31 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — S4-A: Direct messages (lean 1-on-1)
+- **Telegram-style DMs**: members can message each other 1-on-1. New `/messages` inbox + thread page
+  (two-pane on desktop, single-pane with back on mobile), and a **Message** button on every public
+  profile (`/u/[username]`) that opens or creates the conversation and deep-links via `?c=`.
+- **Data**: new `Conversation` (canonical user pair, denormalized last-message + per-side read marks
+  for the unread badge) + `DirectMessage` Prisma models; idempotent migration `19_direct_messages`.
+- **API** (all gated `getSessionUser` + `handleError`): `GET/POST /api/dm` (inbox + start by username),
+  `GET/POST /api/dm/[id]` (thread w/ read-marking + send, rate-limited `dm`, participant-checked 404).
+- **Navbar**: "Messages" entry in the account dropdown (desktop + mobile).
+- **Helpers**: pure `src/lib/dm.ts` (`orderPair`/`snippet`/`otherOf`/`isUnread`) with unit tests.
+- Thread polls every 5s for new messages (realtime is a later step). Graceful pre-migration.
+  ⚠️ Owner: apply migration `19_direct_messages` (`npm run db:push`) to activate.
+
+## 2026-07-08 — S3: News likes + comments
+- **Social on stories**: readers can now like a news story and leave comments, keyed by story URL
+  (mirrors the `SavedStory` per-user pattern). New `NewsLike` + `NewsComment` Prisma models, idempotent
+  migration `18_news_social`.
+- **API**: `/api/news/like` (POST toggle, rate-limited `like`) returns `{liked, count}`;
+  `/api/news/social` (GET thread + like state, POST comment <=1000 chars rate-limited `comment`,
+  DELETE own comment). All gated with `getSessionUser` + `handleError`.
+- **UI**: new `NewsSocial` component in the reader (after the briefing) - optimistic heart toggle,
+  expandable comment thread with avatars, `timeAgo`, self-delete, and Cmd/Ctrl+Enter to post.
+- **Graceful**: pre-migration the endpoints return empty/503 and the UI stays quiet. Owner action: apply
+  migration `18_news_social` (`npm run db:push`) to activate.
+
 ## 2026-07-08 — S1: product-page eyebrow animations + News pills fix
 - **Animated eyebrows**: new shared `AnimatedEyebrow` (homepage `eyebrow-glass` sweep + live mint pulse
   + `text-shine` shimmer) applied to Markets ("Live Data"), Research ("Knowledge Hub"), Community, and
