@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -83,6 +83,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   }, [loggedIn]);
 
   const savedUrls = useMemo(() => new Set(saved.map((s) => s.id)), [saved]);
+  const openReader = useCallback((i: number) => setReaderIndex(i), []);
 
   // Debounce the search box.
   useEffect(() => {
@@ -354,9 +355,9 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               index={i}
               now={now}
               bookmarked={savedUrls.has(item.id)}
-              onBookmark={() => toggleSave(item)}
-              onOpen={() => setReaderIndex(i)}
-              loggedIn={Boolean(session?.user)}
+              onBookmark={toggleSave}
+              onOpen={openReader}
+              loggedIn={loggedIn}
             />
           ))}
         </div>
@@ -456,12 +457,13 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
   );
 }
 
-function NewsCard({
+const NewsCard = memo(function NewsCard({
   item, index, now, bookmarked, onBookmark, onOpen, loggedIn,
 }: {
-  item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: () => void; onOpen: () => void; loggedIn: boolean;
+  item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: (item: NewsItem) => void; onOpen: (index: number) => void; loggedIn: boolean;
 }) {
   const reduce = useReducedMotion();
+  const open = () => onOpen(index);
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
 
@@ -515,7 +517,7 @@ function NewsCard({
       viewport={{ once: true, margin: "0px 0px -60px 0px" }}
       transition={{ duration: 0.4, delay: Math.min(index, 7) * 0.04, ease: [0.22, 1, 0.36, 1] }}
       whileHover={reduce ? undefined : { y: -3 }}
-      className="surface surface-hover group/card relative flex flex-col overflow-hidden rounded-2xl p-4"
+      className="surface surface-hover group/card cv-auto relative flex flex-col overflow-hidden rounded-2xl p-4"
     >
       {/* sentiment accent bar */}
       <span aria-hidden className={cn("absolute inset-x-0 top-0 h-0.5 opacity-70",
@@ -524,7 +526,7 @@ function NewsCard({
         : "bg-gradient-to-r from-gold-400/0 via-gold-400/60 to-gold-400/0")} />
       {/* hero image (when the feed provides one) — opens the on-site reader */}
       {item.image && (
-        <button onClick={onOpen} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
+        <button onClick={open} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={item.image} alt="" loading="lazy" className="h-36 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = "none")} />
         </button>
@@ -541,7 +543,7 @@ function NewsCard({
         <span className="ml-auto rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{item.category}</span>
       </div>
 
-      <button onClick={onOpen} className="group text-left">
+      <button onClick={open} className="group text-left">
         <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-zinc-100 transition-colors group-hover:text-gold-100">{item.title}</h3>
       </button>
       {item.summary && <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-zinc-500">{item.summary}</p>}
@@ -581,20 +583,20 @@ function NewsCard({
         <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-mint-300 transition-colors hover:bg-mint-500/10 disabled:opacity-50">
           {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Why this matters
         </button>
-        <button onClick={onOpen} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
+        <button onClick={open} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
           <BookOpen className="h-3.5 w-3.5" /> Read
         </button>
         <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Original source" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
         <button onClick={share} aria-label="Share" className="rounded-lg p-1.5 transition-colors hover:bg-white/5 hover:text-zinc-200"><Share2 className="h-3.5 w-3.5" /></button>
-        <button onClick={onBookmark} aria-label="Bookmark" className={cn("rounded-lg p-1.5 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "hover:text-zinc-200")}>
+        <button onClick={() => onBookmark(item)} aria-label="Bookmark" className={cn("rounded-lg p-1.5 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "hover:text-zinc-200")}>
           {bookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
         </button>
       </div>
     </motion.div>
   );
-}
+});
 
 // On-site reader: read the story (headline, image, summary, AI digest) without
 // bouncing off-site, with prev/next through the current list. Keyboard: Esc to

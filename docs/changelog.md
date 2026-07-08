@@ -5,6 +5,14 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v3 · NW5: performance polish
+- **Fewer re-renders**: `NewsCard` is now `memo`-ized with **stable callbacks** (`onOpen(index)` /
+  `onBookmark(item)` via parent `useCallback`), so saving/bookmarking or new stories no longer
+  re-render the whole feed — only the affected card.
+- **Offscreen skipping**: cards use `content-visibility: auto` (`.cv-auto`, with intrinsic size) so a
+  long feed only paints what's visible — smoother scroll on mobile.
+- typecheck + lint(0) + test(216) + build green.
+
 ## 2026-07-08 — News v3 · NW4: more trusted sources + Tech/Science
 - **+6 reputable tech/science feeds** (Ars Technica, The Verge, Wired, MIT Tech Review, TechCrunch,
   ScienceDaily) → 25 sources total, for broader "what's happening" coverage beyond crypto.
