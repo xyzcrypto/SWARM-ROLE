@@ -11,7 +11,7 @@ import {
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import type { NewsPage } from "@/lib/news-fetch";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
-import { MarkdownLite } from "./MarkdownLite";
+import { BriefingBlock } from "./BriefingBlock";
 import { shareUrl, type SharedStory } from "@/lib/news-share";
 import { cn } from "@/lib/utils";
 
@@ -716,17 +716,16 @@ function NewsReader({
             <h1 className="font-display text-xl font-bold leading-snug text-zinc-50 sm:text-2xl">{item.title}</h1>
             {item.summary && <p className="mt-3 text-[14px] leading-relaxed text-zinc-300">{item.summary}</p>}
 
-            {/* Advanced AI briefing — the full story, on-site */}
-            <div className="mt-4 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3.5 sm:p-4">
-              <p className="mono inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gold-200">
-                <Sparkles className="h-3.5 w-3.5" /> Full briefing · XYZ AI
-              </p>
-              {digest.loading && <p className="mt-2 inline-flex items-center gap-2 text-[13px] text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Writing the full briefing…</p>}
-              {digest.text && <MarkdownLite text={digest.text} className="mt-1" />}
-              {digest.err && <p className="mt-1.5 text-[12px] text-amber-300">{digest.err}</p>}
-              {!loggedIn && !digest.err && <p className="mt-1.5 text-[12px] text-zinc-500">Log in to read the full AI briefing of any story.</p>}
-              <p className="mt-2 text-[10px] text-zinc-600">AI-generated from the headline &amp; excerpt. Not financial advice.</p>
-            </div>
+            {/* Advanced AI briefing — the full story on-site, with Listen + Hinglish */}
+            <BriefingBlock
+              englishText={digest.text}
+              loading={digest.loading}
+              err={digest.err}
+              title={item.title}
+              summary={item.summary}
+              loggedIn={loggedIn}
+              className="mt-4"
+            />
           </div>
         </div>
 

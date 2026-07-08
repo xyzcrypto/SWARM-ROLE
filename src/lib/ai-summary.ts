@@ -59,24 +59,46 @@ export function buildWhyMattersPrompt(title: string, summary: string): string {
 }
 
 /**
- * A full, structured on-site briefing so a reader gets the WHOLE story without
- * leaving the site. Returns light markdown (a TL;DR line, a "## Key points"
- * bullet list, "## Context" and "## Why it matters" sections). Neutral,
- * education-only, never financial advice.
+ * A full, article-length on-site briefing so a reader gets the WHOLE story
+ * without leaving the site — an editor's explainer, not a blurb. Light markdown
+ * with several sections + bullets. Neutral, education-only, never financial advice.
  */
 export function buildNewsBriefingPrompt(title: string, summary: string): string {
   return (
-    "You are XYZ AI, a senior crypto news editor. Write a clear, neutral, " +
-    "well-structured briefing so a reader understands the whole story WITHOUT " +
-    "leaving the site. Use light markdown EXACTLY in this shape:\n\n" +
+    "You are XYZ AI, a senior crypto news editor. Write a COMPLETE, self-contained " +
+    "briefing (~350-550 words) so the reader fully understands the story WITHOUT " +
+    "leaving the site — an explainer, not a blurb. Be substantive but neutral. " +
+    "Use light markdown in this shape:\n\n" +
     "**TL;DR:** one crisp sentence.\n\n" +
-    "## Key points\n- 3 to 5 short bullet points with the concrete facts, names and numbers.\n\n" +
-    "## Context\nOne short paragraph of background a newcomer needs.\n\n" +
-    "## Why it matters\nOne short paragraph on the significance for the market.\n\n" +
-    "Rules: base it ONLY on the headline and excerpt below (do not invent facts); " +
-    "plain English; no hype; NO buy/sell or price calls; explicitly NOT financial advice.\n\n" +
+    "## What happened\nTwo short paragraphs explaining the news in plain English — the who, what, when and where, with the concrete facts, names and numbers.\n\n" +
+    "## Key details\n- 4 to 6 bullet points with the specifics that matter.\n\n" +
+    "## Background\nOne short paragraph of context a newcomer needs to make sense of it.\n\n" +
+    "## Why it matters\nOne short paragraph on the significance for the wider market/ecosystem.\n\n" +
+    "## What to watch next\nOne or two bullets on what could happen next or what to keep an eye on.\n\n" +
+    "Rules: base it ONLY on the headline and excerpt below — do NOT invent specific facts, " +
+    "quotes or numbers you weren't given (reason generally where the excerpt is thin, but never " +
+    "fabricate specifics); plain English; no hype; NO buy/sell or price predictions; explicitly " +
+    "NOT financial advice.\n\n" +
     `Headline: ${title}\n` +
     (summary ? `Excerpt: ${summary}\n` : "")
+  );
+}
+
+/**
+ * Translate a finished English briefing into natural Hinglish (Hindi written in
+ * Roman/Latin script, mixed with common English crypto terms) — the way a bilingual
+ * Indian creator would explain it. Preserves the markdown structure + headings.
+ */
+export function buildHinglishPrompt(text: string): string {
+  return (
+    "Rewrite the following crypto news briefing in natural HINGLISH — Hindi written " +
+    "in Roman (Latin) script, casually mixed with the usual English crypto terms " +
+    "(Bitcoin, ETF, market, price, etc.), the way a friendly bilingual Indian creator " +
+    "would explain it to a friend. Keep the SAME markdown structure and section " +
+    "headings (translate the heading text to Hinglish too). Keep it clear and neutral, " +
+    "do NOT add new facts, and keep any 'not financial advice' note. Output only the " +
+    "rewritten briefing.\n\n" +
+    text
   );
 }
 
