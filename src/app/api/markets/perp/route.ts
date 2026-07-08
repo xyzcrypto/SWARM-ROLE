@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { topBy, type PerpDex, type PerpMarket } from "@/lib/markets";
+import { topBy, protocolSlug, type PerpDex, type PerpMarket } from "@/lib/markets";
 
 // Perp DEX / derivatives snapshot: top perp DEXs by 24h volume (DefiLlama,
 // keyless) + top live perp markets by open interest with funding rates
@@ -17,6 +17,7 @@ async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> 
   const j = await res.json();
   const list: any[] = j?.protocols ?? [];
   const dexs = topBy(list, (p) => Number(p.total24h) || 0, 30).map((p: any) => ({
+    slug: protocolSlug(p.slug, String(p.name ?? "")),
     name: String(p.name ?? "—"),
     volume24h: Number(p.total24h) || 0,
     change1d: Number(p.change_1d) || 0,
@@ -67,7 +68,7 @@ export async function GET() {
   // Hyperliquid as a single entry so the "top perp DEXs" list is never empty.
   let dexs = dexRes.dexs;
   if (!dexs.length && hl.totalVolume24h > 0) {
-    dexs = [{ name: "Hyperliquid", volume24h: hl.totalVolume24h, change1d: 0, logo: null }];
+    dexs = [{ slug: "hyperliquid", name: "Hyperliquid", volume24h: hl.totalVolume24h, change1d: 0, logo: null }];
   }
   const totalVolume24h = dexRes.totalVolume24h || hl.totalVolume24h;
   const totalOi = hl.totalOi;

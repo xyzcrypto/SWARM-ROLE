@@ -59,6 +59,35 @@ export function buildWhyMattersPrompt(title: string, summary: string): string {
 }
 
 /**
+ * A short, neutral "AI take" on a DeFi protocol (perp DEX / DEX / fee protocol)
+ * for its detail page — grounded in the live numbers passed in. Education only.
+ */
+export function buildProtocolBriefPrompt(input: {
+  name: string;
+  kind: string; // "perp DEX" | "DEX" | "fee protocol"
+  metric: string; // "volume" | "fees"
+  total24h: number;
+  total7d: number;
+  change7d: number;
+  chains: string[];
+}): string {
+  const facts = [
+    `Protocol: ${input.name} (${input.kind})`,
+    `24h ${input.metric}: $${Math.round(input.total24h)}`,
+    `7d ${input.metric}: $${Math.round(input.total7d)}`,
+    `7d change: ${input.change7d.toFixed(2)}%`,
+    input.chains.length ? `Chains: ${input.chains.slice(0, 6).join(", ")}` : "",
+  ].filter(Boolean).join("\n");
+  return (
+    "You are XYZ AI, a crypto analyst. In 3 short sentences give a neutral, " +
+    "educational take on this DeFi protocol using ONLY the live numbers below: " +
+    "what it is in one line, and what its activity + trend suggest. Plain English, " +
+    "no hype, NO buy/sell or investment calls, explicitly NOT financial advice.\n\n" +
+    facts
+  );
+}
+
+/**
  * A short, neutral "AI take" on a coin for its detail page — grounded in the
  * live numbers passed in. Education only, never financial advice.
  */
