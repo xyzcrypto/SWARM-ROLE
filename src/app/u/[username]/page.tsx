@@ -11,6 +11,7 @@ import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/primitives";
 import { Reveal } from "@/components/Reveal";
 import { XIcon, GitHubIcon, TelegramIcon } from "@/components/BrandIcons";
+import { MessageButton } from "@/components/MessageButton";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
 
@@ -124,10 +125,11 @@ export default async function ProfilePage({ params }: Props) {
                     <p className="mono truncate text-sm text-zinc-500">@{user.username}</p>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {isPremium && <Badge tone="gold">★ Premium</Badge>}
                   {isAdmin && <Badge tone="mint">Team</Badge>}
                   <Badge tone="neutral">Member since {formatDate(user.createdAt)}</Badge>
+                  <MessageButton username={user.username!} />
                 </div>
               </div>
 

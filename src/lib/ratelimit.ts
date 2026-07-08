@@ -43,6 +43,7 @@ const limiters = {
   login: make(10, 60, "login"), // 10/min per account (brute-force guard)
   password: make(10, 60, "password"), // 10/min/IP - reset flow, isolated from signup
   chat: make(10, 60, "chat"), // 10 messages/min per user (community chat)
+  dm: make(20, 60, "dm"), // 20 direct messages/min per user
   notifications: make(60, 60, "notifications"), // 60/min per user - bell polling + mark-read
   contact: make(5, 60, "contact"), // 5/min/IP - contact form (own bucket so /track bursts can't 429 it)
   ai: make(15, 60, "ai"), // 15/min per user - XYZ AI assistant turns (keyed by user id)
