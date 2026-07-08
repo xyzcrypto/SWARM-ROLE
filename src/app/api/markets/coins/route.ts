@@ -16,6 +16,7 @@ async function trending(): Promise<TrendingCoin[]> {
     if (!res.ok) return [];
     const j = await res.json();
     return (j?.coins ?? []).slice(0, 8).map((c: any) => ({
+      id: String(c?.item?.id ?? ""),
       name: String(c?.item?.name ?? "—"),
       symbol: String(c?.item?.symbol ?? "").toUpperCase(),
       thumb: typeof c?.item?.thumb === "string" ? c.item.thumb : null,
@@ -53,7 +54,7 @@ export async function GET() {
   try {
     const [list, trend] = await Promise.all([markets(), trending()]);
     const byChange = [...list].filter((r) => Number.isFinite(r.change24h)).sort((a, b) => b.change24h - a.change24h);
-    const toMover = (r: CoinRow): MoverCoin => ({ name: r.name, symbol: r.symbol, image: r.image, price: r.price, change24h: r.change24h });
+    const toMover = (r: CoinRow): MoverCoin => ({ id: r.id, name: r.name, symbol: r.symbol, image: r.image, price: r.price, change24h: r.change24h });
     return NextResponse.json(
       {
         list,

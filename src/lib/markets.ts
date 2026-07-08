@@ -91,8 +91,8 @@ export type PerpMarket = { coin: string; price: number; funding: number; openInt
 export type DexProtocol = { name: string; volume24h: number; change1d: number; logo: string | null };
 export type FeeProtocol = { name: string; fees24h: number; logo: string | null };
 export type YieldPool = { project: string; symbol: string; chain: string; apy: number; tvl: number };
-export type TrendingCoin = { name: string; symbol: string; thumb: string | null; change24h: number };
-export type MoverCoin = { name: string; symbol: string; image: string | null; price: number; change24h: number };
+export type TrendingCoin = { id: string; name: string; symbol: string; thumb: string | null; change24h: number };
+export type MoverCoin = { id: string; name: string; symbol: string; image: string | null; price: number; change24h: number };
 export type CoinRow = {
   id: string; // CoinGecko id — links each row to its coin detail page
   rank: number;

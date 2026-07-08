@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-07 — UX P2C: trending / gainers / losers rows are clickable
+Every coin row across Markets now opens its detail page (P2B), not just the main table.
+- `TrendingCoin` + `MoverCoin` gain a CoinGecko `id` (populated in the coins route from
+  `search/trending` `item.id` and from the list for gainers/losers).
+- **Trending Now**, **Top Gainers (24h)** and **Top Losers (24h)** rows (Overview + Trending
+  tabs) now link to `/markets/[id]` with a hover affordance.
+- typecheck + lint(0) + test(207) + build green. (Protocol rows — perp DEXs/DEXs/fees — get
+  their own detail pages next in P2D.)
+
 ## 2026-07-07 — UX P2B: coin detail pages (`/markets/[id]`)
 Every coin is now a destination page (SEO long-tail) instead of just a table row.
 - **`/markets/[id]`** (ISR shell + client live refresh): header with logo/name/symbol/rank,
