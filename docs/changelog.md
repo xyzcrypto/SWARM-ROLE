@@ -5,6 +5,14 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v2 · NV4: more trusted real-time sources
+- **News**: +10 reputable feeds (The Block, Blockworks, DL News, CryptoSlate, CryptoPotato,
+  U.Today, AMBCrypto, Watcher Guru, CoinGape, crypto.news) → 19 sources total, broader markets/
+  DeFi/institutional coverage. All best-effort (a down feed is skipped, dedupe across outlets).
+- **Markets**: DeFiLlama already aggregates *every* perp DEX / DEX / fee protocol in real time;
+  widened the Top DEXs & Top Fees lists 8→12 for fuller (clickable) coverage.
+- typecheck + lint(0) + test(212) + build green. (NV5 saved-DB + bug fixes next.)
+
 ## 2026-07-08 — News v2 · NV3: realtime + super-fast load
 - **Instant first paint**: the `/news` page now **server-renders the first batch** (shared
   `getNewsPage` in `src/lib/news-fetch.ts`, used by both the page and the API route). NewsClient
