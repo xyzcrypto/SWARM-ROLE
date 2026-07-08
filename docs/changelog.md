@@ -5,6 +5,14 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v3 · NW4: more trusted sources + Tech/Science
+- **+6 reputable tech/science feeds** (Ars Technica, The Verge, Wired, MIT Tech Review, TechCrunch,
+  ScienceDaily) → 25 sources total, for broader "what's happening" coverage beyond crypto.
+- New **"Tech"** + **"Science"** categories with low-priority keyword rules in `categorize()` — crypto
+  keywords still win the primary category, so only genuinely non-crypto items land in these buckets
+  (and get their own filter chips). Best-effort fetch + cross-outlet dedupe unchanged.
+- typecheck + lint(0) + test(216) + build green.
+
 ## 2026-07-08 — News v3 · NW3: real-time push notifications
 - **Live cron**: push `dispatch` now runs **every ~10 min** (`vercel.json` `*/10 * * * *`, was once/day)
   so breaking news actually reaches devices soon after it lands. Window tightened to the last 2h,

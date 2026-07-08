@@ -29,7 +29,7 @@ export const CATEGORIES = [
   "Layer 1", "Layer 2", "AI", "DePIN", "RWA", "DeFi", "Perp DEX",
   "Stablecoins", "NFTs", "GameFi", "SocialFi", "Security & Exploits", "Hacks",
   "Regulations", "Airdrops", "Funding Rounds", "Partnerships", "Mainnet Launches",
-  "Token Launches", "Exchange Listings", "Governance Proposals",
+  "Token Launches", "Exchange Listings", "Governance Proposals", "Tech", "Science",
 ] as const;
 
 // Keyword → category. First match wins for the *primary* category; all matches
@@ -59,6 +59,10 @@ const CATEGORY_KEYWORDS: [string, RegExp][] = [
   ["Ethereum", /\b(ethereum|\beth\b|vitalik|erc-?20|dencun|pectra)\b/i],
   ["Bitcoin", /\b(bitcoin|\bbtc\b|satoshi|halving|ordinals)\b/i],
   ["Altcoins", /\b(altcoin|\bxrp\b|\bdoge|\bshib|\bada\b|\bbnb\b|memecoin|meme coin)\b/i],
+  // Non-crypto buckets — low priority (crypto keywords above win the primary),
+  // so general tech/science stories from those feeds classify sensibly.
+  ["Science", /\b(science|scientist|research(ers)?|study|nasa|spacex|space|astronom|physics|quantum|biotech|genome|climate|energy|fusion|neuroscience)\b/i],
+  ["Tech", /\b(tech|technology|software|hardware|startup|gadget|smartphone|iphone|android|apple|google|microsoft|chip|semiconductor|robot|\bev\b|electric vehicle|app\b|cybersecurity)\b/i],
 ];
 
 const BULLISH = /\b(?:surg|soar|rall|jump|gain|pump|rocket|breakout|approv|adopt|upgrad|explod|bullish)\w*|\b(?:ath|record high|all.?time high)\b/i;
