@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { ArrowLeft, ExternalLink, Sparkles, Loader2, Share2, Check } from "lucide-react";
-import { MarkdownLite } from "./MarkdownLite";
+import { ArrowLeft, ExternalLink, Share2, Check } from "lucide-react";
+import { BriefingBlock } from "./BriefingBlock";
 import { timeAgo } from "@/lib/news";
 import type { SharedStory } from "@/lib/news-share";
 
@@ -74,21 +74,20 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
       <h1 className="font-display text-2xl font-bold leading-tight text-zinc-50 sm:text-4xl">{story.t}</h1>
       {story.s && <p className="text-[15px] leading-relaxed text-zinc-300">{story.s}</p>}
 
-      {/* Advanced AI briefing */}
-      <div className="rounded-2xl border border-gold-500/20 bg-gold-500/[0.06] p-4 sm:p-5">
-        <p className="mono inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gold-200">
-          <Sparkles className="h-4 w-4" /> Full briefing · XYZ AI
+      {/* Advanced AI briefing — with Listen + Hinglish */}
+      <BriefingBlock
+        englishText={brief.text}
+        loading={brief.loading}
+        err={brief.err}
+        title={story.t}
+        summary={story.s ?? ""}
+        loggedIn={loggedIn}
+      />
+      {!loggedIn && (
+        <p className="text-[13px] text-zinc-400">
+          <Link href="/login" className="text-gold-200 hover:underline">Log in</Link> to read the full AI briefing of this story.
         </p>
-        {brief.loading && <p className="mt-2 inline-flex items-center gap-2 text-[14px] text-zinc-400"><Loader2 className="h-4 w-4 animate-spin" /> Writing the full briefing…</p>}
-        {brief.text && <MarkdownLite text={brief.text} className="mt-1" />}
-        {brief.err && <p className="mt-2 text-[12px] text-amber-300">{brief.err}</p>}
-        {!loggedIn && (
-          <p className="mt-2 text-[13px] text-zinc-400">
-            <Link href="/login" className="text-gold-200 hover:underline">Log in</Link> to read the full AI briefing of this story.
-          </p>
-        )}
-        <p className="mt-3 text-[10px] text-zinc-600">AI-generated from the headline &amp; excerpt. Not financial advice.</p>
-      </div>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <a href={story.u} target="_blank" rel="noopener noreferrer" className="btn-primary inline-flex items-center gap-1.5 px-4 py-2 text-sm">

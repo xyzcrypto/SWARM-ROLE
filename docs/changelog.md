@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v3 · NW1: article-length briefing + voice + Hinglish
+- **Full read**: `buildNewsBriefingPrompt` rewritten to an article-length explainer (TL;DR ·
+  What happened · Key details · Background · Why it matters · What to watch next, ~350-550 words);
+  `mode:"briefing"` maxTokens 700→1100. So anyone can read the whole story on-site.
+- **Voice assistant**: a **Listen** button (free browser `speechSynthesis`) reads the briefing
+  aloud — picks an en-US/en-IN (or hi-IN for Hinglish) voice; play/stop, stops on close/change.
+- **Hinglish**: new `mode:"hinglish"` on `why-matters` + `buildHinglishPrompt` translates the
+  briefing to Roman-script Hinglish; an **EN / Hinglish** toggle swaps the text and Listen reads
+  whichever is shown.
+- Shared `BriefingBlock` powers both the reader and the shared-story page; `MarkdownLite` extended
+  (distinct `###`, italics, ordered lists, blockquotes); pure `stripMarkdown` (`src/lib/strip-markdown.ts`,
+  unit-tested) feeds TTS.
+- typecheck + lint(0) + test(216) + build green.
+
 ## 2026-07-08 — News v2 · NV5: saved stories DB-sync + save-bug fix
 - **Bug fixed**: "Saved" used to filter the *loaded feed* by bookmarked ids, so a saved story
   vanished once it aged out of the feed. Now the Saved tab renders **stored full stories**, so
