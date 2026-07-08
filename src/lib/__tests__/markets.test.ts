@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactUsd, pct, fngLabel, topByTvl, topBy, apyFmt, toGwei, coinPrice, sortCoins, defaultDirFor, type CoinRow } from "@/lib/markets";
+import { compactUsd, pct, fngLabel, topByTvl, topBy, apyFmt, toGwei, coinPrice, sortCoins, defaultDirFor, protocolSlug, type CoinRow } from "@/lib/markets";
 
 describe("compactUsd", () => {
   it("formats trillions/billions/millions/thousands", () => {
@@ -122,5 +122,16 @@ describe("defaultDirFor", () => {
     expect(defaultDirFor("name")).toBe("asc");
     expect(defaultDirFor("price")).toBe("desc");
     expect(defaultDirFor("marketCap")).toBe("desc");
+  });
+});
+
+describe("protocolSlug", () => {
+  it("prefers the API slug (lowercased)", () => {
+    expect(protocolSlug("Hyperliquid", "Hyperliquid Perps")).toBe("hyperliquid");
+  });
+  it("derives a slug from the name when no API slug", () => {
+    expect(protocolSlug(null, "dYdX v4")).toBe("dydx-v4");
+    expect(protocolSlug("", "Uniswap  Labs!")).toBe("uniswap-labs");
+    expect(protocolSlug(undefined, "  Jupiter ")).toBe("jupiter");
   });
 });

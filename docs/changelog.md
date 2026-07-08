@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-07 — UX P2D: protocol detail pages (`/markets/protocol/[type]/[slug]`)
+The Markets protocol rows now open real detail pages, like coins do.
+- **`/markets/protocol/[type]/[slug]`** (type ∈ derivatives | dexs | fees; ISR + client
+  refresh): header (logo, name, kind), 24h volume/fees + 7d change, **freshness pill**,
+  **recent trend chart** (SVG), stats grid (24h/7d/30d/all-time), **chains** chips, an
+  **XYZ AI take** (gated, education-only), **related news**, About + official link.
+- New proxy `GET /api/markets/protocol/[type]/[slug]` (DeFiLlama `/summary/{type}/{slug}`,
+  slug-sanitized, cached, graceful) and gated `POST /api/ai/protocol-brief`.
+- `PerpDex`/`DexProtocol`/`FeeProtocol` gain a `slug` (pure `protocolSlug` helper, tested);
+  **Top Perp DEXs**, **Top DEXs** and **Top Protocols by Fees** rows now link to their page.
+- typecheck + lint(0) + test(209) + build green. (Overview's TVL-protocol/chain rows use a
+  different DeFiLlama endpoint — a possible follow-up; not linked here to avoid dead links.)
+
 ## 2026-07-07 — UX P2C: trending / gainers / losers rows are clickable
 Every coin row across Markets now opens its detail page (P2B), not just the main table.
 - `TrendingCoin` + `MoverCoin` gain a CoinGecko `id` (populated in the coins route from

@@ -384,7 +384,7 @@ function PerpPanel({ p, loading }: { p: PerpResp | null; loading: boolean }) {
         <StatCardMini label="Open Interest (Hyperliquid)" value={compactUsd(p?.totalOi)} accent="mint" />
       </div>
       <Panel title="Top Perp DEXs (24h Volume)" icon={<Activity className="h-4 w-4 text-gold-300" />}>
-        <RankList loading={loading} rows={(p?.dexs ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.volume24h), change: r.change1d }))} />
+        <RankList loading={loading} rows={(p?.dexs ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.volume24h), change: r.change1d, href: r.slug ? `/markets/protocol/derivatives/${r.slug}` : undefined }))} />
       </Panel>
       <Panel title="Live Perp Markets — funding & open interest (Hyperliquid)" icon={<Flame className="h-4 w-4 text-gold-300" />}>
         {loading && !p?.markets?.length ? (
@@ -424,10 +424,10 @@ function DexPanel({ x, loading }: { x: DexResp | null; loading: boolean }) {
   return (
     <section className="grid gap-6 lg:grid-cols-2">
       <Panel title="Top DEXs (24h Volume)" icon={<Coins className="h-4 w-4 text-gold-300" />}>
-        <RankList loading={loading} rows={(x?.dexs ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.volume24h), change: r.change1d }))} />
+        <RankList loading={loading} rows={(x?.dexs ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.volume24h), change: r.change1d, href: r.slug ? `/markets/protocol/dexs/${r.slug}` : undefined }))} />
       </Panel>
       <Panel title="Top Protocols by Fees (24h)" icon={<Percent className="h-4 w-4 text-gold-300" />}>
-        <RankList loading={loading} rows={(x?.fees ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.fees24h) }))} />
+        <RankList loading={loading} rows={(x?.fees ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.fees24h), href: r.slug ? `/markets/protocol/fees/${r.slug}` : undefined }))} />
       </Panel>
     </section>
   );
@@ -572,27 +572,36 @@ function Panel({ title, icon, children }: { title: string; icon?: React.ReactNod
   );
 }
 
-type RankRow = { name: string; logo?: string | null; meta?: string; value: string; change?: number };
+type RankRow = { name: string; logo?: string | null; meta?: string; value: string; change?: number; href?: string };
 function RankList({ rows, loading }: { rows: RankRow[]; loading?: boolean }) {
   if (loading && !rows.length) return <SkeletonRows />;
   if (!rows.length) return <p className="py-4 text-center text-sm text-zinc-500">Loading…</p>;
   return (
     <div className="divide-y divide-white/5">
-      {rows.map((r, i) => (
-        <div key={r.name + i} className="flex items-center gap-3 py-2">
-          <span className="mono w-4 shrink-0 text-[11px] text-zinc-600">{i + 1}</span>
-          {r.logo && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={r.logo} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
-          )}
-          <span className="flex-1 truncate text-sm text-zinc-200">{r.name}</span>
-          {r.meta && <span className="hidden shrink-0 text-[11px] text-zinc-500 sm:inline">{r.meta}</span>}
-          <span className="mono shrink-0 text-right text-sm text-zinc-300">{r.value}</span>
-          {r.change !== undefined && (
-            <span className={cn("mono w-16 shrink-0 text-right text-[11px]", r.change >= 0 ? "text-mint-400" : "text-red-400")}>{pct(r.change, 1)}</span>
-          )}
-        </div>
-      ))}
+      {rows.map((r, i) => {
+        const inner = (
+          <>
+            <span className="mono w-4 shrink-0 text-[11px] text-zinc-600">{i + 1}</span>
+            {r.logo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={r.logo} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+            )}
+            <span className="flex-1 truncate text-sm text-zinc-200 group-hover:text-gold-200">{r.name}</span>
+            {r.meta && <span className="hidden shrink-0 text-[11px] text-zinc-500 sm:inline">{r.meta}</span>}
+            <span className="mono shrink-0 text-right text-sm text-zinc-300">{r.value}</span>
+            {r.change !== undefined && (
+              <span className={cn("mono w-16 shrink-0 text-right text-[11px]", r.change >= 0 ? "text-mint-400" : "text-red-400")}>{pct(r.change, 1)}</span>
+            )}
+          </>
+        );
+        return r.href ? (
+          <Link key={r.name + i} href={r.href} className="group flex items-center gap-3 py-2 transition-colors hover:bg-white/[0.03]">
+            {inner}
+          </Link>
+        ) : (
+          <div key={r.name + i} className="flex items-center gap-3 py-2">{inner}</div>
+        );
+      })}
     </div>
   );
 }

@@ -86,10 +86,10 @@ export function toGwei(weiHexOrNum: string | number | null | undefined): string 
 }
 
 // --- Extra section types (Perp DEX, DEX volume, fees, yields, coins) ---
-export type PerpDex = { name: string; volume24h: number; change1d: number; logo: string | null };
+export type PerpDex = { slug: string; name: string; volume24h: number; change1d: number; logo: string | null };
 export type PerpMarket = { coin: string; price: number; funding: number; openInterest: number };
-export type DexProtocol = { name: string; volume24h: number; change1d: number; logo: string | null };
-export type FeeProtocol = { name: string; fees24h: number; logo: string | null };
+export type DexProtocol = { slug: string; name: string; volume24h: number; change1d: number; logo: string | null };
+export type FeeProtocol = { slug: string; name: string; fees24h: number; logo: string | null };
 export type YieldPool = { project: string; symbol: string; chain: string; apy: number; tvl: number };
 export type TrendingCoin = { id: string; name: string; symbol: string; thumb: string | null; change24h: number };
 export type MoverCoin = { id: string; name: string; symbol: string; image: string | null; price: number; change24h: number };
@@ -135,4 +135,13 @@ export function sortCoins(rows: CoinRow[], key: SortKey, dir: SortDir): CoinRow[
 /** The sensible default sort direction when a user first clicks a column. */
 export function defaultDirFor(key: SortKey): SortDir {
   return key === "rank" || key === "name" ? "asc" : "desc";
+}
+
+/** DeFiLlama protocol slug: prefer the API's own slug, else derive one from the
+ *  name (lowercase, spaces/punctuation → single dashes). Used to link protocol
+ *  rows to their detail page. */
+export function protocolSlug(apiSlug: unknown, name: string): string {
+  const s = typeof apiSlug === "string" ? apiSlug.trim().toLowerCase() : "";
+  if (s) return s;
+  return String(name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
