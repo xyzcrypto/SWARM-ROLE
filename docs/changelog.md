@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — S5: Profile polish (desktop name + interactive stats)
+- **Desktop name fix**: profile display name is larger and tighter on desktop (`sm:text-4xl lg:text-[2.6rem]`,
+  tracking-tight, better baseline next to the avatar); handle sits a touch bigger with cleaner spacing.
+- **Interactive stats**: new client `ProfileStats` — the Posts / Comments / Likes numbers **count up** on
+  load (ease-out, `tabular-nums`, static when `prefers-reduced-motion`), and each card's icon lifts + scales
+  on hover.
+- **Share**: new `CopyLinkButton` next to Message copies the profile URL with a brief "Copied" state.
+- No data/behaviour change; server page just hands the three counts to the client stat row.
+
 ## 2026-07-08 — S4-A: Direct messages (lean 1-on-1)
 - **Telegram-style DMs**: members can message each other 1-on-1. New `/messages` inbox + thread page
   (two-pane on desktop, single-pane with back on mobile), and a **Message** button on every public
