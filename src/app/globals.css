@@ -857,3 +857,23 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 @media (prefers-reduced-motion: reduce) {
   .flash-up, .flash-down { animation: none; }
 }
+
+/* Shimmer skeleton (News v2). Respects reduced motion. */
+@keyframes xyzShimmer {
+  100% { transform: translateX(100%); }
+}
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+.shimmer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  animation: xyzShimmer 1.5s infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer::after { animation: none; }
+}

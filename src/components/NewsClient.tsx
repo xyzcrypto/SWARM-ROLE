@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Sparkles, Zap, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
@@ -176,20 +177,17 @@ export function NewsClient() {
     if (savedOnly) list = list.filter((i) => bookmarks.has(i.id));
     return list;
   }, [items, savedOnly, bookmarks, category, interests]);
-  const breaking = useMemo(() => items.find((i) => i.impact === "High"), [items]);
+  const breakingList = useMemo(() => visible.filter((i) => i.impact === "High").slice(0, 5), [visible]);
+  const openById = useCallback((id: string) => {
+    const idx = visible.findIndex((v) => v.id === id);
+    if (idx >= 0) setReaderIndex(idx);
+  }, [visible]);
 
   return (
     <div className="space-y-5">
-      {/* Breaking banner */}
-      {breaking && !savedOnly && (
-        <a href={breaking.url} target="_blank" rel="noopener noreferrer"
-          className="group flex items-center gap-3 rounded-2xl border border-red-500/30 bg-red-500/[0.07] px-4 py-3 transition-colors hover:bg-red-500/[0.12]">
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-red-500/20 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-red-300">
-            <Zap className="h-3 w-3" /> Breaking
-          </span>
-          <span className="line-clamp-1 flex-1 text-sm font-medium text-zinc-100">{breaking.title}</span>
-          <span className="mono hidden shrink-0 text-[11px] text-zinc-500 sm:inline">{now ? timeAgo(breaking.publishedAt, now) : ""}</span>
-        </a>
+      {/* Breaking hero — image-rich, auto-rotating, opens the reader */}
+      {!savedOnly && breakingList.length > 0 && (
+        <BreakingHero items={breakingList} now={now} onOpen={openById} />
       )}
 
       {/* Search + saved toggle */}
@@ -270,7 +268,7 @@ export function NewsClient() {
       {/* Feed */}
       {loading ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="h-40 animate-pulse rounded-2xl bg-white/5" />)}
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="shimmer h-44 rounded-2xl bg-white/[0.04]" />)}
         </div>
       ) : visible.length ? (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -278,6 +276,7 @@ export function NewsClient() {
             <NewsCard
               key={item.id}
               item={item}
+              index={i}
               now={now}
               bookmarked={bookmarks.has(item.id)}
               onBookmark={() => toggleBookmark(item.id)}
@@ -312,20 +311,23 @@ export function NewsClient() {
         />
       )}
 
-      {readerIndex !== null && visible[readerIndex] && (
-        <NewsReader
-          item={visible[readerIndex]}
-          now={now}
-          loggedIn={loggedIn}
-          bookmarked={bookmarks.has(visible[readerIndex].id)}
-          onBookmark={() => toggleBookmark(visible[readerIndex].id)}
-          hasPrev={readerIndex > 0}
-          hasNext={readerIndex < visible.length - 1}
-          onPrev={() => setReaderIndex((i) => (i !== null && i > 0 ? i - 1 : i))}
-          onNext={() => setReaderIndex((i) => (i !== null && i < visible.length - 1 ? i + 1 : i))}
-          onClose={() => setReaderIndex(null)}
-        />
-      )}
+      <AnimatePresence>
+        {readerIndex !== null && visible[readerIndex] && (
+          <NewsReader
+            key="news-reader"
+            item={visible[readerIndex]}
+            now={now}
+            loggedIn={loggedIn}
+            bookmarked={bookmarks.has(visible[readerIndex].id)}
+            onBookmark={() => toggleBookmark(visible[readerIndex].id)}
+            hasPrev={readerIndex > 0}
+            hasNext={readerIndex < visible.length - 1}
+            onPrev={() => setReaderIndex((i) => (i !== null && i > 0 ? i - 1 : i))}
+            onNext={() => setReaderIndex((i) => (i !== null && i < visible.length - 1 ? i + 1 : i))}
+            onClose={() => setReaderIndex(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -375,10 +377,11 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
 }
 
 function NewsCard({
-  item, now, bookmarked, onBookmark, onOpen, loggedIn,
+  item, index, now, bookmarked, onBookmark, onOpen, loggedIn,
 }: {
-  item: NewsItem; now: number; bookmarked: boolean; onBookmark: () => void; onOpen: () => void; loggedIn: boolean;
+  item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: () => void; onOpen: () => void; loggedIn: boolean;
 }) {
+  const reduce = useReducedMotion();
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
 
@@ -426,7 +429,19 @@ function NewsCard({
   const impactCls = item.impact === "High" ? "text-red-300 ring-red-500/30" : item.impact === "Medium" ? "text-amber-300 ring-amber-500/30" : "text-zinc-400 ring-white/10";
 
   return (
-    <div className="surface surface-hover flex flex-col rounded-2xl p-4">
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 14 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+      transition={{ duration: 0.4, delay: Math.min(index, 7) * 0.04, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={reduce ? undefined : { y: -3 }}
+      className="surface surface-hover group/card relative flex flex-col overflow-hidden rounded-2xl p-4"
+    >
+      {/* sentiment accent bar */}
+      <span aria-hidden className={cn("absolute inset-x-0 top-0 h-0.5 opacity-70",
+        item.sentiment === "bullish" ? "bg-gradient-to-r from-mint-400/0 via-mint-400 to-mint-400/0"
+        : item.sentiment === "bearish" ? "bg-gradient-to-r from-red-400/0 via-red-400 to-red-400/0"
+        : "bg-gradient-to-r from-gold-400/0 via-gold-400/60 to-gold-400/0")} />
       {/* hero image (when the feed provides one) — opens the on-site reader */}
       {item.image && (
         <button onClick={onOpen} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
@@ -497,7 +512,7 @@ function NewsCard({
           {bookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
         </button>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -557,8 +572,13 @@ function NewsReader({
   const impactCls = item.impact === "High" ? "text-red-300 ring-red-500/30" : item.impact === "Medium" ? "text-amber-300 ring-amber-500/30" : "text-zinc-400 ring-white/10";
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-stretch justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label={item.title}>
-      <div
+    <motion.div
+      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-[60] flex items-stretch justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label={item.title}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.98 }}
+        transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
         className="surface relative flex w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90vh] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
       >
@@ -629,7 +649,100 @@ function NewsReader({
             Read original <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+// Image-rich, auto-rotating "Breaking" hero for high-impact stories. Click opens
+// the on-site reader. Respects reduced motion.
+function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; onOpen: (id: string) => void }) {
+  const reduce = useReducedMotion();
+  const [idx, setIdx] = useState(0);
+  const [paused, setPaused] = useState(false);
+  const active = items[idx % items.length];
+
+  useEffect(() => { setIdx(0); }, [items.length]);
+  useEffect(() => {
+    if (items.length < 2 || paused) return;
+    const t = setInterval(() => setIdx((i) => (i + 1) % items.length), 6500);
+    return () => clearInterval(t);
+  }, [items.length, paused]);
+
+  if (!active) return null;
+  const sentTone = active.sentiment === "bullish" ? "text-mint-300" : active.sentiment === "bearish" ? "text-red-300" : "text-zinc-300";
+
+  return (
+    <div
+      className="group relative h-56 cursor-pointer overflow-hidden rounded-2xl border border-white/10 sm:h-64"
+      onClick={() => onOpen(active.id)}
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      role="button"
+      aria-label={`Breaking: ${active.title}`}
+    >
+      <AnimatePresence mode="popLayout">
+        <motion.div
+          key={active.id}
+          initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.06 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduce ? 0.2 : 0.8, ease: "easeOut" }}
+          className="absolute inset-0"
+        >
+          {active.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={active.image} alt="" className="h-full w-full object-cover" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
+          ) : (
+            <div className="h-full w-full bg-gradient-to-br from-red-500/25 via-ink-950 to-ink-950" />
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* legibility gradient */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/25" />
+
+      {/* content */}
+      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+        <div className="mb-2 flex items-center gap-2 text-[11px]">
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-lg shadow-red-500/20">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
+            </span>
+            Breaking
+          </span>
+          <span className="font-medium text-zinc-200">{active.source}</span>
+          <span className="text-zinc-400">·</span>
+          <span className="mono text-zinc-400">{now ? timeAgo(active.publishedAt, now) : ""}</span>
+          <span className={cn("ml-1 hidden font-medium sm:inline", sentTone)}>{active.sentiment === "neutral" ? "" : active.sentiment}</span>
+        </div>
+        <h2 className="max-w-3xl font-display text-lg font-bold leading-snug text-white drop-shadow sm:text-2xl">
+          <span className="bg-gradient-to-r from-white to-white bg-[length:0%_2px] bg-left-bottom bg-no-repeat transition-[background-size] duration-300 group-hover:bg-[length:100%_2px]">{active.title}</span>
+        </h2>
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {active.tokens.slice(0, 4).map((t) => (
+            <span key={t} className="mono rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] text-white backdrop-blur-sm">{t}</span>
+          ))}
+          <span className="ml-1 inline-flex items-center gap-1 text-[11px] font-medium text-gold-200 opacity-0 transition-opacity group-hover:opacity-100">
+            Read on XYZ <BookOpen className="h-3 w-3" />
+          </span>
+        </div>
       </div>
+
+      {/* progress dots */}
+      {items.length > 1 && (
+        <div className="absolute right-3 top-3 flex gap-1.5">
+          {items.map((it, i) => (
+            <button
+              key={it.id}
+              onClick={(e) => { e.stopPropagation(); setIdx(i); }}
+              aria-label={`Story ${i + 1}`}
+              className={cn("h-1.5 rounded-full transition-all", i === idx % items.length ? "w-5 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70")}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

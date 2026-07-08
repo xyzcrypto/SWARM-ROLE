@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v2 · NV2: futuristic UI + motion + image breaking
+- **Breaking hero** (`BreakingHero`): image-rich, **auto-rotating** through the top high-impact
+  stories with a live pulse badge, source/time, tokens, progress dots, hover "Read on XYZ" — and
+  it **opens the on-site reader** (no more off-site bounce). Pauses on hover.
+- **Motion** (framer-motion): staggered card entrance on scroll, subtle hover-lift, animated
+  reader open/close (AnimatePresence). All gated by `prefers-reduced-motion`.
+- **Polish**: per-card sentiment accent bar, animated title underline on the hero, **shimmer**
+  skeletons (replaces the flat pulse).
+- typecheck + lint(0) + test(212) + build green. (NV3 realtime + speed next.)
+
 ## 2026-07-08 — News v2 · NV1: full on-site read + share-our-link + advanced AI
 - **Advanced AI briefing** (`mode: "briefing"` on `why-matters`): a full, structured read —
   **TL;DR + Key points + Context + Why it matters** in light markdown (~full page), rendered by
