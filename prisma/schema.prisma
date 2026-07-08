@@ -69,6 +69,7 @@ model User {
   adminAudits       AdminAudit[]        @relation("AdminAuditActor")
   pushSubscriptions PushSubscription[]
   aiUsage           AiUsage[]
+  savedStories      SavedStory[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -215,6 +216,27 @@ model PostLike {
   userId String
 
   @@unique([postId, userId])
+}
+
+// Saved news stories — one per user per external story URL. Stores enough of the
+// story to render the "Saved" tab without re-fetching the live feed (which ages
+// out), so saves persist across devices + time. Toggled via /api/news/saved.
+model SavedStory {
+  id          String    @id @default(cuid())
+  createdAt   DateTime  @default(now())
+  url         String
+  title       String
+  summary     String?
+  source      String?
+  image       String?
+  category    String?
+  publishedAt DateTime?
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([userId, url])
+  @@index([userId, createdAt])
 }
 
 // Post comments — auto-published, logged-in users only; `status` enables
