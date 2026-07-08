@@ -61,7 +61,7 @@ export default function PremiumPage() {
               <Reveal delay={1}>
                 <h1 className="mt-5 font-display text-display-lg font-semibold tracking-tight text-zinc-50">
                   Premium Plans
-                  <span className="mt-1 block text-gold-gradient">
+                  <span className="mt-1 block text-shine">
                     Coming Soon{" "}
                     <AnimatedEmoji emoji="🚀" variant="launch" className="align-middle text-[0.9em]" />
                   </span>

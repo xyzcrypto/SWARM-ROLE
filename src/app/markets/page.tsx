@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MarketsClient } from "@/components/MarketsClient";
+import { AnimatedEyebrow } from "@/components/AnimatedEyebrow";
 
 export const metadata: Metadata = {
   title: "Markets",
@@ -21,11 +22,9 @@ export default function MarketsPage() {
         <div className="mesh" />
         <div className="relative mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">
-              Live Data
-            </p>
+            <AnimatedEyebrow>Live Data</AnimatedEyebrow>
             <h1 className="mt-3 font-display text-4xl font-bold text-zinc-50 sm:text-6xl">
-              Web3 <span className="text-gold-gradient">Markets</span>
+              Web3 <span className="text-shine">Markets</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
               The whole market at a glance - prices, dominance, sentiment and DeFi,

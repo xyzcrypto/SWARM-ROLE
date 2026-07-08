@@ -79,11 +79,14 @@ export default async function CommunityPage() {
         <div className="relative mx-auto flex max-w-3xl flex-col px-4 pb-10 sm:px-6 lg:px-8">
           <div className="mb-6 text-center">
             <span className="eyebrow eyebrow-glass text-gold-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
-              <span className="mono text-[11px] uppercase tracking-[0.18em]">Community</span>
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
+              </span>
+              <span className="mono text-shine text-[11px] uppercase tracking-[0.18em]">Community</span>
             </span>
             <h1 className="mt-2 font-display text-3xl font-bold text-zinc-50 sm:text-4xl">
-              The <span className="text-gold-gradient">XYZ Lounge</span>
+              The <span className="text-shine">XYZ Lounge</span>
             </h1>
             <p className="mt-2 text-sm text-zinc-500">
               Markets, alpha, airdrops &amp; Web3 - live with the community.

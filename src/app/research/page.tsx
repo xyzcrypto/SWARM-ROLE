@@ -5,6 +5,7 @@ import { ResearchGrid } from "@/components/ResearchGrid";
 import { prisma } from "@/lib/prisma";
 import { readingTime } from "@/lib/utils";
 import { POST_CARD_SELECT } from "@/lib/post-select";
+import { AnimatedEyebrow } from "@/components/AnimatedEyebrow";
 
 export const metadata: Metadata = {
   title: "Research Hub",
@@ -44,11 +45,9 @@ export default async function ResearchPage() {
         <div className="mesh" />
         <div className="relative mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">
-              Knowledge Hub
-            </p>
+            <AnimatedEyebrow>Knowledge Hub</AnimatedEyebrow>
             <h1 className="mt-3 font-display text-4xl font-bold text-zinc-50 sm:text-6xl">
-              Web3 <span className="text-gold-gradient">Research & Insights</span>
+              Web3 <span className="text-shine">Research & Insights</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
               Deep dives, market intelligence and educational content, written
