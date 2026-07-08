@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v3 · NW2: swipe-through-all-news + motion + typography
+- **Swipe navigation**: in the reader, a horizontal-dominant touch swipe (doesn't fight vertical
+  scroll) moves to the prev/next story; as you near the end the next page **prefetches** (shared
+  `loadMore`), so you can swipe through **all** news, not just the loaded page. Mobile "swipe ‹ ›" hint.
+- **Motion (next-level)**: a **reading-progress bar** at the top of the reader, a direction-in
+  **slide+fade** on each story change, and tactile `active:scale` on category chips. All reduced-
+  motion friendly.
+- **Typography**: larger, tighter reader headline (22/30px) + roomier body for a premium read.
+- typecheck + lint(0) + test(216) + build green.
+
 ## 2026-07-08 — News v3 · NW1: article-length briefing + voice + Hinglish
 - **Full read**: `buildNewsBriefingPrompt` rewritten to an article-length explainer (TL;DR ·
   What happened · Key details · Background · Why it matters · What to watch next, ~350-550 words);

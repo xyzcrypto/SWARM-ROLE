@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -140,30 +140,35 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetchPage]);
 
+  // Load the next page (shared by infinite scroll + reader swipe-past-the-end).
+  const loadMore = useCallback(async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    const next = page + 1;
+    const r = await fetchPage(next);
+    if (r) {
+      setItems((prev) => {
+        const seen = new Set(prev.map((i) => i.id));
+        return [...prev, ...r.items.filter((i) => !seen.has(i.id))];
+      });
+      setHasMore(Boolean(r.hasMore));
+      setPage(next);
+    } else {
+      setHasMore(false);
+    }
+    setLoadingMore(false);
+  }, [loadingMore, hasMore, page, fetchPage]);
+
   // Infinite scroll.
   useEffect(() => {
     const el = sentinel.current;
     if (!el || !hasMore || loading) return;
-    const io = new IntersectionObserver(async (entries) => {
-      if (!entries[0].isIntersecting || loadingMore) return;
-      setLoadingMore(true);
-      const next = page + 1;
-      const r = await fetchPage(next);
-      if (r) {
-        setItems((prev) => {
-          const seen = new Set(prev.map((i) => i.id));
-          return [...prev, ...r.items.filter((i) => !seen.has(i.id))];
-        });
-        setHasMore(Boolean(r.hasMore));
-        setPage(next);
-      } else {
-        setHasMore(false);
-      }
-      setLoadingMore(false);
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) loadMore();
     }, { rootMargin: "600px" });
     io.observe(el);
     return () => io.disconnect();
-  }, [hasMore, loading, loadingMore, page, fetchPage]);
+  }, [hasMore, loading, loadMore]);
 
   // Realtime: poll fast (30s) on the unfiltered view. Fresh stories are buffered
   // for a "N new stories" pill (Twitter-style) instead of jumping the feed, and
@@ -325,7 +330,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               key={cat}
               onClick={() => setCategory(cat)}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+                "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-all active:scale-95",
                 category === cat ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
               )}
             >
@@ -420,9 +425,14 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             bookmarked={savedUrls.has(visible[readerIndex].id)}
             onBookmark={() => toggleSave(visible[readerIndex])}
             hasPrev={readerIndex > 0}
-            hasNext={readerIndex < visible.length - 1}
+            hasNext={readerIndex < visible.length - 1 || (!savedOnly && hasMore)}
             onPrev={() => setReaderIndex((i) => (i !== null && i > 0 ? i - 1 : i))}
-            onNext={() => setReaderIndex((i) => (i !== null && i < visible.length - 1 ? i + 1 : i))}
+            onNext={() => setReaderIndex((i) => {
+              if (i === null) return i;
+              // Prefetch the next page as we near the end so swipe traverses ALL news.
+              if (!savedOnly && i >= visible.length - 3) loadMore();
+              return i < visible.length - 1 ? i + 1 : i;
+            })}
             onClose={() => setReaderIndex(null)}
           />
         )}
@@ -625,6 +635,26 @@ function NewsReader({
   hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; onClose: () => void;
 }) {
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
+  const [progress, setProgress] = useState(0); // reading scroll progress (0-1)
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+
+  // Mobile swipe: horizontal-dominant swipe → prev/next (doesn't fight vertical scroll).
+  const onTouchStart = (e: ReactTouchEvent) => { touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  const onTouchEnd = (e: ReactTouchEvent) => {
+    const s = touchStart.current;
+    touchStart.current = null;
+    if (!s) return;
+    const dx = e.changedTouches[0].clientX - s.x;
+    const dy = e.changedTouches[0].clientY - s.y;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0 && hasNext) onNext();
+      else if (dx > 0 && hasPrev) onPrev();
+    }
+  };
+
+  // Reset scroll + progress to top on each story.
+  useEffect(() => { setProgress(0); if (bodyRef.current) bodyRef.current.scrollTop = 0; }, [item.id]);
 
   // Keyboard nav + scroll lock while open.
   useEffect(() => {
@@ -680,7 +710,13 @@ function NewsReader({
         transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
         className="surface relative flex w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90vh] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
       >
+        {/* reading progress */}
+        <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-transparent">
+          <div className="h-full bg-gradient-to-r from-gold-500 to-gold-300 transition-[width] duration-150" style={{ width: `${Math.round(progress * 100)}%` }} />
+        </div>
         {/* top bar */}
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
           <div className="flex min-w-0 items-center gap-2 text-[12px] text-zinc-400">
@@ -698,7 +734,16 @@ function NewsReader({
         </div>
 
         {/* scrollable body */}
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div
+          ref={bodyRef}
+          className="min-h-0 flex-1 overflow-y-auto"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            const max = el.scrollHeight - el.clientHeight;
+            setProgress(max > 0 ? Math.min(1, el.scrollTop / max) : 0);
+          }}
+        >
+          <motion.div key={item.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
           {item.image && (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={item.image} alt="" className="h-48 w-full object-cover sm:h-60" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
@@ -713,8 +758,8 @@ function NewsReader({
               ))}
             </div>
 
-            <h1 className="font-display text-xl font-bold leading-snug text-zinc-50 sm:text-2xl">{item.title}</h1>
-            {item.summary && <p className="mt-3 text-[14px] leading-relaxed text-zinc-300">{item.summary}</p>}
+            <h1 className="font-display text-[22px] font-bold leading-tight tracking-[-0.01em] text-zinc-50 sm:text-[30px] sm:leading-[1.15]">{item.title}</h1>
+            {item.summary && <p className="mt-3 text-[15px] leading-relaxed text-zinc-300">{item.summary}</p>}
 
             {/* Advanced AI briefing — the full story on-site, with Listen + Hinglish */}
             <BriefingBlock
@@ -727,6 +772,7 @@ function NewsReader({
               className="mt-4"
             />
           </div>
+          </motion.div>
         </div>
 
         {/* action bar */}
@@ -737,6 +783,7 @@ function NewsReader({
           <button onClick={onNext} disabled={!hasNext} aria-label="Next story" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-30">
             <ChevronRight className="h-5 w-5" />
           </button>
+          <span className="text-[10px] text-zinc-600 sm:hidden">swipe ‹ ›</span>
           <button onClick={onBookmark} aria-label="Bookmark" className={cn("rounded-lg p-2 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "text-zinc-400 hover:text-zinc-100")}>
             {bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
           </button>
