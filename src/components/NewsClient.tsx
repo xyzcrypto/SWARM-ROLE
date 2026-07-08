@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Sparkles, Zap, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
+  ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
@@ -29,6 +30,7 @@ export function NewsClient() {
   const [bookmarks, setBookmarks] = useState<Set<string>>(new Set());
   const [interests, setInterests] = useState<string[]>([]);
   const [customizing, setCustomizing] = useState(false);
+  const [readerIndex, setReaderIndex] = useState<number | null>(null);
   const loggedIn = Boolean(session?.user);
 
   const sentinel = useRef<HTMLDivElement>(null);
@@ -256,13 +258,14 @@ export function NewsClient() {
         </div>
       ) : visible.length ? (
         <div className="grid gap-4 sm:grid-cols-2">
-          {visible.map((item) => (
+          {visible.map((item, i) => (
             <NewsCard
               key={item.id}
               item={item}
               now={now}
               bookmarked={bookmarks.has(item.id)}
               onBookmark={() => toggleBookmark(item.id)}
+              onOpen={() => setReaderIndex(i)}
               loggedIn={Boolean(session?.user)}
             />
           ))}
@@ -290,6 +293,21 @@ export function NewsClient() {
           initial={interests}
           onClose={() => setCustomizing(false)}
           onSave={(next) => { saveInterests(next); setCustomizing(false); }}
+        />
+      )}
+
+      {readerIndex !== null && visible[readerIndex] && (
+        <NewsReader
+          item={visible[readerIndex]}
+          now={now}
+          loggedIn={loggedIn}
+          bookmarked={bookmarks.has(visible[readerIndex].id)}
+          onBookmark={() => toggleBookmark(visible[readerIndex].id)}
+          hasPrev={readerIndex > 0}
+          hasNext={readerIndex < visible.length - 1}
+          onPrev={() => setReaderIndex((i) => (i !== null && i > 0 ? i - 1 : i))}
+          onNext={() => setReaderIndex((i) => (i !== null && i < visible.length - 1 ? i + 1 : i))}
+          onClose={() => setReaderIndex(null)}
         />
       )}
     </div>
@@ -341,9 +359,9 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
 }
 
 function NewsCard({
-  item, now, bookmarked, onBookmark, loggedIn,
+  item, now, bookmarked, onBookmark, onOpen, loggedIn,
 }: {
-  item: NewsItem; now: number; bookmarked: boolean; onBookmark: () => void; loggedIn: boolean;
+  item: NewsItem; now: number; bookmarked: boolean; onBookmark: () => void; onOpen: () => void; loggedIn: boolean;
 }) {
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
@@ -399,6 +417,13 @@ function NewsCard({
 
   return (
     <div className="surface surface-hover flex flex-col rounded-2xl p-4">
+      {/* hero image (when the feed provides one) — opens the on-site reader */}
+      {item.image && (
+        <button onClick={onOpen} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={item.image} alt="" loading="lazy" className="h-36 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = "none")} />
+        </button>
+      )}
       {/* meta row */}
       <div className="mb-2 flex items-center gap-2 text-[11px] text-zinc-500">
         {item.sourceIcon && (
@@ -411,9 +436,9 @@ function NewsCard({
         <span className="ml-auto rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{item.category}</span>
       </div>
 
-      <a href={item.url} target="_blank" rel="noopener noreferrer" className="group">
+      <button onClick={onOpen} className="group text-left">
         <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-zinc-100 transition-colors group-hover:text-gold-100">{item.title}</h3>
-      </a>
+      </button>
       {item.summary && <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-zinc-500">{item.summary}</p>}
 
       {/* badges */}
@@ -451,13 +476,154 @@ function NewsCard({
         <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-mint-300 transition-colors hover:bg-mint-500/10 disabled:opacity-50">
           {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />} Why this matters
         </button>
-        <a href={item.url} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
-          <ExternalLink className="h-3.5 w-3.5" /> Read
+        <button onClick={onOpen} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
+          <BookOpen className="h-3.5 w-3.5" /> Read
+        </button>
+        <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Original source" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
+          <ExternalLink className="h-3.5 w-3.5" />
         </a>
         <button onClick={share} aria-label="Share" className="rounded-lg p-1.5 transition-colors hover:bg-white/5 hover:text-zinc-200"><Share2 className="h-3.5 w-3.5" /></button>
         <button onClick={onBookmark} aria-label="Bookmark" className={cn("rounded-lg p-1.5 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "hover:text-zinc-200")}>
           {bookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
         </button>
+      </div>
+    </div>
+  );
+}
+
+// On-site reader: read the story (headline, image, summary, AI digest) without
+// bouncing off-site, with prev/next through the current list. Keyboard: Esc to
+// close, ←/→ to navigate.
+function NewsReader({
+  item, now, loggedIn, bookmarked, onBookmark, hasPrev, hasNext, onPrev, onNext, onClose,
+}: {
+  item: NewsItem; now: number; loggedIn: boolean; bookmarked: boolean; onBookmark: () => void;
+  hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; onClose: () => void;
+}) {
+  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
+
+  // Keyboard nav + scroll lock while open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      else if (e.key === "ArrowLeft" && hasPrev) onPrev();
+      else if (e.key === "ArrowRight" && hasNext) onNext();
+    };
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [hasPrev, hasNext, onPrev, onNext, onClose]);
+
+  // Reset + auto-generate the AI digest whenever the story changes.
+  useEffect(() => {
+    setDigest({ loading: false, text: null, err: null });
+    if (!loggedIn) return;
+    let stop = false;
+    setDigest({ loading: true, text: null, err: null });
+    fetch("/api/ai/why-matters", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: item.title, summary: item.summary, mode: "digest" }),
+    })
+      .then(async (res) => {
+        const j = await res.json().catch(() => ({}));
+        if (stop) return;
+        if (!res.ok) setDigest({ loading: false, text: null, err: j.error || "Couldn't generate a summary." });
+        else setDigest({ loading: false, text: j.text, err: null });
+      })
+      .catch(() => !stop && setDigest({ loading: false, text: null, err: "Network error." }));
+    return () => { stop = true; };
+  }, [item.id, item.title, item.summary, loggedIn]);
+
+  const share = async () => {
+    try {
+      if (navigator.share) await navigator.share({ title: item.title, url: item.url });
+      else await navigator.clipboard.writeText(item.url);
+    } catch { /* cancelled */ }
+  };
+
+  const sent =
+    item.sentiment === "bullish" ? { cls: "bg-mint-500/15 text-mint-300", icon: <TrendingUp className="h-3 w-3" />, label: "Bullish" }
+    : item.sentiment === "bearish" ? { cls: "bg-red-500/15 text-red-300", icon: <TrendingDown className="h-3 w-3" />, label: "Bearish" }
+    : { cls: "bg-white/5 text-zinc-400", icon: <Minus className="h-3 w-3" />, label: "Neutral" };
+  const impactCls = item.impact === "High" ? "text-red-300 ring-red-500/30" : item.impact === "Medium" ? "text-amber-300 ring-amber-500/30" : "text-zinc-400 ring-white/10";
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-stretch justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label={item.title}>
+      <div
+        className="surface relative flex w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90vh] sm:rounded-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* top bar */}
+        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2 text-[12px] text-zinc-400">
+            {item.sourceIcon && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={item.sourceIcon} alt="" width={16} height={16} className="h-4 w-4 rounded" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
+            )}
+            <span className="truncate font-medium text-zinc-300">{item.source}</span>
+            <span>·</span>
+            <span className="mono shrink-0">{now ? timeAgo(item.publishedAt, now) : ""}</span>
+          </div>
+          <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100">
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* scrollable body */}
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {item.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={item.image} alt="" className="h-48 w-full object-cover sm:h-60" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
+          )}
+          <div className="p-4 sm:p-6">
+            <div className="mb-3 flex flex-wrap items-center gap-1.5">
+              <span className="rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{item.category}</span>
+              <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", sent.cls)}>{sent.icon}{sent.label}</span>
+              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium ring-1", impactCls)}>{item.impact} impact</span>
+              {item.tokens.map((t) => (
+                <span key={t} className="mono rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-400">{t}</span>
+              ))}
+            </div>
+
+            <h1 className="font-display text-xl font-bold leading-snug text-zinc-50 sm:text-2xl">{item.title}</h1>
+            {item.summary && <p className="mt-3 text-[14px] leading-relaxed text-zinc-300">{item.summary}</p>}
+
+            {/* AI digest */}
+            <div className="mt-4 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3.5">
+              <p className="mono inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gold-200">
+                <Sparkles className="h-3.5 w-3.5" /> AI Summary · XYZ AI
+              </p>
+              {digest.loading && <p className="mt-2 inline-flex items-center gap-2 text-[13px] text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Reading the story…</p>}
+              {digest.text && <p className="mt-1.5 text-[13.5px] leading-relaxed text-zinc-200">{digest.text}</p>}
+              {digest.err && <p className="mt-1.5 text-[12px] text-amber-300">{digest.err}</p>}
+              {!loggedIn && !digest.err && <p className="mt-1.5 text-[12px] text-zinc-500">Log in to get an instant AI summary of any story.</p>}
+              <p className="mt-2 text-[10px] text-zinc-600">AI-generated from the headline &amp; excerpt. Not financial advice.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* action bar */}
+        <div className="flex items-center gap-2 border-t border-white/10 px-3 py-2.5">
+          <button onClick={onPrev} disabled={!hasPrev} aria-label="Previous story" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-30">
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button onClick={onNext} disabled={!hasNext} aria-label="Next story" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-30">
+            <ChevronRight className="h-5 w-5" />
+          </button>
+          <button onClick={onBookmark} aria-label="Bookmark" className={cn("rounded-lg p-2 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "text-zinc-400 hover:text-zinc-100")}>
+            {bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
+          </button>
+          <button onClick={share} aria-label="Share" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100">
+            <Share2 className="h-5 w-5" />
+          </button>
+          <a href={item.url} target="_blank" rel="noopener noreferrer" className="btn-primary ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-[13px]">
+            Read original <ExternalLink className="h-3.5 w-3.5" />
+          </a>
+        </div>
       </div>
     </div>
   );

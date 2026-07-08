@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — UX P3A: News reader view (read on-site, no bounce)
+Clicking a story now opens an in-site reader instead of bouncing off-site.
+- **`NewsReader`** modal: hero image, source + time, category/sentiment/impact badges + tokens,
+  full summary, an **auto-generated AI Summary** (reuses the gated `why-matters` digest),
+  **prev/next** through the current list, bookmark + share, and a **"Read original ↗"** link.
+  Keyboard: Esc closes, ←/→ navigate; body scroll-locked; mobile = full-screen sheet.
+- `NewsCard`: title + new "Read" open the reader (the off-site link becomes a small "original"
+  icon); cards now show a **hero image** when the feed provides one.
+- typecheck + lint(0) + test(209) + build green. (DB-synced saved stories land next in P3B.)
+
 ## 2026-07-07 — UX P2D: protocol detail pages (`/markets/protocol/[type]/[slug]`)
 The Markets protocol rows now open real detail pages, like coins do.
 - **`/markets/protocol/[type]/[slug]`** (type ∈ derivatives | dexs | fees; ISR + client
