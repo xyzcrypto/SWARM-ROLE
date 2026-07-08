@@ -183,7 +183,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
         const fresh = r.items.filter((i) => !known.has(i.id));
         return fresh.length ? [...fresh, ...prevPending] : prevPending;
       });
-    }, 30_000);
+    }, 20_000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, query, fetchPage]);

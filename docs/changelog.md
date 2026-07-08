@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — NX2: news important-first + faster + advanced briefing + Live animation
+- **Important news first**: new pure `rankNews` (`src/lib/news.ts`, unit-tested) scores each story by
+  impact blended with recency (High ≈ 8h head-start, Medium ≈ 3h), applied in `getNewsPage` — breaking/
+  high-impact surfaces at the top while staying fresh (a stale big story still sinks).
+- **Faster**: news `revalidate` 30→20s and client poll 30→20s.
+- **Advanced AI briefing**: deeper prompt (adds **Key numbers**, **Different angles** bull/bear, richer
+  What-happened; ~450-650 words), tokens 1100→1400 (Hinglish 1500).
+- **Live Intelligence animation**: the News header eyebrow now uses the homepage `eyebrow-glass` sweep +
+  a live mint pulse + `text-shine` shimmer; the "News" accent shimmers too.
+- typecheck + lint(0) + test(219) + build green.
+
 ## 2026-07-08 — NX1: XYZ AI 3D-bot branding + navbar light fix + smoother colors
 - **3D bot everywhere**: the ✨ Sparkles icon in every XYZ-AI-branded spot is now the **`RobotIcon`**
   (3D robot) — briefing header ("Full briefing · XYZ AI"), coin & protocol "XYZ AI take" (+ Generate),

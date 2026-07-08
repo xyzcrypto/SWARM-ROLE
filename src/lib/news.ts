@@ -105,6 +105,21 @@ export function impact(text: string): Impact {
   return "Low";
 }
 
+/**
+ * Rank stories so IMPORTANT news surfaces first while staying fresh: each story's
+ * "adjusted age" = its real age minus an impact head-start (High ≈ 8h, Medium ≈ 3h).
+ * So recent breaking/high-impact floats to the top, but an old big story still
+ * sinks below genuinely newer ones. Pure + non-mutating (`now` injected for tests).
+ */
+export function rankNews<T extends { impact: Impact; publishedAt: number }>(items: T[], now: number): T[] {
+  const boostHours: Record<Impact, number> = { High: 8, Medium: 3, Low: 0 };
+  const score = (i: T) => {
+    const ageHours = Math.max(0, (now - i.publishedAt) / 3_600_000);
+    return boostHours[i.impact] - ageHours; // higher = show earlier
+  };
+  return [...items].sort((a, b) => score(b) - score(a));
+}
+
 export function relatedTokens(text: string): string[] {
   const out: string[] = [];
   for (const [sym, re] of TOKENS) if (re.test(text) && !out.includes(sym)) out.push(sym);

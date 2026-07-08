@@ -23,14 +23,20 @@ export default async function NewsPage() {
         <div className="mesh" />
         <div className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-gold-400">
-              Live Intelligence
-            </p>
+            <span className="eyebrow eyebrow-glass mx-auto">
+              <span className="relative flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
+              </span>
+              <span className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-shine sm:text-[11px]">
+                Live Intelligence
+              </span>
+            </span>
             <h1 className="mt-3 font-display text-4xl font-bold text-zinc-50 sm:text-6xl">
-              Web3 <span className="text-gold-gradient">News</span>
+              Web3 <span className="text-shine">News</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
-              Everything happening across crypto, in real time — filtered by what matters
+              Everything happening across crypto, in real time, filtered by what matters
               to you, from reputable sources, with AI context.
             </p>
           </div>
