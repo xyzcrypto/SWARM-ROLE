@@ -286,13 +286,13 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
 
       {/* Category chips */}
       <div className="flex items-center gap-2">
-        <div className="-mx-1 flex flex-1 gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="-mx-1 flex flex-1 snap-x items-center gap-2 overflow-x-auto scroll-smooth px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {loggedIn && (
             <button
               onClick={() => setCategory("For You")}
               className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors",
-                category === "For You" ? "bg-mint-500/15 text-mint-200 ring-1 ring-mint-500/30" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+                "inline-flex h-8 shrink-0 snap-start items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium leading-none transition-all active:scale-95",
+                category === "For You" ? "bg-mint-500/15 text-mint-200 ring-1 ring-mint-500/40" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
               )}
             >
               <Star className="h-3.5 w-3.5" /> For You
@@ -303,8 +303,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               key={cat}
               onClick={() => setCategory(cat)}
               className={cn(
-                "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-medium transition-all active:scale-95",
-                category === cat ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+                "inline-flex h-8 shrink-0 snap-start items-center rounded-full px-3.5 text-[13px] font-medium leading-none transition-all active:scale-95",
+                category === cat ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/40" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
               )}
             >
               {cat}
@@ -312,7 +312,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
           ))}
         </div>
         {loggedIn && (
-          <button onClick={() => setCustomizing(true)} aria-label="Customize feed" className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3 py-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:text-zinc-100">
+          <button onClick={() => setCustomizing(true)} aria-label="Customize feed" className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3.5 text-[13px] font-medium leading-none text-zinc-400 transition-colors hover:text-zinc-100">
             <SlidersHorizontal className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Customize</span>
           </button>
         )}

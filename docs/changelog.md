@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — S1: product-page eyebrow animations + News pills fix
+- **Animated eyebrows**: new shared `AnimatedEyebrow` (homepage `eyebrow-glass` sweep + live mint pulse
+  + `text-shine` shimmer) applied to Markets ("Live Data"), Research ("Knowledge Hub"), Community, and
+  the Premium "Coming Soon" accent + Markets/Research H1 accents now shimmer too. Consistent with the
+  News "Live Intelligence" header.
+- **News pills**: category chips (For You / All / Breaking / ...) now have a uniform height (h-8),
+  even padding, snap-scroll, and cleaner active rings so they line up perfectly on mobile + desktop.
+  No behavior change.
+- typecheck + lint(0) + test(219) + build green.
+
 ## 2026-07-08 — NX4: free realtime push via GitHub Actions scheduler
 - New `.github/workflows/push-dispatch.yml`: every ~10 min (+ manual run) it pings
   `${PROD_URL}/api/push/dispatch?secret=${CRON_SECRET}` so breaking-news pushes go out in near
