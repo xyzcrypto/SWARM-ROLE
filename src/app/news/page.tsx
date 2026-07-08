@@ -32,7 +32,7 @@ export default async function NewsPage() {
                 Live Intelligence
               </span>
             </span>
-            <h1 className="mt-3 font-display text-4xl font-bold text-zinc-50 sm:text-6xl">
+            <h1 className="mt-3 font-display text-4xl font-bold text-zinc-50 text-warm-glow sm:text-6xl">
               Web3 <span className="text-shine">News</span>
             </h1>
             <p className="mx-auto mt-5 max-w-2xl text-zinc-400">

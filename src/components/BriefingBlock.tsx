@@ -101,7 +101,7 @@ export function BriefingBlock({
   return (
     <div className={cn("rounded-2xl border border-gold-500/20 bg-gold-500/[0.06] p-3.5 sm:p-4", className)}>
       <p className="mono inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gold-200">
-        <RobotIcon className="h-4 w-4" /> Full briefing · XYZ AI
+        <RobotIcon className="icon-3d h-4 w-4" /> Full briefing · XYZ AI
       </p>
       {busy && <p className="mt-2 inline-flex items-center gap-2 text-[13px] text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> {lang === "hinglish" ? "Hinglish me likh raha hoon…" : "Writing the full briefing…"}</p>}
       {shown && !busy && <MarkdownLite text={shown} className="mt-1" />}

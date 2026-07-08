@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — S2: warmer ambient + 3D icon depth + warm heading glow (preview)
+- **Warmer, richer** gold ambient glow (`.mesh` radial) so pages feel more inviting, without touching
+  the premium dark look.
+- New opt-in utilities: **`.icon-3d`** (drop-shadow depth + lively hover lift, reduced-motion safe) —
+  applied to the XYZ AI robot in the navbar + briefing header; **`.text-warm-glow`** on the News /
+  Markets / Research page headlines for a unique warm accent.
+- Conservative first pass (safe + reversible) so the owner can tune the warmth before we push it further.
+- typecheck + lint(0) + test(219) + build green.
+
 ## 2026-07-08 — S1: product-page eyebrow animations + News pills fix
 - **Animated eyebrows**: new shared `AnimatedEyebrow` (homepage `eyebrow-glass` sweep + live mint pulse
   + `text-shine` shimmer) applied to Markets ("Live Data"), Research ("Knowledge Hub"), Community, and

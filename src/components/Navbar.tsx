@@ -122,7 +122,7 @@ export function Navbar() {
             className="ai-nav-btn ml-1 inline-flex items-center gap-1.5 rounded-lg border border-mint-500/50 bg-transparent px-3 py-1.5 text-sm font-semibold text-mint-700 transition-transform dark:border-mint-400/40 dark:text-mint-100"
           >
             <span className="relative z-10 inline-flex items-center gap-1.5">
-              <RobotIcon className="ai-bot h-5 w-5" />
+              <RobotIcon className="ai-bot icon-3d h-5 w-5" />
               XYZ AI
             </span>
           </button>
