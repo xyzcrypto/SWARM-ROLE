@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — News v3 · NW3: real-time push notifications
+- **Live cron**: push `dispatch` now runs **every ~10 min** (`vercel.json` `*/10 * * * *`, was once/day)
+  so breaking news actually reaches devices soon after it lands. Window tightened to the last 2h,
+  up to 3 sends/run; still deduped via `PushedStory` (no repeats).
+- **Single, clear control**: removed the duplicate in-app "Alerts" bell (only fired with a tab open);
+  `NewsAlertsToggle` (real web-push, works when the site is closed) is now the one notifications control.
+  The realtime "N new stories" pill stays.
+- ⚠️ Ops: notifications need **VAPID keys** in Vercel env (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY`) + `CRON_SECRET`; keys generated separately and handed to the owner. Everything
+  degrades gracefully (toggle hidden, dispatch skips) until they're set + redeployed.
+- typecheck + lint(0) + test(216) + build green.
+
 ## 2026-07-08 — News v3 · NW2: swipe-through-all-news + motion + typography
 - **Swipe navigation**: in the reader, a horizontal-dominant touch swipe (doesn't fight vertical
   scroll) moves to the prev/next story; as you near the end the next page **prefetches** (shared

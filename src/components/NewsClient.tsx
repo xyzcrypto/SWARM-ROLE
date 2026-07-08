@@ -6,7 +6,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Sparkles, Zap, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
-  ChevronLeft, ChevronRight, Bell, BellRing, ArrowUp,
+  ChevronLeft, ChevronRight, ArrowUp,
 } from "lucide-react";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import type { NewsPage } from "@/lib/news-fetch";
@@ -50,15 +50,12 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const [interests, setInterests] = useState<string[]>([]);
   const [customizing, setCustomizing] = useState(false);
   const [readerIndex, setReaderIndex] = useState<number | null>(null);
-  const [notify, setNotify] = useState(false); // browser notifications for breaking
   const loggedIn = Boolean(session?.user);
 
   const sentinel = useRef<HTMLDivElement>(null);
   const firstRun = useRef(true);
   const itemsRef = useRef(items);
-  const notifyRef = useRef(false);
   useEffect(() => { itemsRef.current = items; }, [items]);
-  useEffect(() => { notifyRef.current = notify; }, [notify]);
 
   // Start the "now" clock (client-only to avoid hydration drift).
   useEffect(() => {
@@ -171,8 +168,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   }, [hasMore, loading, loadMore]);
 
   // Realtime: poll fast (30s) on the unfiltered view. Fresh stories are buffered
-  // for a "N new stories" pill (Twitter-style) instead of jumping the feed, and
-  // high-impact ones fire a browser notification when the tab is in the background.
+  // for a "N new stories" pill (Twitter-style) instead of jumping the feed.
+  // (Real device notifications are handled by NewsAlertsToggle / web-push.)
   useEffect(() => {
     if (category !== "All" || query) return;
     const t = setInterval(async () => {
@@ -182,12 +179,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       setPending((prevPending) => {
         const known = new Set([...itemsRef.current.map((i) => i.id), ...prevPending.map((i) => i.id)]);
         const fresh = r.items.filter((i) => !known.has(i.id));
-        if (!fresh.length) return prevPending;
-        if (notifyRef.current && document.hidden && typeof Notification !== "undefined" && Notification.permission === "granted") {
-          const hot = fresh.find((i) => i.impact === "High") ?? fresh[0];
-          try { new Notification("XYZ Crypto · News", { body: hot.title, icon: "/logo.png", tag: hot.id }); } catch { /* ignore */ }
-        }
-        return [...fresh, ...prevPending];
+        return fresh.length ? [...fresh, ...prevPending] : prevPending;
       });
     }, 30_000);
     return () => clearInterval(t);
@@ -203,15 +195,6 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     setPending([]);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }, [pending]);
-
-  // Toggle browser notifications (request permission on enable).
-  const toggleNotify = useCallback(async () => {
-    if (typeof Notification === "undefined") return;
-    if (notify) { setNotify(false); return; }
-    let perm = Notification.permission;
-    if (perm === "default") { try { perm = await Notification.requestPermission(); } catch { /* ignore */ } }
-    setNotify(perm === "granted");
-  }, [notify]);
 
   // Toggle save. Optimistic local update + DB sync (signed in) or localStorage (guest).
   const toggleSave = useCallback((item: NewsItem) => {
@@ -291,18 +274,6 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
           )}
         >
           <Bookmark className="h-4 w-4" /> Saved{saved.length ? ` (${saved.length})` : ""}
-        </button>
-        <button
-          onClick={toggleNotify}
-          aria-label={notify ? "Disable breaking notifications" : "Enable breaking notifications"}
-          title="Breaking-news notifications"
-          className={cn(
-            "inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
-            notify ? "border-mint-500/40 bg-mint-500/15 text-mint-200" : "border-white/10 text-zinc-400 hover:text-zinc-100"
-          )}
-        >
-          {notify ? <BellRing className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
-          <span className="hidden sm:inline">{notify ? "Alerts on" : "Alerts"}</span>
         </button>
         <NewsAlertsToggle loggedIn={loggedIn} />
         <span className="hidden items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 sm:flex">
