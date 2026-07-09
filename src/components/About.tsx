@@ -1,21 +1,20 @@
-import { Search, Wrench, Users, ShieldCheck, CalendarClock, Boxes } from "lucide-react";
 import { Reveal } from "./Reveal";
-import { AnimatedIcon } from "./AnimatedIcon";
 import { AnimatedEmoji } from "./AnimatedEmoji";
+import { ResearchIcon, ToolingIcon, CommunityIcon, SecurityIcon, CalendarIcon, LayersIcon } from "./Icons3D";
 import { Container, Section, Eyebrow } from "./ui/primitives";
 
 const credibility = [
-  { label: "Active since 2019", Icon: CalendarClock },
-  { label: "Research driven", Icon: Search },
-  { label: "Community first", Icon: Users },
-  { label: "Web3 native", Icon: Boxes },
+  { label: "Active since 2019", Icon: CalendarIcon },
+  { label: "Research driven", Icon: ResearchIcon },
+  { label: "Community first", Icon: CommunityIcon },
+  { label: "Web3 native", Icon: LayersIcon },
 ];
 
 const pillars = [
-  { title: "Research-driven", body: "Unbiased Web3 research and on-chain analysis, act on signal, not noise.", Icon: Search },
-  { title: "Builder tooling", body: "Trading tools, an upcoming perp DEX and automation built for performance.", Icon: Wrench },
-  { title: "Community first", body: "An open ecosystem where the community shares the upside, airdrops to academies.", Icon: Users },
-  { title: "Security & trust", body: "Transparency by default. Every product ships with safety and clarity in mind.", Icon: ShieldCheck },
+  { title: "Research-driven", body: "Unbiased Web3 research and on-chain analysis, act on signal, not noise.", Icon3D: ResearchIcon },
+  { title: "Builder tooling", body: "Trading tools, an upcoming perp DEX and automation built for performance.", Icon3D: ToolingIcon },
+  { title: "Community first", body: "An open ecosystem where the community shares the upside, airdrops to academies.", Icon3D: CommunityIcon },
+  { title: "Security & trust", body: "Transparency by default. Every product ships with safety and clarity in mind.", Icon3D: SecurityIcon },
 ];
 
 export function About() {
@@ -58,10 +57,8 @@ export function About() {
             </div>
             <div className="relative mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
               {credibility.map((c) => (
-                <div key={c.label} className="group/c flex items-center gap-2.5">
-                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20 transition-transform group-hover/c:scale-110">
-                    <c.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  </span>
+                <div key={c.label} className="flex items-center gap-2.5">
+                  <c.Icon className="h-7 w-7 shrink-0" />
                   <span className="text-xs font-medium text-zinc-300">{c.label}</span>
                 </div>
               ))}
@@ -73,9 +70,7 @@ export function About() {
           {pillars.map((p, i) => (
             <Reveal key={p.title} delay={i} variant="pop">
               <div className="surface surface-hover lift group h-full rounded-3xl p-6">
-                <AnimatedIcon tone={i % 2 === 0 ? "gold" : "mint"} className="mb-5 h-11 w-11">
-                  <p.Icon className="h-5 w-5" strokeWidth={1.7} />
-                </AnimatedIcon>
+                <p.Icon3D className="mb-4 h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
                 <h3 className="font-display text-base font-semibold text-zinc-100">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.body}</p>
               </div>

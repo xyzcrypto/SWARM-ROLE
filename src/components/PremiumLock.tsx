@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { Lock, MagicStar } from "iconsax-react";
+import { MagicStar } from "iconsax-react";
+import { LockIcon } from "./Icons3D";
 import { MagneticButton } from "./MagneticButton";
 
 const PERKS = ["Full breakdown & thesis", "On-chain data & charts", "Actionable analysis"];
@@ -26,9 +27,7 @@ export function PremiumLock({ loggedIn }: { loggedIn: boolean }) {
       </div>
 
       <div className="relative">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gold-shine text-ink shadow-gold ring-1 ring-gold-500/40">
-          <Lock size={24} variant="Bold" color="#0a0a0d" />
-        </div>
+        <LockIcon className="mx-auto h-16 w-16" />
         <p className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-gold-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gold-200 ring-1 ring-gold-500/30">
           <MagicStar size={14} variant="Bold" color="#f3d488" /> Premium Content
         </p>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Mail, Clock } from "lucide-react";
+import { MailIcon, ClockIcon } from "@/components/Icons3D";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Container, Section, Badge } from "@/components/ui/primitives";
@@ -57,9 +57,7 @@ export default function ContactPage() {
               <Reveal>
                 <div className="space-y-5">
                   <div className="surface flex items-start gap-3.5 rounded-2xl p-5">
-                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-500/12 text-gold-200 ring-1 ring-gold-500/30">
-                      <Mail className="h-5 w-5" />
-                    </span>
+                    <MailIcon className="h-10 w-10 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-zinc-100">
                         <AnimatedEmoji emoji="✉️" variant="float" className="mr-1.5 text-sm" />
@@ -101,9 +99,7 @@ export default function ContactPage() {
                   </div>
 
                   <div className="surface flex items-start gap-3.5 rounded-2xl p-5">
-                    <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-mint-500/12 text-mint-300 ring-1 ring-mint-500/30">
-                      <Clock className="h-5 w-5" />
-                    </span>
+                    <ClockIcon className="h-10 w-10 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold text-zinc-100">
                         <AnimatedEmoji emoji="⏱️" variant="wobble" className="mr-1.5 text-sm" />

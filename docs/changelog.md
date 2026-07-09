@@ -5,6 +5,42 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S7-C: bespoke 3D icon SYSTEM (multi-hue) + snappier motion + homepage rollout
+- **Icon system**: `Icons3D.tsx` expanded to **17 hand-built 3D icons** on a curated 7-hue palette
+  (gold/amber/emerald/sky/indigo/violet/rose) — Research, Tooling, Community, Security, Markets, TrendUp,
+  TrendDown, Layers, Activity, Flame, Gift, Crown, Academy, Gauge, Lock, Newspaper, Calendar. Each: gradient
+  body + gloss + drop shadow (real depth) and a distinct always-on motion. Verified via rendered screenshot.
+- **Snappier motion** (globals.css): retuned `i3d-spin 6s / bob 2.2s / scan 2.2s / pulse 1.8s` + new
+  `i3d-tick / sweep / float / beat / twinkle / flick`; a `.group:hover` speeds the spin up.
+- **Rollout**: Products tiles (Perp DEX→Markets, Trading→Gauge, Airdrop→Gift, Premium→Crown,
+  Academy→Academy, & More→Layers) + About "Since 2019" stats (Calendar/Research/Community/Layers);
+  **Premium** lock tile → bespoke `LockIcon`; **Contact** method tiles → bespoke `MailIcon` + `ClockIcon`
+  (added Star/Mail/Clock to the set, now 20 icons). Brand logos + tiny functional glyphs unchanged.
+- Presentational only; brand logos + functional UI glyphs unchanged.
+
+## 2026-07-09 — S7-B: bespoke 3D icons (RobotIcon-style) for the About pillars
+- **New `Icons3D.tsx`** — hand-built SVG icons in the RobotIcon spirit (gradient body + gloss highlight +
+  soft drop shadow for real depth), each with an always-on **signature motion**: `ResearchIcon` (magnifier,
+  light scans across the lens), `ToolingIcon` (gear, slowly spins), `CommunityIcon` (people, front figure
+  bobs), `SecurityIcon` (shield, a light sweeps down + the check pulses). Unique gradient/filter ids per
+  instance. Keyframes (`i3d-spin/bob/scan/pulse`) added by the RobotIcon ones in globals.css.
+- **Wired into the About "Who we are" pillars** (Research-driven / Builder tooling / Community first /
+  Security & trust), replacing the flat lucide-in-tile with these bespoke 3D icons; verified via a rendered
+  screenshot before shipping.
+- Presentational only, no new deps. Same treatment can roll out to Products / stats / other surfaces next.
+
+## 2026-07-09 — S7-A: 3D "alive" icon tiles (pass 1)
+- **AnimatedIcon rebuilt** as a genuinely-3D glossy tile (RobotIcon energy): the tile **continuously wobbles
+  in 3D** (`rotateY/rotateX` loop) while the glyph sits on a raised `translateZ` plane so it **parallaxes
+  forward** as the tile turns; a **coloured glow breathes** behind it and a top gloss gives a lit, rounded
+  read. Every icon is **seeded off `index`** (duration/phase/direction) so a wall of them never ticks in
+  sync — clearly 3D and clearly alive, not a subtle micro-motion. Added `sky` + `violet` tones. Spring 3D
+  flip-in on scroll + pop on hover. Fully `prefers-reduced-motion` safe (static glossy tile fallback).
+- **Applied**: About feature-card icons (unique `index`), the About "Since 2019" stat icons, and all
+  Products icon tiles (Perp DEX, Trading Tools, the 4 product cards) — converted from static tiles.
+- Presentational only — no color/brand change, no new deps. More surfaces + a background "next-level" pass
+  follow separately.
+
 ## 2026-07-09 — S6-C: Ambient depth + interactive 3D tilt cards
 - **Depth**: new `PageBackground` (mesh + masked grid + soft top glow) replaces the bare `<div class="mesh">`
   on /markets, /research and /news, so they get the layered depth of the home hero instead of a flat wash.

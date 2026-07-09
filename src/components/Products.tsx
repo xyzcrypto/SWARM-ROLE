@@ -1,14 +1,8 @@
-import {
-  LineChart,
-  Gauge,
-  Gift,
-  Crown,
-  GraduationCap,
-  Plus,
-} from "lucide-react";
 import { Reveal } from "./Reveal";
 import { TiltCard } from "./TiltCard";
+import { MarketsIcon, GaugeIcon, GiftIcon, CrownIcon, AcademyIcon, LayersIcon } from "./Icons3D";
 import { AnimatedEmoji } from "./AnimatedEmoji";
+import type { ComponentType } from "react";
 import { Container, Section, SectionHeading, Badge } from "./ui/primitives";
 import {
   TradingVisual,
@@ -37,11 +31,12 @@ function Chip({ s }: { s: Status }) {
   );
 }
 
+type Icon3D = ComponentType<{ className?: string }>;
 const small = [
-  { name: "Airdrop Tools", status: "Planned" as Status, desc: "Track, qualify and farm airdrops with automated checklists and eligibility.", Icon: Gift, Visual: AirdropVisual },
-  { name: "XYZ Premium", status: "Planned" as Status, desc: "Early calls, private research and members-only tooling.", Icon: Crown, Visual: PremiumVisual },
-  { name: "Web3 Academy", status: "Live" as Status, desc: "Structured education from zero to on-chain pro.", Icon: GraduationCap, Visual: AcademyVisual },
-  { name: "& More", status: "Next Version" as Status, desc: "New products and integrations ship every version.", Icon: Plus, Visual: MoreVisual },
+  { name: "Airdrop Tools", status: "Planned" as Status, desc: "Track, qualify and farm airdrops with automated checklists and eligibility.", Icon: GiftIcon as Icon3D, Visual: AirdropVisual },
+  { name: "XYZ Premium", status: "Planned" as Status, desc: "Early calls, private research and members-only tooling.", Icon: CrownIcon as Icon3D, Visual: PremiumVisual },
+  { name: "Web3 Academy", status: "Live" as Status, desc: "Structured education from zero to on-chain pro.", Icon: AcademyIcon as Icon3D, Visual: AcademyVisual },
+  { name: "& More", status: "Next Version" as Status, desc: "New products and integrations ship every version.", Icon: LayersIcon as Icon3D, Visual: MoreVisual },
 ];
 
 export function Products() {
@@ -67,9 +62,7 @@ export function Products() {
             <div className="surface lift group relative h-full overflow-hidden rounded-4xl p-7 transition-all duration-300 hover:shadow-[0_0_50px_-12px_rgba(226,167,47,0.35)] sm:p-9">
               <div className="glow-orb -right-10 top-0 h-48 w-48 bg-gold-500/15" />
               <div className="relative flex items-start justify-between">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-500/12 text-gold-300 ring-1 ring-gold-500/25 transition-transform duration-300 group-hover:scale-105">
-                  <LineChart className="h-6 w-6" strokeWidth={1.7} />
-                </div>
+                <MarketsIcon className="h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
                 <Chip s="Coming Soon" />
               </div>
               <h3 className="relative mt-6 font-display text-2xl font-semibold text-zinc-50">Perp DEX</h3>
@@ -92,9 +85,7 @@ export function Products() {
             <TiltCard max={4}>
             <div className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-7">
               <div className="flex items-start justify-between">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/12 text-sky-300 ring-1 ring-sky-500/25 transition-transform duration-300 group-hover:scale-105">
-                  <Gauge className="h-6 w-6" strokeWidth={1.7} />
-                </div>
+                <GaugeIcon className="h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
                 <Chip s="In Development" />
               </div>
               <h3 className="mt-6 font-display text-xl font-semibold text-zinc-50">Trading Tools</h3>
@@ -114,9 +105,7 @@ export function Products() {
               <TiltCard>
               <div className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-6">
                 <div className="flex items-start justify-between">
-                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20 transition-transform duration-300 group-hover:scale-105">
-                    <p.Icon className="h-5 w-5" strokeWidth={1.7} />
-                  </div>
+                  <p.Icon className="h-11 w-11 transition-transform duration-300 group-hover:scale-110" />
                   <Chip s={p.status} />
                 </div>
                 <h3 className="mt-5 font-display text-base font-semibold text-zinc-50">{p.name}</h3>
