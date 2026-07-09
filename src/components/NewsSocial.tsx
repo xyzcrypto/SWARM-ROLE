@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Heart, MessageCircle, Loader2, Send, Trash2 } from "lucide-react";
 import { timeAgo } from "@/lib/news";
+import { MessageButton } from "@/components/MessageButton";
 import { cn } from "@/lib/utils";
 
 type Comment = { id: string; body: string; createdAt: string; name: string; username: string | null; image: string | null; mine: boolean };
@@ -126,6 +127,7 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
                       {c.username ? <Link href={`/u/${c.username}`} className="font-medium text-zinc-300 hover:underline">{c.name}</Link> : <span className="font-medium text-zinc-300">{c.name}</span>}
                       <span>·</span>
                       <span className="mono">{now ? timeAgo(new Date(c.createdAt).getTime(), now) : ""}</span>
+                      {c.username && !c.mine && <span className="ml-auto"><MessageButton username={c.username} compact /></span>}
                       {c.mine && <button onClick={() => remove(c.id)} aria-label="Delete" className="ml-auto text-zinc-600 hover:text-red-400"><Trash2 className="h-3 w-3" /></button>}
                     </div>
                     <p className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-zinc-200">{c.body}</p>

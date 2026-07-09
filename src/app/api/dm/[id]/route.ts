@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { otherOf, snippet, DM_MAX_LEN, DM_USER_SELECT } from "@/lib/dm";
+import { broadcastEvent, userChannel } from "@/lib/realtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -94,6 +95,16 @@ export async function POST(req: Request, { params }: Ctx) {
         },
       })
       .catch(() => null);
+
+    // Push the new message live to the recipient's per-user channel. Fire-and-
+    // forget + recipient-only: the sender already has the row from this response,
+    // so there's no self-echo to dedupe. No-op when realtime is unconfigured
+    // (the recipient's thread/inbox still pick it up via the poll fallback).
+    const recipientId = iAmA ? conv.userBId : conv.userAId;
+    await broadcastEvent(userChannel(recipientId), "dm_message", {
+      conversationId: conv.id,
+      message: { id: created.id, body: created.body, createdAt: created.createdAt, senderId: me.id },
+    });
 
     return ok({ message: { id: created.id, body: created.body, createdAt: created.createdAt, mine: true } }, 201);
   } catch (err) {

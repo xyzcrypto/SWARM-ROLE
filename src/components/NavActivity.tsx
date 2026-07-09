@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, MessageCircle } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { Bell, MessageCircle, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 type Note = {
@@ -37,10 +38,13 @@ function timeAgo(iso: string): string {
  */
 export function NavActivity() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const meId = (session?.user as { id?: string } | undefined)?.id;
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Note[]>([]);
   const [unread, setUnread] = useState(0);
   const [chatDot, setChatDot] = useState(false);
+  const [dmUnread, setDmUnread] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
   const loadNotes = useCallback(async () => {
@@ -52,6 +56,17 @@ export function NavActivity() {
       setUnread(typeof data.unread === "number" ? data.unread : 0);
     } catch {
       /* offline / transient - keep last known state */
+    }
+  }, []);
+
+  const loadDm = useCallback(async () => {
+    try {
+      const res = await fetch("/api/dm/unread", { cache: "no-store" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setDmUnread(typeof data.unread === "number" ? data.unread : 0);
+    } catch {
+      /* ignore */
     }
   }, []);
 
@@ -73,14 +88,20 @@ export function NavActivity() {
   useEffect(() => {
     loadNotes();
     loadChat();
+    loadDm();
     const id = setInterval(() => {
       if (document.visibilityState === "visible") {
         loadNotes();
         loadChat();
+        loadDm();
       }
     }, POLL_MS);
     return () => clearInterval(id);
-  }, [loadNotes, loadChat]);
+  }, [loadNotes, loadChat, loadDm]);
+
+  // Refetch the DM unread count on every navigation so the badge drops as soon
+  // as the user opens /messages (a thread read clears its unread server-side).
+  useEffect(() => { loadDm(); }, [pathname, loadDm]);
 
   // Real-time: refetch the moment the server pings (new post/comment), so the
   // bell + chat dot update instantly instead of waiting for the next poll.
@@ -110,16 +131,24 @@ export function NavActivity() {
           if (!window.location.pathname.startsWith("/community")) setChatDot(true);
         })
         .subscribe();
+      // Live DM badge: refetch my unread count when a message lands on my
+      // per-user channel.
+      let dm: ReturnType<typeof client.channel> | undefined;
+      if (meId) {
+        dm = client.channel(`user:${meId}`);
+        dm.on("broadcast", { event: "dm_message" }, () => { loadDm(); }).subscribe();
+      }
       cleanup = () => {
         client.removeChannel(ch);
         client.removeChannel(chat);
+        if (dm) client.removeChannel(dm);
       };
     })();
     return () => {
       cancelled = true;
       cleanup?.();
     };
-  }, [loadNotes, loadChat]);
+  }, [loadNotes, loadChat, loadDm, meId]);
 
   // Opening the community page marks chat as seen.
   useEffect(() => {
@@ -171,6 +200,19 @@ export function NavActivity() {
         <MessageCircle className="h-4 w-4" />
         {chatDot && (
           <span className="absolute right-1.5 top-1.5 h-2 w-2 animate-pulse-dot rounded-full bg-mint-400 ring-2 ring-ink-900" />
+        )}
+      </Link>
+
+      <Link
+        href="/messages"
+        aria-label="Direct messages"
+        className="relative inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-white/5 text-zinc-300 transition-colors hover:border-gold-500/30 hover:text-gold-200"
+      >
+        <Mail className="h-4 w-4" />
+        {dmUnread > 0 && (
+          <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gold-shine px-1 text-[10px] font-bold text-ink ring-2 ring-ink-900">
+            {dmUnread > 9 ? "9+" : dmUnread}
+          </span>
         )}
       </Link>
 
