@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S7-C: bespoke 3D icon SYSTEM (multi-hue) + snappier motion + homepage rollout
+- **Icon system**: `Icons3D.tsx` expanded to **17 hand-built 3D icons** on a curated 7-hue palette
+  (gold/amber/emerald/sky/indigo/violet/rose) — Research, Tooling, Community, Security, Markets, TrendUp,
+  TrendDown, Layers, Activity, Flame, Gift, Crown, Academy, Gauge, Lock, Newspaper, Calendar. Each: gradient
+  body + gloss + drop shadow (real depth) and a distinct always-on motion. Verified via rendered screenshot.
+- **Snappier motion** (globals.css): retuned `i3d-spin 6s / bob 2.2s / scan 2.2s / pulse 1.8s` + new
+  `i3d-tick / sweep / float / beat / twinkle / flick`; a `.group:hover` speeds the spin up.
+- **Homepage rollout**: Products tiles (Perp DEX→Markets, Trading→Gauge, Airdrop→Gift, Premium→Crown,
+  Academy→Academy, & More→Layers) and About "Since 2019" stats (Calendar/Research/Community/Layers) now use
+  the bespoke icons instead of lucide-in-tiles. (Markets/News/Premium/Contact heroes follow next.)
+- Presentational only; brand logos + functional UI glyphs unchanged.
+
 ## 2026-07-09 — S7-B: bespoke 3D icons (RobotIcon-style) for the About pillars
 - **New `Icons3D.tsx`** — hand-built SVG icons in the RobotIcon spirit (gradient body + gloss highlight +
   soft drop shadow for real depth), each with an always-on **signature motion**: `ResearchIcon` (magnifier,

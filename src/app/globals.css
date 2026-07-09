@@ -486,22 +486,48 @@ html.lenis body {
 
 /* Custom 3D feature icons (Icons3D) — always-on signature motion, same spirit as
    the RobotIcon. Each icon animates one part so it reads "alive" + hand-built,
-   not a flat glyph. transform-box: fill-box so rotations pivot on the shape. */
-.i3d-spin { transform-box: fill-box; transform-origin: center; animation: i3d-spin 9s linear infinite; }
+   not a flat glyph. transform-box: fill-box so rotations pivot on the shape.
+   Tuned lively (snappy) but not jittery; a `.group:hover` speeds a few up. */
+.i3d-spin { transform-box: fill-box; transform-origin: center; animation: i3d-spin 6s linear infinite; }
 @keyframes i3d-spin { to { transform: rotate(360deg); } }
+.group:hover .i3d-spin { animation-duration: 2.4s; }
 
-.i3d-bob { transform-box: fill-box; transform-origin: center; animation: i3d-bob 2.8s ease-in-out infinite; }
-@keyframes i3d-bob { 0%, 100% { transform: translateY(0.6px); } 50% { transform: translateY(-1.8px); } }
+.i3d-bob { transform-box: fill-box; transform-origin: center; animation: i3d-bob 2.2s ease-in-out infinite; }
+@keyframes i3d-bob { 0%, 100% { transform: translateY(0.8px); } 50% { transform: translateY(-2px); } }
 
-.i3d-scan { animation: i3d-scan 2.8s ease-in-out infinite; }
+.i3d-scan { animation: i3d-scan 2.2s ease-in-out infinite; }
 @keyframes i3d-scan {
   0% { transform: translateX(-11px); opacity: 0; }
-  35%, 65% { opacity: 0.85; }
+  35%, 60% { opacity: 0.85; }
   100% { transform: translateX(11px); opacity: 0; }
 }
 
-.i3d-pulse { transform-box: fill-box; transform-origin: center; animation: i3d-pulse 2.4s ease-in-out infinite; }
-@keyframes i3d-pulse { 0%, 100% { opacity: 0.9; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+.i3d-pulse { transform-box: fill-box; transform-origin: center; animation: i3d-pulse 1.8s ease-in-out infinite; }
+@keyframes i3d-pulse { 0%, 100% { opacity: 0.9; transform: scale(1); } 50% { opacity: 1; transform: scale(1.14); } }
+
+/* bars growing/shrinking (charts) — each bar delays via inline animation-delay */
+.i3d-tick { transform-box: fill-box; transform-origin: bottom; animation: i3d-tick 1.8s ease-in-out infinite; }
+@keyframes i3d-tick { 0%, 100% { transform: scaleY(0.72); } 50% { transform: scaleY(1); } }
+
+/* needle / arm sweep (gauge) */
+.i3d-sweep { transform-box: fill-box; animation: i3d-sweep 3s ease-in-out infinite; }
+@keyframes i3d-sweep { 0%, 100% { transform: rotate(-32deg); } 50% { transform: rotate(34deg); } }
+
+/* gentle vertical float (gift, crown, lock) */
+.i3d-float { transform-box: fill-box; transform-origin: center; animation: i3d-float 2.8s ease-in-out infinite; }
+@keyframes i3d-float { 0%, 100% { transform: translateY(1px); } 50% { transform: translateY(-1.6px); } }
+
+/* heartbeat */
+.i3d-beat { transform-box: fill-box; transform-origin: center; animation: i3d-beat 1.5s ease-in-out infinite; }
+@keyframes i3d-beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.18); } 30% { transform: scale(1); } 45% { transform: scale(1.1); } }
+
+/* twinkle (star) */
+.i3d-twinkle { transform-box: fill-box; transform-origin: center; animation: i3d-twinkle 2.4s ease-in-out infinite; }
+@keyframes i3d-twinkle { 0%, 100% { transform: scale(1) rotate(0); opacity: 0.9; } 50% { transform: scale(1.12) rotate(18deg); opacity: 1; } }
+
+/* flicker/rise (flame) */
+.i3d-flick { transform-box: fill-box; transform-origin: bottom center; animation: i3d-flick 1.3s ease-in-out infinite; }
+@keyframes i3d-flick { 0%, 100% { transform: scaleY(1) scaleX(1); } 50% { transform: scaleY(1.12) scaleX(0.94); } }
 
 /* Tactile press feedback for primary actions / redirects. A quick radial sheen
    blooms from the center on click (paired with a framer-motion whileTap scale in

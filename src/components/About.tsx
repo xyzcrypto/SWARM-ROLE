@@ -1,15 +1,13 @@
-import { Search, Users, CalendarClock, Boxes } from "lucide-react";
 import { Reveal } from "./Reveal";
-import { AnimatedIcon } from "./AnimatedIcon";
 import { AnimatedEmoji } from "./AnimatedEmoji";
-import { ResearchIcon, ToolingIcon, CommunityIcon, SecurityIcon } from "./Icons3D";
+import { ResearchIcon, ToolingIcon, CommunityIcon, SecurityIcon, CalendarIcon, LayersIcon } from "./Icons3D";
 import { Container, Section, Eyebrow } from "./ui/primitives";
 
 const credibility = [
-  { label: "Active since 2019", Icon: CalendarClock },
-  { label: "Research driven", Icon: Search },
-  { label: "Community first", Icon: Users },
-  { label: "Web3 native", Icon: Boxes },
+  { label: "Active since 2019", Icon: CalendarIcon },
+  { label: "Research driven", Icon: ResearchIcon },
+  { label: "Community first", Icon: CommunityIcon },
+  { label: "Web3 native", Icon: LayersIcon },
 ];
 
 const pillars = [
@@ -58,11 +56,9 @@ export function About() {
               <span className="h-px flex-1 bg-gold-500/20" />
             </div>
             <div className="relative mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
-              {credibility.map((c, i) => (
+              {credibility.map((c) => (
                 <div key={c.label} className="flex items-center gap-2.5">
-                  <AnimatedIcon tone="gold" index={i} className="h-7 w-7 shrink-0 rounded-lg">
-                    <c.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  </AnimatedIcon>
+                  <c.Icon className="h-7 w-7 shrink-0" />
                   <span className="text-xs font-medium text-zinc-300">{c.label}</span>
                 </div>
               ))}
