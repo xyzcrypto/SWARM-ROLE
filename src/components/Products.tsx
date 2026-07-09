@@ -7,6 +7,7 @@ import {
   Plus,
 } from "lucide-react";
 import { Reveal } from "./Reveal";
+import { TiltCard } from "./TiltCard";
 import { AnimatedEmoji } from "./AnimatedEmoji";
 import { Container, Section, SectionHeading, Badge } from "./ui/primitives";
 import {
@@ -62,6 +63,7 @@ export function Products() {
         <div className="mt-10 grid gap-4 sm:mt-12 lg:grid-cols-3">
           {/* Perp DEX spotlight */}
           <Reveal className="lg:col-span-2">
+            <TiltCard max={4}>
             <div className="surface lift group relative h-full overflow-hidden rounded-4xl p-7 transition-all duration-300 hover:shadow-[0_0_50px_-12px_rgba(226,167,47,0.35)] sm:p-9">
               <div className="glow-orb -right-10 top-0 h-48 w-48 bg-gold-500/15" />
               <div className="relative flex items-start justify-between">
@@ -82,10 +84,12 @@ export function Products() {
                 <PerpChart coin={{ id: "ethereum", symbol: "ETH", base: 3400 }} />
               </div>
             </div>
+            </TiltCard>
           </Reveal>
 
           {/* Trading Tools tall */}
           <Reveal delay={1}>
+            <TiltCard max={4}>
             <div className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-7">
               <div className="flex items-start justify-between">
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/12 text-sky-300 ring-1 ring-sky-500/25 transition-transform duration-300 group-hover:scale-105">
@@ -100,12 +104,14 @@ export function Products() {
               </p>
               <TradingVisual />
             </div>
+            </TiltCard>
           </Reveal>
         </div>
 
         <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {small.map((p, i) => (
             <Reveal key={p.name} delay={i} variant="pop">
+              <TiltCard>
               <div className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-6">
                 <div className="flex items-start justify-between">
                   <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20 transition-transform duration-300 group-hover:scale-105">
@@ -117,6 +123,7 @@ export function Products() {
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.desc}</p>
                 <p.Visual />
               </div>
+              </TiltCard>
             </Reveal>
           ))}
         </div>

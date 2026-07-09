@@ -1,5 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import { Reveal } from "./Reveal";
+import { TiltCard } from "./TiltCard";
 import { AnimatedEmoji } from "./AnimatedEmoji";
 import { site } from "@/lib/site";
 import { TelegramIcon } from "./BrandIcons";
@@ -55,6 +56,7 @@ export function Ecosystem() {
         <div className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-2">
           {brands.map((b, i) => (
             <Reveal key={b.name} delay={i} variant="pop">
+              <TiltCard max={5}>
               <a
                 href={b.href}
                 target="_blank"
@@ -79,6 +81,7 @@ export function Ecosystem() {
                   Join on Telegram
                 </div>
               </a>
+              </TiltCard>
             </Reveal>
           ))}
         </div>
