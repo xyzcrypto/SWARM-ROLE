@@ -8,7 +8,8 @@ import { FAQ } from "@/lib/faq";
 export function Faq() {
   return (
     <Section id="faq">
-      <Container>
+      <div className="glow-orb left-1/2 top-0 h-64 w-64 -translate-x-1/2 bg-gold-500/[0.08]" />
+      <Container className="relative">
         <SectionHeading
           eyebrow="FAQ"
           title={

@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S8-A: Background/layout next-level (ambient depth pass 1)
+- **Richer `PageBackground`** (markets/research/news): added a second, mint-toned bottom glow-orb (dual-tone
+  depth, echoing the brand gold/mint pair) + a fine `.grain` texture for a tactile finish — no longer a flat
+  single-glow wash.
+- **Home section rhythm**: `Social`, `Faq`, `WhatsNew` (previously plain, zero ambient FX) and `Ecosystem`
+  (previously card-only) now get a section-level `.glow-orb`, alternating gold/mint, matching the treatment
+  `About`/`Products`/`CtaBand` already had — the whole homepage now reads as one consistent system instead
+  of some sections feeling flat.
+- **Mobile performance**: new `@media (max-width: 768px)` rule shrinks the `.mesh`/`.glow-orb` blur radii and
+  drops `.aurora`/`.particle` entirely on small screens — these are full-bleed `filter:blur` + a rotating
+  conic-gradient, the most GPU-costly layers, and mobile GPUs stall on them during scroll. Depth is preserved
+  (mesh + grid-bg + glow-orb still render), just cheaper.
+- Presentational + perf only — no color/brand change, no new deps, reuses existing `.mesh/.grid-bg/.glow-orb/
+  .grain` utilities already proven elsewhere (Hero, CtaBand, Products).
+
 ## 2026-07-09 — S7-C: bespoke 3D icon SYSTEM (multi-hue) + snappier motion + homepage rollout
 - **Icon system**: `Icons3D.tsx` expanded to **17 hand-built 3D icons** on a curated 7-hue palette
   (gold/amber/emerald/sky/indigo/violet/rose) — Research, Tooling, Community, Security, Markets, TrendUp,

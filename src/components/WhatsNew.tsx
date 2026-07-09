@@ -35,7 +35,8 @@ export async function WhatsNew() {
 
   return (
     <Section id="whats-new">
-      <Container>
+      <div className="glow-orb -left-16 top-8 h-64 w-64 bg-gold-500/[0.08]" />
+      <Container className="relative">
         <SectionHeading
           eyebrow="What's new"
           title={

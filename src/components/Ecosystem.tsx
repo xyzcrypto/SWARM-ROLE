@@ -41,7 +41,8 @@ const brands = [
 export function Ecosystem() {
   return (
     <Section id="ecosystem">
-      <Container>
+      <div className="glow-orb right-[10%] top-4 h-72 w-72 bg-mint-500/[0.08]" />
+      <Container className="relative">
         <SectionHeading
           eyebrow="Our Communities"
           title={

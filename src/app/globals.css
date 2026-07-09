@@ -155,6 +155,17 @@ html.lenis body {
   50% { transform: translateY(-26px) translateX(8px); opacity: 0.7; }
 }
 
+/* Mobile GPUs stall on large blurred/rotating layers (mesh/aurora/glow-orb are
+   full-bleed filter:blur + a rotating conic-gradient) - cut the cost on small
+   screens: shrink blur radii and drop the aurora rotation entirely. Visual
+   depth is preserved (mesh + grid-bg + glow-orb still render), just cheaper. */
+@media (max-width: 768px) {
+  .mesh::before, .mesh::after { filter: blur(64px); }
+  .aurora { display: none; }
+  .glow-orb { filter: blur(48px); }
+  .particle { display: none; }
+}
+
 /* Intro reveal for the logo medallion */
 @keyframes ring-in {
   0% { transform: scale(0.4) rotate(-40deg); opacity: 0; }

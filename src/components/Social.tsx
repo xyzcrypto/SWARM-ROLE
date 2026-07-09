@@ -16,7 +16,8 @@ const channels = [
 export function Social() {
   return (
     <Section id="community">
-      <Container>
+      <div className="glow-orb left-1/2 top-0 h-72 w-72 -translate-x-1/2 bg-mint-500/10" />
+      <Container className="relative">
         <SectionHeading
           eyebrow="Stay Connected"
           title={
