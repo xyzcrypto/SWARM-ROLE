@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S8-B: Next-level text animations (3 new signature styles, applied)
+- **Genuine hand-built "3D text"** (`.text-3d`) — stacked text-shadow steps down the gold ramp create a
+  real extruded/embossed look, plus a gentle always-on 3D rock. Applied to the Hero's boldest line ("win in
+  **Web3.**") — the single hero-grade "3D text" moment, screenshot-verified before shipping.
+- **`.text-shine-mint`** — a mint sibling of the existing `.text-shine` (same moving-shimmer technique,
+  mint hues) for mint-branded surfaces. Applied to News's page title (`Web3 News`) and the Community page's
+  eyebrow + H1 ("The XYZ Lounge") — both were gold `.text-shine` before, now match their actual brand color.
+- **`.text-glow-pulse`** — a breathing glow behind gradient text, for one CTA-grade moment per page (reads
+  as "important", not just decorative). Applied to `CtaBand`'s heading and Premium's "Coming Soon" line.
+- Every new class has a light-theme remap and is neutralized under `prefers-reduced-motion` (extrusion/
+  gradient stays, the shine-sweep/glow-pulse/3D-rock animations stop) — same discipline as the rest of the
+  site's motion. No new deps, no color/brand changes beyond reusing existing gold/mint tokens.
+
+---
+
 ## 2026-07-09 — S8-A: Background/layout next-level (ambient depth pass 1)
 - **Richer `PageBackground`** (markets/research/news): added a second, mint-toned bottom glow-orb (dual-tone
   depth, echoing the brand gold/mint pair) + a fine `.grain` texture for a tactile finish — no longer a flat

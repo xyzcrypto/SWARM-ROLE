@@ -22,7 +22,7 @@ export function CtaBand({ memberCount = 0 }: { memberCount?: number }) {
               <div>
                 <h2 className="font-display text-display-md font-semibold tracking-tight text-zinc-50">
                   Ready to join the{" "}
-                  <span className="text-gold-gradient">next generation of Web3?</span>
+                  <span className="text-glow-pulse">next generation of Web3?</span>
                 </h2>
                 <p className="mt-4 max-w-md text-zinc-400">
                   Create your free XYZ Crypto account to unlock research, early

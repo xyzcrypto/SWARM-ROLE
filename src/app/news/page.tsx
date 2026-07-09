@@ -26,7 +26,7 @@ export default async function NewsPage() {
         <div className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
           <PageHeader
             eyebrow="Live Intelligence"
-            title={<>Web3 <span className="text-shine">News</span></>}
+            title={<>Web3 <span className="text-shine-mint">News</span></>}
             subtitle="Everything happening across crypto, in real time, filtered by what matters to you, from reputable sources, with AI context."
           />
 

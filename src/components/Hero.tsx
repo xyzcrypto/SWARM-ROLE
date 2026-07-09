@@ -102,7 +102,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
           >
             Everything you need
             <br />
-            to <span className="text-gold-gradient">win in Web3.</span>
+            to <span className="text-3d">win in Web3.</span>
           </motion.h1>
 
           <motion.p
