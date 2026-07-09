@@ -5,7 +5,7 @@ import { ResearchGrid } from "@/components/ResearchGrid";
 import { prisma } from "@/lib/prisma";
 import { readingTime } from "@/lib/utils";
 import { POST_CARD_SELECT } from "@/lib/post-select";
-import { AnimatedEyebrow } from "@/components/AnimatedEyebrow";
+import { PageHeader } from "@/components/PageHeader";
 
 export const metadata: Metadata = {
   title: "Research Hub",
@@ -44,18 +44,13 @@ export default async function ResearchPage() {
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
         <div className="relative mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <AnimatedEyebrow>Knowledge Hub</AnimatedEyebrow>
-            <h1 className="mt-3 font-display text-4xl font-bold text-zinc-50 sm:text-6xl">
-              Web3 <span className="text-shine">Research & Insights</span>
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
-              Deep dives, market intelligence and educational content, written
-              to keep you ahead in the on-chain economy.
-            </p>
-          </div>
+          <PageHeader
+            eyebrow="Knowledge Hub"
+            title={<>Web3 <span className="text-shine">Research & Insights</span></>}
+            subtitle="Deep dives, market intelligence and educational content, written to keep you ahead in the on-chain economy."
+          />
 
-          <div className="mt-14">
+          <div className="mt-12">
             <ResearchGrid initial={posts} total={total} pageSize={PAGE_SIZE} />
           </div>
         </div>

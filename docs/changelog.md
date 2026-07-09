@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S6-B: Product-page header harmonization (industry-grade rhythm)
+- **Shared `PageHeader`**: new component unifies the /markets, /research and /news page headers so they
+  read as one system — animated eyebrow → display-scale title → subtitle, with the homepage's staggered
+  entrance (`Reveal` fade → blur → fade) and type tokens.
+- **Consistency fixes**: product H1s now use the `text-display-lg` token (`font-semibold`, fluid) instead
+  of three slightly different raw `text-4xl font-bold sm:text-6xl` blocks; header→body margin standardized
+  to `mt-12` (was 12 / 14 / 10); News stops hand-inlining the eyebrow markup and uses the shared one.
+- **Motion**: product headers now animate in (were static) matching the home sections' cadence.
+- Pure presentational — no color/brand change, no behaviour change, no new deps.
+
 ## 2026-07-09 — S6-A: Deeper AI briefing + better TTS voice + more sources
 - **Deeper briefing**: `buildNewsBriefingPrompt` now targets ~650-900 words with two new high-value
   sections — **Key players** (who's involved + what's at stake) and **Jargon buster** (plain-English
