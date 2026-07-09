@@ -24,6 +24,9 @@ export const NEWS_SOURCES: NewsSource[] = [
   { name: "Watcher Guru", url: "https://watcher.guru/news/feed", domain: "watcher.guru" },
   { name: "CoinGape", url: "https://coingape.com/feed/", domain: "coingape.com" },
   { name: "crypto.news", url: "https://crypto.news/feed/", domain: "crypto.news" },
+  { name: "Protos", url: "https://protos.com/feed/", domain: "protos.com" },
+  { name: "CoinJournal", url: "https://coinjournal.net/feed/", domain: "coinjournal.net" },
+  { name: "Finbold", url: "https://finbold.com/feed/", domain: "finbold.com" },
   // Tech + science (broader "what's happening" coverage). Best-effort - skipped if down.
   { name: "Ars Technica", url: "https://feeds.arstechnica.com/arstechnica/index", domain: "arstechnica.com" },
   { name: "The Verge", url: "https://www.theverge.com/rss/index.xml", domain: "theverge.com" },

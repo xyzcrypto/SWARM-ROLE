@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S6-A: Deeper AI briefing + better TTS voice + more sources
+- **Deeper briefing**: `buildNewsBriefingPrompt` now targets ~650-900 words with two new high-value
+  sections — **Key players** (who's involved + what's at stake) and **Jargon buster** (plain-English
+  defs of the story's crypto terms) — plus richer Key details / Different angles and the same strict
+  no-fabrication guardrails. Briefing `maxTokens` 1400→2000 (Hinglish 1500→2100 to fit the longer text).
+- **Better TTS voice**: new pure `src/lib/tts.ts` (`pickVoice` prefers Google/Natural/Neural/Microsoft
+  engines within the right language; `nextRate` speed cycle) with unit tests. `BriefingBlock` now loads
+  voices via `voiceschanged` (reliable first-play voice), sets `u.lang`/`u.pitch`, and adds a **speed
+  toggle** (1× / 1.25× / 1.5× / 0.75×).
+- **More sources**: +3 trusted feeds (Protos, CoinJournal, Finbold) in `news-sources.ts`. Best-effort,
+  auto-degrading like the rest.
+
 ## 2026-07-08 — S4-B: DM realtime + "Message" from chat & comments
 - **Live DMs**: sending a message now broadcasts to the recipient's per-user channel (`user:<id>`,
   event `dm_message`) via the existing realtime lib. The thread + inbox subscribe with `useRealtime`

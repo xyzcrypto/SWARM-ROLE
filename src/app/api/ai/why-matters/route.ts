@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     const text = await completeText({
       task: mode === "why" ? "why" : "digest",
       prompt,
-      maxTokens: mode === "briefing" ? 1400 : mode === "hinglish" ? 1500 : mode === "digest" ? 320 : 160,
+      maxTokens: mode === "briefing" ? 2000 : mode === "hinglish" ? 2100 : mode === "digest" ? 320 : 160,
       ctx: { userId: me.id, plan },
     });
     if (!text) return fail("Couldn't generate that right now. Please try again.", 502);
