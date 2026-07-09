@@ -12,9 +12,10 @@ changed, components changed, design improvements, performance improvements.
   body + gloss + drop shadow (real depth) and a distinct always-on motion. Verified via rendered screenshot.
 - **Snappier motion** (globals.css): retuned `i3d-spin 6s / bob 2.2s / scan 2.2s / pulse 1.8s` + new
   `i3d-tick / sweep / float / beat / twinkle / flick`; a `.group:hover` speeds the spin up.
-- **Homepage rollout**: Products tiles (Perp DEX→Markets, Trading→Gauge, Airdrop→Gift, Premium→Crown,
-  Academy→Academy, & More→Layers) and About "Since 2019" stats (Calendar/Research/Community/Layers) now use
-  the bespoke icons instead of lucide-in-tiles. (Markets/News/Premium/Contact heroes follow next.)
+- **Rollout**: Products tiles (Perp DEX→Markets, Trading→Gauge, Airdrop→Gift, Premium→Crown,
+  Academy→Academy, & More→Layers) + About "Since 2019" stats (Calendar/Research/Community/Layers);
+  **Premium** lock tile → bespoke `LockIcon`; **Contact** method tiles → bespoke `MailIcon` + `ClockIcon`
+  (added Star/Mail/Clock to the set, now 20 icons). Brand logos + tiny functional glyphs unchanged.
 - Presentational only; brand logos + functional UI glyphs unchanged.
 
 ## 2026-07-09 — S7-B: bespoke 3D icons (RobotIcon-style) for the About pillars

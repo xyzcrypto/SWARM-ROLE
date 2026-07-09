@@ -342,3 +342,54 @@ export function CalendarIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+// ---- Star (for you / featured): amber, twinkles ----------------------------
+export function StarIcon({ className }: IconProps) {
+  const [face, gloss, glow] = useIds(3);
+  const c = AMBER;
+  const star = "M24 6 L28.4 18.4 L41.5 18.8 L31 26.8 L34.7 39.4 L24 31.8 L13.3 39.4 L17 26.8 L6.5 18.8 L19.6 18.4 Z";
+  return (
+    <svg {...svgProps} className={className}>
+      <Defs face={face} gloss={gloss} glow={glow} c={c} />
+      <g className="i3d-twinkle">
+        <path d={star} fill={`url(#${face})`} filter={`url(#${glow})`} /><path d={star} fill={`url(#${gloss})`} /><path d={star} stroke={c.ring} strokeOpacity="0.5" strokeLinejoin="round" />
+      </g>
+    </svg>
+  );
+}
+
+// ---- Mail (messages / contact): sky envelope, floats -----------------------
+export function MailIcon({ className }: IconProps) {
+  const [face, gloss, glow] = useIds(3);
+  const c = SKY;
+  return (
+    <svg {...svgProps} className={className}>
+      <Defs face={face} gloss={gloss} glow={glow} c={c} />
+      <g className="i3d-float">
+        <rect x="7" y="12" width="34" height="24" rx="5" fill={`url(#${face})`} filter={`url(#${glow})`} />
+        <path d="M9 16 L24 27 L39 16" stroke="#06121b" strokeOpacity="0.55" strokeWidth="2.6" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9 16 L24 27 L39 16" stroke="#eaf6ff" strokeWidth="1.1" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+        <rect x="7" y="12" width="34" height="11" rx="5" fill={`url(#${gloss})`} />
+      </g>
+    </svg>
+  );
+}
+
+// ---- Clock (response time): emerald face + spinning hand -------------------
+export function ClockIcon({ className }: IconProps) {
+  const [face, gloss, glow] = useIds(3);
+  const c = EMERALD;
+  return (
+    <svg {...svgProps} className={className}>
+      <Defs face={face} gloss={gloss} glow={glow} c={c} />
+      <circle cx="24" cy="24" r="16" fill={`url(#${face})`} filter={`url(#${glow})`} />
+      <circle cx="24" cy="24" r="16" fill={`url(#${gloss})`} />
+      <circle cx="24" cy="24" r="12" fill="#04241a" fillOpacity="0.5" />
+      <path d="M24 24 L24 15" stroke="#eafff6" strokeWidth="2.4" strokeLinecap="round" />
+      <g className="i3d-spin" style={{ transformBox: "view-box", transformOrigin: "24px 24px" }}>
+        <path d="M24 24 L31 27" stroke={c.ring} strokeWidth="2" strokeLinecap="round" />
+      </g>
+      <circle cx="24" cy="24" r="2.2" fill="#eafff6" />
+    </svg>
+  );
+}
