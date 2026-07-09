@@ -57,11 +57,11 @@ export function About() {
               <span className="h-px flex-1 bg-gold-500/20" />
             </div>
             <div className="relative mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
-              {credibility.map((c) => (
-                <div key={c.label} className="group/c flex items-center gap-2.5">
-                  <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20 transition-transform group-hover/c:scale-110">
+              {credibility.map((c, i) => (
+                <div key={c.label} className="flex items-center gap-2.5">
+                  <AnimatedIcon tone="gold" index={i} className="h-7 w-7 shrink-0 rounded-lg">
                     <c.Icon className="h-3.5 w-3.5" strokeWidth={1.8} />
-                  </span>
+                  </AnimatedIcon>
                   <span className="text-xs font-medium text-zinc-300">{c.label}</span>
                 </div>
               ))}
@@ -73,7 +73,7 @@ export function About() {
           {pillars.map((p, i) => (
             <Reveal key={p.title} delay={i} variant="pop">
               <div className="surface surface-hover lift group h-full rounded-3xl p-6">
-                <AnimatedIcon tone={i % 2 === 0 ? "gold" : "mint"} className="mb-5 h-11 w-11">
+                <AnimatedIcon tone={i % 2 === 0 ? "gold" : "mint"} index={i} className="mb-5 h-11 w-11">
                   <p.Icon className="h-5 w-5" strokeWidth={1.7} />
                 </AnimatedIcon>
                 <h3 className="font-display text-base font-semibold text-zinc-100">{p.title}</h3>

@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S7-A: 3D "alive" icon tiles (pass 1)
+- **AnimatedIcon upgraded** to a real 3D tile: duotone gradient + top-light sheen + drop shadow for depth,
+  a spring entrance, a **continuous idle float** that's *unique per `index`* (varied duration/phase/direction
+  so a wall of icons shimmers organically, never in lock-step), and a **3D tilt + pop on hover**. Added `sky`
+  + `violet` tones (was gold/mint only). Fully `prefers-reduced-motion` safe.
+- **Applied wider**: the About feature-card icons now pass `index` (unique motion); the About "Since 2019"
+  stat icons and all Products icon tiles (Perp DEX, Trading Tools, and the 4 product cards) now use
+  `AnimatedIcon` instead of static tiles — so they read 3D and animate.
+- Presentational only — no color/brand change, no new deps. (Background "next-level" pass follows separately.)
+
 ## 2026-07-09 — S6-C: Ambient depth + interactive 3D tilt cards
 - **Depth**: new `PageBackground` (mesh + masked grid + soft top glow) replaces the bare `<div class="mesh">`
   on /markets, /research and /news, so they get the layered depth of the home hero instead of a flat wash.

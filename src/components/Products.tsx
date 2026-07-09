@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { TiltCard } from "./TiltCard";
+import { AnimatedIcon } from "./AnimatedIcon";
 import { AnimatedEmoji } from "./AnimatedEmoji";
 import { Container, Section, SectionHeading, Badge } from "./ui/primitives";
 import {
@@ -67,9 +68,9 @@ export function Products() {
             <div className="surface lift group relative h-full overflow-hidden rounded-4xl p-7 transition-all duration-300 hover:shadow-[0_0_50px_-12px_rgba(226,167,47,0.35)] sm:p-9">
               <div className="glow-orb -right-10 top-0 h-48 w-48 bg-gold-500/15" />
               <div className="relative flex items-start justify-between">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gold-500/12 text-gold-300 ring-1 ring-gold-500/25 transition-transform duration-300 group-hover:scale-105">
+                <AnimatedIcon tone="gold" index={0} className="h-12 w-12 rounded-2xl">
                   <LineChart className="h-6 w-6" strokeWidth={1.7} />
-                </div>
+                </AnimatedIcon>
                 <Chip s="Coming Soon" />
               </div>
               <h3 className="relative mt-6 font-display text-2xl font-semibold text-zinc-50">Perp DEX</h3>
@@ -92,9 +93,9 @@ export function Products() {
             <TiltCard max={4}>
             <div className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-7">
               <div className="flex items-start justify-between">
-                <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500/12 text-sky-300 ring-1 ring-sky-500/25 transition-transform duration-300 group-hover:scale-105">
+                <AnimatedIcon tone="sky" index={1} className="h-12 w-12 rounded-2xl">
                   <Gauge className="h-6 w-6" strokeWidth={1.7} />
-                </div>
+                </AnimatedIcon>
                 <Chip s="In Development" />
               </div>
               <h3 className="mt-6 font-display text-xl font-semibold text-zinc-50">Trading Tools</h3>
@@ -114,9 +115,9 @@ export function Products() {
               <TiltCard>
               <div className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-6">
                 <div className="flex items-start justify-between">
-                  <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/10 text-gold-300 ring-1 ring-gold-500/20 transition-transform duration-300 group-hover:scale-105">
+                  <AnimatedIcon tone="gold" index={i} className="h-11 w-11">
                     <p.Icon className="h-5 w-5" strokeWidth={1.7} />
-                  </div>
+                  </AnimatedIcon>
                   <Chip s={p.status} />
                 </div>
                 <h3 className="mt-5 font-display text-base font-semibold text-zinc-50">{p.name}</h3>
