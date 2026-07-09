@@ -1,4 +1,10 @@
 import { withSentryConfig } from "@sentry/nextjs";
+import withBundleAnalyzerInit from "@next/bundle-analyzer";
+
+// Opt-in only (`ANALYZE=true npm run build`) - inert otherwise, zero cost to
+// normal builds/deploys. Run it after any change that touches what's mounted
+// site-wide (root layout, providers) to catch bundle-size regressions early.
+const withBundleAnalyzer = withBundleAnalyzerInit({ enabled: process.env.ANALYZE === "true" });
 
 /** @type {import('next').NextConfig} */
 
@@ -65,10 +71,12 @@ const nextConfig = {
 
 // Sentry build wrapper. Source-map upload only runs when SENTRY_AUTH_TOKEN is
 // set (optional); otherwise this is inert and the build is unchanged.
-export default withSentryConfig(nextConfig, {
-  silent: true,
-  disableLogger: true,
-  widenClientFileUpload: false,
-  sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
-  telemetry: false,
-});
+export default withBundleAnalyzer(
+  withSentryConfig(nextConfig, {
+    silent: true,
+    disableLogger: true,
+    widenClientFileUpload: false,
+    sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
+    telemetry: false,
+  })
+);

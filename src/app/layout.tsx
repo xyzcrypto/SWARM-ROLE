@@ -6,7 +6,7 @@ import { Providers } from "./providers";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { Analytics } from "@/components/Analytics";
 import { RealtimeSession } from "@/components/RealtimeSession";
-import { XyzAiWidget } from "@/components/XyzAiWidget";
+import { XyzAiWidgetMount } from "@/components/XyzAiWidgetMount";
 import { PwaSetup } from "@/components/PwaSetup";
 import { CommandPaletteMount } from "@/components/CommandPaletteMount";
 import { BottomNavMount } from "@/components/BottomNavMount";
@@ -108,7 +108,7 @@ export default function RootLayout({
             anonKey={env.NEXT_PUBLIC_SUPABASE_ANON_KEY}
           />
           {children}
-          <XyzAiWidget />
+          <XyzAiWidgetMount />
           <PwaSetup />
           <CommandPaletteMount />
           <BottomNavMount />

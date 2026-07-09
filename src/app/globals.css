@@ -760,6 +760,12 @@ html.lenis body {
   .text-glow-pulse {
     animation: none !important;
   }
+  /* Bespoke 3D icons (Icons3D): keep the glossy gradient/gloss look, stop the
+     spin/bob/scan/pulse/tick/sweep/float/twinkle/flick loops. */
+  .i3d-spin, .i3d-bob, .i3d-scan, .i3d-pulse, .i3d-tick,
+  .i3d-sweep, .i3d-float, .i3d-twinkle, .i3d-flick {
+    animation: none !important;
+  }
   .text-3d {
     animation: none !important;
     transform: none !important;

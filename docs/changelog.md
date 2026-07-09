@@ -5,6 +5,25 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S8-C: Performance boost (desktop + mobile)
+- **XYZ AI widget code-split**: it was mounted eagerly in the root layout (`<XyzAiWidget />` directly, unlike
+  its neighbors `CommandPaletteMount`/`BottomNavMount`), so every route — including `/login`, `/signup` and
+  static marketing pages — paid for framer-motion's chat panel + streaming-fetch logic just to render a
+  collapsed launcher button. New `XyzAiWidgetMount.tsx` mirrors the existing lazy-mount pattern
+  (`dynamic(..., { ssr: false })`). Verified in the build output: the widget is now its own 12 KB chunk,
+  fully split from the two shared chunks every page loads.
+- **Reduced-motion now covers the bespoke 3D icons**: the `prefers-reduced-motion` kill-switch already
+  stopped `.mesh`/`.aurora`/`.particle`, but the ~17 always-animating `Icons3D` SVGs (About/Products/Premium/
+  Contact) were missing from it — a real accessibility gap (users who asked for less motion still got every
+  icon spinning/bobbing/pulsing) and continuous, unnecessary repaint work. Added `.i3d-*` to the same block.
+- **Bundle analyzer wired up** (`@next/bundle-analyzer`, opt-in via `npm run analyze` / `ANALYZE=true`) so
+  future "mount something in the layout" regressions like the AI widget get caught before merge instead of
+  discovered a month later in an audit.
+- No behavior change to the AI assistant itself (same open/close, same `XYZ_AI_OPEN_EVENT` used by
+  Command Palette); no new production dependency (bundle-analyzer is dev-only, inert unless explicitly run).
+
+---
+
 ## 2026-07-09 — S8-B: Next-level text animations (3 new signature styles, applied)
 - **Genuine hand-built "3D text"** (`.text-3d`) — stacked text-shadow steps down the gold ramp create a
   real extruded/embossed look, plus a gentle always-on 3D rock. Applied to the Hero's boldest line ("win in
