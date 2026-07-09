@@ -484,6 +484,25 @@ html.lenis body {
   95% { transform: scaleY(0.12); }
 }
 
+/* Custom 3D feature icons (Icons3D) — always-on signature motion, same spirit as
+   the RobotIcon. Each icon animates one part so it reads "alive" + hand-built,
+   not a flat glyph. transform-box: fill-box so rotations pivot on the shape. */
+.i3d-spin { transform-box: fill-box; transform-origin: center; animation: i3d-spin 9s linear infinite; }
+@keyframes i3d-spin { to { transform: rotate(360deg); } }
+
+.i3d-bob { transform-box: fill-box; transform-origin: center; animation: i3d-bob 2.8s ease-in-out infinite; }
+@keyframes i3d-bob { 0%, 100% { transform: translateY(0.6px); } 50% { transform: translateY(-1.8px); } }
+
+.i3d-scan { animation: i3d-scan 2.8s ease-in-out infinite; }
+@keyframes i3d-scan {
+  0% { transform: translateX(-11px); opacity: 0; }
+  35%, 65% { opacity: 0.85; }
+  100% { transform: translateX(11px); opacity: 0; }
+}
+
+.i3d-pulse { transform-box: fill-box; transform-origin: center; animation: i3d-pulse 2.4s ease-in-out infinite; }
+@keyframes i3d-pulse { 0%, 100% { opacity: 0.9; transform: scale(1); } 50% { opacity: 1; transform: scale(1.12); } }
+
 /* Tactile press feedback for primary actions / redirects. A quick radial sheen
    blooms from the center on click (paired with a framer-motion whileTap scale in
    <ActionLink>). Purely additive - layers over existing button styles. */

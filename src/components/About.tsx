@@ -1,7 +1,8 @@
-import { Search, Wrench, Users, ShieldCheck, CalendarClock, Boxes } from "lucide-react";
+import { Search, Users, CalendarClock, Boxes } from "lucide-react";
 import { Reveal } from "./Reveal";
 import { AnimatedIcon } from "./AnimatedIcon";
 import { AnimatedEmoji } from "./AnimatedEmoji";
+import { ResearchIcon, ToolingIcon, CommunityIcon, SecurityIcon } from "./Icons3D";
 import { Container, Section, Eyebrow } from "./ui/primitives";
 
 const credibility = [
@@ -12,10 +13,10 @@ const credibility = [
 ];
 
 const pillars = [
-  { title: "Research-driven", body: "Unbiased Web3 research and on-chain analysis, act on signal, not noise.", Icon: Search },
-  { title: "Builder tooling", body: "Trading tools, an upcoming perp DEX and automation built for performance.", Icon: Wrench },
-  { title: "Community first", body: "An open ecosystem where the community shares the upside, airdrops to academies.", Icon: Users },
-  { title: "Security & trust", body: "Transparency by default. Every product ships with safety and clarity in mind.", Icon: ShieldCheck },
+  { title: "Research-driven", body: "Unbiased Web3 research and on-chain analysis, act on signal, not noise.", Icon3D: ResearchIcon },
+  { title: "Builder tooling", body: "Trading tools, an upcoming perp DEX and automation built for performance.", Icon3D: ToolingIcon },
+  { title: "Community first", body: "An open ecosystem where the community shares the upside, airdrops to academies.", Icon3D: CommunityIcon },
+  { title: "Security & trust", body: "Transparency by default. Every product ships with safety and clarity in mind.", Icon3D: SecurityIcon },
 ];
 
 export function About() {
@@ -73,9 +74,7 @@ export function About() {
           {pillars.map((p, i) => (
             <Reveal key={p.title} delay={i} variant="pop">
               <div className="surface surface-hover lift group h-full rounded-3xl p-6">
-                <AnimatedIcon tone={i % 2 === 0 ? "gold" : "mint"} index={i} className="mb-5 h-11 w-11">
-                  <p.Icon className="h-5 w-5" strokeWidth={1.7} />
-                </AnimatedIcon>
+                <p.Icon3D className="mb-4 h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
                 <h3 className="font-display text-base font-semibold text-zinc-100">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.body}</p>
               </div>

@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S7-B: bespoke 3D icons (RobotIcon-style) for the About pillars
+- **New `Icons3D.tsx`** — hand-built SVG icons in the RobotIcon spirit (gradient body + gloss highlight +
+  soft drop shadow for real depth), each with an always-on **signature motion**: `ResearchIcon` (magnifier,
+  light scans across the lens), `ToolingIcon` (gear, slowly spins), `CommunityIcon` (people, front figure
+  bobs), `SecurityIcon` (shield, a light sweeps down + the check pulses). Unique gradient/filter ids per
+  instance. Keyframes (`i3d-spin/bob/scan/pulse`) added by the RobotIcon ones in globals.css.
+- **Wired into the About "Who we are" pillars** (Research-driven / Builder tooling / Community first /
+  Security & trust), replacing the flat lucide-in-tile with these bespoke 3D icons; verified via a rendered
+  screenshot before shipping.
+- Presentational only, no new deps. Same treatment can roll out to Products / stats / other surfaces next.
+
 ## 2026-07-09 — S7-A: 3D "alive" icon tiles (pass 1)
 - **AnimatedIcon rebuilt** as a genuinely-3D glossy tile (RobotIcon energy): the tile **continuously wobbles
   in 3D** (`rotateY/rotateX` loop) while the glyph sits on a raised `translateZ` plane so it **parallaxes
