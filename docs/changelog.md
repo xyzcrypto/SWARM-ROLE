@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-09 — S6-C: Ambient depth + interactive 3D tilt cards
+- **Depth**: new `PageBackground` (mesh + masked grid + soft top glow) replaces the bare `<div class="mesh">`
+  on /markets, /research and /news, so they get the layered depth of the home hero instead of a flat wash.
+- **3D tilt**: new `TiltCard` (`"use client"`) adds subtle pointer-driven 3D tilt (springy, rAF-throttled,
+  mirrors the Hero medallion math). No-op on touch and under `prefers-reduced-motion`; springs back flat on
+  leave. Applied to the Products cards, the Ecosystem brand cards, and the research `PostCard` (so /research
+  + home ResearchPreview cards tilt). Cards keep their existing `.surface/.lift/group` treatment.
+- Pure presentational — no color/brand change, no new deps (reuses framer-motion + existing CSS FX).
+
 ## 2026-07-09 — S6-B: Product-page header harmonization (industry-grade rhythm)
 - **Shared `PageHeader`**: new component unifies the /markets, /research and /news page headers so they
   read as one system — animated eyebrow → display-scale title → subtitle, with the homepage's staggered

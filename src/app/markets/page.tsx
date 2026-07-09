@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MarketsClient } from "@/components/MarketsClient";
 import { PageHeader } from "@/components/PageHeader";
+import { PageBackground } from "@/components/PageBackground";
 
 export const metadata: Metadata = {
   title: "Markets",
@@ -19,7 +20,7 @@ export default function MarketsPage() {
     <>
       <Navbar />
       <main className="relative min-h-screen pt-28">
-        <div className="mesh" />
+        <PageBackground />
         <div className="relative mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
           <PageHeader
             eyebrow="Live Data"

@@ -2,6 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { formatDate, readingTime } from "@/lib/utils";
 import { Badge } from "./ui/primitives";
+import { TiltCard } from "./TiltCard";
 
 export type PostCardData = {
   slug: string;
@@ -25,6 +26,7 @@ const catTone: Record<string, "gold" | "sky" | "violet"> = {
 
 export function PostCard({ post }: { post: PostCardData }) {
   return (
+    <TiltCard max={5}>
     <Link
       href={`/research/${post.slug}`}
       className="surface surface-hover lift group flex h-full flex-col overflow-hidden rounded-3xl"
@@ -71,5 +73,6 @@ export function PostCard({ post }: { post: PostCardData }) {
         </div>
       </div>
     </Link>
+    </TiltCard>
   );
 }

@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { readingTime } from "@/lib/utils";
 import { POST_CARD_SELECT } from "@/lib/post-select";
 import { PageHeader } from "@/components/PageHeader";
+import { PageBackground } from "@/components/PageBackground";
 
 export const metadata: Metadata = {
   title: "Research Hub",
@@ -42,7 +43,7 @@ export default async function ResearchPage() {
     <>
       <Navbar />
       <main className="relative min-h-screen pt-28">
-        <div className="mesh" />
+        <PageBackground />
         <div className="relative mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
           <PageHeader
             eyebrow="Knowledge Hub"

@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { NewsClient } from "@/components/NewsClient";
 import { PageHeader } from "@/components/PageHeader";
+import { PageBackground } from "@/components/PageBackground";
 import { getNewsPage } from "@/lib/news-fetch";
 
 export const metadata: Metadata = {
@@ -21,7 +22,7 @@ export default async function NewsPage() {
     <>
       <Navbar />
       <main className="relative min-h-screen pt-28">
-        <div className="mesh" />
+        <PageBackground />
         <div className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
           <PageHeader
             eyebrow="Live Intelligence"
