@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { formatDateTime } from "@/lib/utils";
 import { useRealtime } from "@/lib/useRealtime";
+import { MessageButton } from "@/components/MessageButton";
 import { Avatar } from "./Avatar";
 
 type CommentAuthor = { name: string; username: string | null; image: string | null };
@@ -178,11 +179,14 @@ export function CommentSection({ postId, isAdmin = false }: { postId: string; is
                   )}
                   <span className="mono text-[11px] text-zinc-600">{formatDateTime(c.createdAt)}</span>
                 </div>
-                {isAdmin && (
-                  <button onClick={() => remove(c.id)} className="text-xs text-red-400 hover:underline">
-                    Delete
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {c.author.username && <MessageButton username={c.author.username} compact />}
+                  {isAdmin && (
+                    <button onClick={() => remove(c.id)} className="text-xs text-red-400 hover:underline">
+                      Delete
+                    </button>
+                  )}
+                </div>
               </div>
               <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-zinc-300">{c.body}</p>
             </div>

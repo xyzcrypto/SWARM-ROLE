@@ -3,7 +3,7 @@ import type { ComponentType } from "react";
 import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Globe, MapPin, MessageSquare, Heart, FileText } from "lucide-react";
+import { Globe, MapPin, MessageSquare } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
@@ -12,6 +12,8 @@ import { Badge } from "@/components/ui/primitives";
 import { Reveal } from "@/components/Reveal";
 import { XIcon, GitHubIcon, TelegramIcon } from "@/components/BrandIcons";
 import { MessageButton } from "@/components/MessageButton";
+import { CopyLinkButton } from "@/components/CopyLinkButton";
+import { ProfileStats } from "@/components/ProfileStats";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
 
@@ -82,17 +84,6 @@ export default async function ProfilePage({ params }: Props) {
     user.telegram && { href: `https://t.me/${user.telegram}`, Icon: TelegramIcon as SocialIcon, label: user.telegram },
   ].filter(Boolean) as { href: string; Icon: SocialIcon; label: string }[];
 
-  const stats = [
-    { label: "Posts", value: postCount, Icon: FileText, tone: "gold" as const },
-    { label: "Comments", value: user._count.comments, Icon: MessageSquare, tone: "mint" as const },
-    { label: "Likes given", value: user._count.likes, Icon: Heart, tone: "violet" as const },
-  ];
-  const statTone = {
-    gold: { icon: "text-gold-400/80", value: "text-gold-gradient" },
-    mint: { icon: "text-mint-400/80", value: "text-mint-gradient" },
-    violet: { icon: "text-violet-400/80", value: "text-violet-200" },
-  };
-
   return (
     <>
       <Navbar />
@@ -116,13 +107,13 @@ export default async function ProfilePage({ params }: Props) {
             </div>
             <div className="px-5 pb-6 sm:px-8 sm:pb-8">
               <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
-                <div className="flex min-w-0 items-end gap-4">
+                <div className="flex min-w-0 items-end gap-4 sm:gap-5">
                   <Avatar name={user.name} image={user.image} size="xl" className="shrink-0 ring-[3px] ring-ink-900 shadow-gold" />
-                  <div className="min-w-0 pb-1">
-                    <h1 className="font-display text-2xl font-bold leading-tight text-zinc-50 break-words sm:text-3xl">
+                  <div className="min-w-0 pb-0.5 sm:pb-2">
+                    <h1 className="font-display text-[26px] font-bold leading-[1.1] tracking-tight text-zinc-50 break-words sm:text-4xl lg:text-[2.6rem]">
                       {user.name ?? `@${user.username}`}
                     </h1>
-                    <p className="mono truncate text-sm text-zinc-500">@{user.username}</p>
+                    <p className="mono mt-1 truncate text-sm text-zinc-500 sm:text-[15px]">@{user.username}</p>
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
@@ -130,6 +121,7 @@ export default async function ProfilePage({ params }: Props) {
                   {isAdmin && <Badge tone="mint">Team</Badge>}
                   <Badge tone="neutral">Member since {formatDate(user.createdAt)}</Badge>
                   <MessageButton username={user.username!} />
+                  <CopyLinkButton />
                 </div>
               </div>
 
@@ -162,16 +154,8 @@ export default async function ProfilePage({ params }: Props) {
           </Reveal>
 
           {/* Stats */}
-          <div className="mt-6 grid grid-cols-3 gap-3 sm:gap-5">
-            {stats.map((s, i) => (
-              <Reveal key={s.label} variant="pop" delay={i}>
-                <div className="surface surface-hover lift h-full rounded-2xl p-4 text-center sm:p-6">
-                  <s.Icon className={`mx-auto h-5 w-5 ${statTone[s.tone].icon}`} />
-                  <p className={`mono mt-2 text-2xl font-semibold sm:text-3xl ${statTone[s.tone].value}`}>{s.value}</p>
-                  <p className="mt-1 text-xs text-zinc-500">{s.label}</p>
-                </div>
-              </Reveal>
-            ))}
+          <div className="mt-6">
+            <ProfileStats posts={postCount} comments={user._count.comments} likes={user._count.likes} />
           </div>
 
           {/* Recent activity */}

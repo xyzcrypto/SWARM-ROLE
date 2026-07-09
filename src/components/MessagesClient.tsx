@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2, Send, MessageSquare } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { timeAgo } from "@/lib/news";
+import { useRealtime } from "@/lib/useRealtime";
 import { cn } from "@/lib/utils";
 
 type Other = { name: string; username: string | null; image: string | null } | null;
@@ -18,7 +19,7 @@ const THREAD_POLL_MS = 5000;
 // On mobile it's one pane at a time (list → thread with a back button). The
 // active conversation lives in the ?c= query so profile "Message" buttons can
 // deep-link straight into a thread.
-export function MessagesClient() {
+export function MessagesClient({ meId }: { meId: string }) {
   const router = useRouter();
   const search = useSearchParams();
   const activeId = search.get("c");
@@ -44,6 +45,10 @@ export function MessagesClient() {
   }, []);
 
   useEffect(() => { loadInbox(); }, [loadInbox]);
+
+  // Live: refresh the inbox (reorder + preview + unread dot) the moment a DM
+  // lands on my per-user channel. Falls back to a 10s poll without realtime.
+  useRealtime({ channel: `user:${meId}`, event: "dm_message", onMessage: loadInbox, pollMs: 10000 });
 
   const openConversation = (id: string) => {
     router.replace(`/messages?c=${id}`, { scroll: false });
@@ -105,7 +110,7 @@ export function MessagesClient() {
       {/* Thread */}
       <section className={cn("min-h-0", activeId ? "flex" : "hidden md:flex")}>
         {activeId ? (
-          <Thread key={activeId} id={activeId} now={now} onBack={closeThread} onSent={loadInbox} />
+          <Thread key={activeId} id={activeId} meId={meId} now={now} onBack={closeThread} onSent={loadInbox} />
         ) : (
           <div className="grid flex-1 place-items-center p-8 text-center">
             <div>
@@ -119,7 +124,7 @@ export function MessagesClient() {
   );
 }
 
-function Thread({ id, now, onBack, onSent }: { id: string; now: number; onBack: () => void; onSent: () => void }) {
+function Thread({ id, meId, now, onBack, onSent }: { id: string; meId: string; now: number; onBack: () => void; onSent: () => void }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [other, setOther] = useState<Other>(null);
   const [loaded, setLoaded] = useState(false);
@@ -155,9 +160,11 @@ function Thread({ id, now, onBack, onSent }: { id: string; now: number; onBack: 
     setLoaded(false);
     setMessages([]);
     load(false);
-    const t = setInterval(() => load(true), THREAD_POLL_MS);
-    return () => clearInterval(t);
   }, [load]);
+
+  // Live: re-pull the thread when a DM lands on my per-user channel (append is
+  // idempotent via the length check in load). Polls every 5s without realtime.
+  useRealtime({ channel: `user:${meId}`, event: "dm_message", onMessage: () => load(true), pollMs: THREAD_POLL_MS });
 
   useEffect(() => { scrollToEnd(); }, [messages.length]);
 

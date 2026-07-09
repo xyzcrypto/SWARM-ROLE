@@ -1,15 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { MessageCircle, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-// "Message" affordance on a public profile. Opens (or creates) my conversation
-// with this user and jumps into the thread. Hidden on my own profile; sends
-// logged-out visitors to login first.
-export function MessageButton({ username }: { username: string }) {
+// "Message" affordance. Opens (or creates) my conversation with this user and
+// jumps into the thread. Hidden on my own account; sends logged-out visitors to
+// login first (returning to the current page). Two shapes:
+//   - default: a labeled pill (profile header)
+//   - compact: an icon-only button for dense rows (chat + comment authors)
+export function MessageButton({ username, compact = false, className }: { username: string; compact?: boolean; className?: string }) {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session, status } = useSession();
   const [busy, setBusy] = useState(false);
 
@@ -19,7 +23,7 @@ export function MessageButton({ username }: { username: string }) {
 
   const start = async () => {
     if (status !== "authenticated") {
-      router.push(`/login?callbackUrl=/u/${username}`);
+      router.push(`/login?callbackUrl=${encodeURIComponent(pathname || `/u/${username}`)}`);
       return;
     }
     setBusy(true);
@@ -33,11 +37,25 @@ export function MessageButton({ username }: { username: string }) {
     } catch { setBusy(false); }
   };
 
+  if (compact) {
+    return (
+      <button
+        onClick={start}
+        disabled={busy}
+        aria-label={`Message ${username}`}
+        title="Message"
+        className={cn("inline-flex items-center justify-center rounded-md p-1.5 text-zinc-500 transition-colors hover:text-gold-300 disabled:opacity-60", className)}
+      >
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageCircle className="h-3.5 w-3.5" />}
+      </button>
+    );
+  }
+
   return (
     <button
       onClick={start}
       disabled={busy}
-      className="btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm disabled:opacity-60"
+      className={cn("btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm disabled:opacity-60", className)}
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
       Message

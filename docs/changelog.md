@@ -5,6 +5,29 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-08 — S4-B: DM realtime + "Message" from chat & comments
+- **Live DMs**: sending a message now broadcasts to the recipient's per-user channel (`user:<id>`,
+  event `dm_message`) via the existing realtime lib. The thread + inbox subscribe with `useRealtime`
+  (append/refresh live), falling back to the 5s/10s poll when Supabase realtime isn't configured.
+  Recipient-only broadcast (sender already has the row) so there's no self-echo to dedupe.
+- **Navbar DM badge**: new `Mail` inbox icon in the nav activity cluster with a gold unread count from
+  the new `GET /api/dm/unread`; refreshes on the per-user `dm_message` broadcast, the 60s poll, and every
+  navigation (so it clears when you open a thread).
+- **"Message" everywhere**: `MessageButton` gained a `compact` icon-only variant (reuses the same
+  session/start logic; login callback now returns to the current page). Wired into **community chat**
+  authors (hover action bar, hidden on your own messages), **research comments**, and **news comments** —
+  each gated on the author having a `username`.
+- Additive + graceful: no realtime env → polling; no migration (uses S4-A tables).
+
+## 2026-07-08 — S5: Profile polish (desktop name + interactive stats)
+- **Desktop name fix**: profile display name is larger and tighter on desktop (`sm:text-4xl lg:text-[2.6rem]`,
+  tracking-tight, better baseline next to the avatar); handle sits a touch bigger with cleaner spacing.
+- **Interactive stats**: new client `ProfileStats` — the Posts / Comments / Likes numbers **count up** on
+  load (ease-out, `tabular-nums`, static when `prefers-reduced-motion`), and each card's icon lifts + scales
+  on hover.
+- **Share**: new `CopyLinkButton` next to Message copies the profile URL with a brief "Copied" state.
+- No data/behaviour change; server page just hands the three counts to the client stat row.
+
 ## 2026-07-08 — S4-A: Direct messages (lean 1-on-1)
 - **Telegram-style DMs**: members can message each other 1-on-1. New `/messages` inbox + thread page
   (two-pane on desktop, single-pane with back on mobile), and a **Message** button on every public

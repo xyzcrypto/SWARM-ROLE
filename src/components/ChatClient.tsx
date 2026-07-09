@@ -11,6 +11,7 @@ import { Avatar } from "./Avatar";
 import { Badge } from "./ui/primitives";
 import { EmojiPicker } from "./EmojiPicker";
 import { MagneticButton } from "./MagneticButton";
+import { MessageButton } from "./MessageButton";
 import { cn } from "@/lib/utils";
 import { safeHref, cleanBareUrl } from "@/lib/links";
 
@@ -1193,6 +1194,9 @@ export function ChatClient({
                       >
                         <Reply className="h-3.5 w-3.5" />
                       </button>
+                      {m.author.username && m.userId !== me?.id && (
+                        <MessageButton username={m.author.username} compact className="rounded text-zinc-400 hover:bg-white/10 hover:text-gold-200" />
+                      )}
                       {canEdit && (
                         <button
                           onClick={() => startEdit(m)}
