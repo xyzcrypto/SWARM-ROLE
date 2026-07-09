@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MarketsClient } from "@/components/MarketsClient";
-import { AnimatedEyebrow } from "@/components/AnimatedEyebrow";
+import { PageHeader } from "@/components/PageHeader";
 
 export const metadata: Metadata = {
   title: "Markets",
@@ -21,16 +21,11 @@ export default function MarketsPage() {
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
         <div className="relative mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
-          <div className="mx-auto max-w-3xl text-center">
-            <AnimatedEyebrow>Live Data</AnimatedEyebrow>
-            <h1 className="mt-3 font-display text-4xl font-bold text-zinc-50 sm:text-6xl">
-              Web3 <span className="text-shine">Markets</span>
-            </h1>
-            <p className="mx-auto mt-5 max-w-2xl text-zinc-400">
-              The whole market at a glance - prices, dominance, sentiment and DeFi,
-              aggregated live from CoinGecko, DefiLlama and more.
-            </p>
-          </div>
+          <PageHeader
+            eyebrow="Live Data"
+            title={<>Web3 <span className="text-shine">Markets</span></>}
+            subtitle="The whole market at a glance - prices, dominance, sentiment and DeFi, aggregated live from CoinGecko, DefiLlama and more."
+          />
 
           <div className="mt-12">
             <MarketsClient />
