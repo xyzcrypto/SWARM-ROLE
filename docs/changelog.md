@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital (mobile): move CSS Saturn/Moon into the side gutters, out of the text
+- On phones/tablets (which render the CSS orbital) the Saturn/Moon sat over the heading + subtitle. Moved
+  their placement out of inline styles into responsive CSS (`globals.css` `.starfield .saturn/.moon`): on
+  mobile they now sit LOW in the left/right gutters beside the orbital (clear of all text) and are smaller
+  (Saturn pulled in so its ring no longer clips the right edge); wide light-theme desktop nudges them back up.
+  Screenshot-verified at 400px. Colours unchanged.
+
+---
+
 ## 2026-07-10 — Orbital: WebGL scene is desktop-only; phones/tablets get the polished CSS cosmos
 - The cinematic WebGL orbital is composed for the large desktop square; on small screens the same world read
   cramped with oversized stars. `useWebglGate` now also requires `min-width: 1024px`, so **phones + tablets

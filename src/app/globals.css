@@ -199,7 +199,17 @@ html.lenis body {
    spheres (radial highlight + inset terminator shadow), a banded gas texture,
    and a Cassini-gap ring that crosses BEHIND the top of the globe and IN FRONT
    of the bottom. Both bob slowly; the planet's bands drift to fake axial spin. */
-.saturn, .moon { will-change: transform; }
+.saturn, .moon { will-change: transform; aspect-ratio: 1; }
+/* Placement lives in CSS (not inline) so it can be responsive. Mobile/tablet is
+   the case that actually renders these (desktop-dark uses the WebGL scene), so
+   the defaults sit them LOW in the side gutters - clear of the heading/subtitle
+   text - and smaller. Wide screens (light-theme desktop) nudge them back up. */
+.starfield .saturn { left: 63%; top: 35%; width: clamp(50px, 13vw, 108px); }
+.starfield .moon { left: 6%; top: 44%; width: clamp(38px, 11vw, 74px); }
+@media (min-width: 1024px) {
+  .starfield .saturn { left: 74%; top: 18%; width: clamp(90px, 9vw, 140px); }
+  .starfield .moon { left: 6%; top: 30%; width: clamp(56px, 6vw, 86px); }
+}
 @keyframes planet-bob {
   0%, 100% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(0, -10px, 0); }
