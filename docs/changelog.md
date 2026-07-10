@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-2.5 (tweak 2): Saturn ring spins + faces orbit, moon lit-from-orbit, mobile fit
+- **Saturn ring now visibly rotates** (`textures.ts` + `Saturn.tsx`): added angular particle specks to the
+  ring texture (screenshot-verified) and spun the ring mesh about its own axis, so the "outer layer" clearly
+  turns. Re-tilted Saturn to face toward the core/orbit; moved it further from the heading text (down + a
+  touch inward) and kept the real 3D front/back ring occlusion.
+- **Moon lit from the orbit** (`Moon.tsx`): kept the crisp half/night terminator but added a warm gold glow
+  spilling onto the core-facing (lit) edge, so it reads as illuminated by the XYZ ecosystem; softened the
+  night strength a touch so the lit half stays bright.
+- **Mobile fit**: tightened the `compact` placement/scale for Saturn + Moon so both sit fully inside the
+  small square. Colours unchanged.
+
+---
+
 ## 2026-07-10 — V2 PR-2.5 (tweak 1): half/night moon + Saturn alignment + mobile fit
 - **Moon → half / "night" moon** (`Moon.tsx`): added a deterministic terminator-shade shell (a dot-product
   shader that darkens the hemisphere facing away from the core, lit side toward the XYZ core) so the moon

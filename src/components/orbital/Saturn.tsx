@@ -27,6 +27,7 @@ export function Saturn({
   const inner = useRef<THREE.Group>(null); // float + entrance
   const tilt = useRef<THREE.Group>(null); // axial tilt + wobble (body + ring)
   const body = useRef<THREE.Mesh>(null);
+  const ringSpin = useRef<THREE.Mesh>(null); // ring rotates about its own axis
   const ringMat = useRef<THREE.MeshBasicMaterial>(null);
   const bodyMat = useRef<THREE.MeshStandardMaterial>(null);
   const [hover, setHover] = useState(false);
@@ -39,21 +40,23 @@ export function Saturn({
   // Sits in the upper-right of the canvas, clear of the section heading + right
   // edge; pulled inward on the small (mobile) square so the ring never clips.
   const base = useMemo(
-    () => (compact ? new THREE.Vector3(1.12, 0.66, -0.6) : new THREE.Vector3(1.5, 0.72, -0.6)),
+    () => (compact ? new THREE.Vector3(1.02, 0.48, -0.6) : new THREE.Vector3(1.58, 0.5, -0.6)),
     [compact]
   );
-  const sizeK = compact ? 0.82 : 1;
+  const sizeK = compact ? 0.8 : 1;
 
   useFrame((state, dt) => {
     const t = state.clock.elapsedTime;
     if (start.current < 0) start.current = t + 0.35; // rings begin ~350ms after
     const e = easeOut(THREE.MathUtils.clamp((t - start.current) / 1.6, 0, 1));
 
-    // spin + float + wobble
+    // body spin + ring spins about its own axis (visible via the ring specks) +
+    // float + wobble. The axial tilt turns Saturn to face toward the core/orbit.
     if (body.current) body.current.rotation.y += dt * 0.06;
+    if (ringSpin.current) ringSpin.current.rotation.z += dt * 0.22;
     if (inner.current) inner.current.position.y = Math.sin(t * 0.6) * 0.06;
     if (tilt.current) {
-      tilt.current.rotation.set(0.46, 0, -0.28 + Math.sin(t * 0.4) * 0.02);
+      tilt.current.rotation.set(0.5, 0.16, -0.24 + Math.sin(t * 0.4) * 0.02);
     }
 
     // entrance: scale + opacity + slide from upper-right
@@ -117,25 +120,28 @@ export function Saturn({
           </mesh>
           {/* atmospheric rim */}
           <FresnelShell color={GOLD_LIGHT} scale={RADIUS * 1.06} power={3.2} intensity={0.8} />
-          {/* equatorial ring disc (real occlusion). RingGeometry is in XY; rotate
-              into the equatorial plane so the axial tilt above orients it. */}
-          <mesh
-            rotation={[Math.PI / 2, 0, 0]}
-            onPointerOver={() => setHover(true)}
-            onPointerOut={() => setHover(false)}
-          >
-            <ringGeometry args={[RADIUS * 1.25, RADIUS * 1.95, 128]} />
-            <meshBasicMaterial
-              ref={ringMat}
-              map={ringTex}
-              color={GOLD_LIGHT}
-              transparent
-              opacity={0}
-              side={THREE.DoubleSide}
-              depthWrite={false}
-              blending={THREE.NormalBlending}
-            />
-          </mesh>
+          {/* equatorial ring disc (real occlusion). Outer group orients the disc
+              into the equatorial plane; the inner mesh SPINS about the disc normal
+              so the ring visibly rotates (its specks orbit). */}
+          <group rotation={[Math.PI / 2, 0, 0]}>
+            <mesh
+              ref={ringSpin}
+              onPointerOver={() => setHover(true)}
+              onPointerOut={() => setHover(false)}
+            >
+              <ringGeometry args={[RADIUS * 1.25, RADIUS * 1.95, 128]} />
+              <meshBasicMaterial
+                ref={ringMat}
+                map={ringTex}
+                color={GOLD_LIGHT}
+                transparent
+                opacity={0}
+                side={THREE.DoubleSide}
+                depthWrite={false}
+                blending={THREE.NormalBlending}
+              />
+            </mesh>
+          </group>
         </group>
       </group>
     </group>

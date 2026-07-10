@@ -111,6 +111,20 @@ export function saturnRingTexture(): THREE.Texture {
     ctx.arc(cx, cy, r, 0, Math.PI * 2);
     ctx.stroke();
   }
+  // Angular particle specks + faint arcs so the ring's rotation is VISIBLE (a
+  // purely concentric ring looks static when it spins). Deterministic positions.
+  for (let i = 0; i < 90; i++) {
+    const ang = i * 2.399963; // golden angle, even spread
+    const frac = 0.46 + Math.abs(Math.sin(i * 12.9898)) * 0.5; // 0.46 - 0.96 of radius
+    const rr = frac * maxR;
+    const x = cx + Math.cos(ang) * rr;
+    const y = cy + Math.sin(ang) * rr;
+    const a = 0.25 + Math.abs(Math.sin(i * 7.71)) * 0.55;
+    ctx.fillStyle = `rgba(255,240,205,${a})`;
+    ctx.beginPath();
+    ctx.arc(x, y, 1 + (i % 3) * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+  }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 4;

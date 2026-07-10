@@ -43,12 +43,12 @@ export function Moon({ scrollRef, compact = false }: { scrollRef: MutableRefObje
 
   const { map, bump } = useMemo(() => moonTextures(), []);
   const base = useMemo(
-    () => (compact ? new THREE.Vector3(-1.35, 0.05, -0.35) : new THREE.Vector3(-1.95, 0.1, -0.35)),
+    () => (compact ? new THREE.Vector3(-1.18, 0.0, -0.35) : new THREE.Vector3(-1.95, 0.1, -0.35)),
     [compact]
   );
-  const sizeK = compact ? 0.86 : 1;
+  const sizeK = compact ? 0.82 : 1;
   const nightUniforms = useMemo(
-    () => ({ uLightDir: { value: new THREE.Vector3(1.0, 0.4, 0.6) }, uStrength: { value: 0.9 } }),
+    () => ({ uLightDir: { value: new THREE.Vector3(1.0, 0.35, 0.55) }, uStrength: { value: 0.86 } }),
     []
   );
 
@@ -81,7 +81,9 @@ export function Moon({ scrollRef, compact = false }: { scrollRef: MutableRefObje
   return (
     <group ref={outer} position={base.toArray()}>
       <group ref={inner}>
-        <GlowSprite color="#c8ccdc" scale={RADIUS * 4} opacity={0.24} position={[0, 0, -0.2]} />
+        <GlowSprite color="#c8ccdc" scale={RADIUS * 4} opacity={0.22} position={[0, 0, -0.2]} />
+        {/* warm light spilling from the XYZ orbit onto the moon's lit (core-facing) edge */}
+        <GlowSprite color={GOLD_LIGHT} scale={RADIUS * 2.6} opacity={0.32} position={[RADIUS * 0.7, 0, 0.05]} />
         <mesh ref={body}>
           <sphereGeometry args={[RADIUS, 48, 48]} />
           <meshStandardMaterial
