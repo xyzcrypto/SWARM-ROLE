@@ -245,30 +245,47 @@ html.lenis body {
   mix-blend-mode: soft-light; opacity: 0.9;
   animation: saturn-spin 16s linear infinite;
 }
+/* Ring = a conic-gradient (angular brightness) masked into two elliptical bands
+   with a Cassini gap. Rotating it makes the ring visibly SPIN (the bright arcs
+   travel around). Transform-only animation = compositor-cheap. */
 .saturn-ring {
   position: absolute; left: 50%; top: 50%;
   width: 232%; height: 66%;
   transform: translate(-50%, -50%) rotate(-19deg);
   border-radius: 50%;
-  border: 5px solid rgba(240,206,132,0.6);
-  box-shadow: 0 0 10px rgba(226,167,47,0.30);
-}
-/* inner ring band + the dark Cassini division (the gap between the two borders) */
-.saturn-ring::before {
-  content: ""; position: absolute; inset: 6px; border-radius: 50%;
-  border: 3px solid rgba(255,236,184,0.5);
+  background: conic-gradient(from 0deg,
+    rgba(226,167,47,0.12), rgba(255,241,199,0.9) 10%, rgba(226,167,47,0.18) 22%,
+    rgba(255,236,184,0.82) 40%, rgba(214,155,52,0.12) 52%, rgba(255,241,199,0.9) 70%,
+    rgba(226,167,47,0.18) 82%, rgba(226,167,47,0.12) 100%);
+  -webkit-mask: radial-gradient(ellipse closest-side, transparent 0 60%, #000 61% 71%, transparent 72% 75.5%, #000 76.5% 92%, transparent 93%);
+          mask: radial-gradient(ellipse closest-side, transparent 0 60%, #000 61% 71%, transparent 72% 75.5%, #000 76.5% 92%, transparent 93%);
+  filter: drop-shadow(0 0 6px rgba(226,167,47,0.35));
+  will-change: transform;
+  animation: ring-orbit 16s linear infinite;
 }
 .saturn-ring-front { clip-path: polygon(0 52%, 100% 52%, 100% 100%, 0 100%); }
+@keyframes ring-orbit {
+  from { transform: translate(-50%, -50%) rotate(-19deg); }
+  to { transform: translate(-50%, -50%) rotate(341deg); }
+}
 
 /* --- Moon (crescent) --- */
 /* The lit crescent = a full cratered disc with an offset disc masked out on the
    right, so the concave opens toward the core where the XYZ robot sits. */
+/* soft moonlight glow around the crescent (a real "lit" feel) */
+.moon::before {
+  content: ""; position: absolute; inset: -34%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(216,226,255,0.26) 0%, rgba(216,226,255,0.08) 46%, transparent 72%);
+  pointer-events: none;
+}
 .moon-body {
   position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
   background:
-    radial-gradient(circle at 34% 34%, #f6f6fb 0%, #d3d3dc 44%, #9a9aa6 74%, #4f4f5b 100%);
-  box-shadow: inset -6px -6px 14px rgba(15,15,26,0.55), inset 5px 5px 12px rgba(255,255,255,0.28);
-  filter: drop-shadow(0 0 10px rgba(200,205,225,0.18));
+    /* bright lit rim on the sunlit (outer) edge */
+    radial-gradient(circle at 22% 40%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 26%),
+    radial-gradient(circle at 34% 34%, #ffffff 0%, #dcdce6 40%, #9a9aa6 74%, #4f4f5b 100%);
+  box-shadow: inset -6px -6px 14px rgba(15,15,26,0.5), inset 6px 6px 14px rgba(255,255,255,0.42);
+  filter: drop-shadow(0 0 12px rgba(210,220,255,0.28));
   -webkit-mask: radial-gradient(circle at 118% 50%, transparent 0 46%, #000 47%);
   mask: radial-gradient(circle at 118% 50%, transparent 0 46%, #000 47%);
 }
@@ -858,6 +875,8 @@ html.lenis body {
   .saturn,
   .moon,
   .saturn-body::after,
+  .saturn-ring,
+  .moon-robot,
   .star-shooter,
   /* continuous decorative sweeps + the auto-scrolling ticker: stop them for
      users who asked for less motion (accessibility + battery, and paint cost). */

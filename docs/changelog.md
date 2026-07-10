@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital polish (spinning ring + moonlight) + perf boost + realtime WS fix
+- **Saturn ring spins** (`globals.css`): the ring is now a conic-gradient (angular brightness) masked into two
+  elliptical bands with a Cassini gap; a transform-only `ring-orbit` rotation makes the bright arcs visibly
+  travel around = a live spinning ring (compositor-cheap, reduced-motion-gated). Screenshot-verified.
+- **Moonlight** (`globals.css`): the crescent gets a soft blue-white glow halo + a brighter lit rim, so it
+  reads as genuinely lit.
+- **Performance**: WebGL disabled means **three.js is no longer downloaded on desktop** (previously fetched
+  when the gate picked the 3D scene) and there's no WebGL render loop — a real desktop win. CSS starfield
+  trimmed 180 → 120 stars. (On top of the earlier perf pass: package-import tree-shaking, lazy widgets,
+  mobile blur cuts, visibility-gated timers.)
+- **Realtime WS console spam fixed** (`env.ts` + `RealtimeSession.tsx`): `NEXT_PUBLIC_SUPABASE_URL` /
+  `SUPABASE_URL` are now sanitized to the base project URL (strip a stray trailing `/rest/v1` that made the
+  realtime WebSocket URL malformed → infinite failed retries). Also added a reconnect back-off so a failed
+  realtime WS can't hammer the console.
+
+---
+
 ## 2026-07-10 — Orbital: switch centerpiece to the reliable CSS version (Saturn + crescent moon + XYZ robot)
 The WebGL scene rendered blank on the owner's desktop and could not be verified in CI (all local servers get
 killed in the sandbox), so after many rounds it's **temporarily disabled** in favour of a guaranteed-render

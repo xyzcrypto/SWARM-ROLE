@@ -6,7 +6,7 @@ import { RobotIcon } from "./RobotIcon";
 // the client render identically - no hydration mismatch, no layout shift, no
 // per-render Math.random. Gives the orbital section a deep-space backdrop so the
 // whole thing reads like a little solar system.
-const STARS = Array.from({ length: 180 }, (_, i) => {
+const STARS = Array.from({ length: 120 }, (_, i) => {
   const a = Math.sin(i * 12.9898) * 43758.5453;
   const b = Math.sin(i * 78.233) * 12345.6789;
   const c = Math.sin(i * 45.164) * 91537.4231;

@@ -43,6 +43,9 @@ export function RealtimeSession({ url, anonKey }: { url: string; anonKey: string
       if (cancelled) return;
       const client = createClient(url, anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
+        // Back off hard if realtime can't connect (e.g. misconfigured env) so a
+        // failed WS doesn't hammer the console with rapid reconnect attempts.
+        realtime: { reconnectAfterMs: (tries: number) => Math.min(1000 * 2 ** tries, 60_000) },
       });
 
       // Global presence for the live-visitor count.
