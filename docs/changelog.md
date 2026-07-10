@@ -5,6 +5,26 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Performance pass (mobile + desktop): lighter paint, leaner JS, fewer background timers
+Focus was making the site *feel* fast/light, especially on mobile. The heavy libs (three.js, PerpChart,
+Supabase, anime.js) were already lazy, so the meaningful wins are runtime paint + background work.
+- **Mobile paint** (`globals.css`): the full-screen Gaussian-blur background layers are the biggest phone
+  cost. Under `@media (max-width:768px)` the `.mesh` blur drops 130px→55px, `.aurora` 88px→45px, `.glow-orb`
+  90px→45px, and the 3 blurred `.starfield-neb` layers are hidden. Visually identical at phone size, much
+  cheaper to composite.
+- **Reduced-motion** (`globals.css`): the auto-scrolling `.marquee` ticker + the continuous `.text-shine` /
+  button-shine / eyebrow sweeps now stop under `prefers-reduced-motion` (accessibility + battery + paint).
+- **Leaner JS**: `next.config.mjs` adds `experimental.optimizePackageImports` (lucide-react / iconsax-react /
+  framer-motion barrel tree-shaking) + `compiler.removeConsole` in production. `XyzAiWidget` and `SmoothScroll`
+  (Lenis) are now `next/dynamic({ssr:false})` (new `XyzAiWidgetMount` / `SmoothScrollMount`) so they leave the
+  eager path (the widget only renders for signed-in users). First-load JS stays ~160 kB shared (framer-motion
+  is global via the Navbar); per-page eager code drops.
+- **Background timers gated**: News feed 20s poll + headline carousel + 60s clock, Messages 30s clock now
+  no-op while the tab is hidden (`document.hidden`) — no wasted CPU/network/battery in background tabs.
+- No visual/color change in normal (motion-on) desktop use; all existing flows unchanged.
+
+---
+
 ## 2026-07-10 — V2 PR-2.5 (tweak 2): Saturn ring spins + faces orbit, moon lit-from-orbit, mobile fit
 - **Saturn ring now visibly rotates** (`textures.ts` + `Saturn.tsx`): added angular particle specks to the
   ring texture (screenshot-verified) and spun the ring mesh about its own axis, so the "outer layer" clearly

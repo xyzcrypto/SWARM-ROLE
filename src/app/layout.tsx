@@ -3,10 +3,10 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "./providers";
-import { SmoothScroll } from "@/components/SmoothScroll";
+import { SmoothScrollMount } from "@/components/SmoothScrollMount";
 import { Analytics } from "@/components/Analytics";
 import { RealtimeSession } from "@/components/RealtimeSession";
-import { XyzAiWidget } from "@/components/XyzAiWidget";
+import { XyzAiWidgetMount } from "@/components/XyzAiWidgetMount";
 import { PwaSetup } from "@/components/PwaSetup";
 import { CommandPaletteMount } from "@/components/CommandPaletteMount";
 import { BottomNavMount } from "@/components/BottomNavMount";
@@ -101,14 +101,14 @@ export default function RootLayout({
         />
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={websiteJsonLd()} />
-        <SmoothScroll />
+        <SmoothScrollMount />
         <Providers>
           <RealtimeSession
             url={env.NEXT_PUBLIC_SUPABASE_URL}
             anonKey={env.NEXT_PUBLIC_SUPABASE_ANON_KEY}
           />
           {children}
-          <XyzAiWidget />
+          <XyzAiWidgetMount />
           <PwaSetup />
           <CommandPaletteMount />
           <BottomNavMount />

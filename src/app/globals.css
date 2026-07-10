@@ -402,6 +402,22 @@ html.lenis body {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
+  /* The full-screen Gaussian-blur background layers are the single biggest
+     mobile paint cost. A 130px blur is indistinguishable from ~55px at phone
+     size, so cut the radius hard (and drop the 3 blurred nebula layers). */
+  .mesh::before,
+  .mesh::after {
+    filter: blur(55px);
+  }
+  .aurora {
+    filter: blur(45px);
+  }
+  .glow-orb {
+    filter: blur(45px);
+  }
+  .starfield-neb {
+    display: none !important;
+  }
 }
 .surface-hover {
   transition: border-color 0.3s, transform 0.3s, background 0.3s;
@@ -811,7 +827,14 @@ html.lenis body {
   .saturn,
   .moon,
   .saturn-body::after,
-  .star-shooter {
+  .star-shooter,
+  /* continuous decorative sweeps + the auto-scrolling ticker: stop them for
+     users who asked for less motion (accessibility + battery, and paint cost). */
+  .marquee,
+  .text-shine,
+  .btn-primary::after,
+  .btn-gold::after,
+  .eyebrow-glass::after {
     animation: none !important;
   }
 }

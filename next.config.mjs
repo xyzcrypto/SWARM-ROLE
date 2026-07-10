@@ -39,9 +39,17 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Strip console.* from production bundles (keep error/warn) - smaller, faster JS.
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
+  },
   experimental: {
     // Required on Next 14 for src/instrumentation.ts (Sentry runtime init).
     instrumentationHook: true,
+    // Tree-shake barrel imports from these big libraries into per-symbol imports
+    // so we don't ship the whole icon set / motion lib. lucide-react + iconsax
+    // are imported by name across 40+ files; this is the biggest bundle win.
+    optimizePackageImports: ["lucide-react", "iconsax-react", "framer-motion"],
   },
   images: {
     // Serve modern formats (smaller payloads on both PC and mobile).
