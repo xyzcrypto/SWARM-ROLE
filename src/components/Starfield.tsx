@@ -6,26 +6,28 @@ import { RobotIcon } from "./RobotIcon";
 // the client render identically - no hydration mismatch, no layout shift, no
 // per-render Math.random. Gives the orbital section a deep-space backdrop so the
 // whole thing reads like a little solar system.
-const STARS = Array.from({ length: 100 }, (_, i) => {
+const STARS = Array.from({ length: 110 }, (_, i) => {
   const a = Math.sin(i * 12.9898) * 43758.5453;
   const b = Math.sin(i * 78.233) * 12345.6789;
   const c = Math.sin(i * 45.164) * 91537.4231;
   const fa = Math.abs(a - Math.floor(a));
   const fb = Math.abs(b - Math.floor(b));
   const fc = Math.abs(c - Math.floor(c));
-  const bright = i % 10 === 0; // brighter "hero" stars with a glow
-  const drift = !bright && i % 4 === 1; // ~1/4 of the faint stars slowly travel
+  const bright = i % 7 === 0; // more glowing "hero" stars
+  const drift = !bright && i % 6 === 1; // a few slow drifters
   return {
     x: fa * 100,
     y: fb * 100,
-    s: bright ? 2.4 + ((i * 3) % 2) : 1 + ((i * 7) % 3) * 0.5, // px
-    o: bright ? 0.9 : 0.2 + ((i * 13) % 5) * 0.11,
+    s: bright ? 2.6 + ((i * 3) % 3) : 0.9 + ((i * 7) % 3) * 0.6, // px
+    o: bright ? 0.96 : 0.22 + ((i * 13) % 5) * 0.12,
     d: 3 + ((i * 5) % 5), // 3 - 7s twinkle
     delay: (i % 11) * 0.35,
     gold: i % 6 === 0, // a few warm stars for the brand tint
     bright,
     drift,
-    // slow drift vector + long duration (only used when `drift`)
+    // Only bright + drift stars animate; the rest are static dots. Far fewer
+    // running animations (esp. on mobile) for the same "full sky" density.
+    animated: bright || drift,
     dx: `${(fc - 0.5) * 34}px`,
     dy: `${-(10 + fc * 22)}px`,
     driftDur: 26 + (i % 7) * 4, // 26 - 50s
@@ -117,7 +119,7 @@ export function Starfield({ className, bodies = true }: { className?: string; bo
           className={cn(
             "absolute rounded-full",
             st.gold ? "bg-gold-200 star-g" : "bg-white star-w",
-            i >= 55 && "starfield-extra"
+            i >= 42 && "starfield-extra"
           )}
           style={{
             left: `${st.x}%`,
@@ -125,12 +127,19 @@ export function Starfield({ className, bodies = true }: { className?: string; bo
             width: st.s,
             height: st.s,
             opacity: st.o,
-            boxShadow: st.bright ? (st.gold ? "0 0 6px 1px rgba(244,212,136,0.7)" : "0 0 6px 1px rgba(255,255,255,0.6)") : undefined,
+            boxShadow: st.bright
+              ? st.gold
+                ? "0 0 7px 1.5px rgba(244,212,136,0.85)"
+                : "0 0 7px 1.5px rgba(255,255,255,0.75)"
+              : undefined,
             // CSS custom properties consumed by the twinkle / drift keyframes
             ...({ "--o": st.o, "--dx": st.dx, "--dy": st.dy } as CSSProperties),
-            animation: st.drift
-              ? `star-drift ${st.driftDur}s ease-in-out ${st.delay}s infinite`
-              : `star-twinkle ${st.d}s ease-in-out ${st.delay}s infinite`,
+            // Only bright/drift stars animate; faint stars stay static (perf).
+            animation: st.animated
+              ? st.drift
+                ? `star-drift ${st.driftDur}s ease-in-out ${st.delay}s infinite`
+                : `star-twinkle ${st.d}s ease-in-out ${st.delay}s infinite`
+              : undefined,
           }}
         />
       ))}
@@ -138,8 +147,8 @@ export function Starfield({ className, bodies = true }: { className?: string; bo
       {SHOOTERS.map((sh, i) => (
         <span
           key={`sh${i}`}
-          // fewer meteors on phones (the extras only paint on >= md)
-          className={cn("star-shooter", i >= 5 && "star-shooter-extra")}
+          // only ~3 meteors on phones (the extras only paint on >= md)
+          className={cn("star-shooter", i >= 3 && "star-shooter-extra")}
           style={{
             top: sh.top,
             left: sh.left,

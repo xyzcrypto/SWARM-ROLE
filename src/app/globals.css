@@ -314,10 +314,12 @@ html.lenis body {
   50% { transform: translateY(-58%); }
 }
 
-/* Phones: cheaper paint - drop the extra stars + extra shooting stars. */
+/* Phones: cheaper paint - drop the extra stars + extra shooting stars, and
+   lighten the orbital aurora blur. */
 @media (max-width: 768px) {
   .starfield-extra,
   .star-shooter-extra { display: none; }
+  .orbital-aurora { filter: blur(14px) !important; }
 }
 
 /* Intro reveal for the logo medallion */
@@ -1038,9 +1040,8 @@ html:not(.dark) .starfield span.star-w { background-color: #b98a2b !important; }
 html:not(.dark) .starfield span.star-g { background-color: #a9761d !important; }
 html:not(.dark) .starfield span.star-w,
 html:not(.dark) .starfield span.star-g { box-shadow: none !important; }
-html:not(.dark) .star-shooter {
-  background: linear-gradient(90deg, rgba(169,118,29,0) 0%, rgba(169,118,29,0.85) 90%, #8a5f13 100%) !important;
-}
+/* Light theme: no shooting stars (they read as odd streaks on a bright sky). */
+html:not(.dark) .star-shooter { display: none !important; }
 html:not(.dark) .starfield-neb { opacity: 0.75; }
 html:not(.dark) .saturn-body {
   box-shadow: inset -7px -9px 20px rgba(70,38,0,0.55), inset 5px 6px 14px rgba(255,240,205,0.5),

@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Starfield: nicer stars + light-theme/mobile meteor rules + high-end mobile perf
+- **Light theme → no shooting stars** (`globals.css`): they read as odd streaks on a bright sky; hidden.
+- **Mobile → only ~3 shooting stars** (down from more); desktop keeps 12. Light theme (any size) = 0.
+- **Nicer stars** (`Starfield.tsx`): more glowing "hero" stars (i%7) with a stronger halo, a touch more density
+  (100 → 110) — a fuller, more premium sky.
+- **High-end mobile perf**: only the bright + drift stars ANIMATE now; the rest are static dots — far fewer
+  running animations for the same density. Mobile paints ~42 stars (was 55). The orbital's blurred aurora
+  drops to `blur(14px)` on phones. (On top of: three.js off, planets removed, reduced particles/blurs.)
+
+---
+
 ## 2026-07-10 — Orbital: remove Saturn/Moon/robot; trim mobile meteors; overall perf boost
 - **Removed the Saturn + Moon + XYZ-robot bodies** (per owner) — `OrbitalBackdrop` now renders just the
   ambient starfield. This also drops all their continuous animations (spinning ring, moon/robot bob, band
