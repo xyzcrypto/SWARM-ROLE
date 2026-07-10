@@ -6,7 +6,7 @@ import { RobotIcon } from "./RobotIcon";
 // the client render identically - no hydration mismatch, no layout shift, no
 // per-render Math.random. Gives the orbital section a deep-space backdrop so the
 // whole thing reads like a little solar system.
-const STARS = Array.from({ length: 120 }, (_, i) => {
+const STARS = Array.from({ length: 100 }, (_, i) => {
   const a = Math.sin(i * 12.9898) * 43758.5453;
   const b = Math.sin(i * 78.233) * 12345.6789;
   const c = Math.sin(i * 45.164) * 91537.4231;
@@ -117,7 +117,7 @@ export function Starfield({ className, bodies = true }: { className?: string; bo
           className={cn(
             "absolute rounded-full",
             st.gold ? "bg-gold-200 star-g" : "bg-white star-w",
-            i >= 90 && "starfield-extra"
+            i >= 55 && "starfield-extra"
           )}
           style={{
             left: `${st.x}%`,
@@ -138,7 +138,8 @@ export function Starfield({ className, bodies = true }: { className?: string; bo
       {SHOOTERS.map((sh, i) => (
         <span
           key={`sh${i}`}
-          className="star-shooter"
+          // fewer meteors on phones (the extras only paint on >= md)
+          className={cn("star-shooter", i >= 5 && "star-shooter-extra")}
           style={{
             top: sh.top,
             left: sh.left,

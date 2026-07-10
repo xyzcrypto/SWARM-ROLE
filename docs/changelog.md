@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital: remove Saturn/Moon/robot; trim mobile meteors; overall perf boost
+- **Removed the Saturn + Moon + XYZ-robot bodies** (per owner) — `OrbitalBackdrop` now renders just the
+  ambient starfield. This also drops all their continuous animations (spinning ring, moon/robot bob, band
+  drift) from the render → a real paint win.
+- **Fewer shooting stars on mobile**: extras (index ≥ 5) are hidden under 768px, so phones show ~5 meteors,
+  desktop 12.
+- **Perf boost (mobile + desktop)**: CSS starfield 120 → 100 stars (mobile now ~55 via a lower `-extra`
+  threshold); the CSS orbital particle field 34/14 → 22/8 (desktop/mobile). Combined with three.js no longer
+  loading, reduced background blurs, package-import tree-shaking, lazy widgets, and visibility-gated timers,
+  the homepage is noticeably lighter.
+
+---
+
 ## 2026-07-10 — Orbital: moon + Saturn into the side gutters; more desktop shooting stars
 - Per the owner's marks, moved the moon into the left gutter (`left 3% → 13%`) and nudged Saturn (`77% → 76%`)
   so both sit balanced in the side gutters, clear of the text.

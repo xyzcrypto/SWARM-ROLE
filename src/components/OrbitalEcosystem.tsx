@@ -72,7 +72,7 @@ export function OrbitalEcosystem() {
   // Fewer on phones - each particle is an animated paint layer.
   useEffect(() => {
     if (!active) return;
-    const count = window.matchMedia("(max-width: 768px)").matches ? 14 : 34;
+    const count = window.matchMedia("(max-width: 768px)").matches ? 8 : 22;
     setParticles(
       Array.from({ length: count }, () => ({
         x: Math.random() * 100,

@@ -314,10 +314,10 @@ html.lenis body {
   50% { transform: translateY(-58%); }
 }
 
-/* Phones: cheaper paint - drop the extra star half, keep Saturn + Moon (scaled
-   down via clamp() in the component) so mobile matches desktop. */
+/* Phones: cheaper paint - drop the extra stars + extra shooting stars. */
 @media (max-width: 768px) {
-  .starfield-extra { display: none; }
+  .starfield-extra,
+  .star-shooter-extra { display: none; }
 }
 
 /* Intro reveal for the logo medallion */
