@@ -5,6 +5,27 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-4 refinements (owner feedback): real live feeds + better icons
+Follow-up on the same PR; colors unchanged.
+- **Web3 Market icon → new `CoinIcon`** (`Icons3D.tsx`) — a glossy gold Web3 token (hexagon emblem + light
+  sweep), much more "Web3" than the old trend arrow. Screenshot-verified.
+- **Web3 Market visual is now genuinely realtime** (`LiveMarketVisual.tsx`) — pulls live prices from the
+  cached `/api/ticker` proxy (refreshes every 15s while visible) and shows **more coins** (BTC/ETH/SOL/SUI/
+  HYPE/BNB/XRP/DOGE/AVAX/LINK) that **auto-scroll slowly upward** in a seamless vertical loop. The old
+  hardcoded/wrong prices are gone.
+- **Web3 News visual is now live** (`LiveNewsVisual.tsx`) — real headlines from `/api/news` (30s refresh),
+  **auto-scrolling bottom-to-top**, with the newest story pinned along the bottom as a live **"Breaking"**
+  showcase (pulsing red dot).
+- **AI Hub icon → our `RobotIcon`** (the XYZ mascot) instead of the generic activity glyph.
+- **Gamified icon → new `GamepadIcon`** (`Icons3D.tsx`) — a violet game controller (d-pad + flickering
+  action buttons), so the icon matches the product. Screenshot-verified.
+- New CSS: `.vscroll` vertical-marquee utility + `.vscroll-mask` fade (globals.css), added to the
+  reduced-motion kill list (scroll pauses for reduce-motion users). Both feeds are visibility-gated (no
+  fetch/animation cost while the tab is hidden).
+- Files: `src/components/Icons3D.tsx`, `src/components/Products.tsx`, `src/components/ProductVisuals.tsx`
+  (dropped the static Market/News visuals), new `LiveMarketVisual.tsx` + `LiveNewsVisual.tsx`,
+  `src/app/globals.css`, `docs/changelog.md`. Verified: tsc + lint + test (235) + build green.
+
 ## 2026-07-10 — V2 PR-4: Products / "The Ecosystem" next-level (bigger suite + live links)
 Expanded the homepage Products grid and made the live products clickable; colors unchanged (gold + mint).
 - **`power your edge.` accent now alive** — static `.text-gold-gradient` → the moving `.text-shine`.

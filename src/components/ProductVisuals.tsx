@@ -145,67 +145,6 @@ export function AcademyVisual() {
   );
 }
 
-export function MarketVisual() {
-  const rows = [
-    { s: "BTC", p: "64,210", d: "+2.4%", up: true },
-    { s: "ETH", p: "3,412", d: "+1.1%", up: true },
-    { s: "SOL", p: "148.2", d: "-0.8%", up: false },
-  ];
-  return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
-      <div className="flex items-center justify-between mono text-[9px] text-zinc-500">
-        <span>LIVE MARKET</span>
-        <span className="inline-flex items-center gap-1 text-mint-300">
-          <span className="h-1.5 w-1.5 rounded-full bg-mint-400 animate-pulse-dot" /> REALTIME
-        </span>
-      </div>
-      <div className="mt-2 space-y-1.5">
-        {rows.map((r, i) => (
-          <div key={r.s} className="flex items-center gap-2 text-[11px]">
-            <span className="mono w-8 font-semibold text-zinc-300">{r.s}</span>
-            <span className="mono flex-1 text-zinc-400">${r.p}</span>
-            <span
-              className={`mono rounded px-1 py-0.5 text-[9px] font-semibold ${r.up ? "bg-mint-500/15 text-mint-300" : "bg-rose-500/15 text-rose-300"}`}
-              style={{ animation: `pulse-dot ${1.8 + i * 0.3}s ease-in-out ${i * 0.2}s infinite` }}
-            >
-              {r.d}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function NewsVisual() {
-  const lines = ["ETF inflows hit record high", "L2 TVL crosses a new peak", "Major protocol ships v3"];
-  return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
-      <div className="absolute left-3 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5">
-        <span className="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse-dot" />
-        <span className="mono text-[9px] font-semibold uppercase tracking-wide text-rose-200">Breaking</span>
-      </div>
-      <div className="mt-8 space-y-1.5">
-        {lines.map((t, i) => (
-          <div
-            key={t}
-            className="flex items-center gap-2 text-[10px] text-zinc-400"
-            style={{ animation: `pulse-dot ${3 + i * 0.4}s ease-in-out ${i * 0.35}s infinite` }}
-          >
-            <span className="h-1 w-1 shrink-0 rounded-full bg-gold-400" />
-            <span className="truncate">{t}</span>
-          </div>
-        ))}
-      </div>
-      {/* headline scan sweep */}
-      <div
-        className="pointer-events-none absolute inset-y-0 -left-1/4 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-white/10 to-transparent"
-        style={{ animation: "sheen 3.4s ease-in-out infinite" }}
-      />
-    </div>
-  );
-}
-
 export function AiVisual() {
   const bars = [0.4, 0.7, 0.5, 0.95, 0.6, 0.85, 0.45];
   return (

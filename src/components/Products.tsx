@@ -9,11 +9,11 @@ import {
   CrownIcon,
   AcademyIcon,
   LayersIcon,
-  TrendUpIcon,
   NewspaperIcon,
-  ActivityIcon,
-  StarIcon,
+  CoinIcon,
+  GamepadIcon,
 } from "./Icons3D";
+import { RobotIcon } from "./RobotIcon";
 import { AnimatedEmoji } from "./AnimatedEmoji";
 import type { ComponentType } from "react";
 import { Container, Section, SectionHeading, Badge } from "./ui/primitives";
@@ -22,12 +22,12 @@ import {
   AirdropVisual,
   PremiumVisual,
   AcademyVisual,
-  MarketVisual,
-  NewsVisual,
   AiVisual,
   GamifiedVisual,
   MoreVisual,
 } from "./ProductVisuals";
+import { LiveMarketVisual } from "./LiveMarketVisual";
+import { LiveNewsVisual } from "./LiveNewsVisual";
 import { PerpChartLazy as PerpChart } from "./PerpChartLazy";
 
 type Status = "Live" | "Coming Soon" | "In Development" | "In Research" | "Planned" | "Next Version";
@@ -62,13 +62,13 @@ type SmallProduct = {
 // Live products first (clickable into the real pages), then what's building,
 // then what's next. "& More" always closes the grid.
 const small: SmallProduct[] = [
-  { name: "Web3 Market", status: "Live", href: "/markets", desc: "Live prices, market cap, trending coins and on-chain data in real time.", Icon: TrendUpIcon as Icon3D, Visual: MarketVisual },
-  { name: "Web3 News", status: "Live", href: "/news", desc: "Breaking crypto headlines with an AI briefing, ranked by what matters.", Icon: NewspaperIcon as Icon3D, Visual: NewsVisual },
+  { name: "Web3 Market", status: "Live", href: "/markets", desc: "Live prices, market cap, trending coins and on-chain data in real time.", Icon: CoinIcon as Icon3D, Visual: LiveMarketVisual },
+  { name: "Web3 News", status: "Live", href: "/news", desc: "Breaking crypto headlines with an AI briefing, ranked by what matters.", Icon: NewspaperIcon as Icon3D, Visual: LiveNewsVisual },
   { name: "Web3 Academy", status: "Live", href: "/research", desc: "Structured education and research, from zero to on-chain pro.", Icon: AcademyIcon as Icon3D, Visual: AcademyVisual },
   { name: "Airdrop Tools", status: "Planned", desc: "Track, qualify and farm airdrops with automated checklists and eligibility.", Icon: GiftIcon as Icon3D, Visual: AirdropVisual },
   { name: "XYZ Premium", status: "Planned", desc: "Early calls, private research and members-only tooling.", Icon: CrownIcon as Icon3D, Visual: PremiumVisual },
-  { name: "AI Hub", status: "Planned", desc: "An on-site AI assistant for research, summaries and on-chain Q&A.", Icon: ActivityIcon as Icon3D, Visual: AiVisual },
-  { name: "Gamified", status: "Coming Soon", desc: "Earn XP, level up and unlock rewards as you learn and trade on-chain.", Icon: StarIcon as Icon3D, Visual: GamifiedVisual },
+  { name: "AI Hub", status: "Planned", desc: "An on-site AI assistant for research, summaries and on-chain Q&A.", Icon: RobotIcon as Icon3D, Visual: AiVisual },
+  { name: "Gamified", status: "Coming Soon", desc: "Earn XP, level up and unlock rewards as you learn and trade on-chain.", Icon: GamepadIcon as Icon3D, Visual: GamifiedVisual },
   { name: "& More", status: "Next Version", desc: "New products and integrations ship every version.", Icon: LayersIcon as Icon3D, Visual: MoreVisual },
 ];
 

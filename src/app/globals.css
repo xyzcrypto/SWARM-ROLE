@@ -821,6 +821,20 @@ html.lenis body {
   -webkit-mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
   mask-image: linear-gradient(90deg, transparent, #000 12%, #000 88%, transparent);
 }
+/* Vertical auto-scroll (product-card live feeds - coins / headlines rising up).
+   The track holds the list twice; translateY(-50%) = one full copy, so the loop
+   is seamless for any item count. Duration set inline per feed. */
+.vscroll {
+  animation: vscroll-up linear infinite;
+}
+@keyframes vscroll-up {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+.vscroll-mask {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 22%, #000 78%, transparent);
+}
 
 /* ----------------------------------------------------------------
    Scrollbar
@@ -890,6 +904,7 @@ html.lenis body {
   /* continuous decorative sweeps + the auto-scrolling ticker: stop them for
      users who asked for less motion (accessibility + battery, and paint cost). */
   .marquee,
+  .vscroll,
   .text-shine,
   .btn-primary::after,
   .btn-gold::after,
