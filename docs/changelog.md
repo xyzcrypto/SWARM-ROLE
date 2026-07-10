@@ -5,6 +5,52 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-2 (cosmos): realistic 3D Saturn + Moon + light-theme starfield + mobile parity
+- **Realistic 3D Saturn** (`Starfield.tsx` + globals): the flat disc is now a proper ringed planet — a
+  shaded gas globe (radial highlight + inset terminator shadow + soft-light latitudinal bands that slowly
+  drift to fake axial spin) wrapped by a Cassini-gap ring built from two elliptical borders. The ring is
+  drawn twice: a back copy behind the globe and a front copy clipped to its lower arc, so it crosses
+  **behind the top and in front of the bottom** like the real thing. Bobs slowly. Geometry screenshot-verified.
+- **Realistic Moon** (left side): cratered, shaded silver sphere (radial-gradient craters + inset terminator
+  shadow + soft halo) that drifts/bobs gently.
+- **Mobile parity**: Saturn + Moon now render on phones too, sized with `clamp()` so they stay in proportion
+  from phone → desktop (desktop-quality look on mobile, as asked).
+- **Light theme fixed**: the whole starfield used to be hidden on white; now it STAYS and is retuned as a warm
+  "day sky" — stars recolour to soft amber (`star-w`/`star-g` markers), meteors go gold, and Saturn/Moon get a
+  stronger rim + drop shadow so they separate cleanly from the light surface. Verified in both themes.
+- Every new motion (band-spin, bob, drift, meteors, twinkle) still stops under `prefers-reduced-motion`;
+  colours unchanged; no backend impact.
+
+---
+
+## 2026-07-10 — V2 PR-2 (alive): starfield next-level — drifting stars + meteors + distant planet
+- **Stars now MOVE** (`Starfield.tsx` + globals): ~1/4 of the faint stars slowly *drift* along a per-star
+  vector (new `star-drift` keyframe, 26–50s) on top of the twinkle, so the field reads as alive, not just
+  blinking. Drift + twinkle never fight over `transform` (each star runs exactly one keyframe).
+- **More meteors**: shooting stars 2 → **5**, streaking in from all corners at varied angles/travel
+  (per-shooter `--rot` / `--dx` / `--dy`) so no two repeat the same line.
+- **Breathing nebula**: the three colour hazes now slowly drift + scale (new `neb-float`) for shifting depth.
+- **Signature distant planet** (unique cosmos touch): a soft gold gradient sphere with a faint tilted ring
+  that bobs slowly (new `planet-bob`), tucked upper-right in the orbital section (off in the hero so it never
+  collides with the medallion). Geometry screenshot-verified (reads as a ringed planet, not a blob).
+- Hero starfield bumped to `opacity-80` so the drift + meteors read behind the hero. All dark-only, hidden on
+  light theme, and every new animation stops under `prefers-reduced-motion`; planet hidden on phones. Colors
+  unchanged; no backend impact.
+
+---
+
+## 2026-07-10 — V2 PR-2: Orbital "One unified ecosystem" — starfield + real 3D tilt
+- **Full-bleed starfield** (new `Starfield.tsx`): 64 deterministic (SSR-safe, no CLS) twinkling stars +
+  two faint distant glows (gold / mint) behind the whole orbital section → a tasteful "deep space / solar
+  system" backdrop. `pointer-events-none`, dark-only (hidden on light theme), twinkle stops under
+  `prefers-reduced-motion`. Screenshot-verified tasteful (sparse, not busy).
+- **Real 3D tilt**: the orbital's desktop pointer-parallax now rotates the whole disc in 3D
+  (`rotateX/rotateY` under the existing `perspective`) instead of a flat 2D slide.
+- **"XYZ Crypto" accent** → animated `.text-shine` (moving gold, same hue). New `.starfield` +
+  `star-twinkle` CSS + light/reduced-motion coverage in globals. Colors unchanged; no backend impact.
+
+---
+
 ## 2026-07-09 — S7-C: bespoke 3D icon SYSTEM (multi-hue) + snappier motion + homepage rollout
 - **Icon system**: `Icons3D.tsx` expanded to **17 hand-built 3D icons** on a curated 7-hue palette
   (gold/amber/emerald/sky/indigo/violet/rose) — Research, Tooling, Community, Security, Markets, TrendUp,

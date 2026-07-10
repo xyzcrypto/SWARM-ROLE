@@ -26,6 +26,17 @@ const toneRing: Record<Node["tone"], string> = {
   violet: "ring-violet-400/40 text-violet-200 hover:shadow-[0_0_24px_-4px_rgba(167,139,250,0.5)]",
 };
 
+// Orbiting "planets": each rides a ring (dur matches that ring's spin). A couple
+// share a ring at an offset start (negative delay) for a fuller solar system.
+const ORBITERS = [
+  { inset: "0", dur: 13, dir: "normal", size: "h-2.5 w-2.5", dot: "bg-gold-200", glow: "rgba(226,167,47,0.75)", delay: 0 },
+  { inset: "0", dur: 13, dir: "normal", size: "h-1.5 w-1.5", dot: "bg-white", glow: "rgba(255,255,255,0.6)", delay: -6 },
+  { inset: "6%", dur: 22, dir: "normal", size: "h-2 w-2", dot: "bg-sky-200", glow: "rgba(125,211,252,0.6)", delay: 0 },
+  { inset: "12%", dur: 18, dir: "reverse", size: "h-2 w-2", dot: "bg-mint-200", glow: "rgba(34,214,146,0.65)", delay: 0 },
+  { inset: "24%", dur: 10, dir: "normal", size: "h-2 w-2", dot: "bg-violet-200", glow: "rgba(167,139,250,0.65)", delay: 0 },
+  { inset: "24%", dur: 10, dir: "normal", size: "h-1.5 w-1.5", dot: "bg-gold-200", glow: "rgba(226,167,47,0.55)", delay: -5 },
+] as const;
+
 export function OrbitalEcosystem() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
@@ -87,10 +98,12 @@ export function OrbitalEcosystem() {
         const r = wrap.getBoundingClientRect();
         const dx = (e.clientX - (r.left + r.width / 2)) / r.width;
         const dy = (e.clientY - (r.top + r.height / 2)) / r.height;
-        orbit.style.transform = `translate3d(${dx * 18}px, ${dy * 18}px, 0)`;
+        // Real 3D tilt: rotate the whole orbital plane under the parent
+        // perspective (not just a flat slide) so it reads as a dimensional disc.
+        orbit.style.transform = `rotateY(${dx * 15}deg) rotateX(${-dy * 15}deg) translate3d(${dx * 14}px, ${dy * 14}px, 0)`;
       });
     };
-    const reset = () => { orbit.style.transform = "translate3d(0,0,0)"; };
+    const reset = () => { orbit.style.transform = "rotateY(0deg) rotateX(0deg) translate3d(0,0,0)"; };
     wrap.addEventListener("mousemove", onMove, { passive: true });
     wrap.addEventListener("mouseleave", reset);
     return () => {
@@ -137,28 +150,41 @@ export function OrbitalEcosystem() {
       <div ref={orbitRef} className="absolute inset-0 transition-transform duration-300 ease-out will-change-transform">
         {/* rotating conic aurora glow (gold -> mint) for depth */}
         <div
-          className="absolute inset-[16%] rounded-full animate-spin [animation-duration:16s]"
+          className="absolute inset-[16%] rounded-full animate-spin [animation-duration:12s]"
           style={{
             background:
-              "conic-gradient(from 0deg, rgba(226,167,47,0) 0deg, rgba(226,167,47,0.18) 90deg, rgba(34,214,146,0.16) 200deg, rgba(226,167,47,0) 360deg)",
-            filter: "blur(26px)",
+              "conic-gradient(from 0deg, rgba(226,167,47,0) 0deg, rgba(226,167,47,0.24) 90deg, rgba(34,214,146,0.2) 200deg, rgba(226,167,47,0) 360deg)",
+            filter: "blur(24px)",
           }}
         />
         {/* rotating rings at different speeds (GPU transform) - always live */}
-        <div className="absolute inset-0 rounded-full border border-gold-500/30 animate-spin [animation-duration:18s]" />
-        <div className="absolute inset-[12%] rounded-full border border-dashed border-mint-400/30 animate-spin [animation-duration:24s] [animation-direction:reverse]" />
-        <div className="absolute inset-[24%] rounded-full border border-gold-400/25 animate-spin [animation-duration:14s]" />
-        <div className="absolute inset-[34%] rounded-full bg-gold-500/10 blur-2xl" />
+        <div className="absolute inset-0 rounded-full border border-gold-500/45 animate-spin [animation-duration:13s]" />
+        <div className="absolute inset-[6%] rounded-full border border-white/10 animate-spin [animation-duration:22s]" />
+        <div className="absolute inset-[12%] rounded-full border border-dashed border-mint-400/45 animate-spin [animation-duration:18s] [animation-direction:reverse]" />
+        <div className="absolute inset-[24%] rounded-full border border-gold-400/40 animate-spin [animation-duration:10s]" />
+        <div className="absolute inset-[34%] rounded-full bg-gold-500/12 blur-2xl" />
 
-        {/* center logo with subtle pulse */}
+        {/* orbiting "planets" with a short comet trail - the spin speeds match
+            the rings above so each planet sits on a ring and orbits. */}
+        {ORBITERS.map((o, i) => (
+          <div key={i} className="absolute animate-spin" style={{ inset: o.inset, animationDuration: `${o.dur}s`, animationDirection: o.dir, animationDelay: `${o.delay}s` }}>
+            {/* trail (two fading dots behind the planet) */}
+            <span className={`absolute top-0 h-1 w-1 -translate-y-[1px] rounded-full ${o.dot}`} style={{ left: "calc(50% - 8px)", opacity: 0.45 }} />
+            <span className={`absolute top-0 h-[3px] w-[3px] -translate-y-[1px] rounded-full ${o.dot}`} style={{ left: "calc(50% - 14px)", opacity: 0.22 }} />
+            <span className={`absolute left-1/2 top-0 -translate-x-1/2 rounded-full ${o.size} ${o.dot}`} style={{ boxShadow: `0 0 12px 2px ${o.glow}` }} />
+          </div>
+        ))}
+
+        {/* center logo with layered halo */}
         <div className="absolute left-1/2 top-1/2 h-[28%] w-[28%] -translate-x-1/2 -translate-y-1/2">
-          <div className="absolute inset-0 rounded-full bg-gold-500/30 blur-xl [animation:ping-soft_3.4s_ease-in-out_infinite]" />
+          <div className="absolute -inset-[35%] rounded-full bg-gold-500/20 blur-2xl" />
+          <div className="absolute inset-0 rounded-full bg-gold-500/40 blur-xl [animation:ping-soft_3.4s_ease-in-out_infinite]" />
           <Image
             src="/logo.png"
             alt="XYZ Crypto"
             fill
             sizes="160px"
-            className="relative rounded-full object-cover ring-2 ring-gold-500/50 shadow-gold"
+            className="relative rounded-full object-cover ring-2 ring-gold-500/70 shadow-gold"
           />
         </div>
 

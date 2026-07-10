@@ -8,6 +8,7 @@ import { ArrowRight } from "lucide-react";
 import { MagicStar, ShieldTick } from "iconsax-react";
 import { Container } from "./ui/primitives";
 import { AnimatedBackground } from "./AnimatedBackground";
+import { Starfield } from "./Starfield";
 import { ActionLink } from "./ActionLink";
 import { MagneticButton } from "./MagneticButton";
 
@@ -76,6 +77,11 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
   return (
     <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-36">
       <AnimatedBackground />
+      {/* deep-space starfield, same as the orbital section - ties the top of the
+          page together and gives the hero a premium "space" depth on all sizes.
+          Drifting stars + meteors make it feel alive; Saturn + Moon live only in
+          the orbital section so they never collide with the medallion. */}
+      <Starfield className="opacity-80" bodies={false} />
 
       <Container className="relative grid items-center gap-10 sm:gap-12 lg:min-h-[76vh] lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 2xl:gap-20">
         {/* Copy */}
@@ -102,7 +108,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
           >
             Everything you need
             <br />
-            to <span className="text-gold-gradient">win in Web3.</span>
+            to <span className="text-shine">win in Web3.</span>
           </motion.h1>
 
           <motion.p
@@ -172,8 +178,8 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
               { k: "6+", v: "Products in pipeline" },
               { k: "24/7", v: "On-chain coverage" },
             ].map((s) => (
-              <div key={s.v} className="bg-ink-900 px-3 py-4 text-center transition-colors hover:bg-ink-800 sm:px-4 lg:text-left">
-                <div className="mono text-xl font-semibold text-gold-gradient sm:text-2xl">{s.k}</div>
+              <div key={s.v} className="relative bg-ink-900/90 px-3 py-4 text-center transition-colors hover:bg-ink-800 sm:px-4 lg:text-left">
+                <div className="mono text-shine text-xl font-semibold sm:text-2xl">{s.k}</div>
                 <div className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-[11px]">{s.v}</div>
               </div>
             ))}
