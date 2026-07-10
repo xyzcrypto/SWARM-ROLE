@@ -148,9 +148,22 @@ export function OrbitalEcosystem() {
         />
         {/* rotating rings at different speeds (GPU transform) - always live */}
         <div className="absolute inset-0 rounded-full border border-gold-500/30 animate-spin [animation-duration:18s]" />
+        <div className="absolute inset-[6%] rounded-full border border-white/[0.07] animate-spin [animation-duration:30s]" />
         <div className="absolute inset-[12%] rounded-full border border-dashed border-mint-400/30 animate-spin [animation-duration:24s] [animation-direction:reverse]" />
         <div className="absolute inset-[24%] rounded-full border border-gold-400/25 animate-spin [animation-duration:14s]" />
         <div className="absolute inset-[34%] rounded-full bg-gold-500/10 blur-2xl" />
+
+        {/* orbiting "planets" - small glowing dots riding the rings (their spin
+            speeds match the rings above so each dot sits on a ring and orbits) */}
+        <div className="absolute inset-0 animate-spin [animation-duration:18s]">
+          <span className="absolute left-1/2 top-0 h-2 w-2 -translate-x-1/2 rounded-full bg-gold-200 shadow-[0_0_10px_2px_rgba(226,167,47,0.7)]" />
+        </div>
+        <div className="absolute inset-[12%] animate-spin [animation-duration:24s] [animation-direction:reverse]">
+          <span className="absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-mint-200 shadow-[0_0_8px_2px_rgba(34,214,146,0.6)]" />
+        </div>
+        <div className="absolute inset-[24%] animate-spin [animation-duration:14s]">
+          <span className="absolute left-1/2 top-0 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-violet-200 shadow-[0_0_8px_2px_rgba(167,139,250,0.6)]" />
+        </div>
 
         {/* center logo with subtle pulse */}
         <div className="absolute left-1/2 top-1/2 h-[28%] w-[28%] -translate-x-1/2 -translate-y-1/2">

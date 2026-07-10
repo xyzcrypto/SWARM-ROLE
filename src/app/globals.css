@@ -162,6 +162,23 @@ html.lenis body {
   0%, 100% { opacity: var(--o, 0.4); transform: scale(1); }
   50% { opacity: calc(var(--o, 0.4) * 0.35); transform: scale(0.6); }
 }
+/* occasional diagonal streak - a thin bright head with a fading tail */
+.star-shooter {
+  position: absolute;
+  width: 90px;
+  height: 1.5px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.9) 90%, #fff 100%);
+  opacity: 0;
+  transform: rotate(20deg);
+  will-change: transform, opacity;
+}
+@keyframes star-shoot {
+  0% { transform: translate3d(0, 0, 0) rotate(20deg); opacity: 0; }
+  6% { opacity: 0.85; }
+  16% { opacity: 0; }
+  100% { transform: translate3d(260px, 95px, 0) rotate(20deg); opacity: 0; }
+}
 
 /* Intro reveal for the logo medallion */
 @keyframes ring-in {
@@ -699,7 +716,8 @@ html.lenis body {
   .aurora,
   .particle,
   .grid-pan,
-  .starfield span {
+  .starfield span,
+  .star-shooter {
     animation: none !important;
   }
 }
