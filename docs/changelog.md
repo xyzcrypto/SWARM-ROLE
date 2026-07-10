@@ -5,6 +5,13 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital (mobile): remove Saturn/Moon on phones/tablets (clean orbital + stars)
+- Per owner: on mobile/tablet the orbital now shows just the ecosystem + starfield (no CSS Saturn/Moon).
+  `OrbitalBackdrop` renders the CSS bodies only on desktop-light (WebGL desktop draws its own; mobile has
+  none). Desktop 3D unchanged. (Realistic Saturn + crescent-moon-with-robot-face are a follow-up.)
+
+---
+
 ## 2026-07-10 — Orbital (mobile): move CSS Saturn/Moon into the side gutters, out of the text
 - On phones/tablets (which render the CSS orbital) the Saturn/Moon sat over the heading + subtitle. Moved
   their placement out of inline styles into responsive CSS (`globals.css` `.starfield .saturn/.moon`): on
