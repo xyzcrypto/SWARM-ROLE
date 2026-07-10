@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital: ring spin + shooting stars now run under reduced-motion; Saturn clear of text
+- Root cause of "ring static + shooting stars not showing": both were gated off under
+  `prefers-reduced-motion` (which the viewer likely has enabled). Removed `.saturn-ring` + `.star-shooter`
+  from the reduced-motion kill-list so the ring keeps spinning and meteors keep streaking regardless of the
+  OS animation setting (they're subtle, GPU-cheap decorative motion).
+- **Saturn repositioned** to the upper-right GUTTER, below the heading + subtitle (`top: 12% → 30%`,
+  `left: 68% → 77%`), so it no longer overlaps the text.
+
+---
+
 ## 2026-07-10 — Orbital: realistic moon + obvious ring spin + more shooting stars + more perf
 - **Realistic moon** (`globals.css`): removed the artificial glow halo; the crescent now has a SOFT terminator
   (gradient mask so the dark limb fades naturally) + a bright sunlit rim + body shading that darkens toward

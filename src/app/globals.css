@@ -207,8 +207,9 @@ html.lenis body {
 .starfield .saturn { left: 62%; top: 34%; width: clamp(50px, 13vw, 108px); }
 .starfield .moon { left: 5%; top: 42%; width: clamp(46px, 12vw, 90px); }
 @media (min-width: 900px) {
-  .starfield .saturn { left: 68%; top: 12%; width: clamp(110px, 11vw, 170px); }
-  .starfield .moon { left: 4%; top: 27%; width: clamp(100px, 10vw, 146px); }
+  /* upper-right gutter, BELOW the heading + subtitle (clear of all text) */
+  .starfield .saturn { left: 77%; top: 30%; width: clamp(110px, 11vw, 168px); }
+  .starfield .moon { left: 3%; top: 30%; width: clamp(100px, 10vw, 146px); }
 }
 @keyframes planet-bob {
   0%, 100% { transform: translate3d(0, 0, 0); }
@@ -876,9 +877,7 @@ html.lenis body {
   .saturn,
   .moon,
   .saturn-body::after,
-  .saturn-ring,
   .moon-robot,
-  .star-shooter,
   /* continuous decorative sweeps + the auto-scrolling ticker: stop them for
      users who asked for less motion (accessibility + battery, and paint cost). */
   .marquee,
