@@ -78,8 +78,10 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
     <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-36">
       <AnimatedBackground />
       {/* deep-space starfield, same as the orbital section - ties the top of the
-          page together and gives the hero a premium "space" depth on all sizes */}
-      <Starfield className="opacity-70" />
+          page together and gives the hero a premium "space" depth on all sizes.
+          Drifting stars + meteors make it feel alive; planet lives only in the
+          orbital section so it never collides with the medallion on the right. */}
+      <Starfield className="opacity-80" planet={false} />
 
       <Container className="relative grid items-center gap-10 sm:gap-12 lg:min-h-[76vh] lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 2xl:gap-20">
         {/* Copy */}

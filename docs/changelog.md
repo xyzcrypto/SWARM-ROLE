@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-2 (alive): starfield next-level — drifting stars + meteors + distant planet
+- **Stars now MOVE** (`Starfield.tsx` + globals): ~1/4 of the faint stars slowly *drift* along a per-star
+  vector (new `star-drift` keyframe, 26–50s) on top of the twinkle, so the field reads as alive, not just
+  blinking. Drift + twinkle never fight over `transform` (each star runs exactly one keyframe).
+- **More meteors**: shooting stars 2 → **5**, streaking in from all corners at varied angles/travel
+  (per-shooter `--rot` / `--dx` / `--dy`) so no two repeat the same line.
+- **Breathing nebula**: the three colour hazes now slowly drift + scale (new `neb-float`) for shifting depth.
+- **Signature distant planet** (unique cosmos touch): a soft gold gradient sphere with a faint tilted ring
+  that bobs slowly (new `planet-bob`), tucked upper-right in the orbital section (off in the hero so it never
+  collides with the medallion). Geometry screenshot-verified (reads as a ringed planet, not a blob).
+- Hero starfield bumped to `opacity-80` so the drift + meteors read behind the hero. All dark-only, hidden on
+  light theme, and every new animation stops under `prefers-reduced-motion`; planet hidden on phones. Colors
+  unchanged; no backend impact.
+
+---
+
 ## 2026-07-10 — V2 PR-2: Orbital "One unified ecosystem" — starfield + real 3D tilt
 - **Full-bleed starfield** (new `Starfield.tsx`): 64 deterministic (SSR-safe, no CLS) twinkling stars +
   two faint distant glows (gold / mint) behind the whole orbital section → a tasteful "deep space / solar

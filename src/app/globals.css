@@ -162,7 +162,16 @@ html.lenis body {
   0%, 100% { opacity: var(--o, 0.4); transform: scale(1); }
   50% { opacity: calc(var(--o, 0.4) * 0.35); transform: scale(0.6); }
 }
-/* occasional diagonal streak - a thin bright head with a fading tail */
+/* A subset of stars slowly DRIFT (real positional movement) so the field feels
+   alive, not just blinking. Direction/amount is per-star (--dx/--dy). Opacity
+   breathes in the same keyframe so drift + twinkle never fight over `transform`. */
+@keyframes star-drift {
+  0%   { transform: translate3d(0, 0, 0); opacity: calc(var(--o, 0.4) * 0.55); }
+  50%  { transform: translate3d(var(--dx, 10px), var(--dy, -14px), 0); opacity: var(--o, 0.4); }
+  100% { transform: translate3d(0, 0, 0); opacity: calc(var(--o, 0.4) * 0.55); }
+}
+/* occasional diagonal streak - a thin bright head with a fading tail. Angle
+   (--rot) + travel (--dx/--dy) are per-shooter so they streak from all corners. */
 .star-shooter {
   position: absolute;
   width: 90px;
@@ -170,14 +179,28 @@ html.lenis body {
   border-radius: 9999px;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.9) 90%, #fff 100%);
   opacity: 0;
-  transform: rotate(20deg);
+  transform: rotate(var(--rot, 20deg));
   will-change: transform, opacity;
 }
 @keyframes star-shoot {
-  0% { transform: translate3d(0, 0, 0) rotate(20deg); opacity: 0; }
-  6% { opacity: 0.85; }
-  16% { opacity: 0; }
-  100% { transform: translate3d(260px, 95px, 0) rotate(20deg); opacity: 0; }
+  0% { transform: translate3d(0, 0, 0) rotate(var(--rot, 20deg)); opacity: 0; }
+  6% { opacity: 0.9; }
+  18% { opacity: 0; }
+  100% { transform: translate3d(var(--dx, 260px), var(--dy, 95px), 0) rotate(var(--rot, 20deg)); opacity: 0; }
+}
+/* Faint coloured nebula haze - very slowly breathes + drifts so the backdrop
+   has depth that shifts over time (never static). */
+@keyframes neb-float {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.9; }
+  50% { transform: translate3d(3%, -3%, 0) scale(1.12); opacity: 1; }
+}
+/* One distant "planet" - a soft gradient sphere with a faint ring that bobs
+   very slowly. The signature element that makes the field read as a unique
+   little cosmos rather than generic stars. */
+.starfield-planet { will-change: transform; }
+@keyframes planet-bob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
 }
 /* Halve the starfield on phones for cheaper paint (still dense enough to read). */
 @media (max-width: 768px) {
@@ -721,6 +744,8 @@ html.lenis body {
   .particle,
   .grid-pan,
   .starfield span,
+  .starfield-neb,
+  .starfield-planet,
   .star-shooter {
     animation: none !important;
   }
