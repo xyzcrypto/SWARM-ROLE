@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-2 (cosmos): realistic 3D Saturn + Moon + light-theme starfield + mobile parity
+- **Realistic 3D Saturn** (`Starfield.tsx` + globals): the flat disc is now a proper ringed planet — a
+  shaded gas globe (radial highlight + inset terminator shadow + soft-light latitudinal bands that slowly
+  drift to fake axial spin) wrapped by a Cassini-gap ring built from two elliptical borders. The ring is
+  drawn twice: a back copy behind the globe and a front copy clipped to its lower arc, so it crosses
+  **behind the top and in front of the bottom** like the real thing. Bobs slowly. Geometry screenshot-verified.
+- **Realistic Moon** (left side): cratered, shaded silver sphere (radial-gradient craters + inset terminator
+  shadow + soft halo) that drifts/bobs gently.
+- **Mobile parity**: Saturn + Moon now render on phones too, sized with `clamp()` so they stay in proportion
+  from phone → desktop (desktop-quality look on mobile, as asked).
+- **Light theme fixed**: the whole starfield used to be hidden on white; now it STAYS and is retuned as a warm
+  "day sky" — stars recolour to soft amber (`star-w`/`star-g` markers), meteors go gold, and Saturn/Moon get a
+  stronger rim + drop shadow so they separate cleanly from the light surface. Verified in both themes.
+- Every new motion (band-spin, bob, drift, meteors, twinkle) still stops under `prefers-reduced-motion`;
+  colours unchanged; no backend impact.
+
+---
+
 ## 2026-07-10 — V2 PR-2 (alive): starfield next-level — drifting stars + meteors + distant planet
 - **Stars now MOVE** (`Starfield.tsx` + globals): ~1/4 of the faint stars slowly *drift* along a per-star
   vector (new `star-drift` keyframe, 26–50s) on top of the twinkle, so the field reads as alive, not just

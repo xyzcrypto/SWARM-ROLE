@@ -49,10 +49,12 @@ const NEBULAE = [
   { left: "30%", top: "-6%", size: "40%", color: "rgba(167,139,250,0.04)", dur: "38s", delay: "-16s" },
 ];
 
-// Full-bleed starfield layer. pointer-events-none; dark-only (hidden on the
-// light theme, where light stars would vanish on white); twinkle + drift +
-// shooters + planet all stop under prefers-reduced-motion.
-export function Starfield({ className, planet = true }: { className?: string; planet?: boolean }) {
+// Full-bleed starfield layer. pointer-events-none. Works in BOTH themes (dark =
+// deep space, light = warm "day sky" via the globals light remap). Twinkle,
+// drift, meteors, Saturn's spin + both bodies' bob all stop under
+// prefers-reduced-motion. `bodies` gates Saturn + Moon (off in the hero, where
+// the medallion owns the right side).
+export function Starfield({ className, bodies = true }: { className?: string; bodies?: boolean }) {
   return (
     <div aria-hidden className={cn("starfield pointer-events-none absolute inset-0 overflow-hidden", className)}>
       {NEBULAE.map((n, i) => (
@@ -71,34 +73,40 @@ export function Starfield({ className, planet = true }: { className?: string; pl
         />
       ))}
 
-      {/* distant planet - the signature "unique cosmos" touch (dark-only, faint,
-          tucked top-left so it never collides with the logo/medallion). */}
-      {planet && (
-        <div
-          className="starfield-planet starfield-extra absolute hidden sm:block"
-          style={{ left: "76%", top: "12%", width: 120, height: 120, animation: "planet-bob 14s ease-in-out infinite" }}
-        >
+      {bodies && (
+        <>
+          {/* Realistic Saturn (upper-right): banded gas globe + shaded terminator
+              + Cassini-gap ring crossing behind the top / in front of the bottom.
+              clamp() keeps it in proportion from phone to desktop. */}
           <div
-            className="absolute inset-0 rounded-full"
-            style={{
-              background:
-                "radial-gradient(circle at 35% 30%, rgba(244,212,136,0.28), rgba(226,167,47,0.12) 45%, rgba(10,10,15,0) 72%)",
-              boxShadow: "0 0 40px 6px rgba(226,167,47,0.10)",
-            }}
-          />
-          {/* faint tilted ring */}
+            className="saturn absolute"
+            style={{ left: "72%", top: "9%", width: "clamp(88px, 11vw, 140px)", aspectRatio: "1", animation: "planet-bob 14s ease-in-out infinite" }}
+          >
+            <div className="saturn-ring saturn-ring-back" />
+            <div className="saturn-body" />
+            <div className="saturn-ring saturn-ring-front" />
+          </div>
+
+          {/* Realistic Moon (left side): cratered, shaded sphere with a soft halo. */}
           <div
-            className="absolute left-1/2 top-1/2 rounded-[100%] border border-gold-300/15"
-            style={{ width: 168, height: 46, transform: "translate(-50%,-50%) rotate(-24deg)" }}
-          />
-        </div>
+            className="moon absolute"
+            style={{ left: "5%", top: "24%", width: "clamp(50px, 7vw, 86px)", aspectRatio: "1", animation: "moon-bob 12s ease-in-out infinite" }}
+          >
+            <div className="moon-body" />
+          </div>
+        </>
       )}
 
       {STARS.map((st, i) => (
         <span
           key={i}
-          // The extra half only renders on >=md so phones paint ~90 stars, not 180.
-          className={cn("absolute rounded-full", st.gold ? "bg-gold-200" : "bg-white", i >= 90 && "starfield-extra")}
+          // star-w / star-g let the light theme recolour them (warm amber) so
+          // they don't vanish on white; the extra half only paints on >=md.
+          className={cn(
+            "absolute rounded-full",
+            st.gold ? "bg-gold-200 star-g" : "bg-white star-w",
+            i >= 90 && "starfield-extra"
+          )}
           style={{
             left: `${st.x}%`,
             top: `${st.y}%`,
@@ -107,7 +115,7 @@ export function Starfield({ className, planet = true }: { className?: string; pl
             opacity: st.o,
             boxShadow: st.bright ? (st.gold ? "0 0 6px 1px rgba(244,212,136,0.7)" : "0 0 6px 1px rgba(255,255,255,0.6)") : undefined,
             // CSS custom properties consumed by the twinkle / drift keyframes
-            ...({ "--o": st.o, "--dx": st.dx, "--dy": st.dy } as React.CSSProperties),
+            ...({ "--o": st.o, "--dx": st.dx, "--dy": st.dy } as CSSProperties),
             animation: st.drift
               ? `star-drift ${st.driftDur}s ease-in-out ${st.delay}s infinite`
               : `star-twinkle ${st.d}s ease-in-out ${st.delay}s infinite`,
@@ -122,7 +130,7 @@ export function Starfield({ className, planet = true }: { className?: string; pl
           style={{
             top: sh.top,
             left: sh.left,
-            ...({ "--rot": sh.rot, "--dx": sh.dx, "--dy": sh.dy } as React.CSSProperties),
+            ...({ "--rot": sh.rot, "--dx": sh.dx, "--dy": sh.dy } as CSSProperties),
             animation: `star-shoot ${sh.dur} ease-in ${sh.delay} infinite`,
           }}
         />

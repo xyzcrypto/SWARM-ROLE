@@ -194,15 +194,78 @@ html.lenis body {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.9; }
   50% { transform: translate3d(3%, -3%, 0) scale(1.12); opacity: 1; }
 }
-/* One distant "planet" - a soft gradient sphere with a faint ring that bobs
-   very slowly. The signature element that makes the field read as a unique
-   little cosmos rather than generic stars. */
-.starfield-planet { will-change: transform; }
+/* ---- Realistic ringed planet (Saturn) + Moon - the signature celestial bodies
+   that make the field read as a unique little cosmos. Pure CSS 3D: shaded
+   spheres (radial highlight + inset terminator shadow), a banded gas texture,
+   and a Cassini-gap ring that crosses BEHIND the top of the globe and IN FRONT
+   of the bottom. Both bob slowly; the planet's bands drift to fake axial spin. */
+.saturn, .moon { will-change: transform; }
 @keyframes planet-bob {
   0%, 100% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(0, -10px, 0); }
 }
-/* Halve the starfield on phones for cheaper paint (still dense enough to read). */
+@keyframes moon-bob {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(-6px, 8px, 0); }
+}
+@keyframes saturn-spin { to { background-position: 200% 0; } }
+
+/* --- Saturn --- */
+.saturn-body {
+  position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  background:
+    radial-gradient(circle at 34% 28%, #fbe6ad 0%, #ecc063 26%, #cf8f2a 55%, #9a611a 82%, #5c3a0e 100%);
+  box-shadow: inset -7px -9px 20px rgba(50,26,0,0.6), inset 5px 6px 14px rgba(255,235,190,0.28),
+    0 0 30px 5px rgba(226,167,47,0.20);
+}
+/* latitudinal gas bands - a horizontally repeating sheen that slides to fake
+   the planet slowly rotating on its axis. */
+.saturn-body::after {
+  content: ""; position: absolute; inset: -30% -60%;
+  background: repeating-linear-gradient(
+    92deg,
+    rgba(255,240,205,0.00) 0%, rgba(255,240,205,0.14) 4%,
+    rgba(120,72,20,0.16) 8%, rgba(255,240,205,0.00) 13%);
+  background-size: 200% 100%;
+  mix-blend-mode: soft-light; opacity: 0.9;
+  animation: saturn-spin 16s linear infinite;
+}
+.saturn-ring {
+  position: absolute; left: 50%; top: 50%;
+  width: 232%; height: 66%;
+  transform: translate(-50%, -50%) rotate(-19deg);
+  border-radius: 50%;
+  border: 5px solid rgba(240,206,132,0.6);
+  box-shadow: 0 0 10px rgba(226,167,47,0.30);
+}
+/* inner ring band + the dark Cassini division (the gap between the two borders) */
+.saturn-ring::before {
+  content: ""; position: absolute; inset: 6px; border-radius: 50%;
+  border: 3px solid rgba(255,236,184,0.5);
+}
+.saturn-ring-front { clip-path: polygon(0 52%, 100% 52%, 100% 100%, 0 100%); }
+
+/* --- Moon --- */
+.moon-body {
+  position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
+  background:
+    radial-gradient(circle at 36% 30%, #f4f4f9 0%, #d3d3dc 42%, #9a9aa6 72%, #565662 100%);
+  box-shadow: inset -8px -6px 16px rgba(15,15,26,0.6), inset 4px 4px 10px rgba(255,255,255,0.22),
+    0 0 22px 3px rgba(200,205,225,0.16);
+}
+/* craters */
+.moon-body::after {
+  content: ""; position: absolute; inset: 0;
+  background:
+    radial-gradient(circle at 62% 40%, rgba(60,60,72,0.5) 0 6%, rgba(255,255,255,0.12) 7%, transparent 9%),
+    radial-gradient(circle at 40% 63%, rgba(60,60,72,0.45) 0 5%, transparent 7%),
+    radial-gradient(circle at 71% 68%, rgba(60,60,72,0.4) 0 4%, transparent 6%),
+    radial-gradient(circle at 30% 34%, rgba(60,60,72,0.35) 0 3%, transparent 5%),
+    radial-gradient(circle at 52% 22%, rgba(60,60,72,0.3) 0 2.5%, transparent 4%);
+}
+
+/* Phones: cheaper paint - drop the extra star half, keep Saturn + Moon (scaled
+   down via clamp() in the component) so mobile matches desktop. */
 @media (max-width: 768px) {
   .starfield-extra { display: none; }
 }
@@ -745,7 +808,9 @@ html.lenis body {
   .grid-pan,
   .starfield span,
   .starfield-neb,
-  .starfield-planet,
+  .saturn,
+  .moon,
+  .saturn-body::after,
   .star-shooter {
     animation: none !important;
   }
@@ -890,8 +955,31 @@ html:not(.dark) .prose-xyz td { border-color: rgba(0, 0, 0, 0.08); color: #39394
 html:not(.dark) .mesh::before,
 html:not(.dark) .mesh::after,
 html:not(.dark) .aurora,
-html:not(.dark) .particle,
-html:not(.dark) .starfield { display: none; }
+html:not(.dark) .particle { display: none; }
+
+/* Light theme: the starfield STAYS (owner wants the cosmos on white too), but
+   white stars would vanish on white - so recolour it as a warm "day sky":
+   stars become soft amber specks, meteors gold, and the celestial bodies get a
+   stronger shadow/rim so they separate cleanly from the light surface. */
+html:not(.dark) .starfield span.star-w { background-color: #b98a2b !important; }
+html:not(.dark) .starfield span.star-g { background-color: #a9761d !important; }
+html:not(.dark) .starfield span.star-w,
+html:not(.dark) .starfield span.star-g { box-shadow: none !important; }
+html:not(.dark) .star-shooter {
+  background: linear-gradient(90deg, rgba(169,118,29,0) 0%, rgba(169,118,29,0.85) 90%, #8a5f13 100%) !important;
+}
+html:not(.dark) .starfield-neb { opacity: 0.75; }
+html:not(.dark) .saturn-body {
+  box-shadow: inset -7px -9px 20px rgba(70,38,0,0.55), inset 5px 6px 14px rgba(255,240,205,0.5),
+    0 8px 26px rgba(120,80,10,0.28), 0 0 22px 3px rgba(226,167,47,0.20);
+}
+html:not(.dark) .saturn-ring { border-color: rgba(180,132,38,0.7); box-shadow: 0 0 8px rgba(180,132,38,0.25); }
+html:not(.dark) .saturn-ring::before { border-color: rgba(150,104,24,0.6); }
+html:not(.dark) .moon-body {
+  background: radial-gradient(circle at 36% 30%, #ffffff 0%, #d0d0da 42%, #8f8f9c 74%, #4e4e5a 100%);
+  box-shadow: inset -8px -6px 16px rgba(15,15,26,0.5), inset 4px 4px 10px rgba(255,255,255,0.35),
+    0 8px 22px rgba(30,30,55,0.22);
+}
 html:not(.dark) .grid-bg {
   opacity: 0.6;
   background-image:
