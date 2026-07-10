@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital (desktop): realistic gold Saturn + crescent moon with the XYZ robot
+Desktop WebGL only (mobile has no planets). Per owner refs, keeping the brand gold + the robot's mint identity.
+- **Realistic gold Saturn** (`textures.ts`): rewrote `saturnBodyTexture()` as a proper gas-giant in the GOLD
+  ramp — darkened poles, many turbulent latitudinal bands (multi-octave sine field), wavy swirl streaks, and
+  soft storm ovals (1024×512, anisotropy 8). Enriched `saturnRingTexture()` with a second (inner) division +
+  an inner→outer warm/brightness shift. Screenshot-verified (2D).
+- **Crescent moon + XYZ robot mascot** (`Moon.tsx`): the moon is now a real 3D **crescent** — `THREE.Shape`
+  (big circle minus an offset circle) → `extrudeGeometry` with bevel → cratered grey rock material (reused
+  `moonTextures()`). The **XYZ robot** sits in its curve as a camera-facing billboard: new `robotFaceTexture()`
+  redraws the `RobotIcon` face (mint head + gloss + eyes + antenna) onto a canvas, mapped on a plane inside a
+  drei `<Billboard>`, with a mint glow + gentle bob. Dropped the old sphere + night-terminator shader.
+- Both keep desktop parallax/entrance; colours unchanged (gold Saturn, mint robot). tsc + build green.
+
+---
+
 ## 2026-07-10 — Orbital (mobile): remove Saturn/Moon on phones/tablets (clean orbital + stars)
 - Per owner: on mobile/tablet the orbital now shows just the ecosystem + starfield (no CSS Saturn/Moon).
   `OrbitalBackdrop` renders the CSS bodies only on desktop-light (WebGL desktop draws its own; mobile has

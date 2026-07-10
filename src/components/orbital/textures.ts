@@ -43,39 +43,79 @@ export function dotTexture(): THREE.Texture {
   return t;
 }
 
-// Saturn's gas body: a vertical (latitudinal) gradient - gold at the lit top,
-// through amber/beige, to deep brown - with fine horizontal bands and faint
-// longitudinal streaks so the slow spin reads. Wraps horizontally.
+// Saturn's gas body: a REALISTIC gas-giant in the brand GOLD ramp only (no new
+// hues). Latitudinal gradient with darkened poles, many turbulent bands built
+// from layered sines, wavy swirl streaks (also make the spin read), and a couple
+// of soft storm ovals. Wraps horizontally.
 export function saturnBodyTexture(): THREE.Texture {
-  const w = 512;
-  const h = 256;
+  const w = 1024;
+  const h = 512;
   const { c, ctx } = makeCanvas(w, h);
+
+  // base vertical (latitudinal) gradient - poles darker, warm gold mid-belts
   const grad = ctx.createLinearGradient(0, 0, 0, h);
-  grad.addColorStop(0.0, "#fbe6ad");
-  grad.addColorStop(0.22, "#ecc063");
-  grad.addColorStop(0.5, "#cf8f2a");
-  grad.addColorStop(0.78, "#9a611a");
-  grad.addColorStop(1.0, "#5c3a0e");
+  grad.addColorStop(0.0, "#5c3a0e");
+  grad.addColorStop(0.12, "#b6771f");
+  grad.addColorStop(0.28, "#f0cf7e");
+  grad.addColorStop(0.44, "#d79b34");
+  grad.addColorStop(0.56, "#f2d68f");
+  grad.addColorStop(0.72, "#cf8f2a");
+  grad.addColorStop(0.88, "#a5651a");
+  grad.addColorStop(1.0, "#4e320c");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 
-  // latitudinal bands - subtle lighter/darker horizontal streaks
-  for (let y = 0; y < h; y += 2) {
-    const n = Math.sin(y * 0.16) * 0.5 + Math.sin(y * 0.043 + 1.3) * 0.5;
-    const a = 0.05 + Math.abs(n) * 0.06;
-    ctx.fillStyle = n > 0 ? `rgba(255,240,205,${a})` : `rgba(90,58,14,${a})`;
-    ctx.fillRect(0, y, w, 2);
+  // turbulent latitudinal bands - multi-octave sine field per row
+  for (let y = 0; y < h; y++) {
+    const lat = y / h;
+    const b = Math.sin(lat * 46) * 0.5 + Math.sin(lat * 17 + 1.2) * 0.32 + Math.sin(lat * 91 + 0.6) * 0.18;
+    const a = Math.min(0.17, Math.abs(b) * 0.15);
+    ctx.fillStyle = b > 0 ? `rgba(255,244,214,${a})` : `rgba(70,44,12,${a})`;
+    ctx.fillRect(0, y, w, 1);
   }
-  // faint longitudinal variation so axial spin is perceptible
-  for (let x = 0; x < w; x += 3) {
-    const a = (Math.sin(x * 0.08) * 0.5 + 0.5) * 0.04;
-    ctx.fillStyle = `rgba(255,236,190,${a})`;
-    ctx.fillRect(x, 0, 2, h);
+
+  // wavy swirl streaks - gives the gas a sense of flow (and helps spin read)
+  for (let i = 0; i < 300; i++) {
+    const y0 = (i * 41) % h;
+    const light = Math.sin(i * 12.9898) > 0;
+    ctx.strokeStyle = light ? "rgba(255,246,222,0.05)" : "rgba(66,42,12,0.06)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const amp = 3 + (i % 6);
+    for (let x = 0; x <= w; x += 10) {
+      const yy = y0 + Math.sin(x * 0.018 + i) * amp;
+      if (x === 0) ctx.moveTo(x, yy);
+      else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
   }
+
+  // soft storm ovals (elliptical, warm-light or dark)
+  const storms = [
+    { x: 0.62, y: 0.4, rx: 70, ry: 26, col: "rgba(255,239,196,0.5)" },
+    { x: 0.26, y: 0.6, rx: 52, ry: 20, col: "rgba(120,74,18,0.42)" },
+    { x: 0.82, y: 0.66, rx: 40, ry: 16, col: "rgba(255,232,180,0.4)" },
+  ];
+  for (const s of storms) {
+    const cxp = s.x * w;
+    const cyp = s.y * h;
+    const g = ctx.createRadialGradient(cxp, cyp, 0, cxp, cyp, s.rx);
+    g.addColorStop(0, s.col);
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.save();
+    ctx.translate(cxp, cyp);
+    ctx.scale(1, s.ry / s.rx);
+    ctx.beginPath();
+    ctx.arc(0, 0, s.rx, 0, Math.PI * 2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.restore();
+  }
+
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   t.wrapS = THREE.RepeatWrapping;
-  t.anisotropy = 4;
+  t.anisotropy = 8;
   return t;
 }
 
@@ -96,15 +136,18 @@ export function saturnRingTexture(): THREE.Texture {
     let a = Math.min(1, (t - 0.42) / 0.06) * Math.min(1, (1 - t) / 0.05);
     // fine banding
     a *= 0.55 + 0.45 * (Math.sin(t * 90) * 0.5 + 0.5);
-    // Cassini division - a darker gap
+    // Cassini division (main) + a fainter inner division - a real ring system
     const gap = Math.exp(-Math.pow((t - 0.7) / 0.022, 2));
+    const gap2 = Math.exp(-Math.pow((t - 0.56) / 0.014, 2));
     a *= 1 - 0.85 * gap;
+    a *= 1 - 0.5 * gap2;
     a *= 0.85;
-    // colour: warm amber outer, paler mid
+    // colour: warm amber, brightening a touch toward the outer edge (inner→outer shift)
     const mix = 0.5 + 0.5 * Math.sin(t * 40);
-    const cr = Math.round(240 - mix * 60);
-    const cg = Math.round(206 - mix * 70);
-    const cb = Math.round(132 - mix * 60);
+    const warm = (t - 0.42) / 0.56; // 0 inner .. 1 outer
+    const cr = Math.round(238 - mix * 55 + warm * 14);
+    const cg = Math.round(204 - mix * 66 + warm * 10);
+    const cb = Math.round(132 - mix * 58);
     ctx.strokeStyle = `rgba(${cr},${cg},${cb},${a})`;
     ctx.lineWidth = 1.4;
     ctx.beginPath();
@@ -199,6 +242,87 @@ export function nebulaTexture(hex: string): THREE.Texture {
   grad.addColorStop(1, `rgba(${r},${g},${b},0)`);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, s, s);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+// The XYZ robot face, redrawn on a transparent canvas (mirrors RobotIcon.tsx's
+// 48x48 recipe: mint gradient head + gloss + eyes + mouth + antenna + ears) so
+// it can sit as a billboard on the crescent moon inside the 3D scene.
+export function robotFaceTexture(): THREE.Texture {
+  const S = 256;
+  const { c, ctx } = makeCanvas(S, S);
+  const k = S / 48; // scale from the 48-unit viewBox
+  const rr = (x: number, y: number, wd: number, ht: number, r: number) => {
+    ctx.beginPath();
+    ctx.roundRect(x * k, y * k, wd * k, ht * k, r * k);
+  };
+
+  // head gradient (mint identity)
+  const face = ctx.createLinearGradient(0, 10 * k, 0, 42 * k);
+  face.addColorStop(0, "#7ef2c6");
+  face.addColorStop(0.45, "#22d692");
+  face.addColorStop(1, "#037a54");
+
+  // ears + head, with a soft drop shadow for depth
+  ctx.save();
+  ctx.shadowColor = "rgba(2,92,63,0.55)";
+  ctx.shadowBlur = 3 * k;
+  ctx.shadowOffsetY = 1.4 * k;
+  ctx.fillStyle = "#0a8f66";
+  rr(5, 22, 4.5, 9, 2.25);
+  ctx.fill();
+  rr(38.5, 22, 4.5, 9, 2.25);
+  ctx.fill();
+  ctx.fillStyle = face;
+  rr(9, 13, 30, 27, 9);
+  ctx.fill();
+  ctx.restore();
+
+  // antenna
+  ctx.strokeStyle = "#0bbb7c";
+  ctx.lineWidth = 2 * k;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(24 * k, 8 * k);
+  ctx.lineTo(24 * k, 14 * k);
+  ctx.stroke();
+  ctx.fillStyle = "#9bf7d0";
+  ctx.beginPath();
+  ctx.arc(24 * k, 6.5 * k, 2.6 * k, 0, Math.PI * 2);
+  ctx.fill();
+
+  // top gloss
+  const gloss = ctx.createRadialGradient(24 * k, 20 * k, 0, 24 * k, 20 * k, 16 * k);
+  gloss.addColorStop(0, "rgba(255,255,255,0.6)");
+  gloss.addColorStop(0.6, "rgba(255,255,255,0)");
+  ctx.fillStyle = gloss;
+  rr(12, 15.5, 24, 15, 7.5);
+  ctx.fill();
+
+  // eyes (glossy) + highlight
+  const eye = (ex: number, ey: number) => {
+    const g = ctx.createRadialGradient(ex * k, ey * k, 0, ex * k, ey * k, 3.4 * k);
+    g.addColorStop(0, "#eafff6");
+    g.addColorStop(1, "#0a3f2c");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(ex * k, ey * k, 3.4 * k, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc((ex - 0.9) * k, (ey - 1.1) * k, 1.05 * k, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  eye(18.5, 26.5);
+  eye(29.5, 26.5);
+
+  // mouth
+  ctx.fillStyle = "rgba(10,63,44,0.55)";
+  rr(17.5, 33, 13, 3.2, 1.6);
+  ctx.fill();
+
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.SRGBColorSpace;
   return t;
