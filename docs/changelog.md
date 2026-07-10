@@ -5,6 +5,32 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-2.5: cinematic WebGL orbital (three.js / R3F) — Living Solar System
+- **New `src/components/orbital/` scene** (three.js + react-three-fiber, already-installed deps, ZERO new
+  packages): the "Everything orbits XYZ Crypto" centerpiece becomes a real-time 3D cosmos.
+  - **Saturn** (`Saturn.tsx`): procedural banded gas globe + a Cassini-gap ring that is a real 3D disc, so it
+    occludes behind the top / in front of the bottom for free; fresnel rim + additive glow (fake bloom); slow
+    spin + float + wobble; hover brightens; cinematic entrance with a one-shot ring light-sweep.
+  - **Moon** (`Moon.tsx`): cratered sphere with a procedural bump map (real relief under the gold key light),
+    deep shadow side, edge glow, opposite parallax, slides in from the left.
+  - **EcosystemCore** (`EcosystemCore.tsx`): the XYZ logo billboard + breathing halo + gold frame ring + three
+    tilted orbits (different speeds) of glowing product nodes + travelling energy motes + inward gold/mint pulses.
+  - **Depth layers**: `StarField` (instanced, shader-twinkle distant stars), `SpaceParticles` (nebula clouds +
+    foreground dust), `HeroLighting` (gold key / mint fill) — all parallax at different rates.
+- **Scroll = advance**: section scroll progress tilts the whole solar-system plane + subtly dollies the camera
+  forward + parallaxes each layer (rAF-throttled, cooperates with Lenis). Pointer adds damped parallax.
+- **Textures are procedural** (`textures.ts`, drawn once on a `<canvas>`) — no external models/textures, no
+  Draco/KTX2/worker loaders (CSP-safe). "Bloom" is faked with additive glow sprites (no postprocessing dep).
+- **Gate + graceful fallback** (`useWebglGate.ts`, `OrbitalLazy.tsx`, `OrbitalBackdrop.tsx`): WebGL runs only
+  on a capable **dark-theme** session with motion allowed; **light theme + reduced-motion + no-WebGL fall back
+  to the polished CSS orbital** from PR-2. The section's CSS starfield drops its Saturn/Moon when WebGL is on
+  (no double planets). Re-evaluates on theme toggle + reduced-motion change.
+- **Perf**: lazy-loaded (`next/dynamic ssr:false`, three.js off the homepage first-load), dpr capped 1–1.5,
+  `frameloop` pauses when offscreen or the tab is hidden, mobile tier drops dpr + particle counts + dust.
+  Colors unchanged; no backend impact.
+
+---
+
 ## 2026-07-10 — V2 PR-2 (cosmos): realistic 3D Saturn + Moon + light-theme starfield + mobile parity
 - **Realistic 3D Saturn** (`Starfield.tsx` + globals): the flat disc is now a proper ringed planet — a
   shaded gas globe (radial highlight + inset terminator shadow + soft-light latitudinal bands that slowly

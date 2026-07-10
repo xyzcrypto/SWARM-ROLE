@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useWebglGate } from "./orbital/useWebglGate";
 
 // Same-size placeholder - avoids layout shift while the (deferred) JS loads.
 // Below-the-fold; never blocks first paint/hydration.
@@ -10,16 +11,22 @@ function Placeholder() {
   );
 }
 
-// The branded CSS orbital - the signature centerpiece on every device. It's
-// lighter, theme-correct (light + dark) and animates reliably on desktop, so we
-// no longer gate a heavier WebGL variant behind device checks (three.js is no
-// longer fetched on the homepage). The R3F scene (OrbitalScene3D) stays in the
-// repo for a future, properly art-directed pass.
+// The branded CSS orbital - the reliable, theme-correct (light + dark),
+// reduced-motion-safe centerpiece. It's the FALLBACK for the WebGL scene.
 const CssOrbital = dynamic(() => import("./OrbitalEcosystem").then((m) => m.OrbitalEcosystem), {
   ssr: false,
   loading: Placeholder,
 });
 
+// The cinematic WebGL scene (three.js / R3F). Heavier, so it's only fetched when
+// the gate actually chooses it (dark theme + motion allowed + WebGL available).
+const WebglOrbital = dynamic(() => import("./orbital/OrbitalScene"), {
+  ssr: false,
+  loading: Placeholder,
+});
+
+// The centerpiece: cinematic WebGL cosmos on capable dark sessions, else the CSS
+// orbital. Gate logic lives in useWebglGate (shared with OrbitalBackdrop).
 export function OrbitalLazy() {
-  return <CssOrbital />;
+  return useWebglGate() ? <WebglOrbital /> : <CssOrbital />;
 }
