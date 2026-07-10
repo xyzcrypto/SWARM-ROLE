@@ -21,17 +21,24 @@ export function useWebglGate(): boolean {
   const [webgl, setWebgl] = useState(false);
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    // Desktop-only: the cinematic scene is composed for the large square canvas.
+    // On phones/tablets the same world reads cramped + the stars oversized, so
+    // those get the polished CSS orbital (Saturn/Moon/starfield) instead -
+    // cleaner AND lighter.
+    const desktop = window.matchMedia("(min-width: 1024px)");
     const hasWebgl = webglAvailable();
     const decide = () => {
       const dark = document.documentElement.classList.contains("dark");
-      setWebgl(dark && !reduce.matches && hasWebgl);
+      setWebgl(dark && !reduce.matches && hasWebgl && desktop.matches);
     };
     decide();
     reduce.addEventListener("change", decide);
+    desktop.addEventListener("change", decide);
     const mo = new MutationObserver(decide);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => {
       reduce.removeEventListener("change", decide);
+      desktop.removeEventListener("change", decide);
       mo.disconnect();
     };
   }, []);

@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital: WebGL scene is desktop-only; phones/tablets get the polished CSS cosmos
+- The cinematic WebGL orbital is composed for the large desktop square; on small screens the same world read
+  cramped with oversized stars. `useWebglGate` now also requires `min-width: 1024px`, so **phones + tablets
+  render the polished CSS orbital** (Saturn top-right + Moon left + starfield, `clamp()`-sized — the look
+  approved earlier) while **desktop keeps the full 3D scene**. Cleaner on mobile and lighter (no three.js /
+  render loop on phones). Re-evaluates on resize. No new files; one-line gate condition.
+
+---
+
 ## 2026-07-10 — Performance pass (mobile + desktop): lighter paint, leaner JS, fewer background timers
 Focus was making the site *feel* fast/light, especially on mobile. The heavy libs (three.js, PerpChart,
 Supabase, anime.js) were already lazy, so the meaningful wins are runtime paint + background work.
