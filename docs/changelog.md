@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital: rebuild the crescent moon from proven primitives (likely crash fix) + SW cache bump
+- The extruded-`Shape` crescent was the one un-proven primitive added in the previous commit and the prime
+  suspect for the desktop "blank / no changes" report. Rebuilt `Moon.tsx` from **only the primitives that
+  already rendered** in the earlier scene: a sphere + a terminator shader (which produces the CRESCENT look
+  via lighting) + the XYZ robot as a camera-facing **sprite** (dropped `ExtrudeGeometry` + drei `Billboard`).
+  Same cratered rock, robot mascot, and warm core-lit edge — far lower crash risk. Realistic gold Saturn kept.
+- **Service worker cache bump** `xyz-pwa-v2 → v3` (`public/sw.js`): forces returning/PWA users' old cache to
+  be cleared on next load, so updates actually reach installed/returning sessions.
+
+---
+
 ## 2026-07-10 — Orbital: crash-proof the WebGL scene (never blank) + harden the robot texture
 - **Error boundary** (`OrbitalLazy.tsx`): the WebGL scene is now wrapped so that if it ever throws at runtime
   (shader/driver/geometry issue on some device), it falls back to the CSS orbital instead of blanking the
