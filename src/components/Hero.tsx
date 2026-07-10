@@ -102,7 +102,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
           >
             Everything you need
             <br />
-            to <span className="text-gold-gradient">win in Web3.</span>
+            to <span className="text-3d">win in Web3.</span>
           </motion.h1>
 
           <motion.p
@@ -171,10 +171,13 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
               { k: members, v: "Overall social community" },
               { k: "6+", v: "Products in pipeline" },
               { k: "24/7", v: "On-chain coverage" },
-            ].map((s) => (
-              <div key={s.v} className="bg-ink-900 px-3 py-4 text-center transition-colors hover:bg-ink-800 sm:px-4 lg:text-left">
-                <div className="mono text-xl font-semibold text-gold-gradient sm:text-2xl">{s.k}</div>
-                <div className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-[11px]">{s.v}</div>
+            ].map((s, i) => (
+              <div key={s.v} className="group/stat relative overflow-hidden bg-ink-900 px-3 py-4 text-center transition-colors hover:bg-ink-800 sm:px-4 lg:text-left">
+                {/* texture: fine grain + a soft gold sheen that lifts on hover */}
+                <span aria-hidden className="grain opacity-[0.04]" />
+                <span aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_-10%,rgba(226,167,47,0.10),transparent_70%)] opacity-70 transition-opacity duration-300 group-hover/stat:opacity-100" />
+                <div className="mono text-shine relative text-xl font-semibold sm:text-2xl" style={{ animationDelay: `${i * 1.4}s` }}>{s.k}</div>
+                <div className="relative mt-1 text-[10px] leading-tight text-zinc-500 sm:text-[11px]">{s.v}</div>
               </div>
             ))}
           </motion.div>

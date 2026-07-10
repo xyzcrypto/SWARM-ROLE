@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-1: Hero — active 3D headline + animated stat numbers
+- **Shared text-animation utilities** (re-added to `globals.css`, reused across the coming PRs, colors
+  unchanged): `.text-shine-mint` (moving mint sweep), `.text-glow-pulse` (breathing gold glow), `.text-3d`
+  (hand-built extruded 3D gold via stacked text-shadow + a gentle always-on 3D rock). Each has a light-theme
+  remap + is neutralized under `prefers-reduced-motion` (gradient/extrusion stays, motion stops).
+- **Hero headline**: "win in Web3." → `.text-3d` — same gold colors, now genuinely dimensional + alive.
+- **Hero stat numbers** (50K+ / 6+ / 24/7): static `text-gold-gradient` → animated `.text-shine` (moving
+  gold, staggered per column) + a tasteful texture per cell (fine grain + a soft gold sheen that lifts on
+  hover). Same gold hue family.
+
+---
+
 ## 2026-07-09 — S7-C: bespoke 3D icon SYSTEM (multi-hue) + snappier motion + homepage rollout
 - **Icon system**: `Icons3D.tsx` expanded to **17 hand-built 3D icons** on a curated 7-hue palette
   (gold/amber/emerald/sky/indigo/violet/rose) — Research, Tooling, Community, Security, Markets, TrendUp,
