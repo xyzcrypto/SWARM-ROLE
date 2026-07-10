@@ -14,7 +14,7 @@ export function OrbitalBackdrop() {
   const webgl = useWebglGate();
   const [desktop, setDesktop] = useState(false);
   useEffect(() => {
-    const mq = window.matchMedia("(min-width: 1024px)");
+    const mq = window.matchMedia("(min-width: 900px)");
     const apply = () => setDesktop(mq.matches);
     apply();
     mq.addEventListener("change", apply);

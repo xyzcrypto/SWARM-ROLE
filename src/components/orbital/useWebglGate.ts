@@ -21,11 +21,10 @@ export function useWebglGate(): boolean {
   const [webgl, setWebgl] = useState(false);
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-    // Desktop-only: the cinematic scene is composed for the large square canvas.
-    // On phones/tablets the same world reads cramped + the stars oversized, so
-    // those get the polished CSS orbital (Saturn/Moon/starfield) instead -
-    // cleaner AND lighter.
-    const desktop = window.matchMedia("(min-width: 1024px)");
+    // Desktop-only: the cinematic scene is composed for the large canvas. Phones
+    // get the CSS orbital. Threshold 900 (not 1024) so laptops running Windows
+    // display-scaling (e.g. 1366px at 150% => ~910 CSS px) still get the 3D scene.
+    const desktop = window.matchMedia("(min-width: 900px)");
     const hasWebgl = webglAvailable();
     const decide = () => {
       const dark = document.documentElement.classList.contains("dark");
