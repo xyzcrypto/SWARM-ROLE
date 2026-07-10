@@ -80,7 +80,7 @@ export function Starfield({ className, bodies = true }: { className?: string; bo
               clamp() keeps it in proportion from phone to desktop. */}
           <div
             className="saturn absolute"
-            style={{ left: "72%", top: "9%", width: "clamp(88px, 11vw, 140px)", aspectRatio: "1", animation: "planet-bob 14s ease-in-out infinite" }}
+            style={{ animation: "planet-bob 14s ease-in-out infinite" }}
           >
             <div className="saturn-ring saturn-ring-back" />
             <div className="saturn-body" />
@@ -90,7 +90,7 @@ export function Starfield({ className, bodies = true }: { className?: string; bo
           {/* Realistic Moon (left side): cratered, shaded sphere with a soft halo. */}
           <div
             className="moon absolute"
-            style={{ left: "5%", top: "24%", width: "clamp(50px, 7vw, 86px)", aspectRatio: "1", animation: "moon-bob 12s ease-in-out infinite" }}
+            style={{ animation: "moon-bob 12s ease-in-out infinite" }}
           >
             <div className="moon-body" />
           </div>

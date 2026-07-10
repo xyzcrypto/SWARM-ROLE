@@ -30,7 +30,9 @@ export function MessagesClient({ meId }: { meId: string }) {
 
   useEffect(() => {
     setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 30000);
+    const t = setInterval(() => {
+      if (!document.hidden) setNow(Date.now());
+    }, 30000);
     return () => clearInterval(t);
   }, []);
 

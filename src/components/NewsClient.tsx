@@ -62,7 +62,9 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // Start the "now" clock (client-only to avoid hydration drift).
   useEffect(() => {
     setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 60_000);
+    const t = setInterval(() => {
+      if (!document.hidden) setNow(Date.now());
+    }, 60_000);
     return () => clearInterval(t);
   }, []);
 
@@ -176,6 +178,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   useEffect(() => {
     if (category !== "All" || query) return;
     const t = setInterval(async () => {
+      if (document.hidden) return; // don't poll while the tab is backgrounded
       const r = await fetchPage(1);
       if (!r?.items?.length) return;
       setLive(Boolean(r.live));
@@ -786,7 +789,10 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
   useEffect(() => { setIdx(0); }, [items.length]);
   useEffect(() => {
     if (items.length < 2 || paused) return;
-    const t = setInterval(() => setIdx((i) => (i + 1) % items.length), 6500);
+    const t = setInterval(() => {
+      if (document.hidden) return; // pause the carousel while backgrounded
+      setIdx((i) => (i + 1) % items.length);
+    }, 6500);
     return () => clearInterval(t);
   }, [items.length, paused]);
 

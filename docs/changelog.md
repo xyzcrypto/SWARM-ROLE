@@ -5,6 +5,102 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital (mobile): remove Saturn/Moon on phones/tablets (clean orbital + stars)
+- Per owner: on mobile/tablet the orbital now shows just the ecosystem + starfield (no CSS Saturn/Moon).
+  `OrbitalBackdrop` renders the CSS bodies only on desktop-light (WebGL desktop draws its own; mobile has
+  none). Desktop 3D unchanged. (Realistic Saturn + crescent-moon-with-robot-face are a follow-up.)
+
+---
+
+## 2026-07-10 — Orbital (mobile): move CSS Saturn/Moon into the side gutters, out of the text
+- On phones/tablets (which render the CSS orbital) the Saturn/Moon sat over the heading + subtitle. Moved
+  their placement out of inline styles into responsive CSS (`globals.css` `.starfield .saturn/.moon`): on
+  mobile they now sit LOW in the left/right gutters beside the orbital (clear of all text) and are smaller
+  (Saturn pulled in so its ring no longer clips the right edge); wide light-theme desktop nudges them back up.
+  Screenshot-verified at 400px. Colours unchanged.
+
+---
+
+## 2026-07-10 — Orbital: WebGL scene is desktop-only; phones/tablets get the polished CSS cosmos
+- The cinematic WebGL orbital is composed for the large desktop square; on small screens the same world read
+  cramped with oversized stars. `useWebglGate` now also requires `min-width: 1024px`, so **phones + tablets
+  render the polished CSS orbital** (Saturn top-right + Moon left + starfield, `clamp()`-sized — the look
+  approved earlier) while **desktop keeps the full 3D scene**. Cleaner on mobile and lighter (no three.js /
+  render loop on phones). Re-evaluates on resize. No new files; one-line gate condition.
+
+---
+
+## 2026-07-10 — Performance pass (mobile + desktop): lighter paint, leaner JS, fewer background timers
+Focus was making the site *feel* fast/light, especially on mobile. The heavy libs (three.js, PerpChart,
+Supabase, anime.js) were already lazy, so the meaningful wins are runtime paint + background work.
+- **Mobile paint** (`globals.css`): the full-screen Gaussian-blur background layers are the biggest phone
+  cost. Under `@media (max-width:768px)` the `.mesh` blur drops 130px→55px, `.aurora` 88px→45px, `.glow-orb`
+  90px→45px, and the 3 blurred `.starfield-neb` layers are hidden. Visually identical at phone size, much
+  cheaper to composite.
+- **Reduced-motion** (`globals.css`): the auto-scrolling `.marquee` ticker + the continuous `.text-shine` /
+  button-shine / eyebrow sweeps now stop under `prefers-reduced-motion` (accessibility + battery + paint).
+- **Leaner JS**: `next.config.mjs` adds `experimental.optimizePackageImports` (lucide-react / iconsax-react /
+  framer-motion barrel tree-shaking) + `compiler.removeConsole` in production. `XyzAiWidget` and `SmoothScroll`
+  (Lenis) are now `next/dynamic({ssr:false})` (new `XyzAiWidgetMount` / `SmoothScrollMount`) so they leave the
+  eager path (the widget only renders for signed-in users). First-load JS stays ~160 kB shared (framer-motion
+  is global via the Navbar); per-page eager code drops.
+- **Background timers gated**: News feed 20s poll + headline carousel + 60s clock, Messages 30s clock now
+  no-op while the tab is hidden (`document.hidden`) — no wasted CPU/network/battery in background tabs.
+- No visual/color change in normal (motion-on) desktop use; all existing flows unchanged.
+
+---
+
+## 2026-07-10 — V2 PR-2.5 (tweak 2): Saturn ring spins + faces orbit, moon lit-from-orbit, mobile fit
+- **Saturn ring now visibly rotates** (`textures.ts` + `Saturn.tsx`): added angular particle specks to the
+  ring texture (screenshot-verified) and spun the ring mesh about its own axis, so the "outer layer" clearly
+  turns. Re-tilted Saturn to face toward the core/orbit; moved it further from the heading text (down + a
+  touch inward) and kept the real 3D front/back ring occlusion.
+- **Moon lit from the orbit** (`Moon.tsx`): kept the crisp half/night terminator but added a warm gold glow
+  spilling onto the core-facing (lit) edge, so it reads as illuminated by the XYZ ecosystem; softened the
+  night strength a touch so the lit half stays bright.
+- **Mobile fit**: tightened the `compact` placement/scale for Saturn + Moon so both sit fully inside the
+  small square. Colours unchanged.
+
+---
+
+## 2026-07-10 — V2 PR-2.5 (tweak 1): half/night moon + Saturn alignment + mobile fit
+- **Moon → half / "night" moon** (`Moon.tsx`): added a deterministic terminator-shade shell (a dot-product
+  shader that darkens the hemisphere facing away from the core, lit side toward the XYZ core) so the moon
+  reads as a real phase with a crisp day/night line, independent of scene lights. Rim glow kept on the lit limb only.
+- **Saturn alignment** (`Saturn.tsx`): moved down + inward and shrank the ring (radius 0.62→0.55, ring outer
+  ×2.15→×1.95) so it sits cleanly in the upper-right, clear of the section heading + right edge; trimmed the
+  scroll/pointer parallax gains so it never drifts into the text.
+- **Mobile fit**: Saturn + Moon take a `compact` prop (mobile tier) that pulls them inward + scales them down
+  (`OrbitalScene.tsx` passes `compact={tier==='low'}`) so both fit fully in the small square. Colours unchanged.
+
+---
+
+## 2026-07-10 — V2 PR-2.5: cinematic WebGL orbital (three.js / R3F) — Living Solar System
+- **New `src/components/orbital/` scene** (three.js + react-three-fiber, already-installed deps, ZERO new
+  packages): the "Everything orbits XYZ Crypto" centerpiece becomes a real-time 3D cosmos.
+  - **Saturn** (`Saturn.tsx`): procedural banded gas globe + a Cassini-gap ring that is a real 3D disc, so it
+    occludes behind the top / in front of the bottom for free; fresnel rim + additive glow (fake bloom); slow
+    spin + float + wobble; hover brightens; cinematic entrance with a one-shot ring light-sweep.
+  - **Moon** (`Moon.tsx`): cratered sphere with a procedural bump map (real relief under the gold key light),
+    deep shadow side, edge glow, opposite parallax, slides in from the left.
+  - **EcosystemCore** (`EcosystemCore.tsx`): the XYZ logo billboard + breathing halo + gold frame ring + three
+    tilted orbits (different speeds) of glowing product nodes + travelling energy motes + inward gold/mint pulses.
+  - **Depth layers**: `StarField` (instanced, shader-twinkle distant stars), `SpaceParticles` (nebula clouds +
+    foreground dust), `HeroLighting` (gold key / mint fill) — all parallax at different rates.
+- **Scroll = advance**: section scroll progress tilts the whole solar-system plane + subtly dollies the camera
+  forward + parallaxes each layer (rAF-throttled, cooperates with Lenis). Pointer adds damped parallax.
+- **Textures are procedural** (`textures.ts`, drawn once on a `<canvas>`) — no external models/textures, no
+  Draco/KTX2/worker loaders (CSP-safe). "Bloom" is faked with additive glow sprites (no postprocessing dep).
+- **Gate + graceful fallback** (`useWebglGate.ts`, `OrbitalLazy.tsx`, `OrbitalBackdrop.tsx`): WebGL runs only
+  on a capable **dark-theme** session with motion allowed; **light theme + reduced-motion + no-WebGL fall back
+  to the polished CSS orbital** from PR-2. The section's CSS starfield drops its Saturn/Moon when WebGL is on
+  (no double planets). Re-evaluates on theme toggle + reduced-motion change.
+- **Perf**: lazy-loaded (`next/dynamic ssr:false`, three.js off the homepage first-load), dpr capped 1–1.5,
+  `frameloop` pauses when offscreen or the tab is hidden, mobile tier drops dpr + particle counts + dust.
+  Colors unchanged; no backend impact.
+
+---
+
 ## 2026-07-10 — V2 PR-2 (cosmos): realistic 3D Saturn + Moon + light-theme starfield + mobile parity
 - **Realistic 3D Saturn** (`Starfield.tsx` + globals): the flat disc is now a proper ringed planet — a
   shaded gas globe (radial highlight + inset terminator shadow + soft-light latitudinal bands that slowly
