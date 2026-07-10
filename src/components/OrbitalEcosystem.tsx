@@ -87,10 +87,12 @@ export function OrbitalEcosystem() {
         const r = wrap.getBoundingClientRect();
         const dx = (e.clientX - (r.left + r.width / 2)) / r.width;
         const dy = (e.clientY - (r.top + r.height / 2)) / r.height;
-        orbit.style.transform = `translate3d(${dx * 18}px, ${dy * 18}px, 0)`;
+        // Real 3D tilt: rotate the whole orbital plane under the parent
+        // perspective (not just a flat slide) so it reads as a dimensional disc.
+        orbit.style.transform = `rotateY(${dx * 9}deg) rotateX(${-dy * 9}deg) translate3d(${dx * 10}px, ${dy * 10}px, 0)`;
       });
     };
-    const reset = () => { orbit.style.transform = "translate3d(0,0,0)"; };
+    const reset = () => { orbit.style.transform = "rotateY(0deg) rotateX(0deg) translate3d(0,0,0)"; };
     wrap.addEventListener("mousemove", onMove, { passive: true });
     wrap.addEventListener("mouseleave", reset);
     return () => {

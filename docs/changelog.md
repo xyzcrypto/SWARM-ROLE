@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-2: Orbital "One unified ecosystem" — starfield + real 3D tilt
+- **Full-bleed starfield** (new `Starfield.tsx`): 64 deterministic (SSR-safe, no CLS) twinkling stars +
+  two faint distant glows (gold / mint) behind the whole orbital section → a tasteful "deep space / solar
+  system" backdrop. `pointer-events-none`, dark-only (hidden on light theme), twinkle stops under
+  `prefers-reduced-motion`. Screenshot-verified tasteful (sparse, not busy).
+- **Real 3D tilt**: the orbital's desktop pointer-parallax now rotates the whole disc in 3D
+  (`rotateX/rotateY` under the existing `perspective`) instead of a flat 2D slide.
+- **"XYZ Crypto" accent** → animated `.text-shine` (moving gold, same hue). New `.starfield` +
+  `star-twinkle` CSS + light/reduced-motion coverage in globals. Colors unchanged; no backend impact.
+
+---
+
 ## 2026-07-09 — S7-C: bespoke 3D icon SYSTEM (multi-hue) + snappier motion + homepage rollout
 - **Icon system**: `Icons3D.tsx` expanded to **17 hand-built 3D icons** on a curated 7-hue palette
   (gold/amber/emerald/sky/indigo/violet/rose) — Research, Tooling, Community, Security, Markets, TrendUp,

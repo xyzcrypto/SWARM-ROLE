@@ -155,6 +155,14 @@ html.lenis body {
   50% { transform: translateY(-26px) translateX(8px); opacity: 0.7; }
 }
 
+/* Starfield (orbital "deep space" backdrop) - each star twinkles from its own
+   base opacity (--o). will-change keeps it on the compositor. */
+.starfield span { will-change: opacity, transform; }
+@keyframes star-twinkle {
+  0%, 100% { opacity: var(--o, 0.4); transform: scale(1); }
+  50% { opacity: calc(var(--o, 0.4) * 0.35); transform: scale(0.6); }
+}
+
 /* Intro reveal for the logo medallion */
 @keyframes ring-in {
   0% { transform: scale(0.4) rotate(-40deg); opacity: 0; }
@@ -690,7 +698,8 @@ html.lenis body {
   .mesh::after,
   .aurora,
   .particle,
-  .grid-pan {
+  .grid-pan,
+  .starfield span {
     animation: none !important;
   }
 }
@@ -834,7 +843,8 @@ html:not(.dark) .prose-xyz td { border-color: rgba(0, 0, 0, 0.08); color: #39394
 html:not(.dark) .mesh::before,
 html:not(.dark) .mesh::after,
 html:not(.dark) .aurora,
-html:not(.dark) .particle { display: none; }
+html:not(.dark) .particle,
+html:not(.dark) .starfield { display: none; }
 html:not(.dark) .grid-bg {
   opacity: 0.6;
   background-image:
