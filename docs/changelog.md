@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Scroll performance: content-visibility on sections + lighter sticky-nav blur (mobile)
+Focused on making homepage SCROLL smooth, especially on mobile.
+- **`content-visibility: auto` on every homepage section** (`Section` primitive + Hero, both already
+  `overflow-hidden` so no new clipping) via `.sect-cv` with `contain-intrinsic-size: auto 720px`. Off-screen
+  sections skip layout/paint while scrolling → big jank reduction; `auto` remembers real height so no scroll
+  jump. Ignored by browsers without support (safe).
+- **Sticky-nav backdrop-blur cut on mobile** — the navbar (when scrolled) + the mobile bottom nav are sticky
+  and their `backdrop-blur` repaints every scroll frame (classic mobile jank). On phones they now use
+  `blur(8px)` + a more opaque bg via `.nav-shell`, so scrolling stays smooth.
+
+---
+
 ## 2026-07-10 — Starfield: nicer stars + light-theme/mobile meteor rules + high-end mobile perf
 - **Light theme → no shooting stars** (`globals.css`): they read as odd streaks on a bright sky; hidden.
 - **Mobile → only ~3 shooting stars** (down from more); desktop keeps 12. Light theme (any size) = 0.

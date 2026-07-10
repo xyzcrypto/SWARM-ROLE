@@ -320,6 +320,13 @@ html.lenis body {
   .starfield-extra,
   .star-shooter-extra { display: none; }
   .orbital-aurora { filter: blur(14px) !important; }
+  /* The sticky navbar's backdrop-blur repaints every scroll frame on mobile.
+     Use a small blur + a more opaque bg so scroll stays smooth. */
+  .nav-shell {
+    backdrop-filter: blur(8px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(130%) !important;
+    background-color: rgba(10, 10, 15, 0.92) !important;
+  }
 }
 
 /* Intro reveal for the logo medallion */
@@ -1147,4 +1154,11 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 .cv-auto {
   content-visibility: auto;
   contain-intrinsic-size: 0 340px;
+}
+/* Homepage sections: skip render/paint work while off-screen so scrolling stays
+   smooth (esp. on mobile). `auto` remembers the real height after first render,
+   so there's no scrollbar jump. Ignored by browsers without support (safe). */
+.sect-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
 }

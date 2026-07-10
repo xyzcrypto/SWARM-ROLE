@@ -81,7 +81,7 @@ export function Navbar() {
         className={cn(
           "mx-auto flex h-14 max-w-[1200px] items-center justify-between rounded-2xl px-3 transition-all duration-300 sm:px-4 xl:max-w-[1320px] 2xl:max-w-[1480px]",
           scrolled
-            ? "border border-line bg-ink-900/80 shadow-elevate ring-1 ring-gold-500/10 backdrop-blur-xl"
+            ? "nav-shell border border-line bg-ink-900/80 shadow-elevate ring-1 ring-gold-500/10 backdrop-blur-xl"
             : "border border-transparent"
         )}
       >

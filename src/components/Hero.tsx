@@ -75,7 +75,7 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
   const members = "50K+";
 
   return (
-    <section className="relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-36">
+    <section className="sect-cv relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-36">
       <AnimatedBackground />
       {/* deep-space starfield, same as the orbital section - ties the top of the
           page together and gives the hero a premium "space" depth on all sizes.
