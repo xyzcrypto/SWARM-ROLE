@@ -94,7 +94,7 @@ html.lenis body {
   content: "";
   position: absolute;
   border-radius: 9999px;
-  filter: blur(130px);
+  filter: blur(96px);
   opacity: 0.42;
 }
 .mesh::before {
@@ -134,7 +134,7 @@ html.lenis body {
       rgba(226, 167, 47, 0.12) 90deg,
       rgba(11, 187, 124, 0.10) 200deg,
       rgba(226, 167, 47, 0) 360deg);
-  filter: blur(88px);
+  filter: blur(62px);
   opacity: 0.48;
   animation: aurora-spin 36s linear infinite;
 }
@@ -174,18 +174,20 @@ html.lenis body {
    (--rot) + travel (--dx/--dy) are per-shooter so they streak from all corners. */
 .star-shooter {
   position: absolute;
-  width: 90px;
-  height: 1.5px;
+  width: 120px;
+  height: 2px;
   border-radius: 9999px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.9) 90%, #fff 100%);
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(226,167,47,0.35) 55%, rgba(255,255,255,0.95) 92%, #fff 100%);
+  box-shadow: 0 0 6px 1px rgba(255,255,255,0.5);
   opacity: 0;
   transform: rotate(var(--rot, 20deg));
   will-change: transform, opacity;
 }
 @keyframes star-shoot {
   0% { transform: translate3d(0, 0, 0) rotate(var(--rot, 20deg)); opacity: 0; }
-  6% { opacity: 0.9; }
-  18% { opacity: 0; }
+  4% { opacity: 1; }
+  22% { opacity: 1; }
+  34% { opacity: 0; }
   100% { transform: translate3d(var(--dx, 260px), var(--dy, 95px), 0) rotate(var(--rot, 20deg)); opacity: 0; }
 }
 /* Faint coloured nebula haze - very slowly breathes + drifts so the backdrop
@@ -205,8 +207,8 @@ html.lenis body {
 .starfield .saturn { left: 62%; top: 34%; width: clamp(50px, 13vw, 108px); }
 .starfield .moon { left: 5%; top: 42%; width: clamp(46px, 12vw, 90px); }
 @media (min-width: 900px) {
-  .starfield .saturn { left: 73%; top: 15%; width: clamp(104px, 10vw, 160px); }
-  .starfield .moon { left: 3%; top: 26%; width: clamp(104px, 10vw, 150px); }
+  .starfield .saturn { left: 68%; top: 12%; width: clamp(110px, 11vw, 170px); }
+  .starfield .moon { left: 4%; top: 27%; width: clamp(100px, 10vw, 146px); }
 }
 @keyframes planet-bob {
   0%, 100% { transform: translate3d(0, 0, 0); }
@@ -253,15 +255,17 @@ html.lenis body {
   width: 232%; height: 66%;
   transform: translate(-50%, -50%) rotate(-19deg);
   border-radius: 50%;
+  /* high-contrast bright arcs + dark gaps so the spin is obvious */
   background: conic-gradient(from 0deg,
-    rgba(226,167,47,0.12), rgba(255,241,199,0.9) 10%, rgba(226,167,47,0.18) 22%,
-    rgba(255,236,184,0.82) 40%, rgba(214,155,52,0.12) 52%, rgba(255,241,199,0.9) 70%,
-    rgba(226,167,47,0.18) 82%, rgba(226,167,47,0.12) 100%);
+    rgba(120,80,20,0.05) 0deg, rgba(255,249,224,1) 26deg, rgba(120,80,20,0.05) 58deg,
+    rgba(226,167,47,0.35) 120deg, rgba(255,244,205,0.95) 150deg, rgba(120,80,20,0.05) 186deg,
+    rgba(255,249,224,0.98) 250deg, rgba(120,80,20,0.05) 288deg,
+    rgba(226,167,47,0.4) 330deg, rgba(120,80,20,0.05) 360deg);
   -webkit-mask: radial-gradient(ellipse closest-side, transparent 0 60%, #000 61% 71%, transparent 72% 75.5%, #000 76.5% 92%, transparent 93%);
           mask: radial-gradient(ellipse closest-side, transparent 0 60%, #000 61% 71%, transparent 72% 75.5%, #000 76.5% 92%, transparent 93%);
-  filter: drop-shadow(0 0 6px rgba(226,167,47,0.35));
+  filter: drop-shadow(0 0 6px rgba(226,167,47,0.4));
   will-change: transform;
-  animation: ring-orbit 16s linear infinite;
+  animation: ring-orbit 9s linear infinite;
 }
 .saturn-ring-front { clip-path: polygon(0 52%, 100% 52%, 100% 100%, 0 100%); }
 @keyframes ring-orbit {
@@ -272,22 +276,19 @@ html.lenis body {
 /* --- Moon (crescent) --- */
 /* The lit crescent = a full cratered disc with an offset disc masked out on the
    right, so the concave opens toward the core where the XYZ robot sits. */
-/* soft moonlight glow around the crescent (a real "lit" feel) */
-.moon::before {
-  content: ""; position: absolute; inset: -34%; border-radius: 50%;
-  background: radial-gradient(circle, rgba(216,226,255,0.26) 0%, rgba(216,226,255,0.08) 46%, transparent 72%);
-  pointer-events: none;
-}
+/* Realistic crescent: a cratered rock disc with a SOFT terminator (the dark
+   limb fades naturally, not a hard cut) and a bright sunlit rim. No fake halo. */
 .moon-body {
   position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
   background:
-    /* bright lit rim on the sunlit (outer) edge */
-    radial-gradient(circle at 22% 40%, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0) 26%),
-    radial-gradient(circle at 34% 34%, #ffffff 0%, #dcdce6 40%, #9a9aa6 74%, #4f4f5b 100%);
-  box-shadow: inset -6px -6px 14px rgba(15,15,26,0.5), inset 6px 6px 14px rgba(255,255,255,0.42);
-  filter: drop-shadow(0 0 12px rgba(210,220,255,0.28));
-  -webkit-mask: radial-gradient(circle at 118% 50%, transparent 0 46%, #000 47%);
-  mask: radial-gradient(circle at 118% 50%, transparent 0 46%, #000 47%);
+    /* bright sunlit rim on the outer (left) limb */
+    radial-gradient(circle at 20% 46%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 22%),
+    /* body shading: bright near the lit limb -> darker toward the terminator */
+    radial-gradient(circle at 28% 40%, #f4f5fb 0%, #cfd0da 34%, #9a9aa6 62%, #63636e 84%, #3c3c46 100%);
+  box-shadow: inset -3px -3px 10px rgba(12,12,20,0.45), inset 5px 5px 12px rgba(255,255,255,0.34);
+  /* soft terminator (gradient mask): dark side fades in around the offset circle */
+  -webkit-mask: radial-gradient(circle at 122% 50%, transparent 0 40%, rgba(0,0,0,0.35) 47%, #000 55%);
+  mask: radial-gradient(circle at 122% 50%, transparent 0 40%, rgba(0,0,0,0.35) 47%, #000 55%);
 }
 /* craters (on the lit crescent only, since the mask applies to the box) */
 .moon-body::after {

@@ -35,11 +35,14 @@ const STARS = Array.from({ length: 120 }, (_, i) => {
 // Diagonal "shooting stars" streaking in from different corners/angles so they
 // feel like real meteors, not one repeating line. Long cycles = occasional.
 const SHOOTERS = [
-  { top: "12%", left: "6%", dur: "6.5s", delay: "1s", rot: "22deg", dx: "300px", dy: "120px" },
-  { top: "60%", left: "38%", dur: "9s", delay: "4.5s", rot: "18deg", dx: "260px", dy: "85px" },
-  { top: "22%", left: "70%", dur: "7.5s", delay: "2.6s", rot: "150deg", dx: "-280px", dy: "150px" },
-  { top: "78%", left: "84%", dur: "11s", delay: "7s", rot: "205deg", dx: "-240px", dy: "-110px" },
-  { top: "40%", left: "20%", dur: "8s", delay: "9.5s", rot: "30deg", dx: "320px", dy: "180px" },
+  { top: "10%", left: "4%", dur: "4.5s", delay: "0.4s", rot: "24deg", dx: "340px", dy: "150px" },
+  { top: "18%", left: "44%", dur: "5.5s", delay: "1.6s", rot: "20deg", dx: "300px", dy: "110px" },
+  { top: "30%", left: "72%", dur: "5s", delay: "2.8s", rot: "150deg", dx: "-320px", dy: "170px" },
+  { top: "8%", left: "88%", dur: "6s", delay: "3.6s", rot: "160deg", dx: "-300px", dy: "150px" },
+  { top: "52%", left: "14%", dur: "4.8s", delay: "5.2s", rot: "28deg", dx: "360px", dy: "190px" },
+  { top: "62%", left: "58%", dur: "6.5s", delay: "6.4s", rot: "18deg", dx: "280px", dy: "95px" },
+  { top: "74%", left: "86%", dur: "5.4s", delay: "8s", rot: "205deg", dx: "-260px", dy: "-120px" },
+  { top: "44%", left: "34%", dur: "5.2s", delay: "9.4s", rot: "32deg", dx: "330px", dy: "200px" },
 ];
 
 // Faint coloured nebula haze for depth behind the stars (very low opacity so it

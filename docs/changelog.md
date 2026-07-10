@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital: realistic moon + obvious ring spin + more shooting stars + more perf
+- **Realistic moon** (`globals.css`): removed the artificial glow halo; the crescent now has a SOFT terminator
+  (gradient mask so the dark limb fades naturally) + a bright sunlit rim + body shading that darkens toward
+  the terminator. Reads like a real crescent, not a blob. Screenshot-verified.
+- **Ring spin now obvious** (`globals.css`): the conic ring is high-contrast (bright arcs + near-dark gaps)
+  and spins faster (9s), so the rotation is clearly visible instead of looking static.
+- **Saturn repositioned** — pulled in from the right edge + a touch larger so it's fully framed in the corner.
+- **More shooting stars** (`Starfield.tsx` + `globals.css`): 5 → 8 meteors, shorter cycles (more frequent),
+  and brighter/longer streaks with a warm-gold tail + glow.
+- **More performance**: desktop background blurs cut (`.mesh` 130→96px, `.aurora` 88→62px) and the CSS
+  starfield trimmed to 120 stars — cheaper paint with no visible change.
+
+---
+
 ## 2026-07-10 — Orbital polish (spinning ring + moonlight) + perf boost + realtime WS fix
 - **Saturn ring spins** (`globals.css`): the ring is now a conic-gradient (angular brightness) masked into two
   elliptical bands with a Cassini gap; a transform-only `ring-orbit` rotation makes the bright arcs visibly
