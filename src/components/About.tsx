@@ -1,6 +1,7 @@
 import { Reveal } from "./Reveal";
 import { AnimatedEmoji } from "./AnimatedEmoji";
 import { ResearchIcon, ToolingIcon, CommunityIcon, SecurityIcon, CalendarIcon, LayersIcon } from "./Icons3D";
+import { TiltCard } from "./TiltCard";
 import { Container, Section, Eyebrow } from "./ui/primitives";
 
 const credibility = [
@@ -8,6 +9,12 @@ const credibility = [
   { label: "Research driven", Icon: ResearchIcon },
   { label: "Community first", Icon: CommunityIcon },
   { label: "Web3 native", Icon: LayersIcon },
+];
+
+const journey = [
+  { k: "Learn", v: "Web3 Academy" },
+  { k: "Trade", v: "Tools & Perp DEX" },
+  { k: "Earn", v: "Airdrops & alpha" },
 ];
 
 const pillars = [
@@ -25,7 +32,7 @@ export function About() {
           <Eyebrow>Who we are</Eyebrow>
           <h2 className="mt-5 font-display text-display-md font-semibold tracking-tight text-zinc-50">
             One ecosystem for the{" "}
-            <span className="text-gold-gradient">entire Web3 journey.</span>{" "}
+            <span className="text-shine">entire Web3 journey.</span>{" "}
             <AnimatedEmoji emoji="🚀" variant="launch" className="align-middle text-[0.8em]" />
           </h2>
           <p className="mt-5 max-w-md text-base leading-relaxed text-zinc-400">
@@ -33,21 +40,25 @@ export function About() {
             single, trusted brand. We help newcomers learn, traders win, and
             builders ship, all on-chain, all in one place.
           </p>
-          <div className="mt-8 flex flex-wrap gap-x-8 gap-y-3">
-            {[
-              { k: "Learn", v: "Web3 Academy" },
-              { k: "Trade", v: "Tools & Perp DEX" },
-              { k: "Earn", v: "Airdrops & alpha" },
-            ].map((s) => (
-              <div key={s.k} className="border-l-2 border-mint-500/30 pl-3">
-                <div className="mono text-sm font-semibold text-mint-300">{s.k}</div>
-                <div className="text-xs text-zinc-500">{s.v}</div>
+
+          {/* Learn / Trade / Earn — premium mini-cards with live mint keys */}
+          <div className="mt-8 grid grid-cols-3 gap-3">
+            {journey.map((s) => (
+              <div
+                key={s.k}
+                className="surface surface-hover lift group relative overflow-hidden rounded-2xl px-3.5 py-3.5"
+              >
+                <span className="absolute left-0 top-0 h-full w-[3px] bg-gradient-to-b from-mint-400/70 to-mint-500/0" />
+                <div className="mono text-sm font-bold tracking-tight text-shine-mint">{s.k}</div>
+                <div className="mt-1 text-[11px] leading-tight text-zinc-500 transition-colors group-hover:text-zinc-400">
+                  {s.v}
+                </div>
               </div>
             ))}
           </div>
 
           {/* Credibility / trust block (Since 2019) */}
-          <div className="surface surface-hover lift group relative mt-8 overflow-hidden rounded-2xl p-4">
+          <div className="surface surface-hover lift group relative mt-6 overflow-hidden rounded-2xl p-4">
             <div className="glow-orb -right-10 -top-10 h-32 w-32 bg-gold-500/15" />
             <div className="relative flex items-center gap-2">
               <span className="mono text-[11px] font-semibold tracking-[0.16em] text-gold-200">
@@ -69,11 +80,14 @@ export function About() {
         <div className="grid gap-4 sm:grid-cols-2">
           {pillars.map((p, i) => (
             <Reveal key={p.title} delay={i} variant="pop">
-              <div className="surface surface-hover lift group h-full rounded-3xl p-6">
-                <p.Icon3D className="mb-4 h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
-                <h3 className="font-display text-base font-semibold text-zinc-100">{p.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.body}</p>
-              </div>
+              <TiltCard className="h-full">
+                <div className="surface surface-hover lift group relative h-full overflow-hidden rounded-3xl p-6">
+                  <div className="glow-orb -right-12 -top-12 h-28 w-28 bg-gold-500/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                  <p.Icon3D className="relative mb-4 h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
+                  <h3 className="relative font-display text-base font-semibold text-zinc-100">{p.title}</h3>
+                  <p className="relative mt-2 text-sm leading-relaxed text-zinc-400">{p.body}</p>
+                </div>
+              </TiltCard>
             </Reveal>
           ))}
         </div>

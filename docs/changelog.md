@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-3: About / "Who we are" next-level (live text + tilt pillars)
+Premium polish pass on the About section; colors unchanged (gold + mint).
+- **`entire Web3 journey.` accent now alive** — swapped the static `.text-gold-gradient` for the moving
+  `.text-shine` (same gold ramp, gently sweeping) so the headline reads active, not flat.
+- **New `.text-shine-mint` utility** (`globals.css`) — the mint mirror of `.text-shine` (brand mint ramp,
+  4.5s sweep). Added its light-theme remap (`html:not(.dark)`) and reduced-motion kill entry so it degrades
+  exactly like the gold one.
+- **Learn / Trade / Earn → premium mini-cards** — the three plain border-left labels became `surface
+  surface-hover lift` mini-cards in a tidy 3-col grid, each with a mint gradient accent bar and a live
+  `.text-shine-mint` key; the sub-label warms on hover. Reads bespoke instead of a bare list.
+- **Pillar cards get 3D tilt + depth** — the four right-column pillars are wrapped in `<TiltCard>` (mouse-only,
+  reduced-motion / touch safe) and gained a soft gold `.glow-orb` that fades in on hover behind the raised
+  content. Icons keep their `group-hover:scale-110`.
+- Files: `src/components/About.tsx`, `src/app/globals.css`, `docs/changelog.md`. Verified: tsc + lint + test
+  (235) + build green; `.text-shine-mint` screenshot-checked headlessly.
+
+---
+
 ## 2026-07-10 — Scroll performance: content-visibility on sections + lighter sticky-nav blur (mobile)
 Focused on making homepage SCROLL smooth, especially on mobile.
 - **`content-visibility: auto` on every homepage section** (`Section` primitive + Hero, both already

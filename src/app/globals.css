@@ -427,6 +427,16 @@ html.lenis body {
   color: transparent;
   animation: shine 5s linear infinite;
 }
+/* moving-mint variant (same recipe, brand mint) */
+.text-shine-mint {
+  background: linear-gradient(100deg, #0b8f5f 18%, #22d692 40%, #eafff6 50%, #54e8ad 60%, #0b8f5f 82%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shine 4.5s linear infinite;
+}
 .mono {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-feature-settings: "tnum" 1, "zero" 1;
@@ -891,6 +901,7 @@ html.lenis body {
      users who asked for less motion (accessibility + battery, and paint cost). */
   .marquee,
   .text-shine,
+  .text-shine-mint,
   .btn-primary::after,
   .btn-gold::after,
   .eyebrow-glass::after {
@@ -943,6 +954,12 @@ html:not(.dark) .text-mint-gradient {
 }
 html:not(.dark) .text-shine {
   background: linear-gradient(100deg, #824f0e 20%, #d18f1b 45%, #ad6f10 50%, #d18f1b 55%, #824f0e 80%);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+html:not(.dark) .text-shine-mint {
+  background: linear-gradient(100deg, #057653 20%, #059669 45%, #0bbb7c 50%, #059669 55%, #057653 80%);
   background-size: 200% auto;
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
