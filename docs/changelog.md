@@ -5,6 +5,14 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital: moon + Saturn into the side gutters; more desktop shooting stars
+- Per the owner's marks, moved the moon into the left gutter (`left 3% → 13%`) and nudged Saturn (`77% → 76%`)
+  so both sit balanced in the side gutters, clear of the text.
+- Bumped shooting stars 8 → 12 spread across the visible area (incl. the upper-centre) with staggered delays,
+  so meteors are clearly present on the wide desktop (they were already un-gated from reduced-motion).
+
+---
+
 ## 2026-07-10 — Orbital: ring spin + shooting stars now run under reduced-motion; Saturn clear of text
 - Root cause of "ring static + shooting stars not showing": both were gated off under
   `prefers-reduced-motion` (which the viewer likely has enabled). Removed `.saturn-ring` + `.star-shooter`

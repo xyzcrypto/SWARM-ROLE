@@ -207,9 +207,9 @@ html.lenis body {
 .starfield .saturn { left: 62%; top: 34%; width: clamp(50px, 13vw, 108px); }
 .starfield .moon { left: 5%; top: 42%; width: clamp(46px, 12vw, 90px); }
 @media (min-width: 900px) {
-  /* upper-right gutter, BELOW the heading + subtitle (clear of all text) */
-  .starfield .saturn { left: 77%; top: 30%; width: clamp(110px, 11vw, 168px); }
-  .starfield .moon { left: 3%; top: 30%; width: clamp(100px, 10vw, 146px); }
+  /* both in the side gutters, BELOW the heading + subtitle (clear of all text) */
+  .starfield .saturn { left: 76%; top: 30%; width: clamp(110px, 11vw, 168px); }
+  .starfield .moon { left: 13%; top: 30%; width: clamp(100px, 10vw, 146px); }
 }
 @keyframes planet-bob {
   0%, 100% { transform: translate3d(0, 0, 0); }

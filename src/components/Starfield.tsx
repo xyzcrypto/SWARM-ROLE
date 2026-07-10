@@ -36,13 +36,17 @@ const STARS = Array.from({ length: 120 }, (_, i) => {
 // feel like real meteors, not one repeating line. Long cycles = occasional.
 const SHOOTERS = [
   { top: "10%", left: "4%", dur: "4.5s", delay: "0.4s", rot: "24deg", dx: "340px", dy: "150px" },
-  { top: "18%", left: "44%", dur: "5.5s", delay: "1.6s", rot: "20deg", dx: "300px", dy: "110px" },
-  { top: "30%", left: "72%", dur: "5s", delay: "2.8s", rot: "150deg", dx: "-320px", dy: "170px" },
-  { top: "8%", left: "88%", dur: "6s", delay: "3.6s", rot: "160deg", dx: "-300px", dy: "150px" },
-  { top: "52%", left: "14%", dur: "4.8s", delay: "5.2s", rot: "28deg", dx: "360px", dy: "190px" },
-  { top: "62%", left: "58%", dur: "6.5s", delay: "6.4s", rot: "18deg", dx: "280px", dy: "95px" },
-  { top: "74%", left: "86%", dur: "5.4s", delay: "8s", rot: "205deg", dx: "-260px", dy: "-120px" },
-  { top: "44%", left: "34%", dur: "5.2s", delay: "9.4s", rot: "32deg", dx: "330px", dy: "200px" },
+  { top: "18%", left: "40%", dur: "5.5s", delay: "1.3s", rot: "20deg", dx: "320px", dy: "120px" },
+  { top: "12%", left: "62%", dur: "5s", delay: "2.2s", rot: "150deg", dx: "-320px", dy: "170px" },
+  { top: "8%", left: "88%", dur: "6s", delay: "3.1s", rot: "160deg", dx: "-300px", dy: "150px" },
+  { top: "34%", left: "26%", dur: "4.8s", delay: "3.9s", rot: "28deg", dx: "360px", dy: "190px" },
+  { top: "40%", left: "70%", dur: "5.3s", delay: "4.8s", rot: "150deg", dx: "-300px", dy: "160px" },
+  { top: "52%", left: "12%", dur: "4.6s", delay: "5.6s", rot: "26deg", dx: "360px", dy: "200px" },
+  { top: "58%", left: "52%", dur: "6s", delay: "6.5s", rot: "18deg", dx: "300px", dy: "100px" },
+  { top: "26%", left: "50%", dur: "5s", delay: "7.3s", rot: "22deg", dx: "330px", dy: "140px" },
+  { top: "70%", left: "84%", dur: "5.4s", delay: "8.2s", rot: "205deg", dx: "-260px", dy: "-120px" },
+  { top: "46%", left: "36%", dur: "5.2s", delay: "9s", rot: "32deg", dx: "330px", dy: "200px" },
+  { top: "64%", left: "66%", dur: "5.6s", delay: "10s", rot: "150deg", dx: "-320px", dy: "150px" },
 ];
 
 // Faint coloured nebula haze for depth behind the stars (very low opacity so it
