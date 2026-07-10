@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
+import { RobotIcon } from "./RobotIcon";
 
 // Deterministic star positions (seeded, computed once at module load) so SSR and
 // the client render identically - no hydration mismatch, no layout shift, no
@@ -93,6 +94,10 @@ export function Starfield({ className, bodies = true }: { className?: string; bo
             style={{ animation: "moon-bob 12s ease-in-out infinite" }}
           >
             <div className="moon-body" />
+            {/* XYZ robot mascot sitting in the crescent's curve */}
+            <div className="moon-robot">
+              <RobotIcon />
+            </div>
           </div>
         </>
       )}

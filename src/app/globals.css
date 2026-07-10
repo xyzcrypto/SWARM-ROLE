@@ -200,15 +200,13 @@ html.lenis body {
    and a Cassini-gap ring that crosses BEHIND the top of the globe and IN FRONT
    of the bottom. Both bob slowly; the planet's bands drift to fake axial spin. */
 .saturn, .moon { will-change: transform; aspect-ratio: 1; }
-/* Placement lives in CSS (not inline) so it can be responsive. Mobile/tablet is
-   the case that actually renders these (desktop-dark uses the WebGL scene), so
-   the defaults sit them LOW in the side gutters - clear of the heading/subtitle
-   text - and smaller. Wide screens (light-theme desktop) nudge them back up. */
-.starfield .saturn { left: 63%; top: 35%; width: clamp(50px, 13vw, 108px); }
-.starfield .moon { left: 6%; top: 44%; width: clamp(38px, 11vw, 74px); }
-@media (min-width: 1024px) {
-  .starfield .saturn { left: 74%; top: 18%; width: clamp(90px, 9vw, 140px); }
-  .starfield .moon { left: 6%; top: 30%; width: clamp(56px, 6vw, 86px); }
+/* Placement lives in CSS so it's responsive. These bodies only render on desktop
+   (>=900px); phones/tablets show a clean orbital with no planets. */
+.starfield .saturn { left: 62%; top: 34%; width: clamp(50px, 13vw, 108px); }
+.starfield .moon { left: 5%; top: 42%; width: clamp(46px, 12vw, 90px); }
+@media (min-width: 900px) {
+  .starfield .saturn { left: 73%; top: 15%; width: clamp(104px, 10vw, 160px); }
+  .starfield .moon { left: 3%; top: 26%; width: clamp(104px, 10vw, 150px); }
 }
 @keyframes planet-bob {
   0%, 100% { transform: translate3d(0, 0, 0); }
@@ -220,13 +218,20 @@ html.lenis body {
 }
 @keyframes saturn-spin { to { background-position: 200% 0; } }
 
-/* --- Saturn --- */
+/* --- Saturn (realistic, gold) --- */
 .saturn-body {
   position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
   background:
-    radial-gradient(circle at 34% 28%, #fbe6ad 0%, #ecc063 26%, #cf8f2a 55%, #9a611a 82%, #5c3a0e 100%);
-  box-shadow: inset -7px -9px 20px rgba(50,26,0,0.6), inset 5px 6px 14px rgba(255,235,190,0.28),
-    0 0 30px 5px rgba(226,167,47,0.20);
+    /* sphere highlight (top-left) */
+    radial-gradient(circle at 34% 28%, rgba(255,244,206,0.6) 0%, rgba(255,244,206,0) 46%),
+    /* latitudinal gold cloud bands */
+    repeating-linear-gradient(0deg,
+      #f1d385 0%, #e7bd58 2.5%, #cf8f2a 5%, #ecc169 7.5%,
+      #b6771f 10%, #dda63e 12.5%, #a5651a 15%),
+    /* base pole-to-pole shading */
+    linear-gradient(#8a5a17 0%, #e3ba5e 26%, #cf8f2a 52%, #e8c56f 74%, #7a4d13 100%);
+  box-shadow: inset -8px -10px 22px rgba(46,24,0,0.62), inset 6px 7px 16px rgba(255,236,190,0.32),
+    0 0 34px 6px rgba(226,167,47,0.22);
 }
 /* latitudinal gas bands - a horizontally repeating sheen that slides to fake
    the planet slowly rotating on its axis. */
@@ -255,23 +260,39 @@ html.lenis body {
 }
 .saturn-ring-front { clip-path: polygon(0 52%, 100% 52%, 100% 100%, 0 100%); }
 
-/* --- Moon --- */
+/* --- Moon (crescent) --- */
+/* The lit crescent = a full cratered disc with an offset disc masked out on the
+   right, so the concave opens toward the core where the XYZ robot sits. */
 .moon-body {
   position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
   background:
-    radial-gradient(circle at 36% 30%, #f4f4f9 0%, #d3d3dc 42%, #9a9aa6 72%, #565662 100%);
-  box-shadow: inset -8px -6px 16px rgba(15,15,26,0.6), inset 4px 4px 10px rgba(255,255,255,0.22),
-    0 0 22px 3px rgba(200,205,225,0.16);
+    radial-gradient(circle at 34% 34%, #f6f6fb 0%, #d3d3dc 44%, #9a9aa6 74%, #4f4f5b 100%);
+  box-shadow: inset -6px -6px 14px rgba(15,15,26,0.55), inset 5px 5px 12px rgba(255,255,255,0.28);
+  filter: drop-shadow(0 0 10px rgba(200,205,225,0.18));
+  -webkit-mask: radial-gradient(circle at 118% 50%, transparent 0 46%, #000 47%);
+  mask: radial-gradient(circle at 118% 50%, transparent 0 46%, #000 47%);
 }
-/* craters */
+/* craters (on the lit crescent only, since the mask applies to the box) */
 .moon-body::after {
   content: ""; position: absolute; inset: 0;
   background:
-    radial-gradient(circle at 62% 40%, rgba(60,60,72,0.5) 0 6%, rgba(255,255,255,0.12) 7%, transparent 9%),
-    radial-gradient(circle at 40% 63%, rgba(60,60,72,0.45) 0 5%, transparent 7%),
-    radial-gradient(circle at 71% 68%, rgba(60,60,72,0.4) 0 4%, transparent 6%),
-    radial-gradient(circle at 30% 34%, rgba(60,60,72,0.35) 0 3%, transparent 5%),
-    radial-gradient(circle at 52% 22%, rgba(60,60,72,0.3) 0 2.5%, transparent 4%);
+    radial-gradient(circle at 40% 38%, rgba(60,60,72,0.5) 0 6%, rgba(255,255,255,0.14) 7%, transparent 9%),
+    radial-gradient(circle at 30% 62%, rgba(60,60,72,0.45) 0 5%, transparent 7%),
+    radial-gradient(circle at 52% 78%, rgba(60,60,72,0.4) 0 4%, transparent 6%),
+    radial-gradient(circle at 22% 26%, rgba(60,60,72,0.35) 0 3%, transparent 5%),
+    radial-gradient(circle at 44% 18%, rgba(60,60,72,0.3) 0 2.5%, transparent 4%);
+}
+/* XYZ robot mascot nestled in the crescent's curve (to the right, in the concave) */
+.moon-robot {
+  position: absolute; right: -14%; top: 50%; transform: translateY(-50%);
+  width: 58%; height: 58%;
+  filter: drop-shadow(0 3px 8px rgba(2,92,63,0.5));
+  animation: moon-robot-bob 4s ease-in-out infinite;
+}
+.moon-robot svg { width: 100%; height: 100%; }
+@keyframes moon-robot-bob {
+  0%, 100% { transform: translateY(-50%); }
+  50% { transform: translateY(-58%); }
 }
 
 /* Phones: cheaper paint - drop the extra star half, keep Saturn + Moon (scaled

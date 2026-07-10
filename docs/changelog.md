@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital: switch centerpiece to the reliable CSS version (Saturn + crescent moon + XYZ robot)
+The WebGL scene rendered blank on the owner's desktop and could not be verified in CI (all local servers get
+killed in the sandbox), so after many rounds it's **temporarily disabled** in favour of a guaranteed-render
+CSS/SVG version that is screenshot-verified.
+- **`useWebglGate` → always false** — OrbitalLazy always renders the CSS `OrbitalEcosystem`; the three.js code
+  stays in the repo for a future verified pass.
+- **Realistic gold Saturn** (`globals.css .saturn-body`): layered banded gold gradient (latitudinal cloud
+  bands + pole shading + specular highlight) + the existing Cassini-gap ring. Screenshot-verified.
+- **Crescent moon + XYZ robot** (`globals.css` + `Starfield.tsx`): `.moon-body` is now masked into a real
+  crescent (offset-circle CSS mask) with craters on the lit face; the actual `RobotIcon` SVG sits in the
+  crescent's curve (`.moon-robot`, gentle bob). Screenshot-verified.
+- Bodies render on **desktop (≥900px)** only (via `OrbitalBackdrop`); phones/tablets keep the clean orbital
+  with no planets. This finally makes the changes reliably visible on desktop.
+
+---
+
 ## 2026-07-10 — Orbital: rebuild the crescent moon from proven primitives (likely crash fix) + SW cache bump
 - The extruded-`Shape` crescent was the one un-proven primitive added in the previous commit and the prime
   suspect for the desktop "blank / no changes" report. Rebuilt `Moon.tsx` from **only the primitives that
