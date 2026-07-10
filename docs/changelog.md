@@ -5,6 +5,26 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-4: Products / "The Ecosystem" next-level (bigger suite + live links)
+Expanded the homepage Products grid and made the live products clickable; colors unchanged (gold + mint).
+- **`power your edge.` accent now alive** — static `.text-gold-gradient` → the moving `.text-shine`.
+- **Perp DEX status → "In Research"** (`Products.tsx`) — extended the `Status` union + `tone` map (mapped to
+  the existing `violet` badge tone). Was "Coming Soon".
+- **4 new products** (`Products.tsx` + new `*Visual`s in `ProductVisuals.tsx`), each with a live CSS mini-visual:
+  - **Web3 Market** (Live → `/markets`) — `MarketVisual`: realtime BTC/ETH/SOL rows with pulsing green/red deltas.
+  - **Web3 News** (Live → `/news`) — `NewsVisual`: a "Breaking" feed with a headline scan sweep.
+  - **AI Hub** (Planned) — `AiVisual`: a violet "thinking" waveform + typing dots.
+  - **Gamified** (Coming Soon) — `GamifiedVisual`: XP progress bar + orbiting level badge + next-reward line.
+- **Live cards are clickable** — added an optional `href` to product items; the card renders as a `<Link>`
+  (with an `ArrowUpRight` hint that animates on hover) when set. Web3 Market → `/markets`, Web3 News →
+  `/news`, Web3 Academy → `/research`.
+- **Larger grid** — the small-product grid now holds 8 cards (2 rows of 4 on desktop); **"& More" moved to
+  last**. Reused all existing keyframes (bar-pulse / sheen / grow-x / badge-orbit / pulse-dot) so no new CSS.
+- Files: `src/components/Products.tsx`, `src/components/ProductVisuals.tsx`, `docs/changelog.md`. Verified:
+  tsc + lint + test (235) + build green.
+
+---
+
 ## 2026-07-10 — Scroll performance: content-visibility on sections + lighter sticky-nav blur (mobile)
 Focused on making homepage SCROLL smooth, especially on mobile.
 - **`content-visibility: auto` on every homepage section** (`Section` primitive + Hero, both already

@@ -145,6 +145,128 @@ export function AcademyVisual() {
   );
 }
 
+export function MarketVisual() {
+  const rows = [
+    { s: "BTC", p: "64,210", d: "+2.4%", up: true },
+    { s: "ETH", p: "3,412", d: "+1.1%", up: true },
+    { s: "SOL", p: "148.2", d: "-0.8%", up: false },
+  ];
+  return (
+    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
+      <div className="flex items-center justify-between mono text-[9px] text-zinc-500">
+        <span>LIVE MARKET</span>
+        <span className="inline-flex items-center gap-1 text-mint-300">
+          <span className="h-1.5 w-1.5 rounded-full bg-mint-400 animate-pulse-dot" /> REALTIME
+        </span>
+      </div>
+      <div className="mt-2 space-y-1.5">
+        {rows.map((r, i) => (
+          <div key={r.s} className="flex items-center gap-2 text-[11px]">
+            <span className="mono w-8 font-semibold text-zinc-300">{r.s}</span>
+            <span className="mono flex-1 text-zinc-400">${r.p}</span>
+            <span
+              className={`mono rounded px-1 py-0.5 text-[9px] font-semibold ${r.up ? "bg-mint-500/15 text-mint-300" : "bg-rose-500/15 text-rose-300"}`}
+              style={{ animation: `pulse-dot ${1.8 + i * 0.3}s ease-in-out ${i * 0.2}s infinite` }}
+            >
+              {r.d}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function NewsVisual() {
+  const lines = ["ETF inflows hit record high", "L2 TVL crosses a new peak", "Major protocol ships v3"];
+  return (
+    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
+      <div className="absolute left-3 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-rose-500/40 bg-rose-500/15 px-2 py-0.5">
+        <span className="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse-dot" />
+        <span className="mono text-[9px] font-semibold uppercase tracking-wide text-rose-200">Breaking</span>
+      </div>
+      <div className="mt-8 space-y-1.5">
+        {lines.map((t, i) => (
+          <div
+            key={t}
+            className="flex items-center gap-2 text-[10px] text-zinc-400"
+            style={{ animation: `pulse-dot ${3 + i * 0.4}s ease-in-out ${i * 0.35}s infinite` }}
+          >
+            <span className="h-1 w-1 shrink-0 rounded-full bg-gold-400" />
+            <span className="truncate">{t}</span>
+          </div>
+        ))}
+      </div>
+      {/* headline scan sweep */}
+      <div
+        className="pointer-events-none absolute inset-y-0 -left-1/4 w-1/3 skew-x-12 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+        style={{ animation: "sheen 3.4s ease-in-out infinite" }}
+      />
+    </div>
+  );
+}
+
+export function AiVisual() {
+  const bars = [0.4, 0.7, 0.5, 0.95, 0.6, 0.85, 0.45];
+  return (
+    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/12 to-ink-950/70 p-3">
+      <div className="flex items-center justify-between mono text-[9px] text-zinc-500">
+        <span>XYZ AI</span>
+        <span className="inline-flex items-center gap-1 text-violet-300">
+          THINKING
+          <span className="flex gap-0.5">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className="h-1 w-1 rounded-full bg-violet-400" style={{ animation: `pulse-dot 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+            ))}
+          </span>
+        </span>
+      </div>
+      <div className="mt-2.5 flex h-9 items-center gap-1">
+        {bars.map((h, i) => (
+          <div
+            key={i}
+            className="flex-1 origin-bottom rounded-full bg-gradient-to-t from-violet-500/40 to-violet-300/90"
+            style={{ height: `${h * 100}%`, animation: `bar-pulse ${1.3 + (i % 3) * 0.2}s ease-in-out ${i * 0.1}s infinite` }}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 mono text-[9px] text-violet-300/70">Analyzing on-chain signals…</div>
+    </div>
+  );
+}
+
+export function GamifiedVisual() {
+  return (
+    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
+      <div className="flex items-center justify-between">
+        <span className="mono text-[9px] text-zinc-500">YOUR PROGRESS</span>
+        <span className="relative inline-flex h-6 w-6 items-center justify-center">
+          <span
+            className="absolute inset-0 rounded-full"
+            style={{ background: "conic-gradient(from 0deg, transparent, rgba(52,231,167,0.9), transparent 60%)", animation: "badge-orbit 3s linear infinite" }}
+          />
+          <span className="relative grid h-5 w-5 place-items-center rounded-full bg-ink-950 mono text-[9px] font-bold text-mint-200 ring-1 ring-mint-500/50">7</span>
+        </span>
+      </div>
+      <div className="mt-3">
+        <div className="mb-1 flex justify-between mono text-[9px] text-zinc-500">
+          <span>LEVEL 7</span>
+          <span className="text-mint-300">1,240 XP</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
+          <div className="relative h-full rounded-full" style={{ width: "68%" }}>
+            <div className="h-full origin-left rounded-full bg-mint-shine" style={{ animation: "grow-x 1.1s cubic-bezier(0.22,1,0.36,1) both" }} />
+            <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/40 to-transparent" style={{ animation: "sheen 2.8s ease-in-out infinite" }} />
+          </div>
+        </div>
+      </div>
+      <div className="mt-2.5 mono text-[9px] text-zinc-500">
+        Next: <span className="text-mint-300/80">Level 8 → Alpha access</span>
+      </div>
+    </div>
+  );
+}
+
 export function MoreVisual() {
   return (
     <div className="relative mt-5 grid h-24 place-items-center overflow-hidden rounded-2xl border border-line bg-ink-950/60">
