@@ -50,7 +50,8 @@ export function Starfield({ className }: { className?: string }) {
       {STARS.map((st, i) => (
         <span
           key={i}
-          className={cn("absolute rounded-full", st.gold ? "bg-gold-200" : "bg-white")}
+          // The extra half only renders on >=md so phones paint ~90 stars, not 180.
+          className={cn("absolute rounded-full", st.gold ? "bg-gold-200" : "bg-white", i >= 90 && "starfield-extra")}
           style={{
             left: `${st.x}%`,
             top: `${st.y}%`,

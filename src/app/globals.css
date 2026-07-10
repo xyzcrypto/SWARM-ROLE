@@ -179,6 +179,10 @@ html.lenis body {
   16% { opacity: 0; }
   100% { transform: translate3d(260px, 95px, 0) rotate(20deg); opacity: 0; }
 }
+/* Halve the starfield on phones for cheaper paint (still dense enough to read). */
+@media (max-width: 768px) {
+  .starfield-extra { display: none; }
+}
 
 /* Intro reveal for the logo medallion */
 @keyframes ring-in {
