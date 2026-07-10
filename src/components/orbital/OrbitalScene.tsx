@@ -113,8 +113,8 @@ export default function OrbitalScene() {
           <CameraDolly scrollRef={scrollRef} />
           <SceneRig scrollRef={scrollRef}>
             <EcosystemCore scrollRef={scrollRef} />
-            <Saturn scrollRef={scrollRef} onHover={setLabel} />
-            <Moon scrollRef={scrollRef} />
+            <Saturn scrollRef={scrollRef} onHover={setLabel} compact={tier === "low"} />
+            <Moon scrollRef={scrollRef} compact={tier === "low"} />
           </SceneRig>
         </Suspense>
       </Canvas>

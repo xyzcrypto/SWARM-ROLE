@@ -10,10 +10,31 @@ import { GlowSprite, FresnelShell } from "./Glow";
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
 const RADIUS = 0.34;
 
-// Layer 4 (left): a cratered moon. Procedural bump map gives real relief under
-// the gold key light, so the shadow side reads deep. Slow spin + float; parallax
-// OPPOSITE to Saturn for depth; emerges from the left on entrance.
-export function Moon({ scrollRef }: { scrollRef: MutableRefObject<number> }) {
+// Terminator shade: darkens the hemisphere facing away from the core so the moon
+// reads as a real half / "night" phase, independent of the scene lights (fully
+// deterministic). Lit side faces uLightDir (≈ from the XYZ core, to the right).
+const nightVert = /* glsl */ `
+  varying vec3 vN;
+  void main() {
+    vN = normalize(mat3(modelMatrix) * normal);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const nightFrag = /* glsl */ `
+  uniform vec3 uLightDir;
+  uniform float uStrength;
+  varying vec3 vN;
+  void main() {
+    float d = dot(normalize(vN), normalize(uLightDir));
+    float night = smoothstep(0.30, -0.16, d); // 0 on lit side -> 1 on night side
+    gl_FragColor = vec4(0.0, 0.0, 0.0, night * uStrength);
+  }
+`;
+
+// Layer 4 (left): a cratered HALF moon. Procedural bump map gives real relief;
+// the terminator shade paints a crisp day/night line. Slow spin + float; parallax
+// OPPOSITE to Saturn; emerges from the left on entrance.
+export function Moon({ scrollRef, compact = false }: { scrollRef: MutableRefObject<number>; compact?: boolean }) {
   const outer = useRef<THREE.Group>(null);
   const inner = useRef<THREE.Group>(null);
   const body = useRef<THREE.Mesh>(null);
@@ -21,7 +42,15 @@ export function Moon({ scrollRef }: { scrollRef: MutableRefObject<number> }) {
   const start = useRef(-1);
 
   const { map, bump } = useMemo(() => moonTextures(), []);
-  const base = useMemo(() => new THREE.Vector3(-1.95, 0.1, -0.35), []);
+  const base = useMemo(
+    () => (compact ? new THREE.Vector3(-1.35, 0.05, -0.35) : new THREE.Vector3(-1.95, 0.1, -0.35)),
+    [compact]
+  );
+  const sizeK = compact ? 0.86 : 1;
+  const nightUniforms = useMemo(
+    () => ({ uLightDir: { value: new THREE.Vector3(1.0, 0.4, 0.6) }, uStrength: { value: 0.9 } }),
+    []
+  );
 
   useFrame((state, dt) => {
     const t = state.clock.elapsedTime;
@@ -29,7 +58,10 @@ export function Moon({ scrollRef }: { scrollRef: MutableRefObject<number> }) {
     const e = easeOut(THREE.MathUtils.clamp((t - start.current) / 1.5, 0, 1));
 
     if (body.current) body.current.rotation.y += dt * 0.045;
-    if (inner.current) inner.current.position.y = Math.sin(t * 0.5 + 1.5) * 0.05;
+    if (inner.current) {
+      inner.current.position.y = Math.sin(t * 0.5 + 1.5) * 0.05;
+      inner.current.scale.setScalar(sizeK);
+    }
     if (mat.current) mat.current.opacity = e;
 
     if (outer.current) {
@@ -49,7 +81,7 @@ export function Moon({ scrollRef }: { scrollRef: MutableRefObject<number> }) {
   return (
     <group ref={outer} position={base.toArray()}>
       <group ref={inner}>
-        <GlowSprite color="#c8ccdc" scale={RADIUS * 4} opacity={0.28} position={[0, 0, -0.2]} />
+        <GlowSprite color="#c8ccdc" scale={RADIUS * 4} opacity={0.24} position={[0, 0, -0.2]} />
         <mesh ref={body}>
           <sphereGeometry args={[RADIUS, 48, 48]} />
           <meshStandardMaterial
@@ -57,12 +89,25 @@ export function Moon({ scrollRef }: { scrollRef: MutableRefObject<number> }) {
             map={map}
             bumpMap={bump}
             bumpScale={0.015}
-            roughness={0.95}
+            roughness={0.97}
             metalness={0}
             transparent
           />
         </mesh>
-        <FresnelShell color={GOLD_LIGHT} scale={RADIUS * 1.05} power={3.5} intensity={0.35} />
+        {/* night side */}
+        <mesh scale={RADIUS * 1.006}>
+          <sphereGeometry args={[1, 48, 48]} />
+          <shaderMaterial
+            uniforms={nightUniforms}
+            vertexShader={nightVert}
+            fragmentShader={nightFrag}
+            transparent
+            depthWrite={false}
+            side={THREE.FrontSide}
+          />
+        </mesh>
+        {/* thin warm rim only on the lit limb */}
+        <FresnelShell color={GOLD_LIGHT} scale={RADIUS * 1.05} power={3.8} intensity={0.28} />
       </group>
     </group>
   );

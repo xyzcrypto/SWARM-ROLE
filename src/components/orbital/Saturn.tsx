@@ -8,13 +8,21 @@ import { saturnBodyTexture, saturnRingTexture } from "./textures";
 import { GlowSprite, FresnelShell } from "./Glow";
 
 const easeOut = (t: number) => 1 - Math.pow(1 - t, 3);
-const RADIUS = 0.62;
+const RADIUS = 0.55;
 
 // Layer 4 (upper-right): a procedural ringed planet. The ring is a real 3D disc
 // around the equator, so it occludes behind the top of the globe and draws in
 // front of the bottom for free. Slow spin + float + tiny wobble; hover brightens
 // the glow + rim; cinematic scale/opacity/position entrance with a ring flash.
-export function Saturn({ scrollRef, onHover }: { scrollRef: MutableRefObject<number>; onHover?: (h: boolean) => void }) {
+export function Saturn({
+  scrollRef,
+  onHover,
+  compact = false,
+}: {
+  scrollRef: MutableRefObject<number>;
+  onHover?: (h: boolean) => void;
+  compact?: boolean;
+}) {
   const outer = useRef<THREE.Group>(null); // parallax target (scene moves this)
   const inner = useRef<THREE.Group>(null); // float + entrance
   const tilt = useRef<THREE.Group>(null); // axial tilt + wobble (body + ring)
@@ -28,7 +36,13 @@ export function Saturn({ scrollRef, onHover }: { scrollRef: MutableRefObject<num
   const bodyTex = useMemo(() => saturnBodyTexture(), []);
   const ringTex = useMemo(() => saturnRingTexture(), []);
 
-  const base = useMemo(() => new THREE.Vector3(1.85, 1.15, -0.6), []);
+  // Sits in the upper-right of the canvas, clear of the section heading + right
+  // edge; pulled inward on the small (mobile) square so the ring never clips.
+  const base = useMemo(
+    () => (compact ? new THREE.Vector3(1.12, 0.66, -0.6) : new THREE.Vector3(1.5, 0.72, -0.6)),
+    [compact]
+  );
+  const sizeK = compact ? 0.82 : 1;
 
   useFrame((state, dt) => {
     const t = state.clock.elapsedTime;
@@ -44,7 +58,7 @@ export function Saturn({ scrollRef, onHover }: { scrollRef: MutableRefObject<num
 
     // entrance: scale + opacity + slide from upper-right
     if (inner.current) {
-      const s = 0.8 + 0.2 * e;
+      const s = (0.8 + 0.2 * e) * sizeK;
       inner.current.scale.setScalar(s);
     }
     if (bodyMat.current) bodyMat.current.opacity = e;
@@ -63,8 +77,9 @@ export function Saturn({ scrollRef, onHover }: { scrollRef: MutableRefObject<num
       const px = state.pointer.x;
       const py = state.pointer.y;
       const sc = scrollRef.current;
-      const tx = base.x + px * 0.18 + sc * 0.15;
-      const ty = base.y + py * 0.14 - sc * 0.55;
+      // gentle parallax gains so it never drifts into the heading text
+      const tx = base.x + px * 0.12 + sc * 0.1;
+      const ty = base.y + py * 0.1 - sc * 0.4;
       outer.current.position.x = THREE.MathUtils.lerp(outer.current.position.x, tx, 0.05);
       outer.current.position.y = THREE.MathUtils.lerp(outer.current.position.y, ty, 0.05);
       outer.current.position.z = base.z;
@@ -109,7 +124,7 @@ export function Saturn({ scrollRef, onHover }: { scrollRef: MutableRefObject<num
             onPointerOver={() => setHover(true)}
             onPointerOut={() => setHover(false)}
           >
-            <ringGeometry args={[RADIUS * 1.25, RADIUS * 2.15, 128]} />
+            <ringGeometry args={[RADIUS * 1.25, RADIUS * 1.95, 128]} />
             <meshBasicMaterial
               ref={ringMat}
               map={ringTex}

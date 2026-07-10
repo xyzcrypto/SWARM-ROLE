@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-2.5 (tweak 1): half/night moon + Saturn alignment + mobile fit
+- **Moon → half / "night" moon** (`Moon.tsx`): added a deterministic terminator-shade shell (a dot-product
+  shader that darkens the hemisphere facing away from the core, lit side toward the XYZ core) so the moon
+  reads as a real phase with a crisp day/night line, independent of scene lights. Rim glow kept on the lit limb only.
+- **Saturn alignment** (`Saturn.tsx`): moved down + inward and shrank the ring (radius 0.62→0.55, ring outer
+  ×2.15→×1.95) so it sits cleanly in the upper-right, clear of the section heading + right edge; trimmed the
+  scroll/pointer parallax gains so it never drifts into the text.
+- **Mobile fit**: Saturn + Moon take a `compact` prop (mobile tier) that pulls them inward + scales them down
+  (`OrbitalScene.tsx` passes `compact={tier==='low'}`) so both fit fully in the small square. Colours unchanged.
+
+---
+
 ## 2026-07-10 — V2 PR-2.5: cinematic WebGL orbital (three.js / R3F) — Living Solar System
 - **New `src/components/orbital/` scene** (three.js + react-three-fiber, already-installed deps, ZERO new
   packages): the "Everything orbits XYZ Crypto" centerpiece becomes a real-time 3D cosmos.
