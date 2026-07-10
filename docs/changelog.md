@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Orbital: crash-proof the WebGL scene (never blank) + harden the robot texture
+- **Error boundary** (`OrbitalLazy.tsx`): the WebGL scene is now wrapped so that if it ever throws at runtime
+  (shader/driver/geometry issue on some device), it falls back to the CSS orbital instead of blanking the
+  section. This is the safety net for the desktop "changes not showing / blank" report.
+- **`robotFaceTexture()` hardened** (`textures.ts`): `ctx.roundRect` is feature-detected with a manual
+  `arcTo` fallback, so texture creation can never throw on older canvas engines.
+- Note: the sandbox couldn't run a live WebGL capture (server processes get killed), so the 3D composition
+  is verified on the Vercel deploy; the 2D textures (Saturn body/ring, robot face, crescent) were all
+  screenshot-verified. Open the preview in a fresh/incognito window to bypass the PWA service worker + cache.
+
+---
+
 ## 2026-07-10 — Orbital (desktop): realistic gold Saturn + crescent moon with the XYZ robot
 Desktop WebGL only (mobile has no planets). Per owner refs, keeping the brand gold + the robot's mint identity.
 - **Realistic gold Saturn** (`textures.ts`): rewrote `saturnBodyTexture()` as a proper gas-giant in the GOLD

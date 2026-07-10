@@ -1,5 +1,6 @@
 "use client";
 
+import { Component, ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { useWebglGate } from "./orbital/useWebglGate";
 
@@ -25,8 +26,29 @@ const WebglOrbital = dynamic(() => import("./orbital/OrbitalScene"), {
   loading: Placeholder,
 });
 
+// If the WebGL scene ever throws at runtime (shader/driver/geometry issue on some
+// device), fall back to the CSS orbital instead of blanking the whole section.
+class WebglBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  componentDidCatch(err: unknown) {
+    // eslint-disable-next-line no-console
+    console.warn("[orbital] WebGL scene failed, using CSS fallback:", err);
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
 // The centerpiece: cinematic WebGL cosmos on capable dark sessions, else the CSS
 // orbital. Gate logic lives in useWebglGate (shared with OrbitalBackdrop).
 export function OrbitalLazy() {
-  return useWebglGate() ? <WebglOrbital /> : <CssOrbital />;
+  if (!useWebglGate()) return <CssOrbital />;
+  return (
+    <WebglBoundary fallback={<CssOrbital />}>
+      <WebglOrbital />
+    </WebglBoundary>
+  );
 }

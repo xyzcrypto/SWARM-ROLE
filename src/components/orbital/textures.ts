@@ -255,8 +255,25 @@ export function robotFaceTexture(): THREE.Texture {
   const { c, ctx } = makeCanvas(S, S);
   const k = S / 48; // scale from the 48-unit viewBox
   const rr = (x: number, y: number, wd: number, ht: number, r: number) => {
+    const X = x * k;
+    const Y = y * k;
+    const W = wd * k;
+    const H = ht * k;
+    const R = Math.min(r * k, W / 2, H / 2);
     ctx.beginPath();
-    ctx.roundRect(x * k, y * k, wd * k, ht * k, r * k);
+    // Prefer native roundRect, but fall back to arcTo so older canvas engines
+    // never throw (a throw here would blank the whole WebGL scene).
+    const anyCtx = ctx as CanvasRenderingContext2D & { roundRect?: (x: number, y: number, w: number, h: number, r: number) => void };
+    if (typeof anyCtx.roundRect === "function") {
+      anyCtx.roundRect(X, Y, W, H, R);
+      return;
+    }
+    ctx.moveTo(X + R, Y);
+    ctx.arcTo(X + W, Y, X + W, Y + H, R);
+    ctx.arcTo(X + W, Y + H, X, Y + H, R);
+    ctx.arcTo(X, Y + H, X, Y, R);
+    ctx.arcTo(X, Y, X + W, Y, R);
+    ctx.closePath();
   };
 
   // head gradient (mint identity)
