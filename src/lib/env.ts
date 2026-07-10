@@ -68,7 +68,10 @@ export const env = {
   UPSTASH_REDIS_REST_TOKEN: raw.UPSTASH_REDIS_REST_TOKEN ?? "",
   RESEND_API_KEY: raw.RESEND_API_KEY ?? "",
   EMAIL_FROM: raw.EMAIL_FROM || "XYZ Crypto <onboarding@resend.dev>",
-  SUPABASE_URL: (raw.SUPABASE_URL ?? "").replace(/\/$/, ""),
+  // Base project URL only. The Supabase SDK appends /rest/v1, /realtime/v1,
+  // /storage/v1 itself, so strip any trailing /rest/v1 (a common misconfig that
+  // makes the realtime WS URL malformed and retry forever) + trailing slash.
+  SUPABASE_URL: (raw.SUPABASE_URL ?? "").replace(/\/rest\/v1\/?$/i, "").replace(/\/$/, ""),
   SUPABASE_SERVICE_ROLE_KEY: raw.SUPABASE_SERVICE_ROLE_KEY ?? "",
   SUPABASE_STORAGE_BUCKET: raw.SUPABASE_STORAGE_BUCKET || "post-covers",
   // XYZ AI providers. All server-only - NEVER exposed client-side. GROQ works
@@ -92,7 +95,7 @@ export const env = {
   // Public (client-safe by design) - used by the chat page for Supabase
   // Realtime subscriptions. The anon key only grants what RLS/channel policy
   // allows; the service-role key above must NEVER be exposed client-side.
-  NEXT_PUBLIC_SUPABASE_URL: (raw.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, ""),
+  NEXT_PUBLIC_SUPABASE_URL: (raw.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/rest\/v1\/?$/i, "").replace(/\/$/, ""),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: raw.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
 };
 

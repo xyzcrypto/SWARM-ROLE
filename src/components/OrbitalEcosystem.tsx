@@ -72,7 +72,7 @@ export function OrbitalEcosystem() {
   // Fewer on phones - each particle is an animated paint layer.
   useEffect(() => {
     if (!active) return;
-    const count = window.matchMedia("(max-width: 768px)").matches ? 14 : 34;
+    const count = window.matchMedia("(max-width: 768px)").matches ? 8 : 22;
     setParticles(
       Array.from({ length: count }, () => ({
         x: Math.random() * 100,
@@ -150,7 +150,7 @@ export function OrbitalEcosystem() {
       <div ref={orbitRef} className="absolute inset-0 transition-transform duration-300 ease-out will-change-transform">
         {/* rotating conic aurora glow (gold -> mint) for depth */}
         <div
-          className="absolute inset-[16%] rounded-full animate-spin [animation-duration:12s]"
+          className="orbital-aurora absolute inset-[16%] rounded-full animate-spin [animation-duration:12s]"
           style={{
             background:
               "conic-gradient(from 0deg, rgba(226,167,47,0) 0deg, rgba(226,167,47,0.24) 90deg, rgba(34,214,146,0.2) 200deg, rgba(226,167,47,0) 360deg)",

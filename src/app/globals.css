@@ -94,7 +94,7 @@ html.lenis body {
   content: "";
   position: absolute;
   border-radius: 9999px;
-  filter: blur(130px);
+  filter: blur(96px);
   opacity: 0.42;
 }
 .mesh::before {
@@ -134,7 +134,7 @@ html.lenis body {
       rgba(226, 167, 47, 0.12) 90deg,
       rgba(11, 187, 124, 0.10) 200deg,
       rgba(226, 167, 47, 0) 360deg);
-  filter: blur(88px);
+  filter: blur(62px);
   opacity: 0.48;
   animation: aurora-spin 36s linear infinite;
 }
@@ -174,18 +174,20 @@ html.lenis body {
    (--rot) + travel (--dx/--dy) are per-shooter so they streak from all corners. */
 .star-shooter {
   position: absolute;
-  width: 90px;
-  height: 1.5px;
+  width: 120px;
+  height: 2px;
   border-radius: 9999px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.9) 90%, #fff 100%);
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(226,167,47,0.35) 55%, rgba(255,255,255,0.95) 92%, #fff 100%);
+  box-shadow: 0 0 6px 1px rgba(255,255,255,0.5);
   opacity: 0;
   transform: rotate(var(--rot, 20deg));
   will-change: transform, opacity;
 }
 @keyframes star-shoot {
   0% { transform: translate3d(0, 0, 0) rotate(var(--rot, 20deg)); opacity: 0; }
-  6% { opacity: 0.9; }
-  18% { opacity: 0; }
+  4% { opacity: 1; }
+  22% { opacity: 1; }
+  34% { opacity: 0; }
   100% { transform: translate3d(var(--dx, 260px), var(--dy, 95px), 0) rotate(var(--rot, 20deg)); opacity: 0; }
 }
 /* Faint coloured nebula haze - very slowly breathes + drifts so the backdrop
@@ -200,15 +202,14 @@ html.lenis body {
    and a Cassini-gap ring that crosses BEHIND the top of the globe and IN FRONT
    of the bottom. Both bob slowly; the planet's bands drift to fake axial spin. */
 .saturn, .moon { will-change: transform; aspect-ratio: 1; }
-/* Placement lives in CSS (not inline) so it can be responsive. Mobile/tablet is
-   the case that actually renders these (desktop-dark uses the WebGL scene), so
-   the defaults sit them LOW in the side gutters - clear of the heading/subtitle
-   text - and smaller. Wide screens (light-theme desktop) nudge them back up. */
-.starfield .saturn { left: 63%; top: 35%; width: clamp(50px, 13vw, 108px); }
-.starfield .moon { left: 6%; top: 44%; width: clamp(38px, 11vw, 74px); }
-@media (min-width: 1024px) {
-  .starfield .saturn { left: 74%; top: 18%; width: clamp(90px, 9vw, 140px); }
-  .starfield .moon { left: 6%; top: 30%; width: clamp(56px, 6vw, 86px); }
+/* Placement lives in CSS so it's responsive. These bodies only render on desktop
+   (>=900px); phones/tablets show a clean orbital with no planets. */
+.starfield .saturn { left: 62%; top: 34%; width: clamp(50px, 13vw, 108px); }
+.starfield .moon { left: 5%; top: 42%; width: clamp(46px, 12vw, 90px); }
+@media (min-width: 900px) {
+  /* both in the side gutters, BELOW the heading + subtitle (clear of all text) */
+  .starfield .saturn { left: 76%; top: 30%; width: clamp(110px, 11vw, 168px); }
+  .starfield .moon { left: 13%; top: 30%; width: clamp(100px, 10vw, 146px); }
 }
 @keyframes planet-bob {
   0%, 100% { transform: translate3d(0, 0, 0); }
@@ -220,13 +221,20 @@ html.lenis body {
 }
 @keyframes saturn-spin { to { background-position: 200% 0; } }
 
-/* --- Saturn --- */
+/* --- Saturn (realistic, gold) --- */
 .saturn-body {
   position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
   background:
-    radial-gradient(circle at 34% 28%, #fbe6ad 0%, #ecc063 26%, #cf8f2a 55%, #9a611a 82%, #5c3a0e 100%);
-  box-shadow: inset -7px -9px 20px rgba(50,26,0,0.6), inset 5px 6px 14px rgba(255,235,190,0.28),
-    0 0 30px 5px rgba(226,167,47,0.20);
+    /* sphere highlight (top-left) */
+    radial-gradient(circle at 34% 28%, rgba(255,244,206,0.6) 0%, rgba(255,244,206,0) 46%),
+    /* latitudinal gold cloud bands */
+    repeating-linear-gradient(0deg,
+      #f1d385 0%, #e7bd58 2.5%, #cf8f2a 5%, #ecc169 7.5%,
+      #b6771f 10%, #dda63e 12.5%, #a5651a 15%),
+    /* base pole-to-pole shading */
+    linear-gradient(#8a5a17 0%, #e3ba5e 26%, #cf8f2a 52%, #e8c56f 74%, #7a4d13 100%);
+  box-shadow: inset -8px -10px 22px rgba(46,24,0,0.62), inset 6px 7px 16px rgba(255,236,190,0.32),
+    0 0 34px 6px rgba(226,167,47,0.22);
 }
 /* latitudinal gas bands - a horizontally repeating sheen that slides to fake
    the planet slowly rotating on its axis. */
@@ -240,44 +248,85 @@ html.lenis body {
   mix-blend-mode: soft-light; opacity: 0.9;
   animation: saturn-spin 16s linear infinite;
 }
+/* Ring = a conic-gradient (angular brightness) masked into two elliptical bands
+   with a Cassini gap. Rotating it makes the ring visibly SPIN (the bright arcs
+   travel around). Transform-only animation = compositor-cheap. */
 .saturn-ring {
   position: absolute; left: 50%; top: 50%;
   width: 232%; height: 66%;
   transform: translate(-50%, -50%) rotate(-19deg);
   border-radius: 50%;
-  border: 5px solid rgba(240,206,132,0.6);
-  box-shadow: 0 0 10px rgba(226,167,47,0.30);
-}
-/* inner ring band + the dark Cassini division (the gap between the two borders) */
-.saturn-ring::before {
-  content: ""; position: absolute; inset: 6px; border-radius: 50%;
-  border: 3px solid rgba(255,236,184,0.5);
+  /* high-contrast bright arcs + dark gaps so the spin is obvious */
+  background: conic-gradient(from 0deg,
+    rgba(120,80,20,0.05) 0deg, rgba(255,249,224,1) 26deg, rgba(120,80,20,0.05) 58deg,
+    rgba(226,167,47,0.35) 120deg, rgba(255,244,205,0.95) 150deg, rgba(120,80,20,0.05) 186deg,
+    rgba(255,249,224,0.98) 250deg, rgba(120,80,20,0.05) 288deg,
+    rgba(226,167,47,0.4) 330deg, rgba(120,80,20,0.05) 360deg);
+  -webkit-mask: radial-gradient(ellipse closest-side, transparent 0 60%, #000 61% 71%, transparent 72% 75.5%, #000 76.5% 92%, transparent 93%);
+          mask: radial-gradient(ellipse closest-side, transparent 0 60%, #000 61% 71%, transparent 72% 75.5%, #000 76.5% 92%, transparent 93%);
+  filter: drop-shadow(0 0 6px rgba(226,167,47,0.4));
+  will-change: transform;
+  animation: ring-orbit 9s linear infinite;
 }
 .saturn-ring-front { clip-path: polygon(0 52%, 100% 52%, 100% 100%, 0 100%); }
+@keyframes ring-orbit {
+  from { transform: translate(-50%, -50%) rotate(-19deg); }
+  to { transform: translate(-50%, -50%) rotate(341deg); }
+}
 
-/* --- Moon --- */
+/* --- Moon (crescent) --- */
+/* The lit crescent = a full cratered disc with an offset disc masked out on the
+   right, so the concave opens toward the core where the XYZ robot sits. */
+/* Realistic crescent: a cratered rock disc with a SOFT terminator (the dark
+   limb fades naturally, not a hard cut) and a bright sunlit rim. No fake halo. */
 .moon-body {
   position: absolute; inset: 0; border-radius: 50%; overflow: hidden;
   background:
-    radial-gradient(circle at 36% 30%, #f4f4f9 0%, #d3d3dc 42%, #9a9aa6 72%, #565662 100%);
-  box-shadow: inset -8px -6px 16px rgba(15,15,26,0.6), inset 4px 4px 10px rgba(255,255,255,0.22),
-    0 0 22px 3px rgba(200,205,225,0.16);
+    /* bright sunlit rim on the outer (left) limb */
+    radial-gradient(circle at 20% 46%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 22%),
+    /* body shading: bright near the lit limb -> darker toward the terminator */
+    radial-gradient(circle at 28% 40%, #f4f5fb 0%, #cfd0da 34%, #9a9aa6 62%, #63636e 84%, #3c3c46 100%);
+  box-shadow: inset -3px -3px 10px rgba(12,12,20,0.45), inset 5px 5px 12px rgba(255,255,255,0.34);
+  /* soft terminator (gradient mask): dark side fades in around the offset circle */
+  -webkit-mask: radial-gradient(circle at 122% 50%, transparent 0 40%, rgba(0,0,0,0.35) 47%, #000 55%);
+  mask: radial-gradient(circle at 122% 50%, transparent 0 40%, rgba(0,0,0,0.35) 47%, #000 55%);
 }
-/* craters */
+/* craters (on the lit crescent only, since the mask applies to the box) */
 .moon-body::after {
   content: ""; position: absolute; inset: 0;
   background:
-    radial-gradient(circle at 62% 40%, rgba(60,60,72,0.5) 0 6%, rgba(255,255,255,0.12) 7%, transparent 9%),
-    radial-gradient(circle at 40% 63%, rgba(60,60,72,0.45) 0 5%, transparent 7%),
-    radial-gradient(circle at 71% 68%, rgba(60,60,72,0.4) 0 4%, transparent 6%),
-    radial-gradient(circle at 30% 34%, rgba(60,60,72,0.35) 0 3%, transparent 5%),
-    radial-gradient(circle at 52% 22%, rgba(60,60,72,0.3) 0 2.5%, transparent 4%);
+    radial-gradient(circle at 40% 38%, rgba(60,60,72,0.5) 0 6%, rgba(255,255,255,0.14) 7%, transparent 9%),
+    radial-gradient(circle at 30% 62%, rgba(60,60,72,0.45) 0 5%, transparent 7%),
+    radial-gradient(circle at 52% 78%, rgba(60,60,72,0.4) 0 4%, transparent 6%),
+    radial-gradient(circle at 22% 26%, rgba(60,60,72,0.35) 0 3%, transparent 5%),
+    radial-gradient(circle at 44% 18%, rgba(60,60,72,0.3) 0 2.5%, transparent 4%);
+}
+/* XYZ robot mascot nestled in the crescent's curve (to the right, in the concave) */
+.moon-robot {
+  position: absolute; right: -14%; top: 50%; transform: translateY(-50%);
+  width: 58%; height: 58%;
+  filter: drop-shadow(0 3px 8px rgba(2,92,63,0.5));
+  animation: moon-robot-bob 4s ease-in-out infinite;
+}
+.moon-robot svg { width: 100%; height: 100%; }
+@keyframes moon-robot-bob {
+  0%, 100% { transform: translateY(-50%); }
+  50% { transform: translateY(-58%); }
 }
 
-/* Phones: cheaper paint - drop the extra star half, keep Saturn + Moon (scaled
-   down via clamp() in the component) so mobile matches desktop. */
+/* Phones: cheaper paint - drop the extra stars + extra shooting stars, and
+   lighten the orbital aurora blur. */
 @media (max-width: 768px) {
-  .starfield-extra { display: none; }
+  .starfield-extra,
+  .star-shooter-extra { display: none; }
+  .orbital-aurora { filter: blur(14px) !important; }
+  /* The sticky navbar's backdrop-blur repaints every scroll frame on mobile.
+     Use a small blur + a more opaque bg so scroll stays smooth. */
+  .nav-shell {
+    backdrop-filter: blur(8px) saturate(130%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(130%) !important;
+    background-color: rgba(10, 10, 15, 0.92) !important;
+  }
 }
 
 /* Intro reveal for the logo medallion */
@@ -837,7 +886,7 @@ html.lenis body {
   .saturn,
   .moon,
   .saturn-body::after,
-  .star-shooter,
+  .moon-robot,
   /* continuous decorative sweeps + the auto-scrolling ticker: stop them for
      users who asked for less motion (accessibility + battery, and paint cost). */
   .marquee,
@@ -998,9 +1047,8 @@ html:not(.dark) .starfield span.star-w { background-color: #b98a2b !important; }
 html:not(.dark) .starfield span.star-g { background-color: #a9761d !important; }
 html:not(.dark) .starfield span.star-w,
 html:not(.dark) .starfield span.star-g { box-shadow: none !important; }
-html:not(.dark) .star-shooter {
-  background: linear-gradient(90deg, rgba(169,118,29,0) 0%, rgba(169,118,29,0.85) 90%, #8a5f13 100%) !important;
-}
+/* Light theme: no shooting stars (they read as odd streaks on a bright sky). */
+html:not(.dark) .star-shooter { display: none !important; }
 html:not(.dark) .starfield-neb { opacity: 0.75; }
 html:not(.dark) .saturn-body {
   box-shadow: inset -7px -9px 20px rgba(70,38,0,0.55), inset 5px 6px 14px rgba(255,240,205,0.5),
@@ -1106,4 +1154,11 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 .cv-auto {
   content-visibility: auto;
   contain-intrinsic-size: 0 340px;
+}
+/* Homepage sections: skip render/paint work while off-screen so scrolling stays
+   smooth (esp. on mobile). `auto` remembers the real height after first render,
+   so there's no scrollbar jump. Ignored by browsers without support (safe). */
+.sect-cv {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
 }

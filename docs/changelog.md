@@ -5,6 +5,145 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — Scroll performance: content-visibility on sections + lighter sticky-nav blur (mobile)
+Focused on making homepage SCROLL smooth, especially on mobile.
+- **`content-visibility: auto` on every homepage section** (`Section` primitive + Hero, both already
+  `overflow-hidden` so no new clipping) via `.sect-cv` with `contain-intrinsic-size: auto 720px`. Off-screen
+  sections skip layout/paint while scrolling → big jank reduction; `auto` remembers real height so no scroll
+  jump. Ignored by browsers without support (safe).
+- **Sticky-nav backdrop-blur cut on mobile** — the navbar (when scrolled) + the mobile bottom nav are sticky
+  and their `backdrop-blur` repaints every scroll frame (classic mobile jank). On phones they now use
+  `blur(8px)` + a more opaque bg via `.nav-shell`, so scrolling stays smooth.
+
+---
+
+## 2026-07-10 — Starfield: nicer stars + light-theme/mobile meteor rules + high-end mobile perf
+- **Light theme → no shooting stars** (`globals.css`): they read as odd streaks on a bright sky; hidden.
+- **Mobile → only ~3 shooting stars** (down from more); desktop keeps 12. Light theme (any size) = 0.
+- **Nicer stars** (`Starfield.tsx`): more glowing "hero" stars (i%7) with a stronger halo, a touch more density
+  (100 → 110) — a fuller, more premium sky.
+- **High-end mobile perf**: only the bright + drift stars ANIMATE now; the rest are static dots — far fewer
+  running animations for the same density. Mobile paints ~42 stars (was 55). The orbital's blurred aurora
+  drops to `blur(14px)` on phones. (On top of: three.js off, planets removed, reduced particles/blurs.)
+
+---
+
+## 2026-07-10 — Orbital: remove Saturn/Moon/robot; trim mobile meteors; overall perf boost
+- **Removed the Saturn + Moon + XYZ-robot bodies** (per owner) — `OrbitalBackdrop` now renders just the
+  ambient starfield. This also drops all their continuous animations (spinning ring, moon/robot bob, band
+  drift) from the render → a real paint win.
+- **Fewer shooting stars on mobile**: extras (index ≥ 5) are hidden under 768px, so phones show ~5 meteors,
+  desktop 12.
+- **Perf boost (mobile + desktop)**: CSS starfield 120 → 100 stars (mobile now ~55 via a lower `-extra`
+  threshold); the CSS orbital particle field 34/14 → 22/8 (desktop/mobile). Combined with three.js no longer
+  loading, reduced background blurs, package-import tree-shaking, lazy widgets, and visibility-gated timers,
+  the homepage is noticeably lighter.
+
+---
+
+## 2026-07-10 — Orbital: moon + Saturn into the side gutters; more desktop shooting stars
+- Per the owner's marks, moved the moon into the left gutter (`left 3% → 13%`) and nudged Saturn (`77% → 76%`)
+  so both sit balanced in the side gutters, clear of the text.
+- Bumped shooting stars 8 → 12 spread across the visible area (incl. the upper-centre) with staggered delays,
+  so meteors are clearly present on the wide desktop (they were already un-gated from reduced-motion).
+
+---
+
+## 2026-07-10 — Orbital: ring spin + shooting stars now run under reduced-motion; Saturn clear of text
+- Root cause of "ring static + shooting stars not showing": both were gated off under
+  `prefers-reduced-motion` (which the viewer likely has enabled). Removed `.saturn-ring` + `.star-shooter`
+  from the reduced-motion kill-list so the ring keeps spinning and meteors keep streaking regardless of the
+  OS animation setting (they're subtle, GPU-cheap decorative motion).
+- **Saturn repositioned** to the upper-right GUTTER, below the heading + subtitle (`top: 12% → 30%`,
+  `left: 68% → 77%`), so it no longer overlaps the text.
+
+---
+
+## 2026-07-10 — Orbital: realistic moon + obvious ring spin + more shooting stars + more perf
+- **Realistic moon** (`globals.css`): removed the artificial glow halo; the crescent now has a SOFT terminator
+  (gradient mask so the dark limb fades naturally) + a bright sunlit rim + body shading that darkens toward
+  the terminator. Reads like a real crescent, not a blob. Screenshot-verified.
+- **Ring spin now obvious** (`globals.css`): the conic ring is high-contrast (bright arcs + near-dark gaps)
+  and spins faster (9s), so the rotation is clearly visible instead of looking static.
+- **Saturn repositioned** — pulled in from the right edge + a touch larger so it's fully framed in the corner.
+- **More shooting stars** (`Starfield.tsx` + `globals.css`): 5 → 8 meteors, shorter cycles (more frequent),
+  and brighter/longer streaks with a warm-gold tail + glow.
+- **More performance**: desktop background blurs cut (`.mesh` 130→96px, `.aurora` 88→62px) and the CSS
+  starfield trimmed to 120 stars — cheaper paint with no visible change.
+
+---
+
+## 2026-07-10 — Orbital polish (spinning ring + moonlight) + perf boost + realtime WS fix
+- **Saturn ring spins** (`globals.css`): the ring is now a conic-gradient (angular brightness) masked into two
+  elliptical bands with a Cassini gap; a transform-only `ring-orbit` rotation makes the bright arcs visibly
+  travel around = a live spinning ring (compositor-cheap, reduced-motion-gated). Screenshot-verified.
+- **Moonlight** (`globals.css`): the crescent gets a soft blue-white glow halo + a brighter lit rim, so it
+  reads as genuinely lit.
+- **Performance**: WebGL disabled means **three.js is no longer downloaded on desktop** (previously fetched
+  when the gate picked the 3D scene) and there's no WebGL render loop — a real desktop win. CSS starfield
+  trimmed 180 → 120 stars. (On top of the earlier perf pass: package-import tree-shaking, lazy widgets,
+  mobile blur cuts, visibility-gated timers.)
+- **Realtime WS console spam fixed** (`env.ts` + `RealtimeSession.tsx`): `NEXT_PUBLIC_SUPABASE_URL` /
+  `SUPABASE_URL` are now sanitized to the base project URL (strip a stray trailing `/rest/v1` that made the
+  realtime WebSocket URL malformed → infinite failed retries). Also added a reconnect back-off so a failed
+  realtime WS can't hammer the console.
+
+---
+
+## 2026-07-10 — Orbital: switch centerpiece to the reliable CSS version (Saturn + crescent moon + XYZ robot)
+The WebGL scene rendered blank on the owner's desktop and could not be verified in CI (all local servers get
+killed in the sandbox), so after many rounds it's **temporarily disabled** in favour of a guaranteed-render
+CSS/SVG version that is screenshot-verified.
+- **`useWebglGate` → always false** — OrbitalLazy always renders the CSS `OrbitalEcosystem`; the three.js code
+  stays in the repo for a future verified pass.
+- **Realistic gold Saturn** (`globals.css .saturn-body`): layered banded gold gradient (latitudinal cloud
+  bands + pole shading + specular highlight) + the existing Cassini-gap ring. Screenshot-verified.
+- **Crescent moon + XYZ robot** (`globals.css` + `Starfield.tsx`): `.moon-body` is now masked into a real
+  crescent (offset-circle CSS mask) with craters on the lit face; the actual `RobotIcon` SVG sits in the
+  crescent's curve (`.moon-robot`, gentle bob). Screenshot-verified.
+- Bodies render on **desktop (≥900px)** only (via `OrbitalBackdrop`); phones/tablets keep the clean orbital
+  with no planets. This finally makes the changes reliably visible on desktop.
+
+---
+
+## 2026-07-10 — Orbital: rebuild the crescent moon from proven primitives (likely crash fix) + SW cache bump
+- The extruded-`Shape` crescent was the one un-proven primitive added in the previous commit and the prime
+  suspect for the desktop "blank / no changes" report. Rebuilt `Moon.tsx` from **only the primitives that
+  already rendered** in the earlier scene: a sphere + a terminator shader (which produces the CRESCENT look
+  via lighting) + the XYZ robot as a camera-facing **sprite** (dropped `ExtrudeGeometry` + drei `Billboard`).
+  Same cratered rock, robot mascot, and warm core-lit edge — far lower crash risk. Realistic gold Saturn kept.
+- **Service worker cache bump** `xyz-pwa-v2 → v3` (`public/sw.js`): forces returning/PWA users' old cache to
+  be cleared on next load, so updates actually reach installed/returning sessions.
+
+---
+
+## 2026-07-10 — Orbital: crash-proof the WebGL scene (never blank) + harden the robot texture
+- **Error boundary** (`OrbitalLazy.tsx`): the WebGL scene is now wrapped so that if it ever throws at runtime
+  (shader/driver/geometry issue on some device), it falls back to the CSS orbital instead of blanking the
+  section. This is the safety net for the desktop "changes not showing / blank" report.
+- **`robotFaceTexture()` hardened** (`textures.ts`): `ctx.roundRect` is feature-detected with a manual
+  `arcTo` fallback, so texture creation can never throw on older canvas engines.
+- Note: the sandbox couldn't run a live WebGL capture (server processes get killed), so the 3D composition
+  is verified on the Vercel deploy; the 2D textures (Saturn body/ring, robot face, crescent) were all
+  screenshot-verified. Open the preview in a fresh/incognito window to bypass the PWA service worker + cache.
+
+---
+
+## 2026-07-10 — Orbital (desktop): realistic gold Saturn + crescent moon with the XYZ robot
+Desktop WebGL only (mobile has no planets). Per owner refs, keeping the brand gold + the robot's mint identity.
+- **Realistic gold Saturn** (`textures.ts`): rewrote `saturnBodyTexture()` as a proper gas-giant in the GOLD
+  ramp — darkened poles, many turbulent latitudinal bands (multi-octave sine field), wavy swirl streaks, and
+  soft storm ovals (1024×512, anisotropy 8). Enriched `saturnRingTexture()` with a second (inner) division +
+  an inner→outer warm/brightness shift. Screenshot-verified (2D).
+- **Crescent moon + XYZ robot mascot** (`Moon.tsx`): the moon is now a real 3D **crescent** — `THREE.Shape`
+  (big circle minus an offset circle) → `extrudeGeometry` with bevel → cratered grey rock material (reused
+  `moonTextures()`). The **XYZ robot** sits in its curve as a camera-facing billboard: new `robotFaceTexture()`
+  redraws the `RobotIcon` face (mint head + gloss + eyes + antenna) onto a canvas, mapped on a plane inside a
+  drei `<Billboard>`, with a mint glow + gentle bob. Dropped the old sphere + night-terminator shader.
+- Both keep desktop parallax/entrance; colours unchanged (gold Saturn, mint robot). tsc + build green.
+
+---
+
 ## 2026-07-10 — Orbital (mobile): remove Saturn/Moon on phones/tablets (clean orbital + stars)
 - Per owner: on mobile/tablet the orbital now shows just the ecosystem + starfield (no CSS Saturn/Moon).
   `OrbitalBackdrop` renders the CSS bodies only on desktop-light (WebGL desktop draws its own; mobile has
