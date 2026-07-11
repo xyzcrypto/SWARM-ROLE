@@ -798,6 +798,7 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
 
   if (!active) return null;
   const sentTone = active.sentiment === "bullish" ? "text-mint-300" : active.sentiment === "bearish" ? "text-red-300" : "text-zinc-300";
+  const go = (dir: number) => setIdx((i) => (i + dir + items.length) % items.length);
 
   return (
     <div
@@ -828,6 +829,26 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
 
       {/* legibility gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/25" />
+
+      {/* left / right swap arrows - tap to change the breaking story */}
+      {items.length > 1 && (
+        <>
+          <button
+            onClick={(e) => { e.stopPropagation(); go(-1); }}
+            aria-label="Previous breaking story"
+            className="absolute left-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/40 !text-white backdrop-blur-sm transition-all hover:bg-black/60 active:scale-90 sm:h-10 sm:w-10"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); go(1); }}
+            aria-label="Next breaking story"
+            className="absolute right-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/40 !text-white backdrop-blur-sm transition-all hover:bg-black/60 active:scale-90 sm:h-10 sm:w-10"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </>
+      )}
 
       {/* content */}
       <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
