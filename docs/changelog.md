@@ -5,6 +5,39 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Fixes: mobile product-card anims + News light-theme text + upload (real fix)
+Owner-reported, bundled with PR-9.
+- **Ecosystem product-card mini-visuals animate on mobile again** — the earlier `.mini-viz` mobile
+  animation-freeze (perf) also froze the Web3 Academy "course progress" bars, airdrop eligibility, etc.
+  Removed the rule; those visuals now animate on phones too.
+- **News "Breaking" hero card readable in light theme** — the card is always dark (image + black overlay),
+  but its `text-white`/`text-zinc-*` were being remapped to dark in light mode → the headline/source were
+  invisible. Marked those text colors `!important` (`NewsClient.tsx`) so they stay light on the dark card in
+  both themes.
+- **Direct image upload — the REAL fix** (`storage.ts`). Root cause: Supabase env is set (for DB + realtime),
+  so `storageEnabled` was `true`, but the storage *bucket* upload 502'd — and the inline fallback only ran when
+  storage was fully *disabled*. Now `uploadImage()` **falls back to an inline data URL on ANY Supabase upload
+  failure** (bucket missing/not public/etc.), so direct upload (post covers + profile pics) always succeeds
+  with zero setup. If Storage is properly configured it still uses the CDN URL.
+- Files: `src/app/globals.css`, `src/components/NewsClient.tsx`, `src/lib/storage.ts`, `docs/changelog.md`.
+  Verified: tsc + lint + test (236) + build green.
+
+## 2026-07-11 — V2 PR-9: Audit report + team-setup guide (+ PDF) — final V2 deliverable
+Documentation-only (no code change). Completes the V2 program.
+- **`docs/AUDIT-2026-07-11.md`** — full website audit + handoff: tech stack (frontend/backend), architecture,
+  security review, performance review, SEO status, honest ratings per area + **overall ≈ 8/10**, worth &
+  build-cost estimate, "why one language / no Python", "can you hire an engineer" answer, pending owner ops,
+  and a next-level roadmap.
+- **`docs/TEAM-SETUP.md`** + **`docs/XYZ-Crypto-Team-Setup-Guide.pdf`** — how multiple members can work in
+  parallel without breaking the live site: GitHub collaborators + branch protection + Vercel previews (already
+  in place) + a free staging database. Includes daily workflow, roles, new-engineer onboarding checklist, and
+  costs. Same content as a branded, print-ready PDF for sharing.
+- Added all three to the docs TOC (`docs/SUMMARY.md`), alongside the existing `docs/SEO.md`.
+- Files: `docs/AUDIT-2026-07-11.md`, `docs/TEAM-SETUP.md`, `docs/XYZ-Crypto-Team-Setup-Guide.pdf`,
+  `docs/SUMMARY.md`, `docs/changelog.md`. No app code touched.
+
+---
+
 ## 2026-07-11 — Light-theme polish + globe emoji + homepage feed polling
 Owner-reported (light theme + emoji + a small home-perf trim).
 - **Light theme "next level"** (`globals.css`). Root cause of the grey boxes: several dark background
