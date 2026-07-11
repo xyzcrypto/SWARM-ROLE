@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import { env } from "@/lib/env";
 import { CHAT_PAGE_SIZE, CHAT_MESSAGE_SELECT, toChatPayload } from "@/lib/chat";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { ChatClient } from "@/components/ChatClient";
 
 export const metadata: Metadata = {
@@ -74,48 +73,45 @@ export default async function CommunityPage() {
   return (
     <>
       <Navbar />
-      <main className="relative min-h-screen pt-28">
+      {/* App-style chat: the whole screen is one fixed frame - the page itself
+          never scrolls, only the message list inside ChatClient does. */}
+      <main className="relative flex h-[100svh] flex-col overflow-hidden pt-[4.75rem] sm:pt-20">
         <div className="mesh" />
-        <div className="relative mx-auto flex max-w-3xl flex-col px-4 pb-10 sm:px-6 lg:px-8">
-          <div className="mb-6 text-center">
+        <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-2 pb-2 pt-2 sm:px-6 sm:pb-4 sm:pt-3 lg:px-8">
+          <div className="mb-2 flex shrink-0 items-center justify-center sm:mb-3">
             <span className="eyebrow eyebrow-glass text-gold-200">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
               </span>
-              <span className="mono text-shine text-[11px] uppercase tracking-[0.18em]">Community</span>
+              <span className="mono text-shine text-[11px] uppercase tracking-[0.18em]">The XYZ Lounge</span>
             </span>
-            <h1 className="mt-2 font-display text-3xl font-bold text-zinc-50 sm:text-4xl">
-              The <span className="text-shine">XYZ Lounge</span>
-            </h1>
-            <p className="mt-2 text-sm text-zinc-500">
-              Markets, alpha, airdrops &amp; Web3 - live with the community.
-            </p>
           </div>
 
-          <ChatClient
-            initialMessages={initialMessages}
-            initialHasMore={hasMore}
-            initialPinned={initialPinned}
-            me={
-              me
-                ? {
-                    id: me.id as string,
-                    isAdmin: me.role === "ADMIN",
-                    name: (me.name as string | null) ?? "Member",
-                    image: (me.image as string | null) ?? null,
-                    username: (me.username as string | null) ?? null,
-                  }
-                : null
-            }
-            realtime={{
-              url: env.NEXT_PUBLIC_SUPABASE_URL,
-              anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-            }}
-          />
+          <div className="min-h-0 flex-1">
+            <ChatClient
+              initialMessages={initialMessages}
+              initialHasMore={hasMore}
+              initialPinned={initialPinned}
+              me={
+                me
+                  ? {
+                      id: me.id as string,
+                      isAdmin: me.role === "ADMIN",
+                      name: (me.name as string | null) ?? "Member",
+                      image: (me.image as string | null) ?? null,
+                      username: (me.username as string | null) ?? null,
+                    }
+                  : null
+              }
+              realtime={{
+                url: env.NEXT_PUBLIC_SUPABASE_URL,
+                anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+              }}
+            />
+          </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }
