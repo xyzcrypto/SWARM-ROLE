@@ -43,6 +43,11 @@ describe("normalizeHandle", () => {
     expect(normalizeHandle("https://github.com/torvalds")).toBe("torvalds");
     expect(normalizeHandle("https://t.me/X_Y_Z_Crypto")).toBe("X_Y_Z_Crypto");
   });
+  it("takes the last path segment for multi-segment profile URLs", () => {
+    expect(normalizeHandle("https://linkedin.com/in/john-doe")).toBe("john-doe");
+    expect(normalizeHandle("https://www.youtube.com/@xyzcrypto")).toBe("xyzcrypto");
+    expect(normalizeHandle("https://instagram.com/xyz/")).toBe("xyz");
+  });
   it("drops trailing query/path noise", () => {
     expect(normalizeHandle("https://x.com/foo?ref=1")).toBe("foo");
     expect(normalizeHandle("bar/extra")).toBe("bar");
