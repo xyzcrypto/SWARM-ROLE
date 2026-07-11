@@ -5,6 +5,27 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Send icon fix + instant sends everywhere + light-theme + faster opens (2c+)
+- **Send button always shows a clear icon** — the lucide `<Send/>` outline was rendering
+  invisible on the green send buttons (looked like a plain green blob). Replaced with a new
+  **`SendGlyph`** (a filled white paper-plane inline SVG, hard-set fill — can never be
+  invisible) on the News-comment (`NewsSocial.tsx`) and DM (`MessagesClient.tsx`) buttons.
+  Screenshot-verified on the mint gradient.
+- **Comments/messages post instantly** — News comments (`NewsSocial.tsx`) now insert an
+  optimistic entry the moment you send (temp id → swapped for the server copy; rolled back +
+  text restored on failure), matching the community chat + DM optimistic sends. Send feels
+  instant on both mobile + desktop.
+- **Light-theme fixes** — DM bubbles now read correctly in light theme (own gold bubble text
+  was near-white/invisible; now `text-gold-950` in light, `gold-50` in dark; incoming bubble
+  gets a proper light surface + dark text). The community chat header is a solid theme-aware
+  surface (fixes the grey-gradient smudge in white theme).
+- **Community heading** — removed the redundant "THE XYZ LOUNGE" eyebrow (the room header
+  already says XYZ Lounge) and replaced it with a useful **"Markets · Alpha · Airdrops — live"**
+  topic line.
+- **Profile + Dashboard open faster** — their generic branded spinners are now
+  **layout-shaped skeletons** (`u/[username]/loading.tsx`, `dashboard/loading.tsx`) that
+  preview the real layout instantly, so navigation feels immediate.
+
 ## 2026-07-11 — Chat/DM: instant send + solid header + faster community open (2c)
 - **DM messages send instantly** (`MessagesClient.tsx`) — DMs now insert an optimistic
   bubble the moment you hit send (temp id → reconciled with the server copy / deduped vs the

@@ -80,13 +80,15 @@ export default async function CommunityPage() {
       <main className="relative flex h-[100svh] flex-col overflow-hidden pt-[4.75rem] sm:pt-20">
         <div className="mesh" />
         <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-2 pb-2 pt-2 sm:px-6 sm:pb-4 sm:pt-3 lg:px-8">
-          <div className="mb-2 flex shrink-0 items-center justify-center sm:mb-3">
+          <div className="mb-2 flex shrink-0 items-center justify-center gap-2 sm:mb-3">
             <span className="eyebrow eyebrow-glass text-gold-200">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
               </span>
-              <span className="mono text-shine text-[11px] uppercase tracking-[0.18em]">The XYZ Lounge</span>
+              <span className="mono text-[11px] uppercase tracking-[0.18em] text-zinc-400">
+                Markets · Alpha · Airdrops — live
+              </span>
             </span>
           </div>
 
