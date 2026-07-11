@@ -25,6 +25,7 @@
 ## Operations & Security
 
 * [Security](SECURITY.md)
+* [XYZ Sentinel (security & monitoring)](SENTINEL.md)
 * [Runbook](RUNBOOK.md)
 * [SEO](SEO.md)
 * [Audit Report — 2026-06-11](AUDIT-2026-06-11.md)

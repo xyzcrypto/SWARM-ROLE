@@ -1,0 +1,27 @@
+# Dependabot — part of XYZ Sentinel. Opens weekly PRs to bump vulnerable/outdated
+# dependencies and GitHub Actions. These are the only automated PRs; the owner
+# reviews + merges them (no autonomous code changes). Grouped to keep the PR
+# volume low.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      production-deps:
+        dependency-type: "production"
+      dev-deps:
+        dependency-type: "development"
+    commit-message:
+      prefix: "chore(deps)"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(ci)"

@@ -1,0 +1,44 @@
+name: XYZ Sentinel (security watchdog)
+
+# Every ~30 minutes this pings the app's watchdog endpoint, which reads live
+# security signals (locked accounts, OTP spikes, AI error/cost spikes, config
+# health), has the AI judge severity, and emails/Telegrams the owner on new
+# warn/critical issues. Detect + alert only — it never changes anything.
+#
+# Requires two repo secrets (Settings -> Secrets and variables -> Actions):
+#   PROD_URL     - production origin, e.g. https://xyzcrypto.io  (no trailing slash)
+#   CRON_SECRET  - same value set in the Vercel env
+# (These are the same secrets the push-dispatch workflow uses.) Until both are
+# set, the job skips gracefully. Telegram/email alerting is configured in Vercel
+# env (TELEGRAM_BOT_TOKEN/CHAT_ID, RESEND_API_KEY).
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: watchdog
+  cancel-in-progress: false
+
+jobs:
+  watchdog:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Trigger security watchdog
+        env:
+          PROD_URL: ${{ secrets.PROD_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$PROD_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "PROD_URL / CRON_SECRET not set - skipping. Add them in repo Settings -> Secrets."
+            exit 0
+          fi
+          code=$(curl -s -o /tmp/watchdog.out -w "%{http_code}" --max-time 60 \
+            "${PROD_URL%/}/api/watchdog?secret=${CRON_SECRET}")
+          echo "HTTP ${code}"
+          cat /tmp/watchdog.out 2>/dev/null || true
+          echo ""
+          # Never fail the schedule on a transient upstream hiccup.
+          if [ "${code}" != "200" ]; then echo "::warning::watchdog returned ${code}"; fi
