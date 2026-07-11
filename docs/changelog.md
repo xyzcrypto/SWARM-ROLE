@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Chat/DM: instant send + solid header + faster community open (2c)
+- **DM messages send instantly** (`MessagesClient.tsx`) — DMs now insert an optimistic
+  bubble the moment you hit send (temp id → reconciled with the server copy / deduped vs the
+  realtime echo; rolled back with the text restored on failure). Previously the bubble only
+  appeared after the server round-trip. (Community chat already sent optimistically; its
+  "pending" fade was softened `opacity-60 → 85` so a sent message reads as committed.)
+- **"Online" / header no longer looks transparent** (`ChatClient.tsx`) — the header was made
+  translucent (`ink-900/40` + blur) in 2a, so the presence/online strip looked see-through.
+  Reverted to a solid `bg-ink-900` header; composer bar bumped to `bg-ink-900/95`.
+- **Community opens instantly** — the route now ships a **chat-shaped skeleton**
+  (`community/loading.tsx`) that mirrors the app frame (was a generic skeleton), and the two
+  independent history queries (messages + pinned) run in **parallel** (`Promise.all`) instead
+  of sequentially, so the server renders faster.
+
 ## 2026-07-11 — Community Chat: external push notifications (2b)
 - **Phone push alerts for the lounge** — a new message now nudges subscribed members'
   devices (home-screen notification), reusing the existing Web Push / VAPID infra that

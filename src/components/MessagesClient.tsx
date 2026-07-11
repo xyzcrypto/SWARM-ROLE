@@ -174,17 +174,34 @@ function Thread({ id, meId, now, onBack, onSent }: { id: string; meId: string; n
     const body = draft.trim();
     if (!body || sending) return;
     setSending(true);
+
+    // Optimistic: show the message instantly with a temp id, then swap in the
+    // server copy (or drop the temp one if the realtime echo beat us to it).
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: Msg = { id: tempId, body, createdAt: new Date().toISOString(), mine: true };
+    setMessages((m) => [...m, optimistic]);
+    setDraft("");
+
     try {
       const r = await fetch(`/api/dm/${id}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }),
       });
       const j = r.ok ? await r.json() : null;
       if (j?.message) {
-        setMessages((m) => [...m, j.message]);
-        setDraft("");
+        setMessages((m) => {
+          const without = m.filter((x) => x.id !== tempId);
+          return without.some((x) => x.id === j.message.id) ? without : [...without, j.message];
+        });
         onSent();
+      } else {
+        // Failed: roll back the optimistic bubble and restore the text.
+        setMessages((m) => m.filter((x) => x.id !== tempId));
+        setDraft((d) => (d.trim() ? d : body));
       }
-    } catch { /* ignore */ } finally {
+    } catch {
+      setMessages((m) => m.filter((x) => x.id !== tempId));
+      setDraft((d) => (d.trim() ? d : body));
+    } finally {
       setSending(false);
     }
   };

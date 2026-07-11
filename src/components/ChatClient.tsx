@@ -803,7 +803,7 @@ export function ChatClient({
       <div aria-hidden className="pointer-events-none absolute -bottom-28 right-0 h-56 w-72 rounded-full bg-gold-500/10 blur-3xl" />
 
       {/* Header: room identity + live "who's online" presence strip */}
-      <div className="relative flex items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-mint-500/[0.09] via-ink-900/40 to-gold-500/[0.08] px-4 py-3 backdrop-blur-sm">
+      <div className="relative flex items-center justify-between gap-3 border-b border-white/10 bg-ink-900 px-4 py-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
@@ -1009,7 +1009,7 @@ export function ChatClient({
                     "group relative flex items-start gap-3 rounded-xl px-2.5 transition-colors hover:bg-white/[0.035]",
                     grouped ? "py-0.5" : "py-2",
                     m.userId === me?.id && "bg-mint-500/[0.06] ring-1 ring-inset ring-mint-500/15 hover:bg-mint-500/[0.09]",
-                    m.pending && "opacity-60"
+                    m.pending && "opacity-85"
                   )}
                 >
                   <div className="w-9 shrink-0">
@@ -1270,7 +1270,7 @@ export function ChatClient({
 
       {/* composer */}
       {/* pb: keep the composer clear of the iPhone home indicator. */}
-      <div className="relative z-[1] border-t border-white/10 bg-ink-900/40 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:px-4">
+      <div className="relative z-[1] border-t border-white/10 bg-ink-900/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
         {me ? (
           <>
             {replyTarget && (
