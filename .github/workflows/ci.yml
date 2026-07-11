@@ -16,7 +16,7 @@ jobs:
       NEXTAUTH_SECRET: "ci-placeholder-secret-not-used-at-runtime"
       NEXTAUTH_URL: "http://localhost:3000"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
           # Match the local + Vercel build environment. Next 14.2's build worker
