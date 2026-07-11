@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — V2 PR-5: Section headings live + community depth
+- **Every remaining homepage section accent now animates** — swapped the static `.text-gold-gradient` for
+  the moving `.text-shine` on: `Web3 research.` (ResearchPreview), `XYZ Crypto` (WhatsNew), `XYZ Verse.`
+  (Ecosystem), `community.` (Social), `XYZ Crypto` (Faq). The whole homepage now reads consistently "alive"
+  (Hero / Orbital / About / Products already shine).
+- **Community (Social) section → next-level** — added an ambient gold `glow-orb` behind the heading for depth
+  and wrapped the 4 social cards in `<TiltCard>` (pointer 3D tilt, mouse-only, reduced-motion/touch safe),
+  matching the site's interactive-card language.
+- Colors unchanged (gold + mint). Files: `ResearchPreview.tsx`, `WhatsNew.tsx`, `Ecosystem.tsx`, `Social.tsx`,
+  `Faq.tsx`, `docs/changelog.md`. Verified: tsc + lint + test (235) + build green.
+
+---
+
 ## 2026-07-10 — V2 PR-4 refinements #2 (owner feedback): scroll fix + fit + market icon + mobile perf
 - **Auto-scroll now actually runs.** `.vscroll` was in the `prefers-reduced-motion` kill list, so on any
   machine with "reduce motion" ON the feeds sat still. Removed it from that list → market/news feeds always

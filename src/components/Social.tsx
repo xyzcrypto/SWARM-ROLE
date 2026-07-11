@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, MessagesSquare } from "lucide-react";
 import { Reveal } from "./Reveal";
+import { TiltCard } from "./TiltCard";
 import { AnimatedEmoji } from "./AnimatedEmoji";
 import { site } from "@/lib/site";
 import { YouTubeIcon, XIcon, TelegramIcon, LinkedInIcon } from "./BrandIcons";
@@ -16,12 +17,13 @@ const channels = [
 export function Social() {
   return (
     <Section id="community">
-      <Container>
+      <div className="glow-orb left-1/2 top-8 h-64 w-64 -translate-x-1/2 bg-gold-600/10" />
+      <Container className="relative">
         <SectionHeading
           eyebrow="Stay Connected"
           title={
             <>
-              Join the <span className="text-gold-gradient">community.</span>{" "}
+              Join the <span className="text-shine">community.</span>{" "}
               <AnimatedEmoji emoji="👋" variant="wobble" className="align-middle text-[0.8em]" />
             </>
           }
@@ -31,6 +33,7 @@ export function Social() {
         <div className="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4">
           {channels.map((c, i) => (
             <Reveal key={c.name} delay={i} variant="pop">
+              <TiltCard max={5}>
               <a
                 href={c.href}
                 target="_blank"
@@ -47,6 +50,7 @@ export function Social() {
                 <span className="mt-5 font-display text-base font-semibold text-zinc-100">{c.name}</span>
                 <span className="mt-1 mono text-xs text-zinc-500">{c.handle}</span>
               </a>
+              </TiltCard>
             </Reveal>
           ))}
         </div>

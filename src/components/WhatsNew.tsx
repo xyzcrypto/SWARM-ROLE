@@ -40,7 +40,7 @@ export async function WhatsNew() {
           eyebrow="What's new"
           title={
             <>
-              Fresh from the <span className="text-gold-gradient">XYZ Crypto</span> lab{" "}
+              Fresh from the <span className="text-shine">XYZ Crypto</span> lab{" "}
               <AnimatedEmoji emoji="✨" variant="twinkle" className="align-middle text-[0.8em]" />
             </>
           }

@@ -32,7 +32,7 @@ export async function ResearchPreview() {
             <div className="max-w-xl">
               <Eyebrow>Knowledge Hub</Eyebrow>
               <h2 className="mt-5 font-display text-display-md font-semibold tracking-tight text-zinc-50">
-                Latest <span className="text-gold-gradient">Web3 research.</span>
+                Latest <span className="text-shine">Web3 research.</span>
               </h2>
             </div>
             <Link href="/research" className="btn-ghost shrink-0">
