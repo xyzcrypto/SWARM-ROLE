@@ -393,3 +393,77 @@ export function ClockIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+// ---- Coin (Web3 Market): gold token with a Web3 hexagon + a light sweep ------
+export function CoinIcon({ className }: IconProps) {
+  const [face, gloss, glow, clip] = useIds(4);
+  const c = GOLD;
+  const hex = "M24 13.5 L32.2 18.3 V27.7 L24 32.5 L15.8 27.7 V18.3 Z";
+  return (
+    <svg {...svgProps} className={className}>
+      <Defs face={face} gloss={gloss} glow={glow} c={c} />
+      <clipPath id={clip}><circle cx="24" cy="24" r="17" /></clipPath>
+      <circle cx="24" cy="24" r="17" fill={`url(#${face})`} filter={`url(#${glow})`} />
+      <circle cx="24" cy="24" r="13.4" fill="none" stroke={c.c} strokeOpacity="0.35" strokeWidth="1.2" />
+      {/* Web3 token hexagon */}
+      <path className="i3d-pulse" d={hex} fill="#3a2708" fillOpacity="0.85" style={{ transformBox: "view-box", transformOrigin: "24px 24px" }} />
+      <path d={hex} fill="none" stroke={c.a} strokeOpacity="0.75" strokeWidth="1.2" strokeLinejoin="round" />
+      {/* light sweep across the coin */}
+      <g clipPath={`url(#${clip})`}><rect className="i3d-scan" x="13" y="3" width="8" height="42" rx="4" fill="#fff" fillOpacity="0.45" transform="rotate(16 24 24)" /></g>
+      <circle cx="24" cy="24" r="17" fill={`url(#${gloss})`} />
+      <circle cx="24" cy="24" r="17" stroke={c.ring} strokeOpacity="0.55" />
+    </svg>
+  );
+}
+
+// ---- Candles (Web3 Market): green/red candlesticks, rising, tick up ---------
+export function CandlesIcon({ className }: IconProps) {
+  const [face, gloss, glow] = useIds(3);
+  const c = EMERALD;
+  const candles = [
+    { x: 8, by: 26, bh: 10, wt: 22, wb: 40, d: 0 },
+    { x: 18, by: 20, bh: 13, wt: 15, wb: 36, d: 0.22, red: true },
+    { x: 28, by: 15, bh: 15, wt: 11, wb: 33, d: 0.44 },
+    { x: 37, by: 11, bh: 11, wt: 7, wb: 27, d: 0.66 },
+  ];
+  return (
+    <svg {...svgProps} className={className}>
+      <Defs face={face} gloss={gloss} glow={glow} c={c} />
+      {candles.map((k) => (
+        <g
+          key={k.x}
+          className="i3d-tick"
+          style={{ animationDelay: `${k.d}s`, transformBox: "view-box", transformOrigin: `${k.x + 3.5}px ${k.wb}px` }}
+          filter={`url(#${glow})`}
+        >
+          <line x1={k.x + 3.5} y1={k.wt} x2={k.x + 3.5} y2={k.wb} stroke={k.red ? "#fb5c74" : c.b} strokeWidth="1.6" strokeLinecap="round" />
+          <rect x={k.x} y={k.by} width="7" height={k.bh} rx="1.8" fill={k.red ? "#fb5c74" : `url(#${face})`} />
+          <rect x={k.x} y={k.by} width="7" height={k.bh * 0.5} rx="1.8" fill={`url(#${gloss})`} />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+// ---- Gamepad (Gamified): violet controller, bobs; action buttons flicker -----
+export function GamepadIcon({ className }: IconProps) {
+  const [face, gloss, glow] = useIds(3);
+  const c = VIOLET;
+  const body =
+    "M16 17 h16 a11 11 0 0 1 10.6 8 l1.9 8.3 a4.7 4.7 0 0 1 -8.6 3.4 l-3.1 -5 a3 3 0 0 0 -2.5 -1.4 h-8.6 a3 3 0 0 0 -2.5 1.4 l-3.1 5 a4.7 4.7 0 0 1 -8.6 -3.4 l1.9 -8.3 a11 11 0 0 1 10.6 -8 Z";
+  return (
+    <svg {...svgProps} className={className}>
+      <Defs face={face} gloss={gloss} glow={glow} c={c} />
+      <g className="i3d-bob">
+        <path d={body} fill={`url(#${face})`} filter={`url(#${glow})`} />
+        {/* d-pad */}
+        <path d="M14.5 25 h5 M17 22.5 v5" stroke="#2a1247" strokeOpacity="0.9" strokeWidth="2.6" strokeLinecap="round" />
+        {/* action buttons */}
+        <circle className="i3d-flick" cx="31.5" cy="22.6" r="1.9" fill="#fbe8ff" />
+        <circle className="i3d-flick" cx="35" cy="26.2" r="1.9" fill="#fbe8ff" style={{ animationDelay: "0.45s" }} />
+        <path d={body} fill={`url(#${gloss})`} />
+        <path d={body} fill="none" stroke={c.ring} strokeOpacity="0.5" />
+      </g>
+    </svg>
+  );
+}

@@ -5,6 +5,68 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-4 refinements #2 (owner feedback): scroll fix + fit + market icon + mobile perf
+- **Auto-scroll now actually runs.** `.vscroll` was in the `prefers-reduced-motion` kill list, so on any
+  machine with "reduce motion" ON the feeds sat still. Removed it from that list → market/news feeds always
+  scroll. Added a `.vscroll-down` variant (news rains down from the top).
+- **Web3 Market icon → new `CandlesIcon`** (green/red rising candlesticks) — reads as a market chart far more
+  than the coin. Screenshot-verified. (Kept `CoinIcon` in the library for reuse.)
+- **Live Market feed refit** (`LiveMarketVisual.tsx`) — fixed-height rows with hairline dividers, tabular
+  numbers, a solid (no backdrop-blur) header; sits cleanly inside the card and scrolls smoothly.
+- **Live News feed** (`LiveNewsVisual.tsx`) — now scrolls **downward**; headline rows + the pinned "Breaking"
+  bar refit to exact heights; solid bar (no backdrop-filter).
+- **Gamified visual redesigned** (`ProductVisuals.tsx`) — compact level badge + XP bar on one row, then a row
+  of quest chips that light up in sequence; fits the box and reads more interactive.
+- **Mobile scroll perf**: the small product-card mini-visuals (`.mini-viz`) now **freeze their continuous
+  animations on phones** (`@media max-width:768px`) — dozens of simultaneous bar/sheen/orbit loops were the
+  main Products-grid jank source. The two LIVE feeds keep scrolling (cheap transform), icons keep their motion.
+  Also dropped `backdrop-filter` from the live-feed headers (repaint cost on scroll). Added `will-change:
+  transform` to the vertical tracks so they stay on the compositor.
+- Files: `Icons3D.tsx`, `Products.tsx`, `ProductVisuals.tsx`, `LiveMarketVisual.tsx`, `LiveNewsVisual.tsx`,
+  `globals.css`, `docs/changelog.md`. Verified: tsc + lint + test (235) + build green; layouts + new icon
+  screenshot-checked.
+
+## 2026-07-10 — V2 PR-4 refinements (owner feedback): real live feeds + better icons
+Follow-up on the same PR; colors unchanged.
+- **Web3 Market icon → new `CoinIcon`** (`Icons3D.tsx`) — a glossy gold Web3 token (hexagon emblem + light
+  sweep), much more "Web3" than the old trend arrow. Screenshot-verified.
+- **Web3 Market visual is now genuinely realtime** (`LiveMarketVisual.tsx`) — pulls live prices from the
+  cached `/api/ticker` proxy (refreshes every 15s while visible) and shows **more coins** (BTC/ETH/SOL/SUI/
+  HYPE/BNB/XRP/DOGE/AVAX/LINK) that **auto-scroll slowly upward** in a seamless vertical loop. The old
+  hardcoded/wrong prices are gone.
+- **Web3 News visual is now live** (`LiveNewsVisual.tsx`) — real headlines from `/api/news` (30s refresh),
+  **auto-scrolling bottom-to-top**, with the newest story pinned along the bottom as a live **"Breaking"**
+  showcase (pulsing red dot).
+- **AI Hub icon → our `RobotIcon`** (the XYZ mascot) instead of the generic activity glyph.
+- **Gamified icon → new `GamepadIcon`** (`Icons3D.tsx`) — a violet game controller (d-pad + flickering
+  action buttons), so the icon matches the product. Screenshot-verified.
+- New CSS: `.vscroll` vertical-marquee utility + `.vscroll-mask` fade (globals.css), added to the
+  reduced-motion kill list (scroll pauses for reduce-motion users). Both feeds are visibility-gated (no
+  fetch/animation cost while the tab is hidden).
+- Files: `src/components/Icons3D.tsx`, `src/components/Products.tsx`, `src/components/ProductVisuals.tsx`
+  (dropped the static Market/News visuals), new `LiveMarketVisual.tsx` + `LiveNewsVisual.tsx`,
+  `src/app/globals.css`, `docs/changelog.md`. Verified: tsc + lint + test (235) + build green.
+
+## 2026-07-10 — V2 PR-4: Products / "The Ecosystem" next-level (bigger suite + live links)
+Expanded the homepage Products grid and made the live products clickable; colors unchanged (gold + mint).
+- **`power your edge.` accent now alive** — static `.text-gold-gradient` → the moving `.text-shine`.
+- **Perp DEX status → "In Research"** (`Products.tsx`) — extended the `Status` union + `tone` map (mapped to
+  the existing `violet` badge tone). Was "Coming Soon".
+- **4 new products** (`Products.tsx` + new `*Visual`s in `ProductVisuals.tsx`), each with a live CSS mini-visual:
+  - **Web3 Market** (Live → `/markets`) — `MarketVisual`: realtime BTC/ETH/SOL rows with pulsing green/red deltas.
+  - **Web3 News** (Live → `/news`) — `NewsVisual`: a "Breaking" feed with a headline scan sweep.
+  - **AI Hub** (Planned) — `AiVisual`: a violet "thinking" waveform + typing dots.
+  - **Gamified** (Coming Soon) — `GamifiedVisual`: XP progress bar + orbiting level badge + next-reward line.
+- **Live cards are clickable** — added an optional `href` to product items; the card renders as a `<Link>`
+  (with an `ArrowUpRight` hint that animates on hover) when set. Web3 Market → `/markets`, Web3 News →
+  `/news`, Web3 Academy → `/research`.
+- **Larger grid** — the small-product grid now holds 8 cards (2 rows of 4 on desktop); **"& More" moved to
+  last**. Reused all existing keyframes (bar-pulse / sheen / grow-x / badge-orbit / pulse-dot) so no new CSS.
+- Files: `src/components/Products.tsx`, `src/components/ProductVisuals.tsx`, `docs/changelog.md`. Verified:
+  tsc + lint + test (235) + build green.
+
+---
+
 ## 2026-07-10 — Scroll performance: content-visibility on sections + lighter sticky-nav blur (mobile)
 Focused on making homepage SCROLL smooth, especially on mobile.
 - **`content-visibility: auto` on every homepage section** (`Section` primitive + Hero, both already
