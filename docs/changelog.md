@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Community Chat: external push notifications (2b)
+- **Phone push alerts for the lounge** — a new message now nudges subscribed members'
+  devices (home-screen notification), reusing the existing Web Push / VAPID infra that
+  powers News alerts (no new keys, no new subscription model).
+  - **New:** `src/lib/chat-push.ts` → `dispatchChatPush(created)` — fire-and-forget from
+    the send route (`api/chat/messages` POST). Gated on `pushEnabled`; never blocks the send.
+  - **Anti-spam:** only pings when a message **breaks a quiet spell** (previous message >5 min
+    ago), and uses a fixed notification `tag` so repeats collapse into one — so a busy room
+    never spams phones, but a fresh burst of activity brings people back. Sender's own devices
+    are excluded; dead endpoints are pruned (same as the news dispatcher).
+  - Notification opens `/community` (service worker already routes on `data.url`).
+- **Enable-alerts toggle in the chat header** — `NewsAlertsToggle` gained `compact` + `title`
+  props and now sits (icon-only) in the chat header so members can turn phone alerts on/off
+  right from the lounge. Existing News-page usage unchanged.
+- **Owner note:** requires the VAPID env vars (`NEXT_PUBLIC_VAPID_PUBLIC_KEY` /
+  `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT`) — the same ones News alerts already use. Degrades to
+  a no-op when unset.
+
 ## 2026-07-11 — Community Chat: app-style fixed frame + premium color polish (2a)
 - **App-like chat screen** (`community/page.tsx`) — the community page is now one fixed
   full-height frame (`h-[100svh]`, `overflow-hidden`): the page itself never scrolls, only

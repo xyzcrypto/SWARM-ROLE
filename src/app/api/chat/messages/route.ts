@@ -10,6 +10,7 @@ import {
   CHAT_MESSAGE_SELECT,
   CHAT_PAGE_SIZE,
 } from "@/lib/chat";
+import { dispatchChatPush } from "@/lib/chat-push";
 
 // GET /api/chat/messages[?cursor=<id>] - public chat history, newest page
 // first; pass the oldest message id as cursor to page further back. Includes
@@ -103,6 +104,10 @@ export async function POST(req: Request) {
 
     const message = toChatPayload(created);
     await broadcastChatEvent({ event: "new_message", payload: message });
+
+    // Fire-and-forget: nudge subscribed members' phones when the lounge wakes up
+    // after a quiet spell (gated on VAPID + anti-spam inside; never blocks send).
+    void dispatchChatPush(created);
 
     // AI auto-moderation - FIRE-AND-FORGET so the send stays instant (never block
     // the composer on a classify call). The message is already created + broadcast;

@@ -12,6 +12,7 @@ import { Badge } from "./ui/primitives";
 import { EmojiPicker } from "./EmojiPicker";
 import { MagneticButton } from "./MagneticButton";
 import { MessageButton } from "./MessageButton";
+import { NewsAlertsToggle } from "./NewsAlertsToggle";
 import { cn } from "@/lib/utils";
 import { safeHref, cleanBareUrl } from "@/lib/links";
 
@@ -825,6 +826,8 @@ export function ChatClient({
         </div>
 
         <div className="flex shrink-0 items-center gap-2.5">
+          {/* Enable phone push alerts for the lounge (reuses the Web Push infra). */}
+          {me && <NewsAlertsToggle loggedIn compact title="Get a phone notification when the lounge is active" />}
           <button
             type="button"
             onClick={toggleSound}

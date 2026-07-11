@@ -19,7 +19,17 @@ function urlBase64ToUint8Array(base64: string): Uint8Array {
 // "Enable alerts" toggle - registers the service worker, subscribes to Web Push,
 // and stores the subscription server-side. Only renders when push is configured
 // (a VAPID public key is present) and the browser supports it.
-export function NewsAlertsToggle({ loggedIn }: { loggedIn: boolean }) {
+export function NewsAlertsToggle({
+  loggedIn,
+  title = "Get a push notification for major crypto events",
+  compact = false,
+}: {
+  loggedIn: boolean;
+  /** Tooltip copy - lets the same toggle read right on News vs the chat. */
+  title?: string;
+  /** Icon-only, smaller - fits a dense header row like the chat. */
+  compact?: boolean;
+}) {
   const [supported, setSupported] = useState(false);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -117,14 +127,16 @@ export function NewsAlertsToggle({ loggedIn }: { loggedIn: boolean }) {
       <button
         onClick={enabled ? disable : enable}
         disabled={busy}
-        title="Get a push notification for major crypto events"
+        title={title}
+        aria-label={enabled ? "Turn off alerts" : "Turn on alerts"}
         className={cn(
-          "inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors disabled:opacity-60",
+          "inline-flex items-center justify-center rounded-xl border font-medium transition-colors disabled:opacity-60",
+          compact ? "gap-0 px-2 py-2 text-xs" : "gap-1.5 px-3 py-2.5 text-sm",
           enabled ? "border-mint-500/40 bg-mint-500/15 text-mint-200" : "border-white/10 text-zinc-400 hover:text-zinc-100"
         )}
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : enabled ? <Bell className="h-4 w-4" /> : <BellOff className="h-4 w-4" />}
-        <span className="hidden sm:inline">{enabled ? "Alerts on" : "Alerts"}</span>
+        {!compact && <span className="ml-1.5 hidden sm:inline">{enabled ? "Alerts on" : "Alerts"}</span>}
       </button>
       {msg && <p className="absolute right-0 top-full mt-1 w-56 rounded-lg bg-ink-900 p-2 text-[11px] text-amber-300 shadow-elevate ring-1 ring-white/10">{msg}</p>}
     </div>
