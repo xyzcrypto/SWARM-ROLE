@@ -5,6 +5,25 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — V2 PR-7: Mobile perf (icon-loop freeze) + profile-URL handle bug fix
+Note: most of the originally-planned PR-7 perf wins were already shipped in earlier passes (lazy XyzAiWidget +
+SmoothScroll, mobile blur cuts, reduced-motion gating of ambient FX, `optimizePackageImports`/`removeConsole`,
+three.js off the homepage). This PR adds the remaining safe wins + a real bug fix.
+- **Mobile: freeze the bespoke `.i3d-*` icon loops** (`globals.css`, `@media max-width:768px`). The 3D icons
+  each loop a transform/opacity animation and appear many times per screen; on phones we stop the *loop* for
+  smoother scroll + battery. The icons keep their glossy 3D gradient/shadow (they just don't move), and
+  hover/entrance still work. **Desktop is untouched** — including reduced-motion users, who explicitly asked
+  to keep these alive. (Same tradeoff already applied to `.mini-viz` product visuals.)
+- **Bug fix — pasting a full profile URL saved the wrong handle** (`profile.ts` `normalizeHandle`). It took the
+  *first* path segment, so `linkedin.com/in/john-doe` became `in` and `youtube.com/@name` kept the `@`. Now it
+  drops query/hash then takes the *last* path segment: `/in/john-doe → john-doe`, `/@name → name`, while the
+  simple cases (`x.com/foo`, `github.com/bar`, `t.me/baz`) and bare `bar/extra → bar` still hold. +3 unit tests
+  (236 total).
+- Files: `src/app/globals.css`, `src/lib/profile.ts`, `src/lib/__tests__/profile.test.ts`, `docs/changelog.md`.
+  Verified: tsc + lint + test (236) + build green.
+
+---
+
 ## 2026-07-11 — V2 PR-6b: Profile social links (Discord / YouTube / LinkedIn / Instagram)
 Adds four more social links to public profiles + settings. Colors unchanged. **Needs a migration (below).**
 - **Schema + migration** — `User` gains 4 nullable columns `discord` / `youtube` / `linkedin` / `instagram`

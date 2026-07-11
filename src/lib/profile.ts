@@ -31,10 +31,16 @@ export function normalizeUsername(input: string): string {
 export function normalizeHandle(input: string): string {
   let v = input.trim();
   if (!v) return "";
-  // If it looks like a URL, take the final non-empty path segment.
+  // For a full profile URL, the handle is the LAST non-empty path segment - this
+  // handles `/in/slug` (LinkedIn) and `/@handle` (YouTube) as well as the simple
+  // `/handle` case (x.com/foo, github.com/bar, t.me/baz).
   const urlMatch = v.match(/^https?:\/\/[^\s/]+\/(.+)$/i);
-  if (urlMatch) v = urlMatch[1]!;
-  v = v.replace(/[/?#].*$/, ""); // drop any trailing path/query
+  if (urlMatch) {
+    const path = urlMatch[1]!.replace(/[?#].*$/, ""); // drop query/hash first
+    const segs = path.split("/").filter(Boolean);
+    v = segs.length ? segs[segs.length - 1]! : "";
+  }
+  v = v.replace(/[/?#].*$/, ""); // bare "bar/extra" -> "bar"
   v = v.replace(/^@+/, ""); // drop leading @
   return v.trim();
 }
