@@ -416,6 +416,35 @@ export function CoinIcon({ className }: IconProps) {
   );
 }
 
+// ---- Candles (Web3 Market): green/red candlesticks, rising, tick up ---------
+export function CandlesIcon({ className }: IconProps) {
+  const [face, gloss, glow] = useIds(3);
+  const c = EMERALD;
+  const candles = [
+    { x: 8, by: 26, bh: 10, wt: 22, wb: 40, d: 0 },
+    { x: 18, by: 20, bh: 13, wt: 15, wb: 36, d: 0.22, red: true },
+    { x: 28, by: 15, bh: 15, wt: 11, wb: 33, d: 0.44 },
+    { x: 37, by: 11, bh: 11, wt: 7, wb: 27, d: 0.66 },
+  ];
+  return (
+    <svg {...svgProps} className={className}>
+      <Defs face={face} gloss={gloss} glow={glow} c={c} />
+      {candles.map((k) => (
+        <g
+          key={k.x}
+          className="i3d-tick"
+          style={{ animationDelay: `${k.d}s`, transformBox: "view-box", transformOrigin: `${k.x + 3.5}px ${k.wb}px` }}
+          filter={`url(#${glow})`}
+        >
+          <line x1={k.x + 3.5} y1={k.wt} x2={k.x + 3.5} y2={k.wb} stroke={k.red ? "#fb5c74" : c.b} strokeWidth="1.6" strokeLinecap="round" />
+          <rect x={k.x} y={k.by} width="7" height={k.bh} rx="1.8" fill={k.red ? "#fb5c74" : `url(#${face})`} />
+          <rect x={k.x} y={k.by} width="7" height={k.bh * 0.5} rx="1.8" fill={`url(#${gloss})`} />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
 // ---- Gamepad (Gamified): violet controller, bobs; action buttons flicker -----
 export function GamepadIcon({ className }: IconProps) {
   const [face, gloss, glow] = useIds(3);

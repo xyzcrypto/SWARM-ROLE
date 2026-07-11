@@ -5,6 +5,27 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-10 — V2 PR-4 refinements #2 (owner feedback): scroll fix + fit + market icon + mobile perf
+- **Auto-scroll now actually runs.** `.vscroll` was in the `prefers-reduced-motion` kill list, so on any
+  machine with "reduce motion" ON the feeds sat still. Removed it from that list → market/news feeds always
+  scroll. Added a `.vscroll-down` variant (news rains down from the top).
+- **Web3 Market icon → new `CandlesIcon`** (green/red rising candlesticks) — reads as a market chart far more
+  than the coin. Screenshot-verified. (Kept `CoinIcon` in the library for reuse.)
+- **Live Market feed refit** (`LiveMarketVisual.tsx`) — fixed-height rows with hairline dividers, tabular
+  numbers, a solid (no backdrop-blur) header; sits cleanly inside the card and scrolls smoothly.
+- **Live News feed** (`LiveNewsVisual.tsx`) — now scrolls **downward**; headline rows + the pinned "Breaking"
+  bar refit to exact heights; solid bar (no backdrop-filter).
+- **Gamified visual redesigned** (`ProductVisuals.tsx`) — compact level badge + XP bar on one row, then a row
+  of quest chips that light up in sequence; fits the box and reads more interactive.
+- **Mobile scroll perf**: the small product-card mini-visuals (`.mini-viz`) now **freeze their continuous
+  animations on phones** (`@media max-width:768px`) — dozens of simultaneous bar/sheen/orbit loops were the
+  main Products-grid jank source. The two LIVE feeds keep scrolling (cheap transform), icons keep their motion.
+  Also dropped `backdrop-filter` from the live-feed headers (repaint cost on scroll). Added `will-change:
+  transform` to the vertical tracks so they stay on the compositor.
+- Files: `Icons3D.tsx`, `Products.tsx`, `ProductVisuals.tsx`, `LiveMarketVisual.tsx`, `LiveNewsVisual.tsx`,
+  `globals.css`, `docs/changelog.md`. Verified: tsc + lint + test (235) + build green; layouts + new icon
+  screenshot-checked.
+
 ## 2026-07-10 — V2 PR-4 refinements (owner feedback): real live feeds + better icons
 Follow-up on the same PR; colors unchanged.
 - **Web3 Market icon → new `CoinIcon`** (`Icons3D.tsx`) — a glossy gold Web3 token (hexagon emblem + light

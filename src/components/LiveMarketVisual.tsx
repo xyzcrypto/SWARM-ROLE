@@ -28,21 +28,21 @@ function fmt(p: number) {
 function Row({ c }: { c: Coin }) {
   const up = c.change >= 0;
   return (
-    <div className="flex items-center gap-2 py-1 text-[11px]">
+    <div className="flex h-[22px] items-center gap-2 border-b border-white/[0.04] text-[10.5px]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={c.image}
         alt=""
-        width={15}
-        height={15}
+        width={14}
+        height={14}
         loading="lazy"
         decoding="async"
-        className="h-[15px] w-[15px] shrink-0 rounded-full ring-1 ring-white/10"
+        className="h-[14px] w-[14px] shrink-0 rounded-full ring-1 ring-white/10"
         onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
       />
       <span className="mono w-9 shrink-0 font-semibold text-zinc-200">{c.symbol}</span>
-      <span className="mono flex-1 text-right text-zinc-400">${fmt(c.price)}</span>
-      <span className={`mono w-12 shrink-0 text-right ${up ? "text-mint-400" : "text-rose-400"}`}>
+      <span className="mono flex-1 text-right tabular-nums text-zinc-400">${fmt(c.price)}</span>
+      <span className={`mono w-11 shrink-0 text-right tabular-nums ${up ? "text-mint-400" : "text-rose-400"}`}>
         {up ? "+" : ""}
         {c.change.toFixed(1)}%
       </span>
@@ -86,12 +86,12 @@ export function LiveMarketVisual() {
   }, []);
 
   const list = [...coins, ...coins]; // duplicate → seamless vertical loop
-  const dur = Math.max(18, coins.length * 2.4);
+  const dur = Math.max(20, coins.length * 2.6);
 
   return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 px-3">
-      {/* header */}
-      <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between bg-ink-950/85 px-3 py-1.5 mono text-[9px] text-zinc-500 backdrop-blur-sm">
+    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60">
+      {/* header (solid bg - no backdrop-filter, cheaper on mobile scroll) */}
+      <div className="absolute inset-x-0 top-0 z-10 flex h-[22px] items-center justify-between border-b border-white/[0.06] bg-ink-950 px-3 mono text-[9px] text-zinc-500">
         <span>{live ? "LIVE MARKET" : "MARKET"}</span>
         <span className="inline-flex items-center gap-1 text-mint-300">
           <span className="relative flex h-1.5 w-1.5">
@@ -101,8 +101,8 @@ export function LiveMarketVisual() {
           REALTIME
         </span>
       </div>
-      {/* scrolling track */}
-      <div className="vscroll-mask absolute inset-0 overflow-hidden pt-7">
+      {/* scrolling track (starts below the header, softly masked top/bottom) */}
+      <div className="vscroll-mask absolute inset-x-0 bottom-0 top-[22px] overflow-hidden px-3">
         <div className="vscroll" style={{ animationDuration: `${dur}s` }}>
           {list.map((c, i) => (
             <Row key={`${c.symbol}-${i}`} c={c} />

@@ -4,7 +4,7 @@ import { Crown } from "lucide-react";
 export function TradingVisual() {
   const bars = [0.5, 0.8, 0.45, 0.95, 0.65, 0.85, 0.55, 1];
   return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
+    <div className="mini-viz relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
       <div className="flex h-full items-end gap-1.5">
         {bars.map((h, i) => (
           <div
@@ -25,7 +25,7 @@ export function TradingVisual() {
 
 export function AirdropVisual() {
   return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60">
+    <div className="mini-viz relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60">
       {/* eligibility badge */}
       <div className="absolute left-3 top-2.5 z-10 inline-flex items-center gap-1.5 rounded-full border border-mint-500/40 bg-mint-500/15 px-2 py-0.5">
         <span className="grid h-3 w-3 place-items-center rounded-full bg-mint-400 text-[7px] font-bold text-ink">✓</span>
@@ -61,7 +61,7 @@ export function AirdropVisual() {
 
 export function PremiumVisual() {
   return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-gold-500/20 bg-gradient-to-br from-gold-500/12 to-ink-950/70 p-3">
+    <div className="mini-viz relative mt-5 h-24 overflow-hidden rounded-2xl border border-gold-500/20 bg-gradient-to-br from-gold-500/12 to-ink-950/70 p-3">
       {/* pulsing premium glow */}
       <div className="absolute -right-6 -top-6 h-20 w-20 rounded-full bg-gold-500/25 blur-2xl animate-pulse-dot" />
       {/* sheen sweep (gold, stronger) */}
@@ -111,7 +111,7 @@ export function AcademyVisual() {
     { l: "On-chain mastery", w: "40%" },
   ];
   return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
+    <div className="mini-viz relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
       <div className="flex items-center justify-between mono text-[9px] text-zinc-500">
         <span>COURSE PROGRESS</span>
         <span className="inline-flex items-center gap-1 text-mint-300">
@@ -148,7 +148,7 @@ export function AcademyVisual() {
 export function AiVisual() {
   const bars = [0.4, 0.7, 0.5, 0.95, 0.6, 0.85, 0.45];
   return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/12 to-ink-950/70 p-3">
+    <div className="mini-viz relative mt-5 h-24 overflow-hidden rounded-2xl border border-violet-500/20 bg-gradient-to-br from-violet-500/12 to-ink-950/70 p-3">
       <div className="flex items-center justify-between mono text-[9px] text-zinc-500">
         <span>XYZ AI</span>
         <span className="inline-flex items-center gap-1 text-violet-300">
@@ -175,32 +175,42 @@ export function AiVisual() {
 }
 
 export function GamifiedVisual() {
+  const quests = ["🔥 Streak", "⭐ Quests", "🏆 Rank 42"];
   return (
-    <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60 p-3">
-      <div className="flex items-center justify-between">
-        <span className="mono text-[9px] text-zinc-500">YOUR PROGRESS</span>
-        <span className="relative inline-flex h-6 w-6 items-center justify-center">
+    <div className="mini-viz relative mt-5 h-24 overflow-hidden rounded-2xl border border-mint-500/15 bg-gradient-to-br from-mint-500/10 to-ink-950/70 p-3">
+      {/* level badge + XP bar */}
+      <div className="flex items-center gap-2.5">
+        <span className="relative inline-flex h-7 w-7 shrink-0 items-center justify-center">
           <span
             className="absolute inset-0 rounded-full"
-            style={{ background: "conic-gradient(from 0deg, transparent, rgba(52,231,167,0.9), transparent 60%)", animation: "badge-orbit 3s linear infinite" }}
+            style={{ background: "conic-gradient(from 0deg, transparent, rgba(52,231,167,0.95), transparent 62%)", animation: "badge-orbit 2.6s linear infinite" }}
           />
-          <span className="relative grid h-5 w-5 place-items-center rounded-full bg-ink-950 mono text-[9px] font-bold text-mint-200 ring-1 ring-mint-500/50">7</span>
+          <span className="relative grid h-6 w-6 place-items-center rounded-full bg-ink-950 mono text-[11px] font-bold text-mint-200 ring-1 ring-mint-500/50">7</span>
         </span>
-      </div>
-      <div className="mt-3">
-        <div className="mb-1 flex justify-between mono text-[9px] text-zinc-500">
-          <span>LEVEL 7</span>
-          <span className="text-mint-300">1,240 XP</span>
-        </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
-          <div className="relative h-full rounded-full" style={{ width: "68%" }}>
-            <div className="h-full origin-left rounded-full bg-mint-shine" style={{ animation: "grow-x 1.1s cubic-bezier(0.22,1,0.36,1) both" }} />
-            <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/40 to-transparent" style={{ animation: "sheen 2.8s ease-in-out infinite" }} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between mono text-[9px]">
+            <span className="font-semibold text-zinc-300">LEVEL 7</span>
+            <span className="text-mint-300">1,240 XP</span>
+          </div>
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/10">
+            <div className="relative h-full rounded-full" style={{ width: "68%" }}>
+              <div className="h-full origin-left rounded-full bg-mint-shine" style={{ animation: "grow-x 1.2s cubic-bezier(0.22,1,0.36,1) both" }} />
+              <div className="absolute inset-0 -skew-x-12 bg-gradient-to-r from-transparent via-white/45 to-transparent" style={{ animation: "sheen 2.4s ease-in-out infinite" }} />
+            </div>
           </div>
         </div>
       </div>
-      <div className="mt-2.5 mono text-[9px] text-zinc-500">
-        Next: <span className="text-mint-300/80">Level 8 → Alpha access</span>
+      {/* quest chips lighting up in sequence */}
+      <div className="mt-3 flex gap-1.5">
+        {quests.map((q, i) => (
+          <span
+            key={q}
+            className="flex-1 rounded-lg border border-mint-500/20 bg-mint-500/10 px-1 py-1 text-center text-[9px] font-medium text-mint-200"
+            style={{ animation: `pulse-dot 2.1s ease-in-out ${i * 0.5}s infinite` }}
+          >
+            {q}
+          </span>
+        ))}
       </div>
     </div>
   );
@@ -208,7 +218,7 @@ export function GamifiedVisual() {
 
 export function MoreVisual() {
   return (
-    <div className="relative mt-5 grid h-24 place-items-center overflow-hidden rounded-2xl border border-line bg-ink-950/60">
+    <div className="mini-viz relative mt-5 grid h-24 place-items-center overflow-hidden rounded-2xl border border-line bg-ink-950/60">
       <div className="relative">
         <span className="absolute inset-0 rounded-full bg-violet-500/30" style={{ animation: "ping-soft 2.4s ease-out infinite" }} />
         <span className="relative grid h-10 w-10 place-items-center rounded-full bg-violet-500/15 mono text-lg font-bold text-violet-300 ring-1 ring-violet-500/30">

@@ -10,7 +10,7 @@ import {
   AcademyIcon,
   LayersIcon,
   NewspaperIcon,
-  CoinIcon,
+  CandlesIcon,
   GamepadIcon,
 } from "./Icons3D";
 import { RobotIcon } from "./RobotIcon";
@@ -62,7 +62,7 @@ type SmallProduct = {
 // Live products first (clickable into the real pages), then what's building,
 // then what's next. "& More" always closes the grid.
 const small: SmallProduct[] = [
-  { name: "Web3 Market", status: "Live", href: "/markets", desc: "Live prices, market cap, trending coins and on-chain data in real time.", Icon: CoinIcon as Icon3D, Visual: LiveMarketVisual },
+  { name: "Web3 Market", status: "Live", href: "/markets", desc: "Live prices, market cap, trending coins and on-chain data in real time.", Icon: CandlesIcon as Icon3D, Visual: LiveMarketVisual },
   { name: "Web3 News", status: "Live", href: "/news", desc: "Breaking crypto headlines with an AI briefing, ranked by what matters.", Icon: NewspaperIcon as Icon3D, Visual: LiveNewsVisual },
   { name: "Web3 Academy", status: "Live", href: "/research", desc: "Structured education and research, from zero to on-chain pro.", Icon: AcademyIcon as Icon3D, Visual: AcademyVisual },
   { name: "Airdrop Tools", status: "Planned", desc: "Track, qualify and farm airdrops with automated checklists and eligibility.", Icon: GiftIcon as Icon3D, Visual: AirdropVisual },
