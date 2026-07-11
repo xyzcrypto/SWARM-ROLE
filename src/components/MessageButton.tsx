@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { MessageCircle, Loader2 } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // "Message" affordance. Opens (or creates) my conversation with this user and
@@ -44,9 +44,9 @@ export function MessageButton({ username, compact = false, className }: { userna
         disabled={busy}
         aria-label={`Message ${username}`}
         title="Message"
-        className={cn("inline-flex items-center justify-center rounded-md p-1.5 text-zinc-500 transition-colors hover:text-gold-300 disabled:opacity-60", className)}
+        className={cn("inline-flex items-center justify-center rounded-full p-1.5 text-mint-400 transition-colors hover:bg-mint-500/15 hover:text-mint-200 disabled:opacity-60", className)}
       >
-        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageCircle className="h-3.5 w-3.5" />}
+        {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <MessageSquare className="h-3.5 w-3.5" />}
       </button>
     );
   }
@@ -57,7 +57,7 @@ export function MessageButton({ username, compact = false, className }: { userna
       disabled={busy}
       className={cn("btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm disabled:opacity-60", className)}
     >
-      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageCircle className="h-4 w-4" />}
+      {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
       Message
     </button>
   );

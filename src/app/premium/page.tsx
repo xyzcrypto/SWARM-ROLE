@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Check } from "lucide-react";
+import { Check, Hourglass } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Container, Section, SectionHeading, Badge } from "@/components/ui/primitives";
@@ -55,7 +55,7 @@ export default function PremiumPage() {
             <div className="mx-auto max-w-2xl text-center">
               <Reveal>
                 <Badge tone="gold" className="!px-3 !py-1">
-                  <AnimatedEmoji emoji="⏳" variant="wobble" className="text-sm" /> Coming soon
+                  <Hourglass className="h-3.5 w-3.5" /> Coming soon
                 </Badge>
               </Reveal>
               <Reveal delay={1}>
