@@ -47,7 +47,7 @@ export function Ecosystem() {
           title={
             <>
               The <span className="text-shine">XYZ Verse.</span>{" "}
-              <AnimatedEmoji emoji="🌐" variant="spin" className="align-middle text-[0.8em]" />
+              <AnimatedEmoji emoji="🌐" variant="float" className="align-middle text-[0.8em]" />
             </>
           }
           subtitle="Two thriving communities under the XYZ Crypto umbrella, one to learn, one to trade. Join the conversation on Telegram."
