@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Markdown } from "@/lib/markdown";
 import { uploadFileWithProgress } from "@/lib/upload";
+import { compressImage } from "@/lib/image";
 
 export type EditablePost = {
   id?: string;
@@ -94,7 +95,10 @@ export function PostEditor({
     setUploading(true);
     setProgress(0);
     try {
-      const { ok, status, data } = await uploadFileWithProgress("/api/upload", file, setProgress);
+      // Downscale/re-encode client-side so the upload is small + reliable - this
+      // also keeps it under the inline data-URL cap when Storage isn't configured.
+      const upload = await compressImage(file, 1280);
+      const { ok, status, data } = await uploadFileWithProgress("/api/upload", upload, setProgress);
       if (!ok) {
         // 501 = Supabase Storage not configured yet → guide to the URL fallback.
         const hint = status === 501 ? " You can paste an image URL instead." : "";
