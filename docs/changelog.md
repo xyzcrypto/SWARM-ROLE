@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Community Chat: app-style fixed frame + premium color polish (2a)
+- **App-like chat screen** (`community/page.tsx`) — the community page is now one fixed
+  full-height frame (`h-[100svh]`, `overflow-hidden`): the page itself never scrolls, only
+  the message list inside scrolls (WhatsApp/Telegram feel). Removed the page footer +
+  the big heading (compact eyebrow only) so the chat fills the screen. Composer stays
+  pinned at the bottom above the mobile keyboard.
+- **ChatClient fills its parent** (`ChatClient.tsx`) — outer frame changed from a fixed
+  `68vh` box to `h-full`, so the page controls height and the box is bigger / edge-to-edge.
+- **Professional color polish** (colors stay gold/mint, just refined): richer header
+  gradient + backdrop-blur, own-message rows get a cleaner mint tint + inset ring, composer
+  bar gets a subtle ink surface + blur, and the input is a deeper rounded field with a mint
+  focus ring. No behaviour change; presence/typing/reactions/polls untouched.
+
 ## 2026-07-11 — Breaking-hero swap arrows + clearer send-button icon
 - **Breaking News hero** (`NewsClient.tsx` → `BreakingHero`) now has **left/right swap
   arrows** — tap ‹ / › to change the breaking story manually (auto-rotate + progress dots

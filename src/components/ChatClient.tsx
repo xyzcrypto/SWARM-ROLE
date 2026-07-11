@@ -796,13 +796,13 @@ export function ChatClient({
   // dvh (where supported) tracks the *visible* viewport, so the composer
   // stays above the mobile keyboard instead of being pushed off-screen.
   return (
-    <div className="glass relative flex h-[68vh] min-h-[380px] flex-col overflow-hidden rounded-3xl supports-[height:100dvh]:h-[68dvh]">
+    <div className="glass relative flex h-full min-h-[420px] flex-col overflow-hidden rounded-3xl">
       {/* Ambient futuristic glow behind the room. */}
       <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[130%] -translate-x-1/2 rounded-full bg-mint-500/10 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-28 right-0 h-56 w-72 rounded-full bg-gold-500/10 blur-3xl" />
 
       {/* Header: room identity + live "who's online" presence strip */}
-      <div className="relative flex items-center justify-between gap-3 border-b border-line bg-gradient-to-r from-mint-500/[0.05] via-transparent to-gold-500/[0.05] px-4 py-3">
+      <div className="relative flex items-center justify-between gap-3 border-b border-white/10 bg-gradient-to-r from-mint-500/[0.09] via-ink-900/40 to-gold-500/[0.08] px-4 py-3 backdrop-blur-sm">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
@@ -1003,9 +1003,9 @@ export function ChatClient({
                     if (touchUi && me && !m.pending) setActionOpenId((id) => (id === m.id ? null : m.id));
                   }}
                   className={cn(
-                    "group relative flex items-start gap-3 rounded-xl px-2 transition-colors hover:bg-white/[0.03]",
-                    grouped ? "py-0.5" : "py-1.5",
-                    m.userId === me?.id && "bg-mint-500/[0.04] hover:bg-mint-500/[0.07]",
+                    "group relative flex items-start gap-3 rounded-xl px-2.5 transition-colors hover:bg-white/[0.035]",
+                    grouped ? "py-0.5" : "py-2",
+                    m.userId === me?.id && "bg-mint-500/[0.06] ring-1 ring-inset ring-mint-500/15 hover:bg-mint-500/[0.09]",
                     m.pending && "opacity-60"
                   )}
                 >
@@ -1267,7 +1267,7 @@ export function ChatClient({
 
       {/* composer */}
       {/* pb: keep the composer clear of the iPhone home indicator. */}
-      <div className="relative z-[1] border-t border-line px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
+      <div className="relative z-[1] border-t border-white/10 bg-ink-900/40 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:px-4">
         {me ? (
           <>
             {replyTarget && (
@@ -1309,7 +1309,7 @@ export function ChatClient({
                   }}
                   rows={1}
                   placeholder={touchUi ? "Say something…" : "Say something… (Enter to send)"}
-                  className="max-h-28 w-full resize-none rounded-xl border border-white/10 bg-ink-700/60 px-4 py-2.5 pr-10 text-base text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20 sm:text-sm"
+                  className="max-h-28 w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-10 text-base text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
                 />
                 <button
                   type="button"
