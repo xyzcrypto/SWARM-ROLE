@@ -4,7 +4,7 @@ name: Security scan
 # static analysis (finds security bugs in the JS/TS code) plus an npm dependency
 # audit, on every push/PR to main and weekly. CodeQL results appear in the repo's
 # Security tab. The audit is reported (job stays green) so it never blocks a ship;
-# high/critical findings are visible in the logs and Dependabot opens fix PRs.
+# high/critical findings are visible in the logs for the owner to fix manually.
 
 on:
   push:
@@ -48,6 +48,6 @@ jobs:
           cache: npm
       - run: npm ci
       # Report high/critical advisories without failing the build (visibility,
-      # not a hard gate — Dependabot raises the actual fix PRs).
+      # not a hard gate — the owner updates deps manually when they choose to).
       - name: npm audit (high+)
         run: npm audit --audit-level=high || true
