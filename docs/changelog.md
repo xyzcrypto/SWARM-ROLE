@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Remove Dependabot (automated dependency PRs)
+- **Deleted `.github/dependabot.yml`.** Dependabot's grouped weekly bumps kept
+  proposing risky **major** upgrades (Tailwind 3→4, Next 14→16, React 18→19,
+  Prisma 5→7, framer-motion 11→12, zod 3→4, …) that would break the UI/build, and
+  each open PR also spun up a Vercel preview deploy (churn on the Hobby plan). Per
+  the owner: no auto-update risk for now — dependencies get updated **manually**,
+  deliberately, later.
+- CodeQL static analysis + the `npm audit` visibility step (`security.yml`) stay —
+  they only scan and report, they never open PRs. Owner may still enable
+  **Dependabot *alerts*** in repo settings (notification-only; no PRs).
+- Docs updated: `SENTINEL.md` (scanning section + owner setup), `security.yml`
+  comments. The 5 open Dependabot PRs (#95–#99) were closed unmerged.
+
 ## 2026-07-11 — Fixes: send-message icon visible + direct banner upload
 - **Send buttons now clearly show the send icon** — the composer Send button in News comments
   (`NewsSocial.tsx`) and the DM send button (`MessagesClient.tsx`) rendered as "just a green button" because

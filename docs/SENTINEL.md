@@ -10,8 +10,12 @@ data). Three layers:
   every push/PR to `main` (and weekly) for security bugs in the JS/TS. Findings
   show in the repo **Security → Code scanning** tab.
 - **npm audit** — reports vulnerable dependencies (high/critical) in CI logs.
-- **Dependabot** (`.github/dependabot.yml`) — opens weekly PRs to bump vulnerable/
-  outdated deps + Actions. You review + merge. These are the only automated PRs.
+- **Dependency updates** — done **manually** by the owner/engineer, deliberately.
+  (Dependabot's automated version-bump PRs were removed — the grouped bumps kept
+  proposing risky major upgrades, e.g. Tailwind 3→4 / Next 14→16, that would break
+  the UI/build, plus each PR spun up a Vercel preview deploy.) You can still enable
+  **Dependabot *alerts*** in repo settings — those are notification-only (they flag
+  vulnerable deps without opening any PR), which is the safe half.
 
 ## 2. Live AI Watchdog — reads signals, judges, alerts you
 - `.github/workflows/watchdog.yml` runs every ~30 min and pings
@@ -46,8 +50,10 @@ data). Three layers:
 ### B. GitHub repo
 1. **Settings → Secrets and variables → Actions:** add `PROD_URL` (e.g.
    `https://xyzcrypto.io`, no trailing slash) and `CRON_SECRET` (same value as Vercel).
-2. **Settings → Code security:** enable **Secret scanning** + **Push protection**,
-   and **Dependabot alerts**.
+2. **Settings → Code security:** enable **Secret scanning** + **Push protection**.
+   Optionally enable **Dependabot alerts** (notification-only — flags vulnerable
+   deps, does NOT open PRs). Automated Dependabot version-update PRs are off by
+   design; update dependencies manually when you choose to.
 3. The `security.yml` + `watchdog.yml` workflows run automatically once merged.
 
 ### C. Database
@@ -61,5 +67,5 @@ After the envs are set: GitHub → **Actions → XYZ Sentinel → Run workflow**
 within a minute. With everything healthy it silently records `severity: ok`.
 
 ## Not included (later)
-Autonomous code auto-fix (by design — you/an engineer fix; Dependabot only bumps
-deps). A dashboard "Security" tab reading `WatchdogRun` is an easy follow-up.
+Autonomous code auto-fix (by design — you/an engineer fix; no automated dependency
+PRs). A dashboard "Security" tab reading `WatchdogRun` is an easy follow-up.
