@@ -16,8 +16,16 @@ No-migration fixes; colors unchanged.
 - **Navbar crowding at the md→lg band** (`Navbar.tsx`) — desktop nav links were `px-3.5` from 768px up, which
   crowds when a phone forces "Desktop site" (~768-1000px). Now `px-2.5` at md, widening to `px-3.5` at lg;
   the hover/active underline inset tracks the same (`inset-x-2.5 lg:inset-x-3.5`). Roomy desktop look intact.
-- Files: `BriefingBlock.tsx`, `Navbar.tsx`, `docs/changelog.md`. Verified: tsc + lint + test (235) + build
-  green. (Profile desktop name-position + profile social links + migration land next in PR-6b.)
+- **Desktop profile name was hidden over the banner — fixed** (`u/[username]/page.tsx`). The avatar+name row
+  was pulled up (`-mt-14`) so the large name rendered on top of the banner art (invisible over the bright
+  logo). Now **only the avatar** overlaps the banner; the name + handle sit in the content area below it
+  (`items-start`, avatar gets the negative margin), so the name is always readable. Verified with a headless
+  render.
+- **Mobile light-theme navbar was black — fixed** (`globals.css`). The mobile `.nav-shell` perf override
+  forced a dark `rgba(10,10,15,.92)` background in BOTH themes. Made it theme-aware: `.dark` keeps the dark
+  bar, `html:not(.dark)` gets a white `rgba(255,255,255,.92)` bar (matching the desktop light navbar).
+- Files: `BriefingBlock.tsx`, `Navbar.tsx`, `u/[username]/page.tsx`, `globals.css`, `docs/changelog.md`.
+  Verified: tsc + lint + test (235) + build green. (Profile social links + migration land next in PR-6b.)
 
 ---
 

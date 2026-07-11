@@ -321,11 +321,17 @@ html.lenis body {
   .star-shooter-extra { display: none; }
   .orbital-aurora { filter: blur(14px) !important; }
   /* The sticky navbar's backdrop-blur repaints every scroll frame on mobile.
-     Use a small blur + a more opaque bg so scroll stays smooth. */
+     Use a small blur + a more opaque bg so scroll stays smooth. Theme-aware so
+     light mode gets a WHITE bar (was forced dark in both themes). */
   .nav-shell {
     backdrop-filter: blur(8px) saturate(130%) !important;
     -webkit-backdrop-filter: blur(8px) saturate(130%) !important;
+  }
+  .dark .nav-shell {
     background-color: rgba(10, 10, 15, 0.92) !important;
+  }
+  html:not(.dark) .nav-shell {
+    background-color: rgba(255, 255, 255, 0.92) !important;
   }
 }
 
