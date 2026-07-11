@@ -1006,32 +1006,40 @@ html:not(.dark) .bg-ink-900\/95,
 html:not(.dark) .bg-ink-900\/90,
 html:not(.dark) .bg-ink-900\/85,
 html:not(.dark) .bg-ink-900\/80,
+html:not(.dark) .bg-ink-900\/60,
+html:not(.dark) .bg-ink-900\/50,
+html:not(.dark) .bg-ink-900\/40,
+html:not(.dark) .bg-ink-950\/95,
 html:not(.dark) .bg-ink-950\/90,
 html:not(.dark) .bg-ink-950\/80,
 html:not(.dark) .bg-ink-950\/70,
-html:not(.dark) .bg-ink-950\/60 { background-color: rgba(255, 255, 255, 0.92); }
+html:not(.dark) .bg-ink-950\/60,
+html:not(.dark) .bg-ink-950\/50 { background-color: rgba(255, 255, 255, 0.92); }
 html:not(.dark) .bg-ink-950 { background-color: var(--surface-2); }
 html:not(.dark) .bg-ink-900 { background-color: var(--surface); }
 html:not(.dark) .placeholder\:text-zinc-600::placeholder { color: #9a9aa2; }
 
 /* Surface primitives - clean white cards (ambient behind them is hidden). */
 html:not(.dark) .glass {
-  background: var(--surface);
-  border-color: var(--hairline);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 24px 48px -30px rgba(0, 0, 0, 0.22);
+  background: linear-gradient(180deg, #ffffff, #f7f8fb);
+  border-color: rgba(16, 18, 27, 0.09);
+  box-shadow: 0 1px 2px rgba(16, 18, 27, 0.05), 0 26px 50px -32px rgba(16, 18, 27, 0.28);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
+/* Premium light cards: a whisper of top-down gradient + a soft lift shadow +
+   a hairline warm border, so cards read crisp and elevated (not flat white). */
 html:not(.dark) .surface {
-  background: var(--surface);
-  border-color: var(--hairline);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  background: linear-gradient(180deg, #ffffff, #f9fafc);
+  border-color: rgba(16, 18, 27, 0.08);
+  box-shadow: 0 1px 2px rgba(16, 18, 27, 0.04), 0 10px 26px -20px rgba(16, 18, 27, 0.16);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
 html:not(.dark) .surface-hover:hover {
-  border-color: rgba(226, 167, 47, 0.45);
-  background: var(--surface-2);
+  border-color: rgba(226, 167, 47, 0.5);
+  background: linear-gradient(180deg, #ffffff, #fbf7ee);
+  box-shadow: 0 2px 4px rgba(16, 18, 27, 0.05), 0 16px 34px -22px rgba(226, 167, 47, 0.28);
 }
 
 /* Soft buttons on light. */

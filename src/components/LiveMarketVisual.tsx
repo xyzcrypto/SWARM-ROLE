@@ -75,7 +75,7 @@ export function LiveMarketVisual() {
       }
     }
     load();
-    const t = setInterval(() => !document.hidden && load(), 15_000);
+    const t = setInterval(() => !document.hidden && load(), 30_000);
     const onVis = () => !document.hidden && load();
     document.addEventListener("visibilitychange", onVis);
     return () => {

@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Light-theme polish + globe emoji + homepage feed polling
+Owner-reported (light theme + emoji + a small home-perf trim).
+- **Light theme "next level"** (`globals.css`). Root cause of the grey boxes: several dark background
+  opacities weren't remapped for light mode, so e.g. the Markets tab bar (`bg-ink-950/50`) rendered as a
+  muddy grey slab on the white page. Added the missing remaps (`bg-ink-950/50` + `/95`, `bg-ink-900/40..60`
+  → light). Also upgraded the light `.surface`/`.glass` cards from flat white to **premium**: a whisper of
+  top-down gradient, a soft lift shadow, a hairline warm border, and a gold-tinted hover glow. Verified with a
+  headless light-theme render.
+- **Globe emoji** (`Ecosystem.tsx`) — the "XYZ Verse." 🌐 was doing a full flat spin (looked odd); switched to
+  the gentle `float` variant so it bobs softly instead.
+- **Home-perf trim** — the two decorative homepage live feeds now poll less often (market 15s→30s, news
+  30s→60s); the real ticker at the top still updates every 10s, so nothing user-visible slows down while
+  background fetches drop.
+- Files: `src/app/globals.css`, `src/components/Ecosystem.tsx`, `src/components/LiveMarketVisual.tsx`,
+  `src/components/LiveNewsVisual.tsx`, `docs/changelog.md`. Verified: tsc + lint + build green.
+
+---
+
 ## 2026-07-11 — Fixes: mobile ecosystem icons live + zero-config image upload
 Owner-reported fixes (bundled with PR-8).
 - **Homepage "The Ecosystem" icons were frozen on mobile → live again.** PR-7 had frozen the bespoke `.i3d-*`
