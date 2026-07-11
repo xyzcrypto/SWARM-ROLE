@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Breaking-hero swap arrows + clearer send-button icon
+- **Breaking News hero** (`NewsClient.tsx` → `BreakingHero`) now has **left/right swap
+  arrows** — tap ‹ / › to change the breaking story manually (auto-rotate + progress dots
+  stay). Arrows are glass circles on the image edges, hidden when there's only one story.
+- **Send-button icon now clearly visible** — the News-comment send button
+  (`NewsSocial.tsx`) and the DM send button (`MessagesClient.tsx`) rendered as a plain
+  green button because the dark `Send` glyph was low-contrast on the mint gradient. The
+  icon is now **white** (`!text-white`) with a bolder stroke, so it unmistakably reads as
+  "send message" (Telegram/WhatsApp-style). No color/layout change elsewhere.
+
 ## 2026-07-11 — Remove Dependabot (automated dependency PRs)
 - **Deleted `.github/dependabot.yml`.** Dependabot's grouped weekly bumps kept
   proposing risky **major** upgrades (Tailwind 3→4, Next 14→16, React 18→19,

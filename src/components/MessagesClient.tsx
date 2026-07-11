@@ -242,7 +242,7 @@ function Thread({ id, meId, now, onBack, onSent }: { id: string; meId: string; n
             className="max-h-32 min-h-[42px] flex-1 resize-none rounded-2xl border border-white/10 bg-ink-950/60 px-4 py-2.5 text-[14px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
           />
           <button onClick={submit} disabled={!draft.trim() || sending} aria-label="Send message" className="btn-primary relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl p-0 disabled:opacity-50">
-            {sending ? <Loader2 className="relative z-10 h-5 w-5 animate-spin" /> : <Send className="relative z-10 h-5 w-5" />}
+            {sending ? <Loader2 className="relative z-10 h-5 w-5 animate-spin !text-white" /> : <Send className="relative z-10 h-5 w-5 !text-white" strokeWidth={2.4} />}
           </button>
         </div>
       </div>
