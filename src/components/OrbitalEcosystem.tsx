@@ -30,7 +30,7 @@ const toneRing: Record<Node["tone"], string> = {
 // share a ring at an offset start (negative delay) for a fuller solar system.
 const ORBITERS = [
   { inset: "0", dur: 13, dir: "normal", size: "h-2.5 w-2.5", dot: "bg-gold-200", glow: "rgba(226,167,47,0.75)", delay: 0 },
-  { inset: "0", dur: 13, dir: "normal", size: "h-1.5 w-1.5", dot: "bg-white", glow: "rgba(255,255,255,0.6)", delay: -6 },
+  { inset: "0", dur: 13, dir: "normal", size: "h-1.5 w-1.5", dot: "bg-gold-400 dark:bg-white", glow: "rgba(226,167,47,0.7)", delay: -6 },
   { inset: "6%", dur: 22, dir: "normal", size: "h-2 w-2", dot: "bg-sky-200", glow: "rgba(125,211,252,0.6)", delay: 0 },
   { inset: "12%", dur: 18, dir: "reverse", size: "h-2 w-2", dot: "bg-mint-200", glow: "rgba(34,214,146,0.65)", delay: 0 },
   { inset: "24%", dur: 10, dir: "normal", size: "h-2 w-2", dot: "bg-violet-200", glow: "rgba(167,139,250,0.65)", delay: 0 },

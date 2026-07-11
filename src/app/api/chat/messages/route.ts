@@ -103,18 +103,22 @@ export async function POST(req: Request) {
     });
 
     const message = toChatPayload(created);
-    await broadcastChatEvent({ event: "new_message", payload: message });
 
-    // Fire-and-forget: nudge subscribed members' phones when the lounge wakes up
-    // after a quiet spell (gated on VAPID + anti-spam inside; never blocks send).
+    // Fire-and-forget the realtime broadcast so the sender's response returns
+    // immediately (no Supabase round-trip on the send path). The sender already
+    // has the message from THIS response; other members get it via the broadcast
+    // (or the 10s realtime poll fallback). Consistent with the push/moderation
+    // fire-and-forget below.
+    void broadcastChatEvent({ event: "new_message", payload: message }).catch(() => {});
+
+    // Nudge subscribed members' phones when the lounge wakes up after a quiet
+    // spell (gated on VAPID + anti-spam inside; never blocks send).
     void dispatchChatPush(created);
 
     // AI auto-moderation - FIRE-AND-FORGET so the send stays instant (never block
     // the composer on a classify call). The message is already created + broadcast;
-    // this only decides whether to *hide* it a beat later via the existing path
-    // (broadcast message_hidden), fully restorable from Dashboard → Moderation.
-    // Best-effort + fail-open: on any error, or if the runtime reclaims the
-    // function first, the message simply stays visible. No-op when AI is disabled.
+    // this only decides whether to *hide* it a beat later via the existing path.
+    // Best-effort + fail-open. No-op when AI is disabled.
     if (aiEnabled) {
       void classifyToxic(parsed.data.body)
         .then((toxic) =>

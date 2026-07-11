@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { env, gifEnabled } from "@/lib/env";
-import { CHAT_PAGE_SIZE, CHAT_MESSAGE_SELECT, toChatPayload } from "@/lib/chat";
+import { CHAT_MESSAGE_SELECT, toChatPayload } from "@/lib/chat";
 import { Navbar } from "@/components/Navbar";
 import { ChatClient } from "@/components/ChatClient";
 
@@ -22,12 +22,15 @@ export default async function CommunityPage() {
   // Initial history + the pinned banner - run in parallel (independent queries)
   // so the page opens faster. Both resilient to a missing table pre-migration:
   // the room renders empty instead of crashing.
+  // Render a smaller initial screenful for a fast first open; "Load older"
+  // pages the rest via /api/chat/messages (CHAT_PAGE_SIZE).
+  const INITIAL_COUNT = 30;
   const [rows, pinnedRow] = await Promise.all([
     prisma.chatMessage
       .findMany({
         where: { status: "visible" },
         orderBy: { createdAt: "desc" },
-        take: CHAT_PAGE_SIZE + 1,
+        take: INITIAL_COUNT + 1,
         select: CHAT_MESSAGE_SELECT,
       })
       .catch(() => []),
@@ -40,8 +43,8 @@ export default async function CommunityPage() {
       .catch(() => null),
   ]);
 
-  const hasMore = rows.length > CHAT_PAGE_SIZE;
-  const page = hasMore ? rows.slice(0, CHAT_PAGE_SIZE) : rows;
+  const hasMore = rows.length > INITIAL_COUNT;
+  const page = hasMore ? rows.slice(0, INITIAL_COUNT) : rows;
   let initialMessages = page.reverse().map(toChatPayload);
 
   let initialPinned = pinnedRow ? toChatPayload(pinnedRow) : null;

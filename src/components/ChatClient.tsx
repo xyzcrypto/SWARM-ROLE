@@ -1387,9 +1387,10 @@ export function ChatClient({
       <AnimatePresence>
         {!stickToBottom && (
           <motion.button
+            type="button"
             initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}
             onClick={jumpToLatest}
-            className="absolute bottom-24 right-6 inline-flex items-center gap-1.5 rounded-full border border-line bg-ink-800/90 px-3 py-2 text-xs text-zinc-200 shadow-elevate backdrop-blur transition-colors hover:text-gold-200"
+            className="absolute bottom-[5.5rem] right-4 z-20 inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/95 px-3.5 py-2 text-xs font-semibold text-zinc-800 shadow-elevate backdrop-blur transition-colors hover:text-mint-600 dark:border-white/10 dark:bg-ink-800 dark:text-zinc-100 dark:hover:text-gold-200"
           >
             <ArrowDown className="h-4 w-4" />
             {unread > 0 ? `${unread} new` : "Latest"}
@@ -1417,7 +1418,7 @@ export function ChatClient({
               <button
                 type="button"
                 onClick={() => setPollOpen(true)}
-                className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-white/10 bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
+                className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
                 aria-label="Create a poll"
                 title="Create a poll"
               >
@@ -1429,7 +1430,7 @@ export function ChatClient({
                     type="button"
                     onClick={() => setGifOpen((v) => !v)}
                     className={cn(
-                      "grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-white/10 bg-ink-800/60 text-[10px] font-bold transition-colors hover:border-gold-500/40 hover:text-gold-200",
+                      "grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-[10px] font-bold transition-colors hover:border-gold-500/40 hover:text-gold-200",
                       gifOpen ? "text-gold-200" : "text-zinc-400"
                     )}
                     aria-label="Send a GIF"
@@ -1455,7 +1456,7 @@ export function ChatClient({
                     type="button"
                     onClick={() => photoInputRef.current?.click()}
                     disabled={photoUploading}
-                    className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-white/10 bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200 disabled:opacity-50"
+                    className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200 disabled:opacity-50"
                     aria-label="Share a photo"
                     title="Share a photo (admin)"
                   >
@@ -1526,10 +1527,11 @@ export function ChatClient({
                 type="submit"
                 disabled={sending || !body.trim()}
                 whileTap={{ scale: 0.9 }}
-                className="btn-primary grid h-11 w-11 shrink-0 place-items-center !rounded-2xl !p-0 disabled:opacity-50"
+                className="btn-primary inline-flex h-11 shrink-0 items-center gap-1.5 !rounded-2xl !px-4 disabled:opacity-50"
                 aria-label="Send message"
               >
-                {sending ? <Loader2 className="relative z-10 h-5 w-5 animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-5 w-5" />}
+                {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-[18px] w-[18px]" />}
+                <span className="relative z-10 text-sm font-semibold !text-white">Send</span>
               </motion.button>
             </form>
             {/* error + character count - aligned below the row, full width */}

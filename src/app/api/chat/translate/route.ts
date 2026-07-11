@@ -9,11 +9,19 @@ export const dynamic = "force-dynamic";
 const bodySchema = z.object({ text: z.string().trim().min(1).max(500) });
 
 const SYSTEM =
-  "You are a translator for a crypto community chat. If the message is in English, " +
-  "translate it into natural Hinglish (Hindi written in Roman/Latin letters, the way people chat). " +
-  "If the message is in Hindi or Hinglish, translate it into clear, natural English. " +
+  "You convert a chat message between English and Hinglish. Follow these steps:\n" +
+  "1. Detect the language. 'Hinglish' = Hindi/Urdu words written in Roman/Latin letters " +
+  "(e.g. 'bhai kya kar rahe ho', 'paisa laga do'). Plain English = normal English sentences.\n" +
+  "2. If the message is ENGLISH -> rewrite it in natural Hinglish (romanized Hindi, casual chat style).\n" +
+  "3. If the message is HINGLISH or Hindi -> rewrite it in clear, natural ENGLISH.\n" +
+  "HARD RULE: the output language MUST be different from the input. Never return English for " +
+  "an English input, and never return Hinglish for a Hinglish input.\n" +
   "Keep @mentions, $TICKERS, emojis, numbers and URLs exactly as-is. " +
-  "Return ONLY the translated text - no quotes, no notes, no labels.";
+  "Return ONLY the converted sentence - no quotes, no explanations, no language labels.\n\n" +
+  "Examples:\n" +
+  "Input: 'When is the next airdrop?'  Output: 'Agla airdrop kab hai?'\n" +
+  "Input: 'Bhai market abhi pump ho raha hai'  Output: 'Bro the market is pumping right now'\n" +
+  "Input: 'gm everyone, big day today'  Output: 'gm sabko, aaj bada din hai'";
 
 // POST /api/chat/translate - translate a chat message between English and
 // Hinglish. Logged-in + rate-limited; graceful 503 when AI is off.
