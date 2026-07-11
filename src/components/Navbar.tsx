@@ -102,14 +102,14 @@ export function Navbar() {
               href={l.href}
               aria-current={isActive(l.href) ? "page" : undefined}
               className={cn(
-                "group relative rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
+                "group relative rounded-lg px-2.5 py-2 text-sm font-medium transition-colors lg:px-3.5",
                 isActive(l.href) ? "text-zinc-50" : "text-zinc-400 hover:text-zinc-100"
               )}
             >
               {l.label}
               <span
                 className={cn(
-                  "absolute inset-x-3.5 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300",
+                  "absolute inset-x-2.5 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300 lg:inset-x-3.5",
                   isActive(l.href) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
                 )}
               />

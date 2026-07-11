@@ -106,10 +106,12 @@ export default async function ProfilePage({ params }: Props) {
               <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
             </div>
             <div className="px-5 pb-6 sm:px-8 sm:pb-8">
-              <div className="-mt-12 flex flex-col gap-4 sm:-mt-14 sm:flex-row sm:items-end sm:justify-between">
-                <div className="flex min-w-0 items-end gap-4 sm:gap-5">
-                  <Avatar name={user.name} image={user.image} size="xl" className="shrink-0 ring-[3px] ring-ink-900 shadow-gold" />
-                  <div className="min-w-0 pb-0.5 sm:pb-2">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                {/* Only the avatar overlaps the banner; the name/handle stay in the
+                    content area below it so the name is never hidden over the banner art. */}
+                <div className="flex min-w-0 items-start gap-4 sm:gap-5">
+                  <Avatar name={user.name} image={user.image} size="xl" className="-mt-14 shrink-0 ring-[3px] ring-ink-900 shadow-gold sm:-mt-16" />
+                  <div className="min-w-0 pt-1">
                     <h1 className="font-display text-[26px] font-bold leading-[1.1] tracking-tight text-zinc-50 break-words sm:text-4xl lg:text-[2.6rem]">
                       {user.name ?? `@${user.username}`}
                     </h1>
