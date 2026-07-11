@@ -483,15 +483,6 @@ html.lenis body {
   .starfield-neb {
     display: none !important;
   }
-  /* Mobile scroll perf: the small product-card mini-visuals each run several
-     continuous CSS animations (bars, sheens, orbits). Dozens at once when the
-     Products grid is on screen is the main scroll-jank source on phones. Freeze
-     them to their composed state on mobile (the two LIVE feeds - market/news -
-     use .vscroll and keep scrolling; icons keep their motion). */
-  .mini-viz,
-  .mini-viz * {
-    animation: none !important;
-  }
 }
 .surface-hover {
   transition: border-color 0.3s, transform 0.3s, background 0.3s;

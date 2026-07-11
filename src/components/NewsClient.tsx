@@ -832,24 +832,24 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
       {/* content */}
       <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
         <div className="mb-2 flex items-center gap-2 text-[11px]">
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-lg shadow-red-500/20">
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide !text-white shadow-lg shadow-red-500/20">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
             </span>
             Breaking
           </span>
-          <span className="font-medium text-zinc-200">{active.source}</span>
-          <span className="text-zinc-400">·</span>
-          <span className="mono text-zinc-400">{now ? timeAgo(active.publishedAt, now) : ""}</span>
+          <span className="font-medium !text-zinc-200">{active.source}</span>
+          <span className="!text-zinc-400">·</span>
+          <span className="mono !text-zinc-400">{now ? timeAgo(active.publishedAt, now) : ""}</span>
           <span className={cn("ml-1 hidden font-medium sm:inline", sentTone)}>{active.sentiment === "neutral" ? "" : active.sentiment}</span>
         </div>
-        <h2 className="max-w-3xl font-display text-lg font-bold leading-snug text-white drop-shadow sm:text-2xl">
+        <h2 className="max-w-3xl font-display text-lg font-bold leading-snug !text-white drop-shadow sm:text-2xl">
           <span className="bg-gradient-to-r from-white to-white bg-[length:0%_2px] bg-left-bottom bg-no-repeat transition-[background-size] duration-300 group-hover:bg-[length:100%_2px]">{active.title}</span>
         </h2>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {active.tokens.slice(0, 4).map((t) => (
-            <span key={t} className="mono rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] text-white backdrop-blur-sm">{t}</span>
+            <span key={t} className="mono rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] !text-white backdrop-blur-sm">{t}</span>
           ))}
           <span className="ml-1 inline-flex items-center gap-1 text-[11px] font-medium text-gold-200 opacity-0 transition-opacity group-hover:opacity-100">
             Read on XYZ <BookOpen className="h-3 w-3" />

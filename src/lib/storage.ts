@@ -81,10 +81,10 @@ export async function uploadImage(bytes: ArrayBuffer, declaredMime: string): Pro
     return { ok: false, error: "Image is too large (max 5 MB).", status: 413 };
   }
 
-  // Zero-config path: no external Storage → store the image inline as a data URL
-  // so direct upload always works (both avatars and post covers). The client
-  // compresses first, so this is normally well under the cap.
-  if (!storageEnabled) {
+  // Store the (client-compressed) image inline as a data URL. Used both when no
+  // external Storage is configured AND as a fallback when a configured Storage
+  // upload fails - so direct upload ALWAYS works with zero setup.
+  const inline = (): UploadResult => {
     if (bytes.byteLength > INLINE_MAX_BYTES) {
       return {
         ok: false,
@@ -92,10 +92,14 @@ export async function uploadImage(bytes: ArrayBuffer, declaredMime: string): Pro
         status: 413,
       };
     }
-    const base64 = Buffer.from(bytes).toString("base64");
-    return { ok: true, url: `data:${mime};base64,${base64}` };
-  }
+    return { ok: true, url: `data:${mime};base64,${Buffer.from(bytes).toString("base64")}` };
+  };
 
+  // No Storage configured → inline immediately.
+  if (!storageEnabled) return inline();
+
+  // Storage configured: try it, but fall back to inline on ANY failure (e.g. the
+  // bucket doesn't exist / isn't public yet), so uploads never dead-end.
   const bucket = env.SUPABASE_STORAGE_BUCKET;
   const path = buildObjectPath(mime);
   const endpoint = `${env.SUPABASE_URL}/storage/v1/object/${bucket}/${path}`;
@@ -111,15 +115,14 @@ export async function uploadImage(bytes: ArrayBuffer, declaredMime: string): Pro
       },
       body: bytes,
     });
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      console.error("[storage] upload failed", res.status, detail);
-      return { ok: false, error: "Upload failed. Please try again.", status: 502 };
+    if (res.ok) {
+      return { ok: true, url: `${env.SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}` };
     }
-    const url = `${env.SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
-    return { ok: true, url };
+    const detail = await res.text().catch(() => "");
+    console.error("[storage] upload failed, falling back to inline", res.status, detail);
   } catch (err) {
-    console.error("[storage] upload error", err);
-    return { ok: false, error: "Upload failed. Please try again.", status: 502 };
+    console.error("[storage] upload error, falling back to inline", err);
   }
+  // Supabase attempt failed → inline so the user's upload still succeeds.
+  return inline();
 }
