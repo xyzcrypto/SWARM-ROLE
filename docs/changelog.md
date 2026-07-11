@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — V2 PR-6a: News TTS silence fix + mobile navbar spacing
+No-migration fixes; colors unchanged.
+- **News "Listen" (TTS) silence on mobile fixed** (`BriefingBlock.tsx`) — the old code always ran
+  `speechSynthesis.cancel()` immediately before `speak()`; on mobile Safari/Chrome `cancel()` flushes
+  asynchronously and drops the following `speak()`, so nothing played. Now it only clears the queue when
+  something is actually `pending`/`paused`, keeps `speak()` inside the tap gesture (iOS requirement), and
+  calls `resume()` right after (iOS sometimes starts the queue paused). Toggle-off also checks
+  `synth.speaking`.
+- **Navbar crowding at the md→lg band** (`Navbar.tsx`) — desktop nav links were `px-3.5` from 768px up, which
+  crowds when a phone forces "Desktop site" (~768-1000px). Now `px-2.5` at md, widening to `px-3.5` at lg;
+  the hover/active underline inset tracks the same (`inset-x-2.5 lg:inset-x-3.5`). Roomy desktop look intact.
+- Files: `BriefingBlock.tsx`, `Navbar.tsx`, `docs/changelog.md`. Verified: tsc + lint + test (235) + build
+  green. (Profile desktop name-position + profile social links + migration land next in PR-6b.)
+
+---
+
 ## 2026-07-11 — V2 PR-5: Section headings live + community depth
 - **Every remaining homepage section accent now animates** — swapped the static `.text-gold-gradient` for
   the moving `.text-shine` on: `Web3 research.` (ResearchPreview), `XYZ Crypto` (WhatsNew), `XYZ Verse.`

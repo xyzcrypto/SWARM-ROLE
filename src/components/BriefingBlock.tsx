@@ -56,8 +56,13 @@ export function BriefingBlock({
   const speak = useCallback(() => {
     if (!ttsSupported || !shown) return;
     const synth = window.speechSynthesis;
-    if (speaking) { synth.cancel(); setSpeaking(false); return; }
-    synth.cancel();
+    // Toggle off if we're already talking.
+    if (speaking || synth.speaking) { synth.cancel(); setSpeaking(false); return; }
+    // Avoid the classic mobile bug where cancel() immediately followed by speak()
+    // drops the utterance (cancel flushes asynchronously) - only clear the queue
+    // when something is actually stuck pending/paused, and keep speak() inside the
+    // same user gesture (iOS requires that).
+    if (synth.pending || synth.paused) synth.cancel();
     const u = new SpeechSynthesisUtterance(stripMarkdown(shown));
     const langs = lang === "hinglish" ? ["hi-IN", "en-IN", "en"] : ["en-US", "en-GB", "en-IN", "en"];
     const v = pickVoice(voices.length ? voices : synth.getVoices(), langs);
@@ -68,6 +73,8 @@ export function BriefingBlock({
     u.onend = () => setSpeaking(false);
     u.onerror = () => setSpeaking(false);
     synth.speak(u);
+    // iOS/Safari sometimes starts the synthesis queue paused - nudge it. No-op elsewhere.
+    synth.resume();
     setSpeaking(true);
   }, [ttsSupported, shown, speaking, lang, voices, rate]);
 
