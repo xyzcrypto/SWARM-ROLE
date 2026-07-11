@@ -27,6 +27,9 @@ Adds four more social links to public profiles + settings. Colors unchanged. **N
 - **⚠️ Owner action:** apply migration 20 (`npm run db:push` with real `DATABASE_URL`/`DIRECT_URL`, or paste
   `prisma/migrations/20_profile_socials/migration.sql` into the Supabase SQL editor). Links stay hidden until
   then.
+- **Profile interactivity/polish** (same PR): social pills now hover to each platform's brand colour and
+  lift slightly; the stat cards gained pointer 3D tilt (`TiltCard`) + a soft gold glow on hover; recent-
+  activity cards lift with a gold left-accent on hover. All reduced-motion / touch safe, colors unchanged.
 
 ---
 
