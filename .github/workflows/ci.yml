@@ -17,7 +17,7 @@ jobs:
       NEXTAUTH_URL: "http://localhost:3000"
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           # Match the local + Vercel build environment. Next 14.2's build worker
           # can SIGSEGV on Node 20; Node 22 builds cleanly.
