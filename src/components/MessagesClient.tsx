@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2, Send, MessageSquare } from "lucide-react";
+import { ArrowLeft, Loader2, MessageSquare } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { SendGlyph } from "@/components/SendGlyph";
 import { timeAgo } from "@/lib/news";
 import { useRealtime } from "@/lib/useRealtime";
 import { cn } from "@/lib/utils";
@@ -174,17 +175,34 @@ function Thread({ id, meId, now, onBack, onSent }: { id: string; meId: string; n
     const body = draft.trim();
     if (!body || sending) return;
     setSending(true);
+
+    // Optimistic: show the message instantly with a temp id, then swap in the
+    // server copy (or drop the temp one if the realtime echo beat us to it).
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: Msg = { id: tempId, body, createdAt: new Date().toISOString(), mine: true };
+    setMessages((m) => [...m, optimistic]);
+    setDraft("");
+
     try {
       const r = await fetch(`/api/dm/${id}`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }),
       });
       const j = r.ok ? await r.json() : null;
       if (j?.message) {
-        setMessages((m) => [...m, j.message]);
-        setDraft("");
+        setMessages((m) => {
+          const without = m.filter((x) => x.id !== tempId);
+          return without.some((x) => x.id === j.message.id) ? without : [...without, j.message];
+        });
         onSent();
+      } else {
+        // Failed: roll back the optimistic bubble and restore the text.
+        setMessages((m) => m.filter((x) => x.id !== tempId));
+        setDraft((d) => (d.trim() ? d : body));
       }
-    } catch { /* ignore */ } finally {
+    } catch {
+      setMessages((m) => m.filter((x) => x.id !== tempId));
+      setDraft((d) => (d.trim() ? d : body));
+    } finally {
       setSending(false);
     }
   };
@@ -218,12 +236,12 @@ function Thread({ id, meId, now, onBack, onSent }: { id: string; meId: string; n
                 className={cn(
                   "max-w-[78%] rounded-2xl px-3.5 py-2 text-[14px] leading-relaxed",
                   m.mine
-                    ? "rounded-br-md bg-gold-500/15 text-gold-50 ring-1 ring-gold-500/25"
-                    : "rounded-bl-md bg-white/[0.05] text-zinc-100 ring-1 ring-white/10"
+                    ? "rounded-br-md bg-gold-500/20 text-gold-950 ring-1 ring-gold-500/30 dark:bg-gold-500/15 dark:text-gold-50"
+                    : "rounded-bl-md bg-black/[0.05] text-zinc-800 ring-1 ring-black/10 dark:bg-white/[0.05] dark:text-zinc-100 dark:ring-white/10"
                 )}
               >
                 <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                {now > 0 && <p className={cn("mono mt-1 text-[10px]", m.mine ? "text-gold-200/60" : "text-zinc-500")}>{timeAgo(new Date(m.createdAt).getTime(), now)}</p>}
+                {now > 0 && <p className={cn("mono mt-1 text-[10px]", m.mine ? "text-gold-700/70 dark:text-gold-200/60" : "text-zinc-500")}>{timeAgo(new Date(m.createdAt).getTime(), now)}</p>}
               </div>
             </div>
           ))
@@ -242,7 +260,7 @@ function Thread({ id, meId, now, onBack, onSent }: { id: string; meId: string; n
             className="max-h-32 min-h-[42px] flex-1 resize-none rounded-2xl border border-white/10 bg-ink-950/60 px-4 py-2.5 text-[14px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
           />
           <button onClick={submit} disabled={!draft.trim() || sending} aria-label="Send message" className="btn-primary relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl p-0 disabled:opacity-50">
-            {sending ? <Loader2 className="relative z-10 h-5 w-5 animate-spin !text-white" /> : <Send className="relative z-10 h-5 w-5 !text-white" strokeWidth={2.4} />}
+            {sending ? <Loader2 className="relative z-10 h-5 w-5 animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-5 w-5" />}
           </button>
         </div>
       </div>

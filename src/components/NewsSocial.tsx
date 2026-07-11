@@ -2,9 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Heart, MessageCircle, Loader2, Send, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Loader2, Trash2 } from "lucide-react";
 import { timeAgo } from "@/lib/news";
 import { MessageButton } from "@/components/MessageButton";
+import { SendGlyph } from "@/components/SendGlyph";
 import { cn } from "@/lib/utils";
 
 type Comment = { id: string; body: string; createdAt: string; name: string; username: string | null; image: string | null; mine: boolean };
@@ -54,13 +55,32 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
     const body = draft.trim();
     if (!body || posting) return;
     setPosting(true);
+
+    // Optimistic: show the comment instantly with a temp id, then swap in the
+    // server copy (real id + author). Roll back + restore text on failure.
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const optimistic: Comment = {
+      id: tempId, body, createdAt: new Date().toISOString(),
+      name: "You", username: null, image: null, mine: true,
+    };
+    setComments((c) => [optimistic, ...c]);
+    setDraft("");
+
     try {
       const r = await fetch("/api/news/social", {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, body }),
       });
       const j = await r.json().catch(() => null);
-      if (r.ok && j?.comment) { setComments((c) => [j.comment, ...c]); setDraft(""); }
-    } catch { /* ignore */ } finally {
+      if (r.ok && j?.comment) {
+        setComments((c) => c.map((x) => (x.id === tempId ? j.comment : x)));
+      } else {
+        setComments((c) => c.filter((x) => x.id !== tempId));
+        setDraft((d) => (d.trim() ? d : body));
+      }
+    } catch {
+      setComments((c) => c.filter((x) => x.id !== tempId));
+      setDraft((d) => (d.trim() ? d : body));
+    } finally {
       setPosting(false);
     }
   };
@@ -103,7 +123,7 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
                 className="min-h-[38px] flex-1 resize-none rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
               />
               <button onClick={submit} disabled={!draft.trim() || posting} aria-label="Send comment" className="btn-primary relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl p-0 disabled:opacity-50">
-                {posting ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <Send className="relative z-10 h-[18px] w-[18px] !text-white" strokeWidth={2.4} />}
+                {posting ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-[18px] w-[18px]" />}
               </button>
             </div>
           ) : (

@@ -19,29 +19,31 @@ export default async function CommunityPage() {
   const session = await getServerSession(authOptions);
   const me = session?.user as any;
 
-  // Initial history (oldest-first for rendering); resilient to missing table
-  // pre-migration - page renders with an empty room instead of crashing.
-  const rows = await prisma.chatMessage
-    .findMany({
-      where: { status: "visible" },
-      orderBy: { createdAt: "desc" },
-      take: CHAT_PAGE_SIZE + 1,
-      select: CHAT_MESSAGE_SELECT,
-    })
-    .catch(() => []);
+  // Initial history + the pinned banner - run in parallel (independent queries)
+  // so the page opens faster. Both resilient to a missing table pre-migration:
+  // the room renders empty instead of crashing.
+  const [rows, pinnedRow] = await Promise.all([
+    prisma.chatMessage
+      .findMany({
+        where: { status: "visible" },
+        orderBy: { createdAt: "desc" },
+        take: CHAT_PAGE_SIZE + 1,
+        select: CHAT_MESSAGE_SELECT,
+      })
+      .catch(() => []),
+    prisma.chatMessage
+      .findFirst({
+        where: { status: "visible", pinnedAt: { not: null } },
+        orderBy: { pinnedAt: "desc" },
+        select: CHAT_MESSAGE_SELECT,
+      })
+      .catch(() => null),
+  ]);
 
   const hasMore = rows.length > CHAT_PAGE_SIZE;
   const page = hasMore ? rows.slice(0, CHAT_PAGE_SIZE) : rows;
   let initialMessages = page.reverse().map(toChatPayload);
 
-  // Latest pinned message for the banner (resilient pre-migration).
-  const pinnedRow = await prisma.chatMessage
-    .findFirst({
-      where: { status: "visible", pinnedAt: { not: null } },
-      orderBy: { pinnedAt: "desc" },
-      select: CHAT_MESSAGE_SELECT,
-    })
-    .catch(() => null);
   let initialPinned = pinnedRow ? toChatPayload(pinnedRow) : null;
 
   // Stamp the viewer's own poll votes (myVote) for initial render.
@@ -78,13 +80,15 @@ export default async function CommunityPage() {
       <main className="relative flex h-[100svh] flex-col overflow-hidden pt-[4.75rem] sm:pt-20">
         <div className="mesh" />
         <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-2 pb-2 pt-2 sm:px-6 sm:pb-4 sm:pt-3 lg:px-8">
-          <div className="mb-2 flex shrink-0 items-center justify-center sm:mb-3">
+          <div className="mb-2 flex shrink-0 items-center justify-center gap-2 sm:mb-3">
             <span className="eyebrow eyebrow-glass text-gold-200">
               <span className="relative flex h-1.5 w-1.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
               </span>
-              <span className="mono text-shine text-[11px] uppercase tracking-[0.18em]">The XYZ Lounge</span>
+              <span className="mono text-[11px] uppercase tracking-[0.18em] text-zinc-400">
+                Markets · Alpha · Airdrops — live
+              </span>
             </span>
           </div>
 
