@@ -4,9 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowDown, BarChart3, Check, Copy, Edit3, Heart, Loader2, Pin, PinOff, Plus, Reply, SendHorizonal, Smile, Trash2, X, Volume2, VolumeX,
+  ArrowDown, BarChart3, Check, Copy, Edit3, Heart, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
+import { SendGlyph } from "./SendGlyph";
 import { Avatar } from "./Avatar";
 import { Badge } from "./ui/primitives";
 import { EmojiPicker } from "./EmojiPicker";
@@ -144,6 +145,8 @@ export function ChatClient({
   const [reactOpenId, setReactOpenId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  // Per-message translation (English <-> Hinglish); toggled from the action bar.
+  const [translations, setTranslations] = useState<Record<string, { text?: string; loading?: boolean; shown?: boolean }>>({});
   const [soundOn, setSoundOn] = useState(false);
   // Touch UI (no hover): actions open on tap instead of hover, Enter makes a
   // newline instead of sending. Detected client-side to stay hydration-safe.
@@ -764,6 +767,29 @@ export function ChatClient({
     }
   }
 
+  // Translate a message English <-> Hinglish. Tapping again just hides/re-shows
+  // the cached translation (no repeat AI call).
+  async function translateMessage(id: string, text: string) {
+    setActionOpenId(null);
+    const cur = translations[id];
+    if (cur?.text) {
+      setTranslations((t) => ({ ...t, [id]: { ...cur, shown: !cur.shown } }));
+      return;
+    }
+    if (cur?.loading) return;
+    setTranslations((t) => ({ ...t, [id]: { loading: true, shown: true } }));
+    try {
+      const r = await fetch("/api/chat/translate", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }),
+      });
+      const j = await r.json().catch(() => null);
+      if (r.ok && j?.text) setTranslations((t) => ({ ...t, [id]: { text: j.text, loading: false, shown: true } }));
+      else setTranslations((t) => ({ ...t, [id]: { loading: false, shown: true, text: undefined } }));
+    } catch {
+      setTranslations((t) => ({ ...t, [id]: { loading: false, shown: true, text: undefined } }));
+    }
+  }
+
   const typingNames = Object.values(typers).map((t) => t.name);
   const typingLabel =
     typingNames.length === 0
@@ -1104,6 +1130,20 @@ export function ChatClient({
                             (edited)
                           </span>
                         )}
+                        {translations[m.id]?.shown && (
+                          <div className="mt-1.5 rounded-lg border-l-2 border-mint-500/40 bg-mint-500/[0.06] px-2.5 py-1.5 text-[13px] leading-relaxed text-zinc-200">
+                            {translations[m.id]?.loading ? (
+                              <span className="inline-flex items-center gap-1.5 text-zinc-400"><Loader2 className="h-3 w-3 animate-spin" /> Translating…</span>
+                            ) : translations[m.id]?.text ? (
+                              <>
+                                <span className="mono mr-1.5 text-[10px] uppercase tracking-wide text-mint-300/80">Translation</span>
+                                {translations[m.id]!.text}
+                              </>
+                            ) : (
+                              <span className="text-zinc-500">Couldn&apos;t translate. Try again.</span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1219,6 +1259,19 @@ export function ChatClient({
                           {m.pinnedAt ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
                         </button>
                       )}
+                      {!m.pending && (
+                        <button
+                          onClick={() => translateMessage(m.id, m.body)}
+                          className={cn(
+                            "rounded p-1.5 hover:bg-white/10 hover:text-mint-200",
+                            translations[m.id]?.shown ? "text-mint-300" : "text-zinc-400"
+                          )}
+                          aria-label="Translate"
+                          title="Translate (English ⇄ Hinglish)"
+                        >
+                          <Languages className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       <button onClick={() => copyMessage(m.id, m.body)} className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200" aria-label="Copy">
                         {copiedId === m.id ? <Check className="h-3.5 w-3.5 text-mint-300" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
@@ -1288,11 +1341,11 @@ export function ChatClient({
               <button
                 type="button"
                 onClick={() => setPollOpen(true)}
-                className="mb-5 shrink-0 rounded-xl border border-white/10 bg-ink-700/60 p-2.5 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
                 aria-label="Create a poll"
                 title="Create a poll"
               >
-                <BarChart3 className="h-4 w-4" />
+                <BarChart3 className="h-[18px] w-[18px]" />
               </button>
               <div className="relative flex-1">
                 <textarea
@@ -1312,12 +1365,12 @@ export function ChatClient({
                   }}
                   rows={1}
                   placeholder={touchUi ? "Say something…" : "Say something… (Enter to send)"}
-                  className="max-h-28 w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-10 text-base text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
+                  className="block max-h-28 min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-11 text-base leading-tight text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
                 />
                 <button
                   type="button"
                   onClick={() => setPickerOpen((v) => !v)}
-                  className="absolute bottom-2.5 right-2 rounded-lg p-1 text-zinc-500 transition-colors hover:text-gold-200"
+                  className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 transition-colors hover:text-gold-200"
                   aria-label="Emoji"
                 >
                   <Smile className="h-5 w-5" />
@@ -1352,23 +1405,24 @@ export function ChatClient({
                     ))}
                   </div>
                 )}
-                <div className="mt-1 flex items-center justify-between text-[11px]">
-                  <span className="text-red-300">{error}</span>
-                  <span className={cn("text-zinc-600", body.length > MAX_LENGTH - 50 && "text-amber-300")}>
-                    {body.length}/{MAX_LENGTH}
-                  </span>
-                </div>
               </div>
               <motion.button
                 type="submit"
                 disabled={sending || !body.trim()}
                 whileTap={{ scale: 0.9 }}
-                className="btn-primary mb-5 !px-4 !py-2.5 disabled:opacity-50"
+                className="btn-primary grid h-11 w-11 shrink-0 place-items-center !rounded-2xl !p-0 disabled:opacity-50"
                 aria-label="Send message"
               >
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
+                {sending ? <Loader2 className="relative z-10 h-5 w-5 animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-5 w-5" />}
               </motion.button>
             </form>
+            {/* error + character count - aligned below the row, full width */}
+            <div className="mt-1.5 flex min-h-[16px] items-center justify-between px-1 text-[11px]">
+              <span className="text-red-300">{error}</span>
+              <span className={cn("mono text-zinc-600", body.length > MAX_LENGTH - 50 && "text-amber-300")}>
+                {body.length}/{MAX_LENGTH}
+              </span>
+            </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-between gap-2 py-1 sm:flex-row">
