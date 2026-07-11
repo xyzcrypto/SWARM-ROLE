@@ -1099,6 +1099,34 @@ html:not(.dark) .moon-body {
   box-shadow: inset -8px -6px 16px rgba(15,15,26,0.5), inset 4px 4px 10px rgba(255,255,255,0.35),
     0 8px 22px rgba(30,30,55,0.22);
 }
+/* Light theme: make the ecosystem orbital legible + premium on white (the CSS
+   orbital renders in BOTH themes). Scoped to #ecosystem-orbital so shared
+   utilities elsewhere are untouched. Brand gold/mint kept, just opaque enough
+   for a white background. Dark theme stays pixel-identical. */
+html:not(.dark) .orbital-aurora {
+  background: conic-gradient(from 0deg, rgba(226,167,47,0) 0deg, rgba(226,167,47,0.34) 95deg,
+    rgba(34,214,146,0.26) 215deg, rgba(226,167,47,0) 360deg) !important;
+  opacity: 0.5;
+}
+html:not(.dark) #ecosystem-orbital .border-gold-500\/45 { border-color: rgba(174,111,16,0.6); }
+html:not(.dark) #ecosystem-orbital .border-gold-400\/40 { border-color: rgba(174,111,16,0.5); }
+html:not(.dark) #ecosystem-orbital .border-mint-400\/45 { border-color: rgba(3,149,103,0.55); }
+html:not(.dark) #ecosystem-orbital .bg-gold-500\/12 { background-color: rgba(226,167,47,0.3); }
+html:not(.dark) #ecosystem-orbital .bg-gold-300\/40 { background-color: rgba(174,111,16,0.55); }
+html:not(.dark) #ecosystem-orbital .bg-gold-500\/20 { background-color: rgba(226,167,47,0.34); }
+html:not(.dark) #ecosystem-orbital .bg-gold-500\/40 { background-color: rgba(226,167,47,0.45); }
+html:not(.dark) #ecosystem-orbital .bg-gold-200 { background-color: #ad6f10; }
+html:not(.dark) #ecosystem-orbital .bg-mint-200 { background-color: #039567; }
+html:not(.dark) #ecosystem-orbital .bg-sky-200 { background-color: #0284c7; }
+html:not(.dark) #ecosystem-orbital .bg-violet-200 { background-color: #7c3aed; }
+html:not(.dark) #ecosystem-orbital .bg-ink-900\/85 {
+  background-color: #ffffff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 10px 26px -18px rgba(0,0,0,0.28);
+}
+html:not(.dark) #ecosystem-orbital .ring-gold-500\/40 { --tw-ring-color: rgba(174,111,16,0.55); }
+html:not(.dark) #ecosystem-orbital .ring-mint-500\/40 { --tw-ring-color: rgba(3,149,103,0.55); }
+html:not(.dark) #ecosystem-orbital .ring-violet-400\/40 { --tw-ring-color: rgba(124,58,237,0.55); }
+
 html:not(.dark) .grid-bg {
   opacity: 0.6;
   background-image:

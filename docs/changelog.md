@@ -5,6 +5,48 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Community + DM + Home polish pass (9 fixes)
+1. **Send buttons say "Send"** — community chat + DM send buttons now show a white paper-plane
+   **+ "Send" label** so it's obvious where to send.
+2. **DM online status** — the DM thread header shows a green dot + "online" when the other
+   person is active anywhere on the site (new `useUserOnline` hook observing the shared
+   `site-visitors` presence channel; DM API now returns the other user's id). Graceful no-op
+   without realtime env.
+3. **Community white-theme colors** — the jump-to-latest button is now theme-aware (was a black
+   blob on white, and now sits above content + is clickable); the poll/GIF/photo attach buttons
+   get a clean light surface + visible icons.
+4. **More emojis** — the emoji picker set is greatly expanded (smileys, gestures, hearts,
+   crypto, animals) and scrolls. (GIF picker already added — it appears once `GIPHY_API_KEY` is set.)
+5. **Jump-to-latest fixed** — visible + clickable in both themes (see #3).
+6. **Translation direction fixed** — `/api/chat/translate` now reliably converts **English→Hinglish
+   and Hinglish→English** (explicit language detection + a hard "output language must differ" rule
+   + examples), instead of echoing the same language.
+7. **Home orbital — light theme** — the ecosystem orbital reads premium on white now: toned aurora,
+   opaque brand-gold/mint rings + planet dots (the invisible white planet is gold in light), real
+   white node chips with elevation + stronger colored rings. All scoped to `#ecosystem-orbital`;
+   dark theme pixel-identical.
+8. **Community opens faster** — initial render trimmed to 30 messages (lighter nested-join payload;
+   "Load older" pages the rest), on top of the existing parallel queries + skeleton.
+9. **Sends feel instant** — the message-send route no longer waits on the Supabase broadcast
+   round-trip (fire-and-forget, like push/moderation), so the 201 returns immediately; the
+   optimistic bubble already shows the message instantly.
+
+## 2026-07-11 — Community: photo (admin) + GIF (everyone) sharing
+- **GIF sharing for everyone** — a **GIF** button in the composer opens a Giphy-backed picker
+  (search + trending). Picking one sends it as an inline GIF message. New `GifPicker.tsx` +
+  `GET /api/chat/gif` (proxies Giphy so the key stays server-side; logged-in + rate-limited).
+  Gated on `GIPHY_API_KEY` — the button hides itself when unset.
+- **Photo sharing for admins** — admins get a photo button (hidden for everyone else) that
+  uploads via the existing admin `/api/upload` (client-compressed) and sends the image inline.
+- **Inline media rendering** (`MessageBody`) — a message whose whole body is a **trusted** media
+  URL renders as an image/GIF: GIFs from giphy/tenor (anyone) or images in **our** Supabase
+  Storage / inline data images (admin uploads only). Arbitrary pasted image links stay plain
+  links, so "photos" remain admin-only by construction. `doSend` gained an override path so
+  media sends optimistically without touching the composer text.
+- **Owner setup:** GIFs need a free `GIPHY_API_KEY` (developers.giphy.com) in Vercel; photo
+  sharing needs Supabase Storage configured (the same pending storage setup) — both degrade
+  gracefully (GIF button hidden / photo shows a clear "needs Storage" message) until set.
+
 ## 2026-07-11 — Community: aligned composer + message translation (English ⇄ Hinglish)
 - **Composer aligned** (`ChatClient.tsx`) — the poll button, text field, emoji and send button
   now sit on one clean row at equal height (44px), with the error + character count moved to a

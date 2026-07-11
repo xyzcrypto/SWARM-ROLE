@@ -49,7 +49,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 
     return ok({
       messages,
-      other: other ? { name: other.name || other.username || "Member", username: other.username, image: other.image } : null,
+      other: other ? { id: other.id, name: other.name || other.username || "Member", username: other.username, image: other.image } : null,
     });
   } catch (err) {
     return handleError(err, "dm:thread");

@@ -8,9 +8,10 @@ import { Avatar } from "@/components/Avatar";
 import { SendGlyph } from "@/components/SendGlyph";
 import { timeAgo } from "@/lib/news";
 import { useRealtime } from "@/lib/useRealtime";
+import { useUserOnline } from "@/lib/useUserOnline";
 import { cn } from "@/lib/utils";
 
-type Other = { name: string; username: string | null; image: string | null } | null;
+type Other = { id?: string; name: string; username: string | null; image: string | null } | null;
 type Conversation = { id: string; other: Other; lastBody: string; lastMessageAt: string; unread: boolean };
 type Msg = { id: string; body: string; createdAt: string; mine: boolean };
 
@@ -134,6 +135,7 @@ function Thread({ id, meId, now, onBack, onSent }: { id: string; meId: string; n
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const otherOnline = useUserOnline(other?.id);
 
   const scrollToEnd = () => {
     requestAnimationFrame(() => {
@@ -213,14 +215,25 @@ function Thread({ id, meId, now, onBack, onSent }: { id: string; meId: string; n
         <button onClick={onBack} aria-label="Back" className="grid h-8 w-8 place-items-center rounded-full text-zinc-400 hover:bg-white/5 hover:text-zinc-100 md:hidden">
           <ArrowLeft className="h-4 w-4" />
         </button>
-        <Avatar name={other?.name} image={other?.image} size="sm" />
+        <span className="relative shrink-0">
+          <Avatar name={other?.name} image={other?.image} size="sm" />
+          {otherOnline && (
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-white bg-mint-500 dark:border-ink-900" aria-label="Online" />
+          )}
+        </span>
         <div className="min-w-0">
           {other?.username ? (
             <Link href={`/u/${other.username}`} className="truncate text-sm font-semibold text-zinc-100 hover:underline">{other?.name ?? "Member"}</Link>
           ) : (
             <span className="truncate text-sm font-semibold text-zinc-100">{other?.name ?? "Member"}</span>
           )}
-          {other?.username && <p className="mono truncate text-[11px] text-zinc-500">@{other.username}</p>}
+          {otherOnline ? (
+            <p className="flex items-center gap-1 text-[11px] font-medium text-mint-500 dark:text-mint-300">
+              <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-mint-500 dark:bg-mint-400" /> online
+            </p>
+          ) : (
+            other?.username && <p className="mono truncate text-[11px] text-zinc-500">@{other.username}</p>
+          )}
         </div>
       </header>
 
@@ -259,8 +272,9 @@ function Thread({ id, meId, now, onBack, onSent }: { id: string; meId: string; n
             maxLength={2000}
             className="max-h-32 min-h-[42px] flex-1 resize-none rounded-2xl border border-white/10 bg-ink-950/60 px-4 py-2.5 text-[14px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
           />
-          <button onClick={submit} disabled={!draft.trim() || sending} aria-label="Send message" className="btn-primary relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl p-0 disabled:opacity-50">
-            {sending ? <Loader2 className="relative z-10 h-5 w-5 animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-5 w-5" />}
+          <button onClick={submit} disabled={!draft.trim() || sending} aria-label="Send message" className="btn-primary relative inline-flex h-11 shrink-0 items-center gap-1.5 rounded-2xl px-4 disabled:opacity-50">
+            {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-[18px] w-[18px]" />}
+            <span className="relative z-10 text-sm font-semibold !text-white">Send</span>
           </button>
         </div>
       </div>

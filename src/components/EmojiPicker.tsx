@@ -6,12 +6,31 @@ import { motion } from "framer-motion";
 // Curated emoji set - no external library (keeps the bundle small). Grouped
 // loosely by vibe; enough for a lively crypto community chat.
 const EMOJIS = [
-  "😀", "😂", "🤣", "😅", "😊", "😍", "😎", "🤩",
-  "🤔", "🫡", "😴", "😭", "😡", "🥳", "🤝", "🙏",
-  "👍", "👎", "👏", "🔥", "💯", "✨", "⚡", "🚀",
-  "🌙", "📈", "📉", "💰", "💎", "🪙", "🏆", "🎯",
-  "❤️", "🧡", "💚", "💙", "💜", "👀", "🎉", "🤑",
-  "🐂", "🐻", "🦍", "💪", "🧠", "👋", "😏", "🤡",
+  // smileys & emotion
+  "😀", "😁", "😂", "🤣", "😅", "😊", "😇", "🙂",
+  "😉", "😍", "🥰", "😘", "😋", "😛", "😜", "🤪",
+  "😎", "🤩", "🥳", "😏", "😒", "🙄", "😔", "😴",
+  "😪", "😌", "🤤", "😤", "😡", "🤬", "🤯", "😳",
+  "🥵", "🥶", "😱", "😭", "😩", "🥺", "🤔", "🫡",
+  "🤨", "🧐", "🤗", "🤭", "🤫", "🤥", "😬", "🙃",
+  "😷", "🤒", "🤕", "🤑", "🤠", "😈", "👻", "💀",
+  "🤡", "👽", "🤖", "🎃", "😺", "😻", "🙀", "😹",
+  // gestures & people
+  "👍", "👎", "👏", "🙌", "🤝", "🙏", "✊", "👊",
+  "🤛", "🤜", "🤞", "✌️", "🤟", "🤘", "👌", "🤌",
+  "🤏", "👈", "👉", "👆", "👇", "☝️", "✋", "🤚",
+  "🖐️", "🖖", "👋", "💪", "🧠", "👀", "👁️", "🫶",
+  // hearts & symbols
+  "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍",
+  "💔", "❤️‍🔥", "💖", "💗", "💓", "💞", "💕", "💘",
+  "💯", "✨", "⚡", "🔥", "💥", "💫", "⭐", "🌟",
+  "🎉", "🎊", "🎁", "🏆", "🥇", "🎯", "🚨", "❗",
+  // crypto & money
+  "🚀", "🌙", "📈", "📉", "💰", "💵", "💸", "🪙",
+  "💎", "🤑", "🏦", "📊", "🧧", "🫰", "⚖️", "🔑",
+  // animals & misc
+  "🐂", "🐻", "🦍", "🐳", "🐸", "🦄", "🐶", "🐱",
+  "🍀", "☕", "🍺", "🍕", "👑", "🎮", "⏳", "✅",
 ];
 
 export function EmojiPicker({
@@ -45,7 +64,7 @@ export function EmojiPicker({
       transition={{ duration: 0.15 }}
       className="absolute bottom-full right-0 z-20 mb-2 w-64 max-w-[88vw] rounded-2xl border border-line bg-ink-900/95 p-2 shadow-elevate backdrop-blur-xl"
     >
-      <div className="grid grid-cols-8 gap-0.5">
+      <div className="grid max-h-56 grid-cols-8 gap-0.5 overflow-y-auto">
         {EMOJIS.map((e) => (
           <button
             key={e}
