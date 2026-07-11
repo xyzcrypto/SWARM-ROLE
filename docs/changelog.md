@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — V2 PR-9: Audit report + team-setup guide (+ PDF) — final V2 deliverable
+Documentation-only (no code change). Completes the V2 program.
+- **`docs/AUDIT-2026-07-11.md`** — full website audit + handoff: tech stack (frontend/backend), architecture,
+  security review, performance review, SEO status, honest ratings per area + **overall ≈ 8/10**, worth &
+  build-cost estimate, "why one language / no Python", "can you hire an engineer" answer, pending owner ops,
+  and a next-level roadmap.
+- **`docs/TEAM-SETUP.md`** + **`docs/XYZ-Crypto-Team-Setup-Guide.pdf`** — how multiple members can work in
+  parallel without breaking the live site: GitHub collaborators + branch protection + Vercel previews (already
+  in place) + a free staging database. Includes daily workflow, roles, new-engineer onboarding checklist, and
+  costs. Same content as a branded, print-ready PDF for sharing.
+- Added all three to the docs TOC (`docs/SUMMARY.md`), alongside the existing `docs/SEO.md`.
+- Files: `docs/AUDIT-2026-07-11.md`, `docs/TEAM-SETUP.md`, `docs/XYZ-Crypto-Team-Setup-Guide.pdf`,
+  `docs/SUMMARY.md`, `docs/changelog.md`. No app code touched.
+
+---
+
 ## 2026-07-11 — Light-theme polish + globe emoji + homepage feed polling
 Owner-reported (light theme + emoji + a small home-perf trim).
 - **Light theme "next level"** (`globals.css`). Root cause of the grey boxes: several dark background

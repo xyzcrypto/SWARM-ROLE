@@ -26,5 +26,8 @@
 
 * [Security](SECURITY.md)
 * [Runbook](RUNBOOK.md)
+* [SEO](SEO.md)
 * [Audit Report — 2026-06-11](AUDIT-2026-06-11.md)
+* [Audit & Handoff — 2026-07-11](AUDIT-2026-07-11.md)
+* [Team Setup & Collaboration](TEAM-SETUP.md)
 * [Changelog](changelog.md)
