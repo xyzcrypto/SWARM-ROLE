@@ -5,12 +5,15 @@ import { NewsClient } from "@/components/NewsClient";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBackground } from "@/components/PageBackground";
 import { getNewsPage } from "@/lib/news-fetch";
+import { JsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
+import { pageSeo } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageSeo({
   title: "Live Web3 News",
   description:
     "Real-time Web3 news & intelligence - breaking news, market updates and everything across crypto, filterable by category, from reputable sources, with AI context.",
-};
+  path: "/news",
+});
 
 // Revalidate the server-rendered first batch often so first paint is fresh + fast.
 export const revalidate = 30;
@@ -20,6 +23,7 @@ export default async function NewsPage() {
   const initial = await getNewsPage({ page: 1 }).catch(() => null);
   return (
     <>
+      <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "News", path: "/news" }])} />
       <Navbar />
       <main className="relative min-h-screen pt-28">
         <PageBackground />

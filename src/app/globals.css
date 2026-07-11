@@ -492,15 +492,6 @@ html.lenis body {
   .mini-viz * {
     animation: none !important;
   }
-  /* The bespoke 3D icons (i3d-*) each loop a transform/opacity animation and
-     appear many times per screen. On phones we freeze the LOOP for smoother
-     scroll + battery - the icons keep their glossy 3D gradient/shadow, just no
-     continuous motion. Desktop (incl. reduced-motion users, who asked to keep
-     these) is untouched. Hover/entrance still work. */
-  .i3d-spin, .i3d-bob, .i3d-scan, .i3d-pulse, .i3d-tick,
-  .i3d-sweep, .i3d-float, .i3d-beat, .i3d-twinkle, .i3d-flick {
-    animation: none !important;
-  }
 }
 .surface-hover {
   transition: border-color 0.3s, transform 0.3s, background 0.3s;

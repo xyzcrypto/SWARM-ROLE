@@ -5,6 +5,42 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Fixes: mobile ecosystem icons live + zero-config image upload
+Owner-reported fixes (bundled with PR-8).
+- **Homepage "The Ecosystem" icons were frozen on mobile → live again.** PR-7 had frozen the bespoke `.i3d-*`
+  icon loops on phones; removed that rule so the Products/ecosystem icons animate on mobile again. (The
+  heavier `.mini-viz` product-card mini-visuals stay frozen on mobile for scroll perf.)
+- **Direct image upload now works with ZERO config** (posts + profile pictures). Root cause: uploads required
+  Supabase Storage, so without it every direct upload returned 501 "not configured" and only the paste-a-link
+  fallback worked. Now `uploadImage()` (`src/lib/storage.ts`) — used by both `/api/upload` (post covers) and
+  `/api/profile/avatar` — stores the (client-compressed) image **inline as a data URL** when Storage isn't
+  configured, capped at ~700 KB. Post covers now compress client-side too (`PostEditor.tsx`). next/image marks
+  data-URL sources `unoptimized` (`Avatar`, `PostCard`, article page). The JWT is sanitised so a data-URL
+  avatar never enters the session cookie (`auth.ts`) — it renders from the DB on the profile + in comments;
+  the navbar just falls back to initials for inline avatars. For scale, configuring Supabase Storage (env +
+  a public bucket) upgrades these to external URLs — see `docs/HANDOFF.md`.
+- Files: `src/app/globals.css`, `src/lib/storage.ts`, `src/components/PostEditor.tsx`, `src/lib/auth.ts`,
+  `src/components/Avatar.tsx`, `src/components/PostCard.tsx`, `src/app/research/[slug]/page.tsx`,
+  `src/app/api/profile/avatar/route.ts`, `docs/changelog.md`. Verified: tsc + lint + test (236) + build green.
+
+---
+
+## 2026-07-11 — V2 PR-8: SEO — canonical + OG/Twitter on index pages, sitemap, breadcrumbs
+- **`/markets`, `/news`, `/research` now carry full per-page metadata** — a shared `pageSeo()` helper
+  (`src/lib/seo.ts`) adds `alternates.canonical` + page-specific `openGraph` + `twitter` to each (they only
+  had title + description before). Article + profile pages already did this.
+- **Breadcrumb JSON-LD** on `/markets`, `/news`, `/research` (`breadcrumbJsonLd`) — Home › Section. (Site-wide
+  `Organization` + `WebSite` JSON-LD already emit from the layout; articles already have `BlogPosting` +
+  breadcrumbs.)
+- **Sitemap** — added `/markets` + `/news` (hourly, priority 0.8) to `src/app/sitemap.ts`.
+- **Owner-steps doc** — new `docs/SEO.md` documents what code can't do: set `NEXT_PUBLIC_SITE_URL` (real
+  domain), `NEXT_PUBLIC_GSC_VERIFICATION` (Search Console tag → layout emits the meta), submit
+  `/sitemap.xml` in GSC, optional `NEXT_PUBLIC_GA_ID` + a 1200×630 OG image.
+- Files: `src/lib/seo.ts`, `src/app/markets/page.tsx`, `src/app/news/page.tsx`, `src/app/research/page.tsx`,
+  `src/app/sitemap.ts`, `docs/SEO.md`, `docs/changelog.md`. Verified: tsc + lint + test (236) + build green.
+
+---
+
 ## 2026-07-11 — V2 PR-7: Mobile perf (icon-loop freeze) + profile-URL handle bug fix
 Note: most of the originally-planned PR-7 perf wins were already shipped in earlier passes (lazy XyzAiWidget +
 SmoothScroll, mobile blur cuts, reduced-motion gating of ambient FX, `optimizePackageImports`/`removeConsole`,

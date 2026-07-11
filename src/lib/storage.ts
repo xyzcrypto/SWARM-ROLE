@@ -10,6 +10,12 @@ const ALLOWED = new Map<string, string>([
 
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
 
+// When no external Storage is configured we embed the (already client-compressed)
+// image inline as a data URL so uploads work with zero setup. Capped well below
+// the 5 MB file limit to keep DB rows + page payloads reasonable; anything larger
+// needs Supabase Storage or the paste-a-link fallback.
+export const INLINE_MAX_BYTES = 700 * 1024; // ~700 KB
+
 /** Random, collision-resistant object path for an uploaded image. */
 export function buildObjectPath(mime: string): string {
   const ext = ALLOWED.get(mime) ?? "bin";
@@ -61,9 +67,6 @@ type UploadResult =
  * (no @supabase/supabase-js dependency) and return the public URL.
  */
 export async function uploadImage(bytes: ArrayBuffer, declaredMime: string): Promise<UploadResult> {
-  if (!storageEnabled) {
-    return { ok: false, error: "Image upload is not configured.", status: 501 };
-  }
   // Cheap early reject on the declared header...
   if (!isAllowedImageType(declaredMime)) {
     return { ok: false, error: "Unsupported image type.", status: 400 };
@@ -76,6 +79,21 @@ export async function uploadImage(bytes: ArrayBuffer, declaredMime: string): Pro
   }
   if (bytes.byteLength > MAX_UPLOAD_BYTES) {
     return { ok: false, error: "Image is too large (max 5 MB).", status: 413 };
+  }
+
+  // Zero-config path: no external Storage → store the image inline as a data URL
+  // so direct upload always works (both avatars and post covers). The client
+  // compresses first, so this is normally well under the cap.
+  if (!storageEnabled) {
+    if (bytes.byteLength > INLINE_MAX_BYTES) {
+      return {
+        ok: false,
+        error: "Image is a bit large to store directly (max ~700 KB). Use a smaller image or paste a link.",
+        status: 413,
+      };
+    }
+    const base64 = Buffer.from(bytes).toString("base64");
+    return { ok: true, url: `data:${mime};base64,${base64}` };
   }
 
   const bucket = env.SUPABASE_STORAGE_BUCKET;

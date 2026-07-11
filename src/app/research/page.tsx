@@ -7,12 +7,15 @@ import { readingTime } from "@/lib/utils";
 import { POST_CARD_SELECT } from "@/lib/post-select";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBackground } from "@/components/PageBackground";
+import { JsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
+import { pageSeo } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageSeo({
   title: "Research Hub",
   description:
     "Web3 research, articles and posts from XYZ Crypto, on-chain analysis, market intelligence and education.",
-};
+  path: "/research",
+});
 
 // Cached; revalidated on demand when admin publishes/deletes (research routes).
 export const revalidate = 120;
@@ -41,6 +44,7 @@ export default async function ResearchPage() {
 
   return (
     <>
+      <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "Research", path: "/research" }])} />
       <Navbar />
       <main className="relative min-h-screen pt-28">
         <PageBackground />

@@ -243,6 +243,13 @@ export const authOptions: NextAuthOptions = {
           (token as any).isSuperAdmin = isAdminEmail(token.email);
         }
       }
+      // The JWT is stored in a cookie (~4 KB limit). If the avatar is an inline
+      // data: URL (zero-config upload path), keep it OUT of the token so it can't
+      // bloat/break the session cookie - the real image still renders from the DB
+      // on the profile + in comments; the navbar just falls back to initials.
+      if (typeof token.picture === "string" && token.picture.startsWith("data:")) {
+        token.picture = null;
+      }
       return token;
     },
     async session({ session, token }) {

@@ -238,6 +238,7 @@ export default async function PostPage({
                 priority
                 className="object-cover"
                 sizes="(max-width: 1024px) 100vw, 768px"
+                unoptimized={post.cover.startsWith("data:")}
               />
               <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-ink-950/70 to-transparent" />
             </div>

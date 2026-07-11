@@ -48,6 +48,7 @@ export function Avatar({
           fill
           sizes={`${s.px}px`}
           className="object-cover"
+          unoptimized={image.startsWith("data:")}
         />
       ) : (
         <span

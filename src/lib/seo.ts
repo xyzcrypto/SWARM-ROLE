@@ -12,3 +12,21 @@ export const GSC_VERIFICATION = process.env.NEXT_PUBLIC_GSC_VERIFICATION || "";
 export function absoluteUrl(path = "/"): string {
   return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
 }
+
+/**
+ * Per-page SEO metadata: a self-consistent canonical + OpenGraph + Twitter set
+ * for a static route. The root layout supplies the default OG image / site name;
+ * this fills in the page-specific title, description, canonical URL and OG url so
+ * each index page is individually indexable + shareable. `path` is a site-root
+ * path like "/markets".
+ */
+export function pageSeo({ title, description, path }: { title: string; description: string; path: string }): import("next").Metadata {
+  const url = absoluteUrl(path);
+  return {
+    title,
+    description,
+    alternates: { canonical: path },
+    openGraph: { title, description, url, type: "website" },
+    twitter: { title, description },
+  };
+}
