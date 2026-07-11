@@ -1,17 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Loader2, MapPin, Globe, ExternalLink, ShieldAlert } from "lucide-react";
+import { Check, Loader2, MapPin, Globe, ExternalLink, ShieldAlert, ImageUp } from "lucide-react";
 import { XIcon, GitHubIcon, TelegramIcon, DiscordIcon, YouTubeIcon, LinkedInIcon, InstagramIcon } from "./BrandIcons";
 import { Avatar } from "./Avatar";
 import { AvatarUploader } from "./AvatarUploader";
 import { PasswordField } from "./PasswordField";
 import { Badge } from "./ui/primitives";
 import { USERNAME_RE, normalizeUsername } from "@/lib/profile";
+import { compressImage } from "@/lib/image";
+import { uploadFileWithProgress } from "@/lib/upload";
 import { formatDate } from "@/lib/utils";
 
 type SettingsUser = {
@@ -129,6 +131,10 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
   const { update } = useSession();
   const [image, setImage] = useState(user.image);
   const [banner, setBanner] = useState(user.bannerImage ?? "");
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+  const [bannerBusy, setBannerBusy] = useState(false);
+  const [bannerProgress, setBannerProgress] = useState(0);
+  const [bannerErr, setBannerErr] = useState("");
   const [name, setName] = useState(user.name ?? "");
   const [username, setUsername] = useState(user.username ?? "");
   const [bio, setBio] = useState(user.bio ?? "");
@@ -191,7 +197,10 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
         body: JSON.stringify({
           name,
           username: normalizedHandle || undefined,
-          bannerImage: banner.trim() || undefined,
+          // A directly-uploaded banner is already saved server-side by
+          // /api/profile/banner (and may be a data: URL the profile schema would
+          // reject) — so only send a pasted https link through this form save.
+          bannerImage: banner.trim() && !banner.trim().startsWith("data:") ? banner.trim() : undefined,
           bio,
           location,
           website,
@@ -218,6 +227,33 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
     }
   }
 
+  async function onPickBanner(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file
+    if (!file) return;
+    setBannerErr("");
+    setBannerBusy(true);
+    setBannerProgress(0);
+    try {
+      const upload = await compressImage(file, 1280);
+      if (upload.size > 5 * 1024 * 1024) {
+        setBannerErr("Image is too large (max 5 MB).");
+        return;
+      }
+      const { ok, status, data } = await uploadFileWithProgress("/api/profile/banner", upload, setBannerProgress);
+      if (!ok) {
+        const hint = status === 501 ? " You can paste an image URL instead." : "";
+        setBannerErr((data.error || "Upload failed.") + hint);
+        return;
+      }
+      setBanner(data.url); // banner saved server-side already; reflect it here
+    } catch {
+      setBannerErr("Network error. Please try again.");
+    } finally {
+      setBannerBusy(false);
+    }
+  }
+
   return (
     <form onSubmit={save} className="space-y-6">
       <div className="surface rounded-2xl p-5 sm:p-6">
@@ -235,8 +271,8 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Profile cover image</p>
           <p className="mt-1 text-[11px] text-zinc-600">
-            Paste a direct https image link (Unsplash, Cloudinary, GitHub, Google or Supabase). It shows
-            as the banner on your public profile. Saved with the button below.
+            Upload an image from your device, or paste a direct https link. It shows as the banner on your
+            public profile. JPG, PNG, WebP or GIF · max 5 MB.
           </p>
         </div>
         <div
@@ -247,15 +283,42 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
               : undefined
           }
         />
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => bannerInputRef.current?.click()}
+            disabled={bannerBusy}
+            className="btn-secondary inline-flex items-center gap-2 !py-2 text-[13px] disabled:opacity-60"
+          >
+            {bannerBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageUp className="h-4 w-4" />}
+            {bannerBusy ? `Uploading… ${bannerProgress}%` : "Upload cover"}
+          </button>
+        </div>
+        {bannerBusy && (
+          <div className="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-white/10">
+            <div className="h-full rounded-full bg-mint-shine transition-all duration-200" style={{ width: `${bannerProgress}%` }} />
+          </div>
+        )}
+        {bannerErr && <p className="text-[11px] text-red-300">{bannerErr}</p>}
+        <div>
+          <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Or paste a link</label>
+          <input
+            value={banner}
+            onChange={(e) => setBanner(e.target.value)}
+            placeholder="https://…"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20"
+          />
+        </div>
         <input
-          value={banner}
-          onChange={(e) => setBanner(e.target.value)}
-          placeholder="https://…"
-          inputMode="url"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-3.5 py-2.5 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20"
+          ref={bannerInputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+          onChange={onPickBanner}
+          className="hidden"
         />
       </div>
 

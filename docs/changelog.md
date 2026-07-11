@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Fixes: send-message icon visible + direct banner upload
+- **Send buttons now clearly show the send icon** — the composer Send button in News comments
+  (`NewsSocial.tsx`) and the DM send button (`MessagesClient.tsx`) rendered as "just a green button" because
+  the `.btn-primary::after` shine could sit over the icon. The `Send` (and loading) icon is now `relative
+  z-10` (always above the shine) + slightly larger, so it reads clearly as "send message".
+- **Direct profile banner upload** (`SettingsClient.tsx` + new `/api/profile/banner` route) — the cover image
+  can now be uploaded straight from the device (like the profile photo), not only pasted as a link. Mirrors
+  the avatar route + the zero-config `uploadImage` (Supabase Storage when configured, else inline data URL).
+  The "paste a link" field stays as a fallback. Guards the settings-form save so a data-URL banner (already
+  saved by the banner route) isn't re-sent through the stricter profile schema.
+- Files: `src/components/NewsSocial.tsx`, `src/components/MessagesClient.tsx`, `src/components/SettingsClient.tsx`,
+  `src/app/api/profile/banner/route.ts`, `docs/changelog.md`. Verified: tsc + lint + build green.
+
 ## 2026-07-11 — XYZ Sentinel: AI security & monitoring (detect + alert)
 New layered security-monitoring system (owner asked for an "AI agent that watches security + reports"). Honest
 scope: detect + alert only — no autonomous code changes. Alerts go to **email + Telegram**.
