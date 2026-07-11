@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { env } from "@/lib/env";
+import { env, gifEnabled } from "@/lib/env";
 import { CHAT_PAGE_SIZE, CHAT_MESSAGE_SELECT, toChatPayload } from "@/lib/chat";
 import { Navbar } from "@/components/Navbar";
 import { ChatClient } from "@/components/ChatClient";
@@ -112,6 +112,7 @@ export default async function CommunityPage() {
                 url: env.NEXT_PUBLIC_SUPABASE_URL,
                 anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
               }}
+              gifEnabled={gifEnabled}
             />
           </div>
         </div>

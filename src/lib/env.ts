@@ -30,6 +30,7 @@ const schema = z.object({
   AI_DAILY_LIMIT_PREMIUM: z.string().optional(),
   AI_DAILY_LIMIT_ADMIN: z.string().optional(),
   CMC_API_KEY: z.string().optional(),
+  GIPHY_API_KEY: z.string().optional(), // community-chat GIF search (Giphy)
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().optional(),
@@ -88,6 +89,8 @@ export const env = {
   AI_DAILY_LIMIT_ADMIN: raw.AI_DAILY_LIMIT_ADMIN ?? "",
   // CoinMarketCap (Markets hub - optional enrichment). Server-only.
   CMC_API_KEY: raw.CMC_API_KEY ?? "",
+  // Giphy (community-chat GIF search). Server-only; no key -> GIF picker hidden.
+  GIPHY_API_KEY: raw.GIPHY_API_KEY ?? "",
   // Web Push (news alerts). Public key is client-safe; private key + cron secret
   // are server-only.
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: raw.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
@@ -127,6 +130,9 @@ export const realtimeEnabled = storageEnabled; // same creds: SUPABASE_URL + ser
 // 503, summaries/auto-moderation skip). Server-only - never read keys client-side.
 export const groqEnabled = !!env.GROQ_API_KEY;
 export const geminiEnabled = !!env.GEMINI_API_KEY;
+
+// Community-chat GIF search (Giphy). No key -> the GIF picker is hidden.
+export const gifEnabled = !!env.GIPHY_API_KEY;
 
 // Telegram alerting (XYZ Sentinel). True when both the bot token + chat id are
 // set; otherwise sendTelegram() no-ops and Sentinel falls back to email only.

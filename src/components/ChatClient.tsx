@@ -4,10 +4,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  ArrowDown, BarChart3, Check, Copy, Edit3, Heart, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
+  ArrowDown, BarChart3, Check, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
+import { compressImage } from "@/lib/image";
 import { SendGlyph } from "./SendGlyph";
+import { GifPicker } from "./GifPicker";
 import { Avatar } from "./Avatar";
 import { Badge } from "./ui/primitives";
 import { EmojiPicker } from "./EmojiPicker";
@@ -49,9 +51,38 @@ type PresenceMember = { id: string; name: string; image: string | null; username
 const normalizeReactions = (rs: { emoji: string; userIds: string[] }[]): Reaction[] =>
   rs.map((r) => ({ emoji: r.emoji, userIds: [...r.userIds] }));
 
-/* Plain-text body with safe linkified URLs + @mention highlights (no HTML). */
+// A message is treated as media (rendered as an image/GIF) ONLY when its whole
+// body is a single trusted media URL: a GIF from giphy/tenor (anyone can send
+// these via the GIF picker) or an image in OUR Supabase Storage / an inline data
+// image (only admins can produce these via the admin upload). Arbitrary pasted
+// image links stay plain links - so "photos" remain admin-only.
+const GIF_HOSTS = /^https?:\/\/(media\d*\.giphy\.com|i\.giphy\.com|media\.tenor\.com|c\.tenor\.com|tenor\.com)\//i;
+export function chatMediaUrl(text: string): string | null {
+  const t = text.trim();
+  if (/\s/.test(t)) return null; // must be a lone URL, no other text
+  if (/^data:image\//.test(t)) return t;
+  if (!/^https?:\/\//.test(t)) return null;
+  if (GIF_HOSTS.test(t)) return t;
+  if (t.includes("/storage/v1/object/public/")) return t;
+  return null;
+}
+
+/* Plain-text body with safe linkified URLs + @mention highlights (no HTML).
+   A lone trusted media URL renders as an inline image/GIF instead. */
 function MessageBody({ text }: { text: string }) {
+  const media = chatMediaUrl(text);
   const parts = useMemo(() => text.split(/(https?:\/\/\S+|@[a-zA-Z0-9_]{3,20})/g), [text]);
+  if (media) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={media}
+        alt="shared media"
+        loading="lazy"
+        className="mt-0.5 max-h-72 w-auto max-w-full rounded-xl border border-white/10 object-contain sm:max-w-[300px]"
+      />
+    );
+  }
   return (
     <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-zinc-200">
       {parts.map((part, i) => {
@@ -120,12 +151,14 @@ export function ChatClient({
   initialPinned = null,
   me,
   realtime,
+  gifEnabled = false,
 }: {
   initialMessages: Message[];
   initialHasMore: boolean;
   initialPinned?: Message | null;
   me: Me | null;
   realtime: { url: string; anonKey: string };
+  gifEnabled?: boolean;
 }) {
   const [messages, setMessages] = useState<Message[]>(
     initialMessages.map((m) => ({ ...m, reactions: normalizeReactions(m.reactions) }))
@@ -157,6 +190,9 @@ export function ChatClient({
   const [savingEdit, setSavingEdit] = useState(false);
   const [pinned, setPinned] = useState<Message | null>(initialPinned);
   const [pollOpen, setPollOpen] = useState(false);
+  const [gifOpen, setGifOpen] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
   const [membersOpen, setMembersOpen] = useState(false);
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
   const firstUnreadRef = useRef<string | null>(null);
@@ -598,17 +634,54 @@ export function ChatClient({
     void doSend();
   }
 
-  async function doSend() {
-    const text = body.trim();
+  // Send a picked GIF as its own message (body = GIF url -> rendered inline).
+  async function sendGif(url: string) {
+    setGifOpen(false);
+    await doSend(url);
+  }
+
+  // Admin-only: upload a photo to storage, then send its URL as a message.
+  async function onPickPhoto(file: File | undefined) {
+    if (!file || photoUploading) return;
+    setError("");
+    setPhotoUploading(true);
+    try {
+      const compressed = await compressImage(file, 1280).catch(() => file);
+      const fd = new FormData();
+      fd.append("file", compressed);
+      const r = await fetch("/api/upload", { method: "POST", body: fd });
+      const j = await r.json().catch(() => null);
+      if (!r.ok || !j?.url) {
+        setError(j?.error || "Photo upload failed.");
+        return;
+      }
+      if (String(j.url).startsWith("data:")) {
+        // Inline data URLs are too large for a chat message - needs real Storage.
+        setError("Photo sharing needs Supabase Storage configured.");
+        return;
+      }
+      await doSend(String(j.url));
+    } catch {
+      setError("Photo upload failed. Please try again.");
+    } finally {
+      setPhotoUploading(false);
+    }
+  }
+
+  // overrideText is used to send media (a GIF/photo URL) without touching the
+  // text the user may be composing; normal text sends read the composer body.
+  async function doSend(overrideText?: string) {
+    const isMedia = overrideText != null;
+    const text = (overrideText ?? body).trim();
     if (!text || sending || !me) return;
     // Sending is a user gesture - unlock audio here too so incoming-message
     // blips work even if the toggle was already on at page load.
     if (soundOnRef.current) ensureAudio();
     setError("");
     setSending(true);
-    setBody("");
-    const reply = replyTarget;
-    setReplyTarget(null);
+    if (!isMedia) setBody("");
+    const reply = isMedia ? null : replyTarget;
+    if (!isMedia) setReplyTarget(null);
 
     // Optimistic UI: render the message instantly with a temporary id, then
     // reconcile with the server's copy (dedup against the realtime echo).
@@ -629,9 +702,12 @@ export function ChatClient({
     const rollback = () => {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       // Restore the failed text/reply only if the user hasn't started composing
-      // a new message in the meantime - never clobber fresh input.
-      setBody((b) => (b.trim() ? b : text));
-      setReplyTarget((r) => r ?? reply);
+      // a new message in the meantime - never clobber fresh input. (Media sends
+      // never touch the composer, so nothing to restore.)
+      if (!isMedia) {
+        setBody((b) => (b.trim() ? b : text));
+        setReplyTarget((r) => r ?? reply);
+      }
     };
 
     try {
@@ -1230,7 +1306,7 @@ export function ChatClient({
                       <button
                         onClick={() => {
                           setActionOpenId(null);
-                          setReplyTarget({ id: m.id, body: m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
+                          setReplyTarget({ id: m.id, body: chatMediaUrl(m.body) ? "📷 media" : m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
                         }}
                         className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200"
                         aria-label="Reply"
@@ -1259,7 +1335,7 @@ export function ChatClient({
                           {m.pinnedAt ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
                         </button>
                       )}
-                      {!m.pending && (
+                      {!m.pending && !chatMediaUrl(m.body) && (
                         <button
                           onClick={() => translateMessage(m.id, m.body)}
                           className={cn(
@@ -1336,17 +1412,57 @@ export function ChatClient({
                 </button>
               </div>
             )}
-            <form onSubmit={send} className="flex items-end gap-2">
-              {/* attach menu (polls) - Telegram-style "+" */}
+            <form onSubmit={send} className="flex items-end gap-1.5">
+              {/* attach row: poll, GIF (everyone, if configured), photo (admin) */}
               <button
                 type="button"
                 onClick={() => setPollOpen(true)}
-                className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
+                className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-white/10 bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
                 aria-label="Create a poll"
                 title="Create a poll"
               >
                 <BarChart3 className="h-[18px] w-[18px]" />
               </button>
+              {gifEnabled && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setGifOpen((v) => !v)}
+                    className={cn(
+                      "grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-white/10 bg-ink-800/60 text-[10px] font-bold transition-colors hover:border-gold-500/40 hover:text-gold-200",
+                      gifOpen ? "text-gold-200" : "text-zinc-400"
+                    )}
+                    aria-label="Send a GIF"
+                    title="Send a GIF"
+                  >
+                    GIF
+                  </button>
+                  <AnimatePresence>
+                    {gifOpen && <GifPicker onPick={(url) => void sendGif(url)} onClose={() => setGifOpen(false)} />}
+                  </AnimatePresence>
+                </div>
+              )}
+              {me.isAdmin && (
+                <>
+                  <input
+                    ref={photoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => photoInputRef.current?.click()}
+                    disabled={photoUploading}
+                    className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-white/10 bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200 disabled:opacity-50"
+                    aria-label="Share a photo"
+                    title="Share a photo (admin)"
+                  >
+                    {photoUploading ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ImagePlus className="h-[18px] w-[18px]" />}
+                  </button>
+                </>
+              )}
               <div className="relative flex-1">
                 <textarea
                   value={body}
