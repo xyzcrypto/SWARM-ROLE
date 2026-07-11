@@ -34,6 +34,8 @@ const schema = z.object({
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().optional(),
   CRON_SECRET: z.string().optional(),
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_CHAT_ID: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -92,6 +94,9 @@ export const env = {
   VAPID_PRIVATE_KEY: raw.VAPID_PRIVATE_KEY ?? "",
   VAPID_SUBJECT: raw.VAPID_SUBJECT || "mailto:niralekhan321@gmail.com",
   CRON_SECRET: raw.CRON_SECRET ?? "",
+  // Telegram bot (XYZ Sentinel security alerts to the owner). Server-only.
+  TELEGRAM_BOT_TOKEN: raw.TELEGRAM_BOT_TOKEN ?? "",
+  TELEGRAM_CHAT_ID: raw.TELEGRAM_CHAT_ID ?? "",
   // Public (client-safe by design) - used by the chat page for Supabase
   // Realtime subscriptions. The anon key only grants what RLS/channel policy
   // allows; the service-role key above must NEVER be exposed client-side.
@@ -122,6 +127,15 @@ export const realtimeEnabled = storageEnabled; // same creds: SUPABASE_URL + ser
 // 503, summaries/auto-moderation skip). Server-only - never read keys client-side.
 export const groqEnabled = !!env.GROQ_API_KEY;
 export const geminiEnabled = !!env.GEMINI_API_KEY;
+
+// Telegram alerting (XYZ Sentinel). True when both the bot token + chat id are
+// set; otherwise sendTelegram() no-ops and Sentinel falls back to email only.
+export const telegramEnabled = !!env.TELEGRAM_BOT_TOKEN && !!env.TELEGRAM_CHAT_ID;
+
+// Whether Sentry crash reporting has a DSN configured (read directly - the
+// sentry.*.config.ts files use these process.env vars). Sentinel reports this
+// as a health flag so the owner knows to enable real-time error alerting.
+export const sentryConfigured = !!(process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN);
 export const aiEnabled = groqEnabled || geminiEnabled;
 
 // CoinMarketCap enrichment on the Markets hub. Optional - the hub works from the

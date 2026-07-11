@@ -1,0 +1,53 @@
+name: Security scan
+
+# Proactive vulnerability scanning — part of XYZ Sentinel. Runs GitHub's CodeQL
+# static analysis (finds security bugs in the JS/TS code) plus an npm dependency
+# audit, on every push/PR to main and weekly. CodeQL results appear in the repo's
+# Security tab. The audit is reported (job stays green) so it never blocks a ship;
+# high/critical findings are visible in the logs and Dependabot opens fix PRs.
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
+
+# Least-privilege by default; the CodeQL job elevates what it needs.
+permissions:
+  contents: read
+
+jobs:
+  codeql:
+    name: CodeQL analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v3
+
+  dependency-audit:
+    name: npm audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      # Report high/critical advisories without failing the build (visibility,
+      # not a hard gate — Dependabot raises the actual fix PRs).
+      - name: npm audit (high+)
+        run: npm audit --audit-level=high || true

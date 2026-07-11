@@ -102,8 +102,8 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
                 maxLength={1000}
                 className="min-h-[38px] flex-1 resize-none rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
               />
-              <button onClick={submit} disabled={!draft.trim() || posting} aria-label="Post comment" className="btn-primary inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl p-0 disabled:opacity-50">
-                {posting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              <button onClick={submit} disabled={!draft.trim() || posting} aria-label="Send comment" className="btn-primary relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl p-0 disabled:opacity-50">
+                {posting ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin" /> : <Send className="relative z-10 h-[18px] w-[18px]" />}
               </button>
             </div>
           ) : (

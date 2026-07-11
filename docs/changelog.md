@@ -5,6 +5,43 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Fixes: send-message icon visible + direct banner upload
+- **Send buttons now clearly show the send icon** — the composer Send button in News comments
+  (`NewsSocial.tsx`) and the DM send button (`MessagesClient.tsx`) rendered as "just a green button" because
+  the `.btn-primary::after` shine could sit over the icon. The `Send` (and loading) icon is now `relative
+  z-10` (always above the shine) + slightly larger, so it reads clearly as "send message".
+- **Direct profile banner upload** (`SettingsClient.tsx` + new `/api/profile/banner` route) — the cover image
+  can now be uploaded straight from the device (like the profile photo), not only pasted as a link. Mirrors
+  the avatar route + the zero-config `uploadImage` (Supabase Storage when configured, else inline data URL).
+  The "paste a link" field stays as a fallback. Guards the settings-form save so a data-URL banner (already
+  saved by the banner route) isn't re-sent through the stricter profile schema.
+- Files: `src/components/NewsSocial.tsx`, `src/components/MessagesClient.tsx`, `src/components/SettingsClient.tsx`,
+  `src/app/api/profile/banner/route.ts`, `docs/changelog.md`. Verified: tsc + lint + build green.
+
+## 2026-07-11 — XYZ Sentinel: AI security & monitoring (detect + alert)
+New layered security-monitoring system (owner asked for an "AI agent that watches security + reports"). Honest
+scope: detect + alert only — no autonomous code changes. Alerts go to **email + Telegram**.
+- **Proactive CI scanning** — `.github/workflows/security.yml` (CodeQL static analysis + `npm audit`) and
+  `.github/dependabot.yml` (weekly dependency + Actions update PRs). Catches vulns/bad code before + after ship.
+- **Live AI Watchdog** — `.github/workflows/watchdog.yml` (cron every 30 min) → `/api/watchdog`
+  (`src/app/api/watchdog/route.ts`, secured by `CRON_SECRET`, same pattern as push-dispatch). It:
+  - reads live signals (`src/lib/security-signals.ts`): locked accounts / brute-force, OTP attempt spikes,
+    AI error-rate + daily cost spikes, sensitive admin actions, config health (rate-limiting live? Sentry on?).
+    Every query is guarded so an un-migrated DB never breaks it.
+  - scores a deterministic **severity** (pure `scoreSignals`, unit-tested) and asks the AI (`completeText`,
+    system task) for a short plain-English analysis.
+  - on a **new** warn/critical (deduped vs the previous run) alerts the owner via `notifyOwner`
+    (`src/lib/notify-owner.ts` → email `sendEmail` + `src/lib/telegram.ts` `sendTelegram`).
+  - records every run in the new `WatchdogRun` model (migration 21) for history.
+- **Env**: `TELEGRAM_BOT_TOKEN`/`TELEGRAM_CHAT_ID` + `telegramEnabled`/`sentryConfigured` flags (`env.ts`).
+- **Docs**: `docs/SENTINEL.md` (how it works + one-time owner setup: bot token, GitHub secret-scanning +
+  Dependabot, `PROD_URL`/`CRON_SECRET`, migration 21, optional Sentry DSN). Added to the docs TOC.
+- Files: `src/lib/{security-signals,telegram,notify-owner}.ts`, `src/lib/__tests__/security-signals.test.ts`,
+  `src/app/api/watchdog/route.ts`, `src/lib/env.ts`, `prisma/schema.prisma` +
+  `prisma/migrations/21_watchdog_runs`, `.github/workflows/{security,watchdog}.yml`, `.github/dependabot.yml`,
+  `docs/SENTINEL.md`, `docs/SUMMARY.md`, `docs/changelog.md`. Verified: tsc + lint + test + build green.
+  **⚠️ Owner:** apply migration 21 + set the Vercel/GitHub secrets (see `docs/SENTINEL.md`) to turn it on.
+
 ## 2026-07-11 — Fixes: mobile product-card anims + News light-theme text + upload (real fix)
 Owner-reported, bundled with PR-9.
 - **Ecosystem product-card mini-visuals animate on mobile again** — the earlier `.mini-viz` mobile

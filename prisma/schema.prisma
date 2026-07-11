@@ -473,3 +473,18 @@ model AiUsage {
   @@index([userId, createdAt]) // per-user daily count (limits) + top users
   @@index([provider, createdAt]) // provider split / health
 }
+
+// XYZ Sentinel — one row per scheduled security/health check. Used for history
+// (a future dashboard) and to dedupe alerts (only notify when flags change vs
+// the previous run). See src/app/api/watchdog/route.ts. (migration 21)
+model WatchdogRun {
+  id       String   @id @default(cuid())
+  ranAt    DateTime @default(now())
+  severity String // "ok" | "info" | "warn" | "critical"
+  flags    String[] // human-readable hard-rule flags that tripped
+  summary  String? // AI-written risk summary (advisory)
+  metrics  Json? // the raw Signals snapshot
+  alerted  Boolean  @default(false) // did we notify the owner this run?
+
+  @@index([ranAt])
+}
