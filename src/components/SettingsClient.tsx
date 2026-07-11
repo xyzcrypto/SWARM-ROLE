@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Loader2, MapPin, Globe, ExternalLink, ShieldAlert } from "lucide-react";
-import { XIcon, GitHubIcon, TelegramIcon } from "./BrandIcons";
+import { XIcon, GitHubIcon, TelegramIcon, DiscordIcon, YouTubeIcon, LinkedInIcon, InstagramIcon } from "./BrandIcons";
 import { Avatar } from "./Avatar";
 import { AvatarUploader } from "./AvatarUploader";
 import { PasswordField } from "./PasswordField";
@@ -27,6 +27,10 @@ type SettingsUser = {
   twitter: string | null;
   github: string | null;
   telegram: string | null;
+  discord: string | null;
+  youtube: string | null;
+  linkedin: string | null;
+  instagram: string | null;
   role: string;
   membership: string;
   provider: string;
@@ -133,6 +137,10 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
   const [twitter, setTwitter] = useState(user.twitter ?? "");
   const [github, setGithub] = useState(user.github ?? "");
   const [telegram, setTelegram] = useState(user.telegram ?? "");
+  const [discord, setDiscord] = useState(user.discord ?? "");
+  const [youtube, setYoutube] = useState(user.youtube ?? "");
+  const [linkedin, setLinkedin] = useState(user.linkedin ?? "");
+  const [instagram, setInstagram] = useState(user.instagram ?? "");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -190,6 +198,10 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
           twitter,
           github,
           telegram,
+          discord,
+          youtube,
+          linkedin,
+          instagram,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -301,8 +313,12 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
       <div className="surface space-y-4 rounded-2xl p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Social links</p>
         <Field label="X (Twitter)" value={twitter} onChange={setTwitter} placeholder="handle" icon={<XIcon className="h-3.5 w-3.5" />} prefix="x.com/" />
-        <Field label="GitHub" value={github} onChange={setGithub} placeholder="handle" icon={<GitHubIcon className="h-4 w-4" />} prefix="github.com/" />
         <Field label="Telegram" value={telegram} onChange={setTelegram} placeholder="handle" icon={<TelegramIcon className="h-4 w-4" />} prefix="t.me/" />
+        <Field label="Instagram" value={instagram} onChange={setInstagram} placeholder="handle" icon={<InstagramIcon className="h-4 w-4" />} prefix="instagram.com/" />
+        <Field label="YouTube" value={youtube} onChange={setYoutube} placeholder="handle" icon={<YouTubeIcon className="h-4 w-4" />} prefix="youtube.com/@" />
+        <Field label="Discord" value={discord} onChange={setDiscord} placeholder="invite code" icon={<DiscordIcon className="h-4 w-4" />} prefix="discord.gg/" />
+        <Field label="LinkedIn" value={linkedin} onChange={setLinkedin} placeholder="slug" icon={<LinkedInIcon className="h-4 w-4" />} prefix="linkedin.com/in/" />
+        <Field label="GitHub" value={github} onChange={setGithub} placeholder="handle" icon={<GitHubIcon className="h-4 w-4" />} prefix="github.com/" />
       </div>
 
       {error && (

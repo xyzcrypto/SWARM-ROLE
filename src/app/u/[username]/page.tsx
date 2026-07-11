@@ -10,12 +10,13 @@ import { Footer } from "@/components/Footer";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/primitives";
 import { Reveal } from "@/components/Reveal";
-import { XIcon, GitHubIcon, TelegramIcon } from "@/components/BrandIcons";
+import { XIcon, GitHubIcon, TelegramIcon, DiscordIcon, YouTubeIcon, LinkedInIcon, InstagramIcon } from "@/components/BrandIcons";
 import { MessageButton } from "@/components/MessageButton";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
+import { fetchExtraSocials } from "@/lib/user-socials";
 
 // ISR: profiles render on demand (never at build) and cache for 60s; profile
 // edits call revalidatePath so changes show immediately.
@@ -58,7 +59,9 @@ export default async function ProfilePage({ params }: Props) {
   if (!user) notFound();
 
   // Published posts authored by this user (most are non-authors → usually 0).
-  const [postCount, recentComments] = await Promise.all([
+  // `extra` reads the migration-20 social columns through a guarded query so an
+  // un-migrated DB doesn't break the page (returns nulls until applied).
+  const [postCount, recentComments, extra] = await Promise.all([
     prisma.post.count({ where: { authorId: user.id, published: true } }).catch(() => 0),
     prisma.comment
       .findMany({
@@ -71,6 +74,7 @@ export default async function ProfilePage({ params }: Props) {
         },
       })
       .catch(() => []),
+    fetchExtraSocials({ id: user.id }),
   ]);
 
   const isPremium = user.membership === "Premium";
@@ -78,11 +82,15 @@ export default async function ProfilePage({ params }: Props) {
 
   type SocialIcon = ComponentType<{ className?: string }>;
   const socials = [
-    user.website && { href: user.website, Icon: Globe as SocialIcon, label: "Website" },
-    user.twitter && { href: `https://x.com/${user.twitter}`, Icon: XIcon as SocialIcon, label: `@${user.twitter}` },
-    user.github && { href: `https://github.com/${user.github}`, Icon: GitHubIcon as SocialIcon, label: user.github },
-    user.telegram && { href: `https://t.me/${user.telegram}`, Icon: TelegramIcon as SocialIcon, label: user.telegram },
-  ].filter(Boolean) as { href: string; Icon: SocialIcon; label: string }[];
+    user.website && { href: user.website, Icon: Globe as SocialIcon, label: "Website", hover: "hover:border-gold-500/40 hover:text-gold-200" },
+    user.twitter && { href: `https://x.com/${user.twitter}`, Icon: XIcon as SocialIcon, label: `@${user.twitter}`, hover: "hover:border-white/30 hover:text-zinc-100" },
+    user.telegram && { href: `https://t.me/${user.telegram}`, Icon: TelegramIcon as SocialIcon, label: user.telegram, hover: "hover:border-sky-500/40 hover:text-sky-300" },
+    extra.discord && { href: `https://discord.gg/${extra.discord}`, Icon: DiscordIcon as SocialIcon, label: "Discord", hover: "hover:border-indigo-500/40 hover:text-indigo-300" },
+    extra.youtube && { href: `https://youtube.com/@${extra.youtube}`, Icon: YouTubeIcon as SocialIcon, label: "YouTube", hover: "hover:border-red-500/40 hover:text-red-300" },
+    extra.instagram && { href: `https://instagram.com/${extra.instagram}`, Icon: InstagramIcon as SocialIcon, label: `@${extra.instagram}`, hover: "hover:border-pink-500/40 hover:text-pink-300" },
+    extra.linkedin && { href: `https://linkedin.com/in/${extra.linkedin}`, Icon: LinkedInIcon as SocialIcon, label: "LinkedIn", hover: "hover:border-blue-500/40 hover:text-blue-300" },
+    user.github && { href: `https://github.com/${user.github}`, Icon: GitHubIcon as SocialIcon, label: user.github, hover: "hover:border-white/30 hover:text-zinc-100" },
+  ].filter(Boolean) as { href: string; Icon: SocialIcon; label: string; hover: string }[];
 
   return (
     <>
@@ -138,15 +146,15 @@ export default async function ProfilePage({ params }: Props) {
                     {user.location}
                   </span>
                 )}
-                {socials.map(({ href, Icon, label }) => (
+                {socials.map(({ href, Icon, label, hover }) => (
                   <a
                     key={href}
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-zinc-400 transition-colors hover:border-gold-500/30 hover:text-gold-200"
+                    className={`group inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-zinc-400 transition-all duration-300 hover:-translate-y-0.5 ${hover}`}
                   >
-                    <Icon className="h-4 w-4" />
+                    <Icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
                     {label}
                   </a>
                 ))}
@@ -172,7 +180,8 @@ export default async function ProfilePage({ params }: Props) {
             ) : (
               <ul className="mt-3 space-y-3">
                 {recentComments.map((c) => (
-                  <li key={c.id} className="surface surface-hover rounded-2xl p-4 transition-colors sm:p-5">
+                  <li key={c.id} className="surface surface-hover lift group relative overflow-hidden rounded-2xl p-4 transition-colors sm:p-5">
+                    <span className="absolute inset-y-0 left-0 w-0.5 bg-gold-400/0 transition-colors duration-300 group-hover:bg-gold-400/60" />
                     <div className="flex items-center gap-2 text-xs text-zinc-500">
                       <MessageSquare className="h-3.5 w-3.5" />
                       <span>Commented{c.post?.title ? " on" : ""}</span>

@@ -55,6 +55,10 @@ model User {
   twitter     String? // handle only (no @ / URL)
   github      String? // handle only
   telegram    String? // handle only
+  discord     String? // invite code / handle (migration 20)
+  youtube     String? // channel handle, no @ (migration 20)
+  linkedin    String? // profile/company slug (migration 20)
+  instagram   String? // handle only (migration 20)
   bannerImage String? // optional profile cover image URL
 
   posts             Post[]

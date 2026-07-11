@@ -53,8 +53,8 @@ const handleField = z
   .string()
   .trim()
   .transform(normalizeHandle)
-  .refine((v) => v === "" || /^[A-Za-z0-9_.]{1,40}$/.test(v), {
-    message: "Use a valid handle (letters, numbers, _ or .).",
+  .refine((v) => v === "" || /^[A-Za-z0-9_.-]{1,40}$/.test(v), {
+    message: "Use a valid handle (letters, numbers, _ . or -).",
   })
   // Empty string -> undefined so it clears the column.
   .transform((v) => (v === "" ? undefined : v))
@@ -138,6 +138,10 @@ export const profileSchema = z.object({
   twitter: handleField,
   github: handleField,
   telegram: handleField,
+  discord: handleField,
+  youtube: handleField,
+  linkedin: handleField,
+  instagram: handleField,
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;

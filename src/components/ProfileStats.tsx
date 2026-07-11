@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { FileText, MessageSquare, Heart } from "lucide-react";
 import { useReducedMotion } from "framer-motion";
 import { Reveal } from "@/components/Reveal";
+import { TiltCard } from "@/components/TiltCard";
 import { cn } from "@/lib/utils";
 
 const STATS = [
@@ -39,11 +40,14 @@ function StatCard({ label, value, Icon, iconClass, valueClass, animate, delay }:
   const shown = useCountUp(value, animate);
   return (
     <Reveal variant="pop" delay={delay}>
-      <div className="surface surface-hover lift group h-full rounded-2xl p-4 text-center sm:p-6">
-        <Icon className={cn("mx-auto h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110", iconClass)} />
-        <p className={cn("mono mt-2 text-2xl font-semibold tabular-nums sm:text-3xl", valueClass)}>{shown.toLocaleString()}</p>
-        <p className="mt-1 text-xs text-zinc-500">{label}</p>
-      </div>
+      <TiltCard max={8}>
+        <div className="surface surface-hover lift group relative h-full overflow-hidden rounded-2xl p-4 text-center sm:p-6">
+          <div className="glow-orb -right-8 -top-8 h-20 w-20 bg-gold-500/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+          <Icon className={cn("relative mx-auto h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110", iconClass)} />
+          <p className={cn("relative mono mt-2 text-2xl font-semibold tabular-nums sm:text-3xl", valueClass)}>{shown.toLocaleString()}</p>
+          <p className="relative mt-1 text-xs text-zinc-500">{label}</p>
+        </div>
+      </TiltCard>
     </Reveal>
   );
 }

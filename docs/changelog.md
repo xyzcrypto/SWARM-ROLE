@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — V2 PR-6b: Profile social links (Discord / YouTube / LinkedIn / Instagram)
+Adds four more social links to public profiles + settings. Colors unchanged. **Needs a migration (below).**
+- **Schema + migration** — `User` gains 4 nullable columns `discord` / `youtube` / `linkedin` / `instagram`
+  (`prisma/schema.prisma`) with idempotent migration `prisma/migrations/20_profile_socials` (`ADD COLUMN IF
+  NOT EXISTS`). All nullable → existing rows unaffected.
+- **Graceful pre-migration** — the profile + settings pages read these columns through a new guarded helper
+  `fetchExtraSocials` (`src/lib/user-socials.ts`); on an un-migrated DB it returns nulls instead of throwing,
+  so profiles/settings never 404. Saving a value before the migration returns the standard graceful 503; name
+  edits keep working (empty socials aren't written).
+- **Validation** — added `discord`/`youtube`/`linkedin`/`instagram` to the profile zod schema (`profile.ts`)
+  as normalized handle fields; the handle charset now also allows `-` (GitHub/YouTube/LinkedIn slugs).
+- **Settings UI** — four new inputs in the Social links section with prefixes (`discord.gg/`, `youtube.com/@`,
+  `linkedin.com/in/`, `instagram.com/`) (`SettingsClient.tsx`).
+- **Public render** — the profile pills now include the four new links with brand icons
+  (`u/[username]/page.tsx`); new `DiscordIcon` + `InstagramIcon` added to `BrandIcons.tsx` (YouTube/LinkedIn
+  already existed), both screenshot-verified.
+- Files: `schema.prisma`, `migrations/20_profile_socials/migration.sql`, `profile.ts`, `user-socials.ts`
+  (new), `BrandIcons.tsx`, `SettingsClient.tsx`, `settings/page.tsx`, `u/[username]/page.tsx`,
+  `docs/changelog.md`. Verified: tsc + lint + test (235) + build green.
+- **⚠️ Owner action:** apply migration 20 (`npm run db:push` with real `DATABASE_URL`/`DIRECT_URL`, or paste
+  `prisma/migrations/20_profile_socials/migration.sql` into the Supabase SQL editor). Links stay hidden until
+  then.
+- **Profile interactivity/polish** (same PR): social pills now hover to each platform's brand colour and
+  lift slightly; the stat cards gained pointer 3D tilt (`TiltCard`) + a soft gold glow on hover; recent-
+  activity cards lift with a gold left-accent on hover. All reduced-motion / touch safe, colors unchanged.
+
+---
+
 ## 2026-07-11 — V2 PR-6a: News TTS silence fix + mobile navbar spacing
 No-migration fixes; colors unchanged.
 - **News "Listen" (TTS) silence on mobile fixed** (`BriefingBlock.tsx`) — the old code always ran
