@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Community: aligned composer + message translation (English ⇄ Hinglish)
+- **Composer aligned** (`ChatClient.tsx`) — the poll button, text field, emoji and send button
+  now sit on one clean row at equal height (44px), with the error + character count moved to a
+  tidy full-width line below (they used to be crammed inside the input column, throwing the
+  buttons out of alignment). Send button uses the solid white `SendGlyph` for consistency.
+- **Translate any message** — a new Translate action (Languages icon) in each message's action
+  bar converts it **English ⇄ Hinglish** via AI (`/api/chat/translate`, logged-in + rate-limited,
+  graceful 503 when AI is off). The translation shows in a mint quote block under the message;
+  tapping again hides/re-shows it (cached, no repeat AI call). Mentions, $tickers, emojis and
+  URLs are preserved.
+
 ## 2026-07-11 — Send icon fix + instant sends everywhere + light-theme + faster opens (2c+)
 - **Send button always shows a clear icon** — the lucide `<Send/>` outline was rendering
   invisible on the green send buttons (looked like a plain green blob). Replaced with a new
