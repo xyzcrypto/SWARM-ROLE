@@ -421,6 +421,12 @@ model PushSubscription {
   auth      String
   createdAt DateTime @default(now())
 
+  // Notification preference (per-device). "high" = all high-impact (default,
+  // preserves prior behavior), "foryou" = only the user's newsInterests,
+  // "categories" = only notifyCategories, "off" = none.
+  notifyMode       String   @default("high")
+  notifyCategories String[] @default([])
+
   user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
   userId String?
 
