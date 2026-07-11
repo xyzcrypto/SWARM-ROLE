@@ -46,7 +46,7 @@ export function Ecosystem() {
           eyebrow="Our Communities"
           title={
             <>
-              The <span className="text-gold-gradient">XYZ Verse.</span>{" "}
+              The <span className="text-shine">XYZ Verse.</span>{" "}
               <AnimatedEmoji emoji="🌐" variant="spin" className="align-middle text-[0.8em]" />
             </>
           }

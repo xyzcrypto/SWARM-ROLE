@@ -13,7 +13,7 @@ export function Faq() {
           eyebrow="FAQ"
           title={
             <>
-              Questions about <span className="text-gold-gradient">XYZ Crypto</span>{" "}
+              Questions about <span className="text-shine">XYZ Crypto</span>{" "}
               <AnimatedEmoji emoji="💬" variant="float" className="align-middle text-[0.8em]" />
             </>
           }
