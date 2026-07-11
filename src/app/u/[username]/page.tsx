@@ -10,12 +10,13 @@ import { Footer } from "@/components/Footer";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/primitives";
 import { Reveal } from "@/components/Reveal";
-import { XIcon, GitHubIcon, TelegramIcon } from "@/components/BrandIcons";
+import { XIcon, GitHubIcon, TelegramIcon, DiscordIcon, YouTubeIcon, LinkedInIcon, InstagramIcon } from "@/components/BrandIcons";
 import { MessageButton } from "@/components/MessageButton";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
+import { fetchExtraSocials } from "@/lib/user-socials";
 
 // ISR: profiles render on demand (never at build) and cache for 60s; profile
 // edits call revalidatePath so changes show immediately.
@@ -58,7 +59,9 @@ export default async function ProfilePage({ params }: Props) {
   if (!user) notFound();
 
   // Published posts authored by this user (most are non-authors → usually 0).
-  const [postCount, recentComments] = await Promise.all([
+  // `extra` reads the migration-20 social columns through a guarded query so an
+  // un-migrated DB doesn't break the page (returns nulls until applied).
+  const [postCount, recentComments, extra] = await Promise.all([
     prisma.post.count({ where: { authorId: user.id, published: true } }).catch(() => 0),
     prisma.comment
       .findMany({
@@ -71,6 +74,7 @@ export default async function ProfilePage({ params }: Props) {
         },
       })
       .catch(() => []),
+    fetchExtraSocials({ id: user.id }),
   ]);
 
   const isPremium = user.membership === "Premium";
@@ -80,8 +84,12 @@ export default async function ProfilePage({ params }: Props) {
   const socials = [
     user.website && { href: user.website, Icon: Globe as SocialIcon, label: "Website" },
     user.twitter && { href: `https://x.com/${user.twitter}`, Icon: XIcon as SocialIcon, label: `@${user.twitter}` },
-    user.github && { href: `https://github.com/${user.github}`, Icon: GitHubIcon as SocialIcon, label: user.github },
     user.telegram && { href: `https://t.me/${user.telegram}`, Icon: TelegramIcon as SocialIcon, label: user.telegram },
+    extra.discord && { href: `https://discord.gg/${extra.discord}`, Icon: DiscordIcon as SocialIcon, label: "Discord" },
+    extra.youtube && { href: `https://youtube.com/@${extra.youtube}`, Icon: YouTubeIcon as SocialIcon, label: "YouTube" },
+    extra.instagram && { href: `https://instagram.com/${extra.instagram}`, Icon: InstagramIcon as SocialIcon, label: `@${extra.instagram}` },
+    extra.linkedin && { href: `https://linkedin.com/in/${extra.linkedin}`, Icon: LinkedInIcon as SocialIcon, label: "LinkedIn" },
+    user.github && { href: `https://github.com/${user.github}`, Icon: GitHubIcon as SocialIcon, label: user.github },
   ].filter(Boolean) as { href: string; Icon: SocialIcon; label: string }[];
 
   return (

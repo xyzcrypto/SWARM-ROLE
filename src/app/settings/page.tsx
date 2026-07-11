@@ -5,6 +5,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { SettingsClient } from "@/components/SettingsClient";
+import { fetchExtraSocials } from "@/lib/user-socials";
 
 export const metadata: Metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -28,6 +29,10 @@ export default async function SettingsPage() {
 
   if (!user) redirect("/login?callbackUrl=/settings");
 
+  // Migration-20 social columns, read through a guarded query (tolerates an
+  // un-migrated DB so settings never breaks).
+  const extra = await fetchExtraSocials({ id });
+
   // Strip the hash; the client only needs to know whether a password exists.
   const { passwordHash, createdAt, ...rest } = user;
 
@@ -38,7 +43,7 @@ export default async function SettingsPage() {
         <div className="mesh" />
         <div className="relative mx-auto max-w-3xl px-4 pb-24 sm:px-6 lg:px-8">
           <SettingsClient
-            user={{ ...rest, hasPassword: !!passwordHash, createdAt: createdAt.toISOString() }}
+            user={{ ...rest, ...extra, hasPassword: !!passwordHash, createdAt: createdAt.toISOString() }}
           />
         </div>
       </main>
