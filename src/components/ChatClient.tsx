@@ -657,7 +657,7 @@ export function ChatClient({
       }
       if (String(j.url).startsWith("data:")) {
         // Inline data URLs are too large for a chat message - needs real Storage.
-        setError("Photo sharing needs Supabase Storage configured.");
+        setError("Photo sharing needs a public Supabase Storage bucket named 'post-covers'. Create it in Supabase → Storage, then try again.");
         return;
       }
       await doSend(String(j.url));
