@@ -14,6 +14,28 @@ const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
  * Observe-only (never tracks its own key), so it can't double-count or masquerade.
  * Returns false when realtime env is absent or userId is falsy.
  */
+// The full set of userIds currently online anywhere on the site. One shared
+// `site-visitors` subscription for the whole page (cheaper than one channel per
+// row). Empty set when realtime env is absent.
+export function useOnlineSet(): Set<string> {
+  const [set, setSet] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return;
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      const { createClient } = await import("@supabase/supabase-js");
+      if (cancelled) return;
+      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+      const ch = client.channel("site-visitors", { config: { presence: { key: `set-obs-${Math.random().toString(36).slice(2)}` } } });
+      ch.on("presence", { event: "sync" }, () => setSet(new Set(Object.keys(ch.presenceState())))).subscribe();
+      cleanup = () => client.removeChannel(ch);
+    })();
+    return () => { cancelled = true; cleanup?.(); };
+  }, []);
+  return set;
+}
+
 export function useUserOnline(userId: string | null | undefined): boolean {
   const [online, setOnline] = useState(false);
 

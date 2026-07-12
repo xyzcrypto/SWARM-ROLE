@@ -5,6 +5,17 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-12 — DMs: search people + emoji/photo/GIF + online + push
+- **Search people to DM** — a search bar in the Messages inbox (`GET /api/dm/search`, logged-in)
+  finds any member by name/@username; tap a result to open/start the conversation.
+- **Emoji · Photo · GIF in DMs** — the DM composer gained the emoji picker, a photo button
+  (`POST /api/media/upload`, any member) and a GIF picker (Giphy, when `GIPHY_API_KEY` is set) —
+  same as community chat. Media renders inline (shared `chatMediaUrl` in `lib/chat-media.ts`).
+- **Online status** — a green dot on avatars in both the inbox list AND the thread header, driven
+  by one shared `site-visitors` presence subscription (`useOnlineSet`). Inbox `other` now carries `id`.
+- **External DM push** — a new DM fires a phone push to the recipient (fire-and-forget, gated on
+  VAPID, dead endpoints pruned); opens the thread on tap.
+
 ## 2026-07-12 — Profiles: follower/following lists + colourful socials + fixes
 - **Followers / Following are clickable** — tapping either count opens a modal with tabs
   (`FollowListModal`) listing the users, each with avatar + name + a per-row **Follow / Following

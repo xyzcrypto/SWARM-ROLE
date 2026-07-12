@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { compressImage } from "@/lib/image";
+import { chatMediaUrl } from "@/lib/chat-media";
 import { SendGlyph } from "./SendGlyph";
 import { GifPicker } from "./GifPicker";
 import { Avatar } from "./Avatar";
@@ -50,22 +51,6 @@ type PresenceMember = { id: string; name: string; image: string | null; username
 
 const normalizeReactions = (rs: { emoji: string; userIds: string[] }[]): Reaction[] =>
   rs.map((r) => ({ emoji: r.emoji, userIds: [...r.userIds] }));
-
-// A message is treated as media (rendered as an image/GIF) ONLY when its whole
-// body is a single trusted media URL: a GIF from giphy/tenor (anyone can send
-// these via the GIF picker) or an image in OUR Supabase Storage / an inline data
-// image (only admins can produce these via the admin upload). Arbitrary pasted
-// image links stay plain links - so "photos" remain admin-only.
-const GIF_HOSTS = /^https?:\/\/(media\d*\.giphy\.com|i\.giphy\.com|media\.tenor\.com|c\.tenor\.com|tenor\.com)\//i;
-export function chatMediaUrl(text: string): string | null {
-  const t = text.trim();
-  if (/\s/.test(t)) return null; // must be a lone URL, no other text
-  if (/^data:image\//.test(t)) return t;
-  if (!/^https?:\/\//.test(t)) return null;
-  if (GIF_HOSTS.test(t)) return t;
-  if (t.includes("/storage/v1/object/public/")) return t;
-  return null;
-}
 
 /* Plain-text body with safe linkified URLs + @mention highlights (no HTML).
    A lone trusted media URL renders as an inline image/GIF instead. */

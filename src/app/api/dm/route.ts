@@ -28,7 +28,7 @@ export async function GET() {
       const { other } = otherOf(c, me.id);
       return {
         id: c.id,
-        other: other ? { name: other.name || other.username || "Member", username: other.username, image: other.image } : null,
+        other: other ? { id: other.id, name: other.name || other.username || "Member", username: other.username, image: other.image } : null,
         lastBody: c.lastBody ?? "",
         lastMessageAt: c.lastMessageAt,
         unread: isUnread(c, me.id),
