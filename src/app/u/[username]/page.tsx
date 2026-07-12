@@ -125,7 +125,7 @@ export default async function ProfilePage({ params }: Props) {
                 {/* Only the avatar overlaps the banner; the name/handle stay in the
                     content area below it so the name is never hidden over the banner art. */}
                 <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-                  <Avatar name={user.name} image={user.image} size="xl" className="-mt-14 shrink-0 ring-[3px] ring-ink-900 shadow-gold sm:-mt-16" />
+                  <Avatar name={user.name} image={user.image} size="xl" className="-mt-8 shrink-0 ring-[3px] ring-ink-900 shadow-gold sm:-mt-10" />
                   <div className="min-w-0 pt-1">
                     <h1 className="font-display text-[26px] font-bold leading-[1.1] tracking-tight text-zinc-50 break-words sm:text-4xl lg:text-[2.6rem]">
                       {user.name ?? `@${user.username}`}
@@ -142,15 +142,19 @@ export default async function ProfilePage({ params }: Props) {
                 <div className="flex flex-wrap items-center gap-2">
                   {isPremium && <Badge tone="gold">★ Premium</Badge>}
                   {isAdmin && <Badge tone="mint">Team</Badge>}
-                  <Badge tone="neutral">Member since {formatDate(user.createdAt)}</Badge>
-                  <EditProfileButton username={user.username!} />
-                  <MessageButton username={user.username!} />
-                  <CopyLinkButton compact />
+                  <Badge tone="neutral">Joined {formatDate(user.createdAt)}</Badge>
+                  {/* Actions kept together so Share always sits right of Edit and
+                      the row never breaks apart awkwardly on mobile. */}
+                  <div className="flex items-center gap-2">
+                    <EditProfileButton username={user.username!} />
+                    <MessageButton username={user.username!} />
+                    <CopyLinkButton compact />
+                  </div>
                 </div>
               </div>
 
               {user.bio && (
-                <p className="mt-5 max-w-2xl text-[15px] leading-relaxed text-zinc-300">{user.bio}</p>
+                <p className="mt-4 max-w-2xl whitespace-pre-line text-[15px] leading-snug text-zinc-300">{user.bio}</p>
               )}
 
               <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
