@@ -17,11 +17,16 @@ export function VoiceRoom({ enabled, loggedIn }: { enabled: boolean; loggedIn: b
   const [muted, setMuted] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const roomRef = useRef<Room | null>(null);
+  const micTrackRef = useRef<{ mute: () => Promise<unknown>; unmute: () => Promise<unknown> } | null>(null);
+  const mutedRef = useRef(false);
   const audioBin = useRef<HTMLDivElement>(null);
+
+  const setMutedBoth = (v: boolean) => { mutedRef.current = v; setMuted(v); };
 
   const snapshot = useCallback((room: Room) => {
     const lp = room.localParticipant;
-    const list: Peer[] = [{ id: lp.identity, name: lp.name || "You", isLocal: true, muted: !lp.isMicrophoneEnabled, speaking: lp.isSpeaking }];
+    const haveMic = !!micTrackRef.current;
+    const list: Peer[] = [{ id: lp.identity, name: lp.name || "You", isLocal: true, muted: !haveMic || mutedRef.current, speaking: lp.isSpeaking }];
     room.remoteParticipants.forEach((p) => list.push({ id: p.identity, name: p.name || "Member", isLocal: false, muted: !p.isMicrophoneEnabled, speaking: p.isSpeaking }));
     setPeers(list);
   }, []);
@@ -29,10 +34,11 @@ export function VoiceRoom({ enabled, loggedIn }: { enabled: boolean; loggedIn: b
   const leave = useCallback(() => {
     const room = roomRef.current;
     roomRef.current = null;
+    micTrackRef.current = null;
     if (room) room.disconnect().catch(() => {});
     if (audioBin.current) audioBin.current.innerHTML = "";
     setPeers([]);
-    setMuted(false);
+    setMutedBoth(false);
     setState("idle");
   }, []);
 
@@ -43,31 +49,25 @@ export function VoiceRoom({ enabled, loggedIn }: { enabled: boolean; loggedIn: b
     setErr(null);
     setState("connecting");
 
-    // Ask for the mic FIRST, inside the click gesture, so the permission prompt
-    // shows now and the grant survives the later awaits (Safari/iOS consume the
-    // user-activation after an await). Release the probe track immediately; we
-    // re-open the mic through LiveKit after connecting.
-    let micGranted = false;
+    // Acquire the mic INSIDE the click gesture and KEEP the stream - we publish
+    // this exact track after connecting. Re-acquiring getUserMedia after an
+    // await is what iOS/Safari block, so we never do that.
+    let micStream: MediaStream | null = null;
     try {
-      if (navigator.mediaDevices?.getUserMedia) {
-        const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
-        probe.getTracks().forEach((t) => t.stop());
-        micGranted = true;
-      }
-    } catch {
-      micGranted = false;
-    }
+      if (navigator.mediaDevices?.getUserMedia) micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    } catch { micStream = null; }
 
     try {
       const res = await fetch("/api/voice/token", { method: "POST" });
       const j = await res.json().catch(() => null);
       if (!res.ok || !j?.token || !j?.url) {
+        micStream?.getTracks().forEach((t) => t.stop());
         setErr(res.status === 401 ? "Please log in to join voice." : res.status === 503 ? "Voice chat isn't set up yet." : "Couldn't join. Try again.");
         setState("idle");
         return;
       }
 
-      const { Room, RoomEvent, Track } = await import("livekit-client");
+      const { Room, RoomEvent, Track, LocalAudioTrack } = await import("livekit-client");
       const room = new Room({ adaptiveStream: false, dynacast: false });
       roomRef.current = room;
 
@@ -77,7 +77,6 @@ export function VoiceRoom({ enabled, loggedIn }: { enabled: boolean; loggedIn: b
         .on(RoomEvent.ActiveSpeakersChanged, () => snapshot(room))
         .on(RoomEvent.TrackMuted, () => snapshot(room))
         .on(RoomEvent.TrackUnmuted, () => snapshot(room))
-        .on(RoomEvent.LocalTrackPublished, () => snapshot(room))
         .on(RoomEvent.Disconnected, () => leave())
         .on(RoomEvent.TrackSubscribed, (track) => {
           if (track.kind === Track.Kind.Audio && audioBin.current) {
@@ -88,21 +87,30 @@ export function VoiceRoom({ enabled, loggedIn }: { enabled: boolean; loggedIn: b
         });
 
       await room.connect(j.url, j.token);
-      // Joining is a user gesture -> unlock autoplay so you can hear others.
-      await room.startAudio().catch(() => {});
-      if (micGranted) {
-        try {
-          await room.localParticipant.setMicrophoneEnabled(true);
-        } catch {
-          setErr("Couldn't turn on your mic - you're listening only.");
+      await room.startAudio().catch(() => {}); // unlock autoplay so you can hear others
+
+      if (micStream) {
+        const [mst] = micStream.getAudioTracks();
+        if (mst) {
+          try {
+            const track = new LocalAudioTrack(mst);
+            await room.localParticipant.publishTrack(track);
+            micTrackRef.current = track as unknown as { mute: () => Promise<unknown>; unmute: () => Promise<unknown> };
+            setMutedBoth(false);
+          } catch {
+            micStream.getTracks().forEach((t) => t.stop());
+            setErr("Couldn't turn your mic on - you're listening only.");
+            setMutedBoth(true);
+          }
         }
       } else {
-        setErr("Mic not allowed - you're listening only. Enable mic access to talk.");
+        setErr("Mic blocked. Allow microphone for this site in your browser, then tap the mic to talk.");
+        setMutedBoth(true);
       }
-      setMuted(!room.localParticipant.isMicrophoneEnabled);
       snapshot(room);
       setState("live");
     } catch {
+      micStream?.getTracks().forEach((t) => t.stop());
       setErr("Couldn't connect to voice. Try again.");
       leave();
     }
@@ -111,13 +119,27 @@ export function VoiceRoom({ enabled, loggedIn }: { enabled: boolean; loggedIn: b
   async function toggleMute() {
     const room = roomRef.current;
     if (!room) return;
-    const next = !room.localParticipant.isMicrophoneEnabled;
+    const track = micTrackRef.current;
+    if (track) {
+      try {
+        if (mutedRef.current) await track.unmute(); else await track.mute();
+        setMutedBoth(!mutedRef.current);
+        setErr(null);
+        snapshot(room);
+      } catch { setErr("Couldn't toggle your mic."); }
+      return;
+    }
+    // No mic track yet (blocked on join) - retry from THIS tap gesture, which is
+    // a fresh user-activation and usually unblocks getUserMedia.
     try {
-      await room.localParticipant.setMicrophoneEnabled(next);
-      setMuted(!next);
+      await room.localParticipant.setMicrophoneEnabled(true);
+      const pub = [...room.localParticipant.audioTrackPublications.values()][0];
+      if (pub?.track) micTrackRef.current = pub.track as unknown as { mute: () => Promise<unknown>; unmute: () => Promise<unknown> };
+      setMutedBoth(false);
+      setErr(null);
       snapshot(room);
     } catch {
-      setErr("Couldn't access your mic.");
+      setErr("Couldn't access your mic. Allow microphone access for this site in your browser settings.");
     }
   }
 
