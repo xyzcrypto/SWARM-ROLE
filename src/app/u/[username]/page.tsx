@@ -86,16 +86,18 @@ export default async function ProfilePage({ params }: Props) {
   const isAdmin = user.role === "ADMIN";
 
   type SocialIcon = ComponentType<{ className?: string }>;
+  // Each social shows its BRAND colour always (not just on hover), on a tinted
+  // ring that matches — colourful + instantly recognisable.
   const socials = [
-    user.website && { href: user.website, Icon: Globe as SocialIcon, label: "Website", hover: "hover:border-gold-500/40 hover:text-gold-200" },
-    user.twitter && { href: `https://x.com/${user.twitter}`, Icon: XIcon as SocialIcon, label: `@${user.twitter}`, hover: "hover:border-white/30 hover:text-zinc-100" },
-    user.telegram && { href: `https://t.me/${user.telegram}`, Icon: TelegramIcon as SocialIcon, label: user.telegram, hover: "hover:border-sky-500/40 hover:text-sky-300" },
-    extra.discord && { href: `https://discord.gg/${extra.discord}`, Icon: DiscordIcon as SocialIcon, label: "Discord", hover: "hover:border-indigo-500/40 hover:text-indigo-300" },
-    extra.youtube && { href: `https://youtube.com/@${extra.youtube}`, Icon: YouTubeIcon as SocialIcon, label: "YouTube", hover: "hover:border-red-500/40 hover:text-red-300" },
-    extra.instagram && { href: `https://instagram.com/${extra.instagram}`, Icon: InstagramIcon as SocialIcon, label: `@${extra.instagram}`, hover: "hover:border-pink-500/40 hover:text-pink-300" },
-    extra.linkedin && { href: `https://linkedin.com/in/${extra.linkedin}`, Icon: LinkedInIcon as SocialIcon, label: "LinkedIn", hover: "hover:border-blue-500/40 hover:text-blue-300" },
-    user.github && { href: `https://github.com/${user.github}`, Icon: GitHubIcon as SocialIcon, label: user.github, hover: "hover:border-white/30 hover:text-zinc-100" },
-  ].filter(Boolean) as { href: string; Icon: SocialIcon; label: string; hover: string }[];
+    user.website && { href: user.website, Icon: Globe as SocialIcon, label: "Website", color: "text-gold-300", ring: "border-gold-500/30 hover:border-gold-500/60 hover:bg-gold-500/10" },
+    user.twitter && { href: `https://x.com/${user.twitter}`, Icon: XIcon as SocialIcon, label: `@${user.twitter}`, color: "text-zinc-100", ring: "border-white/15 hover:border-white/40 hover:bg-white/10" },
+    user.telegram && { href: `https://t.me/${user.telegram}`, Icon: TelegramIcon as SocialIcon, label: user.telegram, color: "text-sky-400", ring: "border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/10" },
+    extra.discord && { href: `https://discord.gg/${extra.discord}`, Icon: DiscordIcon as SocialIcon, label: "Discord", color: "text-indigo-400", ring: "border-indigo-500/30 hover:border-indigo-500/60 hover:bg-indigo-500/10" },
+    extra.youtube && { href: `https://youtube.com/@${extra.youtube}`, Icon: YouTubeIcon as SocialIcon, label: "YouTube", color: "text-red-500", ring: "border-red-500/30 hover:border-red-500/60 hover:bg-red-500/10" },
+    extra.instagram && { href: `https://instagram.com/${extra.instagram}`, Icon: InstagramIcon as SocialIcon, label: `@${extra.instagram}`, color: "text-pink-500", ring: "border-pink-500/30 hover:border-pink-500/60 hover:bg-pink-500/10" },
+    extra.linkedin && { href: `https://linkedin.com/in/${extra.linkedin}`, Icon: LinkedInIcon as SocialIcon, label: "LinkedIn", color: "text-blue-500", ring: "border-blue-500/30 hover:border-blue-500/60 hover:bg-blue-500/10" },
+    user.github && { href: `https://github.com/${user.github}`, Icon: GitHubIcon as SocialIcon, label: user.github, color: "text-zinc-100", ring: "border-white/15 hover:border-white/40 hover:bg-white/10" },
+  ].filter(Boolean) as { href: string; Icon: SocialIcon; label: string; color: string; ring: string }[];
 
   return (
     <>
@@ -160,7 +162,7 @@ export default async function ProfilePage({ params }: Props) {
                 )}
                 {/* Icon-only social logos - tap the logo to open. Compact so they
                     take little space; the full handle is the tooltip/aria-label. */}
-                {socials.map(({ href, Icon, label, hover }) => (
+                {socials.map(({ href, Icon, label, color, ring }) => (
                   <a
                     key={href}
                     href={href}
@@ -168,9 +170,9 @@ export default async function ProfilePage({ params }: Props) {
                     rel="noopener noreferrer nofollow"
                     title={label}
                     aria-label={label}
-                    className={`group grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-zinc-400 transition-all duration-300 hover:-translate-y-0.5 ${hover}`}
+                    className={`group grid h-10 w-10 place-items-center rounded-full border bg-white/[0.03] transition-all duration-300 hover:-translate-y-0.5 ${ring} ${color}`}
                   >
-                    <Icon className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110" />
+                    <Icon className="h-[19px] w-[19px] transition-transform duration-300 group-hover:scale-110" />
                   </a>
                 ))}
               </div>

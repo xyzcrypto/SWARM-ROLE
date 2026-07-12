@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-12 — Profiles: follower/following lists + colourful socials + fixes
+- **Followers / Following are clickable** — tapping either count opens a modal with tabs
+  (`FollowListModal`) listing the users, each with avatar + name + a per-row **Follow / Following
+  / Unfollow** button. So you can open **Following** and unfollow anyone right there, or follow back
+  from **Followers**. New `GET /api/follow/list?username=&type=`.
+- **Share button icon fixed** — the compact share button showed an empty circle because the `btn`
+  base padding squeezed the icon out; added `!p-0` + explicit colour so the link icon shows.
+- **Social logos are now brand-coloured** — Website (gold), X (white), Telegram (sky), Discord
+  (indigo), YouTube (red), Instagram (pink), LinkedIn (blue), GitHub (white), each on a matching
+  tinted ring — colourful + instantly recognisable (were all grey).
+- **Bigger bio/description** — the About/Bio field now allows **500** characters (was 280) so
+  members can write a few lines about themselves (edit via the profile **Edit** button → Settings).
+
 ## 2026-07-12 — Profiles: Twitter-style follow system + compact header
 - **Follow / Following / Unfollow** — new `Follow` model (migration `23_follows`, idempotent) +
   `POST/GET /api/follow` (toggle + counts, logged-in + rate-limited, resilient pre-migration).

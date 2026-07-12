@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { UserPlus, UserCheck, UserMinus, Loader2 } from "lucide-react";
 import { userChannel } from "@/lib/realtime";
 import { useRealtime } from "@/lib/useRealtime";
+import { FollowListModal } from "./FollowListModal";
 import { cn } from "@/lib/utils";
 
 function fmt(n: number): string {
@@ -39,6 +40,7 @@ export function ProfileFollow({
   const [following, setFollowing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [hover, setHover] = useState(false);
+  const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
 
   const sync = useCallback(async () => {
     try {
@@ -89,9 +91,22 @@ export function ProfileFollow({
   return (
     <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2">
       <div className="flex items-center gap-4 text-sm">
-        <span><b className="font-semibold text-zinc-100">{fmt(followers)}</b> <span className="text-zinc-500">Followers</span></span>
-        <span><b className="font-semibold text-zinc-100">{fmt(followingCount)}</b> <span className="text-zinc-500">Following</span></span>
+        <button onClick={() => setListOpen("followers")} className="group transition-colors hover:text-zinc-100">
+          <b className="font-semibold text-zinc-100">{fmt(followers)}</b> <span className="text-zinc-500 group-hover:text-zinc-300 group-hover:underline">Followers</span>
+        </button>
+        <button onClick={() => setListOpen("following")} className="group transition-colors hover:text-zinc-100">
+          <b className="font-semibold text-zinc-100">{fmt(followingCount)}</b> <span className="text-zinc-500 group-hover:text-zinc-300 group-hover:underline">Following</span>
+        </button>
       </div>
+
+      {listOpen && (
+        <FollowListModal
+          username={username}
+          initialType={listOpen}
+          onClose={() => setListOpen(null)}
+          onChanged={sync}
+        />
+      )}
 
       {!isOwner && (
         <button

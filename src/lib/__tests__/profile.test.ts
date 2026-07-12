@@ -103,8 +103,8 @@ describe("profileSchema", () => {
   });
 
   it("enforces bio + location length caps", () => {
-    expect(profileSchema.safeParse({ bio: "x".repeat(281) }).success).toBe(false);
-    expect(profileSchema.safeParse({ bio: "x".repeat(280) }).success).toBe(true);
+    expect(profileSchema.safeParse({ bio: "x".repeat(501) }).success).toBe(false);
+    expect(profileSchema.safeParse({ bio: "x".repeat(500) }).success).toBe(true);
     expect(profileSchema.safeParse({ location: "x".repeat(81) }).success).toBe(false);
   });
 
