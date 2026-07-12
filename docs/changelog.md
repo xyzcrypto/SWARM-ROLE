@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Web3 News: customizable external notifications
+- **External news push was already live** (cron → high-impact stories → subscribers). This adds
+  **per-device customization** so members control what gets pushed to their phone:
+  - **All big news** (default), **For You** (only their saved interests), **Pick topics** (only
+    the categories they choose), or **Off** (stay subscribed, muted).
+  - New pref UI: a "sliders" popover next to the News alerts bell (`NewsAlertsToggle` +
+    `showPrefs`) — mode radios + a topic multiselect over the 28 news `CATEGORIES`. Saves instantly.
+  - `PushSubscription` gains `notifyMode` + `notifyCategories` (migration `22_push_prefs`,
+    idempotent; existing rows default to `"high"` = prior behavior). `POST /api/push/subscribe`
+    stores the prefs; a new `GET` returns them so the popover preselects.
+  - `GET /api/push/dispatch` now **filters recipients per story**: `high` → everyone, `categories`
+    → story matches their topics, `foryou` → story matches their `newsInterests`, `off` → skipped.
+    Resilient pre-migration (falls back to send-to-all).
+- **Owner step:** apply migration `22_push_prefs` (`npm run db:push` or paste the SQL). Until then
+  everyone keeps getting all high-impact alerts (no break).
+
 ## 2026-07-11 — Community + DM + Home polish pass (9 fixes)
 1. **Send buttons say "Send"** — community chat + DM send buttons now show a white paper-plane
    **+ "Send" label** so it's obvious where to send.

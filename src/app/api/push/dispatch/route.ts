@@ -28,7 +28,8 @@ export async function GET(req: Request) {
     const origin = new URL(req.url).origin;
     const res = await fetch(`${origin}/api/news?pageSize=30`, { cache: "no-store" });
     if (!res.ok) return ok({ sent: 0, note: "news unavailable" });
-    const { items } = (await res.json()) as { items: { url: string; title: string; category: string; impact: string; publishedAt: number }[] };
+    type Item = { url: string; title: string; category: string; categories?: string[]; impact: string; publishedAt: number };
+    const { items } = (await res.json()) as { items: Item[] };
 
     const cutoff = Date.now() - FRESH_MS;
     const high = (items ?? []).filter((i) => i.impact === "High" && i.publishedAt >= cutoff);
@@ -45,19 +46,55 @@ export async function GET(req: Request) {
     await prisma.pushedStory.createMany({ data: fresh.map((i) => ({ url: i.url })), skipDuplicates: true });
     const toSend = fresh.slice(0, MAX_PER_RUN);
 
-    const subs = await prisma.pushSubscription.findMany();
+    // Load subscriptions WITH their notification preferences. Falls back to the
+    // old "send to everyone" behavior if the pref columns aren't migrated yet.
+    type Sub = { id: string; endpoint: string; p256dh: string; auth: string; userId: string | null; notifyMode: string; notifyCategories: string[] };
+    let subs: Sub[];
+    try {
+      subs = (await prisma.pushSubscription.findMany({
+        where: { NOT: { notifyMode: "off" } },
+        select: { id: true, endpoint: true, p256dh: true, auth: true, userId: true, notifyMode: true, notifyCategories: true },
+      })) as Sub[];
+    } catch {
+      const rows = await prisma.pushSubscription.findMany();
+      subs = rows.map((s) => ({ ...s, notifyMode: "high", notifyCategories: [] }));
+    }
     if (!subs.length) return ok({ sent: 0, subscribers: 0 });
+
+    // For "foryou" subs, look up each user's saved news interests once.
+    const foryouUserIds = [...new Set(subs.filter((s) => s.notifyMode === "foryou" && s.userId).map((s) => s.userId as string))];
+    const interests = new Map<string, string[]>();
+    if (foryouUserIds.length) {
+      const users = await prisma.user
+        .findMany({ where: { id: { in: foryouUserIds } }, select: { id: true, newsInterests: true } })
+        .catch(() => [] as { id: string; newsInterests: string[] }[]);
+      users.forEach((u) => interests.set(u.id, u.newsInterests ?? []));
+    }
+
+    // Does this subscriber want this story? (story is already High-impact.)
+    const wants = (sub: Sub, storyCats: string[]): boolean => {
+      if (sub.notifyMode === "high") return true;
+      if (sub.notifyMode === "categories") return storyCats.some((c) => sub.notifyCategories.includes(c));
+      if (sub.notifyMode === "foryou") {
+        const mine = (sub.userId && interests.get(sub.userId)) || [];
+        return storyCats.some((c) => mine.includes(c));
+      }
+      return false;
+    };
 
     let sent = 0;
     const dead: string[] = [];
     for (const story of toSend) {
+      const storyCats = story.categories?.length ? story.categories : [story.category];
+      const targets = subs.filter((s) => wants(s, storyCats));
+      if (!targets.length) continue;
       const payload = { title: `🚨 ${story.category}`, body: story.title, url: story.url, tag: story.url };
       const results = await Promise.all(
-        subs.map((s) => sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload))
+        targets.map((s) => sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload))
       );
       results.forEach((r, i) => {
         if (r === "ok") sent++;
-        else if (r === "gone") dead.push(subs[i].id);
+        else if (r === "gone") dead.push(targets[i].id);
       });
     }
     if (dead.length) await prisma.pushSubscription.deleteMany({ where: { id: { in: [...new Set(dead)] } } });
