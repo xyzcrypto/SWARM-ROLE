@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { env, gifEnabled } from "@/lib/env";
+import { env, gifEnabled, voiceEnabled } from "@/lib/env";
 import { CHAT_MESSAGE_SELECT, toChatPayload } from "@/lib/chat";
 import { Navbar } from "@/components/Navbar";
 import { ChatClient } from "@/components/ChatClient";
+import { VoiceRoom } from "@/components/VoiceRoom";
 
 export const metadata: Metadata = {
   title: "Community Chat",
@@ -94,6 +95,13 @@ export default async function CommunityPage() {
               </span>
             </span>
           </div>
+
+          {/* Telegram-style live voice room (LiveKit). Hidden until configured. */}
+          {voiceEnabled && (
+            <div className="mb-2 shrink-0">
+              <VoiceRoom enabled={voiceEnabled} loggedIn={!!me} />
+            </div>
+          )}
 
           <div className="min-h-0 flex-1">
             <ChatClient
