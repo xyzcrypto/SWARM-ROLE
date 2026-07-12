@@ -14,7 +14,7 @@ export function EditProfileButton({ username }: { username: string }) {
   return (
     <Link
       href="/settings"
-      className="btn-secondary inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm"
+      className="btn-secondary inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px]"
     >
       <Pencil className="h-3.5 w-3.5" /> Edit
     </Link>
