@@ -2,13 +2,31 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { SharedArticle } from "@/components/SharedArticle";
-import { decodeStory } from "@/lib/news-share";
+import { decodeStory, type SharedStory } from "@/lib/news-share";
+import { getNewsPage } from "@/lib/news-fetch";
 
-// Depends on the ?d= token, so render on demand.
+// Depends on the ?d= / ?u= param, so render on demand.
 export const dynamic = "force-dynamic";
 
-export async function generateMetadata({ searchParams }: { searchParams: { d?: string } }): Promise<Metadata> {
-  const story = searchParams.d ? decodeStory(searchParams.d) : null;
+// Resolve the story from either the legacy full ?d= token (rich, self-contained)
+// or the new short ?u=<source-url> link (look the story up in the live feed for
+// a rich preview; fall back to a minimal card that links to the source).
+async function resolve(sp: { d?: string; u?: string }): Promise<SharedStory | null> {
+  if (sp.d) return decodeStory(sp.d);
+  if (sp.u) {
+    const url = decodeURIComponent(sp.u);
+    try {
+      const { items } = await getNewsPage({ pageSize: 30 });
+      const it = items.find((i) => i.url === url);
+      if (it) return { u: it.url, t: it.title, s: it.summary, src: it.source, img: it.image, ts: it.publishedAt, cat: it.category };
+    } catch { /* fall through to the minimal card */ }
+    return { u: url, t: "News on XYZ Crypto" };
+  }
+  return null;
+}
+
+export async function generateMetadata({ searchParams }: { searchParams: { d?: string; u?: string } }): Promise<Metadata> {
+  const story = await resolve(searchParams);
   if (!story) return { title: "News" };
   const desc = (story.s || "").slice(0, 200) || "Read this story on XYZ Crypto.";
   const images = story.img ? [story.img] : undefined;
@@ -20,8 +38,8 @@ export async function generateMetadata({ searchParams }: { searchParams: { d?: s
   };
 }
 
-export default function NewsReadPage({ searchParams }: { searchParams: { d?: string } }) {
-  const story = searchParams.d ? decodeStory(searchParams.d) : null;
+export default async function NewsReadPage({ searchParams }: { searchParams: { d?: string; u?: string } }) {
+  const story = await resolve(searchParams);
   return (
     <>
       <Navbar />

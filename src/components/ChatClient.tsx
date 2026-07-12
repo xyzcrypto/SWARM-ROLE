@@ -1527,11 +1527,11 @@ export function ChatClient({
                 type="submit"
                 disabled={sending || !body.trim()}
                 whileTap={{ scale: 0.9 }}
-                className="btn-primary inline-flex h-11 shrink-0 items-center gap-1.5 !rounded-2xl !px-4 disabled:opacity-50"
+                className="btn-primary inline-flex h-11 shrink-0 items-center gap-1 !rounded-2xl !px-2.5 disabled:opacity-50"
                 aria-label="Send message"
               >
-                {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-[18px] w-[18px]" />}
-                <span className="relative z-10 text-sm font-semibold !text-white">Send</span>
+                {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
+                <span className="relative z-10 hidden text-[13px] font-semibold !text-white sm:inline">Send</span>
               </motion.button>
             </form>
             {/* error + character count - aligned below the row, full width */}

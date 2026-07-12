@@ -42,6 +42,22 @@ export function VoiceRoom({ enabled, loggedIn }: { enabled: boolean; loggedIn: b
     if (state !== "idle") return;
     setErr(null);
     setState("connecting");
+
+    // Ask for the mic FIRST, inside the click gesture, so the permission prompt
+    // shows now and the grant survives the later awaits (Safari/iOS consume the
+    // user-activation after an await). Release the probe track immediately; we
+    // re-open the mic through LiveKit after connecting.
+    let micGranted = false;
+    try {
+      if (navigator.mediaDevices?.getUserMedia) {
+        const probe = await navigator.mediaDevices.getUserMedia({ audio: true });
+        probe.getTracks().forEach((t) => t.stop());
+        micGranted = true;
+      }
+    } catch {
+      micGranted = false;
+    }
+
     try {
       const res = await fetch("/api/voice/token", { method: "POST" });
       const j = await res.json().catch(() => null);
@@ -72,12 +88,16 @@ export function VoiceRoom({ enabled, loggedIn }: { enabled: boolean; loggedIn: b
         });
 
       await room.connect(j.url, j.token);
-      // Joining is a user gesture -> unlock autoplay + turn the mic on.
+      // Joining is a user gesture -> unlock autoplay so you can hear others.
       await room.startAudio().catch(() => {});
-      try {
-        await room.localParticipant.setMicrophoneEnabled(true);
-      } catch {
-        setErr("Mic blocked - you're listening only. Allow mic access to talk.");
+      if (micGranted) {
+        try {
+          await room.localParticipant.setMicrophoneEnabled(true);
+        } catch {
+          setErr("Couldn't turn on your mic - you're listening only.");
+        }
+      } else {
+        setErr("Mic not allowed - you're listening only. Enable mic access to talk.");
       }
       setMuted(!room.localParticipant.isMicrophoneEnabled);
       snapshot(room);
@@ -107,19 +127,21 @@ export function VoiceRoom({ enabled, loggedIn }: { enabled: boolean; loggedIn: b
     <div className="shrink-0">
       <div ref={audioBin} className="hidden" aria-hidden />
       {state === "idle" ? (
-        <button
-          onClick={loggedIn ? join : undefined}
-          disabled={!loggedIn}
-          className={cn(
-            "flex w-full items-center justify-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition-colors",
-            loggedIn
-              ? "border-mint-500/30 bg-mint-500/10 text-mint-600 hover:bg-mint-500/15 dark:text-mint-200"
-              : "cursor-not-allowed border-black/10 text-zinc-400 dark:border-white/10"
-          )}
-          title={loggedIn ? "Join the live voice room" : "Log in to join voice"}
-        >
-          <Radio className="h-4 w-4" /> {loggedIn ? "Join voice chat" : "Log in to join voice"}
-        </button>
+        <div className="flex justify-center">
+          <button
+            onClick={loggedIn ? join : undefined}
+            disabled={!loggedIn}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+              loggedIn
+                ? "border-mint-500/30 bg-mint-500/10 text-mint-600 hover:bg-mint-500/15 dark:text-mint-200"
+                : "cursor-not-allowed border-black/10 text-zinc-400 dark:border-white/10"
+            )}
+            title={loggedIn ? "Join the live voice room" : "Log in to join voice"}
+          >
+            <Radio className="h-3.5 w-3.5" /> {loggedIn ? "Join voice" : "Log in for voice"}
+          </button>
+        </div>
       ) : (
         <div className="rounded-2xl border border-mint-500/25 bg-mint-500/[0.06] p-3">
           <div className="mb-2 flex items-center justify-between">
