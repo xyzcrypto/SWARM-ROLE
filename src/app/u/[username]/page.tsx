@@ -14,6 +14,8 @@ import { XIcon, GitHubIcon, TelegramIcon, DiscordIcon, YouTubeIcon, LinkedInIcon
 import { MessageButton } from "@/components/MessageButton";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { ProfileStats } from "@/components/ProfileStats";
+import { ProfileFollow } from "@/components/ProfileFollow";
+import { EditProfileButton } from "@/components/EditProfileButton";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
 import { fetchExtraSocials } from "@/lib/user-socials";
@@ -61,7 +63,7 @@ export default async function ProfilePage({ params }: Props) {
   // Published posts authored by this user (most are non-authors → usually 0).
   // `extra` reads the migration-20 social columns through a guarded query so an
   // un-migrated DB doesn't break the page (returns nulls until applied).
-  const [postCount, recentComments, extra] = await Promise.all([
+  const [postCount, recentComments, extra, followersCount, followingCount] = await Promise.all([
     prisma.post.count({ where: { authorId: user.id, published: true } }).catch(() => 0),
     prisma.comment
       .findMany({
@@ -75,6 +77,9 @@ export default async function ProfilePage({ params }: Props) {
       })
       .catch(() => []),
     fetchExtraSocials({ id: user.id }),
+    // Follow counts - guarded so an un-migrated DB (no Follow table) shows 0.
+    prisma.follow.count({ where: { followingId: user.id } }).catch(() => 0),
+    prisma.follow.count({ where: { followerId: user.id } }).catch(() => 0),
   ]);
 
   const isPremium = user.membership === "Premium";
@@ -124,14 +129,21 @@ export default async function ProfilePage({ params }: Props) {
                       {user.name ?? `@${user.username}`}
                     </h1>
                     <p className="mono mt-1 truncate text-sm text-zinc-500 sm:text-[15px]">@{user.username}</p>
+                    <ProfileFollow
+                      username={user.username!}
+                      profileId={user.id}
+                      initialFollowers={followersCount}
+                      initialFollowing={followingCount}
+                    />
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {isPremium && <Badge tone="gold">★ Premium</Badge>}
                   {isAdmin && <Badge tone="mint">Team</Badge>}
                   <Badge tone="neutral">Member since {formatDate(user.createdAt)}</Badge>
+                  <EditProfileButton username={user.username!} />
                   <MessageButton username={user.username!} />
-                  <CopyLinkButton />
+                  <CopyLinkButton compact />
                 </div>
               </div>
 
@@ -146,16 +158,19 @@ export default async function ProfilePage({ params }: Props) {
                     {user.location}
                   </span>
                 )}
+                {/* Icon-only social logos - tap the logo to open. Compact so they
+                    take little space; the full handle is the tooltip/aria-label. */}
                 {socials.map(({ href, Icon, label, hover }) => (
                   <a
                     key={href}
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer nofollow"
-                    className={`group inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-zinc-400 transition-all duration-300 hover:-translate-y-0.5 ${hover}`}
+                    title={label}
+                    aria-label={label}
+                    className={`group grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.03] text-zinc-400 transition-all duration-300 hover:-translate-y-0.5 ${hover}`}
                   >
-                    <Icon className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
-                    {label}
+                    <Icon className="h-[18px] w-[18px] transition-transform duration-300 group-hover:scale-110" />
                   </a>
                 ))}
               </div>

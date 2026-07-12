@@ -5,7 +5,8 @@ import { Link2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Copy the current profile URL to the clipboard with a brief "Copied" state.
-export function CopyLinkButton() {
+// `compact` = icon-only round button (takes little space on the profile header).
+export function CopyLinkButton({ compact = false }: { compact?: boolean }) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -15,6 +16,19 @@ export function CopyLinkButton() {
       setTimeout(() => setCopied(false), 1800);
     } catch { /* clipboard blocked — no-op */ }
   };
+
+  if (compact) {
+    return (
+      <button
+        onClick={copy}
+        aria-label="Copy profile link"
+        title={copied ? "Copied!" : "Share profile"}
+        className={cn("btn-ghost grid h-9 w-9 place-items-center rounded-full transition-colors", copied && "text-mint-300")}
+      >
+        {copied ? <Check className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+      </button>
+    );
+  }
 
   return (
     <button

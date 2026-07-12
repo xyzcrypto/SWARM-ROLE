@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-12 — Profiles: Twitter-style follow system + compact header
+- **Follow / Following / Unfollow** — new `Follow` model (migration `23_follows`, idempotent) +
+  `POST/GET /api/follow` (toggle + counts, logged-in + rate-limited, resilient pre-migration).
+  New `ProfileFollow.tsx`: follower/following counts + a follow button that reads **Follow**
+  (green) → **Following** (grey) → **Unfollow** (red on hover/again), optimistic, self-hidden on
+  your own profile, redirects to login when logged out. **Live** — counts update via the profile's
+  realtime channel + a new-follow fires an in-app notification.
+- **Edit from the profile** — owner-only **Edit** button in the header (→ /settings), no need to
+  dig into Settings.
+- **Smaller Share** — the Share button is now a compact icon-only round button (was a big pill).
+- **Icon-only social logos** — Website/X/Telegram/YouTube/LinkedIn/Discord/Instagram/GitHub now
+  show just the logo (tap to open; full handle in the tooltip) — far less space.
+- **Owner step:** apply migration `23_follows` (SQL / `db:push`). Until then follow shows 0 and the
+  button no-ops gracefully.
+
 ## 2026-07-12 — Voice/compose polish + short news share links
 - **Voice bar is now a small pill** (`VoiceRoom.tsx`) instead of a full-width bar — takes almost
   no space when idle; expands only when you're in the call.
