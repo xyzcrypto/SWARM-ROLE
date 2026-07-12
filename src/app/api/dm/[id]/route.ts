@@ -4,6 +4,8 @@ import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { otherOf, snippet, DM_MAX_LEN, DM_USER_SELECT } from "@/lib/dm";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
+import { sendPush, pushEnabled } from "@/lib/push";
+import { chatMediaUrl } from "@/lib/chat-media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -105,6 +107,20 @@ export async function POST(req: Request, { params }: Ctx) {
       conversationId: conv.id,
       message: { id: created.id, body: created.body, createdAt: created.createdAt, senderId: me.id },
     });
+
+    // Fire-and-forget external push to the recipient's devices (private DM alert).
+    if (pushEnabled) {
+      const meName = (me as { name?: string | null }).name || "New message";
+      const preview = chatMediaUrl(body) ? "📷 Photo" : snippet(body);
+      void (async () => {
+        const subs = await prisma.pushSubscription.findMany({ where: { userId: recipientId }, select: { endpoint: true, p256dh: true, auth: true } }).catch(() => []);
+        if (!subs.length) return;
+        const payload = { title: `💬 ${meName}`, body: preview, url: `/messages?c=${conv.id}`, tag: `dm-${conv.id}` };
+        const results = await Promise.all(subs.map((s) => sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload)));
+        const gone = subs.filter((_, i) => results[i] === "gone").map((s) => s.endpoint);
+        if (gone.length) await prisma.pushSubscription.deleteMany({ where: { endpoint: { in: gone } } }).catch(() => {});
+      })();
+    }
 
     return ok({ message: { id: created.id, body: created.body, createdAt: created.createdAt, mine: true } }, 201);
   } catch (err) {

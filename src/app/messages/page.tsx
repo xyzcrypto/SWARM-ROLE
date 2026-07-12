@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { gifEnabled } from "@/lib/env";
 import { Navbar } from "@/components/Navbar";
 import { MessagesClient } from "@/components/MessagesClient";
 
@@ -21,7 +22,7 @@ export default async function MessagesPage() {
         <div className="mesh" />
         <div className="relative mx-auto max-w-5xl px-4 pb-10 sm:px-6 lg:px-8">
           <Suspense fallback={null}>
-            <MessagesClient meId={meId} />
+            <MessagesClient meId={meId} gifEnabled={gifEnabled} />
           </Suspense>
         </div>
       </main>
