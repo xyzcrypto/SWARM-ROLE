@@ -131,7 +131,7 @@ export const profileSchema = z.object({
     })
     .transform((v) => (v === "" ? undefined : v))
     .optional(),
-  bio: optionalText(280, "Bio"),
+  bio: optionalText(500, "Bio"),
   location: optionalText(80, "Location"),
   website: z
     .string()

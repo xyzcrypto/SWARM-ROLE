@@ -361,12 +361,12 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value)}
-            maxLength={280}
+            maxLength={500}
             rows={3}
             placeholder="Web3 builder, trader, researcher…"
             className="w-full resize-none rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
           />
-          <p className="mt-1 text-right text-[11px] text-zinc-600">{bio.length}/280</p>
+          <p className="mt-1 text-right text-[11px] text-zinc-600">{bio.length}/500</p>
         </label>
 
         <Field label="Location" value={location} onChange={setLocation} placeholder="Dubai, UAE" icon={<MapPin className="h-4 w-4" />} />
