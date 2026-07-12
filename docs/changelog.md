@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-12 — Voice/compose polish + short news share links
+- **Voice bar is now a small pill** (`VoiceRoom.tsx`) instead of a full-width bar — takes almost
+  no space when idle; expands only when you're in the call.
+- **Mic actually turns on** — the mic permission is now requested **inside the click gesture**
+  (before the token fetch / connect awaits), so iOS/Safari don't drop the grant. Denied → clean
+  "listening only" state.
+- **Smaller send button** (community composer) — icon-only on mobile, icon + "Send" on ≥sm — so the
+  message box gets more room.
+- **Short news share links** — sharing a story now copies a tiny `/news/read?u=<source-url>` link
+  (was a huge `?d=<base64 of the whole story>`). The reader resolves `?u=` by looking the story up
+  in the live feed for a rich preview (falls back to a minimal card). Easy to paste anywhere.
+- **News push note:** external news notifications require the `push-dispatch` cron to be running —
+  set repo secrets `PROD_URL` + `CRON_SECRET` (and `CRON_SECRET` in Vercel). Chat push works without
+  it (fired inline); news push needs the scheduled trigger.
+
 ## 2026-07-11 — Community voice rooms (LiveKit, Telegram-style)
 - **Live voice chat in the lounge** — a "Join voice chat" bar on `/community`; members join one
   shared audio room, talk + listen, see who's speaking (speaking rings + mute state), mute/leave.

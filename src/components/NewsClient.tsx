@@ -14,17 +14,14 @@ import type { NewsPage } from "@/lib/news-fetch";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
 import { BriefingBlock } from "./BriefingBlock";
 import { NewsSocial } from "./NewsSocial";
-import { shareUrl, type SharedStory } from "@/lib/news-share";
 import { cn } from "@/lib/utils";
 
-// A news item → the compact story we share as an on-site link.
-function storyOf(item: NewsItem): SharedStory {
-  return { u: item.url, t: item.title, s: item.summary, src: item.source, img: item.image, ts: item.publishedAt, cat: item.category };
-}
-// Share OUR on-site link (rich preview on our domain) rather than the raw source.
+// Share a SHORT on-site link (`/news/read?u=<source-url>`) - opens the story on
+// our domain but stays tiny (just the source url), so it's easy to paste into a
+// chat. (The old `?d=` token embedded the whole story and produced a huge link.)
 async function shareStory(item: NewsItem) {
   const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const url = shareUrl(origin, storyOf(item));
+  const url = `${origin}/news/read?u=${encodeURIComponent(item.url)}`;
   try {
     if (navigator.share) await navigator.share({ title: item.title, url });
     else await navigator.clipboard.writeText(url);
