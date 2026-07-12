@@ -13,11 +13,17 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' https://fonts.gstatic.com data:",
+  // LiveKit's client spins up Web Workers (from blob: URLs) for audio; WebRTC
+  // audio playback attaches MediaStreams to <audio>. Without these the voice
+  // room can't start.
+  "worker-src 'self' blob:",
+  "media-src 'self' blob: mediastream:",
   // Supabase Realtime (community chat live presence + broadcasts) opens a
   // WebSocket to wss://<ref>.supabase.co; the https origin covers the initial
-  // handshake / REST broadcast fallback. Without these the browser silently
-  // blocks the connection and presence/sound never work.
-  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.supabase.co wss://*.supabase.co",
+  // handshake / REST broadcast fallback. LiveKit signaling connects over
+  // wss://*.livekit.cloud. Without these the browser silently blocks them and
+  // presence/voice never work.
+  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud",
   "frame-src 'self' https://accounts.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",

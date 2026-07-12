@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-11 — Community voice rooms (LiveKit, Telegram-style)
+- **Live voice chat in the lounge** — a "Join voice chat" bar on `/community`; members join one
+  shared audio room, talk + listen, see who's speaking (speaking rings + mute state), mute/leave.
+  Audio-only, powered by **LiveKit**.
+  - **New:** `POST /api/voice/token` (server, logged-in + rate-limited) mints a short-lived
+    LiveKit token signed with the API key/secret (never exposed client-side).
+  - **New:** `VoiceRoom.tsx` — connects via `livekit-client` (**dynamically imported**, off the
+    first-paint bundle), turns the mic on, renders participants; mic-denied → listener mode.
+  - `env`: `LIVEKIT_API_KEY` + `LIVEKIT_API_SECRET` + `NEXT_PUBLIC_LIVEKIT_URL` + `voiceEnabled`
+    flag (bar hidden until all set). CSP updated for `wss://*.livekit.cloud` + blob workers +
+    mediastream. Deps: `livekit-server-sdk`, `livekit-client`.
+- **Owner setup:** create a free LiveKit Cloud project → add the 3 env vars (see `docs/VOICE.md`).
+  No database/migration needed.
+
 ## 2026-07-11 — Web3 News: customizable external notifications
 - **External news push was already live** (cron → high-impact stories → subscribers). This adds
   **per-device customization** so members control what gets pushed to their phone:
