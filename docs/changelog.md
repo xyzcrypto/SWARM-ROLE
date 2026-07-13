@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-13 — Fix: mobile black-screen (service worker cache bump)
+- **`public/sw.js`** — bumped `CACHE` (`xyz-pwa-v3` → `xyz-pwa-v4`). The `activate` handler already
+  purges any cache key that doesn't match `CACHE` and calls `clients.claim()`, so this forces every
+  device (installed PWA and regular mobile Chrome tabs alike, since the service worker controls all
+  same-origin requests, not just installed sessions) to discard any stale/broken cached page or asset
+  next time it checks for a worker update, instead of continuing to serve old cached content.
+- Verified the production build renders correctly (desktop + mobile viewport) via a local prod server
+  and headless-Chrome screenshots — the app code itself is healthy; this targets a stale-cache class of
+  bug on already-visited devices.
+
 ## 2026-07-12 — DMs: search people + emoji/photo/GIF + online + push
 - **Search people to DM** — a search bar in the Messages inbox (`GET /api/dm/search`, logged-in)
   finds any member by name/@username; tap a result to open/start the conversation.
