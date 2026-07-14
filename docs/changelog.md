@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Basic XP system (engagement foundation)
+- **New `XpEvent` model + migration 27** (`prisma/migrations/27_xp_events`): one row per user per action per
+  day, `@@unique([userId, action, day])` makes awarding idempotent (a repeat call the same day is a graceful
+  no-op, not an error). Denormalized `User.xp` counter kept in sync inside a `$transaction`.
+- **`src/lib/xp.ts`**: the 5 actions (`checkin`, `research_view`, `news_read`, `tool_use`,
+  `profile_update`), each worth a flat 1 XP for now - deliberately simple, the foundation for a fuller
+  gamified system later (levels/streaks/badges), not that system itself.
+- **`POST /api/xp/award`** (zod-validated action, rate-limited, session-gated) + **`GET /api/xp`** (total XP
+  + today's already-claimed actions, so the client can show claimed/disabled state without guessing).
+- **`AwardXpOnView`**: a passive client component, fires the award once per mount - wired into
+  `research/[slug]/page.tsx` (unlocked posts only), the news reader in `NewsClient.tsx`, and `ToolsClient.tsx`.
+  `SettingsClient.tsx`'s profile save fires the award directly on success.
+- **Daily check-in**: new `DailyCheckIn` button in the navbar account menu (desktop dropdown + mobile panel)
+  - checks today's claimed state on mount, awards +1 XP on click, shows a claimed state after.
+- Everything degrades gracefully pre-migration (`.catch(() => [])`/`.catch(() => null)`); no existing route,
+  page, or component's behavior changed beyond these additive wire-ups.
+
 ## 2026-07-14 — Mobile: Profile in bottom nav + floating XYZ AI
 - **Bottom nav center slot is now Profile** (Markets / News / **Profile** / Research / Chat) - shows your
   avatar when signed in (linking to `/u/<handle>` or `/profile`), a generic icon linking to login when

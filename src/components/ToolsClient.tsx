@@ -13,6 +13,7 @@ import { PnlCalculator } from "./tools/PnlCalculator";
 import { BreakEvenCalculator } from "./tools/BreakEvenCalculator";
 import { CompoundingCalculator } from "./tools/CompoundingCalculator";
 import { DrawdownRecoveryCalculator } from "./tools/DrawdownRecoveryCalculator";
+import { AwardXpOnView } from "./AwardXpOnView";
 
 const TABS = [
   { id: "funding", label: "Funding Fee", icon: Percent, Panel: FundingFeeCalculator },
@@ -54,6 +55,7 @@ export function ToolsClient() {
 
   return (
     <div className="space-y-8">
+      <AwardXpOnView action="tool_use" />
       <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
         <div className="mx-auto flex w-max items-center gap-1.5 rounded-2xl border border-line bg-ink-950/50 p-1.5 sm:w-full sm:flex-wrap sm:justify-center">
           {TABS.map((t) => {

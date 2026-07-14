@@ -219,6 +219,11 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
         return;
       }
       setSaved(true);
+      fetch("/api/xp/award", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "profile_update" }),
+      }).catch(() => {});
       await update(); // refresh session so navbar/name/avatar update immediately
     } catch {
       setError("Network error. Please try again.");
