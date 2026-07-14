@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LineChart, Newspaper, FileText, MessagesSquare } from "lucide-react";
-import { RobotIcon } from "./RobotIcon";
-import { XYZ_AI_OPEN_EVENT } from "./XyzAiWidget";
+import { useSession } from "next-auth/react";
+import { LineChart, Newspaper, FileText, MessagesSquare, User } from "lucide-react";
+import { Avatar } from "./Avatar";
 import { isBottomActive, isBottomHidden } from "@/lib/bottom-nav";
 import { cn } from "@/lib/utils";
 
@@ -17,15 +17,22 @@ const ITEMS: Item[] = [
 ];
 
 /**
- * App-style bottom navigation for mobile only (md:hidden). Five equal targets:
- * two nav links, a centered XYZ AI launcher, two more links. Safe-area aware;
- * the AI floating button is hidden on mobile so this is the single AI entry.
+ * App-style bottom navigation for mobile only (md:hidden). Five equal
+ * targets: two nav links, a centered Profile entry, two more links. Safe-area
+ * aware. XYZ AI now lives as a floating launcher visible on mobile too (see
+ * XyzAiWidget.tsx), freeing this center slot for direct profile access.
  */
 export function BottomNav() {
   const pathname = usePathname() || "/";
+  const { data: session } = useSession();
   if (isBottomHidden(pathname)) return null;
   const left = ITEMS.slice(0, 2);
   const right = ITEMS.slice(2);
+
+  const user = session?.user as any;
+  const username = user?.username as string | undefined;
+  const profileHref = session ? (username ? `/u/${username}` : "/profile") : "/login?callbackUrl=/";
+  const profileActive = pathname === "/profile" || pathname.startsWith("/u/");
 
   return (
     <>
@@ -41,16 +48,21 @@ export function BottomNav() {
         {left.map((it) => (
           <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />
         ))}
-        <button
-          onClick={() => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT))}
-          className="flex flex-col items-center justify-center gap-0.5 py-1.5"
-          aria-label="Open XYZ AI"
+        <Link
+          href={profileHref}
+          aria-current={profileActive ? "page" : undefined}
+          className={cn(
+            "flex min-h-[52px] flex-col items-center justify-center gap-0.5 py-1.5 transition-colors",
+            profileActive ? "text-gold-200" : "text-zinc-500 hover:text-zinc-300"
+          )}
         >
-          <span className="-mt-4 inline-flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-mint-400 to-mint-600 text-ink shadow-lg shadow-mint-500/30 ring-4 ring-ink-950">
-            <RobotIcon className="h-6 w-6" />
-          </span>
-          <span className="text-[10px] font-medium text-mint-300">XYZ AI</span>
-        </button>
+          {session ? (
+            <Avatar name={user?.name} image={user?.image} email={user?.email} size="sm" />
+          ) : (
+            <User className="h-5 w-5" />
+          )}
+          <span className="text-[10px] font-medium">Profile</span>
+        </Link>
         {right.map((it) => (
           <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />
         ))}
