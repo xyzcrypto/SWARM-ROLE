@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Share2 } from "lucide-react";
 import { airdropValue, priceFromFdv } from "@/lib/calculators";
-import { DEX_REGISTRY, platformsWithPointValue } from "@/lib/dex-registry";
+import { DEX_REGISTRY, platformLogo, platformsWithPointValue } from "@/lib/dex-registry";
 import { AssumptionBanner, CalcField, ResultTile } from "./CalcField";
 import { cn } from "@/lib/utils";
 
@@ -61,21 +62,28 @@ export function PointsValueCalculator() {
 
       {PRESETS.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => applyPreset(p.id)}
-              className={cn(
-                "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                platformId === p.id
-                  ? "border-gold-500/40 bg-gold-500/15 text-gold-100"
-                  : "border-white/10 text-zinc-400 hover:border-gold-500/40 hover:text-gold-200"
-              )}
-            >
-              {p.name}
-            </button>
-          ))}
+          {PRESETS.map((p) => {
+            const logo = platformLogo(p);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyPreset(p.id)}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                  platformId === p.id
+                    ? "border-gold-500/40 bg-gold-500/15 text-gold-100"
+                    : "border-white/10 text-zinc-400 hover:border-gold-500/40 hover:text-gold-200"
+                )}
+              >
+                {logo && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logo} alt="" width={14} height={14} className="h-3.5 w-3.5 rounded-sm" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
+                )}
+                {p.name}
+              </button>
+            );
+          })}
         </div>
       )}
       {platform?.notes && <p className="text-xs text-zinc-600">{platform.notes}</p>}
@@ -107,6 +115,23 @@ export function PointsValueCalculator() {
         <ResultTile label="Your share" value={`${result.sharePct.toFixed(4)}%`} />
         <ResultTile label="Estimated tokens" value={result.tokens.toLocaleString(undefined, { maximumFractionDigits: 2 })} />
         <ResultTile label="Estimated value" value={`$${result.usd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} tone="gold" />
+      </div>
+
+      <div className="flex justify-end">
+        <a
+          href={`/api/tools/share/points-value?${new URLSearchParams({
+            platform: platform?.name ?? "Perp DEX",
+            sharePct: result.sharePct.toFixed(4),
+            tokens: result.tokens.toFixed(2),
+            usd: result.usd.toFixed(2),
+            fdv,
+          }).toString()}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-secondary inline-flex items-center gap-1.5 text-xs"
+        >
+          <Share2 className="h-3.5 w-3.5" /> Share card
+        </a>
       </div>
     </div>
   );

@@ -235,6 +235,7 @@ export function ChatClient({
     });
 
   const listRef = useRef<HTMLDivElement>(null);
+  const scrollRaf = useRef(0);
   const channelRef = useRef<any>(null);
   const lastTyping = useRef(0);
   const stickRef = useRef(true);
@@ -509,18 +510,26 @@ export function ChatClient({
     if (el && stickRef.current) el.scrollTop = el.scrollHeight;
   }, [messages, typers]);
 
+  useEffect(() => () => { if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current); }, []);
+
   function clearUnread() {
     setUnread(0);
     firstUnreadRef.current = null;
     setFirstUnreadId(null);
   }
 
+  // rAF-throttled - a plain handler would setState on every native scroll
+  // event while chatting (mirrors the fix already applied in ReadingProgress.tsx).
   function onScroll() {
-    const el = listRef.current;
-    if (!el) return;
-    const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-    setStickToBottom(nearBottom);
-    if (nearBottom) clearUnread();
+    if (scrollRaf.current) return;
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = 0;
+      const el = listRef.current;
+      if (!el) return;
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      setStickToBottom(nearBottom);
+      if (nearBottom) clearUnread();
+    });
   }
 
   function jumpToLatest() {

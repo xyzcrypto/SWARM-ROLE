@@ -5,6 +5,26 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Points-value/journal share cards + Variational logo + scroll-jank fixes
+- **Variational's real logo**: added `links.website` to its DEX registry entry + a new `platformLogo()`
+  helper (`src/lib/dex-registry.ts`) that derives the domain and reuses the existing keyless
+  `favicon()` service already used for news-source icons - no logo file downloaded or committed, works
+  for any future registry entry with a `website` link. Shown next to each platform preset button in the
+  Points Value calculator.
+- **Two new share cards** (same `next/og` + `Cache-Control` recipe as the existing research/challenge
+  cards, cached from day one): `GET /api/tools/share/points-value` (renders the calculator's current
+  result from query params, no DB read) and `GET /api/journal/share/overview/[userId]` (renders a
+  member's aggregate win rate/P&L/trade count only - never raw trade data, same privacy model as the
+  challenge card). "Share card" / "Share my stats" buttons wired into the Points Value calculator and
+  the Journal Analytics tab.
+- **Scroll-jank fixes** (desktop + mobile): the sticky navbar's `backdrop-blur-xl` (24px) had no desktop
+  reduction (only mobile got one) - a fixed element blurring everything behind it repaints every scroll
+  frame site-wide, so trimmed to `backdrop-blur-lg`. Two scroll handlers were calling `setState`
+  directly on every native scroll event with no throttling - the news reader's progress bar
+  (`NewsClient.tsx`) and the community chat message list's stick-to-bottom check (`ChatClient.tsx`) -
+  both now rAF-throttled, mirroring the pattern already used correctly in `ReadingProgress.tsx`.
+- All additive/isolated changes; no existing behavior altered beyond the blur radius and throttling.
+
 ## 2026-07-14 — Cache news classification (Vercel Fluid Active CPU)
 - **Root cause found and fixed**: Vercel's usage dashboard showed **Fluid Active CPU at 5h18m / 4h - already
   over the free-tier cap** (more urgent than the earlier Fast Origin Transfer warning). Traced it to
