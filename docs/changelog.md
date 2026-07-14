@@ -5,6 +5,14 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Tools: 3 new calculators + tab bar polish
+- **3 new calculators** on `/tools`: **Break-Even** (exit price where round-trip fees cancel your P&L),
+  **Compounding** (project capital growth from a fixed return per period, with daily/weekly/monthly
+  presets), and **Drawdown Recovery** (the real gain needed to recover from a loss - a 50% drawdown needs
+  a 100% gain, not 50%). All pure functions in `src/lib/calculators.ts`, unit-tested.
+- **Tab bar polish** - now scrolls horizontally on mobile instead of wrapping awkwardly with 8 tabs, and
+  remembers your last-used calculator across visits (localStorage, no account needed).
+
 ## 2026-07-14 — Trading OS Phase 6: Premium tiering + share cards
 - **Analytics tab tiering** — the 8 core stat tiles (win rate, P&L, profit factor, etc.) stay free for
   everyone; the deep dashboard (drawdown curve, activity heatmap, daily/weekly/monthly breakdown,

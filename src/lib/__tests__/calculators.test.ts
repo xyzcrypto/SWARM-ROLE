@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   airdropValue,
+  breakEvenPrice,
+  compoundGrowth,
+  drawdownRecoveryPct,
   fundingFee,
   liquidationPrice,
   pnl,
@@ -87,5 +90,39 @@ describe("riskReward", () => {
   });
   it("returns 0 when stop equals entry", () => {
     expect(riskReward({ entryPrice: 100, stopPrice: 100, targetPrice: 110 })).toBe(0);
+  });
+});
+
+describe("breakEvenPrice", () => {
+  it("moves up for a long by the round-trip fee", () => {
+    expect(breakEvenPrice({ entryPrice: 100, side: "long", feePct: 0.1 })).toBeCloseTo(100.2);
+  });
+  it("moves down for a short by the round-trip fee", () => {
+    expect(breakEvenPrice({ entryPrice: 100, side: "short", feePct: 0.1 })).toBeCloseTo(99.8);
+  });
+});
+
+describe("compoundGrowth", () => {
+  it("compounds a fixed return per period", () => {
+    const r = compoundGrowth({ startingCapital: 1000, returnPctPerPeriod: 10, periods: 2 });
+    expect(r.finalCapital).toBeCloseTo(1210);
+    expect(r.totalGain).toBeCloseTo(210);
+    expect(r.totalReturnPct).toBeCloseTo(21);
+  });
+  it("handles 0 periods as unchanged", () => {
+    const r = compoundGrowth({ startingCapital: 1000, returnPctPerPeriod: 10, periods: 0 });
+    expect(r.finalCapital).toBeCloseTo(1000);
+  });
+});
+
+describe("drawdownRecoveryPct", () => {
+  it("requires a 100% gain to recover from a 50% loss", () => {
+    expect(drawdownRecoveryPct(50)).toBeCloseTo(100);
+  });
+  it("requires a smaller gain to recover from a small drawdown", () => {
+    expect(drawdownRecoveryPct(10)).toBeCloseTo(11.11, 1);
+  });
+  it("is 0 for no drawdown", () => {
+    expect(drawdownRecoveryPct(0)).toBe(0);
   });
 });

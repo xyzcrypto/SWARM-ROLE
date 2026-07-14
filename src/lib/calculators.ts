@@ -99,3 +99,31 @@ export function riskReward(args: { entryPrice: number; stopPrice: number; target
   const reward = Math.abs(args.targetPrice - args.entryPrice);
   return risk > 0 ? reward / risk : 0;
 }
+
+/** The exit price needed to cover round-trip fees and land at $0 P&L. */
+export function breakEvenPrice(args: { entryPrice: number; side: Side; feePct: number }): number {
+  const move = args.entryPrice * ((args.feePct * 2) / 100); // round-trip: entry + exit fee
+  return args.side === "long" ? args.entryPrice + move : args.entryPrice - move;
+}
+
+/** Compound growth of capital at a fixed return % per period (e.g. per trade, per week). */
+export function compoundGrowth(args: {
+  startingCapital: number;
+  returnPctPerPeriod: number;
+  periods: number;
+}): { finalCapital: number; totalReturnPct: number; totalGain: number } {
+  const finalCapital = args.startingCapital * Math.pow(1 + args.returnPctPerPeriod / 100, args.periods);
+  const totalGain = finalCapital - args.startingCapital;
+  const totalReturnPct = args.startingCapital > 0 ? (totalGain / args.startingCapital) * 100 : 0;
+  return { finalCapital, totalReturnPct, totalGain };
+}
+
+/**
+ * The % gain needed to fully recover from a drawdown - the classic asymmetry
+ * (a 50% loss needs a 100% gain to break even, not 50%).
+ */
+export function drawdownRecoveryPct(drawdownPct: number): number {
+  if (drawdownPct <= 0) return 0;
+  if (drawdownPct >= 100) return Infinity;
+  return (drawdownPct / (100 - drawdownPct)) * 100;
+}
