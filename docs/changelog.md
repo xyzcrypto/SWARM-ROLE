@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Fix navbar's sitewide full-chat-fetch (Vercel Fast Origin Transfer)
+- **Root cause found and fixed** (owner asked whether pausing Chat/DM would help reduce usage;
+  investigated instead of guessing - the real waste was elsewhere and disabling messaging/GIFs would
+  have helped ~0%, since GIF bytes are hotlinked from Giphy/Tenor and never touch Vercel, and live
+  chat/DM delivery already runs over the Supabase realtime WebSocket, bypassing Vercel entirely).
+- **`NavActivity.tsx`'s `loadChat()`** was fetching the full `/api/chat/messages` response (up to 50
+  complete messages with author/reactions/polls) purely to read the last message's `createdAt` and
+  flip a boolean "new activity" dot - on every 60s poll tick, on mount, and on every generic realtime
+  ping, **sitewide, on every page, for every logged-in user** (`Navbar`/`NavActivity` render globally).
+  The dedicated chat realtime channel already set the dot directly with zero fetch on live updates -
+  only the poll/mount/ping paths were wasteful.
+- **Fix**: new `GET /api/chat/last-activity` returns a single cached timestamp (`findFirst` selecting
+  only `createdAt`) instead of the full message list; `loadChat()` now targets it. Same dot behavior,
+  same instant-on-live-broadcast update, ~15-30KB down to a few bytes per poll tick, sitewide.
+- No changes to Chat, DMs, or GIF sending - none of those were the actual cost driver.
+
 ## 2026-07-14 — Fix stuck desktop ticker + upgrade points-value share (real logos, X post, copy image)
 - **"Live Market" ticker looked stuck on desktop**: `MarketTicker.tsx`'s scrolling track had
   `hover:[animation-play-state:paused]` - simply resting the mouse anywhere over the full-width strip

@@ -72,11 +72,12 @@ export function NavActivity() {
 
   const loadChat = useCallback(async () => {
     try {
-      const res = await fetch("/api/chat/messages", { cache: "no-store" });
+      // Only the latest message's timestamp is needed to flip the dot - not
+      // the full message list (see src/app/api/chat/last-activity/route.ts).
+      const res = await fetch("/api/chat/last-activity");
       if (!res.ok) return;
       const data = await res.json();
-      const msgs: { createdAt: string }[] = Array.isArray(data.messages) ? data.messages : [];
-      const latest = msgs.length ? msgs[msgs.length - 1]!.createdAt : null;
+      const latest: string | null = data.latestAt ?? null;
       if (!latest) return setChatDot(false);
       const seen = localStorage.getItem(CHAT_SEEN_KEY);
       setChatDot(!seen || new Date(latest).getTime() > new Date(seen).getTime());
