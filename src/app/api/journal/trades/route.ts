@@ -55,6 +55,7 @@ const createTradeSchema = z.object({
   notes: z.string().max(2000).optional(),
   screenshots: z.array(z.string().url().max(800)).max(10).optional().default([]),
   visibility: z.enum(["private", "public", "anonymous"]).optional().default("private"),
+  challengeId: z.string().max(60).optional(),
   fills: z.array(fillSchema).min(1).max(50),
 });
 
@@ -69,6 +70,16 @@ export async function POST(req: Request) {
     const parsed = createTradeSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.", 400);
     const t = parsed.data;
+
+    if (t.challengeId) {
+      const challenge = await prisma.challenge.findUnique({
+        where: { id: t.challengeId },
+        include: { participants: { where: { userId: me.id } } },
+      });
+      if (!challenge || (challenge.creatorId !== me.id && challenge.participants.length === 0)) {
+        return fail("You're not a participant of that challenge.", 403);
+      }
+    }
 
     const hasExit = t.fills.some((f) => f.kind === "exit");
     const entryTotal = t.fills.filter((f) => f.kind === "entry").reduce((s, f) => s + f.size, 0);
@@ -98,6 +109,7 @@ export async function POST(req: Request) {
         notes: t.notes || null,
         screenshots: t.screenshots,
         visibility: t.visibility,
+        challengeId: t.challengeId || null,
         fills: {
           create: t.fills.map((f) => ({
             kind: f.kind,

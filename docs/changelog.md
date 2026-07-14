@@ -5,6 +5,27 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Trading OS Phase 4: Challenges tab
+- **`/journal`** gains a fourth tab, **Challenges**, alongside Trades, Analytics, and Risk.
+- **Create a challenge** with a fully custom duration - 30/90/120-day presets plus arbitrary start/end
+  dates - starting capital, an optional target, and visibility (**private**, **public**, or **community**).
+  The "4-month challenge" is one preset among many, not a hardcoded mode.
+- **Not just solo** - a community challenge has one creator plus many participants
+  (`ChallengeParticipant`), each ranked on a **leaderboard by return %**. Public/community challenges are
+  browsable under "Discover" with a one-tap Join.
+- **Privacy-safe leaderboard**: other participants' raw trade data never leaves the server - only the
+  aggregated capital/return/trade-count is returned (`src/lib/challenge.ts`, pure, unit-tested, computed
+  server-side for the leaderboard and reused client-side for progress bars).
+- **Milestones** - lightweight, manually-toggled checkpoints a challenge creator can add and check off.
+- New **`Challenge`**, **`ChallengeParticipant`**, **`ChallengeMilestone`** models + idempotent migration
+  (`prisma/migrations/26_challenges`, also adds `Trade.challengeId` so a trade can optionally count toward
+  a challenge's progress). `GET`/`POST /api/journal/challenges`, `GET`/`PATCH`/`DELETE
+  /api/journal/challenges/[id]`, `POST .../join`, and milestone create/toggle/delete routes - all reusing
+  the existing `journal` rate-limit bucket.
+- Fifth and final planned phase of the Trading OS roadmap (`/tools` → Journal core → Analytics → Risk →
+  **Challenges**). Linking a trade to a challenge from the Trade form is a natural quick follow-up.
+  Nothing else existing was touched.
+
 ## 2026-07-14 — Trading OS Phase 3: Risk Management tab
 - **`/journal`** gains a third tab, **Risk**, alongside Trades and Analytics.
 - Set optional limits (all skip if left blank): account equity, max risk per trade, max daily loss, max
