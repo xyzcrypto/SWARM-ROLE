@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Share2 } from "lucide-react";
+import { Share2, Loader2 } from "lucide-react";
 import { airdropValue, priceFromFdv } from "@/lib/calculators";
 import { DEX_REGISTRY, platformDomain, platformLogo, platformsWithPointValue } from "@/lib/dex-registry";
 import { AssumptionBanner, CalcField, ResultTile } from "./CalcField";
@@ -47,6 +47,35 @@ export function PointsValueCalculator() {
       }),
     [yourPoints, totalPoints, allocPct, supply, price]
   );
+
+  const [sharing, setSharing] = useState(false);
+  async function share() {
+    if (sharing) return;
+    setSharing(true);
+    try {
+      const res = await fetch("/api/tools/share/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "points-value",
+          data: {
+            platform: platform?.name ?? "Perp DEX",
+            domain: platformDomain(platform ?? { links: {} }) ?? "",
+            sharePct: result.sharePct,
+            tokens: result.tokens,
+            usd: result.usd,
+            fdv: Number(fdv) || 0,
+          },
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok && j.id) window.open(`/tools/share/points-value/${j.id}`, "_blank", "noopener,noreferrer");
+    } catch {
+      /* best-effort */
+    } finally {
+      setSharing(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -118,21 +147,15 @@ export function PointsValueCalculator() {
       </div>
 
       <div className="flex justify-end">
-        <a
-          href={`/tools/share/points-value?${new URLSearchParams({
-            platform: platform?.name ?? "Perp DEX",
-            domain: platformDomain(platform ?? { links: {} }) ?? "",
-            sharePct: result.sharePct.toFixed(4),
-            tokens: result.tokens.toFixed(2),
-            usd: result.usd.toFixed(2),
-            fdv,
-          }).toString()}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn-secondary inline-flex items-center gap-1.5 text-xs"
+        <button
+          type="button"
+          onClick={share}
+          disabled={sharing}
+          className="btn-secondary inline-flex items-center gap-1.5 text-xs disabled:opacity-60"
         >
-          <Share2 className="h-3.5 w-3.5" /> Share result
-        </a>
+          {sharing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
+          {sharing ? "Creating link…" : "Share result"}
+        </button>
       </div>
     </div>
   );

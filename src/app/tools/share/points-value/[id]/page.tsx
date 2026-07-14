@@ -1,39 +1,35 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { SITE_URL } from "@/lib/seo";
 import { PointsShareActions } from "@/components/tools/PointsShareActions";
 
-type Params = {
-  platform?: string;
-  domain?: string;
-  sharePct?: string;
-  tokens?: string;
-  usd?: string;
-  fdv?: string;
-};
+type CardData = { platform?: string; domain?: string; sharePct?: number; tokens?: number; usd?: number; fdv?: number };
 
-function cardUrl(sp: Params) {
-  const qs = new URLSearchParams();
-  if (sp.platform) qs.set("platform", sp.platform);
-  if (sp.domain) qs.set("domain", sp.domain);
-  if (sp.sharePct) qs.set("sharePct", sp.sharePct);
-  if (sp.tokens) qs.set("tokens", sp.tokens);
-  if (sp.usd) qs.set("usd", sp.usd);
-  if (sp.fdv) qs.set("fdv", sp.fdv);
-  return `/api/tools/share/points-value?${qs.toString()}`;
+async function getCard(id: string) {
+  const row = await prisma.sharedCard
+    .findUnique({ where: { id }, select: { kind: true, data: true } })
+    .catch(() => null);
+  if (!row || row.kind !== "points-value") return null;
+  return row.data as CardData;
 }
 
-// Rich-preview landing page for a shared Points Value result - the link that
-// actually gets posted/copied/shared, since raw image URLs don't carry Open
-// Graph metadata. Same pattern as src/app/news/read/page.tsx's generateMetadata.
-export async function generateMetadata({ searchParams }: { searchParams: Params }): Promise<Metadata> {
-  const platform = searchParams.platform || "Perp DEX";
-  const usd = Number(searchParams.usd) || 0;
+// Rich-preview landing page for a shared Points Value result - a short link
+// (/tools/share/points-value/<id>) backed by a SharedCard row instead of a
+// long query string. This is the URL that gets posted/copied/shared; the raw
+// PNG route alone can't carry Open Graph metadata. Same pattern as
+// src/app/news/read/page.tsx's generateMetadata.
+export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+  const card = await getCard(params.id);
+  if (!card) return { title: "Points Value - XYZ Crypto" };
+  const platform = card.platform || "Perp DEX";
+  const usd = card.usd ?? 0;
   const title = `$${usd.toLocaleString(undefined, { maximumFractionDigits: 0 })} estimated points value - ${platform}`;
   const description = "Estimate what your points could be worth - try the free calculator on XYZ Crypto.";
-  const image = `${SITE_URL}${cardUrl(searchParams)}`;
+  const image = `${SITE_URL}/api/tools/share/points-value/${params.id}`;
   return {
     title,
     description,
@@ -42,12 +38,15 @@ export async function generateMetadata({ searchParams }: { searchParams: Params 
   };
 }
 
-export default function PointsValueSharePage({ searchParams }: { searchParams: Params }) {
-  const usd = Number(searchParams.usd) || 0;
-  const sharePct = Number(searchParams.sharePct) || 0;
-  const tokens = Number(searchParams.tokens) || 0;
-  const platform = searchParams.platform || "Perp DEX";
-  const image = cardUrl(searchParams);
+export default async function PointsValueSharePage({ params }: { params: { id: string } }) {
+  const card = await getCard(params.id);
+  if (!card) notFound();
+
+  const usd = card.usd ?? 0;
+  const sharePct = card.sharePct ?? 0;
+  const tokens = card.tokens ?? 0;
+  const platform = card.platform || "Perp DEX";
+  const image = `/api/tools/share/points-value/${params.id}`;
 
   return (
     <>

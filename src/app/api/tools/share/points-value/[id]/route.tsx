@@ -1,19 +1,20 @@
 import { ImageResponse } from "next/og";
+import { prisma } from "@/lib/prisma";
 import { favicon } from "@/lib/news-sources";
 import { SITE_URL } from "@/lib/seo";
 
 // Only accept a bare hostname here, never a full attacker-suppliable URL - the
 // actual logo <img> src is always built from our own trusted favicon()
-// template below, so a crafted share link can never make this route fetch/
-// render an arbitrary attacker-controlled image (flagged by CodeQL when this
-// took a raw `logo` URL param directly).
+// template below, so a crafted share record can never make this route fetch/
+// render an arbitrary attacker-controlled image.
 const SAFE_DOMAIN = /^[a-z0-9]([a-z0-9-]{0,62}\.)+[a-z]{2,}$/i;
 
 // Public share card for a Points/Airdrop Value calculator result - a branded
 // 1200x630 image with the real platform logo + our logo, not text wordmarks.
-// No session gate (this is a "share to the world" action, not private data);
-// every number comes straight from the query string - the client already
-// computed them via airdropValue()/priceFromFdv(), so no DB read is needed.
+// No session gate (this is a "share to the world" action, not private data).
+// Reads its numbers from a short-lived SharedCard row (see
+// /api/tools/share/create) instead of a long query string, so the link stays
+// short; falls back to a generic branded card for a missing/expired id.
 export const runtime = "nodejs";
 
 const SIZE = { width: 1200, height: 630 };
@@ -21,25 +22,59 @@ const SIZE = { width: 1200, height: 630 };
 // snapshot, not live data, so cache generously.
 const CACHE = { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } };
 
-function num(value: string | null, fallback = 0): number {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
+type CardData = { platform?: string; domain?: string; sharePct?: number; tokens?: number; usd?: number; fdv?: number };
+
+function num(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const platform = (searchParams.get("platform") || "Perp DEX").slice(0, 40);
-  const domain = (searchParams.get("domain") || "").slice(0, 253);
-  const logo = SAFE_DOMAIN.test(domain) ? favicon(domain) : null;
-  const fdv = num(searchParams.get("fdv"));
-  const sharePct = num(searchParams.get("sharePct"));
-  const tokens = num(searchParams.get("tokens"));
-  const usd = num(searchParams.get("usd"));
+function fallbackCard() {
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "20px",
+          background: "linear-gradient(135deg, #08080a 0%, #0e0e12 60%, #15110a 100%)",
+          color: "#fafafa",
+          fontFamily: "sans-serif",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ fontSize: 48, fontWeight: 800, letterSpacing: "-0.02em", color: "#e2a72f" }}>XYZ</div>
+          <div style={{ fontSize: 48, fontWeight: 700, color: "#fafafa" }}>Crypto</div>
+        </div>
+        <div style={{ display: "flex", fontSize: 28, color: "#a1a1aa" }}>Points / Airdrop Value Calculator</div>
+      </div>
+    ),
+    { ...SIZE, ...CACHE }
+  );
+}
 
-  const fdvLabel =
-    fdv >= 1_000_000_000 ? `$${(fdv / 1_000_000_000).toFixed(fdv >= 10_000_000_000 ? 0 : 1)}B FDV` : `$${(fdv / 1_000_000).toFixed(0)}M FDV`;
-
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
+    const row = await prisma.sharedCard
+      .findUnique({ where: { id: params.id }, select: { kind: true, data: true } })
+      .catch(() => null);
+    if (!row || row.kind !== "points-value") return fallbackCard();
+
+    const d = (row.data ?? {}) as CardData;
+    const platform = (d.platform || "Perp DEX").slice(0, 40);
+    const domain = (d.domain || "").slice(0, 253);
+    const logo = SAFE_DOMAIN.test(domain) ? favicon(domain) : null;
+    const fdv = num(d.fdv);
+    const sharePct = num(d.sharePct);
+    const tokens = num(d.tokens);
+    const usd = num(d.usd);
+
+    const fdvLabel =
+      fdv >= 1_000_000_000 ? `$${(fdv / 1_000_000_000).toFixed(fdv >= 10_000_000_000 ? 0 : 1)}B FDV` : `$${(fdv / 1_000_000).toFixed(0)}M FDV`;
+
     return new ImageResponse(
       (
         <div
@@ -131,30 +166,6 @@ export async function GET(req: Request) {
       { ...SIZE, ...CACHE }
     );
   } catch {
-    return new ImageResponse(
-      (
-        <div
-          style={{
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "20px",
-            background: "linear-gradient(135deg, #08080a 0%, #0e0e12 60%, #15110a 100%)",
-            color: "#fafafa",
-            fontFamily: "sans-serif",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-            <div style={{ fontSize: 48, fontWeight: 800, letterSpacing: "-0.02em", color: "#e2a72f" }}>XYZ</div>
-            <div style={{ fontSize: 48, fontWeight: 700, color: "#fafafa" }}>Crypto</div>
-          </div>
-          <div style={{ display: "flex", fontSize: 28, color: "#a1a1aa" }}>Points / Airdrop Value Calculator</div>
-        </div>
-      ),
-      { ...SIZE, ...CACHE }
-    );
+    return fallbackCard();
   }
 }

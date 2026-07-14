@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Points-value share: short links, download, image-inclusive native share
+- **Short links**: new `SharedCard` model (migration 28, generic - room for more card kinds later) +
+  `POST /api/tools/share/create` persists a calculator result behind a `cuid`, so the share link is now
+  `/tools/share/points-value/<id>` instead of a long query string. Converted the existing query-string
+  routes to `[id]`-based lookups (PNG route reads from the DB row; both degrade to a generic branded
+  card/404 if the id is missing or expired - never crash).
+- **Download**: new "Download" button fetches the PNG as a blob and triggers a browser download.
+- **Image-inclusive share**: X's web share intent has no image-upload parameter - the OG-tag preview was
+  already the closest available fit and stays as-is for "Post to X". Added a "Share" button using the
+  native Web Share API with an actual image `File` attached (`navigator.share({ files: [...] })`) where
+  supported (mobile Safari/Chrome) - this is the one path where the real image, not just a link preview,
+  ends up in the shared post. Falls back silently where unsupported.
+- First of a multi-phase "Journal → best in class" build (Trades/Analytics/Risk/Challenges overhaul +
+  public profile Journal Activity section) - this share-card polish ships first as its own small PR.
+
 ## 2026-07-14 — Fix navbar's sitewide full-chat-fetch (Vercel Fast Origin Transfer)
 - **Root cause found and fixed** (owner asked whether pausing Chat/DM would help reduce usage;
   investigated instead of guessing - the real waste was elsewhere and disabling messaging/GIFs would
