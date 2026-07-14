@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Trading OS Phase 6: Premium tiering + share cards
+- **Analytics tab tiering** — the 8 core stat tiles (win rate, P&L, profit factor, etc.) stay free for
+  everyone; the deep dashboard (drawdown curve, activity heatmap, daily/weekly/monthly breakdown,
+  best/worst by setup/asset/platform/session, mistake patterns) is now **Premium**, replaced with a
+  compact upgrade card (`PremiumGate`, same visual language as the existing research `PremiumLock`) for
+  Free members.
+- **Challenges tiering** — Free members can run **1 active challenge** at a time; creating a second
+  surfaces a clear upgrade message (enforced server-side in `POST /api/journal/challenges`, mirrored
+  client-side in the create form).
+- **Shareable challenge cards** — a new public image route (`/api/journal/share/challenge/[id]`, `next/og`
+  `ImageResponse`, same pattern as the existing research `opengraph-image.tsx`) renders a branded
+  1200×630 card with the challenge's title, return %, and day count. Private challenges (and any lookup
+  failure) always fall back to a generic, data-free card - no private numbers are ever exposed to an
+  unauthenticated image fetch. A "Share card" button appears on public/community challenges.
+- **`src/lib/journal-limits.ts`** (new) - the tier definitions, reusing the existing `membership` field
+  (already gates AI limits and premium research) rather than a new entitlements system.
+- Sixth phase of the Trading OS roadmap. Nothing else existing was touched.
+
 ## 2026-07-14 — Trading OS Phase 4: Challenges tab
 - **`/journal`** gains a fourth tab, **Challenges**, alongside Trades, Analytics, and Risk.
 - **Create a challenge** with a fully custom duration - 30/90/120-day presets plus arbitrary start/end

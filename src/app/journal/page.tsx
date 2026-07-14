@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { getSessionUser } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { PageBackground } from "@/components/PageBackground";
@@ -11,9 +10,10 @@ export const metadata: Metadata = { title: "Trading Journal" };
 export const dynamic = "force-dynamic";
 
 export default async function JournalPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) redirect("/login?callbackUrl=/journal");
-  const userId = (session.user as any).id as string;
+  const me = await getSessionUser();
+  if (!me) redirect("/login?callbackUrl=/journal");
+  const userId = me.id;
+  const isPremium = me.membership === "Premium";
 
   // Server-fetch avoids a loading flash; tolerates an un-migrated DB (migrations
   // 24/25) so the page never 500s pre-migration, matching the SavedStory pattern.
@@ -67,7 +67,7 @@ export default async function JournalPage() {
       <main className="relative min-h-screen pt-28">
         <PageBackground />
         <div className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
-          <JournalClient initialTrades={trades} initialRiskProfile={riskProfile} />
+          <JournalClient initialTrades={trades} initialRiskProfile={riskProfile} isPremium={isPremium} />
         </div>
       </main>
     </>

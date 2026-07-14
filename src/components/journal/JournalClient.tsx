@@ -66,9 +66,11 @@ const TABS = [
 export function JournalClient({
   initialTrades,
   initialRiskProfile,
+  isPremium,
 }: {
   initialTrades: SerializedTrade[];
   initialRiskProfile: SerializedRiskProfile;
+  isPremium: boolean;
 }) {
   const [trades, setTrades] = useState(initialTrades);
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("trades");
@@ -185,11 +187,11 @@ export function JournalClient({
           </div>
         </>
       ) : tab === "analytics" ? (
-        <AnalyticsPanel trades={trades} />
+        <AnalyticsPanel trades={trades} isPremium={isPremium} />
       ) : tab === "risk" ? (
         <RiskPanel trades={trades} initialProfile={initialRiskProfile} />
       ) : (
-        <ChallengesPanel />
+        <ChallengesPanel isPremium={isPremium} />
       )}
     </div>
   );

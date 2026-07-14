@@ -22,6 +22,7 @@ import {
 } from "@/lib/journal-analytics";
 import { EquityCurveChart } from "./EquityCurveChart";
 import { CalendarHeatmap } from "./CalendarHeatmap";
+import { PremiumGate } from "./PremiumGate";
 import type { SerializedTrade } from "./JournalClient";
 
 function StatTile({ label, value, tone = "plain", hint }: { label: string; value: string; tone?: "plain" | "mint" | "gold" | "rose"; hint?: string }) {
@@ -76,7 +77,7 @@ const GRANULARITIES = [
   { value: "month" as const, label: "Monthly" },
 ];
 
-export function AnalyticsPanel({ trades }: { trades: SerializedTrade[] }) {
+export function AnalyticsPanel({ trades, isPremium }: { trades: SerializedTrade[]; isPremium: boolean }) {
   const [granularity, setGranularity] = useState<"day" | "week" | "month">("week");
 
   const analyzable: AnalyzableTrade[] = useMemo(
@@ -136,80 +137,90 @@ export function AnalyticsPanel({ trades }: { trades: SerializedTrade[] }) {
         <StatTile label="Long vs short" value={`${sides[0].trades} / ${sides[1].trades}`} hint={`${money(sides[0].totalPnl)} / ${money(sides[1].totalPnl)}`} />
       </div>
 
-      <div className="surface rounded-3xl p-6 sm:p-7">
-        <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Drawdown</h2>
-        <EquityCurveChart points={ddCurve} emptyLabel="No closed trades yet." captionLabel="Drawdown from peak over time" />
-      </div>
-
-      <div className="surface rounded-3xl p-6 sm:p-7">
-        <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Activity heatmap</h2>
-        <CalendarHeatmap dayBuckets={dayBuckets} />
-      </div>
-
-      <div className="surface rounded-3xl p-6 sm:p-7">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-base font-semibold text-zinc-200">P&amp;L breakdown</h2>
-          <div className="inline-flex rounded-xl border border-white/10 bg-ink-950/50 p-1">
-            {GRANULARITIES.map((g) => (
-              <button
-                key={g.value}
-                type="button"
-                onClick={() => setGranularity(g.value)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  granularity === g.value ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "text-zinc-400 hover:text-zinc-100"
-                )}
-              >
-                {g.label}
-              </button>
-            ))}
+      {isPremium ? (
+        <>
+          <div className="surface rounded-3xl p-6 sm:p-7">
+            <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Drawdown</h2>
+            <EquityCurveChart points={ddCurve} emptyLabel="No closed trades yet." captionLabel="Drawdown from peak over time" />
           </div>
-        </div>
-        {periods.length === 0 ? (
-          <p className="text-xs text-zinc-600">No closed trades yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead>
-                <tr className="text-zinc-600">
-                  <th className="pb-1.5 pr-4 font-medium">Period</th>
-                  <th className="pb-1.5 pr-4 font-medium">Trades</th>
-                  <th className="pb-1.5 font-medium">P&amp;L</th>
-                </tr>
-              </thead>
-              <tbody className="text-zinc-300">
-                {[...periods].reverse().map((p) => (
-                  <tr key={p.period} className="border-t border-line/50">
-                    <td className="py-1.5 pr-4 mono">{p.period}</td>
-                    <td className="py-1.5 pr-4 mono">{p.trades}</td>
-                    <td className={cn("py-1.5 mono", p.pnl >= 0 ? "text-mint-300" : "text-rose-300")}>{money(p.pnl)}</td>
-                  </tr>
+
+          <div className="surface rounded-3xl p-6 sm:p-7">
+            <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Activity heatmap</h2>
+            <CalendarHeatmap dayBuckets={dayBuckets} />
+          </div>
+
+          <div className="surface rounded-3xl p-6 sm:p-7">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="font-display text-base font-semibold text-zinc-200">P&amp;L breakdown</h2>
+              <div className="inline-flex rounded-xl border border-white/10 bg-ink-950/50 p-1">
+                {GRANULARITIES.map((g) => (
+                  <button
+                    key={g.value}
+                    type="button"
+                    onClick={() => setGranularity(g.value)}
+                    className={cn(
+                      "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                      granularity === g.value ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "text-zinc-400 hover:text-zinc-100"
+                    )}
+                  >
+                    {g.label}
+                  </button>
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+            {periods.length === 0 ? (
+              <p className="text-xs text-zinc-600">No closed trades yet.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="text-zinc-600">
+                      <th className="pb-1.5 pr-4 font-medium">Period</th>
+                      <th className="pb-1.5 pr-4 font-medium">Trades</th>
+                      <th className="pb-1.5 font-medium">P&amp;L</th>
+                    </tr>
+                  </thead>
+                  <tbody className="text-zinc-300">
+                    {[...periods].reverse().map((p) => (
+                      <tr key={p.period} className="border-t border-line/50">
+                        <td className="py-1.5 pr-4 mono">{p.period}</td>
+                        <td className="py-1.5 pr-4 mono">{p.trades}</td>
+                        <td className={cn("py-1.5 mono", p.pnl >= 0 ? "text-mint-300" : "text-rose-300")}>{money(p.pnl)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <BreakdownTable title="By setup" groups={bySetup} />
-        <BreakdownTable title="By asset" groups={byAsset} />
-        <BreakdownTable title="By platform" groups={byPlatform} labelFor={(id) => getPlatform(id)?.name ?? id} />
-        <BreakdownTable title="By session" groups={bySession} />
-      </div>
-
-      {mistakes.length > 0 && (
-        <div className="surface rounded-3xl p-6 sm:p-7">
-          <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Mistake patterns</h2>
-          <div className="flex flex-wrap gap-2">
-            {mistakes.map((m) => (
-              <span key={m.mistake} className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/25 bg-rose-500/[0.06] px-3 py-1 text-xs text-rose-200">
-                {m.mistake}
-                <span className="mono text-rose-400">×{m.count}</span>
-              </span>
-            ))}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <BreakdownTable title="By setup" groups={bySetup} />
+            <BreakdownTable title="By asset" groups={byAsset} />
+            <BreakdownTable title="By platform" groups={byPlatform} labelFor={(id) => getPlatform(id)?.name ?? id} />
+            <BreakdownTable title="By session" groups={bySession} />
           </div>
-        </div>
+
+          {mistakes.length > 0 && (
+            <div className="surface rounded-3xl p-6 sm:p-7">
+              <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Mistake patterns</h2>
+              <div className="flex flex-wrap gap-2">
+                {mistakes.map((m) => (
+                  <span key={m.mistake} className="inline-flex items-center gap-1.5 rounded-full border border-rose-500/25 bg-rose-500/[0.06] px-3 py-1 text-xs text-rose-200">
+                    {m.mistake}
+                    <span className="mono text-rose-400">×{m.count}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <PremiumGate
+          title="Unlock deep analytics"
+          perks={["Drawdown curve + activity heatmap", "Daily/weekly/monthly P&L breakdown", "Best/worst by setup, asset, platform, session", "Mistake-pattern tracking"]}
+          loggedIn
+        />
       )}
     </div>
   );
