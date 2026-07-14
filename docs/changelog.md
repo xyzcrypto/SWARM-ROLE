@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Trading OS Phase 0: /tools hub (calculators + DEX registry)
+- **New `/tools` page** — free, no-login trading calculators: **Funding Fee** (live-prefilled hourly
+  rate from `/api/markets/perp`), **Points/Airdrop Value** (including a **Variational** preset with its
+  published scenario numbers - 1B supply, 9.4M points, 25/30/34% TGE unlock, $700M-$30B FDV scenarios,
+  all clearly marked as editable assumptions, not live data), **Liquidation Price**, **Position Size &
+  Risk:Reward**, and **PnL**.
+- **`src/lib/dex-registry.ts`** (new) — a typed config array for perp DEX/platform info, mirroring the
+  existing `NEWS_SOURCES` pattern: adding a new platform is adding one object, no schema change needed.
+  Seeded with Variational and Hyperliquid.
+- **`src/lib/calculators.ts`** (new, pure, unit-tested) — the math behind every calculator, reusable by
+  the upcoming Trading Journal's analytics.
+- **`Products.tsx`**'s "Trading Tools" card is now clickable (was a dead end since it first shipped) and
+  its badge reads "Live."
+- First phase of a larger **Trading OS** roadmap (journal, analytics, risk management, challenges) - see
+  `docs/changelog.md` entries as each phase ships. Nothing existing was changed beyond the card wiring and
+  one new "Tools" nav link.
+
 ## 2026-07-13 — Fix: mobile black-screen (service worker cache bump)
 - **`public/sw.js`** — bumped `CACHE` (`xyz-pwa-v3` → `xyz-pwa-v4`). The `activate` handler already
   purges any cache key that doesn't match `CACHE` and calls `clients.claim()`, so this forces every

@@ -118,18 +118,18 @@ export function Products() {
           {/* Trading Tools tall */}
           <Reveal delay={1}>
             <TiltCard max={4}>
-            <div className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-7">
+            <Link href="/tools" className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-7">
               <div className="flex items-start justify-between">
                 <GaugeIcon className="h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
-                <Chip s="In Development" />
+                <Chip s="Live" />
               </div>
               <h3 className="mt-6 font-display text-xl font-semibold text-zinc-50">Trading Tools</h3>
               <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-                Pro-grade screeners, on-chain scanners, alerts and analytics to
-                give you a real, repeatable trading edge.
+                Free funding-fee, points/airdrop, liquidation and position-size
+                calculators to plan every trade.
               </p>
               <TradingVisual />
-            </div>
+            </Link>
             </TiltCard>
           </Reveal>
         </div>
