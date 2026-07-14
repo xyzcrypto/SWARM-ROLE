@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2, ChevronDown, NotebookPen, BarChart3 } from "lucide-react";
+import { Plus, Trash2, ChevronDown, NotebookPen, BarChart3, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPlatform } from "@/lib/dex-registry";
 import {
@@ -15,6 +15,7 @@ import {
 } from "@/lib/journal";
 import { EquityCurveChart } from "./EquityCurveChart";
 import { AnalyticsPanel } from "./AnalyticsPanel";
+import { RiskPanel, type SerializedRiskProfile } from "./RiskPanel";
 import { TradeForm, type NewTradeInput } from "./TradeForm";
 
 export type SerializedFill = { id: string; kind: "entry" | "exit"; price: number; size: number; fee: number; executedAt: string };
@@ -57,9 +58,16 @@ function StatTile({ label, value, tone = "plain" }: { label: string; value: stri
 const TABS = [
   { id: "trades" as const, label: "Trades", icon: NotebookPen },
   { id: "analytics" as const, label: "Analytics", icon: BarChart3 },
+  { id: "risk" as const, label: "Risk", icon: ShieldAlert },
 ];
 
-export function JournalClient({ initialTrades }: { initialTrades: SerializedTrade[] }) {
+export function JournalClient({
+  initialTrades,
+  initialRiskProfile,
+}: {
+  initialTrades: SerializedTrade[];
+  initialRiskProfile: SerializedRiskProfile;
+}) {
   const [trades, setTrades] = useState(initialTrades);
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("trades");
   const [showForm, setShowForm] = useState(false);
@@ -174,8 +182,10 @@ export function JournalClient({ initialTrades }: { initialTrades: SerializedTrad
             ))}
           </div>
         </>
-      ) : (
+      ) : tab === "analytics" ? (
         <AnalyticsPanel trades={trades} />
+      ) : (
+        <RiskPanel trades={trades} initialProfile={initialRiskProfile} />
       )}
     </div>
   );

@@ -82,6 +82,7 @@ model User {
   followers         Follow[]           @relation("Following") // rows where this user is followed
   following         Follow[]           @relation("Follower")  // rows where this user follows someone
   trades            Trade[]
+  riskProfile       RiskProfile?
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -587,4 +588,26 @@ model TradeRevision {
   tradeId String
 
   @@index([tradeId, changedAt])
+}
+
+// Trading OS Phase 3 - one optional per-user risk configuration. Breach
+// detection/rule-adherence scoring (src/lib/risk.ts) is all computed
+// client-side from this + the trade list; this row only persists the limits
+// the member has chosen to set for themselves.
+model RiskProfile {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  accountEquity          Float?
+  maxRiskPerTradePct     Float?
+  maxDailyLossPct        Float?
+  maxWeeklyDrawdownPct   Float?
+  maxOpenRiskPct         Float?
+  maxLeverage            Float?
+  maxTradesPerDay        Int?
+  revengeCooldownMinutes Int?     @default(30)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
 }

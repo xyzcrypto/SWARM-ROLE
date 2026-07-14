@@ -15,8 +15,8 @@ export default async function JournalPage() {
   if (!session?.user) redirect("/login?callbackUrl=/journal");
   const userId = (session.user as any).id as string;
 
-  // Server-fetch avoids a loading flash; tolerates an un-migrated DB (migration
-  // 24) so the page never 500s pre-migration, matching the SavedStory pattern.
+  // Server-fetch avoids a loading flash; tolerates an un-migrated DB (migrations
+  // 24/25) so the page never 500s pre-migration, matching the SavedStory pattern.
   const rows = await prisma.trade
     .findMany({
       where: { userId },
@@ -25,6 +25,8 @@ export default async function JournalPage() {
       include: { fills: { orderBy: { executedAt: "asc" } } },
     })
     .catch(() => [] as any[]);
+
+  const riskProfile = await prisma.riskProfile.findUnique({ where: { userId } }).catch(() => null);
 
   const trades: SerializedTrade[] = rows.map((t: any) => ({
     id: t.id,
@@ -65,7 +67,7 @@ export default async function JournalPage() {
       <main className="relative min-h-screen pt-28">
         <PageBackground />
         <div className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
-          <JournalClient initialTrades={trades} />
+          <JournalClient initialTrades={trades} initialRiskProfile={riskProfile} />
         </div>
       </main>
     </>
