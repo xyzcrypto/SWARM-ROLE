@@ -1,7 +1,7 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
-import type { ReactNode } from "react";
+import { motion, useReducedMotion, useInView } from "framer-motion";
+import { useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const TONES = {
@@ -34,8 +34,15 @@ export function AnimatedIcon({
   const dur = 4 + (index % 4) * 0.6; // 4.0–5.8s
   const delay = (index % 5) * 0.4;
 
+  // Pause the continuous wobble/glow loops while the tile is off-screen - a
+  // wall of icons (About/Products) shouldn't keep animating below the fold.
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { margin: "200px" });
+  const animating = !reduce && inView;
+
   return (
     <motion.span
+      ref={ref}
       initial={{ opacity: 0, scale: 0.5, rotateY: dir * -40 }}
       whileInView={{ opacity: 1, scale: 1, rotateY: 0 }}
       viewport={{ once: true, margin: "-60px" }}
@@ -48,14 +55,14 @@ export function AnimatedIcon({
       <motion.span
         aria-hidden
         className={cn("pointer-events-none absolute -inset-1 rounded-[inherit] blur-md", t.glow)}
-        animate={reduce ? undefined : { opacity: [0.25, 0.6, 0.25], scale: [0.88, 1.08, 0.88] }}
+        animate={animating ? { opacity: [0.25, 0.6, 0.25], scale: [0.88, 1.08, 0.88] } : undefined}
         transition={{ duration: dur, delay, repeat: Infinity, ease: "easeInOut" }}
       />
       {/* the glossy tile — wobbles in 3D */}
       <motion.span
         className={cn("relative flex h-full w-full items-center justify-center rounded-[inherit] bg-gradient-to-br ring-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_10px_22px_-10px_rgba(0,0,0,0.7)]", t.tile)}
         style={{ transformStyle: "preserve-3d" }}
-        animate={reduce ? undefined : { rotateY: [dir * -13, dir * 13, dir * -13], rotateX: [5, -5, 5] }}
+        animate={animating ? { rotateY: [dir * -13, dir * 13, dir * -13], rotateX: [5, -5, 5] } : undefined}
         transition={{ duration: dur, delay, repeat: Infinity, ease: "easeInOut" }}
       >
         {/* top gloss highlight */}

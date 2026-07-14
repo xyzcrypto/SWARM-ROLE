@@ -723,7 +723,7 @@ function NewsReader({
           <motion.div key={item.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
           {item.image && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.image} alt="" className="h-48 w-full object-cover sm:h-60" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
+            <img src={item.image} alt="" decoding="async" className="h-48 w-full object-cover sm:h-60" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
           )}
           <div className="p-4 sm:p-6">
             <div className="mb-3 flex flex-wrap items-center gap-1.5">
@@ -819,7 +819,7 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
         >
           {active.image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={active.image} alt="" className="h-full w-full object-cover" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
+            <img src={active.image} alt="" decoding="async" className="h-full w-full object-cover" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
           ) : (
             <div className="h-full w-full bg-gradient-to-br from-red-500/25 via-ink-950 to-ink-950" />
           )}

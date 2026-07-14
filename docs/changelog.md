@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Mobile performance boost (round 2)
+- **Bespoke 3D icon animations (`Icons3D.tsx`) now respect `prefers-reduced-motion`** - the `i3d-spin`/
+  `i3d-bob`/`i3d-scan`/`i3d-pulse`/`i3d-tick`/`i3d-sweep`/`i3d-float`/`i3d-beat`/`i3d-twinkle`/`i3d-flick`
+  keyframes were never added to the reduced-motion kill list in `globals.css`, so every icon across
+  About/Products/Markets/News/Premium kept animating for users who'd opted into less motion.
+- **`AnimatedIcon.tsx`'s continuous 3D wobble + breathing glow now pause off-screen** - uses framer-motion's
+  `useInView` (200px margin) so tiles below the fold on About/Products stop looping instead of animating
+  indefinitely once mounted.
+- **News reader images decode off the main thread** (`decoding="async"` on the reader hero, swipe-reader
+  hero, and the shared/external-link article image in `NewsClient.tsx`/`SharedArticle.tsx`) - avoids a
+  decode-blocking jank spike on mobile when a large hero image lands.
+- No existing visual behavior changed - reduced-motion users already saw calmer motion elsewhere; this
+  closes a gap the icon system missed. Full-motion users see no difference.
+
 ## 2026-07-14 — Basic XP system (engagement foundation)
 - **New `XpEvent` model + migration 27** (`prisma/migrations/27_xp_events`): one row per user per action per
   day, `@@unique([userId, action, day])` makes awarding idempotent (a repeat call the same day is a graceful
