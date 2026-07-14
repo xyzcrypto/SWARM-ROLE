@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Tools: Funding Fee Calculator platform picker + registry expansion
+- **Funding Fee Calculator** now has a **perp DEX picker** (Hyperliquid, GMX, dYdX, Vertex Protocol, Aevo,
+  Variational) so it's always clear whose funding rate a number represents. Hyperliquid stays live-prefilled
+  (the only wired data feed today, via `/api/markets/perp`); every other platform gets a clearly labeled
+  manual-entry banner with a link to its own docs.
+- **`src/lib/dex-registry.ts`** — added GMX, dYdX, Vertex Protocol and Aevo alongside Hyperliquid and
+  Variational, plus a `hasLiveFunding` flag marking which platforms auto-prefill vs. need manual entry.
+  Adding the next platform is still just one object in the array - no code rewrite.
+
 ## 2026-07-14 — Trading OS Phase 1: Journal core (Trade/TradeFill/edit history)
 - **New `/journal`** (private, login required) — log trades with multiple entries/partial exits
   (`Trade` + child `TradeFill` rows), long/short, spot/futures/perp/custom, planned stop-loss/take-profit,
