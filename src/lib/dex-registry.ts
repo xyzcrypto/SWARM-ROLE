@@ -5,6 +5,8 @@
 // assumption-based defaults for the points/airdrop-value calculator - never
 // guaranteed figures, always editable here or by the user in the calculator.
 
+import { favicon } from "@/lib/news-sources";
+
 export type PointValueScenario = {
   totalSupply: number;
   totalPoints: number;
@@ -46,7 +48,7 @@ export const DEX_REGISTRY: DexPlatform[] = [
     supportedMarkets: "Perpetuals",
     maxLeverage: "See official docs",
     notes: "The scenario numbers below are planning assumptions only, not official figures - edit them freely in the calculator.",
-    links: {},
+    links: { website: "https://www.variational.io" },
     pointValueScenario: {
       totalSupply: 1_000_000_000,
       totalPoints: 9_400_000,
@@ -129,4 +131,20 @@ export function getPlatform(id: string): DexPlatform | undefined {
 
 export function platformsWithPointValue(): DexPlatform[] {
   return DEX_REGISTRY.filter((p) => p.pointValueScenario);
+}
+
+/**
+ * Best-effort logo for a platform - derives the domain from its `website`
+ * link and reuses the same keyless favicon service already used for news
+ * sources (`favicon()`), so no logo file is ever downloaded or committed.
+ * Returns null when a platform has no website link yet.
+ */
+export function platformLogo(platform: Pick<DexPlatform, "links">): string | null {
+  const site = platform.links.website;
+  if (!site) return null;
+  try {
+    return favicon(new URL(site).hostname);
+  } catch {
+    return null;
+  }
 }

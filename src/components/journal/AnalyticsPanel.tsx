@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPlatform } from "@/lib/dex-registry";
 import { equityCurve } from "@/lib/journal";
@@ -77,7 +78,7 @@ const GRANULARITIES = [
   { value: "month" as const, label: "Monthly" },
 ];
 
-export function AnalyticsPanel({ trades, isPremium }: { trades: SerializedTrade[]; isPremium: boolean }) {
+export function AnalyticsPanel({ trades, isPremium, userId }: { trades: SerializedTrade[]; isPremium: boolean; userId: string }) {
   const [granularity, setGranularity] = useState<"day" | "week" | "month">("week");
 
   const analyzable: AnalyzableTrade[] = useMemo(
@@ -126,6 +127,17 @@ export function AnalyticsPanel({ trades, isPremium }: { trades: SerializedTrade[
 
   return (
     <div className="space-y-8">
+      <div className="flex justify-end">
+        <a
+          href={`/api/journal/share/overview/${userId}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-secondary inline-flex items-center gap-1.5 text-xs"
+        >
+          <Share2 className="h-3.5 w-3.5" /> Share my stats
+        </a>
+      </div>
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="Gross P&L" value={money(gross)} tone={gross >= 0 ? "mint" : "rose"} />
         <StatTile label="Profit factor" value={pf != null ? pf.toFixed(2) : "-"} tone="gold" hint="Gross profit ÷ gross loss" />

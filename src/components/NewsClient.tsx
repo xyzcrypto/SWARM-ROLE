@@ -614,6 +614,20 @@ function NewsReader({
   const [progress, setProgress] = useState(0); // reading scroll progress (0-1)
   const bodyRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const scrollRaf = useRef(0);
+
+  // rAF-throttled - a plain onScroll handler would setState on every native
+  // scroll event (mirrors the fix already applied in ReadingProgress.tsx).
+  const onBodyScroll = () => {
+    if (scrollRaf.current) return;
+    scrollRaf.current = requestAnimationFrame(() => {
+      scrollRaf.current = 0;
+      const el = bodyRef.current;
+      if (!el) return;
+      const max = el.scrollHeight - el.clientHeight;
+      setProgress(max > 0 ? Math.min(1, el.scrollTop / max) : 0);
+    });
+  };
 
   // Mobile swipe: horizontal-dominant swipe → prev/next (doesn't fight vertical scroll).
   const onTouchStart = (e: ReactTouchEvent) => { touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
@@ -631,6 +645,8 @@ function NewsReader({
 
   // Reset scroll + progress to top on each story.
   useEffect(() => { setProgress(0); if (bodyRef.current) bodyRef.current.scrollTop = 0; }, [item.id]);
+
+  useEffect(() => () => { if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current); }, []);
 
   // Keyboard nav + scroll lock while open.
   useEffect(() => {
@@ -714,11 +730,7 @@ function NewsReader({
         <div
           ref={bodyRef}
           className="min-h-0 flex-1 overflow-y-auto"
-          onScroll={(e) => {
-            const el = e.currentTarget;
-            const max = el.scrollHeight - el.clientHeight;
-            setProgress(max > 0 ? Math.min(1, el.scrollTop / max) : 0);
-          }}
+          onScroll={onBodyScroll}
         >
           <motion.div key={item.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
           {item.image && (

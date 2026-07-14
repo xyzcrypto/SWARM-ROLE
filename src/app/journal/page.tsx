@@ -67,7 +67,7 @@ export default async function JournalPage() {
       <main className="relative min-h-screen pt-28">
         <PageBackground />
         <div className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
-          <JournalClient initialTrades={trades} initialRiskProfile={riskProfile} isPremium={isPremium} />
+          <JournalClient initialTrades={trades} initialRiskProfile={riskProfile} isPremium={isPremium} userId={userId} />
         </div>
       </main>
     </>
