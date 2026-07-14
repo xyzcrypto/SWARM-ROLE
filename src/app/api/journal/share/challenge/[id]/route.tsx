@@ -12,9 +12,13 @@ import { currentCapital, participantPnl, returnPct, daysElapsed, totalDurationDa
 export const runtime = "nodejs";
 
 const SIZE = { width: 1200, height: 630 };
+// Share cards are fetched repeatedly by link-preview bots on every share;
+// progress numbers don't need per-request freshness, so cache generously to
+// cut origin-transfer usage.
+const CACHE = { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" } };
 
 function fallbackCard() {
-  return new ImageResponse(<GenericCard />, SIZE);
+  return new ImageResponse(<GenericCard />, { ...SIZE, ...CACHE });
 }
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -96,7 +100,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
           <div style={{ display: "flex", fontSize: 24, color: "#71717a" }}>xyzcrypto - The Home Of Next Gen Web3</div>
         </div>
       ),
-      SIZE
+      { ...SIZE, ...CACHE }
     );
   } catch {
     return fallbackCard();

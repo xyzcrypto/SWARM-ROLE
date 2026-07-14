@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Cache share-card images (Vercel Fast Origin Transfer)
+- **`research/[slug]/opengraph-image.tsx`** and **`api/journal/share/challenge/[id]/route.tsx`** had zero
+  `Cache-Control` on the generated PNG - link-preview bots (WhatsApp/Telegram/Twitter/Discord) re-fetch
+  these on every share, regenerating the image from scratch each time. Added `s-maxage=3600` (research
+  cards - rarely change) and `s-maxage=300` (challenge cards - progress numbers move, shorter window),
+  both with a generous `stale-while-revalidate`. Cuts origin-transfer usage from repeated bot fetches with
+  no user-visible change.
+- Audited every other public API route for caching (markets/ticker/news/research/whatsnew) - all already
+  had solid `Cache-Control` headers from earlier work; this closes the one real gap found.
+
 ## 2026-07-14 — Mobile performance boost (round 2)
 - **Bespoke 3D icon animations (`Icons3D.tsx`) now respect `prefers-reduced-motion`** - the `i3d-spin`/
   `i3d-bob`/`i3d-scan`/`i3d-pulse`/`i3d-tick`/`i3d-sweep`/`i3d-float`/`i3d-beat`/`i3d-twinkle`/`i3d-flick`
