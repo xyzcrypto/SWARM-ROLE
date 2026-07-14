@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Fix stuck desktop ticker + upgrade points-value share (real logos, X post, copy image)
+- **"Live Market" ticker looked stuck on desktop**: `MarketTicker.tsx`'s scrolling track had
+  `hover:[animation-play-state:paused]` - simply resting the mouse anywhere over the full-width strip
+  froze the scroll indefinitely with no visual indication it was intentional. Touch devices don't sustain
+  hover the same way, so mobile never showed it. Removed - the ticker now scrolls continuously, matching
+  every other marquee/vscroll feed on the site (none of them pause on hover).
+- **Points-value share card now has real logo images** (not text wordmarks): embeds our `/logo.png` and
+  the platform's favicon-derived logo as actual `<img>` elements inside the `ImageResponse`, richer
+  layout (hero value, share%/FDV/tokens chips).
+- **New share landing page** `/tools/share/points-value` (`generateMetadata` sets `openGraph.images` to
+  the card route, mirrors `news/read/page.tsx`'s pattern) - this is the URL that gets posted/copied, so
+  the link itself shows the branded card image when pasted anywhere, not a bare link.
+- **New `PointsShareActions`**: "Post to X" (reuses `ShareRow.tsx`'s intent-link pattern), "Copy link",
+  and "Copy image" (new - `navigator.clipboard.write` with a `ClipboardItem`, feature-detected with a
+  graceful fallback for browsers without image-clipboard support).
+
 ## 2026-07-14 — Points-value/journal share cards + Variational logo + scroll-jank fixes
 - **Variational's real logo**: added `links.website` to its DEX registry entry + a new `platformLogo()`
   helper (`src/lib/dex-registry.ts`) that derives the domain and reuses the existing keyless
