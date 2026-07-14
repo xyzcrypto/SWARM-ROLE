@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Mobile: Profile in bottom nav + floating XYZ AI
+- **Bottom nav center slot is now Profile** (Markets / News / **Profile** / Research / Chat) - shows your
+  avatar when signed in (linking to `/u/<handle>` or `/profile`), a generic icon linking to login when
+  signed out. Direct profile access on mobile without going through a menu.
+- **XYZ AI is now a floating launcher on mobile too** (previously desktop-only; mobile used to route
+  through the bottom nav's center button instead) - positioned just above the bottom nav bar so nothing
+  overlaps. Verified via a real mobile-viewport screenshot.
+- Visual-only change, verified with a headless mobile screenshot; no other existing pages/routes touched.
+
 ## 2026-07-14 — Tools: 3 new calculators + tab bar polish
 - **3 new calculators** on `/tools`: **Break-Even** (exit price where round-trip fees cancel your P&L),
   **Compounding** (project capital growth from a fixed return per period, with daily/weekly/monthly

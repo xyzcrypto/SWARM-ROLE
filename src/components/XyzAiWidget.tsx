@@ -237,7 +237,7 @@ export function XyzAiWidget() {
         animate={{ opacity: 1, scale: 1 }}
         whileHover={reduce ? undefined : { scale: 1.05 }}
         whileTap={reduce ? undefined : { scale: 0.95 }}
-        className="ai-fab fixed bottom-5 right-4 z-[60] hidden h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-mint-400 to-mint-600 text-ink shadow-lg shadow-mint-500/30 ring-1 ring-mint-300/50 sm:right-6 md:inline-flex"
+        className="ai-fab fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-[60] inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-mint-400 to-mint-600 text-ink shadow-lg shadow-mint-500/30 ring-1 ring-mint-300/50 sm:right-6 md:bottom-5"
       >
         <AnimatePresence mode="wait" initial={false}>
           {open ? (
