@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Cache news classification (Vercel Fluid Active CPU)
+- **Root cause found and fixed**: Vercel's usage dashboard showed **Fluid Active CPU at 5h18m / 4h - already
+  over the free-tier cap** (more urgent than the earlier Fast Origin Transfer warning). Traced it to
+  `src/lib/news-fetch.ts`'s `getNewsPage()`: every distinct `category`/`q`/`page` combination requested from
+  `/api/news`, `/news`, and `/news/read` was a cache miss that reran full classification (categorize +
+  sentiment + impact + relatedTokens - roughly 49 regex tests per article) over every article from every RSS
+  source, from scratch. With ~20 category tabs x search x pagination as separate cache keys, most requests
+  never reused prior classification work - a very plausible explanation for both the CPU overage and the
+  elevated ISR Writes (115K/200K, 57%).
+- **Fix**: wrapped the fetch+classify step in `unstable_cache` (`next/cache`), decoupled from
+  category/q/page - classification now runs at most once per `NEWS_REVALIDATE` (20s) window regardless of
+  how many different views hit it; filtering/pagination (cheap array ops) still happens fresh per request.
+  All three call sites (`getNewsPage`'s callers) share the same cached result.
+- No behavior or visual change - same data, same freshness window, dramatically less redundant CPU work.
+
 ## 2026-07-14 — Cache share-card images (Vercel Fast Origin Transfer)
 - **`research/[slug]/opengraph-image.tsx`** and **`api/journal/share/challenge/[id]/route.tsx`** had zero
   `Cache-Control` on the generated PNG - link-preview bots (WhatsApp/Telegram/Twitter/Discord) re-fetch

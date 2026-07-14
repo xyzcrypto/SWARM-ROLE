@@ -1,3 +1,4 @@
+import { unstable_cache } from "next/cache";
 import { NEWS_SOURCES, favicon, type NewsSource } from "@/lib/news-sources";
 import { parseFeed, categorize, sentiment, impact, relatedTokens, dedupe, rankNews, type NewsItem } from "@/lib/news";
 
@@ -51,6 +52,26 @@ async function fetchSource(src: NewsSource): Promise<NewsItem[]> {
   }
 }
 
+// The expensive part - fetching every source's feed and classifying every
+// article (categorize/sentiment/impact/relatedTokens, all regex/string work) -
+// is independent of category/q/page. Without this, every distinct query-string
+// combination (category tabs x search x pagination) was a cache miss that
+// reran classification over every source from scratch, which was the single
+// biggest driver of Fluid Active CPU usage. Caching it once, decoupled from
+// per-request params, means classification now runs at most once per
+// NEWS_REVALIDATE window regardless of how many different views hit it.
+const getClassifiedItems = unstable_cache(
+  async () => {
+    const batches = await Promise.all(NEWS_SOURCES.map(fetchSource));
+    return {
+      items: dedupe(batches.flat().filter((i) => i.publishedAt > 0)),
+      live: batches.some((b) => b.length > 0),
+    };
+  },
+  ["news-classified-items"],
+  { revalidate: NEWS_REVALIDATE }
+);
+
 /** Fetch, classify, de-dupe, filter and paginate the live news feed. */
 export async function getNewsPage(opts: { category?: string; q?: string; page?: number; pageSize?: number } = {}): Promise<NewsPage> {
   const category = opts.category || "All";
@@ -58,8 +79,8 @@ export async function getNewsPage(opts: { category?: string; q?: string; page?: 
   const page = Math.max(1, opts.page || 1);
   const pageSize = Math.min(30, Math.max(6, opts.pageSize || 15));
 
-  const batches = await Promise.all(NEWS_SOURCES.map(fetchSource));
-  let items = dedupe(batches.flat().filter((i) => i.publishedAt > 0));
+  const { items: allItems, live } = await getClassifiedItems();
+  let items = allItems;
   if (category !== "All") items = items.filter((i) => i.categories.includes(category));
   if (q) items = items.filter((i) => (i.title + " " + i.summary).toLowerCase().includes(q));
   // Surface the most important news first (breaking/high-impact + fresh).
@@ -73,7 +94,7 @@ export async function getNewsPage(opts: { category?: string; q?: string; page?: 
     page,
     pageSize,
     hasMore: start + pageSize < total,
-    live: batches.some((b) => b.length > 0),
+    live,
     ts: Date.now(),
   };
 }
