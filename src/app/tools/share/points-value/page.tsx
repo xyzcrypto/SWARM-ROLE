@@ -7,7 +7,7 @@ import { PointsShareActions } from "@/components/tools/PointsShareActions";
 
 type Params = {
   platform?: string;
-  logo?: string;
+  domain?: string;
   sharePct?: string;
   tokens?: string;
   usd?: string;
@@ -17,7 +17,7 @@ type Params = {
 function cardUrl(sp: Params) {
   const qs = new URLSearchParams();
   if (sp.platform) qs.set("platform", sp.platform);
-  if (sp.logo) qs.set("logo", sp.logo);
+  if (sp.domain) qs.set("domain", sp.domain);
   if (sp.sharePct) qs.set("sharePct", sp.sharePct);
   if (sp.tokens) qs.set("tokens", sp.tokens);
   if (sp.usd) qs.set("usd", sp.usd);

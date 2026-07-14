@@ -1,5 +1,13 @@
 import { ImageResponse } from "next/og";
+import { favicon } from "@/lib/news-sources";
 import { SITE_URL } from "@/lib/seo";
+
+// Only accept a bare hostname here, never a full attacker-suppliable URL - the
+// actual logo <img> src is always built from our own trusted favicon()
+// template below, so a crafted share link can never make this route fetch/
+// render an arbitrary attacker-controlled image (flagged by CodeQL when this
+// took a raw `logo` URL param directly).
+const SAFE_DOMAIN = /^[a-z0-9]([a-z0-9-]{0,62}\.)+[a-z]{2,}$/i;
 
 // Public share card for a Points/Airdrop Value calculator result - a branded
 // 1200x630 image with the real platform logo + our logo, not text wordmarks.
@@ -21,7 +29,8 @@ function num(value: string | null, fallback = 0): number {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const platform = (searchParams.get("platform") || "Perp DEX").slice(0, 40);
-  const logo = (searchParams.get("logo") || "").slice(0, 300);
+  const domain = (searchParams.get("domain") || "").slice(0, 253);
+  const logo = SAFE_DOMAIN.test(domain) ? favicon(domain) : null;
   const fdv = num(searchParams.get("fdv"));
   const sharePct = num(searchParams.get("sharePct"));
   const tokens = num(searchParams.get("tokens"));
@@ -67,7 +76,7 @@ export async function GET(req: Request) {
                 background: "rgba(255,255,255,0.04)",
               }}
             >
-              {logo.startsWith("https://") && (
+              {logo && (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={logo} width={22} height={22} style={{ borderRadius: "6px" }} alt="" />
               )}

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Share2 } from "lucide-react";
 import { airdropValue, priceFromFdv } from "@/lib/calculators";
-import { DEX_REGISTRY, platformLogo, platformsWithPointValue } from "@/lib/dex-registry";
+import { DEX_REGISTRY, platformDomain, platformLogo, platformsWithPointValue } from "@/lib/dex-registry";
 import { AssumptionBanner, CalcField, ResultTile } from "./CalcField";
 import { cn } from "@/lib/utils";
 
@@ -121,7 +121,7 @@ export function PointsValueCalculator() {
         <a
           href={`/tools/share/points-value?${new URLSearchParams({
             platform: platform?.name ?? "Perp DEX",
-            logo: platformLogo(platform ?? { links: {} }) ?? "",
+            domain: platformDomain(platform ?? { links: {} }) ?? "",
             sharePct: result.sharePct.toFixed(4),
             tokens: result.tokens.toFixed(2),
             usd: result.usd.toFixed(2),
