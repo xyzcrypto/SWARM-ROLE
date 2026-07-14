@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Link2, Check, ImageDown } from "lucide-react";
+import { Link2, Check, ImageDown, Download, Share2 } from "lucide-react";
 
 function XIcon({ className }: { className?: string }) {
   return (
@@ -11,12 +11,19 @@ function XIcon({ className }: { className?: string }) {
   );
 }
 
-// Post to X + copy link + copy image, for a shared calculator result. Mirrors
-// ShareRow.tsx's X-intent/copy-link pattern (used on research posts), plus a
-// new copy-image action (no prior precedent - Clipboard API for images).
+// Post to X + copy link + copy image + download + native share, for a shared
+// calculator result. Mirrors ShareRow.tsx's X-intent/copy-link pattern (used
+// on research posts). Copy-image and download use the Clipboard/anchor
+// download APIs directly; native share attaches the actual image file where
+// supported (mobile share sheets) - X's web intent has no image-upload param,
+// so this is the only path that gets the image itself (not just a link
+// preview) into a share.
 export function PointsShareActions({ imageUrl, platform, usd }: { imageUrl: string; platform: string; usd: number }) {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedImage, setCopiedImage] = useState<"idle" | "copied" | "unsupported">("idle");
+  const [nativeShareSupported] = useState(
+    () => typeof navigator !== "undefined" && typeof navigator.share === "function" && typeof navigator.canShare === "function"
+  );
 
   function pageUrl() {
     return typeof window !== "undefined" ? window.location.href : "";
@@ -54,11 +61,52 @@ export function PointsShareActions({ imageUrl, platform, usd }: { imageUrl: stri
     }
   }
 
+  async function downloadImage() {
+    try {
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "xyz-crypto-points-value.png";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  // Native share sheet WITH the image file attached (not just a link) -
+  // the only way to get the actual image into the share on platforms that
+  // support it (mobile Safari/Chrome). Falls back silently if unsupported.
+  async function shareNative() {
+    try {
+      const res = await fetch(imageUrl);
+      const blob = await res.blob();
+      const file = new File([blob], "xyz-crypto-points-value.png", { type: blob.type || "image/png" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file], title: shareText(), text: shareText(), url: pageUrl() });
+      } else {
+        await navigator.share({ title: shareText(), text: shareText(), url: pageUrl() });
+      }
+    } catch {
+      /* user cancelled or unsupported - no-op */
+    }
+  }
+
   const btn =
     "inline-flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-zinc-300 transition-all hover:border-gold-500/40 hover:text-gold-100";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
+      {nativeShareSupported && (
+        <button type="button" onClick={shareNative} className={btn} aria-label="Share">
+          <Share2 className="h-3.5 w-3.5" />
+          Share
+        </button>
+      )}
       <a
         href="#"
         target="_blank"
@@ -79,6 +127,10 @@ export function PointsShareActions({ imageUrl, platform, usd }: { imageUrl: stri
       <button type="button" onClick={copyImage} className={btn} aria-label="Copy image">
         {copiedImage === "copied" ? <Check className="h-3.5 w-3.5 text-mint-300" /> : <ImageDown className="h-3.5 w-3.5" />}
         {copiedImage === "copied" ? "Copied" : copiedImage === "unsupported" ? "Open image below" : "Copy image"}
+      </button>
+      <button type="button" onClick={downloadImage} className={btn} aria-label="Download image">
+        <Download className="h-3.5 w-3.5" />
+        Download
       </button>
     </div>
   );

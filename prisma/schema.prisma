@@ -113,6 +113,20 @@ model XpEvent {
   @@index([userId, createdAt])
 }
 
+// A persisted snapshot behind a short share link - lets /tools/share/<kind>/<id>
+// stay short (a cuid) instead of a long query string, and gives the OG-image
+// route a stable source of truth to re-render from. No user relation (anonymous
+// tool results are shareable without login, same as the calculator itself);
+// `data` is a small, kind-specific JSON blob - never raw/private data.
+model SharedCard {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  kind      String // "points-value" (room for more card kinds later)
+  data      Json
+
+  @@index([kind, createdAt])
+}
+
 // In-app notifications (bell dropdown). Created server-side when a new post is
 // published or someone comments on your post; delivery is in-app (polled by the
 // navbar). Best-effort: creation never blocks the triggering action.

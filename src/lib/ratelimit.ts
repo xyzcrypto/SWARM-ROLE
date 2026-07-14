@@ -49,6 +49,7 @@ const limiters = {
   ai: make(15, 60, "ai"), // 15/min per user - XYZ AI assistant turns (keyed by user id)
   journal: make(30, 60, "journal"), // 30/min per user - trade log CRUD
   xp: make(30, 60, "xp"), // 30/min per user - XP award pings
+  shareCreate: make(15, 60, "share_create"), // 15/min/IP - short-link creation (anonymous)
 };
 
 export type RateKey = keyof typeof limiters;
