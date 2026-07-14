@@ -83,6 +83,8 @@ model User {
   following         Follow[]           @relation("Follower")  // rows where this user follows someone
   trades            Trade[]
   riskProfile       RiskProfile?
+  challenges        Challenge[]
+  challengeEntries  ChallengeParticipant[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -555,8 +557,15 @@ model Trade {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
+  // Optional link to a Trading OS challenge - progress is derived from linked
+  // trades (src/lib/challenge.ts), not duplicated. SetNull so deleting a
+  // challenge never deletes the trade itself.
+  challenge   Challenge? @relation(fields: [challengeId], references: [id], onDelete: SetNull)
+  challengeId String?
+
   @@index([userId, createdAt])
   @@index([userId, status])
+  @@index([challengeId])
 }
 
 // One entry or exit execution on a Trade. Multiple entry fills = averaging in;
@@ -610,4 +619,75 @@ model RiskProfile {
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique
+}
+
+// Trading OS Phase 4 - a custom-duration trading challenge. Duration is fully
+// flexible (30/90/120-day presets are just UI shortcuts, not hardcoded modes).
+// Progress is DERIVED from the trades linked to it (Trade.challengeId) plus
+// startingCapital - see src/lib/challenge.ts. Not just solo: a "community"
+// challenge is one creator + many ChallengeParticipant rows, ranked on a
+// leaderboard by each participant's own linked trades.
+model Challenge {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  title       String
+  description String?
+
+  startDate       DateTime
+  endDate         DateTime
+  startingCapital Float
+  targetCapital   Float?
+
+  maxRiskPerTradePct   Float?
+  maxDailyLossPct      Float?
+  maxWeeklyDrawdownPct Float?
+  customRules          String[] @default([])
+
+  visibility String @default("private") // "private" | "public" | "community"
+  status     String @default("active") // "active" | "completed" | "failed" | "abandoned"
+
+  creator   User   @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId String
+
+  participants ChallengeParticipant[]
+  milestones   ChallengeMilestone[]
+  trades       Trade[]
+
+  @@index([creatorId, createdAt])
+  @@index([visibility, status])
+}
+
+// One row per participant in a challenge (the creator is a participant too,
+// role="owner" - so leaderboard queries are just "all participants").
+model ChallengeParticipant {
+  id       String   @id @default(cuid())
+  joinedAt DateTime @default(now())
+  role     String   @default("participant") // "owner" | "participant"
+
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  challengeId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  @@unique([challengeId, userId])
+  @@index([userId])
+}
+
+// A review checkpoint within a challenge - a lightweight, manually-toggled
+// milestone (not auto-computed) so it can represent anything ("halfway
+// review", "hit first profit target", a habit check-in).
+model ChallengeMilestone {
+  id         String    @id @default(cuid())
+  createdAt  DateTime  @default(now())
+  label      String
+  targetDate DateTime?
+  achieved   Boolean   @default(false)
+  achievedAt DateTime?
+
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  challengeId String
+
+  @@index([challengeId])
 }
