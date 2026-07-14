@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { fundingFee, type Side } from "@/lib/calculators";
-import { CalcField, CalcSegmented, ResultTile } from "./CalcField";
+import { DEX_REGISTRY, getPlatform } from "@/lib/dex-registry";
+import { AssumptionBanner, CalcField, CalcSegmented, ResultTile } from "./CalcField";
+import { cn } from "@/lib/utils";
 
 type PerpMarket = { coin: string; price: number; funding: number; openInterest: number };
 type PerpResp = { markets: PerpMarket[]; live: boolean };
@@ -14,9 +16,17 @@ const PRESETS = [
   { label: "7d", hours: 24 * 7 },
 ] as const;
 
-// Live funding-rate prefill reuses /api/markets/perp (Hyperliquid, already
-// fetched for the Markets page) - no new data source, just a new consumer.
+const DEFAULT_PLATFORM = DEX_REGISTRY.find((p) => p.hasLiveFunding)?.id ?? DEX_REGISTRY[0]?.id ?? "";
+
+// Estimate funding for any perp DEX in the registry (src/lib/dex-registry.ts),
+// so it's always clear WHICH exchange a rate belongs to. Live prefill only
+// exists for platforms with `hasLiveFunding` (Hyperliquid today, via
+// /api/markets/perp) - every other platform still works via manual entry,
+// clearly labeled with that platform's real name.
 export function FundingFeeCalculator() {
+  const [platformId, setPlatformId] = useState(DEFAULT_PLATFORM);
+  const platform = getPlatform(platformId);
+
   const [markets, setMarkets] = useState<PerpMarket[]>([]);
   const [live, setLive] = useState(false);
   const [coin, setCoin] = useState("");
@@ -46,6 +56,16 @@ export function FundingFeeCalculator() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  function onPickPlatform(id: string) {
+    setPlatformId(id);
+    setCustom(false);
+    const p = getPlatform(id);
+    if (p?.hasLiveFunding && markets.length) {
+      setCoin(markets[0].coin);
+      setRate((markets[0].funding * 100).toFixed(4));
+    }
+  }
+
   function onPickCoin(id: string) {
     setCoin(id);
     const m = markets.find((x) => x.coin === id);
@@ -63,24 +83,43 @@ export function FundingFeeCalculator() {
     [notional, rate, hours, side]
   );
 
+  const showLive = platform?.hasLiveFunding && markets.length > 0;
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 className="font-display text-lg font-semibold text-zinc-50">Funding Fee Calculator</h3>
-          <p className="mt-1 text-sm text-zinc-500">Estimate what you&apos;ll pay or receive holding a perp position.</p>
-        </div>
-        {markets.length > 0 && (
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-line bg-ink-950/50 px-2.5 py-1 text-[11px] text-zinc-500">
-            <span className={`h-1.5 w-1.5 rounded-full ${live ? "bg-mint-400" : "bg-amber-400"}`} />
-            {live ? "Live rates" : "Cached rates"}
-          </span>
-        )}
+      <div>
+        <h3 className="font-display text-lg font-semibold text-zinc-50">Funding Fee Calculator</h3>
+        <p className="mt-1 text-sm text-zinc-500">Estimate what you&apos;ll pay or receive holding a perp position.</p>
       </div>
 
-      {markets.length > 0 && (
+      <div>
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Perp DEX</span>
+        <div className="flex flex-wrap gap-1.5">
+          {DEX_REGISTRY.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => onPickPlatform(p.id)}
+              className={cn(
+                "rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+                platformId === p.id
+                  ? "border-gold-500/40 bg-gold-500/15 text-gold-100"
+                  : "border-white/10 text-zinc-400 hover:border-gold-500/40 hover:text-gold-200"
+              )}
+            >
+              {p.name}
+              {p.hasLiveFunding && <span className="ml-1.5 inline-block h-1.5 w-1.5 rounded-full bg-mint-400 align-middle" />}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {showLive ? (
         <label className="block">
-          <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Coin (prefills live rate)</span>
+          <span className="mb-1.5 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-400">
+            Coin on {platform?.name} (prefills live rate)
+            <span className={cn("h-1.5 w-1.5 rounded-full", live ? "bg-mint-400" : "bg-amber-400")} />
+          </span>
           <select
             value={coin}
             onChange={(e) => onPickCoin(e.target.value)}
@@ -93,6 +132,18 @@ export function FundingFeeCalculator() {
             ))}
           </select>
         </label>
+      ) : (
+        <AssumptionBanner>
+          No live feed wired in yet for {platform?.name} - enter their published funding rate manually below.
+          {platform?.links.website && (
+            <>
+              {" "}
+              <a href={platform.links.website} target="_blank" rel="noopener noreferrer" className="underline decoration-amber-400/40 underline-offset-2 hover:text-amber-100">
+                {platform.name} docs ↗
+              </a>
+            </>
+          )}
+        </AssumptionBanner>
       )}
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -105,7 +156,7 @@ export function FundingFeeCalculator() {
             setRate(v);
           }}
           suffix="% / hr"
-          hint="Prefilled from the live rate above - edit freely."
+          hint={showLive ? "Prefilled from the live rate above - edit freely." : `Enter ${platform?.name ?? "this platform"}'s published rate.`}
         />
       </div>
 
@@ -127,10 +178,10 @@ export function FundingFeeCalculator() {
       <CalcField label="Holding period" value={hours} onChange={setHours} suffix="hours" />
 
       <ResultTile
-        label={result >= 0 ? "You pay (estimated)" : "You receive (estimated)"}
+        label={`${result >= 0 ? "You pay" : "You receive"} (estimated) - ${platform?.name ?? ""}`}
         value={`$${Math.abs(result).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
         tone={result >= 0 ? "rose" : "mint"}
-        hint="Positive funding = longs pay shorts. Funding changes every hour - this isn't a forecast."
+        hint="Positive funding = longs pay shorts. Funding changes frequently - this isn't a forecast."
       />
     </div>
   );

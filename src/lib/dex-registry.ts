@@ -25,6 +25,11 @@ export type DexPlatform = {
   maxLeverage: string;
   notes: string;
   links: { website?: string; docs?: string; twitter?: string };
+  /** True only when this site has a wired live data feed for this platform's
+   * funding rate (currently Hyperliquid only, via /api/markets/perp). Other
+   * platforms still work in the Funding Fee Calculator via manual entry -
+   * this just controls whether the rate auto-prefills. */
+  hasLiveFunding?: boolean;
   /** Present when a points/airdrop-value calculator scenario applies to this platform. */
   pointValueScenario?: PointValueScenario;
 };
@@ -62,6 +67,59 @@ export const DEX_REGISTRY: DexPlatform[] = [
     maxLeverage: "Up to 50x (market-dependent)",
     notes: "Live funding rate and open interest for Hyperliquid already power the Funding Fee Calculator on this page.",
     links: { website: "https://hyperliquid.xyz" },
+    hasLiveFunding: true,
+  },
+  {
+    id: "gmx",
+    name: "GMX",
+    status: "live",
+    chain: "Arbitrum + Avalanche",
+    fees: "Open/close fee + a dynamic borrow/funding rate that varies by pool utilization - see official docs.",
+    pointsRules: "No points program - rewards flow through GM/GLP liquidity provision, not a trading-points system.",
+    rewardLogic: "N/A - no token-airdrop-via-points mechanic today.",
+    supportedMarkets: "Perpetuals + spot swaps",
+    maxLeverage: "Up to 50x (market-dependent)",
+    notes: "No live feed wired in yet - enter GMX's published funding/borrow rate manually.",
+    links: { website: "https://gmx.io" },
+  },
+  {
+    id: "dydx",
+    name: "dYdX",
+    status: "live",
+    chain: "dYdX Chain (Cosmos)",
+    fees: "Tiered maker/taker by 30-day volume - see official docs.",
+    pointsRules: "No active points program - DYDX has already launched and trades live.",
+    rewardLogic: "N/A - token generation event has already happened.",
+    supportedMarkets: "Perpetuals",
+    maxLeverage: "Up to 20x (market-dependent)",
+    notes: "No live feed wired in yet - enter dYdX's published funding rate manually.",
+    links: { website: "https://dydx.trade" },
+  },
+  {
+    id: "vertex",
+    name: "Vertex Protocol",
+    status: "live",
+    chain: "Arbitrum",
+    fees: "Tiered maker/taker - see official docs.",
+    pointsRules: "See official docs for any current incentive program.",
+    rewardLogic: "See official docs.",
+    supportedMarkets: "Perpetuals + spot",
+    maxLeverage: "Up to 20x (market-dependent)",
+    notes: "No live feed wired in yet - enter Vertex's published funding rate manually.",
+    links: { website: "https://vertexprotocol.com" },
+  },
+  {
+    id: "aevo",
+    name: "Aevo",
+    status: "live",
+    chain: "Aevo L2 (OP Stack)",
+    fees: "Tiered maker/taker - see official docs.",
+    pointsRules: "No active points program - AEVO has already launched and trades live.",
+    rewardLogic: "N/A - token generation event has already happened.",
+    supportedMarkets: "Perpetuals + options",
+    maxLeverage: "Up to 20x (market-dependent)",
+    notes: "No live feed wired in yet - enter Aevo's published funding rate manually.",
+    links: { website: "https://aevo.xyz" },
   },
 ];
 
