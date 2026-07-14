@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Trading OS Phase 1: Journal core (Trade/TradeFill/edit history)
+- **New `/journal`** (private, login required) — log trades with multiple entries/partial exits
+  (`Trade` + child `TradeFill` rows), long/short, spot/futures/perp/custom, planned stop-loss/take-profit,
+  setup/session/timeframe/tags, notes, and platform tagging (reuses the Phase 0 DEX registry). Every P&L,
+  average entry price, and open/closed status is **derived** from a trade's fills, never stored
+  redundantly (`src/lib/journal.ts`, pure + unit-tested).
+- **Edit history** — every `PATCH` writes an append-only `TradeRevision` row capturing what changed.
+- **Stats + equity curve** — win rate, total P&L, total trades and average planned R computed client-side
+  from the fetched trade list; a new hand-rolled SVG equity curve (signed, can go negative, unlike the
+  dashboard's always-positive `TrendChart`).
+- **`prisma/migrations/24_trades`** (idempotent) — `Trade`, `TradeFill`, `TradeRevision` tables. New
+  `journal` rate-limit bucket (30/min). `/api/journal/trades` (list/create) + `/api/journal/trades/[id]`
+  (edit/delete), ownership-checked, degrade gracefully pre-migration.
+- Added a **Journal** entry to the account menu (desktop + mobile), next to Messages/Settings.
+- Second phase of the Trading OS roadmap (started with Phase 0's `/tools`). Next: Analytics tab, then Risk
+  Management, then Challenges. Nothing existing was changed beyond the one nav entry.
+
 ## 2026-07-14 — Trading OS Phase 0: /tools hub (calculators + DEX registry)
 - **New `/tools` page** — free, no-login trading calculators: **Funding Fee** (live-prefilled hourly
   rate from `/api/markets/perp`), **Points/Airdrop Value** (including a **Variational** preset with its

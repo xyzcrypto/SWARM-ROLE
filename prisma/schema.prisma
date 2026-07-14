@@ -81,6 +81,7 @@ model User {
   directMessages    DirectMessage[]    @relation("DMSender")
   followers         Follow[]           @relation("Following") // rows where this user is followed
   following         Follow[]           @relation("Follower")  // rows where this user follows someone
+  trades            Trade[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
@@ -510,4 +511,80 @@ model Follow {
   @@unique([followerId, followingId]) // can't follow the same person twice
   @@index([followingId]) // follower list + count for a profile
   @@index([followerId]) // following list + count for a profile
+}
+
+// Trading Journal (Trading OS Phase 1). One row per logged position; the
+// actual entries/exits live in TradeFill (supports multiple entries and
+// partial exits) - P&L, average entry price, and open/closed size are all
+// DERIVED from a trade's fills (src/lib/journal.ts), never stored redundantly.
+model Trade {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  symbol String // free text, e.g. "BTC", "ETH" - uppercased client-side
+  side   String // "long" | "short"
+  type   String @default("perp") // "spot" | "futures" | "perp" | "custom"
+  status String @default("open") // "open" | "closed" | "partial" | "canceled" | "invalid"
+
+  platformId String? // optional link to src/lib/dex-registry.ts DexPlatform.id
+  leverage   Float?  @default(1)
+
+  stopLoss   Float?
+  takeProfit Float?
+
+  setup          String? // strategy/setup tag
+  marketCondition String?
+  session        String? // e.g. "Asia" | "London" | "New York"
+  timeframe      String?
+  assetCategory  String?
+  tags           String[] @default([])
+  emotions       String[] @default([])
+  mistakes       String[] @default([])
+  lessons        String?
+  notes          String?
+  screenshots    String[] @default([])
+  customFields   Json?
+
+  visibility String @default("private") // "private" | "public" | "anonymous"
+
+  fills     TradeFill[]
+  revisions TradeRevision[]
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([userId, createdAt])
+  @@index([userId, status])
+}
+
+// One entry or exit execution on a Trade. Multiple entry fills = averaging in;
+// multiple exit fills = scaling out / partial exits.
+model TradeFill {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  kind       String // "entry" | "exit"
+  price      Float
+  size       Float // base-asset units
+  fee        Float    @default(0)
+  executedAt DateTime @default(now())
+
+  trade   Trade  @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  tradeId String
+
+  @@index([tradeId, executedAt])
+}
+
+// Append-only edit history. One row per PATCH, capturing what changed - a
+// lightweight "trade edit history" without a full versioning system.
+model TradeRevision {
+  id        String   @id @default(cuid())
+  changedAt DateTime @default(now())
+  diff      Json // { field: { from, to } } for each changed field
+  editedBy  String // userId of the editor (always the owner today)
+
+  trade   Trade  @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  tradeId String
+
+  @@index([tradeId, changedAt])
 }
