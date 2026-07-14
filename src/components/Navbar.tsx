@@ -18,6 +18,7 @@ import { MagneticButton } from "./MagneticButton";
 import { isStaff } from "@/lib/permissions";
 import { NavActivity } from "./NavActivity";
 import { ThemeToggle } from "./ThemeToggle";
+import { DailyCheckIn } from "./DailyCheckIn";
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -190,6 +191,7 @@ export function Navbar() {
                         Dashboard
                       </MenuItem>
                     )}
+                    <DailyCheckIn />
                     <div className="my-1 h-px bg-white/5" />
                     <button
                       onClick={handleSignOut}
@@ -307,6 +309,7 @@ export function Navbar() {
                       Dashboard
                     </Link>
                   )}
+                  <DailyCheckIn variant="mobile" />
                   <button onClick={handleSignOut} disabled={signingOut} className="btn-ghost disabled:opacity-60">
                     {signingOut ? "Signing out…" : "Sign out"}
                   </button>

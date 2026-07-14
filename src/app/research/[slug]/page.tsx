@@ -18,6 +18,7 @@ import { PremiumLock } from "@/components/PremiumLock";
 import { CommentSection } from "@/components/CommentSection";
 import { LikeButton } from "@/components/LikeButton";
 import { POST_CARD_SELECT } from "@/lib/post-select";
+import { AwardXpOnView } from "@/components/AwardXpOnView";
 
 // Personalized (premium gating reads the session), so render per-request. The
 // query is a single indexed lookup; the heavy list pages stay ISR-cached.
@@ -167,6 +168,7 @@ export default async function PostPage({
       />
       <Navbar />
       <ReadingProgress />
+      {!locked && <AwardXpOnView action="research_view" keyId={post.id} />}
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
         <article className="relative mx-auto max-w-3xl px-4 pb-24 sm:px-6">

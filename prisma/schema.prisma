@@ -86,9 +86,31 @@ model User {
   challenges        Challenge[]
   challengeEntries  ChallengeParticipant[]
 
+  // Basic engagement XP (foundation for a future gamified system). Denormalized
+  // counter kept in sync with XpEvent rows inside a transaction.
+  xp       Int        @default(0)
+  xpEvents XpEvent[]
+
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
   @@index([membership, createdAt]) // dashboard premium-member list (Phase 1)
+}
+
+// One row per user per action per day - the unique constraint makes awarding
+// idempotent (a second call for the same action/day is a no-op, not an error).
+// `day` is a UTC "YYYY-MM-DD" string so it's portable + trivially indexable.
+model XpEvent {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  action    String // "checkin" | "research_view" | "news_read" | "tool_use" | "profile_update"
+  day       String // UTC YYYY-MM-DD
+  xp        Int      @default(1)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([userId, action, day])
+  @@index([userId, createdAt])
 }
 
 // In-app notifications (bell dropdown). Created server-side when a new post is

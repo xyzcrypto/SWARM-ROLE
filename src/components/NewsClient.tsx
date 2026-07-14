@@ -14,6 +14,7 @@ import type { NewsPage } from "@/lib/news-fetch";
 import { NewsAlertsToggle } from "./NewsAlertsToggle";
 import { BriefingBlock } from "./BriefingBlock";
 import { NewsSocial } from "./NewsSocial";
+import { AwardXpOnView } from "./AwardXpOnView";
 import { cn } from "@/lib/utils";
 
 // Share a SHORT on-site link (`/news/read?u=<source-url>`) - opens the story on
@@ -688,6 +689,7 @@ function NewsReader({
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
+        <AwardXpOnView action="news_read" keyId={item.id} />
         {/* reading progress */}
         <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-transparent">
           <div className="h-full bg-gradient-to-r from-gold-500 to-gold-300 transition-[width] duration-150" style={{ width: `${Math.round(progress * 100)}%` }} />
