@@ -124,7 +124,7 @@ export function MarketTicker() {
       {/* scrolling track */}
       <div className="marquee-mask relative flex-1 overflow-hidden py-3">
         <div
-          className="marquee items-center hover:[animation-play-state:paused]"
+          className="marquee items-center"
           style={{ animationDuration: "48s" }}
         >
           {row.map((c, i) => (

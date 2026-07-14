@@ -140,10 +140,18 @@ export function platformsWithPointValue(): DexPlatform[] {
  * Returns null when a platform has no website link yet.
  */
 export function platformLogo(platform: Pick<DexPlatform, "links">): string | null {
+  const domain = platformDomain(platform);
+  return domain ? favicon(domain) : null;
+}
+
+/** Just the hostname from a platform's website link (e.g. "variational.io") - so
+ * callers that need to reconstruct a trusted logo URL themselves (server-side
+ * share-card routes) never have to accept a raw, attacker-suppliable URL. */
+export function platformDomain(platform: Pick<DexPlatform, "links">): string | null {
   const site = platform.links.website;
   if (!site) return null;
   try {
-    return favicon(new URL(site).hostname);
+    return new URL(site).hostname;
   } catch {
     return null;
   }
