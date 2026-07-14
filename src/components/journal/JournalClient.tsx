@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2, ChevronDown } from "lucide-react";
+import { Plus, Trash2, ChevronDown, NotebookPen, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPlatform } from "@/lib/dex-registry";
 import {
@@ -14,6 +14,7 @@ import {
   type Fill,
 } from "@/lib/journal";
 import { EquityCurveChart } from "./EquityCurveChart";
+import { AnalyticsPanel } from "./AnalyticsPanel";
 import { TradeForm, type NewTradeInput } from "./TradeForm";
 
 export type SerializedFill = { id: string; kind: "entry" | "exit"; price: number; size: number; fee: number; executedAt: string };
@@ -53,8 +54,14 @@ function StatTile({ label, value, tone = "plain" }: { label: string; value: stri
   );
 }
 
+const TABS = [
+  { id: "trades" as const, label: "Trades", icon: NotebookPen },
+  { id: "analytics" as const, label: "Analytics", icon: BarChart3 },
+];
+
 export function JournalClient({ initialTrades }: { initialTrades: SerializedTrade[] }) {
   const [trades, setTrades] = useState(initialTrades);
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("trades");
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -114,36 +121,62 @@ export function JournalClient({ initialTrades }: { initialTrades: SerializedTrad
 
       {showForm && <TradeForm busy={busy} onSubmit={createTrade} onCancel={() => setShowForm(false)} />}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Win rate" value={`${stats.winRate.toFixed(1)}%`} tone="mint" />
-        <StatTile label="Total P&L" value={`$${stats.totalPnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} tone={stats.totalPnl >= 0 ? "mint" : "rose"} />
-        <StatTile label="Total trades" value={String(stats.totalTrades)} />
-        <StatTile label="Avg R" value={stats.avgR != null ? stats.avgR.toFixed(2) : "-"} tone="gold" />
+      <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-line bg-ink-950/50 p-1.5">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          const active = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={cn(
+                "inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium transition-colors",
+                active ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
+              )}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="surface rounded-3xl p-6 sm:p-7">
-        <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Equity curve</h2>
-        <EquityCurveChart points={curve} />
-      </div>
-
-      <div className="space-y-3">
-        <h2 className="font-display text-base font-semibold text-zinc-200">Trades</h2>
-        {trades.length === 0 && (
-          <div className="surface rounded-2xl p-8 text-center text-sm text-zinc-500">
-            No trades logged yet - click &ldquo;Log trade&rdquo; to start tracking your performance.
+      {tab === "trades" ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile label="Win rate" value={`${stats.winRate.toFixed(1)}%`} tone="mint" />
+            <StatTile label="Total P&L" value={`$${stats.totalPnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} tone={stats.totalPnl >= 0 ? "mint" : "rose"} />
+            <StatTile label="Total trades" value={String(stats.totalTrades)} />
+            <StatTile label="Avg R" value={stats.avgR != null ? stats.avgR.toFixed(2) : "-"} tone="gold" />
           </div>
-        )}
-        {trades.map((t) => (
-          <TradeRow
-            key={t.id}
-            trade={t}
-            expanded={expanded === t.id}
-            onToggle={() => setExpanded((e) => (e === t.id ? null : t.id))}
-            onAddFill={(fill) => addFill(t.id, fill)}
-            onDelete={() => deleteTrade(t.id)}
-          />
-        ))}
-      </div>
+
+          <div className="surface rounded-3xl p-6 sm:p-7">
+            <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Equity curve</h2>
+            <EquityCurveChart points={curve} />
+          </div>
+
+          <div className="space-y-3">
+            <h2 className="font-display text-base font-semibold text-zinc-200">Trades</h2>
+            {trades.length === 0 && (
+              <div className="surface rounded-2xl p-8 text-center text-sm text-zinc-500">
+                No trades logged yet - click &ldquo;Log trade&rdquo; to start tracking your performance.
+              </div>
+            )}
+            {trades.map((t) => (
+              <TradeRow
+                key={t.id}
+                trade={t}
+                expanded={expanded === t.id}
+                onToggle={() => setExpanded((e) => (e === t.id ? null : t.id))}
+                onAddFill={(fill) => addFill(t.id, fill)}
+                onDelete={() => deleteTrade(t.id)}
+              />
+            ))}
+          </div>
+        </>
+      ) : (
+        <AnalyticsPanel trades={trades} />
+      )}
     </div>
   );
 }

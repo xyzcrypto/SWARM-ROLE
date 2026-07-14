@@ -1,18 +1,29 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import type { EquityPoint } from "@/lib/journal";
 
 const W = 720;
 const H = 220;
 const PAD = 28;
 
-// Hand-rolled SVG equity curve - not a TrendChart reuse because P&L can go
-// negative (needs a signed y() mapping + zero baseline), unlike TrendChart's
-// always-positive daily series. Same interaction language (hover, tooltip,
-// sr-only table) for visual consistency with the admin dashboard's charts.
-export function EquityCurveChart({ points }: { points: EquityPoint[] }) {
+// Hand-rolled SVG line/area chart with a signed y() mapping + zero baseline -
+// reused for both the equity curve and the drawdown curve (drawdown values
+// are always <= 0, so the same "can go negative" rendering applies). Not a
+// TrendChart reuse because TrendChart assumes an always-positive daily series.
+export function EquityCurveChart({
+  points,
+  emptyLabel = "No closed trades yet - your equity curve appears here.",
+  captionLabel = "Cumulative realized P&L over time",
+}: {
+  points: EquityPoint[];
+  emptyLabel?: string;
+  captionLabel?: string;
+}) {
   const [hover, setHover] = useState<number | null>(null);
+  const uid = useId();
+  const mintGradId = `eq-mint-${uid}`;
+  const roseGradId = `eq-rose-${uid}`;
 
   const { path, area, zeroY, dots, minV, maxV } = useMemo(() => {
     if (points.length === 0) return { path: "", area: "", zeroY: H / 2, dots: [] as { x: number; y: number }[], minV: 0, maxV: 0 };
@@ -32,7 +43,7 @@ export function EquityCurveChart({ points }: { points: EquityPoint[] }) {
   if (points.length === 0) {
     return (
       <div className="flex h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-zinc-600">
-        No closed trades yet - your equity curve appears here.
+        {emptyLabel}
       </div>
     );
   }
@@ -64,7 +75,7 @@ export function EquityCurveChart({ points }: { points: EquityPoint[] }) {
         onMouseLeave={() => setHover(null)}
       >
         <line x1={PAD} y1={zeroY} x2={W - PAD} y2={zeroY} stroke="currentColor" className="text-white/10" strokeDasharray="4 4" />
-        <path d={area} fill={positive ? "url(#eq-mint)" : "url(#eq-rose)"} opacity={0.18} />
+        <path d={area} fill={positive ? `url(#${mintGradId})` : `url(#${roseGradId})`} opacity={0.18} />
         <path d={path} fill="none" stroke={positive ? "#22d692" : "#f43f5e"} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
         {hoverDot && (
           <>
@@ -73,11 +84,11 @@ export function EquityCurveChart({ points }: { points: EquityPoint[] }) {
           </>
         )}
         <defs>
-          <linearGradient id="eq-mint" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={mintGradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#22d692" />
             <stop offset="100%" stopColor="#22d692" stopOpacity={0} />
           </linearGradient>
-          <linearGradient id="eq-rose" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={roseGradId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#f43f5e" stopOpacity={0} />
             <stop offset="100%" stopColor="#f43f5e" />
           </linearGradient>
@@ -92,7 +103,7 @@ export function EquityCurveChart({ points }: { points: EquityPoint[] }) {
         </div>
       )}
       <table className="sr-only">
-        <caption>Cumulative realized P&amp;L over time</caption>
+        <caption>{captionLabel}</caption>
         <thead>
           <tr>
             <th>Date</th>
