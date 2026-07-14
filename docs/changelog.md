@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Trading OS Phase 2: Journal Analytics tab
+- **`/journal`** now has a **Trades / Analytics** tab bar. Trades is the existing log; **Analytics** is new:
+  gross P&L, profit factor, expectancy, average realized R (P&L expressed as a multiple of planned risk),
+  max drawdown, average hold time, early-exit rate (closed before hitting take-profit), and a long-vs-short
+  split - all derived from the same fetched trade list, no new endpoint.
+- **Drawdown curve** + a **GitHub-style activity heatmap** (last 12 weeks, colored by daily realized P&L).
+- **Daily/weekly/monthly P&L breakdown** table with a granularity toggle.
+- **Best/worst breakdowns** by setup, asset, platform, and session, plus a **mistake-pattern** frequency
+  view (from the tags already captured when logging a trade).
+- **`src/lib/journal-analytics.ts`** (new, pure, unit-tested) - every metric above as its own function,
+  reusable later by the Risk Management and Challenge phases.
+- `EquityCurveChart` generalized (unique gradient IDs, configurable caption/empty state) so the drawdown
+  chart reuses it instead of duplicating the SVG rendering.
+- Third phase of the Trading OS roadmap. Next: Risk Management. Nothing else existing was touched.
+
 ## 2026-07-14 — Tools: Funding Fee Calculator platform picker + registry expansion
 - **Funding Fee Calculator** now has a **perp DEX picker** (Hyperliquid, GMX, dYdX, Vertex Protocol, Aevo,
   Variational) so it's always clear whose funding rate a number represents. Hyperliquid stays live-prefilled
