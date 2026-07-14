@@ -88,6 +88,12 @@ export default async function Image({ params }: { params: { slug: string } }) {
         <div style={{ display: "flex", fontSize: 26, color: "#a1a1aa" }}>{site.slogan}</div>
       </div>
     ),
-    { ...size }
+    {
+      ...size,
+      // Share-card previews are fetched repeatedly by link-preview bots
+      // (WhatsApp/Telegram/Twitter/Discord) on every share; the title/category
+      // rarely change, so cache generously to cut origin-transfer usage.
+      headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" },
+    }
   );
 }
