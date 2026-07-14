@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Plus, Trophy, Users, ChevronDown, Check } from "lucide-react";
+import { Plus, Trophy, Users, ChevronDown, Check, Share2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CalcField, CalcSegmented } from "@/components/tools/CalcField";
 import {
@@ -47,7 +47,7 @@ function money(n: number): string {
   return `${n >= 0 ? "" : "-"}$${Math.abs(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 
-export function ChallengesPanel() {
+export function ChallengesPanel({ isPremium }: { isPremium: boolean }) {
   const [mine, setMine] = useState<ChallengeSummary[] | null>(null);
   const [discover, setDiscover] = useState<ChallengeSummary[]>([]);
   const [showForm, setShowForm] = useState(false);
@@ -89,6 +89,7 @@ export function ChallengesPanel() {
 
       {showForm && (
         <ChallengeForm
+          isPremium={isPremium}
           onCreated={() => {
             setShowForm(false);
             load();
@@ -225,6 +226,17 @@ function ChallengeCard({ challenge, expanded, onToggle }: { challenge: Challenge
                   </div>
                 </div>
               )}
+
+              {c.visibility !== "private" && (
+                <a
+                  href={`/api/journal/share/challenge/${c.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-secondary inline-flex items-center gap-1.5 text-xs"
+                >
+                  <Share2 className="h-3.5 w-3.5" /> Share card
+                </a>
+              )}
             </>
           )}
         </div>
@@ -304,7 +316,7 @@ function MilestoneList({
   );
 }
 
-function ChallengeForm({ onCreated, onCancel }: { onCreated: () => void; onCancel: () => void }) {
+function ChallengeForm({ isPremium, onCreated, onCancel }: { isPremium: boolean; onCreated: () => void; onCancel: () => void }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [preset, setPreset] = useState<number | "custom">(90);
@@ -314,6 +326,7 @@ function ChallengeForm({ onCreated, onCancel }: { onCreated: () => void; onCance
   const [targetCapital, setTargetCapital] = useState("");
   const [visibility, setVisibility] = useState<"private" | "public" | "community">("private");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function applyPreset(days: number) {
     setPreset(days);
@@ -325,6 +338,7 @@ function ChallengeForm({ onCreated, onCancel }: { onCreated: () => void; onCance
   async function submit() {
     if (!title.trim() || !(Number(startingCapital) > 0)) return;
     setBusy(true);
+    setError(null);
     try {
       const res = await fetch("/api/journal/challenges", {
         method: "POST",
@@ -339,7 +353,9 @@ function ChallengeForm({ onCreated, onCancel }: { onCreated: () => void; onCance
           visibility,
         }),
       });
+      const j = await res.json();
       if (res.ok) onCreated();
+      else setError(j.error ?? "Something went wrong.");
     } finally {
       setBusy(false);
     }
@@ -348,6 +364,12 @@ function ChallengeForm({ onCreated, onCancel }: { onCreated: () => void; onCance
   return (
     <div className="surface space-y-5 rounded-3xl p-6 sm:p-7">
       <h3 className="font-display text-lg font-semibold text-zinc-50">New challenge</h3>
+      {!isPremium && (
+        <p className="rounded-xl border border-gold-500/20 bg-gold-500/[0.05] px-4 py-2.5 text-xs text-gold-200">
+          Free members can run 1 active challenge at a time. <a href="/premium" className="underline decoration-gold-400/40 underline-offset-2 hover:text-gold-100">Upgrade to Premium</a> for unlimited challenges.
+        </p>
+      )}
+      {error && <p className="rounded-xl border border-rose-500/25 bg-rose-500/[0.06] px-4 py-2.5 text-xs text-rose-200">{error}</p>}
 
       <label className="block">
         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Title</span>

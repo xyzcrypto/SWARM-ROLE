@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { journalLimitsFor } from "@/lib/journal-limits";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -69,6 +70,17 @@ export async function POST(req: Request) {
     const parsed = createSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.", 400);
     const d = parsed.data;
+
+    const limits = journalLimitsFor(me.membership);
+    if (Number.isFinite(limits.maxActiveChallenges)) {
+      const activeCount = await prisma.challenge.count({ where: { creatorId: me.id, status: "active" } }).catch(() => 0);
+      if (activeCount >= limits.maxActiveChallenges) {
+        return fail(
+          `Free members can run ${limits.maxActiveChallenges} active challenge at a time. Upgrade to Premium for unlimited challenges.`,
+          403
+        );
+      }
+    }
 
     const challenge = await prisma.challenge.create({
       data: {
