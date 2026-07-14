@@ -62,7 +62,7 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
 
       {story.img && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={story.img} alt="" className="h-52 w-full rounded-2xl object-cover sm:h-72" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
+        <img src={story.img} alt="" decoding="async" className="h-52 w-full rounded-2xl object-cover sm:h-72" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
       )}
 
       <div className="flex flex-wrap items-center gap-2 text-[12px] text-zinc-400">

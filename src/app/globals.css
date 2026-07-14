@@ -923,7 +923,20 @@ html.lenis body {
   .text-shine,
   .btn-primary::after,
   .btn-gold::after,
-  .eyebrow-glass::after {
+  .eyebrow-glass::after,
+  /* bespoke 3D icon system (Icons3D.tsx) - continuous spin/bob/pulse/etc
+     loops were never added to this list, so reduced-motion users got full
+     motion on every icon across About/Products/Markets/News/Premium. */
+  .i3d-spin,
+  .i3d-bob,
+  .i3d-scan,
+  .i3d-pulse,
+  .i3d-tick,
+  .i3d-sweep,
+  .i3d-float,
+  .i3d-beat,
+  .i3d-twinkle,
+  .i3d-flick {
     animation: none !important;
   }
 }
