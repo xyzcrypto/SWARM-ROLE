@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-14 — Trading OS Phase 3: Risk Management tab
+- **`/journal`** gains a third tab, **Risk**, alongside Trades and Analytics.
+- Set optional limits (all skip if left blank): account equity, max risk per trade, max daily loss, max
+  weekly drawdown, max total open risk, a leverage warning threshold, max trades/day, and a revenge-trade
+  cooldown window.
+- **Breach detection** (`src/lib/risk.ts`, pure, unit-tested) computed client-side from the trade list +
+  limits: daily loss limit, overtrading, correlated exposure (multiple open positions on the same symbol),
+  high-leverage open trades, revenge trades (opened shortly after a loss), and total open risk - each
+  surfaced with a plain-language message and a **rule-adherence score** (100, minus points per breach).
+- **Safe-mode banner** after 3+ consecutive losing trades - a nudge to size down or step back, not a hard
+  block.
+- **Planned risk per open trade** table, in both dollars and % of account equity, flagging any trade over
+  the configured per-trade risk limit.
+- **`RiskProfile`** model + idempotent migration (`prisma/migrations/25_risk_profiles`) - one optional row
+  per user. `GET`/`PUT /api/journal/risk-profile`, reuses the existing `journal` rate-limit bucket.
+- Fourth phase of the Trading OS roadmap (`/tools` → Journal core → Analytics → **Risk**). Next: Challenges.
+  Nothing else existing was touched.
+
 ## 2026-07-14 — Trading OS Phase 2: Journal Analytics tab
 - **`/journal`** now has a **Trades / Analytics** tab bar. Trades is the existing log; **Analytics** is new:
   gross P&L, profit factor, expectancy, average realized R (P&L expressed as a multiple of planned risk),
