@@ -5,6 +5,28 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-15 — Fix: points-value share popup blocked, ticker "frozen" fallback, desktop blank-page cache bust
+Three targeted bug fixes, no redesign - each isolated to the specific broken/fragile path:
+- **Points Value "Share result" wasn't opening**: `PointsValueCalculator.tsx`'s `share()` called
+  `window.open()` *after* an `await fetch()` - most browsers (Safari especially) only allow
+  `window.open()` to bypass the popup blocker when it's invoked synchronously within the original click's
+  call stack, so the tab was being silently blocked with zero error surfaced. Fixed by opening a blank tab
+  immediately on click (still inside the user gesture) and navigating it once the share id comes back;
+  falls back to same-tab navigation if the popup was blocked outright, and now surfaces a real error
+  message if the create request itself fails (previously a silent `catch`).
+- **Homepage "Live Market" ticker looking static**: root cause traced to CoinGecko's free/keyless API
+  rate-limiting - when the upstream call fails, `/api/ticker` was falling back to the same hardcoded seed
+  prices every time, which reads as a frozen/dead ticker during any sustained outage (the scroll animation
+  and 10s poll loop themselves were already correct, not the issue). Added an in-memory "last successful
+  fetch" cache in `src/app/api/ticker/route.ts` so a failed refresh serves the last real prices instead of
+  the same static numbers.
+- **Desktop blank page (recurrence)**: the historical cause (WebGL orbital crashing on some desktop GPUs)
+  was already hard-disabled (`useWebglGate.ts` returns `false`) and wrapped in error boundaries in a prior
+  fix, with no code regression found in the relevant files since. Bumped the PWA service worker cache
+  (`public/sw.js`, `xyz-pwa-v4` → `v5`) to force any returning visitor still on a stale pre-fix cached
+  bundle to pick up the current code - the same remediation used the first time this symptom appeared.
+- **Files**: `src/components/tools/PointsValueCalculator.tsx`, `src/app/api/ticker/route.ts`, `public/sw.js`.
+
 ## 2026-07-15 — Public Journal Activity on profiles + trade visibility control
 Fifth and final phase of the "Journal → best in class" build, and the owner's explicitly "most important"
 ask: whatever a member does in their trading Journal now shows up on their public profile.

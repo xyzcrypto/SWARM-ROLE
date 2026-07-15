@@ -5,7 +5,7 @@
  *  - Hashed static assets (/_next/static, fonts): cache-first (immutable).
  *  - Everything else (APIs, auth, real-time): straight to the network, never cached.
  */
-const CACHE = "xyz-pwa-v4";
+const CACHE = "xyz-pwa-v5";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/logo.png"];
 

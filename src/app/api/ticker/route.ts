@@ -40,6 +40,13 @@ const fallback = COINS.map((c) => ({
   image: LOGO[c.symbol],
 }));
 
+// Last successful upstream fetch, kept in module memory (persists across
+// requests on a warm serverless instance). Used instead of the hardcoded
+// `fallback` seed data during a transient CoinGecko outage/rate-limit, so
+// repeated failures serve slightly-stale-but-real prices rather than the
+// exact same numbers every time (which reads as "the ticker is frozen").
+let lastGood: { coins: typeof fallback; ts: number } | null = null;
+
 async function fetchUpstream() {
   const ids = COINS.map((c) => c.id).join(",");
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`;
@@ -62,13 +69,18 @@ async function fetchUpstream() {
 export async function GET() {
   try {
     const coins = await fetchUpstream();
+    lastGood = { coins, ts: Date.now() };
     return NextResponse.json(
       { coins, live: true, ts: Date.now() },
       { headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" } }
     );
   } catch {
+    // Prefer the last real prices we successfully fetched over the hardcoded
+    // seed data - during a CoinGecko outage/rate-limit this keeps the ticker
+    // showing real (if a bit stale) numbers instead of the exact same
+    // hardcoded values on every failed refresh, which reads as "frozen".
     return NextResponse.json(
-      { coins: fallback, live: false, ts: Date.now() },
+      { coins: lastGood?.coins ?? fallback, live: false, ts: Date.now() },
       { headers: { "Cache-Control": "public, s-maxage=8" } }
     );
   }
