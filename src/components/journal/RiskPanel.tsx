@@ -1,18 +1,21 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ShieldCheck, Calculator, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { deriveStatus } from "@/lib/journal";
 import {
+  adherenceTrend,
   plannedRiskPct,
   plannedRiskUsd,
   ruleAdherenceScore,
   safeModeActive,
   scanBreaches,
+  suggestedPositionSize,
   type RiskProfile,
 } from "@/lib/risk";
 import { CalcField } from "@/components/tools/CalcField";
+import { AdherenceTrendChart } from "./AdherenceTrendChart";
 import type { SerializedTrade } from "./JournalClient";
 
 export type SerializedRiskProfile = RiskProfile | null;
@@ -49,6 +52,16 @@ export function RiskPanel({ trades, initialProfile }: { trades: SerializedTrade[
   const score = useMemo(() => ruleAdherenceScore(breaches), [breaches]);
   const inSafeMode = useMemo(() => safeModeActive(riskTrades), [riskTrades]);
   const openTrades = useMemo(() => trades.filter((t) => deriveStatus(t.fills) === "open"), [trades]);
+  const trend = useMemo(() => (profile ? adherenceTrend(riskTrades, profile, now, 30) : []), [riskTrades, profile, now]);
+
+  const [sizeEquity, setSizeEquity] = useState(() => (initialProfile?.accountEquity != null ? String(initialProfile.accountEquity) : ""));
+  const [sizeRiskPct, setSizeRiskPct] = useState(() => (initialProfile?.maxRiskPerTradePct != null ? String(initialProfile.maxRiskPerTradePct) : ""));
+  const [sizeEntry, setSizeEntry] = useState("");
+  const [sizeStop, setSizeStop] = useState("");
+  const sizeResult = useMemo(
+    () => suggestedPositionSize(Number(sizeEquity) || 0, Number(sizeRiskPct) || 0, Number(sizeEntry) || 0, Number(sizeStop) || 0),
+    [sizeEquity, sizeRiskPct, sizeEntry, sizeStop]
+  );
 
   async function save() {
     setSaving(true);
@@ -136,6 +149,47 @@ export function RiskPanel({ trades, initialProfile }: { trades: SerializedTrade[
           </div>
         </div>
       )}
+
+      {profile && (
+        <div className="surface rounded-3xl p-6 sm:p-7">
+          <h2 className="mb-4 flex items-center gap-1.5 font-display text-base font-semibold text-zinc-200">
+            <TrendingUp className="h-4 w-4 text-gold-300" /> Discipline trend
+          </h2>
+          <AdherenceTrendChart points={trend} />
+          <p className="mt-3 text-center text-[11px] text-zinc-600">Your rule-adherence score, re-scored as of each of the last 30 days.</p>
+        </div>
+      )}
+
+      <div className="surface space-y-4 rounded-3xl p-6 sm:p-7">
+        <h2 className="flex items-center gap-1.5 font-display text-base font-semibold text-zinc-200">
+          <Calculator className="h-4 w-4 text-gold-300" /> Suggested position size
+        </h2>
+        <p className="text-xs text-zinc-500">Given your account size, risk %, entry and stop - the size that risks exactly that much.</p>
+        <div className="grid gap-4 sm:grid-cols-4">
+          <CalcField label="Account equity" value={sizeEquity} onChange={setSizeEquity} suffix="USD" />
+          <CalcField label="Risk per trade" value={sizeRiskPct} onChange={setSizeRiskPct} suffix="%" />
+          <CalcField label="Entry price" value={sizeEntry} onChange={setSizeEntry} suffix="USD" />
+          <CalcField label="Stop price" value={sizeStop} onChange={setSizeStop} suffix="USD" />
+        </div>
+        {sizeResult ? (
+          <div className="grid gap-3 rounded-2xl border border-gold-500/20 bg-gold-500/[0.04] p-4 sm:grid-cols-3">
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-zinc-500">Position size</p>
+              <p className="mono text-lg font-semibold text-gold-200">{sizeResult.size.toLocaleString(undefined, { maximumFractionDigits: 6 })}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-zinc-500">Notional</p>
+              <p className="mono text-lg font-semibold text-zinc-100">${sizeResult.notional.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-wide text-zinc-500">$ at risk</p>
+              <p className="mono text-lg font-semibold text-rose-300">${sizeResult.riskUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="text-xs text-zinc-600">Fill in all four fields (with a real stop distance) to see the suggested size.</p>
+        )}
+      </div>
 
       {openTrades.length > 0 && (
         <div className="surface rounded-3xl p-6 sm:p-7">

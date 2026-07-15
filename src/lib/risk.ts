@@ -181,6 +181,40 @@ export function ruleAdherenceScore(breaches: Breach[]): number {
   return Math.max(0, 100 - penalty);
 }
 
+export type AdherencePoint = { date: string; score: number };
+
+/** Re-runs scanBreaches/ruleAdherenceScore as-of each of the last `days` days,
+ * using only trades opened on/before that day - a historical "what would my
+ * score have shown" trend. Entirely derived, nothing persisted. */
+export function adherenceTrend(trades: RiskTrade[], profile: RiskProfile, now: Date, days = 30): AdherencePoint[] {
+  const out: AdherencePoint[] = [];
+  for (let i = days - 1; i >= 0; i--) {
+    const day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const dayStr = day.toISOString().slice(0, 10);
+    const tradesAsOf = trades.filter((t) => {
+      const openedAt = firstEntryAt(t.fills);
+      return openedAt !== "" && dayKey(openedAt) <= dayStr;
+    });
+    out.push({ date: dayStr, score: ruleAdherenceScore(scanBreaches(tradesAsOf, profile, day)) });
+  }
+  return out;
+}
+
+/** Inverse of plannedRiskUsd: the position size that risks exactly `riskPct`%
+ * of `equity` given an entry and stop price. Null without a valid stop distance. */
+export function suggestedPositionSize(
+  equity: number,
+  riskPct: number,
+  entryPrice: number,
+  stopPrice: number
+): { size: number; notional: number; riskUsd: number } | null {
+  const stopDistance = Math.abs(entryPrice - stopPrice);
+  if (!(equity > 0) || !(riskPct > 0) || !(entryPrice > 0) || stopDistance <= 0) return null;
+  const riskUsd = equity * (riskPct / 100);
+  const size = riskUsd / stopDistance;
+  return { size, notional: size * entryPrice, riskUsd };
+}
+
 /** Safe mode triggers after `threshold` (default 3) consecutive losses - a cue to size down / pause. */
 export function safeModeActive(trades: RiskTrade[], threshold = 3): boolean {
   return currentLosingStreak(trades) >= threshold;

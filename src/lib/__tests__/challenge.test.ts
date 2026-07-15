@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildLeaderboard,
+  challengeDayRange,
   currentCapital,
   daysElapsed,
   daysRemaining,
@@ -65,6 +66,20 @@ describe("duration / elapsed / remaining / expired", () => {
   it("flags expiry past the end date", () => {
     expect(isExpired(c, new Date("2026-01-10T00:00:00Z"))).toBe(false);
     expect(isExpired(c, new Date("2026-02-01T00:00:00Z"))).toBe(true);
+  });
+});
+
+describe("challengeDayRange", () => {
+  const c: ChallengeLike = { startDate: "2026-01-01T00:00:00Z", endDate: "2026-01-31T00:00:00Z", startingCapital: 1000 };
+  it("spans start through today when today is within the window", () => {
+    const days = challengeDayRange(c, new Date("2026-01-05T00:00:00Z"));
+    expect(days).toEqual(["2026-01-01", "2026-01-02", "2026-01-03", "2026-01-04", "2026-01-05"]);
+  });
+  it("caps at the end date when today is past it", () => {
+    const days = challengeDayRange(c, new Date("2026-03-01T00:00:00Z"));
+    expect(days[0]).toBe("2026-01-01");
+    expect(days[days.length - 1]).toBe("2026-01-31");
+    expect(days).toHaveLength(31);
   });
 });
 

@@ -56,7 +56,11 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       })
       .catch(() => [] as any[]);
 
-    return ok({ challenge, milestones: challenge.milestones, leaderboard, myTrades, isParticipant, isOwner: challenge.creatorId === me.id });
+    const dayNotes = await prisma.challengeDayNote
+      .findMany({ where: { challengeId: challenge.id, userId: me.id }, orderBy: { day: "asc" } })
+      .catch(() => [] as any[]); // tolerate a not-yet-migrated DB -> empty
+
+    return ok({ challenge, milestones: challenge.milestones, leaderboard, myTrades, dayNotes, isParticipant, isOwner: challenge.creatorId === me.id });
   } catch (err) {
     return handleError(err, "journal:challenges:get-one");
   }
