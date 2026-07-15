@@ -49,9 +49,16 @@ export function PointsValueCalculator() {
   );
 
   const [sharing, setSharing] = useState(false);
+  const [shareError, setShareError] = useState<string | null>(null);
   async function share() {
     if (sharing) return;
     setSharing(true);
+    setShareError(null);
+    // Open the tab synchronously, in the same call stack as the click - most
+    // browsers (Safari especially) only let window.open() bypass the popup
+    // blocker when it's called directly from a user gesture, not after an
+    // awaited fetch. We navigate this pre-opened tab once the id comes back.
+    const win = window.open("", "_blank", "noopener,noreferrer");
     try {
       const res = await fetch("/api/tools/share/create", {
         method: "POST",
@@ -69,9 +76,17 @@ export function PointsValueCalculator() {
         }),
       });
       const j = await res.json().catch(() => ({}));
-      if (res.ok && j.id) window.open(`/tools/share/points-value/${j.id}`, "_blank", "noopener,noreferrer");
+      if (res.ok && j.id) {
+        const url = `/tools/share/points-value/${j.id}`;
+        if (win) win.location.href = url;
+        else window.location.href = url; // popup fully blocked - fall back to same-tab
+      } else {
+        win?.close();
+        setShareError("Couldn't create the share link. Please try again.");
+      }
     } catch {
-      /* best-effort */
+      win?.close();
+      setShareError("Couldn't create the share link. Please try again.");
     } finally {
       setSharing(false);
     }
@@ -146,7 +161,7 @@ export function PointsValueCalculator() {
         <ResultTile label="Estimated value" value={`$${result.usd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} tone="gold" />
       </div>
 
-      <div className="flex justify-end">
+      <div className="flex flex-col items-end gap-1.5">
         <button
           type="button"
           onClick={share}
@@ -156,6 +171,7 @@ export function PointsValueCalculator() {
           {sharing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Share2 className="h-3.5 w-3.5" />}
           {sharing ? "Creating link…" : "Share result"}
         </button>
+        {shareError && <p className="text-xs text-rose-400">{shareError}</p>}
       </div>
     </div>
   );
