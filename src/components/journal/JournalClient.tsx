@@ -1,9 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Plus, Trash2, ChevronDown, NotebookPen, BarChart3, ShieldAlert, Trophy, Circle, CheckCircle2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Plus, Trash2, ChevronDown, NotebookPen, BarChart3, ShieldAlert, Trophy, Circle, CheckCircle2, Radio } from "lucide-react";
 import { cn, formatDateWithDay } from "@/lib/utils";
 import { getPlatform } from "@/lib/dex-registry";
+import { userChannel } from "@/lib/realtime";
+import { useRealtime } from "@/lib/useRealtime";
 import {
   computeStats,
   deriveStatus,
@@ -80,6 +82,36 @@ export function JournalClient({
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [live, setLive] = useState(false);
+
+  // Live: another tab/device (or a mutation this tab just made) changed a trade -
+  // refetch the full list so Trades/Analytics/Risk all reflect it immediately,
+  // without the user having to reload the page.
+  const syncing = useRef(false);
+  const syncTrades = useCallback(async () => {
+    if (syncing.current) return;
+    syncing.current = true;
+    try {
+      const res = await fetch("/api/journal/trades", { cache: "no-store" });
+      const j = await res.json().catch(() => null);
+      if (res.ok && j?.trades) setTrades(j.trades);
+    } catch {
+      // keep current state - a transient refetch failure isn't worth surfacing
+    } finally {
+      syncing.current = false;
+    }
+  }, []);
+
+  useRealtime({
+    channel: userChannel(userId),
+    event: "journal_trade",
+    onMessage: () => void syncTrades(),
+    pollMs: 45000,
+  });
+
+  useEffect(() => {
+    setLive(typeof window !== "undefined" && !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  }, []);
 
   const stats = useMemo(() => computeStats(trades.map((t) => ({ side: t.side, fills: t.fills, stopLoss: t.stopLoss, takeProfit: t.takeProfit }))), [trades]);
   const curve = useMemo(
@@ -142,8 +174,13 @@ export function JournalClient({
     <div className="space-y-8 pt-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-semibold text-zinc-50 sm:text-3xl">
+          <h1 className="flex items-center gap-2 font-display text-2xl font-semibold text-zinc-50 sm:text-3xl">
             Trading <span className="text-shine">Journal</span>
+            {live && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-mint-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-mint-300 ring-1 ring-mint-500/25">
+                <Radio className="h-2.5 w-2.5 animate-pulse" /> Live
+              </span>
+            )}
           </h1>
           <p className="mt-1 text-sm text-zinc-500">Log your trades and see your real performance, automatically calculated.</p>
         </div>

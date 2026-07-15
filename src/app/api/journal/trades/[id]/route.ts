@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { deriveStatus, type Fill } from "@/lib/journal";
+import { broadcastEvent, userChannel } from "@/lib/realtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -99,6 +100,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         .catch(() => {}); // best-effort - never block the update on history logging
     }
 
+    broadcastEvent(userChannel(me.id), "journal_trade", { id: trade.id });
     return ok({ trade });
   } catch (err) {
     return handleError(err, "journal:trades:patch");
@@ -112,6 +114,7 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
     if (!me) return fail("Please log in.", 401);
     if (!isCuid(params.id)) return fail("Invalid trade id.", 400);
     await prisma.trade.deleteMany({ where: { id: params.id, userId: me.id } });
+    broadcastEvent(userChannel(me.id), "journal_trade", { id: params.id, deleted: true });
     return ok({ deleted: true });
   } catch (err) {
     return handleError(err, "journal:trades:delete");

@@ -63,6 +63,14 @@ export function todaysPnl(trades: RiskTrade[], now: Date): number {
     .reduce((s, t) => s + realizedPnl(t.side, t.fills), 0);
 }
 
+/** Net realized P&L for trades closed within the trailing 7 days (from `now`). */
+export function weeklyPnl(trades: RiskTrade[], now: Date): number {
+  const cutoff = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+  return trades
+    .filter((t) => deriveStatus(t.fills) !== "open" && new Date(lastExitAt(t.fills)).getTime() >= cutoff)
+    .reduce((s, t) => s + realizedPnl(t.side, t.fills), 0);
+}
+
 /** How many NEW trades were opened today (by first entry fill). */
 export function tradesOpenedToday(trades: RiskTrade[], now: Date): number {
   const today = now.toISOString().slice(0, 10);
@@ -120,6 +128,13 @@ export function scanBreaches(trades: RiskTrade[], profile: RiskProfile, now: Dat
     const lossPct = (-todaysPnl(trades, now) / profile.accountEquity) * 100;
     if (lossPct >= profile.maxDailyLossPct) {
       breaches.push({ rule: "daily-loss", severity: "critical", message: `Today's loss (${lossPct.toFixed(1)}%) has hit your ${profile.maxDailyLossPct}% daily limit.` });
+    }
+  }
+
+  if (profile.maxWeeklyDrawdownPct && profile.accountEquity) {
+    const lossPct = (-weeklyPnl(trades, now) / profile.accountEquity) * 100;
+    if (lossPct >= profile.maxWeeklyDrawdownPct) {
+      breaches.push({ rule: "weekly-drawdown", severity: "critical", message: `This week's drawdown (${lossPct.toFixed(1)}%) has hit your ${profile.maxWeeklyDrawdownPct}% weekly limit.` });
     }
   }
 

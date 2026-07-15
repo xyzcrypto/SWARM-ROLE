@@ -11,6 +11,7 @@ import {
   scanBreaches,
   todaysPnl,
   tradesOpenedToday,
+  weeklyPnl,
   type RiskTrade,
 } from "../risk";
 
@@ -109,5 +110,21 @@ describe("scanBreaches / ruleAdherenceScore / safeModeActive", () => {
       trade({ id: String(n), fills: [fill("entry", 100, 1, `2026-01-0${n}T00:00:00Z`), fill("exit", 90, 1, `2026-01-0${n}T01:00:00Z`)] })
     );
     expect(safeModeActive(losses)).toBe(true);
+  });
+  it("sums realized P&L for trades closed within the trailing 7 days", () => {
+    const closedThisWeek = trade({
+      id: "1",
+      fills: [fill("entry", 100, 1, "2026-01-06T00:00:00Z"), fill("exit", 90, 1, "2026-01-06T01:00:00Z")],
+    });
+    const closedLastMonth = trade({
+      id: "2",
+      fills: [fill("entry", 100, 1, "2025-12-01T00:00:00Z"), fill("exit", 90, 1, "2025-12-01T01:00:00Z")],
+    });
+    expect(weeklyPnl([closedThisWeek, closedLastMonth], NOW)).toBeCloseTo(-10);
+  });
+  it("flags a weekly drawdown breach and scores it critical", () => {
+    const t = trade({ id: "1", fills: [fill("entry", 100, 10, "2026-01-06T08:00:00Z"), fill("exit", 90, 10, "2026-01-06T09:00:00Z")] });
+    const breaches = scanBreaches([t], { maxWeeklyDrawdownPct: 5, accountEquity: 1000 }, NOW);
+    expect(breaches.some((b) => b.rule === "weekly-drawdown" && b.severity === "critical")).toBe(true);
   });
 });

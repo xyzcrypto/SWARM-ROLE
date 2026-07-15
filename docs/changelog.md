@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-15 — Journal Analytics realtime + live blurred premium preview + weekly-drawdown fix
+Third phase of the "Journal → best in class" build (Trades tab was the second phase).
+- **Realtime**: trade create/edit/delete routes now broadcast a `journal_trade` event on the user's
+  own realtime channel (`userChannel(userId)`, existing pattern from `ProfileFollow.tsx`/DM). `JournalClient`
+  subscribes via `useRealtime` and refetches trades on any push (falls back to a 45s poll when Supabase
+  realtime isn't configured), so Trades/Analytics/Risk all update live across tabs/devices without a
+  reload. A small "Live" pill next to the Journal heading shows when realtime is active.
+- **Deep-analytics live preview**: free-tier users now see their own real deep-analytics section (drawdown
+  curve, activity heatmap, P&L breakdown, breakdown tables, mistake patterns) rendered blurred behind the
+  premium gate, instead of a blank teaser card - a live, always-current "demo" of what premium unlocks
+  (their own data, never another user's - same privacy boundary as before).
+- **Fix**: `maxWeeklyDrawdownPct` was a configurable risk-profile field that was silently never checked.
+  Added `weeklyPnl()` (`risk.ts`) and a `weekly-drawdown` breach check in `scanBreaches()`, with unit tests.
+- **Files**: `src/lib/risk.ts`, `src/lib/__tests__/risk.test.ts`, `src/app/api/journal/trades/route.ts`,
+  `src/app/api/journal/trades/[id]/route.ts`, `src/components/journal/JournalClient.tsx`,
+  `src/components/journal/AnalyticsPanel.tsx`.
+
 ## 2026-07-15 — Journal Trades tab: $ sizing, weekly/monthly auto P&L, Open/Closed split
 Second phase of the "Journal → best in class" build (first was the points-value share polish).
 - **$ position sizing**: "Log a trade" and "Add fill" now take a dollar amount instead of raw asset
