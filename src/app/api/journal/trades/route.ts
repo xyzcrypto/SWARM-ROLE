@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { broadcastEvent, userChannel } from "@/lib/realtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -122,6 +123,7 @@ export async function POST(req: Request) {
       },
       include: { fills: true },
     });
+    broadcastEvent(userChannel(me.id), "journal_trade", { id: trade.id });
     return ok({ trade }, 201);
   } catch (err) {
     return handleError(err, "journal:trades:post");

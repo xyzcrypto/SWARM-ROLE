@@ -149,8 +149,8 @@ export function AnalyticsPanel({ trades, isPremium, userId }: { trades: Serializ
         <StatTile label="Long vs short" value={`${sides[0].trades} / ${sides[1].trades}`} hint={`${money(sides[0].totalPnl)} / ${money(sides[1].totalPnl)}`} />
       </div>
 
-      {isPremium ? (
-        <>
+      <div className="relative">
+        <div aria-hidden={!isPremium} className={cn("space-y-8", !isPremium && "pointer-events-none select-none blur-[6px] opacity-70")}>
           <div className="surface rounded-3xl p-6 sm:p-7">
             <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Drawdown</h2>
             <EquityCurveChart points={ddCurve} emptyLabel="No closed trades yet." captionLabel="Drawdown from peak over time" />
@@ -226,14 +226,18 @@ export function AnalyticsPanel({ trades, isPremium, userId }: { trades: Serializ
               </div>
             </div>
           )}
-        </>
-      ) : (
-        <PremiumGate
-          title="Unlock deep analytics"
-          perks={["Drawdown curve + activity heatmap", "Daily/weekly/monthly P&L breakdown", "Best/worst by setup, asset, platform, session", "Mistake-pattern tracking"]}
-          loggedIn
-        />
-      )}
+        </div>
+
+        {!isPremium && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-b from-ink-950/10 via-ink-950/40 to-ink-950/70 p-4">
+            <PremiumGate
+              title="Unlock deep analytics"
+              perks={["Drawdown curve + activity heatmap", "Daily/weekly/monthly P&L breakdown", "Best/worst by setup, asset, platform, session", "Mistake-pattern tracking"]}
+              loggedIn
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
