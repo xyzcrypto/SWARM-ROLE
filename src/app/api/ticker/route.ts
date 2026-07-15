@@ -7,16 +7,16 @@ import { NextResponse } from "next/server";
 export const revalidate = 10;
 
 const COINS = [
-  { symbol: "BTC", name: "Bitcoin", id: "bitcoin", seed: 68420 },
-  { symbol: "ETH", name: "Ethereum", id: "ethereum", seed: 3540 },
-  { symbol: "SOL", name: "Solana", id: "solana", seed: 168.4 },
-  { symbol: "SUI", name: "Sui", id: "sui", seed: 2.14 },
-  { symbol: "HYPE", name: "Hyperliquid", id: "hyperliquid", seed: 27.8 },
-  { symbol: "BNB", name: "BNB", id: "binancecoin", seed: 605 },
-  { symbol: "XRP", name: "XRP", id: "ripple", seed: 0.62 },
-  { symbol: "DOGE", name: "Dogecoin", id: "dogecoin", seed: 0.16 },
-  { symbol: "AVAX", name: "Avalanche", id: "avalanche-2", seed: 38.2 },
-  { symbol: "LINK", name: "Chainlink", id: "chainlink", seed: 18.6 },
+  { symbol: "BTC", name: "Bitcoin", id: "bitcoin", binance: "BTCUSDT", seed: 68420 },
+  { symbol: "ETH", name: "Ethereum", id: "ethereum", binance: "ETHUSDT", seed: 3540 },
+  { symbol: "SOL", name: "Solana", id: "solana", binance: "SOLUSDT", seed: 168.4 },
+  { symbol: "SUI", name: "Sui", id: "sui", binance: "SUIUSDT", seed: 2.14 },
+  { symbol: "HYPE", name: "Hyperliquid", id: "hyperliquid", binance: "HYPEUSDT", seed: 27.8 },
+  { symbol: "BNB", name: "BNB", id: "binancecoin", binance: "BNBUSDT", seed: 605 },
+  { symbol: "XRP", name: "XRP", id: "ripple", binance: "XRPUSDT", seed: 0.62 },
+  { symbol: "DOGE", name: "Dogecoin", id: "dogecoin", binance: "DOGEUSDT", seed: 0.16 },
+  { symbol: "AVAX", name: "Avalanche", id: "avalanche-2", binance: "AVAXUSDT", seed: 38.2 },
+  { symbol: "LINK", name: "Chainlink", id: "chainlink", binance: "LINKUSDT", seed: 18.6 },
 ];
 
 const LOGO: Record<string, string> = {
@@ -47,11 +47,11 @@ const fallback = COINS.map((c) => ({
 // exact same numbers every time (which reads as "the ticker is frozen").
 let lastGood: { coins: typeof fallback; ts: number } | null = null;
 
-async function fetchUpstream() {
+async function fetchFromCoinGecko() {
   const ids = COINS.map((c) => c.id).join(",");
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`;
   const res = await fetch(url, { headers: { accept: "application/json" }, next: { revalidate } });
-  if (!res.ok) throw new Error(`upstream ${res.status}`);
+  if (!res.ok) throw new Error(`coingecko ${res.status}`);
   const data: any[] = await res.json();
   const byId = new Map(data.map((d) => [d.id, d]));
   return COINS.map((c) => {
@@ -66,6 +66,38 @@ async function fetchUpstream() {
   });
 }
 
+// CoinGecko's free/keyless API rate-limits shared cloud IPs (like Vercel's)
+// aggressively - a very common real-world cause of a ticker that's stuck on
+// fallback numbers indefinitely, not just during brief blips. Binance's public
+// ticker is also free and keyless, but has much more generous per-IP limits,
+// so it's a solid second opinion when CoinGecko itself is unreachable.
+async function fetchFromBinance() {
+  const symbols = JSON.stringify(COINS.map((c) => c.binance));
+  const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbols)}`;
+  const res = await fetch(url, { headers: { accept: "application/json" }, next: { revalidate } });
+  if (!res.ok) throw new Error(`binance ${res.status}`);
+  const data: any[] = await res.json();
+  const bySymbol = new Map(data.map((d) => [d.symbol, d]));
+  return COINS.map((c) => {
+    const d = bySymbol.get(c.binance);
+    return {
+      symbol: c.symbol,
+      name: c.name,
+      price: d ? Number(d.lastPrice) : c.seed,
+      change: d ? Number(d.priceChangePercent) : 0,
+      image: LOGO[c.symbol],
+    };
+  });
+}
+
+async function fetchUpstream() {
+  try {
+    return await fetchFromCoinGecko();
+  } catch {
+    return await fetchFromBinance();
+  }
+}
+
 export async function GET() {
   try {
     const coins = await fetchUpstream();
@@ -75,10 +107,10 @@ export async function GET() {
       { headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" } }
     );
   } catch {
-    // Prefer the last real prices we successfully fetched over the hardcoded
-    // seed data - during a CoinGecko outage/rate-limit this keeps the ticker
-    // showing real (if a bit stale) numbers instead of the exact same
-    // hardcoded values on every failed refresh, which reads as "frozen".
+    // Both upstreams failed - prefer the last real prices we successfully
+    // fetched over the hardcoded seed data, so repeated failures serve
+    // slightly-stale-but-real numbers instead of the exact same hardcoded
+    // values every time (which reads as "the ticker is frozen").
     return NextResponse.json(
       { coins: lastGood?.coins ?? fallback, live: false, ts: Date.now() },
       { headers: { "Cache-Control": "public, s-maxage=8" } }
