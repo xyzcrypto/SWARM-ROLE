@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-15 — Fix: ticker second upstream (Binance) when CoinGecko is unreachable
+Follow-up to the same-day ticker fix - owner reported the homepage ticker was still showing static
+prices after that fix shipped. Root-caused with an actual browser test (Playwright against a real
+production build): the client fetch loop, state updates, and CSS scroll animation are all working
+correctly - the previous fix's in-memory "last good" cache only helps for *intermittent* CoinGecko
+failures, but does nothing if CoinGecko has never succeeded even once (a well-documented real-world
+issue: CoinGecko's free/keyless API aggressively rate-limits shared cloud IPs like Vercel's, which can
+mean a *sustained*, not intermittent, failure). Added Binance's public ticker API (`api.binance.com`,
+also free/keyless, much more generous per-IP limits) as a second upstream `/api/ticker` tries when
+CoinGecko itself is unreachable, before falling back to last-known-good or hardcoded seed data.
+- **Files**: `src/app/api/ticker/route.ts`.
+- **Separately identified (not a code bug, needs a production DB migration - see owner follow-up)**:
+  the Points Value "Share result" button's popup-timing bug is confirmed fixed (verified via a real
+  browser click in a production build - the tab opens correctly and an error now surfaces on failure),
+  but the underlying `POST /api/tools/share/create` call can still 503 if the `SharedCard` table
+  (migration 28) - or `ChallengeDayNote`/`JournalActivity`, migrations 29/30 - haven't been applied to
+  the real production database yet.
+
 ## 2026-07-15 — Fix: points-value share popup blocked, ticker "frozen" fallback, desktop blank-page cache bust
 Three targeted bug fixes, no redesign - each isolated to the specific broken/fragile path:
 - **Points Value "Share result" wasn't opening**: `PointsValueCalculator.tsx`'s `share()` called
