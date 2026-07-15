@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { broadcastEvent, userChannel } from "@/lib/realtime";
+import { activityForChallengeJoined } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,9 +22,20 @@ export async function POST(_req: Request, { params }: { params: { id: string } }
     if (!challenge) return fail("Not found.", 404);
     if (challenge.visibility === "private") return fail("This challenge is private.", 403);
 
+    const alreadyJoined = await prisma.challengeParticipant
+      .findUnique({ where: { challengeId_userId: { challengeId: challenge.id, userId: me.id } } })
+      .catch(() => null);
+
     await prisma.challengeParticipant
       .create({ data: { challengeId: challenge.id, userId: me.id, role: "participant" } })
       .catch(() => {}); // already joined - fine
+
+    if (!alreadyJoined) {
+      prisma.journalActivity
+        .create({ data: { userId: me.id, ...activityForChallengeJoined(challenge.title) } })
+        .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
+        .catch(() => {}); // best-effort - never blocks the join
+    }
 
     return ok({ joined: true });
   } catch (err) {

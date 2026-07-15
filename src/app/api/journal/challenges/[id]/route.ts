@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { buildLeaderboard, type ChallengeTrade } from "@/lib/challenge";
+import { broadcastEvent, userChannel } from "@/lib/realtime";
+import { activityForChallengeCompleted } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -105,6 +107,14 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
         ...(endDate !== undefined ? { endDate: new Date(endDate) } : {}),
       },
     });
+
+    if (rest.status === "completed" && existing.status !== "completed" && challenge.visibility !== "private") {
+      prisma.journalActivity
+        .create({ data: { userId: me.id, ...activityForChallengeCompleted(challenge.title) } })
+        .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
+        .catch(() => {}); // best-effort - never blocks the challenge update
+    }
+
     return ok({ challenge });
   } catch (err) {
     return handleError(err, "journal:challenges:patch");

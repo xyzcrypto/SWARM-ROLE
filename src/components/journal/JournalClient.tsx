@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Plus, Trash2, ChevronDown, NotebookPen, BarChart3, ShieldAlert, Trophy, Circle, CheckCircle2, Radio } from "lucide-react";
 import { cn, formatDateWithDay } from "@/lib/utils";
 import { getPlatform } from "@/lib/dex-registry";
+import { CalcSegmented } from "@/components/tools/CalcField";
 import { userChannel } from "@/lib/realtime";
 import { useRealtime } from "@/lib/useRealtime";
 import {
@@ -170,6 +171,16 @@ export function JournalClient({
     await fetch(`/api/journal/trades/${id}`, { method: "DELETE" }).catch(() => {});
   }
 
+  async function setVisibility(tradeId: string, visibility: "private" | "public" | "anonymous") {
+    const res = await fetch(`/api/journal/trades/${tradeId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ visibility }),
+    });
+    const j = await res.json();
+    if (res.ok) setTrades((prev) => prev.map((t) => (t.id === tradeId ? j.trade : t)));
+  }
+
   return (
     <div className="space-y-8 pt-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -259,6 +270,7 @@ export function JournalClient({
                   onToggle={() => setExpanded((e) => (e === t.id ? null : t.id))}
                   onAddFill={(fill) => addFill(t.id, fill)}
                   onDelete={() => deleteTrade(t.id)}
+                  onVisibilityChange={(v) => setVisibility(t.id, v)}
                 />
               ))}
             </div>
@@ -279,6 +291,7 @@ export function JournalClient({
                   onToggle={() => setExpanded((e) => (e === t.id ? null : t.id))}
                   onAddFill={(fill) => addFill(t.id, fill)}
                   onDelete={() => deleteTrade(t.id)}
+                  onVisibilityChange={(v) => setVisibility(t.id, v)}
                 />
               ))}
             </div>
@@ -303,18 +316,26 @@ const STATUS_TONE: Record<string, string> = {
   invalid: "text-rose-300 bg-rose-500/10 ring-rose-500/25",
 };
 
+const TRADE_VISIBILITIES = [
+  { value: "private" as const, label: "Private" },
+  { value: "public" as const, label: "Public" },
+  { value: "anonymous" as const, label: "Anonymous" },
+];
+
 function TradeRow({
   trade,
   expanded,
   onToggle,
   onAddFill,
   onDelete,
+  onVisibilityChange,
 }: {
   trade: SerializedTrade;
   expanded: boolean;
   onToggle: () => void;
   onAddFill: (fill: { kind: "entry" | "exit"; price: number; size: number; fee: number }) => void;
   onDelete: () => void;
+  onVisibilityChange: (visibility: "private" | "public" | "anonymous") => void;
 }) {
   const fills: Fill[] = trade.fills;
   const status = deriveStatus(fills);
@@ -365,6 +386,12 @@ function TradeRow({
             </div>
           )}
           {trade.notes && <p className="text-sm text-zinc-400">{trade.notes}</p>}
+
+          <div>
+            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Visibility</span>
+            <CalcSegmented options={TRADE_VISIBILITIES} value={trade.visibility as "private" | "public" | "anonymous"} onChange={onVisibilityChange} />
+            <p className="mt-1.5 text-[11px] text-zinc-600">Public trades appear on your profile&apos;s Journal Activity feed.</p>
+          </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">

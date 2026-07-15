@@ -2,8 +2,9 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
-import { deriveStatus, type Fill } from "@/lib/journal";
+import { deriveStatus, realizedPnl, type Fill } from "@/lib/journal";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
+import { activityForTradeClosed } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,6 +102,17 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     }
 
     broadcastEvent(userChannel(me.id), "journal_trade", { id: trade.id });
+
+    const effectiveVisibility = fields.visibility ?? existing.visibility;
+    if (nextStatus === "closed" && existing.status !== "closed" && effectiveVisibility === "public") {
+      const tradeFills = trade.fills.map((f) => ({ kind: f.kind as "entry" | "exit", price: f.price, size: f.size, fee: f.fee }));
+      const win = realizedPnl(trade.side, tradeFills) >= 0;
+      prisma.journalActivity
+        .create({ data: { userId: me.id, ...activityForTradeClosed(trade.symbol, trade.side, win) } })
+        .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
+        .catch(() => {}); // best-effort - never blocks the trade update
+    }
+
     return ok({ trade });
   } catch (err) {
     return handleError(err, "journal:trades:patch");
