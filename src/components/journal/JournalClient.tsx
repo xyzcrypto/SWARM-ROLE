@@ -1,8 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Trash2, ChevronDown, NotebookPen, BarChart3, ShieldAlert, Trophy } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Plus, Trash2, ChevronDown, NotebookPen, BarChart3, ShieldAlert, Trophy, Circle, CheckCircle2 } from "lucide-react";
+import { cn, formatDateWithDay } from "@/lib/utils";
 import { getPlatform } from "@/lib/dex-registry";
 import {
   computeStats,
@@ -13,6 +13,7 @@ import {
   weightedAvgPrice,
   type Fill,
 } from "@/lib/journal";
+import { periodBreakdown, periodKey } from "@/lib/journal-analytics";
 import { EquityCurveChart } from "./EquityCurveChart";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { RiskPanel, type SerializedRiskProfile } from "./RiskPanel";
@@ -85,6 +86,24 @@ export function JournalClient({
     () => equityCurve(trades.map((t) => ({ side: t.side, fills: t.fills.map((f) => ({ ...f, executedAt: f.executedAt })) }))),
     [trades]
   );
+
+  // Automatic weekly/monthly P&L - reuses the same bucketing Analytics already
+  // computes, just surfaced directly on the Trades tab so it's visible without
+  // switching tabs. Finds THIS week/month's bucket specifically (not just the
+  // most recent one with activity), so it correctly reads $0 if nothing closed
+  // yet this period rather than showing a stale older bucket.
+  const now = useMemo(() => new Date().toISOString(), []);
+  const weekPnl = useMemo(() => {
+    const key = periodKey(now, "week");
+    return periodBreakdown(trades, "week").find((b) => b.period === key) ?? { period: key, pnl: 0, trades: 0 };
+  }, [trades, now]);
+  const monthPnl = useMemo(() => {
+    const key = periodKey(now, "month");
+    return periodBreakdown(trades, "month").find((b) => b.period === key) ?? { period: key, pnl: 0, trades: 0 };
+  }, [trades, now]);
+
+  const openTrades = useMemo(() => trades.filter((t) => deriveStatus(t.fills) === "open"), [trades]);
+  const closedTrades = useMemo(() => trades.filter((t) => deriveStatus(t.fills) !== "open"), [trades]);
 
   async function createTrade(input: NewTradeInput) {
     setBusy(true);
@@ -164,29 +183,69 @@ export function JournalClient({
             <StatTile label="Avg R" value={stats.avgR != null ? stats.avgR.toFixed(2) : "-"} tone="gold" />
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <StatTile
+              label={`This week${weekPnl.trades > 0 ? ` · ${weekPnl.trades} closed` : ""}`}
+              value={`${weekPnl.pnl >= 0 ? "+" : ""}$${weekPnl.pnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+              tone={weekPnl.pnl >= 0 ? "mint" : "rose"}
+            />
+            <StatTile
+              label={`This month${monthPnl.trades > 0 ? ` · ${monthPnl.trades} closed` : ""}`}
+              value={`${monthPnl.pnl >= 0 ? "+" : ""}$${monthPnl.pnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
+              tone={monthPnl.pnl >= 0 ? "mint" : "rose"}
+            />
+          </div>
+
           <div className="surface rounded-3xl p-6 sm:p-7">
             <h2 className="mb-4 font-display text-base font-semibold text-zinc-200">Equity curve</h2>
             <EquityCurveChart points={curve} />
           </div>
 
-          <div className="space-y-3">
-            <h2 className="font-display text-base font-semibold text-zinc-200">Trades</h2>
-            {trades.length === 0 && (
-              <div className="surface rounded-2xl p-8 text-center text-sm text-zinc-500">
-                No trades logged yet - click &ldquo;Log trade&rdquo; to start tracking your performance.
-              </div>
-            )}
-            {trades.map((t) => (
-              <TradeRow
-                key={t.id}
-                trade={t}
-                expanded={expanded === t.id}
-                onToggle={() => setExpanded((e) => (e === t.id ? null : t.id))}
-                onAddFill={(fill) => addFill(t.id, fill)}
-                onDelete={() => deleteTrade(t.id)}
-              />
-            ))}
-          </div>
+          {trades.length === 0 && (
+            <div className="surface rounded-2xl p-8 text-center text-sm text-zinc-500">
+              No trades logged yet - click &ldquo;Log trade&rdquo; to start tracking your performance.
+            </div>
+          )}
+
+          {openTrades.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="flex items-center gap-2 font-display text-base font-semibold text-zinc-200">
+                <Circle className="h-3.5 w-3.5 fill-sky-400 text-sky-400" />
+                Open positions
+                <span className="mono text-xs font-normal text-zinc-500">({openTrades.length})</span>
+              </h2>
+              {openTrades.map((t) => (
+                <TradeRow
+                  key={t.id}
+                  trade={t}
+                  expanded={expanded === t.id}
+                  onToggle={() => setExpanded((e) => (e === t.id ? null : t.id))}
+                  onAddFill={(fill) => addFill(t.id, fill)}
+                  onDelete={() => deleteTrade(t.id)}
+                />
+              ))}
+            </div>
+          )}
+
+          {closedTrades.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="flex items-center gap-2 font-display text-base font-semibold text-zinc-200">
+                <CheckCircle2 className="h-3.5 w-3.5 text-mint-400" />
+                Closed trades
+                <span className="mono text-xs font-normal text-zinc-500">({closedTrades.length})</span>
+              </h2>
+              {closedTrades.map((t) => (
+                <TradeRow
+                  key={t.id}
+                  trade={t}
+                  expanded={expanded === t.id}
+                  onToggle={() => setExpanded((e) => (e === t.id ? null : t.id))}
+                  onAddFill={(fill) => addFill(t.id, fill)}
+                  onDelete={() => deleteTrade(t.id)}
+                />
+              ))}
+            </div>
+          )}
         </>
       ) : tab === "analytics" ? (
         <AnalyticsPanel trades={trades} isPremium={isPremium} userId={userId} />
@@ -226,11 +285,12 @@ function TradeRow({
   const pnl = realizedPnl(trade.side, fills);
   const rr = riskReward(trade);
   const platform = trade.platformId ? getPlatform(trade.platformId) : undefined;
+  const firstEntryAt = trade.fills.find((f) => f.kind === "entry")?.executedAt ?? trade.createdAt;
 
   return (
     <div className="surface surface-hover rounded-2xl">
       <button onClick={onToggle} className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", trade.side === "long" ? "bg-mint-500/10 text-mint-300 ring-mint-500/25" : "bg-rose-500/10 text-rose-300 ring-rose-500/25")}>
             {trade.side}
           </span>
@@ -238,6 +298,7 @@ function TradeRow({
           <span className="text-xs text-zinc-500">{trade.type}</span>
           {platform && <span className="text-xs text-zinc-600">· {platform.name}</span>}
           <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", STATUS_TONE[status] ?? STATUS_TONE.open)}>{status}</span>
+          <span className="mono text-[11px] text-zinc-600">{formatDateWithDay(firstEntryAt)}</span>
         </div>
         <div className="flex items-center gap-4">
           {status !== "open" && (
@@ -272,18 +333,22 @@ function TradeRow({
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="text-zinc-600">
+                  <th className="pb-1.5 pr-4 font-medium">Date</th>
                   <th className="pb-1.5 pr-4 font-medium">Kind</th>
                   <th className="pb-1.5 pr-4 font-medium">Price</th>
-                  <th className="pb-1.5 pr-4 font-medium">Size</th>
+                  <th className="pb-1.5 pr-4 font-medium">Size ($)</th>
+                  <th className="pb-1.5 pr-4 font-medium">Size (units)</th>
                   <th className="pb-1.5 font-medium">Fee</th>
                 </tr>
               </thead>
               <tbody className="text-zinc-300">
-                {fills.map((f, i) => (
+                {trade.fills.map((f, i) => (
                   <tr key={i} className="border-t border-line/50">
+                    <td className="py-1.5 pr-4 text-zinc-500">{formatDateWithDay(f.executedAt)}</td>
                     <td className="py-1.5 pr-4 capitalize">{f.kind}</td>
                     <td className="py-1.5 pr-4 mono">${f.price}</td>
-                    <td className="py-1.5 pr-4 mono">{f.size}</td>
+                    <td className="py-1.5 pr-4 mono">${(f.price * f.size).toLocaleString(undefined, { maximumFractionDigits: 2 })}</td>
+                    <td className="py-1.5 pr-4 mono text-zinc-500">{f.size}</td>
                     <td className="py-1.5 mono">${f.fee}</td>
                   </tr>
                 ))}
@@ -311,14 +376,16 @@ function Tag({ children }: { children: React.ReactNode }) {
 function AddFillRow({ onAdd }: { onAdd: (fill: { kind: "entry" | "exit"; price: number; size: number; fee: number }) => void }) {
   const [kind, setKind] = useState<"entry" | "exit">("exit");
   const [price, setPrice] = useState("");
-  const [size, setSize] = useState("");
+  const [dollarAmount, setDollarAmount] = useState("");
   const [fee, setFee] = useState("0");
 
+  const sizeUnits = Number(price) > 0 ? (Number(dollarAmount) || 0) / Number(price) : 0;
+
   function submit() {
-    if (!(Number(price) > 0) || !(Number(size) > 0)) return;
-    onAdd({ kind, price: Number(price), size: Number(size), fee: Number(fee) || 0 });
+    if (!(Number(price) > 0) || !(sizeUnits > 0)) return;
+    onAdd({ kind, price: Number(price), size: sizeUnits, fee: Number(fee) || 0 });
     setPrice("");
-    setSize("");
+    setDollarAmount("");
     setFee("0");
   }
 
@@ -329,7 +396,10 @@ function AddFillRow({ onAdd }: { onAdd: (fill: { kind: "entry" | "exit"; price: 
         <option value="exit">Add exit</option>
       </select>
       <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" type="number" className="w-24 rounded-lg border border-white/10 bg-ink-700/60 px-2.5 py-2 text-xs text-zinc-100 outline-none" />
-      <input value={size} onChange={(e) => setSize(e.target.value)} placeholder="Size" type="number" className="w-24 rounded-lg border border-white/10 bg-ink-700/60 px-2.5 py-2 text-xs text-zinc-100 outline-none" />
+      <div className="flex flex-col gap-0.5">
+        <input value={dollarAmount} onChange={(e) => setDollarAmount(e.target.value)} placeholder="Size ($)" type="number" className="w-24 rounded-lg border border-white/10 bg-ink-700/60 px-2.5 py-2 text-xs text-zinc-100 outline-none" />
+        {sizeUnits > 0 && <span className="mono text-[10px] text-zinc-600">≈ {sizeUnits.toLocaleString(undefined, { maximumFractionDigits: 6 })} units</span>}
+      </div>
       <input value={fee} onChange={(e) => setFee(e.target.value)} placeholder="Fee" type="number" className="w-20 rounded-lg border border-white/10 bg-ink-700/60 px-2.5 py-2 text-xs text-zinc-100 outline-none" />
       <button onClick={submit} className="btn-secondary px-3 py-2 text-xs">Add fill</button>
     </div>

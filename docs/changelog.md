@@ -5,6 +5,21 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-15 — Journal Trades tab: $ sizing, weekly/monthly auto P&L, Open/Closed split
+Second phase of the "Journal → best in class" build (first was the points-value share polish).
+- **$ position sizing**: "Log a trade" and "Add fill" now take a dollar amount instead of raw asset
+  units - converts to units via the entry price before saving (`size` is still what's stored, matching
+  every downstream P&L formula), with a live "≈ X units" hint. The fills detail table now shows both a
+  Size ($) and Size (units) column so nothing's lost.
+- **Automatic weekly/monthly P&L**: two new stat tiles reuse `periodBreakdown()` (already built for
+  Analytics) to show this week's and this month's realized P&L directly on the Trades tab, without
+  switching tabs. Exported `periodKey()` from `journal-analytics.ts` so the client can find the *current*
+  period's bucket specifically (not just the most recent one with activity).
+- **Open positions / Closed trades split**: the flat trade list is now two clearly separated sections
+  with distinct icons, instead of one undifferentiated list.
+- **Day shown on every trade**: `formatDateWithDay()` (new `utils.ts` helper) shows "Mon, Jul 14" next to
+  each trade row and each fill, sourced from the entry fill's actual execution date.
+
 ## 2026-07-14 — Points-value share: short links, download, image-inclusive native share
 - **Short links**: new `SharedCard` model (migration 28, generic - room for more card kinds later) +
   `POST /api/tools/share/create` persists a calculator result behind a `cuid`, so the share link is now

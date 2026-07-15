@@ -53,10 +53,13 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
   const [tagsRaw, setTagsRaw] = useState("");
   const [notes, setNotes] = useState("");
   const [price, setPrice] = useState("");
-  const [size, setSize] = useState("");
+  const [dollarAmount, setDollarAmount] = useState("");
   const [fee, setFee] = useState("0");
 
-  const valid = symbol.trim().length > 0 && Number(price) > 0 && Number(size) > 0;
+  // Users think in dollars, not raw asset units - size is still what's stored
+  // (matches every P&L formula downstream), just computed here instead of typed.
+  const sizeUnits = Number(price) > 0 ? (Number(dollarAmount) || 0) / Number(price) : 0;
+  const valid = symbol.trim().length > 0 && Number(price) > 0 && sizeUnits > 0;
 
   function submit() {
     if (!valid) return;
@@ -73,7 +76,7 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
       timeframe: timeframe || undefined,
       tags: parseTags(tagsRaw),
       notes: notes || undefined,
-      fills: [{ kind: "entry", price: Number(price), size: Number(size), fee: Number(fee) || 0 }],
+      fills: [{ kind: "entry", price: Number(price), size: sizeUnits, fee: Number(fee) || 0 }],
     });
   }
 
@@ -123,7 +126,13 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
 
       <div className="grid gap-4 sm:grid-cols-3">
         <CalcField label="Entry price" value={price} onChange={setPrice} suffix="USD" />
-        <CalcField label="Size" value={size} onChange={setSize} suffix="units" />
+        <CalcField
+          label="Position size"
+          value={dollarAmount}
+          onChange={setDollarAmount}
+          suffix="USD"
+          hint={Number(price) > 0 && sizeUnits > 0 ? `≈ ${sizeUnits.toLocaleString(undefined, { maximumFractionDigits: 6 })} units` : "Enter entry price first"}
+        />
         <CalcField label="Fee" value={fee} onChange={setFee} suffix="USD" />
       </div>
 

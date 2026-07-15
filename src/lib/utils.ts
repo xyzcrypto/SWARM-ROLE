@@ -21,6 +21,15 @@ export function formatDate(date: Date | string): string {
   });
 }
 
+/** "Mon, Jul 14" - date with weekday, for trade logs where the day matters. */
+export function formatDateWithDay(date: Date | string): string {
+  return new Date(date).toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
 export function formatDateTime(date: Date | string | null): string {
   if (!date) return "Never";
   return new Date(date).toLocaleString("en-US", {
