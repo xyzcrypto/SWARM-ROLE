@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  adherenceTrend,
   correlatedExposure,
   currentLosingStreak,
   highLeverageTrades,
@@ -9,6 +10,7 @@ import {
   ruleAdherenceScore,
   safeModeActive,
   scanBreaches,
+  suggestedPositionSize,
   todaysPnl,
   tradesOpenedToday,
   weeklyPnl,
@@ -126,5 +128,30 @@ describe("scanBreaches / ruleAdherenceScore / safeModeActive", () => {
     const t = trade({ id: "1", fills: [fill("entry", 100, 10, "2026-01-06T08:00:00Z"), fill("exit", 90, 10, "2026-01-06T09:00:00Z")] });
     const breaches = scanBreaches([t], { maxWeeklyDrawdownPct: 5, accountEquity: 1000 }, NOW);
     expect(breaches.some((b) => b.rule === "weekly-drawdown" && b.severity === "critical")).toBe(true);
+  });
+});
+
+describe("adherenceTrend", () => {
+  it("returns one point per day, scoring only trades opened by that day", () => {
+    const t = trade({ id: "1", fills: [fill("entry", 100, 10, "2026-01-10T08:00:00Z"), fill("exit", 90, 10, "2026-01-10T09:00:00Z")] });
+    const trend = adherenceTrend([t], { maxDailyLossPct: 2, accountEquity: 1000 }, NOW, 5);
+    expect(trend).toHaveLength(5);
+    expect(trend[trend.length - 1].date).toBe("2026-01-10");
+    expect(trend[trend.length - 1].score).toBeLessThan(100);
+    expect(trend[0].score).toBe(100); // before the trade was even opened
+  });
+});
+
+describe("suggestedPositionSize", () => {
+  it("computes size/notional/riskUsd from equity, risk %, entry and stop", () => {
+    const result = suggestedPositionSize(1000, 1, 100, 95);
+    expect(result).not.toBeNull();
+    expect(result!.riskUsd).toBeCloseTo(10);
+    expect(result!.size).toBeCloseTo(2);
+    expect(result!.notional).toBeCloseTo(200);
+  });
+  it("returns null without a valid stop distance", () => {
+    expect(suggestedPositionSize(1000, 1, 100, 100)).toBeNull();
+    expect(suggestedPositionSize(0, 1, 100, 95)).toBeNull();
   });
 });

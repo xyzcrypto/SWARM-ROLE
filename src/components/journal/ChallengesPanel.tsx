@@ -2,10 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Plus, Trophy, Users, ChevronDown, Check, Share2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Plus, Trophy, Users, ChevronDown, Check, Share2, CalendarDays } from "lucide-react";
+import { cn, formatDateWithDay } from "@/lib/utils";
 import { CalcField, CalcSegmented } from "@/components/tools/CalcField";
+import { periodBreakdown } from "@/lib/journal-analytics";
 import {
+  challengeDayRange,
   daysElapsed,
   daysRemaining,
   isExpired,
@@ -29,11 +31,21 @@ type ChallengeSummary = {
   _count?: { participants: number; trades?: number };
 };
 
+type ChallengeTradeDetail = {
+  side: string;
+  symbol: string;
+  fills: { kind: "entry" | "exit"; price: number; size: number; fee: number; executedAt: string }[];
+};
+
+type DayNote = { day: string; note: string | null; mood: string | null };
+
 type ChallengeDetail = {
   challenge: ChallengeSummary;
   milestones: { id: string; label: string; targetDate: string | null; achieved: boolean }[];
   leaderboard: LeaderboardEntry[];
-  myTrades: unknown[];
+  myTrades: ChallengeTradeDetail[];
+  dayNotes: DayNote[];
+  isParticipant: boolean;
   isOwner: boolean;
 };
 
@@ -90,9 +102,12 @@ export function ChallengesPanel({ isPremium }: { isPremium: boolean }) {
       {showForm && (
         <ChallengeForm
           isPremium={isPremium}
-          onCreated={() => {
+          onCreated={(id) => {
             setShowForm(false);
-            load();
+            setExpanded(id);
+            load().then(() => {
+              requestAnimationFrame(() => document.getElementById(`challenge-${id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }));
+            });
           }}
           onCancel={() => setShowForm(false)}
         />
@@ -161,7 +176,7 @@ function ChallengeCard({ challenge, expanded, onToggle }: { challenge: Challenge
   }, [expanded]);
 
   return (
-    <div className="surface surface-hover rounded-2xl">
+    <div id={`challenge-${c.id}`} className="surface surface-hover rounded-2xl scroll-mt-24">
       <button onClick={onToggle} className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left">
         <div className="flex items-center gap-3">
           <span className="font-display text-sm font-semibold text-zinc-100">{c.title}</span>
@@ -212,6 +227,16 @@ function ChallengeCard({ challenge, expanded, onToggle }: { challenge: Challenge
 
               <MilestoneList challengeId={c.id} milestones={detail.milestones} isOwner={detail.isOwner} onChange={(ms) => setDetail((d) => (d ? { ...d, milestones: ms } : d))} />
 
+              {detail.isParticipant && (
+                <ChallengeDayTracker
+                  challengeId={c.id}
+                  challenge={c}
+                  myTrades={detail.myTrades}
+                  dayNotes={detail.dayNotes}
+                  onChange={(notes) => setDetail((d) => (d ? { ...d, dayNotes: notes } : d))}
+                />
+              )}
+
               {c.targetCapital && myEntry && (
                 <div>
                   <div className="mb-1.5 flex items-center justify-between text-[11px] text-zinc-500">
@@ -241,6 +266,125 @@ function ChallengeCard({ challenge, expanded, onToggle }: { challenge: Challenge
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+const MOODS = [
+  { value: "" as const, label: "—" },
+  { value: "disciplined" as const, label: "Disciplined" },
+  { value: "neutral" as const, label: "Neutral" },
+  { value: "off-plan" as const, label: "Off-plan" },
+];
+
+const MOOD_TONE: Record<string, string> = {
+  disciplined: "bg-mint-500/10 text-mint-300 ring-mint-500/25",
+  neutral: "bg-white/5 text-zinc-400 ring-white/10",
+  "off-plan": "bg-rose-500/10 text-rose-300 ring-rose-500/25",
+};
+
+// Day-by-day tracker within a challenge - P&L per day is DERIVED from the
+// participant's own linked trades (periodBreakdown, already built for
+// Analytics), never stored. Only the optional note + mood are persisted
+// (ChallengeDayNote), one row per participant per day.
+function ChallengeDayTracker({
+  challengeId,
+  challenge,
+  myTrades,
+  dayNotes,
+  onChange,
+}: {
+  challengeId: string;
+  challenge: ChallengeSummary;
+  myTrades: ChallengeTradeDetail[];
+  dayNotes: DayNote[];
+  onChange: (notes: DayNote[]) => void;
+}) {
+  const now = useMemo(() => new Date(), []);
+  const days = useMemo(() => challengeDayRange(challenge, now), [challenge, now]);
+  const pnlByDay = useMemo(() => new Map(periodBreakdown(myTrades, "day").map((b) => [b.period, b])), [myTrades]);
+  const noteByDay = useMemo(() => new Map(dayNotes.map((n) => [n.day, n])), [dayNotes]);
+
+  const [editingDay, setEditingDay] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [moodDraft, setMoodDraft] = useState<(typeof MOODS)[number]["value"]>("");
+  const [saving, setSaving] = useState(false);
+
+  function openDay(day: string) {
+    const existing = noteByDay.get(day);
+    setNoteDraft(existing?.note ?? "");
+    setMoodDraft((existing?.mood as (typeof MOODS)[number]["value"]) ?? "");
+    setEditingDay(day);
+  }
+
+  async function save() {
+    if (!editingDay) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/journal/challenges/${challengeId}/days`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day: editingDay, note: noteDraft || null, mood: moodDraft || null }),
+      });
+      const j = await res.json();
+      if (res.ok) {
+        onChange([...dayNotes.filter((n) => n.day !== editingDay), j.dayNote]);
+        setEditingDay(null);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (days.length === 0) return null;
+
+  return (
+    <div>
+      <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+        <CalendarDays className="h-3.5 w-3.5 text-gold-400" /> Day by day
+      </h3>
+      <div className="max-h-80 space-y-1.5 overflow-y-auto pr-1">
+        {[...days].reverse().map((day) => {
+          const bucket = pnlByDay.get(day);
+          const note = noteByDay.get(day);
+          const isEditing = editingDay === day;
+          return (
+            <div key={day} className="rounded-lg bg-white/[0.02]">
+              <button onClick={() => (isEditing ? setEditingDay(null) : openDay(day))} className="flex w-full flex-wrap items-center gap-2 px-3 py-2 text-left text-xs">
+                <span className="mono text-zinc-500">{formatDateWithDay(day)}</span>
+                {bucket && (
+                  <span className={cn("mono rounded-full px-1.5 py-0.5 text-[10px]", bucket.pnl >= 0 ? "bg-mint-500/10 text-mint-300" : "bg-rose-500/10 text-rose-300")}>
+                    {bucket.pnl >= 0 ? "+" : ""}${bucket.pnl.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+                  </span>
+                )}
+                {note?.mood && <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] ring-1", MOOD_TONE[note.mood])}>{note.mood}</span>}
+                {note?.note && <span className="flex-1 truncate text-zinc-500">{note.note}</span>}
+              </button>
+              {isEditing && (
+                <div className="space-y-2 border-t border-line/50 px-3 py-3">
+                  <textarea
+                    value={noteDraft}
+                    onChange={(e) => setNoteDraft(e.target.value)}
+                    placeholder="How did today go? Did you follow your plan?"
+                    rows={2}
+                    maxLength={1000}
+                    className="w-full rounded-lg border border-white/10 bg-ink-700/60 px-3 py-2 text-xs text-zinc-100 outline-none focus:border-gold-500/50"
+                  />
+                  <CalcSegmented options={MOODS} value={moodDraft} onChange={setMoodDraft} />
+                  <div className="flex justify-end gap-2">
+                    <button onClick={() => setEditingDay(null)} className="btn-ghost px-3 py-1.5 text-xs">
+                      Cancel
+                    </button>
+                    <button onClick={save} disabled={saving} className="btn-gold px-3 py-1.5 text-xs disabled:opacity-50">
+                      {saving ? "Saving…" : "Save"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -316,7 +460,7 @@ function MilestoneList({
   );
 }
 
-function ChallengeForm({ isPremium, onCreated, onCancel }: { isPremium: boolean; onCreated: () => void; onCancel: () => void }) {
+function ChallengeForm({ isPremium, onCreated, onCancel }: { isPremium: boolean; onCreated: (id: string) => void; onCancel: () => void }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [preset, setPreset] = useState<number | "custom">(90);
@@ -354,7 +498,7 @@ function ChallengeForm({ isPremium, onCreated, onCancel }: { isPremium: boolean;
         }),
       });
       const j = await res.json();
-      if (res.ok) onCreated();
+      if (res.ok) onCreated(j.challenge.id);
       else setError(j.error ?? "Something went wrong.");
     } finally {
       setBusy(false);

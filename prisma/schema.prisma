@@ -85,6 +85,7 @@ model User {
   riskProfile       RiskProfile?
   challenges        Challenge[]
   challengeEntries  ChallengeParticipant[]
+  challengeDayNotes ChallengeDayNote[]
 
   // Basic engagement XP (foundation for a future gamified system). Denormalized
   // counter kept in sync with XpEvent rows inside a transaction.
@@ -690,6 +691,7 @@ model Challenge {
   participants ChallengeParticipant[]
   milestones   ChallengeMilestone[]
   trades       Trade[]
+  dayNotes     ChallengeDayNote[]
 
   @@index([creatorId, createdAt])
   @@index([visibility, status])
@@ -726,4 +728,27 @@ model ChallengeMilestone {
   challengeId String
 
   @@index([challengeId])
+}
+
+// A participant's own per-day reflection within a challenge - optional note +
+// one-tap mood. Day-by-day P&L is NEVER stored here (already free via
+// periodBreakdown(trades, "day") in journal-analytics.ts) - this only holds
+// what isn't derivable from the linked trades. Any participant can log their
+// own day (not creator-only, unlike milestones), one row per user per day.
+model ChallengeDayNote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  day  String // UTC "YYYY-MM-DD"
+  note String? // free-text reflection, <=1000 chars (zod-enforced)
+  mood String? // "disciplined" | "neutral" | "off-plan"
+
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  challengeId String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  @@unique([challengeId, userId, day])
+  @@index([challengeId, userId])
 }

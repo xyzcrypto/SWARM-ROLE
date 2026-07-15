@@ -51,6 +51,20 @@ export function isExpired(c: ChallengeLike, now: Date): boolean {
   return now.getTime() > new Date(c.endDate).getTime();
 }
 
+/** Every "YYYY-MM-DD" day from the challenge's start through min(endDate, now) - the day-tracker's range. */
+export function challengeDayRange(c: ChallengeLike, now: Date): string[] {
+  const start = new Date(c.startDate);
+  start.setUTCHours(0, 0, 0, 0);
+  const endMs = Math.min(new Date(c.endDate).getTime(), now.getTime());
+  const end = new Date(endMs);
+  end.setUTCHours(0, 0, 0, 0);
+  const days: string[] = [];
+  for (const d = new Date(start); d.getTime() <= end.getTime(); d.setUTCDate(d.getUTCDate() + 1)) {
+    days.push(d.toISOString().slice(0, 10));
+  }
+  return days;
+}
+
 export type LeaderboardEntry = {
   userId: string;
   name: string;

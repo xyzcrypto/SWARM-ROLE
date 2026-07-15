@@ -5,6 +5,29 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-15 — Journal Challenges day-tracker + Create→auto-expand + Risk discipline trend + position calc
+Fourth phase of the "Journal → best in class" build (Analytics realtime was the third).
+- **Create Challenge → full interface immediately**: creating a challenge no longer collapses back to a
+  flat list - it auto-expands that challenge's card and smooth-scrolls to it, showing the leaderboard,
+  milestones, and new day tracker right away. Reuses the existing accordion/detail-fetch mechanism, no
+  new route.
+- **Day-by-day tracker**: each challenge now shows every day from its start through today, with that
+  day's P&L (derived from the participant's own linked trades via `periodBreakdown`, never stored
+  redundantly) plus an optional note + one-tap mood ("disciplined"/"neutral"/"off-plan"). New
+  `ChallengeDayNote` model (migration 29), any participant can log their own day - not creator-only, like
+  milestones. New `PUT /api/journal/challenges/[id]/days` upserts one day at a time.
+- **Risk section - discipline trend**: a new 30-day adherence-score line chart (`adherenceTrend()` in
+  `risk.ts`) re-runs the existing breach-scan logic as-of each past day - entirely derived from already-
+  fetched trades, zero new schema.
+- **Risk section - suggested position size**: a small inline calculator (`suggestedPositionSize()`) gives
+  the exact size that risks a chosen % of account equity given an entry and stop price, prefilled from
+  the saved risk profile.
+- **Files**: `prisma/schema.prisma`, `prisma/migrations/29_challenge_day_notes/`, `src/lib/challenge.ts`,
+  `src/lib/risk.ts`, `src/lib/__tests__/{challenge,risk}.test.ts`,
+  `src/app/api/journal/challenges/[id]/route.ts`, `src/app/api/journal/challenges/[id]/days/route.ts`,
+  `src/components/journal/ChallengesPanel.tsx`, `src/components/journal/RiskPanel.tsx`,
+  `src/components/journal/AdherenceTrendChart.tsx`.
+
 ## 2026-07-15 — Journal Analytics realtime + live blurred premium preview + weekly-drawdown fix
 Third phase of the "Journal → best in class" build (Trades tab was the second phase).
 - **Realtime**: trade create/edit/delete routes now broadcast a `journal_trade` event on the user's
