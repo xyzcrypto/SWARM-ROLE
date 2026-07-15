@@ -101,7 +101,10 @@ export function drawdownCurve(curve: EquityPoint[]): EquityPoint[] {
 
 export type PeriodBucket = { period: string; pnl: number; trades: number };
 
-function periodKey(iso: string, granularity: "day" | "week" | "month"): string {
+/** Exported so callers can compute "today"/"this week"/"this month" the same
+ * way periodBreakdown buckets trades - keeps the two in sync (e.g. finding the
+ * current-period bucket to highlight, without re-deriving the ISO-week math). */
+export function periodKey(iso: string, granularity: "day" | "week" | "month"): string {
   const d = new Date(iso);
   if (granularity === "day") return iso.slice(0, 10);
   if (granularity === "month") return iso.slice(0, 7);
