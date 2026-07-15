@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { journalLimitsFor } from "@/lib/journal-limits";
+import { broadcastEvent, userChannel } from "@/lib/realtime";
+import { activityForChallengeCreated } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -100,6 +102,14 @@ export async function POST(req: Request) {
       },
       include: { participants: true },
     });
+
+    if (challenge.visibility !== "private") {
+      prisma.journalActivity
+        .create({ data: { userId: me.id, ...activityForChallengeCreated(challenge.title) } })
+        .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
+        .catch(() => {}); // best-effort - never blocks challenge creation
+    }
+
     return ok({ challenge }, 201);
   } catch (err) {
     return handleError(err, "journal:challenges:post");

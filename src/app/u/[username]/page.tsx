@@ -15,6 +15,7 @@ import { MessageButton } from "@/components/MessageButton";
 import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { ProfileFollow } from "@/components/ProfileFollow";
+import { JournalActivityFeed } from "@/components/JournalActivityFeed";
 import { EditProfileButton } from "@/components/EditProfileButton";
 import { formatDate, formatDateTime } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
@@ -63,7 +64,7 @@ export default async function ProfilePage({ params }: Props) {
   // Published posts authored by this user (most are non-authors → usually 0).
   // `extra` reads the migration-20 social columns through a guarded query so an
   // un-migrated DB doesn't break the page (returns nulls until applied).
-  const [postCount, recentComments, extra, followersCount, followingCount] = await Promise.all([
+  const [postCount, recentComments, extra, followersCount, followingCount, journalActivity] = await Promise.all([
     prisma.post.count({ where: { authorId: user.id, published: true } }).catch(() => 0),
     prisma.comment
       .findMany({
@@ -80,6 +81,11 @@ export default async function ProfilePage({ params }: Props) {
     // Follow counts - guarded so an un-migrated DB (no Follow table) shows 0.
     prisma.follow.count({ where: { followingId: user.id } }).catch(() => 0),
     prisma.follow.count({ where: { followerId: user.id } }).catch(() => 0),
+    // Public Journal Activity - guarded so an un-migrated DB (no
+    // JournalActivity table) shows an empty feed rather than erroring.
+    prisma.journalActivity
+      .findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, type: true, title: true, win: true, createdAt: true } })
+      .catch(() => []),
   ]);
 
   const isPremium = user.membership === "Premium";
@@ -188,6 +194,17 @@ export default async function ProfilePage({ params }: Props) {
           <div className="mt-6">
             <ProfileStats posts={postCount} comments={user._count.comments} likes={user._count.likes} />
           </div>
+
+          {/* Journal Activity - a separate, live section: whatever a member does
+              in their trading Journal (that they've marked public) shows up here. */}
+          {journalActivity.length > 0 && (
+            <Reveal variant="up" className="mt-8 block">
+              <JournalActivityFeed
+                userId={user.id}
+                initialItems={journalActivity.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() }))}
+              />
+            </Reveal>
+          )}
 
           {/* Recent activity */}
           <Reveal variant="up" className="mt-8 block">

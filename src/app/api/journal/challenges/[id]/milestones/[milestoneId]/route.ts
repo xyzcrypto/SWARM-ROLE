@@ -2,6 +2,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { broadcastEvent, userChannel } from "@/lib/realtime";
+import { activityForMilestone } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,10 +26,20 @@ export async function PATCH(req: Request, { params }: { params: { id: string; mi
     const parsed = patchSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.", 400);
 
+    const before = await prisma.challengeMilestone.findUnique({ where: { id: params.milestoneId } });
+
     const milestone = await prisma.challengeMilestone.update({
       where: { id: params.milestoneId },
       data: { achieved: parsed.data.achieved, achievedAt: parsed.data.achieved ? new Date() : null },
     });
+
+    if (parsed.data.achieved && before && !before.achieved && challenge.visibility !== "private") {
+      prisma.journalActivity
+        .create({ data: { userId: me.id, ...activityForMilestone(challenge.title, milestone.label) } })
+        .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
+        .catch(() => {}); // best-effort - never blocks the milestone update
+    }
+
     return ok({ milestone });
   } catch (err) {
     return handleError(err, "journal:challenges:milestones:patch");

@@ -18,6 +18,7 @@ export type NewTradeInput = {
   timeframe?: string;
   tags: string[];
   notes?: string;
+  visibility: "private" | "public" | "anonymous";
   fills: { kind: "entry"; price: number; size: number; fee: number }[];
 };
 
@@ -27,6 +28,12 @@ const TYPES = [
   { value: "spot", label: "Spot" },
   { value: "custom", label: "Custom" },
 ] as const;
+
+const VISIBILITIES = [
+  { value: "private" as const, label: "Private" },
+  { value: "public" as const, label: "Public" },
+  { value: "anonymous" as const, label: "Anonymous" },
+];
 
 function parseTags(raw: string): string[] {
   return raw
@@ -55,6 +62,7 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
   const [price, setPrice] = useState("");
   const [dollarAmount, setDollarAmount] = useState("");
   const [fee, setFee] = useState("0");
+  const [visibility, setVisibility] = useState<"private" | "public" | "anonymous">("private");
 
   // Users think in dollars, not raw asset units - size is still what's stored
   // (matches every P&L formula downstream), just computed here instead of typed.
@@ -76,6 +84,7 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
       timeframe: timeframe || undefined,
       tags: parseTags(tagsRaw),
       notes: notes || undefined,
+      visibility,
       fills: [{ kind: "entry", price: Number(price), size: sizeUnits, fee: Number(fee) || 0 }],
     });
   }
@@ -171,6 +180,14 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
           className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
         />
       </label>
+
+      <div>
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Visibility</span>
+        <CalcSegmented options={VISIBILITIES} value={visibility} onChange={setVisibility} />
+        <p className="mt-1.5 text-[11px] text-zinc-600">
+          Public trades appear on your profile&apos;s Journal Activity feed (symbol + side + win/loss only - never a dollar amount). Anonymous hides the symbol. Private stays only in your Journal.
+        </p>
+      </div>
 
       <div className="flex justify-end gap-2">
         <button onClick={onCancel} className="btn-ghost">Cancel</button>

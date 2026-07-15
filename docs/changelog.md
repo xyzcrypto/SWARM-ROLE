@@ -5,6 +5,30 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-15 — Public Journal Activity on profiles + trade visibility control
+Fifth and final phase of the "Journal → best in class" build, and the owner's explicitly "most important"
+ask: whatever a member does in their trading Journal now shows up on their public profile.
+- **New profile section**: `/u/[username]` gains a dedicated "Journal Activity" section (between Stats and
+  the existing comments-only Recent activity block) - a live feed of trade/challenge events, updating in
+  realtime via the same `userChannel(userId)` broadcast pattern Phase 3 introduced for live Trades sync.
+  New `JournalActivity` model (migration 30), written by the trade/challenge mutation routes as
+  fire-and-forget, aggregate-only inserts.
+- **Privacy, by construction**: a row is only ever written when the source trade/challenge's own
+  `visibility` isn't `"private"` - private trades and challenges never produce a public row, and flipping
+  visibility on an existing trade doesn't retroactively backfill history (prevents a toggle-spam vector).
+  Dollar amounts are never included anywhere - `trade_closed` carries only a win/loss sign, stricter than
+  even the existing opt-in share cards.
+- **Fixed a gap that would've made this invisible**: `TradeForm` had no visibility control at all (every
+  trade defaulted to private with zero UI path to change it, unlike Challenges which already had one) -
+  added a Private/Public/Anonymous picker to both the create form and the expanded trade row (so
+  already-logged trades can be opted in later too), reusing the existing PATCH endpoint's `visibility`
+  field.
+- **Files**: `prisma/schema.prisma`, `prisma/migrations/30_journal_activity/`, `src/lib/journal-activity.ts`
+  (+tests), `src/app/api/journal/trades/route.ts`, `src/app/api/journal/trades/[id]/route.ts`,
+  `src/app/api/journal/challenges/{route.ts,[id]/route.ts,[id]/join/route.ts,[id]/milestones/[milestoneId]/route.ts}`,
+  `src/app/api/journal/share/activity/[userId]/route.ts`, `src/components/JournalActivityFeed.tsx`,
+  `src/components/journal/{TradeForm,JournalClient}.tsx`, `src/app/u/[username]/page.tsx`.
+
 ## 2026-07-15 — Journal Challenges day-tracker + Create→auto-expand + Risk discipline trend + position calc
 Fourth phase of the "Journal → best in class" build (Analytics realtime was the third).
 - **Create Challenge → full interface immediately**: creating a challenge no longer collapses back to a

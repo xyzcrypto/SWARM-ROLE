@@ -86,6 +86,7 @@ model User {
   challenges        Challenge[]
   challengeEntries  ChallengeParticipant[]
   challengeDayNotes ChallengeDayNote[]
+  journalActivities JournalActivity[]
 
   // Basic engagement XP (foundation for a future gamified system). Denormalized
   // counter kept in sync with XpEvent rows inside a transaction.
@@ -751,4 +752,24 @@ model ChallengeDayNote {
 
   @@unique([challengeId, userId, day])
   @@index([challengeId, userId])
+}
+
+// A public, aggregate-only log of what a member does in their Journal -
+// powers the "Journal Activity" section on their public profile. Deliberately
+// denormalized (title is pre-rendered at write time by journal-activity.ts,
+// never re-joined at read time) so the public feed can never expose more than
+// what was decided safe when the row was written. Only ever written when the
+// source trade/challenge's own `visibility` is not "private" - see the write
+// sites in the trade/challenge API routes.
+model JournalActivity {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  type      String // "trade_opened" | "trade_closed" | "challenge_created" | "challenge_joined" | "challenge_milestone" | "challenge_completed"
+  title     String // pre-rendered, safe-to-display text
+  win       Boolean? // trade_closed only - sign, NEVER a dollar amount
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@index([userId, createdAt])
 }
