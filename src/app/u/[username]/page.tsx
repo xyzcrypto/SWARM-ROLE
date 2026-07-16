@@ -23,7 +23,7 @@ import { fetchExtraSocials } from "@/lib/user-socials";
 
 // ISR: profiles render on demand (never at build) and cache for 60s; profile
 // edits call revalidatePath so changes show immediately.
-export const revalidate = 60;
+export const revalidate = 300;
 
 type Props = { params: { username: string } };
 
