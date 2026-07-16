@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
@@ -67,7 +68,15 @@ export async function GET(req: Request) {
       }
     }
 
-    return ok({ messages, hasMore, nextCursor: hasMore ? page[0]!.id : null, pinned });
+    // Polled every 10s by every open /community tab as the realtime fallback.
+    // For an anonymous requester (no poll votes to stamp) the response for a
+    // given cursor is identical across all visitors, so it's safe to cache
+    // publicly for a few seconds - matches the api/news/social recipe.
+    // Logged-in responses stay live since myVote is genuinely per-viewer.
+    return NextResponse.json(
+      { messages, hasMore, nextCursor: hasMore ? page[0]!.id : null, pinned },
+      { headers: { "Cache-Control": me ? "private, no-store" : "public, s-maxage=8, stale-while-revalidate=20" } }
+    );
   } catch (err) {
     return handleError(err, "chat:list");
   }

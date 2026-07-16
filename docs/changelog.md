@@ -5,6 +5,30 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-16 — REVIEW (not merged): further Fast Origin Transfer reduction
+Owner wants Fast Origin Transfer usage (8.58GB/10GB) reduced enough to comfortably last another 4-5 months
+on the free plan. Fresh audit for more of the same class of bug already fixed on `/research/[slug]` and
+`/api/news/social`. Kept as an unmerged PR for review per the owner's request, rather than auto-merged like
+the earlier rounds.
+- **`/api/chat/messages` (GET)** - the single largest remaining driver found: polled every 10s by every open
+  `/community` tab as the realtime fallback, with no `Cache-Control` at all, running 2-3 Prisma queries per
+  call and returning a heavy payload (50 messages with nested user/replyTo/reactions/poll objects). For an
+  anonymous requester (no poll votes to stamp) the response for a given cursor is identical across all
+  visitors, so it's now cached publicly for a few seconds (`public, s-maxage=8, stale-while-revalidate=20`),
+  matching the `api/news/social` recipe. Logged-in responses stay `private, no-store` since `myVote` is
+  genuinely per-viewer.
+- **Lengthened ISR windows** on pages whose content only actually changes via an explicit edit (which
+  already calls `revalidatePath`) - the time-based window is just a safety net, so a shorter one buys nothing
+  but more origin re-renders: `research/[slug]` 60s → 300s, `research` (hub) 120s → 300s, `u/[username]`
+  60s → 300s.
+- **Investigated but not touched**: `/community`'s own force-dynamic render (unconditional `getServerSession`
+  even for anonymous visitors) - still the biggest *structural* win, but unlocking it means moving
+  poll-vote/`me` personalization out of the 1744-line `ChatClient.tsx` into a client-side fetch, a bigger
+  refactor than this pass's scope; `news/read` is dynamic only because it's driven by `searchParams` (share
+  links), low traffic, would need a route-param refactor to fix. Both flagged as future candidates.
+- **Files**: `src/app/api/chat/messages/route.ts`, `src/app/research/[slug]/page.tsx`,
+  `src/app/research/page.tsx`, `src/app/u/[username]/page.tsx`.
+
 ## 2026-07-16 — PREVIEW (not merged, revised): hero-only display typeface + word-stagger reveal
 Owner asked for "best in class" text/typography, then narrowed scope after seeing the first pass: keep the
 new serif ONLY on the hero's "Everything you need to win in Web3" line, revert every other heading back to

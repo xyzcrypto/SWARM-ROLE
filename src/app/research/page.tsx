@@ -18,7 +18,7 @@ export const metadata: Metadata = pageSeo({
 });
 
 // Cached; revalidated on demand when admin publishes/deletes (research routes).
-export const revalidate = 120;
+export const revalidate = 300;
 
 const PAGE_SIZE = 12;
 

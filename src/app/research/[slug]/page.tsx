@@ -27,7 +27,7 @@ import { TrackPostView } from "@/components/TrackPostView";
 // posts DO call getServerSession, which opts that specific slug's render out
 // of the static cache entirely - premium HTML is therefore never written to a
 // shared cache (not "cached safely", simply never cached).
-export const revalidate = 60;
+export const revalidate = 300;
 
 // Shared by generateMetadata + the page so both share one query per request.
 const getPost = cache(async (slug: string) => {
