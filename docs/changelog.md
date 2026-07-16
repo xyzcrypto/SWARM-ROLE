@@ -5,6 +5,29 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-16 — Fix: page can "freeze" (dead animations, stale ticker) after a deploy + third ticker upstream
+Owner reported desktop homepage icon animations had stopped and the Live Market ticker had gone static
+again. Reproduced the underlying failure class directly: a stale cached page referencing a JS chunk hash
+that no longer exists on the current deployment gets a 404 (served as HTML), the browser correctly refuses
+to execute HTML as a script (MIME mismatch), and hydration silently never finishes - every client
+component past that point (framer-motion icon animations, the ticker's data-fetching effect) stays inert,
+which reads exactly like "everything just froze/went static," while pure-CSS animations (marquee, orbital
+rings) keep running since they don't need JS. The service worker's own cache is the most likely place a
+stale page like that survives across a deploy.
+- **`public/sw.js`**: bumped the cache version (`xyz-pwa-v5` → `v6`) to purge any already-stale cached
+  navigation entries for current visitors.
+- **`PwaSetup.tsx`**: the service worker now proactively re-checks for a newer version whenever the tab
+  regains focus (`registration.update()`), instead of only on next navigation. Added a safety net that
+  detects a stale-chunk failure (a `<script>` load 404 via the capture-phase `error` listener - resource
+  load failures don't bubble - or a thrown `ChunkLoadError`/dynamic `import()` failure) and forces one
+  guarded hard reload to recover onto the current deployment, instead of leaving the page silently dead.
+- **`api/ticker`**: added CryptoCompare as a third upstream (`CoinGecko → Binance → CryptoCompare → last-
+  known-good → seed fallback`). Binance.com itself geo-blocks the US and several other jurisdictions
+  (HTTP 451), which is a real risk given Vercel's default serverless region - a differently-hosted third
+  opinion means CoinGecko and Binance would both have to fail for unrelated reasons at once for the ticker
+  to go stale again.
+- **Files**: `public/sw.js`, `src/components/PwaSetup.tsx`, `src/app/api/ticker/route.ts`.
+
 ## 2026-07-16 — Add real Terms of Service + Privacy Policy pages
 Owner asked for real Terms/Privacy pages on the site (not just a reference doc) "so koi legal problem na
 ho sake" - the site already collects real personal data (accounts, chat, DMs, trading journal entries,
