@@ -1,15 +1,20 @@
+import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { ok, handleError } from "@/lib/api";
+import { handleError } from "@/lib/api";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
 
 // GET /api/journal/share/activity/[userId] - the last 20 public Journal
 // Activity rows for a member, keyed by userId (grouped with the other
 // share/* routes: no session gate by design - this data was already decided
 // safe-to-show at write time, so anyone including link-preview bots can read
-// it). Degrades to an empty list if the table hasn't been migrated yet.
+// it). Cached briefly (same recipe as the other share/* routes) so repeat
+// polls from JournalActivityFeed's 60s fallback interval - across every
+// visitor to a profile page - are served from the CDN, not the origin.
+// Degrades to an empty list if the table hasn't been migrated yet.
+const CACHE = { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } };
+
 export async function GET(_req: Request, { params }: { params: { userId: string } }) {
   try {
     try {
@@ -19,10 +24,10 @@ export async function GET(_req: Request, { params }: { params: { userId: string 
         take: 20,
         select: { id: true, type: true, title: true, win: true, createdAt: true },
       });
-      return ok({ items });
+      return NextResponse.json({ items }, CACHE);
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && (err.code === "P2021" || err.code === "P2022")) {
-        return ok({ items: [] });
+        return NextResponse.json({ items: [] }, CACHE);
       }
       throw err;
     }

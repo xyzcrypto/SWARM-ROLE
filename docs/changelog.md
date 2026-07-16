@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-16 — Reduce Vercel Fast Origin Transfer: /research/[slug] ISR + journal-activity caching
+Owner reported Fast Origin Transfer at 8.35GB/10GB. Two concrete causes found and fixed:
+- **`/research/[slug]` converted from `force-dynamic` to ISR** (`revalidate = 60`) - the single biggest
+  lever identified months ago but never actually shipped until now. Root cause: the page unconditionally
+  called `getServerSession()` for every post (even free ones), which alone forced every anonymous article
+  read to be a full uncached origin invocation. Now `getServerSession()` is only called when
+  `post.premium` is true (checking the flag itself is a plain DB read, not a Dynamic API call) - free
+  posts are ISR-eligible and served from the CDN on repeat reads; premium posts stay fully dynamic and
+  are therefore never written to a shared cache at all (no stale-cache-leaks-premium-content risk).
+  Premium up/downgrade freshness is unaffected - already-deployed `RealtimeSession.tsx` refreshes the
+  session instantly on a `membership_changed`/`access_changed` broadcast, so dropping the extra
+  per-request DB re-check (previously the 4th query on every load) doesn't lose the "instant" guarantee.
+  View counting moved to a client-side beacon (`TrackPostView` → `POST /api/posts/[id]/view`) so it stays
+  accurate per-real-view instead of only firing once per cache window. `CommentSection`'s admin-only
+  controls now read `isAdmin` from its own session instead of a server-baked prop (verified safe: comment
+  deletion already independently re-authorizes server-side). `LikeButton` self-corrects its liked state
+  once on mount for logged-in users, since a cached free-post page can no longer bake in a per-visitor
+  `initialLiked`.
+- **`/api/journal/share/activity/[userId]` now sends `Cache-Control`** (`s-maxage=30,
+  stale-while-revalidate=60`, matching the other `share/*` routes' recipe) - this endpoint is polled every
+  60s by `JournalActivityFeed` on the *public* `/u/[username]` profile page (any visitor, not just the
+  profile owner) whenever Supabase realtime isn't configured, and previously had zero caching at all -
+  same bug class as the earlier NavActivity fix, smaller blast radius.
+- **Files**: `src/app/research/[slug]/page.tsx`, `src/components/TrackPostView.tsx` (new),
+  `src/app/api/posts/[id]/view/route.ts` (new), `src/components/CommentSection.tsx`,
+  `src/components/LikeButton.tsx`, `src/app/api/posts/[id]/like/route.ts`, `src/lib/ratelimit.ts`,
+  `src/app/api/journal/share/activity/[userId]/route.ts`.
+
 ## 2026-07-15 — Fix: ticker second upstream (Binance) when CoinGecko is unreachable
 Follow-up to the same-day ticker fix - owner reported the homepage ticker was still showing static
 prices after that fix shipped. Root-caused with an actual browser test (Playwright against a real

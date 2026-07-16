@@ -50,6 +50,7 @@ const limiters = {
   journal: make(30, 60, "journal"), // 30/min per user - trade log CRUD
   xp: make(30, 60, "xp"), // 30/min per user - XP award pings
   shareCreate: make(15, 60, "share_create"), // 15/min/IP - short-link creation (anonymous)
+  postView: make(30, 60, "post_view"), // 30/min/IP - article view beacon (anonymous)
 };
 
 export type RateKey = keyof typeof limiters;

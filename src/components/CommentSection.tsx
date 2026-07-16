@@ -11,8 +11,12 @@ import { Avatar } from "./Avatar";
 type CommentAuthor = { name: string; username: string | null; image: string | null };
 type Comment = { id: string; body: string; createdAt: string; author: CommentAuthor };
 
-export function CommentSection({ postId, isAdmin = false }: { postId: string; isAdmin?: boolean }) {
+export function CommentSection({ postId }: { postId: string }) {
   const { data: session } = useSession();
+  // Read isAdmin from our own session, not a server-rendered prop - the page
+  // may be ISR-cached (research/[slug] for free posts), so a baked-in prop
+  // would be stale/wrong for whoever's actually viewing.
+  const isAdmin = (session?.user as { role?: string } | undefined)?.role === "ADMIN";
   const rootRef = useRef<HTMLElement>(null);
   const [inView, setInView] = useState(false);
   const [items, setItems] = useState<Comment[]>([]);

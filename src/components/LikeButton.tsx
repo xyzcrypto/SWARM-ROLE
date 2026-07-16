@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Heart } from "lucide-react";
@@ -22,6 +22,21 @@ export function LikeButton({
   const [count, setCount] = useState(initialCount);
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
+
+  // Self-correct our own liked state once on mount for a logged-in user - the
+  // page may be ISR-cached (research/[slug], free posts), so the server-baked
+  // initialLiked reflects whoever's request happened to fill that cache slot,
+  // not necessarily us. Guests never had a liked state to begin with, so no
+  // request fires for anonymous traffic.
+  useEffect(() => {
+    if (!session) return;
+    fetch(`/api/posts/${postId}/like`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.liked === "boolean") setLiked(d.liked);
+      })
+      .catch(() => {});
+  }, [session, postId]);
 
   // Live like count: update when anyone else likes/unlikes this post. Ignored
   // while our own toggle is in flight - the broadcast can race the optimistic
