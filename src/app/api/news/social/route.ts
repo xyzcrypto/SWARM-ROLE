@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
@@ -7,6 +8,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // GET /api/news/social?url=… — like count + whether I liked + the comment thread.
+// Polled once per story card on /news (high anonymous traffic). For a signed-out
+// visitor `liked`/`mine` are always false regardless of who's asking, so that
+// response is identical across every anonymous visitor and safe to cache
+// publicly at the edge - cutting repeat function invocations for the same
+// story to once per cache window instead of once per anonymous pageview.
+// Logged-in responses stay `private, no-store` since they're genuinely
+// per-viewer (their own like/comment-ownership state).
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url).searchParams.get("url") || "";
@@ -36,7 +44,10 @@ export async function GET(req: Request) {
       mine: me ? c.userId === me.id : false,
     }));
 
-    return ok({ likes, liked: Boolean(liked), comments });
+    return NextResponse.json(
+      { likes, liked: Boolean(liked), comments },
+      { headers: { "Cache-Control": me ? "private, no-store" : "public, s-maxage=15, stale-while-revalidate=60" } }
+    );
   } catch (err) {
     return handleError(err, "news:social:get");
   }
