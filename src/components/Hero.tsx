@@ -101,9 +101,9 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.05 }}
+            initial={{ opacity: 0, y: 22, scale: 0.97, filter: "blur(18px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
             className="font-display text-display-xl font-semibold text-zinc-50 lg:whitespace-nowrap lg:text-[2.5rem] lg:leading-[1.1] xl:text-[3.15rem] 2xl:text-[3.6rem]"
           >
             Everything you need

@@ -71,7 +71,7 @@ export function SectionHeading({
           <Eyebrow>{eyebrow}</Eyebrow>
         </Reveal>
       )}
-      <Reveal delay={1}>
+      <Reveal delay={1} variant="focus">
         <h2 className="font-display text-display-md font-semibold tracking-tight text-zinc-50">
           {title}
         </h2>
