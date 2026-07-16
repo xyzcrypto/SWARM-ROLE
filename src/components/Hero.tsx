@@ -11,6 +11,24 @@ import { AnimatedBackground } from "./AnimatedBackground";
 import { Starfield } from "./Starfield";
 import { ActionLink } from "./ActionLink";
 import { MagneticButton } from "./MagneticButton";
+import { cn } from "@/lib/utils";
+import type { ReactNode } from "react";
+
+// One chunk of the hero headline, revealed in its own staggered beat (blur ->
+// focus, rise -> settle) so the line reads as a deliberate cascade landing
+// into place rather than the whole headline fading in as one block.
+function HeroWord({ children, i, className }: { children: ReactNode; i: number; className?: string }) {
+  return (
+    <motion.span
+      initial={{ opacity: 0, y: 26, filter: "blur(12px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1], delay: 0.05 + i * 0.1 }}
+      className={cn("inline-block", className)}
+    >
+      {children}
+    </motion.span>
+  );
+}
 
 const ticker = [
   "Web3 Research",
@@ -100,16 +118,17 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             </span>
           </motion.div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 22, scale: 0.97, filter: "blur(18px)" }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.05 }}
-            className="font-display text-display-xl font-semibold text-zinc-50 lg:whitespace-nowrap lg:text-[2.5rem] lg:leading-[1.1] xl:text-[3.15rem] 2xl:text-[3.6rem]"
+          <h1
+            style={{ fontFamily: "var(--font-fraunces)" }}
+            className="text-display-xl font-semibold text-zinc-50 lg:whitespace-nowrap lg:text-[2.5rem] lg:leading-[1.1] xl:text-[3.15rem] 2xl:text-[3.6rem]"
           >
-            Everything you need
+            <HeroWord i={0}>Everything</HeroWord> <HeroWord i={1}>you</HeroWord> <HeroWord i={2}>need</HeroWord>
             <br />
-            to <span className="text-shine">win in Web3.</span>
-          </motion.h1>
+            <HeroWord i={3}>to</HeroWord>{" "}
+            <HeroWord i={4}>
+              <span className="text-shine">win in Web3.</span>
+            </HeroWord>
+          </h1>
 
           <motion.p
             initial={{ opacity: 0, y: 18 }}

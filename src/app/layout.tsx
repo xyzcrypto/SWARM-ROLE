@@ -69,15 +69,14 @@ export const metadata: Metadata = {
   },
 };
 
-// Headline display face - a warm, high-contrast serif with real character
-// (distinct from the neutral Geist Sans used for body/UI text), reserved for
-// section/hero headings via `font-display` so the two roles read as a
-// deliberate pairing rather than one typeface doing every job.
+// Headline display face - a warm, high-contrast serif with real character,
+// scoped to ONLY the hero's main headline (not the shared `font-display`
+// class, which stays Geist Sans everywhere else) via its own CSS variable.
 const fraunces = Fraunces({
   subsets: ["latin"],
   weight: ["500", "600", "700"],
   style: ["normal"],
-  variable: "--font-display",
+  variable: "--font-fraunces",
   display: "swap",
 });
 

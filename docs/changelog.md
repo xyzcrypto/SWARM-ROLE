@@ -5,25 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
-## 2026-07-16 — PREVIEW (not merged): premium display typeface + signature "focus-pull" headline reveal
-Owner asked for "best in class" text/typography and text animation across the whole frontend. Shipped as
-a separate, unmerged preview branch/PR specifically so it can be reviewed and rejected independently -
-this is a real visual-identity change, not a bug fix.
-- **New display typeface (Fraunces)**: previously `font-display` and `font-sans` resolved to the exact
-  same font (Geist Sans, Vercel's own default) everywhere - there was no actual display/body pairing, just
-  one typeface doing every job. Fraunces (a warm, high-contrast serif with real character) is now loaded
-  via `next/font/google` and wired to `--font-display` / the `font-display` Tailwind class, which every
-  `<h1>`/`SectionHeading` sitewide already uses - so headlines everywhere (not just the homepage) get the
-  new pairing for free, with zero per-page edits. Geist Sans stays for body/UI text, Geist Mono stays for
-  data/eyebrows - matches the "characterful display, complementary body, utility mono" pattern rather than
-  introducing a fourth typeface.
-- **Signature reveal ("focus-pull")**: headlines now start slightly scaled down and softly blurred, then
-  sharpen into focus as they enter view - reads as "clarity/intelligence arriving," fitting a research
-  brand, instead of a generic fade/slide. Added as a new `focus` variant on the existing `Reveal` component
-  (builds on the same easing/timing language as the current `blur` variant, just tuned for display-scale
-  headlines) and wired into `SectionHeading` (propagates to every section heading site-wide) and `Hero.tsx`'s
-  main headline. Confirmed via direct style sampling (blur 18px→0, scale 0.97→1, opacity 0→1 over ~1.1s) -
-  not just a screenshot guess.
+## 2026-07-16 — PREVIEW (not merged, revised): hero-only display typeface + word-stagger reveal
+Owner asked for "best in class" text/typography, then narrowed scope after seeing the first pass: keep the
+new serif ONLY on the hero's "Everything you need to win in Web3" line, revert every other heading back to
+the original font, and make the entrance animation more obviously "next level." Still a separate, unmerged
+preview branch/PR so it can be reviewed and accepted/rejected independently of anything else.
+- **Fraunces, scoped to the hero headline only**: loaded via its own `--font-fraunces` CSS variable (not
+  the shared `font-display` Tailwind class), applied directly to `Hero.tsx`'s `<h1>` via inline
+  `fontFamily`. `SectionHeading` and every other heading site-wide are back to the original Geist Sans -
+  confirmed via computed style (`h1` → Fraunces, `h2` → Geist Sans).
+- **Word-by-word stagger reveal** (replaces the earlier whole-block "focus-pull," which read as too subtle
+  to notice): each chunk of the headline ("Everything" / "you" / "need" / "to" / "win in Web3.") is its own
+  `motion.span` that blurs-in and rises into place on its own staggered beat (~100ms apart), so the line
+  reads as a deliberate cascade landing into place rather than one fade. Confirmed via direct style
+  sampling across the transition - words visibly sharpen in sequence, not all at once. `Reveal.tsx` and
+  `SectionHeading` are reverted to their original, unmodified state (the animation lives entirely in
+  `Hero.tsx` now, scoped to the one headline it's for).
 - **Files**: `src/app/layout.tsx`, `tailwind.config.ts`, `src/components/Reveal.tsx`,
   `src/components/ui/primitives.tsx`, `src/components/Hero.tsx`.
 
