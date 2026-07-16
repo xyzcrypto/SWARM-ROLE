@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { headers } from "next/headers";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -19,12 +19,18 @@ import { CommentSection } from "@/components/CommentSection";
 import { LikeButton } from "@/components/LikeButton";
 import { POST_CARD_SELECT } from "@/lib/post-select";
 import { AwardXpOnView } from "@/components/AwardXpOnView";
+import { TrackPostView } from "@/components/TrackPostView";
 
-// Personalized (premium gating reads the session), so render per-request. The
-// query is a single indexed lookup; the heavy list pages stay ISR-cached.
-export const dynamic = "force-dynamic";
+// ISR: free posts never touch a Dynamic API (getServerSession is only called
+// below when post.premium is true), so they're cache-eligible and repeat
+// anonymous reads are served from the CDN with no origin invocation. Premium
+// posts DO call getServerSession, which opts that specific slug's render out
+// of the static cache entirely - premium HTML is therefore never written to a
+// shared cache (not "cached safely", simply never cached).
+export const revalidate = 60;
 
-async function getPost(slug: string) {
+// Shared by generateMetadata + the page so both share one query per request.
+const getPost = cache(async (slug: string) => {
   try {
     return await prisma.post.findFirst({
       where: { slug, published: true },
@@ -49,7 +55,7 @@ async function getPost(slug: string) {
     }
     return null;
   }
-}
+});
 
 export async function generateMetadata({
   params,
@@ -92,35 +98,24 @@ export default async function PostPage({
 }: {
   params: { slug: string };
 }) {
-  // Fetch the post and the session in parallel (saves a round-trip per view).
-  const [post, session] = await Promise.all([
-    getPost(params.slug),
-    getServerSession(authOptions),
-  ]);
+  const post = await getPost(params.slug);
   if (!post) notFound();
 
-  // Count the view - but skip router prefetches (hover/viewport) so the number
-  // reflects real opens, not Next.js prefetch traffic. Fire-and-forget.
-  const h = headers();
-  const isPrefetch = h.get("next-router-prefetch") === "1" || h.get("purpose") === "prefetch";
-  if (!isPrefetch) {
-    prisma.post.update({ where: { id: post.id }, data: { views: { increment: 1 } } }).catch(() => {});
-  }
-
   // Premium gating: only Premium members or admins can read a premium body.
-  const sessionUser = session?.user as any;
-  let isAdmin = sessionUser?.role === "ADMIN";
-  let isPremium = sessionUser?.membership === "Premium";
-  // For premium posts, re-check live role/membership from the DB so an admin
-  // up/downgrade takes effect immediately - the JWT is only a stale client hint.
-  if (post.premium && sessionUser?.id) {
-    const fresh = await prisma.user
-      .findUnique({ where: { id: sessionUser.id }, select: { role: true, membership: true } })
-      .catch(() => null);
-    if (fresh) {
-      isAdmin = fresh.role === "ADMIN";
-      isPremium = fresh.membership === "Premium";
-    }
+  // Session is only read for premium posts - checking post.premium first is a
+  // plain DB read, not a Dynamic API call, so FREE posts never touch
+  // getServerSession() and stay eligible for the ISR cache above. Trusting the
+  // JWT (no per-request DB re-check) is safe: RealtimeSession (mounted
+  // site-wide) refreshes the session the instant a membership_changed/
+  // access_changed broadcast fires, so up/downgrade still takes effect live.
+  let sessionUser: any = null;
+  let isAdmin = false;
+  let isPremium = false;
+  if (post.premium) {
+    const session = await getServerSession(authOptions);
+    sessionUser = session?.user ?? null;
+    isAdmin = sessionUser?.role === "ADMIN";
+    isPremium = sessionUser?.membership === "Premium";
   }
   const canViewPremium = isAdmin || isPremium;
   const locked = post.premium && !canViewPremium;
@@ -168,6 +163,7 @@ export default async function PostPage({
       />
       <Navbar />
       <ReadingProgress />
+      <TrackPostView postId={post.id} />
       {!locked && <AwardXpOnView action="research_view" keyId={post.id} />}
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
@@ -210,7 +206,7 @@ export default async function PostPage({
                       <p className="mono text-[11px] text-zinc-500">
                         {formatDate(post.createdAt)} · {readingTime(post.content)} min read
                         {" · "}
-                        {(post.views + (isPrefetch ? 0 : 1)).toLocaleString()} views
+                        {(post.views + 1).toLocaleString()} views
                       </p>
                     </div>
                   </div>
@@ -283,7 +279,7 @@ export default async function PostPage({
           )}
         </article>
 
-        <CommentSection postId={post.id} isAdmin={isAdmin} />
+        <CommentSection postId={post.id} />
 
         {related.length > 0 && (
           <section className="mx-auto mt-12 max-w-5xl px-4 pb-24 sm:px-6">

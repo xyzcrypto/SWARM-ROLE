@@ -3,6 +3,25 @@ import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { broadcastEvent } from "@/lib/realtime";
 
+// GET /api/posts/:id/like - the CALLER's own liked state. Self-correction for
+// a logged-in user after an ISR-cached page load (research/[slug] no longer
+// computes per-visitor `myLike` for free posts, so the baked-in initialLiked
+// may not be theirs). Guests always correctly show false, no request needed.
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
+  try {
+    const user = await getSessionUser();
+    if (!user) return ok({ liked: false });
+    if (!isCuid(params.id)) return fail("Invalid id.", 400);
+    const existing = await prisma.postLike.findUnique({
+      where: { postId_userId: { postId: params.id, userId: user.id } },
+      select: { id: true },
+    });
+    return ok({ liked: Boolean(existing) });
+  } catch (err) {
+    return handleError(err, "like:status");
+  }
+}
+
 // POST /api/posts/:id/like - logged-in toggle. Returns { liked, count }.
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   try {
