@@ -911,32 +911,24 @@ html.lenis body {
   .aurora,
   .particle,
   .grid-pan,
-  .starfield span,
+  .starfield span:not(.star-shooter),
   .starfield-neb,
   .saturn,
   .moon,
   .saturn-body::after,
   .moon-robot,
-  /* continuous decorative sweeps + the auto-scrolling ticker: stop them for
-     users who asked for less motion (accessibility + battery, and paint cost). */
+  /* the auto-scrolling ticker marquee: stop it for users who asked for less
+     motion (accessibility + battery, and paint cost). Shooting stars and the
+     Icons3D system (spin/bob/pulse/etc) used to be silenced here too, but
+     that made the homepage read as fully "static" for anyone with reduced
+     motion on at the OS level - these are a deliberate part of the brand's
+     signature look (About/Products icons, hero meteors), not decoration, so
+     they now always play regardless of the OS preference. */
   .marquee,
   .text-shine,
   .btn-primary::after,
   .btn-gold::after,
-  .eyebrow-glass::after,
-  /* bespoke 3D icon system (Icons3D.tsx) - continuous spin/bob/pulse/etc
-     loops were never added to this list, so reduced-motion users got full
-     motion on every icon across About/Products/Markets/News/Premium. */
-  .i3d-spin,
-  .i3d-bob,
-  .i3d-scan,
-  .i3d-pulse,
-  .i3d-tick,
-  .i3d-sweep,
-  .i3d-float,
-  .i3d-beat,
-  .i3d-twinkle,
-  .i3d-flick {
+  .eyebrow-glass::after {
     animation: none !important;
   }
 }

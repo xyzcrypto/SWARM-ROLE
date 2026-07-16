@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-16 — Fix: icon animations + shooting stars going fully static on reduced-motion
+Owner reported the About/Products icon animations and the hero's shooting-star meteors were still static
+on desktop even after the earlier stale-chunk fix. Reproduced directly with Playwright's reduced-motion
+emulation: confirmed both go completely inert (`animation: none`, frozen transforms) specifically when
+`prefers-reduced-motion: reduce` is active, while working correctly with it off - this exactly matches the
+report if the test browser/OS has that accessibility setting on (a common default in some environments,
+not always something a user consciously enabled).
+- **`globals.css`**: the reduced-motion media query previously silenced the entire Icons3D system
+  (`.i3d-spin/-bob/-scan/-pulse/-tick/-sweep/-float/-beat/-twinkle/-flick` - every animated icon across
+  About/Products/Markets/News/Premium) and every span inside `.starfield` (which includes the shooting
+  stars, not just the ambient twinkle). These are a deliberate, signature part of the brand's look, not
+  incidental decoration, so they're removed from the disable list and now always animate regardless of the
+  OS-level reduced-motion preference. The ambient starfield twinkle/drift and other heavy full-screen loops
+  (mesh, aurora, particles, Saturn/Moon bob, marquee, text-shine) still correctly respect reduced motion -
+  only the two reported elements were carved out.
+- **Files**: `src/app/globals.css`.
+
 ## 2026-07-16 — Further reduce Fast Origin Transfer: /api/news/social edge caching
 Follow-up audit for more of the same class of bug already fixed on `/research/[slug]` (unconditional
 session lookup on public content forcing every anonymous read to hit the origin).
