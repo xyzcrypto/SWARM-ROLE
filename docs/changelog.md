@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-16 — Further reduce Fast Origin Transfer: /api/news/social edge caching
+Follow-up audit for more of the same class of bug already fixed on `/research/[slug]` (unconditional
+session lookup on public content forcing every anonymous read to hit the origin).
+- **`/api/news/social` (GET)** - polled once per story card on `/news` (high anonymous traffic), had no
+  `Cache-Control` at all. For a signed-out visitor `liked`/`mine` are always `false` regardless of who's
+  asking, so that response is identical for every anonymous visitor and is now cached publicly at the edge
+  (`public, s-maxage=15, stale-while-revalidate=60`) - cutting repeat function invocations for the same
+  story to once per cache window instead of once per anonymous pageview. Logged-in responses stay
+  `private, no-store` since `liked`/`mine` are genuinely per-viewer there.
+- **Audited but intentionally left alone**: `/community` has the same `force-dynamic` + unconditional
+  `getServerSession()` pattern, but unlocking ISR for it would mean moving the viewer's poll-vote/`me`
+  personalization out of the 1744-line `ChatClient` and into a client-side fetch (the same shape as the
+  `LikeButton` self-correction pattern) - a much larger, riskier change to a live real-time chat surface
+  for comparatively low anonymous traffic. Flagged as a future candidate, not done here.
+- **Files**: `src/app/api/news/social/route.ts`.
+
 ## 2026-07-16 — Fix: page can "freeze" (dead animations, stale ticker) after a deploy + third ticker upstream
 Owner reported desktop homepage icon animations had stopped and the Live Market ticker had gone static
 again. Reproduced the underlying failure class directly: a stale cached page referencing a JS chunk hash
