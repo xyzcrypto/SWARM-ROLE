@@ -433,6 +433,19 @@ html.lenis body {
   color: transparent;
   animation: shine 5s linear infinite;
 }
+/* Quieter companion to .text-shine - a slow, narrow-luminance sweep (near-white
+   to near-white, not gold-to-gold) so a whole headline can read as always
+   subtly alive without competing with the bolder gold accent phrase next to
+   it. Same `shine` keyframe, just a gentler gradient and a slower cycle. */
+.text-shimmer {
+  background: linear-gradient(100deg, #e4e4e7 30%, #ffffff 46%, #fdf7e7 50%, #ffffff 54%, #e4e4e7 70%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shine 7s linear infinite;
+}
 .mono {
   font-family: var(--font-mono), ui-monospace, monospace;
   font-feature-settings: "tnum" 1, "zero" 1;
@@ -962,6 +975,12 @@ html:not(.dark) .text-mint-gradient {
 html:not(.dark) .text-shine {
   background: linear-gradient(100deg, #824f0e 20%, #d18f1b 45%, #ad6f10 50%, #d18f1b 55%, #824f0e 80%);
   background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+}
+html:not(.dark) .text-shimmer {
+  background: linear-gradient(100deg, #3f3f46 30%, #18181b 46%, #824f0e 50%, #18181b 54%, #3f3f46 70%);
+  background-size: 220% auto;
   -webkit-background-clip: text; background-clip: text;
   -webkit-text-fill-color: transparent; color: transparent;
 }

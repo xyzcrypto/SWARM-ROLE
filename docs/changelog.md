@@ -5,6 +5,25 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-16 — PREVIEW (not merged, revised): hero-only display typeface + word-stagger reveal
+Owner asked for "best in class" text/typography, then narrowed scope after seeing the first pass: keep the
+new serif ONLY on the hero's "Everything you need to win in Web3" line, revert every other heading back to
+the original font, and make the entrance animation more obviously "next level." Still a separate, unmerged
+preview branch/PR so it can be reviewed and accepted/rejected independently of anything else.
+- **Fraunces, scoped to the hero headline only**: loaded via its own `--font-fraunces` CSS variable (not
+  the shared `font-display` Tailwind class), applied directly to `Hero.tsx`'s `<h1>` via inline
+  `fontFamily`. `SectionHeading` and every other heading site-wide are back to the original Geist Sans -
+  confirmed via computed style (`h1` → Fraunces, `h2` → Geist Sans).
+- **Word-by-word stagger reveal** (replaces the earlier whole-block "focus-pull," which read as too subtle
+  to notice): each chunk of the headline ("Everything" / "you" / "need" / "to" / "win in Web3.") is its own
+  `motion.span` that blurs-in and rises into place on its own staggered beat (~100ms apart), so the line
+  reads as a deliberate cascade landing into place rather than one fade. Confirmed via direct style
+  sampling across the transition - words visibly sharpen in sequence, not all at once. `Reveal.tsx` and
+  `SectionHeading` are reverted to their original, unmodified state (the animation lives entirely in
+  `Hero.tsx` now, scoped to the one headline it's for).
+- **Files**: `src/app/layout.tsx`, `tailwind.config.ts`, `src/components/Reveal.tsx`,
+  `src/components/ui/primitives.tsx`, `src/components/Hero.tsx`.
+
 ## 2026-07-16 — Fix: ticker + text-shine + rest of the brand's ambient animations still static on reduced-motion
 Follow-up to the earlier Icons3D/shooting-star fix - owner reported the Live Market ticker and other
 animations were still going static on the same preview, and asked to "fix everyone." The previous fix only
