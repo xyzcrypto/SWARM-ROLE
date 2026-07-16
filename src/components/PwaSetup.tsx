@@ -10,6 +10,7 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_KEY = "xyz-pwa-install-dismissed";
+const RELOADED_KEY = "xyz-chunk-reload-once";
 
 /**
  * Registers the service worker (makes the site installable + offline) and shows
@@ -20,13 +21,74 @@ export function PwaSetup() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
 
-  // Register the service worker on load.
+  // Register the service worker on load, then proactively re-check for a
+  // newer version whenever the tab regains focus - browsers only check for SW
+  // updates on navigation by default, so a tab left open across a deploy can
+  // otherwise sit on a stale worker/cache far longer than necessary.
   useEffect(() => {
     if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
-    const onLoad = () => navigator.serviceWorker.register("/sw.js").catch(() => {});
+    let reg: ServiceWorkerRegistration | undefined;
+    const onLoad = () => {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((r) => { reg = r; })
+        .catch(() => {});
+    };
     if (document.readyState === "complete") onLoad();
     else window.addEventListener("load", onLoad, { once: true });
-    return () => window.removeEventListener("load", onLoad);
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") reg?.update().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("load", onLoad);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, []);
+
+  // Safety net: if a stale cached page ends up referencing a JS chunk that no
+  // longer exists on the current deployment (the classic symptom is the page
+  // looking "frozen" - no animations, no live data, because hydration silently
+  // never finished), force one hard reload to pick up the current deployment.
+  // Guarded with sessionStorage so a genuinely broken chunk can't reload-loop.
+  useEffect(() => {
+    const isChunkError = (message: string) =>
+      /ChunkLoadError|Loading chunk [\d]+ failed|failed to fetch dynamically imported module/i.test(message);
+    const reloadOnce = () => {
+      try {
+        if (sessionStorage.getItem(RELOADED_KEY)) return;
+        sessionStorage.setItem(RELOADED_KEY, "1");
+      } catch {
+        /* ignore */
+      }
+      window.location.reload();
+    };
+    // Resource load failures (a <script src> 404, e.g. a stale HTML shell
+    // pointing at a chunk hash that no longer exists) fire a plain Event on
+    // the failing element - they only reach a window listener registered on
+    // the CAPTURE phase, never the bubble phase, and never carry a `message`.
+    // Thrown errors (e.g. a dynamic import()'s ChunkLoadError) go through the
+    // same listener as a bubbling ErrorEvent with a message instead.
+    const onError = (e: Event) => {
+      const target = e.target;
+      if (target instanceof HTMLScriptElement && target.src.includes("/_next/static/")) {
+        reloadOnce();
+        return;
+      }
+      const message = (e as ErrorEvent).message;
+      if (message && isChunkError(message)) reloadOnce();
+    };
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const message = e.reason?.message || String(e.reason || "");
+      if (isChunkError(message)) reloadOnce();
+    };
+    window.addEventListener("error", onError, true);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError, true);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
   }, []);
 
   // Capture the install prompt (Android / desktop Chrome/Edge).

@@ -90,11 +90,41 @@ async function fetchFromBinance() {
   });
 }
 
+// Binance.com itself geo-blocks requests from the US and several other
+// jurisdictions (HTTP 451) - a real risk since Vercel's default serverless
+// region is US-based, which would silently defeat the Binance fallback above
+// for exactly the visitors it's meant to help. CryptoCompare's free/keyless
+// multi-symbol endpoint is a third, differently-hosted opinion with no such
+// geo-block, so CoinGecko and Binance would have to fail for unrelated
+// reasons (rate-limit + geo-block) at the same moment for this to matter.
+async function fetchFromCryptoCompare() {
+  const fsyms = COINS.map((c) => c.symbol).join(",");
+  const url = `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${fsyms}&tsyms=USD`;
+  const res = await fetch(url, { headers: { accept: "application/json" }, next: { revalidate } });
+  if (!res.ok) throw new Error(`cryptocompare ${res.status}`);
+  const data = await res.json();
+  const raw = data?.RAW ?? {};
+  return COINS.map((c) => {
+    const d = raw?.[c.symbol]?.USD;
+    return {
+      symbol: c.symbol,
+      name: c.name,
+      price: d?.PRICE ?? c.seed,
+      change: d?.CHANGEPCT24HOUR ?? 0,
+      image: LOGO[c.symbol],
+    };
+  });
+}
+
 async function fetchUpstream() {
   try {
     return await fetchFromCoinGecko();
   } catch {
-    return await fetchFromBinance();
+    try {
+      return await fetchFromBinance();
+    } catch {
+      return await fetchFromCryptoCompare();
+    }
   }
 }
 
