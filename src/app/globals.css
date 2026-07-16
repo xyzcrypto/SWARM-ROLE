@@ -903,34 +903,17 @@ html.lenis body {
    Accessibility - respect reduced motion
 ----------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
+  /* Keep scroll-jump behaviour calm (a real vestibular trigger) - this is the
+     one reduced-motion accommodation that stays. The site's ambient/brand
+     animations (starfield, orbital bodies, ticker marquee, text-shine,
+     Icons3D, shooting stars, button sweeps) used to all stop under this
+     media query, which made large parts of the homepage read as fully
+     "static" for anyone with the OS-level preference on (not always a
+     conscious choice - some environments default to it). These are a
+     deliberate, signature part of the brand's always-alive look rather than
+     incidental decoration, so none of them are gated on this preference
+     anymore. */
   html { scroll-behavior: auto; }
-  /* Calm only the heavy full-screen ambient loops; keep meaningful UI
-     motion (reveals, hover, logo orbit, product previews) visible. */
-  .mesh::before,
-  .mesh::after,
-  .aurora,
-  .particle,
-  .grid-pan,
-  .starfield span:not(.star-shooter),
-  .starfield-neb,
-  .saturn,
-  .moon,
-  .saturn-body::after,
-  .moon-robot,
-  /* the auto-scrolling ticker marquee: stop it for users who asked for less
-     motion (accessibility + battery, and paint cost). Shooting stars and the
-     Icons3D system (spin/bob/pulse/etc) used to be silenced here too, but
-     that made the homepage read as fully "static" for anyone with reduced
-     motion on at the OS level - these are a deliberate part of the brand's
-     signature look (About/Products icons, hero meteors), not decoration, so
-     they now always play regardless of the OS preference. */
-  .marquee,
-  .text-shine,
-  .btn-primary::after,
-  .btn-gold::after,
-  .eyebrow-glass::after {
-    animation: none !important;
-  }
 }
 
 /* ================================================================
