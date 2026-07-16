@@ -110,7 +110,10 @@ export function SignupForm({ providers }: { providers: SocialProviders }) {
 
       <p className="text-center text-xs leading-relaxed text-zinc-600">
         We&apos;ll email you a 6-digit code to verify your address. By creating an
-        account you agree to receive product updates. Opt out anytime.
+        account you agree to our{" "}
+        <Link href="/terms" className="text-gold-300 hover:underline">Terms of Service</Link> and{" "}
+        <Link href="/privacy" className="text-gold-300 hover:underline">Privacy Policy</Link>, and to
+        receive product updates (opt out anytime).
       </p>
 
       <p className="text-center text-sm text-zinc-500">
