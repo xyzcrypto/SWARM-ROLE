@@ -916,42 +916,17 @@ html.lenis body {
    Accessibility - respect reduced motion
 ----------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
+  /* Keep scroll-jump behaviour calm (a real vestibular trigger) - this is the
+     one reduced-motion accommodation that stays. The site's ambient/brand
+     animations (starfield, orbital bodies, ticker marquee, text-shine,
+     Icons3D, shooting stars, button sweeps) used to all stop under this
+     media query, which made large parts of the homepage read as fully
+     "static" for anyone with the OS-level preference on (not always a
+     conscious choice - some environments default to it). These are a
+     deliberate, signature part of the brand's always-alive look rather than
+     incidental decoration, so none of them are gated on this preference
+     anymore. */
   html { scroll-behavior: auto; }
-  /* Calm only the heavy full-screen ambient loops; keep meaningful UI
-     motion (reveals, hover, logo orbit, product previews) visible. */
-  .mesh::before,
-  .mesh::after,
-  .aurora,
-  .particle,
-  .grid-pan,
-  .starfield span,
-  .starfield-neb,
-  .saturn,
-  .moon,
-  .saturn-body::after,
-  .moon-robot,
-  /* continuous decorative sweeps + the auto-scrolling ticker: stop them for
-     users who asked for less motion (accessibility + battery, and paint cost). */
-  .marquee,
-  .text-shine,
-  .btn-primary::after,
-  .btn-gold::after,
-  .eyebrow-glass::after,
-  /* bespoke 3D icon system (Icons3D.tsx) - continuous spin/bob/pulse/etc
-     loops were never added to this list, so reduced-motion users got full
-     motion on every icon across About/Products/Markets/News/Premium. */
-  .i3d-spin,
-  .i3d-bob,
-  .i3d-scan,
-  .i3d-pulse,
-  .i3d-tick,
-  .i3d-sweep,
-  .i3d-float,
-  .i3d-beat,
-  .i3d-twinkle,
-  .i3d-flick {
-    animation: none !important;
-  }
 }
 
 /* ================================================================

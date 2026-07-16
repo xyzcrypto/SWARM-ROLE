@@ -24,6 +24,36 @@ preview branch/PR so it can be reviewed and accepted/rejected independently of a
 - **Files**: `src/app/layout.tsx`, `tailwind.config.ts`, `src/components/Reveal.tsx`,
   `src/components/ui/primitives.tsx`, `src/components/Hero.tsx`.
 
+## 2026-07-16 — Fix: ticker + text-shine + rest of the brand's ambient animations still static on reduced-motion
+Follow-up to the earlier Icons3D/shooting-star fix - owner reported the Live Market ticker and other
+animations were still going static on the same preview, and asked to "fix everyone." The previous fix only
+carved out the two specifically-reported elements; the ticker marquee, the text-shine gradient sweep, and
+the remaining ambient loops (mesh, aurora, particles, Saturn/Moon bob, button sweeps) were still silenced
+by the same `prefers-reduced-motion: reduce` media query.
+- **`globals.css`**: removed the entire animation-disable list from the reduced-motion media query. Every
+  brand/ambient animation now always plays regardless of the OS-level reduced-motion preference - these are
+  a deliberate, always-alive part of the site's look, not incidental decoration. `scroll-behavior: auto`
+  (calms scroll-jump, a real vestibular trigger, and is unrelated to decorative animation) is the one
+  reduced-motion accommodation kept.
+- **Files**: `src/app/globals.css`.
+
+## 2026-07-16 — Fix: icon animations + shooting stars going fully static on reduced-motion
+Owner reported the About/Products icon animations and the hero's shooting-star meteors were still static
+on desktop even after the earlier stale-chunk fix. Reproduced directly with Playwright's reduced-motion
+emulation: confirmed both go completely inert (`animation: none`, frozen transforms) specifically when
+`prefers-reduced-motion: reduce` is active, while working correctly with it off - this exactly matches the
+report if the test browser/OS has that accessibility setting on (a common default in some environments,
+not always something a user consciously enabled).
+- **`globals.css`**: the reduced-motion media query previously silenced the entire Icons3D system
+  (`.i3d-spin/-bob/-scan/-pulse/-tick/-sweep/-float/-beat/-twinkle/-flick` - every animated icon across
+  About/Products/Markets/News/Premium) and every span inside `.starfield` (which includes the shooting
+  stars, not just the ambient twinkle). These are a deliberate, signature part of the brand's look, not
+  incidental decoration, so they're removed from the disable list and now always animate regardless of the
+  OS-level reduced-motion preference. The ambient starfield twinkle/drift and other heavy full-screen loops
+  (mesh, aurora, particles, Saturn/Moon bob, marquee, text-shine) still correctly respect reduced motion -
+  only the two reported elements were carved out.
+- **Files**: `src/app/globals.css`.
+
 ## 2026-07-16 — Further reduce Fast Origin Transfer: /api/news/social edge caching
 Follow-up audit for more of the same class of bug already fixed on `/research/[slug]` (unconditional
 session lookup on public content forcing every anonymous read to hit the origin).
