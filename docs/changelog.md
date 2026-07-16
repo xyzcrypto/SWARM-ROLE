@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-16 — Fix: ticker + text-shine + rest of the brand's ambient animations still static on reduced-motion
+Follow-up to the earlier Icons3D/shooting-star fix - owner reported the Live Market ticker and other
+animations were still going static on the same preview, and asked to "fix everyone." The previous fix only
+carved out the two specifically-reported elements; the ticker marquee, the text-shine gradient sweep, and
+the remaining ambient loops (mesh, aurora, particles, Saturn/Moon bob, button sweeps) were still silenced
+by the same `prefers-reduced-motion: reduce` media query.
+- **`globals.css`**: removed the entire animation-disable list from the reduced-motion media query. Every
+  brand/ambient animation now always plays regardless of the OS-level reduced-motion preference - these are
+  a deliberate, always-alive part of the site's look, not incidental decoration. `scroll-behavior: auto`
+  (calms scroll-jump, a real vestibular trigger, and is unrelated to decorative animation) is the one
+  reduced-motion accommodation kept.
+- **Files**: `src/app/globals.css`.
+
 ## 2026-07-16 — Fix: icon animations + shooting stars going fully static on reduced-motion
 Owner reported the About/Products icon animations and the hero's shooting-star meteors were still static
 on desktop even after the earlier stale-chunk fix. Reproduced directly with Playwright's reduced-motion
