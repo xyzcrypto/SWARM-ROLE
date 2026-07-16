@@ -92,7 +92,11 @@ export function Footer() {
 
         <div className="flex flex-col items-center justify-between gap-3 border-t border-line py-6 sm:flex-row">
           <p className="mono text-[11px] text-zinc-600">© {new Date().getFullYear()} XYZ Crypto. All rights reserved.</p>
-          <p className="mono text-[11px] text-zinc-600">Built for the Next Generation of Web3 · v2.0</p>
+          <div className="flex items-center gap-4">
+            <Link href="/terms" className="mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Terms</Link>
+            <Link href="/privacy" className="mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Privacy</Link>
+            <p className="mono text-[11px] text-zinc-600">Built for the Next Generation of Web3 · v2.0</p>
+          </div>
         </div>
         <p className="mx-auto max-w-2xl pb-8 text-center text-[11px] leading-relaxed text-zinc-700">
           Disclaimer: Nothing on this site is financial advice. Crypto assets are

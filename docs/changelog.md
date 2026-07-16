@@ -5,6 +5,26 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-16 — Add real Terms of Service + Privacy Policy pages
+Owner asked for real Terms/Privacy pages on the site (not just a reference doc) "so koi legal problem na
+ho sake" - the site already collects real personal data (accounts, chat, DMs, trading journal entries,
+IP-based rate limiting) with no published policy anywhere, flagged earlier as the top legal gap.
+- **New `/terms` and `/privacy` pages**, written specifically for this product (not generic boilerplate):
+  covers what the Service is and isn't (not a broker/exchange/custodian, no financial advice), the Trading
+  Journal's public/private visibility model (private by default, opt-in Public/Anonymous per trade, dollar
+  amounts never public), an honest third-party processor list matching the real integrations in
+  `src/lib/env.ts` (Supabase, Vercel, Upstash, Resend, Sentry, Groq/Gemini, LiveKit, OAuth providers), and
+  an IT Rules 2021 Grievance Officer contact (using the existing public support email, with a note that a
+  named officer will be published once the company is formally incorporated - owner had no name to give
+  yet). Both pages carry a visible "not yet incorporated / not a substitute for a lawyer" disclaimer.
+- **`Footer.tsx`**: added a Terms/Privacy link row next to the copyright line, visible sitewide.
+- **`SignupForm.tsx`**: the post-signup consent line now links to the real `/terms` and `/privacy` pages
+  instead of only mentioning product-update emails - this is the actual consent-capture moment.
+- Reuses the existing `.prose-xyz` typography class so the legal pages read consistently with research
+  articles rather than introducing new styling.
+- **Files**: `src/app/terms/page.tsx` (new), `src/app/privacy/page.tsx` (new), `src/components/Footer.tsx`,
+  `src/components/SignupForm.tsx`.
+
 ## 2026-07-16 — Reduce Vercel Fast Origin Transfer: /research/[slug] ISR + journal-activity caching
 Owner reported Fast Origin Transfer at 8.35GB/10GB. Two concrete causes found and fixed:
 - **`/research/[slug]` converted from `force-dynamic` to ISR** (`revalidate = 60`) - the single biggest
