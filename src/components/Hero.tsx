@@ -120,11 +120,16 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
 
           <h1
             style={{ fontFamily: "var(--font-fraunces)" }}
-            className="text-display-xl font-semibold text-zinc-50 lg:whitespace-nowrap lg:text-[2.5rem] lg:leading-[1.1] xl:text-[3.15rem] 2xl:text-[3.6rem]"
+            className="text-display-xl font-semibold lg:whitespace-nowrap lg:text-[2.5rem] lg:leading-[1.1] xl:text-[3.15rem] 2xl:text-[3.6rem]"
           >
-            <HeroWord i={0}>Everything</HeroWord> <HeroWord i={1}>you</HeroWord> <HeroWord i={2}>need</HeroWord>
+            {/* .text-shimmer is applied per-word (not on the <h1> itself) - background-clip:text
+                only clips to an element's OWN text, not text inside nested inline children, so
+                putting it on the wrapper alone left every word except the last invisible. */}
+            <HeroWord i={0} className="text-shimmer">Everything</HeroWord>{" "}
+            <HeroWord i={1} className="text-shimmer">you</HeroWord>{" "}
+            <HeroWord i={2} className="text-shimmer">need</HeroWord>
             <br />
-            <HeroWord i={3}>to</HeroWord>{" "}
+            <HeroWord i={3} className="text-shimmer">to</HeroWord>{" "}
             <HeroWord i={4}>
               <span className="text-shine">win in Web3.</span>
             </HeroWord>
