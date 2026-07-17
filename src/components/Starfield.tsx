@@ -60,11 +60,17 @@ const NEBULAE = [
 ];
 
 // Full-bleed starfield layer. pointer-events-none. Works in BOTH themes (dark =
-// deep space, light = warm "day sky" via the globals light remap). Twinkle,
-// drift, meteors, Saturn's spin + both bodies' bob all stop under
-// prefers-reduced-motion. `bodies` gates Saturn + Moon (off in the hero, where
-// the medallion owns the right side).
-export function Starfield({ className, bodies = true }: { className?: string; bodies?: boolean }) {
+// deep space, light = warm "day sky" via the globals light remap). `bodies`
+// gates Saturn + Moon (off in the hero, where the medallion owns the right
+// side). `light` halves the shooting-star count - this component is mounted
+// twice on the homepage (Hero + the orbital section's own backdrop), and on
+// desktop both mounts render their full, non-reduced star/shooter set (the
+// mobile media query only trims `.starfield-extra`/`.star-shooter-extra`) -
+// two full copies stacked back-to-back is real, avoidable paint/compositing
+// cost with no real visual benefit (they read as one continuous backdrop,
+// not two distinct scenes), so the second mount uses the lighter set.
+export function Starfield({ className, bodies = true, light = false }: { className?: string; bodies?: boolean; light?: boolean }) {
+  const shooters = light ? SHOOTERS.filter((_, i) => i % 2 === 0) : SHOOTERS;
   return (
     <div aria-hidden className={cn("starfield pointer-events-none absolute inset-0 overflow-hidden", className)}>
       {NEBULAE.map((n, i) => (
@@ -144,7 +150,7 @@ export function Starfield({ className, bodies = true }: { className?: string; bo
         />
       ))}
 
-      {SHOOTERS.map((sh, i) => (
+      {shooters.map((sh, i) => (
         <span
           key={`sh${i}`}
           // only ~3 meteors on phones (the extras only paint on >= md)

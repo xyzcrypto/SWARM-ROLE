@@ -5,6 +5,25 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-17 — Fix: desktop lag / jank on the homepage
+Owner reported the site had gotten laggy and the design wasn't rendering cleanly, specifically on desktop.
+Measured directly (Playwright, 1920x1080): the homepage had **257+ simultaneously "running" CSS
+animations** on load, growing past 270+ once scrolled. Root cause traced to `Starfield` (stars + shooting
+meteors + nebula haze) being mounted **twice** on the homepage - once directly in `Hero.tsx`, once again
+via `OrbitalBackdrop.tsx` for the orbital section right below it - and both mounts rendering their full,
+non-reduced desktop star/shooter set (the existing mobile media query only trims the "extra" tier; desktop
+was never trimmed at all). The two sections sit close enough that scrolling between them puts both
+starfields active at once, doubling an already-heavy continuous-animation cost for no real visual benefit
+(they read as one continuous backdrop, not two distinct scenes) - a cost that scales with viewport size, so
+it's naturally worse on desktop's larger canvas than on mobile.
+- **`Starfield.tsx`**: added a `light` prop that renders half the shooting-star set (6 instead of 12).
+- **`OrbitalBackdrop.tsx`**: now passes `light`, so only the Hero's Starfield mount (the one seen first,
+  worth keeping at full richness) renders the full 12-shooter set; the orbital section's redundant
+  continuation mount is lighter. Total shooting-star elements on the homepage: 24 → 18.
+- Confirmed via direct computed-style sampling (not just a screenshot) and a full desktop screenshot pass -
+  no visual regression, still reads as one continuous starfield across both sections.
+- **Files**: `src/components/Starfield.tsx`, `src/components/OrbitalBackdrop.tsx`.
+
 ## 2026-07-16 — REVIEW (not merged): further Fast Origin Transfer reduction
 Owner wants Fast Origin Transfer usage (8.58GB/10GB) reduced enough to comfortably last another 4-5 months
 on the free plan. Fresh audit for more of the same class of bug already fixed on `/research/[slug]` and
