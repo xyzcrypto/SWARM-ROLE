@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
 import { env } from "@/lib/env";
@@ -8,10 +9,17 @@ import { env } from "@/lib/env";
 const enabled = !!env.UPSTASH_REDIS_REST_URL && !!env.UPSTASH_REDIS_REST_TOKEN;
 
 // Loudly flag the no-op fallback in production so a misconfigured Upstash (which
-// silently disables ALL brute-force protection) can't go unnoticed.
+// silently disables ALL brute-force protection) can't go unnoticed. A plain
+// console.warn is easy to miss in log volume - also report it to Sentry
+// (once per cold start, not per-request) so it shows up as a real alert
+// rather than something only visible by log-scraping.
 if (!enabled && process.env.NODE_ENV === "production") {
   console.warn(
     "[ratelimit] SECURITY: Upstash is not configured - rate limiting is DISABLED in production. Set UPSTASH_REDIS_REST_URL/TOKEN."
+  );
+  Sentry.captureMessage(
+    "Rate limiting is DISABLED in production (Upstash env not configured) - all brute-force/abuse limits are currently no-ops.",
+    "error"
   );
 }
 
@@ -51,6 +59,7 @@ const limiters = {
   xp: make(30, 60, "xp"), // 30/min per user - XP award pings
   shareCreate: make(15, 60, "share_create"), // 15/min/IP - short-link creation (anonymous)
   postView: make(30, 60, "post_view"), // 30/min/IP - article view beacon (anonymous)
+  otpEmail: make(3, 600, "otp_email"), // 3/10min per target email - anti email-bombing (independent of the IP-keyed signup/password limiters, since an attacker can rotate IPs but not the victim's email)
 };
 
 export type RateKey = keyof typeof limiters;
@@ -69,8 +78,19 @@ export async function rateLimit(key: RateKey, identifier: string) {
   }
 }
 
-/** Best-effort client IP from standard proxy headers. */
+/**
+ * Best-effort client IP from proxy headers. `x-vercel-forwarded-for` is set
+ * by Vercel's own edge network and is NOT client-controllable (Vercel
+ * overwrites this specific header before a request reaches the function), so
+ * it's authoritative in production. Plain `x-forwarded-for` is trusted only
+ * as a fallback (local dev / non-Vercel hosting) - a client can freely set
+ * that header themselves, so relying on it alone lets every IP-keyed limiter
+ * (signup, comment, like, subscribe, password reset) be bypassed just by
+ * rotating the header value on each request.
+ */
 export function clientIp(req: Request): string {
+  const vercelIp = req.headers.get("x-vercel-forwarded-for");
+  if (vercelIp) return vercelIp.split(",")[0]!.trim();
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0]!.trim();
   return req.headers.get("x-real-ip") || "anon";

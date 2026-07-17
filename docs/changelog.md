@@ -5,6 +5,51 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-17 — Security hardening pass + further desktop performance trims
+Owner asked for a full security check with real fixes (not just a report) plus another desktop performance
+pass, following the earlier duplicate-starfield fix (PR #146 below). All findings came from three parallel
+codebase audits; each fix below was verified with `tsc --noEmit` + `next lint` + `vitest` (335 tests) +
+`next build`, all green.
+
+**Security:**
+- **`src/lib/auth.ts`**: login timing-oracle fix - "no such account," "account locked," and "wrong
+  password" all now cost the same by running a dummy `bcrypt.compare()` against a fixed never-matching
+  hash on the two fast-fail paths, closing a user-enumeration vector based on response latency. Also fixed
+  the login-lockout counter: it was a read-then-write (`fails = count + 1`), so N concurrent failed
+  attempts could all read the same starting count and only ever advance it by 1 - a parallelization bypass
+  of the 5-attempt lockout. Now a single atomic Prisma `{ increment: 1 }`, which Postgres row-locks. Added
+  a `rateLimit()` call on the signup OTP-verify path in `authorize()`, on top of `otp.ts`'s own attempt
+  counter.
+- **`src/lib/ratelimit.ts`**: `clientIp()` now prefers `x-vercel-forwarded-for` (set by Vercel's edge
+  network, not client-controllable) over the spoofable `x-forwarded-for`, closing a bypass where every
+  IP-keyed limiter (signup/comment/like/subscribe/password) could be defeated by rotating a client-set
+  header. Added a new `otpEmail` limiter (3 per 10 min, keyed by the target email, independent of the
+  IP-keyed limiters) to stop email-bombing a single address via IP rotation - wired into
+  `api/auth/signup/start` and `api/auth/password/start`. Upstash-not-configured-in-production now also
+  fires a `Sentry.captureMessage` (was `console.warn`-only, easy to miss in log volume) since it silently
+  disables all rate limiting.
+- Flagged, not auto-fixed (needs explicit owner go-ahead): `npm audit` shows 8 real CVEs in the Next.js
+  dependency tree, all requiring `next` 14.2.35 → 16.2.10 (2 major versions) to resolve - too large a
+  blast-radius change to apply in this pass.
+
+**Performance (desktop):**
+- **`Navbar.tsx`**: `<NavActivity />` (bell + chat icon, 60s poll + a Supabase realtime subscription) was
+  mounted **twice** - once inside the `hidden md:flex` desktop wrapper, once inside the `flex md:hidden`
+  mobile wrapper. Tailwind's `hidden`/`md:hidden` only toggle CSS `display`, not React mount state, so both
+  copies were live and polling/subscribed at every viewport size. Now a single shared instance.
+- **`PageBackground.tsx`**: was `absolute inset-0`, so its blurred mesh/grid/glow layers stretched to the
+  full scrollable height of long product pages. Now bounded to `h-screen` - it's only ever visible behind
+  the top of the page anyway.
+- **`globals.css`**: trimmed the desktop base blur radii for `.mesh` (96px → 70px) and `.aurora` (62px →
+  45px) - these full-screen Gaussian blurs are a recurring compositing cost; mobile already had its own
+  trim, desktop never did.
+- **`PostCard.tsx` / `ResearchGrid.tsx`**: added a `priority` prop, wired to the first card in the grid, so
+  the above-the-fold research-hub image isn't lazy-loaded.
+- **Files**: `src/lib/auth.ts`, `src/lib/ratelimit.ts`, `src/app/api/auth/signup/start/route.ts`,
+  `src/app/api/auth/password/start/route.ts`, `src/components/Navbar.tsx`,
+  `src/components/PageBackground.tsx`, `src/app/globals.css`, `src/components/PostCard.tsx`,
+  `src/components/ResearchGrid.tsx`.
+
 ## 2026-07-17 — Fix: desktop lag / jank on the homepage
 Owner reported the site had gotten laggy and the design wasn't rendering cleanly, specifically on desktop.
 Measured directly (Playwright, 1920x1080): the homepage had **257+ simultaneously "running" CSS

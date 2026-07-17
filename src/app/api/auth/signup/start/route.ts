@@ -27,6 +27,11 @@ export async function POST(req: Request) {
     }
     const { name, email, password } = parsed.data;
 
+    // Second, per-email limit alongside the IP-keyed one above - an attacker
+    // rotating IPs can still only email-bomb one target this many times.
+    const emailLimit = await rateLimit("otpEmail", email);
+    if (!emailLimit.success) return fail("Too many attempts. Please try again shortly.", 429);
+
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       // Don't reveal whether an email is registered (user enumeration - login

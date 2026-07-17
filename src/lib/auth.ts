@@ -11,6 +11,12 @@ import { verifyCode } from "@/lib/otp";
 import { rateLimit } from "@/lib/ratelimit";
 import { generateUniqueUsername } from "@/lib/username";
 
+// A fixed, never-matched bcrypt hash used purely to normalize response time
+// (see `authorize()` below) - comparing against it costs the same as a real
+// bcrypt.compare, so "no such account" / "account locked" / "wrong password"
+// can't be distinguished by an attacker timing responses.
+const DUMMY_BCRYPT_HASH = "$2a$12$AERkE7fHnVvit4tqovioWuObx3iBGgLDSaWWul06R9n3z2g8R3t9O";
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   session: { strategy: "jwt" },
@@ -97,6 +103,12 @@ export const authOptions: NextAuthOptions = {
           // Verified-email registration: complete the pending signup (name+hash).
           const code = credentials?.code?.trim();
           if (!code) return null;
+          // Per-account guard on top of otp.ts's own attempt counter - this is
+          // the NextAuth entry point itself, so it's worth rate-limiting before
+          // touching the DB/OTP-hash comparison at all, not just relying on the
+          // downstream counter.
+          const { success } = await rateLimit("login", `signup:${email}`);
+          if (!success) return null;
           const result = await verifyCode(email, "signup", code);
           if (!result.ok) return null;
           const payload = (result.payload ?? {}) as {
@@ -157,7 +169,14 @@ export const authOptions: NextAuthOptions = {
             image: true, role: true, membership: true,
           },
         });
-        if (!user || !user.passwordHash) return null;
+        if (!user || !user.passwordHash) {
+          // Normalize timing with the real-account path below (dummy compare
+          // costs the same ~80-150ms as a real bcrypt.compare) so a
+          // nonexistent email can't be distinguished from a wrong password by
+          // timing the response - a real user-enumeration vector otherwise.
+          await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
+          return null;
+        }
 
         // Brute-force lockout. Read/write the counters in guarded queries so a
         // not-yet-migrated DB (no lockout columns) simply skips the feature
@@ -167,21 +186,36 @@ export const authOptions: NextAuthOptions = {
         const lock = await prisma.user
           .findUnique({ where: { id: user.id }, select: { failedLoginCount: true, lockedUntil: true } })
           .catch(() => null);
-        if (lock?.lockedUntil && lock.lockedUntil.getTime() > Date.now()) return null;
+        if (lock?.lockedUntil && lock.lockedUntil.getTime() > Date.now()) {
+          // Same normalization for the locked-account fast path.
+          await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
+          return null;
+        }
 
         const ok = await bcrypt.compare(password, user.passwordHash);
         if (!ok) {
-          const fails = (lock?.failedLoginCount ?? 0) + 1;
-          const locked = fails >= MAX_FAILED;
-          await prisma.user
+          // Atomic increment - a plain read-then-write ("fails = count + 1")
+          // let concurrent failed attempts all read the same starting count
+          // and each independently write count+1, so N parallel guesses only
+          // ever advanced the stored count by 1 (lockout bypass via
+          // parallelization). Prisma's `increment` compiles to a single
+          // UPDATE ... SET x = x + 1, which Postgres row-locks, so parallel
+          // requests serialize correctly here.
+          const updated = await prisma.user
             .update({
               where: { id: user.id },
-              data: {
-                failedLoginCount: locked ? 0 : fails,
-                lockedUntil: locked ? new Date(Date.now() + LOCK_MS) : lock?.lockedUntil ?? null,
-              },
+              data: { failedLoginCount: { increment: 1 } },
+              select: { failedLoginCount: true },
             })
             .catch(() => null);
+          if (updated && updated.failedLoginCount >= MAX_FAILED) {
+            await prisma.user
+              .update({
+                where: { id: user.id },
+                data: { failedLoginCount: 0, lockedUntil: new Date(Date.now() + LOCK_MS) },
+              })
+              .catch(() => null);
+          }
           return null;
         }
         // Success: clear any accumulated failure state.
