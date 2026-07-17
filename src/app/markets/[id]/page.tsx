@@ -4,7 +4,10 @@ import { Footer } from "@/components/Footer";
 import { CoinDetailClient } from "@/components/CoinDetailClient";
 
 // Shell is cached; the client fetches live numbers from the cached proxy route.
-export const revalidate = 120;
+// Was 120s - lengthened since this is a dynamic route (one ISR cache entry
+// per coin id visited), so the write cost multiplies with how many distinct
+// coins get traffic.
+export const revalidate = 300;
 
 const CG = "https://api.coingecko.com/api/v3";
 function cleanId(raw: string): string {

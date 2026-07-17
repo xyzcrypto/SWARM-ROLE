@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-17 — Fix: ISR Writes approaching Vercel free-tier quota
+Owner got a Vercel email: the free team had used 75% of the 200,000/month **ISR Writes** quota (a
+different metric from the Fast Origin Transfer work earlier this session) - exceeding it auto-pauses the
+whole site. Audited every `revalidate` window and every `revalidatePath()` call site. Root cause: several
+high-traffic routes had a `revalidate` window matched almost exactly by a client-side poll interval of the
+same length, so the ISR cache was being regenerated as often as the code could possibly trigger it -
+`/api/ticker` (10s window, 10s poll, homepage-mounted) was the single largest contributor, with a
+theoretical ceiling alone (~259k/month) already above the entire monthly quota. `/api/news` compounds this
+further since it caches per-RSS-source-URL - a short window multiplies across every source. No
+`revalidatePath()`/`revalidateTag()` call site was a meaningful contributor (all are either admin-gated and
+rare, or self-service and rate-limited to 10/min/user).
+- **`/api/ticker`**: `revalidate` 10s → 60s; **`MarketTicker.tsx`** poll 10s → 60s; **`LiveMarketVisual.tsx`**
+  poll 30s → 60s (matches).
+- **`news-fetch.ts`** (`NEWS_REVALIDATE`, shared by `/api/news` + `/news`): 20s → 90s; **`news/page.tsx`**:
+  30s → 90s; **`NewsClient.tsx`** poll 20s → 45s.
+- **`/api/markets/coins`**: 45s → 120s; **`/api/markets/perp`** + **`/api/markets/global`**: 60s → 150s;
+  **`MarketsClient.tsx`** pollers realigned to match each route's new window (also fixed `defi`'s poll,
+  which was already polling faster than its own 120s cache).
+- **`/markets/[id]`** page: 120s → 300s; **`/api/markets/coin/[id]`**: 60s → 150s; **`CoinDetailClient.tsx`**
+  poll 30s → 150s - these are dynamic per-coin-id routes, so the write cost multiplies by how many distinct
+  coins get traffic, not just window length.
+- All `Cache-Control: s-maxage/stale-while-revalidate` response headers updated to match the new windows.
+- **Files**: `src/app/api/ticker/route.ts`, `src/app/api/news/route.ts`, `src/app/api/markets/coins/route.ts`,
+  `src/app/api/markets/perp/route.ts`, `src/app/api/markets/global/route.ts`,
+  `src/app/api/markets/coin/[id]/route.ts`, `src/app/markets/[id]/page.tsx`, `src/app/news/page.tsx`,
+  `src/lib/news-fetch.ts`, `src/components/MarketTicker.tsx`, `src/components/LiveMarketVisual.tsx`,
+  `src/components/MarketsClient.tsx`, `src/components/NewsClient.tsx`, `src/components/CoinDetailClient.tsx`.
+
 ## 2026-07-17 — Security hardening pass + further desktop performance trims
 Owner asked for a full security check with real fixes (not just a report) plus another desktop performance
 pass, following the earlier duplicate-starfield fix (PR #146 below). All findings came from three parallel

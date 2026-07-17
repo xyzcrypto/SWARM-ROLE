@@ -16,7 +16,7 @@ export async function GET(req: Request) {
       pageSize: Number(searchParams.get("pageSize")) || 15,
     });
     return NextResponse.json(data, {
-      headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=120" },
+      headers: { "Cache-Control": "public, s-maxage=90, stale-while-revalidate=300" },
     });
   } catch {
     return NextResponse.json(

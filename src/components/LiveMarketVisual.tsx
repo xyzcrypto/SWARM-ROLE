@@ -52,9 +52,10 @@ function Row({ c }: { c: Coin }) {
 
 /**
  * Live, auto-scrolling market feed for the "Web3 Market" product card. Pulls
- * real prices from the cached /api/ticker proxy (refreshes every 15s while the
- * tab is visible) and rises the list slowly upward. Reduced-motion pauses the
- * scroll (globals `.vscroll` kill), so the coins simply sit still.
+ * real prices from the cached /api/ticker proxy (refreshes every 60s while the
+ * tab is visible, matching the route's revalidate window) and rises the list
+ * slowly upward. Reduced-motion pauses the scroll (globals `.vscroll` kill),
+ * so the coins simply sit still.
  */
 export function LiveMarketVisual() {
   const [coins, setCoins] = useState<Coin[]>(seed);
@@ -75,7 +76,7 @@ export function LiveMarketVisual() {
       }
     }
     load();
-    const t = setInterval(() => !document.hidden && load(), 30_000);
+    const t = setInterval(() => !document.hidden && load(), 60_000);
     const onVis = () => !document.hidden && load();
     document.addEventListener("visibilitychange", onVis);
     return () => {

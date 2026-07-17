@@ -64,7 +64,9 @@ export function CoinDetailClient({ id }: { id: string }) {
       }
     };
     load();
-    const t = setInterval(() => document.visibilityState === "visible" && load(), 30_000);
+    // Matches /api/markets/coin/[id]'s revalidate window - polling faster than
+    // the cache regenerates just re-fetches the same stale data.
+    const t = setInterval(() => document.visibilityState === "visible" && load(), 150_000);
     return () => {
       stop = true;
       clearInterval(t);

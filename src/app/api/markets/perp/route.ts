@@ -4,7 +4,9 @@ import { topBy, protocolSlug, type PerpDex, type PerpMarket } from "@/lib/market
 // Perp DEX / derivatives snapshot: top perp DEXs by 24h volume (DefiLlama,
 // keyless) + top live perp markets by open interest with funding rates
 // (Hyperliquid public API). Graceful always-200 `live` flag.
-export const revalidate = 60;
+// Was 60s - lengthened along with the other markets routes to stay well under
+// Vercel's free-tier ISR Writes quota.
+export const revalidate = 150;
 
 async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> {
   // Exclude the (huge) chart arrays so the payload is small + fast; some hosts
@@ -76,6 +78,6 @@ export async function GET() {
 
   return NextResponse.json(
     { dexs, markets: hl.markets, totalVolume24h, totalOi, live, ts: Date.now() },
-    { headers: { "Cache-Control": live ? "public, s-maxage=60, stale-while-revalidate=180" : "public, s-maxage=20" } }
+    { headers: { "Cache-Control": live ? "public, s-maxage=150, stale-while-revalidate=300" : "public, s-maxage=30" } }
   );
 }
