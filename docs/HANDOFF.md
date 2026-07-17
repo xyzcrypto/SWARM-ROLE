@@ -3,6 +3,11 @@
 How to resume work on XYZ Crypto from **any** machine, any Claude account, or any
 new developer — with zero context loss and zero secret exposure.
 
+**Last updated:** 2026-07-16, after PR #145 (merged). This file is written to be
+sufficient on its own — read `CLAUDE.md` first for the 60-second orientation, then
+this file for full operational detail. You should not need any prior conversation
+history to pick up exactly where the last session left off.
+
 ---
 
 ## 1. Resume from a new Claude account (3 steps)
@@ -13,23 +18,77 @@ new developer — with zero context loss and zero secret exposure.
 2. **Open a session** on the repo: [claude.ai/code](https://claude.ai/code) → new
    session → select `xyzcrypto/SWARM-ROLE` (or `claude` in a local clone).
 3. **First message to send:**
-   > Read CLAUDE.md and docs/HANDOFF.md, then docs/SUMMARY.md for the full book.
-   > Continue from the "Current state" section in CLAUDE.md.
+   > Read CLAUDE.md and docs/HANDOFF.md, then continue from "Current state" in
+   > CLAUDE.md and section 7 ("Where things stand right now") below.
 
 That's it — `CLAUDE.md` is auto-read by Claude Code at session start, and this
 guide fills in operations. The docs are written so no chat history is required.
+
+**Note on the other `docs/*.md` files** (`project-state.md`, `backend-state.md`,
+`frontend-state.md`, `component-registry.md`, `frontend-roadmap.md`): these were
+written at various earlier points in the project and have **not** been kept
+current — some reference stale branch names, an old logo filename (`logo.jpg`,
+actual file is `logo.png`), and a "Next: Community Chat" roadmap item that has
+long since shipped. Treat `CLAUDE.md` + this file + the actual code as the source
+of truth; the others are historical snapshots, useful for deep background but not
+guaranteed accurate. `docs/changelog.md` (newest-first) is accurate and is the
+best single place to see exactly what shipped and why, in chronological detail.
+
+---
 
 ## 2. Branch & release model
 
 | Thing | Value |
 |---|---|
 | Production branch | `main` (auto-deploys via Vercel Git integration) |
-| Work branches | `claude/...` feature branches → PR → CI green → **squash-merge** |
+| Work branch (this session's default) | `claude/xyz-crypto-web3-site-BuytL` — reset to fresh `origin/main` at the start of every new task (see gotcha below) |
 | CI | `.github/workflows/ci.yml`: prisma generate → typecheck → lint → test → build |
 | Restore point | branch **`backup/v1.1-profiles`** (Profiles release snapshot) |
 | Roll back | `git checkout -b restore backup/v1.1-profiles` → PR → merge |
 
 Take a new `backup/<name>` branch (or ZIP via `git archive`) before each major phase.
+
+### ⚠️ Git gotcha learned the hard way: stale pre-squash branch tip
+This repo squash-merges every PR into `main`. The **feature branch's remote copy**
+is never fast-forwarded to match the squash commit — its tip stays at the old
+pre-squash local commit. The very next time you push new work from a fresh
+`git checkout -B <branch> origin/main`, a plain `git push` will be **rejected as
+non-fast-forward**, because your local branch (correctly based on the new squashed
+`main`) has "rewritten" history relative to the stale remote tip.
+
+**This is expected, not a real conflict.** Verify safety, then force-push:
+```bash
+git fetch origin <branch-name>
+git diff origin/<branch-name> <latest-squashed-main-sha> --stat   # MUST be empty
+git push --force-with-lease -u origin <branch-name>               # safe once diff is empty
+```
+If the diff is *not* empty, do not force-push blindly — that means the remote
+branch has real unmerged work; investigate before overwriting anything.
+
+### Rule for starting ANY new task on this repo
+Always begin with:
+```bash
+git fetch origin main
+git checkout -B claude/xyz-crypto-web3-site-BuytL origin/main
+```
+Never build new commits on top of a stale local branch tip left over from a
+previous (already-merged) task — that caused a real merge conflict once (see
+`docs/changelog.md`, PR #136 era) and cost real time to untangle.
+
+### If a PR needs to stay unmerged for review
+Some requests explicitly ask for a PR that is opened but **not** auto-merged
+(design previews, or when the owner wants to eyeball Fast Origin Transfer /
+architecture changes before committing). In that case:
+- Still open the PR against `main`, still run the full verify pipeline, still
+  push a real Vercel preview link.
+- Do **not** call the merge tool until the owner explicitly says "merge" (or
+  clearly equivalent) in a later message — a CI-green PR is not implicit
+  permission to merge when the owner asked to review first.
+- If the owner says "don't merge" and later work needs to build on top of that
+  PR's branch, remember the branch is genuinely ahead of `main` until it merges —
+  don't silently discard it by resetting to `origin/main` without checking.
+
+---
 
 ## 3. Secrets & environment — SECURITY RULES
 
@@ -47,291 +106,325 @@ Settings → Environment Variables is the canonical store for runtime).
 | `GOOGLE_CLIENT_ID/_SECRET` | Google sign-in (optional) | Google button hidden | Vercel ← Google Cloud Console OAuth |
 | `UPSTASH_REDIS_REST_URL/_TOKEN` | Rate limits (optional) | Limits become no-ops | Vercel ← Upstash console |
 | `RESEND_API_KEY`, `EMAIL_FROM` | OTP emails (optional) | Codes log to server console | Vercel ← Resend dashboard |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | Image uploads (optional) | Uploads return 501 | Vercel ← Supabase → API keys |
-| `GROQ_API_KEY` | **XYZ AI** assistant (optional) | AI features no-op (assistant 503, launcher shows "not configured") | Vercel ← Groq console (console.groq.com/keys) — free, no card |
-| `CMC_API_KEY` | **Markets** hub CMC enrichment (optional) | /markets still works from free sources; just no CMC DeFi/stablecoin tiles | Vercel ← coinmarketcap.com/api (free tier) |
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | Image uploads (optional) | Uploads return 501 (URL-paste fallback still works) | Vercel ← Supabase → API keys |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Realtime (chat presence, live updates) (optional) | Falls back to 10s polling everywhere realtime is used | Vercel ← Supabase → Settings → API (anon key is public-safe) |
+| `GROQ_API_KEY` | **XYZ AI** assistant + news briefings + chat auto-moderation (optional) | AI features no-op (503, launcher shows "not configured") | Vercel ← Groq console (console.groq.com/keys) — free, no card |
+| `CMC_API_KEY` | **Markets** hub CMC enrichment (optional) | /markets still works from free sources | Vercel ← coinmarketcap.com/api (free tier) |
 | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_GSC_VERIFICATION` | SEO/analytics (optional) | Wrong canonical / no GA | Vercel |
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | Error monitoring (optional) | Sentry no-op | Vercel ← Sentry project |
+| `CRON_SECRET` | Protects `/api watchdog` and scheduled cron endpoints | Endpoint stays open (still gated by other checks) | Vercel (generate: `openssl rand -hex 32`) |
 | `SEED_ADMIN_PASSWORD` | `npm run seed` only | Insecure default `changeme123` — **always set, change after first login** | Local shell only |
 
 Every optional integration **degrades gracefully** when unset — the app never
 crashes from missing env. Local dev: copy names into `.env` (gitignored).
 
-## 3b. Recovery / rollback (Phase-1 stable point)
+---
 
-A verified Phase-1 recovery point exists on origin (created before the pre-Phase-2
-hardening pass — see `docs/AUDIT-PRE-PHASE2.md`):
-- Backup branches: **`phase1-stable`** and **`pre-phase2-backup`** (identical HEADs).
-- To roll back instantly: `git checkout -b restore phase1-stable` then redeploy that
-  branch (Vercel: promote/deploy it), or hard-reset the working branch to it.
-- (An annotated `phase1-production` tag exists locally; tag pushes are blocked by
-  this environment's git proxy, so the backup **branches** are the source of truth.)
+## 4. Database migrations — current status
 
-### ⚠️ Phase 1 performance indexes (one-time, production Supabase)
-Additive indexes shipped as migration `prisma/migrations/7_phase1_indexes/`.
-Apply with `npx prisma migrate deploy` (or `npm run db:push`) **or** paste in
-Supabase → SQL Editor (idempotent):
+**Migrations now auto-apply on every deploy.** `package.json`'s `vercel-build`
+script (`prisma generate && prisma db push --skip-generate (best-effort) && next
+build`) runs on every Vercel deploy, so the production schema syncs automatically
+whenever new columns/tables are additive. **Given how many PRs have merged to
+`main` since migrations 28–30 were introduced, they have almost certainly already
+auto-applied in production** — do not assume they're pending without checking
+first (`SELECT to_regclass('"SharedCard"')` etc. in Supabase SQL Editor, or just
+try the feature and see if it 503s).
 
-```sql
-CREATE INDEX IF NOT EXISTS "Notification_userId_createdAt_idx" ON "Notification"("userId", "createdAt");
-CREATE INDEX IF NOT EXISTS "User_membership_createdAt_idx"     ON "User"("membership", "createdAt");
-CREATE INDEX IF NOT EXISTS "PageView_path_createdAt_idx"        ON "PageView"("path", "createdAt");
+If you ever need to force a migration through *immediately*, without waiting for
+the next deploy:
+```bash
+npm run db:push       # with prod DATABASE_URL + DIRECT_URL set locally
+npm run seed           # only if you also need seed data / admin backfill
 ```
-Purely additive — the app behaves identically whether or not they're applied;
-they just keep the bell list, dashboard premium list, and analytics fast at scale.
+Or paste the relevant idempotent SQL (below, and in `prisma/migrations/N_*/migration.sql`)
+directly into Supabase → SQL Editor. All migration SQL in this repo is written
+`IF NOT EXISTS` / wrapped in `DO $$ ... EXCEPTION WHEN duplicate_object$$` —
+**safe to run more than once, safe to run out of order relative to `db push`.**
 
-## 4. Pending operational state (check before building new features)
+### Full migration list (0 → 30), newest three detailed
+Migrations 0–27 cover: performance indexes, profiles, community chat + reactions
++ replies + editing + polls/pins, admin permissions + What's New, analytics/page
+views, notifications, saved stories, news likes/comments, direct messages,
+profile socials, watchdog runs, push notification prefs, follows, trading
+journal (trades/fills/revisions), risk profiles, challenges, XP events. Each has
+its own `prisma/migrations/N_name/migration.sql` — read the relevant one before
+touching a feature you haven't worked on yet, rather than guessing the schema.
 
-### 🆕 XYZ AI research assistant (env: `GROQ_API_KEY`) — optional, FREE
-The site ships an in-product AI assistant ("XYZ AI") — a floating chat launcher open to
-**all signed-in members**, grounded in published research. Provider is **Groq (free tier,
-Llama models — fast, generous limits)**. It's **off until configured**:
-1. **Groq console → https://console.groq.com/keys** → create an API key (free, no card).
-2. Vercel → Project → Settings → Environment Variables → add `GROQ_API_KEY`
-   (Production + Preview) → redeploy.
-Until set, `aiEnabled` is false everywhere: the assistant returns 503 and the launcher
-shows "not configured" (no crash, no cost). **Model:** `llama-3.3-70b-versatile`;
-rate-limited to 15 turns/min per user. **Premium article bodies are redacted from the
-assistant's grounding corpus** (only public title+excerpt), so the open assistant can't
-leak paid content. No DB migration required. The dashboard Integrations strip shows an
-**"XYZ AI"** pill (green when the key is present).
-**Provider swap:** edit only `src/lib/ai.ts` + the env var — the route, widget and
-grounding stay as-is (single-wrapper design). This is how we moved Claude → Gemini → Groq.
-
-**XYZ AI phase 2 (same `GROQ_API_KEY`, model `llama-3.1-8b-instant`):**
-- **Article TL;DRs** — an AI summary is generated when a post is published or its body is
-  edited, and shown atop the article. Migration `12_post_summary` adds a **nullable**
-  `Post.summary` (auto-applies via `vercel-build` `db push`; no backfill needed — old
-  posts get a summary on next edit, or via the admin endpoint below). SQL fallback:
-  `ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "summary" TEXT;`
-  Backfill one post on demand: `POST /api/ai/summarize {postId}` (admin, `post:publish`).
-- **Chat auto-moderation** — each new chat message is classified; clearly toxic ones are
-  auto-hidden through the existing moderation path (fully recoverable from Dashboard →
-  Moderation → Chat). **Fail-open**: on any AI error/timeout/quota the message stays
-  visible, so a mod outage never blocks chat. No-op when the key is unset.
-- Free-tier note: summaries + moderation share Groq's free quota; if it's exhausted
-  those calls fail-open (summary skipped / message not hidden) — the site keeps working.
-
-### ⚠️ Community chat realtime (live "who's online" + instant sound) — optional but recommended
-Presence + instant message/reaction sound are **realtime-only**. Set
-`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`,
-`SUPABASE_SERVICE_ROLE_KEY` in Vercel and redeploy. Full step-by-step (keys →
-Vercel → redeploy → verify → troubleshooting): **`docs/REALTIME-SETUP.md`**. Until
-set, the chat falls back to 10s polling (no presence, no instant blip).
-
-
-### ℹ️ Chat v3: polls + pins (migration `11_chat_polls`) + message recovery
-Adds `ChatMessage.kind`/`pinnedAt` and the `ChatPoll`/`ChatPollOption`/`ChatPollVote`
-tables. Auto-applies on the next deploy via `vercel-build` (idempotent SQL in
-`prisma/migrations/11_chat_polls/`).
-
-**Recovering "deleted" chat messages:** chat deletes are soft (`status='hidden'`) —
-nothing is destroyed. Restore from Dashboard → Moderation → Chat ("Restore all hidden"
-or per-message Restore), or run this SQL in Supabase → SQL Editor:
+**28 — `SharedCard`** (short-link backing store for shareable tool results, e.g.
+the points-value calculator's share card):
 ```sql
-UPDATE "ChatMessage" SET "status" = 'visible' WHERE "status" = 'hidden';
-```
-
-### ℹ️ Chat message editing (migration `10_chat_edited`)
-Adds `ChatMessage.editedAt` (nullable). Auto-applies on the next deploy via
-`vercel-build`; manual unblock if needed:
-```sql
-ALTER TABLE "ChatMessage" ADD COLUMN IF NOT EXISTS "editedAt" TIMESTAMP(3);
-```
-
-### ✅ Migrations now auto-apply on deploy (`vercel-build`)
-`package.json` has a `vercel-build` script that runs `prisma db push` (best-effort,
-non-fatal) before `next build`, so **Vercel syncs the schema on every deploy** — you no
-longer need to run migrations by hand for additive changes. (CI uses `build`, which has
-no DB, so CI stays green.) Migration SQL files also live in `prisma/migrations/` (0–9,
-idempotent). The manual commands below are only needed to fix something **immediately**,
-before the next deploy:
-- One-shot: `npm run db:push` (with prod `DATABASE_URL`+`DIRECT_URL`), then `npm run seed`.
-- Or paste the idempotent SQL from the sub-sections below into Supabase → SQL Editor.
-
-
-### ⚠️ Admin permissions + What's New (one-time, production Supabase) — Milestone 2
-M2 added a permissions column + two tables. Apply with `npm run db:push` (prod env) or
-idempotent SQL:
-```sql
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "permissions" TEXT[] NOT NULL DEFAULT '{}';
-
-CREATE TABLE IF NOT EXISTS "WhatsNewEntry" (
-  "id" TEXT PRIMARY KEY, "title" TEXT NOT NULL, "body" TEXT NOT NULL,
-  "tag" TEXT NOT NULL DEFAULT 'New', "date" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "postId" TEXT, "published" BOOLEAN NOT NULL DEFAULT true,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS "SharedCard" (
+    "id" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "kind" TEXT NOT NULL,
+    "data" JSONB NOT NULL,
+    CONSTRAINT "SharedCard_pkey" PRIMARY KEY ("id")
 );
-CREATE INDEX IF NOT EXISTS "WhatsNewEntry_published_date_idx" ON "WhatsNewEntry"("published","date");
-CREATE INDEX IF NOT EXISTS "WhatsNewEntry_tag_date_idx" ON "WhatsNewEntry"("tag","date");
-
-CREATE TABLE IF NOT EXISTS "AdminAudit" (
-  "id" TEXT PRIMARY KEY, "actorId" TEXT NOT NULL, "action" TEXT NOT NULL,
-  "targetId" TEXT, "detail" TEXT, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS "AdminAudit_createdAt_idx" ON "AdminAudit"("createdAt");
+CREATE INDEX IF NOT EXISTS "SharedCard_kind_createdAt_idx" ON "SharedCard"("kind", "createdAt");
 ```
-Until applied: Super Admins (ADMIN_EMAILS) keep full access, the homepage What's New shows
-the static fallback, and staff-permission / What's New management features return a graceful
-503/empty. After applying, `npm run seed` seeds the initial What's New entries. To create a
-non-email staff admin: dashboard → **Access** → search the member → tick capabilities.
 
-### ⚠️ Login lockout columns (one-time, production Supabase) — Milestone 1
-M1 added brute-force account lockout. It needs two `User` columns:
-`failedLoginCount Int @default(0)` and `lockedUntil DateTime?`. Apply with
-`npm run db:push` (prod env) or idempotent SQL:
+**29 — `ChallengeDayNote`** (a Journal Challenge participant's own per-day
+reflection note + mood; day P&L is derived from linked trades, never stored here):
 ```sql
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "failedLoginCount" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "lockedUntil" TIMESTAMP(3);
-```
-Login works without it (lockout simply inactive until applied — the auth path is
-guarded). Also: `npm run backfill:usernames` mints handles for any legacy NULL users.
-
-### ⚠️ Profiles DB migration (one-time, production Supabase)
-The v1.1 Profiles release added columns that must exist in the prod DB. Until
-applied, `/settings` and `/u/*` return a graceful 503 (rest of site unaffected).
-Run **either** `npm run db:push` (with prod env), **or** this idempotent SQL in
-Supabase → SQL Editor:
-
-```sql
-ALTER TABLE "User"
-  ADD COLUMN IF NOT EXISTS "username"    TEXT,
-  ADD COLUMN IF NOT EXISTS "bio"         TEXT,
-  ADD COLUMN IF NOT EXISTS "location"    TEXT,
-  ADD COLUMN IF NOT EXISTS "website"     TEXT,
-  ADD COLUMN IF NOT EXISTS "twitter"     TEXT,
-  ADD COLUMN IF NOT EXISTS "github"      TEXT,
-  ADD COLUMN IF NOT EXISTS "telegram"    TEXT,
-  ADD COLUMN IF NOT EXISTS "bannerImage" TEXT;
-
-CREATE UNIQUE INDEX IF NOT EXISTS "User_username_key" ON "User"("username");
-CREATE INDEX        IF NOT EXISTS "User_username_idx" ON "User"("username");
-```
-
-### ⚠️ Community Chat migration (one-time, production Supabase)
-The chat (incl. reactions + replies) needs these tables/columns. Same flow —
-`npm run db:push` **or** this **combined idempotent SQL** in Supabase → SQL
-Editor. Safe to run whether or not an earlier version was already applied:
-
-```sql
--- Base messages table
-CREATE TABLE IF NOT EXISTS "ChatMessage" (
-  "id"        TEXT PRIMARY KEY,
-  "body"      TEXT NOT NULL,
-  "status"    TEXT NOT NULL DEFAULT 'visible',
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "userId"    TEXT NOT NULL,
-  CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId")
-    REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
+CREATE TABLE IF NOT EXISTS "ChallengeDayNote" (
+    "id" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL, "day" TEXT NOT NULL,
+    "note" TEXT, "mood" TEXT, "challengeId" TEXT NOT NULL, "userId" TEXT NOT NULL,
+    CONSTRAINT "ChallengeDayNote_pkey" PRIMARY KEY ("id")
 );
-CREATE INDEX IF NOT EXISTS "ChatMessage_status_createdAt_idx"
-  ON "ChatMessage"("status", "createdAt");
-
--- Reply / quote (self-reference)
-ALTER TABLE "ChatMessage" ADD COLUMN IF NOT EXISTS "replyToId" TEXT;
-DO $$ BEGIN
-  ALTER TABLE "ChatMessage" ADD CONSTRAINT "ChatMessage_replyToId_fkey"
-    FOREIGN KEY ("replyToId") REFERENCES "ChatMessage"("id")
-    ON DELETE SET NULL ON UPDATE CASCADE;
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
-
--- Emoji reactions
-CREATE TABLE IF NOT EXISTS "ChatReaction" (
-  "id"        TEXT PRIMARY KEY,
-  "emoji"     TEXT NOT NULL,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "messageId" TEXT NOT NULL,
-  "userId"    TEXT NOT NULL,
-  CONSTRAINT "ChatReaction_messageId_fkey" FOREIGN KEY ("messageId")
-    REFERENCES "ChatMessage"("id") ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "ChatReaction_userId_fkey" FOREIGN KEY ("userId")
-    REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE
-);
-CREATE UNIQUE INDEX IF NOT EXISTS "ChatReaction_messageId_userId_emoji_key"
-  ON "ChatReaction"("messageId", "userId", "emoji");
-CREATE INDEX IF NOT EXISTS "ChatReaction_messageId_idx"
-  ON "ChatReaction"("messageId");
+CREATE UNIQUE INDEX IF NOT EXISTS "ChallengeDayNote_challengeId_userId_day_key" ON "ChallengeDayNote"("challengeId", "userId", "day");
+CREATE INDEX IF NOT EXISTS "ChallengeDayNote_challengeId_userId_idx" ON "ChallengeDayNote"("challengeId", "userId");
+-- + FK to Challenge(id) and User(id), both ON DELETE CASCADE (see migration file for the wrapped ALTER statements)
 ```
 
-### ⚠️ Analytics + post views migration (one-time, production Supabase) — APPLY THIS
-Adds visit tracking + per-post view counts. Now also shipped as a real Prisma
-migration: `prisma/migrations/5_post_views_pageview/`. Apply with
-`npx prisma migrate deploy` (or `npm run db:push`) **or** paste this idempotent
-SQL in Supabase → SQL Editor:
-
+**30 — `JournalActivity`** (a public, aggregate-only log of Journal actions,
+powers the "Journal Activity" section on public profiles — dollar amounts are
+never stored here by design, only type/title/win-or-loss):
 ```sql
-ALTER TABLE "Post" ADD COLUMN IF NOT EXISTS "views" INTEGER NOT NULL DEFAULT 0;
-
-CREATE TABLE IF NOT EXISTS "PageView" (
-  "id"        TEXT PRIMARY KEY,
-  "path"      TEXT NOT NULL,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+CREATE TABLE IF NOT EXISTS "JournalActivity" (
+    "id" TEXT NOT NULL, "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "type" TEXT NOT NULL, "title" TEXT NOT NULL, "win" BOOLEAN, "userId" TEXT NOT NULL,
+    CONSTRAINT "JournalActivity_pkey" PRIMARY KEY ("id")
 );
-CREATE INDEX IF NOT EXISTS "PageView_createdAt_idx" ON "PageView"("createdAt");
+CREATE INDEX IF NOT EXISTS "JournalActivity_userId_createdAt_idx" ON "JournalActivity"("userId", "createdAt");
+-- + FK to User(id) ON DELETE CASCADE
 ```
 
-The app is now **resilient** if this lags: a missing `views` column (P2022) no
-longer 404s research posts or 500s the dashboard — views just read as 0 until
-the migration runs. Apply it to enable real view/visit numbers.
-
-### ⚠️ Notifications migration (one-time, production Supabase) — APPLY THIS
-Adds the in-app notification system (navbar bell + unread badges). Shipped as a
-real Prisma migration: `prisma/migrations/6_notifications/`. Apply with
-`npx prisma migrate deploy` (or `npm run db:push`) **or** paste this idempotent
-SQL in Supabase → SQL Editor:
-
-```sql
-CREATE TABLE IF NOT EXISTS "Notification" (
-  "id"        TEXT PRIMARY KEY,
-  "type"      TEXT NOT NULL,
-  "title"     TEXT NOT NULL,
-  "body"      TEXT,
-  "href"      TEXT,
-  "read"      BOOLEAN NOT NULL DEFAULT false,
-  "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  "userId"    TEXT NOT NULL
-);
-CREATE INDEX IF NOT EXISTS "Notification_userId_read_createdAt_idx"
-  ON "Notification"("userId", "read", "createdAt");
--- FK (cascade on user delete); skipped if it already exists.
-```
-
-The app is **resilient** if this lags: `/api/notifications` maps a missing table
-(P2021/P2022) to a quiet empty state, so the bell just shows no notifications
-until the migration runs. After applying, run `npm run seed` once to **backfill
-public usernames** for any pre-existing accounts (so every member has a working
-`/u/<handle>` profile).
-
-### ⚠️ Profile photo uploads — Supabase Storage setup (production)
+### Supabase Storage (profile photo uploads)
 Avatar/cover uploads need Storage configured, **else they return 501** ("Image
-upload is not configured") and the avatar uploader falls back to its "Use a link"
-(paste image URL) option.
-1. Vercel env: set `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (and
+upload is not configured") and the uploader falls back to its "Use a link"
+(paste image URL) option — this fallback works today without any setup.
+1. Vercel env: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (and
    `SUPABASE_STORAGE_BUCKET` if not the default `post-covers`).
 2. Supabase → Storage → create a **public** bucket named `post-covers`.
 3. `next.config.mjs` already allowlists `**.supabase.co`, so saved photos render.
-The URL fallback works without any of this (https image from Unsplash, Cloudinary,
-GitHub, Google or Supabase — hosts allowlisted for `next/image`).
 
-**Realtime env (optional but recommended):** add to Vercel —
-`NEXT_PUBLIC_SUPABASE_URL` (same value as `SUPABASE_URL`) and
-`NEXT_PUBLIC_SUPABASE_ANON_KEY` (Supabase → Settings → API → **anon** key; this
-key is public-safe by design). Without them the chat falls back to 10s polling.
-
-### Verify everything works (run before and after changes)
+### Verify everything works (run before and after every change)
 ```bash
 npm ci && npx prisma generate
 npm run typecheck && npm run lint && npm run test && npm run build
 ```
-All four must pass — same gates as CI.
+All four must pass — same gates as CI (`.github/workflows/ci.yml`).
 
-## 5. Roadmap position
-Done: homepage + orbital ecosystem · research hub + premium gating · likes ·
-comments · auth (email+password, OTP signup, optional Google) · profiles
-(`/u/[handle]` + `/settings`) · admin dashboard · perf/bugfix audit pass.
-**Next agreed phase: Community Chat.** Longer list: `frontend-roadmap.md`.
+---
 
-## 6. Publish this book to GitBook (owner, one-time, ~2 min)
+## 5. Architecture map (quick reference — see `docs/api-reference.md` and
+`docs/backend-state.md` for exhaustive endpoint lists, though treat both as
+possibly-stale per the note in section 1)
+
+**Stack:** Next.js 14.2 (App Router) · TypeScript · Tailwind · framer-motion ·
+Prisma → Supabase Postgres · next-auth (JWT) · Upstash rate-limits · Resend
+email · Supabase Storage · Sentry · Vercel hosting. Fonts: Geist Sans (body/UI,
+via the `geist` npm package) + Geist Mono (data/eyebrows) + **Fraunces** (a
+warm serif, `next/font/google`, scoped ONLY to the homepage hero's main
+headline via its own `--font-fraunces` CSS variable — not the shared
+`font-display` Tailwind class, which stays Geist Sans everywhere else, per an
+explicit owner decision after an earlier site-wide pass was reverted).
+
+**Major product surfaces:** homepage (hero + orbital ecosystem centerpiece +
+About/Products/Ecosystem/Social/FAQ) · `/markets` (live prices, coin detail,
+protocol detail pages) · `/tools` (calculators + DEX registry + Trading
+Journal: trades/analytics/risk/challenges, premium-tiered, shareable result
+cards) · `/research` (articles, premium-gated) · `/news` (aggregated feed, AI
+briefings, likes/comments, saved stories, push notifications) · `/community`
+(realtime chat with reactions/replies/polls/pins, voice rooms via LiveKit) ·
+`/messages` (1-on-1 DMs) · profiles (`/u/[handle]` public + `/settings`
+private, public Journal Activity feed) · `/dashboard` (admin: analytics,
+moderation, membership, access control, What's New) · auth (`/login`
+`/signup` `/forgot-password`) · `/terms` `/privacy` `/contact` (static/ISR).
+
+**XYZ AI** — an in-product assistant (floating launcher, all signed-in
+members), Groq-hosted (`llama-3.3-70b-versatile`), grounded only in
+public title+excerpt of premium articles (never leaks paid bodies). Same
+Groq key also powers news article summaries/briefings and chat
+auto-moderation (fail-open on any error/timeout/quota).
+
+**Key libs (`src/lib/`):** `api.ts` (`ok`/`fail`/`handleError`/`getSessionUser`/
+`getAdminSession`) · `auth.ts` (NextAuth options) · `ratelimit.ts` (Upstash,
+keyed buckets) · `otp.ts` (HMAC-hashed 6-digit codes) · `email.ts` (Resend,
+console fallback) · `storage.ts` (Supabase upload) · `profile.ts` (zod schemas)
+· `env.ts` (**all** env access goes through here) · `chat.ts` (chat payload
+shaping + `CHAT_PAGE_SIZE`) · `seo.ts`/`jsonld.tsx`.
+
+**API convention:** every route follows `rateLimit → zod → auth gate → prisma
+→ handleError`. Public GET routes that are polled on an interval or hit
+frequently by anonymous visitors should set `Cache-Control` explicitly (the
+recipe used throughout: `NextResponse.json(data, { headers: { "Cache-Control":
+me ? "private, no-store" : "public, s-maxage=N, stale-while-revalidate=M" } })`
+— see `api/ticker`, `api/news/social`, `api/chat/messages`,
+`api/journal/share/activity/[userId]` for live examples). This pattern exists
+specifically because of the Fast Origin Transfer investigations below — **default
+new polled/public GET routes to having this from day one**, don't wait for a
+usage-limit scare to retrofit it.
+
+---
+
+## 6. Conventions (match these — don't invent new patterns)
+
+- Server pages fetch + serialize (Dates → ISO) → pass to a `"use client"`
+  component.
+- Design tokens: `gold-*`, `mint-*`, `ink-*`; surfaces `.glass`/`.surface`;
+  buttons `btn-primary`/`btn-gold`/`btn-ghost`/`btn-secondary`; reveal
+  animations via `<Reveal>` (`src/components/Reveal.tsx` — variants: `up`,
+  `pop`, `fade`, `blur`, `left`, `right`, `scale`); text `text-gold-gradient`,
+  `text-shine` (bold gold gradient sweep, for ONE accent phrase per heading —
+  don't overuse), `text-shimmer` (quieter, slower near-white sweep, added for
+  the hero headline's non-accent words so the whole line reads as
+  continuously alive without competing with `text-shine`). Inputs: see
+  `Field` in `LoginForm.tsx`.
+- **`background-clip: text` gotcha** (real bug hit this session): applying a
+  gradient-clip text class to a *wrapper* element does NOT paint through to
+  nested inline children that don't have their own text content directly on
+  the wrapper — apply the class to each leaf text node/span individually, not
+  the parent, or words other than the ones with their own override will
+  render invisible. See `Hero.tsx`'s `HeroWord` component for the fixed
+  pattern.
+- Never expose user emails publicly (use `maskEmail`); never put secrets in
+  code or docs (env names only — values live in Vercel/Supabase dashboards).
+- Animations must respect `prefers-reduced-motion` **only for the truly heavy,
+  purely-decorative full-screen loops** (mesh blobs, aurora, background
+  particles, starfield twinkle/drift, Saturn/Moon bob). As of this session,
+  the ticker marquee, `.text-shine`/`.text-shimmer`, shooting stars, and the
+  entire Icons3D system (`.i3d-*` classes used across About/Products/Markets/
+  News/Premium) are **deliberately exempted** from `prefers-reduced-motion`
+  — they're treated as core brand identity, not decoration, after repeated
+  owner reports that the site looked "static" (root cause: `prefers-reduced-
+  motion: reduce` active in the test environment/browser, which is not always
+  a conscious user choice — some environments default to it). If you add a
+  new decorative CSS `animation`, default it to being **exempted** from
+  reduced-motion unless it's a genuinely heavy full-screen ambient effect —
+  check `globals.css`'s `@media (prefers-reduced-motion: reduce)` block
+  before assuming a new effect needs to be added there.
+- One-shot entrance/reveal animations (anything driven by framer-motion
+  `initial`/`animate`/`whileInView`, as opposed to an infinite CSS
+  `animation`) are never gated on reduced-motion at all — this was a
+  pre-existing, still-valid convention (JS-driven mount transitions read as
+  "meaningful UI motion," not decoration).
+- lucide-react v1 has no Twitter/Github icons — use
+  `src/components/BrandIcons.tsx`.
+- No em dashes in any user-visible copy (established brand-voice rule, see
+  changelog "NX3" entry) — this document itself isn't user-visible copy so
+  it's exempt, but anything shipped into the product UI must avoid them.
+
+---
+
+## 7. Where things stand right now (2026-07-16, end of session)
+
+This section is a chronological summary of everything shipped in the most
+recent working session, in case the changelog is too long to read in full.
+PRs referenced are all merged to `main` unless noted "not merged."
+
+1. **Terms of Service + Privacy Policy** (`/terms`, `/privacy`) — real,
+   product-specific pages (not boilerplate), linked from the footer and the
+   signup consent line. Both carry a visible "not yet incorporated / consult
+   a lawyer" disclaimer since the company isn't formally registered yet
+   (owner hasn't decided on incorporation jurisdiction — see the startup-guide
+   PDF delivered earlier in the session, kept outside the repo in scratch,
+   not part of the codebase). Grievance Officer contact uses the existing
+   public support email; a named individual will be added post-incorporation.
+
+2. **Fixed a real production regression**: homepage icon animations and the
+   ticker went fully static for some visitors after a deploy. Root cause,
+   confirmed by direct reproduction: a stale cached page can reference a JS
+   chunk hash that no longer exists on the current deployment → 404 (served
+   as HTML) → browser correctly refuses to execute HTML as a script (MIME
+   mismatch) → hydration silently never finishes → every client-side
+   animation and the ticker's data-fetch stays inert, while pure-CSS
+   animations keep running (no JS needed). Fixed via: service worker cache
+   version bump (`public/sw.js`), proactive SW update-check on tab focus, and
+   a guarded one-time hard reload when a stale-chunk failure is detected
+   (`PwaSetup.tsx` — capture-phase `error` listener, since resource-load
+   failures like a `<script>` 404 only propagate on the capture phase, not
+   bubble). Also added CryptoCompare as a third ticker upstream (`CoinGecko →
+   Binance → CryptoCompare → last-known-good → seed fallback`) since
+   Binance.com geo-blocks the US and other jurisdictions (HTTP 451), a real
+   risk given Vercel's default serverless region.
+
+3. **A second, unrelated regression, same symptom, different cause**: after
+   the above shipped, the owner still reported the About/Products icons and
+   hero shooting stars looking static. Root-caused via Playwright's
+   `reducedMotion` emulation: those elements were correctly implementing
+   `prefers-reduced-motion: reduce` support, but the test/owner's browser
+   environment had that OS-level setting active (not necessarily a
+   deliberate accessibility choice). Fixed by removing those specific
+   elements from the reduced-motion disable list. When the owner then
+   reported the ticker AND text-shine still static on the *next* check, the
+   entire reduced-motion animation-disable block was removed (see the
+   convention note in section 6) — everything except `scroll-behavior: auto`
+   now plays regardless of that OS preference.
+
+4. **Vercel Fast Origin Transfer reduction** (owner is on the free 10GB/month
+   tier, usage was climbing toward the limit — goal: comfortably last another
+   4-5 months). Three rounds so far:
+   - `/research/[slug]` converted from `force-dynamic` to ISR
+     (`revalidate=300`, was 60) — `getServerSession()` is now only called
+     when `post.premium` is true, so free-post renders never touch a Dynamic
+     API and are CDN-cacheable; premium posts stay fully dynamic (never
+     cached, so premium content can never leak into a shared cache).
+   - `/api/news/social`, `/api/journal/share/activity/[userId]`, and
+     `/api/chat/messages` all now set `Cache-Control` — each was being
+     polled frequently with no caching at all, and each has a response that
+     is identical across anonymous visitors for a given key (url/userId/
+     cursor), so they're now `public, s-maxage=N` for anonymous requests and
+     `private, no-store` when personalized (logged-in) data is involved.
+   - ISR windows lengthened on `research/[slug]` (60→300s), `research` hub
+     (120→300s), `u/[username]` (60→300s) — these pages only actually change
+     via an explicit edit that already calls `revalidatePath`, so a short
+     time-based window was buying nothing but extra origin re-renders.
+   - **Deliberately NOT done** (flagged as a future candidate, higher risk):
+     `/community`'s own `force-dynamic` render, which also unconditionally
+     calls `getServerSession()` even for anonymous visitors. Fixing it
+     properly means moving poll-vote/`me` personalization out of the
+     1744-line `ChatClient.tsx` into a client-side fetch (mirroring the
+     `LikeButton` self-correction pattern already used elsewhere) — judged
+     too large/risky a refactor to bundle into a caching pass. If FOT
+     pressure returns, this is the next lever to pull.
+   - `news/read/page.tsx` is dynamic only because it reads `searchParams`
+     (share-link tokens), not a Dynamic API — low traffic, would need a
+     route-param refactor (`/news/read/[token]`) to unlock ISR. Deferred.
+
+5. **Premium hero redesign** (went through two rounds of owner feedback,
+   final state merged as PR #142): the homepage hero headline
+   ("Everything you need to win in Web3.") now uses **Fraunces**, a warm
+   serif, scoped only to that one headline (an earlier attempt applied the
+   new font site-wide via the shared `font-display` class and was explicitly
+   reverted per owner feedback — every other heading is back to Geist Sans).
+   The headline reveals **word-by-word** on page load (each word/chunk is
+   its own `motion.span` with a staggered blur-in), and the whole line now
+   has a continuous, slow ambient shimmer (`.text-shimmer`) on top of the
+   entrance animation so it keeps feeling "alive," not just during the
+   one-time reveal — the accent phrase "win in Web3." keeps the stronger,
+   pre-existing gold `.text-shine` for emphasis. See the `background-clip:
+   text` gotcha in section 6 if touching this again.
+
+**Net result:** `main` is fully green (typecheck/lint/test/build), all
+animation regressions are fixed and verified via direct computed-style
+sampling (not just screenshots), the legal pages are live, and three rounds
+of Fast Origin Transfer work have shipped. The most recent PR (#145) was
+merged after the owner explicitly reviewed it live rather than auto-merging —
+this signals a shift this session toward wanting a look before merge for
+anything touching shared infrastructure or visual identity, worth defaulting
+to for similar future requests unless told otherwise.
+
+## 8. Open items / natural next steps
+- **`/community` ISR unlock** — the biggest remaining Fast Origin Transfer
+  lever if usage climbs again (see section 7, item 4).
+- **Incorporation decision** — the owner has an outstanding country-comparison
+  writeup (delivered as a scratch PDF, not in the repo) they haven't acted on;
+  `/terms` and `/privacy` are explicitly written to be updated once that
+  happens (search both files for "not yet incorporated").
+- **Cookie consent banner** — assessed as *not currently required* (site only
+  uses an essential session/auth cookie, no ad-tracking); revisit if
+  analytics/ad-tracking cookies are ever added.
+- **Refund/cancellation policy** — deferred until premium paid tiers actually
+  launch (currently free-tier only); `/terms` already notes this will follow.
+- No other specific next phase was agreed with the owner as of this
+  handoff — ask what they want to prioritize next rather than assuming.
+
+---
+
+## 9. Publish this book to GitBook (owner, one-time, ~2 min)
 1. [gitbook.com](https://www.gitbook.com) → sign in → **New Space**.
 2. Space → **Configure → Integrations → GitHub Sync** → authorize → pick
    `xyzcrypto/SWARM-ROLE`, branch `main`, **root directory `docs/`**.

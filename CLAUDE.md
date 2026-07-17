@@ -31,11 +31,17 @@ CI (`.github/workflows/ci.yml`) runs exactly these on every push/PR.
 - Restore points: branch `backup/v1.1-profiles` (+ ZIP with owner). To roll back:
   `git checkout -b restore backup/v1.1-profiles`.
 
-## Architecture map (detail: docs/api-reference.md, docs/backend-state.md)
-**Pages:** `/` (ISR 300) · `/research` (ISR 120) · `/research/[slug]` (dynamic,
-premium-gated) · `/u/[username]` (ISR 60 + revalidatePath on edit) · `/settings`
-(dynamic, auth) · `/dashboard` (dynamic, ADMIN) · `/login` `/signup`
-`/forgot-password` (static).
+## Architecture map (full detail + current status: docs/HANDOFF.md §5 — treat
+docs/api-reference.md and docs/backend-state.md as possibly-stale background,
+not authoritative; HANDOFF.md is kept current)
+**Pages:** `/` (ISR 300) · `/research` (ISR 300) · `/research/[slug]` (ISR 300 for
+free posts — `getServerSession()` only called when `post.premium`, so free posts
+are CDN-cacheable and premium posts stay fully dynamic/never cached) ·
+`/u/[username]` (ISR 300 + revalidatePath on edit) · `/settings` (dynamic, auth) ·
+`/dashboard` (dynamic, ADMIN) · `/community` (dynamic — known Fast Origin Transfer
+lever if usage climbs again, see HANDOFF §7) · `/tools`, `/markets`, `/news`,
+`/messages` (mixed ISR/dynamic per sub-route) · `/login` `/signup`
+`/forgot-password` `/terms` `/privacy` `/contact` (static).
 
 **API routes** (all follow: `rateLimit → zod → auth gate → prisma → handleError`):
 auth (signup/start, password/start+reset, [...nextauth]) · research CRUD ·
@@ -55,11 +61,29 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
 - Server pages fetch + serialize (Dates → ISO) → pass to a `"use client"` component.
 - Design tokens: `gold-*`, `mint-*`, `ink-*`; surfaces `.glass`/`.surface`; buttons
   `btn-primary`/`btn-gold`/`btn-ghost`/`btn-secondary`; reveal animations via
-  `<Reveal>`; text `text-gold-gradient`. Inputs: see `Field` in `LoginForm.tsx`.
+  `<Reveal>`; text `text-gold-gradient`, `text-shine` (bold accent sweep, one
+  phrase per heading), `text-shimmer` (quieter continuous sweep for surrounding
+  headline text). Inputs: see `Field` in `LoginForm.tsx`. Homepage hero headline
+  uses **Fraunces** (serif, `--font-fraunces` CSS var) — scoped to that one
+  headline only, not the shared `font-display` class (stays Geist Sans
+  everywhere else; a site-wide font change was tried and explicitly reverted).
 - Never expose user emails publicly (use `maskEmail`); never put secrets in code
   or docs (env names only — values live in Vercel/Supabase dashboards).
-- Animations must respect `prefers-reduced-motion`; heavy effects gated by
-  IntersectionObserver and reduced on mobile (see OrbitalEcosystem/SmoothScroll).
+- `prefers-reduced-motion` policy (revised this session): only the heavy
+  full-screen ambient loops (mesh, aurora, particles, starfield twinkle,
+  Saturn/Moon bob) are gated by it. The ticker marquee, text-shine/shimmer,
+  shooting stars, and the whole Icons3D system (`.i3d-*`) are deliberately
+  **exempt** — treated as core brand identity, not decoration, after repeated
+  reports of the site looking "static" traced to reduced-motion being active
+  in the test environment. Default new decorative CSS animations to exempt
+  unless they're a genuinely heavy full-screen effect. One-shot framer-motion
+  entrance/reveal animations were never gated on this in the first place.
+- Every new public/polled GET API route should set `Cache-Control` from day
+  one (`public, s-maxage=N, stale-while-revalidate=M` for anonymous-safe
+  responses, `private, no-store` for personalized ones) — see `api/ticker`,
+  `api/news/social`, `api/chat/messages` for the live pattern. This exists
+  because of a real Vercel Fast Origin Transfer usage scare — don't wait for
+  another one to retrofit it on a new route.
 
 ## Gotchas (learned the hard way)
 - `DATABASE_URL` **must** include `?pgbouncer=true` (Supabase pooler) or serverless
@@ -71,22 +95,47 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
 - ISR pages must never read the DB at build time; profile/settings pages render
   on demand. Bust profile cache with `revalidatePath("/u/<handle>")` after edits.
 - lucide-react v1 has no Twitter/Github icons — use `src/components/BrandIcons.tsx`.
+- Migrations auto-apply on every Vercel deploy via the `vercel-build` script
+  (`prisma db push`, best-effort/non-fatal) — don't assume a migration is
+  "pending" just because it's recent; check before treating it as unapplied.
+- Feature branches get squash-merged, so the branch's **remote** copy never
+  fast-forwards to the squash commit — the next push from a freshly-reset local
+  branch will be rejected as non-fast-forward. This is expected: verify
+  `git diff origin/<branch> <latest-main-sha>` is empty, then
+  `git push --force-with-lease`. Full detail + the "always reset from fresh
+  origin/main before starting new work" rule: `docs/HANDOFF.md §2`.
+- A stale cached page can reference a JS chunk hash that no longer exists after
+  a new deploy → 404 served as HTML → browser refuses to execute it (MIME
+  mismatch) → hydration silently never finishes → the page LOOKS static (no
+  animations, stale data) even though nothing crashed. `public/sw.js` +
+  `PwaSetup.tsx` now self-heal this (SW cache versioning + guarded reload on a
+  detected stale-chunk failure) — bump the SW cache version string if you ship
+  something that could otherwise strand users on old JS.
+- `background-clip: text` on a wrapper element does not paint through to
+  nested inline children — apply gradient-text classes (`text-shine`,
+  `text-shimmer`) to each leaf span individually, not a parent wrapping
+  multiple children, or the un-covered children render invisible.
 
-## Current state (2026-06-14)
-- ✅ Live: homepage (orbital ecosystem), research hub + premium gating, likes,
-  comments, auth (email+password, OTP signup, Google optional), profiles
-  (`/u/[handle]` + `/settings`), admin dashboard with real-time analytics +
-  membership + per-post views, community chat.
-- ✅ Production-hardening pass (`docs/AUDIT-2026-06-14.md`): migration resilience
-  (missing `views` no longer 404s posts / 500s dashboard), per-user rate limits on
-  profile/avatar, password-reset email check, signup race fix, server-side premium
-  re-check, research content cap, perf (PerpChart visibility-gating, image `sizes`),
-  and the **profile-photo fix** — upload **+ validated "Use a link" URL fallback**.
-- ⚠️ Pending ops (idempotent, in `docs/HANDOFF.md §4`): apply the analytics/views
-  migration (`prisma/migrations/5_post_views_pageview`) and, for native uploads,
-  configure Supabase Storage + a public `post-covers` bucket. Code degrades
-  gracefully until both are done.
-- 🔜 Next phase (agreed with owner): **UI/UX polish + navbar**, then roadmap.
+## Current state (2026-07-16)
+- ✅ Live: homepage (orbital ecosystem + Fraunces hero headline with word-stagger
+  reveal + continuous shimmer), research hub + premium gating, likes, comments,
+  auth (email+password, OTP signup, Google optional), profiles (`/u/[handle]` +
+  `/settings` + public Journal Activity feed), admin dashboard, community chat
+  (reactions/replies/polls/pins/voice rooms), 1-on-1 DMs, Trading Journal (trades/
+  analytics/risk/challenges, premium-tiered, shareable cards), Markets hub, News
+  hub (AI briefings, push notifications, saved stories), XYZ AI assistant,
+  `/terms` + `/privacy`.
+- ✅ This session: fixed two distinct classes of "site looks static" regression
+  (stale-chunk hydration failure; `prefers-reduced-motion` over-gating — both
+  detailed in `docs/HANDOFF.md §7`), three rounds of Vercel Fast Origin Transfer
+  reduction (ISR conversions + Cache-Control on hot API routes), added a real
+  Terms/Privacy pair, and shipped a scoped hero typography/animation redesign
+  after two rounds of owner feedback.
+- ⚠️ Known future lever if Fast Origin Transfer pressure returns: `/community`'s
+  force-dynamic render (unconditional session check even for anonymous
+  visitors) — deferred as a bigger refactor, see `docs/HANDOFF.md §7` item 4.
+- 🔜 No specific next phase agreed with the owner as of this handoff — ask
+  before assuming a direction. Full session-by-session detail: `docs/HANDOFF.md §7`.
 
 ## Docs book
 `docs/SUMMARY.md` is the GitBook-compatible table of contents for the full
