@@ -4,7 +4,11 @@ import { NextResponse } from "next/server";
 // Caching => at most one upstream call per `revalidate` window for ALL
 // visitors, which avoids client-side rate limiting (429/529) & CORS, and
 // returns each coin's logo + name + price + 24h change in one call.
-export const revalidate = 10;
+// Was 10s - this is the homepage's highest-traffic route with a client poll
+// that matched it 1:1, making it the single biggest driver of Vercel's ISR
+// Writes quota (every regeneration on the free tier counts against a
+// 200k/month cap). 60s still reads as "live" for a price ticker.
+export const revalidate = 60;
 
 const COINS = [
   { symbol: "BTC", name: "Bitcoin", id: "bitcoin", binance: "BTCUSDT", seed: 68420 },
@@ -134,7 +138,7 @@ export async function GET() {
     lastGood = { coins, ts: Date.now() };
     return NextResponse.json(
       { coins, live: true, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=10, stale-while-revalidate=30" } }
+      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
     );
   } catch {
     // Both upstreams failed - prefer the last real prices we successfully
@@ -143,7 +147,7 @@ export async function GET() {
     // values every time (which reads as "the ticker is frozen").
     return NextResponse.json(
       { coins: lastGood?.coins ?? fallback, live: false, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=8" } }
+      { headers: { "Cache-Control": "public, s-maxage=30" } }
     );
   }
 }

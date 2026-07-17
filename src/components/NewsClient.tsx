@@ -170,9 +170,11 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     return () => io.disconnect();
   }, [hasMore, loading, loadMore]);
 
-  // Realtime: poll fast (30s) on the unfiltered view. Fresh stories are buffered
-  // for a "N new stories" pill (Twitter-style) instead of jumping the feed.
-  // (Real device notifications are handled by NewsAlertsToggle / web-push.)
+  // Realtime: poll on the unfiltered view (45s - matches the server-side feed
+  // cache window closely enough that polling faster wouldn't surface anything
+  // new). Fresh stories are buffered for a "N new stories" pill (Twitter-style)
+  // instead of jumping the feed. (Real device notifications are handled by
+  // NewsAlertsToggle / web-push.)
   useEffect(() => {
     if (category !== "All" || query) return;
     const t = setInterval(async () => {
@@ -185,7 +187,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
         const fresh = r.items.filter((i) => !known.has(i.id));
         return fresh.length ? [...fresh, ...prevPending] : prevPending;
       });
-    }, 20_000);
+    }, 45_000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, query, fetchPage]);

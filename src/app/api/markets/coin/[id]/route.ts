@@ -3,7 +3,10 @@ import { NextResponse } from "next/server";
 // Single-coin snapshot for the coin detail page (CoinGecko, keyless). Cached +
 // graceful always-200 (live:false on failure). Id is sanitized to CoinGecko's
 // slug charset so it can't be used to reach arbitrary URLs.
-export const revalidate = 60;
+// Was 60s - lengthened since this is a dynamic route (one ISR cache entry per
+// coin id), so the write cost multiplies with how many distinct coins get
+// traffic.
+export const revalidate = 150;
 
 const BASE = "https://api.coingecko.com/api/v3";
 
@@ -57,8 +60,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       live: true,
       ts: Date.now(),
     };
-    return NextResponse.json(data, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=180" } });
+    return NextResponse.json(data, { headers: { "Cache-Control": "public, s-maxage=150, stale-while-revalidate=300" } });
   } catch {
-    return NextResponse.json({ id, live: false, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=20" } });
+    return NextResponse.json({ id, live: false, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=30" } });
   }
 }

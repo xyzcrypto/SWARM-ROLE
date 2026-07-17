@@ -4,7 +4,10 @@ import { parseFeed, categorize, sentiment, impact, relatedTokens, dedupe, rankNe
 
 // Server-side news aggregation shared by the API route and the /news page (so
 // the first batch can be server-rendered for an instant first paint). Keyless.
-export const NEWS_REVALIDATE = 20; // seconds - keep the feed fresh
+// Was 20s - this caches per-source-URL (one Data Cache entry per RSS feed), so
+// with a couple dozen sources a short window multiplies into a large share of
+// Vercel's ISR Writes quota. 90s still reads as "real-time" for a news feed.
+export const NEWS_REVALIDATE = 90; // seconds - keep the feed fresh
 
 export type NewsPage = {
   items: NewsItem[];

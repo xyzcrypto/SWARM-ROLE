@@ -5,7 +5,9 @@ import type { TrendingCoin, MoverCoin, CoinRow } from "@/lib/markets";
 // %, mcap, volume, 7d sparkline) + trending + 24h gainers/losers, all derived from
 // one markets call. Graceful always-200 `live` flag. (For coins beyond the top
 // 250, the /api/markets/search route looks up any coin on demand.)
-export const revalidate = 45;
+// Was 45s - lengthened along with the other markets routes to stay well under
+// Vercel's free-tier ISR Writes quota.
+export const revalidate = 120;
 
 async function trending(): Promise<TrendingCoin[]> {
   try {
@@ -64,12 +66,12 @@ export async function GET() {
         live: true,
         ts: Date.now(),
       },
-      { headers: { "Cache-Control": "public, s-maxage=45, stale-while-revalidate=150" } }
+      { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300" } }
     );
   } catch {
     return NextResponse.json(
       { list: [], trending: [], gainers: [], losers: [], live: false, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=20" } }
+      { headers: { "Cache-Control": "public, s-maxage=30" } }
     );
   }
 }

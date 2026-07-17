@@ -16,7 +16,7 @@ export const metadata: Metadata = pageSeo({
 });
 
 // Revalidate the server-rendered first batch often so first paint is fresh + fast.
-export const revalidate = 30;
+export const revalidate = 90;
 
 export default async function NewsPage() {
   // Server-render the first batch so the feed paints instantly (no blank fetch).

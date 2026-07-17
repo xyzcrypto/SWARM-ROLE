@@ -6,7 +6,9 @@ import type { GlobalMarket } from "@/lib/markets";
 // sources (CoinGecko /global + Fear&Greed) and, when a CMC key is set, enriches
 // with CoinMarketCap DeFi/stablecoin market caps. Always returns 200 with a
 // `live` flag (graceful) - the exact pattern used by /api/ticker.
-export const revalidate = 60;
+// Was 60s - lengthened along with the other markets routes to stay well under
+// Vercel's free-tier ISR Writes quota.
+export const revalidate = 150;
 
 const FALLBACK: GlobalMarket = {
   marketCap: 2_350_000_000_000,
@@ -100,12 +102,12 @@ export async function GET() {
     const payload: GlobalMarket = { ...core, fearGreed: fng, defiMcap: cmc.defiMcap, stableMcap: cmc.stableMcap, gasGwei: gas };
     return NextResponse.json(
       { ...payload, live: true, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=180" } }
+      { headers: { "Cache-Control": "public, s-maxage=150, stale-while-revalidate=300" } }
     );
   } catch {
     return NextResponse.json(
       { ...FALLBACK, live: false, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=30" } }
+      { headers: { "Cache-Control": "public, s-maxage=45" } }
     );
   }
 }

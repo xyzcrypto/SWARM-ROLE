@@ -91,11 +91,13 @@ export function MarketTicker() {
       }
     }
     load();
-    // Auto-refresh every 10s, but never while the tab is hidden (saves data +
-    // battery, esp. on mobile); catch up immediately when it's visible again.
+    // Auto-refresh every 60s (matches /api/ticker's revalidate window - polling
+    // faster than the server-side cache regenerates just re-fetches the same
+    // stale data), but never while the tab is hidden (saves data + battery,
+    // esp. on mobile); catch up immediately when it's visible again.
     const t = setInterval(() => {
       if (!document.hidden) load();
-    }, 10_000);
+    }, 60_000);
     const onVisible = () => {
       if (!document.hidden) load();
     };
