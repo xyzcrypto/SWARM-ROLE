@@ -132,8 +132,8 @@ export function ResearchGrid({
       ) : (
         <>
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((p) => (
-              <PostCard key={p.slug} post={p} />
+            {items.map((p, i) => (
+              <PostCard key={p.slug} post={p} priority={i === 0} />
             ))}
           </div>
 

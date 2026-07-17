@@ -133,6 +133,13 @@ export function Navbar() {
           </button>
         </div>
 
+        {/* Single mounted instance, shared between the desktop and mobile
+            layouts below via flex order - Tailwind's hidden/md:hidden only
+            toggles CSS display, so two separate <NavActivity /> elements (one
+            per breakpoint wrapper) used to double-mount it, doubling its
+            60s-interval polling + realtime subscription at every viewport size. */}
+        {session && <NavActivity />}
+
         <div className="hidden items-center gap-2 md:flex">
           <button
             onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
@@ -144,8 +151,6 @@ export function Navbar() {
           </button>
           <ThemeToggle />
           {session ? (
-            <>
-              <NavActivity />
             <div className="relative" ref={menuRef}>
               {/* Account button - avatar + membership, opens a dropdown */}
               <motion.button
@@ -209,7 +214,6 @@ export function Navbar() {
                 )}
               </AnimatePresence>
             </div>
-            </>
           ) : (
             <>
               <Link
@@ -228,8 +232,6 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center md:hidden">
-          {/* Notifications on mobile too (was desktop-only before). */}
-          {session && <NavActivity />}
           <button
             onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
             className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-zinc-300"

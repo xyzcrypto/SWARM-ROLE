@@ -94,7 +94,11 @@ html.lenis body {
   content: "";
   position: absolute;
   border-radius: 9999px;
-  filter: blur(96px);
+  /* Trimmed from 96px - a full-screen Gaussian blur at this radius is one of
+     the heaviest recurring compositing costs on the page (it repaints on
+     every scroll/resize on affected pages); ~70px reads the same at normal
+     viewing distance for a fraction of the GPU cost. */
+  filter: blur(70px);
   opacity: 0.42;
 }
 .mesh::before {
@@ -134,7 +138,8 @@ html.lenis body {
       rgba(226, 167, 47, 0.12) 90deg,
       rgba(11, 187, 124, 0.10) 200deg,
       rgba(226, 167, 47, 0) 360deg);
-  filter: blur(62px);
+  /* Trimmed from 62px, same rationale as .mesh above. */
+  filter: blur(45px);
   opacity: 0.48;
   animation: aurora-spin 36s linear infinite;
 }

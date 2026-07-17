@@ -24,6 +24,13 @@ export async function POST(req: Request) {
     }
     const { email } = parsed.data;
 
+    // Second, per-email limit alongside the IP-keyed one above - an attacker
+    // rotating IPs can still only email-bomb one target this many times.
+    // Safe to fail loudly here: the 429 applies purely by email string, before
+    // any DB lookup, so it doesn't leak whether the account exists.
+    const emailLimit = await rateLimit("otpEmail", email);
+    if (!emailLimit.success) return fail("Too many attempts. Please try again shortly.", 429);
+
     const user = await prisma.user.findUnique({ where: { email } });
     let devCode: string | undefined;
     if (user && user.passwordHash) {
