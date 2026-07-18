@@ -140,6 +140,26 @@ export function PointsValueCalculator() {
         <CalcField label="FDV scenario" value={fdv} onChange={setFdv} suffix="USD" hint={`Implied price: $${price.toLocaleString(undefined, { maximumFractionDigits: 6 })}`} />
       </div>
 
+      {scenario?.allocationScenarios && (
+        <div className="flex flex-wrap gap-1.5">
+          {scenario.allocationScenarios.map((s) => (
+            <button
+              key={s.pct}
+              type="button"
+              onClick={() => setAllocPct(String(s.pct))}
+              className={cn(
+                "rounded-lg border px-3 py-1.5 text-[11px] font-medium transition-colors",
+                Number(allocPct) === s.pct
+                  ? "border-gold-500/40 bg-gold-500/15 text-gold-100"
+                  : "border-white/10 text-zinc-400 hover:border-gold-500/40 hover:text-gold-200"
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {scenario && (
         <div className="flex flex-wrap gap-1.5">
           {scenario.fdvScenariosUsd.map((v) => (

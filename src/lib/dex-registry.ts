@@ -13,6 +13,13 @@ export type PointValueScenario = {
   tgeUnlockPcts: number[]; // e.g. [25, 30, 34]
   fdvScenariosUsd: number[]; // e.g. [700_000_000, 1_500_000_000, ...]
   allocationPctOfSupply: number; // % of total supply assumed allocated to points/airdrop
+  /** Optional quick-select buttons for the "% of the airdrop pool actually
+   * distributed" dimension - e.g. a program might allocate a fixed pool
+   * (say 150M tokens = 15% of total supply) but only end up distributing
+   * 50% or 30% of that pool. Each `pct` is still expressed as % of TOTAL
+   * SUPPLY (so it plugs directly into `allocationPctOfSupply`), not % of
+   * the pool - `label` carries the pool-relative framing for the button. */
+  allocationScenarios?: { label: string; pct: number }[];
 };
 
 export type DexPlatform = {
@@ -67,14 +74,23 @@ export const DEX_REGISTRY: DexPlatform[] = [
     rewardLogic: "SoPoints directly determine your share of the SOSO SoPoints incentive pool at distribution - a confirmed program mechanic.",
     supportedMarkets: "Spot, Perpetuals, RWA, Futures",
     maxLeverage: "See official docs",
-    notes: "SOSO already trades live, so the price below is real (not a speculative FDV assumption) - edit freely.",
+    notes: "SOSO already trades live, so the price below is real (not a speculative FDV assumption) - edit freely. Use the pool-distribution buttons below to compare the 100%/50%/30% scenarios.",
     links: { website: "https://sodex.com" },
     pointValueScenario: {
-      totalSupply: 150_000_000,
+      // Real total SOSO supply is 1B; at the real $0.29 price that's a
+      // $290M FDV (via priceFromFdv below). The 150M-token SoPoints airdrop
+      // pool is 15% of that total supply - allocationScenarios lets the
+      // user quickly compare distributing 100%/50%/30% of that pool.
+      totalSupply: 1_000_000_000,
       totalPoints: 27_000_000,
       tgeUnlockPcts: [],
-      fdvScenariosUsd: [43_500_000],
-      allocationPctOfSupply: 100,
+      fdvScenariosUsd: [290_000_000],
+      allocationPctOfSupply: 15,
+      allocationScenarios: [
+        { label: "100% pool - 150M SOSO", pct: 15 },
+        { label: "50% pool - 75M SOSO", pct: 7.5 },
+        { label: "30% pool - 45M SOSO", pct: 4.5 },
+      ],
     },
   },
   {
