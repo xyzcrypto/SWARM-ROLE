@@ -4,12 +4,17 @@ import type { CoinRow } from "@/lib/markets";
 // Coin search (CoinGecko, keyless): finds ANY coin by name/symbol - not just the
 // top 250 in the main table - and returns it with live market data. Two cached
 // calls: /search to resolve matches, then /coins/markets for their prices.
-export const revalidate = 60;
+// Was 60s - this route was missed in the 2026-07-17 ISR Writes audit. It's
+// keyed by an arbitrary user-typed search string (high cardinality - every
+// distinct query is its own Data Cache entry), the same multiplication risk
+// already fixed for per-coin/per-id routes. Search results don't need
+// near-real-time freshness.
+export const revalidate = 300;
 
 export async function GET(req: Request) {
   const q = (new URL(req.url).searchParams.get("q") || "").trim();
   if (q.length < 2) {
-    return NextResponse.json({ list: [], live: true, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=30" } });
+    return NextResponse.json({ list: [], live: true, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=60" } });
   }
   try {
     const sres = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`, {
@@ -20,7 +25,7 @@ export async function GET(req: Request) {
     const sj = await sres.json();
     const ids: string[] = (sj?.coins ?? []).slice(0, 20).map((c: { id?: string }) => String(c?.id ?? "")).filter(Boolean);
     if (!ids.length) {
-      return NextResponse.json({ list: [], live: true, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=60" } });
+      return NextResponse.json({ list: [], live: true, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=120" } });
     }
 
     const mres = await fetch(
@@ -45,8 +50,8 @@ export async function GET(req: Request) {
         ? ((d.sparkline_in_7d as { price: unknown[] }).price as unknown[]).filter((x): x is number => Number.isFinite(x as number)) as number[]
         : [],
     }));
-    return NextResponse.json({ list, live: true, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=180" } });
+    return NextResponse.json({ list, live: true, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600" } });
   } catch {
-    return NextResponse.json({ list: [], live: false, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=20" } });
+    return NextResponse.json({ list: [], live: false, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=30" } });
   }
 }

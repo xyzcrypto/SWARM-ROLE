@@ -9,7 +9,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { googleEnabled, githubEnabled, twitterEnabled, isAdminEmail } from "@/lib/env";
 import { verifyCode } from "@/lib/otp";
-import { rateLimit } from "@/lib/ratelimit";
+import { rateLimit, clientIpFromHeaders } from "@/lib/ratelimit";
 import { generateUniqueUsername } from "@/lib/username";
 
 // P2021 = table missing, P2022 = column missing - both mean the DB hasn't
@@ -103,7 +103,7 @@ export const authOptions: NextAuthOptions = {
         code: { label: "Code", type: "text" },
         flow: { label: "Flow", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         const email = credentials?.email?.toLowerCase().trim();
         const flow = credentials?.flow === "signup" ? "signup" : "login";
         if (!email) return null;
@@ -185,6 +185,14 @@ export const authOptions: NextAuthOptions = {
         // login flow - standard email + password (per-account rate limited).
         const password = credentials?.password;
         if (!password) return null;
+        // Per-IP guard, independent of the per-email limiter below: every failed
+        // attempt costs a real bcrypt compare (genuine synchronous CPU, not just
+        // I/O - see DUMMY_BCRYPT_HASH below), so a bot rotating through many
+        // fake/guessed emails from one IP would otherwise barely be throttled at
+        // all despite forcing a full bcrypt op every single time.
+        const ip = clientIpFromHeaders(req?.headers);
+        const ipLimit = await rateLimit("loginIp", ip);
+        if (!ipLimit.success) return null;
         const { success } = await rateLimit("login", email);
         if (!success) return null;
         // Explicit select keeps the login path independent of the lockout

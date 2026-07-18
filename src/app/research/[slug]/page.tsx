@@ -7,7 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
-import { formatDate, readingTime } from "@/lib/utils";
+import { formatDate, readingTime, stripInlineImage } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
@@ -30,12 +30,20 @@ import { TrackPostView } from "@/components/TrackPostView";
 export const revalidate = 300;
 
 // Shared by generateMetadata + the page so both share one query per request.
+// Strip any inline data: URL fallback image (see stripInlineImage) from the
+// author before it reaches this ISR-cached (300s), public page - a raw base64
+// blob there gets re-shipped to every viewer on every cache fill.
+function withSafeAuthorImage<T extends { author: { image: string | null } | null }>(post: T): T {
+  return { ...post, author: post.author ? { ...post.author, image: stripInlineImage(post.author.image) } : null };
+}
+
 const getPost = cache(async (slug: string) => {
   try {
-    return await prisma.post.findFirst({
+    const post = await prisma.post.findFirst({
       where: { slug, published: true },
       include: { author: { select: { name: true, username: true, image: true } } },
     });
+    return post ? withSafeAuthorImage(post) : null;
   } catch (err: any) {
     // Resilience: if the `views` column hasn't been migrated yet (P2022), don't
     // 404 the whole article - re-query the needed fields and default views to 0.
@@ -51,7 +59,7 @@ const getPost = cache(async (slug: string) => {
           },
         })
         .catch(() => null);
-      return post ? { ...post, views: 0 } : null;
+      return post ? withSafeAuthorImage({ ...post, views: 0 }) : null;
     }
     return null;
   }

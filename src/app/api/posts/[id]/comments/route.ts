@@ -4,6 +4,7 @@ import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { notifyNewComment } from "@/lib/notifications";
 import { broadcastEvent } from "@/lib/realtime";
+import { stripInlineImage } from "@/lib/utils";
 
 // GET /api/posts/:id/comments - public; visible comments, newest first, paginated.
 export async function GET(req: Request, { params }: { params: { id: string } }) {
@@ -39,7 +40,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       author: {
         name: c.user?.name || (c.user?.email ? c.user.email.split("@")[0] : "Member"),
         username: c.user?.username ?? null,
-        image: c.user?.image ?? null,
+        image: stripInlineImage(c.user?.image),
       },
     }));
 
@@ -102,7 +103,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
           author: {
             name: created.user?.name || created.user?.email?.split("@")[0] || "Member",
             username: created.user?.username ?? null,
-            image: created.user?.image ?? null,
+            image: stripInlineImage(created.user?.image),
           },
         },
       },
