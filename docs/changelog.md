@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-17 — Add Sodex to the Points/Airdrop Value Calculator
+Added Sodex (SOSO token, SoPoints program) as a preset platform in the existing Points/Airdrop Value
+Calculator on `/tools` - same generic calculator + registry-driven pattern already used for Variational,
+Hyperliquid, GMX, dYdX, Vertex, and Aevo, so no component or share-flow code changed at all, just one new
+`DEX_REGISTRY` entry. Real logo comes for free via the existing favicon-by-domain mechanism (`sodex.com`),
+same as every other platform - no image asset committed.
+- Scenario numbers (150,000,000 SOSO SoPoints pool, 27,000,000 total SoPoints, $0.29 real current SOSO
+  price) reproduce the given real figures exactly through the calculator's existing formula: $1.611111 per
+  SoPoint at full pool distribution, $43,500,000 total pool value - verified by hand before shipping.
+- Sharing works identically to every other platform (Post to X / copy link / copy image / download), since
+  the share card route reads the platform name + domain generically from the saved snapshot.
+- **Files**: `src/lib/dex-registry.ts`.
+
 ## 2026-07-17 — Fix: ISR Writes approaching Vercel free-tier quota
 Owner got a Vercel email: the free team had used 75% of the 200,000/month **ISR Writes** quota (a
 different metric from the Fast Origin Transfer work earlier this session) - exceeding it auto-pauses the
