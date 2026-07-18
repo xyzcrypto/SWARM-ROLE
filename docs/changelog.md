@@ -5,6 +5,28 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-19 — Fix: signup silently failing on DB schema drift, made loud instead
+Owner reported no new signups showing in the dashboard for a while, and separately hit a real "Database not
+migrated: a required column is missing" error on `/forgot-password` - confirming the production DB has
+genuinely drifted behind `prisma/schema.prisma` (the `db push` step in the `vercel-build` script is
+best-effort/non-fatal, so a failed run there can silently persist across deploys with zero visibility).
+Password reset already surfaces this correctly via `handleError`'s existing P2021/P2022 → "Database not
+migrated" mapping - but the signup-completion path had no such handling.
+- **Root cause found**: `src/lib/auth.ts`'s NextAuth `authorize()` signup-completion branch calls
+  `prisma.user.findUnique({ where: { email } })` with no explicit `select` (unlike the login path, which
+  was already hardened with one) - so it fetches every column in the schema. A missing column there throws,
+  NextAuth turns any thrown `authorize()` error into the same generic result the client already shows for a
+  genuinely wrong code ("Incorrect or expired code. Please try again.") - and since `verifyCode()` deletes
+  the one-time code the moment it validates, the user is then stuck in an unrecoverable retry loop with no
+  new row ever created, and no error anywhere pointing at the real cause.
+- **Fix**: both DB touches in that branch (`findUnique` and the `create()` fallback) now explicitly catch
+  P2021/P2022, report to Sentry (`Sentry.captureException`, tagged `area: signup-completion`) and console,
+  then return `null` - same safe behavior as before, but now loud instead of silent. This won't fix already-
+  drifted production data (that needs the actual migration re-run, which only the owner can trigger via a
+  fresh deploy or `prisma db push` with real credentials), but the next time this happens it surfaces
+  immediately instead of silently starving signups for an unknown stretch of time.
+- **Files**: `src/lib/auth.ts`.
+
 ## 2026-07-18 — Fix: Sodex calculator's total-supply/pool-size conflation + add 50%/30% pool buttons
 Owner caught a real bug via screenshot: the previous Sodex entry set `totalSupply` to 150,000,000 (the
 SoPoints airdrop pool size), not SOSO's real total supply of 1,000,000,000 - so the "Total token supply"

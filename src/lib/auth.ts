@@ -4,12 +4,21 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
 import GitHubProvider from "next-auth/providers/github";
 import TwitterProvider from "next-auth/providers/twitter";
+import * as Sentry from "@sentry/nextjs";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { googleEnabled, githubEnabled, twitterEnabled, isAdminEmail } from "@/lib/env";
 import { verifyCode } from "@/lib/otp";
 import { rateLimit } from "@/lib/ratelimit";
 import { generateUniqueUsername } from "@/lib/username";
+
+// P2021 = table missing, P2022 = column missing - both mean the DB hasn't
+// picked up a schema change yet (the `db push` step in vercel-build is
+// best-effort/non-fatal, so this can silently persist across deploys). Used
+// below to make that loud instead of it looking like "wrong code" to users.
+function isMissingSchemaError(err: unknown): boolean {
+  return typeof err === "object" && err !== null && "code" in err && (err.code === "P2021" || err.code === "P2022");
+}
 
 // A fixed, never-matched bcrypt hash used purely to normalize response time
 // (see `authorize()` below) - comparing against it costs the same as a real
@@ -118,7 +127,21 @@ export const authOptions: NextAuthOptions = {
           // Create-or-get, race-safe: two parallel completions of the same
           // pending signup could both pass findUnique, so recover from the
           // unique-email collision (P2002) by re-reading the winning row.
-          let user = await prisma.user.findUnique({ where: { email } });
+          let user: Awaited<ReturnType<typeof prisma.user.findUnique>>;
+          try {
+            user = await prisma.user.findUnique({ where: { email } });
+          } catch (err) {
+            if (!isMissingSchemaError(err)) throw err;
+            // A missing column here (e.g. `xp`, added in a schema change whose
+            // `db push` silently failed at build time) makes signup fail
+            // completely, but NextAuth turns any thrown authorize() error into
+            // the same generic "Incorrect or expired code" message the client
+            // shows for a real wrong code - indistinguishable to the user, and
+            // otherwise invisible to us. Surface it loudly instead.
+            Sentry.captureException(err, { tags: { area: "signup-completion" } });
+            console.error("[auth] signup blocked - DB schema drift (missing column/table)", err);
+            return null;
+          }
           if (!user) {
             // Auto-assign a unique public handle so /u/<username> works (and the
             // navbar "Profile" link is never ambiguous with Settings).
@@ -139,6 +162,10 @@ export const authOptions: NextAuthOptions = {
                 // Email or handle collided with a concurrent signup - re-read the
                 // winning row (it already has a handle).
                 user = await prisma.user.findUnique({ where: { email } });
+              } else if (isMissingSchemaError(err)) {
+                Sentry.captureException(err, { tags: { area: "signup-completion" } });
+                console.error("[auth] signup blocked - DB schema drift (missing column/table)", err);
+                return null;
               } else {
                 throw err;
               }
