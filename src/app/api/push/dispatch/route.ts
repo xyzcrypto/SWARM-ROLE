@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError } from "@/lib/api";
 import { env } from "@/lib/env";
 import { pushEnabled, sendPush } from "@/lib/push";
+import { getNewsPage } from "@/lib/news-fetch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,11 +26,13 @@ export async function GET(req: Request) {
     if (!authorized(req)) return fail("Forbidden", 403);
     if (!pushEnabled) return ok({ skipped: "push not configured" });
 
-    const origin = new URL(req.url).origin;
-    const res = await fetch(`${origin}/api/news?pageSize=30`, { cache: "no-store" });
-    if (!res.ok) return ok({ sent: 0, note: "news unavailable" });
-    type Item = { url: string; title: string; category: string; categories?: string[]; impact: string; publishedAt: number };
-    const { items } = (await res.json()) as { items: Item[] };
+    // Call the news pipeline directly instead of fetching this app's own
+    // /api/news route over HTTP - the self-fetch cost a second Vercel Function
+    // invocation on every cron tick (up to ~144/day from the GitHub Actions
+    // poller) for no benefit, since getNewsPage() already sits behind the same
+    // NEWS_REVALIDATE cache /api/news itself reads from.
+    const { items } = await getNewsPage({ pageSize: 30 }).catch(() => ({ items: [] as Awaited<ReturnType<typeof getNewsPage>>["items"] }));
+    if (!items.length) return ok({ sent: 0, note: "news unavailable" });
 
     const cutoff = Date.now() - FRESH_MS;
     const high = (items ?? []).filter((i) => i.impact === "High" && i.publishedAt >= cutoff);

@@ -63,7 +63,9 @@ export function CommandPalette() {
   }, [open]);
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 20);
+    if (!open) return;
+    const t = setTimeout(() => inputRef.current?.focus(), 20);
+    return () => clearTimeout(t);
   }, [open]);
 
   // Lock body scroll while open (keeps the mobile sheet from scrolling the page behind).

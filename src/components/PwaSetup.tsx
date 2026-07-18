@@ -102,9 +102,13 @@ export function PwaSetup() {
       setDeferred(e as BeforeInstallPromptEvent);
       setShow(true);
     };
+    const onInstalled = () => setShow(false);
     window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", () => setShow(false));
-    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   async function install() {

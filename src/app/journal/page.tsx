@@ -17,16 +17,18 @@ export default async function JournalPage() {
 
   // Server-fetch avoids a loading flash; tolerates an un-migrated DB (migrations
   // 24/25) so the page never 500s pre-migration, matching the SavedStory pattern.
-  const rows = await prisma.trade
-    .findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      take: 1000,
-      include: { fills: { orderBy: { executedAt: "asc" } } },
-    })
-    .catch(() => [] as any[]);
-
-  const riskProfile = await prisma.riskProfile.findUnique({ where: { userId } }).catch(() => null);
+  // Independent queries - run concurrently instead of blocking one on the other.
+  const [rows, riskProfile] = await Promise.all([
+    prisma.trade
+      .findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: 1000,
+        include: { fills: { orderBy: { executedAt: "asc" } } },
+      })
+      .catch(() => [] as any[]),
+    prisma.riskProfile.findUnique({ where: { userId } }).catch(() => null),
+  ]);
 
   const trades: SerializedTrade[] = rows.map((t: any) => ({
     id: t.id,

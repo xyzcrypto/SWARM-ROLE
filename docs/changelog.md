@@ -5,6 +5,52 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-18 — Hobby-plan performance audit: dedupe fetches, cut a doubled cron invocation, streaming/parallelism on Journal
+Full-repo pass (routes, API handlers, cron/background tasks, `fetch()` sites, `useEffect` cleanup, bundle
+size) specifically for Vercel Hobby-plan cost drivers, on top of the prior CPU/ISR-Writes/Fast-Origin-Transfer
+rounds. Most of the codebase checked out clean (force-dynamic pages are all genuinely session-gated, bundle
+sizes are all reasonable, the AI response cache is well-wired) - this round's changes are the handful of
+confirmed, real findings.
+
+- **`MarketTicker` + `LiveMarketVisual` polled `/api/ticker` independently** - two separate 60s intervals
+  fetching the exact same endpoint whenever both render on a page (navbar marquee + homepage Products card),
+  doubling that request volume for no benefit. Added `src/lib/useTickerPoll.ts`, a module-level
+  `useSyncExternalStore` store shared by both components: one fetch, one interval, regardless of how many
+  consumers are mounted: starts on first subscriber, stops when the last one unmounts, pauses while the tab
+  is hidden. Rendered markup in both components is unchanged.
+- **`/api/push/dispatch` self-fetched its own app's `/api/news` route** over HTTP instead of calling the
+  underlying pipeline directly - a self-fetch anti-pattern that doubled Vercel Function Invocations on every
+  cron tick (up to ~144/day from the GitHub Actions poller) for zero benefit, since `getNewsPage()` already
+  sits behind the same cache `/api/news` itself reads from. Now calls `getNewsPage()` directly.
+- **`vercel.json`** carried a redundant daily native cron (`/api/push/dispatch` at 08:00) duplicating a time
+  slot already covered by the GitHub Actions 10-minute poller (`.github/workflows/push-dispatch.yml`).
+  Removed.
+- **`/journal`** (force-dynamic, largest route by First Load JS) ran two independent Prisma queries
+  (`trade.findMany` with a `take: 1000` + nested `fills` include, then `riskProfile.findUnique`) sequentially
+  instead of concurrently, and had no `loading.tsx` - every visit blocked the whole page (including the
+  navbar) with zero streaming boundary. Parallelized the two queries with `Promise.all`, and added
+  `src/app/journal/loading.tsx` matching the skeleton pattern already used by `/dashboard`.
+- Two small missing-cleanup fixes found during the sweep: `PwaSetup.tsx`'s `appinstalled` listener was never
+  removed on unmount (inline anonymous function, so even a naive removal wouldn't have matched);
+  `CommandPalette.tsx`'s focus `setTimeout` had no cleanup. Both low severity in practice (both components
+  mount once and persist), fixed as found.
+
+**Deliberately not changed** (found, evaluated, and left alone to respect "no UI changes" / "keep existing
+functionality"): `NewsClient`'s AI briefing auto-firing on every story view (shipped, user-visible UX, not a
+bug); coin-brief/protocol-brief AI prompts embedding live numbers that defeat their own cache in practice
+(low volume, click-gated); the duplicate CoinGecko fetch between `markets/[id]`'s `generateMetadata` and the
+`coin/[id]` API route (fixable, but risks an SEO metadata regression for marginal gain); three independent
+`/api/news` pollers across `LiveNewsVisual`/`MarketsClient`/`NewsClient` (different pages, not simultaneous,
+lower severity than the ticker case); `/community`'s force-dynamic render (already a known, twice-deferred
+structural lever, unchanged again this round).
+
+- **Files**: `src/lib/useTickerPoll.ts` (new), `src/components/MarketTicker.tsx`,
+  `src/components/LiveMarketVisual.tsx`, `src/app/api/push/dispatch/route.ts`, `vercel.json`,
+  `src/app/journal/page.tsx`, `src/app/journal/loading.tsx` (new), `src/components/PwaSetup.tsx`,
+  `src/components/CommandPalette.tsx`.
+
+---
+
 ## 2026-07-19 — Fix Vercel free-tier overages: Fluid Active CPU (exceeded), ISR Writes, Fast Origin Transfer
 Owner's Vercel dashboard showed "Exceeded free resources": Fluid Active CPU 6h23m/4h (already over), ISR
 Writes 161K/200K (80.5%), Fast Origin Transfer 9.07/10GB (90.7%). Three parallel investigations found
