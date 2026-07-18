@@ -2,6 +2,7 @@
 // never crashes the build or a request - but it surfaces misconfiguration loudly
 // in logs. Read config from here instead of raw process.env.
 import { z } from "zod";
+import { site } from "@/lib/site";
 
 const schema = z.object({
   DATABASE_URL: z.string().min(1).optional(),
@@ -100,7 +101,10 @@ export const env = {
   // are server-only.
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: raw.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",
   VAPID_PRIVATE_KEY: raw.VAPID_PRIVATE_KEY ?? "",
-  VAPID_SUBJECT: raw.VAPID_SUBJECT || "mailto:niralekhan321@gmail.com",
+  // web-push requires a non-empty, valid contact URI here once the VAPID keys
+  // are set (setVapidDetails throws otherwise) - falls back to the site's
+  // existing public support address rather than a real personal one.
+  VAPID_SUBJECT: raw.VAPID_SUBJECT || `mailto:${site.email}`,
   CRON_SECRET: raw.CRON_SECRET ?? "",
   // Telegram bot (XYZ Sentinel security alerts to the owner). Server-only.
   TELEGRAM_BOT_TOKEN: raw.TELEGRAM_BOT_TOKEN ?? "",
