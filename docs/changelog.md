@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-18 — Fix: Sodex calculator's total-supply/pool-size conflation + add 50%/30% pool buttons
+Owner caught a real bug via screenshot: the previous Sodex entry set `totalSupply` to 150,000,000 (the
+SoPoints airdrop pool size), not SOSO's real total supply of 1,000,000,000 - so the "Total token supply"
+field showed the wrong number, and typing a smaller test value into it (e.g. 45) blew up the implied price
+to an absurd $966,666 instead of the real $0.29. Corrected the data model: `totalSupply` is now the real 1B,
+`fdvScenariosUsd` is the real FDV ($0.29 × 1B = $290M), and the 150M-token pool is expressed correctly as
+15% of total supply via `allocationPctOfSupply`.
+- Also added the two scenarios the owner asked for as one-click options, not just editable-by-hand: a new
+  optional `allocationScenarios` field on `PointValueScenario` (`src/lib/dex-registry.ts`) renders a row of
+  quick-select buttons - "100% pool - 150M SOSO" (15%), "50% pool - 75M SOSO" (7.5%), "30% pool - 45M SOSO"
+  (4.5%) - mirroring the existing FDV-scenario button pattern exactly.
+- Purely additive to `PointsValueCalculator.tsx`: the new button row only renders when a platform provides
+  `allocationScenarios`, so Variational (and every other existing platform) is pixel- and behavior-identical
+  to before - only Sodex gains the new row.
+- Verified by hand against the owner's numbers: $1.611111 / $0.805556 / $0.483333 per SoPoint across the
+  100%/50%/30% scenarios, all reproduced exactly.
+- **Files**: `src/lib/dex-registry.ts`, `src/components/tools/PointsValueCalculator.tsx`.
+
 ## 2026-07-17 — Add Sodex to the Points/Airdrop Value Calculator
 Added Sodex (SOSO token, SoPoints program) as a preset platform in the existing Points/Airdrop Value
 Calculator on `/tools` - same generic calculator + registry-driven pattern already used for Variational,
