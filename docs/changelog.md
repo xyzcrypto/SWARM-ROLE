@@ -5,6 +5,22 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-19 — Remove hardcoded personal email + regenerate .env.example
+Two items from the corrected hardening checklist, both real and cheap:
+- **`.env.example:46`** (`ADMIN_EMAIL`) and **`src/lib/env.ts`** (`VAPID_SUBJECT`'s fallback) both had the
+  owner's real personal Gmail hardcoded - publicly documenting exactly which account auto-promotes to
+  ADMIN if that inbox were ever compromised. `.env.example` now uses a generic placeholder.
+  `VAPID_SUBJECT` can't just be blanked though - `web-push`'s `setVapidDetails()` throws at runtime on an
+  empty/invalid subject once the VAPID keys are configured, so it now falls back to the site's existing
+  public support address (`site.email`, already used elsewhere e.g. the Terms/Privacy Grievance Officer
+  contact) instead of a real personal one.
+- **`.env.example` was 17 env vars behind `src/lib/env.ts`** (`GEMINI_API_KEY`, `AI_PROVIDER_ORDER`, the
+  three `AI_DAILY_LIMIT_*`, `CMC_API_KEY`, `GIPHY_API_KEY`, the three VAPID vars, `CRON_SECRET`,
+  `TELEGRAM_BOT_TOKEN`/`CHAT_ID`, the three `LIVEKIT_*` vars, and `SENTRY_DSN`) - anyone bootstrapping from
+  it silently got voice, push, Sentinel, GIFs, CMC enrichment, and the AI fallback switched off with no
+  hint they exist. All 17 added, grouped into new sections matching the file's existing style.
+- **Files**: `.env.example`, `src/lib/env.ts`.
+
 ## 2026-07-19 — Fix: signup silently failing on DB schema drift, made loud instead
 Owner reported no new signups showing in the dashboard for a while, and separately hit a real "Database not
 migrated: a required column is missing" error on `/forgot-password` - confirming the production DB has
