@@ -5,6 +5,58 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-19 — Fix Vercel free-tier overages: Fluid Active CPU (exceeded), ISR Writes, Fast Origin Transfer
+Owner's Vercel dashboard showed "Exceeded free resources": Fluid Active CPU 6h23m/4h (already over), ISR
+Writes 161K/200K (80.5%), Fast Origin Transfer 9.07/10GB (90.7%). Three parallel investigations found
+concrete root causes for each - one a direct regression from a security fix shipped earlier this session.
+
+**Fluid Active CPU (the urgent one)** - the 2026-07-17 login timing-attack fix added a dummy
+`bcrypt.compare()` on every failed/nonexistent-account login attempt to stop timing-based user enumeration.
+Benchmarked on this machine: `bcryptjs` (the pure-JS package this repo uses, not native `bcrypt`) costs
+~317-352ms of genuine synchronous CPU per call at cost factor 12 - 2-4x higher than the ~80-150ms the
+original fix assumed, since pure-JS bcrypt can't offload to a native threadpool. Fluid Compute bills
+specifically for synchronous CPU time. The login rate limiter was keyed only by target email, not caller
+IP, so a bot rotating through fake emails from one IP was barely throttled - each attempt still forced a
+full bcrypt op.
+- **Fix**: added a genuine per-IP rate limit (`loginIp`, 20/min/IP) checked *before* any bcrypt work runs in
+  the credentials login path, alongside (not replacing) the existing per-email limiter and the timing-safety
+  fix itself. `src/lib/ratelimit.ts` gained `clientIpFromHeaders()` since NextAuth's `authorize(credentials,
+  req)` passes a plain `Record<string, any>` headers object, not a `Headers` instance with `.get()`.
+- **Files**: `src/lib/auth.ts`, `src/lib/ratelimit.ts`.
+
+**ISR Writes** - confirmed the 2026-07-17 fix is genuinely working (daily write rate roughly halved,
+traced via this changelog's own historical percentage snapshots), the 161K figure is just a blend of the
+old faster pre-fix rate (most of this billing cycle) plus ~2 days of the new slower rate. Found one
+genuinely missed route from that audit: `/api/markets/search` - still `revalidate = 60`, keyed by an
+arbitrary user-typed search string (high cardinality, same risk class already fixed for per-coin routes).
+Predates the 07-17 audit, simply missed.
+- **Fix**: lengthened `/api/markets/search`'s `revalidate` 60s → 300s, with matching `Cache-Control` headers.
+- **Files**: `src/app/api/markets/search/route.ts`.
+
+**Fast Origin Transfer** - every previously-fixed contributor confirmed still working, nothing to re-touch.
+`/community`'s force-dynamic render remains a known, twice-already-deferred structural lever (unchanged).
+Found a new, previously-uncaught contributor: `uploadImage()` (`src/lib/storage.ts`) falls back to storing
+an uploaded avatar/banner as a raw base64 `data:` URL (up to 700KB) directly in the DB whenever Supabase
+Storage is unconfigured or fails. That field was being selected raw and uncompressed in several hot,
+high-fan-out paths never scoped for this: every community chat message's author, every DM conversation
+partner, public post comments, follow lists, and public profile/article pages. A single active user with a
+large inline avatar could plausibly be a multi-hundred-MB/month contributor on its own - invisible in
+payload-shape review since it's "just a string field." This is distinct from the navbar's existing
+JWT-stripping fix, which only covers the 4KB session-cookie concern for the current user's own navbar, not
+any of these DB-read paths serving *other* users' images to *other* viewers.
+- **Fix**: added `stripInlineImage()` (`src/lib/utils.ts`) - converts a `data:` URL image to `null` (client
+  already falls back to initials gracefully) - and applied it at all six read paths: `src/lib/chat.ts`
+  (`toChatPayload`), `src/lib/dm.ts` (`otherOf`), `src/app/api/posts/[id]/comments/route.ts` (GET + POST),
+  `src/app/api/follow/list/route.ts`, `src/app/u/[username]/page.tsx` (`getProfile`), and
+  `src/app/research/[slug]/page.tsx` (`getPost`).
+- Flagged for the owner, not fixed in code: whether any real users have hit this fallback needs a one-time
+  read-only production DB check (`SELECT username, length(image) FROM "User" WHERE image LIKE 'data:%' ...`)
+  to quantify actual impact and decide if existing data needs backfilling - the code fix above is safe
+  defense-in-depth regardless of the answer.
+- **Files**: `src/lib/utils.ts`, `src/lib/chat.ts`, `src/lib/dm.ts`,
+  `src/app/api/posts/[id]/comments/route.ts`, `src/app/api/follow/list/route.ts`,
+  `src/app/u/[username]/page.tsx`, `src/app/research/[slug]/page.tsx`.
+
 ## 2026-07-19 — Remove hardcoded personal email + regenerate .env.example
 Two items from the corrected hardening checklist, both real and cheap:
 - **`.env.example:46`** (`ADMIN_EMAIL`) and **`src/lib/env.ts`** (`VAPID_SUBJECT`'s fallback) both had the

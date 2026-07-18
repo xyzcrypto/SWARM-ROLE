@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
+import { stripInlineImage } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -46,7 +47,7 @@ export async function GET(req: Request) {
     const list = users.map((u: any) => ({
       name: u.name,
       username: u.username,
-      image: u.image,
+      image: stripInlineImage(u.image),
       bio: u.bio ? String(u.bio).slice(0, 80) : null,
       isFollowing: mine.has(u.id),
       isMe: me?.id === u.id,

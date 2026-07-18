@@ -64,6 +64,22 @@ export function csvCell(value: unknown): string {
   return `"${safe}"`;
 }
 
+/**
+ * Strip an inline `data:` URL image down to null instead of shipping it raw.
+ * `uploadImage()` (src/lib/storage.ts) falls back to storing an uploaded
+ * avatar/banner as a base64 data URL (up to 700KB) directly in the DB whenever
+ * Supabase Storage is unconfigured or fails - fine for the *owner's own*
+ * navbar (already guarded via the JWT, for the 4KB cookie limit), but every
+ * OTHER surface that serves someone's avatar/banner to other viewers
+ * (chat/DM authors, comments, follow lists, public profiles) was shipping
+ * that raw blob to every viewer on every request/cache-fill. The client
+ * already falls back to initials for a null image, so this is a free,
+ * lossless-to-the-UI way to keep it out of hot response payloads.
+ */
+export function stripInlineImage(url: string | null | undefined): string | null {
+  return typeof url === "string" && url.startsWith("data:") ? null : url ?? null;
+}
+
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

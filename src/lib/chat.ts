@@ -5,6 +5,7 @@
 // falls back to polling - chat still works end-to-end.
 import { z } from "zod";
 import { broadcastEvent } from "@/lib/realtime";
+import { stripInlineImage } from "@/lib/utils";
 
 export const CHAT_CHANNEL = "community";
 export const CHAT_PAGE_SIZE = 50;
@@ -163,7 +164,7 @@ export function toChatPayload(m: {
     pinnedAt: m.pinnedAt ? m.pinnedAt.toISOString() : null,
     userId: m.userId,
     poll,
-    author: m.user,
+    author: { ...m.user, image: stripInlineImage(m.user.image) },
     replyTo: m.replyTo
       ? {
           id: m.replyTo.id,

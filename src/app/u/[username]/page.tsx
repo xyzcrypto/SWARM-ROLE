@@ -17,7 +17,7 @@ import { ProfileStats } from "@/components/ProfileStats";
 import { ProfileFollow } from "@/components/ProfileFollow";
 import { JournalActivityFeed } from "@/components/JournalActivityFeed";
 import { EditProfileButton } from "@/components/EditProfileButton";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime, stripInlineImage } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
 import { fetchExtraSocials } from "@/lib/user-socials";
 
@@ -32,7 +32,7 @@ type Props = { params: { username: string } };
 const getProfile = cache(async (usernameParam: string) => {
   const username = normalizeUsername(decodeURIComponent(usernameParam));
   if (!username) return null;
-  return prisma.user
+  const user = await prisma.user
     .findUnique({
       where: { username },
       select: {
@@ -43,6 +43,10 @@ const getProfile = cache(async (usernameParam: string) => {
       },
     })
     .catch(() => null);
+  // Strip any inline data: URL fallback image (see stripInlineImage) before it
+  // reaches metadata/HTML - this page is ISR-cached (300s) and public, so a
+  // raw base64 blob here gets re-shipped to every viewer on every cache fill.
+  return user ? { ...user, image: stripInlineImage(user.image), bannerImage: stripInlineImage(user.bannerImage) } : null;
 });
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
