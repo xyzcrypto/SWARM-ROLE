@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Bell, MessageCircle, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { getRealtimeClient } from "@/lib/realtimeClient";
 
 type Note = {
   id: string;
@@ -114,11 +115,8 @@ export function NavActivity() {
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const { createClient } = await import("@supabase/supabase-js");
+      const client = await getRealtimeClient(url, anon);
       if (cancelled) return;
-      const client = createClient(url, anon, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
       const ch = client.channel("notifications");
       ch.on("broadcast", { event: "ping" }, () => {
         loadNotes();

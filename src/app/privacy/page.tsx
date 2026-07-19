@@ -74,7 +74,6 @@ export default function PrivacyPage() {
               <li><strong>Resend</strong> - sends transactional emails (signup verification codes, password resets).</li>
               <li><strong>Sentry</strong> - error monitoring, to help us catch and fix bugs (may capture technical error context, not your account password or private messages).</li>
               <li><strong>Groq / Google Gemini</strong> - power the XYZ AI assistant. If you use the assistant, your message is sent to whichever provider is answering that request.</li>
-              <li><strong>LiveKit</strong> - powers community voice rooms (handles the audio connection if you join a voice room).</li>
               <li><strong>Google / GitHub / X (Twitter)</strong> - only if you choose to sign in using one of these, for authentication purposes.</li>
             </ul>
             <p>

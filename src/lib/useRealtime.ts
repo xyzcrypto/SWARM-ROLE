@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { getRealtimeClient } from "./realtimeClient";
 
 /**
  * Pure decision used by the hook (and unit-tested): prefer realtime when Supabase
@@ -54,9 +55,8 @@ export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, e
       let cleanup: (() => void) | undefined;
       let cancelled = false;
       (async () => {
-        const { createClient } = await import("@supabase/supabase-js");
+        const client = await getRealtimeClient(u, k);
         if (cancelled) return;
-        const client = createClient(u, k, { auth: { persistSession: false, autoRefreshToken: false } });
         const ch = client.channel(channel);
         ch.on("broadcast", { event }, ({ payload }) => cb.current(payload)).subscribe();
         cleanup = () => client.removeChannel(ch);

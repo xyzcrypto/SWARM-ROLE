@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
+import { useTickerPoll } from "@/lib/useTickerPoll";
 
 type Coin = { symbol: string; name: string; price: number; change: number; image: string };
 
@@ -57,57 +58,33 @@ function Cell({ c, fl }: { c: Coin; fl?: "up" | "down" }) {
 }
 
 export function MarketTicker() {
-  const [coins, setCoins] = useState<Coin[]>(fallback);
-  const [live, setLive] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Shared across every consumer on the page (see useTickerPoll) - was its
+  // own independent 60s poll, duplicating LiveMarketVisual's identical fetch.
+  const { coins: polled, live, loading } = useTickerPoll();
+  const coins = polled ?? fallback;
   const [flash, setFlash] = useState<Record<string, "up" | "down">>({});
   const prev = useRef<Record<string, number>>({});
 
+  // Flash green/red on price change - purely a presentation concern local to
+  // this component, derived from whatever the shared poll last returned.
   useEffect(() => {
+    if (!polled) return;
     let active = true;
-    async function load() {
-      try {
-        const res = await fetch("/api/ticker", { cache: "no-store" });
-        if (!res.ok) throw new Error("bad status");
-        const data = await res.json();
-        if (!active || !Array.isArray(data.coins) || !data.coins.length) return;
-
-        const f: Record<string, "up" | "down"> = {};
-        for (const c of data.coins as Coin[]) {
-          const p = prev.current[c.symbol];
-          if (p !== undefined && c.price !== p) f[c.symbol] = c.price > p ? "up" : "down";
-          prev.current[c.symbol] = c.price;
-        }
-        setCoins(data.coins);
-        setLive(Boolean(data.live));
-        if (Object.keys(f).length) {
-          setFlash(f);
-          setTimeout(() => active && setFlash({}), 1000);
-        }
-      } catch {
-        if (active) setLive(false);
-      } finally {
-        if (active) setLoading(false);
-      }
+    const f: Record<string, "up" | "down"> = {};
+    for (const c of polled) {
+      const p = prev.current[c.symbol];
+      if (p !== undefined && c.price !== p) f[c.symbol] = c.price > p ? "up" : "down";
+      prev.current[c.symbol] = c.price;
     }
-    load();
-    // Auto-refresh every 60s (matches /api/ticker's revalidate window - polling
-    // faster than the server-side cache regenerates just re-fetches the same
-    // stale data), but never while the tab is hidden (saves data + battery,
-    // esp. on mobile); catch up immediately when it's visible again.
-    const t = setInterval(() => {
-      if (!document.hidden) load();
-    }, 60_000);
-    const onVisible = () => {
-      if (!document.hidden) load();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      active = false;
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, []);
+    if (Object.keys(f).length) {
+      setFlash(f);
+      const t = setTimeout(() => active && setFlash({}), 1000);
+      return () => {
+        active = false;
+        clearTimeout(t);
+      };
+    }
+  }, [polled]);
 
   const statusLabel = loading ? "Loading" : live ? "Live Market" : "Market";
   const row = [...coins, ...coins]; // duplicate for seamless infinite scroll

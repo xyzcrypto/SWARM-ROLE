@@ -228,7 +228,8 @@ protocol detail pages) · `/tools` (calculators + DEX registry + Trading
 Journal: trades/analytics/risk/challenges, premium-tiered, shareable result
 cards) · `/research` (articles, premium-gated) · `/news` (aggregated feed, AI
 briefings, likes/comments, saved stories, push notifications) · `/community`
-(realtime chat with reactions/replies/polls/pins, voice rooms via LiveKit) ·
+(realtime chat with reactions/replies/polls/pins - anonymous visitors get a
+read-only cached preview, logged-in members get the full live room) ·
 `/messages` (1-on-1 DMs) · profiles (`/u/[handle]` public + `/settings`
 private, public Journal Activity feed) · `/dashboard` (admin: analytics,
 moderation, membership, access control, What's New) · auth (`/login`
@@ -407,9 +408,40 @@ this signals a shift this session toward wanting a look before merge for
 anything touching shared infrastructure or visual identity, worth defaulting
 to for similar future requests unless told otherwise.
 
+### 2026-07-18/19 — Hobby-plan cost passes (two rounds)
+
+**Round 1 (audit, no feature loss)**: deduped `MarketTicker`/`LiveMarketVisual`'s
+independent `/api/ticker` polls into one shared hook (`useTickerPoll.ts`),
+removed a self-fetch in `push/dispatch` that doubled its Function Invocations
+per cron tick, dropped a redundant `vercel.json` native cron, parallelized
+`/journal`'s two Prisma queries and gave it a `loading.tsx`. Full detail in
+`docs/changelog.md`'s 2026-07-18 entry.
+
+**Round 2 (explicit feature-downgrade request)** — the owner asked which
+features could be traded for lower cost, then asked to ship all of them:
+Tools replaced Markets in the mobile bottom nav; **Voice Rooms removed
+entirely** (LiveKit deps + routes + docs deleted, reinstate from git history
+if revisited on a paid plan); push-dispatch + watchdog GitHub Actions crons
+**paused** (`schedule:` commented out, `workflow_dispatch:` kept for manual
+runs — re-enable when off the free plan); the News AI briefing is now
+manual-trigger instead of auto-firing on story open; ticker/news/markets poll
+intervals widened (60-120s → 90-180s); **every realtime/presence hook now
+shares one Supabase client** (`src/lib/realtimeClient.ts`) instead of each
+opening its own WebSocket connection — this was the biggest single lever
+found, since a page could previously open 2-4 redundant connections to the
+same project; and `/community` now gives anonymous visitors a cached
+read-only preview (`CommunityPreview.tsx` + `getCommunityPreview()`) instead
+of the full live room, resolving the `/community` ISR item from section 8
+below via a narrower, lower-risk path (branch on session presence rather
+than refactoring `ChatClient.tsx`'s personalization out). Full detail +
+complete file list: `docs/changelog.md`'s 2026-07-19 entry.
+
 ## 8. Open items / natural next steps
-- **`/community` ISR unlock** — the biggest remaining Fast Origin Transfer
-  lever if usage climbs again (see section 7, item 4).
+- ~~**`/community` ISR unlock**~~ — addressed 2026-07-19: anonymous visitors
+  now get a cached read-only preview instead of the full dynamic room (see
+  section 7's 2026-07-18/19 entry). `ChatClient.tsx` itself is unchanged for
+  logged-in members, so this was the narrow fix, not the full refactor
+  originally scoped here.
 - **Incorporation decision** — the owner has an outstanding country-comparison
   writeup (delivered as a scratch PDF, not in the repo) they haven't acted on;
   `/terms` and `/privacy` are explicitly written to be updated once that

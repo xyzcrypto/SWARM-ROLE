@@ -8,6 +8,7 @@ import { PostManager } from "./PostManager";
 import { PERMISSIONS, ALL_PERMISSIONS, hasPermission, type Permission } from "@/lib/permissions";
 import { WhatsNewManager } from "./WhatsNewManager";
 import { useRealtime } from "@/lib/useRealtime";
+import { getRealtimeClient } from "@/lib/realtimeClient";
 
 type Viewer = { id: string; permissions: string[]; isSuperAdmin: boolean };
 
@@ -70,11 +71,8 @@ function useLiveOnline(realtime: Realtime) {
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const { createClient } = await import("@supabase/supabase-js");
+      const client = await getRealtimeClient(realtime.url, realtime.anonKey);
       if (cancelled) return;
-      const client = createClient(realtime.url, realtime.anonKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
       const ch = client.channel("site-visitors", {
         config: { presence: { key: `admin-${Math.random().toString(36).slice(2)}` } },
       });
@@ -101,11 +99,8 @@ function useMembersChannel(realtime: Realtime, onChange: (id: string, membership
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const { createClient } = await import("@supabase/supabase-js");
+      const client = await getRealtimeClient(realtime.url, realtime.anonKey);
       if (cancelled) return;
-      const client = createClient(realtime.url, realtime.anonKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
       const ch = client.channel("members");
       ch.on("broadcast", { event: "membership_changed" }, ({ payload }) => {
         const p = payload as { id: string; membership: string };

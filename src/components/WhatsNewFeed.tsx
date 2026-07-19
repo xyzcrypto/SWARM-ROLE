@@ -5,6 +5,7 @@ import { Sparkles, Wrench, Bug, Megaphone, ShieldCheck, Map } from "lucide-react
 import { Reveal } from "./Reveal";
 import { formatDate } from "@/lib/utils";
 import { WHATS_NEW_TAGS, type WhatsNewEntry, type WhatsNewTag } from "@/lib/whatsnew";
+import { getRealtimeClient } from "@/lib/realtimeClient";
 
 const tagStyle: Record<WhatsNewTag, { ring: string; text: string; Icon: typeof Sparkles }> = {
   New: { ring: "ring-mint-500/30 bg-mint-500/10", text: "text-mint-200", Icon: Sparkles },
@@ -41,11 +42,8 @@ export function WhatsNewFeed({ entries: initial, realtime }: { entries: WhatsNew
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const { createClient } = await import("@supabase/supabase-js");
+      const client = await getRealtimeClient(realtime.url, realtime.anonKey);
       if (cancelled) return;
-      const client = createClient(realtime.url, realtime.anonKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
       const ch = client.channel("notifications");
       ch.on("broadcast", { event: "whatsnew_updated" }, async () => {
         const data = await fetch("/api/whatsnew?limit=12", { cache: "no-store" })

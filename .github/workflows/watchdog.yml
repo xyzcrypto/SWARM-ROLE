@@ -12,9 +12,12 @@ name: XYZ Sentinel (security watchdog)
 # set, the job skips gracefully. Telegram/email alerting is configured in Vercel
 # env (TELEGRAM_BOT_TOKEN/CHAT_ID, RESEND_API_KEY).
 
+# Paused to save Vercel Hobby-plan Function Invocations - re-enable the
+# `schedule` trigger below when moving to a paid plan. Still runnable manually
+# via workflow_dispatch (Actions tab -> Run workflow) in the meantime.
 on:
-  schedule:
-    - cron: "*/30 * * * *"
+  # schedule:
+  #   - cron: "*/30 * * * *"
   workflow_dispatch: {}
 
 concurrency:

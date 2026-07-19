@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, ExternalLink, Share2, Check } from "lucide-react";
@@ -16,12 +16,18 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
   const [now, setNow] = useState(0);
   const [brief, setBrief] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [copied, setCopied] = useState(false);
+  // Guards a manually-triggered fetch against setting state after unmount
+  // (generateBrief is a click handler now, not an effect, so it has no
+  // automatic cleanup).
+  const mounted = useRef(true);
+  useEffect(() => () => { mounted.current = false; }, []);
 
   useEffect(() => setNow(Date.now()), []);
 
-  useEffect(() => {
+  // Generation is on-demand (a "Generate briefing" button in BriefingBlock)
+  // rather than auto-firing on page load, to cut AI invocation volume.
+  const generateBrief = useCallback(() => {
     if (!story || !loggedIn) return;
-    let stop = false;
     setBrief({ loading: true, text: null, err: null });
     fetch("/api/ai/why-matters", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -29,12 +35,13 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
     })
       .then(async (res) => {
         const j = await res.json().catch(() => ({}));
-        if (stop) return;
+        if (!mounted.current) return;
         if (!res.ok) setBrief({ loading: false, text: null, err: j.error || "Couldn't generate the briefing." });
         else setBrief({ loading: false, text: j.text, err: null });
       })
-      .catch(() => !stop && setBrief({ loading: false, text: null, err: "Network error." }));
-    return () => { stop = true; };
+      .catch(() => {
+        if (mounted.current) setBrief({ loading: false, text: null, err: "Network error." });
+      });
   }, [story, loggedIn]);
 
   const share = async () => {
@@ -82,6 +89,7 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
         title={story.t}
         summary={story.s ?? ""}
         loggedIn={loggedIn}
+        onGenerate={generateBrief}
       />
       {!loggedIn && (
         <p className="text-[13px] text-zinc-400">

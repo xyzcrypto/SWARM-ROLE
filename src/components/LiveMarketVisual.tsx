@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useTickerPoll } from "@/lib/useTickerPoll";
 
 type Coin = { symbol: string; name: string; price: number; change: number; image: string };
 
@@ -52,39 +52,15 @@ function Row({ c }: { c: Coin }) {
 
 /**
  * Live, auto-scrolling market feed for the "Web3 Market" product card. Pulls
- * real prices from the cached /api/ticker proxy (refreshes every 60s while the
- * tab is visible, matching the route's revalidate window) and rises the list
+ * real prices from the shared /api/ticker poll (see useTickerPoll - deduped
+ * against MarketTicker's identical fetch, refreshes every 60s while the tab
+ * is visible, matching the route's revalidate window) and rises the list
  * slowly upward. Reduced-motion pauses the scroll (globals `.vscroll` kill),
  * so the coins simply sit still.
  */
 export function LiveMarketVisual() {
-  const [coins, setCoins] = useState<Coin[]>(seed);
-  const [live, setLive] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const res = await fetch("/api/ticker", { cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!active || !Array.isArray(data.coins) || !data.coins.length) return;
-        setCoins(data.coins as Coin[]);
-        setLive(Boolean(data.live));
-      } catch {
-        /* keep seed */
-      }
-    }
-    load();
-    const t = setInterval(() => !document.hidden && load(), 60_000);
-    const onVis = () => !document.hidden && load();
-    document.addEventListener("visibilitychange", onVis);
-    return () => {
-      active = false;
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", onVis);
-    };
-  }, []);
+  const { coins: polled, live } = useTickerPoll();
+  const coins = polled ?? seed;
 
   const list = [...coins, ...coins]; // duplicate → seamless vertical loop
   const dur = Math.max(20, coins.length * 2.6);

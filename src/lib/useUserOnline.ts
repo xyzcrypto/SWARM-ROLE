@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getRealtimeClient } from "./realtimeClient";
 
 // Public client-safe Supabase creds (inlined by Next at build). When unset the
 // hook is a no-op returning false, so callers degrade gracefully (no dot).
@@ -24,9 +25,8 @@ export function useOnlineSet(): Set<string> {
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const { createClient } = await import("@supabase/supabase-js");
+      const client = await getRealtimeClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       if (cancelled) return;
-      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
       const ch = client.channel("site-visitors", { config: { presence: { key: `set-obs-${Math.random().toString(36).slice(2)}` } } });
       ch.on("presence", { event: "sync" }, () => setSet(new Set(Object.keys(ch.presenceState())))).subscribe();
       cleanup = () => client.removeChannel(ch);
@@ -45,11 +45,8 @@ export function useUserOnline(userId: string | null | undefined): boolean {
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const { createClient } = await import("@supabase/supabase-js");
+      const client = await getRealtimeClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       if (cancelled) return;
-      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
       const ch = client.channel("site-visitors", {
         config: { presence: { key: `dm-obs-${Math.random().toString(36).slice(2)}` } },
       });

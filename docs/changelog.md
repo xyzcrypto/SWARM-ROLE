@@ -5,6 +5,105 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-19 — Feature downgrades for Hobby-plan cost: voice rooms removed, crons paused, manual AI briefing, shared realtime client, anon community preview
+Owner-requested follow-up to the 2026-07-18 audit: trade specific features for lower ongoing cost while the
+site stays on the free plan, deferring the removed pieces to when a paid plan is in place.
+
+- **Mobile bottom nav**: replaced the Markets tab with Tools (`src/components/BottomNav.tsx`) - Tools is the
+  free-to-use, no-login calculator hub and gets more mobile traffic relative to its cost than Markets' live
+  price polling.
+- **Voice Rooms removed entirely** (was LiveKit-powered, gated behind `voiceEnabled`): deleted
+  `VoiceRoom.tsx`, `api/voice/token/route.ts`, `docs/VOICE.md`, the `livekit-client`/`livekit-server-sdk`
+  dependencies, and every `LIVEKIT_*` env var (schema, `.env.example`, `src/lib/env.ts`'s `voiceEnabled`).
+  Updated the `/terms` and `/privacy` copy that mentioned it. Can be reinstated from git history if revisited
+  on a paid plan.
+- **Push-dispatch + watchdog GitHub Actions crons paused**: commented out the `schedule:` trigger in both
+  `.github/workflows/push-dispatch.yml` (was */10 min) and `watchdog.yml` (was */30 min), keeping
+  `workflow_dispatch:` so either can still be run manually. Zero scheduled Function Invocations from these
+  until re-enabled on a paid plan.
+- **News AI briefing is now manual**: `NewsClient`'s story reader and `SharedArticle` (the shared-link page)
+  used to auto-fire `/api/ai/why-matters` the moment a story opened. `BriefingBlock.tsx` gained an
+  `onGenerate` prop and shows a "Generate briefing" button instead; the fetch only happens on click. Added a
+  ref-based guard in both callers so a click that resolves after the reader has moved to a different
+  story/unmounted can't set stale state (the old auto-fire had a `useEffect` cleanup for this that a manual
+  click handler doesn't get for free).
+- **Poll intervals widened** across the ticker and news/markets pollers: `useTickerPoll` 60s → 150s,
+  `LiveNewsVisual` 60s → 150s, `NewsClient`'s realtime feed poll 45s → 90s, `MarketsClient`'s `TrendingNews`
+  120s → 180s, and its four `usePolledJson` calls (global/defi/perp/coins) 120-150s → 180s.
+- **One shared Supabase Realtime client for the whole tab**: every realtime/presence hook
+  (`useRealtime`, `useLivePresence`, `useUserOnline`, plus `RealtimeSession`, `WhatsNewFeed`, `ChatClient`,
+  `NavActivity`, `DashboardClient`) previously called `createClient()` itself, each opening its own physical
+  WebSocket connection to the same Supabase project - a single page could open 2-4 redundant connections
+  (site presence + navbar notifications + chat + comments, etc.) for no benefit, since Supabase multiplexes
+  any number of channel subscriptions over one client. Added `src/lib/realtimeClient.ts` (a lazily-created
+  singleton) and migrated all nine call sites to it. Concurrent-connection count against Supabase's Realtime
+  quota drops from up to N per page to 1 per browser tab.
+- **`/community` gives anonymous visitors a read-only preview** instead of the full live room: added
+  `getCommunityPreview()` (`src/lib/chat.ts`, `unstable_cache`-backed, 15s shared TTL, no per-user data) and
+  a new `CommunityPreview.tsx` component (last 20 messages + pinned banner + "Log in to join" CTA, no
+  WebSocket connection, no composer). `community/page.tsx` now branches on `getServerSession()`: anonymous
+  visitors skip the full-history Prisma query and the realtime channel entirely; logged-in members get the
+  exact same full `ChatClient` experience as before, unchanged.
+
+**Files**: `src/components/BottomNav.tsx`, `.github/workflows/push-dispatch.yml`, `.github/workflows/watchdog.yml`,
+`src/components/BriefingBlock.tsx`, `src/components/NewsClient.tsx`, `src/components/SharedArticle.tsx`,
+`src/lib/useTickerPoll.ts`, `src/components/LiveNewsVisual.tsx`, `src/components/MarketsClient.tsx`,
+`src/lib/realtimeClient.ts` (new), `src/lib/useRealtime.ts`, `src/lib/useLivePresence.ts`,
+`src/lib/useUserOnline.ts`, `src/components/RealtimeSession.tsx`, `src/components/WhatsNewFeed.tsx`,
+`src/components/ChatClient.tsx`, `src/components/NavActivity.tsx`, `src/components/DashboardClient.tsx`,
+`src/lib/chat.ts`, `src/components/CommunityPreview.tsx` (new), `src/app/community/page.tsx`,
+`src/lib/env.ts`, `.env.example`, `src/app/terms/page.tsx`, `src/app/privacy/page.tsx`, `package.json`,
+`CLAUDE.md`, `docs/HANDOFF.md` - removed: `src/components/VoiceRoom.tsx`, `src/app/api/voice/token/route.ts`,
+`docs/VOICE.md`.
+
+---
+
+## 2026-07-18 — Hobby-plan performance audit: dedupe fetches, cut a doubled cron invocation, streaming/parallelism on Journal
+Full-repo pass (routes, API handlers, cron/background tasks, `fetch()` sites, `useEffect` cleanup, bundle
+size) specifically for Vercel Hobby-plan cost drivers, on top of the prior CPU/ISR-Writes/Fast-Origin-Transfer
+rounds. Most of the codebase checked out clean (force-dynamic pages are all genuinely session-gated, bundle
+sizes are all reasonable, the AI response cache is well-wired) - this round's changes are the handful of
+confirmed, real findings.
+
+- **`MarketTicker` + `LiveMarketVisual` polled `/api/ticker` independently** - two separate 60s intervals
+  fetching the exact same endpoint whenever both render on a page (navbar marquee + homepage Products card),
+  doubling that request volume for no benefit. Added `src/lib/useTickerPoll.ts`, a module-level
+  `useSyncExternalStore` store shared by both components: one fetch, one interval, regardless of how many
+  consumers are mounted: starts on first subscriber, stops when the last one unmounts, pauses while the tab
+  is hidden. Rendered markup in both components is unchanged.
+- **`/api/push/dispatch` self-fetched its own app's `/api/news` route** over HTTP instead of calling the
+  underlying pipeline directly - a self-fetch anti-pattern that doubled Vercel Function Invocations on every
+  cron tick (up to ~144/day from the GitHub Actions poller) for zero benefit, since `getNewsPage()` already
+  sits behind the same cache `/api/news` itself reads from. Now calls `getNewsPage()` directly.
+- **`vercel.json`** carried a redundant daily native cron (`/api/push/dispatch` at 08:00) duplicating a time
+  slot already covered by the GitHub Actions 10-minute poller (`.github/workflows/push-dispatch.yml`).
+  Removed.
+- **`/journal`** (force-dynamic, largest route by First Load JS) ran two independent Prisma queries
+  (`trade.findMany` with a `take: 1000` + nested `fills` include, then `riskProfile.findUnique`) sequentially
+  instead of concurrently, and had no `loading.tsx` - every visit blocked the whole page (including the
+  navbar) with zero streaming boundary. Parallelized the two queries with `Promise.all`, and added
+  `src/app/journal/loading.tsx` matching the skeleton pattern already used by `/dashboard`.
+- Two small missing-cleanup fixes found during the sweep: `PwaSetup.tsx`'s `appinstalled` listener was never
+  removed on unmount (inline anonymous function, so even a naive removal wouldn't have matched);
+  `CommandPalette.tsx`'s focus `setTimeout` had no cleanup. Both low severity in practice (both components
+  mount once and persist), fixed as found.
+
+**Deliberately not changed** (found, evaluated, and left alone to respect "no UI changes" / "keep existing
+functionality"): `NewsClient`'s AI briefing auto-firing on every story view (shipped, user-visible UX, not a
+bug); coin-brief/protocol-brief AI prompts embedding live numbers that defeat their own cache in practice
+(low volume, click-gated); the duplicate CoinGecko fetch between `markets/[id]`'s `generateMetadata` and the
+`coin/[id]` API route (fixable, but risks an SEO metadata regression for marginal gain); three independent
+`/api/news` pollers across `LiveNewsVisual`/`MarketsClient`/`NewsClient` (different pages, not simultaneous,
+lower severity than the ticker case); `/community`'s force-dynamic render (already a known, twice-deferred
+structural lever, unchanged again this round).
+
+- **Files**: `src/lib/useTickerPoll.ts` (new), `src/components/MarketTicker.tsx`,
+  `src/components/LiveMarketVisual.tsx`, `src/app/api/push/dispatch/route.ts`, `vercel.json`,
+  `src/app/journal/page.tsx`, `src/app/journal/loading.tsx` (new), `src/components/PwaSetup.tsx`,
+  `src/components/CommandPalette.tsx`.
+
+---
+
 ## 2026-07-19 — Fix Vercel free-tier overages: Fluid Active CPU (exceeded), ISR Writes, Fast Origin Transfer
 Owner's Vercel dashboard showed "Exceeded free resources": Fluid Active CPU 6h23m/4h (already over), ISR
 Writes 161K/200K (80.5%), Fast Origin Transfer 9.07/10GB (90.7%). Three parallel investigations found

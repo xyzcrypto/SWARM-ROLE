@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getRealtimeClient } from "./realtimeClient";
 
 // Public client-safe Supabase creds (inlined by Next at build). When unset the
 // hook is a no-op returning 0, so callers degrade gracefully.
@@ -23,11 +24,8 @@ export function useLivePresence(opts?: { track?: boolean; keyPrefix?: string }):
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const { createClient } = await import("@supabase/supabase-js");
+      const client = await getRealtimeClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       if (cancelled) return;
-      const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: { persistSession: false, autoRefreshToken: false },
-      });
       const ch = client.channel("site-visitors", {
         config: { presence: { key: `${keyPrefix}-${Math.random().toString(36).slice(2)}` } },
       });

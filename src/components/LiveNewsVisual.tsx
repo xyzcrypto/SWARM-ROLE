@@ -25,7 +25,7 @@ function Line({ it }: { it: Item }) {
 
 /**
  * Live, auto-scrolling headline feed for the "Web3 News" product card. Pulls
- * real stories from /api/news (refreshes every 30s while visible); headlines
+ * real stories from /api/news (refreshes every 150s while visible); headlines
  * rise slowly upward and the newest story is pinned as a "Breaking" showcase
  * along the bottom. Reduced-motion pauses the scroll (globals `.vscroll` kill).
  */
@@ -49,7 +49,7 @@ export function LiveNewsVisual() {
       }
     }
     load();
-    const t = setInterval(() => !document.hidden && load(), 60_000);
+    const t = setInterval(() => !document.hidden && load(), 150_000);
     const onVis = () => !document.hidden && load();
     document.addEventListener("visibilitychange", onVis);
     return () => {

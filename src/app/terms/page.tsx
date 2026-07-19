@@ -45,7 +45,7 @@ export default function TermsPage() {
             <p>
               {site.name} is a Web3 research and community platform. It provides published research
               articles, live cryptocurrency market data, a personal trading journal, calculators and
-              tools, a community chat and voice rooms, and direct messaging between members.
+              tools, a community chat, and direct messaging between members.
             </p>
             <p>
               <strong>{site.name} is not a cryptocurrency exchange, broker, custodian, or financial

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Loader2, Volume2, Square, Languages, Gauge } from "lucide-react";
+import { Loader2, Volume2, Square, Languages, Gauge, Sparkles } from "lucide-react";
 import { MarkdownLite, stripMarkdown } from "./MarkdownLite";
 import { RobotIcon } from "./RobotIcon";
 import { pickVoice, nextRate } from "@/lib/tts";
@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 // browser text-to-speech) control and an EN / Hinglish toggle (AI-translated on
 // demand). Used by both the News reader and the shared-story page.
 export function BriefingBlock({
-  englishText, loading, err, title, summary, loggedIn, className,
+  englishText, loading, err, title, summary, loggedIn, onGenerate, className,
 }: {
   englishText: string | null;
   loading: boolean;
@@ -19,6 +19,8 @@ export function BriefingBlock({
   title: string;
   summary: string;
   loggedIn: boolean;
+  /** Briefing is on-demand now (was auto-fired on open) - call to fetch it. Omit to keep the old auto-fetch-by-parent behavior. */
+  onGenerate?: () => void;
   className?: string;
 }) {
   const [lang, setLang] = useState<"en" | "hinglish">("en");
@@ -135,6 +137,14 @@ export function BriefingBlock({
       {shown && !busy && <MarkdownLite text={shown} className="mt-1" />}
       {showErr && <p className="mt-1.5 text-[12px] text-amber-300">{showErr}</p>}
       {!loggedIn && !err && <p className="mt-1.5 text-[12px] text-zinc-500">Log in to read the full AI briefing of any story.</p>}
+      {loggedIn && onGenerate && !englishText && !loading && !err && (
+        <button
+          onClick={onGenerate}
+          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 px-3.5 py-1.5 text-[12px] font-semibold text-gold-200 transition-colors hover:bg-gold-500/20"
+        >
+          <Sparkles className="h-3.5 w-3.5" /> Generate briefing
+        </button>
+      )}
       {controls}
       <p className="mt-2 text-[10px] text-zinc-600">AI-generated from the headline &amp; excerpt. Not financial advice.</p>
     </div>
