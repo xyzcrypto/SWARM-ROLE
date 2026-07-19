@@ -3,7 +3,7 @@
 How to resume work on XYZ Crypto from **any** machine, any Claude account, or any
 new developer — with zero context loss and zero secret exposure.
 
-**Last updated:** 2026-07-16, after PR #145 (merged). This file is written to be
+**Last updated:** 2026-07-19, after PR #154 (merged). This file is written to be
 sufficient on its own — read `CLAUDE.md` first for the 60-second orientation, then
 this file for full operational detail. You should not need any prior conversation
 history to pick up exactly where the last session left off.
@@ -408,6 +408,63 @@ this signals a shift this session toward wanting a look before merge for
 anything touching shared infrastructure or visual identity, worth defaulting
 to for similar future requests unless told otherwise.
 
+### 2026-07-17 — Security hardening + ISR Writes fix + desktop perf trims
+
+**Security hardening pass** (owner asked for real fixes, not a report — all in
+`src/lib/auth.ts` + `src/lib/ratelimit.ts` and the two auth `start` routes):
+- **Login timing oracle closed**: "no such account", "account locked", and
+  "wrong password" now all cost the same by running a dummy `bcrypt.compare()`
+  against a fixed never-matching hash on the two fast-fail paths, so response
+  latency no longer leaks whether an account exists. (This fix is what later
+  caused the Fluid Active CPU overage — see the 2026-07-19 section below — so
+  the two must be read together.)
+- **Login-lockout race fixed**: the failed-attempt counter was a read-then-write
+  (`fails = count + 1`), so N concurrent failed logins could all read the same
+  start value and only advance it by 1, bypassing the 5-attempt lockout. Now a
+  single atomic Prisma `{ increment: 1 }` (Postgres row-locks it).
+- **IP-spoof bypass closed**: `clientIp()` now prefers `x-vercel-forwarded-for`
+  (set by Vercel's edge, not client-settable) over the spoofable
+  `x-forwarded-for`, so every IP-keyed limiter can no longer be defeated by
+  rotating a client-set header.
+- **New `otpEmail` limiter** (3 per 10 min, keyed by target email, independent
+  of the IP-keyed limiters) wired into `api/auth/signup/start` +
+  `api/auth/password/start` to stop email-bombing one address via IP rotation.
+  Also added a `rateLimit()` on the signup OTP-verify path in `authorize()`.
+- **Flagged, NOT auto-fixed** (needs owner go-ahead): `npm audit` shows 8 real
+  CVEs in the Next.js dependency tree, all requiring `next` 14.2.35 → 16.2.10
+  (two majors) — too large a blast radius for a hardening pass. See §8.
+
+**ISR Writes fix** (owner hit 75% of the 200K/month quota; exceeding it pauses
+the whole site): several hot routes had a `revalidate` window matched almost
+exactly by a client poll of the same length, so the ISR cache regenerated as
+fast as the code could trigger it (`/api/ticker` at a 10s window + 10s poll was
+the single largest contributor, ceiling ~259K/month alone). Lengthened windows
+and realigned the matching client polls across `ticker`, `news`/`news-fetch`,
+and the `markets/*` routes (coins/perp/global/coin[id] + `/markets/[id]`), and
+updated every `Cache-Control` header to match. No `revalidatePath()` call site
+was a meaningful contributor (all admin-gated-rare or self-service rate-limited).
+
+**Desktop perf trims**: `<NavActivity />` was mounted **twice** in `Navbar.tsx`
+(once in the `hidden md:flex` desktop wrapper, once in `flex md:hidden` mobile) —
+Tailwind `hidden` only toggles CSS `display`, not React mount state, so both
+copies polled + held a realtime subscription at every viewport. Now a single
+shared instance. Also: `PageBackground` bounded `absolute inset-0` → `h-screen`
+(its blur layers were stretching the full scroll height of long pages); desktop
+`.mesh`/`.aurora` base blur radii trimmed (96→70px, 62→45px); `priority` added
+to the first research-grid image so the above-the-fold card isn't lazy-loaded.
+
+### 2026-07-17/18 — Sodex added to the Points/Airdrop Value Calculator
+
+Added **Sodex** (SOSO token, SoPoints program) as a preset platform on `/tools`,
+via the existing registry-driven pattern (`src/lib/dex-registry.ts`) — no
+component or share-flow code changed. A same-session owner-caught bug fix
+followed: the first entry conflated the 150M-token SoPoints **pool size** with
+SOSO's real 1B **total supply**, so the "Total token supply" field showed the
+wrong number and skewed the implied price wildly. Corrected the data model
+(`totalSupply` = real 1B, pool expressed as 15% via `allocationPctOfSupply`) and
+added one-click `allocationScenarios` quick-select buttons (100%/50%/30% pool),
+purely additive so every other platform renders identically.
+
 ### 2026-07-18/19 — Hobby-plan cost passes (two rounds)
 
 **Round 1 (audit, no feature loss)**: deduped `MarketTicker`/`LiveMarketVisual`'s
@@ -436,7 +493,88 @@ below via a narrower, lower-risk path (branch on session presence rather
 than refactoring `ChatClient.tsx`'s personalization out). Full detail +
 complete file list: `docs/changelog.md`'s 2026-07-19 entry.
 
+### 2026-07-19 — Free-tier overage fixes (Fluid CPU / ISR Writes / FOT) + signup-drift fix + email removal
+
+The owner's Vercel dashboard showed **"Exceeded free resources"**: Fluid Active
+CPU 6h23m/4h (already over), ISR Writes 161K/200K, Fast Origin Transfer
+9.07/10GB. Three parallel root-cause fixes:
+- **Fluid Active CPU (the urgent one, and a direct regression from the 07-17
+  security fix)**: the dummy `bcrypt.compare()` added on every failed login to
+  close the timing oracle costs ~317-352ms of *synchronous* CPU per call —
+  `bcryptjs` is pure-JS (this repo doesn't use native `bcrypt`) so it can't
+  offload to a threadpool, and Fluid Compute bills synchronous CPU. The login
+  limiter was keyed only by email, so a bot rotating fake emails from one IP was
+  barely throttled while still forcing a full bcrypt op each time. **Fix**: a
+  genuine per-IP limiter (`loginIp`, 20/min/IP) checked *before* any bcrypt work
+  runs, alongside the existing per-email `login` limiter. Needed
+  `clientIpFromHeaders()` in `ratelimit.ts` since NextAuth's
+  `authorize(credentials, req)` passes a plain headers record, not a `Headers`.
+- **ISR Writes**: confirmed the 07-17 fix is working (rate roughly halved; the
+  161K figure is mostly the old pre-fix rate earlier in the billing cycle).
+  Found one missed route — `/api/markets/search`, still `revalidate = 60` and
+  keyed by an arbitrary user-typed string (high cardinality) — lengthened to
+  300s with matching `Cache-Control`.
+- **Fast Origin Transfer** — a new, previously-uncaught contributor:
+  `uploadImage()` (`src/lib/storage.ts`) falls back to storing an avatar/banner
+  as a raw base64 `data:` URL (up to ~700KB) **directly in the DB** when
+  Supabase Storage is unconfigured/fails, and that field was being selected raw
+  in six hot, high-fan-out read paths (every chat message author, DM partner,
+  post comments, follow lists, public profile + article pages). One active user
+  with a large inline avatar could be a multi-hundred-MB/month contributor,
+  invisible in payload-shape review since it's "just a string." **Fix**: added
+  `stripInlineImage()` (`src/lib/utils.ts`, turns a `data:` image into `null` —
+  client already falls back to initials) and applied it at all six read paths.
+  **Owner action still open** (flagged, not code-fixable): a one-time read-only
+  prod DB check for how many users actually hit this fallback — see §8.
+
+**Signup silently failing on schema drift, made loud** (`src/lib/auth.ts`): the
+owner noticed no new signups for a while and hit a "Database not migrated"
+error on `/forgot-password`, confirming the prod DB had drifted behind
+`schema.prisma` (the `vercel-build` `db push` is best-effort/non-fatal, so a
+failed run persists silently). The signup-completion branch's
+`prisma.user.findUnique` had no explicit `select`, so it fetched every column;
+a missing column threw, NextAuth turned that into the same generic "incorrect or
+expired code" the client shows for a real bad code, and since `verifyCode()`
+already deleted the one-time code, the user was stuck in an unrecoverable loop
+with no row ever created and nothing in the logs. **Fix**: both DB touches now
+catch P2021/P2022, report to Sentry (tagged `area: signup-completion`) + console,
+then return `null` — same safe behavior, now loud. This does **not** repair
+already-drifted prod data (that needs a real migration re-run — owner action, §8).
+
+**Hardcoded personal email removed** (`.env.example`, `src/lib/env.ts`): the
+owner's real Gmail was hardcoded as `ADMIN_EMAIL` in `.env.example` and as
+`VAPID_SUBJECT`'s fallback in `env.ts` — publicly documenting exactly which
+inbox auto-promotes to ADMIN. `.env.example` now uses a generic placeholder;
+`VAPID_SUBJECT` falls back to the site's public support address (`site.email`)
+since `web-push` throws on an empty subject. Also regenerated `.env.example`,
+which was 17 vars behind `env.ts` (GEMINI/AI_PROVIDER_ORDER/AI_DAILY_LIMIT_*,
+CMC, GIPHY, the VAPID trio, CRON_SECRET, TELEGRAM_*, and the now-removed
+LIVEKIT_* — all added or, for LiveKit, dropped alongside the voice removal).
+
 ## 8. Open items / natural next steps
+- **Production DB schema drift — signups verified working; other tables still
+  unverified.** Confirmed 2026-07-19 (see §7): the prod DB had drifted behind
+  `prisma/schema.prisma`, silently starving signups and 503-ing
+  `/forgot-password`. **Update (2026-07-19): live signups were verified working
+  — a real account was created successfully — so the `User`-table columns the
+  signup path touches are now in sync** (whether via a deploy re-running the
+  `vercel-build` `db push`, or the drift having only ever affected other
+  columns). The remaining open question is whether *other* tables are still
+  drifted: verify the rest with `SELECT to_regclass('"...")` per table in
+  Supabase, or exercise each feature and watch for a "Database not migrated"
+  503 / the Sentry `area: signup-completion` event. If any are, repair by a
+  fresh Vercel deploy (the `vercel-build` `db push` retries each deploy) or
+  `npm run db:push` locally with prod `DATABASE_URL` + `DIRECT_URL`.
+- **Inline avatar/banner data: URLs in the DB — one-time read-only check.** The
+  2026-07-19 `stripInlineImage()` FOT fix stops these from being *served*, but
+  doesn't quantify or backfill existing rows. Owner should run a read-only
+  `SELECT username, length(image) FROM "User" WHERE image LIKE 'data:%'` in
+  Supabase to see if any real users hit the base64 fallback and whether a
+  backfill (re-upload to Storage, or clear the field) is worth it.
+- **Next.js dependency CVEs.** `npm audit` (07-17) shows 8 real CVEs in the
+  Next.js tree, all requiring `next` 14.2.35 → 16.2.10 (two majors) to clear.
+  Deferred as too large a blast radius for a hardening pass — schedule as its
+  own upgrade task with a full verify + preview before merge.
 - ~~**`/community` ISR unlock**~~ — addressed 2026-07-19: anonymous visitors
   now get a cached read-only preview instead of the full dynamic room (see
   section 7's 2026-07-18/19 entry). `ChatClient.tsx` itself is unchanged for

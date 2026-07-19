@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-19 — Handoff docs refresh (bring HANDOFF.md + CLAUDE.md current to PR #154)
+Doc-only pass: `HANDOFF.md`'s header and §7 narrative had stalled at PR #145 (2026-07-16) even though nine
+more PRs (#146-#154) had merged. Reconciled both against the actual code + the (already-current) changelog so
+a cold-start session no longer misses recently-shipped work.
+- **`docs/HANDOFF.md`**: bumped the "Last updated" line (#145 → #154). Added three missing §7 sections — the
+  2026-07-17 security hardening pass (timing-oracle, atomic lockout, `x-vercel-forwarded-for` IP source,
+  `otpEmail` limiter, flagged Next.js CVEs) + ISR-Writes realignment + desktop perf trims; the 2026-07-17/18
+  Sodex calculator add/fix; and the 2026-07-19 free-tier overage fixes (Fluid Active CPU via the `loginIp`
+  pre-bcrypt gate, `/api/markets/search` ISR window, `stripInlineImage()` FOT fix, signup schema-drift
+  loud-fail, hardcoded-email removal). Added three owner action items to §8: prod DB migration re-run,
+  one-time inline-`data:`-avatar DB check, and the Next.js CVE upgrade.
+- **`CLAUDE.md`**: "Current state" dated 2026-07-16 → 2026-07-19, replaced the stale "this session" bullet
+  with security-hardening + overage-fix + open-owner-action bullets, and documented the two-independent-keys
+  rate-limit convention (`login`+`loginIp`, `otpEmail`, un-spoofable IP source) in Conventions.
+- **Files**: `docs/HANDOFF.md`, `CLAUDE.md`, `docs/changelog.md`.
+
+---
+
 ## 2026-07-19 — Feature downgrades for Hobby-plan cost: voice rooms removed, crons paused, manual AI briefing, shared realtime client, anon community preview
 Owner-requested follow-up to the 2026-07-18 audit: trade specific features for lower ongoing cost while the
 site stays on the free plan, deferring the removed pieces to when a paid plan is in place.
@@ -192,6 +210,10 @@ migrated" mapping - but the signup-completion path had no such handling.
   drifted production data (that needs the actual migration re-run, which only the owner can trigger via a
   fresh deploy or `prisma db push` with real credentials), but the next time this happens it surfaces
   immediately instead of silently starving signups for an unknown stretch of time.
+- **Update (2026-07-19): live signups verified working** - a real account was created successfully, so the
+  `User`-table columns the signup path touches are back in sync (via a deploy re-running the `vercel-build`
+  `db push`, or the drift having only ever affected other columns). The remaining open question is whether
+  *other* tables are still drifted - see `docs/HANDOFF.md §8`.
 - **Files**: `src/lib/auth.ts`.
 
 ## 2026-07-18 — Fix: Sodex calculator's total-supply/pool-size conflation + add 50%/30% pool buttons
