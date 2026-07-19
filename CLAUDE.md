@@ -57,7 +57,13 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
 ## Conventions (match these — don't invent new patterns)
 - API: `ok(data)` / `fail(msg, status)` / `handleError(err, "context")`; zod-parse
   every body; pick the right rate-limit key (`signup`/`login`/`password`/`admin`/
-  `comment`/`like`/`subscribe`).
+  `comment`/`like`/`subscribe`, plus per-feature buckets — see `ratelimit.ts`).
+  Security-sensitive flows use **two independent keys**: an IP-keyed limiter
+  *and* a target-keyed one, so neither IP rotation nor a fixed victim can bypass
+  it — login is `login` (per-email) + `loginIp` (20/min/IP, checked before any
+  bcrypt runs), OTP send is `signup`/`password` (IP) + `otpEmail` (3/10min per
+  target email). IP comes from `clientIp()`/`clientIpFromHeaders()`, which prefer
+  the un-spoofable `x-vercel-forwarded-for` over `x-forwarded-for`.
 - Server pages fetch + serialize (Dates → ISO) → pass to a `"use client"` component.
 - Design tokens: `gold-*`, `mint-*`, `ink-*`; surfaces `.glass`/`.surface`; buttons
   `btn-primary`/`btn-gold`/`btn-ghost`/`btn-secondary`; reveal animations via
@@ -116,7 +122,7 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   `text-shimmer`) to each leaf span individually, not a parent wrapping
   multiple children, or the un-covered children render invisible.
 
-## Current state (2026-07-16)
+## Current state (2026-07-19)
 - ✅ Live: homepage (orbital ecosystem + Fraunces hero headline with word-stagger
   reveal + continuous shimmer), research hub + premium gating, likes, comments,
   auth (email+password, OTP signup, Google optional), profiles (`/u/[handle]` +
@@ -133,15 +139,24 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   shares one Supabase client via `src/lib/realtimeClient.ts` instead of each
   opening its own WebSocket connection; poll intervals widened across
   ticker/news/markets pollers. Full detail: `docs/HANDOFF.md §7`.
-- ✅ This session: fixed two distinct classes of "site looks static" regression
-  (stale-chunk hydration failure; `prefers-reduced-motion` over-gating — both
-  detailed in `docs/HANDOFF.md §7`), three rounds of Vercel Fast Origin Transfer
-  reduction (ISR conversions + Cache-Control on hot API routes), added a real
-  Terms/Privacy pair, and shipped a scoped hero typography/animation redesign
-  after two rounds of owner feedback.
-- ⚠️ Known future lever if Fast Origin Transfer pressure returns: `/community`'s
-  force-dynamic render (unconditional session check even for anonymous
-  visitors) — deferred as a bigger refactor, see `docs/HANDOFF.md §7` item 4.
+- 🔒 Security hardening (2026-07-17): login timing-oracle closed (equal-cost
+  dummy `bcrypt.compare()` on fast-fail paths), login-lockout counter made
+  atomic (`{ increment: 1 }`, was a race-bypassable read-then-write), IP-keyed
+  limiters switched to the un-spoofable `x-vercel-forwarded-for`, new `otpEmail`
+  + `loginIp` limiters. 8 Next.js-tree CVEs (need `next` 14→16) flagged, NOT
+  fixed — owner action, `docs/HANDOFF.md §8`.
+- 💸 Free-tier overage fixes (2026-07-19): the security timing fix's dummy
+  bcrypt (~330ms sync CPU, `bcryptjs` is pure-JS) blew past Fluid Active CPU —
+  fixed with the `loginIp` pre-bcrypt gate. Plus an ISR-Writes fix
+  (`/api/markets/search` window) and a Fast Origin Transfer fix
+  (`stripInlineImage()` stops raw base64 `data:` avatars stored in the DB from
+  being served across six hot read paths). Earlier rounds: static-regression
+  fixes, hero redesign, Terms/Privacy, three FOT rounds (all `docs/HANDOFF.md §7`).
+- ⚠️ Two open OWNER actions (`docs/HANDOFF.md §8`): (1) prod DB has drifted
+  behind `schema.prisma` — was silently starving signups; code now fails loudly
+  but the data needs a real migration re-run (fresh deploy or `db:push` with
+  prod creds). (2) One-time read-only check for existing inline `data:` avatars
+  in the DB.
 - 🔜 No specific next phase agreed with the owner as of this handoff — ask
   before assuming a direction. Full session-by-session detail: `docs/HANDOFF.md §7`.
 
