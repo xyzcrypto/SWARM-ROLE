@@ -210,6 +210,10 @@ migrated" mapping - but the signup-completion path had no such handling.
   drifted production data (that needs the actual migration re-run, which only the owner can trigger via a
   fresh deploy or `prisma db push` with real credentials), but the next time this happens it surfaces
   immediately instead of silently starving signups for an unknown stretch of time.
+- **Update (2026-07-19): live signups verified working** - a real account was created successfully, so the
+  `User`-table columns the signup path touches are back in sync (via a deploy re-running the `vercel-build`
+  `db push`, or the drift having only ever affected other columns). The remaining open question is whether
+  *other* tables are still drifted - see `docs/HANDOFF.md §8`.
 - **Files**: `src/lib/auth.ts`.
 
 ## 2026-07-18 — Fix: Sodex calculator's total-supply/pool-size conflation + add 50%/30% pool buttons

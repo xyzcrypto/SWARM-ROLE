@@ -552,14 +552,19 @@ CMC, GIPHY, the VAPID trio, CRON_SECRET, TELEGRAM_*, and the now-removed
 LIVEKIT_* — all added or, for LiveKit, dropped alongside the voice removal).
 
 ## 8. Open items / natural next steps
-- **Production DB schema drift — needs an owner-triggered migration re-run.**
-  Confirmed 2026-07-19 (see §7): the prod DB is behind `prisma/schema.prisma`,
-  which was silently starving signups and 503-ing `/forgot-password`. The code
-  now fails loudly, but the data is only repaired by re-running the migration
-  with real credentials — a fresh Vercel deploy (the `vercel-build` `db push`
-  retries each deploy) or `npm run db:push` locally with prod `DATABASE_URL` +
-  `DIRECT_URL`. Verify with `SELECT to_regclass('"...")` in Supabase, or just
-  retry a signup and watch for the Sentry `area: signup-completion` event.
+- **Production DB schema drift — signups verified working; other tables still
+  unverified.** Confirmed 2026-07-19 (see §7): the prod DB had drifted behind
+  `prisma/schema.prisma`, silently starving signups and 503-ing
+  `/forgot-password`. **Update (2026-07-19): live signups were verified working
+  — a real account was created successfully — so the `User`-table columns the
+  signup path touches are now in sync** (whether via a deploy re-running the
+  `vercel-build` `db push`, or the drift having only ever affected other
+  columns). The remaining open question is whether *other* tables are still
+  drifted: verify the rest with `SELECT to_regclass('"...")` per table in
+  Supabase, or exercise each feature and watch for a "Database not migrated"
+  503 / the Sentry `area: signup-completion` event. If any are, repair by a
+  fresh Vercel deploy (the `vercel-build` `db push` retries each deploy) or
+  `npm run db:push` locally with prod `DATABASE_URL` + `DIRECT_URL`.
 - **Inline avatar/banner data: URLs in the DB — one-time read-only check.** The
   2026-07-19 `stripInlineImage()` FOT fix stops these from being *served*, but
   doesn't quantify or backfill existing rows. Owner should run a read-only
