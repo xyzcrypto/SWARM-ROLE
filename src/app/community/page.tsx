@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { env, gifEnabled, voiceEnabled } from "@/lib/env";
-import { CHAT_MESSAGE_SELECT, toChatPayload } from "@/lib/chat";
+import { env, gifEnabled } from "@/lib/env";
+import { CHAT_MESSAGE_SELECT, toChatPayload, getCommunityPreview } from "@/lib/chat";
 import { Navbar } from "@/components/Navbar";
 import { ChatClient } from "@/components/ChatClient";
-import { VoiceRoom } from "@/components/VoiceRoom";
+import { CommunityPreview } from "@/components/CommunityPreview";
 
 export const metadata: Metadata = {
   title: "Community Chat",
@@ -19,6 +19,40 @@ export const dynamic = "force-dynamic";
 export default async function CommunityPage() {
   const session = await getServerSession(authOptions);
   const me = session?.user as any;
+
+  // Anonymous visitors get a read-only preview (CommunityPreview) instead of
+  // the full live room: no realtime WebSocket connection, no composer, and
+  // the message list comes from a short-TTL shared cache (getCommunityPreview)
+  // instead of a fresh Postgres round trip on every single anonymous page
+  // view - crawlers and first-time visitors previously paid the same DB +
+  // realtime cost as an actual logged-in member.
+  if (!me?.id) {
+    const { messages, pinned } = await getCommunityPreview();
+    return (
+      <>
+        <Navbar />
+        <main className="relative flex h-[100svh] flex-col overflow-hidden pt-[4.75rem] sm:pt-20">
+          <div className="mesh" />
+          <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-2 pb-2 pt-2 sm:px-6 sm:pb-4 sm:pt-3 lg:px-8">
+            <div className="mb-2 flex shrink-0 items-center justify-center gap-2 sm:mb-3">
+              <span className="eyebrow eyebrow-glass text-gold-200">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
+                </span>
+                <span className="mono text-[11px] uppercase tracking-[0.18em] text-zinc-400">
+                  Markets · Alpha · Airdrops — live
+                </span>
+              </span>
+            </div>
+            <div className="min-h-0 flex-1">
+              <CommunityPreview messages={messages} pinned={pinned} now={Date.now()} />
+            </div>
+          </div>
+        </main>
+      </>
+    );
+  }
 
   // Initial history + the pinned banner - run in parallel (independent queries)
   // so the page opens faster. Both resilient to a missing table pre-migration:
@@ -51,7 +85,7 @@ export default async function CommunityPage() {
   let initialPinned = pinnedRow ? toChatPayload(pinnedRow) : null;
 
   // Stamp the viewer's own poll votes (myVote) for initial render.
-  if (me?.id) {
+  {
     const pollIds = [
       ...initialMessages.filter((m) => m.poll).map((m) => m.poll!.id),
       ...(initialPinned?.poll ? [initialPinned.poll.id] : []),
@@ -96,29 +130,18 @@ export default async function CommunityPage() {
             </span>
           </div>
 
-          {/* Telegram-style live voice room (LiveKit). Hidden until configured. */}
-          {voiceEnabled && (
-            <div className="mb-2 shrink-0">
-              <VoiceRoom enabled={voiceEnabled} loggedIn={!!me} />
-            </div>
-          )}
-
           <div className="min-h-0 flex-1">
             <ChatClient
               initialMessages={initialMessages}
               initialHasMore={hasMore}
               initialPinned={initialPinned}
-              me={
-                me
-                  ? {
-                      id: me.id as string,
-                      isAdmin: me.role === "ADMIN",
-                      name: (me.name as string | null) ?? "Member",
-                      image: (me.image as string | null) ?? null,
-                      username: (me.username as string | null) ?? null,
-                    }
-                  : null
-              }
+              me={{
+                id: me.id as string,
+                isAdmin: me.role === "ADMIN",
+                name: (me.name as string | null) ?? "Member",
+                image: (me.image as string | null) ?? null,
+                username: (me.username as string | null) ?? null,
+              }}
               realtime={{
                 url: env.NEXT_PUBLIC_SUPABASE_URL,
                 anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,

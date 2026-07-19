@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 export type TickerCoin = { symbol: string; name: string; price: number; change: number; image: string };
 type TickerState = { coins: TickerCoin[] | null; live: boolean; loading: boolean };
 
-const POLL_MS = 60_000; // matches /api/ticker's revalidate window
+const POLL_MS = 150_000; // was 60s - polling slower than that just re-fetches the same cached response and burns Function Invocations for nothing
 
 let state: TickerState = { coins: null, live: false, loading: true };
 const listeners = new Set<() => void>();

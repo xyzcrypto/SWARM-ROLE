@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { getRealtimeClient } from "@/lib/realtimeClient";
 
 /**
  * Site-wide realtime + analytics glue, mounted once in the root layout:
@@ -39,14 +40,8 @@ export function RealtimeSession({ url, anonKey }: { url: string; anonKey: string
     let cancelled = false;
 
     (async () => {
-      const { createClient } = await import("@supabase/supabase-js");
+      const client = await getRealtimeClient(url, anonKey);
       if (cancelled) return;
-      const client = createClient(url, anonKey, {
-        auth: { persistSession: false, autoRefreshToken: false },
-        // Back off hard if realtime can't connect (e.g. misconfigured env) so a
-        // failed WS doesn't hammer the console with rapid reconnect attempts.
-        realtime: { reconnectAfterMs: (tries: number) => Math.min(1000 * 2 ** tries, 60_000) },
-      });
 
       // Global presence for the live-visitor count.
       const presenceKey = userId || `guest-${Math.random().toString(36).slice(2)}`;

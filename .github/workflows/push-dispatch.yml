@@ -9,9 +9,12 @@ name: Push dispatch (breaking news)
 #   CRON_SECRET  - same value set in the Vercel env
 # Until both are set, the job skips gracefully.
 
+# Paused to save Vercel Hobby-plan Function Invocations - re-enable the
+# `schedule` trigger below when moving to a paid plan. Still runnable manually
+# via workflow_dispatch (Actions tab -> Run workflow) in the meantime.
 on:
-  schedule:
-    - cron: "*/10 * * * *"
+  # schedule:
+  #   - cron: "*/10 * * * *"
   workflow_dispatch: {}
 
 # If a run overruns, don't pile up.

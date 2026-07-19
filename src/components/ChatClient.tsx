@@ -9,6 +9,7 @@ import {
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { compressImage } from "@/lib/image";
 import { chatMediaUrl } from "@/lib/chat-media";
+import { getRealtimeClient } from "@/lib/realtimeClient";
 import { SendGlyph } from "./SendGlyph";
 import { GifPicker } from "./GifPicker";
 import { Avatar } from "./Avatar";
@@ -345,11 +346,8 @@ export function ChatClient({
 
     async function start() {
       if (realtime.url && realtime.anonKey) {
-        const { createClient } = await import("@supabase/supabase-js");
+        const client = await getRealtimeClient(realtime.url, realtime.anonKey);
         if (cancelled) return;
-        const client = createClient(realtime.url, realtime.anonKey, {
-          auth: { persistSession: false, autoRefreshToken: false },
-        });
         const channel = client.channel(CHANNEL, { config: { presence: { key: me?.id || `guest-${Math.random().toString(36).slice(2)}` } } });
         channel
           .on("broadcast", { event: "new_message" }, ({ payload }) => {

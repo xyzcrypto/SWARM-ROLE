@@ -84,15 +84,17 @@ const TABS = [
 
 export function MarketsClient() {
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("overview");
-  // Poll intervals match each route's server-side `revalidate` window -
-  // polling faster than the cache regenerates just re-fetches the same stale
-  // data while still counting against Vercel's ISR Writes quota.
-  const g = usePolledJson<GlobalResp>("/api/markets/global", 150_000);
-  const d = usePolledJson<DefiResp>("/api/markets/defi", 120_000);
-  const p = usePolledJson<PerpResp>("/api/markets/perp", 150_000);
+  // Poll intervals are at or slower than each route's server-side `revalidate`
+  // window - polling faster than the cache regenerates just re-fetches the
+  // same stale data while still counting as a Function Invocation. Widened
+  // once more (each was previously equal to its revalidate window) to cut
+  // request volume further on the Hobby plan.
+  const g = usePolledJson<GlobalResp>("/api/markets/global", 180_000);
+  const d = usePolledJson<DefiResp>("/api/markets/defi", 180_000);
+  const p = usePolledJson<PerpResp>("/api/markets/perp", 180_000);
   const x = usePolledJson<DexResp>("/api/markets/dex", 300_000);
   const y = usePolledJson<YieldResp>("/api/markets/yields", 300_000);
-  const c = usePolledJson<CoinsResp>("/api/markets/coins", 120_000);
+  const c = usePolledJson<CoinsResp>("/api/markets/coins", 180_000);
   const anyLive = g.live || d.live || p.live || x.live || y.live || c.live;
 
   return (
@@ -528,7 +530,7 @@ function TrendingNews() {
         .catch(() => {})
         .finally(() => { if (!stop) setLoading(false); });
     load();
-    const id = setInterval(() => { if (document.visibilityState === "visible") load(); }, 120_000);
+    const id = setInterval(() => { if (document.visibilityState === "visible") load(); }, 180_000);
     return () => { stop = true; clearInterval(id); };
   }, []);
   return (

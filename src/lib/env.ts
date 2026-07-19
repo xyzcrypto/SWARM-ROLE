@@ -38,11 +38,6 @@ const schema = z.object({
   CRON_SECRET: z.string().optional(),
   TELEGRAM_BOT_TOKEN: z.string().optional(),
   TELEGRAM_CHAT_ID: z.string().optional(),
-  // LiveKit (community voice rooms). Server signs tokens; the browser connects
-  // to the public wss URL. All three needed to enable voice.
-  LIVEKIT_API_KEY: z.string().optional(),
-  LIVEKIT_API_SECRET: z.string().optional(),
-  NEXT_PUBLIC_LIVEKIT_URL: z.string().optional(),
 });
 
 const parsed = schema.safeParse(process.env);
@@ -114,10 +109,6 @@ export const env = {
   // allows; the service-role key above must NEVER be exposed client-side.
   NEXT_PUBLIC_SUPABASE_URL: (raw.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/rest\/v1\/?$/i, "").replace(/\/$/, ""),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: raw.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "",
-  // LiveKit (community voice rooms). Server-only key/secret + public wss URL.
-  LIVEKIT_API_KEY: raw.LIVEKIT_API_KEY ?? "",
-  LIVEKIT_API_SECRET: raw.LIVEKIT_API_SECRET ?? "",
-  NEXT_PUBLIC_LIVEKIT_URL: (raw.NEXT_PUBLIC_LIVEKIT_URL ?? "").replace(/\/$/, ""),
 };
 
 export const googleEnabled = !!env.GOOGLE_CLIENT_ID && !!env.GOOGLE_CLIENT_SECRET;
@@ -165,11 +156,6 @@ export const cmcEnabled = !!env.CMC_API_KEY;
 // Web Push (news alerts). Off until both VAPID keys are set - then the /news
 // "Enable alerts" toggle activates and the cron dispatch can send.
 export const pushEnabled = !!env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && !!env.VAPID_PRIVATE_KEY;
-
-// Community voice rooms (LiveKit). Off until the key/secret + public wss URL are
-// all set - then the "Join voice" bar appears and tokens can be minted.
-export const voiceEnabled =
-  !!env.LIVEKIT_API_KEY && !!env.LIVEKIT_API_SECRET && !!env.NEXT_PUBLIC_LIVEKIT_URL;
 
 // Admins: ADMIN_EMAILS (comma-separated) preferred, ADMIN_EMAIL as fallback.
 export const adminEmails: string[] = (raw.ADMIN_EMAILS || raw.ADMIN_EMAIL || "")

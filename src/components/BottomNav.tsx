@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { LineChart, Newspaper, FileText, MessagesSquare, User } from "lucide-react";
+import { Wrench, Newspaper, FileText, MessagesSquare, User } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { isBottomActive, isBottomHidden } from "@/lib/bottom-nav";
 import { cn } from "@/lib/utils";
 
-type Item = { href: string; label: string; Icon: typeof LineChart };
+type Item = { href: string; label: string; Icon: typeof Wrench };
 const ITEMS: Item[] = [
-  { href: "/markets", label: "Markets", Icon: LineChart },
+  { href: "/tools", label: "Tools", Icon: Wrench },
   { href: "/news", label: "News", Icon: Newspaper },
   { href: "/research", label: "Research", Icon: FileText },
   { href: "/community", label: "Chat", Icon: MessagesSquare },

@@ -170,9 +170,10 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     return () => io.disconnect();
   }, [hasMore, loading, loadMore]);
 
-  // Realtime: poll on the unfiltered view (45s - matches the server-side feed
-  // cache window closely enough that polling faster wouldn't surface anything
-  // new). Fresh stories are buffered for a "N new stories" pill (Twitter-style)
+  // Realtime: poll on the unfiltered view (90s - was 45s; the server-side feed
+  // cache window doesn't refresh meaningfully faster than that, so polling
+  // twice as often just doubled Function Invocations for no fresher data).
+  // Fresh stories are buffered for a "N new stories" pill (Twitter-style)
   // instead of jumping the feed. (Real device notifications are handled by
   // NewsAlertsToggle / web-push.)
   useEffect(() => {
@@ -187,7 +188,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
         const fresh = r.items.filter((i) => !known.has(i.id));
         return fresh.length ? [...fresh, ...prevPending] : prevPending;
       });
-    }, 45_000);
+    }, 90_000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [category, query, fetchPage]);
@@ -616,6 +617,10 @@ function NewsReader({
   const [progress, setProgress] = useState(0); // reading scroll progress (0-1)
   const bodyRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
+  // Guards a manually-triggered fetch against resolving after the reader has
+  // already moved to a different story (generateDigest is a click handler now,
+  // not an effect, so it has no automatic cleanup on item change/unmount).
+  const digestItemId = useRef(item.id);
   const scrollRaf = useRef(0);
 
   // rAF-throttled - a plain onScroll handler would setState on every native
@@ -666,11 +671,17 @@ function NewsReader({
     };
   }, [hasPrev, hasNext, onPrev, onNext, onClose]);
 
-  // Reset + auto-generate the AI digest whenever the story changes.
+  // Reset the AI digest whenever the story changes - generation is now on-demand
+  // (a "Generate briefing" button in BriefingBlock) rather than auto-firing on
+  // every story open, to cut AI invocation volume.
   useEffect(() => {
+    digestItemId.current = item.id;
     setDigest({ loading: false, text: null, err: null });
+  }, [item.id]);
+
+  const generateDigest = useCallback(() => {
     if (!loggedIn) return;
-    let stop = false;
+    const forItemId = item.id;
     setDigest({ loading: true, text: null, err: null });
     fetch("/api/ai/why-matters", {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -678,12 +689,13 @@ function NewsReader({
     })
       .then(async (res) => {
         const j = await res.json().catch(() => ({}));
-        if (stop) return;
+        if (digestItemId.current !== forItemId) return;
         if (!res.ok) setDigest({ loading: false, text: null, err: j.error || "Couldn't generate a summary." });
         else setDigest({ loading: false, text: j.text, err: null });
       })
-      .catch(() => !stop && setDigest({ loading: false, text: null, err: "Network error." }));
-    return () => { stop = true; };
+      .catch(() => {
+        if (digestItemId.current === forItemId) setDigest({ loading: false, text: null, err: "Network error." });
+      });
   }, [item.id, item.title, item.summary, loggedIn]);
 
   const share = () => shareStory(item);
@@ -760,6 +772,7 @@ function NewsReader({
               title={item.title}
               summary={item.summary}
               loggedIn={loggedIn}
+              onGenerate={generateDigest}
               className="mt-4"
             />
             <NewsSocial url={item.url} loggedIn={loggedIn} now={now} />

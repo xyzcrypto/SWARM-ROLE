@@ -4,8 +4,10 @@
 // When the Supabase env is unset, broadcast is a silent no-op and the client
 // falls back to polling - chat still works end-to-end.
 import { z } from "zod";
+import { unstable_cache } from "next/cache";
 import { broadcastEvent } from "@/lib/realtime";
 import { stripInlineImage } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 
 export const CHAT_CHANNEL = "community";
 export const CHAT_PAGE_SIZE = 50;
@@ -97,6 +99,45 @@ type ChatEvent =
 export async function broadcastChatEvent(evt: ChatEvent): Promise<void> {
   await broadcastEvent(CHAT_CHANNEL, evt.event, evt.payload);
 }
+
+export const COMMUNITY_PREVIEW_COUNT = 20;
+
+/**
+ * Read-only preview of the room (no per-user data - no myVote, nothing
+ * personalized) for anonymous visitors. Shared across every anonymous
+ * request via unstable_cache instead of hitting Postgres on every single
+ * page view: the /community route reads the session cookie (so Next.js
+ * still renders it per-request), but the actual DB round trip underneath is
+ * now reused for CACHE_SECONDS at a time regardless of visitor count.
+ */
+const CACHE_SECONDS = 15;
+export const getCommunityPreview = unstable_cache(
+  async () => {
+    const [rows, pinnedRow] = await Promise.all([
+      prisma.chatMessage
+        .findMany({
+          where: { status: "visible" },
+          orderBy: { createdAt: "desc" },
+          take: COMMUNITY_PREVIEW_COUNT,
+          select: CHAT_MESSAGE_SELECT,
+        })
+        .catch(() => []),
+      prisma.chatMessage
+        .findFirst({
+          where: { status: "visible", pinnedAt: { not: null } },
+          orderBy: { pinnedAt: "desc" },
+          select: CHAT_MESSAGE_SELECT,
+        })
+        .catch(() => null),
+    ]);
+    return {
+      messages: rows.reverse().map(toChatPayload),
+      pinned: pinnedRow ? toChatPayload(pinnedRow) : null,
+    };
+  },
+  ["community-preview"],
+  { revalidate: CACHE_SECONDS }
+);
 
 // Shared Prisma selection for a chat message + everything the UI needs.
 export const CHAT_MESSAGE_SELECT = {

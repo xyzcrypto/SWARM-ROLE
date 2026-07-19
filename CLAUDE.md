@@ -121,10 +121,18 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   reveal + continuous shimmer), research hub + premium gating, likes, comments,
   auth (email+password, OTP signup, Google optional), profiles (`/u/[handle]` +
   `/settings` + public Journal Activity feed), admin dashboard, community chat
-  (reactions/replies/polls/pins/voice rooms), 1-on-1 DMs, Trading Journal (trades/
-  analytics/risk/challenges, premium-tiered, shareable cards), Markets hub, News
-  hub (AI briefings, push notifications, saved stories), XYZ AI assistant,
-  `/terms` + `/privacy`.
+  (reactions/replies/polls/pins; anonymous visitors get a read-only preview,
+  logged-in members get the full live room - see HANDOFF.md §7), 1-on-1 DMs,
+  Trading Journal (trades/analytics/risk/challenges, premium-tiered, shareable
+  cards), Markets hub, News hub (AI briefings - manual "Generate" trigger, not
+  auto-fired - push notifications, saved stories), XYZ AI assistant, `/terms`
+  + `/privacy`.
+- 🔧 Hobby-plan cost pass: voice rooms (LiveKit) removed entirely; push-dispatch
+  + watchdog GitHub Actions crons paused (`workflow_dispatch` only - re-enable
+  `schedule:` when moving off the free plan); every realtime/presence hook
+  shares one Supabase client via `src/lib/realtimeClient.ts` instead of each
+  opening its own WebSocket connection; poll intervals widened across
+  ticker/news/markets pollers. Full detail: `docs/HANDOFF.md §7`.
 - ✅ This session: fixed two distinct classes of "site looks static" regression
   (stale-chunk hydration failure; `prefers-reduced-motion` over-gating — both
   detailed in `docs/HANDOFF.md §7`), three rounds of Vercel Fast Origin Transfer
