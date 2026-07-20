@@ -5,6 +5,29 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-20 — Docs: correct the Next.js CVE picture + GitHub OAuth email-verification follow-up
+Doc-only pass following an audit of how this app actually uses Next against the flagged advisories.
+- **`docs/HANDOFF.md §8`**: rewrote the Next.js CVE item. `npm audit` now flags **14** Next.js advisories
+  (not the 8 first counted on 07-17 - the set grew as more were disclosed), all covering the pinned
+  `next@14.2.35` and cleared only by `next@16.2.10` (two majors). Assessed per-advisory against this app's
+  surface: the genuine residual is **RSC / Server-Component DoS-class only, with no data exposure** (the loud
+  high CVEs - WebSocket SSRF, Pages-Router+i18n middleware bypass, rewrites smuggling, CSP-nonce /
+  `beforeInteractive` XSS, image-cache DoS - don't apply, because the app doesn't use those features or Vercel
+  manages them). Documented that **the real driver to upgrade is that Next 14 receives no security backports**,
+  and the caveat that the "not affected" verdicts flip if the app ever adds middleware, CSP nonces, i18n,
+  rewrites, or a custom server/WebSocket-upgrade path.
+- **`docs/HANDOFF.md §8`**: added a follow-up item to harden the GitHub OAuth `profile()` callback -
+  `src/lib/auth.ts` uses `allowDangerousEmailAccountLinking: true` but the custom `profile()` override takes
+  `profile.email` (GitHub's public email) with no explicit verified check and never calls `/user/emails`, so
+  it should assert the address is the account's `primary && verified` email before linking. Pre-existing since
+  PR #105; verified via git history that the 07-17 hardening pass did not touch OAuth linking.
+- **`CLAUDE.md`**: synced the "Current state" security bullet's "8 Next.js-tree CVEs" line to match (14
+  advisories, RSC DoS-class residual, no backports for Next 14).
+- No source code changed; no runtime behavior affected.
+- **Files**: `docs/HANDOFF.md`, `CLAUDE.md`, `docs/changelog.md`.
+
+---
+
 ## 2026-07-19 — Handoff docs refresh (bring HANDOFF.md + CLAUDE.md current to PR #154)
 Doc-only pass: `HANDOFF.md`'s header and §7 narrative had stalled at PR #145 (2026-07-16) even though nine
 more PRs (#146-#154) had merged. Reconciled both against the actual code + the (already-current) changelog so
