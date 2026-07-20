@@ -80,6 +80,27 @@ export function stripInlineImage(url: string | null | undefined): string | null 
   return typeof url === "string" && url.startsWith("data:") ? null : url ?? null;
 }
 
+/**
+ * From GitHub's `GET /user/emails` response, return the address that is BOTH the
+ * account's primary AND verified email, or null if there isn't one. Used by the
+ * GitHub OAuth `profile()` callback (src/lib/auth.ts) so account-linking only
+ * ever attaches to a GitHub-verified primary address - `profile.email` alone is
+ * just the public email (and the default userinfo backfill picks primary, not
+ * necessarily verified), neither of which proves the user owns the address.
+ */
+export function pickPrimaryVerifiedEmail(emails: unknown): string | null {
+  if (!Array.isArray(emails)) return null;
+  const match = emails.find(
+    (e): e is { email: string } =>
+      !!e &&
+      typeof e === "object" &&
+      (e as { primary?: unknown }).primary === true &&
+      (e as { verified?: unknown }).verified === true &&
+      typeof (e as { email?: unknown }).email === "string",
+  );
+  return match ? match.email : null;
+}
+
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 

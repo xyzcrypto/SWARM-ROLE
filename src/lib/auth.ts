@@ -11,6 +11,7 @@ import { googleEnabled, githubEnabled, twitterEnabled, isAdminEmail } from "@/li
 import { verifyCode } from "@/lib/otp";
 import { rateLimit, clientIpFromHeaders } from "@/lib/ratelimit";
 import { generateUniqueUsername } from "@/lib/username";
+import { pickPrimaryVerifiedEmail } from "@/lib/utils";
 
 // P2021 = table missing, P2022 = column missing - both mean the DB hasn't
 // picked up a schema change yet (the `db push` step in vercel-build is
@@ -52,18 +53,43 @@ export const authOptions: NextAuthOptions = {
           GitHubProvider({
             clientId: process.env.GITHUB_CLIENT_ID!,
             clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-            // Same rationale as Google: GitHub returns the account's verified
-            // primary email, and our credentials signup is OTP-verified, so
-            // linking by email is safe and lets existing users use GitHub.
+            // Link a GitHub login into an existing same-email account (same
+            // rationale as Google). Safe ONLY because profile() below pins the
+            // email to GitHub's primary+verified address and our credentials
+            // signup is itself OTP-verified - so there's no unverified-email
+            // account-takeover path.
             allowDangerousEmailAccountLinking: true,
-            // GitHub can hide the email (private-email setting). Our User.email
-            // is required+unique, so fall back to a non-deliverable but stable
-            // placeholder - login still works; email features simply no-op.
-            profile(profile) {
+            async profile(profile, tokens) {
+              // Do NOT trust `profile.email` for linking: it's GitHub's *public*
+              // profile email (or, when that's unset, the primary-but-not-
+              // necessarily-verified address the default userinfo backfills) -
+              // neither is proof the user owns it. With
+              // allowDangerousEmailAccountLinking on, linking on an unverified
+              // address would be an account-takeover vector. So fetch
+              // /user/emails ourselves (granted by the `user:email` scope the
+              // provider requests) and require primary && verified.
+              let verifiedEmail: string | null = null;
+              try {
+                const res = await fetch("https://api.github.com/user/emails", {
+                  headers: {
+                    Authorization: `Bearer ${tokens.access_token}`,
+                    Accept: "application/vnd.github+json",
+                    "User-Agent": "xyz-crypto",
+                  },
+                });
+                if (res.ok) verifiedEmail = pickPrimaryVerifiedEmail(await res.json());
+              } catch {
+                // Network/parse failure - fall through to the placeholder below.
+              }
               return {
                 id: String(profile.id),
                 name: profile.name ?? profile.login,
-                email: profile.email ?? `gh-${profile.id}@users.noreply.xyzcrypto.io`,
+                // No primary+verified email (private-email setting, missing
+                // scope, or a failed lookup) -> a stable, non-deliverable
+                // placeholder. User.email is required+unique, so login still
+                // works; email features simply no-op; and crucially, no
+                // account-linking happens on an unverified address.
+                email: verifiedEmail ?? `gh-${profile.id}@users.noreply.xyzcrypto.io`,
                 image: profile.avatar_url,
               };
             },

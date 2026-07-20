@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { slugify, readingTime, cn, csvCell, maskEmail } from "@/lib/utils";
+import { slugify, readingTime, cn, csvCell, maskEmail, pickPrimaryVerifiedEmail } from "@/lib/utils";
 
 describe("slugify", () => {
   it("lowercases and hyphenates", () => {
@@ -63,5 +63,30 @@ describe("csvCell", () => {
   it("handles null/undefined as empty", () => {
     expect(csvCell(null)).toBe('""');
     expect(csvCell(undefined)).toBe('""');
+  });
+});
+
+describe("pickPrimaryVerifiedEmail", () => {
+  it("returns the address that is both primary AND verified", () => {
+    const emails = [
+      { email: "secondary@verified.com", primary: false, verified: true },
+      { email: "primary@verified.com", primary: true, verified: true },
+    ];
+    expect(pickPrimaryVerifiedEmail(emails)).toBe("primary@verified.com");
+  });
+  it("rejects a primary-but-unverified address (the takeover vector)", () => {
+    const emails = [{ email: "primary@unverified.com", primary: true, verified: false }];
+    expect(pickPrimaryVerifiedEmail(emails)).toBeNull();
+  });
+  it("rejects a verified-but-not-primary address (must be both)", () => {
+    const emails = [{ email: "verified@notprimary.com", primary: false, verified: true }];
+    expect(pickPrimaryVerifiedEmail(emails)).toBeNull();
+  });
+  it("returns null for empty, non-array, or malformed input", () => {
+    expect(pickPrimaryVerifiedEmail([])).toBeNull();
+    expect(pickPrimaryVerifiedEmail(null)).toBeNull();
+    expect(pickPrimaryVerifiedEmail(undefined)).toBeNull();
+    expect(pickPrimaryVerifiedEmail("nope")).toBeNull();
+    expect(pickPrimaryVerifiedEmail([{ primary: true, verified: true }])).toBeNull();
   });
 });

@@ -5,6 +5,32 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-20 — Security: GitHub OAuth linking now requires a primary && verified email
+Closed the OAuth account-linking follow-up flagged in `HANDOFF.md §8`. The GitHub provider keeps
+`allowDangerousEmailAccountLinking: true` (so an existing email+password user can later sign in with GitHub),
+but that flag links an OAuth login into any existing account sharing the same email - which is only safe if
+the email is proven to belong to the GitHub user.
+- **Root cause**: the custom `profile()` override returned `profile.email` (GitHub's *public* profile email;
+  and when that's unset, the default userinfo backfill picks the primary-but-not-necessarily-verified
+  address) with no verified check. Combined with the linking flag, that was a latent account-takeover vector -
+  a GitHub user could potentially link into a victim's account via an unverified address.
+- **Fix**: `profile()` is now `async(profile, tokens)` and fetches `GET /user/emails` (granted by the
+  `user:email` scope the provider already requests), selecting only a `primary && verified` address via a new
+  pure helper `pickPrimaryVerifiedEmail()` in `src/lib/utils.ts`. `profile.email` is no longer trusted for
+  linking. When there's no primary+verified address (private-email setting, missing scope, or a failed/timed-
+  out lookup), it falls back to the existing non-deliverable `gh-<id>@users.noreply.xyzcrypto.io` placeholder,
+  so linking can never attach to an unverified address (login still works; email features simply no-op).
+- The fetch is wrapped in try/catch and gated on `res.ok`, so a GitHub API hiccup degrades to the placeholder
+  rather than throwing out of `authorize`.
+- **Tests**: added `pickPrimaryVerifiedEmail` cases to `src/lib/__tests__/utils.test.ts` (requires both flags;
+  rejects primary-but-unverified and verified-but-not-primary; null on empty/non-array/malformed). Full
+  pipeline green: typecheck + lint + 339 tests + build. (The live OAuth handshake itself isn't exercisable
+  without real GitHub credentials; the security-critical selection logic is covered by the unit test.)
+- **Files**: `src/lib/auth.ts`, `src/lib/utils.ts`, `src/lib/__tests__/utils.test.ts`, `docs/HANDOFF.md`,
+  `docs/changelog.md`.
+
+---
+
 ## 2026-07-20 — Docs: correct the Next.js CVE picture + GitHub OAuth email-verification follow-up
 Doc-only pass following an audit of how this app actually uses Next against the flagged advisories.
 - **`docs/HANDOFF.md §8`**: rewrote the Next.js CVE item. `npm audit` now flags **14** Next.js advisories
