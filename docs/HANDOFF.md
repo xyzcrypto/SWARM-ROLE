@@ -601,19 +601,19 @@ LIVEKIT_* — all added or, for LiveKit, dropped alongside the voice removal).
     upgrade ships.
   - Still deferred as its own task (too large a blast radius for a hardening
     pass) — full verify pipeline + a live Vercel preview before merge.
-- **Harden the GitHub OAuth `profile()` callback — assert `primary && verified`
-  email.** `src/lib/auth.ts`'s GitHub provider uses
-  `allowDangerousEmailAccountLinking: true` (links an OAuth login to an existing
-  same-email account) but its custom `profile()` override takes `profile.email`
-  (GitHub's *public* profile email) with **no explicit verified-email check**,
-  and — because it overrides the default — never calls GitHub's `/user/emails`
-  to fetch the verified primary. It's currently safe only by relying on GitHub's
-  invariant that a public email must be verified; that reliance is implicit, not
-  asserted. Follow-up: fetch `/user/emails` (or otherwise assert the address is
-  the account's `primary && verified` email) before returning it, so linking
-  never trusts an unverified address. Pre-existing since PR #105 — the 07-17
-  hardening pass did **not** touch OAuth linking (verified via git history), so
-  this is net-new scope, not a regression.
+- ~~**Harden the GitHub OAuth `profile()` callback — assert `primary &&
+  verified` email.**~~ **Addressed 2026-07-20.** `src/lib/auth.ts`'s GitHub
+  provider still uses `allowDangerousEmailAccountLinking: true`, but its
+  `profile()` callback is now `async(profile, tokens)` and fetches
+  `GET /user/emails` (granted by the `user:email` scope the provider already
+  requests), keeping only a `primary && verified` address via the new
+  `pickPrimaryVerifiedEmail()` helper (`src/lib/utils.ts`, unit-tested). It no
+  longer trusts `profile.email` (GitHub's *public* email) for linking; when
+  there's no primary+verified address — private-email setting, missing scope, or
+  a failed/timed-out lookup — it falls back to the existing
+  `gh-<id>@users.noreply.xyzcrypto.io` placeholder, so account-linking can never
+  attach to an unverified address. (Was pre-existing since PR #105; the 07-17
+  hardening pass did not touch OAuth linking.)
 - ~~**`/community` ISR unlock**~~ — addressed 2026-07-19: anonymous visitors
   now get a cached read-only preview instead of the full dynamic room (see
   section 7's 2026-07-18/19 entry). `ChatClient.tsx` itself is unchanged for
