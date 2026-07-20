@@ -143,8 +143,11 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   dummy `bcrypt.compare()` on fast-fail paths), login-lockout counter made
   atomic (`{ increment: 1 }`, was a race-bypassable read-then-write), IP-keyed
   limiters switched to the un-spoofable `x-vercel-forwarded-for`, new `otpEmail`
-  + `loginIp` limiters. 8 Next.js-tree CVEs (need `next` 14→16) flagged, NOT
-  fixed — owner action, `docs/HANDOFF.md §8`.
+  + `loginIp` limiters. Next.js-tree CVEs (14 as of the latest audit, up from 8
+  first counted; need `next` 14→16) flagged, NOT fixed — for this app the
+  residual is RSC DoS-class only (no data exposure), but Next 14 gets no
+  security backports so new advisories keep landing against it. Owner action,
+  `docs/HANDOFF.md §8`.
 - 💸 Free-tier overage fixes (2026-07-19): the security timing fix's dummy
   bcrypt (~330ms sync CPU, `bcryptjs` is pure-JS) blew past Fluid Active CPU —
   fixed with the `loginIp` pre-bcrypt gate. Plus an ISR-Writes fix

@@ -571,10 +571,49 @@ LIVEKIT_* — all added or, for LiveKit, dropped alongside the voice removal).
   `SELECT username, length(image) FROM "User" WHERE image LIKE 'data:%'` in
   Supabase to see if any real users hit the base64 fallback and whether a
   backfill (re-upload to Storage, or clear the field) is worth it.
-- **Next.js dependency CVEs.** `npm audit` (07-17) shows 8 real CVEs in the
-  Next.js tree, all requiring `next` 14.2.35 → 16.2.10 (two majors) to clear.
-  Deferred as too large a blast radius for a hardening pass — schedule as its
-  own upgrade task with a full verify + preview before merge.
+- **Next.js dependency CVEs — upgrade `next` 14 → 16.** `npm audit` now flags
+  **14** Next.js advisories (not the 8 first counted on 07-17 — the set has
+  grown as more were disclosed), all covering the pinned `next@14.2.35` and all
+  cleared only by `next@16.2.10` (two majors, semver-major, no minor fix
+  available). Assessed against this app's actual surface on 2026-07-19:
+  - **Residual exposure is DoS-class only, no data exposure.** The genuine
+    matches are the RSC / Server-Component denial-of-service items
+    (GHSA-h25m-26qc-wcjf, GHSA-q4gf-8mx6-v5v3, GHSA-8h8q-6873-q5fj — all high
+    but availability-only), plus two low/moderate RSC cache-poisoning items
+    (GHSA-vfv6-92ff-j949, GHSA-wfc6-r584-vfw7). None expose or corrupt data for
+    this app's shape, and Vercel adds its own request limits on top.
+  - **Most of the loud/high CVEs do NOT apply to us today**, because the app
+    doesn't use the vulnerable feature (or Vercel manages it): SSRF via
+    WebSocket upgrades (GHSA-c4j6, 8.6 — no Next-level WS server), Pages-Router
+    + i18n middleware bypass (GHSA-36qx, 7.5 — App Router, no i18n, no
+    middleware), rewrites request-smuggling (GHSA-ggv3 — no rewrites), the
+    CSP-nonce and `beforeInteractive` XSS pair (GHSA-ffhc / GHSA-gx5p — neither
+    used), and both `next/image` disk-cache / optimizer DoS items (Vercel-
+    managed image pipeline).
+  - **The real driver for upgrading is that Next 14 no longer receives security
+    backports** — new advisories will keep landing against it and can only be
+    fixed by moving to a supported major, independent of whether any single one
+    applies today.
+  - **Caveat — the "not affected" verdicts are conditional on current code.**
+    They flip to *affected* the moment the app adds any of: `middleware.ts`, CSP
+    nonces, i18n routing, `next.config` rewrites/redirects, or a custom
+    server/WebSocket-upgrade path. Re-audit if any of those land before the
+    upgrade ships.
+  - Still deferred as its own task (too large a blast radius for a hardening
+    pass) — full verify pipeline + a live Vercel preview before merge.
+- **Harden the GitHub OAuth `profile()` callback — assert `primary && verified`
+  email.** `src/lib/auth.ts`'s GitHub provider uses
+  `allowDangerousEmailAccountLinking: true` (links an OAuth login to an existing
+  same-email account) but its custom `profile()` override takes `profile.email`
+  (GitHub's *public* profile email) with **no explicit verified-email check**,
+  and — because it overrides the default — never calls GitHub's `/user/emails`
+  to fetch the verified primary. It's currently safe only by relying on GitHub's
+  invariant that a public email must be verified; that reliance is implicit, not
+  asserted. Follow-up: fetch `/user/emails` (or otherwise assert the address is
+  the account's `primary && verified` email) before returning it, so linking
+  never trusts an unverified address. Pre-existing since PR #105 — the 07-17
+  hardening pass did **not** touch OAuth linking (verified via git history), so
+  this is net-new scope, not a regression.
 - ~~**`/community` ISR unlock**~~ — addressed 2026-07-19: anonymous visitors
   now get a cached read-only preview instead of the full dynamic room (see
   section 7's 2026-07-18/19 entry). `ChatClient.tsx` itself is unchanged for
