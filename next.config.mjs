@@ -50,8 +50,7 @@ const nextConfig = {
     removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
   },
   experimental: {
-    // Required on Next 14 for src/instrumentation.ts (Sentry runtime init).
-    instrumentationHook: true,
+    // (Next 16: instrumentation.ts is picked up by default - no flag needed.)
     // Tree-shake barrel imports from these big libraries into per-symbol imports
     // so we don't ship the whole icon set / motion lib. lucide-react + iconsax
     // are imported by name across 40+ files; this is the biggest bundle win.

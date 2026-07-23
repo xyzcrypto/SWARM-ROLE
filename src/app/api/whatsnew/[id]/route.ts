@@ -14,7 +14,8 @@ const patchSchema = z.object({
 });
 
 // PATCH /api/whatsnew/:id - edit an entry (requires `whatsnew:manage`).
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("whatsnew:manage");
     if (!actor) return fail("Forbidden", 403);
@@ -35,7 +36,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // DELETE /api/whatsnew/:id - remove an entry (requires `whatsnew:manage`).
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("whatsnew:manage");
     if (!actor) return fail("Forbidden", 403);

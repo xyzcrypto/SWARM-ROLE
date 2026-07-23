@@ -5,7 +5,8 @@ import { reactionSchema, broadcastChatEvent } from "@/lib/chat";
 
 // POST /api/chat/messages/[id]/react - toggle an emoji reaction on a message.
 // One row per (message, user, emoji); posting the same emoji again removes it.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in to react.", 401);

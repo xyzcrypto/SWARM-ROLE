@@ -25,7 +25,7 @@ import { fetchExtraSocials } from "@/lib/user-socials";
 // edits call revalidatePath so changes show immediately.
 export const revalidate = 300;
 
-type Props = { params: { username: string } };
+type Props = { params: Promise<{ username: string }> };
 
 // Look the user up by their canonical (lowercased) handle. Wrapped in
 // React cache() so generateMetadata + the page share one DB query per request.
@@ -49,7 +49,8 @@ const getProfile = cache(async (usernameParam: string) => {
   return user ? { ...user, image: stripInlineImage(user.image), bannerImage: stripInlineImage(user.bannerImage) } : null;
 });
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const user = await getProfile(params.username);
   if (!user) return { title: "Profile not found" };
   const title = user.name ? `${user.name} (@${user.username})` : `@${user.username}`;
@@ -61,7 +62,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ProfilePage({ params }: Props) {
+export default async function ProfilePage(props: Props) {
+  const params = await props.params;
   const user = await getProfile(params.username);
   if (!user) notFound();
 

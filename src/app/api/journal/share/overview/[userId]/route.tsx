@@ -20,7 +20,8 @@ function fallbackCard() {
   return new ImageResponse(<GenericCard />, { ...SIZE, ...CACHE });
 }
 
-export async function GET(_req: Request, { params }: { params: { userId: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
     const user = await prisma.user.findUnique({ where: { id: params.userId }, select: { name: true, username: true } });
     if (!user) return fallbackCard();

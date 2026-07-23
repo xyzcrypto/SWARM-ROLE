@@ -15,7 +15,8 @@ export const runtime = "nodejs";
 // Degrades to an empty list if the table hasn't been migrated yet.
 const CACHE = { headers: { "Cache-Control": "public, s-maxage=30, stale-while-revalidate=60" } };
 
-export async function GET(_req: Request, { params }: { params: { userId: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
     try {
       const items = await prisma.journalActivity.findMany({

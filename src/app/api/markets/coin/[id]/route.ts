@@ -14,7 +14,8 @@ function cleanId(raw: string): string {
   return raw.toLowerCase().replace(/[^a-z0-9-]/g, "").slice(0, 80);
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const id = cleanId(params.id || "");
   if (!id) return NextResponse.json({ live: false }, { status: 200 });
 

@@ -9,10 +9,8 @@ const schema = z.object({
 });
 
 // PATCH /api/users/:id/membership - requires the `premium:manage` capability.
-export async function PATCH(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("premium:manage");
     if (!actor) return fail("Forbidden", 403);

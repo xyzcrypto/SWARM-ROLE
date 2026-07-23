@@ -27,7 +27,8 @@ async function coinMeta(id: string): Promise<{ name: string; symbol: string } | 
   }
 }
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const id = cleanId(params.id);
   const m = await coinMeta(id);
   const title = m ? `${m.name} (${m.symbol}) Price, Chart & Market Data` : "Coin";
@@ -40,7 +41,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-export default function CoinPage({ params }: { params: { id: string } }) {
+export default async function CoinPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const id = cleanId(params.id);
   return (
     <>

@@ -7,7 +7,7 @@ full context to continue safely.
 ## What this is
 **XYZ Crypto** — premium Web3 ecosystem site (research hub, market data, user
 accounts/profiles, premium content). Dark luxe design: gold + mint on near-black.
-- **Stack:** Next.js 14.2 (app router) · TypeScript · Tailwind · framer-motion ·
+- **Stack:** Next.js 16.2 (app router, React 19) · TypeScript · Tailwind · framer-motion ·
   Prisma → Supabase Postgres · next-auth (JWT) · Upstash rate-limits · Resend
   email · Supabase Storage · Sentry · Vercel hosting.
 - **Owner contact:** niralekhan321@gmail.com
@@ -16,7 +16,7 @@ accounts/profiles, premium content). Dark luxe design: gold + mint on near-black
 ```bash
 npm run dev          # local dev server
 npm run typecheck    # tsc --noEmit
-npm run lint         # next lint (eslint config: .eslintrc.json)
+npm run lint         # eslint src (ESLint 9 flat config: eslint.config.mjs)
 npm run test         # vitest (unit tests in src/lib/__tests__)
 npm run build        # prisma generate + next build
 npm run db:push      # sync schema to DB (needs real DATABASE_URL/DIRECT_URL)
@@ -122,7 +122,7 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   `text-shimmer`) to each leaf span individually, not a parent wrapping
   multiple children, or the un-covered children render invisible.
 
-## Current state (2026-07-19)
+## Current state (2026-07-23)
 - ✅ Live: homepage (orbital ecosystem + Fraunces hero headline with word-stagger
   reveal + continuous shimmer), research hub + premium gating, likes, comments,
   auth (email+password, OTP signup, Google optional), profiles (`/u/[handle]` +
@@ -143,11 +143,9 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   dummy `bcrypt.compare()` on fast-fail paths), login-lockout counter made
   atomic (`{ increment: 1 }`, was a race-bypassable read-then-write), IP-keyed
   limiters switched to the un-spoofable `x-vercel-forwarded-for`, new `otpEmail`
-  + `loginIp` limiters. Next.js-tree CVEs (14 as of the latest audit, up from 8
-  first counted; need `next` 14→16) flagged, NOT fixed — for this app the
-  residual is RSC DoS-class only (no data exposure), but Next 14 gets no
-  security backports so new advisories keep landing against it. Owner action,
-  `docs/HANDOFF.md §8`.
+  + `loginIp` limiters. (The 14 Next.js-tree framework CVEs flagged here were
+  cleared 2026-07-23 by the Next 14 → 16 / React 19 upgrade — see the Current
+  state note below and `docs/HANDOFF.md §8`.)
 - 💸 Free-tier overage fixes (2026-07-19): the security timing fix's dummy
   bcrypt (~330ms sync CPU, `bcryptjs` is pure-JS) blew past Fluid Active CPU —
   fixed with the `loginIp` pre-bcrypt gate. Plus an ISR-Writes fix
@@ -160,6 +158,14 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   but the data needs a real migration re-run (fresh deploy or `db:push` with
   prod creds). (2) One-time read-only check for existing inline `data:` avatars
   in the DB.
+- ⬆️ Next 14 → 16 + React 19 upgrade (2026-07-23): next 14.2.35 → 16.2.11,
+  react 18 → 19, next-auth stayed on v4 (4.24.15, no Auth.js v5 rewrite), R3F
+  8→9 / drei 9→10 (compile-only — the WebGL orbital scene is gated off, CSS
+  orbital is the live centerpiece), eslint 9 flat config (`next lint` removed).
+  Async `params`/`searchParams` codemod across 31 files. Cleared all 14 Next.js
+  framework CVEs; typecheck/lint/test/build green + homepage runtime-verified
+  under React 19. Leftover: react-hooks v6 warnings + `sharp`/`postcss` audit
+  residue (`docs/HANDOFF.md §8`).
 - 🔜 No specific next phase agreed with the owner as of this handoff — ask
   before assuming a direction. Full session-by-session detail: `docs/HANDOFF.md §7`.
 

@@ -1,10 +1,13 @@
 import { NextResponse } from "next/server";
-import { getNewsPage, NEWS_REVALIDATE } from "@/lib/news-fetch";
+import { getNewsPage } from "@/lib/news-fetch";
 
 // Live Web3 news - aggregates reputable RSS/Atom feeds server-side (keyless),
 // classifies each story, de-duplicates the same event across outlets, and
 // filters/paginates. Cached + graceful always-200 (empty on total failure).
-export const revalidate = NEWS_REVALIDATE;
+// Next 16 requires a statically-analyzable literal here (an imported const is
+// rejected as an invalid segment config). Keep in sync with NEWS_REVALIDATE in
+// src/lib/news-fetch.ts.
+export const revalidate = 90;
 
 export async function GET(req: Request) {
   try {

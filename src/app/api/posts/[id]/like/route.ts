@@ -7,7 +7,8 @@ import { broadcastEvent } from "@/lib/realtime";
 // a logged-in user after an ISR-cached page load (research/[slug] no longer
 // computes per-visitor `myLike` for free posts, so the baked-in initialLiked
 // may not be theirs). Guests always correctly show false, no request needed.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser();
     if (!user) return ok({ liked: false });
@@ -23,7 +24,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 // POST /api/posts/:id/like - logged-in toggle. Returns { liked, count }.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser();
     if (!user) return fail("Please log in to like posts.", 401);

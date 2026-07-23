@@ -7,7 +7,8 @@ import { broadcastEvent } from "@/lib/realtime";
 import { stripInlineImage } from "@/lib/utils";
 
 // GET /api/posts/:id/comments - public; visible comments, newest first, paginated.
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     if (!isCuid(params.id)) return fail("Invalid id.", 400);
     const { searchParams } = new URL(req.url);
@@ -57,7 +58,8 @@ const createSchema = z.object({
 });
 
 // POST /api/posts/:id/comments - any logged-in user; auto-published.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const user = await getSessionUser();
     if (!user) return fail("Please log in to comment.", 401);

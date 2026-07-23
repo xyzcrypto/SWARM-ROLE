@@ -5,6 +5,41 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-23 — Framework upgrade: Next 14 → 16 + React 18 → 19 (clears all 14 Next.js CVEs)
+Closed the long-standing `HANDOFF.md §8` upgrade item. Turned out far smaller than the "owner-decision, huge
+blast radius" framing, because the auth library didn't need replacing.
+- **Dependencies**: `next` 14.2.35 → 16.2.11; `react`/`react-dom` 18 → 19; `next-auth` 4.24.7 → **4.24.15
+  (stayed on v4** - it now lists `next ^15||^16` + `react ^19` as peers, so no Auth.js v5 rewrite, and
+  `getServerSession(authOptions)` is unchanged); `@sentry/nextjs` → 10.67; `@react-three/fiber` 8 → 9 and
+  `@react-three/drei` 9 → 10 (React 19 forces these); `eslint` 8 → 9 + `eslint-config-next` → 16;
+  `@types/react(-dom)` → 19.
+- **Async request APIs**: ran the official `next-async-request-api` codemod - `params`/`searchParams` are now
+  awaited across 31 route handlers, server pages, and `generateMetadata` functions. No `cookies()`/`headers()`
+  call sites existed, so that part was free. Typecheck stayed clean.
+- **Segment config**: Next 16 rejects a non-literal segment config export, so `/api/news`'s
+  `export const revalidate = NEWS_REVALIDATE` became a literal `90` (with a keep-in-sync comment).
+- **Config**: removed `experimental.instrumentationHook` (instrumentation.ts is default in 16); Next auto-set
+  `tsconfig` `jsx: "react-jsx"` (automatic runtime) and added the dev-types include.
+- **Lint**: Next 16 removed the `next lint` subcommand. Migrated to ESLint 9 flat config (`eslint.config.mjs`
+  consuming eslint-config-next 16's native `core-web-vitals`), script → `eslint src`, deleted `.eslintrc.json`.
+  eslint-config-next 16 bundles react-hooks v6, whose new React-Compiler-era rules flag 72 pre-existing
+  patterns; downgraded those five rules to **warn** so the framework bump isn't blocked by an unrelated
+  cross-component effect refactor (tracked as a §8 follow-up).
+- **R3F/drei bump is compile-only**: `useWebglGate()` is hardcoded `false` (the three.js orbital scene was
+  disabled earlier), so the WebGL scene never renders in production - the CSS `OrbitalEcosystem` is the live
+  centerpiece. R3F 9 / drei 10 only need to typecheck/build, which they do.
+- **Verified**: typecheck + lint + 339 tests + `next build` (Turbopack) all green; a headless-Chromium run of
+  the running app confirmed the homepage renders and hydrates under React 19 with zero uncaught/hydration
+  errors (hero, CSS orbital centerpiece, nav, stats all present).
+- **Result**: all 14 Next.js **framework** advisories cleared from `npm audit`. Remaining audit entries are
+  non-framework and CI's audit step is non-blocking (`--audit-level=high || true`): `sharp`/libvips (2 new
+  2026 highs, image-optimizer native lib, Vercel-managed at runtime) and `postcss` (moderate, build-time).
+- **Files**: `package.json`, `package-lock.json`, `next.config.mjs`, `tsconfig.json`, `eslint.config.mjs`
+  (new), `.eslintrc.json` (removed), `src/app/api/news/route.ts`, 31 codemod'd route/page files, `CLAUDE.md`,
+  `docs/HANDOFF.md`, `docs/changelog.md`.
+
+---
+
 ## 2026-07-20 — Security: GitHub OAuth linking now requires a primary && verified email
 Closed the OAuth account-linking follow-up flagged in `HANDOFF.md §8`. The GitHub provider keeps
 `allowDangerousEmailAccountLinking: true` (so an existing email+password user can later sign in with GitHub),

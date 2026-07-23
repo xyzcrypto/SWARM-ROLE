@@ -12,7 +12,8 @@ const createSchema = z.object({
 });
 
 // POST /api/journal/challenges/[id]/milestones - creator-only, add a review checkpoint.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);

@@ -56,7 +56,8 @@ function fallbackCard() {
   );
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const row = await prisma.sharedCard
       .findUnique({ where: { id: params.id }, select: { kind: true, data: true } })
@@ -113,7 +114,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
             >
               {logo && (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={logo} width={22} height={22} style={{ borderRadius: "6px" }} alt="" />
+                (<img src={logo} width={22} height={22} style={{ borderRadius: "6px" }} alt="" />)
               )}
               <div style={{ fontSize: 20, fontWeight: 700, color: "#fafafa", display: "flex" }}>{platform}</div>
             </div>
