@@ -16,7 +16,8 @@ function pretty(slug: string): string {
   return slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export async function generateMetadata({ params }: { params: { type: string; slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ type: string; slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const type = String(params.type || "").toLowerCase();
   const slug = cleanSlug(params.slug);
   const name = pretty(slug);
@@ -28,7 +29,8 @@ export async function generateMetadata({ params }: { params: { type: string; slu
   };
 }
 
-export default function ProtocolPage({ params }: { params: { type: string; slug: string } }) {
+export default async function ProtocolPage(props: { params: Promise<{ type: string; slug: string }> }) {
+  const params = await props.params;
   const type = String(params.type || "").toLowerCase();
   const slug = cleanSlug(params.slug);
   if (!TYPES.has(type) || !slug) notFound();

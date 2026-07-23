@@ -9,7 +9,8 @@ import { isAdminEmail } from "@/lib/env";
 const schema = z.object({ permissions: z.array(z.string()).max(50) });
 
 // GET /api/users/:id/access - current capabilities for the access editor.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("users:roles");
     if (!actor) return fail("Forbidden", 403);
@@ -31,7 +32,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
 // PATCH /api/users/:id/access - set a member's staff capabilities.
 // Gated by `users:roles`; Super Admins (ADMIN_EMAILS) are immutable here.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("users:roles");
     if (!actor) return fail("Forbidden", 403);

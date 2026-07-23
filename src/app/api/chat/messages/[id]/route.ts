@@ -15,7 +15,8 @@ const editSchema = z.object({
 
 // PATCH /api/chat/messages/[id] - edit your own message within the edit
 // window. Broadcasts `message_edited` so every client updates in place.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
@@ -59,7 +60,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 // DELETE /api/chat/messages/[id] - hide a message. Allowed for the author
 // (delete your own) or an admin (moderation). Soft-delete via status so the
 // record survives for audit.
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);

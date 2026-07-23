@@ -10,7 +10,7 @@ import { chatMediaUrl } from "@/lib/chat-media";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type Ctx = { params: { id: string } };
+type Ctx = { params: Promise<{ id: string }> };
 
 // Load a conversation and confirm the caller is one of its two participants.
 async function loadMine(id: string, myId: string) {
@@ -24,7 +24,8 @@ async function loadMine(id: string, myId: string) {
 
 // GET /api/dm/[id] — the thread (oldest→newest) + the other participant. Also
 // marks the thread read for me.
-export async function GET(_req: Request, { params }: Ctx) {
+export async function GET(_req: Request, props: Ctx) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
@@ -61,7 +62,8 @@ export async function GET(_req: Request, { params }: Ctx) {
 const sendSchema = z.object({ body: z.string().trim().min(1).max(DM_MAX_LEN) });
 
 // POST /api/dm/[id] — send a message into this conversation.
-export async function POST(req: Request, { params }: Ctx) {
+export async function POST(req: Request, props: Ctx) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);

@@ -22,7 +22,8 @@ async function getCard(id: string) {
 // long query string. This is the URL that gets posted/copied/shared; the raw
 // PNG route alone can't carry Open Graph metadata. Same pattern as
 // src/app/news/read/page.tsx's generateMetadata.
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const card = await getCard(params.id);
   if (!card) return { title: "Points Value - XYZ Crypto" };
   const platform = card.platform || "Perp DEX";
@@ -38,7 +39,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-export default async function PointsValueSharePage({ params }: { params: { id: string } }) {
+export default async function PointsValueSharePage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const card = await getCard(params.id);
   if (!card) notFound();
 

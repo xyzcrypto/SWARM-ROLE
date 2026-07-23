@@ -9,7 +9,8 @@ const voteSchema = z.object({ optionId: z.string() });
 // POST /api/chat/polls/[id]/vote - vote in a poll. Telegram semantics:
 // one vote per user; voting a different option moves your vote; voting the
 // SAME option again retracts it. Broadcasts anonymous counts only.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);

@@ -25,7 +25,8 @@ async function resolve(sp: { d?: string; u?: string }): Promise<SharedStory | nu
   return null;
 }
 
-export async function generateMetadata({ searchParams }: { searchParams: { d?: string; u?: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { searchParams: Promise<{ d?: string; u?: string }> }): Promise<Metadata> {
+  const searchParams = await props.searchParams;
   const story = await resolve(searchParams);
   if (!story) return { title: "News" };
   const desc = (story.s || "").slice(0, 200) || "Read this story on XYZ Crypto.";
@@ -38,7 +39,8 @@ export async function generateMetadata({ searchParams }: { searchParams: { d?: s
   };
 }
 
-export default async function NewsReadPage({ searchParams }: { searchParams: { d?: string; u?: string } }) {
+export default async function NewsReadPage(props: { searchParams: Promise<{ d?: string; u?: string }> }) {
+  const searchParams = await props.searchParams;
   const story = await resolve(searchParams);
   return (
     <>

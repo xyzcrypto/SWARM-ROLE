@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 // Decoupled from page rendering (research/[slug] is ISR for free posts) so
 // it's accurate regardless of cache state: fires once per real client mount,
 // not once per cache fill.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     if (!isCuid(params.id)) return fail("Invalid id.", 400);
     const { success } = await rateLimit("postView", clientIp(req));

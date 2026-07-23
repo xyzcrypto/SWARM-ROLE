@@ -22,7 +22,8 @@ function revalidateContent(slug?: string) {
 }
 
 // GET /api/research/:id - admin only; full post (incl. drafts) for the editor.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("post:manage");
     if (!actor) return fail("Forbidden", 403);
@@ -48,7 +49,8 @@ const updateSchema = z.object({
 });
 
 // PATCH /api/research/:id - admin only; partial update.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("post:manage");
     if (!actor) return fail("Forbidden", 403);
@@ -135,7 +137,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // DELETE /api/research/:id - admin only
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("post:manage");
     if (!actor) return fail("Forbidden", 403);

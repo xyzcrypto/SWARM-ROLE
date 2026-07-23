@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 // POST /api/journal/challenges/[id]/join - join a public/community challenge.
 // Idempotent: already-joined just returns success (unique constraint on
 // [challengeId, userId] makes a duplicate insert a no-op).
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in to join a challenge.", 401);

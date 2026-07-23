@@ -12,7 +12,11 @@ const patchSchema = z.object({ achieved: z.boolean() });
 
 // PATCH /api/journal/challenges/[id]/milestones/[milestoneId] - creator-only,
 // toggle a milestone's achieved state.
-export async function PATCH(req: Request, { params }: { params: { id: string; milestoneId: string } }) {
+export async function PATCH(
+  req: Request,
+  props: { params: Promise<{ id: string; milestoneId: string }> }
+) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
@@ -47,7 +51,11 @@ export async function PATCH(req: Request, { params }: { params: { id: string; mi
 }
 
 // DELETE /api/journal/challenges/[id]/milestones/[milestoneId] - creator-only.
-export async function DELETE(_req: Request, { params }: { params: { id: string; milestoneId: string } }) {
+export async function DELETE(
+  _req: Request,
+  props: { params: Promise<{ id: string; milestoneId: string }> }
+) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);

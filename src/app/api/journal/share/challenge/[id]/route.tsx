@@ -21,7 +21,8 @@ function fallbackCard() {
   return new ImageResponse(<GenericCard />, { ...SIZE, ...CACHE });
 }
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const challenge = await prisma.challenge.findUnique({ where: { id: params.id } });
     if (!challenge || challenge.visibility === "private") return fallbackCard();

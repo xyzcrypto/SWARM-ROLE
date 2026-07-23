@@ -9,7 +9,8 @@ const schema = z.object({
   aiDailyLimit: z.number().int().min(0).max(100_000).nullable(),
 });
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("ai:manage");
     if (!actor) return fail("Forbidden", 403);

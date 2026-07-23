@@ -42,7 +42,8 @@ const patchSchema = z.object({
 
 // PATCH /api/journal/trades/[id] - edit a trade's fields and/or append new
 // fills (scaling in/out, closing). Writes a TradeRevision capturing the diff.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
@@ -120,7 +121,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // DELETE /api/journal/trades/[id] - remove a trade (cascades fills/revisions).
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);

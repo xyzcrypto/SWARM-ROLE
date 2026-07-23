@@ -13,7 +13,8 @@ export const dynamic = "force-dynamic";
 // PRIVACY: other participants' raw trade fills never leave the server - only
 // the aggregated {capital, returnPct, trades count} computed by
 // buildLeaderboard() is returned. The caller's OWN trades come back in full.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
@@ -84,7 +85,8 @@ const patchSchema = z.object({
 });
 
 // PATCH /api/journal/challenges/[id] - creator-only edits.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
@@ -122,7 +124,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // DELETE /api/journal/challenges/[id] - creator-only.
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);

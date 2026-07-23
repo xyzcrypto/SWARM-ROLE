@@ -8,7 +8,8 @@ const statusSchema = z.object({ status: z.enum(["visible", "hidden"]) });
 // PATCH /api/comments/:id - soft-moderation (post:manage): hide a comment
 // (or restore it) without destroying the record. The model always supported
 // visible|hidden; only hard-delete existed before.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const actor = await requirePermission("post:manage");
     if (!actor) return fail("Forbidden", 403);
@@ -32,7 +33,8 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
 }
 
 // DELETE /api/comments/:id - admin only (moderation).
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const session = await getAdminSession();
     if (!session) return fail("Unauthorized", 401);

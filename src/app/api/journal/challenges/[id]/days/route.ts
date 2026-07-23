@@ -16,7 +16,8 @@ const daySchema = z.object({
 // for one day of a challenge they're participating in. Participant-gated, not
 // owner-gated - this is each participant's own personal log, unlike milestones
 // (which are the creator's checkpoints for the whole challenge).
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
