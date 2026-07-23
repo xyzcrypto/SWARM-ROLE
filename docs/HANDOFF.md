@@ -213,7 +213,7 @@ All four must pass — same gates as CI (`.github/workflows/ci.yml`).
 `docs/backend-state.md` for exhaustive endpoint lists, though treat both as
 possibly-stale per the note in section 1)
 
-**Stack:** Next.js 14.2 (App Router) · TypeScript · Tailwind · framer-motion ·
+**Stack:** Next.js 16.2 (App Router, React 19) · TypeScript · Tailwind · framer-motion ·
 Prisma → Supabase Postgres · next-auth (JWT) · Upstash rate-limits · Resend
 email · Supabase Storage · Sentry · Vercel hosting. Fonts: Geist Sans (body/UI,
 via the `geist` npm package) + Geist Mono (data/eyebrows) + **Fraunces** (a
@@ -571,11 +571,40 @@ LIVEKIT_* — all added or, for LiveKit, dropped alongside the voice removal).
   `SELECT username, length(image) FROM "User" WHERE image LIKE 'data:%'` in
   Supabase to see if any real users hit the base64 fallback and whether a
   backfill (re-upload to Storage, or clear the field) is worth it.
-- **Next.js dependency CVEs — upgrade `next` 14 → 16.** `npm audit` now flags
-  **14** Next.js advisories (not the 8 first counted on 07-17 — the set has
-  grown as more were disclosed), all covering the pinned `next@14.2.35` and all
-  cleared only by `next@16.2.10` (two majors, semver-major, no minor fix
-  available). Assessed against this app's actual surface on 2026-07-19:
+- ~~**Next.js dependency CVEs — upgrade `next` 14 → 16.**~~ **Done 2026-07-23**
+  (next 14.2.35 → 16.2.11, react 18 → 19). All 14 Next.js framework advisories
+  are cleared from `npm audit`. What the upgrade actually involved and what's
+  left:
+  - **Dependency cascade** (smaller than feared): next-auth stayed on v4 (4.24.7
+    → 4.24.15 — v4 now lists `next ^15||^16` + `react ^19` as peers, so **no
+    Auth.js v5 rewrite**), `@sentry/nextjs` → 10.67, `@react-three/fiber` 8 → 9
+    and `@react-three/drei` 9 → 10 (React 19 forces these), eslint 8 → 9 +
+    eslint-config-next → 16.
+  - **Code migration**: the official `next-async-request-api` codemod awaited
+    `params`/`searchParams` across 31 files (no `cookies()`/`headers()` call
+    sites existed, so that part was free); one segment-config export
+    (`/api/news` `revalidate`) had to become a literal; `experimental.
+    instrumentationHook` removed; tsconfig auto-set `jsx: react-jsx`.
+  - **Lint**: Next 16 removed `next lint`; migrated to ESLint 9 flat config
+    (`eslint.config.mjs`, `eslint src`). The bundled react-hooks v6 adds new
+    React-Compiler-era rules — see the react-hooks follow-up item below.
+  - **The R3F/drei major bump is compile-only for us.** `useWebglGate()` is
+    hardcoded `false` (the three.js orbital scene was disabled earlier — it
+    rendered inconsistently and couldn't be CI-verified), so the WebGL scene
+    never renders in production; the homepage centerpiece is the pure-CSS
+    `OrbitalEcosystem`. The R3F 9 / drei 10 code only needs to typecheck/build,
+    which it does — no runtime risk from that bump while the gate stays off.
+  - **Verified**: typecheck + lint + 339 tests + `next build` (Turbopack) all
+    green, and a headless-Chromium run of the running app confirmed the homepage
+    renders and hydrates under React 19 with zero uncaught/hydration errors.
+  - **Remaining `npm audit` (NOT the framework CVEs, and CI's audit step is
+    `--audit-level=high || true`, non-blocking)**: `sharp`/libvips (2 high, new
+    2026 CVEs in the image optimizer's native lib — Vercel-managed at runtime,
+    awaiting an upstream sharp patch) and `postcss` (moderate, build-time
+    XSS-in-stringify). Track separately; neither is a Next framework advisory.
+
+  *(Original assessment, kept for context — this is what the 14 advisories were
+  and why most never applied to this app:)*
   - **Residual exposure is DoS-class only, no data exposure.** The genuine
     matches are the RSC / Server-Component denial-of-service items
     (GHSA-h25m-26qc-wcjf, GHSA-q4gf-8mx6-v5v3, GHSA-8h8q-6873-q5fj — all high
@@ -601,6 +630,21 @@ LIVEKIT_* — all added or, for LiveKit, dropped alongside the voice removal).
     upgrade ships.
   - Still deferred as its own task (too large a blast radius for a hardening
     pass) — full verify pipeline + a live Vercel preview before merge.
+- **Clean up the new react-hooks v6 lint warnings (72).** eslint-config-next 16
+  bundles `eslint-plugin-react-hooks` v6, whose React-Compiler-era rules
+  (`set-state-in-effect` ×43, `purity`, `refs`, `static-components`,
+  `immutability`) flag pre-existing patterns that passed CI under Next 14. To
+  keep the framework upgrade focused, `eslint.config.mjs` downgrades those five
+  rules from error to **warn** (CI's `eslint src` doesn't `--max-warnings`, so
+  they don't block). They're real code-smell signals worth working through in a
+  dedicated pass, then flipping back to error rule-by-rule. `set-state-in-effect`
+  (setState synchronously in an effect body → cascading renders) is the bulk and
+  the most worthwhile.
+- **Post-upgrade `npm audit` residue (non-framework).** After the 14→16 upgrade,
+  `sharp`/libvips carries 2 new 2026 highs (image-optimizer native lib; Vercel-
+  managed at runtime, needs an upstream sharp bump) and `postcss` a moderate
+  (build-time XSS-in-stringify). Neither is a Next framework advisory; revisit
+  when upstream patches land.
 - ~~**Harden the GitHub OAuth `profile()` callback — assert `primary &&
   verified` email.**~~ **Addressed 2026-07-20.** `src/lib/auth.ts`'s GitHub
   provider still uses `allowDangerousEmailAccountLinking: true`, but its
