@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { SendHorizonal, X, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
 import { RobotIcon } from "./RobotIcon";
+import { cn } from "@/lib/utils";
 
 // Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
 export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
@@ -27,6 +29,11 @@ export function XyzAiWidget() {
   const user = session?.user as any;
   // Open to every signed-in member (free provider - no Premium gate).
   const canUse = Boolean(user);
+  // The floating launcher overlaps the chat composer on /community's mobile
+  // layout (no room for both) - hidden there on small screens only; desktop
+  // (where the composer sits in a much wider frame) keeps it.
+  const pathname = usePathname();
+  const hideOnMobile = pathname?.startsWith("/community") ?? false;
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -108,7 +115,10 @@ export function XyzAiWidget() {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.96 }}
       transition={{ type: "spring", stiffness: 240, damping: 24 }}
-      className="fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950 shadow-2xl shadow-black/60 ring-1 ring-gold-500/25 sm:right-6"
+      className={cn(
+        "fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950 shadow-2xl shadow-black/60 ring-1 ring-gold-500/25 sm:right-6",
+        hideOnMobile && "max-md:hidden"
+      )}
       role="dialog"
       aria-label="XYZ AI assistant"
     >
@@ -237,7 +247,10 @@ export function XyzAiWidget() {
         animate={{ opacity: 1, scale: 1 }}
         whileHover={reduce ? undefined : { scale: 1.05 }}
         whileTap={reduce ? undefined : { scale: 0.95 }}
-        className="ai-fab fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-[60] inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-mint-400 to-mint-600 text-ink shadow-lg shadow-mint-500/30 ring-1 ring-mint-300/50 sm:right-6 md:bottom-5"
+        className={cn(
+          "ai-fab fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-[60] inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-mint-400 to-mint-600 text-ink shadow-lg shadow-mint-500/30 ring-1 ring-mint-300/50 sm:right-6 md:bottom-5",
+          hideOnMobile && "max-md:hidden"
+        )}
       >
         <AnimatePresence mode="wait" initial={false}>
           {open ? (

@@ -90,11 +90,13 @@ export function Footer() {
         {/* Live site stats (real-time online + visits) */}
         <LiveStats className="border-t border-line py-5" />
 
-        <div className="flex flex-col items-center justify-between gap-3 border-t border-line py-6 sm:flex-row">
+        <div className="flex flex-col items-center gap-3 border-t border-line py-6 text-center sm:flex-row sm:justify-between sm:text-left">
           <p className="mono text-[11px] text-zinc-600">© {new Date().getFullYear()} XYZ Crypto. All rights reserved.</p>
-          <div className="flex items-center gap-4">
-            <Link href="/terms" className="mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Terms</Link>
-            <Link href="/privacy" className="mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Privacy</Link>
+          <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-4">
+            <div className="flex items-center gap-4">
+              <Link href="/terms" className="mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Terms</Link>
+              <Link href="/privacy" className="mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Privacy</Link>
+            </div>
             <p className="mono text-[11px] text-zinc-600">Built for the Next Generation of Web3 · v2.0</p>
           </div>
         </div>
