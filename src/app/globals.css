@@ -886,6 +886,7 @@ html.lenis body {
 .prose-xyz { @apply text-zinc-300 leading-relaxed text-[1.04rem]; }
 .prose-xyz ::selection { @apply bg-gold-500/30 text-zinc-50; }
 .prose-xyz h1, .prose-xyz h2, .prose-xyz h3 { @apply text-zinc-50 font-display font-semibold mt-10 mb-3 tracking-tight; }
+.prose-xyz h1 { @apply text-3xl; }
 .prose-xyz h2 { @apply text-2xl pb-2 relative; }
 .prose-xyz h2::after {
   content: "";

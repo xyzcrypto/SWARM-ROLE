@@ -5,6 +5,37 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-23 — Publish-section rich text: real H1 effect, color text, emoji picker, stable writing box
+Owner asked for the Research post editor (`PostEditor.tsx`) to feel like a real publishing platform's writing
+experience - direct formatting, color, emoji, and a writing box that never makes the whole page jump.
+
+- **`# ` now has a real, distinct effect on the published page**: `lib/markdown.tsx` was silently downgrading
+  a single `#` heading to an `<h2>` (identical styling to `##`), so it had no visible effect of its own -
+  fixed to render an actual `<h1>`, and added the missing `.prose-xyz h1 { text-3xl }` CSS rule (there wasn't
+  one - Tailwind's preflight strips default heading sizes, so even a correct `<h1>` would have rendered
+  tiny). Added an H1 toolbar button (only H2/H3 existed before).
+- **Color text**: added a small curated color-span syntax (`{c:gold}text{/c}`, four colors matching the
+  site's existing design tokens - Gold/Mint/Red/Blue) to the same renderer, with 4 swatch buttons in the
+  toolbar. Deliberately not free-form CSS/inline styles - kept to on-brand tokens. Works nested inside bold
+  text and vice versa.
+- **Emoji picker**: reused the existing `EmojiPicker` component (already built for community chat) as a new
+  toolbar button - inserts at the cursor, no new emoji set to maintain.
+- **Fixed the "writing makes the whole page jump" bug**: the toolbar's insert-and-refocus logic called
+  `textarea.focus()` with no `preventScroll` option, which lets the browser auto-scroll the (already-visible)
+  textarea into view on every single toolbar click - the classic cause of an unexpected page jump. Now uses
+  `focus({ preventScroll: true })` and explicitly restores the textarea's own scroll position. Also converted
+  the content box from a manually-`resize-y`-able, `rows`-based textarea to a fixed `h-[26rem]` box with its
+  own internal `overflow-y-auto` (`resize-none`) - it can only ever scroll itself now, never destabilize the
+  surrounding page layout.
+- **Tests**: added `src/lib/__tests__/markdown-render.test.ts` covering the H1 fix (regression-proofs H2/H3
+  are unaffected) and the color-span parsing (plain, nested-bold, and an unrecognized color falling through
+  to plain text without crashing).
+
+**Files**: `src/lib/markdown.tsx`, `src/app/globals.css`, `src/components/PostEditor.tsx`,
+`src/lib/__tests__/markdown-render.test.ts` (new).
+
+---
+
 ## 2026-07-23 — Mobile nav/menu fixes: unreachable Sign out, Journal in bottom nav, floating bot on Community, footer structure
 Owner-reported bugs from real device screenshots, fixed one-for-one.
 
