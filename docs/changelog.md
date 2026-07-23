@@ -5,6 +5,36 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-23 — Mobile nav/menu fixes: unreachable Sign out, Journal in bottom nav, floating bot on Community, footer structure
+Owner-reported bugs from real device screenshots, fixed one-for-one.
+
+- **Mobile nav menu could cut off Sign out/Dashboard on shorter devices**: `Navbar.tsx`'s mobile "open" menu
+  panel had no `max-height`/`overflow-y-auto` - on a signed-in account (Profile/Messages/Journal/Settings/
+  Dashboard/Sign out, all stacked), the panel's total height could exceed the viewport, and since the
+  panel sits inside a `position: fixed` header, the overflowing bottom portion was simply clipped off-screen
+  with no way to scroll to it. Added a capped `max-h-[calc(100dvh-6rem)]` + `overflow-y-auto` so the full
+  menu (including Sign out) is always reachable regardless of device height.
+- **Journal added to the mobile bottom nav** (`BottomNav.tsx`), and all 6 tabs (Tools/News/Journal/Research/
+  Chat/Profile) now render as a uniform `grid-cols-6` - no more special centered treatment for one cell,
+  for a cleaner, evenly-aligned row.
+- **Floating XYZ AI bot hidden on mobile `/community`** (`XyzAiWidget.tsx`): it overlapped the chat composer
+  there with no room for both. Hidden via `max-md:hidden` on mobile only when on `/community`; desktop keeps
+  it, and every other page is unaffected.
+- **Footer's bottom bar restructured for mobile** (`Footer.tsx`): copyright / Terms+Privacy / the "Built for
+  the Next Generation of Web3 · v2.0" tagline used to all cram into one `flex` row on mobile, wrapping
+  awkwardly. Terms+Privacy now stay grouped together, with the tagline on its own line below on mobile -
+  unchanged on `sm:` and up.
+- **Investigated, not code-fixable**: a mobile browser's "Request desktop site" toggle forces its own wide
+  layout viewport (~980-1024px) that overrides the page's `width=device-width` meta - a site cannot detect
+  or opt out of that browser-level override, so there's no code path to special-case it. Confirmed the
+  site's own viewport meta (`src/app/layout.tsx`) is already correct (`device-width`, `initialScale: 1`, no
+  zoom lockout).
+
+**Files**: `src/components/Navbar.tsx`, `src/components/BottomNav.tsx`, `src/components/XyzAiWidget.tsx`,
+`src/components/Footer.tsx`.
+
+---
+
 ## 2026-07-23 — Add RiseX to the Points/Airdrop Value Calculator
 Added **RiseX** as a preset platform on `/tools`'s Points/Airdrop Value Calculator, same pattern as
 Variational/Sodex - one new `DEX_REGISTRY` entry (`src/lib/dex-registry.ts`), zero component changes needed.

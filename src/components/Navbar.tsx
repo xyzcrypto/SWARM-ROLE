@@ -250,7 +250,10 @@ export function Navbar() {
       </nav>
 
       {open && (
-        <div className="mx-auto mt-2 max-w-container rounded-2xl border border-line bg-ink-900/95 p-3 backdrop-blur-xl md:hidden">
+        <div
+          className="mx-auto mt-2 max-h-[calc(100dvh-6rem)] max-w-container overflow-y-auto overscroll-contain rounded-2xl border border-line bg-ink-900/95 p-3 backdrop-blur-xl md:hidden"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
           <div className="flex flex-col gap-0.5">
             {navLinks.map((l) => (
               <Link
