@@ -1067,33 +1067,37 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
                   {u.lastLoginAt ? formatDateTime(u.lastLoginAt) : <span className="text-zinc-600">Never</span>}
                 </td>
                 <td className="px-4 py-3 sm:px-5">
-                  {u.role === "ADMIN" ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
-                      Admin
-                    </span>
-                  ) : u.membership === "Premium" ? (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-500/12 px-2.5 py-1 text-[11px] font-medium text-mint-300 ring-1 ring-mint-500/30">
-                      <span className="h-1.5 w-1.5 rounded-full bg-mint-400" />
-                      Premium
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-400 ring-1 ring-white/10">
-                      Free
-                    </span>
-                  )}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    {u.role === "ADMIN" && (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
+                        Admin
+                      </span>
+                    )}
+                    {u.membership === "Premium" ? (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-500/12 px-2.5 py-1 text-[11px] font-medium text-mint-300 ring-1 ring-mint-500/30">
+                        <span className="h-1.5 w-1.5 rounded-full bg-mint-400" />
+                        Premium
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-400 ring-1 ring-white/10">
+                        Free
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3 text-right sm:px-5">
-                  {u.role === "ADMIN" ? (
-                    <span className="text-xs text-zinc-600">-</span>
-                  ) : (
-                    <button
-                      onClick={() => toggleMembership(u)}
-                      disabled={busy === u.id}
-                      className="text-xs font-medium text-gold-200 transition-colors hover:text-gold-100 disabled:opacity-50"
-                    >
-                      {busy === u.id ? "…" : u.membership === "Premium" ? "Downgrade" : "Make Premium"}
-                    </button>
-                  )}
+                  {/* Admins get the same Premium toggle as everyone else now - role
+                      (staff access) and membership (Premium perks) are independent,
+                      so an admin's own account previously had no way to self-grant
+                      Premium and always displayed "Free" everywhere that reads
+                      membership (e.g. the navbar badge). */}
+                  <button
+                    onClick={() => toggleMembership(u)}
+                    disabled={busy === u.id}
+                    className="text-xs font-medium text-gold-200 transition-colors hover:text-gold-100 disabled:opacity-50"
+                  >
+                    {busy === u.id ? "…" : u.membership === "Premium" ? "Downgrade" : "Make Premium"}
+                  </button>
                 </td>
               </tr>
             ))}

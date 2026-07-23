@@ -5,6 +5,44 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-23 — Bottom nav swap, DM scroll/floating-bot fix, real author photo + admin Premium toggle
+Four more owner-reported items from real device screenshots.
+
+- **Bottom nav: Chat → Markets, Profile raised and enlarged**: Chat was dropped from the mobile bottom nav
+  (`BottomNav.tsx`) since it's already one tap away via the navbar's chat-bubble icon at the top of every
+  page - Markets takes that slot back. Profile is back in the *between* position (2 links, Profile, 3 links)
+  instead of being just another uniform cell, now rendered as a raised 56px circle (`-mt-5`, ring + shadow)
+  clearly bigger than the other tabs' icons, with a gold ring when active.
+- **DM thread scrolling was scrolling the whole page**: `/messages` used a `min-h-screen` main with the chat
+  panel sized via `h-[calc(100vh-11rem)]` - close, but not the same fixed/clipped frame `/community` uses, so
+  the outer page could still grow taller than the viewport (mobile `100vh` quirks + the bottom-nav spacer)
+  and scroll independently of the thread's own internal scroll. Rebuilt `/messages`' frame to match
+  `/community` exactly (`h-[100svh] overflow-hidden flex flex-col`, `MessagesClient` now fills via `flex-1`
+  instead of a fixed vh calc) and added `/messages` to `BOTTOM_HIDDEN_PREFIXES` (same reason `/community` is
+  hidden there - the composer needs the full bottom edge, no room for the bottom nav too).
+- **Floating XYZ AI bot now also hides when a DM thread is open on mobile** (`XyzAiWidget.tsx`): extended the
+  existing `/community`-only hide condition to also cover `/messages` once a specific conversation is open
+  (`?c=` present) - the inbox list alone doesn't have a composer to conflict with, so it only hides once a
+  thread is actually open, matching what was asked ("jab dm me click kare").
+- **Post byline now shows the real author photo**: `research/[slug]/page.tsx`'s byline always rendered a
+  plain first-letter circle, regardless of whether the author had a real profile photo - `post.author.image`
+  was fetched from the DB (and already safely stripped of inline `data:` URLs) but never actually used.
+  Swapped it for the shared `Avatar` component (same one used everywhere else on the site), so any author's
+  real uploaded photo now shows correctly - including the super admin's, matching what's on their own
+  `/profile`.
+- **Admins had no way to self-grant Premium**: the Dashboard's Members panel special-cased `role === "ADMIN"`
+  rows to always show a static "Admin" badge and a plain "-" instead of a membership status + toggle -
+  meaning an admin's own account could never be marked Premium from the UI (even though the underlying
+  `/api/users/:id/membership` route already supports it for any user) and always displayed "Free" everywhere
+  that reads `membership` (e.g. the navbar badge). Now every row - admin or not - shows its real Premium/Free
+  status alongside the Admin badge, and gets the same Make Premium/Downgrade toggle.
+
+**Files**: `src/components/BottomNav.tsx`, `src/app/messages/page.tsx`, `src/components/MessagesClient.tsx`,
+`src/lib/bottom-nav.ts`, `src/lib/__tests__/bottom-nav.test.ts`, `src/components/XyzAiWidget.tsx`,
+`src/app/research/[slug]/page.tsx`, `src/components/DashboardClient.tsx`.
+
+---
+
 ## 2026-07-23 — Publish-section rich text: real H1 effect, color text, emoji picker, stable writing box
 Owner asked for the Research post editor (`PostEditor.tsx`) to feel like a real publishing platform's writing
 experience - direct formatting, color, emoji, and a writing box that never makes the whole page jump.

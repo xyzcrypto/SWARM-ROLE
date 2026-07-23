@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { Avatar } from "@/components/Avatar";
 import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
 import { formatDate, readingTime, stripInlineImage } from "@/lib/utils";
@@ -206,9 +207,7 @@ export default async function PostPage(
               {(() => {
                 const byline = (
                   <div className="flex items-center gap-3">
-                    <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gold-500/15 font-display text-sm font-bold text-gold-200 ring-1 ring-gold-500/30">
-                      {(post.author?.name ?? "XYZ Crypto").charAt(0)}
-                    </span>
+                    <Avatar name={post.author?.name ?? "XYZ Crypto"} image={post.author?.image ?? null} size="md" />
                     <div>
                       <p className="text-sm font-semibold text-zinc-200">
                         {post.author?.name ?? "XYZ Crypto"}
