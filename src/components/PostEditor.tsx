@@ -1,9 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Smile } from "lucide-react";
 import { Markdown } from "@/lib/markdown";
 import { uploadFileWithProgress } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
+import { EmojiPicker } from "./EmojiPicker";
 
 export type EditablePost = {
   id?: string;
@@ -31,7 +33,14 @@ const EMPTY: EditablePost = {
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
 const MAX_BYTES = 5 * 1024 * 1024;
 
-type Fmt = "bold" | "italic" | "h2" | "h3" | "list" | "quote" | "code" | "link";
+type Fmt = "bold" | "italic" | "h1" | "h2" | "h3" | "list" | "quote" | "code" | "link";
+type ColorKey = "gold" | "mint" | "red" | "blue";
+const COLORS: { key: ColorKey; label: string; swatch: string }[] = [
+  { key: "gold", label: "Gold", swatch: "bg-gold-400" },
+  { key: "mint", label: "Mint", swatch: "bg-mint-400" },
+  { key: "red", label: "Red", swatch: "bg-rose-400" },
+  { key: "blue", label: "Blue", swatch: "bg-sky-400" },
+];
 
 export function PostEditor({
   mode,
@@ -51,20 +60,40 @@ export function PostEditor({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
+  const [showEmoji, setShowEmoji] = useState(false);
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof EditablePost>(k: K, v: EditablePost[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  // Shared insertion primitive: replaces the current selection with `insert`,
+  // re-focuses without letting the browser scroll the page to "reveal" the
+  // textarea (the classic cause of the whole page jumping while writing -
+  // .focus() alone will scroll an already-visible element into view anyway),
+  // and restores the box's own scroll position so only ever the box itself
+  // (never the surrounding page) can move.
+  function insertAtCursor(insert: string) {
+    const ta = contentRef.current;
+    if (!ta) return;
+    const { selectionStart: s, selectionEnd: e, value, scrollTop } = ta;
+    const next = value.slice(0, s) + insert + value.slice(e);
+    set("content", next);
+    requestAnimationFrame(() => {
+      ta.focus({ preventScroll: true });
+      ta.selectionStart = ta.selectionEnd = s + insert.length;
+      ta.scrollTop = scrollTop;
+    });
+  }
+
   function applyFormat(kind: Fmt) {
     const ta = contentRef.current;
     if (!ta) return;
-    const { selectionStart: s, selectionEnd: e, value } = ta;
-    const sel = value.slice(s, e);
+    const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
     const wrap: Record<Fmt, string> = {
       bold: `**${sel || "bold text"}**`,
       italic: `*${sel || "italic"}*`,
+      h1: `# ${sel || "Heading"}`,
       h2: `## ${sel || "Heading"}`,
       h3: `### ${sel || "Subheading"}`,
       list: `- ${sel || "list item"}`,
@@ -72,13 +101,19 @@ export function PostEditor({
       code: `\`${sel || "code"}\``,
       link: `[${sel || "link text"}](https://)`,
     };
-    const insert = wrap[kind];
-    const next = value.slice(0, s) + insert + value.slice(e);
-    set("content", next);
-    requestAnimationFrame(() => {
-      ta.focus();
-      ta.selectionStart = ta.selectionEnd = s + insert.length;
-    });
+    insertAtCursor(wrap[kind]);
+  }
+
+  function applyColor(color: ColorKey) {
+    const ta = contentRef.current;
+    if (!ta) return;
+    const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
+    insertAtCursor(`{c:${color}}${sel || "colored text"}{/c}`);
+  }
+
+  function insertEmoji(emoji: string) {
+    insertAtCursor(emoji);
+    setShowEmoji(false);
   }
 
   async function uploadCover(file: File) {
@@ -148,8 +183,9 @@ export function PostEditor({
   const toolbar: { k: Fmt; label: string; title: string }[] = [
     { k: "bold", label: "B", title: "Bold" },
     { k: "italic", label: "I", title: "Italic" },
-    { k: "h2", label: "H2", title: "Heading" },
-    { k: "h3", label: "H3", title: "Subheading" },
+    { k: "h1", label: "H1", title: "Heading" },
+    { k: "h2", label: "H2", title: "Subheading" },
+    { k: "h3", label: "H3", title: "Minor heading" },
     { k: "list", label: "•", title: "List" },
     { k: "quote", label: "❝", title: "Quote" },
     { k: "code", label: "</>", title: "Code" },
@@ -184,7 +220,7 @@ export function PostEditor({
 
           {view === "write" ? (
             <>
-              <div className="mb-2 flex flex-wrap gap-1">
+              <div className="mb-2 flex flex-wrap items-center gap-1">
                 {toolbar.map((t) => (
                   <button
                     key={t.k}
@@ -196,14 +232,37 @@ export function PostEditor({
                     {t.label}
                   </button>
                 ))}
+                <span className="mx-0.5 h-5 w-px bg-white/10" aria-hidden />
+                {COLORS.map((c) => (
+                  <button
+                    key={c.key}
+                    type="button"
+                    title={`${c.label} text`}
+                    onClick={() => applyColor(c.key)}
+                    className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-ink-700/60 transition-colors hover:border-gold-500/40"
+                  >
+                    <span className={`h-3.5 w-3.5 rounded-full ${c.swatch}`} />
+                  </button>
+                ))}
+                <span className="mx-0.5 h-5 w-px bg-white/10" aria-hidden />
+                <div className="relative">
+                  <button
+                    type="button"
+                    title="Emoji"
+                    onClick={() => setShowEmoji((v) => !v)}
+                    className="flex h-8 min-w-8 items-center justify-center rounded-md border border-white/10 bg-ink-700/60 px-2 text-zinc-300 transition-colors hover:border-gold-500/40 hover:text-gold-100"
+                  >
+                    <Smile className="h-4 w-4" />
+                  </button>
+                  {showEmoji && <EmojiPicker onPick={insertEmoji} onClose={() => setShowEmoji(false)} />}
+                </div>
               </div>
               <textarea
                 ref={contentRef}
                 value={form.content}
                 onChange={(e) => set("content", e.target.value)}
-                rows={16}
-                placeholder={"Write your research here.\n\n## Heading\n- bullet point\n**bold**, *italic*, `code`, [links](https://x.com)"}
-                className="w-full resize-y rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 font-mono text-sm leading-relaxed text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+                placeholder={"Write your research here.\n\n# Heading\n- bullet point\n**bold**, *italic*, `code`, [links](https://x.com)"}
+                className="h-[26rem] w-full resize-none overflow-y-auto rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 font-mono text-sm leading-relaxed text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
               />
             </>
           ) : (
