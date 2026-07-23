@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { SendHorizonal, X, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -29,11 +29,14 @@ export function XyzAiWidget() {
   const user = session?.user as any;
   // Open to every signed-in member (free provider - no Premium gate).
   const canUse = Boolean(user);
-  // The floating launcher overlaps the chat composer on /community's mobile
-  // layout (no room for both) - hidden there on small screens only; desktop
-  // (where the composer sits in a much wider frame) keeps it.
+  // The floating launcher overlaps the composer on /community's mobile layout
+  // (no room for both), and the same conflict happens the moment a DM thread
+  // is open on /messages - hidden in both cases on small screens only;
+  // desktop (composer sits in a much wider frame) keeps it either way.
   const pathname = usePathname();
-  const hideOnMobile = pathname?.startsWith("/community") ?? false;
+  const searchParams = useSearchParams();
+  const dmThreadOpen = pathname === "/messages" && Boolean(searchParams?.get("c"));
+  const hideOnMobile = (pathname?.startsWith("/community") ?? false) || dmThreadOpen;
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([]);

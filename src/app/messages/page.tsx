@@ -18,9 +18,12 @@ export default async function MessagesPage() {
   return (
     <>
       <Navbar />
-      <main className="relative min-h-screen pt-24">
+      {/* App-style frame like /community: the page itself never scrolls (no
+          double-scroll fight with the composer) - only the inbox list and the
+          open thread's message list scroll internally, inside MessagesClient. */}
+      <main className="relative flex h-[100svh] flex-col overflow-hidden pt-[4.75rem] sm:pt-20">
         <div className="mesh" />
-        <div className="relative mx-auto max-w-5xl px-4 pb-10 sm:px-6 lg:px-8">
+        <div className="relative mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-2 pb-2 pt-2 sm:px-6 sm:pb-4 sm:pt-3 lg:px-8">
           <Suspense fallback={null}>
             <MessagesClient meId={meId} gifEnabled={gifEnabled} />
           </Suspense>

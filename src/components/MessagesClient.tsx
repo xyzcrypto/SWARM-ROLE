@@ -92,7 +92,7 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
   };
 
   return (
-    <div className="glass grid h-[calc(100vh-11rem)] min-h-[520px] grid-cols-1 overflow-hidden rounded-3xl md:grid-cols-[minmax(0,320px)_1fr]">
+    <div className="glass grid min-h-0 flex-1 grid-cols-1 overflow-hidden rounded-3xl md:grid-cols-[minmax(0,320px)_1fr]">
       {/* Inbox */}
       <aside className={cn("flex min-h-0 flex-col border-white/10 md:border-r", activeId ? "hidden md:flex" : "flex")}>
         <header className="flex items-center justify-between border-b border-white/10 px-5 py-3.5">

@@ -18,6 +18,7 @@ describe("isBottomActive", () => {
 describe("isBottomHidden", () => {
   it("hides on immersive/auth/admin routes", () => {
     expect(isBottomHidden("/community")).toBe(true);
+    expect(isBottomHidden("/messages")).toBe(true);
     expect(isBottomHidden("/login")).toBe(true);
     expect(isBottomHidden("/dashboard")).toBe(true);
     expect(isBottomHidden("/research/x")).toBe(false);

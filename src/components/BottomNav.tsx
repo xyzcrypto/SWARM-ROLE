@@ -3,32 +3,37 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Wrench, Newspaper, NotebookPen, FileText, MessagesSquare, User } from "lucide-react";
+import { Wrench, Newspaper, NotebookPen, LineChart, FileText, User } from "lucide-react";
 import { Avatar } from "./Avatar";
 import { isBottomActive, isBottomHidden } from "@/lib/bottom-nav";
 import { cn } from "@/lib/utils";
 
 type Item = { href: string; label: string; Icon: typeof Wrench };
+// Chat isn't listed here - it's already one tap away via the navbar's chat
+// bubble icon (top of every page), so a dedicated bottom-nav slot was
+// redundant. Markets takes that slot back instead.
 const ITEMS: Item[] = [
   { href: "/tools", label: "Tools", Icon: Wrench },
   { href: "/news", label: "News", Icon: Newspaper },
   { href: "/journal", label: "Journal", Icon: NotebookPen },
   { href: "/research", label: "Research", Icon: FileText },
-  { href: "/community", label: "Chat", Icon: MessagesSquare },
+  { href: "/markets", label: "Markets", Icon: LineChart },
 ];
 
 const CELL_CLS = "flex min-h-[52px] flex-col items-center justify-center gap-0.5 py-1.5 transition-colors";
 
 /**
- * App-style bottom navigation for mobile only (md:hidden). Six equal-width
- * targets (five nav links + Profile), all styled identically for a clean,
- * perfectly-aligned row - no special centered treatment for any one cell.
- * Safe-area aware. XYZ AI lives as a floating launcher (see XyzAiWidget.tsx).
+ * App-style bottom navigation for mobile only (md:hidden). Two links, a
+ * raised centered Profile button (bigger than the rest - the one cell meant
+ * to stand out), then three more links. Safe-area aware. XYZ AI lives as a
+ * floating launcher (see XyzAiWidget.tsx).
  */
 export function BottomNav() {
   const pathname = usePathname() || "/";
   const { data: session } = useSession();
   if (isBottomHidden(pathname)) return null;
+  const left = ITEMS.slice(0, 2);
+  const right = ITEMS.slice(2);
 
   const user = session?.user as any;
   const username = user?.username as string | undefined;
@@ -46,21 +51,31 @@ export function BottomNav() {
         aria-label="Primary"
       >
       <div className="mx-auto grid max-w-md grid-cols-6">
-        {ITEMS.map((it) => (
+        {left.map((it) => (
           <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />
         ))}
         <Link
           href={profileHref}
           aria-current={profileActive ? "page" : undefined}
-          className={cn(CELL_CLS, profileActive ? "text-gold-200" : "text-zinc-500 hover:text-zinc-300")}
+          className="flex flex-col items-center justify-center gap-0.5 py-1"
         >
-          {session ? (
-            <Avatar name={user?.name} image={user?.image} email={user?.email} size="sm" />
-          ) : (
-            <User className="h-5 w-5" />
-          )}
-          <span className="text-[10px] font-medium">Profile</span>
+          <span
+            className={cn(
+              "-mt-5 flex h-14 w-14 items-center justify-center rounded-full border-2 bg-ink-950 shadow-lg transition-colors",
+              profileActive ? "border-gold-400 shadow-gold-500/30" : "border-white/15 shadow-black/40"
+            )}
+          >
+            {session ? (
+              <Avatar name={user?.name} image={user?.image} email={user?.email} size="md" ring={false} />
+            ) : (
+              <User className="h-6 w-6 text-zinc-300" />
+            )}
+          </span>
+          <span className={cn("text-[10px] font-medium", profileActive ? "text-gold-200" : "text-zinc-500")}>Profile</span>
         </Link>
+        {right.map((it) => (
+          <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />
+        ))}
       </div>
       </nav>
     </>
