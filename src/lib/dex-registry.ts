@@ -41,6 +41,12 @@ export type DexPlatform = {
   hasLiveFunding?: boolean;
   /** Present when a points/airdrop-value calculator scenario applies to this platform. */
   pointValueScenario?: PointValueScenario;
+  /** Explicit logo override (site-root-relative path, e.g. "/risex-logo.png") for
+   * platforms where a real domain-favicon isn't a reliable source of the actual
+   * brand mark - a committed static asset here, checked before falling back to
+   * the domain favicon. Use sparingly (most platforms should stay favicon-only,
+   * per platformLogo()'s doc comment). */
+  logo?: string;
 };
 
 export const DEX_REGISTRY: DexPlatform[] = [
@@ -90,6 +96,32 @@ export const DEX_REGISTRY: DexPlatform[] = [
         { label: "100% pool - 150M SOSO", pct: 15 },
         { label: "50% pool - 75M SOSO", pct: 7.5 },
         { label: "30% pool - 45M SOSO", pct: 4.5 },
+      ],
+    },
+  },
+  {
+    id: "risex",
+    name: "RiseX",
+    status: "live",
+    chain: "Not confirmed - see official docs",
+    fees: "Not confirmed - see official docs.",
+    pointsRules: "Not confirmed - see official docs for current rules.",
+    rewardLogic: "Expected token allocation proportional to points share at TGE - a community assumption, not a confirmed mechanic.",
+    supportedMarkets: "Not confirmed - see official docs",
+    maxLeverage: "Not confirmed - see official docs",
+    notes: "The scenario numbers below are planning assumptions only, not official figures - edit them freely. Use the allocation buttons below to compare the 20%/25%/30% supply-allocation scenarios.",
+    links: {},
+    logo: "/risex-logo.png",
+    pointValueScenario: {
+      totalSupply: 1_000_000_000,
+      totalPoints: 12_000_000,
+      tgeUnlockPcts: [],
+      fdvScenariosUsd: [500_000_000, 1_000_000_000, 1_500_000_000, 3_000_000_000],
+      allocationPctOfSupply: 25,
+      allocationScenarios: [
+        { label: "20% of supply", pct: 20 },
+        { label: "25% of supply", pct: 25 },
+        { label: "30% of supply", pct: 30 },
       ],
     },
   },
@@ -170,12 +202,14 @@ export function platformsWithPointValue(): DexPlatform[] {
 }
 
 /**
- * Best-effort logo for a platform - derives the domain from its `website`
- * link and reuses the same keyless favicon service already used for news
- * sources (`favicon()`), so no logo file is ever downloaded or committed.
- * Returns null when a platform has no website link yet.
+ * Best-effort logo for a platform. Prefers an explicit `logo` override
+ * (a committed static asset) when set; otherwise derives the domain from its
+ * `website` link and reuses the same keyless favicon service already used
+ * for news sources (`favicon()`), so no logo file needs to be committed for
+ * most platforms. Returns null when neither is available.
  */
-export function platformLogo(platform: Pick<DexPlatform, "links">): string | null {
+export function platformLogo(platform: Pick<DexPlatform, "links" | "logo">): string | null {
+  if (platform.logo) return platform.logo;
   const domain = platformDomain(platform);
   return domain ? favicon(domain) : null;
 }
