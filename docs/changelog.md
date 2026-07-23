@@ -5,6 +5,30 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-23 — Add RiseX to the Points/Airdrop Value Calculator
+Added **RiseX** as a preset platform on `/tools`'s Points/Airdrop Value Calculator, same pattern as
+Variational/Sodex - one new `DEX_REGISTRY` entry (`src/lib/dex-registry.ts`), zero component changes needed.
+
+- **Scenario data** (owner-supplied): 12M total points, 1B total token supply, 20%/25%/30%
+  supply-allocation quick-select buttons (via the existing `allocationScenarios` mechanism, same one Sodex
+  uses for its pool-distribution buttons), and four FDV quick-select scenarios ($500M/$1B/$1.5B/$3B).
+- **Real logo, not a favicon guess**: RiseX doesn't have a confirmed official domain to resolve via the
+  existing keyless favicon-by-domain mechanism (every other platform uses that - no image ever committed),
+  so the owner-supplied brand mark was committed instead (`public/risex-logo.png`). Added a `logo` override
+  field to `DexPlatform`/`platformLogo()` - checked before the domain-favicon fallback - so this stays a
+  one-off exception rather than a new default pattern.
+- **Descriptive fields** (fees, chain, points rules, supported markets, leverage): written as honest
+  "not confirmed - see official docs" placeholders rather than invented specifics, since no verified public
+  info was available - matches this file's existing caution culture for assumption-based scenario data.
+- **Known limitation**: the "Share result" OG card's platform logo comes from the same `domain` field used
+  for favicon lookup; since RiseX has no domain on file, its share card renders without a platform logo
+  (text-only), same graceful behavior any domain-less platform already gets. The in-app calculator (preset
+  button, main UI) shows the real logo correctly either way.
+
+**Files**: `src/lib/dex-registry.ts`, `public/risex-logo.png` (new).
+
+---
+
 ## 2026-07-23 — Framework upgrade: Next 14 → 16 + React 18 → 19 (clears all 14 Next.js CVEs)
 Closed the long-standing `HANDOFF.md §8` upgrade item. Turned out far smaller than the "owner-decision, huge
 blast radius" framing, because the auth library didn't need replacing.
