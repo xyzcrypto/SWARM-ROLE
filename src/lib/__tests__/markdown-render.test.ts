@@ -42,4 +42,36 @@ describe("Markdown color spans", () => {
     const inlineChildren = p.props.children as any[];
     expect(inlineChildren.some((c) => c?.type === "span")).toBe(false);
   });
+
+  // Regression: a real editor (Tiptap) lets a user apply Bold and a color to
+  // the same selection, which can serialize as bold WRAPPING the color tag
+  // (the reverse of the case above). The renderer used to slice bold/italic
+  // content as a raw string instead of recursing, so the {c:...}...{/c}
+  // syntax leaked onto the page as literal visible text instead of coloring.
+  it("supports a color span inside bold (the reverse nesting)", () => {
+    const [p] = blocksOf("**{c:mint}bold and mint{/c}**");
+    const inlineChildren = p.props.children as any[];
+    const strong = inlineChildren.find((c) => c?.type === "strong");
+    expect(strong).toBeTruthy();
+    const inner = strong.props.children as any[];
+    const span = inner.find((c) => c?.type === "span");
+    expect(span).toBeTruthy();
+    expect(span.props.className).toBe("text-mint-300");
+  });
+
+  it("supports a color span inside italic", () => {
+    const [p] = blocksOf("*{c:red}italic and red{/c}*");
+    const inlineChildren = p.props.children as any[];
+    const em = inlineChildren.find((c) => c?.type === "em");
+    const inner = em.props.children as any[];
+    expect(inner.find((c) => c?.type === "span").props.className).toBe("text-rose-400");
+  });
+
+  it("supports formatted text inside a link label", () => {
+    const [p] = blocksOf("[**bold link**](https://example.com)");
+    const inlineChildren = p.props.children as any[];
+    const a = inlineChildren.find((c) => c?.type === "a");
+    const inner = a.props.children as any[];
+    expect(inner.find((c) => c?.type === "strong")).toBeTruthy();
+  });
 });
