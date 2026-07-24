@@ -113,6 +113,17 @@ describe("profileSchema", () => {
     expect(profileSchema.safeParse({ website: "https://xyz.io" }).success).toBe(true);
   });
 
+  // Regression: z.string().url() alone accepts javascript:/data: URIs (they're
+  // syntactically valid URLs) - this field renders straight into an <a href>
+  // on the public profile page with no other check, so this was a stored-XSS
+  // gap reachable by any registered user, not just staff.
+  it("rejects javascript:/data: URIs for website (only http/https allowed)", () => {
+    expect(profileSchema.safeParse({ website: "javascript:alert(document.cookie)" }).success).toBe(false);
+    expect(profileSchema.safeParse({ website: "data:text/html,<script>alert(1)</script>" }).success).toBe(false);
+    expect(profileSchema.safeParse({ website: "vbscript:msgbox(1)" }).success).toBe(false);
+    expect(profileSchema.safeParse({ website: "http://xyz.io" }).success).toBe(true);
+  });
+
   it("rejects an empty name but allows omitting it", () => {
     expect(profileSchema.safeParse({ name: "" }).success).toBe(false);
     expect(profileSchema.safeParse({}).success).toBe(true);

@@ -45,4 +45,26 @@ describe("markdownToHtml", () => {
     expect(html).not.toContain('" onmouseover="');
     expect(html).toContain("&quot; onmouseover=&quot;");
   });
+
+  // Regression: bolding a phrase then italicizing part of it (two Tiptap toolbar
+  // clicks) serializes as "**hello *world***" - the bold alternative's old
+  // `[^*]+` content class couldn't match across the nested italic's `*`, so it
+  // fell through to the wrong `*...*` pair and dropped bold + leaked literal
+  // asterisks. Reopening a post for edit re-hydrated this string through
+  // markdownToHtml, so the corruption was visible immediately on "Edit".
+  it("supports italic nested inside bold (overlapping-delimiter round trip)", () => {
+    expect(markdownToHtml("**hello *world***")).toBe(
+      "<p><strong>hello <em>world</em></strong></p>"
+    );
+  });
+
+  it("supports the standard bold+italic triple-star shorthand", () => {
+    expect(markdownToHtml("***triple***")).toBe("<p><strong><em>triple</em></strong></p>");
+  });
+
+  it("still renders two independent bold spans on one line without merging them", () => {
+    expect(markdownToHtml("**foo** and **bar**")).toBe(
+      "<p><strong>foo</strong> and <strong>bar</strong></p>"
+    );
+  });
 });

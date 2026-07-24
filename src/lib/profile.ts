@@ -91,6 +91,21 @@ export function isAllowedImageHost(url: string): boolean {
   }
 }
 
+/**
+ * `z.string().url()` alone accepts `javascript:`/`data:`/`vbscript:` URIs
+ * (they're syntactically valid URLs, just dangerous ones) - used to gate the
+ * profile "Website" link, which otherwise renders straight into `href` with
+ * no further check. Only http/https are ever a legitimate external website.
+ */
+export function isHttpUrl(v: string): boolean {
+  try {
+    const u = new URL(v);
+    return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 const optionalText = (max: number, label: string) =>
   z
     .string()
@@ -137,7 +152,7 @@ export const profileSchema = z.object({
     .string()
     .trim()
     .max(120)
-    .url("Enter a valid URL (including https://).")
+    .refine((v) => v === "" || isHttpUrl(v), { message: "Enter a valid URL (including https://)." })
     .transform((v) => (v === "" ? undefined : v))
     .optional()
     .or(z.literal("").transform(() => undefined)),

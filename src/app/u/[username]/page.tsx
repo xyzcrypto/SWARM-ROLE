@@ -21,6 +21,7 @@ import { ProfileBannerImage } from "@/components/ProfileBannerImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { cn, formatDate, formatDateTime, stripInlineImage } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
+import { safeHref } from "@/lib/links";
 import { fetchExtraSocials } from "@/lib/user-socials";
 
 // ISR: profiles render on demand (never at build) and cache for 60s; profile
@@ -100,10 +101,14 @@ export default async function ProfilePage(props: Props) {
   const isAdmin = user.role === "ADMIN";
 
   type SocialIcon = ComponentType<{ className?: string }>;
+  // Defense-in-depth: the profile schema already rejects non-http(s) URLs, but
+  // this guards any data written before that check existed - `website` renders
+  // straight into an <a href>, so a javascript:/data: value here would be XSS.
+  const websiteHref = user.website ? safeHref(user.website) : null;
   // Each social shows its BRAND colour always (not just on hover), on a tinted
   // ring that matches — colourful + instantly recognisable.
   const socials = [
-    user.website && { href: user.website, Icon: Globe as SocialIcon, label: "Website", color: "text-gold-300", ring: "border-gold-500/30 hover:border-gold-500/60 hover:bg-gold-500/10" },
+    websiteHref && { href: websiteHref, Icon: Globe as SocialIcon, label: "Website", color: "text-gold-300", ring: "border-gold-500/30 hover:border-gold-500/60 hover:bg-gold-500/10" },
     user.twitter && { href: `https://x.com/${user.twitter}`, Icon: XIcon as SocialIcon, label: `@${user.twitter}`, color: "text-zinc-100", ring: "border-white/15 hover:border-white/40 hover:bg-white/10" },
     user.telegram && { href: `https://t.me/${user.telegram}`, Icon: TelegramIcon as SocialIcon, label: user.telegram, color: "text-sky-400", ring: "border-sky-500/30 hover:border-sky-500/60 hover:bg-sky-500/10" },
     extra.discord && { href: `https://discord.gg/${extra.discord}`, Icon: DiscordIcon as SocialIcon, label: "Discord", color: "text-indigo-400", ring: "border-indigo-500/30 hover:border-indigo-500/60 hover:bg-indigo-500/10" },

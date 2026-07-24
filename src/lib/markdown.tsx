@@ -21,7 +21,14 @@ const COLOR_TAG = /\{c:(gold|mint|red|blue)\}([\s\S]*?)\{\/c\}/;
 function inline(text: string, keyBase: string): ReactNode[] {
   const tokens: ReactNode[] = [];
   // [text](url) is matched before bare URLs so it wins; then bare http(s) links.
-  const regex = /(\{c:(?:gold|mint|red|blue)\}[\s\S]*?\{\/c\}|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s<]+)/g;
+  // Bold's closing "**" requires a negative lookahead for a further "*" - without
+  // it, overlapping bold+italic (e.g. "**hello *world***", from bolding then
+  // italicizing part of the same run) stops at the FIRST "**" it finds, which
+  // lands mid-run and drops the bold wrapper / leaks stray "*" characters as
+  // visible text on the published post. The lookahead makes it prefer the "**"
+  // that isn't immediately followed by another star, so "***" tails resolve as
+  // "closing italic then bold" instead of "closing bold one star short."
+  const regex = /(\{c:(?:gold|mint|red|blue)\}[\s\S]*?\{\/c\}|\*\*[\s\S]+?\*\*(?!\*)|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\)|https?:\/\/[^\s<]+)/g;
   let last = 0;
   let match: RegExpExecArray | null;
   let i = 0;

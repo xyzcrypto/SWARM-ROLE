@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const parsed = schema.safeParse(await req.json());
     if (!parsed.success) return fail("Invalid input.", 400);
 
-    await prisma.pushSubscription.deleteMany({ where: { endpoint: parsed.data.endpoint } }).catch(() => null);
+    await prisma.pushSubscription.deleteMany({ where: { endpoint: parsed.data.endpoint, userId: me.id } }).catch(() => null);
     return ok({ ok: true });
   } catch (err) {
     return handleError(err, "push:unsubscribe");
