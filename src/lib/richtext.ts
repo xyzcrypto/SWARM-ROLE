@@ -19,8 +19,17 @@ const CLASS_TO_COLOR: Record<string, ColorKey> = Object.fromEntries(
   (Object.entries(COLOR_CLASS) as [ColorKey, string][]).map(([key, cls]) => [cls, key])
 );
 
+// Escapes for both text content and (double-quoted) attribute values - a
+// literal `"` in a link href (e.g. a URL with an unusual query string) would
+// otherwise close the attribute early and let the rest of the string inject
+// new attributes/markup.
 export function escapeHtml(s: string): string {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function inlineToHtml(text: string): string {

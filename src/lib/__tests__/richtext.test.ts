@@ -39,4 +39,10 @@ describe("markdownToHtml", () => {
   it("returns an empty string for empty content", () => {
     expect(markdownToHtml("")).toBe("");
   });
+
+  it("escapes quotes in a link href so it can't break out of the attribute", () => {
+    const html = markdownToHtml('[x](https://evil.test/" onmouseover="alert(1))');
+    expect(html).not.toContain('" onmouseover="');
+    expect(html).toContain("&quot; onmouseover=&quot;");
+  });
 });
