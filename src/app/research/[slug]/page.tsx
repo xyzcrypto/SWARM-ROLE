@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { Avatar } from "@/components/Avatar";
 import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
@@ -308,7 +307,6 @@ export default async function PostPage(
           </section>
         )}
       </main>
-      <Footer />
     </>
   );
 }

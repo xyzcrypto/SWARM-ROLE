@@ -5,6 +5,52 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-24 — Notification dropdown overflow, profile banner, tab-page footers, real WYSIWYG editor
+Four more owner-reported items from real device screenshots.
+
+- **Notification bell dropdown overflowed off the left edge on mobile**: `NavActivity.tsx`'s panel was
+  `absolute right-0` relative to the bell's own small wrapper, which sits mid-row in the navbar (the mobile
+  search+menu icons come after it, not the true screen edge) - a 320px-wide panel anchored there routinely
+  extended past the left edge. Below `sm`, the panel is now `fixed inset-x-3 top-[4.75rem]` (viewport-relative,
+  same top offset already used elsewhere for content clearing the navbar), so it always fits the actual
+  screen regardless of device width; `sm:` and up keeps the original bell-anchored `absolute` positioning.
+- **Profile banner not showing despite being uploaded**: confirmed the banner *was* stored correctly (as an
+  inline `data:` URL - Supabase Storage not configured) and previewed fine in `/settings`, but `stripInlineImage()`
+  (added earlier for Fast Origin Transfer protection - public `/u/[username]` is ISR-cached and public, so a
+  raw base64 blob there gets re-shipped to every visitor on every cache fill) was stripping it to `null` on
+  the profile page for everyone, including the owner. Added `GET /api/profile` (self-only, `private, no-store`,
+  returns the caller's own unstripped `image`/`bannerImage`) and a small client component
+  (`ProfileBannerImage.tsx`) that renders the server's stripped banner by default, then rehydrates with the
+  real image via that endpoint only when the viewer is the profile's own owner - public/anonymous visitors
+  still get the FOT-safe stripped HTML, the owner sees their real banner.
+- **Sitewide Footer was showing on bottom-nav tab pages**: entering Profile (or Tools/News/Journal/Research/
+  Markets) showed the full marketing Footer (logo, socials, Explore/Account links) underneath the page content,
+  overlapping oddly with the fixed bottom nav bar - `/community` and `/messages` already never render it for
+  the same reason. Removed `<Footer />` from every bottom-nav-reachable page and sub-route (`/tools` + its
+  share-card view, `/news` + `/news/read`, `/research` + `/research/[slug]`, `/markets` + `/markets/[id]` +
+  `/markets/protocol/[type]/[slug]`, `/u/[username]`) - left untouched on Home, Premium, Contact, Terms and
+  Privacy, which aren't reachable from the bottom nav and are meant to end in the full footer.
+- **Admin post editor: real WYSIWYG formatting + fixed page-scroll-while-writing**: the "Content" box's
+  toolbar (Bold/H1/Color/etc.) was inserting literal markdown syntax characters (`**`, `#`, `{c:red}...{/c}`)
+  as plain visible text instead of actually formatting the selection. Replaced the plain `<textarea>` with a
+  real `contentEditable` box driven by `document.execCommand` (bold/italic/headings/list/quote natively; code
+  and the curated color spans via `insertHTML`, since there's no native command for either) - selecting text
+  and clicking a button now shows the formatted result directly, the same way any rich text editor works.
+  Storage is unchanged: a new self-contained `src/lib/richtext.ts` converts the box's HTML to/from the exact
+  same plain markdown string `/api/research` already expects, so published posts, the live `Markdown` renderer
+  and every other consumer are untouched. Toolbar buttons use `onMouseDown` `preventDefault` so the box never
+  loses focus/selection when a button is clicked (the actual cause of formatting ever needing to "insert" at
+  a stale cursor position in the first place), and the box now has `overscroll-contain` so scrolling that hits
+  its top/bottom edge stops there instead of chaining up and moving the whole page.
+
+**Files**: `src/components/NavActivity.tsx`, `src/app/api/profile/route.ts`, `src/components/ProfileBannerImage.tsx`,
+`src/app/u/[username]/page.tsx`, `src/app/tools/page.tsx`, `src/app/tools/share/points-value/[id]/page.tsx`,
+`src/app/news/page.tsx`, `src/app/news/read/page.tsx`, `src/app/research/page.tsx`, `src/app/research/[slug]/page.tsx`,
+`src/app/markets/page.tsx`, `src/app/markets/[id]/page.tsx`, `src/app/markets/protocol/[type]/[slug]/page.tsx`,
+`src/components/PostEditor.tsx`, `src/lib/richtext.ts`, `src/lib/__tests__/richtext.test.ts`.
+
+---
+
 ## 2026-07-23 — Bottom nav swap, DM scroll/floating-bot fix, real author photo + admin Premium toggle
 Four more owner-reported items from real device screenshots.
 

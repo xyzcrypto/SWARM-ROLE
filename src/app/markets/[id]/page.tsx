@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { CoinDetailClient } from "@/components/CoinDetailClient";
 
 // Shell is cached; the client fetches live numbers from the cached proxy route.
@@ -53,7 +52,6 @@ export default async function CoinPage(props: { params: Promise<{ id: string }> 
           <CoinDetailClient id={id} />
         </div>
       </main>
-      <Footer />
     </>
   );
 }

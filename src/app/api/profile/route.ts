@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError } from "@/lib/api";
@@ -19,6 +20,26 @@ const PUBLIC_SELECT = {
   github: true,
   telegram: true,
 } as const;
+
+// GET /api/profile - the signed-in user's own profile, image fields unstripped.
+// The public /u/[username] page strips inline data: URL avatars/banners before
+// they reach its ISR-cached HTML (see stripInlineImage - FOT protection for
+// every visitor), so an owner whose upload fell back to an inline data: URL
+// otherwise never sees it on their own page. This is a private, self-only,
+// no-store read that lets the owner's view rehydrate with the real image.
+export async function GET() {
+  try {
+    const me = await getSessionUser();
+    if (!me) return fail("Please log in.", 401);
+
+    const user = await prisma.user.findUnique({ where: { id: me.id }, select: PUBLIC_SELECT });
+    if (!user) return fail("Not found.", 404);
+
+    return NextResponse.json({ user }, { status: 200, headers: { "Cache-Control": "private, no-store" } });
+  } catch (err) {
+    return handleError(err, "profile:get");
+  }
+}
 
 // PATCH /api/profile - update the signed-in user's profile (partial).
 export async function PATCH(req: Request) {

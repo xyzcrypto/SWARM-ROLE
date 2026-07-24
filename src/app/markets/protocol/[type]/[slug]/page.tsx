@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { ProtocolDetailClient } from "@/components/ProtocolDetailClient";
 
 export const revalidate = 300;
@@ -43,7 +42,6 @@ export default async function ProtocolPage(props: { params: Promise<{ type: stri
           <ProtocolDetailClient type={type} slug={slug} />
         </div>
       </main>
-      <Footer />
     </>
   );
 }

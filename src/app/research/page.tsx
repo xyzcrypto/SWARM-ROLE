@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { ResearchGrid } from "@/components/ResearchGrid";
 import { prisma } from "@/lib/prisma";
 import { readingTime } from "@/lib/utils";
@@ -60,7 +59,6 @@ export default async function ResearchPage() {
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }
