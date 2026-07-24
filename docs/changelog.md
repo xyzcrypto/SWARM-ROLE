@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-24 — Rebuild the post editor on Tiptap (real rich-text engine)
+Third round on the admin Content editor - the hand-rolled `contentEditable` + `document.execCommand` approach
+kept resurfacing typing/cursor/toolbar bugs because that combination is exactly the layer real editors
+(Notion, Medium, Obsidian) avoid building on directly. Replaced it with [Tiptap](https://tiptap.dev)
+(ProseMirror) instead of patching the same fragile foundation again.
+
+- **New `src/components/PostContentEditor.tsx`**: a `useEditor`/`EditorContent` Tiptap instance
+  (`@tiptap/react` + `@tiptap/starter-kit`, configured down to just the marks/nodes our grammar supports -
+  headings capped at H1-3, no strike/underline/code-block/ordered-list/horizontal-rule) with a toolbar that
+  shows live active-state highlighting (`editor.isActive(...)`) and a new curated color Mark
+  (`src/lib/tiptap-color-mark.ts`) matching the site's 4 design-token colors. `@tiptap/extension-placeholder`
+  replaces the previous hand-rolled empty-state overlay.
+- **Storage format is completely unchanged**: `richtext.ts`'s existing `markdownToHtml`/`htmlToMarkdown`
+  still do the conversion at the boundary (Tiptap's HTML in, plain markdown string out for `/api/research`) -
+  published posts, the live `Markdown` renderer, and every other consumer are untouched.
+- **Root-caused a real selection bug during testing** (not just the reported symptom): toolbar buttons are
+  plain `<button>` elements, and a click's default behavior shifts native DOM focus/selection away from the
+  editor - this desynced Tiptap's own tracked selection from the browser's, so formatting a selection via the
+  toolbar and then continuing to type could wipe the just-formatted text. Fixed with `onMouseDown`
+  `preventDefault` on every toolbar button (the standard, documented fix for building a ProseMirror/Tiptap
+  toolbar), verified via a throwaway Playwright harness driving the actual component (typing, bold, headings,
+  colors, undo/redo, emoji - all confirmed correct end-to-end before removing the harness).
+
+**Files**: `src/components/PostContentEditor.tsx`, `src/lib/tiptap-color-mark.ts`,
+`src/components/PostEditor.tsx`, `src/app/globals.css`, `package.json`.
+
+---
+
 ## 2026-07-24 — Fix broken Content editor, Premium not syncing, premium profile styling
 Follow-up from the same day's WYSIWYG editor rewrite: it shipped with a real regression, plus two
 membership-related requests.

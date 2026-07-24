@@ -1,12 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { Smile } from "lucide-react";
 import { Markdown } from "@/lib/markdown";
-import { COLOR_CLASS, type ColorKey, escapeHtml, htmlToMarkdown, markdownToHtml } from "@/lib/richtext";
 import { uploadFileWithProgress } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
-import { EmojiPicker } from "./EmojiPicker";
+import { PostContentEditor } from "./PostContentEditor";
 
 export type EditablePost = {
   id?: string;
@@ -34,14 +32,6 @@ const EMPTY: EditablePost = {
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
 const MAX_BYTES = 5 * 1024 * 1024;
 
-type Fmt = "bold" | "italic" | "h1" | "h2" | "h3" | "list" | "quote" | "code" | "link";
-const COLORS: { key: ColorKey; label: string; swatch: string }[] = [
-  { key: "gold", label: "Gold", swatch: "bg-gold-400" },
-  { key: "mint", label: "Mint", swatch: "bg-mint-400" },
-  { key: "red", label: "Red", swatch: "bg-rose-400" },
-  { key: "blue", label: "Blue", swatch: "bg-sky-400" },
-];
-
 export function PostEditor({
   mode,
   initial,
@@ -60,99 +50,10 @@ export function PostEditor({
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
-  const [showEmoji, setShowEmoji] = useState(false);
-  // A genuinely empty (zero child nodes) contentEditable can't reliably take a
-  // cursor/typing on several browsers - always seed at least one empty block
-  // so it's never truly childless, even for a brand-new post.
-  const [editorHtml] = useState(() => markdownToHtml((initial ?? EMPTY).content) || "<p><br></p>");
-  const [isEmpty, setIsEmpty] = useState(() => !(initial ?? EMPTY).content.trim());
-  const editableRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof EditablePost>(k: K, v: EditablePost[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
-
-  // The box is the only source of truth for its own DOM while the user is
-  // typing (editorHtml above seeds it once, on mount, and is never written
-  // back to - see the div below) - this just mirrors its content back into
-  // form.content as plain markdown, for saving/preview/autosave.
-  function syncFromDom() {
-    const el = editableRef.current;
-    if (!el) return;
-    const md = htmlToMarkdown(el);
-    set("content", md);
-    setIsEmpty(!md.trim());
-  }
-
-  // Selected text applies formatting directly (real bold/heading/color), via
-  // the browser's native contentEditable commands - no more literal `**`/`#`
-  // syntax characters landing in the box. Toolbar buttons prevent the
-  // mousedown's default focus shift (see onMouseDown below) so the box never
-  // loses focus/selection when a button is clicked.
-  function applyFormat(kind: Fmt) {
-    const el = editableRef.current;
-    if (!el) return;
-    el.focus({ preventScroll: true });
-    switch (kind) {
-      case "bold":
-        document.execCommand("bold");
-        break;
-      case "italic":
-        document.execCommand("italic");
-        break;
-      case "h1":
-        document.execCommand("formatBlock", false, "<h1>");
-        break;
-      case "h2":
-        document.execCommand("formatBlock", false, "<h2>");
-        break;
-      case "h3":
-        document.execCommand("formatBlock", false, "<h3>");
-        break;
-      case "list":
-        document.execCommand("insertUnorderedList");
-        break;
-      case "quote":
-        document.execCommand("formatBlock", false, "<blockquote>");
-        break;
-      case "code": {
-        const sel = window.getSelection()?.toString() || "code";
-        document.execCommand("insertHTML", false, `<code>${escapeHtml(sel)}</code>`);
-        break;
-      }
-      case "link": {
-        const selection = window.getSelection();
-        const hasSelection = Boolean(selection && !selection.isCollapsed);
-        const url = window.prompt("Link URL", "https://");
-        if (!url) return;
-        if (hasSelection) {
-          document.execCommand("createLink", false, url);
-        } else {
-          document.execCommand("insertHTML", false, `<a href="${escapeHtml(url)}">${escapeHtml(url)}</a>`);
-        }
-        break;
-      }
-    }
-    syncFromDom();
-  }
-
-  function applyColor(color: ColorKey) {
-    const el = editableRef.current;
-    if (!el) return;
-    el.focus({ preventScroll: true });
-    const sel = window.getSelection()?.toString() || "colored text";
-    document.execCommand("insertHTML", false, `<span class="${COLOR_CLASS[color]}">${escapeHtml(sel)}</span>`);
-    syncFromDom();
-  }
-
-  function insertEmoji(emoji: string) {
-    const el = editableRef.current;
-    if (!el) return;
-    el.focus({ preventScroll: true });
-    document.execCommand("insertText", false, emoji);
-    syncFromDom();
-    setShowEmoji(false);
-  }
 
   async function uploadCover(file: File) {
     setMsg(null);
@@ -218,18 +119,6 @@ export function PostEditor({
     }
   }
 
-  const toolbar: { k: Fmt; label: string; title: string }[] = [
-    { k: "bold", label: "B", title: "Bold" },
-    { k: "italic", label: "I", title: "Italic" },
-    { k: "h1", label: "H1", title: "Heading" },
-    { k: "h2", label: "H2", title: "Subheading" },
-    { k: "h3", label: "H3", title: "Minor heading" },
-    { k: "list", label: "•", title: "List" },
-    { k: "quote", label: "❝", title: "Quote" },
-    { k: "code", label: "</>", title: "Code" },
-    { k: "link", label: "🔗", title: "Link" },
-  ];
-
   return (
     <div className="grid gap-5 lg:grid-cols-3">
       {/* Main column */}
@@ -239,7 +128,7 @@ export function PostEditor({
 
         <div>
           <div className="mb-1.5 flex items-center justify-between">
-            <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Content (Markdown)</label>
+            <label className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Content</label>
             <div className="flex gap-1 rounded-lg bg-ink-700/60 p-0.5 text-xs">
               {(["write", "preview"] as const).map((v) => (
                 <button
@@ -257,74 +146,7 @@ export function PostEditor({
           </div>
 
           {view === "write" ? (
-            <>
-              <div className="mb-2 flex flex-wrap items-center gap-1">
-                {toolbar.map((t) => (
-                  <button
-                    key={t.k}
-                    type="button"
-                    title={t.title}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => applyFormat(t.k)}
-                    className="h-8 min-w-8 rounded-md border border-white/10 bg-ink-700/60 px-2 text-xs font-semibold text-zinc-300 transition-colors hover:border-gold-500/40 hover:text-gold-100"
-                  >
-                    {t.label}
-                  </button>
-                ))}
-                <span className="mx-0.5 h-5 w-px bg-white/10" aria-hidden />
-                {COLORS.map((c) => (
-                  <button
-                    key={c.key}
-                    type="button"
-                    title={`${c.label} text`}
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => applyColor(c.key)}
-                    className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-ink-700/60 transition-colors hover:border-gold-500/40"
-                  >
-                    <span className={`h-3.5 w-3.5 rounded-full ${c.swatch}`} />
-                  </button>
-                ))}
-                <span className="mx-0.5 h-5 w-px bg-white/10" aria-hidden />
-                <div className="relative">
-                  <button
-                    type="button"
-                    title="Emoji"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => setShowEmoji((v) => !v)}
-                    className="flex h-8 min-w-8 items-center justify-center rounded-md border border-white/10 bg-ink-700/60 px-2 text-zinc-300 transition-colors hover:border-gold-500/40 hover:text-gold-100"
-                  >
-                    <Smile className="h-4 w-4" />
-                  </button>
-                  {showEmoji && <EmojiPicker onPick={insertEmoji} onClose={() => setShowEmoji(false)} />}
-                </div>
-              </div>
-              {/* Real contentEditable box - toolbar actions apply directly to the
-                  selected text (native bold/heading/color), not literal markdown
-                  syntax characters. Seeded once from editorHtml on mount; never
-                  reset from form.content afterwards (that would reset the caret
-                  on every keystroke) - onInput mirrors the DOM back into
-                  form.content as markdown instead. overscroll-contain stops a
-                  scroll that hits the top/bottom of the box from chaining up
-                  and moving the whole page. Always seeded with at least one
-                  empty block (never truly childless - see editorHtml above),
-                  so the placeholder below is a plain overlay (isEmpty state)
-                  rather than a CSS :empty trick that would never fire. */}
-              <div className="relative">
-                {isEmpty && (
-                  <p className="pointer-events-none absolute left-4 top-3 text-sm text-zinc-600">
-                    Write your research here…
-                  </p>
-                )}
-                <div
-                  ref={editableRef}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={syncFromDom}
-                  dangerouslySetInnerHTML={{ __html: editorHtml }}
-                  className="prose-xyz h-[26rem] w-full overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
-                />
-              </div>
-            </>
+            <PostContentEditor value={form.content} onChange={(v) => set("content", v)} />
           ) : (
             <div className="prose-xyz min-h-[22rem] rounded-xl border border-white/10 bg-ink-700/40 px-5 py-4">
               {form.content.trim() ? (
