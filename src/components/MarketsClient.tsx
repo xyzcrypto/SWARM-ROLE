@@ -130,7 +130,7 @@ export function MarketsClient() {
       </div>
 
       {/* Always-visible global KPI strip */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Tile label="Market Cap" value={compactUsd(g.data?.marketCap)} sub={g.data ? pct(g.data.mcapChange24h) : undefined} subTone={(g.data?.mcapChange24h ?? 0) >= 0 ? "up" : "down"} loading={g.loading} />
         <Tile label="24h Volume" value={compactUsd(g.data?.volume24h)} loading={g.loading} />
         <Tile label="BTC Dom." value={g.data ? `${g.data.btcDominance.toFixed(1)}%` : "-"} sub={g.data ? `ETH ${g.data.ethDominance.toFixed(1)}%` : undefined} loading={g.loading} />
@@ -159,12 +159,12 @@ export function MarketsClient() {
 function Overview({ g, d, c }: { g: GlobalMarket | null; d: DefiMarket | null; c: CoinsResp | null }) {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <StatCardMini label="Total DeFi TVL" value={compactUsd(d?.totalTvl)} accent="mint" trend={d?.tvlTrend ?? []} />
         <StatCardMini label="Stablecoin Mcap" value={compactUsd(d?.stableMcap ?? g?.stableMcap)} accent="gold" />
         <StatCardMini label="DeFi Mcap" value={compactUsd(g?.defiMcap)} sub={g?.defiMcap ? undefined : "add CMC key"} />
       </div>
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Panel title="Top Gainers (24h)" icon={<TrendingUp className="h-4 w-4 text-mint-400" />}>
           <MoverList rows={c?.gainers ?? []} />
         </Panel>
@@ -172,7 +172,7 @@ function Overview({ g, d, c }: { g: GlobalMarket | null; d: DefiMarket | null; c
           <MoverList rows={c?.losers ?? []} />
         </Panel>
       </section>
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <PerpChart coin={{ id: "bitcoin", symbol: "BTC", base: 64000 }} />
         <PerpChart coin={{ id: "ethereum", symbol: "ETH", base: 3400 }} />
       </section>
@@ -364,12 +364,12 @@ function ChangeCell({ v }: { v: number }) {
 function DefiPanel({ d, loading }: { d: DefiMarket | null; loading: boolean }) {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCardMini label="Total DeFi TVL" value={compactUsd(d?.totalTvl)} accent="mint" trend={d?.tvlTrend ?? []} />
         <StatCardMini label="Stablecoin Mcap" value={compactUsd(d?.stableMcap)} accent="gold" />
         <StatCardMini label="Tracked Protocols" value={`${d?.topProtocols?.length ? "Top 8" : "-"}`} />
       </div>
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Panel title="Top Protocols by TVL" icon={<Activity className="h-4 w-4 text-gold-300" />}>
           <RankList loading={loading} rows={(d?.topProtocols ?? []).map((r) => ({ name: r.name, logo: r.logo, meta: r.chain, value: compactUsd(r.tvl), change: r.change1d }))} />
         </Panel>
@@ -384,7 +384,7 @@ function DefiPanel({ d, loading }: { d: DefiMarket | null; loading: boolean }) {
 function PerpPanel({ p, loading }: { p: PerpResp | null; loading: boolean }) {
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCardMini label="Perp DEX Volume (24h)" value={compactUsd(p?.totalVolume24h)} accent="gold" />
         <StatCardMini label="Open Interest (Hyperliquid)" value={compactUsd(p?.totalOi)} accent="mint" />
       </div>
@@ -427,7 +427,7 @@ function PerpPanel({ p, loading }: { p: PerpResp | null; loading: boolean }) {
 
 function DexPanel({ x, loading }: { x: DexResp | null; loading: boolean }) {
   return (
-    <section className="grid gap-6 lg:grid-cols-2">
+    <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <Panel title="Top DEXs (24h Volume)" icon={<Coins className="h-4 w-4 text-gold-300" />}>
         <RankList loading={loading} rows={(x?.dexs ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.volume24h), change: r.change1d, href: r.slug ? `/markets/protocol/dexs/${r.slug}` : undefined }))} />
       </Panel>
@@ -480,14 +480,14 @@ function TrendingPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }
   return (
     <div className="space-y-6">
       <Panel title="Trending Now" icon={<Flame className="h-4 w-4 text-gold-300" />}>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {(c?.trending ?? []).map((t) => {
             const inner = (
               <>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 {t.thumb && <img src={t.thumb} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />}
-                <span className="flex-1 truncate text-sm text-zinc-200 group-hover:text-gold-200">{t.name}</span>
-                <span className="mono text-[11px] text-zinc-500">{t.symbol}</span>
+                <span className="min-w-0 flex-1 truncate text-sm text-zinc-200 group-hover:text-gold-200">{t.name}</span>
+                <span className="mono shrink-0 text-[11px] text-zinc-500">{t.symbol}</span>
                 <span className={cn("mono text-[11px]", t.change24h >= 0 ? "text-mint-400" : "text-red-400")}>{pct(t.change24h, 1)}</span>
               </>
             );
@@ -502,7 +502,7 @@ function TrendingPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }
           {!loading && !(c?.trending ?? []).length && <p className="col-span-full py-3 text-center text-sm text-zinc-500">Trending data is loading…</p>}
         </div>
       </Panel>
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Panel title="Top Gainers (24h)" icon={<TrendingUp className="h-4 w-4 text-mint-400" />}>
           <MoverList rows={c?.gainers ?? []} />
         </Panel>
@@ -591,7 +591,7 @@ function RankList({ rows, loading }: { rows: RankRow[]; loading?: boolean }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={r.logo} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
             )}
-            <span className="flex-1 truncate text-sm text-zinc-200 group-hover:text-gold-200">{r.name}</span>
+            <span className="min-w-0 flex-1 truncate text-sm text-zinc-200 group-hover:text-gold-200">{r.name}</span>
             {r.meta && <span className="hidden shrink-0 text-[11px] text-zinc-500 sm:inline">{r.meta}</span>}
             <span className="mono shrink-0 text-right text-sm text-zinc-300">{r.value}</span>
             {r.change !== undefined && (
@@ -622,8 +622,8 @@ function MoverList({ rows }: { rows: MoverCoin[] }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={r.image} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
             )}
-            <span className="flex-1 truncate text-sm text-zinc-200 group-hover:text-gold-200">{r.name}</span>
-            <span className="mono text-[11px] text-zinc-500">{r.symbol}</span>
+            <span className="min-w-0 flex-1 truncate text-sm text-zinc-200 group-hover:text-gold-200">{r.name}</span>
+            <span className="mono shrink-0 text-[11px] text-zinc-500">{r.symbol}</span>
             <span className="mono w-20 shrink-0 text-right text-sm text-zinc-300">${r.price.toLocaleString("en-US", { maximumFractionDigits: r.price >= 1 ? 2 : 6 })}</span>
             <span className={cn("mono w-16 shrink-0 text-right text-[11px]", r.change24h >= 0 ? "text-mint-400" : "text-red-400")}>{pct(r.change24h, 1)}</span>
           </>

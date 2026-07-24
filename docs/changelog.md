@@ -5,6 +5,30 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-24 — Profile photo lightbox + root-caused the Markets Overview mobile layout bug
+- **Profile photo/banner lightbox**: tapping the avatar or banner on `/u/[username]` now opens the full,
+  uncropped image full-screen (matching X's "tap a profile photo" pattern) - new `ImageLightbox` component,
+  portal-rendered to `document.body` since the hero card's `.glass` (`backdrop-filter`) would otherwise clip
+  an un-portaled `position: fixed` overlay to the card instead of the viewport. Only wired up when a real
+  photo exists (not the initials/gradient fallback).
+- **Root-caused the Markets Overview mobile layout bug** (previously reported as a stray line, then as "the
+  page doesn't fit") - finally reproduced by testing with realistic long coin/token names instead of short
+  placeholders, which is exactly why it never showed up in this sandbox's earlier fallback data. Two stacked
+  bugs: (1) `MoverList`/`RankList`'s coin-name span was `flex-1 truncate` *without* `min-w-0` - a classic
+  flexbox gotcha where a flex child's default `min-width: auto` blocks it from ever shrinking below its own
+  content size, so `truncate` silently never engages. (2) Worse, every `<section className="grid ...">` in
+  `MarketsClient.tsx` relied on the *implicit* single-column grid track below its first breakpoint instead of
+  an explicit `grid-cols-1` - an implicit "auto" track sizes to content, not 100% width, so once (1) let a row
+  demand extra width, the grid track (and everything in it) grew past the viewport. The page's own
+  `overflow-x: hidden` safety net then silently clipped the overflow instead of failing loudly - which is
+  what looked like a stray line in the first screenshot. Fixed both: added `min-w-0` to the three truncating
+  name spans, and an explicit `grid-cols-1` to every grid in the file.
+
+**Files**: `src/components/ImageLightbox.tsx`, `src/components/ProfileBannerImage.tsx`,
+`src/app/u/[username]/page.tsx`, `src/components/MarketsClient.tsx`.
+
+---
+
 ## 2026-07-24 — Premium visual identity (profile, avatar badge fix, feed/comments)
 Premium members previously had almost no visual difference from Free - just a plain "★ Premium" badge.
 Added a quiet, consistent gold treatment (X Premium/Discord Nitro style - restrained, not flashy) reusing
