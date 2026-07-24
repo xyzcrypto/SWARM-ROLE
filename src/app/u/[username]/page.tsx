@@ -18,6 +18,7 @@ import { ProfileFollow } from "@/components/ProfileFollow";
 import { JournalActivityFeed } from "@/components/JournalActivityFeed";
 import { EditProfileButton } from "@/components/EditProfileButton";
 import { ProfileBannerImage } from "@/components/ProfileBannerImage";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { cn, formatDate, formatDateTime, stripInlineImage } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
 import { fetchExtraSocials } from "@/lib/user-socials";
@@ -137,17 +138,36 @@ export default async function ProfilePage(props: Props) {
                 {/* Only the avatar overlaps the banner; the name/handle stay in the
                     content area below it so the name is never hidden over the banner art. */}
                 <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-                  <Avatar
-                    name={user.name}
-                    image={user.image}
-                    size="xl"
-                    premium={isPremium}
-                    ring={false}
-                    className={cn(
-                      "-mt-8 shrink-0 shadow-gold sm:-mt-10",
-                      isPremium ? "ring-2 ring-gold-400" : "ring-[3px] ring-ink-900"
-                    )}
-                  />
+                  {/* Tapping the photo opens it full-size (like X) - only when
+                      there's a real photo to show, not the initials fallback. */}
+                  {user.image ? (
+                    <ImageLightbox
+                      src={user.image}
+                      alt={`${user.name ?? user.username} - profile photo`}
+                      className="-mt-8 inline-flex shrink-0 cursor-zoom-in rounded-full sm:-mt-10"
+                    >
+                      <Avatar
+                        name={user.name}
+                        image={user.image}
+                        size="xl"
+                        premium={isPremium}
+                        ring={false}
+                        className={isPremium ? "shadow-gold ring-2 ring-gold-400" : "shadow-gold ring-[3px] ring-ink-900"}
+                      />
+                    </ImageLightbox>
+                  ) : (
+                    <Avatar
+                      name={user.name}
+                      image={user.image}
+                      size="xl"
+                      premium={isPremium}
+                      ring={false}
+                      className={cn(
+                        "-mt-8 shrink-0 shadow-gold sm:-mt-10",
+                        isPremium ? "ring-2 ring-gold-400" : "ring-[3px] ring-ink-900"
+                      )}
+                    />
+                  )}
                   <div className="min-w-0 pt-1">
                     <h1
                       className={cn(
