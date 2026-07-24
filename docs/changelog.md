@@ -5,6 +5,33 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-24 — Fix broken Content editor, Premium not syncing, premium profile styling
+Follow-up from the same day's WYSIWYG editor rewrite: it shipped with a real regression, plus two
+membership-related requests.
+
+- **Content editor: couldn't type at all**: the previous change made `markdownToHtml("")` return an empty
+  string so the CSS `:empty` placeholder trick would fire - but that left a brand-new post's contentEditable
+  box with literally zero child nodes, and several browsers can't reliably place a cursor or accept typing in
+  a genuinely empty contentEditable. Now seeds with a minimal `<p><br></p>` block whenever there's no content,
+  so the box is never truly childless; the placeholder is a plain absolutely-positioned overlay (an `isEmpty`
+  React state kept in sync from `syncFromDom`) instead of relying on `:empty`, since the box no longer ever
+  matches it.
+- **Granting Premium didn't show up for an already-logged-in user**: `auth.ts`'s `jwt()` callback only
+  re-reads `role`/`membership` from the DB when those fields are missing or on an explicit `update()` call -
+  once set on first login, they were frozen in the JWT until the user logged out and back in, so an admin
+  granting Premium had no visible effect for someone already signed in. Added a 60-second TTL
+  (`token.syncedAt`) so the token self-heals on the next request after that window, without paying a DB read
+  on literally every request.
+- **Premium profile styling**: Premium members now get a distinct look on their profile - `Avatar` has a new
+  opt-in `premium` prop (gold gradient ring + a small round crown badge over the avatar), applied only from
+  the `/u/[username]` hero so every other Avatar call site site-wide is untouched, plus a gold ring/glow on
+  the hero card itself for Premium.
+
+**Files**: `src/components/PostEditor.tsx`, `src/lib/auth.ts`, `src/components/Avatar.tsx`,
+`src/app/u/[username]/page.tsx`.
+
+---
+
 ## 2026-07-24 — Notification dropdown overflow, profile banner, tab-page footers, real WYSIWYG editor
 Four more owner-reported items from real device screenshots.
 

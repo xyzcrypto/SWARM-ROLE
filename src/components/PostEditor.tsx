@@ -61,7 +61,11 @@ export function PostEditor({
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
-  const [editorHtml] = useState(() => markdownToHtml((initial ?? EMPTY).content));
+  // A genuinely empty (zero child nodes) contentEditable can't reliably take a
+  // cursor/typing on several browsers - always seed at least one empty block
+  // so it's never truly childless, even for a brand-new post.
+  const [editorHtml] = useState(() => markdownToHtml((initial ?? EMPTY).content) || "<p><br></p>");
+  const [isEmpty, setIsEmpty] = useState(() => !(initial ?? EMPTY).content.trim());
   const editableRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -75,7 +79,9 @@ export function PostEditor({
   function syncFromDom() {
     const el = editableRef.current;
     if (!el) return;
-    set("content", htmlToMarkdown(el));
+    const md = htmlToMarkdown(el);
+    set("content", md);
+    setIsEmpty(!md.trim());
   }
 
   // Selected text applies formatting directly (real bold/heading/color), via
@@ -299,16 +305,25 @@ export function PostEditor({
                   on every keystroke) - onInput mirrors the DOM back into
                   form.content as markdown instead. overscroll-contain stops a
                   scroll that hits the top/bottom of the box from chaining up
-                  and moving the whole page. */}
-              <div
-                ref={editableRef}
-                contentEditable
-                suppressContentEditableWarning
-                onInput={syncFromDom}
-                dangerouslySetInnerHTML={{ __html: editorHtml }}
-                data-placeholder="Write your research here…"
-                className="prose-xyz h-[26rem] w-full overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20 empty:before:text-zinc-600 empty:before:content-[attr(data-placeholder)]"
-              />
+                  and moving the whole page. Always seeded with at least one
+                  empty block (never truly childless - see editorHtml above),
+                  so the placeholder below is a plain overlay (isEmpty state)
+                  rather than a CSS :empty trick that would never fire. */}
+              <div className="relative">
+                {isEmpty && (
+                  <p className="pointer-events-none absolute left-4 top-3 text-sm text-zinc-600">
+                    Write your research here…
+                  </p>
+                )}
+                <div
+                  ref={editableRef}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={syncFromDom}
+                  dangerouslySetInnerHTML={{ __html: editorHtml }}
+                  className="prose-xyz h-[26rem] w-full overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+                />
+              </div>
             </>
           ) : (
             <div className="prose-xyz min-h-[22rem] rounded-xl border border-white/10 bg-ink-700/40 px-5 py-4">
