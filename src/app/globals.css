@@ -919,6 +919,20 @@ html.lenis body {
 .prose-xyz td { @apply border-t border-white/5 px-4 py-2.5 text-zinc-300; }
 
 /* ----------------------------------------------------------------
+   PostEditor (Tiptap) - empty-state placeholder text. Tiptap's Placeholder
+   extension renders via a `data-placeholder` attribute + these exact class
+   names (not configurable) - see @tiptap/extensions.
+----------------------------------------------------------------- */
+.tiptap p.is-editor-empty:first-child::before,
+.tiptap .is-empty::before {
+  content: attr(data-placeholder);
+  color: #52525b;
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ----------------------------------------------------------------
    Accessibility - respect reduced motion
 ----------------------------------------------------------------- */
 @media (prefers-reduced-motion: reduce) {
