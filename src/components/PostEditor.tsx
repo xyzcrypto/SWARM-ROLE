@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Smile } from "lucide-react";
 import { Markdown } from "@/lib/markdown";
+import { COLOR_CLASS, type ColorKey, escapeHtml, htmlToMarkdown, markdownToHtml } from "@/lib/richtext";
 import { uploadFileWithProgress } from "@/lib/upload";
 import { compressImage } from "@/lib/image";
 import { EmojiPicker } from "./EmojiPicker";
@@ -34,7 +35,6 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "im
 const MAX_BYTES = 5 * 1024 * 1024;
 
 type Fmt = "bold" | "italic" | "h1" | "h2" | "h3" | "list" | "quote" | "code" | "link";
-type ColorKey = "gold" | "mint" | "red" | "blue";
 const COLORS: { key: ColorKey; label: string; swatch: string }[] = [
   { key: "gold", label: "Gold", swatch: "bg-gold-400" },
   { key: "mint", label: "Mint", swatch: "bg-mint-400" },
@@ -61,58 +61,90 @@ export function PostEditor({
   const [progress, setProgress] = useState(0);
   const [dragging, setDragging] = useState(false);
   const [showEmoji, setShowEmoji] = useState(false);
-  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const [editorHtml] = useState(() => markdownToHtml((initial ?? EMPTY).content));
+  const editableRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = <K extends keyof EditablePost>(k: K, v: EditablePost[K]) =>
     setForm((f) => ({ ...f, [k]: v }));
 
-  // Shared insertion primitive: replaces the current selection with `insert`,
-  // re-focuses without letting the browser scroll the page to "reveal" the
-  // textarea (the classic cause of the whole page jumping while writing -
-  // .focus() alone will scroll an already-visible element into view anyway),
-  // and restores the box's own scroll position so only ever the box itself
-  // (never the surrounding page) can move.
-  function insertAtCursor(insert: string) {
-    const ta = contentRef.current;
-    if (!ta) return;
-    const { selectionStart: s, selectionEnd: e, value, scrollTop } = ta;
-    const next = value.slice(0, s) + insert + value.slice(e);
-    set("content", next);
-    requestAnimationFrame(() => {
-      ta.focus({ preventScroll: true });
-      ta.selectionStart = ta.selectionEnd = s + insert.length;
-      ta.scrollTop = scrollTop;
-    });
+  // The box is the only source of truth for its own DOM while the user is
+  // typing (editorHtml above seeds it once, on mount, and is never written
+  // back to - see the div below) - this just mirrors its content back into
+  // form.content as plain markdown, for saving/preview/autosave.
+  function syncFromDom() {
+    const el = editableRef.current;
+    if (!el) return;
+    set("content", htmlToMarkdown(el));
   }
 
+  // Selected text applies formatting directly (real bold/heading/color), via
+  // the browser's native contentEditable commands - no more literal `**`/`#`
+  // syntax characters landing in the box. Toolbar buttons prevent the
+  // mousedown's default focus shift (see onMouseDown below) so the box never
+  // loses focus/selection when a button is clicked.
   function applyFormat(kind: Fmt) {
-    const ta = contentRef.current;
-    if (!ta) return;
-    const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
-    const wrap: Record<Fmt, string> = {
-      bold: `**${sel || "bold text"}**`,
-      italic: `*${sel || "italic"}*`,
-      h1: `# ${sel || "Heading"}`,
-      h2: `## ${sel || "Heading"}`,
-      h3: `### ${sel || "Subheading"}`,
-      list: `- ${sel || "list item"}`,
-      quote: `> ${sel || "quote"}`,
-      code: `\`${sel || "code"}\``,
-      link: `[${sel || "link text"}](https://)`,
-    };
-    insertAtCursor(wrap[kind]);
+    const el = editableRef.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    switch (kind) {
+      case "bold":
+        document.execCommand("bold");
+        break;
+      case "italic":
+        document.execCommand("italic");
+        break;
+      case "h1":
+        document.execCommand("formatBlock", false, "<h1>");
+        break;
+      case "h2":
+        document.execCommand("formatBlock", false, "<h2>");
+        break;
+      case "h3":
+        document.execCommand("formatBlock", false, "<h3>");
+        break;
+      case "list":
+        document.execCommand("insertUnorderedList");
+        break;
+      case "quote":
+        document.execCommand("formatBlock", false, "<blockquote>");
+        break;
+      case "code": {
+        const sel = window.getSelection()?.toString() || "code";
+        document.execCommand("insertHTML", false, `<code>${escapeHtml(sel)}</code>`);
+        break;
+      }
+      case "link": {
+        const selection = window.getSelection();
+        const hasSelection = Boolean(selection && !selection.isCollapsed);
+        const url = window.prompt("Link URL", "https://");
+        if (!url) return;
+        if (hasSelection) {
+          document.execCommand("createLink", false, url);
+        } else {
+          document.execCommand("insertHTML", false, `<a href="${escapeHtml(url)}">${escapeHtml(url)}</a>`);
+        }
+        break;
+      }
+    }
+    syncFromDom();
   }
 
   function applyColor(color: ColorKey) {
-    const ta = contentRef.current;
-    if (!ta) return;
-    const sel = ta.value.slice(ta.selectionStart, ta.selectionEnd);
-    insertAtCursor(`{c:${color}}${sel || "colored text"}{/c}`);
+    const el = editableRef.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    const sel = window.getSelection()?.toString() || "colored text";
+    document.execCommand("insertHTML", false, `<span class="${COLOR_CLASS[color]}">${escapeHtml(sel)}</span>`);
+    syncFromDom();
   }
 
   function insertEmoji(emoji: string) {
-    insertAtCursor(emoji);
+    const el = editableRef.current;
+    if (!el) return;
+    el.focus({ preventScroll: true });
+    document.execCommand("insertText", false, emoji);
+    syncFromDom();
     setShowEmoji(false);
   }
 
@@ -226,6 +258,7 @@ export function PostEditor({
                     key={t.k}
                     type="button"
                     title={t.title}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => applyFormat(t.k)}
                     className="h-8 min-w-8 rounded-md border border-white/10 bg-ink-700/60 px-2 text-xs font-semibold text-zinc-300 transition-colors hover:border-gold-500/40 hover:text-gold-100"
                   >
@@ -238,6 +271,7 @@ export function PostEditor({
                     key={c.key}
                     type="button"
                     title={`${c.label} text`}
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => applyColor(c.key)}
                     className="flex h-8 w-8 items-center justify-center rounded-md border border-white/10 bg-ink-700/60 transition-colors hover:border-gold-500/40"
                   >
@@ -249,6 +283,7 @@ export function PostEditor({
                   <button
                     type="button"
                     title="Emoji"
+                    onMouseDown={(e) => e.preventDefault()}
                     onClick={() => setShowEmoji((v) => !v)}
                     className="flex h-8 min-w-8 items-center justify-center rounded-md border border-white/10 bg-ink-700/60 px-2 text-zinc-300 transition-colors hover:border-gold-500/40 hover:text-gold-100"
                   >
@@ -257,12 +292,22 @@ export function PostEditor({
                   {showEmoji && <EmojiPicker onPick={insertEmoji} onClose={() => setShowEmoji(false)} />}
                 </div>
               </div>
-              <textarea
-                ref={contentRef}
-                value={form.content}
-                onChange={(e) => set("content", e.target.value)}
-                placeholder={"Write your research here.\n\n# Heading\n- bullet point\n**bold**, *italic*, `code`, [links](https://x.com)"}
-                className="h-[26rem] w-full resize-none overflow-y-auto rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 font-mono text-sm leading-relaxed text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+              {/* Real contentEditable box - toolbar actions apply directly to the
+                  selected text (native bold/heading/color), not literal markdown
+                  syntax characters. Seeded once from editorHtml on mount; never
+                  reset from form.content afterwards (that would reset the caret
+                  on every keystroke) - onInput mirrors the DOM back into
+                  form.content as markdown instead. overscroll-contain stops a
+                  scroll that hits the top/bottom of the box from chaining up
+                  and moving the whole page. */}
+              <div
+                ref={editableRef}
+                contentEditable
+                suppressContentEditableWarning
+                onInput={syncFromDom}
+                dangerouslySetInnerHTML={{ __html: editorHtml }}
+                data-placeholder="Write your research here…"
+                className="prose-xyz h-[26rem] w-full overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20 empty:before:text-zinc-600 empty:before:content-[attr(data-placeholder)]"
               />
             </>
           ) : (

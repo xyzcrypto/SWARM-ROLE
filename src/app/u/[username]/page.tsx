@@ -6,7 +6,6 @@ import { notFound } from "next/navigation";
 import { Globe, MapPin, MessageSquare } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/primitives";
 import { Reveal } from "@/components/Reveal";
@@ -17,6 +16,7 @@ import { ProfileStats } from "@/components/ProfileStats";
 import { ProfileFollow } from "@/components/ProfileFollow";
 import { JournalActivityFeed } from "@/components/JournalActivityFeed";
 import { EditProfileButton } from "@/components/EditProfileButton";
+import { ProfileBannerImage } from "@/components/ProfileBannerImage";
 import { formatDate, formatDateTime, stripInlineImage } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
 import { fetchExtraSocials } from "@/lib/user-socials";
@@ -121,14 +121,7 @@ export default async function ProfilePage(props: Props) {
           <Reveal variant="blur">
           <div className="glass overflow-hidden rounded-3xl">
             <div className="relative h-32 w-full sm:h-40">
-              <div
-                className="absolute inset-0 bg-gold-shine"
-                style={
-                  user.bannerImage
-                    ? { backgroundImage: `url(${user.bannerImage})`, backgroundSize: "cover", backgroundPosition: "center" }
-                    : undefined
-                }
-              />
+              <ProfileBannerImage profileId={user.id} bannerImage={user.bannerImage} />
               <div className="absolute inset-0 bg-gradient-to-t from-ink-900/60 to-transparent" />
               <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
             </div>
@@ -246,7 +239,6 @@ export default async function ProfilePage(props: Props) {
           </Reveal>
         </div>
       </main>
-      <Footer />
     </>
   );
 }

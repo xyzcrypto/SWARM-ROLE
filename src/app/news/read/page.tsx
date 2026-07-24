@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { SharedArticle } from "@/components/SharedArticle";
 import { decodeStory, type SharedStory } from "@/lib/news-share";
 import { getNewsPage } from "@/lib/news-fetch";
@@ -51,7 +50,6 @@ export default async function NewsReadPage(props: { searchParams: Promise<{ d?: 
           <SharedArticle story={story} />
         </div>
       </main>
-      <Footer />
     </>
   );
 }

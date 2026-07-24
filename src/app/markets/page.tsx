@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { MarketsClient } from "@/components/MarketsClient";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBackground } from "@/components/PageBackground";
@@ -37,7 +36,6 @@ export default function MarketsPage() {
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }

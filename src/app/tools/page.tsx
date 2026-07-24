@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { ToolsClient } from "@/components/ToolsClient";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBackground } from "@/components/PageBackground";
@@ -35,7 +34,6 @@ export default function ToolsPage() {
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { SITE_URL } from "@/lib/seo";
 import { PointsShareActions } from "@/components/tools/PointsShareActions";
 
@@ -81,7 +80,6 @@ export default async function PointsValueSharePage(props: { params: Promise<{ id
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }

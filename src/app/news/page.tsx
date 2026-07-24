@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { Footer } from "@/components/Footer";
 import { NewsClient } from "@/components/NewsClient";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBackground } from "@/components/PageBackground";
@@ -39,7 +38,6 @@ export default async function NewsPage() {
           </div>
         </div>
       </main>
-      <Footer />
     </>
   );
 }
