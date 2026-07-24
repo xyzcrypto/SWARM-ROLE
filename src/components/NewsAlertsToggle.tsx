@@ -237,7 +237,12 @@ export function NewsAlertsToggle({
           </div>
         </>
       )}
-      {msg && <p className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg bg-ink-900 p-2 text-[11px] text-amber-300 shadow-elevate ring-1 ring-white/10">{msg}</p>}
+      {/* Centered under the trigger (not right-anchored) + viewport-clamped width:
+          this toggle can sit anywhere in a flex row (e.g. mid-row in ChatClient's
+          header, with siblings to its right), so `right-0` anchored to the wrong
+          edge and pushed this off the left edge of the screen on mobile - the
+          same class of bug already fixed for NavActivity's dropdown. */}
+      {msg && <p className="absolute left-1/2 top-full z-50 mt-1 w-56 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-lg bg-ink-900 p-2 text-[11px] text-amber-300 shadow-elevate ring-1 ring-white/10">{msg}</p>}
     </div>
   );
 }

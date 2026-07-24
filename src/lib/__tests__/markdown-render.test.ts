@@ -74,4 +74,28 @@ describe("Markdown color spans", () => {
     const inner = a.props.children as any[];
     expect(inner.find((c) => c?.type === "strong")).toBeTruthy();
   });
+
+  // Regression: bolding a phrase then italicizing part of it inside Tiptap
+  // serializes as "**hello *world***" - the bold alternative's old `[^*]+`
+  // content class couldn't match across the nested italic's `*`, so the parser
+  // fell through to the wrong `*...*` pair, dropped the bold wrapper, and
+  // leaked literal `*`/`***` characters as visible text on the published post.
+  it("supports italic nested inside bold (overlapping-delimiter round trip)", () => {
+    const [p] = blocksOf("**hello *world***");
+    const inlineChildren = p.props.children as any[];
+    const strong = inlineChildren.find((c) => c?.type === "strong");
+    expect(strong).toBeTruthy();
+    const inner = strong.props.children as any[];
+    expect(inner[0]).toBe("hello ");
+    expect(inner.find((c) => c?.type === "em")?.props.children).toEqual(["world"]);
+  });
+
+  it("still renders two independent bold spans on one line without merging them", () => {
+    const [p] = blocksOf("**foo** and **bar**");
+    const inlineChildren = p.props.children as any[];
+    const strongs = inlineChildren.filter((c) => c?.type === "strong");
+    expect(strongs).toHaveLength(2);
+    expect(strongs[0].props.children).toEqual(["foo"]);
+    expect(strongs[1].props.children).toEqual(["bar"]);
+  });
 });

@@ -5,6 +5,66 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-24 — Security audit fixes + bold/italic overlap bug
+Full end-to-end security audit (7 parallel read-only agents covering auth, every API route, the rich-text/XSS
+surface, realtime chat/DM access control, and secrets/env/deps) plus a bug hunt across research, markets,
+journal, chat/DM, profile and auth. This entry covers the fixes shipped from that pass; the remainder is a
+prioritized backlog (see below) - not silently dropped.
+
+**Security fixes:**
+- **DM plaintext leaked over a public Realtime channel (High)**: `POST /api/dm/[id]` broadcast the *full
+  message body* to `user:<recipientId>` on Supabase Realtime's public (`private: false`) broadcast channel.
+  Since the recipient's user id is discoverable from their public profile page, anyone holding the public
+  anon key could open devtools, subscribe to `user:<their-id>`, and read every DM sent to them in real time -
+  no valid session required, completely bypassing the correctly-implemented participant check in
+  `loadMine()`. Fixed by broadcasting a bare `{ conversationId }` ping instead of the message - the client
+  already refetches the thread through the authed `GET /api/dm/[id]` on every ping, so no payload content was
+  ever actually needed on the wire (matches the existing `CH_NOTIFY` ping pattern).
+- **Profile "Website" field accepted `javascript:`/`data:` URIs (High)**: `z.string().url()` alone doesn't
+  reject dangerous schemes (`new URL("javascript:...")` doesn't throw) - the value rendered straight into
+  `<a href>` on the public `/u/[username]` page with no `safeHref` check, unlike every other link in the app.
+  Any registered user (not just staff) could plant a stored-XSS-class link. Fixed with a new `isHttpUrl()`
+  schema check (only `http:`/`https:` allowed) plus a defensive `safeHref()` guard at render time for any
+  data written before the fix.
+- **IDOR on push-notification endpoints (Low)**: `POST /api/push/unsubscribe` deleted a subscription by
+  `endpoint` alone (no owner check) - any logged-in user who obtained another subscriber's opaque endpoint
+  could delete their push subscription. `GET /api/push/subscribe` returned a subscriber's saved notification
+  preferences for any `endpoint` passed as a query param. Both now additionally scope to `userId: me.id`.
+- **`/api/dm/search` was the one DM/chat path that skipped `stripInlineImage()`**, re-exposing raw base64
+  `data:` avatars on every debounced search keystroke - the exact Fast Origin Transfer class the July 19
+  `stripInlineImage()` fix covers everywhere else. Now consistent.
+
+**Bug fix:**
+- **Overlapping bold+italic corrupted content, both in the editor and on the live page**: bolding a phrase
+  then italicizing part of it (two Tiptap toolbar clicks) serializes as `**hello *world***`. The shared
+  bold-matching regex in `richtext.ts` and `markdown.tsx` used a `[^*]+` content class that can't match
+  across the nested italic's `*`, so it locked onto the wrong `**` pair, dropped the bold wrapper, and leaked
+  literal `*`/`***` characters as visible text - reproducible by reopening any such post for edit, and live
+  on the public page. Fixed by adding a negative lookahead (`\*\*[\s\S]+?\*\*(?!\*)`) so the bold match
+  prefers a closing `**` that isn't immediately followed by another star, correctly resolving `***` tails as
+  "close italic, then bold" - verified against the overlap case, the standard `***triple***` shorthand, and
+  that two independent bold spans on one line still don't merge.
+- **Files**: `src/app/api/dm/[id]/route.ts`, `src/app/api/dm/search/route.ts`, `src/app/api/push/{subscribe,
+  unsubscribe}/route.ts`, `src/lib/profile.ts`, `src/app/u/[username]/page.tsx`, `src/lib/richtext.ts`,
+  `src/lib/markdown.tsx`, plus regression tests in `richtext.test.ts`, `markdown-render.test.ts`,
+  `profile.test.ts`.
+
+**Backlog (found, understood, deliberately not rushed into this pass - detail in the audit report):**
+community chat's public broadcast channel accepts client-authored `.send()` on any event (a visitor can craft
+a fake `new_message` broadcast that renders live in every open tab - needs a broadcast-payload-trust redesign
+in `ChatClient.tsx`, not a one-line fix); nested/Tab-indented lists mangle into run-on text on save
+(`richtext.ts`'s `htmlToMarkdown` doesn't walk into nested `<ul>`); the opt-in journal share card
+(`/api/journal/share/overview/[userId]`) assumes the userId in its URL is effectively secret, which no longer
+holds now that profile pages expose it - a product decision on whether to move to an opaque share token, not
+a code bug; risk-rule day-boundary uses UTC instead of local day; `CommentSection` collapses a user's "load
+older" pagination on any new comment activity; `compoundGrowth()` can render `NaN` for out-of-range inputs;
+OAuth login ignores `?callbackUrl=`; a handful of smaller UX gaps (OTP resend has no in-flight guard, the
+client password hint undersells the real server rule, one free-tier limit is enforced on create but not on
+join). Full detail, file:line, and severity for every item (fixed and backlog) is in the audit report
+delivered alongside this change.
+
+---
+
 ## 2026-07-24 — Fix published posts showing literal `{c:...}` markdown syntax
 Reported as: looks correct while writing/publishing in the admin editor, but broken once viewed on the live
 post page - the exact symptom of a bug that's specific to the *public renderer*, not the editor.

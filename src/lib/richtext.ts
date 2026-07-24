@@ -33,7 +33,14 @@ export function escapeHtml(s: string): string {
 }
 
 function inlineToHtml(text: string): string {
-  const regex = /(\{c:(?:gold|mint|red|blue)\}[\s\S]*?\{\/c\}|\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
+  // Bold's closing "**" requires a negative lookahead for a further "*" - without
+  // it, overlapping bold+italic (e.g. Tiptap's own "**hello *world***", from
+  // bolding then italicizing part of the same run) stops at the FIRST "**" it
+  // finds, which lands mid-run and drops the bold wrapper / leaks stray "*"
+  // characters as visible text. The lookahead makes it prefer the "**" that
+  // isn't immediately followed by another star, so "***" tails resolve as
+  // "closing italic then bold" instead of "closing bold one star short."
+  const regex = /(\{c:(?:gold|mint|red|blue)\}[\s\S]*?\{\/c\}|\*\*[\s\S]+?\*\*(?!\*)|\*[^*]+\*|`[^`]+`|\[[^\]]+\]\([^)]+\))/g;
   let out = "";
   let last = 0;
   let match: RegExpExecArray | null;

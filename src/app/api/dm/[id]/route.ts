@@ -100,15 +100,16 @@ export async function POST(req: Request, props: Ctx) {
       })
       .catch(() => null);
 
-    // Push the new message live to the recipient's per-user channel. Fire-and-
-    // forget + recipient-only: the sender already has the row from this response,
-    // so there's no self-echo to dedupe. No-op when realtime is unconfigured
-    // (the recipient's thread/inbox still pick it up via the poll fallback).
+    // Push a live "something changed" ping to the recipient's per-user channel.
+    // Deliberately carries NO message content: Supabase Realtime broadcast on
+    // this channel is public (unauthenticated `private: false`, anon key), and
+    // the recipient's user id is discoverable (public profile page, DM search),
+    // so anything put on the wire here is readable by anyone who guesses the
+    // channel name - not just the intended recipient. The client already
+    // refetches the thread through the participant-checked GET above on every
+    // ping, so a bare ping is all that's needed (matches the CH_NOTIFY pattern).
     const recipientId = iAmA ? conv.userBId : conv.userAId;
-    await broadcastEvent(userChannel(recipientId), "dm_message", {
-      conversationId: conv.id,
-      message: { id: created.id, body: created.body, createdAt: created.createdAt, senderId: me.id },
-    });
+    await broadcastEvent(userChannel(recipientId), "dm_message", { conversationId: conv.id });
 
     // Fire-and-forget external push to the recipient's devices (private DM alert).
     if (pushEnabled) {

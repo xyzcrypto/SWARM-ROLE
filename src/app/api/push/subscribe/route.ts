@@ -28,8 +28,10 @@ export async function GET(req: Request) {
     if (!me) return fail("Please log in.", 401);
     const endpoint = new URL(req.url).searchParams.get("endpoint") ?? "";
     if (!endpoint) return ok({ notifyMode: "high", notifyCategories: [] });
+    // Scoped to the caller - without this, any logged-in user could read
+    // another subscriber's saved topic preferences by passing their endpoint.
     const sub = await prisma.pushSubscription
-      .findUnique({ where: { endpoint }, select: { notifyMode: true, notifyCategories: true } })
+      .findFirst({ where: { endpoint, userId: me.id }, select: { notifyMode: true, notifyCategories: true } })
       .catch(() => null);
     return ok({
       notifyMode: (sub as { notifyMode?: string } | null)?.notifyMode ?? "high",
