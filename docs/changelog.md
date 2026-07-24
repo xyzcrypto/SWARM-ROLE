@@ -5,6 +5,35 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-24 — Premium visual identity (profile, avatar badge fix, feed/comments)
+Premium members previously had almost no visual difference from Free - just a plain "★ Premium" badge.
+Added a quiet, consistent gold treatment (X Premium/Discord Nitro style - restrained, not flashy) reusing
+existing design tokens rather than inventing new effects.
+
+- **Fixed a real Avatar bug**: the crown badge added in an earlier round was a *child* of the same
+  `overflow-hidden` circular wrapper as the photo, so any part of it outside the circle's own bounds got
+  clipped - exactly the "icon overlaps badly" the owner's screenshot showed. `Avatar` is now two layers: an
+  outer positioning wrapper (badge lives here, never clipped) and an inner `overflow-hidden` circle (photo/
+  initials + ring). Badge size is now a fixed per-size token (not a percentage), consistently proportioned
+  at every `size` from `sm` to `xl`.
+- **New `PremiumBadge`** (`src/components/PremiumBadge.tsx`): a crown + "Premium" pill using the site's
+  existing `bg-gold-shine` gradient and `animate-shine` sweep (the same sheen already used site-wide, not a
+  new effect) instead of a plain flat badge.
+- **Profile hero polish**: a quiet gold vignette wash on the banner, gold-gradient username text, relaxed
+  bio line-height, and `ProfileStats`' three cards get a subtle gold ring + stronger hover glow - all gated
+  behind the profile owner's `Premium` membership.
+- **Propagated to where premium members actually show up elsewhere**: the navbar's own account avatar,
+  the mobile bottom-nav Profile avatar, a post's author byline (name + avatar) on `/research/[slug]`, and
+  comment authors in `CommentSection` all now carry the gold ring/badge/gradient-name treatment when that
+  person is Premium - added `membership` to the relevant Prisma selects (post author, comment author) since
+  none of those queries previously read it.
+
+**Files**: `src/components/Avatar.tsx`, `src/components/PremiumBadge.tsx`, `src/components/ProfileStats.tsx`,
+`src/components/Navbar.tsx`, `src/components/BottomNav.tsx`, `src/components/CommentSection.tsx`,
+`src/app/u/[username]/page.tsx`, `src/app/research/[slug]/page.tsx`, `src/app/api/posts/[id]/comments/route.ts`.
+
+---
+
 ## 2026-07-24 — Rebuild the post editor on Tiptap (real rich-text engine)
 Third round on the admin Content editor - the hand-rolled `contentEditable` + `document.execCommand` approach
 kept resurfacing typing/cursor/toolbar bugs because that combination is exactly the layer real editors

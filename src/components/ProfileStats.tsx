@@ -34,15 +34,25 @@ function useCountUp(target: number, animate: boolean, ms = 900) {
   return n;
 }
 
-function StatCard({ label, value, Icon, iconClass, valueClass, animate, delay }: {
-  label: string; value: number; Icon: typeof FileText; iconClass: string; valueClass: string; animate: boolean; delay: number;
+function StatCard({ label, value, Icon, iconClass, valueClass, animate, delay, premium }: {
+  label: string; value: number; Icon: typeof FileText; iconClass: string; valueClass: string; animate: boolean; delay: number; premium?: boolean;
 }) {
   const shown = useCountUp(value, animate);
   return (
     <Reveal variant="pop" delay={delay}>
       <TiltCard max={8}>
-        <div className="surface surface-hover lift group relative h-full overflow-hidden rounded-2xl p-4 text-center sm:p-6">
-          <div className="glow-orb -right-8 -top-8 h-20 w-20 bg-gold-500/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+        <div
+          className={cn(
+            "surface surface-hover lift group relative h-full overflow-hidden rounded-2xl p-4 text-center sm:p-6",
+            premium && "ring-1 ring-gold-500/25"
+          )}
+        >
+          <div
+            className={cn(
+              "glow-orb -right-8 -top-8 h-20 w-20 opacity-0 transition-opacity duration-500 group-hover:opacity-100",
+              premium ? "bg-gold-500/20" : "bg-gold-500/10"
+            )}
+          />
           <Icon className={cn("relative mx-auto h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110", iconClass)} />
           <p className={cn("relative mono mt-2 text-2xl font-semibold tabular-nums sm:text-3xl", valueClass)}>{shown.toLocaleString()}</p>
           <p className="relative mt-1 text-xs text-zinc-500">{label}</p>
@@ -53,7 +63,9 @@ function StatCard({ label, value, Icon, iconClass, valueClass, animate, delay }:
 }
 
 // Interactive profile stat row: numbers animate up on load and cards lift on hover.
-export function ProfileStats({ posts, comments, likes }: { posts: number; comments: number; likes: number }) {
+// `premium` adds a quiet gold ring + stronger glow-on-hover to all three cards,
+// matching the rest of the profile's premium treatment.
+export function ProfileStats({ posts, comments, likes, premium }: { posts: number; comments: number; likes: number; premium?: boolean }) {
   const reduce = useReducedMotion();
   const values: Record<string, number> = { posts, comments, likes };
   return (
@@ -68,6 +80,7 @@ export function ProfileStats({ posts, comments, likes }: { posts: number; commen
           valueClass={s.value}
           animate={!reduce}
           delay={i}
+          premium={premium}
         />
       ))}
     </div>
