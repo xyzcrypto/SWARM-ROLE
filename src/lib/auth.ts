@@ -302,13 +302,23 @@ export const authOptions: NextAuthOptions = {
         token.uid = (user as any).id;
         token.role = (user as any).role ?? "USER";
         token.membership = (user as any).membership ?? "Free";
+        (token as any).syncedAt = Date.now();
       }
-      // Refresh from DB when missing, or on an explicit `update()` call. This
-      // also pulls fresh name/image/username/permissions so profile + access edits
+      // Refresh from DB when missing, on an explicit `update()` call, or once
+      // this TTL has elapsed. Without the TTL, an admin granting Premium (or
+      // any other role/permission change) to an already-logged-in user never
+      // shows up for them - the JWT strategy doesn't touch the DB per request,
+      // so once role/membership are set they'd otherwise stay frozen until the
+      // next full login. Bounding staleness to a minute keeps this self-healing
+      // without paying a DB read on literally every request.
+      const MEMBERSHIP_TTL_MS = 60_000;
+      const stale =
+        typeof (token as any).syncedAt !== "number" || Date.now() - (token as any).syncedAt > MEMBERSHIP_TTL_MS;
+      // This also pulls fresh name/image/username/permissions so profile + access edits
       // reflect in the UI without a re-login (routes always re-check DB anyway).
       if (
         token.email &&
-        (!token.role || !token.membership || (token as any).isSuperAdmin === undefined || trigger === "update")
+        (!token.role || !token.membership || (token as any).isSuperAdmin === undefined || trigger === "update" || stale)
       ) {
         // Include `permissions`, but tolerate a not-yet-migrated DB (no column)
         // by falling back to the pre-permissions select so auth never breaks.
@@ -336,6 +346,7 @@ export const authOptions: NextAuthOptions = {
           token.username = dbUser.username;
           (token as any).permissions = (dbUser as any).permissions ?? [];
           (token as any).isSuperAdmin = isAdminEmail(token.email);
+          (token as any).syncedAt = Date.now();
         }
       }
       // The JWT is stored in a cookie (~4 KB limit). If the avatar is an inline

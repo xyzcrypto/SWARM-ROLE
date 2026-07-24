@@ -17,7 +17,7 @@ import { ProfileFollow } from "@/components/ProfileFollow";
 import { JournalActivityFeed } from "@/components/JournalActivityFeed";
 import { EditProfileButton } from "@/components/EditProfileButton";
 import { ProfileBannerImage } from "@/components/ProfileBannerImage";
-import { formatDate, formatDateTime, stripInlineImage } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, stripInlineImage } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
 import { fetchExtraSocials } from "@/lib/user-socials";
 
@@ -119,7 +119,7 @@ export default async function ProfilePage(props: Props) {
         <div className="relative mx-auto max-w-4xl px-4 pb-24 sm:px-6 lg:px-8">
           {/* Hero card */}
           <Reveal variant="blur">
-          <div className="glass overflow-hidden rounded-3xl">
+          <div className={cn("glass overflow-hidden rounded-3xl", isPremium && "ring-1 ring-gold-500/40 shadow-gold")}>
             <div className="relative h-32 w-full sm:h-40">
               <ProfileBannerImage profileId={user.id} bannerImage={user.bannerImage} />
               <div className="absolute inset-0 bg-gradient-to-t from-ink-900/60 to-transparent" />
@@ -130,7 +130,13 @@ export default async function ProfilePage(props: Props) {
                 {/* Only the avatar overlaps the banner; the name/handle stay in the
                     content area below it so the name is never hidden over the banner art. */}
                 <div className="flex min-w-0 items-start gap-4 sm:gap-5">
-                  <Avatar name={user.name} image={user.image} size="xl" className="-mt-8 shrink-0 ring-[3px] ring-ink-900 shadow-gold sm:-mt-10" />
+                  <Avatar
+                    name={user.name}
+                    image={user.image}
+                    size="xl"
+                    premium={isPremium}
+                    className="-mt-8 shrink-0 ring-[3px] ring-ink-900 shadow-gold sm:-mt-10"
+                  />
                   <div className="min-w-0 pt-1">
                     <h1 className="font-display text-[26px] font-bold leading-[1.1] tracking-tight text-zinc-50 break-words sm:text-4xl lg:text-[2.6rem]">
                       {user.name ?? `@${user.username}`}

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 /** First letters of a name (or email local part) for the fallback avatar. */
@@ -23,6 +24,7 @@ export function Avatar({
   size = "md",
   className,
   ring = true,
+  premium = false,
 }: {
   name?: string | null;
   image?: string | null;
@@ -30,6 +32,10 @@ export function Avatar({
   size?: keyof typeof SIZES;
   className?: string;
   ring?: boolean;
+  /** Premium members get a gold gradient ring + a round crown badge. Opt-in -
+   *  only pass this where the caller already knows the user's membership
+   *  (e.g. the profile hero), not a site-wide Avatar default. */
+  premium?: boolean;
 }) {
   const s = SIZES[size];
   return (
@@ -37,7 +43,7 @@ export function Avatar({
       className={cn(
         "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full",
         s.box,
-        ring && "ring-1 ring-gold-500/40",
+        ring && (premium ? "ring-2 ring-gold-400 shadow-gold" : "ring-1 ring-gold-500/40"),
         className
       )}
     >
@@ -59,6 +65,14 @@ export function Avatar({
           )}
         >
           {initialsFrom(name, email)}
+        </span>
+      )}
+      {premium && (
+        <span
+          aria-hidden
+          className="absolute -bottom-0.5 -right-0.5 flex h-[38%] w-[38%] items-center justify-center rounded-full bg-gold-shine text-ink ring-2 ring-ink-900"
+        >
+          <Crown className="h-[65%] w-[65%]" />
         </span>
       )}
     </span>
