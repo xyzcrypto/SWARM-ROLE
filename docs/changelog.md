@@ -5,6 +5,25 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-24 — Fix published posts showing literal `{c:...}` markdown syntax
+Reported as: looks correct while writing/publishing in the admin editor, but broken once viewed on the live
+post page - the exact symptom of a bug that's specific to the *public renderer*, not the editor.
+
+- **Root cause**: `lib/markdown.tsx`'s `inline()` only recursively parsed nested formatting for color spans
+  (`{c:color}...{/c}`) - bold, italic, and link-label content were sliced out as *raw strings* instead of
+  being re-parsed. That was invisible with the old textarea editor (nobody hand-types nested markdown), but
+  Tiptap lets you genuinely apply Bold *and* a color to the same selection - which can serialize as
+  `**{c:mint}text{/c}**` (bold wrapping color). On the public page, the outer `**...**` matched first,and its
+  inner content - the color tag - got dropped in as inert literal text instead of being parsed, instead of
+  rendering as bold, colored text.
+- **Fix**: made the bold, italic, and link-label branches recursive, matching the color span's already-correct
+  pattern (nesting in the *other* direction - color wrapping bold - already worked and had a test for it).
+  Added regression tests for color-inside-bold, color-inside-italic, and formatted text inside a link label.
+
+**Files**: `src/lib/markdown.tsx`, `src/lib/__tests__/markdown-render.test.ts`.
+
+---
+
 ## 2026-07-24 — Profile photo lightbox + root-caused the Markets Overview mobile layout bug
 - **Profile photo/banner lightbox**: tapping the avatar or banner on `/u/[username]` now opens the full,
   uncropped image full-screen (matching X's "tap a profile photo" pattern) - new `ImageLightbox` component,

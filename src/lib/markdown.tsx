@@ -32,7 +32,7 @@ function inline(text: string, keyBase: string): ReactNode[] {
     if (t.startsWith("{c:")) {
       const m = COLOR_TAG.exec(t);
       if (m) tokens.push(<span key={key} className={COLOR_CLASS[m[1]]}>{inline(m[2], key)}</span>);
-    } else if (t.startsWith("**")) tokens.push(<strong key={key}>{t.slice(2, -2)}</strong>);
+    } else if (t.startsWith("**")) tokens.push(<strong key={key}>{inline(t.slice(2, -2), key)}</strong>);
     else if (t.startsWith("`")) tokens.push(<code key={key}>{t.slice(1, -1)}</code>);
     else if (t.startsWith("[")) {
       const m = /\[([^\]]+)\]\(([^)]+)\)/.exec(t);
@@ -40,9 +40,9 @@ function inline(text: string, keyBase: string): ReactNode[] {
         const href = safeHref(m[2]);
         tokens.push(
           href ? (
-            <a key={key} href={href} target="_blank" rel="noopener noreferrer">{m[1]}</a>
+            <a key={key} href={href} target="_blank" rel="noopener noreferrer">{inline(m[1], key)}</a>
           ) : (
-            <span key={key}>{m[1]}</span>
+            <span key={key}>{inline(m[1], key)}</span>
           )
         );
       }
@@ -59,7 +59,7 @@ function inline(text: string, keyBase: string): ReactNode[] {
         )
       );
       if (trailing) tokens.push(trailing);
-    } else if (t.startsWith("*")) tokens.push(<em key={key}>{t.slice(1, -1)}</em>);
+    } else if (t.startsWith("*")) tokens.push(<em key={key}>{inline(t.slice(1, -1), key)}</em>);
     last = match.index + t.length;
   }
   if (last < text.length) tokens.push(text.slice(last));
