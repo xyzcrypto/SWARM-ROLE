@@ -80,7 +80,9 @@ const nextConfig = {
 // set (optional); otherwise this is inert and the build is unchanged.
 export default withSentryConfig(nextConfig, {
   silent: true,
-  disableLogger: true,
+  // (disableLogger removed: deprecated in the Sentry SDK, and its replacement
+  // webpack.treeshake.removeDebugLogging isn't supported under Turbopack, which
+  // is the default builder on Next 16 - so there's nothing to migrate it to.)
   widenClientFileUpload: false,
   sourcemaps: { disable: !process.env.SENTRY_AUTH_TOKEN },
   telemetry: false,
