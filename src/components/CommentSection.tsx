@@ -3,12 +3,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { useRealtime } from "@/lib/useRealtime";
 import { MessageButton } from "@/components/MessageButton";
 import { Avatar } from "./Avatar";
 
-type CommentAuthor = { name: string; username: string | null; image: string | null };
+type CommentAuthor = { name: string; username: string | null; image: string | null; premium?: boolean };
 type Comment = { id: string; body: string; createdAt: string; author: CommentAuthor };
 
 export function CommentSection({ postId }: { postId: string }) {
@@ -172,13 +172,17 @@ export function CommentSection({ postId }: { postId: string }) {
                 <div className="flex items-center gap-2.5">
                   {c.author.username ? (
                     <Link href={`/u/${c.author.username}`} className="flex items-center gap-2.5 transition-opacity hover:opacity-80">
-                      <Avatar name={c.author.name} image={c.author.image} size="sm" />
-                      <span className="text-sm font-semibold text-zinc-200 hover:text-gold-200">{c.author.name}</span>
+                      <Avatar name={c.author.name} image={c.author.image} size="sm" premium={c.author.premium} />
+                      <span className={cn("text-sm font-semibold hover:text-gold-200", c.author.premium ? "text-gold-gradient" : "text-zinc-200")}>
+                        {c.author.name}
+                      </span>
                     </Link>
                   ) : (
                     <>
-                      <Avatar name={c.author.name} image={c.author.image} size="sm" />
-                      <span className="text-sm font-semibold text-zinc-200">{c.author.name}</span>
+                      <Avatar name={c.author.name} image={c.author.image} size="sm" premium={c.author.premium} />
+                      <span className={cn("text-sm font-semibold", c.author.premium ? "text-gold-gradient" : "text-zinc-200")}>
+                        {c.author.name}
+                      </span>
                     </>
                   )}
                   <span className="mono text-[11px] text-zinc-600">{formatDateTime(c.createdAt)}</span>

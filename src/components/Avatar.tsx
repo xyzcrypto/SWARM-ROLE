@@ -11,10 +11,10 @@ export function initialsFrom(name?: string | null, email?: string | null): strin
 }
 
 const SIZES = {
-  sm: { box: "h-8 w-8", text: "text-[11px]", px: 32 },
-  md: { box: "h-10 w-10", text: "text-sm", px: 40 },
-  lg: { box: "h-16 w-16", text: "text-lg", px: 64 },
-  xl: { box: "h-24 w-24", text: "text-3xl", px: 96 },
+  sm: { box: "h-8 w-8", text: "text-[11px]", px: 32, badge: "h-3 w-3", icon: "h-[7px] w-[7px]" },
+  md: { box: "h-10 w-10", text: "text-sm", px: 40, badge: "h-4 w-4", icon: "h-2.5 w-2.5" },
+  lg: { box: "h-16 w-16", text: "text-lg", px: 64, badge: "h-[22px] w-[22px]", icon: "h-3 w-3" },
+  xl: { box: "h-24 w-24", text: "text-3xl", px: 96, badge: "h-8 w-8", icon: "h-4 w-4" },
 } as const;
 
 export function Avatar({
@@ -39,40 +39,49 @@ export function Avatar({
 }) {
   const s = SIZES[size];
   return (
-    <span
-      className={cn(
-        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full",
-        s.box,
-        ring && (premium ? "ring-2 ring-gold-400 shadow-gold" : "ring-1 ring-gold-500/40"),
-        className
-      )}
-    >
-      {image ? (
-        <Image
-          src={image}
-          alt={name || "Avatar"}
-          fill
-          sizes={`${s.px}px`}
-          className="object-cover"
-          unoptimized={image.startsWith("data:")}
-        />
-      ) : (
-        <span
-          aria-hidden
-          className={cn(
-            "flex h-full w-full items-center justify-center bg-gold-shine font-display font-semibold text-ink",
-            s.text
-          )}
-        >
-          {initialsFrom(name, email)}
-        </span>
-      )}
+    // Outer wrapper carries NO overflow/clip of its own - the crown badge
+    // below is deliberately a sibling of the clipped circle, not a child of
+    // it, so it sits cleanly on the ring's edge instead of being cut off by
+    // the circle's own overflow-hidden (the bug in the previous version).
+    <span className={cn("relative inline-flex shrink-0 rounded-full", s.box, className)}>
+      <span
+        className={cn(
+          "flex h-full w-full items-center justify-center overflow-hidden rounded-full",
+          ring && (premium ? "ring-2 ring-gold-400 shadow-gold" : "ring-1 ring-gold-500/40")
+        )}
+      >
+        {image ? (
+          <span className="relative block h-full w-full">
+            <Image
+              src={image}
+              alt={name || "Avatar"}
+              fill
+              sizes={`${s.px}px`}
+              className="object-cover"
+              unoptimized={image.startsWith("data:")}
+            />
+          </span>
+        ) : (
+          <span
+            aria-hidden
+            className={cn(
+              "flex h-full w-full items-center justify-center bg-gold-shine font-display font-semibold text-ink",
+              s.text
+            )}
+          >
+            {initialsFrom(name, email)}
+          </span>
+        )}
+      </span>
       {premium && (
         <span
           aria-hidden
-          className="absolute -bottom-0.5 -right-0.5 flex h-[38%] w-[38%] items-center justify-center rounded-full bg-gold-shine text-ink ring-2 ring-ink-900"
+          className={cn(
+            "absolute bottom-0 right-0 z-10 flex translate-x-[15%] translate-y-[15%] items-center justify-center rounded-full bg-gold-shine text-ink ring-2 ring-ink-900",
+            s.badge
+          )}
         >
-          <Crown className="h-[65%] w-[65%]" />
+          <Crown className={s.icon} />
         </span>
       )}
     </span>

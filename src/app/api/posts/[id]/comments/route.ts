@@ -26,7 +26,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
           id: true,
           body: true,
           createdAt: true,
-          user: { select: { name: true, email: true, username: true, image: true } },
+          user: { select: { name: true, email: true, username: true, image: true, membership: true } },
         },
       }),
       prisma.comment.count({ where }),
@@ -42,6 +42,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
         name: c.user?.name || (c.user?.email ? c.user.email.split("@")[0] : "Member"),
         username: c.user?.username ?? null,
         image: stripInlineImage(c.user?.image),
+        premium: c.user?.membership === "Premium",
       },
     }));
 
@@ -81,7 +82,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
     const created = await prisma.comment.create({
       data: { body: parsed.data.body, postId: params.id, userId: user.id },
-      select: { id: true, body: true, createdAt: true, user: { select: { name: true, email: true, username: true, image: true } } },
+      select: { id: true, body: true, createdAt: true, user: { select: { name: true, email: true, username: true, image: true, membership: true } } },
     });
 
     // Notify the post author (best-effort, skips self-comments).
@@ -106,6 +107,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
             name: created.user?.name || created.user?.email?.split("@")[0] || "Member",
             username: created.user?.username ?? null,
             image: stripInlineImage(created.user?.image),
+            premium: created.user?.membership === "Premium",
           },
         },
       },

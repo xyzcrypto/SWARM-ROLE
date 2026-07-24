@@ -7,7 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { Avatar } from "@/components/Avatar";
 import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
-import { formatDate, readingTime, stripInlineImage } from "@/lib/utils";
+import { cn, formatDate, readingTime, stripInlineImage } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
@@ -41,7 +41,7 @@ const getPost = cache(async (slug: string) => {
   try {
     const post = await prisma.post.findFirst({
       where: { slug, published: true },
-      include: { author: { select: { name: true, username: true, image: true } } },
+      include: { author: { select: { name: true, username: true, image: true, membership: true } } },
     });
     return post ? withSafeAuthorImage(post) : null;
   } catch (err: any) {
@@ -55,7 +55,7 @@ const getPost = cache(async (slug: string) => {
             id: true, slug: true, title: true, excerpt: true, content: true,
             cover: true, category: true, tags: true, premium: true,
             createdAt: true, updatedAt: true,
-            author: { select: { name: true, username: true, image: true } },
+            author: { select: { name: true, username: true, image: true, membership: true } },
           },
         })
         .catch(() => null);
@@ -204,11 +204,12 @@ export default async function PostPage(
             {/* Byline + share */}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-y border-white/5 py-4">
               {(() => {
+                const authorIsPremium = post.author?.membership === "Premium";
                 const byline = (
                   <div className="flex items-center gap-3">
-                    <Avatar name={post.author?.name ?? "XYZ Crypto"} image={post.author?.image ?? null} size="md" />
+                    <Avatar name={post.author?.name ?? "XYZ Crypto"} image={post.author?.image ?? null} size="md" premium={authorIsPremium} />
                     <div>
-                      <p className="text-sm font-semibold text-zinc-200">
+                      <p className={cn("text-sm font-semibold", authorIsPremium ? "text-gold-gradient" : "text-zinc-200")}>
                         {post.author?.name ?? "XYZ Crypto"}
                       </p>
                       <p className="mono text-[11px] text-zinc-500">

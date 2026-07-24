@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/primitives";
+import { PremiumBadge } from "@/components/PremiumBadge";
 import { Reveal } from "@/components/Reveal";
 import { XIcon, GitHubIcon, TelegramIcon, DiscordIcon, YouTubeIcon, LinkedInIcon, InstagramIcon } from "@/components/BrandIcons";
 import { MessageButton } from "@/components/MessageButton";
@@ -122,8 +123,14 @@ export default async function ProfilePage(props: Props) {
           <div className={cn("glass overflow-hidden rounded-3xl", isPremium && "ring-1 ring-gold-500/40 shadow-gold")}>
             <div className="relative h-32 w-full sm:h-40">
               <ProfileBannerImage profileId={user.id} bannerImage={user.bannerImage} />
+              {/* Premium wash: a quiet gold vignette blended over the banner (or the
+                  plain gradient when there isn't one) - not a different banner, just
+                  a warmer tint that reads as "premium" without competing with it. */}
+              {isPremium && (
+                <div className="absolute inset-0 bg-gradient-to-br from-gold-500/25 via-transparent to-transparent" />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-ink-900/60 to-transparent" />
-              <div className="absolute inset-x-0 bottom-0 h-px bg-white/10" />
+              <div className={cn("absolute inset-x-0 bottom-0 h-px", isPremium ? "bg-gold-400/30" : "bg-white/10")} />
             </div>
             <div className="px-5 pb-6 sm:px-8 sm:pb-8">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -135,10 +142,19 @@ export default async function ProfilePage(props: Props) {
                     image={user.image}
                     size="xl"
                     premium={isPremium}
-                    className="-mt-8 shrink-0 ring-[3px] ring-ink-900 shadow-gold sm:-mt-10"
+                    ring={false}
+                    className={cn(
+                      "-mt-8 shrink-0 shadow-gold sm:-mt-10",
+                      isPremium ? "ring-2 ring-gold-400" : "ring-[3px] ring-ink-900"
+                    )}
                   />
                   <div className="min-w-0 pt-1">
-                    <h1 className="font-display text-[26px] font-bold leading-[1.1] tracking-tight text-zinc-50 break-words sm:text-4xl lg:text-[2.6rem]">
+                    <h1
+                      className={cn(
+                        "font-display text-[26px] font-bold leading-[1.1] tracking-tight break-words sm:text-4xl lg:text-[2.6rem]",
+                        isPremium ? "text-gold-gradient" : "text-zinc-50"
+                      )}
+                    >
                       {user.name ?? `@${user.username}`}
                     </h1>
                     <p className="mono mt-1 truncate text-sm text-zinc-500 sm:text-[15px]">@{user.username}</p>
@@ -151,7 +167,7 @@ export default async function ProfilePage(props: Props) {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  {isPremium && <Badge tone="gold">★ Premium</Badge>}
+                  {isPremium && <PremiumBadge />}
                   {isAdmin && <Badge tone="mint">Team</Badge>}
                   <Badge tone="neutral">Joined {formatDate(user.createdAt)}</Badge>
                   {/* Actions kept together so Share always sits right of Edit and
@@ -165,7 +181,7 @@ export default async function ProfilePage(props: Props) {
               </div>
 
               {user.bio && (
-                <p className="mt-4 max-w-2xl whitespace-pre-line text-[15px] leading-snug text-zinc-300">{user.bio}</p>
+                <p className="mt-4 max-w-2xl whitespace-pre-line text-[15px] leading-relaxed text-zinc-300">{user.bio}</p>
               )}
 
               <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
@@ -197,7 +213,7 @@ export default async function ProfilePage(props: Props) {
 
           {/* Stats */}
           <div className="mt-6">
-            <ProfileStats posts={postCount} comments={user._count.comments} likes={user._count.likes} />
+            <ProfileStats posts={postCount} comments={user._count.comments} likes={user._count.likes} premium={isPremium} />
           </div>
 
           {/* Journal Activity - a separate, live section: whatever a member does

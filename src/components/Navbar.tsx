@@ -163,7 +163,7 @@ export function Navbar() {
                 {/* Avatar with a gentle gold ring pulse (active presence cue). */}
                 <span className="relative inline-flex">
                   <span className="pointer-events-none absolute -inset-0.5 rounded-full ring-1 ring-gold-500/40 [animation:ping-soft_3s_ease-in-out_infinite]" />
-                  <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" />
+                  <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" premium={isPremium} />
                 </span>
                 <span className="flex flex-col items-start leading-tight">
                   <span className="mono text-[12px] text-zinc-200">{masked}</span>
@@ -293,7 +293,7 @@ export function Navbar() {
               {session ? (
                 <>
                   <div className="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2">
-                    <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" />
+                    <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" premium={isPremium} />
                     <span className="flex flex-col leading-tight">
                       <span className="mono text-[12px] text-zinc-200">{masked}</span>
                       <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>

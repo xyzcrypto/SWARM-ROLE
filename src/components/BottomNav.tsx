@@ -36,6 +36,7 @@ export function BottomNav() {
   const right = ITEMS.slice(2);
 
   const user = session?.user as any;
+  const isPremium = user?.membership === "Premium";
   const username = user?.username as string | undefined;
   const profileHref = session ? (username ? `/u/${username}` : "/profile") : "/login?callbackUrl=/";
   const profileActive = pathname === "/profile" || pathname.startsWith("/u/");
@@ -66,7 +67,7 @@ export function BottomNav() {
             )}
           >
             {session ? (
-              <Avatar name={user?.name} image={user?.image} email={user?.email} size="md" ring={false} />
+              <Avatar name={user?.name} image={user?.image} email={user?.email} size="md" ring={false} premium={isPremium} />
             ) : (
               <User className="h-6 w-6 text-zinc-300" />
             )}
