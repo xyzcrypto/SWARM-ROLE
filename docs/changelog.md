@@ -24,7 +24,13 @@ it would have missed the framework upgrade entirely. Header bumped (PR #154 → 
   no event has ever been *observed* arriving, since the agent sandbox has no outbound network - so this is
   explicitly flagged as unverified rather than quietly assumed working, with the exact console check to run.
 - Also updated the §7 heading, which was still dated "2026-07-16, end of session".
-- **Files**: `docs/HANDOFF.md`, `docs/changelog.md`.
+- **`CLAUDE.md` synced to match** (it was dated 2026-07-23 and predated the Sentry/CSP/react-hooks work):
+  "Current state" bumped, new bullets for the restored Sentry client monitoring (both faults) and the
+  2026-07-25 housekeeping, the open-owner-actions count corrected 2 → 3 with the unverified Sentry delivery
+  added, the stale "react-hooks warnings" leftover removed now that they're settled, and a standing
+  instruction to run `docs/PRE-MERGE-CHECKS.md` before merging anything touching routes/caching/data/realtime
+  (with the current 124/22/102/12 baseline inline).
+- **Files**: `docs/HANDOFF.md`, `CLAUDE.md`, `docs/changelog.md`.
 
 ---
 
