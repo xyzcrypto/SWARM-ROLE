@@ -607,12 +607,13 @@ listed here so this section isn't misleading about what moved. See
      Added `https://*.sentry.io` to `connect-src`. Chose the allowlist over
      Sentry's `tunnelRoute` deliberately: tunnelRoute proxies every event through
      a Vercel function, adding Function Invocations.
-   - **Still unconfirmed end-to-end**: no sandbox in this environment can reach
-     the network, so an event has never been *observed* arriving. Init is proven
-     (the DSN compiles into a client chunk) and the CSP is proven (read off the
-     served header), and the DSN is set in Vercel. To close it: on the live site,
-     `setTimeout(() => { throw new Error("sentry client test"); })` should produce
-     an ingest POST and an issue.
+   - **Then verified on the live site, and it still doesn't report — because
+     there is no DSN in Vercel at all.** Both code fixes are proven in isolation
+     (init compiles into a client chunk; the served CSP header allows the ingest
+     host), but production has neither `NEXT_PUBLIC_SENTRY_DSN` nor `SENTRY_DSN`
+     set, so `Sentry.init()` is skipped and nothing has ever been sent from any
+     runtime. Full diagnosis and the steps to finish: **§8**. Do not read the two
+     PRs as ineffective — they are prerequisites that can't run without a DSN.
 2. **`docs/PRE-MERGE-CHECKS.md`** added (#172) - a route-table/cost checklist to
    run *before* merging, since CI proves nothing broke but can't see a page that
    stopped being cached or a new polling loop. It got its first real use an hour
