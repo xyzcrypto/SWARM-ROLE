@@ -5,6 +5,24 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-25 — Docs: pre-merge cost & performance checks
+Added `docs/PRE-MERGE-CHECKS.md`, a checklist for verifying a PR branch does not regress cost or performance
+*before* it merges to `main` and auto-deploys. It exists because CI (`typecheck -> lint -> test -> build`)
+proves nothing broke but cannot detect a page that stopped being cached, a new polling loop, or a grown
+bundle - those surface as a Vercel usage overage days later, not as a red check.
+- Six steps, scaled to PR type: route-table comparison between `main` and the branch (static/dynamic flips and
+  revalidate-window changes being the most expensive regression class here), a diff scan for cost-relevant
+  patterns (caching directives, polling loops, Supabase channels outside the shared singleton, cron schedules,
+  large external fetches, N+1 Prisma), bundle size (currently a known blind spot since Next 16 dropped the
+  `Size`/`First Load JS` columns), Lighthouse on the Vercel preview, reading the diff, and watching usage for
+  ~3 days post-merge.
+- Records the current baseline (Next 16.2.11: 124 routes, 22 static, 102 dynamic, 12 ISR) and the known ISR
+  windows, so future comparisons have a fixed reference point.
+- Listed in `docs/SUMMARY.md` under Operations & Security so it appears in the GitBook handbook.
+- **Files**: `docs/PRE-MERGE-CHECKS.md` (new), `docs/SUMMARY.md`, `docs/changelog.md`.
+
+---
+
 ## 2026-07-24 — Security audit fixes + bold/italic overlap bug
 Full end-to-end security audit (7 parallel read-only agents covering auth, every API route, the rich-text/XSS
 surface, realtime chat/DM access control, and secrets/env/deps) plus a bug hunt across research, markets,
