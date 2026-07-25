@@ -650,8 +650,15 @@ function NewsReader({
     }
   };
 
-  // Reset scroll + progress to top on each story.
-  useEffect(() => { setProgress(0); if (bodyRef.current) bodyRef.current.scrollTop = 0; }, [item.id]);
+  // Reset progress to the top on each story. Adjusted during render rather than
+  // in an effect so the progress bar never paints the previous story's value.
+  const [prevItemId, setPrevItemId] = useState(item.id);
+  if (prevItemId !== item.id) {
+    setPrevItemId(item.id);
+    setProgress(0);
+  }
+  // The scroll reset is a real DOM side effect, so it stays in an effect.
+  useEffect(() => { if (bodyRef.current) bodyRef.current.scrollTop = 0; }, [item.id]);
 
   useEffect(() => () => { if (scrollRaf.current) cancelAnimationFrame(scrollRaf.current); }, []);
 
@@ -812,7 +819,13 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
   const [paused, setPaused] = useState(false);
   const active = items[idx % items.length];
 
-  useEffect(() => { setIdx(0); }, [items.length]);
+  // Restart the carousel when the feed length changes (adjusted during render,
+  // so the ticker never shows an index past the end of the new list).
+  const [prevCount, setPrevCount] = useState(items.length);
+  if (prevCount !== items.length) {
+    setPrevCount(items.length);
+    setIdx(0);
+  }
   useEffect(() => {
     if (items.length < 2 || paused) return;
     const t = setInterval(() => {

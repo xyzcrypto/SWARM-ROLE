@@ -5,6 +5,39 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-25 — react-hooks v6 batch 3: reset-on-prop-change adjusted during render
+Third pass (47 -> 41; `set-state-in-effect` 39 -> 33). This batch takes the "reset some state when a prop
+changes" sub-pattern, which was written as `useEffect(() => setX(initial), [prop])`. That commits one frame
+of the *previous* item's state and then schedules a second render to correct it. Replaced with React's
+documented "adjusting state when a prop changes" pattern - a previous-value guard evaluated during render:
+React re-runs the component immediately, without committing the stale value, and it isn't an effect so there
+is no cascading render.
+- **`CommandPalette`**: highlight reset to row 0 when the result set or query changes.
+- **`NewsClient`** (story reader): reading-progress reset per story - the progress bar can no longer paint the
+  previous story's value. The `scrollTop = 0` half is a genuine DOM side effect and deliberately stays in an
+  effect.
+- **`NewsClient`** (headline carousel): index reset when the feed length changes, so the ticker can't
+  momentarily index past the end of a shorter list.
+- **`NewsSocial`**: like/comment counts cleared when the story URL changes, so one story's counts can't flash
+  under another's headline.
+- **`BriefingBlock`**: translation/speech state reset per story; the `speechSynthesis.cancel()` side effect
+  stays in an effect.
+- **`useUserOnline`**: presence resets to offline when the observed user changes, so the previous user's
+  online dot is never shown against the new one.
+- **Verified**: typecheck + lint (0 errors) + 362 tests + build green. A bad guard on a render-phase setState
+  causes an infinite render loop, so this was specifically exercised in headless Chromium: the command
+  palette was driven through repeated query changes (hammering the reset path) and `/news` was left running
+  long enough for the carousel interval to tick - **zero "Too many re-renders"/"Maximum update depth" and
+  zero uncaught errors**, with the palette still open and functional afterwards.
+- **Remaining**: 33 `set-state-in-effect` - now mostly fetch-on-mount (`load()` whose first statement is
+  `setLoading(true)`) and user-writable stored preferences, both of which need structural changes rather than
+  a pattern swap.
+- **Files**: `src/components/CommandPalette.tsx`, `src/components/NewsClient.tsx`,
+  `src/components/NewsSocial.tsx`, `src/components/BriefingBlock.tsx`, `src/lib/useUserOnline.ts`,
+  `docs/changelog.md`.
+
+---
+
 ## 2026-07-25 — react-hooks v6 batch 2: mount-time browser reads via useSyncExternalStore
 Second pass on the react-hooks v6 warnings (52 -> 47; `set-state-in-effect` 44 -> 39). This batch takes the
 "read a browser-only value on mount" sub-pattern - `useState(false)` plus
