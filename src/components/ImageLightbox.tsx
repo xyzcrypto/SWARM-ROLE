@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useHydrated } from "@/lib/useClientFlag";
 
 /**
  * Wraps a trigger (avatar/banner) so clicking it opens the full, uncropped
@@ -25,9 +26,8 @@ export function ImageLightbox({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  // Portals need a DOM target, so this only renders after hydration.
+  const mounted = useHydrated();
 
   useEffect(() => {
     if (!open) return;

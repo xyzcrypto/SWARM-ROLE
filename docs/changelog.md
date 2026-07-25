@@ -5,6 +5,36 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-25 — react-hooks v6 batch 2: mount-time browser reads via useSyncExternalStore
+Second pass on the react-hooks v6 warnings (52 -> 47; `set-state-in-effect` 44 -> 39). This batch takes the
+"read a browser-only value on mount" sub-pattern - `useState(false)` plus
+`useEffect(() => setX(read()), [])`, which renders once with the wrong value and immediately schedules a
+second render. Added `src/lib/useClientFlag.ts` (`useHydrated`, `useClientFlag`, `useMediaQuery`), thin
+`useSyncExternalStore` wrappers that express the same intent directly: React reads the server snapshot while
+SSR-ing and hydrating, then swaps to the real value with no cascading render.
+- **`ImageLightbox`**: portal-ready flag -> `useHydrated()`.
+- **`NewsAlertsToggle`**: push-capability check -> `useClientFlag()`; the effect that follows now just reads
+  the derived `supported` instead of recomputing it.
+- **`journal/JournalClient`**: realtime-available flag -> `useClientFlag()`.
+- **`ChatClient`**: `touchUi` -> `useMediaQuery("(hover: none)")`. This is also a **behaviour improvement** -
+  it was a one-shot read, so attaching a mouse or rotating a tablet never updated it; now it tracks.
+- **`OrbitalEcosystem`** (the live homepage centerpiece, not the gated-off WebGL scene): the particle field
+  was generated with `Math.random()` inside an effect specifically to dodge a hydration mismatch. Now derived
+  in a `useMemo` from a seeded PRNG (`mulberry32`, reused from the orbital scene) plus
+  `useMediaQuery("(max-width: 768px)")` for the phone count. Being deterministic, there is no mismatch to
+  dodge, and the field can't reshuffle on an unrelated re-render. Still only painted once `active` is true.
+- **Verified**: typecheck + lint (0 errors) + 362 tests + build green; homepage driven in headless Chromium -
+  renders and hydrates with zero uncaught/hydration errors, and a screenshot confirms the orbital centerpiece
+  (rings, nodes, particles, logo glow) is visually unchanged.
+- **Remaining**: 39 `set-state-in-effect`, which are the fetch-on-mount and reset-on-prop-change patterns
+  (chat/dashboard/news/messages) plus user-writable stored preferences - those need a store or key-remount,
+  not a drop-in hook. Tracked in `eslint.config.mjs` and `docs/HANDOFF.md §8`.
+- **Files**: `src/lib/useClientFlag.ts` (new), `src/components/ImageLightbox.tsx`,
+  `src/components/NewsAlertsToggle.tsx`, `src/components/journal/JournalClient.tsx`,
+  `src/components/ChatClient.tsx`, `src/components/OrbitalEcosystem.tsx`, `docs/changelog.md`.
+
+---
+
 ## 2026-07-25 — react-hooks v6: clear purity + static-components, promote both back to error
 First pass at the react-hooks v6 warnings the Next 16 upgrade surfaced (73 -> 52). Two rule categories are
 now completely clean and re-enforced as errors in `eslint.config.mjs`; the rest stay on warn with the

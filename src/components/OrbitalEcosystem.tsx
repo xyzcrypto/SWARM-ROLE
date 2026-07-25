@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { mulberry32 } from "@/components/orbital/rng";
+import { useMediaQuery } from "@/lib/useClientFlag";
 
 type Node = { label: string; desc: string; href: string; tone: "gold" | "mint" | "violet" };
 
@@ -41,7 +43,6 @@ export function OrbitalEcosystem() {
   const wrapRef = useRef<HTMLDivElement>(null);
   const orbitRef = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(false); // in-view (gates particle paint cost)
-  const [particles, setParticles] = useState<{ x: number; y: number; s: number; d: number; delay: number }[]>([]);
 
   // Activate the particle field once the section is on/near screen. The rings,
   // aurora and logo glow animate from mount regardless - this is the homepage
@@ -68,21 +69,23 @@ export function OrbitalEcosystem() {
     return () => io.disconnect();
   }, []);
 
-  // Particle field generated client-side (no SSR/hydration mismatch, no CLS).
-  // Fewer on phones - each particle is an animated paint layer.
-  useEffect(() => {
-    if (!active) return;
-    const count = window.matchMedia("(max-width: 768px)").matches ? 8 : 22;
-    setParticles(
-      Array.from({ length: count }, () => ({
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        s: 1 + Math.random() * 2,
-        d: 14 + Math.random() * 14,
-        delay: Math.random() * 8,
-      }))
-    );
-  }, [active]);
+  // Particle field. Fewer on phones - each particle is an animated paint layer.
+  // Derived rather than set from an effect, and seeded rather than random: the
+  // field is identical every time it's computed, so there's no hydration
+  // mismatch to avoid in the first place (and the markup can't reshuffle on an
+  // unrelated re-render). It's only ever rendered once `active` is true, which
+  // is false during SSR and until the IntersectionObserver fires.
+  const isNarrow = useMediaQuery("(max-width: 768px)");
+  const particles = useMemo(() => {
+    const rand = mulberry32(0x0b17a10c);
+    return Array.from({ length: isNarrow ? 8 : 22 }, () => ({
+      x: rand() * 100,
+      y: rand() * 100,
+      s: 1 + rand() * 2,
+      d: 14 + rand() * 14,
+      delay: rand() * 8,
+    }));
+  }, [isNarrow]);
 
   // Desktop parallax (rAF-throttled, transform-only, pointer:fine only).
   useEffect(() => {

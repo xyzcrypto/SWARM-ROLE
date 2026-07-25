@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
+import { useMediaQuery } from "@/lib/useClientFlag";
 import {
   ArrowDown, BarChart3, Check, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
@@ -169,7 +170,9 @@ export function ChatClient({
   const [soundOn, setSoundOn] = useState(false);
   // Touch UI (no hover): actions open on tap instead of hover, Enter makes a
   // newline instead of sending. Detected client-side to stay hydration-safe.
-  const [touchUi, setTouchUi] = useState(false);
+  // Coarse-pointer devices get the tap-friendly chat UI. Tracked (not read once
+  // on mount) so attaching a mouse or rotating a tablet updates it live.
+  const touchUi = useMediaQuery("(hover: none)");
   const [actionOpenId, setActionOpenId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -185,9 +188,6 @@ export function ChatClient({
   const soundOnRef = useRef(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  useEffect(() => {
-    setTouchUi(window.matchMedia("(hover: none)").matches);
-  }, []);
 
   const realtimeConfigured = Boolean(realtime.url && realtime.anonKey);
 
