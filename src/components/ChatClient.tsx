@@ -240,11 +240,16 @@ export function ChatClient({
   const channelRef = useRef<any>(null);
   const lastTyping = useRef(0);
   const stickRef = useRef(true);
-  stickRef.current = stickToBottom;
   // Profile fields ride in a ref so a name/avatar edit doesn't tear down and
   // re-subscribe the realtime socket (only an identity change should).
   const meRef = useRef(me);
-  meRef.current = me;
+  // Both are written after commit rather than during render (a render-phase ref
+  // write isn't safe under concurrent rendering) - same pattern messagesRef
+  // below already uses. Both are only read from async scroll/realtime handlers.
+  useEffect(() => {
+    stickRef.current = stickToBottom;
+    meRef.current = me;
+  });
   // Mirror of messages for async flows (loadOlder loops) that outlive a render.
   const messagesRef = useRef<Message[]>([]);
 

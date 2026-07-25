@@ -67,6 +67,9 @@ export default async function DashboardPage() {
   const [userBuckets, last7days, subscribers, recentUsers, premiumMembers, posts, totalVisits, todayVisits, postViews] =
     await Promise.all([
       prisma.user.groupBy({ by: ["provider", "membership"], _count: { _all: true } }),
+      // Server Component: evaluated once per request, so Date.now() is stable
+      // for this render - the purity rule's re-render concern is client-only.
+      // eslint-disable-next-line react-hooks/purity
       prisma.user.count({ where: { createdAt: { gte: new Date(Date.now() - 7 * 864e5) } } }),
       prisma.subscriber.count(),
       prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: userSelect }),

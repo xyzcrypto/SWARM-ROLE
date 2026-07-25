@@ -93,7 +93,11 @@ function useLiveOnline(realtime: Realtime) {
 
 function useMembersChannel(realtime: Realtime, onChange: (id: string, membership: string) => void) {
   const cb = useRef(onChange);
-  cb.current = onChange;
+  // Latest-callback ref, written after commit instead of during render; it is
+  // only read from the realtime subscription handler.
+  useEffect(() => {
+    cb.current = onChange;
+  });
   useEffect(() => {
     if (!realtime.url || !realtime.anonKey) return;
     let cleanup: (() => void) | undefined;

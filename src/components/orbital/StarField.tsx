@@ -4,6 +4,7 @@ import { useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { GOLD_LIGHT, MINT_LIGHT } from "./constants";
+import { mulberry32 } from "./rng";
 
 const vert = /* glsl */ `
   uniform float uTime;
@@ -48,19 +49,22 @@ export function StarField({ count = 900, pixelRatio = 1.5 }: { count?: number; p
     const gold = new THREE.Color(GOLD_LIGHT);
     const mint = new THREE.Color(MINT_LIGHT);
     const white = new THREE.Color("#ffffff");
+    // Seeded so the memo is pure: re-running it rebuilds the identical sky
+    // instead of silently reshuffling every star (see ./rng).
+    const rand = mulberry32(0x57a2_f1e1);
     for (let i = 0; i < count; i++) {
       // spherical shell behind the scene
-      const u = Math.random();
-      const v = Math.random();
+      const u = rand();
+      const v = rand();
       const theta = u * Math.PI * 2;
       const phi = Math.acos(2 * v - 1);
-      const r = 16 + Math.random() * 26;
+      const r = 16 + rand() * 26;
       positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
       positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.7;
       positions[i * 3 + 2] = -Math.abs(r * Math.cos(phi)) - 4; // keep behind camera focus
-      phases[i] = Math.random() * Math.PI * 2;
-      sizes[i] = 0.6 + Math.random() * 2.1;
-      const pick = Math.random();
+      phases[i] = rand() * Math.PI * 2;
+      sizes[i] = 0.6 + rand() * 2.1;
+      const pick = rand();
       const col = pick > 0.9 ? gold : pick > 0.82 ? mint : white;
       colors[i * 3] = col.r;
       colors[i * 3 + 1] = col.g;

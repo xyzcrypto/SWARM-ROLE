@@ -5,6 +5,7 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { GOLD, MINT, VIOLET, Tier } from "./constants";
 import { nebulaTexture, dotTexture } from "./textures";
+import { mulberry32 } from "./rng";
 
 function Nebula({ color, position, scale }: { color: string; position: [number, number, number]; scale: number }) {
   const tex = useMemo(() => nebulaTexture(color), [color]);
@@ -24,11 +25,14 @@ export function SpaceParticles({ tier }: { tier: Tier }) {
   const count = tier === "high" ? 70 : 0;
 
   const dustPos = useMemo(() => {
+    // Seeded so the memo is pure: re-running it yields the identical field
+    // instead of silently reshuffling every dust mote (see ./rng).
+    const rand = mulberry32(0x5eed_d057);
     const p = new Float32Array(Math.max(count, 1) * 3);
     for (let i = 0; i < count; i++) {
-      p[i * 3] = (Math.random() - 0.5) * 7;
-      p[i * 3 + 1] = (Math.random() - 0.5) * 5;
-      p[i * 3 + 2] = 1 + Math.random() * 2.5; // in front of the scene
+      p[i * 3] = (rand() - 0.5) * 7;
+      p[i * 3 + 1] = (rand() - 0.5) * 5;
+      p[i * 3 + 2] = 1 + rand() * 2.5; // in front of the scene
     }
     return p;
   }, [count]);

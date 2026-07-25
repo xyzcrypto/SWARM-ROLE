@@ -26,7 +26,6 @@ export function AwardXpOnView({ action, keyId }: { action: XpAction; keyId?: str
     }).catch(() => {
       /* best-effort - never surface a failure for a passive XP ping */
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, action, keyId]);
 
   return null;
