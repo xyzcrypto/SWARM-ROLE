@@ -630,16 +630,35 @@ LIVEKIT_* — all added or, for LiveKit, dropped alongside the voice removal).
     upgrade ships.
   - Still deferred as its own task (too large a blast radius for a hardening
     pass) — full verify pipeline + a live Vercel preview before merge.
-- **Clean up the new react-hooks v6 lint warnings (72).** eslint-config-next 16
-  bundles `eslint-plugin-react-hooks` v6, whose React-Compiler-era rules
-  (`set-state-in-effect` ×43, `purity`, `refs`, `static-components`,
-  `immutability`) flag pre-existing patterns that passed CI under Next 14. To
-  keep the framework upgrade focused, `eslint.config.mjs` downgrades those five
-  rules from error to **warn** (CI's `eslint src` doesn't `--max-warnings`, so
-  they don't block). They're real code-smell signals worth working through in a
-  dedicated pass, then flipping back to error rule-by-rule. `set-state-in-effect`
-  (setState synchronously in an effect body → cascading renders) is the bulk and
-  the most worthwhile.
+- **react-hooks v6 lint warnings — 73 → 41, largely settled.** eslint-config-next
+  16 bundles `eslint-plugin-react-hooks` v6, whose React-Compiler-era rules
+  flagged pre-existing patterns that passed CI under Next 14. All five were
+  downgraded to **warn** so the framework upgrade wasn't blocked, then worked
+  through in three passes (2026-07-25, see `docs/changelog.md`):
+  - `purity` 11 → 0 and `static-components` 4 → 0 are clean and **promoted back
+    to `error`**, so they can't regress. Several were real bugs: the starfield
+    reshuffling on any re-render, and `CommandPalette` remounting its entire
+    results list every render.
+  - `refs` 5 → 1, `set-state-in-effect` 44 → 33 (mount-time browser reads now go
+    through `src/lib/useClientFlag.ts`; reset-on-prop-change now adjusts during
+    render). Both of those groups were fixing genuine one-frame artifacts, not
+    just lint noise.
+  - **Fetch-on-mount is a deliberate keep, not a TODO.** Full reasoning lives in
+    `eslint.config.mjs` next to the rule config. Short version: `loading`
+    already starts `true`, so the flagged call is a no-op bail-out on mount and
+    a correct transition afterwards; no wrong data is ever painted. The rule
+    really wants a data layer, and the two ways to give it one are both bad
+    trades right now — Server Components would push Function Invocations and
+    Fast Origin Transfer *up* (against §7's cost work), and adopting SWR /
+    TanStack Query is a repo-wide commitment that should be scoped on its own
+    merits. Revisit if we adopt a data library anyway, or if a specific screen
+    shows a visible loading flash.
+  - Consequence: `set-state-in-effect` stays on `warn`, so a newly-introduced
+    instance won't be blocked. Accepted trade.
+  - Also deliberately kept: the 2 `@next/next/no-img-element` warnings in
+    `PostEditor` — routing those Supabase images through `next/image` would burn
+    Fast Origin Transfer and image-optimisation quota (`docs/PRE-MERGE-CHECKS.md`
+    Step 2 flags this exact case).
 - **Post-upgrade `npm audit` residue (non-framework).** After the 14→16 upgrade,
   `sharp`/libvips carries 2 new 2026 highs (image-optimizer native lib; Vercel-
   managed at runtime, needs an upstream sharp bump) and `postcss` a moderate
