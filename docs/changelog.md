@@ -5,6 +5,35 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-25 — Docs: bring HANDOFF §7 current (2026-07-19 → 2026-07-25)
+`HANDOFF.md`'s §7 narrative had stalled at 2026-07-19 while ~20 PRs merged, so a cold-start session reading
+it would have missed the framework upgrade entirely. Header bumped (PR #154 → #177) and three sections added.
+- **2026-07-23 — Next 14 → 16 + React 19 (#158)**: why it was smaller than feared (next-auth v4 now peers
+  `next ^15||^16` + `react ^19`, so no Auth.js v5 rewrite), the codemod/segment-config/tsconfig changes, the
+  `next lint` → ESLint 9 flat config move that later surfaced the react-hooks warnings, and the fact that the
+  R3F/drei major bump is compile-only while `useWebglGate()` stays `false`.
+- **2026-07-23/24 — work from other sessions (#159-#167, #169, #170)**: the Tiptap editor rebuild, premium
+  visual identity, mobile nav/footer fixes, and notably the **security audit fixes (#170)** covering a DM
+  realtime leak, a profile XSS and a push IDOR. Recorded so §7 isn't misleading about what moved in that
+  window, with pointers to the changelog rather than second-hand detail.
+- **2026-07-24/25 — Sentry, CSP, pre-merge checks, react-hooks**: the two independent faults that kept
+  client-side Sentry dark (the Turbopack init regression, and a `connect-src` that had *never* allowed a
+  Sentry host), the LiveKit CSP cleanup, the new pre-merge checklist, and the 73 → 41 react-hooks passes
+  including which three were genuine bugs.
+- **New §8 item**: confirm Sentry actually receives a client event. Every link is verified independently but
+  no event has ever been *observed* arriving, since the agent sandbox has no outbound network - so this is
+  explicitly flagged as unverified rather than quietly assumed working, with the exact console check to run.
+- Also updated the §7 heading, which was still dated "2026-07-16, end of session".
+- **`CLAUDE.md` synced to match** (it was dated 2026-07-23 and predated the Sentry/CSP/react-hooks work):
+  "Current state" bumped, new bullets for the restored Sentry client monitoring (both faults) and the
+  2026-07-25 housekeeping, the open-owner-actions count corrected 2 → 3 with the unverified Sentry delivery
+  added, the stale "react-hooks warnings" leftover removed now that they're settled, and a standing
+  instruction to run `docs/PRE-MERGE-CHECKS.md` before merging anything touching routes/caching/data/realtime
+  (with the current 124/22/102/12 baseline inline).
+- **Files**: `docs/HANDOFF.md`, `CLAUDE.md`, `docs/changelog.md`.
+
+---
+
 ## 2026-07-25 — Docs: record the decision to keep the fetch-on-mount effects as-is
 Doc-only. After three cleanup passes took the react-hooks v6 warnings from 73 to 41, the largest remaining
 group (`set-state-in-effect` on fetch-on-mount) was assessed and **deliberately kept**. Wrote the reasoning

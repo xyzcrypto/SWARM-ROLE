@@ -3,7 +3,7 @@
 How to resume work on XYZ Crypto from **any** machine, any Claude account, or any
 new developer — with zero context loss and zero secret exposure.
 
-**Last updated:** 2026-07-19, after PR #154 (merged). This file is written to be
+**Last updated:** 2026-07-25, after PR #177 (merged). This file is written to be
 sufficient on its own — read `CLAUDE.md` first for the 60-second orientation, then
 this file for full operational detail. You should not need any prior conversation
 history to pick up exactly where the last session left off.
@@ -310,7 +310,7 @@ usage-limit scare to retrofit it.
 
 ---
 
-## 7. Where things stand right now (2026-07-16, end of session)
+## 7. Where things stand right now (newest sessions last; latest 2026-07-25)
 
 This section is a chronological summary of everything shipped in the most
 recent working session, in case the changelog is too long to read in full.
@@ -551,6 +551,85 @@ which was 17 vars behind `env.ts` (GEMINI/AI_PROVIDER_ORDER/AI_DAILY_LIMIT_*,
 CMC, GIPHY, the VAPID trio, CRON_SECRET, TELEGRAM_*, and the now-removed
 LIVEKIT_* — all added or, for LiveKit, dropped alongside the voice removal).
 
+### 2026-07-23 — Next 14 → 16 + React 18 → 19 (PR #158)
+
+The upgrade that had been deferred since 07-17 as "too large a blast radius".
+It turned out far smaller than feared, because **next-auth did not need
+replacing**: v4 (4.24.15) now lists `next ^15||^16` and `react ^19` as peers, so
+there was no Auth.js v5 rewrite and `getServerSession(authOptions)` is unchanged.
+- **Deps**: next 14.2.35 → 16.2.11, react/react-dom 18 → 19, @sentry/nextjs →
+  10.67, `@react-three/fiber` 8→9 + `@react-three/drei` 9→10 (React 19 forces
+  these), eslint 8 → 9 + eslint-config-next → 16.
+- **Code**: the official `next-async-request-api` codemod awaited
+  `params`/`searchParams` across 31 files (there were no `cookies()`/`headers()`
+  call sites, so that part was free); `/api/news`'s `revalidate` had to become a
+  literal (Next 16 rejects a non-literal segment config export);
+  `experimental.instrumentationHook` removed; tsconfig auto-set `jsx: react-jsx`.
+- **Lint**: Next 16 removed `next lint`, so the project moved to an ESLint 9 flat
+  config (`eslint.config.mjs`, script `eslint src`). This is what surfaced the
+  react-hooks v6 warnings dealt with two days later.
+- **The R3F/drei major bump is compile-only**: `useWebglGate()` is hardcoded
+  `false`, so the three.js scene never renders in production and only needs to
+  typecheck. The live centerpiece is the CSS `OrbitalEcosystem`.
+- Cleared all 14 Next.js framework CVEs. Full detail: `docs/changelog.md`.
+
+### 2026-07-23/24 — Product + security work from other sessions (#159-#167, #169, #170)
+
+Landed in the same window but not part of the framework/infra thread above -
+listed here so this section isn't misleading about what moved. See
+`docs/changelog.md` for the detail on each:
+- Admin post editor **rebuilt on Tiptap** (#165) after a run of typing/cursor/
+  toolbar regressions (#161, #163, #164), plus a fix for published posts showing
+  literal `{c:...}` colour syntax (#169).
+- **Premium visual identity** across profile/feed/comments (#166), profile photo
+  lightbox and the root-caused Markets Overview mobile overflow (#167).
+- Mobile nav/menu fixes and footer restructure (#160), bottom-nav swap + DM
+  scroll fixes (#162), RiseX added to the points calculator (#159).
+- **Security audit fixes (#170)** - a DM realtime leak, a profile XSS, and a push
+  IDOR. Worth reading before touching DMs, profile rendering, or push.
+
+### 2026-07-24/25 — Sentry client monitoring restored, CSP tightened, pre-merge checks, react-hooks cleanup
+
+1. **Client-side Sentry was silently dead, and had been for longer than the
+   upgrade** (#168, #171). Two separate faults, found in that order:
+   - Next 16 builds with **Turbopack**, which never loads `sentry.client.config.ts`
+     - that file was only ever picked up by Sentry's *webpack* plugin. So the
+     browser `Sentry.init()` stopped running at the 14→16 upgrade. Fixed by moving
+     it to `src/instrumentation-client.ts` (the Turbopack-native entrypoint) and
+     adding `onRouterTransitionStart`; the old file was deleted to avoid a
+     double-init. Also dropped the deprecated `disableLogger`, whose replacement
+     is webpack-scoped and inert under Turbopack.
+   - Even with init fixed, events still couldn't leave the browser: the SDK POSTs
+     envelopes via `fetch()` to the DSN's ingest host, and **`connect-src` never
+     allowed a Sentry host** (`git log -S "sentry.io"` on `next.config.mjs`
+     returns nothing). So client-side Sentry has most likely *never* delivered an
+     event in production - the Turbopack regression was masking an older problem.
+     Added `https://*.sentry.io` to `connect-src`. Chose the allowlist over
+     Sentry's `tunnelRoute` deliberately: tunnelRoute proxies every event through
+     a Vercel function, adding Function Invocations.
+   - **Still unconfirmed end-to-end**: no sandbox in this environment can reach
+     the network, so an event has never been *observed* arriving. Init is proven
+     (the DSN compiles into a client chunk) and the CSP is proven (read off the
+     served header), and the DSN is set in Vercel. To close it: on the live site,
+     `setTimeout(() => { throw new Error("sentry client test"); })` should produce
+     an ingest POST and an issue.
+2. **`docs/PRE-MERGE-CHECKS.md`** added (#172) - a route-table/cost checklist to
+   run *before* merging, since CI proves nothing broke but can't see a page that
+   stopped being cached or a new polling loop. It got its first real use an hour
+   later on #173.
+3. **Dead LiveKit CSP sources removed** (#173) - `*.livekit.cloud` from
+   `connect-src`, `mediastream:` from `media-src`, `blob:` from `worker-src`.
+   `worker-src 'self'` was **kept**: the PWA service worker needs it. Verified by
+   driving four pages with zero CSP violations and the SW still registering.
+4. **react-hooks v6 warnings: 73 → 41** across four PRs (#174-#177). `purity` and
+   `static-components` are clean and back on **error**; mount-time reads moved to
+   `src/lib/useClientFlag.ts` (`useSyncExternalStore`); reset-on-prop-change now
+   adjusts during render. Three were real bugs, not lint noise: the starfield
+   reshuffled on any re-render, `CommandPalette` remounted its entire results
+   list every render, and `ChatClient`'s `touchUi` never updated when a pointer
+   device changed. The fetch-on-mount group is a **documented deliberate keep** -
+   reasoning lives in `eslint.config.mjs`, summarised in §8.
+
 ## 8. Open items / natural next steps
 - **Production DB schema drift — signups verified working; other tables still
   unverified.** Confirmed 2026-07-19 (see §7): the prod DB had drifted behind
@@ -565,6 +644,18 @@ LIVEKIT_* — all added or, for LiveKit, dropped alongside the voice removal).
   503 / the Sentry `area: signup-completion` event. If any are, repair by a
   fresh Vercel deploy (the `vercel-build` `db push` retries each deploy) or
   `npm run db:push` locally with prod `DATABASE_URL` + `DIRECT_URL`.
+- **Confirm Sentry is actually receiving client events (one-time, ~10 seconds).**
+  Two faults were fixed on 2026-07-24/25 (§7): the Turbopack init regression
+  (#168) and a `connect-src` that had never allowed a Sentry host (#171). Each
+  link is verified independently — the DSN compiles into a client chunk, the
+  served CSP header allows the ingest host, and `NEXT_PUBLIC_SENTRY_DSN` is set
+  in Vercel production — but **no event has ever been observed arriving**,
+  because the agent sandbox has no outbound network. On the live site, open
+  DevTools and run
+  `setTimeout(() => { throw new Error("sentry client test"); })`: expect a
+  successful POST to the ingest endpoint and a matching issue in Sentry, and
+  *no* `Refused to connect … violates … connect-src` line in the console. If it
+  fails, the console text identifies which link broke.
 - **Inline avatar/banner data: URLs in the DB — one-time read-only check.** The
   2026-07-19 `stripInlineImage()` FOT fix stops these from being *served*, but
   doesn't quantify or backfill existing rows. Owner should run a read-only

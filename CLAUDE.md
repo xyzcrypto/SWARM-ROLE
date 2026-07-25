@@ -122,7 +122,7 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   `text-shimmer`) to each leaf span individually, not a parent wrapping
   multiple children, or the un-covered children render invisible.
 
-## Current state (2026-07-23)
+## Current state (2026-07-25)
 - ✅ Live: homepage (orbital ecosystem + Fraunces hero headline with word-stagger
   reveal + continuous shimmer), research hub + premium gating, likes, comments,
   auth (email+password, OTP signup, Google optional), profiles (`/u/[handle]` +
@@ -153,19 +153,43 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   (`stripInlineImage()` stops raw base64 `data:` avatars stored in the DB from
   being served across six hot read paths). Earlier rounds: static-regression
   fixes, hero redesign, Terms/Privacy, three FOT rounds (all `docs/HANDOFF.md §7`).
-- ⚠️ Two open OWNER actions (`docs/HANDOFF.md §8`): (1) prod DB has drifted
+- ⚠️ Three open OWNER actions (`docs/HANDOFF.md §8`): (1) prod DB has drifted
   behind `schema.prisma` — was silently starving signups; code now fails loudly
   but the data needs a real migration re-run (fresh deploy or `db:push` with
   prod creds). (2) One-time read-only check for existing inline `data:` avatars
-  in the DB.
+  in the DB. (3) Confirm Sentry actually receives a **client** event on the live
+  site — every link is verified separately but no event has ever been observed
+  arriving (the agent sandbox has no outbound network), so this is unverified,
+  not known-working.
 - ⬆️ Next 14 → 16 + React 19 upgrade (2026-07-23): next 14.2.35 → 16.2.11,
   react 18 → 19, next-auth stayed on v4 (4.24.15, no Auth.js v5 rewrite), R3F
   8→9 / drei 9→10 (compile-only — the WebGL orbital scene is gated off, CSS
   orbital is the live centerpiece), eslint 9 flat config (`next lint` removed).
   Async `params`/`searchParams` codemod across 31 files. Cleared all 14 Next.js
   framework CVEs; typecheck/lint/test/build green + homepage runtime-verified
-  under React 19. Leftover: react-hooks v6 warnings + `sharp`/`postcss` audit
-  residue (`docs/HANDOFF.md §8`).
+  under React 19. Leftover: `sharp`/`postcss` audit residue (`docs/HANDOFF.md §8`).
+- 🛰️ Sentry client monitoring restored (2026-07-24/25) — it had been dark, from
+  **two independent faults**. (1) Next 16 builds with Turbopack, which never
+  loads `sentry.client.config.ts` (a webpack-plugin mechanism), so the browser
+  `Sentry.init()` stopped at the upgrade → moved to
+  `src/instrumentation-client.ts` + `onRouterTransitionStart`. (2) `connect-src`
+  had **never** allowed a Sentry host, so the ingest `fetch()` was CSP-blocked
+  regardless → added `https://*.sentry.io`. Deliberately *not* `tunnelRoute`,
+  which would route every event through a Vercel function. Server/edge Sentry
+  was never affected. **Still unconfirmed end-to-end — see the owner action above.**
+- 🧹 Housekeeping (2026-07-25): dead LiveKit CSP sources removed (`worker-src
+  'self'` kept — the PWA service worker needs it); react-hooks v6 warnings
+  73 → 41 with `purity` + `static-components` back on **error** (three were real
+  bugs: starfield reshuffling on re-render, `CommandPalette` remounting its whole
+  results list, `touchUi` never updating on pointer change). Mount-time browser
+  reads now go through `src/lib/useClientFlag.ts`. The fetch-on-mount group is a
+  **documented deliberate keep** — reasoning sits next to the rule in
+  `eslint.config.mjs`; don't "fix" it without reading that first.
+- 📋 **Before merging anything that touches routes, caching, data fetching or
+  realtime, run `docs/PRE-MERGE-CHECKS.md`** (route-table diff vs `main`, cost-
+  pattern scan). CI proves nothing broke; it cannot see a page that stopped
+  being cached or a new polling loop. Baseline: 124 routes, 22 static, 102
+  dynamic, 12 ISR.
 - 🔜 No specific next phase agreed with the owner as of this handoff — ask
   before assuming a direction. Full session-by-session detail: `docs/HANDOFF.md §7`.
 
