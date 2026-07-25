@@ -13,22 +13,22 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' https://fonts.gstatic.com data:",
-  // LiveKit's client spins up Web Workers (from blob: URLs) for audio; WebRTC
-  // audio playback attaches MediaStreams to <audio>. Without these the voice
-  // room can't start.
-  "worker-src 'self' blob:",
-  "media-src 'self' blob: mediastream:",
+  // worker-src 'self' is required by the PWA service worker (/sw.js, registered
+  // in PwaSetup/NewsAlertsToggle). The blob: source and media-src's mediastream:
+  // existed only for LiveKit's audio workers and WebRTC playback; Voice Rooms
+  // were removed in the 2026-07-19 cost pass, so both are dropped.
+  "worker-src 'self'",
+  "media-src 'self' blob:",
   // Supabase Realtime (community chat live presence + broadcasts) opens a
   // WebSocket to wss://<ref>.supabase.co; the https origin covers the initial
-  // handshake / REST broadcast fallback. LiveKit signaling connects over
-  // wss://*.livekit.cloud. Without these the browser silently blocks them and
-  // presence/voice never work.
+  // handshake / REST broadcast fallback. Without these the browser silently
+  // blocks them and presence never works.
   // https://*.sentry.io is required for browser-side Sentry: the SDK POSTs
   // events via fetch() to the DSN's ingest host (o<org>.ingest.<region>.
   // sentry.io), which connect-src governs - without it every client event is
   // silently refused by CSP, however correctly the SDK is initialised. The
   // wildcard covers all ingest regions (*. matches multi-label subdomains).
-  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://*.sentry.io",
+  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
   "frame-src 'self' https://accounts.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
