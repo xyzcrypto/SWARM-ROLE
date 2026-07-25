@@ -5,6 +5,29 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-25 — Docs: record the decision to keep the fetch-on-mount effects as-is
+Doc-only. After three cleanup passes took the react-hooks v6 warnings from 73 to 41, the largest remaining
+group (`set-state-in-effect` on fetch-on-mount) was assessed and **deliberately kept**. Wrote the reasoning
+down next to the rule config in `eslint.config.mjs` so it reads as a decision rather than an unfinished TODO.
+- The shape is `useEffect(() => { load(); }, [load])` where `load()` opens with `setLoading(true)`. In this
+  codebase that is usually not the cascading render the rule assumes: these components already declare
+  `useState(true)` for `loading`, so on mount the call sets the value it already has and React bails out; on
+  later runs (tab switched, query changed) it is a correct transition back to loading. Unlike the two groups
+  that were fixed, no wrong data is ever painted - the intermediate state is simply "not loading yet".
+- The rule's real objection is architectural (no request dedup, no shared cache, waterfalls). Both ways to
+  satisfy it were rejected for now, with reasons recorded: moving the fetching into Server Components would
+  convert client fetches of cached `/api` routes into per-request server work, pushing Function Invocations
+  and Fast Origin Transfer **up** against the free-tier work in `HANDOFF §7`; and adopting SWR/TanStack Query
+  across ~20 call sites is a repo-wide commitment that should be scoped on its own merits (its dedup/cache
+  could genuinely reduce invocations - a good argument, just not a lint-cleanup one).
+- Recorded the accepted consequence: `set-state-in-effect` stays on `warn`, so a newly-introduced instance
+  will not be blocked by CI.
+- Refreshed the stale `HANDOFF §8` entry, which still described 72 warnings and treated the whole thing as
+  outstanding work.
+- **Files**: `eslint.config.mjs`, `docs/HANDOFF.md`, `docs/changelog.md`.
+
+---
+
 ## 2026-07-25 — react-hooks v6 batch 3: reset-on-prop-change adjusted during render
 Third pass (47 -> 41; `set-state-in-effect` 39 -> 33). This batch takes the "reset some state when a prop
 changes" sub-pattern, which was written as `useEffect(() => setX(initial), [prop])`. That commits one frame
