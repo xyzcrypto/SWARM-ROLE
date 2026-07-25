@@ -42,12 +42,20 @@ export function BriefingBlock({
     return () => synth.removeEventListener("voiceschanged", load);
   }, [ttsSupported]);
 
-  // Reset translation + stop speech when the story changes.
-  useEffect(() => {
+  // Reset translation state when the story changes. Adjusted during render, so
+  // the previous story's translation can't paint under the new story's text.
+  const [prevEnglishText, setPrevEnglishText] = useState(englishText);
+  if (prevEnglishText !== englishText) {
+    setPrevEnglishText(englishText);
     setLang("en");
     setHinglish({ loading: false, text: null, err: null });
-    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     setSpeaking(false);
+  }
+
+  // Cancelling in-flight speech is a real side effect on a browser API, so it
+  // stays in an effect.
+  useEffect(() => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   }, [englishText]);
 
   // Always stop speech on unmount.

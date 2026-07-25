@@ -125,7 +125,17 @@ export function CommandPalette() {
   const cmds: Row[] = useMemo(() => filterCommands(q, ctx).map((item) => ({ kind: "cmd" as const, key: `cmd-${item.id}`, item })), [q, ctx]);
   const rows: Row[] = useMemo(() => [...cmds, ...remote.coins, ...remote.posts, ...remote.news], [cmds, remote]);
 
-  useEffect(() => setActive(0), [rows.length, q]);
+  // Re-point the highlight at the first row whenever the result set changes.
+  // Adjusted during render (React's documented "adjusting state when a prop
+  // changes" pattern) rather than from an effect: React re-runs this component
+  // immediately without committing the stale highlight, so there's no frame
+  // where row 0 isn't selected and no cascading second render.
+  const resultKey = `${rows.length}|${q}`;
+  const [prevResultKey, setPrevResultKey] = useState(resultKey);
+  if (prevResultKey !== resultKey) {
+    setPrevResultKey(resultKey);
+    setActive(0);
+  }
 
   const choose = useCallback(
     (row: Row) => {

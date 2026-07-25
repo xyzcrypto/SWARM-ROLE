@@ -39,8 +39,16 @@ export function useOnlineSet(): Set<string> {
 export function useUserOnline(userId: string | null | undefined): boolean {
   const [online, setOnline] = useState(false);
 
-  useEffect(() => {
+  // Switching to a different user starts from "offline" until that user's
+  // presence actually arrives. Adjusted during render so the previous user's
+  // online dot is never shown against the new one.
+  const [prevUserId, setPrevUserId] = useState(userId);
+  if (prevUserId !== userId) {
+    setPrevUserId(userId);
     setOnline(false);
+  }
+
+  useEffect(() => {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !userId) return;
     let cleanup: (() => void) | undefined;
     let cancelled = false;

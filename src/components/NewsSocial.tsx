@@ -21,9 +21,17 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
   const [draft, setDraft] = useState("");
   const [posting, setPosting] = useState(false);
 
+  // Switching stories clears the previous story's counts so they can't flash on
+  // the new one. Adjusted during render rather than at the top of the fetch
+  // effect, so the stale values are never committed in the first place.
+  const [prevUrl, setPrevUrl] = useState(url);
+  if (prevUrl !== url) {
+    setPrevUrl(url);
+    setLoaded(false);
+  }
+
   useEffect(() => {
     let stop = false;
-    setLoaded(false);
     fetch(`/api/news/social?url=${encodeURIComponent(url)}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => {
