@@ -6,6 +6,7 @@ import { cn, formatDateWithDay } from "@/lib/utils";
 import { getPlatform } from "@/lib/dex-registry";
 import { CalcSegmented } from "@/components/tools/CalcField";
 import { userChannel } from "@/lib/realtime";
+import { useClientFlag } from "@/lib/useClientFlag";
 import { useRealtime } from "@/lib/useRealtime";
 import {
   computeStats,
@@ -83,7 +84,12 @@ export function JournalClient({
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [live, setLive] = useState(false);
+  // Realtime is only possible client-side and only when Supabase is configured.
+  // (The NEXT_PUBLIC_* values are inlined at build time, so the only genuinely
+  // client-only part of this is "have we hydrated yet".)
+  const live = useClientFlag(
+    () => !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  );
 
   // Live: another tab/device (or a mutation this tab just made) changed a trade -
   // refetch the full list so Trades/Analytics/Risk all reflect it immediately,
@@ -110,9 +116,6 @@ export function JournalClient({
     pollMs: 45000,
   });
 
-  useEffect(() => {
-    setLive(typeof window !== "undefined" && !!process.env.NEXT_PUBLIC_SUPABASE_URL && !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-  }, []);
 
   const stats = useMemo(() => computeStats(trades.map((t) => ({ side: t.side, fills: t.fills, stopLoss: t.stopLoss, takeProfit: t.takeProfit }))), [trades]);
   const curve = useMemo(

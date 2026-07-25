@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Bell, BellOff, Loader2, SlidersHorizontal, Check } from "lucide-react";
 import { CATEGORIES } from "@/lib/news";
 import { cn } from "@/lib/utils";
+import { useClientFlag } from "@/lib/useClientFlag";
 
 const VAPID = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 
@@ -43,7 +44,8 @@ export function NewsAlertsToggle({
   /** Show the "customize which topics" popover (News page). */
   showPrefs?: boolean;
 }) {
-  const [supported, setSupported] = useState(false);
+  // Push needs a service worker, the Push API, and a configured VAPID key.
+  const supported = useClientFlag(() => "serviceWorker" in navigator && "PushManager" in window && !!VAPID);
   const [enabled, setEnabled] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -68,9 +70,7 @@ export function NewsAlertsToggle({
   }, []);
 
   useEffect(() => {
-    const ok = typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && !!VAPID;
-    setSupported(ok);
-    if (!ok) return;
+    if (!supported) return;
     navigator.serviceWorker.ready
       .then((reg) => reg.pushManager.getSubscription())
       .then((sub) => {
@@ -78,7 +78,7 @@ export function NewsAlertsToggle({
         if (sub && showPrefs) loadPrefs();
       })
       .catch(() => {});
-  }, [showPrefs, loadPrefs]);
+  }, [supported, showPrefs, loadPrefs]);
 
   if (!supported || !loggedIn) return null;
 
