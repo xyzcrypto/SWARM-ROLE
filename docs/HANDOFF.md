@@ -644,18 +644,43 @@ listed here so this section isn't misleading about what moved. See
   503 / the Sentry `area: signup-completion` event. If any are, repair by a
   fresh Vercel deploy (the `vercel-build` `db push` retries each deploy) or
   `npm run db:push` locally with prod `DATABASE_URL` + `DIRECT_URL`.
-- **Confirm Sentry is actually receiving client events (one-time, ~10 seconds).**
-  Two faults were fixed on 2026-07-24/25 (§7): the Turbopack init regression
-  (#168) and a `connect-src` that had never allowed a Sentry host (#171). Each
-  link is verified independently — the DSN compiles into a client chunk, the
-  served CSP header allows the ingest host, and `NEXT_PUBLIC_SENTRY_DSN` is set
-  in Vercel production — but **no event has ever been observed arriving**,
-  because the agent sandbox has no outbound network. On the live site, open
-  DevTools and run
-  `setTimeout(() => { throw new Error("sentry client test"); })`: expect a
-  successful POST to the ingest endpoint and a matching issue in Sentry, and
-  *no* `Refused to connect … violates … connect-src` line in the console. If it
-  fails, the console text identifies which link broke.
+- **🔴 Sentry is NOT configured in production — no DSN exists at all. Owner
+  action, blocks all error monitoring.** Diagnosed on the live site 2026-07-25.
+  This supersedes an earlier note here that claimed the DSN was set; it is not,
+  and never has been.
+  - **Evidence** (run against production): `window.__SENTRY__` is `undefined`,
+    `performance.getEntriesByType("resource")` shows **zero** requests to any
+    Sentry/ingest host, and scanning all 36 served `_next/static/*.js` chunks
+    finds no `ingest.*.sentry.io` string baked in. In the Vercel dashboard,
+    **neither `NEXT_PUBLIC_SENTRY_DSN` nor `SENTRY_DSN` exists** in Environment
+    Variables.
+  - **So nothing has ever reported** — not just the browser SDK. The server and
+    edge SDKs are equally silent, since they read `SENTRY_DSN` and it is absent.
+    (An earlier §7 note said server/edge Sentry "was never affected". That was
+    true of the *Turbopack* bug specifically, but with no DSN present nothing
+    was being sent from any runtime.)
+  - **The code fixes are still correct and still needed** — #168 (client init
+    moved to `src/instrumentation-client.ts` for Turbopack) and #171 (Sentry
+    ingest host allowed in `connect-src`) are prerequisites. They simply cannot
+    be exercised until a DSN exists. Do not "revert as ineffective".
+  - **Why adding the variable is not enough on its own:** `NEXT_PUBLIC_*` values
+    are **inlined at build time**, not read at runtime. `instrumentation-client.ts`
+    guards on `if (dsn)`, so a build with the variable absent bakes in an empty
+    string and `Sentry.init()` never runs. **A redeploy is mandatory** after
+    setting it; saving the variable alone changes nothing.
+  - **To finish (owner):** 1) create/locate the Sentry project and copy its DSN
+    (Sentry → Settings → Projects → *project* → Client Keys (DSN)); 2) in Vercel
+    add **`NEXT_PUBLIC_SENTRY_DSN`** (browser) and **`SENTRY_DSN`** (server/edge)
+    — both scoped to the **Production** environment, which is separate from
+    Preview/Development; 3) **redeploy**; 4) verify on the live site with
+    `setTimeout(() => { throw new Error("sentry client test"); })` — expect a POST
+    to the ingest endpoint, a matching issue in Sentry, and no
+    `Refused to connect … connect-src` line. Note ad-blockers block `sentry.io`
+    directly and will produce a false negative; disable one for the test.
+  - **When this becomes essential rather than nice-to-have:** the moment you need
+    to debug a production incident, or before any launch/marketing push where
+    silent client-side breakage would go unnoticed. Until then the site works
+    fine — it just has no error visibility whatsoever.
 - **Inline avatar/banner data: URLs in the DB — one-time read-only check.** The
   2026-07-19 `stripInlineImage()` FOT fix stops these from being *served*, but
   doesn't quantify or backfill existing rows. Owner should run a read-only
