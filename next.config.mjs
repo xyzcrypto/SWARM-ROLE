@@ -23,7 +23,12 @@ const csp = [
   // handshake / REST broadcast fallback. LiveKit signaling connects over
   // wss://*.livekit.cloud. Without these the browser silently blocks them and
   // presence/voice never work.
-  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud",
+  // https://*.sentry.io is required for browser-side Sentry: the SDK POSTs
+  // events via fetch() to the DSN's ingest host (o<org>.ingest.<region>.
+  // sentry.io), which connect-src governs - without it every client event is
+  // silently refused by CSP, however correctly the SDK is initialised. The
+  // wildcard covers all ingest regions (*. matches multi-label subdomains).
+  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://*.sentry.io",
   "frame-src 'self' https://accounts.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
