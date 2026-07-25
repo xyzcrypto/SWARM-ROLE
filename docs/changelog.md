@@ -5,6 +5,46 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-25 — react-hooks v6: clear purity + static-components, promote both back to error
+First pass at the react-hooks v6 warnings the Next 16 upgrade surfaced (73 -> 52). Two rule categories are
+now completely clean and re-enforced as errors in `eslint.config.mjs`; the rest stay on warn with the
+remaining counts documented inline.
+- **`react-hooks/purity` (11 -> 0)**:
+  - `orbital/StarField.tsx` + `orbital/SpaceParticles.tsx` seeded their star/dust fields with `Math.random()`
+    inside a `useMemo`. That is an impure render-phase call - if the memo ever re-ran (StrictMode
+    double-render, remount) the whole field would silently jump to a new layout. Added
+    `orbital/rng.ts` (mulberry32) and seeded both, which makes the memos genuinely pure and the fields stable
+    run to run, with the same statistical spread. This is a real fix, not a suppression.
+  - `app/community/page.tsx` + `app/dashboard/page.tsx` call `Date.now()` in **Server Components**, which
+    render once per request - the rule's re-render instability concern is client-only, so these got a scoped
+    `eslint-disable-next-line` with that reasoning rather than contorted code.
+- **`react-hooks/static-components` (4 -> 0) + one `immutability`**: `CommandPalette` declared its `Section`
+  component *inside* the render and gave rows their global index by mutating a shared `let idx` counter
+  across three call sites. A component created during render is a new type every render, so React unmounted
+  and remounted the entire results list instead of updating it. Hoisted `Section` to module scope and
+  replaced the counter with cumulative `offset` props, which mirror how `rows` is assembled
+  (`cmds, coins, posts, news`) - identical indices, no mutation.
+- **`react-hooks/refs` (5 -> 1)**: the latest-callback refs in `useRealtime.ts`, `DashboardClient`'s
+  `useMembersChannel`, and `ChatClient`'s `stickRef`/`meRef` were written during render, which isn't safe
+  under concurrent rendering. Moved each into a post-commit `useEffect` (the pattern `ChatClient`'s
+  `messagesRef` already used); all are read only from async realtime/scroll handlers.
+- Removed a stale `eslint-disable react-hooks/exhaustive-deps` in `AwardXpOnView.tsx` that no longer
+  suppressed anything.
+- **Verified**: typecheck + lint (0 errors, with purity/static-components now *errors*) + 362 tests + build
+  green; homepage + command palette driven in headless Chromium - the palette opens, renders its section and
+  row, and highlights correctly, with zero uncaught errors.
+- **Deliberately not changed**: the two `@next/next/no-img-element` warnings in `PostEditor`. Routing those
+  Supabase-hosted images through `next/image` would consume Fast Origin Transfer and image-optimisation
+  quota - see `docs/PRE-MERGE-CHECKS.md` Step 2, where this is called out as a case where the lint rule's
+  "best practice" is the more expensive choice here.
+- **Files**: `src/components/orbital/rng.ts` (new), `src/components/orbital/StarField.tsx`,
+  `src/components/orbital/SpaceParticles.tsx`, `src/app/community/page.tsx`, `src/app/dashboard/page.tsx`,
+  `src/components/CommandPalette.tsx`, `src/lib/useRealtime.ts`, `src/components/DashboardClient.tsx`,
+  `src/components/ChatClient.tsx`, `src/components/AwardXpOnView.tsx`, `eslint.config.mjs`,
+  `docs/changelog.md`.
+
+---
+
 ## 2026-07-25 — CSP: drop dead LiveKit sources left over from Voice Rooms
 Voice Rooms (LiveKit) were removed entirely in the 2026-07-19 cost pass, but the CSP kept allowing their
 origins and capabilities. Removed the leftovers after verifying each is genuinely unused:

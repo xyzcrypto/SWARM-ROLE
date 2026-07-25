@@ -162,35 +162,12 @@ export function CommandPalette() {
 
   if (!open) return null;
 
-  let idx = -1;
-  const Section = ({ title, list }: { title: string; list: Row[] }) =>
-    list.length ? (
-      <div className="py-1">
-        <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{title}</p>
-        {list.map((row) => {
-          idx += 1;
-          const i = idx;
-          return (
-            <button
-              key={row.key}
-              onMouseEnter={() => setActive(i)}
-              onClick={() => choose(row)}
-              className={cn(
-                "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
-                active === i ? "bg-white/10" : "hover:bg-white/5"
-              )}
-            >
-              <RowIcon row={row} />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm text-zinc-100">{rowLabel(row)}</span>
-                {rowHint(row) && <span className="block truncate text-[11px] text-zinc-500">{rowHint(row)}</span>}
-              </span>
-              {active === i && <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-500" />}
-            </button>
-          );
-        })}
-      </div>
-    ) : null;
+  // Section offsets mirror how `rows` is assembled (cmds, coins, posts, news),
+  // so each row's index into `rows` is its position within its own list plus
+  // the length of everything before it.
+  const coinsOffset = cmds.length;
+  const postsOffset = coinsOffset + remote.coins.length;
+  const newsOffset = postsOffset + remote.posts.length;
 
   return (
     <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Search">
@@ -218,10 +195,10 @@ export function CommandPalette() {
         </div>
 
         <div className="flex-1 overflow-y-auto overscroll-contain py-1" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
-          <Section title="Actions" list={cmds} />
-          <Section title="Coins" list={remote.coins} />
-          <Section title="Research" list={remote.posts} />
-          <Section title="News" list={remote.news} />
+          <Section title="Actions" list={cmds} offset={0} active={active} onHover={setActive} onChoose={choose} />
+          <Section title="Coins" list={remote.coins} offset={coinsOffset} active={active} onHover={setActive} onChoose={choose} />
+          <Section title="Research" list={remote.posts} offset={postsOffset} active={active} onHover={setActive} onChoose={choose} />
+          <Section title="News" list={remote.news} offset={newsOffset} active={active} onHover={setActive} onChoose={choose} />
           {!rows.length && (
             <p className="px-3 py-8 text-center text-sm text-zinc-500">
               {q.trim().length >= 2 ? (loading ? "Searching…" : `No results for “${q.trim()}”.`) : "Type to search across XYZ Crypto."}
@@ -234,6 +211,55 @@ export function CommandPalette() {
           <span>↑↓ navigate · ↵ open · esc close</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Module scope, not defined inside CommandPalette: a component declared during
+// render is a brand-new type on every render, so React unmounts and remounts
+// its whole subtree instead of updating it (and it trips
+// react-hooks/static-components). `offset` replaces the mutable counter this
+// used to close over.
+function Section({
+  title,
+  list,
+  offset,
+  active,
+  onHover,
+  onChoose,
+}: {
+  title: string;
+  list: Row[];
+  offset: number;
+  active: number;
+  onHover: (i: number) => void;
+  onChoose: (row: Row) => void;
+}) {
+  if (!list.length) return null;
+  return (
+    <div className="py-1">
+      <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{title}</p>
+      {list.map((row, n) => {
+        const i = offset + n;
+        return (
+          <button
+            key={row.key}
+            onMouseEnter={() => onHover(i)}
+            onClick={() => onChoose(row)}
+            className={cn(
+              "flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors",
+              active === i ? "bg-white/10" : "hover:bg-white/5"
+            )}
+          >
+            <RowIcon row={row} />
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-sm text-zinc-100">{rowLabel(row)}</span>
+              {rowHint(row) && <span className="block truncate text-[11px] text-zinc-500">{rowHint(row)}</span>}
+            </span>
+            {active === i && <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-500" />}
+          </button>
+        );
+      })}
     </div>
   );
 }

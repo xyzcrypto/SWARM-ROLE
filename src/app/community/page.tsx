@@ -46,6 +46,10 @@ export default async function CommunityPage() {
               </span>
             </div>
             <div className="min-h-0 flex-1">
+              {/* Server Component: this renders once per request, so Date.now()
+                  cannot produce the unstable-across-re-render results the
+                  purity rule guards against on the client. */}
+              {/* eslint-disable-next-line react-hooks/purity */}
               <CommunityPreview messages={messages} pinned={pinned} now={Date.now()} />
             </div>
           </div>

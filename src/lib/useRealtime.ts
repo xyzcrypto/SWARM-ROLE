@@ -40,7 +40,13 @@ type UseRealtimeOpts = {
  */
 export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, enabled = true }: UseRealtimeOpts) {
   const cb = useRef(onMessage);
-  cb.current = onMessage;
+  // Keep the latest callback in a ref, assigned after commit rather than during
+  // render (writing a ref while rendering isn't safe under concurrent
+  // rendering). It's only ever read from async realtime/poll callbacks, which
+  // run well after this effect has flushed.
+  useEffect(() => {
+    cb.current = onMessage;
+  });
 
   const u = url ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
   const k = anonKey ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
