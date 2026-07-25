@@ -5,6 +5,31 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-25 — Diagnosis: Sentry has never been configured in production (no DSN anywhere)
+Ran the verification the previous entry asked for, against the live site, and it failed at the very first
+link - so the docs are corrected to say so rather than implying the monitoring work is finished.
+- **Findings** (production console): `window.__SENTRY__` is `undefined`; `performance.getEntriesByType(
+  "resource")` shows zero requests to any Sentry/ingest host; scanning all 36 served `_next/static/*.js`
+  chunks finds no `ingest.*.sentry.io` string. In Vercel, **neither `NEXT_PUBLIC_SENTRY_DSN` nor
+  `SENTRY_DSN` exists** in Environment Variables.
+- **Nothing has ever reported, from any runtime.** Not just the browser SDK - the server and edge SDKs read
+  `SENTRY_DSN`, which is absent too. Corrects an earlier note claiming the DSN was set in production, and
+  narrows an earlier claim that server/edge Sentry "was never affected" (true of the Turbopack bug
+  specifically, but everything was silent for want of a DSN).
+- **The #168 and #171 code fixes remain correct and necessary** - client init moved to
+  `src/instrumentation-client.ts` for Turbopack, and the Sentry ingest host allowed in `connect-src`. They are
+  prerequisites that simply cannot be exercised until a DSN exists; the docs say explicitly not to revert them
+  as ineffective.
+- **Recorded the build-time trap**: `NEXT_PUBLIC_*` values are inlined when Vercel builds, and
+  `instrumentation-client.ts` guards on `if (dsn)`, so a build without the variable bakes in an empty string
+  and `Sentry.init()` never runs. Setting the variable is not enough - a **redeploy** is mandatory.
+- Wrote the finish-up steps (create/locate the Sentry project, add both vars scoped to Production, redeploy,
+  verify) and a note on when this becomes essential rather than nice-to-have, into `HANDOFF §8`, with a
+  summary in `CLAUDE.md`'s owner actions.
+- **Files**: `docs/HANDOFF.md`, `CLAUDE.md`, `docs/changelog.md`.
+
+---
+
 ## 2026-07-25 — Docs: bring HANDOFF §7 current (2026-07-19 → 2026-07-25)
 `HANDOFF.md`'s §7 narrative had stalled at 2026-07-19 while ~20 PRs merged, so a cold-start session reading
 it would have missed the framework upgrade entirely. Header bumped (PR #154 → #177) and three sections added.

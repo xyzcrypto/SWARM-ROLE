@@ -157,10 +157,14 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   behind `schema.prisma` — was silently starving signups; code now fails loudly
   but the data needs a real migration re-run (fresh deploy or `db:push` with
   prod creds). (2) One-time read-only check for existing inline `data:` avatars
-  in the DB. (3) Confirm Sentry actually receives a **client** event on the live
-  site — every link is verified separately but no event has ever been observed
-  arriving (the agent sandbox has no outbound network), so this is unverified,
-  not known-working.
+  in the DB. (3) 🔴 **Sentry is not configured in production at all** — verified
+  on the live site 2026-07-25: no `NEXT_PUBLIC_SENTRY_DSN` *or* `SENTRY_DSN` in
+  Vercel, `window.__SENTRY__` undefined, zero ingest requests, no DSN in any
+  served chunk. So there is **no error monitoring from any runtime** (browser,
+  server or edge). The #168/#171 code fixes are correct prerequisites, not
+  ineffective — they just can't run without a DSN. `NEXT_PUBLIC_*` is inlined at
+  build time, so adding the vars **requires a redeploy**. Full steps:
+  `docs/HANDOFF.md §8`.
 - ⬆️ Next 14 → 16 + React 19 upgrade (2026-07-23): next 14.2.35 → 16.2.11,
   react 18 → 19, next-auth stayed on v4 (4.24.15, no Auth.js v5 rewrite), R3F
   8→9 / drei 9→10 (compile-only — the WebGL orbital scene is gated off, CSS
