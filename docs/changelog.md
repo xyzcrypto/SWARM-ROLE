@@ -5,6 +5,28 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-25 — CSP: drop dead LiveKit sources left over from Voice Rooms
+Voice Rooms (LiveKit) were removed entirely in the 2026-07-19 cost pass, but the CSP kept allowing their
+origins and capabilities. Removed the leftovers after verifying each is genuinely unused:
+- **`connect-src`**: dropped `https://*.livekit.cloud wss://*.livekit.cloud`. No `livekit` reference remains
+  anywhere in `src/`, `package.json`, or `.env.example`.
+- **`media-src`**: dropped `mediastream:`. Nothing uses `getUserMedia`, `MediaStream`, or `srcObject`, and
+  there is no `<audio>`/`<video>` element in the codebase - the news briefing's read-aloud uses
+  `window.speechSynthesis` and the chat blip uses the Web Audio API (`AudioContext`), neither of which is
+  governed by `media-src`.
+- **`worker-src`**: dropped `blob:` (LiveKit spun up audio workers from blob URLs); **kept `'self'`**, which
+  the PWA service worker registration (`/sw.js` via `PwaSetup`/`NewsAlertsToggle`) genuinely needs. No
+  `new Worker(...)` exists in the source.
+- Comments rewritten so the remaining sources document their real justification rather than a removed feature.
+- **Verified**: typecheck + lint (0 errors) + 362 tests + build green; route table identical to `main`
+  (124 routes, 22 static, 102 dynamic, 12 ISR); the served `Content-Security-Policy` header confirmed free of
+  `livekit`/`mediastream` while retaining `worker-src 'self'` and the `*.sentry.io` source added in #171; and
+  a headless-Chromium pass over `/`, `/tools`, `/news`, `/markets` recorded **zero CSP violations** with the
+  service worker still registering.
+- **Files**: `next.config.mjs`, `docs/changelog.md`.
+
+---
+
 ## 2026-07-25 — Docs: pre-merge cost & performance checks
 Added `docs/PRE-MERGE-CHECKS.md`, a checklist for verifying a PR branch does not regress cost or performance
 *before* it merges to `main` and auto-deploys. It exists because CI (`typecheck -> lint -> test -> build`)
