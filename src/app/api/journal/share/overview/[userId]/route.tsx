@@ -4,13 +4,22 @@ import { computeStats, type TradeLike } from "@/lib/journal";
 
 // Public share card for a member's OVERALL trading-journal performance - a
 // branded 1200x630 image, same ImageResponse pattern as the challenge share
-// card. PRIVACY: only aggregate numbers (win rate / total P&L / trade count)
-// are ever rendered - never symbols, entry/exit prices, notes, or
-// screenshots - mirroring the challenge card's "aggregate only, never raw"
-// rule. No session gate by design (generating/sending this link is itself
-// the member's "publish" action, same trust model as the challenge card),
-// so link-preview bots (Discord/Twitter/Telegram) can fetch it without
-// cookies. Any lookup failure falls back to a generic, data-free card.
+// card.
+//
+// PRIVACY - two independent rules, both required:
+//  1. Only PUBLISHED trades are counted (`visibility` in public/anonymous).
+//     `Trade.visibility` defaults to "private", so the query MUST filter on it.
+//     Without that filter this endpoint disclosed a member's real total P&L to
+//     any unauthenticated caller who knew their userId - and a userId is not a
+//     secret (it is serialized into the RSC payload of every public profile).
+//  2. Only aggregate numbers (win rate / total P&L / trade count) are ever
+//     rendered - never symbols, entry/exit prices, notes, or screenshots -
+//     mirroring the challenge card's "aggregate only, never raw" rule.
+//
+// No session gate by design (link-preview bots on Discord/Twitter/Telegram must
+// fetch it without cookies), which is exactly why rule 1 carries the whole
+// authorization burden: the visibility filter IS the access control here, not
+// the URL. Any lookup failure falls back to a generic, data-free card.
 export const runtime = "nodejs";
 
 const SIZE = { width: 1200, height: 630 };
@@ -28,7 +37,13 @@ export async function GET(_req: Request, props: { params: Promise<{ userId: stri
 
     const rows = await prisma.trade
       .findMany({
-        where: { userId: params.userId },
+        // Only trades the member actually published. `Trade.visibility` defaults
+        // to "private", so without this filter the card aggregated every trade
+        // the user had ever logged and served their real P&L to anyone holding
+        // a userId - which is not a secret (it ships in the RSC payload of every
+        // public profile). Mirrors the challenge card, which refuses to render
+        // anything for a private challenge.
+        where: { userId: params.userId, visibility: { in: ["public", "anonymous"] } },
         select: { side: true, stopLoss: true, takeProfit: true, fills: { select: { kind: true, price: true, size: true, fee: true } } },
       })
       .catch(() => [] as { side: string; stopLoss: number | null; takeProfit: number | null; fills: { kind: string; price: number; size: number; fee: number }[] }[]);
