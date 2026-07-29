@@ -39,16 +39,18 @@ export async function PATCH(
     });
     if (!before) return fail("Not found.", 404);
 
+    const achievedAt = parsed.data.achieved ? new Date() : null;
     const updated = await prisma.challengeMilestone.updateMany({
       where: { id: params.milestoneId, challengeId: params.id },
-      data: { achieved: parsed.data.achieved, achievedAt: parsed.data.achieved ? new Date() : null },
+      data: { achieved: parsed.data.achieved, achievedAt },
     });
     if (updated.count === 0) return fail("Not found.", 404);
 
-    const milestone = await prisma.challengeMilestone.findFirst({
-      where: { id: params.milestoneId, challengeId: params.id },
-    });
-    if (!milestone) return fail("Not found.", 404);
+    // updateMany returns a count, not the row. Rather than spend a third query
+    // re-reading it, rebuild the response from the row we already fetched plus
+    // the two fields we just wrote - keeping this handler at the same two
+    // queries it used before the ownership scoping was added.
+    const milestone = { ...before, achieved: parsed.data.achieved, achievedAt };
 
     if (parsed.data.achieved && before && !before.achieved && challenge.visibility !== "private") {
       prisma.journalActivity
