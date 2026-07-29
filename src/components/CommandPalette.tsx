@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { Search, Loader2, ArrowRight, Coins, Newspaper, FileText, Command as CommandIcon } from "lucide-react";
 import { isStaff } from "@/lib/permissions";
 import { filterCommands, XYZ_CMDK_EVENT, type CommandItem } from "@/lib/command-search";
+import { safeHref } from "@/lib/links";
 import { XYZ_AI_OPEN_EVENT } from "./XyzAiWidget";
 import { cn } from "@/lib/utils";
 
@@ -148,7 +149,12 @@ export function CommandPalette() {
       } else if (row.kind === "post") {
         router.push(`/research/${row.slug}`);
       } else if (row.kind === "news") {
-        window.open(row.url, "_blank", "noopener,noreferrer");
+        // Feed URLs come from third-party RSS <link> elements with no protocol
+        // check. React's own URL sanitiser does not cover window.open, so this
+        // is the one navigation path in the app that needs the check applied by
+        // hand. An unsafe URL simply does nothing rather than navigating.
+        const href = safeHref(row.url);
+        if (href) window.open(href, "_blank", "noopener,noreferrer");
       }
     },
     [close, router]

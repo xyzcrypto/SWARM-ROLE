@@ -26,20 +26,23 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
           id: true,
           body: true,
           createdAt: true,
-          user: { select: { name: true, email: true, username: true, image: true, membership: true } },
+          user: { select: { name: true, username: true, image: true, membership: true } },
         },
       }),
       prisma.comment.count({ where }),
     ]);
 
     // Expose a display name + public handle/avatar (for linking to /u/<handle>),
-    // never the commenter's email.
+    // never the commenter's email. `email` is deliberately NOT selected: this
+    // response is unauthenticated and CDN-cached, and the old fallback chain
+    // shipped the email local-part as the display name for any user who had
+    // never set a name.
     const safe = comments.map((c) => ({
       id: c.id,
       body: c.body,
       createdAt: c.createdAt,
       author: {
-        name: c.user?.name || (c.user?.email ? c.user.email.split("@")[0] : "Member"),
+        name: c.user?.name || c.user?.username || "Member",
         username: c.user?.username ?? null,
         image: stripInlineImage(c.user?.image),
         premium: c.user?.membership === "Premium",
@@ -82,14 +85,14 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
     const created = await prisma.comment.create({
       data: { body: parsed.data.body, postId: params.id, userId: user.id },
-      select: { id: true, body: true, createdAt: true, user: { select: { name: true, email: true, username: true, image: true, membership: true } } },
+      select: { id: true, body: true, createdAt: true, user: { select: { name: true, username: true, image: true, membership: true } } },
     });
 
     // Notify the post author (best-effort, skips self-comments).
     await notifyNewComment({
       postAuthorId: post.authorId,
       commenterId: user.id,
-      commenterName: created.user?.name || created.user?.email?.split("@")[0] || "Someone",
+      commenterName: created.user?.name || created.user?.username || "Someone",
       postTitle: post.title,
       postSlug: post.slug,
     });
@@ -104,7 +107,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
           body: created.body,
           createdAt: created.createdAt,
           author: {
-            name: created.user?.name || created.user?.email?.split("@")[0] || "Member",
+            name: created.user?.name || created.user?.username || "Member",
             username: created.user?.username ?? null,
             image: stripInlineImage(created.user?.image),
             premium: created.user?.membership === "Premium",

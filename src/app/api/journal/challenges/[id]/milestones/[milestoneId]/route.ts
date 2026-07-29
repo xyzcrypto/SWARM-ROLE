@@ -30,12 +30,25 @@ export async function PATCH(
     const parsed = patchSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.", 400);
 
-    const before = await prisma.challengeMilestone.findUnique({ where: { id: params.milestoneId } });
+    // Both the read and the write must be scoped to the challenge we just
+    // proved ownership of - keying on the milestone id alone let any member
+    // read and flip a milestone belonging to someone else's challenge. This
+    // mirrors the DELETE handler below, which already scopes by both ids.
+    const before = await prisma.challengeMilestone.findFirst({
+      where: { id: params.milestoneId, challengeId: params.id },
+    });
+    if (!before) return fail("Not found.", 404);
 
-    const milestone = await prisma.challengeMilestone.update({
-      where: { id: params.milestoneId },
+    const updated = await prisma.challengeMilestone.updateMany({
+      where: { id: params.milestoneId, challengeId: params.id },
       data: { achieved: parsed.data.achieved, achievedAt: parsed.data.achieved ? new Date() : null },
     });
+    if (updated.count === 0) return fail("Not found.", 404);
+
+    const milestone = await prisma.challengeMilestone.findFirst({
+      where: { id: params.milestoneId, challengeId: params.id },
+    });
+    if (!milestone) return fail("Not found.", 404);
 
     if (parsed.data.achieved && before && !before.achieved && challenge.visibility !== "private") {
       prisma.journalActivity

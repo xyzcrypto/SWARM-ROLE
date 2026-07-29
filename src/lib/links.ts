@@ -9,11 +9,15 @@
  */
 export function safeHref(raw: string): string | null {
   const url = raw.trim();
-  // `\/(?!\/)` - a root-relative path must NOT start with a second slash. A
-  // protocol-relative URL like //evil.example is resolved by the browser as an
-  // absolute off-site address, so the old `\/` branch let any external host
-  // through while looking like it only permitted internal paths.
-  if (/^(https?:|mailto:|\/(?!\/)|#)/i.test(url)) return url;
+  // `\/(?![\/\\])` - a root-relative path must not be followed by a second
+  // slash OR a backslash. Both `//evil.example` and `/\evil.example` are
+  // resolved by the WHATWG URL parser as an absolute off-site address
+  // (in a "special" scheme like https, `\` is treated as `/`), so a check
+  // that only excluded `//` still let any external host through while
+  // looking like it permitted internal paths only. This matches the guard
+  // `LoginForm.tsx` already applies to `callbackUrl`, which excludes
+  // backslashes outright.
+  if (/^(https?:|mailto:|\/(?![\/\\])|#)/i.test(url)) return url;
   return null;
 }
 
