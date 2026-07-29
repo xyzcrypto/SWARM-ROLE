@@ -10,11 +10,13 @@ accounts/profiles, premium content). Dark luxe design: gold + mint on near-black
 - **Stack:** Next.js 16.2 (app router, React 19) · TypeScript · Tailwind · framer-motion ·
   Prisma → Supabase Postgres · next-auth (JWT) · Upstash rate-limits* · Resend
   email · Supabase Storage · Sentry* · Vercel hosting.
-  <br>*Two of these are **in the code but not confirmed live in production** —
-  don't read this list as "all wired up". **Upstash:** whether `UPSTASH_*` is set in
-  Vercel is unverified; when unset, `rateLimit()` returns success unconditionally and
-  every limiter silently no-ops. **Sentry:** no DSN is configured in any runtime
-  (browser, server or edge), so nothing is reported anywhere. Both: `docs/HANDOFF.md §8`.
+  <br>*Don't read this list as "all wired up". **Upstash: ✅ verified live in
+  production 2026-07-29** — limiters genuinely enforce (probe + method in
+  `docs/HANDOFF.md §8`). Keep the no-op caveat in mind anyway: when `UPSTASH_*` is
+  unset, `rateLimit()` returns success unconditionally and every limiter silently
+  no-ops. **Sentry: 🔴 still dark** — no DSN in any runtime (browser, server or
+  edge), so nothing is reported anywhere. Also dark: **XYZ Sentinel** (`/api/watchdog`)
+  — `CRON_SECRET` is unset, so it 403s, and its cron is paused. All: `docs/HANDOFF.md §8`.
 - **Owner contact:** niralekhan321@gmail.com
 
 ## Commands
