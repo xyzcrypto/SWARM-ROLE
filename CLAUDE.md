@@ -8,8 +8,13 @@ full context to continue safely.
 **XYZ Crypto** — premium Web3 ecosystem site (research hub, market data, user
 accounts/profiles, premium content). Dark luxe design: gold + mint on near-black.
 - **Stack:** Next.js 16.2 (app router, React 19) · TypeScript · Tailwind · framer-motion ·
-  Prisma → Supabase Postgres · next-auth (JWT) · Upstash rate-limits · Resend
-  email · Supabase Storage · Sentry · Vercel hosting.
+  Prisma → Supabase Postgres · next-auth (JWT) · Upstash rate-limits* · Resend
+  email · Supabase Storage · Sentry* · Vercel hosting.
+  <br>*Two of these are **in the code but not confirmed live in production** —
+  don't read this list as "all wired up". **Upstash:** whether `UPSTASH_*` is set in
+  Vercel is unverified; when unset, `rateLimit()` returns success unconditionally and
+  every limiter silently no-ops. **Sentry:** no DSN is configured in any runtime
+  (browser, server or edge), so nothing is reported anywhere. Both: `docs/HANDOFF.md §8`.
 - **Owner contact:** niralekhan321@gmail.com
 
 ## Commands
@@ -52,7 +57,11 @@ subscribe · upload (admin) · ticker/chart (CoinGecko, cached) · users/[id]/me
 getAdminSession) · `auth.ts` (NextAuth options) · `ratelimit.ts` (Upstash, keyed
 buckets) · `otp.ts` (HMAC-hashed 6-digit codes) · `email.ts` (Resend, console
 fallback) · `storage.ts` (Supabase upload) · `profile.ts` (zod schemas + handle
-normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonld.tsx`.
+normalization) · `env.ts` (the intended single door for env access — route new reads
+through it, but note it does **not** yet enforce that: the zod result is only logged,
+`process.env` is then re-read directly for the exported values, and the module lacks
+`import "server-only"` so it currently reaches the client bundle. `docs/HANDOFF.md §8`)
+· `seo.ts`/`jsonld.tsx`.
 
 ## Conventions (match these — don't invent new patterns)
 - API: `ok(data)` / `fail(msg, status)` / `handleError(err, "context")`; zod-parse
@@ -190,12 +199,25 @@ normalization) · `env.ts` (ALL env access goes through here) · `seo.ts`/`jsonl
   **documented deliberate keep** — reasoning sits next to the rule in
   `eslint.config.mjs`; don't "fix" it without reading that first.
 - 📋 **Before merging anything that touches routes, caching, data fetching or
-  realtime, run `docs/PRE-MERGE-CHECKS.md`** (route-table diff vs `main`, cost-
-  pattern scan). CI proves nothing broke; it cannot see a page that stopped
-  being cached or a new polling loop. Baseline: 124 routes, 22 static, 102
-  dynamic, 12 ISR.
+  realtime, run the `pre-merge` skill** (route-table diff vs `main`, cost-pattern
+  scan). CI proves nothing broke; it cannot see a page that stopped being cached
+  or a new polling loop. The route baseline and every caching number live in the
+  `cost-check` skill — see the Skills section above.
 - 🔜 No specific next phase agreed with the owner as of this handoff — ask
   before assuming a direction. Full session-by-session detail: `docs/HANDOFF.md §7`.
+
+## Skills (`.claude/skills/`)
+Three project skills are committed to the repo, so any Claude session from any
+account loads them on trigger instead of relying on someone naming a doc:
+
+| Skill | Loads when | Owns |
+|---|---|---|
+| `pre-merge` | before merging anything touching routes/caching/data/realtime | the six-step check procedure, scaling table, standing rules |
+| `cost-check` | touching an API route, poller, external fetch, `Cache-Control`, `revalidate`, realtime channel, or chasing a Vercel usage spike | **every caching and cost number** — route baseline, ISR windows, the 2 MB data-cache trap, bundle-size blind spot |
+| `design-system` | building or restyling UI, choosing colors/spacing/motion, editing `tailwind.config.ts` or `globals.css` | the color rule, the narrow `prefers-reduced-motion` policy, the gradient-text gotcha |
+
+Rule they follow: **a skill carries what changes a decision; the handbook in `docs/`
+carries reference tables.** Don't duplicate a fact into both — duplicated facts drift.
 
 ## Docs book
 `docs/SUMMARY.md` is the GitBook-compatible table of contents for the full

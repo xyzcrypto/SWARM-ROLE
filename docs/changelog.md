@@ -5,6 +5,48 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-29 — Project skills added; design-system docs consolidated; CLAUDE.md caveats
+Three procedures the project depends on existed only as docs someone had to remember to name in a
+prompt. `PRE-MERGE-CHECKS.md` said so in its own "How to use it" section. They are now skills that
+load on trigger.
+- **New `.claude/skills/`** (committed, so any session from any account picks them up):
+  `pre-merge` (the six-step check procedure, scaling table, standing rules), `cost-check` (**the single
+  home for every caching and cost number** - route baseline, ISR windows, the ~2MB data-cache trap, the
+  `<img>` vs `next/image` trade-off, the bundle-size blind spot), `design-system` (the color rule, the
+  narrow `prefers-reduced-motion` policy, the gradient-text gotcha). Frontmatter descriptions name
+  **triggers**, not contents - that string is all that is visible until a skill fires.
+- **Rule they follow:** a skill carries what changes a decision; `docs/` carries reference tables. One
+  fact, one home.
+- **`docs/DESIGN-SYSTEM.md` + `docs/design-system.md` merged into the lowercase file**, and the uppercase
+  one removed with `git rm`. They were two *different* documents, not duplicates - lowercase was the brand
+  spec (palette, spacing, buttons, surfaces), uppercase was the theming layer (light/dark, semantic CSS-var
+  tokens, ThemeToggle). Lowercase was kept because it is the one `SUMMARY.md`, `project-state.md` and
+  `frontend-state.md` all link to; the uppercase file was not in the GitBook TOC at all. **This also fixes a
+  real portability bug:** two paths differing only by case cannot coexist in a checkout on Windows or macOS,
+  which would have broken the owner's working tree on the next pull.
+- **Two stale claims corrected during the merge** rather than carried forward: both files said motion
+  universally respects `prefers-reduced-motion` (the revised policy deliberately exempts the ticker marquee,
+  `text-shine`/`text-shimmer`, shooting stars and `.i3d-*`), and one listed react-three-fiber as the "next
+  increment" (R3F 9 / drei 10 are installed but the WebGL orbital is gated off; the CSS orbital is live).
+- **`docs/PRE-MERGE-CHECKS.md` reduced to a pointer.** Not deleted - it keeps the GitBook TOC entry under
+  Operations & Security working and gives a human reader the trail. Keeping a second full copy is how the
+  two would drift, which is the exact failure the check exists to catch.
+- **`CLAUDE.md` reconciled with reality:** the Stack line no longer implies Upstash and Sentry are live
+  (Upstash config in production is unverified and limiters no-op when unset; Sentry has no DSN in any
+  runtime), and "ALL env access goes through `env.ts`" is reworded as the intended convention rather than
+  an enforced guarantee - the zod result is only logged, `process.env` is re-read directly, and the module
+  lacks `import "server-only"`. Both point at `HANDOFF.md §8`. Added a Skills section.
+- **Reported, not changed:** `component-registry.md` is substantially stale - its API list stops at six
+  routes and its Pages list at five, against a repo that now builds 124 routes with community, messages,
+  journal, markets, news, tools, settings, `u/[username]` and premium. Worth its own refresh pass.
+- The two older changelog entries referencing `DESIGN-SYSTEM.md` are left as-is: a changelog records what
+  was true on its date, and rewriting it is the worse error. This entry is the forwarding address.
+- **Files:** `.claude/skills/{pre-merge,cost-check,design-system}/SKILL.md` (new) ·
+  `docs/design-system.md` (merged) · `docs/DESIGN-SYSTEM.md` (deleted) · `docs/PRE-MERGE-CHECKS.md`
+  (→ pointer) · `CLAUDE.md` · `docs/changelog.md`. No `src/` changes.
+
+---
+
 ## 2026-07-25 — Diagnosis: Sentry has never been configured in production (no DSN anywhere)
 Ran the verification the previous entry asked for, against the live site, and it failed at the very first
 link - so the docs are corrected to say so rather than implying the monitoring work is finished.
