@@ -5,6 +5,40 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-29 — Verified: Upstash rate limiting IS live in production; XYZ Sentinel is not
+Docs only, no code changed. Closes a standing unknown and opens a new one found while closing it.
+- **Upstash is configured and limiters genuinely enforce.** Verified by behavioural probe against
+  production, read-only: 16 sequential `GET /api/search/posts` with distinct query strings and
+  `cache: "no-store"`. That route uses the `subscribe` bucket, 10/min/IP - requests 1-10 returned rows,
+  **11-16 returned zero**, tripping exactly on the configured boundary, with `x-vercel-cache: MISS`
+  confirming the function was actually invoked. The off-by-one is explained by request 1 being `STALE`,
+  which fires a background revalidation that consumes a token.
+- **Method note recorded in HANDOFF §8, because the first probe was wrong.** Reusing the *same* query
+  string proves nothing: `/api/search/posts` sets `s-maxage=60, stale-while-revalidate=180`, so repeat
+  identical requests are answered by the edge and never reach `rateLimit()`. A constant result series
+  looks identical to "limiting is off". Vary the query, pass `cache: "no-store"`, read `x-vercel-cache`.
+  Also: that route and `/api/posts/[id]/view` **silently drop** excess requests (`return ok(...)`) rather
+  than returning 429, so the signal is in the payload, not the status code.
+- **The OTP attempt-cap race is confirmed LOW, not escalated.** `otp.ts:82` still checks a stale
+  `attempts` read before the atomic increment, but its escalation was conditional on Upstash being
+  absent. With `signup`/`password` (IP) and `otpEmail` (3 per 10 min per target email) genuinely
+  enforcing, a 6-digit code is not brute-forceable in parallel. Worth fixing as hardening
+  (`updateMany` guarded on `attempts < MAX_ATTEMPTS`), not as an exposure.
+- **New finding: XYZ Sentinel does not run at all.** `GET /api/watchdog` returns
+  `403 {"error":"Forbidden"}` - `authorized()` short-circuits on `if (!env.CRON_SECRET) return false`
+  before comparing anything, so `CRON_SECRET` is not set in Vercel. `/api/push/dispatch` shares the
+  identical gate and is equally unreachable. Compounding it, `watchdog.yml` has `schedule:` commented
+  out from the Hobby-plan pass, so nothing invokes it automatically either. A monitor that never runs
+  raises no alarm - same class as the Sentry DSN gap. Added as an owner action in §8.
+- **Corrected a wrong claim in the HANDOFF env table.** The `CRON_SECRET` row said that without it the
+  "Endpoint stays open (still gated by other checks)". It does the **opposite** - it fails closed, 403 to
+  everyone, and the feature silently never runs. A reader would have inferred the risk was exposure when
+  the real consequence is silent non-execution.
+- **Files:** `docs/HANDOFF.md` (§8 + two env-table rows) · `CLAUDE.md` (Stack caveat) ·
+  `docs/changelog.md`. No `src/` changes.
+
+---
+
 ## 2026-07-29 — Project skills added; design-system docs consolidated; CLAUDE.md caveats
 Three procedures the project depends on existed only as docs someone had to remember to name in a
 prompt. `PRE-MERGE-CHECKS.md` said so in its own "How to use it" section. They are now skills that

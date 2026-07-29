@@ -104,7 +104,7 @@ Settings → Environment Variables is the canonical store for runtime).
 | `NEXTAUTH_URL` | Auth callbacks | Wrong callback URLs | Vercel (the prod URL) |
 | `ADMIN_EMAILS` | Admin promotion on signup | No admin dashboards | Vercel (comma-separated emails) |
 | `GOOGLE_CLIENT_ID/_SECRET` | Google sign-in (optional) | Google button hidden | Vercel ← Google Cloud Console OAuth |
-| `UPSTASH_REDIS_REST_URL/_TOKEN` | Rate limits (optional) | Limits become no-ops | Vercel ← Upstash console |
+| `UPSTASH_REDIS_REST_URL/_TOKEN` | Rate limits — **✅ verified live in production 2026-07-29** (§8) | Limits become no-ops (silently — every `rateLimit()` returns success) | Vercel ← Upstash console |
 | `RESEND_API_KEY`, `EMAIL_FROM` | OTP emails (optional) | Codes log to server console | Vercel ← Resend dashboard |
 | `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` | Image uploads (optional) | Uploads return 501 (URL-paste fallback still works) | Vercel ← Supabase → API keys |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Realtime (chat presence, live updates) (optional) | Falls back to 10s polling everywhere realtime is used | Vercel ← Supabase → Settings → API (anon key is public-safe) |
@@ -112,7 +112,7 @@ Settings → Environment Variables is the canonical store for runtime).
 | `CMC_API_KEY` | **Markets** hub CMC enrichment (optional) | /markets still works from free sources | Vercel ← coinmarketcap.com/api (free tier) |
 | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_GSC_VERIFICATION` | SEO/analytics (optional) | Wrong canonical / no GA | Vercel |
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | Error monitoring (optional) | Sentry no-op | Vercel ← Sentry project |
-| `CRON_SECRET` | Protects `/api watchdog` and scheduled cron endpoints | Endpoint stays open (still gated by other checks) | Vercel (generate: `openssl rand -hex 32`) |
+| `CRON_SECRET` | Protects `/api/watchdog` (XYZ Sentinel) and `/api/push/dispatch` | **Endpoint returns 403 to everyone and the feature never runs** — it fails *closed*, not open (`if (!env.CRON_SECRET) return false`). Verified unset in production 2026-07-29, see §8 | Vercel (generate: `openssl rand -hex 32`) |
 | `SEED_ADMIN_PASSWORD` | `npm run seed` only | Insecure default `changeme123` — **always set, change after first login** | Local shell only |
 
 Every optional integration **degrades gracefully** when unset — the app never
@@ -632,6 +632,56 @@ listed here so this section isn't misleading about what moved. See
    reasoning lives in `eslint.config.mjs`, summarised in §8.
 
 ## 8. Open items / natural next steps
+- ~~**Is Upstash actually configured in production?**~~ **✅ Resolved 2026-07-29 —
+  it is. Rate limiting is live.** This had been an explicit unknown: `ratelimit.ts`
+  degrades to a permissive no-op when `UPSTASH_*` is absent, so every limiter
+  (`login`, `loginIp`, `otpEmail`, `password`, `signup`, …) would silently return
+  success and no code path would say so out loud.
+  - **Evidence** (behavioural probe against production, read-only): 16 sequential
+    `GET /api/search/posts` requests with distinct query strings and
+    `cache: "no-store"`. That route uses the `subscribe` bucket, **10/min/IP**
+    (`ratelimit.ts:46`). Results: requests 1–10 returned rows, **11–16 returned
+    zero** — the limiter tripping exactly on its configured boundary. Every
+    request after the first reported `x-vercel-cache: MISS`, confirming the
+    function was actually invoked rather than the CDN answering.
+  - **Why the boundary lands where it does:** request 1 was `STALE`, which serves
+    a cached body *and* fires a background revalidation — that revalidation
+    invokes the function and consumes a token. So 1 + 9 `MISS` = 10 tokens by
+    request 10, making 11 the first to exceed.
+  - **Method note for anyone re-running this:** a naive probe reusing the *same*
+    query string proves nothing. `/api/search/posts` sets
+    `Cache-Control: public, s-maxage=60, stale-while-revalidate=180`, so repeat
+    identical requests are answered by the edge and never reach `rateLimit()`.
+    Vary the query and read `x-vercel-cache`. Note also that this route and
+    `/api/posts/[id]/view` **silently drop** excess requests (`return ok(...)`)
+    rather than returning 429, so watch the payload, not the status code.
+  - **Consequence for the audit:** the OTP attempt-cap race (`otp.ts:82` checks a
+    stale `attempts` read before the atomic increment) stays **low severity**. Its
+    escalation was conditional on Upstash being absent; with the `signup`/`password`
+    IP limiters and `otpEmail` (3 per 10 min per target email) genuinely enforcing,
+    a 6-digit code is not brute-forceable in parallel. Still worth fixing with an
+    `updateMany` guarded on `attempts < MAX_ATTEMPTS`, but as hardening.
+- **🔴 XYZ Sentinel does not run at all — `CRON_SECRET` is not set, and the cron is
+  paused. Owner action.** Discovered 2026-07-29 while trying to use the watchdog to
+  answer the Upstash question above.
+  - **Evidence:** `GET /api/watchdog` with a `Bearer` token returns
+    `403 {"error":"Forbidden"}`. `authorized()` (`watchdog/route.ts:18`) short-circuits
+    on `if (!env.CRON_SECRET) return false` *before* comparing anything, so an unset
+    secret and a wrong secret are indistinguishable — but since Upstash turned out to
+    be configured, the endpoint would otherwise have answered, which points at the
+    secret. `/api/push/dispatch` uses the identical gate and is equally unreachable.
+  - **Compounding:** `.github/workflows/watchdog.yml` has its `schedule:` block
+    commented out (`workflow_dispatch` only) from the Hobby-plan cost pass, so
+    nothing invokes it automatically either. Both doors are shut.
+  - **Why nobody noticed:** a monitor that never runs raises no alarm. This is the
+    same class as the Sentry finding below — correct detection code, absent config.
+    Note the env table above previously claimed the endpoint "stays open" without the
+    secret; it does the opposite, and that row is now corrected.
+  - **To finish (owner):** generate `openssl rand -hex 32`, add it to Vercel as
+    `CRON_SECRET` scoped to **Production**, redeploy, then confirm with
+    `curl -s -H "Authorization: Bearer <secret>" https://xyzcrypto.io/api/watchdog | jq`.
+    Expect a JSON body with `severity` and `flags`. Re-enabling the `schedule:` block
+    is a separate, deliberate cost decision — see §7.
 - **Production DB schema drift — signups verified working; other tables still
   unverified.** Confirmed 2026-07-19 (see §7): the prod DB had drifted behind
   `prisma/schema.prisma`, silently starving signups and 503-ing
