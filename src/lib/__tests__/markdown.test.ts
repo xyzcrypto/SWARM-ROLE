@@ -15,6 +15,18 @@ describe("safeHref", () => {
     expect(safeHref("data:text/html,<script>")).toBeNull();
     expect(safeHref("vbscript:msgbox")).toBeNull();
   });
+  it("blocks protocol-relative URLs, which resolve off-site", () => {
+    // `//evil.example` is not a root-relative path - the browser resolves it as
+    // https://evil.example, so it must not pass as an internal link.
+    expect(safeHref("//evil.example")).toBeNull();
+    expect(safeHref("//evil.example/phish")).toBeNull();
+    expect(safeHref("  //evil.example")).toBeNull(); // trimmed before the test
+  });
+  it("still allows genuine root-relative paths", () => {
+    expect(safeHref("/")).toBe("/");
+    expect(safeHref("/u/someone")).toBe("/u/someone");
+    expect(safeHref("/research?tag=a/b")).toBe("/research?tag=a/b"); // inner slashes fine
+  });
 });
 
 describe("cleanBareUrl", () => {

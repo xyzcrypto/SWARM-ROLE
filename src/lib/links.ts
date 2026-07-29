@@ -9,7 +9,11 @@
  */
 export function safeHref(raw: string): string | null {
   const url = raw.trim();
-  if (/^(https?:|mailto:|\/|#)/i.test(url)) return url;
+  // `\/(?!\/)` - a root-relative path must NOT start with a second slash. A
+  // protocol-relative URL like //evil.example is resolved by the browser as an
+  // absolute off-site address, so the old `\/` branch let any external host
+  // through while looking like it only permitted internal paths.
+  if (/^(https?:|mailto:|\/(?!\/)|#)/i.test(url)) return url;
   return null;
 }
 
