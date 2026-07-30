@@ -115,23 +115,28 @@ through it, but note it does **not** yet enforce that: the zod result is only lo
 - ISR pages must never read the DB at build time; profile/settings pages render
   on demand. Bust profile cache with `revalidatePath("/u/<handle>")` after edits.
 - lucide-react v1 has no Twitter/Github icons — use `src/components/BrandIcons.tsx`.
-- ⚠️ **Migrations apply via `vercel-build`, but the script hides failure — always
-  verify, never assume (in either direction).** `vercel-build` runs
-  `prisma db push --skip-generate || echo 'db push skipped (no DB at build)'`. The `||`
-  swallows any non-zero exit, so `next build` proceeds, the deploy succeeds and **CI
-  goes green whether or not the schema actually synced.** There is no signal anywhere
-  except the build log.
+- **Migrations apply on production deploys only, and a failure now fails the build.**
+  `vercel-build` runs `prisma generate && node scripts/db-push.mjs && next build`.
+  `scripts/db-push.mjs` skips unless `VERCEL_ENV === "production"` (so local builds, CI
+  and **preview deploys** never touch the schema — previews share the production
+  `DATABASE_URL`), retries 3× with 2s/4s backoff, then **fails the build loudly**. A
+  failed build never takes the site down: Vercel keeps the previous deployment serving
+  and only swaps the production alias after a build succeeds.
+  - ⚠️ **It did not always work this way, and that is the lesson.** Until 2026-07-30 the
+    script was `prisma db push --skip-generate || echo 'db push skipped …'`. That `||`
+    swallowed every non-zero exit, so the deploy succeeded and **CI went green whether or
+    not the schema synced**, with no signal anywhere but the build log.
   - This is not hypothetical: **from an unknown date until 2026-07-29, `db push` failed
     on every single deploy** with `P1001: Can't reach database server at
     db.<ref>.supabase.co:5432`, and nobody noticed for weeks. Cause was `DIRECT_URL`
     pointing at the *direct* Supabase host (IPv6-only) from an IPv4-only Vercel runtime;
     fixed by repointing it at the **session pooler** (`…pooler.supabase.com:5432`).
     History + full diagnosis: `docs/HANDOFF.md §8`.
-  - **So the check, every time schema matters:** open the deployment's Build Log and
-    look for `in sync with your Prisma schema`. Treat `db push skipped` or any `P1001`
-    as failure. An earlier version of this line said "don't assume a migration is
-    'pending' just because it's recent" — that nudged readers toward assuming success
-    and is exactly why the outage above went unseen. Assume nothing; read the log.
+  - **The check, whenever schema matters:** open the deployment's Build Log and look for
+    `in sync with your Prisma schema`. A failure is now loud (`SCHEMA SYNC FAILED`, build
+    red) rather than silent, but read the log anyway — an earlier version of this line
+    said "don't assume a migration is 'pending' just because it's recent", which nudged
+    readers toward assuming success and is exactly why the outage above went unseen.
 - Feature branches get squash-merged, so the branch's **remote** copy never
   fast-forwards to the squash commit — the next push from a freshly-reset local
   branch will be rejected as non-fast-forward. This is expected: verify

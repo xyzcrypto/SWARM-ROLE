@@ -37,6 +37,37 @@ Security on private repos** - so the CodeQL job could never file its results and
 
 ---
 
+## 2026-07-30 — Make schema-push failures fail the build instead of hiding
+Follow-up to the P1001 incident. That fixed the misconfiguration; this fixes the reason it stayed
+invisible for weeks. The first non-docs change in this run.
+- **`vercel-build` no longer swallows failures.** It was
+  `prisma db push --skip-generate || echo 'db push skipped (no DB at build)'` - the `||` absorbed
+  *every* failure, so a deploy succeeded, CI went green and the site worked while no migration had
+  applied. Now `prisma generate && node scripts/db-push.mjs && next build`.
+- **New `scripts/db-push.mjs` draws the distinction the `||` could not:** nothing to push to → skip
+  quietly (exit 0); something to push to and it failed → **fail the build**, loudly.
+- **Only a real Vercel production build pushes.** The gate is strict equality on
+  `VERCEL_ENV === "production"`, so local builds, CI and **preview deployments** all skip. This closes
+  a live exposure: preview deploys share the production `DATABASE_URL`, and with P1001 fixed every
+  branch push would otherwise have rewritten the production schema before review. An abandoned PR's
+  orphan column would then make future pushes fail on data-loss refusal - silently, under the old
+  script. (The owner also unticked Preview on `DIRECT_URL`; this enforces the same thing in code, so
+  it survives the checkbox being re-ticked.)
+- **A production build missing `DATABASE_URL`/`DIRECT_URL` now fails** rather than skipping - on
+  production that is a broken config, not a reason to continue.
+- **3 attempts with 2s/4s backoff** so a transient blip doesn't block a deploy; a genuine
+  misconfiguration fails all three in ~10s and then fails the build.
+- **This cannot take the site down.** Vercel keeps the previous deployment serving and only swaps the
+  production alias after a build succeeds. Worst case is "this deploy doesn't ship until the DB is
+  reachable", which beats shipping code whose schema was never applied.
+- **Verified by executing every path**, not by inspection: local/CI/preview skip (exit 0); production
+  with missing `DATABASE_URL` or `DIRECT_URL` fails (exit 1); production with an unreachable DB
+  reproduces `P1001`, retries twice and fails (exit 1, ~10s); `npm run vercel-build` end-to-end still
+  generates, skips and builds clean.
+- **Files:** `scripts/db-push.mjs` (new) · `package.json` (`vercel-build`) · `docs/changelog.md`.
+
+---
+
 ## 2026-07-29 — FIXED: migrations had never applied (P1001 on every deploy)
 Docs only. Records the root cause of the schema-drift item open since 2026-07-19, the owner's fix,
 and a CLAUDE.md gotcha that had been steering readers away from finding it.

@@ -739,13 +739,27 @@ listed here so this section isn't misleading about what moved. See
     `P1001` **or** `db push skipped (no DB at build)` as failure — the `||` fires on any
     non-zero exit, so absence of `P1001` alone does **not** prove success. `P1000` means
     the password is wrong; `P1017` usually means you landed on port 6543.
-  - **⚠️ The invisibility is still there.** Only the misconfiguration was fixed, not the
-    swallowing. Any future `db push` failure — a bad credential, a paused project, a
-    schema conflict — will be equally silent, and CI will still be green. Making the
-    `|| echo` fatal would surface it immediately, but would break builds in environments
-    with genuinely no DB reachable. A middle option is to keep it non-fatal while
-    emitting a loud, greppable marker and asserting on it. **Worth a deliberate decision;
-    not actioned.**
+  - ~~**⚠️ The invisibility is still there.**~~ **✅ Fixed 2026-07-30.** Repointing
+    `DIRECT_URL` fixed *this* failure but not the reason it hid, so the `|| echo` was
+    replaced with `scripts/db-push.mjs`:
+    - **Skips unless `VERCEL_ENV === "production"`** — strict equality, so local builds,
+      CI and **preview deployments** never touch the schema. That closes a second live
+      exposure: previews share the production `DATABASE_URL`, so once P1001 was fixed
+      every branch push would otherwise have rewritten the production schema before
+      review. An abandoned PR's orphan column would then make later pushes fail on
+      data-loss refusal — silently, under the old script. (The owner also unticked
+      Preview on `DIRECT_URL`; the code gate means that survives the checkbox being
+      re-ticked.)
+    - **A production build with `DATABASE_URL`/`DIRECT_URL` missing now fails** rather
+      than skipping — on production that is broken config, not a reason to continue.
+    - **3 attempts, 2s/4s backoff**, so a transient blip doesn't block a deploy while a
+      genuine misconfiguration fails in ~10s and fails the build.
+    - **This cannot take the site down.** Vercel keeps the previous deployment serving
+      and only swaps the production alias after a build succeeds, so the worst case is
+      "this deploy doesn't ship until the DB is reachable" — strictly better than
+      shipping code whose schema never applied.
+    - Verified by executing every path (skip on local/CI/preview; fail on missing config;
+      reproduce `P1001` → retry → fail), not by inspection.
 - **Production DB schema drift — cause found and fixed; residual verification is now
   cheap.** *(The cause was the `DIRECT_URL` misconfiguration in the item directly above.
   With `db push` succeeding again as of 2026-07-29, the first successful run applies
