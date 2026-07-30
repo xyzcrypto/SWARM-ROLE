@@ -112,7 +112,7 @@ Settings → Environment Variables is the canonical store for runtime).
 | `CMC_API_KEY` | **Markets** hub CMC enrichment (optional) | /markets still works from free sources | Vercel ← coinmarketcap.com/api (free tier) |
 | `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_GSC_VERIFICATION` | SEO/analytics (optional) | Wrong canonical / no GA | Vercel |
 | `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` | Error monitoring (optional) | Sentry no-op | Vercel ← Sentry project |
-| `CRON_SECRET` | Protects `/api/watchdog` (XYZ Sentinel) and `/api/push/dispatch` | **Endpoint returns 403 to everyone and the feature never runs** — it fails *closed*, not open (`if (!env.CRON_SECRET) return false`). Verified unset in production 2026-07-29, see §8 | Vercel (generate: `openssl rand -hex 32`) |
+| `CRON_SECRET` | Protects `/api/watchdog` (XYZ Sentinel) and `/api/push/dispatch` | **Endpoint returns 403 to everyone and the feature never runs** — it fails *closed*, not open (`if (!env.CRON_SECRET) return false`). Present in Vercel (Prod+Preview) as of 2026-07-29, but `/api/watchdog` still 403s — cause under investigation, see §8 | Vercel (generate: `openssl rand -hex 32`) |
 | `SEED_ADMIN_PASSWORD` | `npm run seed` only | Insecure default `changeme123` — **always set, change after first login** | Local shell only |
 
 Every optional integration **degrades gracefully** when unset — the app never
@@ -661,29 +661,100 @@ listed here so this section isn't misleading about what moved. See
     IP limiters and `otpEmail` (3 per 10 min per target email) genuinely enforcing,
     a 6-digit code is not brute-forceable in parallel. Still worth fixing with an
     `updateMany` guarded on `attempts < MAX_ATTEMPTS`, but as hardening.
-- **🔴 XYZ Sentinel does not run at all — `CRON_SECRET` is not set, and the cron is
-  paused. Owner action.** Discovered 2026-07-29 while trying to use the watchdog to
-  answer the Upstash question above.
+- **🔴 XYZ Sentinel does not run — `/api/watchdog` 403s, cause not yet pinned. Owner
+  action.** Discovered 2026-07-29 while trying to use the watchdog to answer the Upstash
+  question above.
+  - **Correction, and a caution about this file.** An earlier version of this entry
+    stated `CRON_SECRET` "is not set". **That was wrong** — the owner confirmed it is
+    present in Vercel, scoped Prod+Preview. It was an inference from the 403 written up
+    as a fact, which is exactly the failure mode the rest of §8 warns about. Treat the
+    403 as an unexplained symptom, not a diagnosed cause.
   - **Evidence:** `GET /api/watchdog` with a `Bearer` token returns
     `403 {"error":"Forbidden"}`. `authorized()` (`watchdog/route.ts:18`) short-circuits
-    on `if (!env.CRON_SECRET) return false` *before* comparing anything, so an unset
-    secret and a wrong secret are indistinguishable — but since Upstash turned out to
-    be configured, the endpoint would otherwise have answered, which points at the
-    secret. `/api/push/dispatch` uses the identical gate and is equally unreachable.
-  - **Compounding:** `.github/workflows/watchdog.yml` has its `schedule:` block
-    commented out (`workflow_dispatch` only) from the Hobby-plan cost pass, so
-    nothing invokes it automatically either. Both doors are shut.
-  - **Why nobody noticed:** a monitor that never runs raises no alarm. This is the
-    same class as the Sentry finding below — correct detection code, absent config.
-    Note the env table above previously claimed the endpoint "stays open" without the
-    secret; it does the opposite, and that row is now corrected.
-  - **To finish (owner):** generate `openssl rand -hex 32`, add it to Vercel as
-    `CRON_SECRET` scoped to **Production**, redeploy, then confirm with
-    `curl -s -H "Authorization: Bearer <secret>" https://xyzcrypto.io/api/watchdog | jq`.
-    Expect a JSON body with `severity` and `flags`. Re-enabling the `schedule:` block
-    is a separate, deliberate cost decision — see §7.
-- **Production DB schema drift — signups verified working; other tables still
-  unverified.** Confirmed 2026-07-19 (see §7): the prod DB had drifted behind
+    on `if (!env.CRON_SECRET) return false` *before* comparing anything, so a missing
+    secret and a mismatched one are indistinguishable from outside. No oracle, by design.
+  - **Two live candidates**, in order of likelihood:
+    1. **The value sent in the test didn't match** the stored one (the probe may have
+       carried a placeholder). Cheapest to rule out: re-run with the real value.
+    2. **The running deployment predates the variable.** Vercel bakes env vars into a
+       deployment, so a var added *after* the last production build is absent at runtime
+       while the dashboard shows it present. **Check: Deployments → current Production
+       timestamp vs when `CRON_SECRET` was added.** If the var is newer, redeploy — no
+       code change needed. This is the same build-time-capture trap as the Sentry DSN.
+  - **Compounding, and independent of the 403:** `.github/workflows/watchdog.yml` has its
+    `schedule:` block commented out (`workflow_dispatch` only) from the Hobby-plan cost
+    pass, so nothing invokes it automatically either. Both doors are shut. Re-enabling
+    the schedule is a separate, deliberate Function-Invocations decision — see §7.
+  - **Also needed for the workflow path:** `watchdog.yml:34-42` reads `CRON_SECRET` **and
+    `PROD_URL` from GitHub Actions repo secrets**, not from Vercel, and exits 0 with a
+    skip message when either is missing. So a green workflow run does not mean it ran.
+    The same value must exist in both places.
+  - **Alerting will reach the owner once it runs:** `TELEGRAM_BOT_TOKEN`/`CHAT_ID` are
+    absent, but `notify-owner.ts:19-25` fires email and Telegram independently and
+    best-effort, and `RESEND_API_KEY` is present. Email works; Telegram is optional.
+  - **Why nobody noticed:** a monitor that never runs raises no alarm. Same class as the
+    Sentry finding below — correct detection code, config that doesn't reach it.
+- ~~**`prisma db push` fails on every deploy — `DIRECT_URL` points at the IPv6-only
+  direct Supabase host.**~~ **✅ FIXED 2026-07-29.** Owner repointed `DIRECT_URL` at the
+  Supabase **session pooler** and redeployed; the owner reports the build logs are clear
+  and `P1001` no longer appears. *(Recorded as owner-verified. The
+  `in sync with your Prisma schema` success line was not itself pasted back, so if you
+  are auditing this later, re-confirm from a build log rather than treating it as
+  independently proven.)*
+  - **Kept in full below because the failure mode is invisible and will recur** if
+    `DIRECT_URL` is ever changed, and because it explains the schema drift recorded in
+    the next item — which had been open since 2026-07-19 with no known cause. This was
+    not drift that happened once: **no migration applied on any Vercel deploy** for the
+    entire period the variable was misconfigured.
+  - **Evidence** (production build log): `Error: P1001: Can't reach database server at
+    db.<ref>.supabase.co:5432`.
+  - **Why it can't connect:** `db.<ref>.supabase.co` is the *direct* connection host.
+    Supabase deprecated IPv4 for it, so it resolves **IPv6-only** unless the IPv4
+    add-on is purchased. Vercel's build and function runtimes are IPv4-only, so Prisma
+    cannot open a socket. Note this is **not** the same as port 5432 on the *pooler*
+    host — those look interchangeable and are not.
+  - **Why nobody saw it for ten days:** `package.json` `vercel-build` is
+    `prisma generate && (prisma db push --skip-generate || echo 'db push skipped (no
+    DB at build)') && next build`. The `||` swallows the non-zero exit, `next build`
+    proceeds, the deployment succeeds and **CI goes green**. The only trace is one line
+    in a build log. Runtime traffic is unaffected because `schema.prisma` uses
+    `DIRECT_URL` **only** as `directUrl` (migrations); request traffic uses
+    `DATABASE_URL`, which is correctly on the pooler — so the app works perfectly while
+    every migration silently fails.
+  - **The fix that was applied**, and the correct end state to restore if this regresses:
+    Supabase → Settings → Database → Connection string → **Session pooler** tab (*not*
+    "Direct connection", *not* "Transaction pooler"). Host `aws-0-<region>.pooler.supabase.com`,
+    port **5432** — session mode holds one backend for the whole session, which is what
+    DDL and Prisma's advisory locks and prepared statements require, *and* it is
+    IPv4-reachable. This matches `.env.example:11`. Set `DIRECT_URL` to that in Vercel
+    (Production scope), then **redeploy** — `DIRECT_URL` is read only during a build, so
+    saving the variable alone changes nothing.
+  - **Why the pooler's 6543 is the wrong choice for this variable:** transaction mode
+    returns the connection to the pool after each statement, so session state evaporates.
+    That is why `DATABASE_URL` on 6543 needs `?pgbouncer=true`. Migrations need the
+    opposite. Correct pairing: `DATABASE_URL` → pooler **6543** + `?pgbouncer=true`;
+    `DIRECT_URL` → pooler **5432**, no flag.
+  - **How to verify, now and every future time schema matters:** open the deployment's
+    Build Log and search for `in sync with your Prisma schema`. Treat **either**
+    `P1001` **or** `db push skipped (no DB at build)` as failure — the `||` fires on any
+    non-zero exit, so absence of `P1001` alone does **not** prove success. `P1000` means
+    the password is wrong; `P1017` usually means you landed on port 6543.
+  - **⚠️ The invisibility is still there.** Only the misconfiguration was fixed, not the
+    swallowing. Any future `db push` failure — a bad credential, a paused project, a
+    schema conflict — will be equally silent, and CI will still be green. Making the
+    `|| echo` fatal would surface it immediately, but would break builds in environments
+    with genuinely no DB reachable. A middle option is to keep it non-fatal while
+    emitting a loud, greppable marker and asserting on it. **Worth a deliberate decision;
+    not actioned.**
+- **Production DB schema drift — cause found and fixed; residual verification is now
+  cheap.** *(The cause was the `DIRECT_URL` misconfiguration in the item directly above.
+  With `db push` succeeding again as of 2026-07-29, the first successful run applies
+  everything that had accumulated, so this should be self-resolving.)* **To close it:**
+  exercise the features the audit flagged — signup, `/forgot-password`, journal,
+  community, news saves — and confirm no `"Database not migrated"` 503s (the graceful
+  Prisma P2021/P2022 mapping in `handleError`). If any appear, the schema still needs
+  attention; otherwise consider this item done. Original 2026-07-19 record follows.
+  Confirmed 2026-07-19 (see §7): the prod DB had drifted behind
   `prisma/schema.prisma`, silently starving signups and 503-ing
   `/forgot-password`. **Update (2026-07-19): live signups were verified working
   — a real account was created successfully — so the `User`-table columns the
