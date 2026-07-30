@@ -5,6 +5,38 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-30 — Remove the CodeQL job: code scanning is unavailable on a private repo
+CI config only. The repository was made private, and **code scanning requires GitHub Advanced
+Security on private repos** - so the CodeQL job could never file its results and failed on every PR.
+- **What it looked like:** `CodeQL analysis` red on every PR, reading like a security finding. It was
+  not one. The scan itself **succeeded** every time - all 419 TypeScript files, 4 JavaScript files and
+  4 GitHub Actions files analysed, SARIF exported, **zero findings**. The job then failed at the upload
+  step with `Code scanning is not enabled for this repository`.
+- **A wrong turn worth recording.** The first diagnosis blamed a missing `actions: read` permission and
+  claimed the trigger was "a change on GitHub's side, since `security.yml` hasn't changed since
+  2026-07-11". The permission was added and CodeQL **still failed** - it only silenced a secondary
+  telemetry warning. The owner supplied the actual cause: they had made the repo private. Corrected
+  here rather than quietly dropped, because a plausible-but-wrong root cause is the exact failure mode
+  the rest of this changelog keeps documenting.
+- **Why removed rather than `continue-on-error`:** the job cannot upload results either way, so it
+  would burn ~4 minutes of Actions time per PR for nothing. Public repos get unlimited minutes; private
+  repos are metered, so this became a real cost the moment the repo went private. A permanently red
+  security check is also corrosive - it blocks merges *and* teaches everyone to ignore a failing
+  security check.
+- **Not lost:** `npm audit` still runs on every push/PR and weekly, so dependency advisories are still
+  reported. And CodeQL had found nothing - this removes a scanner that could not file its report, not
+  coverage of a known problem.
+- **Restore path** is documented inline in `security.yml`: make the repo public again (code scanning is
+  free there) or enable GitHub Advanced Security, then re-add the job - the full block is kept in a
+  comment, including the `actions: read` permission it needs on private repos.
+- **Do not make the repo public to get this check back.** `prisma/seed.ts` still hardcodes a real
+  personal Gmail and the default password `changeme123`; the full git history would be exposed; and the
+  handbook now documents which monitoring subsystems are dark, which limiters exist with their exact
+  thresholds, and the Supabase project ref. That is an attacker briefing. The check is not worth it.
+- **Files:** `.github/workflows/security.yml` · `docs/changelog.md`.
+
+---
+
 ## 2026-07-29 — Verified: Upstash rate limiting IS live in production; XYZ Sentinel is not
 Docs only, no code changed. Closes a standing unknown and opens a new one found while closing it.
 - **Upstash is configured and limiters genuinely enforce.** Verified by behavioural probe against

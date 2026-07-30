@@ -1,10 +1,54 @@
 name: Security scan
 
-# Proactive vulnerability scanning — part of XYZ Sentinel. Runs GitHub's CodeQL
-# static analysis (finds security bugs in the JS/TS code) plus an npm dependency
-# audit, on every push/PR to main and weekly. CodeQL results appear in the repo's
-# Security tab. The audit is reported (job stays green) so it never blocks a ship;
-# high/critical findings are visible in the logs for the owner to fix manually.
+# Dependency vulnerability scanning, on every push/PR to main and weekly.
+# The audit is reported (job stays green) so it never blocks a ship; high/critical
+# findings are visible in the logs for the owner to fix manually.
+#
+# ── Why there is no CodeQL job here (removed 2026-07-30) ──────────────────────
+# This workflow used to run GitHub's CodeQL static analysis. It was removed when
+# the repository was made private, because **code scanning is not available on a
+# private repo without GitHub Advanced Security** (a paid per-committer add-on).
+# The failure is not a permissions problem and cannot be fixed in this file - the
+# action reports:
+#
+#   Code scanning is not enabled for this repository.
+#   Please enable code scanning in the repository settings.
+#
+# What it looked like before we traced it: the scan itself SUCCEEDED (all 419 TS
+# files analysed, SARIF exported, zero findings) and the job then failed at the
+# upload step. So it read as a red "security check failed" that was really a
+# billing/visibility limit, on every single PR - blocking merges and training
+# everyone to ignore a failing security check. Adding `actions: read` was tried
+# first and did not help; that only silenced a secondary telemetry warning.
+#
+# It also burned ~4 minutes of Actions time per PR. Public repos get unlimited
+# minutes; private repos are metered, so this was a real cost for a result that
+# could never be filed.
+#
+# TO RESTORE, when either becomes true:
+#   - the repo is public again (code scanning is free there), or
+#   - GitHub Advanced Security is enabled on the org/repo
+# then re-add:
+#
+#   codeql:
+#     name: CodeQL analysis
+#     runs-on: ubuntu-latest
+#     timeout-minutes: 15
+#     permissions:
+#       contents: read
+#       security-events: write
+#       actions: read        # needed by codeql-action on private repos
+#     steps:
+#       - uses: actions/checkout@v4
+#       - uses: github/codeql-action/init@v3
+#         with:
+#           languages: javascript-typescript
+#           queries: security-and-quality
+#       - uses: github/codeql-action/analyze@v3
+#
+# Do NOT make the repository public just to get this check back - see
+# docs/HANDOFF.md §8 for why that trade is a bad one.
+# ─────────────────────────────────────────────────────────────────────────────
 
 on:
   push:
@@ -14,28 +58,10 @@ on:
   schedule:
     - cron: "0 6 * * 1" # weekly, Monday 06:00 UTC
 
-# Least-privilege by default; the CodeQL job elevates what it needs.
 permissions:
   contents: read
 
 jobs:
-  codeql:
-    name: CodeQL analysis
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    permissions:
-      contents: read
-      security-events: write
-    steps:
-      - uses: actions/checkout@v4
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript-typescript
-          queries: security-and-quality
-      - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v3
-
   dependency-audit:
     name: npm audit
     runs-on: ubuntu-latest
