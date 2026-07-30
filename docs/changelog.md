@@ -37,12 +37,20 @@ Security on private repos** - so the CodeQL job could never file its results and
 
 ---
 
-## 2026-07-29 — ROOT CAUSE: migrations have never applied (P1001 on every deploy)
-Docs only. Explains the schema-drift item that had been open since 2026-07-19 with no known cause,
-and corrects a CLAUDE.md gotcha that was actively steering readers away from finding it.
-- **Every production build logs `Error: P1001: Can't reach database server at
-  db.<ref>.supabase.co:5432`.** So `prisma db push` fails on every deploy. This is not drift that
-  happened once - **no migration has ever applied on any Vercel deploy.**
+## 2026-07-29 — FIXED: migrations had never applied (P1001 on every deploy)
+Docs only. Records the root cause of the schema-drift item open since 2026-07-19, the owner's fix,
+and a CLAUDE.md gotcha that had been steering readers away from finding it.
+- **Symptom:** every production build logged `Error: P1001: Can't reach database server at
+  db.<ref>.supabase.co:5432`, so `prisma db push` failed on every deploy. Not drift that happened
+  once - **no migration applied on any Vercel deploy** for the whole period.
+- **✅ Fixed same day.** Owner repointed `DIRECT_URL` at the Supabase **session pooler**
+  (`aws-0-<region>.pooler.supabase.com:5432`) and redeployed; build logs clear, `P1001` gone.
+  Recorded as owner-verified - the `in sync with your Prisma schema` line was not itself pasted back,
+  so a later auditor should re-confirm from a build log rather than treat it as independently proven.
+- **The invisibility was NOT fixed, only the misconfiguration.** Any future `db push` failure - bad
+  credential, paused project, schema conflict - will be equally silent with green CI. Flagged in §8 as
+  a decision to make (loud greppable marker + assertion, versus making it fatal and breaking DB-less
+  builds); not actioned.
 - **Cause:** `DIRECT_URL` points at the *direct* Supabase host. Supabase deprecated IPv4 for it, so
   it resolves IPv6-only, and Vercel's build/function runtimes are IPv4-only. It must point at the
   **session pooler** (`aws-0-<region>.pooler.supabase.com:5432`) instead, which supports the DDL
@@ -55,11 +63,11 @@ and corrects a CLAUDE.md gotcha that was actively steering readers away from fin
   `directUrl`; requests go through `DATABASE_URL`, which is correctly pooled. So the app works
   perfectly while every migration silently fails - the house bug class in its purest form.
 - **CLAUDE.md gotcha rewritten.** It said migrations "auto-apply on every Vercel deploy … don't assume
-  a migration is 'pending' just because it's recent". That was wrong *and* it discouraged the one check
-  that finds this. Now states the opposite: treat every migration as unapplied until a build log proves
-  otherwise.
-- **Noted but not changed:** making the `|| echo` fatal would surface this class immediately, but would
-  break builds where no DB is reachable by design. Flagged in §8 as a decision, not actioned.
+  a migration is 'pending' just because it's recent". That nudged the reader toward assuming success,
+  which is why this went unseen for weeks. It does **not** now say the opposite either - flipping it to
+  "assume unapplied" would be stale the moment the fix landed. It states the durable rule: migrations do
+  apply, the script hides failure in **both** directions, so open the build log and look for
+  `in sync with your Prisma schema`. Assume nothing.
 - **Correction to the previous entry (below): `CRON_SECRET` IS set in Vercel.** That entry claimed it was
   unset, inferred from the 403 and written up as fact. The owner confirmed it is present, Prod+Preview.
   The 403 is now recorded as an unexplained symptom with two candidates - a mismatched value, or a

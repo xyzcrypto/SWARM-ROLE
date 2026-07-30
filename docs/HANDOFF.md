@@ -694,11 +694,18 @@ listed here so this section isn't misleading about what moved. See
     best-effort, and `RESEND_API_KEY` is present. Email works; Telegram is optional.
   - **Why nobody noticed:** a monitor that never runs raises no alarm. Same class as the
     Sentry finding below — correct detection code, config that doesn't reach it.
-- **🔴 ROOT CAUSE FOUND (2026-07-29): `prisma db push` fails on every deploy —
-  `DIRECT_URL` points at the IPv6-only direct Supabase host. Owner action, one env
-  var.** This explains the schema drift recorded below, which had been open since
-  2026-07-19 with no known cause. It is not drift that happened once — **no migration
-  has ever applied on any Vercel deploy.**
+- ~~**`prisma db push` fails on every deploy — `DIRECT_URL` points at the IPv6-only
+  direct Supabase host.**~~ **✅ FIXED 2026-07-29.** Owner repointed `DIRECT_URL` at the
+  Supabase **session pooler** and redeployed; the owner reports the build logs are clear
+  and `P1001` no longer appears. *(Recorded as owner-verified. The
+  `in sync with your Prisma schema` success line was not itself pasted back, so if you
+  are auditing this later, re-confirm from a build log rather than treating it as
+  independently proven.)*
+  - **Kept in full below because the failure mode is invisible and will recur** if
+    `DIRECT_URL` is ever changed, and because it explains the schema drift recorded in
+    the next item — which had been open since 2026-07-19 with no known cause. This was
+    not drift that happened once: **no migration applied on any Vercel deploy** for the
+    entire period the variable was misconfigured.
   - **Evidence** (production build log): `Error: P1001: Can't reach database server at
     db.<ref>.supabase.co:5432`.
   - **Why it can't connect:** `db.<ref>.supabase.co` is the *direct* connection host.
@@ -714,22 +721,39 @@ listed here so this section isn't misleading about what moved. See
     `DIRECT_URL` **only** as `directUrl` (migrations); request traffic uses
     `DATABASE_URL`, which is correctly on the pooler — so the app works perfectly while
     every migration silently fails.
-  - **Fix (owner):** Supabase → Settings → Database → Connection string → **Session
-    pooler** tab (*not* "Direct connection"). Host will be
-    `aws-0-<region>.pooler.supabase.com`, port **5432** — session mode supports the DDL
-    and prepared statements migrations need *and* is IPv4-reachable. This matches
-    `.env.example:11`. Set `DIRECT_URL` to that in Vercel (Production scope), then
-    **redeploy**.
-  - **Verify in the new build log — do not skip this**, because success is only visible
-    there: no `P1001`, no `db push skipped (no DB at build)`, and Prisma reporting the
-    schema sync instead. Then re-check the drift question below; it should clear itself.
-  - **Follow-up worth considering (not done):** the `|| echo` makes every migration
-    failure invisible. Making it fatal would surface this class immediately, but would
-    also break builds in environments with genuinely no DB reachable. A middle option
-    is to keep it non-fatal but emit a loud, greppable marker and check for it. Worth a
-    deliberate decision rather than a drive-by change.
-- **Production DB schema drift — signups verified working; other tables still
-  unverified.** *(Cause identified — see the item directly above. Kept for history.)*
+  - **The fix that was applied**, and the correct end state to restore if this regresses:
+    Supabase → Settings → Database → Connection string → **Session pooler** tab (*not*
+    "Direct connection", *not* "Transaction pooler"). Host `aws-0-<region>.pooler.supabase.com`,
+    port **5432** — session mode holds one backend for the whole session, which is what
+    DDL and Prisma's advisory locks and prepared statements require, *and* it is
+    IPv4-reachable. This matches `.env.example:11`. Set `DIRECT_URL` to that in Vercel
+    (Production scope), then **redeploy** — `DIRECT_URL` is read only during a build, so
+    saving the variable alone changes nothing.
+  - **Why the pooler's 6543 is the wrong choice for this variable:** transaction mode
+    returns the connection to the pool after each statement, so session state evaporates.
+    That is why `DATABASE_URL` on 6543 needs `?pgbouncer=true`. Migrations need the
+    opposite. Correct pairing: `DATABASE_URL` → pooler **6543** + `?pgbouncer=true`;
+    `DIRECT_URL` → pooler **5432**, no flag.
+  - **How to verify, now and every future time schema matters:** open the deployment's
+    Build Log and search for `in sync with your Prisma schema`. Treat **either**
+    `P1001` **or** `db push skipped (no DB at build)` as failure — the `||` fires on any
+    non-zero exit, so absence of `P1001` alone does **not** prove success. `P1000` means
+    the password is wrong; `P1017` usually means you landed on port 6543.
+  - **⚠️ The invisibility is still there.** Only the misconfiguration was fixed, not the
+    swallowing. Any future `db push` failure — a bad credential, a paused project, a
+    schema conflict — will be equally silent, and CI will still be green. Making the
+    `|| echo` fatal would surface it immediately, but would break builds in environments
+    with genuinely no DB reachable. A middle option is to keep it non-fatal while
+    emitting a loud, greppable marker and asserting on it. **Worth a deliberate decision;
+    not actioned.**
+- **Production DB schema drift — cause found and fixed; residual verification is now
+  cheap.** *(The cause was the `DIRECT_URL` misconfiguration in the item directly above.
+  With `db push` succeeding again as of 2026-07-29, the first successful run applies
+  everything that had accumulated, so this should be self-resolving.)* **To close it:**
+  exercise the features the audit flagged — signup, `/forgot-password`, journal,
+  community, news saves — and confirm no `"Database not migrated"` 503s (the graceful
+  Prisma P2021/P2022 mapping in `handleError`). If any appear, the schema still needs
+  attention; otherwise consider this item done. Original 2026-07-19 record follows.
   Confirmed 2026-07-19 (see §7): the prod DB had drifted behind
   `prisma/schema.prisma`, silently starving signups and 503-ing
   `/forgot-password`. **Update (2026-07-19): live signups were verified working
