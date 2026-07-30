@@ -37,6 +37,45 @@ Security on private repos** - so the CodeQL job could never file its results and
 
 ---
 
+## 2026-07-29 — ROOT CAUSE: migrations have never applied (P1001 on every deploy)
+Docs only. Explains the schema-drift item that had been open since 2026-07-19 with no known cause,
+and corrects a CLAUDE.md gotcha that was actively steering readers away from finding it.
+- **Every production build logs `Error: P1001: Can't reach database server at
+  db.<ref>.supabase.co:5432`.** So `prisma db push` fails on every deploy. This is not drift that
+  happened once - **no migration has ever applied on any Vercel deploy.**
+- **Cause:** `DIRECT_URL` points at the *direct* Supabase host. Supabase deprecated IPv4 for it, so
+  it resolves IPv6-only, and Vercel's build/function runtimes are IPv4-only. It must point at the
+  **session pooler** (`aws-0-<region>.pooler.supabase.com:5432`) instead, which supports the DDL
+  migrations need *and* is IPv4-reachable - exactly what `.env.example:11` specifies. Port 5432 on the
+  pooler host and port 5432 on the direct host look interchangeable and are not.
+- **Why it hid for ten days:** `vercel-build` is
+  `prisma generate && (prisma db push --skip-generate || echo 'db push skipped …') && next build`.
+  The `||` swallows the non-zero exit, `next build` proceeds, the deploy succeeds and **CI goes
+  green**. Runtime traffic is unaffected because `schema.prisma` uses `DIRECT_URL` only as
+  `directUrl`; requests go through `DATABASE_URL`, which is correctly pooled. So the app works
+  perfectly while every migration silently fails - the house bug class in its purest form.
+- **CLAUDE.md gotcha rewritten.** It said migrations "auto-apply on every Vercel deploy … don't assume
+  a migration is 'pending' just because it's recent". That was wrong *and* it discouraged the one check
+  that finds this. Now states the opposite: treat every migration as unapplied until a build log proves
+  otherwise.
+- **Noted but not changed:** making the `|| echo` fatal would surface this class immediately, but would
+  break builds where no DB is reachable by design. Flagged in §8 as a decision, not actioned.
+- **Correction to the previous entry (below): `CRON_SECRET` IS set in Vercel.** That entry claimed it was
+  unset, inferred from the 403 and written up as fact. The owner confirmed it is present, Prod+Preview.
+  The 403 is now recorded as an unexplained symptom with two candidates - a mismatched value, or a
+  deployment predating the variable (Vercel bakes env vars at build time). The HANDOFF env-table row and
+  the §8 entry are corrected accordingly.
+- **Also recorded from the same env audit:** `RESEND_API_KEY`/`EMAIL_FROM`, all three VAPID vars,
+  `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` (so `storageEnabled` is true - uploads really do go to
+  Storage, no inline `data:` fallback), `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXTAUTH_SECRET`/`URL`,
+  `DIRECT_URL` and `ADMIN_EMAILS` are all present and Production-scoped. `SUPABASE_STORAGE_BUCKET` is
+  absent but defaults to `post-covers` (`env.ts:80`), so that is a non-issue. `TELEGRAM_*` absent -
+  Sentinel email alerting still works via Resend. Sentry DSNs remain absent.
+- **Files:** `CLAUDE.md` (migration gotcha, Stack caveat) · `docs/HANDOFF.md` (§8 root-cause entry,
+  Sentinel correction, `CRON_SECRET` env-table row) · `docs/changelog.md`. No `src/` changes.
+
+---
+
 ## 2026-07-29 — Verified: Upstash rate limiting IS live in production; XYZ Sentinel is not
 Docs only, no code changed. Closes a standing unknown and opens a new one found while closing it.
 - **Upstash is configured and limiters genuinely enforce.** Verified by behavioural probe against
@@ -56,7 +95,10 @@ Docs only, no code changed. Closes a standing unknown and opens a new one found 
   absent. With `signup`/`password` (IP) and `otpEmail` (3 per 10 min per target email) genuinely
   enforcing, a 6-digit code is not brute-forceable in parallel. Worth fixing as hardening
   (`updateMany` guarded on `attempts < MAX_ATTEMPTS`), not as an exposure.
-- **New finding: XYZ Sentinel does not run at all.** `GET /api/watchdog` returns
+- **New finding: XYZ Sentinel does not run at all.** ⚠️ **The cause stated in this bullet was WRONG —
+  see the 2026-07-29 root-cause entry above. `CRON_SECRET` IS set in Vercel (Prod+Preview).** The 403 is
+  real; the diagnosis below was an inference written up as fact. Left in place as a record, not as
+  guidance. — `GET /api/watchdog` returns
   `403 {"error":"Forbidden"}` - `authorized()` short-circuits on `if (!env.CRON_SECRET) return false`
   before comparing anything, so `CRON_SECRET` is not set in Vercel. `/api/push/dispatch` shares the
   identical gate and is equally unreachable. Compounding it, `watchdog.yml` has `schedule:` commented

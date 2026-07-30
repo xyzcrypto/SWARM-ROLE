@@ -16,7 +16,9 @@ accounts/profiles, premium content). Dark luxe design: gold + mint on near-black
   unset, `rateLimit()` returns success unconditionally and every limiter silently
   no-ops. **Sentry: 🔴 still dark** — no DSN in any runtime (browser, server or
   edge), so nothing is reported anywhere. Also dark: **XYZ Sentinel** (`/api/watchdog`)
-  — `CRON_SECRET` is unset, so it 403s, and its cron is paused. All: `docs/HANDOFF.md §8`.
+  — it 403s (`CRON_SECRET` *is* set in Vercel; cause not yet pinned) and its cron is
+  paused. And **migrations have never applied** — `prisma db push` fails every deploy
+  with P1001. All: `docs/HANDOFF.md §8`.
 - **Owner contact:** niralekhan321@gmail.com
 
 ## Commands
@@ -112,9 +114,18 @@ through it, but note it does **not** yet enforce that: the zod result is only lo
 - ISR pages must never read the DB at build time; profile/settings pages render
   on demand. Bust profile cache with `revalidatePath("/u/<handle>")` after edits.
 - lucide-react v1 has no Twitter/Github icons — use `src/components/BrandIcons.tsx`.
-- Migrations auto-apply on every Vercel deploy via the `vercel-build` script
-  (`prisma db push`, best-effort/non-fatal) — don't assume a migration is
-  "pending" just because it's recent; check before treating it as unapplied.
+- 🔴 **Migrations are NOT auto-applying, and have not been.** This line used to say
+  they do ("auto-apply on every Vercel deploy via `vercel-build`") — that was wrong
+  and actively misleading, because it talks you out of the one check that finds the
+  problem. **Verified 2026-07-29:** every production build logs
+  `Error: P1001: Can't reach database server at db.<ref>.supabase.co:5432`, so
+  `prisma db push` fails on every deploy. The `|| echo` in `vercel-build` swallows the
+  non-zero exit, `next build` proceeds, and **CI goes green**. Cause: `DIRECT_URL`
+  points at the *direct* Supabase host, which is IPv6-only, from an IPv4-only Vercel
+  runtime — it must point at the **session pooler** instead. Full detail + fix:
+  `docs/HANDOFF.md §8`. **Until that is fixed and verified in a build log, treat every
+  migration as unapplied** and check the DB directly rather than assuming a deploy
+  applied it.
 - Feature branches get squash-merged, so the branch's **remote** copy never
   fast-forwards to the squash commit — the next push from a freshly-reset local
   branch will be rejected as non-fast-forward. This is expected: verify
