@@ -62,8 +62,10 @@ npm run dev
 
 Open <http://localhost:3000>.
 
-**Seeded admin login:** `niralekhan321@gmail.com` / `changeme123`
-(change this immediately — see Admin access below).
+**Seeded admin login:** whatever you set in `ADMIN_EMAIL` and `SEED_ADMIN_PASSWORD`
+before running `npm run seed`. Both are **required** — the seed refuses to run
+without them rather than inventing an account with a default password.
+See *Admin access* below.
 
 ---
 

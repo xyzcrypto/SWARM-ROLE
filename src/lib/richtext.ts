@@ -5,6 +5,7 @@
 // Deliberately NOT shared with lib/markdown.tsx (which renders every research
 // post sitewide) - kept as its own small, self-contained module so this
 // editor-only concern can't regress the live post renderer.
+import { safeHref } from "@/lib/links";
 
 export type ColorKey = "gold" | "mint" | "red" | "blue";
 
@@ -54,7 +55,18 @@ function inlineToHtml(text: string): string {
     else if (t.startsWith("`")) out += `<code>${escapeHtml(t.slice(1, -1))}</code>`;
     else if (t.startsWith("[")) {
       const m = /\[([^\]]+)\]\(([^)]+)\)/.exec(t);
-      if (m) out += `<a href="${escapeHtml(m[2])}">${inlineToHtml(m[1])}</a>`;
+      if (m) {
+        // Validate the protocol the same way lib/markdown.tsx does for the live
+        // post renderer. escapeHtml alone prevents attribute break-out but does
+        // nothing to a `javascript:` scheme - and this module, unlike the
+        // renderer, builds an HTML string rather than React elements, so it has
+        // no framework sanitiser behind it. An unsafe href degrades to plain
+        // text, matching the renderer's <span> fallback.
+        const href = safeHref(m[2]);
+        out += href
+          ? `<a href="${escapeHtml(href)}">${inlineToHtml(m[1])}</a>`
+          : inlineToHtml(m[1]);
+      }
     } else if (t.startsWith("*")) out += `<em>${inlineToHtml(t.slice(1, -1))}</em>`;
     last = match.index + t.length;
   }

@@ -126,13 +126,28 @@ Security first — a single bad signature can undo months of farming. XYZ Crypto
 ];
 
 async function main() {
-  const adminEmail = (process.env.ADMIN_EMAIL || "niralekhan321@gmail.com").toLowerCase();
-  const adminPassword = process.env.SEED_ADMIN_PASSWORD || "changeme123";
-  if (!process.env.SEED_ADMIN_PASSWORD) {
-    console.warn(
-      "[seed] SEED_ADMIN_PASSWORD not set — using a default. Set it for production and change the admin password after first login."
+  // Both are REQUIRED - no defaults. Previously these fell back to a hardcoded
+  // address and the password "changeme123", so running the seed without them
+  // (e.g. to repair a drifted production schema) provisioned an ADMIN account
+  // with publicly-known credentials. Failing loudly is the whole point: a seed
+  // that silently creates a known-password admin is worse than one that stops.
+  const adminEmailRaw = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (!adminEmailRaw || !adminPassword) {
+    const missing = [!adminEmailRaw && "ADMIN_EMAIL", !adminPassword && "SEED_ADMIN_PASSWORD"]
+      .filter(Boolean)
+      .join(" and ");
+    console.error(
+      `[seed] Refusing to run: ${missing} must be set. ` +
+        `Set them in your environment and re-run - the seed will not invent an admin account.`
     );
+    process.exit(1);
   }
+  if (adminPassword.length < 12) {
+    console.error("[seed] Refusing to run: SEED_ADMIN_PASSWORD must be at least 12 characters.");
+    process.exit(1);
+  }
+  const adminEmail = adminEmailRaw.toLowerCase();
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },

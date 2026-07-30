@@ -10,20 +10,23 @@ export const alt = "XYZ Crypto research";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-export default async function Image({ params }: { params: { slug: string } }) {
+export default async function Image({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
   let title = "Web3 Research & Market Intelligence";
   let category = "Research";
   try {
     const post = await prisma.post.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       select: { title: true, category: true },
     });
     if (post) {
       title = post.title;
       category = post.category;
     }
-  } catch {
-    /* keep the generic fallback */
+  } catch (err) {
+    // Log rather than swallow: this catch previously hid a thrown lookup for an
+    // unknown number of weeks, silently serving the generic card on every share.
+    console.error(`[og:research] lookup failed for slug "${slug}"`, err);
   }
 
   return new ImageResponse(
