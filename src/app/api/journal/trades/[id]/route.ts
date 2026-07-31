@@ -127,6 +127,11 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
     if (!isCuid(params.id)) return fail("Invalid trade id.", 400);
+    // Same bucket as PATCH above. This one also fans out a realtime broadcast
+    // per call, so an unthrottled delete loop is a realtime cost too.
+    const { success } = await rateLimit("journal", me.id);
+    if (!success) return fail("Too many requests. Please slow down.", 429);
+
     await prisma.trade.deleteMany({ where: { id: params.id, userId: me.id } });
     broadcastEvent(userChannel(me.id), "journal_trade", { id: params.id, deleted: true });
     return ok({ deleted: true });

@@ -88,6 +88,11 @@ export async function DELETE(req: Request) {
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
+    // Same bucket as POST above. The save/unsave pair is one toggle to a user,
+    // so throttling only the write half left the other half free to churn.
+    const { success } = await rateLimit("like", me.id);
+    if (!success) return fail("Too many requests. Please slow down.", 429);
+
     const url = new URL(req.url).searchParams.get("url") || "";
     if (!url) return fail("Missing url.", 400);
     await prisma.savedStory.deleteMany({ where: { userId: me.id, url } });

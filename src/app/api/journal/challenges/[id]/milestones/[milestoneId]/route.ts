@@ -75,6 +75,9 @@ export async function DELETE(
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
     if (!isCuid(params.id) || !isCuid(params.milestoneId)) return fail("Invalid id.", 400);
+    // Same bucket as PATCH above - a delete is as much a write as a toggle.
+    const { success } = await rateLimit("journal", me.id);
+    if (!success) return fail("Too many requests. Please slow down.", 429);
 
     const challenge = await prisma.challenge.findUnique({ where: { id: params.id } });
     if (!challenge || challenge.creatorId !== me.id) return fail("Not found.", 404);

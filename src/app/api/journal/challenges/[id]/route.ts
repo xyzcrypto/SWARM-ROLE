@@ -130,6 +130,10 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
     if (!isCuid(params.id)) return fail("Invalid challenge id.", 400);
+    // Same bucket as PATCH above - a delete is as much a write as an edit.
+    const { success } = await rateLimit("journal", me.id);
+    if (!success) return fail("Too many requests. Please slow down.", 429);
+
     await prisma.challenge.deleteMany({ where: { id: params.id, creatorId: me.id } });
     return ok({ deleted: true });
   } catch (err) {
