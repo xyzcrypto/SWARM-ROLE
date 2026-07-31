@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-30 — Rate-limit the 7 mutating API handlers that had no limiter, and pin it with a test
+Closes deep-audit #9, which listed four gaps. A per-handler sweep found **seven**.
+- **The four from the audit:** `dm` POST (upserts a `Conversation` per call, zero limiters in the file),
+  `push/unsubscribe` POST, and the **DELETE** halves of `news/saved` and `news/social` - both files
+  throttled POST and left DELETE wide open.
+- **Three the audit missed**, found by checking per *handler* rather than per *file*:
+  `journal/trades/[id]` DELETE, `journal/challenges/[id]` DELETE, and
+  `journal/challenges/[id]/milestones/[milestoneId]` DELETE. Each sits in a file whose PATCH is
+  correctly limited, so a file-level grep reports all three as covered.
+- **Buckets mirror the sibling handler in the same file** rather than inventing new ones: `dm` for the
+  DM start path (matching `dm/[id]`), `profile` for push unsubscribe (matching `push/subscribe`), `like`
+  and `comment` for the two news DELETEs, `journal` for the three journal DELETEs.
+- **New `src/lib/__tests__/api-rate-limits.test.ts` pins the invariant per handler.** It parses each
+  `route.ts`, splits it at every `export async function`, and asserts every POST/PATCH/PUT/DELETE body
+  calls `rateLimit()` and short-circuits on `!success`. 66 handlers currently checked, 0 gaps.
+  Regression-validated: deleting one limiter fails the test naming the exact `file:handler`.
+- **Two deliberate exceptions documented in the test**, not silently allowed: `posts/[id]/view` and
+  `track` drop excess pings with `return ok(...)` rather than a 429, because a 429 on a fire-and-forget
+  beacon is browser console noise. The test asserts the limiter result is *acted on*, not that a
+  specific status is returned - the first version asserted 429 and was wrong.
+- **The test also guards itself:** it asserts it found >50 handlers, so a broken glob fails loudly
+  instead of passing vacuously. That mirrors the file-vs-handler false negative that hid three of these.
+- This matters now specifically because **Upstash is verified live** (2026-07-29) - these limiters
+  genuinely enforce rather than no-op.
+- **Files:** 7 route handlers · `src/lib/__tests__/api-rate-limits.test.ts` (new) · `docs/changelog.md`.
+
+---
+
 ## 2026-07-30 — Remove the CodeQL job: code scanning is unavailable on a private repo
 CI config only. The repository was made private, and **code scanning requires GitHub Advanced
 Security on private repos** - so the CodeQL job could never file its results and failed on every PR.

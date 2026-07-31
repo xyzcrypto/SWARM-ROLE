@@ -49,6 +49,11 @@ export async function POST(req: Request) {
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in to message.", 401);
+    // Same bucket the message-send path uses (dm/[id]). This handler upserts a
+    // Conversation row, so unthrottled it lets one account create conversations
+    // with every user it can name, as fast as it can post.
+    const { success } = await rateLimit("dm", me.id);
+    if (!success) return fail("Too many requests. Please slow down.", 429);
 
     const parsed = startSchema.safeParse(await req.json());
     if (!parsed.success) return fail("Invalid input.", 400);

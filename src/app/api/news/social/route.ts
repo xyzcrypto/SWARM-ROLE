@@ -90,6 +90,11 @@ export async function DELETE(req: Request) {
   try {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
+    // Same bucket as POST above - see the note on news/saved DELETE. Deleting a
+    // comment is as much a write as creating one.
+    const { success } = await rateLimit("comment", me.id);
+    if (!success) return fail("Too many requests. Please slow down.", 429);
+
     const id = new URL(req.url).searchParams.get("id") || "";
     if (!id) return fail("Missing id.", 400);
     await prisma.newsComment.deleteMany({ where: { id, userId: me.id } });
