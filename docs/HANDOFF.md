@@ -817,6 +817,25 @@ listed here so this section isn't misleading about what moved. See
     to debug a production incident, or before any launch/marketing push where
     silent client-side breakage would go unnoticed. Until then the site works
     fine — it just has no error visibility whatsoever.
+- **Legacy `JournalActivity` rows can never be revoked — one-time cleanup decision.**
+  As of 2026-07-31 activity rows record `sourceType`/`sourceId`, so making a trade or
+  challenge private (or deleting it) now withdraws what it published. Rows created
+  **before** that have `sourceId = NULL` and cannot be traced to a source, because the
+  title is pre-rendered text (`"Closed BTC long with a win"`) that collides with every
+  other BTC long — matching on it would delete the wrong rows.
+  - **Impact:** if any member published a trade or challenge and later set it back to
+    private, that row is still on their public profile feed and there is no automated
+    way to find it. Consent was captured once and is not revocable for those rows.
+  - **To assess (read-only):**
+    `SELECT count(*) FROM "JournalActivity" WHERE "sourceId" IS NULL;`
+    Also worth splitting by `type` — `trade_closed` rows are the sensitive ones since
+    they name a symbol and a win/loss.
+  - **Options, owner's call:** leave them (they were published deliberately at the
+    time); delete all untraceable rows (`WHERE "sourceId" IS NULL`) as a clean slate,
+    losing legitimately-public history; or delete only `trade_*` types and keep the
+    challenge ones, which name a challenge rather than a position.
+  - Not actioned here because it destroys data and the right answer depends on how
+    much real history exists — check the count first.
 - **Inline avatar/banner data: URLs in the DB — one-time read-only check.** The
   2026-07-19 `stripInlineImage()` FOT fix stops these from being *served*, but
   doesn't quantify or backfill existing rows. Owner should run a read-only

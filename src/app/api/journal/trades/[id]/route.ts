@@ -4,7 +4,7 @@ import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { deriveStatus, realizedPnl, type Fill } from "@/lib/journal";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
-import { activityForTradeClosed } from "@/lib/journal-activity";
+import { activityForTradeClosed, tradeActivitySource, tradeActivityWhere } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -105,11 +105,22 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     broadcastEvent(userChannel(me.id), "journal_trade", { id: trade.id });
 
     const effectiveVisibility = fields.visibility ?? existing.visibility;
+
+    // Publishing has to be revocable. Dropping a trade back to private must also
+    // withdraw anything it already published - otherwise the public feed keeps a
+    // row naming the symbol and the win/loss, with no way to take it down.
+    if (fields.visibility === "private" && existing.visibility !== "private") {
+      await prisma.journalActivity
+        .deleteMany({ where: tradeActivityWhere(trade.id, me.id) })
+        .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
+        .catch(() => {}); // best-effort - never blocks the trade update
+    }
+
     if (nextStatus === "closed" && existing.status !== "closed" && effectiveVisibility === "public") {
       const tradeFills = trade.fills.map((f) => ({ kind: f.kind as "entry" | "exit", price: f.price, size: f.size, fee: f.fee }));
       const win = realizedPnl(trade.side, tradeFills) >= 0;
       prisma.journalActivity
-        .create({ data: { userId: me.id, ...activityForTradeClosed(trade.symbol, trade.side, win) } })
+        .create({ data: { userId: me.id, ...activityForTradeClosed(trade.symbol, trade.side, win), ...tradeActivitySource(trade.id) } })
         .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
         .catch(() => {}); // best-effort - never blocks the trade update
     }
@@ -133,7 +144,14 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
     await prisma.trade.deleteMany({ where: { id: params.id, userId: me.id } });
+    // JournalActivity has no FK to Trade (deliberately - see schema.prisma), so
+    // nothing cascades. Without this, deleting a published trade leaves its
+    // public feed row behind permanently.
+    await prisma.journalActivity
+      .deleteMany({ where: tradeActivityWhere(params.id, me.id) })
+      .catch(() => {}); // best-effort - the trade is already gone
     broadcastEvent(userChannel(me.id), "journal_trade", { id: params.id, deleted: true });
+    broadcastEvent(userChannel(me.id), "journal_activity", {});
     return ok({ deleted: true });
   } catch (err) {
     return handleError(err, "journal:trades:delete");

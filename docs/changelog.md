@@ -40,6 +40,40 @@ browser.
 
 ---
 
+## 2026-07-31 — Make Journal Activity publishing revocable (schema change)
+Closes deep-audit #10. Publishing a trade or challenge to the public Journal Activity feed was a
+**one-way door**: setting it back to private, or deleting it outright, left the public row up forever.
+- **Why it couldn't just be deleted:** `JournalActivity` had no link to its source - only `userId`,
+  `type`, `title`, `win`. The title is pre-rendered text like `"Closed BTC long with a win"`, which
+  collides with every other BTC long, so matching on it would have deleted the wrong rows. The audit
+  estimated ~30 min; it actually needed a schema change, which is why it was deferred until now.
+- **Schema (additive, nullable):** `sourceType` (`"trade" | "challenge"`) + `sourceId`, plus an index
+  on the pair. **Deliberately not a relation/FK** - activity should survive as an orphan if a source is
+  hard-deleted by some path we haven't hooked, rather than cascading unpredictably.
+- **All 6 create sites** now record a source; **4 revocation points** added: trade PATCH→private, trade
+  DELETE, challenge PATCH→private, challenge DELETE.
+- **Challenge revocation is deliberately NOT scoped by user.** Participants' "Joined <title>" and
+  milestone rows are owned by *other* users but embed the challenge title, so the owner making it
+  private must revoke those too. Trade revocation *is* owner-scoped. The two `where` builders differ
+  for exactly this reason and both are unit-tested.
+- **Challenge DELETE only revokes when `deleteMany` reports count > 0**, so a caller cannot wipe the
+  activity rows of a challenge they don't own.
+- **A design mistake worth recording:** the first version used one helper returning
+  `{ sourceType, sourceId, userId }` for both writes and deletes. Spreading it into `create` collided
+  with the `userId` already set there and silently overwrote it (TS2783). Split into separate
+  `*ActivitySource` (write) and `*ActivityWhere` (delete) builders, with a test asserting the write
+  fragment has no `userId`.
+- **`journal-activity-revocation.test.ts`** covers the scoping rules and, structurally, that **every**
+  `journalActivity.create` call site passes a source builder - because a new activity type that forgets
+  one fails nothing, it just becomes permanently unrevocable. Regression-validated by removing a source
+  from one call site and confirming the test names that file.
+- **Legacy rows (`sourceId IS NULL`) still cannot be revoked** - recorded as an owner decision in
+  `HANDOFF.md §8` with a read-only count query and three options. Not actioned because it destroys data.
+- **Files:** `prisma/schema.prisma` · `src/lib/journal-activity.ts` · 6 journal route handlers ·
+  `src/lib/__tests__/journal-activity-revocation.test.ts` (new) · `docs/HANDOFF.md` · `docs/changelog.md`.
+
+---
+
 ## 2026-07-30 — Rate-limit the 7 mutating API handlers that had no limiter, and pin it with a test
 Closes deep-audit #9, which listed four gaps. A per-handler sweep found **seven**.
 - **The four from the audit:** `dm` POST (upserts a `Conversation` per call, zero limiters in the file),
