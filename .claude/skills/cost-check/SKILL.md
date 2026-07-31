@@ -37,7 +37,44 @@ The six `markets/*` values are **derived from the client poll intervals**, not c
 freely: 200s covers a 180s poll, 320s covers a 300s poll, each with ~10% margin.
 Changing either side without the other re-opens the drift below.
 
+⚠️ Each of those six routes **also sets its own `Cache-Control: s-maxage=…`**, and
+that header — not the `revalidate` above — is what the edge honours (see trap 0).
+They are kept equal on purpose. The Revalidate column in the build output shows the
+`revalidate` value only, so it will look correct even when the edge is misaligned.
+
 ## The traps, in the order they have actually bitten
+
+### 0. `s-maxage` governs the CDN edge — NOT `export const revalidate`
+**Read this before trusting any window in this file.** If a route handler sets its
+own `Cache-Control`, that header is what the Vercel edge honours. `export const
+revalidate` controls Next's *internal* ISR cache, and the build output's Revalidate
+column reports **that**, not the edge.
+
+**Measured on production 2026-07-31**, `/api/markets/global` with
+`revalidate = 200` and `Cache-Control: public, s-maxage=150, …`:
+
+```
+age: 0 … 121 … 142 → age: 162 STALE → age: 19   (reset)
+```
+
+It went stale at **162s**, tracking the 150s header, not the 200s export. So a fix
+that changed only `revalidate` left the edge misaligned, while the build output
+showed it as fixed.
+
+**How to check the edge for real** — fetch the route repeatedly from a browser on
+the live site and watch two response headers:
+
+```js
+const r = await fetch('/api/markets/global', { cache: 'no-store' });
+r.headers.get('x-vercel-cache');  // HIT | STALE | MISS | PRERENDER
+r.headers.get('age');             // seconds; resets when regenerated
+```
+
+`age` climbing past a window and resetting *there* tells you which number is in
+charge. Nothing in the repo or the build log can tell you this.
+
+**Rule:** keep `s-maxage` and `revalidate` equal on any route that sets both, and
+size them off the client poll. `markets-poll-alignment.test.ts` enforces both.
 
 ### 1. Poll interval shorter than the revalidate window
 If a client polls faster than the route's `revalidate`, the window expires before
@@ -65,10 +102,17 @@ executable rather than written down.
 
 This is the trap that makes finding #1 hard to verify by reading source. Found
 2026-07-31: `/api/markets/global` exported `revalidate = 200` while a gas-price
-RPC inside it was pinned at `next: { revalidate: 20 }` — so the route regenerated
-on a **20-second** window, ~10× the intended rate. `/api/markets/coins` had the
-same shape with a `120` trending fetch. Both exports looked correct; only the
-build output disagreed.
+RPC inside it was pinned at `next: { revalidate: 20 }`, and `/api/markets/coins`
+had the same shape with a `120` trending fetch. Both exports looked correct; only
+the build output disagreed.
+
+**Scope this correctly** — an earlier version of this note (and PR #190) claimed
+the route therefore "regenerated every 20 seconds, ~10× the intended rate". That
+was wrong: per trap 0, the **edge** was on the 150s `s-maxage` header the whole
+time. What a short inner hint actually costs is that the *origin function*
+re-fetches and re-parses its upstream APIs whenever it runs, rather than serving
+from Next's data cache — real Fluid Active CPU and upstream bandwidth, but not a
+10× regeneration rate. Fixing it is still worth doing; just do not overstate it.
 
 **So: reading `export const revalidate` is NOT enough.** Either read the build
 output's Revalidate column (it shows the effective value), or grep the handler for

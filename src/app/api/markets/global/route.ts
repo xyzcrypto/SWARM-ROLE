@@ -111,7 +111,7 @@ export async function GET() {
     const payload: GlobalMarket = { ...core, fearGreed: fng, defiMcap: cmc.defiMcap, stableMcap: cmc.stableMcap, gasGwei: gas };
     return NextResponse.json(
       { ...payload, live: true, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=150, stale-while-revalidate=300" } }
+      { headers: { "Cache-Control": "public, s-maxage=200, stale-while-revalidate=300" } }
     );
   } catch {
     return NextResponse.json(

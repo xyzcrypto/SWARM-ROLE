@@ -5,6 +5,37 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-31 — Align markets `s-maxage` with polling; `revalidate` was the wrong layer
+Follow-up to #190, which fixed the ISR window and left the CDN misaligned. **Corrects a claim #190
+made.**
+- **Measured on production**, `/api/markets/global` with `revalidate = 200` and `s-maxage=150`:
+  `age` climbed `0 → 142 → 162 (STALE) → 19`. It went stale at **162s**, tracking the **150s header**,
+  not the 200s export. **`s-maxage` governs the Vercel edge; `export const revalidate` does not.**
+- **So #190 fixed a layer that does not drive edge regeneration.** The client polls every 180s and the
+  edge went stale at 150s, so every poll still triggered a regeneration - the exact misalignment
+  audit #6 described. Raised the six success-path `s-maxage` values to match: 200s for the 180s-poll
+  routes, 320s for the 300s-poll routes. The short fallback values (45/30/60/120) stay deliberately
+  brief so a degraded response does not stick.
+- **Correcting #190:** it claimed `/api/markets/global` went "from a 20s window to ≈3m, ~10× the
+  intended rate". That is wrong. The edge was on 150s throughout; the 20s was Next's internal ISR
+  window. What the inner-hint fix actually bought is that the origin function stops re-fetching and
+  re-parsing upstream APIs on every run - real Fluid CPU and bandwidth, not a 10× regeneration rate.
+  The `cost-check` skill's trap 1b carried the same wrong figure and is corrected too.
+- **How the wrong layer got verified as fixed:** #190 checked the build output's Revalidate column,
+  which faithfully reports `revalidate` - the value that had just been changed. It cannot show the
+  response header. The only way to know is to watch `age` and `x-vercel-cache` on the live site, which
+  is now written into the skill as the check.
+- **Two new assertions in `markets-poll-alignment.test.ts`:** `s-maxage` >= poll interval, and
+  `s-maxage` == `revalidate` on any route setting both. The existing assertions passed the entire time
+  the edge was misaligned - the second-worst thing after no test is one that measures the wrong layer.
+  Regression-validated: reverting `global` to 150 fails both with readable messages.
+- **`cost-check` skill gains trap 0**, ahead of everything else: `s-maxage` governs the edge, with the
+  production measurement and the browser one-liner to re-check it.
+- **Files:** 6 markets route handlers · `src/lib/__tests__/markets-poll-alignment.test.ts` ·
+  `.claude/skills/cost-check/SKILL.md` · `docs/changelog.md`.
+
+---
+
 ## 2026-07-31 — Keep `env.ts` out of the browser bundle (`import "server-only"`)
 Closes deep-audit #3. `src/lib/env.ts` had no `server-only` guard, and three `"use client"` components
 imported `userChannel` from `@/lib/realtime`, which imports it - so the whole env module shipped to the

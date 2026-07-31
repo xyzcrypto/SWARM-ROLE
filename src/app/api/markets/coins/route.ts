@@ -73,7 +73,7 @@ export async function GET() {
         live: true,
         ts: Date.now(),
       },
-      { headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300" } }
+      { headers: { "Cache-Control": "public, s-maxage=200, stale-while-revalidate=300" } }
     );
   } catch {
     return NextResponse.json(
