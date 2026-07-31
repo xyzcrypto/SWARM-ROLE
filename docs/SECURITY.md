@@ -60,5 +60,9 @@ Security posture of XYZ Crypto, current as of 2026-06-11 (post-audit, see
   periodic cleanup job (cosmetic cost only).
 
 ## Reporting
-Security issues → **niralekhan321@gmail.com** (owner). Please do not open public
-GitHub issues for vulnerabilities.
+Security issues → **hi@xyzcrypto.io**. Please do not open public GitHub issues
+for vulnerabilities.
+
+Preferred: GitHub's **private vulnerability reporting** (repo → Security →
+Report a vulnerability). It keeps the report and the discussion private until a
+fix ships, which a public issue cannot.

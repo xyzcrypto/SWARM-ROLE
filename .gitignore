@@ -20,9 +20,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env
-.env*.local
+# local env files - ignore EVERY .env variant, allow only the committed
+# template. The previous rules (`.env` + `.env*.local`) left .env.production,
+# .env.staging and - most dangerously - .env.backup tracked. Copying .env to
+# .env.backup before editing it is a normal habit, and on a public repository
+# it would commit the entire production secret set.
+.env*
+!.env.example
 
 # database (local sqlite)
 /prisma/*.db

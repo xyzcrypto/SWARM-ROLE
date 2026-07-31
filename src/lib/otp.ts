@@ -79,17 +79,29 @@ export async function verifyCode(
     await prisma.verificationCode.delete({ where: { id: rec.id } });
     return { ok: false, error: "Code expired. Please request a new one." };
   }
-  if (rec.attempts >= MAX_ATTEMPTS) {
+  // Claim an attempt ATOMICALLY, before comparing anything. The previous shape
+  // read `rec.attempts`, checked it against the cap, and only incremented after
+  // a failed compare - so N concurrent requests all observed the same stale
+  // count, all passed the check, and all got to guess. The cap bounded serial
+  // guesses, not parallel ones, which is exactly what an attacker sends.
+  //
+  // Moving the guard into the `where` makes the database arbitrate: only
+  // MAX_ATTEMPTS updates can ever succeed, however many requests race.
+  //
+  // This is the same fix already applied to the login lockout in lib/auth.ts.
+  // That race was found and closed; this structurally identical one was not.
+  const claimed = await prisma.verificationCode.updateMany({
+    where: { id: rec.id, attempts: { lt: MAX_ATTEMPTS } },
+    data: { attempts: { increment: 1 } },
+  });
+  if (claimed.count === 0) {
     await prisma.verificationCode.delete({ where: { id: rec.id } });
     return { ok: false, error: "Too many incorrect attempts. Please request a new code." };
   }
 
   const match = codesMatch(code, rec.codeHash);
   if (!match) {
-    await prisma.verificationCode.update({
-      where: { id: rec.id },
-      data: { attempts: { increment: 1 } },
-    });
+    // The attempt is already recorded above - nothing further to write.
     return { ok: false, error: "Incorrect code. Please try again." };
   }
 

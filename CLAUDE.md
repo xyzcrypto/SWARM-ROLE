@@ -20,7 +20,7 @@ accounts/profiles, premium content). Dark luxe design: gold + mint on near-black
   paused. **Migrations were silently failing on every deploy until 2026-07-29** and are
   now fixed — but the failure mode is invisible, so read the build log (see Gotchas).
   All: `docs/HANDOFF.md §8`.
-- **Owner contact:** niralekhan321@gmail.com
+- **Owner contact:** hi@xyzcrypto.io
 
 ## Commands
 ```bash
