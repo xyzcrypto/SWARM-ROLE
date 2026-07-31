@@ -29,9 +29,13 @@ UTF-8 byte, so a naive `grep -c '○'` over the whole table over-counts by one.
 ### Known ISR windows
 
 `/` 5m · `/markets` 5m · `/research` 5m · `/tools` 1h · `/news` ≈2m · `/api/ticker` 1m ·
-`/api/markets/coins` 2m · `/api/markets/defi` 2m · `/api/markets/dex` 5m ·
-`/api/markets/global` 20s · `/api/markets/perp` ≈3m · `/api/markets/yields` 5m.
+`/api/markets/coins` 200s · `/api/markets/defi` 200s · `/api/markets/global` 200s ·
+`/api/markets/perp` 200s · `/api/markets/dex` 320s · `/api/markets/yields` 320s.
 All with a 1y expire.
+
+The six `markets/*` values are **derived from the client poll intervals**, not chosen
+freely: 200s covers a 180s poll, 320s covers a 300s poll, each with ~10% margin.
+Changing either side without the other re-opens the drift below.
 
 ## The traps, in the order they have actually bitten
 
@@ -42,11 +46,37 @@ Writes and Fluid Active CPU.
 
 Rule: `revalidate` >= poll interval, with margin.
 
-Known drift (verified, still open as of the deep audit): `MarketsClient.tsx` polls
-every 180s while `/api/markets/defi` and `/coins` revalidate at 120s and `/global`
-and `/perp` at 150s — four of six misaligned. `/dex` and `/yields` are aligned at
-300/300 and show the intended shape. Note that `changelog.md` claims these were
-realigned; they were not. Verify against the route files, not the changelog.
+**Fixed 2026-07-31, and now pinned by a test** —
+`src/lib/__tests__/markets-poll-alignment.test.ts` parses the poll intervals out of
+`MarketsClient.tsx` and the `revalidate` out of each route, and fails if any window
+is shorter than its poll (or equal to it, since exactly-equal makes jitter decide).
+
+**The history is the reason the test exists.** Four of six routes were misaligned —
+`defi`/`coins` at 120s and `global`/`perp` at 150s against a 180s poll — while
+`changelog.md` claimed "pollers realigned to match each route's new window". Nothing
+failed and nothing logged; the only symptom was the bill. That is why this skill says
+**verify against the route files, never the changelog** — and why the check is now
+executable rather than written down.
+
+### 1b. A single fetch hint inside a route governs the WHOLE route's ISR window
+**Next takes the MINIMUM `revalidate` across a route segment.** So one
+`next: { revalidate: N }` on any fetch inside a handler silently overrides
+`export const revalidate`, no matter how the export reads.
+
+This is the trap that makes finding #1 hard to verify by reading source. Found
+2026-07-31: `/api/markets/global` exported `revalidate = 200` while a gas-price
+RPC inside it was pinned at `next: { revalidate: 20 }` — so the route regenerated
+on a **20-second** window, ~10× the intended rate. `/api/markets/coins` had the
+same shape with a `120` trending fetch. Both exports looked correct; only the
+build output disagreed.
+
+**So: reading `export const revalidate` is NOT enough.** Either read the build
+output's Revalidate column (it shows the effective value), or grep the handler for
+`next: { revalidate:` and check every literal. Prefer passing the shared
+`{ revalidate }` const to inner fetches so they cannot drift apart.
+
+Pinned by `src/lib/__tests__/markets-poll-alignment.test.ts`, which fails on any
+inner hint shorter than its route's window.
 
 ### 2. Large external payloads silently defeat the data cache
 Next's data cache **rejects responses over ~2 MB**. The `next: { revalidate }` hint

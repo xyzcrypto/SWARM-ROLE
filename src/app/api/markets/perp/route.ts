@@ -6,7 +6,11 @@ import { topBy, protocolSlug, type PerpDex, type PerpMarket } from "@/lib/market
 // (Hyperliquid public API). Graceful always-200 `live` flag.
 // Was 60s - lengthened along with the other markets routes to stay well under
 // Vercel's free-tier ISR Writes quota.
-export const revalidate = 150;
+// COUPLED to the poll interval in MarketsClient.tsx: this window must be >=
+// how often the client refetches, or every poll lands on an expired window
+// and regenerates the route (ISR Writes + Fluid CPU). Pinned by
+// src/lib/__tests__/markets-poll-alignment.test.ts - change both together.
+export const revalidate = 200;
 
 async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> {
   // Exclude the (huge) chart arrays so the payload is small + fast; some hosts

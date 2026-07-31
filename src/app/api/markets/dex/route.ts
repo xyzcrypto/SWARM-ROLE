@@ -3,7 +3,11 @@ import { topBy, protocolSlug, type DexProtocol, type FeeProtocol } from "@/lib/m
 
 // DEX + fees snapshot from DefiLlama (keyless): top DEXs by 24h spot volume and
 // top protocols by 24h fees. Graceful always-200 `live` flag.
-export const revalidate = 300;
+// COUPLED to the poll interval in MarketsClient.tsx: this window must be >=
+// how often the client refetches, or every poll lands on an expired window
+// and regenerates the route (ISR Writes + Fluid CPU). Pinned by
+// src/lib/__tests__/markets-poll-alignment.test.ts - change both together.
+export const revalidate = 320;
 
 async function overview(kind: "dexs" | "fees") {
   const res = await fetch(

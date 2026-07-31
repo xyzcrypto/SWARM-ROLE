@@ -8,7 +8,11 @@ import type { GlobalMarket } from "@/lib/markets";
 // `live` flag (graceful) - the exact pattern used by /api/ticker.
 // Was 60s - lengthened along with the other markets routes to stay well under
 // Vercel's free-tier ISR Writes quota.
-export const revalidate = 150;
+// COUPLED to the poll interval in MarketsClient.tsx: this window must be >=
+// how often the client refetches, or every poll lands on an expired window
+// and regenerates the route (ISR Writes + Fluid CPU). Pinned by
+// src/lib/__tests__/markets-poll-alignment.test.ts - change both together.
+export const revalidate = 200;
 
 const FALLBACK: GlobalMarket = {
   marketCap: 2_350_000_000_000,
@@ -32,7 +36,12 @@ async function ethGas(): Promise<number | null> {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 1 }),
-        next: { revalidate: 20 },
+        // Was 20s, chosen because gas moves fast - but Next takes the MINIMUM
+        // revalidate across the segment, so it silently pinned this ENTIRE route
+        // to a 20s ISR window (regenerating ~3x/min under steady traffic) rather
+        // than only making gas fresher. Gas that is up to `revalidate` old is
+        // fine on a markets dashboard; a 10x regeneration rate is not.
+        next: { revalidate },
       });
       if (!res.ok) continue;
       const j = await res.json();
