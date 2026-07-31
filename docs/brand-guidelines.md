@@ -35,7 +35,7 @@ the Ecosystem section; XYZ Crypto is the parent (the site itself).
 - LinkedIn: https://www.linkedin.com/company/xyzcrypto/
 - Web3 Academy (Telegram): https://t.me/X_Y_Z_Web3
 - TradeKaroVerse (Telegram): https://t.me/TradeKaro_Verse
-- Contact: niralekhan321@gmail.com
+- Contact: hi@xyzcrypto.io
 
 ## Heritage / trust
 - "Active since 2019" — shown as a credibility block in the About section.
