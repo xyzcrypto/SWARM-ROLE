@@ -4,11 +4,13 @@
 // truth. No-op when the Supabase env is unset (clients fall back to polling).
 import { env, realtimeEnabled } from "@/lib/env";
 
-// Channel / topic names shared by server (broadcast) and clients (subscribe).
-export const CH_SITE = "site-visitors"; // global presence → live-online count
-export const CH_MEMBERS = "members"; // admin member-list live updates
-export const CH_NOTIFY = "notifications"; // global "new notification" ping → bell refetch
-export const userChannel = (userId: string) => `user:${userId}`; // per-user events
+// Channel names are re-exported so the ~20 server call sites that do
+// `import { broadcastEvent, userChannel } from "@/lib/realtime"` keep working.
+// They are DEFINED in `realtime-channels.ts` because this module imports
+// `@/lib/env` (now `server-only`) and therefore cannot be reached from a
+// `"use client"` component. Client components must import from
+// `@/lib/realtime-channels` directly — see the note in that file.
+export { CH_SITE, CH_MEMBERS, CH_NOTIFY, userChannel } from "@/lib/realtime-channels";
 
 export async function broadcastEvent(topic: string, event: string, payload: unknown): Promise<void> {
   if (!realtimeEnabled) return;

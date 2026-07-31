@@ -1,3 +1,15 @@
+// SERVER ONLY. This import makes it a *build error* for any `"use client"`
+// component to reach this module, directly or transitively. It is here because
+// that regression had already happened and was invisible: three client
+// components imported `userChannel` from `@/lib/realtime`, which imports this
+// file, so the whole env module shipped to the browser - the zod schema, the
+// server env's shape (including `SUPABASE_SERVICE_ROLE_KEY` as a key name), and
+// the `console.error` loop below, whose `NODE_ENV` guard the bundler inlines
+// away. Every visitor to those pages got two console errors that read like a
+// production outage. Channel names now live in `@/lib/realtime-channels`, which
+// is browser-safe; import from there in client code.
+import "server-only";
+
 // Centralized, validated environment access. Validation is **warn-only** so it
 // never crashes the build or a request - but it surfaces misconfiguration loudly
 // in logs. Read config from here instead of raw process.env.

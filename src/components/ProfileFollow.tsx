@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { UserPlus, UserCheck, UserMinus, Loader2 } from "lucide-react";
-import { userChannel } from "@/lib/realtime";
+import { userChannel } from "@/lib/realtime-channels";
 import { useRealtime } from "@/lib/useRealtime";
 import { FollowListModal } from "./FollowListModal";
 import { cn } from "@/lib/utils";

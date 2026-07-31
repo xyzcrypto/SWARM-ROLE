@@ -5,7 +5,7 @@ import { Plus, Trash2, ChevronDown, NotebookPen, BarChart3, ShieldAlert, Trophy,
 import { cn, formatDateWithDay } from "@/lib/utils";
 import { getPlatform } from "@/lib/dex-registry";
 import { CalcSegmented } from "@/components/tools/CalcField";
-import { userChannel } from "@/lib/realtime";
+import { userChannel } from "@/lib/realtime-channels";
 import { useClientFlag } from "@/lib/useClientFlag";
 import { useRealtime } from "@/lib/useRealtime";
 import {
