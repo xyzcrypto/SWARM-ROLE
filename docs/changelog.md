@@ -57,6 +57,12 @@ made.**
   Regression-validated: reverting `global` to 150 fails both with readable messages.
 - **`cost-check` skill gains trap 0**, ahead of everything else: `s-maxage` governs the edge, with the
   production measurement and the browser one-liner to re-check it.
+- **✅ VERIFIED LIVE on production after deploy** (the check this PR's own rule now requires):
+  `age` reached **182 while still HIT**, then went STALE at **202** and reset. Before the fix it was
+  already STALE by 162. The edge now outlasts the 180s client poll, which was the objective.
+  **Sized honestly:** with a 180s poll against a 200s window, the poll at t=180 hits a fresh entry and
+  the one at t=360 regenerates - roughly one regeneration per two polls instead of one per poll, so
+  about half the ISR writes from `/markets` traffic. Real, correct, and modest; not a multiplier.
 - **Files:** 6 markets route handlers · `src/lib/__tests__/markets-poll-alignment.test.ts` ·
   `.claude/skills/cost-check/SKILL.md` · `docs/changelog.md`.
 
