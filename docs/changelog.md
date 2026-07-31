@@ -5,6 +5,32 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-31 — Make the live-verification step mandatory in the `pre-merge` skill
+Process change, prompted by #190 shipping a fix that did not work.
+- **The problem:** of everything merged this session, exactly one code change was checked against the
+  live site - and that check proved it did not work. #190 had green CI, every pre-merge step passed, a
+  verified build-log check, and a claimed "10x fewer regenerations". It changed `export const
+  revalidate` when `s-maxage` governed the CDN, so the problem was still live after merge. It was caught
+  only because the owner asked how to test it; the answer took four minutes.
+- **Step 4 rewritten** from a vague "run Lighthouse on the preview" into a required contract: every PR
+  body states (1) what changes on the live site, (2) the exact command or click path to see it, and
+  (3) what result would mean it did **not** work. If there is no observable, the body must say so
+  explicitly - writing that sentence is the point, because it catches a change that quietly does nothing.
+- **Step 4 now appears in every row of the scaling table.** It was previously optional for all but the
+  heaviest PRs and was skipped accordingly. For a docs-only PR, satisfying it is one sentence.
+- **The constraint is written down** rather than worked around: Claude cannot reach xyzcrypto.io (egress
+  policy, 403 on CONNECT), so every live check must be run by the owner. The division of labour is
+  therefore fixed - Claude writes the exact one-liner, the owner runs it, Claude interprets. The failure
+  mode is not that this is slow; it is Claude not writing the one-liner unless asked.
+- **Added a table of useful observables by change type** (caching → `x-vercel-cache` + `age`; rate
+  limiting → loop past the bucket and expect 429; `server-only` → browser console; schema → build log
+  then exercise the feature; anything with a bare `catch {}` → the swallowed path).
+- **Standing rules gain:** green CI is not permission to merge and neither is a passing internal check;
+  no PR merges without a stated observable; the metric is not how many PRs merged but whether each one
+  demonstrably improved the site.
+- **Files:** `.claude/skills/pre-merge/SKILL.md` (incl. frontmatter, so the rule is visible before the
+  skill loads) · `docs/changelog.md`.
+
 ## 2026-07-31 — Align markets `s-maxage` with polling; `revalidate` was the wrong layer
 Follow-up to #190, which fixed the ISR window and left the CDN misaligned. **Corrects a claim #190
 made.**
