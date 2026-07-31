@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
-import { activityForMilestone } from "@/lib/journal-activity";
+import { activityForMilestone, challengeActivitySource } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -54,7 +54,7 @@ export async function PATCH(
 
     if (parsed.data.achieved && before && !before.achieved && challenge.visibility !== "private") {
       prisma.journalActivity
-        .create({ data: { userId: me.id, ...activityForMilestone(challenge.title, milestone.label) } })
+        .create({ data: { userId: me.id, ...activityForMilestone(challenge.title, milestone.label), ...challengeActivitySource(challenge.id) } })
         .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
         .catch(() => {}); // best-effort - never blocks the milestone update
     }

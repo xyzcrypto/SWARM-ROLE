@@ -768,8 +768,25 @@ model JournalActivity {
   title     String // pre-rendered, safe-to-display text
   win       Boolean? // trade_closed only - sign, NEVER a dollar amount
 
+  // What produced this row, so publishing can be UNDONE. Without these, an
+  // activity row could never be traced back to its source: the title is
+  // pre-rendered text like "Closed BTC long with a win", which collides across
+  // every other BTC long, so matching on it would delete the wrong rows.
+  // Consequence: setting a trade or challenge back to private (or deleting it)
+  // left a publicly readable row naming the symbol and outcome forever.
+  //
+  // Deliberately NOT a relation/FK: activity must survive as an orphan if the
+  // source row is hard-deleted by some path we haven't hooked, rather than
+  // cascading unpredictably. The pair is looked up, never joined.
+  //
+  // Nullable because rows created before 2026-07-31 have no source recorded and
+  // can never be traced. See docs/HANDOFF.md §8 for the one-time cleanup.
+  sourceType String? // "trade" | "challenge"
+  sourceId   String? // Trade.id or Challenge.id
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String
 
   @@index([userId, createdAt])
+  @@index([sourceType, sourceId])
 }

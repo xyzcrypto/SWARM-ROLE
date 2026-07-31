@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
-import { activityForChallengeJoined } from "@/lib/journal-activity";
+import { activityForChallengeJoined, challengeActivitySource } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -33,7 +33,7 @@ export async function POST(_req: Request, props: { params: Promise<{ id: string 
 
     if (!alreadyJoined) {
       prisma.journalActivity
-        .create({ data: { userId: me.id, ...activityForChallengeJoined(challenge.title) } })
+        .create({ data: { userId: me.id, ...activityForChallengeJoined(challenge.title), ...challengeActivitySource(challenge.id) } })
         .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
         .catch(() => {}); // best-effort - never blocks the join
     }

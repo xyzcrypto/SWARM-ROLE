@@ -4,7 +4,7 @@ import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { buildLeaderboard, type ChallengeTrade } from "@/lib/challenge";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
-import { activityForChallengeCompleted } from "@/lib/journal-activity";
+import { activityForChallengeCompleted, challengeActivitySource, challengeActivityWhere } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -110,9 +110,20 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
       },
     });
 
+    // Publishing has to be revocable. Making a challenge private must withdraw
+    // everything it published - and NOT only the owner's rows: participants'
+    // "Joined <title>" and milestone rows embed the challenge title too, so they
+    // are revoked by sourceId across all users (see challengeActivityWhere).
+    if (rest.visibility === "private" && existing.visibility !== "private") {
+      await prisma.journalActivity
+        .deleteMany({ where: challengeActivityWhere(challenge.id) })
+        .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
+        .catch(() => {}); // best-effort - never blocks the challenge update
+    }
+
     if (rest.status === "completed" && existing.status !== "completed" && challenge.visibility !== "private") {
       prisma.journalActivity
-        .create({ data: { userId: me.id, ...activityForChallengeCompleted(challenge.title) } })
+        .create({ data: { userId: me.id, ...activityForChallengeCompleted(challenge.title), ...challengeActivitySource(challenge.id) } })
         .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
         .catch(() => {}); // best-effort - never blocks the challenge update
     }
@@ -134,7 +145,16 @@ export async function DELETE(_req: Request, props: { params: Promise<{ id: strin
     const { success } = await rateLimit("journal", me.id);
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
-    await prisma.challenge.deleteMany({ where: { id: params.id, creatorId: me.id } });
+    const removed = await prisma.challenge.deleteMany({ where: { id: params.id, creatorId: me.id } });
+    // Only revoke if we actually owned and deleted it - deleteMany reports 0 for
+    // someone else's challenge, and that must not let a caller wipe the activity
+    // rows of a challenge they don't own.
+    if (removed.count > 0) {
+      await prisma.journalActivity
+        .deleteMany({ where: challengeActivityWhere(params.id) })
+        .catch(() => {}); // best-effort - the challenge is already gone
+      broadcastEvent(userChannel(me.id), "journal_activity", {});
+    }
     return ok({ deleted: true });
   } catch (err) {
     return handleError(err, "journal:challenges:delete");

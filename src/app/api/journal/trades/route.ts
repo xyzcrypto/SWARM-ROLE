@@ -4,7 +4,7 @@ import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
 import { realizedPnl } from "@/lib/journal";
-import { activityForTradeClosed, activityForTradeOpened } from "@/lib/journal-activity";
+import { activityForTradeClosed, activityForTradeOpened, tradeActivitySource } from "@/lib/journal-activity";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
           ? activityForTradeClosed(trade.symbol, trade.side, realizedPnl(trade.side, tradeFills) >= 0)
           : activityForTradeOpened(trade.symbol, trade.side);
       prisma.journalActivity
-        .create({ data: { userId: me.id, ...content } })
+        .create({ data: { userId: me.id, ...content, ...tradeActivitySource(trade.id) } })
         .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))
         .catch(() => {}); // best-effort - never blocks the trade creation
     }
