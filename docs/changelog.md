@@ -5,6 +5,41 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-07-31 — Keep `env.ts` out of the browser bundle (`import "server-only"`)
+Closes deep-audit #3. `src/lib/env.ts` had no `server-only` guard, and three `"use client"` components
+imported `userChannel` from `@/lib/realtime`, which imports it - so the whole env module shipped to the
+browser.
+- **Three problems at once, all closed:** (1) every visitor to `/journal` and any profile page got two
+  `console.error` lines reading like a production outage - the bundler inlines `NODE_ENV=production` and
+  eliminates the guard, so the "missing required env var" loop ran client-side where `process.env` is
+  `{}`; (2) the server env's *shape* shipped in public JS, including `SUPABASE_SERVICE_ROLE_KEY` as a
+  schema key; (3) `broadcastEvent`, which sends the service-role key as an `apikey` header, sat in a
+  public chunk. No values ever leaked - Next does not define non-`NEXT_PUBLIC_` vars for the client
+  build - but it was one config change away from being a real exfiltration path.
+- **Fix:** the four pure channel-name constants moved to a new `src/lib/realtime-channels.ts` with **zero
+  imports**; the three client components import from there; `realtime.ts` re-exports them so the ~20
+  server call sites are untouched; `env.ts` now carries `import "server-only"`.
+- **Verified by dependency graph, not by grep:** traced all 121 `"use client"` files transitively -
+  3 reached `env.ts` before, **0 after**.
+- **The guard is enforced by the build, and that was proven** by deliberately re-adding a client→env
+  import and confirming `next build` exits 1 with `'server-only' cannot be imported from a Client
+  Component module`.
+- **A real regression this introduced, and its fix:** `server-only` is a Next *build-time alias*, not an
+  npm package, so vitest could not resolve it and **8 test files stopped loading** with "Cannot find
+  package 'server-only'". Fixed with a test-only alias to a no-op stub (`test/stubs/server-only.ts`)
+  rather than adding a production dependency - vitest runs in Node, which *is* the server, so there is
+  nothing for the guard to reject there. The four pre-existing `server-only` modules never surfaced this
+  because no test imports them.
+- **`src/lib/__tests__/realtime-channels.test.ts`** pins that the new module stays import-free and that
+  the wire-format channel names don't drift (a rename silently stops delivery rather than erroring). Its
+  first version searched the whole file for `@/lib/env` and failed on its own explanatory comment - now
+  it matches import statements only.
+- **Files:** `src/lib/realtime-channels.ts` (new) · `src/lib/env.ts` · `src/lib/realtime.ts` · 3 client
+  components · `vitest.config.ts` · `test/stubs/server-only.ts` (new) ·
+  `src/lib/__tests__/realtime-channels.test.ts` (new) · `docs/changelog.md`.
+
+---
+
 ## 2026-07-30 — Rate-limit the 7 mutating API handlers that had no limiter, and pin it with a test
 Closes deep-audit #9, which listed four gaps. A per-handler sweep found **seven**.
 - **The four from the audit:** `dm` POST (upserts a `Conversation` per call, zero limiters in the file),

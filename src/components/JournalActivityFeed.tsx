@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { Activity, TrendingUp, TrendingDown, Trophy, Users, Flag, Target } from "lucide-react";
-import { userChannel } from "@/lib/realtime";
+import { userChannel } from "@/lib/realtime-channels";
 import { useRealtime } from "@/lib/useRealtime";
 import { cn } from "@/lib/utils";
 
