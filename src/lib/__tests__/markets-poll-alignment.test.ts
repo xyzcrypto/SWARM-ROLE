@@ -37,6 +37,17 @@ function revalidateSeconds(route: string): number | null {
   return m ? Number(m[1]) : null;
 }
 
+/**
+ * The success response's `s-maxage`, i.e. every `s-maxage` that ships alongside a
+ * `stale-while-revalidate`. The bare short ones (`s-maxage=45` etc.) are the
+ * degraded/fallback responses and are deliberately brief so a bad response does
+ * not stick — they are excluded here on purpose.
+ */
+function successSMaxAge(route: string): number[] {
+  const src = readFileSync(join(process.cwd(), `src/app/api/markets/${route}/route.ts`), "utf8");
+  return [...src.matchAll(/s-maxage=(\d+),\s*stale-while-revalidate=\d+/g)].map((m) => Number(m[1]));
+}
+
 describe("markets ISR windows are aligned with client polling", () => {
   const polls = pollIntervals();
 
@@ -57,6 +68,47 @@ describe("markets ISR windows are aligned with client polling", () => {
       const pollSec = everyMs / 1000;
       if (revalidate < pollSec) {
         bad.push(`${route}: revalidate ${revalidate}s < poll ${pollSec}s — regenerates on every poll`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("gives every polled route an s-maxage >= its poll interval", () => {
+    // THIS is the assertion that actually protects the CDN, and it was missing
+    // when this file was written. Measured on production 2026-07-31: with
+    // `export const revalidate = 200` but `s-maxage=150`, the edge entry went
+    // STALE at age 162s — i.e. **`s-maxage` governs the edge, `revalidate` does
+    // not**. Against a 180s poll that means every poll still regenerated, which
+    // is the exact misalignment this file was created to prevent, and the
+    // assertions above passed the whole time.
+    //
+    // Method, if this ever needs re-checking: fetch the route repeatedly from a
+    // browser on the live site and watch the `age` and `x-vercel-cache` response
+    // headers. `age` resets when the entry is regenerated.
+    const bad: string[] = [];
+    for (const [route, everyMs] of Object.entries(polls)) {
+      const pollSec = everyMs / 1000;
+      const values = successSMaxAge(route);
+      if (values.length === 0) {
+        bad.push(`${route}: no success-path s-maxage found`);
+        continue;
+      }
+      for (const v of values) {
+        if (v < pollSec) bad.push(`${route}: s-maxage ${v}s < poll ${pollSec}s — edge goes stale before each poll`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("keeps s-maxage and revalidate in agreement", () => {
+    // Two windows on one route that disagree is how the previous bug hid: the
+    // export read 200 while the header said 150, and only one was in charge.
+    const bad: string[] = [];
+    for (const route of Object.keys(polls)) {
+      const rv = revalidateSeconds(route);
+      if (rv === null) continue;
+      for (const v of successSMaxAge(route)) {
+        if (v !== rv) bad.push(`${route}: s-maxage ${v}s != revalidate ${rv}s — only one of these governs`);
       }
     }
     expect(bad).toEqual([]);

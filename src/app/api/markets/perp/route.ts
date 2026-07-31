@@ -82,6 +82,6 @@ export async function GET() {
 
   return NextResponse.json(
     { dexs, markets: hl.markets, totalVolume24h, totalOi, live, ts: Date.now() },
-    { headers: { "Cache-Control": live ? "public, s-maxage=150, stale-while-revalidate=300" : "public, s-maxage=30" } }
+    { headers: { "Cache-Control": live ? "public, s-maxage=200, stale-while-revalidate=300" : "public, s-maxage=30" } }
   );
 }
