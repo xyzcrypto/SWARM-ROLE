@@ -7,13 +7,20 @@ import type { TrendingCoin, MoverCoin, CoinRow } from "@/lib/markets";
 // 250, the /api/markets/search route looks up any coin on demand.)
 // Was 45s - lengthened along with the other markets routes to stay well under
 // Vercel's free-tier ISR Writes quota.
-export const revalidate = 120;
+// COUPLED to the poll interval in MarketsClient.tsx: this window must be >=
+// how often the client refetches, or every poll lands on an expired window
+// and regenerates the route (ISR Writes + Fluid CPU). Pinned by
+// src/lib/__tests__/markets-poll-alignment.test.ts - change both together.
+export const revalidate = 200;
 
 async function trending(): Promise<TrendingCoin[]> {
   try {
     const res = await fetch("https://api.coingecko.com/api/v3/search/trending", {
       headers: { accept: "application/json" },
-      next: { revalidate: 120 },
+      // Must not be SHORTER than the route's `revalidate` above: Next takes the
+      // MINIMUM across the segment, so a low hint here silently governs the whole
+      // route's ISR window regardless of the export.
+      next: { revalidate },
     });
     if (!res.ok) return [];
     const j = await res.json();

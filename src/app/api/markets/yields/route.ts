@@ -3,7 +3,11 @@ import { topBy, type YieldPool } from "@/lib/markets";
 
 // Top DeFi yield opportunities (DefiLlama yields, keyless). Filtered to pools
 // with a meaningful TVL and a sane APY so the list stays trustworthy. Graceful.
-export const revalidate = 300;
+// COUPLED to the poll interval in MarketsClient.tsx: this window must be >=
+// how often the client refetches, or every poll lands on an expired window
+// and regenerates the route (ISR Writes + Fluid CPU). Pinned by
+// src/lib/__tests__/markets-poll-alignment.test.ts - change both together.
+export const revalidate = 320;
 
 export async function GET() {
   try {

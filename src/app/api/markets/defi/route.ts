@@ -5,7 +5,11 @@ import { topByTvl } from "@/lib/markets";
 // Server-side cached proxy: DeFi snapshot from DefiLlama (keyless, free) - total
 // TVL + trend, top protocols, top chains, stablecoin market cap. Always 200 with
 // a `live` flag (graceful), like /api/ticker.
-export const revalidate = 120;
+// COUPLED to the poll interval in MarketsClient.tsx: this window must be >=
+// how often the client refetches, or every poll lands on an expired window
+// and regenerates the route (ISR Writes + Fluid CPU). Pinned by
+// src/lib/__tests__/markets-poll-alignment.test.ts - change both together.
+export const revalidate = 200;
 
 const FALLBACK: DefiMarket = {
   totalTvl: 118_000_000_000,
