@@ -23,7 +23,7 @@ jobs:
           # can SIGSEGV on Node 20; Node 22 builds cleanly.
           node-version: 22
           cache: npm
-      - run: npm ci
+      - run: npm install
       - run: npx prisma generate
       - run: npm run typecheck
       - run: npm run lint
