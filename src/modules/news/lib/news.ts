@@ -150,10 +150,15 @@ export function timeAgo(ms: number, now: number): string {
 export function parseDate(input: string): number {
   const s = (input || "").trim();
   if (!s) return 0;
+  // "YYYY-MM-DD HH:MM:SS" (space instead of "T", no zone) → assume UTC FIRST,
+  // before Date.parse. On some runtimes/platforms Date.parse() accepts this
+  // format and interprets it as **local time**, which makes the test fail when
+  // the machine is not in UTC (e.g. IST = UTC+5:30).
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(s) && !/[zZ]|[+-]\d\d:?\d\d$/.test(s)) {
+    const t = Date.parse(s.replace(" ", "T") + "Z");
+    if (Number.isFinite(t)) return t;
+  }
   let t = Date.parse(s);
-  if (Number.isFinite(t)) return t;
-  // "YYYY-MM-DD HH:MM:SS" (space instead of "T", no zone) → assume UTC.
-  t = Date.parse(s.replace(" ", "T") + (/[zZ]|[+-]\d\d:?\d\d$/.test(s) ? "" : "Z"));
   if (Number.isFinite(t)) return t;
   // Last resort: strip a trailing "(UTC)"/timezone name some feeds append.
   t = Date.parse(s.replace(/\s*\([^)]*\)\s*$/, "").trim());
