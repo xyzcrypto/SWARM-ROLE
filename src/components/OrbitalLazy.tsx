@@ -34,7 +34,7 @@ class WebglBoundary extends Component<{ fallback: ReactNode; children: ReactNode
     return { failed: true };
   }
   componentDidCatch(err: unknown) {
-    // eslint-disable-next-line no-console
+     
     console.warn("[orbital] WebGL scene failed, using CSS fallback:", err);
   }
   render() {

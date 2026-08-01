@@ -480,7 +480,7 @@ export function ChatClient({
     };
     // Re-subscribe only when the connection target or the signed-in identity
     // changes; profile fields (name/image/username) ride in meRef.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [realtime.url, realtime.anonKey, me?.id, appendMessage, hideMessage, applyReaction, applyEdit, applyPinned, applyPollCounts]);
 
   // Close the reaction popover on any press outside it (its toggle + panel are

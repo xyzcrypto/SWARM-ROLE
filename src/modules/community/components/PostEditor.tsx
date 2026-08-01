@@ -178,7 +178,7 @@ export function PostEditor({
         <div>
           <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Cover image</label>
           {form.cover ? (
-            // eslint-disable-next-line @next/next/no-img-element
+             
             <div className="relative mb-2 overflow-hidden rounded-xl border border-white/10">
               <img src={form.cover} alt="Cover preview" className="h-32 w-full object-cover" />
               <button

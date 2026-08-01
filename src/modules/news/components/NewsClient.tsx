@@ -190,7 +190,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       });
     }, 90_000);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [category, query, fetchPage]);
 
   // Reveal buffered stories at the top of the feed.
