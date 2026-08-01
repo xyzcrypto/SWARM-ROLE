@@ -5,6 +5,43 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-01 — Latency & resource-utilization audit (docs only, no source change)
+Adds `docs/AUDIT-2026-08-01-latency.md`, a full pass over `319f722` for server latency,
+caching and client weight, framed by the `iad1` (functions) → Mumbai (Supabase) region gap
+that puts ~250ms on every DB round trip.
+- **Route table re-measured and unchanged:** 124 routes · 22 static · 102 dynamic · 12 ISR,
+  identical to the `2f34b83` baseline across 18 merged commits. No `○ → ƒ` regression.
+- **Four previously-reported issues re-checked:** markets poll/window misalignment ✅ fixed at
+  both layers; `env.ts` in the client bundle ✅ fixed; `/api/chat/last-activity` rendering
+  dynamic ✅ true but correct (its `s-maxage=15` absorbs the poll); llama.fi 2MB payloads
+  ⚠️ still unconfirmed - egress to llama.fi is policy-blocked from the agent environment.
+- **New: `/api/ticker` has the same misalignment #190/#192 fixed for markets** - `revalidate`
+  and `s-maxage` both 60s against a 150s poll, so every poll regenerates. It survived because
+  `markets-poll-alignment.test.ts` globs `src/app/api/markets/*` only. Homepage-only, but that
+  is the highest-traffic page.
+- **New: `getServerSession()` discards its rotated cookie on the App Router path**
+  (`next-auth/next/index.js:116-119,143` - the RSC branch passes a stub `res` whose
+  `setCookie()` is a no-op), so `MEMBERSHIP_TTL_MS` never advances and every authenticated
+  server request re-reads the user from the DB. 54 files are affected.
+- **⚠️ The obvious fix for that is an authorization regression, and is documented as such.**
+  `requirePermission()` (`src/lib/api.ts:97-101`) reads JWT claims only - nothing re-verifies
+  against the DB - so that per-request refresh is the only thing making permission revocation
+  timely. Raising the TTL would let a demoted admin keep admin for the length of the window.
+  The comment at `src/lib/auth.ts:318` claiming "routes always re-check DB anyway" is **false**
+  and is what made the bad fix look safe.
+- **Bundle measurement restored.** `.next/app-build-manifest.json` does not exist under Next 16
+  + Turbopack, so the method named in the `cost-check` skill cannot run. The per-route RSC
+  manifest works instead; baseline recorded per route (`/dashboard` 232 kB gz, `/` 113 kB gz,
+  shared floor 69 kB gz). three.js is on disk but never requested - `useWebglGate()` returns a
+  literal `false` - so it costs zero transfer.
+- **Confirmed clean, stated so the absence is informative:** no N+1 anywhere, all twelve polling
+  components have visibility guards, realtime uses the shared singleton, no unconditional
+  `getServerSession` on an anonymous path, and no dynamic page that could become static.
+- Every `path:line` citation in the document was machine-checked against the tree; the route
+  table was reproduced from a clean rebuild; `npm run test` green (52 files, 407 tests).
+
+---
+
 ## 2026-07-31 — Make the live-verification step mandatory in the `pre-merge` skill
 Process change, prompted by #190 shipping a fix that did not work.
 - **The problem:** of everything merged this session, exactly one code change was checked against the
