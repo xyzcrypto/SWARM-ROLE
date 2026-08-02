@@ -1,10 +1,21 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  content: [
-    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
-  ],
+  // ONE glob over all of src, deliberately - not a list of directories.
+  //
+  // This was `./src/app/**` + `./src/components/**` only. When the module
+  // refactor moved 223 files into src/modules, src/core and src/shared, Tailwind
+  // stopped seeing the JSX that uses the classes: src/components still matched,
+  // but those files had become two-line re-export shims containing no class
+  // names at all. So the utilities were simply never generated - `fixed`,
+  // `grid-cols-6` and `inset-x-0` had ZERO occurrences in the built CSS - and
+  // every moved component silently lost its layout. The bottom nav collapsed
+  // out of its fixed bar and stacked down the middle of the page.
+  //
+  // Nothing failed: typecheck, lint, tests, build and the route table were all
+  // green, because none of them look at generated CSS. Enumerating directories
+  // here means any future move re-breaks this the same silent way, so don't.
+  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
   // Class-based theming (light/dark). Dark is the default (see <html class="dark">).
   darkMode: "class",
   theme: {

@@ -20,7 +20,18 @@ const ITEMS: Item[] = [
   { href: "/markets", label: "Markets", Icon: LineChart },
 ];
 
-const CELL_CLS = "flex min-h-[52px] flex-col items-center justify-center gap-0.5 py-1.5 transition-colors";
+// Sizing is fluid rather than fixed, so one rule covers every screen instead of
+// a breakpoint per device. `clamp(min, preferred, max)` lets the browser scale
+// against the actual viewport: the middle term is in `vw`, so a 320px phone and
+// a 430px phone each get a proportionate size, and the outer terms stop it
+// becoming unreadable or oversized. Nothing here is device-specific.
+const CELL_CLS =
+  "flex min-h-[clamp(48px,13vw,56px)] flex-col items-center justify-center gap-0.5 py-1.5 transition-colors";
+// Labels shrink on narrow phones instead of wrapping or clipping. `truncate`
+// plus `w-full` is the guard: a longer label degrades to an ellipsis rather
+// than pushing the six columns out of the viewport.
+const LABEL_CLS = "w-full truncate px-0.5 text-center text-[clamp(9px,2.5vw,11px)] font-medium leading-tight";
+const ICON_CLS = "h-[clamp(18px,5vw,20px)] w-[clamp(18px,5vw,20px)] shrink-0";
 
 /**
  * App-style bottom navigation for mobile only (md:hidden). Two links, a
@@ -51,7 +62,11 @@ export function BottomNav() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         aria-label="Primary"
       >
-      <div className="mx-auto grid max-w-md grid-cols-6">
+      {/* max-w-lg (not md) so the six cells still have room on a large phone,
+          and the grid fills the width below that instead of leaving side gaps.
+          On a tablet the cap keeps it from stretching absurdly wide - though
+          the bar is md:hidden, so that only applies to small tablets. */}
+      <div className="mx-auto grid w-full max-w-lg grid-cols-6">
         {left.map((it) => (
           <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />
         ))}
@@ -62,17 +77,20 @@ export function BottomNav() {
         >
           <span
             className={cn(
-              "-mt-5 flex h-14 w-14 items-center justify-center rounded-full border-2 bg-ink-950 shadow-lg transition-colors",
+              // Fluid too, and for a concrete reason: at a fixed 56px this
+              // circle was wider than its own grid cell on a 320px screen
+              // (320 / 6 ≈ 53px), so it overflowed into its neighbours.
+              "-mt-5 flex h-[clamp(44px,14vw,56px)] w-[clamp(44px,14vw,56px)] items-center justify-center rounded-full border-2 bg-ink-950 shadow-lg transition-colors",
               profileActive ? "border-gold-400 shadow-gold-500/30" : "border-white/15 shadow-black/40"
             )}
           >
             {session ? (
               <Avatar name={user?.name} image={user?.image} email={user?.email} size="md" ring={false} premium={isPremium} />
             ) : (
-              <User className="h-6 w-6 text-zinc-300" />
+              <User className="h-[clamp(20px,6vw,24px)] w-[clamp(20px,6vw,24px)] text-zinc-300" />
             )}
           </span>
-          <span className={cn("text-[10px] font-medium", profileActive ? "text-gold-200" : "text-zinc-500")}>Profile</span>
+          <span className={cn(LABEL_CLS, profileActive ? "text-gold-200" : "text-zinc-500")}>Profile</span>
         </Link>
         {right.map((it) => (
           <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />
@@ -91,8 +109,8 @@ function NavCell({ item, active }: { item: Item; active: boolean }) {
       aria-current={active ? "page" : undefined}
       className={cn(CELL_CLS, active ? "text-gold-200" : "text-zinc-500 hover:text-zinc-300")}
     >
-      <Icon className="h-5 w-5" />
-      <span className="text-[10px] font-medium">{item.label}</span>
+      <Icon className={ICON_CLS} />
+      <span className={LABEL_CLS}>{item.label}</span>
     </Link>
   );
 }
