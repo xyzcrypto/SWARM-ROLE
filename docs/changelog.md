@@ -67,6 +67,24 @@ rows differ) · `/`, `/tools`, `/markets`, `/news`, `/research` all 200 with zer
 horizontal overflow and no page errors · share placeholder confirmed painting
 while the create call is in flight.
 
+**Observable — run, and the answer recorded (pre-merge Step 4).** The owner
+confirmed both fixes working on the PR's Vercel preview deployment, on the real
+handset that had been failing, *before* the merge. That is the check that had
+been missing: #207 shipped on measurements that all passed here and still left
+the button dead on their phone, because every local run happened to be at 390px -
+the one width that lands correctly either way. Verifying on the preview URL on the
+affected device is what closed it.
+
+**Node version pinned** — `package.json` `engines.node` `">=22.0.0"` → `"22.x"`.
+The open-ended range had no upper bound, so the day Vercel offers a newer major
+the build would move to it with nothing in the repo changing, while CI stayed on
+`.nvmrc` = 22. CI green, production on a different runtime: the same silent-drift
+shape as the `db push || echo` swallow and the Tailwind content globs. Note the
+Vercel build warning ("the Node.js Version defined in your project settings won't
+apply") **does not go away** and is not meant to - it fires whenever `engines.node`
+exists at all, and package.json winning is the intended arrangement, since that is
+what keeps Vercel and `.nvmrc`/CI on one number.
+
 ---
 
 ## 2026-08-02 — Hero "View products" · points share · ticker ISR · 32 dead duplicate files
