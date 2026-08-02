@@ -5,6 +5,61 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-02 (5) — Cross-device responsive & scrolling audit (design frozen)
+
+Full report: `docs/AUDIT-2026-08-02-responsive.md`. Measured across **9 viewports ×
+18 pages** on a production build, plus a dedicated editor pass reached by standing up a
+local Postgres with the real schema and minting a genuine next-auth session — the
+dashboard renders its error state without one, so the Publish editor is otherwise
+untestable.
+
+**The site was in much better shape than the brief implied.** Zero horizontal overflow,
+zero nested scroll traps, zero z-index conflicts, zero JS errors, at every size.
+`/community` and `/messages` already used `h-[100svh]`; the navbar sheet already used
+`max-h-[calc(100dvh-6rem)]`. Two real defects were found.
+
+**🔴 Mouse wheel scrolled nothing on desktop** — `src/shared/components/SmoothScroll.tsx`.
+Lenis intercepts wheel events globally. Its escape hatch, `data-lenis-prevent`, was
+styled in `globals.css` but applied to **zero elements**, so every inner scroll container
+lost the wheel to the page. Measured with the Publish editor full of text: at 1280×800
+and 1920×1080 the wheel left `scrollTop` at 0 and scrolled the page instead; phones were
+fine only because Lenis already opts out on coarse pointers, which is why this never
+surfaced in mobile testing. It affected the rich-text editor, the news briefing, every
+textarea, the chat list and the mobile nav sheet. Fixed with Lenis's `prevent(node)`
+predicate detecting scrollability directly, rather than annotating containers by hand
+where a new one would silently miss out. All six viewports now scroll and stay contained.
+
+**🟠 Publish editor was a fixed 416px on every device** —
+`src/modules/community/components/PostContentEditor.tsx`. On a 320×568 phone that is 73%
+of the screen for one field, with its bottom 133px below the fold. `h-[26rem]` →
+`h-[min(26rem,62svh)]`: `min()` keeps the approved desktop size **exactly** (26rem wins
+above ~671px tall, so 430/768/1280/1920 measured pixel-identical at 416px) and only
+shrinks on short screens (320×568 → 352px). `svh` not `vh`, so mobile browser chrome
+cannot push the box under the address bar.
+
+**🟡 Tap targets** — 19 unique elements under 28px, smallest the chart range pills at
+23×18. Grown with a transparent pseudo-element (`.tap-target-y` / `.tap-target-all`) so
+the box, padding and font size are untouched and **nothing moves**; verified by
+hit-testing rather than by measuring the box. Axis chosen per case: controls 2px apart
+get vertical-only, because both expanding toward each other would overlap and the later
+one silently steals the tap. Inline links inside sentences deliberately left alone —
+WCAG 2.5.8 exempts them and expanding them would steal taps from neighbouring text.
+
+**Dismissed after investigation, recorded so they are not re-raised:** the homepage
+`CLIPPED` flags are `.vscroll-mask` (a `mask-image` fade — the clipping *is* the effect)
+and `.starfield`; the `/profile` HTTP 500 at every viewport was `NEXTAUTH_SECRET` unset
+in the harness (307 once set); the touch-swipe `scrollTop 0` is synthetic `TouchEvent`s
+not driving Chromium's compositor, not a bug.
+
+Design untouched: no change to tokens, colours, spacing, typography, component structure
+or animation. The only rendered-geometry change anywhere is the editor height on
+viewports under ~671px tall.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings · 412/412 tests ✅ · build ✅ ·
+route table **identical to main** (125 / 22 static / 103 dynamic, zero rows differ).
+
+---
+
 ## 2026-08-02 (4) — Functions moved to Mumbai; the serial round trips removed
 
 Owner asked why everything feels slow to open, and whether the answer is "do the

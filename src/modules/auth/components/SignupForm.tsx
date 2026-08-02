@@ -118,7 +118,7 @@ export function SignupForm({ providers }: { providers: SocialProviders }) {
 
       <p className="text-center text-sm text-zinc-500">
         Already have an account?{" "}
-        <Link href="/login" className="font-semibold text-gold-200 hover:underline">
+        <Link href="/login" className="tap-target-all font-semibold text-gold-200 hover:underline">
           Log in
         </Link>
       </p>

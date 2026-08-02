@@ -34,7 +34,7 @@ export function AuthShell({
 
         <p className="mt-6 text-center text-sm text-zinc-500">{footer}</p>
         <p className="mt-4 text-center">
-          <Link href="/" className="text-xs text-zinc-600 transition-colors hover:text-gold-200">
+          <Link href="/" className="tap-target-all text-xs text-zinc-600 transition-colors hover:text-gold-200">
             ← Back to home
           </Link>
         </p>
