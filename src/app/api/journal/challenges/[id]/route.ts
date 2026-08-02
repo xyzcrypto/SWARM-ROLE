@@ -32,12 +32,29 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
     const isParticipant = challenge.creatorId === me.id || challenge.participants.some((p) => p.userId === me.id);
     if (challenge.visibility === "private" && !isParticipant) return fail("Not found.", 404);
 
-    const allTrades = await prisma.trade
-      .findMany({
-        where: { challengeId: challenge.id },
-        select: { userId: true, side: true, fills: { select: { kind: true, price: true, size: true, fee: true } } },
-      })
-      .catch(() => [] as any[]);
+    // These three are mutually independent - each keys off `challenge.id` (and
+    // `me.id`) and none reads another's result - but they were awaited one after
+    // the other, so this handler paid three full round trips to Mumbai in series
+    // where one wall-clock trip would do. Only the `challenge` lookup above has
+    // to come first, because the visibility gate depends on it.
+    const [allTrades, myTrades, dayNotes] = await Promise.all([
+      prisma.trade
+        .findMany({
+          where: { challengeId: challenge.id },
+          select: { userId: true, side: true, fills: { select: { kind: true, price: true, size: true, fee: true } } },
+        })
+        .catch(() => [] as any[]),
+      prisma.trade
+        .findMany({
+          where: { challengeId: challenge.id, userId: me.id },
+          include: { fills: { orderBy: { executedAt: "asc" } } },
+          orderBy: { createdAt: "desc" },
+        })
+        .catch(() => [] as any[]),
+      prisma.challengeDayNote
+        .findMany({ where: { challengeId: challenge.id, userId: me.id }, orderBy: { day: "asc" } })
+        .catch(() => [] as any[]), // tolerate a not-yet-migrated DB -> empty
+    ]);
 
     const tradesByUserId = new Map<string, ChallengeTrade[]>();
     for (const t of allTrades) {
@@ -50,18 +67,6 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
       name: p.user.name || p.user.username || "Trader",
     }));
     const leaderboard = buildLeaderboard(participants, tradesByUserId, challenge.startingCapital);
-
-    const myTrades = await prisma.trade
-      .findMany({
-        where: { challengeId: challenge.id, userId: me.id },
-        include: { fills: { orderBy: { executedAt: "asc" } } },
-        orderBy: { createdAt: "desc" },
-      })
-      .catch(() => [] as any[]);
-
-    const dayNotes = await prisma.challengeDayNote
-      .findMany({ where: { challengeId: challenge.id, userId: me.id }, orderBy: { day: "asc" } })
-      .catch(() => [] as any[]); // tolerate a not-yet-migrated DB -> empty
 
     return ok({ challenge, milestones: challenge.milestones, leaderboard, myTrades, dayNotes, isParticipant, isOwner: challenge.creatorId === me.id });
   } catch (err) {

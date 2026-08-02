@@ -24,31 +24,37 @@ export async function GET(req: Request) {
 
     const me = await getSessionUser().catch(() => null);
 
-    const rows = await prisma.chatMessage.findMany({
-      where: { status: "visible" },
-      orderBy: { createdAt: "desc" },
-      take: CHAT_PAGE_SIZE + 1, // +1 → hasMore without a count query
-      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
-      select: CHAT_MESSAGE_SELECT,
-    });
+    // History and the pinned banner are independent - neither reads the other's
+    // result - but they used to be awaited one after the other, so opening the
+    // room paid two full round trips to Mumbai back to back where one would do.
+    // The /community *page* already gets this right (`Promise.all` in
+    // src/app/community/page.tsx, commented "run in parallel (independent
+    // queries)"); the API route serving the same two pieces of data did not.
+    const [rows, pinnedRow] = await Promise.all([
+      prisma.chatMessage.findMany({
+        where: { status: "visible" },
+        orderBy: { createdAt: "desc" },
+        take: CHAT_PAGE_SIZE + 1, // +1 → hasMore without a count query
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        select: CHAT_MESSAGE_SELECT,
+      }),
+      // First page only - the banner needs exactly one.
+      cursor
+        ? Promise.resolve(null)
+        : prisma.chatMessage
+            .findFirst({
+              where: { status: "visible", pinnedAt: { not: null } },
+              orderBy: { pinnedAt: "desc" },
+              select: CHAT_MESSAGE_SELECT,
+            })
+            .catch(() => null),
+    ]);
 
     const hasMore = rows.length > CHAT_PAGE_SIZE;
     const page = hasMore ? rows.slice(0, CHAT_PAGE_SIZE) : rows;
     // Oldest-first for rendering; cursor = oldest id of this page.
     let messages = page.reverse().map(toChatPayload);
-
-    // Latest pinned message (first page only - the banner needs exactly one).
-    let pinned = null;
-    if (!cursor) {
-      const pinnedRow = await prisma.chatMessage
-        .findFirst({
-          where: { status: "visible", pinnedAt: { not: null } },
-          orderBy: { pinnedAt: "desc" },
-          select: CHAT_MESSAGE_SELECT,
-        })
-        .catch(() => null);
-      pinned = pinnedRow ? toChatPayload(pinnedRow) : null;
-    }
+    let pinned = pinnedRow ? toChatPayload(pinnedRow) : null;
 
     // Stamp the requester's own poll votes (never part of broadcasts).
     if (me) {
