@@ -20,7 +20,24 @@ export const runtime = "nodejs";
 const SIZE = { width: 1200, height: 630 };
 // Bot/preview fetches repeat on every share; the numbers are a point-in-time
 // snapshot, not live data, so cache generously.
-const CACHE = { headers: { "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400" } };
+//
+// `max-age` + `immutable` matter as much as `s-maxage` here, and were missing.
+// This PNG is rendered with satori on every cache miss, and the share page
+// embeds it with a plain <img> - so with an edge-only header the browser
+// re-requested it on every view of the card. A card is keyed by an id whose
+// contents can never change, which is the textbook case for `immutable`: the
+// browser stops asking entirely. That is the difference between the card
+// appearing instantly on a revisit and waiting on a PNG render.
+const CACHE = {
+  headers: {
+    "Cache-Control": "public, max-age=31536000, s-maxage=31536000, immutable, stale-while-revalidate=86400",
+  },
+};
+// The generic fallback must NOT inherit `immutable`. It is served for a missing
+// id *and* for a transient DB failure - caching "sorry, no card" for a year
+// would turn a two-second blip into a permanently broken share link. Short and
+// revalidatable on purpose.
+const FALLBACK_CACHE = { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60" } };
 
 type CardData = { platform?: string; domain?: string; sharePct?: number; tokens?: number; usd?: number; fdv?: number };
 
@@ -52,7 +69,7 @@ function fallbackCard() {
         <div style={{ display: "flex", fontSize: 28, color: "#a1a1aa" }}>Points / Airdrop Value Calculator</div>
       </div>
     ),
-    { ...SIZE, ...CACHE }
+    { ...SIZE, ...FALLBACK_CACHE }
   );
 }
 
