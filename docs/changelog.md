@@ -5,6 +5,92 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-02 (3) — Live features that stopped being live: chat and news
+
+Two owner reports, both traced to the same shape of bug: a fallback that was
+written, and then gated off so it could never run.
+
+**1. Community chat: "online" stuck at 0, header stuck on "Reconnecting…"** —
+`src/modules/community/components/ChatClient.tsx`.
+The live-updates effect did `if (realtime configured) { …channel…; return }`, so
+**the 10s polling fallback below it was never armed on a configured deployment**.
+And the `subscribe()` callback only ever recorded `SUBSCRIBED` — `CHANNEL_ERROR`,
+`TIMED_OUT` and `CLOSED` were read and dropped, with no retry. supabase-js does
+not resurrect a channel whose join errored, so between them a single failed or
+dropped subscription left the room with:
+- no live channel,
+- no retry,
+- and no fallback.
+
+Messages stopped arriving, presence sat at 0, and the header showed
+"Reconnecting…" indefinitely while **nothing was reconnecting** — the label was
+the only part of it doing any work.
+- The poll is now always armed and early-returns while the channel is healthy
+  (via a `liveRef`), so a working room still issues **zero** extra requests and a
+  broken one recovers within 10s.
+- A non-`SUBSCRIBED` status now tears the channel down and rebuilds it with
+  exponential backoff (1s → 30s cap).
+- Restructured so the retry re-runs `connect()` only. An earlier revision of this
+  fix had retry re-run the whole `start()`, which would have armed a **second**
+  poll interval on every retry — caught before it shipped.
+
+**2. News: every tab except one was frozen** — `src/modules/news/components/NewsClient.tsx`.
+The refresh loop opened with `if (category !== "All" || query) return`. So on
+Bitcoin, DeFi, Tech, For You, or any search, **nothing refreshed at all** — the
+feed was frozen from load until you navigated away and back. That is the "news
+stuck ho jata hai" report, and it was every tab but the default one. `fetchPage`
+already sends the active category and query, so the gate was never load-bearing.
+- Refresh now runs on every tab and every search.
+- Added a refresh on `visibilitychange` / `focus`, so returning to the tab updates
+  immediately instead of waiting out the remainder of a 90s tick — one request per
+  return, rather than a faster background poll for everybody.
+- New stories are inserted **directly** when the reader is at the top of the feed
+  (`scrollY < 200`) instead of waiting behind the "N new stories" pill. The pill
+  exists to stop the feed jumping under someone reading partway down; at the top
+  there is nothing to jump.
+
+**3. News: the same story from three outlets** — `src/modules/news/lib/news.ts`.
+`eventKey()` did `.slice(0, 6)` **before** `.sort()` — the first six long words in
+*title order*, then sorted. So the key was position-sensitive in exactly the case
+it existed to handle: two outlets reporting one event with the headline
+rearranged produced different keys, and both were shown. Demonstrated:
+
+```
+"Bitcoin surges past 100000 as spot ETF inflows hit record levels"
+   -> "100000 bitcoin inflows past spot surges"
+"Spot ETF inflows hit record levels as Bitcoin surges past 100000"
+   -> "bitcoin inflows levels record spot surges"     ← different key, same story
+```
+
+The `w.length > 3` filter made it worse by doing the opposite of what it looks
+like: it drops **ETF, SEC, BTC, Fed, DOJ** — the tokens that identify a story —
+while keeping *with, from, says, after, amid, this*, the words every headline
+shares. `eventKey("Ruling with news from the SEC")` was literally
+`"from news ruling with"`.
+- Replaced the length filter with a stopword list, and `length >= 3` so
+  three-letter identifiers survive.
+- Removed the truncation; the key is now the full sorted significant-word set.
+- Added a similarity pass on top: anything that clears the exact key is compared
+  by Jaccard overlap (≥ 0.6) against already-kept stories within a 36h window, so
+  "approves"/"approved" wordings still collapse without a recurring weekly
+  headline swallowing months of separate pieces.
+- **5 new tests** pin all of this, and were checked against the old
+  implementation first to confirm they fail on it — the previous two tests passed
+  with the bug in place.
+
+**4. Last 3 duplicate files shimmed** — `src/modules/auth/lib/{auth,email}.ts`,
+`src/shared/utils/jsonld.tsx`. The earlier de-duplication only scanned
+`src/components`; a repo-wide scan found three more byte-identical non-shim pairs,
+all with **0 importers** on the copy that looks canonical. Same silent-no-op
+hazard as before, and `auth.ts` in particular is where the next round of latency
+work has to land.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings · **412/412 tests** ✅
+(407 + 5 new) · build ✅ · route table **identical to main** (125 / 22 static /
+103 dynamic, zero rows differ).
+
+---
+
 ## 2026-08-02 (later) — Anchor jump fixed without JS · share card made fast
 
 Follow-up to the entry below, after the owner reported "View products" **still**
@@ -66,6 +152,24 @@ build ✅ · route table **identical to main** (125 / 22 static / 103 dynamic, z
 rows differ) · `/`, `/tools`, `/markets`, `/news`, `/research` all 200 with zero
 horizontal overflow and no page errors · share placeholder confirmed painting
 while the create call is in flight.
+
+**Observable — run, and the answer recorded (pre-merge Step 4).** The owner
+confirmed both fixes working on the PR's Vercel preview deployment, on the real
+handset that had been failing, *before* the merge. That is the check that had
+been missing: #207 shipped on measurements that all passed here and still left
+the button dead on their phone, because every local run happened to be at 390px -
+the one width that lands correctly either way. Verifying on the preview URL on the
+affected device is what closed it.
+
+**Node version pinned** — `package.json` `engines.node` `">=22.0.0"` → `"22.x"`.
+The open-ended range had no upper bound, so the day Vercel offers a newer major
+the build would move to it with nothing in the repo changing, while CI stayed on
+`.nvmrc` = 22. CI green, production on a different runtime: the same silent-drift
+shape as the `db push || echo` swallow and the Tailwind content globs. Note the
+Vercel build warning ("the Node.js Version defined in your project settings won't
+apply") **does not go away** and is not meant to - it fires whenever `engines.node`
+exists at all, and package.json winning is the intended arrangement, since that is
+what keeps Vercel and `.nvmrc`/CI on one number.
 
 ---
 

@@ -240,6 +240,11 @@ export function ChatClient({
   const channelRef = useRef<any>(null);
   const lastTyping = useRef(0);
   const stickRef = useRef(true);
+  // Mirrors `live` for the poll loop to read. The poll runs on a plain interval
+  // that closes over the effect's first render, so it cannot see `live` as
+  // state - and it needs the *current* value on every tick to decide whether
+  // realtime is carrying the room or it has to.
+  const liveRef = useRef(false);
   // Profile fields ride in a ref so a name/avatar edit doesn't tear down and
   // re-subscribe the realtime socket (only an identity change should).
   const meRef = useRef(me);
@@ -344,13 +349,32 @@ export function ChatClient({
     []
   );
 
-  // --- Live updates: Supabase Realtime (+ presence + typing), else polling. ---
+  // --- Live updates: Supabase Realtime (+ presence + typing) AND polling. ---
+  //
+  // "AND", not "else". This used to `return` as soon as realtime was configured,
+  // so the 10s poll below was never armed on a configured deployment - and the
+  // subscribe callback only ever recorded SUBSCRIBED, never acted on
+  // CHANNEL_ERROR / TIMED_OUT / CLOSED. Between them that meant a single failed
+  // or dropped subscription left the room with no live channel, no retry, and no
+  // fallback: messages stopped arriving, the presence count sat at 0, and the
+  // header showed "Reconnecting..." forever while nothing was reconnecting. The
+  // label was the only part of it doing any work.
+  //
+  // Now the poll is always armed and cheap - it early-returns on every tick
+  // while the channel is healthy, so a working room still makes zero extra
+  // requests - and a broken channel is retried with backoff. Whichever recovers
+  // first wins, and the room keeps working either way.
   useEffect(() => {
-    let cleanup: (() => void) | undefined;
+    let teardownRef: (() => void) | undefined;
     let cancelled = false;
+    let retries = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
-    async function start() {
-      if (realtime.url && realtime.anonKey) {
+    // Channel only. Retried on its own; must NOT arm the poll, or every retry
+    // would leave another interval running.
+    async function connect() {
+      if (!realtime.url || !realtime.anonKey) return;
+      {
         const client = await getRealtimeClient(realtime.url, realtime.anonKey);
         if (cancelled) return;
         const channel = client.channel(CHANNEL, { config: { presence: { key: me?.id || `guest-${Math.random().toString(36).slice(2)}` } } });
@@ -410,8 +434,12 @@ export function ChatClient({
             setOnline(list.length);
           })
           .subscribe((status) => {
-            setLive(status === "SUBSCRIBED");
-            if (status === "SUBSCRIBED") {
+            if (cancelled) return;
+            const ok = status === "SUBSCRIBED";
+            setLive(ok);
+            liveRef.current = ok;
+            if (ok) {
+              retries = 0;
               const self = meRef.current;
               channel.track({
                 at: Date.now(),
@@ -420,63 +448,96 @@ export function ChatClient({
                 image: self?.image ?? null,
                 username: self?.username ?? null,
               });
+              return;
+            }
+            // Anything that is not SUBSCRIBED is terminal for this channel
+            // object - supabase-js will not put it back on its own once the
+            // join errors. Build a fresh one, backing off so a project that is
+            // genuinely over its connection limit is not hammered. The poll
+            // below carries the room in the meantime, so this is a quality
+            // upgrade rather than the only thing standing between the user and
+            // a dead page.
+            if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+              setOnline(0);
+              setMembers([]);
+              try {
+                channel.unsubscribe();
+                client.removeChannel(channel);
+              } catch {
+                /* already gone */
+              }
+              const delay = Math.min(1000 * 2 ** retries, 30_000);
+              retries += 1;
+              retryTimer = setTimeout(() => {
+                if (!cancelled) void connect();
+              }, delay);
             }
           });
         channelRef.current = channel;
-        cleanup = () => {
+        const teardownChannel = () => {
           // Fully tear down the subscription (socket) before dropping the channel
           // so repeated mounts don't accumulate connections.
-          channel.unsubscribe();
-          client.removeChannel(channel);
+          try {
+            channel.unsubscribe();
+            client.removeChannel(channel);
+          } catch {
+            /* already gone */
+          }
           channelRef.current = null;
           setLive(false);
+          liveRef.current = false;
           setOnline(0);
           setMembers([]);
         };
-        return;
+        teardownRef = teardownChannel;
       }
-
-      // Polling fallback (10s, paused when hidden).
-      const tick = async () => {
-        if (document.hidden) return;
-        try {
-          const res = await fetch("/api/chat/messages", { cache: "no-store" });
-          const data = await res.json().catch(() => null);
-          if (!res.ok || !data?.messages) return;
-          setMessages((prev) => {
-            // Pure reconcile (unit-tested in chat-view): refresh edits/reactions
-            // on known messages, infer deletions inside the fetched window, and
-            // split out genuinely new messages.
-            const fresh = (data.messages as Message[]).map((m) => ({
-              ...m,
-              reactions: normalizeReactions(m.reactions),
-            }));
-            const { merged, incoming } = reconcilePoll(prev, fresh);
-            if (incoming.length && !stickRef.current) {
-              setUnread((u) => u + incoming.length);
-              if (!firstUnreadRef.current && incoming[0]) {
-                firstUnreadRef.current = incoming[0].id;
-                setFirstUnreadId(incoming[0].id);
-              }
-            }
-            // Blip for messages from others, same as the realtime path.
-            if (soundOnRef.current && incoming.some((m) => m.userId !== meRef.current?.id)) {
-              playBlip(audioCtxRef.current);
-            }
-            return incoming.length ? [...merged, ...incoming] : merged;
-          });
-        } catch {
-          /* transient */
-        }
-      };
-      const t = setInterval(tick, 10_000);
-      cleanup = () => clearInterval(t);
     }
 
-    start();
+    // Polling. Always armed - see the note on this effect. While the
+    // realtime channel is healthy every tick costs nothing but a boolean read,
+    // so a working room issues zero extra requests; the moment the channel is
+    // not SUBSCRIBED this is what keeps messages flowing.
+    const tick = async () => {
+      if (document.hidden) return;
+      if (liveRef.current) return; // realtime has it covered
+      try {
+        const res = await fetch("/api/chat/messages", { cache: "no-store" });
+        const data = await res.json().catch(() => null);
+        if (!res.ok || !data?.messages) return;
+        setMessages((prev) => {
+          // Pure reconcile (unit-tested in chat-view): refresh edits/reactions
+          // on known messages, infer deletions inside the fetched window, and
+          // split out genuinely new messages.
+          const fresh = (data.messages as Message[]).map((m) => ({
+            ...m,
+            reactions: normalizeReactions(m.reactions),
+          }));
+          const { merged, incoming } = reconcilePoll(prev, fresh);
+          if (incoming.length && !stickRef.current) {
+            setUnread((u) => u + incoming.length);
+            if (!firstUnreadRef.current && incoming[0]) {
+              firstUnreadRef.current = incoming[0].id;
+              setFirstUnreadId(incoming[0].id);
+            }
+          }
+          // Blip for messages from others, same as the realtime path.
+          if (soundOnRef.current && incoming.some((m) => m.userId !== meRef.current?.id)) {
+            playBlip(audioCtxRef.current);
+          }
+          return incoming.length ? [...merged, ...incoming] : merged;
+        });
+      } catch {
+        /* transient */
+      }
+    };
+    const pollTimer = setInterval(tick, 10_000);
+
+    void connect();
     return () => {
       cancelled = true;
-      cleanup?.();
+      clearTimeout(retryTimer);
+      clearInterval(pollTimer);
+      teardownRef?.();
     };
     // Re-subscribe only when the connection target or the signed-in identity
     // changes; profile fields (name/image/username) ride in meRef.

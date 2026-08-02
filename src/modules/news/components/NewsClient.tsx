@@ -56,6 +56,11 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const firstRun = useRef(true);
   const itemsRef = useRef(items);
   useEffect(() => { itemsRef.current = items; }, [items]);
+  // Same pattern, for the refresh loop: it lives in an effect keyed on
+  // `fetchPage`, so it cannot read `pending` as state without re-arming the
+  // interval every time a story arrives.
+  const pendingRef = useRef(pending);
+  useEffect(() => { pendingRef.current = pending; }, [pending]);
 
   // Start the "now" clock (client-only to avoid hydration drift).
   useEffect(() => {
@@ -177,21 +182,64 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // instead of jumping the feed. (Real device notifications are handled by
   // NewsAlertsToggle / web-push.)
   useEffect(() => {
-    if (category !== "All" || query) return;
-    const t = setInterval(async () => {
+    // This used to bail out unless you were on the unfiltered "All" tab with no
+    // search: `if (category !== "All" || query) return`. So on Bitcoin, DeFi,
+    // Tech, For You, or any search, nothing refreshed at all - the feed you were
+    // looking at was frozen from the moment it loaded until you navigated away
+    // and back. That is the "news stuck ho jata hai" report, and it was every
+    // tab except one. `fetchPage` already sends the active category and query,
+    // so there was never a reason for the gate.
+    const refresh = async () => {
       if (document.hidden) return; // don't poll while the tab is backgrounded
       const r = await fetchPage(1);
       if (!r?.items?.length) return;
       setLive(Boolean(r.live));
+
+      // Buffering every new story behind a "N new stories" pill exists to stop
+      // the feed jumping under someone who is reading partway down. At the top
+      // of the feed there is nothing to jump - so insert straight away and let
+      // the news actually arrive, rather than making the reader tap a pill to
+      // see something they are already looking at the right place for.
+      if (typeof window !== "undefined" && window.scrollY < 200) {
+        const buffered = pendingRef.current;
+        setItems((prev) => {
+          const known = new Set(prev.map((i) => i.id));
+          // De-dupe within the incoming batch too: a story can be in both the
+          // pending buffer and this fetch.
+          const byId = new Map<string, NewsItem>();
+          for (const i of [...buffered, ...r.items]) if (!known.has(i.id)) byId.set(i.id, i);
+          const fresh = [...byId.values()];
+          return fresh.length ? [...fresh, ...prev] : prev;
+        });
+        if (buffered.length) setPending([]);
+        return;
+      }
+
       setPending((prevPending) => {
         const known = new Set([...itemsRef.current.map((i) => i.id), ...prevPending.map((i) => i.id)]);
         const fresh = r.items.filter((i) => !known.has(i.id));
         return fresh.length ? [...fresh, ...prevPending] : prevPending;
       });
-    }, 90_000);
-    return () => clearInterval(t);
-     
-  }, [category, query, fetchPage]);
+    };
+
+    const t = setInterval(refresh, 90_000);
+
+    // Refresh the moment the reader comes back, rather than making them wait out
+    // whatever is left of a 90s tick. Returning to a tab is the point at which
+    // stale content is most obvious, and this costs one request per return
+    // instead of a faster background poll for everyone.
+    const onVisible = () => {
+      if (!document.hidden) void refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [fetchPage]);
 
   // Reveal buffered stories at the top of the feed.
   const revealPending = useCallback(() => {
