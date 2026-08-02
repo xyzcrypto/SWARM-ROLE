@@ -5,6 +5,73 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-02 (4) — Functions moved to Mumbai; the serial round trips removed
+
+Owner asked why everything feels slow to open, and whether the answer is "do the
+processing in the backend". **It is not a processing problem.** Nothing here is
+CPU-bound — it is waiting.
+
+```
+functions:  iad1  (Washington DC)      ← Vercel default, never configured
+database:   Supabase, Mumbai            ← confirmed by the owner
+```
+
+`vercel.json` was `{}`, so the function region had never been set and defaulted
+to `iad1`. Every DB round trip therefore crosses the Atlantic and the Indian
+Ocean: **~250 ms each, fixed, no matter how the query is written.** A handler
+doing four serial queries spends a second doing nothing but waiting. Most users
+(and the owner) are in India, so their request pays that geography twice — phone
+→ Virginia, Virginia → Mumbai, and back.
+
+**`vercel.json` → `{ "regions": ["bom1"] }`.** One line, and by far the largest
+single lever available: ~250 ms → ~5 ms per round trip, and India-based visitors
+now reach the function in ~30 ms instead of ~250 ms. (`vercel.json` is strict
+JSON and cannot carry comments, which is why the reasoning lives here.)
+
+⚠️ **Verify on the preview deployment before trusting it.** Hobby allows one
+region, but if the plan rejects the key the build fails loudly rather than
+silently ignoring it — check the deployment's Function Region reads `bom1`.
+
+**Serial round trips removed** — each of these had independent queries awaited
+one after another, so the fix is a reorder with no behaviour change:
+- `api/chat/messages` GET — history and the pinned banner are independent, now
+  `Promise.all`. **This is chat-open time.** The `/community` *page* already did
+  exactly this, with the comment "run in parallel (independent queries)"; the API
+  route serving the same two pieces of data did not. Saves 1 round trip.
+- `api/journal/challenges/[id]` GET — three independent reads (all trades, my
+  trades, day notes) collapsed into one `Promise.all`. Saves 2.
+- `api/posts/[id]/like` POST — the post lookup and the existing-like lookup do
+  not depend on each other. Saves 1. The write gate is unchanged: a like is still
+  only created after the published check passes.
+
+**Not done, deliberately:** `/u/[username]` (audit finding #11). The audit rates
+it its **lowest-confidence** item — relation-keyed counts may plan worse than
+id-keyed ones, and it wants `EXPLAIN ANALYZE` against real cardinality first.
+Shipping it blind on the strength of "it looks parallelisable" is how the last
+few silent regressions in this repo happened.
+
+**Message send was already optimistic** and needed nothing: `doSend()` renders
+the message immediately with a temp id and reconciles against the server copy
+(and against the realtime echo). What made it *feel* slow was the round trip
+underneath it, which the region move addresses.
+
+**The most dangerous comment in the codebase, corrected** (`src/core/auth/auth.ts`).
+It read "(routes always re-check DB anyway)" as the justification for
+`MEMBERSHIP_TTL_MS`. That is **false** — `requirePermission()`, `getSessionUser()`
+and `getAdminSession()` all read JWT claims only, nothing re-verifies against the
+database. So the token *is* the authorization decision and that refresh is the
+only thing that makes revoking a role or membership take effect. A latency audit
+read that sentence, concluded the TTL was redundant, and recommended raising it
+to 30 minutes — which would have let a just-demoted admin keep admin for half an
+hour. It was withdrawn only because someone went and checked. The comment now
+says so, at length, next to the constant.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings · 412/412 tests ✅ ·
+build ✅ · route table **identical to main** (125 / 22 static / 103 dynamic, zero
+rows differ).
+
+---
+
 ## 2026-08-02 (3) — Live features that stopped being live: chat and news
 
 Two owner reports, both traced to the same shape of bug: a fallback that was

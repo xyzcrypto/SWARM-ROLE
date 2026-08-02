@@ -314,8 +314,23 @@ export const authOptions: NextAuthOptions = {
       const MEMBERSHIP_TTL_MS = 60_000;
       const stale =
         typeof (token as any).syncedAt !== "number" || Date.now() - (token as any).syncedAt > MEMBERSHIP_TTL_MS;
-      // This also pulls fresh name/image/username/permissions so profile + access edits
-      // reflect in the UI without a re-login (routes always re-check DB anyway).
+      // This also pulls fresh name/image/username/permissions so profile + access
+      // edits reflect in the UI without a re-login.
+      //
+      // ⚠️ This used to end "(routes always re-check DB anyway)". That was FALSE,
+      // and it is the most dangerous sentence that has been in this file.
+      // `requirePermission()`, `getSessionUser()` and `getAdminSession()`
+      // (src/shared/utils/api.ts) all read **JWT claims only** - nothing
+      // re-verifies authorization against the database. So the token *is* the
+      // authorization decision, and this refresh is the only thing that makes
+      // revoking a role, a membership or a permission take effect at all.
+      //
+      // A latency audit read that comment, concluded the TTL was redundant
+      // belt-and-braces, and recommended raising it to 30 minutes. That would
+      // have let a just-demoted admin keep admin - on every server-rendered
+      // path - for half an hour. The recommendation was withdrawn only because
+      // someone went and checked. Do not raise MEMBERSHIP_TTL_MS to save round
+      // trips; cut request volume instead. See docs/AUDIT-2026-08-01-latency.md.
       if (
         token.email &&
         (!token.role || !token.membership || (token as any).isSuperAdmin === undefined || trigger === "update" || stale)
