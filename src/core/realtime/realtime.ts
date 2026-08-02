@@ -12,8 +12,34 @@ import { env, realtimeEnabled } from "@/lib/env";
 // `@/lib/realtime-channels` directly — see the note in that file.
 export { CH_SITE, CH_MEMBERS, CH_NOTIFY, userChannel } from "@/lib/realtime-channels";
 
+// Warn once per process rather than on every call - this fires from ~20 sites.
+let warnedDisabled = false;
+
 export async function broadcastEvent(topic: string, event: string, payload: unknown): Promise<void> {
-  if (!realtimeEnabled) return;
+  if (!realtimeEnabled) {
+    // This used to be a bare `return`. Every live push on the site - the DM
+    // badge, the chat message fan-out, the notification bell ping - goes
+    // through here, so an unset SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY turned
+    // all of them off *silently*, with nothing anywhere saying so. The symptom
+    // is "notifications don't arrive", which reads as a client bug and sends
+    // you looking in entirely the wrong place.
+    //
+    // Note these are the SERVER credentials, and they are NOT the same as the
+    // NEXT_PUBLIC_ pair the browser uses to subscribe. Either half can be
+    // configured without the other, which is exactly how you end up with a chat
+    // that connects but never receives anything, or vice versa.
+    if (!warnedDisabled) {
+      warnedDisabled = true;
+      console.error(
+        "[realtime] DISABLED: SUPABASE_URL and/or SUPABASE_SERVICE_ROLE_KEY are unset, so " +
+          "broadcastEvent() is a no-op. DM notifications, live chat delivery and the " +
+          "notification bell will not push - clients fall back to polling. Note this is the " +
+          "same credential pair as image uploads (storageEnabled), so if uploads return 501 " +
+          "in production, this is why realtime is dead too."
+      );
+    }
+    return;
+  }
   try {
     const res = await fetch(`${env.SUPABASE_URL}/realtime/v1/api/broadcast`, {
       method: "POST",

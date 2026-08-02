@@ -5,6 +5,67 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-02 (6) — Chat online count no longer depends on realtime; DM badge unstranded
+
+Owner reported the chat still showing "Reconnecting…" with 0 online after the
+(3) fix, plus DM notifications not arriving. The (3) fix was correct — it made
+the room *survive* a dead channel (retry + always-armed polling) — but it never
+addressed **why the channel dies**, and presence still had realtime as its only
+source. So messages flowed and the count stayed 0.
+
+**The thing that makes this confusing: there are FOUR Supabase env vars, in two
+independent pairs, and either pair can be missing on its own.**
+
+| Half | Vars | Powers |
+|---|---|---|
+| Client | `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` | subscribing, **presence = the online count** |
+| Server | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | `broadcastEvent()` = **DM ping, chat fan-out, bell** |
+
+`realtimeEnabled = storageEnabled` — the **same pair as image uploads**. So:
+**if uploads return 501 in production, server-side realtime is dead too**, and
+that one check identifies it in ten seconds.
+
+**Server-backed presence** — `prisma/schema.prisma` (new `ChatPresence`),
+`src/app/api/chat/presence/route.ts` (new), `ChatClient.tsx`.
+The online count is now a plain DB query, not a WebSocket feature. Each open room
+heartbeats every 45s; one upserted row per user per room, so it grows with
+distinct members rather than traffic, and stale rows fall out of a 90s window on
+read. Realtime presence still wins when the channel is healthy (it is instant and
+authoritative on join/leave) — this only fills the gap. Verified end-to-end
+against a real Postgres: anonymous → 401; one member → `online=1`; a second
+joins → `online=2` with both names resolved.
+
+**`broadcastEvent()` no longer fails silently** — `src/core/realtime/realtime.ts`.
+It opened with `if (!realtimeEnabled) return`, so unset server credentials turned
+off every live push on the site — DM badge, chat delivery, notification bell —
+with **nothing anywhere saying so**. The symptom is "notifications don't arrive",
+which reads as a client bug and sends you looking in the wrong place entirely.
+Now logs once, loudly, naming the vars and the uploads-501 correlation.
+
+**The chat status pill now says why** — `ChatClient.tsx`. `subscribe()`'s second
+argument (the underlying error) was being discarded. "Reconnecting…" looks
+identical whether the anon key is wrong, the project is paused, the connection cap
+is hit, or the network blinked. The reason is now captured, logged, and attached
+as a `title` tooltip — same label, same colours, same layout.
+
+**DM badge no longer stranded on a 60s poll** —
+`src/modules/notifications/components/NavActivity.tsx`. When the server half of
+realtime is unconfigured, `broadcastEvent()` is a no-op and this poll is the
+*only* thing that ever moves the badge; 60s is fine as a backstop to realtime but
+poor as the sole path. The two cheap unread counts (`/api/dm/unread`,
+`/api/chat/last-activity` — small indexed queries) now also refresh every 20s and
+on tab focus. The full notification list stays on 60s.
+
+⚠️ **This adds a table.** `ChatPresence` is purely additive and cannot break
+existing queries, but production must run the migration — see the standing owner
+action. Route count goes 125 → **126** (`/api/chat/presence`, dynamic); that is
+the only route-table change and it is intentional.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings · 412/412 tests ✅ ·
+build ✅ · presence endpoint verified end-to-end against real Postgres.
+
+---
+
 ## 2026-08-02 (5) — Cross-device responsive & scrolling audit (design frozen)
 
 Full report: `docs/AUDIT-2026-08-02-responsive.md`. Measured across **9 viewports ×

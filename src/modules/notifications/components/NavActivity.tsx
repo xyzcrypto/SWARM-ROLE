@@ -18,7 +18,19 @@ type Note = {
   createdAt: string;
 };
 
-const POLL_MS = 60_000; // fallback poll - realtime "ping" handles instant updates
+// Fallback poll. Realtime's "ping" handles instant updates *when it works* -
+// but it needs BOTH halves of the Supabase setup, and they are separate
+// credentials: the browser subscribes with NEXT_PUBLIC_SUPABASE_URL/ANON_KEY,
+// while the server pushes with SUPABASE_URL/SERVICE_ROLE_KEY via
+// broadcastEvent(). Either half can be missing on its own, and when the server
+// half is, broadcastEvent() is a no-op and this poll is the ONLY thing that
+// ever moves the DM badge. 60s was fine as a backstop to realtime; as the sole
+// path it means a DM can sit unnoticed for a minute.
+const POLL_MS = 60_000;
+// So: poll the cheap unread counts faster while the tab is actually in front of
+// the user. /api/dm/unread and /api/chat/last-activity are small, indexed
+// count queries - not the full notification list, which stays on POLL_MS.
+const FAST_POLL_MS = 20_000;
 const CHAT_SEEN_KEY = "xyz:chatSeen";
 
 function timeAgo(iso: string): string {
@@ -91,14 +103,39 @@ export function NavActivity() {
     loadNotes();
     loadChat();
     loadDm();
-    const id = setInterval(() => {
+    // Full refresh, including the notification list.
+    const slow = setInterval(() => {
       if (document.visibilityState === "visible") {
         loadNotes();
         loadChat();
         loadDm();
       }
     }, POLL_MS);
-    return () => clearInterval(id);
+    // Just the two cheap unread counts, three times as often. These are the
+    // badges a person actually watches, and they are the ones left stranded
+    // when the server half of realtime is unconfigured.
+    const fast = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        loadDm();
+        loadChat();
+      }
+    }, FAST_POLL_MS);
+    // Coming back to the tab is the moment a stale badge is most obvious, and
+    // it costs one request instead of a permanently faster background poll.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        loadDm();
+        loadChat();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      clearInterval(slow);
+      clearInterval(fast);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
   }, [loadNotes, loadChat, loadDm]);
 
   // Refetch the DM unread count on every navigation so the badge drops as soon
