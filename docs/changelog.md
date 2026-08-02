@@ -5,6 +5,61 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (2) — Dialogs made opaque; hero button stops depending on the chain
+
+**Dialogs were rendering body text on top of photographs** —
+`src/app/globals.css` (new `.panel-solid`), `NewsClient.tsx`,
+`BriefingBlock.tsx`, `FollowListModal.tsx`.
+
+`.glass` and `.surface` are translucent by design: a white wash plus a backdrop
+blur, with **no opaque colour of their own**. That reads beautifully for a card
+sitting ON a page and badly for a dialog sitting OVER one — the news reader
+showed the feed and its article thumbnails straight through the briefing text,
+and the followers list showed the profile's avatar, bio and stat tiles through
+the names. Blur softens that; it cannot fix it, because the contrast underneath
+is arbitrary.
+
+New `.panel-solid` supplies only the solid base, composed *with* the existing
+material so border, shadow and blur are unchanged. **Two ordering traps, both
+easy to reintroduce:**
+- It must be declared **after** `.glass`/`.surface`. Their `background:`
+  shorthand resets `background-color` to transparent, so a rule declared earlier
+  is silently wiped by the very class it is meant to sit under. (First attempt
+  did exactly that.)
+- It cannot be combined with a Tailwind `bg-*` on the same element — that also
+  sets `background-color` and wins. `BriefingBlock`'s 6% gold tint is therefore
+  **pre-blended** to `#181411` (that same `#e2a72f` at 6% over `#0b0b0f`), so it
+  looks identical over a dark background and is simply opaque now.
+
+Also fixed while there: the followers modal was `max-h-[75vh]`. On a phone `vh`
+measures the viewport as though the browser chrome were hidden, and the bottom
+nav covers the lower part of the screen, so the last row and the end of the
+scroll sat behind it. Now `min(75svh, 100svh - 9rem - safe-area)`. The news
+reader moved `90vh` → `90svh` for the same reason — its action bar sat under the
+address bar.
+
+**Hero "View products" no longer depends on the Link → router → listener chain** —
+`HashScroll.tsx` (exports `scrollToHash`), `Hero.tsx`.
+Reported dead on mobile **three separate times**. Each fix was measured correct
+here — the anchor lands at exactly `scroll-padding-top` on 320/360/390/1280 — and
+still failed on the owner's phone. That pattern says the failure is somewhere
+between the tap and the scroll, not in the landing maths, and continuing to
+re-measure the landing was not going to find it.
+
+So it stops depending on that chain: the button now calls `scrollToHash()`
+directly from its own `onClick`. `href` stays for semantics, SEO and
+middle-click; `preventDefault()` fires **only when the target actually exists**,
+so removing `#products` some day degrades to normal browser behaviour rather
+than a silently swallowed click. `HashScroll`'s document listener stays as the
+general case for every other in-page anchor. Verified end to end through the new
+path at 320/390/1280 — all land at 88px with the heading visible.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings · 415/415 tests ✅ ·
+build ✅ · `.panel-solid` resolves to `rgb(11,11,15)` and the briefing to
+`rgb(24,20,17)` in the built CSS (both opaque, checked in a real browser).
+
+---
+
 ## 2026-08-03 — News feed unpinned; two self-inflicted egress regressions walked back
 
 **Supabase is over its free egress quota: 6.56 GB used of 5 GB, with the org

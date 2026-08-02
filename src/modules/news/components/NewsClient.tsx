@@ -769,7 +769,16 @@ function NewsReader({
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.98 }}
         transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-        className="surface relative flex w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90vh] sm:rounded-2xl"
+        // panel-solid: the reader is a dialog OVER the feed, and `.surface`
+        // alone is translucent - so the feed behind it, article thumbnails
+        // included, showed straight through and the briefing text ended up
+        // sitting on a photograph. The blur softened it without fixing the
+        // contrast. Solid base underneath, same glass material on top.
+        //
+        // svh, not vh: on a phone the reader is full-height, and vh measures
+        // the viewport as if the browser chrome were hidden, so the action bar
+        // ("Read original", prev/next) sat under the address bar.
+        className="panel-solid surface relative flex max-h-[100svh] w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90svh] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}

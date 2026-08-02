@@ -98,7 +98,19 @@ export function FollowListModal({
           initial={{ opacity: 0, y: 14, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 14, scale: 0.97 }}
           transition={{ duration: 0.18 }}
           onClick={(e) => e.stopPropagation()}
-          className="glass flex max-h-[75vh] w-full max-w-md flex-col overflow-hidden rounded-3xl"
+          // panel-solid: `.glass` alone is translucent, so the profile page
+          // behind this - avatar, bio, banner, stat tiles - showed straight
+          // through the list and tangled with the names on top of it. Solid
+          // base, same glass material and border above it.
+          //
+          // Height: was max-h-[75vh]. Two problems on a phone. `vh` measures
+          // the viewport as though the browser chrome were hidden, so 75vh is
+          // taller than 75% of what you can actually see; and the bottom nav
+          // (3.5rem + safe area) sits over the lower part of the screen, so the
+          // last row and the scroll end were behind it. `svh` is the honest
+          // number, and subtracting the nav plus the p-4 gutter is what makes
+          // the whole list reachable.
+          className="panel-solid glass flex max-h-[min(75svh,100svh-9rem-env(safe-area-inset-bottom))] w-full max-w-md flex-col overflow-hidden rounded-3xl"
         >
           <div className="flex items-center border-b border-white/10">
             {(["followers", "following"] as Tab[]).map((t) => (

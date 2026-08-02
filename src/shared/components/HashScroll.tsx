@@ -105,6 +105,31 @@ function settleScrollTo(el: HTMLElement) {
   requestAnimationFrame(step);
 }
 
+/**
+ * Scroll to an in-page target by hash, e.g. `scrollToHash("#products")`.
+ *
+ * Exported so a component can invoke the exact same landing logic directly from
+ * its own onClick, instead of relying on the document-level listener below. The
+ * hero's "View products" does that: it was reported broken three separate times,
+ * each fix measured correct here and still failed on the owner's phone, so it no
+ * longer depends on the chain (Link -> router -> document listener -> scroll) at
+ * all. Belt and braces - whichever path runs first wins, and running both is
+ * harmless because the second finds the target already in place.
+ *
+ * Returns false if there is no such element, so the caller can let the browser
+ * handle it normally rather than swallowing a click that would have worked.
+ */
+export function scrollToHash(hash: string): boolean {
+  if (typeof document === "undefined") return false;
+  const el = targetFor(hash);
+  if (!el) return false;
+  if (window.location.hash !== hash) {
+    window.history.pushState(null, "", hash);
+  }
+  settleScrollTo(el);
+  return true;
+}
+
 function targetFor(hash: string): HTMLElement | null {
   if (!hash || hash === "#") return null;
   let id = hash.slice(1);
