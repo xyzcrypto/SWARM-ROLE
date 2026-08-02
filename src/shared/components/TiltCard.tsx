@@ -2,14 +2,38 @@
 
 import { useRef, type ReactNode } from "react";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { useMediaQuery } from "@/lib/useClientFlag";
 import { cn } from "@/lib/utils";
 
-// A subtle pointer-driven 3D tilt wrapper for cards. Mirrors the Hero medallion
-// math (rAF-throttled pointer read → spring rotateX/rotateY) so it feels premium
-// without jank. No-op on touch (pointerType !== "mouse") and when the visitor
-// prefers reduced motion; springs back flat on leave. Wraps an existing card as
-// a separate transform layer, so the card keeps its own .surface/.lift/group.
+// Tilt only makes sense where there is a hovering, precise pointer. A finger
+// cannot hover, so the effect was already a no-op on touch - but the 3D
+// transform context it set up was NOT, and that is what broke tapping.
+//
+// `transformStyle: preserve-3d` establishes a 3D rendering context, and on
+// mobile browsers that changes how hit-testing resolves for descendants: taps
+// on a link inside a preserve-3d subtree land unreliably or not at all. The
+// product cards wrap their <Link> in this, so on a phone the card simply did
+// not navigate.
+//
+// The fix is therefore not to disable the tilt - it was already disabled - but
+// to stop creating the 3D context at all unless the tilt can actually run.
+const FINE_POINTER = "(hover: hover) and (pointer: fine)";
+
+/**
+ * A subtle pointer-driven 3D tilt wrapper for cards. Mirrors the Hero medallion
+ * math (rAF-throttled pointer read → spring rotateX/rotateY) so it feels premium
+ * without jank. Springs back flat on leave. Wraps an existing card as a separate
+ * transform layer, so the card keeps its own .surface/.lift/group.
+ *
+ * On touch devices, and under prefers-reduced-motion, it renders a plain wrapper
+ * with no transform and no motion component - which also keeps framer-motion off
+ * the interaction path on phones entirely.
+ */
 export function TiltCard({ children, className, max = 6 }: { children: ReactNode; className?: string; max?: number }) {
+  const finePointer = useMediaQuery(FINE_POINTER);
+  const reduced = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const active = finePointer && !reduced;
+
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [max, -max]), { stiffness: 150, damping: 15 });
@@ -17,8 +41,7 @@ export function TiltCard({ children, className, max = 6 }: { children: ReactNode
   const raf = useRef(0);
 
   function onMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (e.pointerType !== "mouse") return; // no tilt on touch/pen
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (e.pointerType !== "mouse") return; // belt-and-braces alongside the media query
     if (raf.current) return;
     const el = e.currentTarget;
     const { clientX, clientY } = e;
@@ -31,10 +54,19 @@ export function TiltCard({ children, className, max = 6 }: { children: ReactNode
   }
 
   function onLeave() {
-    if (raf.current) { cancelAnimationFrame(raf.current); raf.current = 0; }
+    if (raf.current) {
+      cancelAnimationFrame(raf.current);
+      raf.current = 0;
+    }
     mx.set(0);
     my.set(0);
   }
+
+  // No 3D context, no motion wrapper - nothing between the finger and the link.
+  // `useMediaQuery` server-renders false, so SSR and first paint take this
+  // branch on every device; the tilt layer is added after hydration only where
+  // it can actually be used.
+  if (!active) return <div className={cn("h-full", className)}>{children}</div>;
 
   return (
     <motion.div
