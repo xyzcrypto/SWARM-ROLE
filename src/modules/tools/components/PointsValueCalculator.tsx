@@ -58,7 +58,16 @@ export function PointsValueCalculator() {
     // browsers (Safari especially) only let window.open() bypass the popup
     // blocker when it's called directly from a user gesture, not after an
     // awaited fetch. We navigate this pre-opened tab once the id comes back.
-    const win = window.open("", "_blank", "noopener,noreferrer");
+    //
+    // No "noopener" here, deliberately. Per the HTML spec, `noopener` makes
+    // window.open() return null - there is no handle to hand back, that is the
+    // whole point of it. So `win` was ALWAYS null, the pre-opened tab was
+    // orphaned on about:blank (and on mobile it takes focus, so you stare at a
+    // blank page), and the code fell through to navigating the original tab
+    // behind it - which is why the share card only appeared after going back.
+    // The destination is our own same-origin route, so the opener reference
+    // noopener would have severed carries no cross-origin risk.
+    const win = window.open("", "_blank");
     try {
       const res = await fetch("/api/tools/share/create", {
         method: "POST",

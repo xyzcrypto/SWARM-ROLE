@@ -5,7 +5,15 @@ import { useSyncExternalStore } from "react";
 export type TickerCoin = { symbol: string; name: string; price: number; change: number; image: string };
 type TickerState = { coins: TickerCoin[] | null; live: boolean; loading: boolean };
 
-const POLL_MS = 150_000; // was 60s - polling slower than that just re-fetches the same cached response and burns Function Invocations for nothing
+// Was 60s - polling slower than that just re-fetches the same cached response
+// and burns Function Invocations for nothing.
+//
+// Paired with `revalidate` / `s-maxage` in app/api/ticker/route.ts, which must
+// stay LARGER than this. They were 60s against this 150s poll, so the cache had
+// always expired ~90s before each poll arrived: every single poll missed and
+// regenerated, which made this the top driver of the ISR Writes overage. If you
+// change this number, change that one too.
+const POLL_MS = 150_000;
 
 let state: TickerState = { coins: null, live: false, loading: true };
 const listeners = new Set<() => void>();
