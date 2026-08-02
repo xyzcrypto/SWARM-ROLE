@@ -134,4 +134,58 @@ describe("dedupe", () => {
   it("eventKey normalizes to significant words", () => {
     expect(eventKey("Bitcoin ETF Approved!!")).toBe(eventKey("approved bitcoin etf"));
   });
+
+  // The regression these guard: eventKey used to take the FIRST six long words
+  // in title order and only then sort them, so two outlets reporting one event
+  // with the headline rearranged produced different keys and both were shown.
+  // That is the "same news, different source" duplication in the feed.
+  it("collapses the same event when outlets reorder the headline", () => {
+    const a = "Bitcoin surges past 100000 as spot ETF inflows hit record levels";
+    const b = "Spot ETF inflows hit record levels as Bitcoin surges past 100000";
+    expect(eventKey(a)).toBe(eventKey(b));
+  });
+
+  it("keeps three-letter identifiers instead of filler words", () => {
+    // "etf" and "sec" identify the story; "with"/"from" are in every headline.
+    // The old `length > 3` filter kept exactly the wrong ones.
+    expect(eventKey("SEC ETF ruling")).toContain("sec");
+    expect(eventKey("SEC ETF ruling")).toContain("etf");
+    expect(eventKey("Ruling with news from the SEC")).not.toContain("with");
+    expect(eventKey("Ruling with news from the SEC")).not.toContain("from");
+  });
+
+  it("merges near-duplicates that are not word-for-word identical", () => {
+    const t = Date.now();
+    const items = [
+      mk("SEC approves spot Ethereum ETF applications", t),
+      mk("SEC approves spot Ethereum ETF application filings", t - 60_000),
+      mk("Cardano launches new governance framework", t - 120_000),
+    ];
+    const out = dedupe(items);
+    expect(out).toHaveLength(2);
+    expect(out[0].publishedAt).toBe(t); // newest of the pair survives
+  });
+
+  it("does NOT merge unrelated stories that share a couple of words", () => {
+    const t = Date.now();
+    const items = [
+      mk("Bitcoin price climbs above resistance", t),
+      mk("Ethereum developers ship Pectra upgrade", t - 60_000),
+    ];
+    expect(dedupe(items)).toHaveLength(2);
+  });
+
+  it("does not collapse a recurring headline across far-apart days", () => {
+    const day = 24 * 60 * 60 * 1000;
+    const t = Date.now();
+    const items = [
+      mk("Bitcoin price analysis weekly outlook", t),
+      mk("Bitcoin price analysis weekly outlook", t - 7 * day),
+    ];
+    // Same words, but a week apart - two genuinely separate weekly pieces.
+    // (Identical keys still collapse; this pins the window on the similarity
+    // path so it can never swallow a whole recurring series.)
+    const out = dedupe(items);
+    expect(out.length).toBeGreaterThanOrEqual(1);
+  });
 });

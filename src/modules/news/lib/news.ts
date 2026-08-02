@@ -223,28 +223,101 @@ export function parseFeed(xml: string): RawItem[] {
   return items;
 }
 
-/** Stable-ish id + dedupe key from a title (groups reports of the same event). */
-export function eventKey(title: string): string {
+// Headline filler. The old key filtered on `w.length > 3`, which was meant to
+// drop noise but does the opposite: it keeps "with", "from", "says", "after",
+// "amid", "could", "this" - the words every headline shares - while throwing
+// away "ETF", "SEC", "BTC", "Fed", "DOJ", the three-letter tokens that actually
+// identify a story. Filtering by meaning rather than length fixes both ends.
+const STOPWORDS = new Set([
+  "the", "and", "for", "but", "not", "you", "all", "any", "are", "was", "were", "with", "from",
+  "this", "that", "these", "those", "have", "has", "had", "been", "being", "will", "would",
+  "can", "could", "should", "may", "might", "must", "into", "onto", "over", "under", "after",
+  "before", "amid", "about", "than", "then", "them", "they", "their", "there", "here", "what",
+  "when", "where", "which", "who", "whom", "how", "why", "its", "his", "her", "our", "your",
+  "new", "now", "more", "most", "less", "least", "very", "just", "also", "still", "yet", "how",
+  "says", "said", "say", "report", "reports", "reported", "update", "updates", "latest",
+  "news", "breaking", "live", "watch", "read", "here", "out", "off", "per", "via", "amid",
+]);
+
+/** The words in a title that actually identify the story it is about. */
+function significantWords(title: string): string[] {
   return title
     .toLowerCase()
     .replace(/[^a-z0-9 ]+/g, " ")
     .split(/\s+/)
-    .filter((w) => w.length > 3)
-    .slice(0, 6)
-    .sort()
-    .join(" ");
+    .filter((w) => w.length >= 3 && !STOPWORDS.has(w));
 }
+
+/**
+ * Stable-ish id + exact-match dedupe key from a title.
+ *
+ * Sorted, so word order does not matter - and NOT truncated. The old key did
+ * `.slice(0, 6)` *before* `.sort()`, taking the first six long words in title
+ * order. That made the key position-sensitive in exactly the case it existed to
+ * handle: two outlets reporting one event with the headline rearranged got
+ * different first-six sets, so different keys, so both were shown. Hence the
+ * same story appearing several times from several sources.
+ */
+export function eventKey(title: string): string {
+  return [...new Set(significantWords(title))].sort().join(" ");
+}
+
+/** Overlap of two token sets, 0..1 (intersection over union). */
+function similarity(a: Set<string>, b: Set<string>): number {
+  if (!a.size || !b.size) return 0;
+  let shared = 0;
+  for (const w of a) if (b.has(w)) shared += 1;
+  return shared / (a.size + b.size - shared);
+}
+
+// Two outlets rarely produce the *identical* significant-word set - one says
+// "approves", another "approved", one adds the dollar figure. An exact key
+// alone will always miss those, so anything that clears the exact check is
+// then compared for overlap against what has already been kept.
+const SIMILARITY_THRESHOLD = 0.6;
+// Reports of one event cluster in time. Bounding the comparison to a window
+// keeps this from being a full O(n^2) sweep, and stops a recurring headline
+// ("Bitcoin price analysis") from collapsing months of separate stories.
+const SAME_EVENT_WINDOW_MS = 36 * 60 * 60 * 1000;
 
 /** Remove near-duplicate stories (same event across outlets); keeps the newest. */
 export function dedupe(items: NewsItem[]): NewsItem[] {
-  const seen = new Map<string, NewsItem>();
+  const byKey = new Map<string, NewsItem>();
+  const kept: Array<{ item: NewsItem; words: Set<string> }> = [];
+
   for (const it of [...items].sort((a, b) => b.publishedAt - a.publishedAt)) {
-    const k = eventKey(it.title);
+    const words = new Set(significantWords(it.title));
+    const k = [...words].sort().join(" ");
+
     if (!k) {
-      seen.set(it.id, it);
+      // Nothing usable in the title - fall back to identity so it is never
+      // silently merged into an unrelated story.
+      byKey.set(it.id, it);
+      kept.push({ item: it, words });
       continue;
     }
-    if (!seen.has(k)) seen.set(k, it);
+    if (byKey.has(k)) continue; // exact same event, already have the newer one
+
+    // Near-duplicate check against what survived. Items arrive newest-first, so
+    // `kept` runs newest to oldest and the entries closest in time to `it` are
+    // at the END - walk backwards from there and stop as soon as we are past
+    // the window. (`prev` is always the newer of the two, so the subtraction
+    // goes prev - it; the other way round is always negative and would never
+    // break, quietly turning this into a full O(n^2) sweep.)
+    let duplicate = false;
+    for (let i = kept.length - 1; i >= 0; i--) {
+      const prev = kept[i];
+      if (prev.item.publishedAt - it.publishedAt > SAME_EVENT_WINDOW_MS) break;
+      if (similarity(words, prev.words) >= SIMILARITY_THRESHOLD) {
+        duplicate = true;
+        break;
+      }
+    }
+    if (duplicate) continue;
+
+    byKey.set(k, it);
+    kept.push({ item: it, words });
   }
-  return [...seen.values()].sort((a, b) => b.publishedAt - a.publishedAt);
+
+  return kept.map((k) => k.item).sort((a, b) => b.publishedAt - a.publishedAt);
 }
