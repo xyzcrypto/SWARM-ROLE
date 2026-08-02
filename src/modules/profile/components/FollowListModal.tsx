@@ -103,14 +103,19 @@ export function FollowListModal({
           // through the list and tangled with the names on top of it. Solid
           // base, same glass material and border above it.
           //
-          // Height: was max-h-[75vh]. Two problems on a phone. `vh` measures
-          // the viewport as though the browser chrome were hidden, so 75vh is
-          // taller than 75% of what you can actually see; and the bottom nav
-          // (3.5rem + safe area) sits over the lower part of the screen, so the
-          // last row and the scroll end were behind it. `svh` is the honest
-          // number, and subtracting the nav plus the p-4 gutter is what makes
-          // the whole list reachable.
-          className="panel-solid glass flex max-h-[min(75svh,100svh-9rem-env(safe-area-inset-bottom))] w-full max-w-md flex-col overflow-hidden rounded-3xl"
+          // Height, phone: was max-h-[75vh], which had two problems. `vh`
+          // measures the viewport as though the browser chrome were hidden, so
+          // 75vh is taller than 75% of what you can actually see; and the
+          // bottom nav (3.5rem + safe area) covers the lower part of the
+          // screen, so the last row and the end of the scroll sat behind it.
+          //
+          // Height, desktop: the nav subtraction above is `md:hidden` in
+          // reality - there is no bottom nav on a large screen - so carrying it
+          // there just made the dialog needlessly short, wasting the space the
+          // list actually wants. From `md` up it goes back to a plain 80svh,
+          // and the panel widens a step so the name + Following button row is
+          // not cramped into a phone-width column on a 1440px display.
+          className="panel-solid glass flex max-h-[min(75svh,100svh-9rem-env(safe-area-inset-bottom))] w-full max-w-md flex-col overflow-hidden rounded-3xl md:max-h-[80svh] md:max-w-lg"
         >
           <div className="flex items-center border-b border-white/10">
             {(["followers", "following"] as Tab[]).map((t) => (

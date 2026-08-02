@@ -142,11 +142,11 @@ export function BriefingBlock({
     // news reader that was the article's own photo. This is the block people
     // actually read, so it must never sit on an image.
     //
-    // #181411 is that same 6% gold (#e2a72f) pre-blended over the panel base
-    // (#0b0b0f), so over a dark background it looks identical to before - it is
-    // simply opaque now. Pre-blended rather than `.panel-solid` + the tint,
-    // because both set `background-color` and the Tailwind utility would win.
-    <div className={cn("rounded-2xl border border-gold-500/20 bg-[#181411] p-3.5 sm:p-4", className)}>
+    // `.briefing-panel` carries that same tint pre-blended into an opaque
+    // colour, per theme (see globals.css). It is a class rather than a Tailwind
+    // `bg-*` for two reasons: an arbitrary `bg-[#...]` cannot vary by theme, and
+    // it would override `.panel-solid` if the two were ever combined.
+    <div className={cn("briefing-panel rounded-2xl border border-gold-500/20 p-3.5 sm:p-4", className)}>
       <p className="mono inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gold-200">
         <RobotIcon className="h-4 w-4" /> Full briefing · XYZ AI
       </p>
