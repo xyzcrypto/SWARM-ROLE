@@ -5,6 +5,55 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (4) — Ghost users in the online count, and an alarmist status label
+
+A screenshot of the live room showed **"RECONNECTING" and "2 online" side by
+side**. Both halves of that are worth reading carefully: the count was working
+(the server-backed presence added in (6) was doing its job while the websocket
+was down) — but it was **stale**, and the label was **overstating the problem**.
+
+**🔴 Someone who left stayed "online" for up to 90 seconds** —
+`src/app/api/chat/presence/route.ts`, `ChatClient.tsx`.
+The heartbeat ran every 45s against a 60s… no: a **90s** window, and there was
+**no leave signal at all**. So the only way to stop being listed was for the
+window to expire. Close the tab and you were still in the room for a minute and
+a half. The count was never fake — it was stale, which looks identical from the
+outside. My own design, from (6).
+
+- A **leave beacon** now fires on `pagehide` and on the tab being hidden, and on
+  SPA unmount. `navigator.sendBeacon`, not `fetch`: the page is being torn down
+  and an ordinary request gets cancelled, whereas a beacon is queued by the
+  browser and still carries cookies so the session resolves. `pagehide` rather
+  than `beforeunload` because that is the one that actually fires on mobile
+  Safari.
+- The server handles `{ leave: true }` **before** the rate limiter — it is a
+  delete of the caller's own single row, it is the thing that prevents ghosts,
+  and a throttled goodbye is worse than none.
+- Window 90s → **60s**, heartbeat 45s → **25s**. With clean exits handled by the
+  beacon, the window only has to cover what cannot say goodbye (a crash, a
+  killed tab, a dead network), and two missed beats absorb a blip without
+  leaving someone listed who has gone.
+- Rows are pruned opportunistically on ~2% of reads (same trick `/api/track`
+  uses), so the table stays bounded without a cron this plan does not have.
+
+**Verified end to end against a real Postgres:** user1 → `online=1`; user2 joins
+→ `online=2`; **user2 leaves → `online=1` on the very next beat**, and their row
+is gone from the table.
+
+**🟠 "Reconnecting…" was scaring people about a room that works** —
+`ChatClient.tsx`.
+In alarming amber, next to a live member count. When the websocket is down the
+room is *not* broken: messages arrive on the 10s poll, presence comes from the
+heartbeat. The screenshot showed exactly that contradiction. It now reads
+**"Synced"** in a calm neutral — an honest description of the fallback rather
+than a warning about it. The tooltip still carries the full detail and the
+underlying Supabase error for anyone debugging.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings (unchanged) ·
+418/418 tests ✅ · build ✅ · leave/rejoin behaviour measured against a real DB.
+
+---
+
 ## 2026-08-03 (3) — The stuck news story: previous diagnosis was wrong
 
 **Correction first.** The (1) entry blamed a **future-dated** timestamp and gave

@@ -581,7 +581,37 @@ export function ChatClient({
       }
     };
     void beat();
-    const beatTimer = setInterval(beat, 45_000);
+    // 25s, down from 45s. The window on the server is 60s, so two missed beats
+    // absorb a blip without leaving someone listed who has gone.
+    const beatTimer = setInterval(beat, 25_000);
+
+    // Say goodbye. Without this the ONLY way to stop being listed was for the
+    // server window to expire, so closing the tab left you "online" for up to
+    // a minute and a half - which is what made the count look fake.
+    //
+    // sendBeacon, not fetch: the browser is tearing the page down and will
+    // cancel an ordinary request. A beacon is queued by the browser and sent
+    // regardless, and it carries cookies so the session still resolves.
+    const leave = () => {
+      if (!meRef.current) return;
+      try {
+        navigator.sendBeacon?.(
+          "/api/chat/presence",
+          new Blob([JSON.stringify({ leave: true })], { type: "application/json" })
+        );
+      } catch {
+        /* nothing useful to do while unloading */
+      }
+    };
+    // `pagehide` rather than `beforeunload`: it is the one that actually fires
+    // on mobile Safari, where a tab is frozen rather than unloaded. Hiding the
+    // tab counts as leaving too, since the heartbeat pauses while hidden and
+    // the person would otherwise linger in the list.
+    const onHide = () => {
+      if (document.visibilityState === "hidden") leave();
+    };
+    window.addEventListener("pagehide", leave);
+    document.addEventListener("visibilitychange", onHide);
 
     void connect();
     return () => {
@@ -589,6 +619,10 @@ export function ChatClient({
       clearTimeout(retryTimer);
       clearInterval(pollTimer);
       clearInterval(beatTimer);
+      window.removeEventListener("pagehide", leave);
+      document.removeEventListener("visibilitychange", onHide);
+      // Navigating away inside the SPA never fires pagehide, so leave here too.
+      leave();
       teardownRef?.();
     };
     // Re-subscribe only when the connection target or the signed-in identity
@@ -1038,10 +1072,19 @@ export function ChatClient({
               }
               className={cn(
                 "mono text-[10px] uppercase tracking-wider",
-                live ? "text-mint-300/80" : realtimeConfigured ? "text-amber-300/80" : "text-zinc-500"
+                live ? "text-mint-300/80" : "text-zinc-400"
               )}
             >
-              {live ? "Live" : realtimeConfigured ? "Reconnecting…" : "Auto-refresh"}
+              {/* "Reconnecting…" in alarming amber was overstating the problem.
+                  When the websocket is down the room is still working: messages
+                  arrive on the 10s poll and the online count comes from the
+                  server heartbeat - the screenshot that prompted this showed
+                  "RECONNECTING" and "2 online" side by side, which reads as
+                  broken while being perfectly functional. "Synced" in a calm
+                  neutral is the honest description of the fallback, and the
+                  tooltip still carries the detail (and the underlying error)
+                  for anyone debugging it. */}
+              {live ? "Live" : "Synced"}
             </span>
           </div>
           <p className="mt-0.5 hidden mono text-[11px] text-zinc-500 sm:block">#general · markets, alpha &amp; Web3</p>
