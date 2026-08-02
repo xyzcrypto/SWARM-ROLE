@@ -1248,10 +1248,28 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
   content-visibility: auto;
   contain-intrinsic-size: 0 340px;
 }
-/* Homepage sections: skip render/paint work while off-screen so scrolling stays
-   smooth (esp. on mobile). `auto` remembers the real height after first render,
-   so there's no scrollbar jump. Ignored by browsers without support (safe). */
+/* Homepage sections. This used to be `content-visibility: auto` +
+   `contain-intrinsic-size: auto 720px`, to skip render work for off-screen
+   sections. That is REMOVED, deliberately, and must not come back on sections
+   that contain or precede an in-page anchor target.
+
+   Why: until a section renders once, the browser sizes it from the 720px guess,
+   not its real height. Measured cold on a 390px viewport: #about reported 832px
+   but is really 3853px, and #products reported its top at y=3487 when it really
+   sat at y=8242. So an anchor jump to #products scrolled to 3487, every section
+   it passed rendered and grew on the way, and the target ended up thousands of
+   pixels lower. The hero's "View products" button read as completely dead on
+   phones. Desktop mostly escaped it because there the 720px guess is close to
+   the truth; phones stack single-column, so it is off by 4-5x.
+
+   Measured with this rule neutralised, no JavaScript involved: the anchor lands
+   on target. `HashScroll` also corrects for it, but that only helps once React
+   has hydrated - and a navigation link should not depend on that.
+
+   What this costs: off-screen homepage sections are painted again. That is a
+   scroll-smoothness micro-optimization on one page, traded for a core
+   navigation path that works on every browser with or without JS. `.cv-auto`
+   (news feed cards) keeps content-visibility - no anchors point into it. */
 .sect-cv {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 720px;
+  position: relative;
 }

@@ -5,6 +5,70 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-02 (later) — Anchor jump fixed without JS · share card made fast
+
+Follow-up to the entry below, after the owner reported "View products" **still**
+dead on their phone and the share card slow.
+
+**The earlier fix was correct but incomplete.** `HashScroll` corrects the anchor
+landing, and it does — measured at 320/360/390px, logged-in, against a production
+build. But it is JavaScript, so it can only help *after* React hydrates. A
+navigation link must not depend on that. Anything that stops hydration (a stale
+bundle, an old browser, a slow phone that has not finished) leaves the reader with
+the original broken behaviour and no fallback.
+
+**Root cause removed at the source** — `src/app/globals.css`.
+`.sect-cv` no longer sets `content-visibility: auto` / `contain-intrinsic-size: auto
+720px`. That guess is what made anchor jumps land in the wrong place: sections
+report 720px until they render once, so the browser computes the target from
+placeholder heights and everything grows underneath the scroll.
+
+**Measured, JS disabled, native anchor only** (load `/#products` directly):
+
+| viewport | old rule restored on the wire | rule removed |
+|---|---|---|
+| 320px | **800px** off | **88px** — on target |
+| 360px | **679px** off | **88px** — on target |
+| 390px | on target | on target |
+| 1280px | on target | on target |
+
+390px landing correctly either way is exactly why this looked fine in earlier
+headless runs and broke on a real handset — it is viewport-band dependent.
+`HashScroll` stays as belt-and-braces (it also covers late-loading images).
+
+**What it costs:** off-screen homepage sections are painted again — a scroll
+micro-optimization on one page, traded for a core navigation path that works on
+every browser, with or without JS. `.cv-auto` (news feed cards) keeps
+`content-visibility`; no anchors point into it. Reversible in one line if the
+homepage ever measures badly.
+
+**Share card speed** — three separate costs, all real:
+- `src/app/tools/share/points-value/[id]/page.tsx` — `getCard()` is now wrapped in
+  React `cache()`. Next calls `generateMetadata()` and the page component
+  separately and **both** fetched the card, so the identical query ran twice per
+  request. Against Supabase in Mumbai from a US region that is ~250ms of round
+  trip paid twice, on a page whose whole job is to render one row.
+- `src/app/api/tools/share/points-value/[id]/route.tsx` — the OG PNG had
+  `s-maxage` only, so the browser re-requested (and the origin re-rendered with
+  satori) on every view. Now `max-age=1y, immutable`: the id's content can never
+  change. ⚠️ The generic fallback deliberately does **not** inherit it — it is
+  served for a missing id *and* a transient DB failure, and caching "no card" for
+  a year would make a two-second blip a permanently broken link. It gets its own
+  `s-maxage=60`.
+- `src/modules/tools/components/PointsValueCalculator.tsx` — the pre-opened tab
+  now paints a branded "Building your share card..." screen immediately instead of
+  sitting on white `about:blank` for the whole create-then-load chain. Built with
+  DOM property assignments, not `document.write` + inline `<style>`, so a strict
+  `style-src` cannot silently drop it.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings · 407/407 tests ✅ ·
+build ✅ · route table **identical to main** (125 / 22 static / 103 dynamic, zero
+rows differ) · `/`, `/tools`, `/markets`, `/news`, `/research` all 200 with zero
+horizontal overflow and no page errors · share placeholder confirmed painting
+while the create call is in flight.
+
+---
+
 ## 2026-08-02 — Hero "View products" · points share · ticker ISR · 32 dead duplicate files
 
 Three reported bugs, all reproduced and measured in a real browser against a

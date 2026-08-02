@@ -9,6 +9,75 @@ import { cn } from "@/lib/utils";
 
 const PRESETS = platformsWithPointValue();
 
+/**
+ * Paint a branded "building your card" screen into a just-opened blank tab.
+ *
+ * A fresh `about:blank` window is same-origin, so we can write to its document
+ * directly. Everything is set through DOM properties instead of an HTML string
+ * with an inline <style>, because inline styles are exactly what a strict
+ * `style-src` blocks - and a placeholder that the CSP silently drops is worse
+ * than none, since it leaves the blank page it was meant to replace.
+ */
+function showPlaceholder(win: Window) {
+  try {
+    const doc = win.document;
+    doc.title = "Building your card - XYZ Crypto";
+    const body = doc.body;
+    if (!body) return;
+    Object.assign(body.style, {
+      margin: "0",
+      minHeight: "100vh",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "18px",
+      background: "linear-gradient(135deg,#08080a 0%,#0e0e12 55%,#15110a 100%)",
+      color: "#fafafa",
+      fontFamily: "system-ui, -apple-system, sans-serif",
+    } as Partial<CSSStyleDeclaration>);
+
+    const brand = doc.createElement("div");
+    brand.textContent = "XYZ Crypto";
+    Object.assign(brand.style, {
+      fontSize: "28px",
+      fontWeight: "800",
+      letterSpacing: "-0.02em",
+      color: "#e2a72f",
+    } as Partial<CSSStyleDeclaration>);
+
+    const label = doc.createElement("div");
+    label.textContent = "Building your share card...";
+    Object.assign(label.style, { fontSize: "15px", color: "#a1a1aa" } as Partial<CSSStyleDeclaration>);
+
+    // A CSS keyframe spinner would need a <style> element; a pulsing dot row
+    // driven by Web Animations does the same job with no stylesheet at all.
+    const dots = doc.createElement("div");
+    Object.assign(dots.style, { display: "flex", gap: "7px" } as Partial<CSSStyleDeclaration>);
+    for (let i = 0; i < 3; i++) {
+      const dot = doc.createElement("span");
+      Object.assign(dot.style, {
+        width: "8px",
+        height: "8px",
+        borderRadius: "999px",
+        background: "#e2a72f",
+        display: "block",
+      } as Partial<CSSStyleDeclaration>);
+      dot.animate?.([{ opacity: 0.25 }, { opacity: 1 }, { opacity: 0.25 }], {
+        duration: 1100,
+        delay: i * 160,
+        iterations: Infinity,
+      });
+      dots.append(dot);
+    }
+
+    body.append(brand, label, dots);
+  } catch {
+    // Cross-origin or a browser that hands back a locked-down window: the tab
+    // still navigates when the id arrives, we just lose the placeholder.
+  }
+}
+
 // Points/airdrop value estimator. No perp DEX publishes real-time points-to-
 // token conversion data, so every number here is a user-editable assumption -
 // picking a platform below just prefills known public scenario numbers
@@ -68,6 +137,16 @@ export function PointsValueCalculator() {
     // The destination is our own same-origin route, so the opener reference
     // noopener would have severed carries no cross-origin risk.
     const win = window.open("", "_blank");
+    // The tab exists instantly; the card behind it does not. Creating the share
+    // row is a write to Supabase in Mumbai from a US region, then the card page
+    // itself is a fresh document load. That is a real second or more of nothing,
+    // and on mobile the new tab has already taken focus - so the whole wait is
+    // spent staring at a blank white page, which reads as "it broke".
+    //
+    // Painting a branded placeholder costs nothing and covers the entire gap.
+    // Built with DOM calls rather than document.write + inline <style>, so the
+    // site's CSP has no say in whether it renders.
+    if (win) showPlaceholder(win);
     try {
       const res = await fetch("/api/tools/share/create", {
         method: "POST",

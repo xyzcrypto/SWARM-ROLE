@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -8,13 +9,19 @@ import { PointsShareActions } from "@/components/tools/PointsShareActions";
 
 type CardData = { platform?: string; domain?: string; sharePct?: number; tokens?: number; usd?: number; fdv?: number };
 
-async function getCard(id: string) {
+// `cache()` is doing real work here, not decoration. Next calls
+// generateMetadata() and the page component separately, and BOTH need the card
+// - so this ran the identical query twice per request. Against Supabase in
+// Mumbai from a US Vercel region that is ~250ms of pure round trip paid twice,
+// on a page whose entire job is to show one row. React's per-request cache
+// collapses them into a single query.
+const getCard = cache(async (id: string) => {
   const row = await prisma.sharedCard
     .findUnique({ where: { id }, select: { kind: true, data: true } })
     .catch(() => null);
   if (!row || row.kind !== "points-value") return null;
   return row.data as CardData;
-}
+});
 
 // Rich-preview landing page for a shared Points Value result - a short link
 // (/tools/share/points-value/<id>) backed by a SharedCard row instead of a
