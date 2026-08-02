@@ -7,8 +7,17 @@ import { NextResponse } from "next/server";
 // Was 10s - this is the homepage's highest-traffic route with a client poll
 // that matched it 1:1, making it the single biggest driver of Vercel's ISR
 // Writes quota (every regeneration on the free tier counts against a
-// 200k/month cap). 60s still reads as "live" for a price ticker.
-export const revalidate = 60;
+// 200k/month cap).
+//
+// 180s, not 60s, and the number is not arbitrary: the client polls this route
+// every 150s (`POLL_MS` in modules/markets/lib/useTickerPoll.ts). At a 60s
+// window the cache had already expired ~90s before every single poll arrived,
+// so *every* poll missed and regenerated - the shorter window bought no extra
+// freshness at all, it just guaranteed a maximum-rate ISR write. Keeping the
+// window comfortably longer than the poll interval means most polls are served
+// from cache. If you change POLL_MS, change this too and keep it the larger of
+// the two.
+export const revalidate = 180;
 
 const COINS = [
   { symbol: "BTC", name: "Bitcoin", id: "bitcoin", binance: "BTCUSDT", seed: 68420 },
@@ -138,7 +147,8 @@ export async function GET() {
     lastGood = { coins, ts: Date.now() };
     return NextResponse.json(
       { coins, live: true, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+      // Must track `revalidate` above - see the note there.
+      { headers: { "Cache-Control": "public, s-maxage=180, stale-while-revalidate=300" } }
     );
   } catch {
     // Both upstreams failed - prefer the last real prices we successfully

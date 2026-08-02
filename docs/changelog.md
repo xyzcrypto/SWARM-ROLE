@@ -5,6 +5,67 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-02 — Hero "View products" · points share · ticker ISR · 32 dead duplicate files
+
+Three reported bugs, all reproduced and measured in a real browser against a
+**production** build before and after. (Dev mode is not usable for this: the CSP
+blocks `unsafe-eval`, which React needs in development, and the HMR socket does
+not survive the proxy - three consecutive edits produced byte-identical results
+because nothing was reloading. Verify UI behaviour against `next build && next
+start`, not `next dev`.)
+
+**1. Hero "View products" did nothing on mobile** — `src/shared/components/HashScroll.tsx` (new),
+`src/components/HashScroll.tsx` (shim), `src/app/layout.tsx`.
+Homepage sections carry `.sect-cv` (`content-visibility: auto; contain-intrinsic-size:
+auto 720px`). Until a section has rendered once the browser sizes it from that 720px
+guess. Measured cold, at 390px wide: `#about` reports 832px but is really 3853px;
+`#products` reports its top at y=3487 but really sits at y=8242. So the anchor jump
+scrolled to 3487, every section it passed rendered and grew on the way, and the target
+ended up thousands of pixels lower. You land in About and it reads as a dead button.
+Desktop mostly escaped because there the 720px guess is close to the truth (`#about` is
+687px wide-screen); phones stack single-column, so the guess is off by 4-5x.
+- Fix: intercept same-document hash clicks, scroll, then keep correcting until the target
+  holds still for 350ms (budget 3s, abandoned instantly on any real scroll input). Not
+  `hashchange` - the App Router navigates with `pushState`, which never fires it.
+- **Measured, production build, native vs fixed:** 320px `#products` landed **888px** off
+  and below the fold natively → **88px** (exactly `scroll-padding-top`, heading visible)
+  with the fix. 390px and 1280px already landed correctly and still do.
+- `content-visibility` is kept - it is a real mobile scroll win. The bug is the anchor
+  jump, not the optimization.
+
+**2. Points share opened a blank tab** — `src/modules/tools/components/PointsValueCalculator.tsx`.
+`window.open("", "_blank", "noopener,noreferrer")` **always returns `null`** - per spec
+`noopener` withholds the handle, that is its entire purpose. So `win` was never non-null,
+the pre-opened tab was orphaned on `about:blank` (and on mobile it takes focus, hence
+"blank page, go back, then the card appears"), and the code fell through to navigating the
+*original* tab behind it. Verified in-browser: with `noopener` → `null`; without →
+a live handle that navigates. Dropped `noopener`; the destination is our own same-origin
+route, so the opener reference it was severing carried no cross-origin risk.
+
+**3. `/api/ticker` regenerated on every single poll** — `src/app/api/ticker/route.ts`,
+`src/modules/markets/lib/useTickerPoll.ts`.
+`revalidate` and `s-maxage` were both 60s against a 150s client poll, so the cache had
+already expired ~90s before each poll arrived - the short window bought zero extra
+freshness and guaranteed a maximum-rate ISR write on the site's highest-traffic page.
+Raised to 180s (`swr` 120 → 300) so most polls are served from cache. Directly targets the
+750K/200K ISR Writes overage. Both files now carry a note that the two numbers are paired.
+This was finding #3 of the 2026-08-01 latency audit, previously unfixed.
+
+**4. 32 duplicate component files that silently swallowed edits** — `src/components/{ui,journal,orbital,tools}/*`.
+The module refactor converted 97 files under `src/components` into re-export shims but left
+32 as **byte-identical full copies** of their `src/modules` / `src/shared` twin. The live
+import path resolved to the `src/components` copy, so editing the module copy - the one that
+looks canonical - changed nothing. Found the hard way: fix #2 above was written into the
+module copy and had no effect. All 32 converted to shims matching the existing convention,
+so there is one source of truth per component. Affects the whole `/tools`, `/journal` and
+orbital trees - i.e. exactly where the next round of work is headed.
+
+Verification: typecheck ✅ · lint ✅ 0 errors (warnings 41 → 37) · 407/407 tests ✅ ·
+build ✅ · route table 22 static / 103 dynamic, no `○ → ƒ` regression · `/tools` renders all
+9 calculator tabs with zero console errors after the shim conversion.
+
+---
+
 ## 2026-08-01 — Latency & resource-utilization audit (docs only, no source change)
 Adds `docs/AUDIT-2026-08-01-latency.md`, a full pass over `319f722` for server latency,
 caching and client weight, framed by the `iad1` (functions) → Mumbai (Supabase) region gap

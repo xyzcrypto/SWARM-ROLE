@@ -5,6 +5,7 @@ import { Fraunces } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { SmoothScrollMount } from "@/components/SmoothScrollMount";
+import { HashScroll } from "@/components/HashScroll";
 import { Analytics } from "@/components/Analytics";
 import { RealtimeSession } from "@/components/RealtimeSession";
 import { XyzAiWidgetMount } from "@/components/XyzAiWidgetMount";
@@ -114,6 +115,7 @@ export default function RootLayout({
         <JsonLd data={organizationJsonLd()} />
         <JsonLd data={websiteJsonLd()} />
         <SmoothScrollMount />
+        <HashScroll />
         <Providers>
           <RealtimeSession
             url={env.NEXT_PUBLIC_SUPABASE_URL}
