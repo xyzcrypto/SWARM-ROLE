@@ -19,9 +19,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # Match the local + Vercel build environment. Next 14.2's build worker
-          # can SIGSEGV on Node 20; Node 22 builds cleanly.
-          node-version: 22
+          # Version is pinned in .nvmrc at the repo root — one source of truth
+          # for local dev (nvm use), CI, and any future tooling.
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       - run: npx prisma generate

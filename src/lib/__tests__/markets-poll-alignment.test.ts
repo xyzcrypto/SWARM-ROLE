@@ -19,7 +19,7 @@ import { join } from "node:path";
 // TOGETHER. Raising the window makes data staler; shortening the poll costs
 // more. Neither is automatically right, which is exactly why it needs a human.
 
-const CLIENT = readFileSync(join(process.cwd(), "src/components/MarketsClient.tsx"), "utf8");
+const CLIENT = readFileSync(join(process.cwd(), "src/modules/markets/components/MarketsClient.tsx"), "utf8");
 
 /** e.g. usePolledJson<DefiResp>("/api/markets/defi", 180_000) → { defi: 180000 } */
 function pollIntervals(): Record<string, number> {

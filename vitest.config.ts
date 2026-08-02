@@ -9,8 +9,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
-      // Next resolves `server-only` itself at build time; vitest cannot.
-      // See test/stubs/server-only.ts for why a no-op is correct here.
+      "@modules": resolve(__dirname, "src/modules"),   // add
+      "@core": resolve(__dirname, "src/core"),      // add
+      "@shared": resolve(__dirname, "src/shared"),    // add
       "server-only": resolve(__dirname, "test/stubs/server-only.ts"),
     },
   },

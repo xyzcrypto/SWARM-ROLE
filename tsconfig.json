@@ -25,7 +25,10 @@
     "paths": {
       "@/*": [
         "./src/*"
-      ]
+      ],
+      "@modules/*": ["./src/modules/*"],
+      "@core/*": ["./src/core/*"],
+      "@shared/*": ["./src/shared/*"]
     }
   },
   "include": [
