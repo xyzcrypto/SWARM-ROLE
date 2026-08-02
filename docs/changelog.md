@@ -5,6 +5,68 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 — News feed unpinned; two self-inflicted egress regressions walked back
+
+**Supabase is over its free egress quota: 6.56 GB used of 5 GB, with the org
+restricted from 31 Aug 2026 if it stays over.** That reframes anything that adds
+requests, including two things shipped hours earlier in (6).
+
+**🔴 A single story could pin itself to the top of the news feed for ever** —
+`src/modules/news/lib/news.ts`.
+`rankNews()` scored freshness as `Math.max(0, (now - publishedAt) / 3_600_000)`.
+That clamp means a story dated in the **future** gets an age of 0 — the maximum
+possible score for its impact tier — and keeps getting it on every re-rank, for
+as long as the date stays ahead of now. One feed item with a broken timestamp
+camps at rank 1 indefinitely. That is the "yeh story hatti hi nahi, kai dino se
+top pe hai" report.
+
+`timeAgo()` **twenty lines below already guards this exact case**
+(`ms > now + 60_000` → "recently"). The guard existed; the function that decides
+*ordering* simply did not have it. Same shape as every other bug found in this
+codebase this week: the correct handling sitting next to the place that skips it.
+
+Clamping to `now` would not fix it either — the story would score as brand new on
+every pass, for ever. A broken date is now given a **real, finite age** (48h) so
+normal decay applies: still visible, since it is probably a genuine story with a
+bad timestamp, but unable to camp. 6h of tolerance first, because publisher clock
+skew is normal and is not a broken feed. **3 new tests**, including one pinning
+the tolerance so a slightly-skewed story still ranks as fresh.
+
+**🟠 Two egress regressions from (6), walked back** — both mine, both shipped
+before the quota was known:
+- `ChatClient.tsx` — the presence heartbeat checked `liveRef` **after** the fetch
+  had already gone out, so every open room paid a round trip every 45s purely to
+  throw the answer away. It now skips the **request**, not just the result:
+  realtime presence is exact when the channel is up, so the heartbeat only needs
+  to run when it is not.
+- `NavActivity.tsx` — the fast unread poll shipped at 20s. Every one of those is
+  a database query, and database responses are Supabase egress. Now **30s**,
+  halving the added cost while still being far better than waiting a full minute
+  for a DM badge. The focus/visibility listener is what actually makes it feel
+  instant, and that costs one request per return rather than a permanently
+  faster loop.
+
+**Where the 6.56 GB actually goes is NOT yet established.** Supabase egress is
+database results + Storage downloads + realtime frames, and the split is only
+visible in the owner's dashboard (Reports → Usage). Two candidates are known from
+reading the code and are recorded rather than acted on blind:
+- `POST_CARD_SELECT` (`src/modules/community/lib/post-select.ts`) selects
+  `content: true` — the **full article body** — for every card in every list,
+  solely to compute a reading time that is then thrown away. It is stripped
+  before reaching the browser, but it crosses the Supabase→function boundary on
+  every ISR regeneration of `/`, `/research` and every article's related-posts
+  block. `readMinutes` is already precomputed at all three call sites, so the
+  body is pure waste; removing it needs a stored word count (a column) to keep
+  the label accurate.
+- Supabase Storage already uploads with `cache-control: 31536000`
+  (`storage.ts:114`), so image egress is first-view only. **That lever is already
+  pulled** — do not "fix" it again.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings · **415/415 tests** ✅
+(412 + 3 new) · build ✅.
+
+---
+
 ## 2026-08-02 (6) — Chat online count no longer depends on realtime; DM badge unstranded
 
 Owner reported the chat still showing "Reconnecting…" with 0 online after the

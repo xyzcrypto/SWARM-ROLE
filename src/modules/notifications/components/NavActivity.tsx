@@ -30,7 +30,15 @@ const POLL_MS = 60_000;
 // So: poll the cheap unread counts faster while the tab is actually in front of
 // the user. /api/dm/unread and /api/chat/last-activity are small, indexed
 // count queries - not the full notification list, which stays on POLL_MS.
-const FAST_POLL_MS = 20_000;
+//
+// 30s, not the 20s this first shipped as. Every one of these is a database
+// query, and database responses are Supabase egress - which this project is
+// currently OVER on the free tier. 20s was three requests a minute per
+// logged-in tab on top of the existing poll; 30s halves that added cost while
+// still being a large improvement on waiting a full minute for a DM badge. The
+// focus listener below is what actually makes it feel instant, and it costs one
+// request per return rather than a permanently faster background loop.
+const FAST_POLL_MS = 30_000;
 const CHAT_SEEN_KEY = "xyz:chatSeen";
 
 function timeAgo(iso: string): string {

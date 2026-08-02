@@ -111,10 +111,34 @@ export function impact(text: string): Impact {
  * So recent breaking/high-impact floats to the top, but an old big story still
  * sinks below genuinely newer ones. Pure + non-mutating (`now` injected for tests).
  */
+// A feed that stamps a story in the future is stating something impossible, so
+// the timestamp is not usable. Small skew is normal (publisher clocks, timezone
+// handling), so allow a little slack before treating it as broken.
+const FUTURE_TOLERANCE_MS = 6 * 60 * 60 * 1000;
+// What a broken timestamp is ranked as instead. It has to be a real age, not
+// zero - see below.
+const UNTRUSTED_DATE_AGE_HOURS = 48;
+
 export function rankNews<T extends { impact: Impact; publishedAt: number }>(items: T[], now: number): T[] {
   const boostHours: Record<Impact, number> = { High: 8, Medium: 3, Low: 0 };
   const score = (i: T) => {
-    const ageHours = Math.max(0, (now - i.publishedAt) / 3_600_000);
+    // `Math.max(0, ...)` used to clamp the age of a FUTURE-dated story to 0,
+    // which handed it the maximum possible score for its impact tier - and kept
+    // handing it that on every single re-rank, because the date stayed in the
+    // future. One story with a bad timestamp pinned itself to the top of the
+    // feed indefinitely. That is the "yeh story hatti hi nahi" report.
+    //
+    // Note `timeAgo()` a few lines down ALREADY refuses to render these
+    // (`ms > now + 60_000` -> "recently"). The guard existed; the function that
+    // decides ordering just did not have it.
+    //
+    // Clamping to `now` instead would not fix it either: the story would score
+    // as brand new on every pass, for ever. It has to be given a real, finite
+    // age so normal decay applies - visible, but unable to camp at rank 1.
+    const untrusted = i.publishedAt > now + FUTURE_TOLERANCE_MS;
+    const ageHours = untrusted
+      ? UNTRUSTED_DATE_AGE_HOURS
+      : Math.max(0, (now - i.publishedAt) / 3_600_000);
     return boostHours[i.impact] - ageHours; // higher = show earlier
   };
   return [...items].sort((a, b) => score(b) - score(a));
