@@ -28,9 +28,29 @@ single lever available: ~250 ms → ~5 ms per round trip, and India-based visito
 now reach the function in ~30 ms instead of ~250 ms. (`vercel.json` is strict
 JSON and cannot carry comments, which is why the reasoning lives here.)
 
-⚠️ **Verify on the preview deployment before trusting it.** Hobby allows one
-region, but if the plan rejects the key the build fails loudly rather than
-silently ignoring it — check the deployment's Function Region reads `bom1`.
+**The region is now set in TWO places, and `vercel.json` is the one that wins.**
+While verifying this, the owner also changed it in the Vercel dashboard
+(Project → Settings → Functions → Function Region → Asia Pacific / `bom1`) and
+redeployed. Both now say `bom1`, so there is no conflict today — but per Vercel's
+docs, *"if a deployment defines the `regions` configuration property in
+`vercel.json`, the Vercel Function Region setting is ignored"*. So the dashboard
+control is now **inert**: changing it there will appear to work and do nothing.
+Treat `vercel.json` as the source of truth (version-controlled and reviewable),
+and if you ever need a different region, change it there — not in the dashboard.
+
+⚠️ **Read the right number when verifying.** There are two regions and only one
+of them is this:
+- **Build region** — the build log's first line, *"Running build in Washington,
+  D.C., USA (East) - iad1"*. Not configurable on Hobby, and it says `iad1`
+  regardless of any of this. It caused a false negative during verification.
+- **Function region** — Deployment Details → "Function Region". This is the one
+  that governs the DB round trip.
+
+Checking from outside the dashboard, on the deployment itself:
+```js
+const r = await fetch('/api/ticker', { cache: 'no-store' });
+r.headers.get('x-vercel-id');   // contains the region the function actually ran in
+```
 
 **Serial round trips removed** — each of these had independent queries awaited
 one after another, so the fix is a reorder with no behaviour change:
