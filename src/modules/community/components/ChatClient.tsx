@@ -561,14 +561,19 @@ export function ChatClient({
     // visitors get the read-only preview anyway.
     const beat = async () => {
       if (document.hidden || !meRef.current) return;
+      // Skip the REQUEST, not just the result. The first version of this checked
+      // `liveRef` after the fetch had already happened, so every open room paid
+      // a round trip every 45s purely to throw the answer away - on a project
+      // that is over its Supabase egress quota. Realtime presence is exact when
+      // the channel is up; this only needs to run when it is not.
+      if (liveRef.current) return;
       try {
         const res = await fetch("/api/chat/presence", { method: "POST", cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json().catch(() => null);
         const list = data?.data?.members ?? data?.members;
         if (!Array.isArray(list)) return;
-        // Do not clobber a healthy realtime presence list.
-        if (liveRef.current) return;
+        if (liveRef.current) return; // recovered while in flight
         setMembers(list as PresenceMember[]);
         setOnline(list.length);
       } catch {
