@@ -26,6 +26,32 @@ export function SmoothScroll() {
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
       touchMultiplier: 1.6,
+      // Hand the wheel back to any element that scrolls on its own.
+      //
+      // Without this, Lenis swallows every wheel event and scrolls the PAGE -
+      // so on desktop no inner scroll container on the site could be scrolled
+      // with a mouse wheel. Measured before this fix, with the Publish editor
+      // full of text: wheel over the editor left its scrollTop at 0 and moved
+      // the page behind it instead, at 1280x800 and 1920x1080. Mobile was fine
+      // only because Lenis already opts out on coarse pointers (line above),
+      // which is why this never showed up on a phone. It affected the rich text
+      // editor, the news briefing, every textarea, the chat list, the mobile
+      // nav sheet - anything with its own scrollbar.
+      //
+      // `data-lenis-prevent` was already the intended escape hatch (globals.css
+      // styles it) but it had been applied to exactly zero elements. Detecting
+      // scrollability directly is used instead of annotating each container by
+      // hand, so a scroll container added later cannot silently reintroduce
+      // this - the attribute is still honoured for anything that needs to opt
+      // out explicitly.
+      prevent: (node) => {
+        if (!node || node.nodeType !== 1) return false;
+        if (node.hasAttribute?.("data-lenis-prevent")) return true;
+        // Only claim the wheel when the element can actually consume it.
+        if (node.scrollHeight <= node.clientHeight) return false;
+        const overflowY = getComputedStyle(node).overflowY;
+        return overflowY === "auto" || overflowY === "scroll";
+      },
     });
 
     document.documentElement.classList.add("lenis");

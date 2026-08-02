@@ -5,6 +5,122 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-02 (6) — Chat online count no longer depends on realtime; DM badge unstranded
+
+Owner reported the chat still showing "Reconnecting…" with 0 online after the
+(3) fix, plus DM notifications not arriving. The (3) fix was correct — it made
+the room *survive* a dead channel (retry + always-armed polling) — but it never
+addressed **why the channel dies**, and presence still had realtime as its only
+source. So messages flowed and the count stayed 0.
+
+**The thing that makes this confusing: there are FOUR Supabase env vars, in two
+independent pairs, and either pair can be missing on its own.**
+
+| Half | Vars | Powers |
+|---|---|---|
+| Client | `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` | subscribing, **presence = the online count** |
+| Server | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` | `broadcastEvent()` = **DM ping, chat fan-out, bell** |
+
+`realtimeEnabled = storageEnabled` — the **same pair as image uploads**. So:
+**if uploads return 501 in production, server-side realtime is dead too**, and
+that one check identifies it in ten seconds.
+
+**Server-backed presence** — `prisma/schema.prisma` (new `ChatPresence`),
+`src/app/api/chat/presence/route.ts` (new), `ChatClient.tsx`.
+The online count is now a plain DB query, not a WebSocket feature. Each open room
+heartbeats every 45s; one upserted row per user per room, so it grows with
+distinct members rather than traffic, and stale rows fall out of a 90s window on
+read. Realtime presence still wins when the channel is healthy (it is instant and
+authoritative on join/leave) — this only fills the gap. Verified end-to-end
+against a real Postgres: anonymous → 401; one member → `online=1`; a second
+joins → `online=2` with both names resolved.
+
+**`broadcastEvent()` no longer fails silently** — `src/core/realtime/realtime.ts`.
+It opened with `if (!realtimeEnabled) return`, so unset server credentials turned
+off every live push on the site — DM badge, chat delivery, notification bell —
+with **nothing anywhere saying so**. The symptom is "notifications don't arrive",
+which reads as a client bug and sends you looking in the wrong place entirely.
+Now logs once, loudly, naming the vars and the uploads-501 correlation.
+
+**The chat status pill now says why** — `ChatClient.tsx`. `subscribe()`'s second
+argument (the underlying error) was being discarded. "Reconnecting…" looks
+identical whether the anon key is wrong, the project is paused, the connection cap
+is hit, or the network blinked. The reason is now captured, logged, and attached
+as a `title` tooltip — same label, same colours, same layout.
+
+**DM badge no longer stranded on a 60s poll** —
+`src/modules/notifications/components/NavActivity.tsx`. When the server half of
+realtime is unconfigured, `broadcastEvent()` is a no-op and this poll is the
+*only* thing that ever moves the badge; 60s is fine as a backstop to realtime but
+poor as the sole path. The two cheap unread counts (`/api/dm/unread`,
+`/api/chat/last-activity` — small indexed queries) now also refresh every 20s and
+on tab focus. The full notification list stays on 60s.
+
+⚠️ **This adds a table.** `ChatPresence` is purely additive and cannot break
+existing queries, but production must run the migration — see the standing owner
+action. Route count goes 125 → **126** (`/api/chat/presence`, dynamic); that is
+the only route-table change and it is intentional.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings · 412/412 tests ✅ ·
+build ✅ · presence endpoint verified end-to-end against real Postgres.
+
+---
+
+## 2026-08-02 (5) — Cross-device responsive & scrolling audit (design frozen)
+
+Full report: `docs/AUDIT-2026-08-02-responsive.md`. Measured across **9 viewports ×
+18 pages** on a production build, plus a dedicated editor pass reached by standing up a
+local Postgres with the real schema and minting a genuine next-auth session — the
+dashboard renders its error state without one, so the Publish editor is otherwise
+untestable.
+
+**The site was in much better shape than the brief implied.** Zero horizontal overflow,
+zero nested scroll traps, zero z-index conflicts, zero JS errors, at every size.
+`/community` and `/messages` already used `h-[100svh]`; the navbar sheet already used
+`max-h-[calc(100dvh-6rem)]`. Two real defects were found.
+
+**🔴 Mouse wheel scrolled nothing on desktop** — `src/shared/components/SmoothScroll.tsx`.
+Lenis intercepts wheel events globally. Its escape hatch, `data-lenis-prevent`, was
+styled in `globals.css` but applied to **zero elements**, so every inner scroll container
+lost the wheel to the page. Measured with the Publish editor full of text: at 1280×800
+and 1920×1080 the wheel left `scrollTop` at 0 and scrolled the page instead; phones were
+fine only because Lenis already opts out on coarse pointers, which is why this never
+surfaced in mobile testing. It affected the rich-text editor, the news briefing, every
+textarea, the chat list and the mobile nav sheet. Fixed with Lenis's `prevent(node)`
+predicate detecting scrollability directly, rather than annotating containers by hand
+where a new one would silently miss out. All six viewports now scroll and stay contained.
+
+**🟠 Publish editor was a fixed 416px on every device** —
+`src/modules/community/components/PostContentEditor.tsx`. On a 320×568 phone that is 73%
+of the screen for one field, with its bottom 133px below the fold. `h-[26rem]` →
+`h-[min(26rem,62svh)]`: `min()` keeps the approved desktop size **exactly** (26rem wins
+above ~671px tall, so 430/768/1280/1920 measured pixel-identical at 416px) and only
+shrinks on short screens (320×568 → 352px). `svh` not `vh`, so mobile browser chrome
+cannot push the box under the address bar.
+
+**🟡 Tap targets** — 19 unique elements under 28px, smallest the chart range pills at
+23×18. Grown with a transparent pseudo-element (`.tap-target-y` / `.tap-target-all`) so
+the box, padding and font size are untouched and **nothing moves**; verified by
+hit-testing rather than by measuring the box. Axis chosen per case: controls 2px apart
+get vertical-only, because both expanding toward each other would overlap and the later
+one silently steals the tap. Inline links inside sentences deliberately left alone —
+WCAG 2.5.8 exempts them and expanding them would steal taps from neighbouring text.
+
+**Dismissed after investigation, recorded so they are not re-raised:** the homepage
+`CLIPPED` flags are `.vscroll-mask` (a `mask-image` fade — the clipping *is* the effect)
+and `.starfield`; the `/profile` HTTP 500 at every viewport was `NEXTAUTH_SECRET` unset
+in the harness (307 once set); the touch-swipe `scrollTop 0` is synthetic `TouchEvent`s
+not driving Chromium's compositor, not a bug.
+
+Design untouched: no change to tokens, colours, spacing, typography, component structure
+or animation. The only rendered-geometry change anywhere is the editor height on
+viewports under ~671px tall.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings · 412/412 tests ✅ · build ✅ ·
+route table **identical to main** (125 / 22 static / 103 dynamic, zero rows differ).
+
+---
+
 ## 2026-08-02 (4) — Functions moved to Mumbai; the serial round trips removed
 
 Owner asked why everything feels slow to open, and whether the answer is "do the

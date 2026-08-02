@@ -87,6 +87,7 @@ model User {
   challengeEntries  ChallengeParticipant[]
   challengeDayNotes ChallengeDayNote[]
   journalActivities JournalActivity[]
+  chatPresence      ChatPresence?
 
   // Basic engagement XP (foundation for a future gamified system). Denormalized
   // counter kept in sync with XpEvent rows inside a transaction.
@@ -789,4 +790,29 @@ model JournalActivity {
 
   @@index([userId, createdAt])
   @@index([sourceType, sourceId])
+}
+
+// Who is currently in a room, recorded server-side.
+//
+// The chat's online count used to come *only* from Supabase Realtime presence.
+// That works right up until the realtime channel does not connect - and then
+// the count silently reads 0 while the room is full of people, which is exactly
+// the symptom the owner reported. Presence over a WebSocket is the nice path,
+// not a dependable one.
+//
+// This is the dependable path: each open room heartbeats, and the count is a
+// plain query. One row per user per room, upserted - so it cannot grow with
+// traffic, only with distinct members, and stale rows are swept on read.
+model ChatPresence {
+  // Deliberately the user id (not a cuid): the upsert key IS the identity, so
+  // a member with three tabs open is one row and counts once.
+  userId String   @id
+  room   String   @default("community")
+  seenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The read is "distinct members in this room seen since T", so room+seenAt is
+  // the only access path that matters.
+  @@index([room, seenAt])
 }

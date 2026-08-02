@@ -73,6 +73,44 @@ html.lenis body {
 .lenis.lenis-smooth [data-lenis-prevent] {
   overscroll-behavior: contain;
 }
+
+/* ----------------------------------------------------------------
+   Tap targets — grow the HIT area without moving anything
+-----------------------------------------------------------------
+   A measured audit found interactive elements as small as 23x18px on
+   touch viewports, well under the ~44px WCAG 2.5.8 / iOS HIG guidance.
+   The obvious fix - more padding, or min-height - changes how the control
+   looks, and the current UI is approved and frozen.
+
+   These extend the clickable region with a transparent pseudo-element
+   instead. The element's own box, padding, font size and position are
+   untouched, so nothing moves by a single pixel; only the area that
+   responds to a finger grows.
+
+   Pick the axis deliberately. Two controls sitting a few px apart will
+   have OVERLAPPING hit areas if both expand toward each other, and the
+   one later in the DOM silently wins the overlap - a worse bug than the
+   small target. Use `-y` for tightly packed rows, `-all` only where the
+   control has clear space around it. */
+.tap-target-y,
+.tap-target-all {
+  position: relative;
+}
+.tap-target-y::after,
+.tap-target-all::after {
+  content: "";
+  position: absolute;
+  /* Non-visual: purely a hit-testing surface. */
+  background: transparent;
+}
+/* Vertical only - safe next to horizontal neighbours. */
+.tap-target-y::after {
+  inset: -9px 0;
+}
+/* Both axes - only for controls with space around them. */
+.tap-target-all::after {
+  inset: -8px;
+}
 .lenis.lenis-stopped {
   overflow: hidden;
 }

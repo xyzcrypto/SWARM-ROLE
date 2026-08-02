@@ -156,6 +156,9 @@ export function ChatClient({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [live, setLive] = useState(false);
+  // Why the realtime channel failed, if it did - shown as a tooltip on the
+  // status pill so the cause is one hover away instead of a support thread.
+  const [liveError, setLiveError] = useState<string | null>(null);
   const [online, setOnline] = useState(0);
   const [members, setMembers] = useState<PresenceMember[]>([]);
   const [typers, setTypers] = useState<Record<string, { name: string; until: number }>>({});
@@ -433,13 +436,14 @@ export function ChatClient({
             setMembers(list);
             setOnline(list.length);
           })
-          .subscribe((status) => {
+          .subscribe((status, err) => {
             if (cancelled) return;
             const ok = status === "SUBSCRIBED";
             setLive(ok);
             liveRef.current = ok;
             if (ok) {
               retries = 0;
+              setLiveError(null);
               const self = meRef.current;
               channel.track({
                 at: Date.now(),
@@ -458,6 +462,19 @@ export function ChatClient({
             // upgrade rather than the only thing standing between the user and
             // a dead page.
             if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+              // Record WHY, not just that it failed. "Reconnecting..." on its
+              // own is unactionable - it looks identical whether the anon key is
+              // wrong, the project is paused, the connection cap is hit, or the
+              // network blinked. supabase-js passes the underlying error as the
+              // second argument; surfacing it turns a support round-trip into
+              // one console line.
+              const reason = err instanceof Error ? err.message : err ? String(err) : status;
+              setLiveError(reason);
+              console.error(
+                `[chat] realtime channel "${CHANNEL}" -> ${status}${reason && reason !== status ? `: ${reason}` : ""}. ` +
+                  `Falling back to polling; messages will still arrive within ~10s. ` +
+                  `Presence (the online count) needs the channel, so it will read 0 until this recovers.`
+              );
               setOnline(0);
               setMembers([]);
               try {
@@ -532,11 +549,41 @@ export function ChatClient({
     };
     const pollTimer = setInterval(tick, 10_000);
 
+    // Server-backed presence. Realtime presence is the nice path; this is the
+    // dependable one. It runs on its own interval regardless of the channel
+    // state, because the online count reading 0 in a room full of people is
+    // precisely what happens when the WebSocket does not connect - and that is
+    // the failure the owner reported.
+    //
+    // When realtime IS live its presence sync is authoritative and overwrites
+    // this on every join/leave, so the two do not fight: this only fills the
+    // gap. Signed-in only - the endpoint requires a session, and anonymous
+    // visitors get the read-only preview anyway.
+    const beat = async () => {
+      if (document.hidden || !meRef.current) return;
+      try {
+        const res = await fetch("/api/chat/presence", { method: "POST", cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => null);
+        const list = data?.data?.members ?? data?.members;
+        if (!Array.isArray(list)) return;
+        // Do not clobber a healthy realtime presence list.
+        if (liveRef.current) return;
+        setMembers(list as PresenceMember[]);
+        setOnline(list.length);
+      } catch {
+        /* transient - keep the last known list */
+      }
+    };
+    void beat();
+    const beatTimer = setInterval(beat, 45_000);
+
     void connect();
     return () => {
       cancelled = true;
       clearTimeout(retryTimer);
       clearInterval(pollTimer);
+      clearInterval(beatTimer);
       teardownRef?.();
     };
     // Re-subscribe only when the connection target or the signed-in identity
@@ -974,6 +1021,16 @@ export function ChatClient({
             {/* Honest connection state: live socket, reconnecting, or the
                 polling fallback (never a forever-"Connecting…"). */}
             <span
+              // The reason rides along as a tooltip. Same label, same colours,
+              // same layout - but a hover (or a long-press) now answers "why?"
+              // instead of leaving "Reconnecting..." as a dead end.
+              title={
+                live
+                  ? "Live via Supabase Realtime"
+                  : realtimeConfigured
+                    ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages are still arriving by polling every 10s; the online count needs realtime and will read 0 until it recovers.`
+                    : "Realtime is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). Messages refresh by polling."
+              }
               className={cn(
                 "mono text-[10px] uppercase tracking-wider",
                 live ? "text-mint-300/80" : realtimeConfigured ? "text-amber-300/80" : "text-zinc-500"

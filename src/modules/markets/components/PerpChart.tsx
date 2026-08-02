@@ -101,7 +101,14 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
             <button
               key={tf.d}
               onClick={() => setDays(tf.d)}
-              className={`rounded-md px-1.5 py-0.5 mono text-[9px] font-semibold transition-colors ${
+              // Measured at 23x18px on every touch viewport - the smallest tap
+              // target on the site. `tap-target-y` grows only the *hit* area,
+              // vertically, via a pseudo-element; the pill's own box, padding
+              // and font size are untouched so the control looks identical.
+              // Vertical only on purpose: these three sit 2px apart, so
+              // expanding sideways would make neighbouring hit areas overlap
+              // and steal each other's taps.
+              className={`tap-target-y rounded-md px-1.5 py-0.5 mono text-[9px] font-semibold transition-colors ${
                 days === tf.d ? "bg-gold-500/20 text-gold-200" : "text-zinc-500 hover:text-zinc-300"
               }`}
             >

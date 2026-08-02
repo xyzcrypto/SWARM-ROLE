@@ -83,7 +83,7 @@ export function LoginForm({ providers }: { providers: SocialProviders }) {
         <div>
           <PasswordField label="Password" value={password} onChange={setPassword} placeholder="••••••••" autoComplete="current-password" />
           <div className="mt-1.5 text-right">
-            <Link href="/forgot-password" className="text-xs font-medium text-gold-200 hover:underline">
+            <Link href="/forgot-password" className="tap-target-all text-xs font-medium text-gold-200 hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -102,7 +102,7 @@ export function LoginForm({ providers }: { providers: SocialProviders }) {
 
       <p className="text-center text-sm text-zinc-500">
         New to XYZ Crypto?{" "}
-        <Link href="/signup" className="font-semibold text-gold-200 hover:underline">
+        <Link href="/signup" className="tap-target-all font-semibold text-gold-200 hover:underline">
           Create an account
         </Link>
       </p>

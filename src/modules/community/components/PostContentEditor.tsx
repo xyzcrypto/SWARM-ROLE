@@ -172,8 +172,22 @@ export function PostContentEditor({
         </div>
       </div>
       {/* overscroll-contain stops a scroll that hits the top/bottom of the box
-          from chaining up and moving the whole page. */}
-      <div className="h-[26rem] w-full overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/20">
+          from chaining up and moving the whole page.
+
+          Height was a flat h-[26rem] - 416px on every device. On a 320x568
+          phone that is 73% of the whole screen for one field, so the editor ran
+          well past the fold (measured: its bottom sat 133px below the viewport)
+          and you had to scroll the page to see the box you were already
+          scrolling inside. min() keeps the approved desktop size exactly as it
+          was - 26rem wins whenever 62svh is larger, which is every viewport
+          taller than ~671px, so every laptop and desktop is pixel-identical -
+          and only shrinks on short screens where 416px did not fit.
+
+          svh, not vh: svh is the *small* viewport height, the space left when
+          mobile browser chrome (address bar) is showing. vh would size the box
+          against the tallest possible viewport and put the bottom of it under
+          the address bar on exactly the phones this is meant to help. */}
+      <div className="h-[min(26rem,62svh)] w-full overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/20">
         <EditorContent editor={editor} />
       </div>
     </>
