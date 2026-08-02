@@ -11,6 +11,7 @@ import { AnimatedBackground } from "./AnimatedBackground";
 import { Starfield } from "./Starfield";
 import { ActionLink } from "./ActionLink";
 import { MagneticButton } from "./MagneticButton";
+import { scrollToHash } from "./HashScroll";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -161,7 +162,26 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
                     <ArrowRight className="h-4 w-4" />
                   </ActionLink>
                 </MagneticButton>
-                <ActionLink href="/#products" className="btn-ghost w-full sm:w-auto">
+                {/* Explicit handler, deliberately. This button was reported
+                    dead on mobile three separate times. Each fix was measured
+                    correct in a real browser here (the anchor lands at exactly
+                    scroll-padding-top on 320/360/390/1280) and still failed on
+                    the owner's phone, which means the failure is somewhere in
+                    the chain between the tap and the scroll - Link, the App
+                    Router, or the document-level listener - and not in the
+                    landing maths.
+                    So it no longer depends on that chain. The href stays for
+                    semantics, SEO and middle-click; this just scrolls directly.
+                    preventDefault only when a target actually exists, so if
+                    #products were ever removed the browser still does something
+                    sensible instead of the click being silently swallowed. */}
+                <ActionLink
+                  href="/#products"
+                  className="btn-ghost w-full sm:w-auto"
+                  onClick={(e) => {
+                    if (scrollToHash("#products")) e.preventDefault();
+                  }}
+                >
                   View products
                 </ActionLink>
               </>

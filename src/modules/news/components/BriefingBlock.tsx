@@ -137,7 +137,16 @@ export function BriefingBlock({
   ), [englishText, ttsSupported, speak, shown, speaking, switchLang, lang, rate]);
 
   return (
-    <div className={cn("rounded-2xl border border-gold-500/20 bg-gold-500/[0.06] p-3.5 sm:p-4", className)}>
+    // Was `bg-gold-500/[0.06]` - a 6% tint, not a background. It only ever read
+    // as a panel because of whatever happened to be behind it, and inside the
+    // news reader that was the article's own photo. This is the block people
+    // actually read, so it must never sit on an image.
+    //
+    // `.briefing-panel` carries that same tint pre-blended into an opaque
+    // colour, per theme (see globals.css). It is a class rather than a Tailwind
+    // `bg-*` for two reasons: an arbitrary `bg-[#...]` cannot vary by theme, and
+    // it would override `.panel-solid` if the two were ever combined.
+    <div className={cn("briefing-panel rounded-2xl border border-gold-500/20 p-3.5 sm:p-4", className)}>
       <p className="mono inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gold-200">
         <RobotIcon className="h-4 w-4" /> Full briefing · XYZ AI
       </p>

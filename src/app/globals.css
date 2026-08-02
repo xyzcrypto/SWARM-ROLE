@@ -540,6 +540,49 @@ html.lenis body {
     display: none !important;
   }
 }
+/* Opaque base for anything that floats OVER the page.
+   ------------------------------------------------------------------
+   `.glass` and `.surface` are translucent by design - a white wash over
+   whatever sits behind them. That reads beautifully for a card ON a page and
+   badly for a dialog OVER one: the feed behind it, article thumbnails
+   included, shows straight through, so body copy ends up rendered on top of a
+   photograph. The backdrop blur softens that without fixing it, because the
+   contrast underneath is still arbitrary.
+
+   Two ordering details this depends on, both easy to undo by accident:
+   1. It MUST be declared after `.glass`/`.surface`. Their `background:`
+      shorthand resets `background-color` to transparent, so a rule declared
+      earlier is silently wiped by the very class it is meant to sit under.
+   2. It only sets `background-color`, leaving their gradient (which is
+      `background-image`) intact - so the material, border and shadow are
+      unchanged and only the transparency goes away.
+
+   It cannot be combined with a Tailwind `bg-*` utility on the same element:
+   that also sets `background-color` and wins. Pre-blend the tint into a solid
+   colour instead - see `.briefing-panel` below.
+
+   Uses the theme token rather than a hard-coded colour: this first shipped as a
+   literal `#0b0b0f`, which is right in dark and actively wrong in light - a
+   near-black dialog over a light page, with light-theme text colours on top of
+   it. `--surface` is `#ffffff` in light and `#0e0e12` in dark, so the panel
+   follows the theme for free. */
+.panel-solid {
+  background-color: var(--surface);
+}
+
+/* The AI briefing block. Same reasoning as `.panel-solid`, plus a 6% gold tint
+   that has to be pre-blended (a Tailwind `bg-*` alongside `.panel-solid` would
+   override it - see above). Both values are that same #e2a72f at 6%: over the
+   dark surface for dark, over white for light. Identical to the original tint
+   in each theme; simply opaque now, so the article photo behind the reader can
+   no longer show through the text people are actually reading. */
+.briefing-panel {
+  background-color: #fdfaf3; /* 6% #e2a72f over #ffffff */
+}
+.dark .briefing-panel {
+  background-color: #181411; /* 6% #e2a72f over #0b0b0f */
+}
+
 .surface-hover {
   transition: border-color 0.3s, transform 0.3s, background 0.3s;
 }

@@ -32,6 +32,12 @@ async function shareStory(item: NewsItem) {
 type Resp = { items: NewsItem[]; hasMore: boolean; live: boolean; page: number };
 const SAVED_KEY = "xyz:news:saved"; // guests: full saved stories in localStorage
 
+// Breaking-hero rotation state (per device). Capped so the list cannot grow
+// without bound in localStorage; the oldest ids simply become eligible again,
+// which is the right behaviour for a feed that moves on anyway.
+const BREAKING_SEEN_KEY = "xyz:breakingSeen";
+const BREAKING_SEEN_MAX = 120;
+
 export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const { data: session } = useSession();
   const [category, setCategory] = useState("All");
@@ -292,7 +298,59 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     if (category === "For You" && interests.length) list = list.filter((i) => i.categories.some((c) => interests.includes(c)));
     return list;
   }, [items, savedOnly, saved, category, interests, query]);
-  const breakingList = useMemo(() => visible.filter((i) => i.impact === "High").slice(0, 5), [visible]);
+  // Stories already shown in the breaking hero on this device.
+  //
+  // Fixing the timestamp alone is not enough, because there are several ways a
+  // feed can keep claiming a story is new - a CMS bumping <updated>, a
+  // republish, a rolling "latest" endpoint - and we cannot police the upstream.
+  // This makes the symptom impossible regardless of the cause: once a story has
+  // had its turn in the hero, it does not get another one.
+  //
+  // Kept per-device in localStorage rather than server-side on purpose: it is
+  // presentation state, and this project is over its Supabase egress quota, so
+  // it must not cost a request.
+  // Read once, lazily, on the client only. A lazy initialiser runs during
+  // render - including the server render - so it has to be guarded; SSR simply
+  // starts empty and the first client render fills it in.
+  const [seenBreaking] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(BREAKING_SEEN_KEY);
+      const parsed = raw ? JSON.parse(raw) : null;
+      return Array.isArray(parsed) ? (parsed as string[]) : [];
+    } catch {
+      return []; // private mode / corrupt value
+    }
+  });
+
+  const breakingList = useMemo(() => {
+    const high = visible.filter((i) => i.impact === "High");
+    const unseen = high.filter((i) => !seenBreaking.includes(i.id));
+    // Never leave the hero empty: if everything high-impact has had its turn,
+    // fall back to showing them anyway. A stale hero beats a missing one.
+    return (unseen.length ? unseen : high).slice(0, 5);
+  }, [visible, seenBreaking]);
+
+  // Mark what is currently in the hero as spent, so the next visit rotates on.
+  //
+  // Writes straight to localStorage and does NOT setState. Feeding it back into
+  // React state would re-run the memo above, drop the story being displayed out
+  // of `unseen`, and swap the hero out from under the reader mid-view - the
+  // filter is meant to apply on the NEXT visit, not this one. Keeping it in a
+  // ref also avoids a setState-in-effect cascade.
+  const seenRef = useRef<string[]>(seenBreaking);
+  useEffect(() => {
+    if (!breakingList.length) return;
+    const merged = [...new Set([...seenRef.current, ...breakingList.map((i) => i.id)])].slice(
+      -BREAKING_SEEN_MAX
+    );
+    seenRef.current = merged;
+    try {
+      localStorage.setItem(BREAKING_SEEN_KEY, JSON.stringify(merged));
+    } catch {
+      /* storage full or unavailable - the session still behaves correctly */
+    }
+  }, [breakingList]);
   const openById = useCallback((id: string) => {
     const idx = visible.findIndex((v) => v.id === id);
     if (idx >= 0) setReaderIndex(idx);
@@ -769,7 +827,16 @@ function NewsReader({
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.98 }}
         transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-        className="surface relative flex w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90vh] sm:rounded-2xl"
+        // panel-solid: the reader is a dialog OVER the feed, and `.surface`
+        // alone is translucent - so the feed behind it, article thumbnails
+        // included, showed straight through and the briefing text ended up
+        // sitting on a photograph. The blur softened it without fixing the
+        // contrast. Solid base underneath, same glass material on top.
+        //
+        // svh, not vh: on a phone the reader is full-height, and vh measures
+        // the viewport as if the browser chrome were hidden, so the action bar
+        // ("Read original", prev/next) sat under the address bar.
+        className="panel-solid surface relative flex max-h-[100svh] w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90svh] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}

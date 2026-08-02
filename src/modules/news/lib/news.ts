@@ -239,7 +239,16 @@ export function parseFeed(xml: string): RawItem[] {
     url = decodeEntities(url.trim());
     const rawSummary = tag(b, "description") ?? tag(b, "summary") ?? tag(b, "content") ?? "";
     const summary = stripHtml(rawSummary).slice(0, 260);
-    const dateStr = tag(b, "pubDate") ?? tag(b, "published") ?? tag(b, "updated") ?? tag(b, "dc:date") ?? "";
+    // Order matters, and `updated` is deliberately LAST.
+    //
+    // In Atom, `<updated>` is *last modified*, not published - and plenty of
+    // CMSs bump it every time the entry is regenerated. Reading it as a publish
+    // date means the story's timestamp rolls forward on every fetch, so it
+    // renders as "just now" indefinitely and never stops being the newest thing
+    // in the feed. It used to be tried before `dc:date`, i.e. a moving
+    // last-modified beat a stable publication date.
+    const dateStr =
+      tag(b, "pubDate") ?? tag(b, "published") ?? tag(b, "dc:date") ?? tag(b, "updated") ?? "";
     const publishedAt = parseDate(dateStr);
     const image = firstUrlAttr(b, ["media:content", "media:thumbnail", "enclosure"]);
     if (url) items.push({ title, url, summary, image, publishedAt });
