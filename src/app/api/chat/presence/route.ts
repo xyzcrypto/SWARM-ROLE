@@ -15,16 +15,41 @@ import { rateLimit } from "@/lib/ratelimit";
 // shared cache.
 export const dynamic = "force-dynamic";
 
-// A member counts as present if seen within this window. Comfortably more than
-// the client's heartbeat interval, so one dropped request does not make someone
-// flicker out of the list.
-const WINDOW_MS = 90_000;
+// A member counts as present if seen within this window.
+//
+// This was 90s against a 45s heartbeat and, critically, there was no "leave"
+// signal at all - so closing the tab left you listed as online for up to a
+// minute and a half. That is the "person offline hone ke baad bhi online dikh
+// raha hai" report: the count was not fake, it was stale.
+//
+// Now a clean exit deletes the row immediately (see the leave beacon below), so
+// this window only has to cover the cases that cannot say goodbye: a crash,
+// a killed tab, a dropped network. 60s against a 25s heartbeat means two
+// missed beats before someone disappears, which absorbs a transient blip
+// without leaving a ghost for long.
+const WINDOW_MS = 60_000;
 const MAX_LISTED = 50;
+// Rows for people who left long ago are dead weight. Pruned opportunistically
+// on a small fraction of reads rather than on a cron - same trick /api/track
+// uses for pageView retention, and it keeps the table bounded without adding a
+// scheduled job on a plan that has none.
+const PRUNE_CHANCE = 0.02;
+const PRUNE_OLDER_THAN_MS = 30 * 60 * 1000;
 
 export async function POST(req: Request) {
   try {
     const me = await getSessionUser();
     if (!me) return fail("Sign in required.", 401);
+
+    // "I'm leaving" - sent by navigator.sendBeacon as the tab closes or is
+    // hidden. Handled before the rate limiter on purpose: it is a delete of the
+    // caller's own single row, it is the thing that prevents ghosts, and a
+    // throttled goodbye is worse than no throttle at all.
+    const body = await req.json().catch(() => null);
+    if (body && typeof body === "object" && (body as { leave?: unknown }).leave === true) {
+      await prisma.chatPresence.deleteMany({ where: { userId: me.id } }).catch(() => null);
+      return ok({ left: true });
+    }
 
     // Keyed per user, not per IP: this is a heartbeat from a logged-in tab, and
     // a member with several tabs open should not throttle themselves out.
@@ -74,6 +99,14 @@ export async function POST(req: Request) {
     // inventing one, and fall back to a neutral label if the read raced it.
     if (!members.some((m) => m.id === me.id)) {
       members.unshift({ id: me.id, name: "You", username: null, image: null });
+    }
+
+    // Opportunistic prune, never awaited - a retention sweep must not add
+    // latency to the room's presence tick.
+    if (Math.random() < PRUNE_CHANCE) {
+      void prisma.chatPresence
+        .deleteMany({ where: { seenAt: { lt: new Date(Date.now() - PRUNE_OLDER_THAN_MS) } } })
+        .catch(() => null);
     }
 
     return ok({ online: members.length, members });
