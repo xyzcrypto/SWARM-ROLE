@@ -189,3 +189,39 @@ describe("dedupe", () => {
     expect(out.length).toBeGreaterThanOrEqual(1);
   });
 });
+
+describe("parseFeed date precedence", () => {
+  // <updated> is Atom's LAST-MODIFIED, and plenty of CMSs bump it every time the
+  // entry is regenerated. Reading it as a publish date makes the story's
+  // timestamp roll forward on every fetch, so it renders as "just now" for ever
+  // and never stops being the newest thing in the feed. A stable <dc:date> must
+  // win over a moving <updated>.
+  it("prefers dc:date over updated", () => {
+    const xml = `<feed><entry>
+      <title>Story</title><link href="https://x.example/a" />
+      <dc:date>2020-01-01T00:00:00Z</dc:date>
+      <updated>2030-01-01T00:00:00Z</updated>
+    </entry></feed>`;
+    const [item] = parseFeed(xml);
+    expect(item.publishedAt).toBe(Date.parse("2020-01-01T00:00:00Z"));
+  });
+
+  it("still falls back to updated when nothing better exists", () => {
+    const xml = `<feed><entry>
+      <title>Story</title><link href="https://x.example/b" />
+      <updated>2024-05-05T10:00:00Z</updated>
+    </entry></feed>`;
+    const [item] = parseFeed(xml);
+    expect(item.publishedAt).toBe(Date.parse("2024-05-05T10:00:00Z"));
+  });
+
+  it("prefers pubDate above everything", () => {
+    const xml = `<rss><item>
+      <title>Story</title><link>https://x.example/c</link>
+      <pubDate>Mon, 03 Jun 2024 09:00:00 GMT</pubDate>
+      <updated>2030-01-01T00:00:00Z</updated>
+    </item></rss>`;
+    const [item] = parseFeed(xml);
+    expect(item.publishedAt).toBe(Date.parse("Mon, 03 Jun 2024 09:00:00 GMT"));
+  });
+});

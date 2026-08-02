@@ -5,6 +5,51 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (3) — The stuck news story: previous diagnosis was wrong
+
+**Correction first.** The (1) entry blamed a **future-dated** timestamp and gave
+`rankNews()` a guard for it. A screenshot of the live story disproves that: it
+renders **"just now"**, and `timeAgo()` renders a future date as *"recently"*
+(`ms > now + 60_000`). So the date is not in the future — it is **≈ now, on every
+load, days apart**. The `rankNews` guard stays (a future date *is* a real failure
+mode and it is now handled), but it was not this bug.
+
+**What it actually is** — `src/modules/news/lib/news.ts`.
+The date is read as
+`pubDate ?? published ?? updated ?? dc:date`. In Atom, **`<updated>` is
+*last-modified*, not published**, and plenty of CMSs bump it every time the entry
+is regenerated. So a moving last-modified was being preferred over a stable
+`<dc:date>`, the story's timestamp rolled forward on every fetch, and it read as
+"just now" for ever — permanently the newest thing in the feed, permanently rank
+1, permanently in the breaking hero. Reordered to
+`pubDate ?? published ?? dc:date ?? updated`, with `updated` as the last resort
+it should always have been. **3 new tests** pin the precedence.
+
+**And a fix that works whatever the upstream does** —
+`src/modules/news/components/NewsClient.tsx`.
+Correcting the timestamp is necessary but not sufficient: a feed can keep
+claiming a story is new in several ways (a republish, a rolling "latest"
+endpoint, a CMS quirk we have not seen yet) and we cannot police any of them.
+So the breaking hero now remembers which stories it has already shown on this
+device and rotates past them. If everything high-impact has had its turn it falls
+back to showing them anyway — a stale hero beats an empty one.
+
+Kept in `localStorage`, not server-side, deliberately: it is presentation state,
+and this project is over its Supabase egress quota, so it must not cost a
+request. Capped at 120 ids so it cannot grow without bound.
+
+Two React details worth keeping: the seen-list is read in a **lazy initialiser**
+(guarded for SSR, where `localStorage` does not exist) rather than an effect, and
+the write-back goes to a **ref plus localStorage without `setState`** — feeding it
+back into state would re-run the memo, drop the story being displayed out of the
+unseen set, and swap the hero out from under the reader mid-view. The filter is
+meant to apply on the *next* visit, not this one. Warnings stayed at 37.
+
+Verification: typecheck ✅ · lint ✅ 0 errors / 37 warnings (unchanged) ·
+**418/418 tests** ✅ (415 + 3) · build ✅.
+
+---
+
 ## 2026-08-03 (2) — Dialogs made opaque; hero button stops depending on the chain
 
 **Dialogs were rendering body text on top of photographs** —
