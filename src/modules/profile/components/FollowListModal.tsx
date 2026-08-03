@@ -6,13 +6,87 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Loader2, UserPlus, UserCheck, UserMinus } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { useScrollLock } from "@/lib/useScrollLock";
 import { cn } from "@/lib/utils";
 
 type Row = { name: string | null; username: string; image: string | null; bio: string | null; isFollowing: boolean; isMe: boolean };
 type Tab = "followers" | "following";
 
+/**
+ * A tiny in-memory cache of list responses, so the modal can open with rows
+ * already in hand instead of a spinner.
+ *
+ * The list was fetched when the modal mounted, which meant every open showed
+ * "Loading…" for a full round trip - and the tap that opens it is preceded by a
+ * hover (desktop) or a touchstart (phone), both of which are dead time the
+ * request could have been using. `prefetchFollowList` fires on those, the modal
+ * reads the result synchronously on mount, and the common case renders filled
+ * in on the first frame.
+ *
+ * Entries expire after ENTRY_TTL_MS so a cached list can't outlive the truth by
+ * long, and are dropped outright whenever a follow/unfollow happens (the modal
+ * calls `invalidateFollowLists` on every toggle), which is the only edit that
+ * can change these lists from this page.
+ */
+const ENTRY_TTL_MS = 30_000;
+const cache = new Map<string, { at: number; rows: Row[] }>();
+const inflight = new Map<string, Promise<Row[]>>();
+
+const keyOf = (username: string, tab: Tab) => `${username.toLowerCase()}:${tab}`;
+
+async function fetchList(username: string, tab: Tab): Promise<Row[]> {
+  const key = keyOf(username, tab);
+  const running = inflight.get(key);
+  if (running) return running;
+  const p = (async () => {
+    try {
+      const r = await fetch(`/api/follow/list?username=${encodeURIComponent(username)}&type=${tab}`, { cache: "no-store" });
+      const j = r.ok ? await r.json() : null;
+      const rows: Row[] = Array.isArray(j?.list) ? j.list : [];
+      // Only a real response is worth caching - an error would otherwise pin an
+      // empty list in front of the user for the whole TTL.
+      if (r.ok) cache.set(key, { at: Date.now(), rows });
+      return rows;
+    } catch {
+      return [];
+    } finally {
+      inflight.delete(key);
+    }
+  })();
+  inflight.set(key, p);
+  return p;
+}
+
+function cached(username: string, tab: Tab): Row[] | null {
+  const hit = cache.get(keyOf(username, tab));
+  if (!hit) return null;
+  if (Date.now() - hit.at > ENTRY_TTL_MS) { cache.delete(keyOf(username, tab)); return null; }
+  return hit.rows;
+}
+
+/** Warm both tabs for a profile. Safe to call repeatedly - it de-dupes. */
+export function prefetchFollowList(username: string) {
+  if (typeof window === "undefined") return;
+  (["followers", "following"] as Tab[]).forEach((t) => {
+    if (!cached(username, t)) void fetchList(username, t);
+  });
+}
+
+/** Drop every cached list. Called after any follow/unfollow. */
+export function invalidateFollowLists() {
+  cache.clear();
+}
+
 // A small follow/unfollow button used inside each list row.
-function RowFollow({ username, initial, onChanged }: { username: string; initial: boolean; onChanged?: () => void }) {
+function RowFollow({ username, initial, onChanged, onOptimistic }: {
+  username: string;
+  initial: boolean;
+  onChanged?: () => void;
+  // Fired the instant the row is tapped, before the request goes out, so the
+  // parent's Following count moves with the tap instead of a round trip later.
+  // `onChanged` still reconciles against the server afterwards.
+  onOptimistic?: (delta: number) => void;
+}) {
   const router = useRouter();
   const [following, setFollowing] = useState(initial);
   const [busy, setBusy] = useState(false);
@@ -23,13 +97,26 @@ function RowFollow({ username, initial, onChanged }: { username: string; initial
     setBusy(true);
     const next = !following;
     setFollowing(next);
+    onOptimistic?.(next ? 1 : -1);
     try {
       const r = await fetch("/api/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username }) });
-      if (r.status === 401) { router.push(`/login?callbackUrl=/u/${username}`); setFollowing(!next); return; }
+      if (r.status === 401) {
+        router.push(`/login?callbackUrl=/u/${username}`);
+        setFollowing(!next);
+        onOptimistic?.(next ? -1 : 1); // put the count back
+        return;
+      }
       const j = r.ok ? await r.json() : null;
       if (j) setFollowing(!!j.following);
+      else onOptimistic?.(next ? -1 : 1); // request failed - undo the guess
+      // The lists this cache holds are exactly what a follow/unfollow changes,
+      // so a stale hit here would show a button in the wrong state next open.
+      invalidateFollowLists();
       onChanged?.();
-    } catch { setFollowing(!next); }
+    } catch {
+      setFollowing(!next);
+      onOptimistic?.(next ? -1 : 1);
+    }
     finally { setBusy(false); }
   };
 
@@ -59,27 +146,44 @@ export function FollowListModal({
   initialType,
   onClose,
   onChanged,
+  onOptimistic,
 }: {
   username: string;
   initialType: Tab;
   onClose: () => void;
   onChanged?: () => void;
+  onOptimistic?: (delta: number) => void;
 }) {
   const [tab, setTab] = useState<Tab>(initialType);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Lazy initialisers, so a prefetched list is on screen for the FIRST paint
+  // rather than after an effect - no spinner flash when the hover/touch that
+  // opened the modal already warmed the cache.
+  const [rows, setRows] = useState<Row[]>(() => cached(username, initialType) ?? []);
+  const [loading, setLoading] = useState(() => !cached(username, initialType));
 
-  const load = useCallback(async (t: Tab) => {
+  const load = useCallback(async (t: Tab, alive: () => boolean) => {
+    const hit = cached(username, t);
+    if (hit) { setRows(hit); setLoading(false); return; }
     setLoading(true);
-    try {
-      const r = await fetch(`/api/follow/list?username=${encodeURIComponent(username)}&type=${t}`, { cache: "no-store" });
-      const j = r.ok ? await r.json() : null;
-      setRows(Array.isArray(j?.list) ? j.list : []);
-    } catch { setRows([]); }
-    finally { setLoading(false); }
+    const fresh = await fetchList(username, t);
+    // Tabs can be switched back and forth faster than a request completes;
+    // without this the slower one lands last and shows the wrong list.
+    if (!alive()) return;
+    setRows(fresh);
+    setLoading(false);
   }, [username]);
 
-  useEffect(() => { load(tab); }, [tab, load]);
+  useEffect(() => {
+    let alive = true;
+    void load(tab, () => alive);
+    return () => { alive = false; };
+  }, [tab, load]);
+
+  // Freeze the profile behind the dialog. Measured before this: one wheel
+  // gesture over the open list moved the page underneath by 171px at 390px wide
+  // and 20px at 1440px, because the list is short enough not to consume the
+  // wheel itself and Lenis then scrolled the page with it.
+  useScrollLock();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -135,7 +239,7 @@ export function FollowListModal({
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-2">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-2" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
             {loading ? (
               <p className="py-12 text-center text-sm text-zinc-500"><Loader2 className="mr-1 inline h-4 w-4 animate-spin" /> Loading…</p>
             ) : rows.length === 0 ? (
@@ -152,7 +256,7 @@ export function FollowListModal({
                       <span className="mono block truncate text-[11px] text-zinc-500">@{u.username}</span>
                       {u.bio && <span className="mt-0.5 block truncate text-[11px] text-zinc-500">{u.bio}</span>}
                     </Link>
-                    {!u.isMe && <RowFollow username={u.username} initial={u.isFollowing} onChanged={onChanged} />}
+                    {!u.isMe && <RowFollow username={u.username} initial={u.isFollowing} onChanged={onChanged} onOptimistic={onOptimistic} />}
                   </li>
                 ))}
               </ul>

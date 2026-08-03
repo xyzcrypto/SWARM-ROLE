@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Lenis from "lenis";
+import { registerSmoothScroll } from "@shared/hooks/useScrollLock";
 
 /**
  * Buttery momentum smooth-scrolling (Lenis). Disabled automatically when the
@@ -55,6 +56,10 @@ export function SmoothScroll() {
     });
 
     document.documentElement.classList.add("lenis");
+    // Hand the stop/start controls to the scroll-lock helper. Lenis drives the
+    // scroll position itself, so `body { overflow: hidden }` alone does not
+    // hold the page still behind a modal - see useScrollLock.ts.
+    registerSmoothScroll({ stop: () => lenis.stop(), start: () => lenis.start() });
 
     let raf = 0;
     const loop = (time: number) => {
@@ -65,6 +70,7 @@ export function SmoothScroll() {
 
     return () => {
       cancelAnimationFrame(raf);
+      registerSmoothScroll(null);
       lenis.destroy();
       document.documentElement.classList.remove("lenis");
     };
