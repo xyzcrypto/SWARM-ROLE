@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useHydrated } from "@/lib/useClientFlag";
+import { useScrollLock } from "@/lib/useScrollLock";
 
 /**
  * Wraps a trigger (avatar/banner) so clicking it opens the full, uncropped
@@ -29,16 +30,16 @@ export function ImageLightbox({
   // Portals need a DOM target, so this only renders after hydration.
   const mounted = useHydrated();
 
+  // The lock used to be a hand-rolled `body { overflow: hidden }`, which Lenis
+  // ignores - it drives the scroll position itself - so the page still moved
+  // behind the open image. useScrollLock stops Lenis too.
+  useScrollLock(open);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
+    return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
   return (

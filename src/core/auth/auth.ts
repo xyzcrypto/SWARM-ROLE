@@ -11,7 +11,7 @@ import { googleEnabled, githubEnabled, twitterEnabled, isAdminEmail } from "@/li
 import { verifyCode } from "@/lib/otp";
 import { rateLimit, clientIpFromHeaders } from "@/lib/ratelimit";
 import { generateUniqueUsername } from "@/lib/username";
-import { pickPrimaryVerifiedEmail } from "@/lib/utils";
+import { pickPrimaryVerifiedEmail, publicImageUrl } from "@/lib/utils";
 
 // P2021 = table missing, P2022 = column missing - both mean the DB hasn't
 // picked up a schema change yet (the `db push` step in vercel-build is
@@ -364,12 +364,17 @@ export const authOptions: NextAuthOptions = {
           (token as any).syncedAt = Date.now();
         }
       }
-      // The JWT is stored in a cookie (~4 KB limit). If the avatar is an inline
-      // data: URL (zero-config upload path), keep it OUT of the token so it can't
-      // bloat/break the session cookie - the real image still renders from the DB
-      // on the profile + in comments; the navbar just falls back to initials.
+      // The JWT is stored in a cookie (~4 KB limit), so an inline data: URL
+      // avatar (the zero-config upload path) must never go in it.
+      //
+      // It used to be dropped to null, and the comment here claimed "the real
+      // image still renders from the DB on the profile + in comments". That was
+      // wrong: those paths stripped it too, so the navbar showing initials was
+      // not a small cosmetic fallback - it was the same photo being discarded
+      // everywhere. Point the token at the media route instead: a short URL,
+      // nowhere near the cookie limit, and the same image everyone else sees.
       if (typeof token.picture === "string" && token.picture.startsWith("data:")) {
-        token.picture = null;
+        token.picture = publicImageUrl(token.picture, typeof token.uid === "string" ? token.uid : null);
       }
       return token;
     },

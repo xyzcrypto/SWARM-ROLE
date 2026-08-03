@@ -2,7 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
-import { stripInlineImage } from "@/lib/utils";
+import { publicImageUrl } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,7 +31,7 @@ export async function GET(req: Request) {
       .findMany({ where, take: 12, orderBy: { createdAt: "desc" }, select: { id: true, name: true, username: true, image: true } })
       .catch(() => [] as { id: string; name: string | null; username: string | null; image: string | null }[]);
 
-    return ok({ users: rows.filter((u) => u.username).map((u) => ({ ...u, image: stripInlineImage(u.image) })) });
+    return ok({ users: rows.filter((u) => u.username).map((u) => ({ ...u, image: publicImageUrl(u.image, u.id) })) });
   } catch (err) {
     return handleError(err, "dm:search");
   }

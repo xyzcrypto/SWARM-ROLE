@@ -28,6 +28,7 @@ type Controls = { stop: () => void; start: () => void };
 let smooth: Controls | null = null;
 let depth = 0;
 let previousOverflow = "";
+let previousPaddingRight = "";
 
 /** Called by SmoothScroll once Lenis is up, and with null when it tears down. */
 export function registerSmoothScroll(controls: Controls | null) {
@@ -40,6 +41,17 @@ export function lockScroll() {
   depth += 1;
   if (depth > 1) return;
   previousOverflow = document.body.style.overflow;
+  previousPaddingRight = document.body.style.paddingRight;
+  // Hiding overflow takes the scrollbar away, and the page widens by its width
+  // the instant a dialog opens. Measured with the news reader: the page behind
+  // it shifted by 4px on open - small, but it reads as a jolt exactly when
+  // attention moves to the dialog. Hold the width by replacing the scrollbar
+  // with padding.
+  const gap = window.innerWidth - document.documentElement.clientWidth;
+  if (gap > 0) {
+    const current = parseFloat(getComputedStyle(document.body).paddingRight) || 0;
+    document.body.style.paddingRight = `${current + gap}px`;
+  }
   document.body.style.overflow = "hidden";
   smooth?.stop();
 }
@@ -48,6 +60,7 @@ export function unlockScroll() {
   depth = Math.max(0, depth - 1);
   if (depth > 0) return;
   document.body.style.overflow = previousOverflow;
+  document.body.style.paddingRight = previousPaddingRight;
   smooth?.start();
 }
 

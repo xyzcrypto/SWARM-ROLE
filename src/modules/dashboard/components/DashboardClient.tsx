@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDate, formatDateTime, maskEmail } from "@/lib/utils";
+import { useScrollLock } from "@/lib/useScrollLock";
 import { PostEditor } from "@/components/PostEditor";
 import { PostManager } from "@/components/PostManager";
 import { PERMISSIONS, ALL_PERMISSIONS, hasPermission, type Permission } from "@/lib/permissions";
@@ -1291,6 +1292,7 @@ function AccessEditor({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
+  useScrollLock(); // freeze the dashboard behind the dialog
 
   useEffect(() => {
     let active = true;

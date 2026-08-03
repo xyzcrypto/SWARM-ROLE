@@ -1,11 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Loader2, UserPlus, UserCheck, UserMinus } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
+import { useHydrated } from "@/lib/useClientFlag";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { cn } from "@/lib/utils";
 
@@ -154,6 +156,23 @@ export function FollowListModal({
   onChanged?: () => void;
   onOptimistic?: (delta: number) => void;
 }) {
+  // Portalled to document.body, and this is the actual "background aligned
+  // nahi hai" bug rather than a padding question.
+  //
+  // `position: fixed` is only relative to the viewport while no ancestor
+  // establishes a containing block - and `filter`, `transform`, `backdrop-filter`
+  // and friends all do. The profile hero card is wrapped in
+  // `<Reveal variant="blur">`, which animates `filter: blur(...)` and settles on
+  // `blur(0px)`. That is visually nothing and is NOT `none`, so the card became
+  // the containing block for everything fixed inside it. Measured at 1280x800:
+  // this dialog's `fixed inset-0` overlay resolved to **832x328 at (224,112)**
+  // instead of 1280x800 at (0,0) - a dialog boxed inside the profile card,
+  // which is exactly what it looked like. A portal moves it out from under the
+  // filtered ancestor so `inset-0` means the viewport again.
+  //
+  // ImageLightbox already portals for this same reason; its comment names
+  // backdrop-filter. The blur-Reveal case is the one that was missed.
+  const mounted = useHydrated();
   const [tab, setTab] = useState<Tab>(initialType);
   // Lazy initialisers, so a prefetched list is on screen for the FIRST paint
   // rather than after an effect - no spinner flash when the hover/touch that
@@ -191,11 +210,19 @@ export function FollowListModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[70] grid place-items-center bg-black/60 p-4 backdrop-blur-sm"
+        // The overlay reserves the space the dialog may NOT use, and the dialog
+        // centres in what is left. The panel used to subtract the bottom nav
+        // from its own height while still centring inside the full viewport,
+        // which left an unequal gap above and below; reserving it here makes the
+        // two equal by construction, on every screen height, with no arithmetic
+        // to keep in sync. Top padding clears the fixed navbar.
+        className="fixed inset-0 z-[70] grid place-items-center bg-black/60 px-4 pb-[calc(1rem+3.5rem+env(safe-area-inset-bottom))] pt-[calc(1rem+4rem)] backdrop-blur-sm md:p-6"
         onClick={onClose}
       >
         <motion.div
@@ -207,19 +234,20 @@ export function FollowListModal({
           // through the list and tangled with the names on top of it. Solid
           // base, same glass material and border above it.
           //
-          // Height, phone: was max-h-[75vh], which had two problems. `vh`
-          // measures the viewport as though the browser chrome were hidden, so
-          // 75vh is taller than 75% of what you can actually see; and the
-          // bottom nav (3.5rem + safe area) covers the lower part of the
-          // screen, so the last row and the end of the scroll sat behind it.
+          // Height is now just "as tall as the space the overlay left me", on
+          // every screen. It used to compute its own
+          // `min(75svh, 100svh - 9rem - safe-area)`, which is where the
+          // misalignment came from - the panel shrank for the bottom nav but the
+          // centring did not know about it, so the gap above was always larger
+          // than the gap below. `max-h-full` against a padded overlay gives
+          // equal gaps by construction and needs no arithmetic to keep in sync
+          // with the nav's height.
           //
-          // Height, desktop: the nav subtraction above is `md:hidden` in
-          // reality - there is no bottom nav on a large screen - so carrying it
-          // there just made the dialog needlessly short, wasting the space the
-          // list actually wants. From `md` up it goes back to a plain 80svh,
-          // and the panel widens a step so the name + Following button row is
-          // not cramped into a phone-width column on a 1440px display.
-          className="panel-solid glass flex max-h-[min(75svh,100svh-9rem-env(safe-area-inset-bottom))] w-full max-w-md flex-col overflow-hidden rounded-3xl md:max-h-[80svh] md:max-w-lg"
+          // `md:max-h-[80svh]` keeps the dialog from becoming a full-height slab
+          // on a tall desktop screen, and the panel widens a step there so the
+          // name + Following button row is not cramped into a phone-width
+          // column on a 1440px display.
+          className="panel-solid glass flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-3xl md:max-h-[80svh] md:max-w-lg"
         >
           <div className="flex items-center border-b border-white/10">
             {(["followers", "following"] as Tab[]).map((t) => (
@@ -264,6 +292,7 @@ export function FollowListModal({
           </div>
         </motion.div>
       </motion.div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

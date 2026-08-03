@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
+import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
@@ -15,6 +16,8 @@ import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
 import { BriefingBlock } from "@/components/BriefingBlock";
 import { NewsSocial } from "@/components/NewsSocial";
 import { AwardXpOnView } from "@/components/AwardXpOnView";
+import { useHydrated } from "@/lib/useClientFlag";
+import { useScrollLock } from "@/lib/useScrollLock";
 import { cn } from "@/lib/utils";
 
 // Share a SHORT on-site link (`/news/read?u=<source-url>`) - opens the story on
@@ -526,6 +529,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
 }
 
 function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClose: () => void; onSave: (next: string[]) => void }) {
+  useScrollLock();
   const [picked, setPicked] = useState<Set<string>>(new Set(initial));
   const toggle = (c: string) => setPicked((prev) => {
     const next = new Set(prev);
@@ -543,7 +547,7 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
           </div>
           <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"><X className="h-4 w-4" /></button>
         </div>
-        <div className="max-h-[55vh] overflow-y-auto p-4">
+        <div data-lenis-prevent className="max-h-[55svh] overflow-y-auto overscroll-contain p-4">
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map((c) => {
               const on = picked.has(c);
@@ -729,6 +733,24 @@ function NewsReader({
   const digestItemId = useRef(item.id);
   const scrollRaf = useRef(0);
 
+  // Freeze the feed behind the reader. Without it the wheel fell through to
+  // /news once the briefing was short enough not to scroll on its own, or once
+  // it hit its end - so closing the reader dropped you somewhere else entirely.
+  // Note `body { overflow: hidden }` alone would NOT do this: Lenis drives the
+  // scroll position itself and ignores overflow (see useScrollLock).
+  useScrollLock();
+
+  // Portalled to document.body, for the same reason the follow dialog is.
+  // `position: fixed` only means "the viewport" while no ancestor establishes a
+  // containing block, and plenty of ordinary styling does - transform, filter,
+  // backdrop-filter, contain. Measured at 1280x800 before this: the reader's
+  // `fixed inset-0` overlay resolved to **1280x780 starting at y=20** rather
+  // than filling the viewport, so it was anchored to a wrapper on the page
+  // instead of the screen. A portal takes it out of that subtree entirely,
+  // which is a fix that cannot regress when someone adds a filter or a
+  // transform to a parent later.
+  const mounted = useHydrated();
+
   // rAF-throttled - a plain onScroll handler would setState on every native
   // scroll event (mirrors the fix already applied in ReadingProgress.tsx).
   const onBodyScroll = () => {
@@ -776,12 +798,11 @@ function NewsReader({
       else if (e.key === "ArrowRight" && hasNext) onNext();
     };
     document.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
+    // The hand-rolled `body { overflow: hidden }` that used to live here is
+    // gone: Lenis drives the scroll position itself and ignores overflow, so it
+    // never actually held the feed still. `useScrollLock` above does, and two
+    // competing locks would fight over restoring the original value anyway.
+    return () => document.removeEventListener("keydown", onKey);
   }, [hasPrev, hasNext, onPrev, onNext, onClose]);
 
   // Reset the AI digest whenever the story changes - generation is now on-demand
@@ -819,7 +840,9 @@ function NewsReader({
     : { cls: "bg-white/5 text-zinc-400", icon: <Minus className="h-3 w-3" />, label: "Neutral" };
   const impactCls = item.impact === "High" ? "text-red-300 ring-red-500/30" : item.impact === "Medium" ? "text-amber-300 ring-amber-500/30" : "text-zinc-400 ring-white/10";
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}
       className="fixed inset-0 z-[60] flex items-stretch justify-center bg-black/70 backdrop-blur-sm sm:items-center sm:p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label={item.title}
@@ -862,10 +885,21 @@ function NewsReader({
           </button>
         </div>
 
-        {/* scrollable body */}
+        {/* Scrollable body.
+            `data-lenis-prevent` + `overscroll-contain` are what keep the wheel
+            IN here. Neither was set, and the two together are what the reported
+            "poora page scroll ho jata hai" needed:
+            - Lenis's own rule only hands the wheel back to a box that is
+              *currently* taller than its frame, so a short briefing (or one
+              still loading) let Lenis scroll the feed behind the dialog. The
+              attribute makes it unconditional.
+            - `overscroll-contain` stops the native chain once this box hits its
+              top or bottom, which is the other half of the same complaint.
+            `useScrollLock` on the panel handles everything outside the wheel. */}
         <div
           ref={bodyRef}
-          className="min-h-0 flex-1 overflow-y-auto"
+          data-lenis-prevent
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain"
           onScroll={onBodyScroll}
         >
           <motion.div key={item.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
@@ -922,7 +956,8 @@ function NewsReader({
           </a>
         </div>
       </motion.div>
-    </motion.div>
+    </motion.div>,
+    document.body
   );
 }
 

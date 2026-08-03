@@ -186,8 +186,22 @@ export function PostContentEditor({
           svh, not vh: svh is the *small* viewport height, the space left when
           mobile browser chrome (address bar) is showing. vh would size the box
           against the tallest possible viewport and put the bottom of it under
-          the address bar on exactly the phones this is meant to help. */}
-      <div className="h-[min(26rem,62svh)] w-full overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/20">
+          the address bar on exactly the phones this is meant to help.
+
+          `data-lenis-prevent` is the missing third piece, and it is why this
+          still moved the page on some desktops. Lenis's general rule only hands
+          the wheel back to a box that is *currently* taller than its frame - so
+          an empty editor, a nearly-empty one, or one whose content had not laid
+          out yet handed the wheel straight to the page, and once you were at the
+          top or bottom of the text the same thing happened again. The attribute
+          makes it unconditional: while the pointer is over this box, the wheel
+          belongs to this box and nothing else moves. That is a deliberate
+          trade - reaching the end of your text no longer carries on down the
+          page - and it is the behaviour that was asked for. */}
+      <div
+        data-lenis-prevent
+        className="h-[min(26rem,62svh)] w-full overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm transition-colors focus-within:border-gold-500/50 focus-within:ring-2 focus-within:ring-gold-500/20"
+      >
         <EditorContent editor={editor} />
       </div>
     </>
