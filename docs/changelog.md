@@ -5,6 +5,113 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (13) — Every page was served invisible, and reduced motion made React throw it away
+
+The blank/stuck page, found and reproduced. Two independent faults in
+`src/app/template.tsx`, which wraps **every route**:
+
+```tsx
+const reduced = useReducedMotion();
+if (reduced) return <>{children}</>;
+return <motion.div initial={{ opacity: 0, y: 8 }} ...>{children}</motion.div>;
+```
+
+**1. The whole site was server-rendered at `opacity: 0`.** Content became
+visible only once JavaScript hydrated. Any failure on that path - a stale
+chunk, a throw, a phone that gave up on the bundle - left a fully-populated DOM
+that nobody could see. Measured: `/`, `/terms`, `/research`, `/markets`,
+`/news` each shipped exactly one `opacity:0;transform:translateY(8px)` wrapper
+around everything.
+
+**2. The branch broke hydration on every page.** framer-motion's
+`useReducedMotion()` returns `null` while server rendering but reads
+`matchMedia` synchronously during the FIRST client render. For a visitor with
+reduced motion on, the server sent the wrapper and the client rendered without
+it - the document shifted one level, React threw `Minified React error #418`
+(`throwOnHydrationMismatch`) and discarded the server HTML for the whole page.
+Reduced motion is on by default under Android battery saver and iOS Low Power,
+which is why this read as a mobile problem. It is also the `#418` in the
+owner's production console.
+
+Reproduced before touching anything: a Playwright sweep of 16 routes signed-out
+and signed-in threw #418 on **32 of 32**. Isolating one variable at a time
+showed reduced motion alone was the trigger (locale and timezone were clean at
+that point).
+
+### The fix
+
+`template.tsx` is now CSS with no branch at all: one `.route-enter` class,
+keyframed in `globals.css`, opted out under `@media (prefers-reduced-motion:
+reduce)`. Identical markup on both sides, so there is nothing to mismatch, and
+the page becomes visible whether or not JavaScript ever arrives. Verified with
+JavaScript **disabled**: wrapper opacity 1, body text visible, both with and
+without reduced motion.
+
+### Then the sweep found a second bug the first was hiding
+
+With 30/32 clean, `/settings` and `/community` still threw - and isolating
+again showed the trigger was **timezone**, not motion. Vercel runs UTC and the
+reader's browser does not, so dates near midnight formatted to a different
+calendar day on each side. Captured literally, from an IST browser:
+
+| surface | server HTML | IST browser |
+|---|---|---|
+| `/settings` | `Aug 2, 2026` | `Aug 3, 2026` |
+| `/community` | `6:06 AM` | `11:36 AM` |
+
+`formatDate`/`formatDateWithDay`/`formatDateTime` pinned the *locale* but never
+the *timezone*. They now pin `timeZone: "UTC"`, which is also the better answer
+on its own terms - a post should not look published on different days to
+different readers. (`DashboardClient` already did this; it was the outlier that
+was right.)
+
+The chat's clock times and Today/Yesterday separators genuinely mean *the
+reader's* day, so pinning UTC would have been wrong. Those format in UTC for
+the server render and the hydrating render, then switch to local from the next
+render on, via the existing `useHydrated()`. The two only ever disagree within
+the timezone offset of midnight.
+
+### Swept the whole class, not just the two sites that fired
+
+- Every remaining `useReducedMotion()` (8 call sites) now uses a new
+  `useReducedMotionSafe()` - `useSyncExternalStore` with a server snapshot, so
+  hydration sees what the server saw. This was not paranoia: `ActionLink`'s
+  `whileTap={reduced ? undefined : ...}` was a real mismatch, because
+  framer-motion emits a `tabindex` attribute when a gesture prop is present.
+- `Starfield`'s star positions came from `Math.sin`, which ECMAScript does not
+  require to be correctly rounded. Node and V8-in-Chromium genuinely differed -
+  server `left:5.721816934965318%` vs browser `5.721816935692914%` - so all 110
+  stars reported an attribute mismatch on the homepage. Seeds moved to
+  `starfield-seed.ts` and quantized; the live set's closest approach to a
+  rounding boundary is 2.61e-4 against a 7.28e-8 divergence, ~3600x of headroom,
+  asserted by test. Silent in production, but it buried real errors in dev.
+- Three server-rendered number formatters had no locale pinned
+  (`DashboardClient`, `LiveStats`, `ProfileStats`). Latent rather than observed
+   - `en-IN` groups digits differently only from 10,000 up and the local seed
+  data is smaller - so pinned to `en-US` to match the convention already used
+  everywhere else in those same files.
+
+### Verified
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 471/471 tests ✅ (+9:
+starfield seed stability, date-formatter timezone independence, including a
+control that fails without the fix so the assertions cannot be vacuous) ·
+build ✅ · content visible with JS disabled ✅
+
+Hydration sweep, production build, every combination of reduced-motion /
+`en-IN` / `Asia/Kolkata`, signed-out and signed-in: **32/32 pages clean**, and
+30/30 on the per-variable matrix across `/community`, `/settings`, `/messages`,
+`/u/owner`, `/dashboard`, `/journal`. Before: 32/32 failing.
+
+**Files:** `src/app/template.tsx`, `src/app/globals.css`,
+`src/shared/utils/utils.ts`, `src/shared/hooks/useClientFlag.ts`,
+`src/shared/utils/starfield-seed.ts` (+ `src/lib` shim), `src/components/Starfield.tsx`,
+`src/modules/community/components/ChatClient.tsx`,
+`src/modules/profile/components/ProfileStats.tsx`,
+`src/shared/components/{ActionLink,AnimatedEmoji,AnimatedIcon,BrandLoader,LiveStats}.tsx`,
+`src/modules/{profile/components/ProfileFollow,news/components/NewsClient,ai/components/XyzAiWidget,dashboard/components/DashboardClient}.tsx`,
+tests in `src/lib/__tests__/`.
+
 ## 2026-08-03 (12) — Two components asking for the same realtime channel, and the second one losing
 
 The owner sent a production console. It contained the answer, and it was **not**

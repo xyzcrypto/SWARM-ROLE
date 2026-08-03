@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { UserPlus, UserCheck, UserMinus, Loader2 } from "lucide-react";
@@ -9,6 +9,7 @@ import { userChannel } from "@/lib/realtime-channels";
 import { useRealtime } from "@/lib/useRealtime";
 import { FollowListModal, prefetchFollowList, invalidateFollowLists } from "@/components/FollowListModal";
 import { cn } from "@/lib/utils";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 
 function fmt(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(n % 1_000_000 ? 1 : 0) + "M";
@@ -36,7 +37,7 @@ function CountButton({ label, value, tone, onClick, onWarm }: {
   onClick: () => void;
   onWarm: () => void;
 }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   return (
     <button
       onClick={onClick}

@@ -3,12 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { SendHorizonal, X, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
 import { RobotIcon } from "@/components/RobotIcon";
 import { cn } from "@/lib/utils";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 
 // Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
 export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
@@ -43,7 +44,7 @@ export function XyzAiWidget() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);

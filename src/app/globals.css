@@ -1371,3 +1371,28 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 .anim-paused * {
   animation-play-state: paused !important;
 }
+
+/* Per-route entrance (src/app/template.tsx).
+
+   Deliberately CSS and not framer-motion. The previous JS version branched on
+   `useReducedMotion()`, which is `null` on the server and the real media query
+   on the client's first render - so a reduced-motion visitor got a different
+   DOM shape than the server sent and React threw #418 on every page, then
+   re-rendered the whole document on the client. It also meant every page was
+   server-rendered at `opacity: 0` and only became visible once JS ran, so any
+   hydration failure showed as a blank page.
+
+   A media query is not a render input, so this version cannot mismatch, and
+   the content becomes visible whether or not JavaScript ever arrives. */
+@keyframes route-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.route-enter {
+  animation: route-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No animation at all - not even the `from` frame - so the page is simply
+     visible immediately. */
+  .route-enter { animation: none; }
+}

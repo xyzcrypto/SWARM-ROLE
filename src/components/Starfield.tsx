@@ -1,18 +1,20 @@
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
+import { starSeed, STAR_COUNT } from "@/lib/starfield-seed";
 import { RobotIcon } from "./RobotIcon";
 
 // Deterministic star positions (seeded, computed once at module load) so SSR and
-// the client render identically - no hydration mismatch, no layout shift, no
-// per-render Math.random. Gives the orbital section a deep-space backdrop so the
-// whole thing reads like a little solar system.
-const STARS = Array.from({ length: 110 }, (_, i) => {
-  const a = Math.sin(i * 12.9898) * 43758.5453;
-  const b = Math.sin(i * 78.233) * 12345.6789;
-  const c = Math.sin(i * 45.164) * 91537.4231;
-  const fa = Math.abs(a - Math.floor(a));
-  const fb = Math.abs(b - Math.floor(b));
-  const fc = Math.abs(c - Math.floor(c));
+// the client render identically - no layout shift, no per-render Math.random.
+// Gives the orbital section a deep-space backdrop so the whole thing reads like
+// a little solar system.
+//
+// The seeds come from `starfield-seed` rather than being computed inline
+// because they need to survive the SSR boundary: `Math.sin` is not required by
+// ECMAScript to be correctly rounded, and Node and the browser disagree in the
+// last bits, so every star used to report a hydration attribute mismatch on the
+// homepage. See that module for the numbers and the test that pins them.
+const STARS = Array.from({ length: STAR_COUNT }, (_, i) => {
+  const { fa, fb, fc } = starSeed(i);
   const bright = i % 7 === 0; // more glowing "hero" stars
   const drift = !bright && i % 6 === 1; // a few slow drifters
   return {

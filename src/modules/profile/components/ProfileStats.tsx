@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FileText, MessageSquare, Heart } from "lucide-react";
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import { Reveal } from "@/components/Reveal";
 import { TiltCard } from "@/components/TiltCard";
 import { cn } from "@/lib/utils";
@@ -15,8 +15,16 @@ const STATS = [
 
 // Count a number up from 0 → target with an ease-out curve. Static (final value
 // straight away) when the visitor prefers reduced motion.
+//
+// The initial state is unconditionally 0, never `animate ? 0 : target`. The
+// server always renders 0 (it cannot know the visitor's motion preference), so
+// seeding this from `animate` made the first CLIENT render disagree with the
+// server HTML for anyone with reduced motion on - a text mismatch, which React
+// treats as a hard hydration failure (#418) and recovers from by throwing away
+// the server markup for the whole subtree. The reduced-motion path reaches the
+// target in the effect below instead, one frame later.
 function useCountUp(target: number, animate: boolean, ms = 900) {
-  const [n, setN] = useState(animate ? 0 : target);
+  const [n, setN] = useState(0);
   useEffect(() => {
     if (!animate) { setN(target); return; }
     let raf = 0;
@@ -54,7 +62,7 @@ function StatCard({ label, value, Icon, iconClass, valueClass, animate, delay, p
             )}
           />
           <Icon className={cn("relative mx-auto h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110", iconClass)} />
-          <p className={cn("relative mono mt-2 text-2xl font-semibold tabular-nums sm:text-3xl", valueClass)}>{shown.toLocaleString()}</p>
+          <p className={cn("relative mono mt-2 text-2xl font-semibold tabular-nums sm:text-3xl", valueClass)}>{shown.toLocaleString("en-US")}</p>
           <p className="relative mt-1 text-xs text-zinc-500">{label}</p>
         </div>
       </TiltCard>
@@ -66,7 +74,9 @@ function StatCard({ label, value, Icon, iconClass, valueClass, animate, delay, p
 // `premium` adds a quiet gold ring + stronger glow-on-hover to all three cards,
 // matching the rest of the profile's premium treatment.
 export function ProfileStats({ posts, comments, likes, premium }: { posts: number; comments: number; likes: number; premium?: boolean }) {
-  const reduce = useReducedMotion();
+  // Deliberately not framer-motion's `useReducedMotion()` - see the note on
+  // useReducedMotionSafe for why that one cannot be rendered from.
+  const reduce = useReducedMotionSafe();
   const values: Record<string, number> = { posts, comments, likes };
   return (
     <div className="grid grid-cols-3 gap-3 sm:gap-5">

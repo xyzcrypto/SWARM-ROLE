@@ -1,6 +1,7 @@
 "use client";
 
-import { useReducedMotion } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
+
 
 type Variant = "launch" | "wobble" | "float" | "twinkle" | "spin";
 
@@ -38,7 +39,7 @@ export function AnimatedEmoji({
   className?: string;
   hoverOnly?: boolean;
 }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   return (
     <span
       role="img"

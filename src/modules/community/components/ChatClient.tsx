@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMediaQuery } from "@/lib/useClientFlag";
+import { useMediaQuery, useHydrated } from "@/lib/useClientFlag";
 import {
   ArrowDown, BarChart3, Check, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
@@ -98,14 +98,45 @@ function MessageBody({ text }: { text: string }) {
   );
 }
 
-function dayLabel(iso: string): string {
+/**
+ * Day separator for the message list.
+ *
+ * Unlike the site's other date stamps this one genuinely means "the reader's
+ * day" - "Today" has to follow the reader's midnight, not UTC's - so it cannot
+ * simply be pinned to UTC. But the reader's timezone is not knowable while
+ * server rendering, and guessing wrong is not free: the server said
+ * "Aug 2, 2026" where an IST browser said "Aug 3, 2026", which React treats as
+ * a hard hydration failure (#418) and recovers from by throwing away the
+ * server-rendered chat.
+ *
+ * So `local` is false for the server render AND the hydrating client render -
+ * both produce the same UTC-based string, nothing to mismatch - and true from
+ * the render right after hydration onwards, where the reader's own day is
+ * finally both knowable and correct. The two only ever disagree for messages
+ * within the timezone offset of midnight.
+ */
+/**
+ * Clock time on a message. Local for the reader, for the same reason and with
+ * the same hydration gate as dayLabel below: an IST reader saw "11:36 AM" where
+ * the server HTML said "6:06 AM", and React discarded the chat over it.
+ */
+function clockTime(iso: string, local: boolean): string {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: local ? undefined : "UTC",
+  });
+}
+
+function dayLabel(iso: string, local: boolean): string {
   const d = new Date(iso);
+  const zone = local ? undefined : "UTC";
+  const dayKey = (x: Date) => x.toLocaleDateString("en-CA", { timeZone: zone });
   const today = new Date();
   const yesterday = new Date(Date.now() - 864e5);
-  const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-  if (same(d, today)) return "Today";
-  if (same(d, yesterday)) return "Yesterday";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  if (dayKey(d) === dayKey(today)) return "Today";
+  if (dayKey(d) === dayKey(yesterday)) return "Yesterday";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: zone });
 }
 
 // Soft, asset-free "blip" for incoming messages (Web Audio). Best-effort.
@@ -147,6 +178,10 @@ export function ChatClient({
   realtime: { url: string; anonKey: string };
   gifEnabled?: boolean;
 }) {
+  // False on the server and during hydration, true from the next render on.
+  // Day separators need the reader's timezone, which is only knowable here -
+  // see dayLabel.
+  const hydrated = useHydrated();
   const [messages, setMessages] = useState<Message[]>(
     initialMessages.map((m) => ({ ...m, reactions: normalizeReactions(m.reactions) }))
   );
@@ -1256,7 +1291,7 @@ export function ChatClient({
         <AnimatePresence initial={false}>
           {messages.map((m, i) => {
             const prev = messages[i - 1];
-            const day = dayLabel(m.createdAt);
+            const day = dayLabel(m.createdAt, hydrated);
             const showDay = day !== lastDay;
             lastDay = day;
             const grouped =
@@ -1337,7 +1372,7 @@ export function ChatClient({
                           actionsOpen && "inline"
                         )}
                       >
-                        {new Date(m.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" ", "")}
+                        {clockTime(m.createdAt, hydrated).replace(" ", "")}
                       </span>
                     )}
                   </div>
@@ -1357,7 +1392,7 @@ export function ChatClient({
                         <span className="text-[11px] text-zinc-600">
                           {m.pending
                             ? "sending…"
-                            : new Date(m.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                            : clockTime(m.createdAt, hydrated)}
                         </span>
                       </div>
                     )}

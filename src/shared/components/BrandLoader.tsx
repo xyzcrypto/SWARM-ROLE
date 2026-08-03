@@ -1,7 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 
 /**
  * Branded route-transition loader: the XYZ Crypto logo on a soft mesh backdrop,
@@ -9,7 +10,7 @@ import { motion, useReducedMotion } from "framer-motion";
  * the route loading.tsx → RouteSkeleton). Honors prefers-reduced-motion.
  */
 export function BrandLoader({ label = "Loading" }: { label?: string }) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   const spin = (duration: number, reverse = false) =>
     reduced ? {} : { animate: { rotate: reverse ? -360 : 360 }, transition: { duration, ease: "linear", repeat: Infinity } };
 
