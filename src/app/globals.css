@@ -1354,3 +1354,20 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 .sect-cv {
   position: relative;
 }
+
+/* ----------------------------------------------------------------
+   Off-screen animation pause  (see PauseOffscreenAnimations.tsx)
+
+   Measured on the homepage: 281 CSS animations running, 190 of them off
+   screen, 24.3% CPU on a completely idle tab - mostly style recalculation for
+   pixels nobody could see. A block gets this class only while it is more than
+   a full viewport away, so nothing is ever visibly frozen and the design is
+   unchanged. `animation-play-state` does not affect framer-motion's JS
+   animations, so <Reveal> entrances still play on arrival.
+------------------------------------------------------------------ */
+.anim-paused,
+.anim-paused *::before,
+.anim-paused *::after,
+.anim-paused * {
+  animation-play-state: paused !important;
+}
