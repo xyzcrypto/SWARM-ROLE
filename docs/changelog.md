@@ -5,6 +5,71 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (21) — The service worker was caching 404s, and one of them was the stylesheet
+
+Owner sent a phone screenshot of a research post rendered as raw HTML: serif
+text, blue underlined links, no layout at all. The page was there; the CSS was
+not.
+
+### The cause
+
+`public/sw.js` handled static assets cache-first:
+
+```js
+caches.match(req).then(hit => hit || fetch(req).then(res => {
+  cache.put(req, res.clone());   // no status check
+  return res;
+}));
+```
+
+Two independent defects, both of which only bite on a phone:
+
+**It cached failures.** No status check, so a **404 was written to the cache**.
+A hashed asset really can 404 for the seconds a deploy takes to propagate
+across edges. After that, `caches.match` returned the cached 404, cache-first,
+for that exact URL - **forever**. If the 404 was the stylesheet, that device
+rendered raw HTML on every visit until its site data was cleared. Today's
+deploy carried three migrations and was the biggest in a while, which is the
+window this needed.
+
+**A network blip killed the request outright.** With no `.catch()`, a rejected
+fetch rejects `respondWith`, and the browser gets a hard network error - where
+with no service worker at all it would have fallen back to its own HTTP cache.
+Intercepting made a flaky connection strictly *worse*, for exactly the files a
+page cannot render without.
+
+### The fix
+
+- Only `res.ok` **and** `res.type === "basic"` responses are stored.
+- A failed fetch falls back to the cache, and to a plain network error only if
+  there is nothing - never a dead request.
+- **`CACHE` bumped v7 -> v8.** This is the part that actually un-breaks a phone
+  that is already showing the bug: `activate` deletes every cache that is not
+  the current name, so bumping is the only way to evict an entry that was
+  poisoned before the fix shipped. It is *not* a return of the
+  bump-on-every-deploy ritual - navigations are still never cached, and that
+  rule stays retired.
+
+### Verified in a real mobile browser
+
+```
+service worker controlling: true
+cache buckets: xyz-pwa-v8
+404 asset  -> status: 404 | stored in cache: false    correct
+real css   -> /_next/static/chunks/….css | stored: true    correct
+rendered styles: font GeistMono…, body rgb(8,8,10)
+```
+
+**One correction to my own test:** the first run reported the real stylesheet as
+*not* cached, which would have been a regression. It was the harness - `cache.put`
+is fire-and-forget inside the worker and the assertion raced the write. With a
+beat before checking, it stores correctly.
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 515/515 tests ✅ ·
+build ✅
+
+**Files:** `public/sw.js`.
+
 ## 2026-08-03 (20) — DM safety: block, report, and who can message you
 
 Second half of the DM request. Kept apart from the message menu on purpose:

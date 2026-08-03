@@ -26,7 +26,13 @@
  * that a previously-visited page no longer renders offline - /offline.html
  * still does - which for a live market/chat app is the right trade.
  */
-const CACHE = "xyz-pwa-v7";
+// Bumped v7 -> v8 to EVICT poisoned entries, not as a per-deploy ritual (the
+// note above still stands: navigations are not cached, so the old
+// bump-on-every-deploy rule is gone). Until now this handler cached whatever
+// came back, including 404s. `activate` deletes every cache whose name is not
+// this one, so bumping is the only thing that clears a device that already
+// stored a broken asset.
+const CACHE = "xyz-pwa-v8";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/logo.png"];
 
@@ -68,16 +74,47 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Immutable static assets: cache-first.
+  //
+  // ## Two bugs this used to have, and what they looked like
+  //
+  // The old version was `caches.match(req).then(hit => hit || fetch(req).then(
+  // res => { cache.put(req, res.clone()); return res; }))`. Both halves were
+  // wrong in ways that only show up on a phone.
+  //
+  // **It cached failures.** There was no status check, so a 404 - which a
+  // hashed asset really can return during the seconds a deploy is propagating
+  // across edges - was written to the cache. After that `caches.match` returned
+  // that 404 forever, cache-first, for that exact URL. If the 404 was the
+  // stylesheet, the page rendered as raw HTML: serif text, blue underlined
+  // links, no layout. Permanently, on that device, until site data was cleared.
+  // That is the report this fixes.
+  //
+  // **A network blip killed the request outright.** With no `.catch()`, a
+  // rejected fetch rejects `respondWith`, and the browser gets a hard network
+  // error - where without a service worker it would have used its own HTTP
+  // cache. Intercepting made a flaky connection strictly worse for exactly the
+  // files a page cannot render without.
   if (isStaticAsset(url)) {
     event.respondWith(
-      caches.match(req).then((hit) =>
-        hit ||
-        fetch(req).then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-          return res;
-        })
-      )
+      caches.match(req).then((hit) => {
+        if (hit) return hit;
+        return fetch(req)
+          .then((res) => {
+            // Only a real, successful, same-origin response is worth keeping.
+            // An error or an opaque response cached here would be served in
+            // preference to the network on every later load.
+            if (res && res.ok && res.type === "basic") {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+            }
+            return res;
+          })
+          .catch(() =>
+            // The network is gone. Anything cached beats a dead request; if
+            // there is nothing, fail the way the browser would have anyway.
+            caches.match(req).then((fallback) => fallback || Response.error())
+          );
+      })
     );
   }
 });
