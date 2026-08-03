@@ -11,6 +11,7 @@ import {
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { compressImage } from "@/lib/image";
 import { chatMediaUrl } from "@/lib/chat-media";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { joinSharedChannel } from "@/lib/sharedChannel";
 import { SendGlyph } from "@/components/SendGlyph";
 import { GifPicker } from "@/components/GifPicker";
@@ -61,14 +62,20 @@ function MessageBody({ text }: { text: string }) {
   const media = chatMediaUrl(text);
   const parts = useMemo(() => text.split(/(https?:\/\/\S+|@[a-zA-Z0-9_]{3,20})/g), [text]);
   if (media) {
+    // Tapping a shared photo opens it full-screen, the same wrapper the profile
+    // avatar and banner already use. In a message list the thumbnail is capped
+    // at 288px tall and 300px wide, so anything with detail in it - a chart, a
+    // screenshot - is unreadable until it can be opened.
     return (
-      // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={media}
-        alt="shared media"
-        loading="lazy"
-        className="mt-0.5 max-h-72 w-auto max-w-full rounded-xl border border-white/10 object-contain sm:max-w-[300px]"
-      />
+      <ImageLightbox src={media} alt="shared media" className="mt-0.5 inline-block">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={media}
+          alt="shared media"
+          loading="lazy"
+          className="max-h-72 w-auto max-w-full cursor-zoom-in rounded-xl border border-white/10 object-contain sm:max-w-[300px]"
+        />
+      </ImageLightbox>
     );
   }
   return (

@@ -54,6 +54,8 @@ export default async function DashboardPage() {
   const userSelect = {
     id: true,
     name: true,
+    // Handle, so a dashboard row can link straight to /u/<username>.
+    username: true,
     email: true,
     provider: true,
     role: true,

@@ -11,6 +11,9 @@ const EXPORT_CAP = 10_000;
 const SELECT = {
   id: true,
   name: true,
+  // The handle is what makes a row clickable through to the public profile -
+  // an admin looking at a member should not have to go and find them by hand.
+  username: true,
   email: true,
   provider: true,
   role: true,
