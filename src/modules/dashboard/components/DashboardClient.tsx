@@ -65,31 +65,120 @@ type Tab =
 export type HealthFlags = { storage: boolean; realtime: boolean; upstash: boolean; email: boolean; google: boolean; github: boolean; twitter: boolean; ai: boolean };
 
 /* ----------------------- realtime hooks (admin) ----------------------- */
-function useLiveOnline(realtime: Realtime) {
-  const [count, setCount] = useState(0);
+/**
+ * "Live online", with a source that cannot silently disappear.
+ *
+ * It used to be Supabase Realtime presence and nothing else: `.subscribe()` with
+ * no status callback, no retry, and `count` initialised to 0. So whenever the
+ * channel failed to connect - its current state - the dashboard showed a
+ * confident **0** while the site was in use. That is worse than no number: an
+ * admin reads it as "nobody is here", and there is nothing on screen to say the
+ * source is gone.
+ *
+ * Now: presence when it works, a server-backed count when it does not, the
+ * channel retried with backoff, and `null` (rendered as "unavailable") when
+ * neither can answer - never a fabricated zero.
+ */
+function useLiveOnline(realtime: Realtime): { count: number | null; live: boolean } {
+  const [count, setCount] = useState<number | null>(null);
+  const [live, setLive] = useState(false);
+  const liveRef = useRef(false);
+
   useEffect(() => {
-    if (!realtime.url || !realtime.anonKey) return;
-    let cleanup: (() => void) | undefined;
     let cancelled = false;
-    (async () => {
+    let retries = 0;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let cleanup: (() => void) | undefined;
+
+    const setLiveBoth = (v: boolean) => {
+      liveRef.current = v;
+      setLive(v);
+    };
+
+    async function connect() {
+      if (!realtime.url || !realtime.anonKey) return;
       const client = await getRealtimeClient(realtime.url, realtime.anonKey);
       if (cancelled) return;
       const ch = client.channel("site-visitors", {
         config: { presence: { key: `admin-${Math.random().toString(36).slice(2)}` } },
       });
-      ch.on("presence", { event: "sync" }, () => setCount(Object.keys(ch.presenceState()).length)).subscribe(
-        (status) => {
-          if (status === "SUBSCRIBED") ch.track({ at: Date.now() });
+      ch.on("presence", { event: "sync" }, () => {
+        setCount(Object.keys(ch.presenceState()).length);
+      }).subscribe((status) => {
+        if (cancelled) return;
+        if (status === "SUBSCRIBED") {
+          setLiveBoth(true);
+          retries = 0;
+          ch.track({ at: Date.now() });
+          return;
         }
-      );
-      cleanup = () => client.removeChannel(ch);
-    })();
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          setLiveBoth(false);
+          try {
+            ch.unsubscribe();
+            client.removeChannel(ch);
+          } catch {
+            /* already gone */
+          }
+          const delay = Math.min(1000 * 2 ** retries, 30_000);
+          retries += 1;
+          retryTimer = setTimeout(() => {
+            if (!cancelled) void connect();
+          }, delay);
+        }
+      });
+      cleanup = () => {
+        try {
+          ch.unsubscribe();
+          client.removeChannel(ch);
+        } catch {
+          /* already gone */
+        }
+        setLiveBoth(false);
+      };
+    }
+
+    // Always armed, and free while the channel is healthy - it returns before
+    // the fetch. This is the half that was missing entirely.
+    const poll = async () => {
+      if (document.hidden || liveRef.current) return;
+      try {
+        const r = await fetch("/api/presence", { cache: "no-store" });
+        if (!r.ok) return;
+        const j = await r.json().catch(() => null);
+        const n = j?.data?.online ?? j?.online;
+        if (liveRef.current) return; // recovered while in flight
+        setCount(typeof n === "number" ? n : null);
+      } catch {
+        /* transient - keep the last known value */
+      }
+    };
+    void poll();
+    const timer = setInterval(poll, 20_000);
+    const wake = () => {
+      if (document.visibilityState !== "visible") return;
+      void poll();
+      if (!liveRef.current) {
+        clearTimeout(retryTimer);
+        retries = 0;
+        void connect();
+      }
+    };
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
+
+    void connect();
     return () => {
       cancelled = true;
+      clearTimeout(retryTimer);
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake);
       cleanup?.();
     };
   }, [realtime.url, realtime.anonKey]);
-  return count;
+
+  return { count, live };
 }
 
 function useMembersChannel(realtime: Realtime, onChange: (id: string, membership: string) => void) {
@@ -152,7 +241,7 @@ export function DashboardClient({
   viewer: Viewer;
   health: HealthFlags;
 }) {
-  const liveOnline = useLiveOnline(realtime);
+  const online = useLiveOnline(realtime);
 
   // Only show tabs the viewer is allowed to use (Super Admins see all). Server
   // routes re-check the capability, so this is UX, not the security boundary.
@@ -211,7 +300,7 @@ export function DashboardClient({
         ))}
       </div>
 
-      {tab === "overview" && <Overview stats={stats} liveOnline={liveOnline} health={health} />}
+      {tab === "overview" && <Overview stats={stats} online={online} health={health} />}
       {tab === "premium" && <PremiumMembers initial={premiumMembers} realtime={realtime} />}
       {tab === "publish" && <PublishPanel />}
       {tab === "content" && <PostManager posts={posts} />}
@@ -340,7 +429,7 @@ function StatCard({ label, value, hint, accent = "plain" }: { label: string; val
   );
 }
 
-function Overview({ stats: initialStats, liveOnline, health }: { stats: Stats; liveOnline: number; health: HealthFlags }) {
+function Overview({ stats: initialStats, online, health }: { stats: Stats; online: { count: number | null; live: boolean }; health: HealthFlags }) {
   const [stats, setStats] = useState(initialStats);
   const [series, setSeries] = useState<{ signups: DailyPoint[]; views: DailyPoint[] } | null>(null);
 
@@ -413,8 +502,20 @@ function Overview({ stats: initialStats, liveOnline, health }: { stats: Stats; l
             </span>
             <p className="text-sm text-zinc-400">Live online</p>
           </div>
-          <p className="mt-2 mono text-4xl font-semibold text-mint-gradient">{liveOnline}</p>
-          <p className="mt-1 text-xs text-zinc-600">Visitors on the site right now</p>
+          {/* Never a fabricated zero. `null` means neither source could answer -
+              saying so is more useful to an admin than a confident 0 while the
+              site is busy, which is exactly what this used to show whenever the
+              realtime channel was down. */}
+          <p className="mt-2 mono text-4xl font-semibold text-mint-gradient">
+            {online.count === null ? "-" : online.count}
+          </p>
+          <p className="mt-1 text-xs text-zinc-600">
+            {online.count === null
+              ? "Unavailable - no presence source is answering"
+              : online.live
+                ? "Visitors on the site right now (live)"
+                : "Signed-in members seen in the last minute (realtime is down, counted server-side)"}
+          </p>
         </div>
         {analytics.map((c) => (
           <StatCard key={c.label} {...c} />

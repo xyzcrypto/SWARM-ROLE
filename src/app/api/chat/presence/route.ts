@@ -71,6 +71,21 @@ export async function POST(req: Request) {
     // my row does not need to exist before the read counts it, because the read
     // includes me explicitly below - so they run together rather than as two
     // serial round trips.
+    // `failed` matters: both calls swallow their error so a not-yet-migrated DB
+    // cannot break the room, but that also means a MISSING TABLE looks
+    // identical to an empty room - the caller gets a confident "1 online" (just
+    // themselves) forever, and no amount of refreshing changes it. Reporting it
+    // turns an invisible failure into one line in the room's tooltip.
+    let failed: string | null = null;
+    const note = (err: unknown) => {
+      const code = (err as { code?: string } | null)?.code;
+      failed =
+        code === "P2021" || code === "P2022"
+          ? "The ChatPresence table is missing from this database - the schema has not been applied. Redeploy (migrations run on production deploys) or run `npm run db:push` against production."
+          : `Presence read failed${code ? ` (${code})` : ""}.`;
+      return null;
+    };
+
     const [, rows] = await Promise.all([
       prisma.chatPresence
         .upsert({
@@ -78,7 +93,7 @@ export async function POST(req: Request) {
           create: { userId: me.id, room, seenAt: new Date() },
           update: { room, seenAt: new Date() },
         })
-        .catch(() => null), // a not-yet-migrated DB must not break the room
+        .catch(note),
       prisma.chatPresence
         .findMany({
           where: { room, seenAt: { gte: since } },
@@ -89,7 +104,10 @@ export async function POST(req: Request) {
             user: { select: { name: true, username: true, image: true } },
           },
         })
-        .catch(() => [] as never[]),
+        .catch((err) => {
+          note(err);
+          return [] as never[];
+        }),
     ]);
 
     // Fold myself in: the read above may have raced my own upsert, and a room
@@ -120,7 +138,7 @@ export async function POST(req: Request) {
         .catch(() => null);
     }
 
-    return ok({ online: members.length, members });
+    return ok({ online: members.length, members, degraded: failed });
   } catch (err) {
     return handleError(err, "chat:presence");
   }

@@ -159,6 +159,10 @@ export function ChatClient({
   // Why the realtime channel failed, if it did - shown as a tooltip on the
   // status pill so the cause is one hover away instead of a support thread.
   const [liveError, setLiveError] = useState<string | null>(null);
+  // Why the SERVER-backed roster is not answering, when it is not. Without
+  // this a missing ChatPresence table looks exactly like an empty room: a
+  // confident "1 online" that no amount of refreshing changes.
+  const [presenceError, setPresenceError] = useState<string | null>(null);
   const [online, setOnline] = useState(0);
   const [members, setMembers] = useState<PresenceMember[]>([]);
   const [typers, setTypers] = useState<Record<string, { name: string; until: number }>>({});
@@ -588,7 +592,9 @@ export function ChatClient({
         const res = await fetch("/api/chat/presence", { method: "POST", cache: "no-store" });
         if (!res.ok) return;
         const data = await res.json().catch(() => null);
-        const list = data?.data?.members ?? data?.members;
+        const payload = data?.data ?? data;
+        const list = payload?.members;
+        setPresenceError(typeof payload?.degraded === "string" ? payload.degraded : null);
         if (!Array.isArray(list)) return;
         if (liveRef.current) return; // recovered while in flight
         setMembers(list as PresenceMember[]);
@@ -1123,7 +1129,7 @@ export function ChatClient({
                 live
                   ? "Live via Supabase Realtime"
                   : realtimeConfigured
-                    ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages are still arriving by polling every 10s; the online count needs realtime and will read 0 until it recovers.`
+                    ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages arrive on the 10s poll and the online count comes from the server heartbeat every 15s.${presenceError ? ` PRESENCE PROBLEM: ${presenceError}` : ""}`
                     : "Realtime is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). Messages refresh by polling."
               }
               className={cn(

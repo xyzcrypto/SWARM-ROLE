@@ -5,6 +5,68 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (9) — The dashboard's "Live online" was a confident zero
+
+Asked: is the dashboard's online number realtime? **No - and it was worse than
+not-realtime.**
+
+**🔴 It read Supabase Realtime presence and nothing else** —
+`DashboardClient.tsx`. `.subscribe()` with no status callback, no retry, and
+`count` initialised to `0`. So whenever the channel could not connect - which is
+its current state, see (8) - the dashboard showed a confident **0** while the
+site was in use, with nothing on screen to say its only source was gone. An
+admin reads that as "nobody is here". A wrong number is worse than no number.
+
+Now: presence when it works, a **server-backed count** when it does not, the
+channel retried with 1s → 30s backoff, refresh on tab focus, and **`-`
+("Unavailable")** when neither source can answer - never a fabricated zero. The
+label says which source produced the figure.
+
+**The server-backed half** is a new `/api/presence`: `POST` is a heartbeat,
+`GET` is an admin-only count of rows seen inside the window. Two rules keep it
+cheap and correct:
+- it **only runs while the realtime channel is down**, so a healthy deployment
+  makes zero extra requests;
+- it **does not run on `/community`**, where `ChatClient` already owns the same
+  row at a faster beat. The row is keyed by user, so two writers would flip its
+  `room` back and forth and the chat's own count would start losing people. One
+  writer per user, enforced by `chatOwnsPresence()` so both sides read the same
+  rule rather than two copies of a string.
+
+**Verified end to end** with realtime off (the reported state), two browsers:
+admin alone on `/dashboard` → **1**; a second member opens `/markets` → **2**,
+**with no refresh**. `GET /api/presence` returns `{"online":2}` with
+`private, no-store`; a non-admin gets **401**. The chat room's own roster is
+unchanged: join seen in 11.2s, leave in 15.1s.
+
+**🐛 A missing presence table looked exactly like an empty room** —
+`api/chat/presence/route.ts`, `ChatClient.tsx`.
+Both queries swallow their error so a not-yet-migrated DB cannot break the room.
+The side effect: if `ChatPresence` does not exist (and `CLAUDE.md` records that
+production has drifted behind `schema.prisma`), the caller gets a confident
+**"1 online" - just themselves - forever, and refreshing changes nothing**,
+because the failure is indistinguishable from nobody being there. The route now
+returns *why*, naming P2021/P2022 as an un-applied schema, and the room's status
+tooltip carries it. Same principle as (8): a check that cannot say "I am broken"
+is a check that lies.
+
+**Files:** `src/app/api/presence/route.ts` (new) ·
+`src/shared/utils/presence.ts` + `src/lib/presence.ts` (new) ·
+`src/modules/dashboard/components/DashboardClient.tsx` ·
+`src/modules/community/components/RealtimeSession.tsx` ·
+`src/app/api/chat/presence/route.ts` ·
+`src/modules/community/components/ChatClient.tsx`.
+
+**Gates:** typecheck ✅ · lint 0 errors / 37 warnings (unchanged) · 440/440
+tests ✅ · build ✅. Route table: **+1 route** (`ƒ /api/presence`), nothing
+changed mode or window.
+
+**Note on the underlying cause:** none of this makes realtime *connect*. That is
+still the invalid `SUPABASE_SERVICE_ROLE_KEY` from (8). This makes every
+presence number on the site tell the truth while it is down.
+
+---
+
 ## 2026-08-03 (8) — The storage diagnostic was diagnosing the wrong thing
 
 The owner ran `/api/media/health` on production. It said the bucket probably did
