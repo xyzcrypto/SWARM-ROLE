@@ -5,6 +5,67 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (15) — Ten seconds after opening the room, the poll dropped you into four-day-old history
+
+The owner filmed it: open `/community`, today's messages are there, and then
+the view jumps by itself to 30 July. Refresh brings the current ones back, and
+it happens again.
+
+Not staleness, and not scrolling. The message list genuinely ends with an old
+message, and the room auto-scrolls to its end.
+
+### The cause
+
+`reconcilePoll()` treated **every id it had not seen before as a new arrival**,
+and the caller appends arrivals to the end of the list. That assumption is only
+safe if the poll never returns anything older than what is on screen - and it
+does, because the two sources are different sizes:
+
+| source | messages |
+|---|---|
+| `/community` server render | newest **30** |
+| `/api/chat/messages` (the poll) | newest **50** |
+
+So the very first poll, ten seconds after opening the room, hands back ~20
+messages that are unknown *and older than everything displayed*. They were
+appended underneath the newest message, and the room stuck to the bottom.
+
+Reproduced in a real browser against a seeded room (40 messages from 30 July,
+3 from today), sampling the rendered list every 10s:
+
+```
+t=  0s  msgs=30  last=new-3    <- today, correct
+t= 10s  msgs=43  last=old-13   <- 30 July, from the first poll
+```
+
+They also incremented the unread badge and rang the new-message sound, so the
+room announced four-day-old messages as if they had just been posted.
+
+### The fix
+
+Arrivals are split by **time**, not by novelty. Anything at or before the newest
+message already held is history: it gets sorted into position rather than
+appended, and is not reported as `incoming`. Only genuinely newer messages
+count as arrivals. Pending optimistic sends stay at the end and are excluded
+from the high-water mark, so a local send cannot mask a real new message.
+
+After, same harness, same seed:
+
+```
+t=  0s  msgs=30  last=new-3
+t= 10s  msgs=43  last=new-3   <- history backfilled ABOVE, newest still last
+...
+t=120s  msgs=43  last=new-3
+```
+
+And the other direction still works - inserting a message from another user
+mid-session put it at the bottom within one poll (`last=live-1`), so this did
+not fix the jump by breaking live delivery.
+
+**Files:** `src/modules/community/lib/chat-view.ts`,
+`src/lib/__tests__/chat-view.test.ts` (5 new tests, including the exact
+30-vs-50 window case and the pending-send edge).
+
 ## 2026-08-03 (14) — The chat's own poll was the last surface swallowing its errors
 
 Owner: *"chat me new wala dekhne ke liye refresh karna padta hai, page direct

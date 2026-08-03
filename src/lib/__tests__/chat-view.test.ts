@@ -114,3 +114,75 @@ describe("pollShares", () => {
     expect(shares.get("o1")).toBe(0);
   });
 });
+
+/**
+ * The bug the owner filmed: open the room, see today's messages, and ten
+ * seconds later be sitting in four-day-old history.
+ *
+ * `/community` server-renders the newest 30 messages; `/api/chat/messages`
+ * returns the newest 50. So the first poll hands back ~20 messages that are
+ * unknown AND older than everything on screen. They used to be treated as new
+ * arrivals and appended below the newest message - and the room auto-scrolls
+ * to the bottom.
+ *
+ * Reproduced in the browser before the fix:
+ *   t= 0s  msgs=30  last=new-3   (today)
+ *   t=10s  msgs=43  last=old-13  (Jul 30)
+ */
+describe("reconcilePoll - a wider poll window than the initial render", () => {
+  const OLD = NOW - 4 * 24 * 60 * 60 * 1000; // four days ago
+
+  it("keeps the newest message last when the poll reaches further back", () => {
+    // On screen: the tail of the old day plus today's three.
+    const prev = [msg("old-29", OLD + 29e3), msg("old-30", OLD + 30e3), msg("new-1", NOW - 3000)];
+    // The poll window starts earlier and so includes history we never held.
+    const fresh = [
+      msg("old-27", OLD + 27e3),
+      msg("old-28", OLD + 28e3),
+      msg("old-29", OLD + 29e3),
+      msg("old-30", OLD + 30e3),
+      msg("new-1", NOW - 3000),
+    ];
+    const { merged, incoming } = reconcilePoll(prev, fresh);
+    const final = [...merged, ...incoming].map((m) => m.id);
+
+    // The whole point: today's message is still the last one on screen.
+    expect(final[final.length - 1]).toBe("new-1");
+    expect(final).toEqual(["old-27", "old-28", "old-29", "old-30", "new-1"]);
+  });
+
+  it("does not count backfilled history as unread or as a notification", () => {
+    const prev = [msg("old-30", OLD + 30e3), msg("new-1", NOW - 3000)];
+    const fresh = [msg("old-28", OLD + 28e3), msg("old-30", OLD + 30e3), msg("new-1", NOW - 3000)];
+    // `incoming` drives the unread badge and the incoming-message sound.
+    expect(reconcilePoll(prev, fresh).incoming).toEqual([]);
+  });
+
+  it("still reports a genuinely newer message as incoming", () => {
+    const prev = [msg("old-30", OLD + 30e3), msg("new-1", NOW - 3000)];
+    const fresh = [
+      msg("old-28", OLD + 28e3),
+      msg("old-30", OLD + 30e3),
+      msg("new-1", NOW - 3000),
+      msg("new-2", NOW - 500),
+    ];
+    const { merged, incoming } = reconcilePoll(prev, fresh);
+    expect(incoming.map((m) => m.id)).toEqual(["new-2"]);
+    expect([...merged, ...incoming].map((m) => m.id)).toEqual(["old-28", "old-30", "new-1", "new-2"]);
+  });
+
+  it("leaves an optimistic pending send at the end", () => {
+    const prev = [msg("old-30", OLD + 30e3), msg("tmp", NOW, { pending: true })];
+    const fresh = [msg("old-28", OLD + 28e3), msg("old-30", OLD + 30e3)];
+    const { merged } = reconcilePoll(prev, fresh);
+    expect(merged.map((m) => m.id)).toEqual(["old-28", "old-30", "tmp"]);
+  });
+
+  it("does not let a pending send hide a real new arrival", () => {
+    // The optimistic message carries the local clock, so it must not be allowed
+    // to set the high-water mark that decides what counts as new.
+    const prev = [msg("a", NOW - 5000), msg("tmp", NOW + 10_000, { pending: true })];
+    const fresh = [msg("a", NOW - 5000), msg("b", NOW - 1000)];
+    expect(reconcilePoll(prev, fresh).incoming.map((m) => m.id)).toEqual(["b"]);
+  });
+});
