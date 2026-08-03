@@ -43,16 +43,53 @@ export async function GET(_req: Request, props: Ctx) {
 
     // Mark read for whichever side I am (best-effort; never block the read).
     const iAmA = conv.userAId === me.id;
+    const myPrevRead = iAmA ? conv.readAAt : conv.readBAt;
+    const readAt = new Date();
     await prisma.conversation
-      .update({ where: { id: conv.id }, data: iAmA ? { readAAt: new Date() } : { readBAt: new Date() } })
+      .update({ where: { id: conv.id }, data: iAmA ? { readAAt: readAt } : { readBAt: readAt } })
       .catch(() => null);
+
+    // Tell the OTHER side their message has been read, so their ticks turn
+    // without waiting for a poll.
+    //
+    // Only when the read actually advanced past something of theirs. This GET
+    // also runs on every silent refetch (the thread reloads on each `dm_message`
+    // ping), and broadcasting on all of those would be a loop: my refetch pings
+    // you, your refetch pings me.
+    const theyWroteLast = conv.lastSenderId && conv.lastSenderId !== me.id;
+    const wasUnread = theyWroteLast && (!myPrevRead || myPrevRead < conv.lastMessageAt);
+    if (wasUnread) {
+      // Same rule as the `dm_message` ping below: this channel is public, so
+      // nothing goes on the wire but the conversation id and a timestamp. That
+      // is strictly less than the existing ping already discloses, and it saves
+      // the sender a full 200-message thread refetch just to learn one date.
+      const otherId = iAmA ? conv.userBId : conv.userAId;
+      await broadcastEvent(userChannel(otherId), "dm_read", {
+        conversationId: conv.id,
+        at: readAt.toISOString(),
+      });
+    }
 
     const { other } = otherOf(conv, me.id);
     const messages = rows.map((m) => ({ id: m.id, body: m.body, createdAt: m.createdAt, mine: m.senderId === me.id }));
 
     return ok({
       messages,
-      other: other ? { id: other.id, name: other.name || other.username || "Member", username: other.username, image: other.image } : null,
+      // When the other side last opened this thread. Anything I sent before it
+      // has been read - that is the whole read-receipt calculation, and it
+      // needs no new column and no per-message write.
+      otherReadAt: (iAmA ? conv.readBAt : conv.readAAt) ?? null,
+      other: other
+        ? {
+            id: other.id,
+            name: other.name || other.username || "Member",
+            username: other.username,
+            image: other.image,
+            // May be absent on a database that has not had 31_last_seen pushed
+            // yet; the client renders nothing rather than guessing.
+            lastSeenAt: (other as { lastSeenAt?: Date | null }).lastSeenAt ?? null,
+          }
+        : null,
     });
   } catch (err) {
     return handleError(err, "dm:thread");

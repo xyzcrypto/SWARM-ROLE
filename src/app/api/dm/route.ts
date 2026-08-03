@@ -26,12 +26,17 @@ export async function GET() {
 
     const conversations = rows.map((c: any) => {
       const { other } = otherOf(c, me.id);
+      const iAmA = c.userAId === me.id;
       return {
         id: c.id,
         other: other ? { id: other.id, name: other.name || other.username || "Member", username: other.username, image: other.image } : null,
         lastBody: c.lastBody ?? "",
         lastMessageAt: c.lastMessageAt,
         unread: isUnread(c, me.id),
+        // Enough for a tick on the row preview, the same way the thread does
+        // it: whether the last message was mine, and when they last read.
+        lastMine: !!c.lastSenderId && c.lastSenderId === me.id,
+        otherReadAt: (iAmA ? c.readBAt : c.readAAt) ?? null,
       };
     });
 

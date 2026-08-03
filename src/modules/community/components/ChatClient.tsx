@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMediaQuery, useHydrated } from "@/lib/useClientFlag";
+import { clockTime, dayLabel } from "@/lib/chat-time";
 import {
   ArrowDown, BarChart3, Check, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
@@ -115,30 +116,6 @@ function MessageBody({ text }: { text: string }) {
  * finally both knowable and correct. The two only ever disagree for messages
  * within the timezone offset of midnight.
  */
-/**
- * Clock time on a message. Local for the reader, for the same reason and with
- * the same hydration gate as dayLabel below: an IST reader saw "11:36 AM" where
- * the server HTML said "6:06 AM", and React discarded the chat over it.
- */
-function clockTime(iso: string, local: boolean): string {
-  return new Date(iso).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: local ? undefined : "UTC",
-  });
-}
-
-function dayLabel(iso: string, local: boolean): string {
-  const d = new Date(iso);
-  const zone = local ? undefined : "UTC";
-  const dayKey = (x: Date) => x.toLocaleDateString("en-CA", { timeZone: zone });
-  const today = new Date();
-  const yesterday = new Date(Date.now() - 864e5);
-  if (dayKey(d) === dayKey(today)) return "Today";
-  if (dayKey(d) === dayKey(yesterday)) return "Yesterday";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: zone });
-}
-
 // Soft, asset-free "blip" for incoming messages (Web Audio). Best-effort.
 // Reuses a single shared AudioContext that must be unlocked inside a user
 // gesture (see ensureAudio): a context created/resumed outside a gesture stays

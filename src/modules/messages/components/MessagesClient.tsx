@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Loader2, MessageSquare, Search, X, ImagePlus, Smile } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, Loader2, MessageSquare, Search, X, ImagePlus, Smile } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { SendGlyph } from "@/components/SendGlyph";
 import { EmojiPicker } from "@/components/EmojiPicker";
@@ -13,15 +13,58 @@ import { timeAgo } from "@/lib/news";
 import { useRealtime } from "@/lib/useRealtime";
 import { useOnlineSet } from "@/lib/useUserOnline";
 import { chatMediaUrl } from "@/lib/chat-media";
+import { clockTime, dayLabel, isReadBy, newestRead } from "@/lib/chat-time";
+import { lastSeenLabel } from "@/lib/last-seen";
+import { useHydrated } from "@/lib/useClientFlag";
 import { compressImage } from "@/lib/image";
 import { cn } from "@/lib/utils";
 
-type Other = { id?: string; name: string; username: string | null; image: string | null } | null;
-type Conversation = { id: string; other: Other; lastBody: string; lastMessageAt: string; unread: boolean };
+type Other = { id?: string; name: string; username: string | null; image: string | null; lastSeenAt?: string | null } | null;
+type Conversation = { id: string; other: Other; lastBody: string; lastMessageAt: string; unread: boolean; lastMine?: boolean; otherReadAt?: string | null };
 type Msg = { id: string; body: string; createdAt: string; mine: boolean };
 type Found = { id: string; name: string | null; username: string | null; image: string | null };
 
 const THREAD_POLL_MS = 5000;
+
+/**
+ * Delivery state on your own messages. Three honest states and no more:
+ *
+ *  - `pending`  a single faint tick while the optimistic copy is in flight
+ *  - sent       a single tick once the server has it
+ *  - read       two mint ticks once the other side has opened the thread
+ *
+ * There is deliberately no "delivered" state between sent and read. WhatsApp
+ * has one because its server knows when a device received the message; we have
+ * no such signal, and inventing one from "are they online right now" would be a
+ * guess dressed as a fact.
+ *
+ * Mint rather than the familiar blue: the palette here is gold for brand and
+ * mint for positive, and read is the positive outcome. A new colour would be
+ * the one thing the design system asks not to add.
+ */
+function ReadTicks({ read, pending }: { read: boolean; pending?: boolean }) {
+  const label = pending ? "Sending" : read ? "Read" : "Sent";
+  const Icon = read ? CheckCheck : Check;
+  return (
+    <Icon
+      aria-label={label}
+      className={cn(
+        "h-3.5 w-3.5 shrink-0 transition-colors",
+        pending ? "text-gold-700/40 dark:text-gold-200/30" : read ? "text-mint-500 dark:text-mint-300" : "text-gold-700/70 dark:text-gold-200/60"
+      )}
+    />
+  );
+}
+
+/**
+ * What a conversation row says it was about. A photo is sent as a bare media
+ * URL, so without this the inbox showed the raw link - a wall of storage URL
+ * where every other messenger shows two words.
+ */
+function inboxPreview(lastBody: string): string {
+  if (!lastBody) return "New conversation";
+  return chatMediaUrl(lastBody) ? "\u{1F4F7} Photo" : lastBody;
+}
 
 function OnlineDot({ show }: { show: boolean }) {
   if (!show) return null;
@@ -161,8 +204,12 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
                         <span className="truncate text-sm font-medium text-zinc-100">{c.other?.name ?? "Member"}</span>
                         {now > 0 && <span className="mono ml-auto shrink-0 text-[11px] text-zinc-600">{timeAgo(new Date(c.lastMessageAt).getTime(), now)}</span>}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={cn("truncate text-[13px]", c.unread ? "font-medium text-zinc-200" : "text-zinc-500")}>{c.lastBody || "New conversation"}</span>
+                      <div className="flex items-center gap-1.5">
+                        {/* A tick on the row only when the last word was mine -
+                            the same signal as in the thread, so the inbox
+                            answers "did they see it?" without opening it. */}
+                        {c.lastMine && <ReadTicks read={isReadBy(c.lastMessageAt, c.otherReadAt)} />}
+                        <span className={cn("truncate text-[13px]", c.unread ? "font-medium text-zinc-200" : "text-zinc-500")}>{inboxPreview(c.lastBody)}</span>
                         {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-gold-400" />}
                       </div>
                     </div>
@@ -195,6 +242,12 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
   const [messages, setMessages] = useState<Msg[]>([]);
   const [other, setOther] = useState<Other>(null);
   const [loaded, setLoaded] = useState(false);
+  // When the other side last opened this thread. Everything I sent before it
+  // has been read - that is the whole receipt calculation.
+  const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
+  // Day separators and clock times must read in the viewer's timezone, but only
+  // once hydrated - see chat-time.
+  const hydrated = useHydrated();
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -215,6 +268,10 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
       const j = await r.json();
       if (j) {
         setOther(j.other ?? null);
+        // Never move a receipt backwards. A silent refetch can land after a
+        // `dm_read` ping that already told us something newer, and ticks that
+        // un-blue themselves look like a bug even when the data is merely late.
+        setOtherReadAt((prev) => newestRead(prev, j.otherReadAt ?? null));
         setMessages((prev) => {
           const next: Msg[] = Array.isArray(j.messages) ? j.messages : [];
           if (silent && next.length === prev.length) return prev;
@@ -226,8 +283,26 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
     }
   }, [id]);
 
-  useEffect(() => { setLoaded(false); setMessages([]); load(false); }, [load]);
+  useEffect(() => { setLoaded(false); setMessages([]); setOtherReadAt(null); load(false); }, [load]);
   useRealtime({ channel: `user:${meId}`, event: "dm_message", onMessage: () => load(true), pollMs: THREAD_POLL_MS });
+  // The receipt half. Carries the timestamp, so the ticks turn without a
+  // refetch - a thread GET returns up to 200 messages, which is a lot of
+  // payload to move just to learn one date. Guarded by conversation id because
+  // the channel is per-user and carries every conversation's pings.
+  useRealtime({
+    channel: `user:${meId}`,
+    event: "dm_read",
+    onMessage: (payload) => {
+      const p = payload as { conversationId?: string; at?: string } | null;
+      if (!p || p.conversationId !== id || !p.at) return;
+      setOtherReadAt((prev) => newestRead(prev, p.at ?? null));
+    },
+    // No pollMs on purpose. With realtime configured this rides the existing
+    // per-user channel; without it, `realtimeMode` returns "off" and receipts
+    // simply come from `otherReadAt` on the next thread refetch, which the
+    // dm_message poll above is already doing. Either way, no new requests.
+    pollMs: 0,
+  });
   useEffect(() => { scrollToEnd(); }, [messages.length]);
 
   // Send any body (text, or a media URL). Optimistic + reconcile.
@@ -290,34 +365,65 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
           ) : (
             <span className="truncate text-sm font-semibold text-zinc-100">{other?.name ?? "Member"}</span>
           )}
+          {/* Online now, else when they were last here, else just the handle.
+              `now` ticks every 30s, so "last seen 3 min ago" ages by itself. */}
           {otherOnline ? (
             <p className="flex items-center gap-1 text-[11px] font-medium text-mint-500 dark:text-mint-300">
               <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-mint-500 dark:bg-mint-400" /> online
             </p>
+          ) : now > 0 && lastSeenLabel(other?.lastSeenAt, now) ? (
+            <p className="truncate text-[11px] text-zinc-500">{lastSeenLabel(other?.lastSeenAt, now)}</p>
           ) : (
             other?.username && <p className="mono truncate text-[11px] text-zinc-500">@{other.username}</p>
           )}
         </div>
       </header>
 
-      <div ref={scrollRef} className="min-h-0 flex-1 space-y-2 overflow-y-auto px-4 py-4">
+      {/* No `space-y` here: spacing is decided per message below, so that a run
+          from the same person tightens up. A blanket gap would override it and
+          the grouping would silently do nothing. */}
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {!loaded ? (
           <p className="py-10 text-center text-sm text-zinc-500"><Loader2 className="mr-1 inline h-4 w-4 animate-spin" /> Loading…</p>
         ) : messages.length === 0 ? (
           <p className="py-10 text-center text-[13px] text-zinc-500">No messages yet. Say hello 👋</p>
         ) : (
-          messages.map((m) => {
+          messages.map((m, i) => {
             const media = chatMediaUrl(m.body);
+            // A separator whenever the day changes, and above the first message.
+            const day = dayLabel(m.createdAt, hydrated);
+            const showDay = i === 0 || day !== dayLabel(messages[i - 1]!.createdAt, hydrated);
+            // Consecutive messages from the same side breathe less, so a burst
+            // reads as one turn rather than a stack of separate cards.
+            const grouped = !showDay && i > 0 && messages[i - 1]!.mine === m.mine;
+            const read = m.mine && isReadBy(m.createdAt, otherReadAt);
             return (
-              <div key={m.id} className={cn("flex", m.mine ? "justify-end" : "justify-start")}>
-                <div className={cn("max-w-[78%] rounded-2xl text-[14px] leading-relaxed", media ? "overflow-hidden p-1" : "px-3.5 py-2", m.mine ? "rounded-br-md bg-gold-500/20 text-gold-950 ring-1 ring-gold-500/30 dark:bg-gold-500/15 dark:text-gold-50" : "rounded-bl-md bg-black/[0.05] text-zinc-800 ring-1 ring-black/10 dark:bg-white/[0.05] dark:text-zinc-100 dark:ring-white/10")}>
-                  {media ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={media} alt="shared media" loading="lazy" className="max-h-72 w-auto max-w-full rounded-xl" />
-                  ) : (
-                    <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                  )}
-                  {now > 0 && <p className={cn("mono mt-1 text-[10px]", media && "px-2 pb-0.5", m.mine ? "text-gold-700/70 dark:text-gold-200/60" : "text-zinc-500")}>{timeAgo(new Date(m.createdAt).getTime(), now)}</p>}
+              <div key={m.id}>
+                {showDay && (
+                  <div className="flex justify-center py-3">
+                    <span className="mono rounded-full bg-black/[0.06] px-2.5 py-1 text-[10px] uppercase tracking-wider text-zinc-500 ring-1 ring-black/5 dark:bg-white/[0.05] dark:ring-white/10">
+                      {day}
+                    </span>
+                  </div>
+                )}
+                <div className={cn("flex", grouped ? "mt-0.5" : "mt-2", m.mine ? "justify-end" : "justify-start")}>
+                  <div className={cn("max-w-[78%] rounded-2xl text-[14px] leading-relaxed", media ? "overflow-hidden p-1" : "px-3.5 py-2", m.mine ? "rounded-br-md bg-gold-500/20 text-gold-950 ring-1 ring-gold-500/30 dark:bg-gold-500/15 dark:text-gold-50" : "rounded-bl-md bg-black/[0.05] text-zinc-800 ring-1 ring-black/10 dark:bg-white/[0.05] dark:text-zinc-100 dark:ring-white/10")}>
+                    {media ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={media} alt="shared media" loading="lazy" className="max-h-72 w-auto max-w-full rounded-xl" />
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                    )}
+                    {/* Clock time rather than "3 min ago": on a thread you are
+                        reading top to bottom, a relative age on every bubble is
+                        noise, and it has to be recomputed forever. */}
+                    <div className={cn("mt-1 flex items-center justify-end gap-1", media && "px-2 pb-0.5")}>
+                      <span className={cn("mono text-[10px]", m.mine ? "text-gold-700/70 dark:text-gold-200/60" : "text-zinc-500")}>
+                        {clockTime(m.createdAt, hydrated)}
+                      </span>
+                      {m.mine && <ReadTicks read={read} pending={m.id.startsWith("temp-")} />}
+                    </div>
+                  </div>
                 </div>
               </div>
             );

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, getAdminSession } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { touchLastSeen } from "@/lib/touch-last-seen";
 import {
   PRESENCE_WINDOW_MS,
   PRESENCE_PRUNE_CHANCE,
@@ -36,20 +37,30 @@ export async function POST(req: Request) {
     // goodbye is worse than no throttle. Same rule as /api/chat/presence.
     const body = await req.json().catch(() => null);
     if (body && typeof body === "object" && (body as { leave?: unknown }).leave === true) {
-      await prisma.chatPresence.deleteMany({ where: { userId: me.id } }).catch(() => null);
+      // Stamp last-seen BEFORE dropping the presence row. Leaving is the single
+      // most informative moment for "last seen" and it is also the moment the
+      // row that could have told us disappears, so the two have to happen
+      // together. No extra request: the beacon was already being sent.
+      await Promise.all([
+        touchLastSeen(me.id),
+        prisma.chatPresence.deleteMany({ where: { userId: me.id } }).catch(() => null),
+      ]);
       return ok({ left: true });
     }
 
     const { success } = await rateLimit("chatPresence", me.id);
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
-    await prisma.chatPresence
-      .upsert({
-        where: { userId: me.id },
-        create: { userId: me.id, room: ROOM_SITE, seenAt: new Date() },
-        update: { room: ROOM_SITE, seenAt: new Date() },
-      })
-      .catch(() => null); // a not-yet-migrated DB must not break every page
+    await Promise.all([
+      prisma.chatPresence
+        .upsert({
+          where: { userId: me.id },
+          create: { userId: me.id, room: ROOM_SITE, seenAt: new Date() },
+          update: { room: ROOM_SITE, seenAt: new Date() },
+        })
+        .catch(() => null), // a not-yet-migrated DB must not break every page
+      touchLastSeen(me.id),
+    ]);
 
     if (Math.random() < PRESENCE_PRUNE_CHANCE) {
       void prisma.chatPresence
