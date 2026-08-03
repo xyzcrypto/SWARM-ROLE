@@ -51,6 +51,14 @@ const limiters = {
   login: make(10, 60, "login"), // 10/min per account (brute-force guard)
   password: make(10, 60, "password"), // 10/min/IP - reset flow, isolated from signup
   chat: make(10, 60, "chat"), // 10 messages/min per user (community chat)
+  // The presence heartbeat needs its own bucket. It used to spend the `chat`
+  // one, which is the budget for SENDING - so an unattended beat every 25s
+  // (more when the tab is woken, and it only runs at all when realtime is down)
+  // quietly ate 3-4 of a chatter's 10 messages per minute, and they hit
+  // "Too many requests" while typing normally. Presence is a cheap upsert on the
+  // caller's own row, so it can be generous; keeping it separate means a busy
+  // room can never throttle the composer.
+  chatPresence: make(30, 60, "chat_presence"), // 30/min per user - heartbeat only
   dm: make(20, 60, "dm"), // 20 direct messages/min per user
   notifications: make(60, 60, "notifications"), // 60/min per user - bell polling + mark-read
   contact: make(5, 60, "contact"), // 5/min/IP - contact form (own bucket so /track bursts can't 429 it)

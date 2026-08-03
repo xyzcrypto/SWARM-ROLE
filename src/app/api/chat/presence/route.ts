@@ -53,7 +53,14 @@ export async function POST(req: Request) {
 
     // Keyed per user, not per IP: this is a heartbeat from a logged-in tab, and
     // a member with several tabs open should not throttle themselves out.
-    const { success } = await rateLimit("chat", me.id);
+    //
+    // `chatPresence`, NOT `chat`. This used to share the send bucket (10/min),
+    // so the unattended beat - every 25s, plus one on every tab wake, and it
+    // only runs at all when realtime is down - was spending a third of the
+    // budget a member needs for actually writing messages. Typing normally in a
+    // room with a dead socket could then return "Too many requests", which reads
+    // as the chat being broken.
+    const { success } = await rateLimit("chatPresence", me.id);
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
     const room = "community";

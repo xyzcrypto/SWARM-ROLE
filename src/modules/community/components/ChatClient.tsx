@@ -372,6 +372,11 @@ export function ChatClient({
     let cancelled = false;
     let retries = 0;
     let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    // `tick` and `beat` are defined below but needed inside the subscribe
+    // callback above them; these hold the live references without hoisting the
+    // whole poll body above the channel setup.
+    const tickRef: { current?: () => Promise<void> } = {};
+    const beatRef: { current?: () => Promise<void> } = {};
 
     // Channel only. Retried on its own; must NOT arm the poll, or every retry
     // would leave another interval running.
@@ -472,11 +477,17 @@ export function ChatClient({
               setLiveError(reason);
               console.error(
                 `[chat] realtime channel "${CHANNEL}" -> ${status}${reason && reason !== status ? `: ${reason}` : ""}. ` +
-                  `Falling back to polling; messages will still arrive within ~10s. ` +
-                  `Presence (the online count) needs the channel, so it will read 0 until this recovers.`
+                  `Falling back to polling; messages arrive within ~10s and the online ` +
+                  `count switches to the server heartbeat.`
               );
-              setOnline(0);
-              setMembers([]);
+              // Do NOT blank the roster here. It used to `setOnline(0)` and
+              // clear the member list, which is why a blip showed "0 online" in
+              // a room that was full - the server heartbeat only refilled it on
+              // its next 25s tick, so the count was wrong for the whole gap and
+              // that gap is exactly when someone looks at it. Keep the last
+              // known list and ask the server for the truth immediately.
+              void beatRef.current?.();
+              void tickRef.current?.();
               try {
                 channel.unsubscribe();
                 client.removeChannel(channel);
@@ -514,9 +525,14 @@ export function ChatClient({
     // realtime channel is healthy every tick costs nothing but a boolean read,
     // so a working room issues zero extra requests; the moment the channel is
     // not SUBSCRIBED this is what keeps messages flowing.
-    const tick = async () => {
+    // `force` is used by the wake path below. A socket that survived a frozen
+    // tab can come back apparently healthy while having silently dropped
+    // everything broadcast in between - broadcast has no replay - so trusting
+    // `liveRef` on the way back in is how a room quietly stays a few messages
+    // behind. One reconcile on return settles it.
+    const tick = async (force = false) => {
       if (document.hidden) return;
-      if (liveRef.current) return; // realtime has it covered
+      if (liveRef.current && !force) return; // realtime has it covered
       try {
         const res = await fetch("/api/chat/messages", { cache: "no-store" });
         const data = await res.json().catch(() => null);
@@ -547,6 +563,7 @@ export function ChatClient({
         /* transient */
       }
     };
+    tickRef.current = tick;
     const pollTimer = setInterval(tick, 10_000);
 
     // Server-backed presence. Realtime presence is the nice path; this is the
@@ -580,10 +597,16 @@ export function ChatClient({
         /* transient - keep the last known list */
       }
     };
+    beatRef.current = beat;
     void beat();
-    // 25s, down from 45s. The window on the server is 60s, so two missed beats
-    // absorb a blip without leaving someone listed who has gone.
-    const beatTimer = setInterval(beat, 25_000);
+    // 15s, down from 25s (and 45s before that). This is the roster's refresh
+    // rate whenever realtime is down, and 25s meant someone joining took up to
+    // 25 seconds to appear - long enough to read as "the online count is not
+    // live", which is what was reported. It costs nothing on a healthy
+    // deployment: `beat` returns before the fetch while the channel is up, so
+    // this interval only spends requests on the broken path. The server window
+    // is 60s, so four missed beats absorb a blip without leaving a ghost.
+    const beatTimer = setInterval(beat, 15_000);
 
     // Say goodbye. Without this the ONLY way to stop being listed was for the
     // server window to expire, so closing the tab left you "online" for up to
@@ -603,15 +626,46 @@ export function ChatClient({
         /* nothing useful to do while unloading */
       }
     };
+    // Coming back. This is the half that was missing, and it is what made the
+    // room feel like it needed a manual refresh: both loops above skip while the
+    // tab is hidden, and the leave beacon has just taken you OUT of the presence
+    // table - so returning to the tab left you invisible and the room stale for
+    // up to a full poll interval (10s for messages, 25s for the roster), with a
+    // dead socket on top if the device had slept. Nothing was scheduled to fix
+    // any of that any sooner.
+    //
+    // Now: reappear, catch up, and rebuild the channel immediately. Throttled so
+    // the three events that can fire together (visibilitychange + focus +
+    // online) cost one round trip, not three.
+    let lastWake = 0;
+    const wake = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastWake < 3_000) return;
+      lastWake = now;
+      void beat();      // re-register presence + refresh the roster
+      void tick(true);  // catch up on messages missed while away
+      if (!liveRef.current) {
+        // Do not sit out the backoff after a sleep/network drop - the socket is
+        // dead and the user is looking at the room right now.
+        clearTimeout(retryTimer);
+        retries = 0;
+        void connect();
+      }
+    };
+
     // `pagehide` rather than `beforeunload`: it is the one that actually fires
     // on mobile Safari, where a tab is frozen rather than unloaded. Hiding the
     // tab counts as leaving too, since the heartbeat pauses while hidden and
     // the person would otherwise linger in the list.
-    const onHide = () => {
+    const onVisibility = () => {
       if (document.visibilityState === "hidden") leave();
+      else wake();
     };
     window.addEventListener("pagehide", leave);
-    document.addEventListener("visibilitychange", onHide);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", wake);
+    window.addEventListener("online", wake);
 
     void connect();
     return () => {
@@ -620,7 +674,9 @@ export function ChatClient({
       clearInterval(pollTimer);
       clearInterval(beatTimer);
       window.removeEventListener("pagehide", leave);
-      document.removeEventListener("visibilitychange", onHide);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", wake);
+      window.removeEventListener("online", wake);
       // Navigating away inside the SPA never fires pagehide, so leave here too.
       leave();
       teardownRef?.();
