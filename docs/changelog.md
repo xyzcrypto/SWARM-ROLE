@@ -5,6 +5,62 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (8) — The storage diagnostic was diagnosing the wrong thing
+
+The owner ran `/api/media/health` on production. It said the bucket probably did
+not exist. **It was wrong, and the answer was sitting in its own output:**
+
+```
+testUploadStatus: 400
+supabaseResponse: {"statusCode":"403","error":"Unauthorized",
+                   "message":"Invalid Compact JWS","code":"AccessDenied"}
+diagnosis: 'the bucket "post-covers" likely doesn't exist…'
+```
+
+`storageEnabled: true`, both env vars set, and Supabase answering **`Invalid
+Compact JWS`** - which means the service-role key is not a well-formed JWT at
+all. The bucket was never involved. The diagnosis branched on the **HTTP status**
+(400), and Supabase's Storage API wraps auth failures in a 400 with the real
+status inside the body. So a check whose whole job is to name the cause was
+confidently naming the wrong one, and would have sent the reader off to create a
+bucket that changes nothing.
+
+**Fixed two ways:**
+
+- It **reads the body now**, not the status: `Invalid Compact JWS` / `invalid
+  JWT` → the key; `Bucket not found` → the bucket; inner 401/403 → wrong or
+  rotated key. The exact Supabase message is quoted back in the diagnosis.
+- New `describeKey()` checks the key's **shape locally, before any request** -
+  because this particular failure is knowable without one. It reports length,
+  segment count, whether it parses as a JWT, whether the value arrived with a
+  stray newline or wrapping quotes (the two classic Vercel copy-paste failures),
+  whether it is one of Supabase's new `sb_secret_…` keys rather than the legacy
+  JWT, whether it has expired, and its `role` claim - which is what separates
+  "pasted the anon key" from "pasted the right one". **It never returns the key**,
+  and a test asserts that.
+
+Ten unit tests cover the shapes, including the one that was actually live.
+
+**This is the root cause of a chain that has come up repeatedly:** storage
+uploads fail → `uploadImage()` falls back to inline `data:` storage → (before
+(7)) the photo was then stripped everywhere. Server-side realtime
+(`broadcastEvent`) authenticates with the same key, so it is dark for the same
+reason.
+
+**Owner action:** Supabase → Settings → API Keys → copy the **service_role** key
+(starts with `eyJ`, three dot-separated parts), paste into Vercel with no quotes
+and no trailing newline, redeploy, then re-run `/api/media/health` - it should
+report `Storage works ✅`.
+
+**Files:** `src/app/api/media/health/route.ts` ·
+`src/shared/utils/jwt-shape.ts` + `src/lib/jwt-shape.ts` (new) ·
+`src/lib/__tests__/jwt-shape.test.ts` (new).
+
+**Gates:** typecheck ✅ · lint 0 errors / 37 warnings (unchanged) · 440/440
+tests ✅ · build ✅.
+
+---
+
 ## 2026-08-03 (7) — The profile photo that was never served, and two dialogs anchored to the wrong box
 
 Four reports, and three of them turned out to be one root cause each that no
