@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Flame } from "lucide-react";
 import { formatDate, formatDateTime, maskEmail } from "@/lib/utils";
+import { Avatar } from "@/components/Avatar";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { PostEditor } from "@/components/PostEditor";
 import { PostManager } from "@/components/PostManager";
@@ -30,13 +32,44 @@ type UserRow = {
   id: string;
   name: string | null;
   username: string | null;
+  image: string | null;
   email: string;
   provider: string;
   role: string;
   membership: string;
   createdAt: string;
   lastLoginAt: string | null;
+  /** Current daily check-in run, in days. 0 when there is none. */
+  checkinStreak?: number;
+  /** All-time days checked in. */
+  checkinTotal?: number;
 };
+
+/**
+ * A member's check-in record: the current run, and how many days in total.
+ *
+ * "Day 6 - 14 days" answers two different questions at once. The run says
+ * whether they are here now; the total says whether they ever were. Someone at
+ * "Day 1 - 60 days" is a returning regular who lapsed, which reads nothing like
+ * "Day 1 - 1 day", and one number alone cannot tell those apart.
+ */
+function CheckinCell({ streak, total }: { streak: number; total: number }) {
+  if (total < 1) return <span className="mono text-xs text-zinc-700">never</span>;
+  return (
+    <span className="mono inline-flex items-center gap-2 text-xs">
+      {streak > 0 ? (
+        <span className="inline-flex items-center gap-1 rounded-full bg-gold-500/12 px-2 py-0.5 font-semibold text-gold-200 ring-1 ring-gold-500/30">
+          <Flame className="h-3 w-3" aria-hidden />
+          Day {streak}
+        </span>
+      ) : (
+        // The run is over, but the history is not nothing.
+        <span className="rounded-full bg-white/5 px-2 py-0.5 text-zinc-500 ring-1 ring-white/10">no run</span>
+      )}
+      <span className="text-zinc-500">{total} {total === 1 ? "day" : "days"}</span>
+    </span>
+  );
+}
 
 type PostRow = {
   id: string;
@@ -1135,7 +1168,8 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
         <table className="w-full min-w-[340px] text-left text-sm md:min-w-[640px]">
           <thead className="bg-ink-700/60 mono text-[11px] uppercase tracking-wider text-zinc-500">
             <tr>
-              <th className="px-4 py-3 font-medium sm:px-5">Email</th>
+              <th className="px-4 py-3 font-medium sm:px-5">Member</th>
+              <th className="hidden px-5 py-3 font-medium lg:table-cell">Check-ins</th>
               <th className="hidden px-5 py-3 font-medium md:table-cell">Signup Date</th>
               <th className="hidden px-5 py-3 font-medium md:table-cell">Last Login</th>
               <th className="px-4 py-3 font-medium sm:px-5">Membership</th>
@@ -1146,6 +1180,13 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
             {rows.map((u) => (
               <tr key={u.id} className="hover:bg-white/[0.02]">
                 <td className="px-4 py-3 sm:px-5">
+                  <div className="flex items-start gap-3">
+                    {/* The avatar is the fastest answer to "who has actually
+                        set a photo?" - a column of masked addresses cannot tell
+                        you that at all. Falls back to initials, so a member
+                        with no photo is obvious by the absence of one. */}
+                    <Avatar name={u.name} image={u.image} email={u.email} size="sm" className="mt-0.5 shrink-0" />
+                    <div className="min-w-0">
                   {/* PII-light by default: masked email, tap to reveal (staff-
                       gated view, but no need to show every address on screen). */}
                   <button
@@ -1183,6 +1224,11 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
                     <span aria-hidden>·</span>
                     <span>{u.provider}</span>
                   </div>
+                    </div>
+                  </div>
+                </td>
+                <td className="hidden px-5 py-3 lg:table-cell">
+                  <CheckinCell streak={u.checkinStreak ?? 0} total={u.checkinTotal ?? 0} />
                 </td>
                 <td className="hidden px-5 py-3 mono text-xs text-zinc-400 md:table-cell">{formatDate(u.createdAt)}</td>
                 <td className="hidden px-5 py-3 mono text-xs text-zinc-400 md:table-cell">

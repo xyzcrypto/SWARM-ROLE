@@ -7,6 +7,9 @@ import { env, storageEnabled, realtimeEnabled, emailEnabled, googleEnabled, gith
 import { Navbar } from "@/components/Navbar";
 import { DashboardClient } from "@/components/DashboardClient";
 import { isStaff } from "@/lib/permissions";
+import { publicImageUrl } from "@/lib/utils";
+import { todayKey } from "@/lib/xp";
+import { memberCheckins } from "@/lib/member-checkins";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -56,6 +59,9 @@ export default async function DashboardPage() {
     name: true,
     // Handle, so a dashboard row can link straight to /u/<username>.
     username: true,
+    // The avatar answers "who has actually set a photo?" at a glance, which
+    // a list of masked email addresses cannot.
+    image: true,
     email: true,
     provider: true,
     role: true,
@@ -103,10 +109,24 @@ export default async function DashboardPage() {
     totalPostViews: postViews._sum.views ?? 0,
   };
 
+  // Check-in totals + streaks for everyone on screen, in two queries for the
+  // whole page rather than one per row.
+  const today = todayKey();
+  const checkins = await memberCheckins(
+    [...new Set([...recentUsers, ...premiumMembers].map((u) => u.id))],
+    today
+  );
+
   const serializeUser = (u: (typeof recentUsers)[number]) => ({
     ...u,
+    // An inline data: avatar becomes a /api/media URL rather than a base64
+    // blob in the page payload - the same treatment every other surface gives
+    // it. Never send the raw string to 50 rows at once.
+    image: publicImageUrl(u.image, u.id),
     createdAt: u.createdAt.toISOString(),
     lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
+    checkinStreak: checkins.get(u.id)?.streak ?? 0,
+    checkinTotal: checkins.get(u.id)?.total ?? 0,
   });
 
   return (

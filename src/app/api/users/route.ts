@@ -8,12 +8,17 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
 const EXPORT_CAP = 10_000;
 
+import { publicImageUrl } from "@/lib/utils";
+import { todayKey } from "@/lib/xp";
+import { memberCheckins } from "@/lib/member-checkins";
+
 const SELECT = {
   id: true,
   name: true,
   // The handle is what makes a row clickable through to the public profile -
   // an admin looking at a member should not have to go and find them by hand.
   username: true,
+  image: true,
   email: true,
   provider: true,
   role: true,
@@ -58,17 +63,24 @@ export async function GET(req: Request) {
         orderBy: { createdAt: "desc" },
         select: SELECT,
       });
-      const header = "Name,Email,Membership,Role,Method,Signup Date,Last Login";
+      // The export is how "who checked in, and for how long?" gets answered
+      // for everyone at once rather than a screen at a time, so the handle and
+      // the check-in figures belong here too.
+      const csvCheckins = await memberCheckins(rows.map((u) => u.id), todayKey());
+      const header = "Name,Username,Email,Membership,Role,Method,Signup Date,Last Login,Check-in Streak,Check-in Days";
       const body = rows
         .map((u) =>
           [
             u.name ?? "",
+            u.username ?? "",
             u.email,
             u.membership,
             u.role,
             u.provider,
             u.createdAt.toISOString(),
             u.lastLoginAt ? u.lastLoginAt.toISOString() : "Never",
+            String(csvCheckins.get(u.id)?.streak ?? 0),
+            String(csvCheckins.get(u.id)?.total ?? 0),
           ]
             .map(csvCell)
             .join(",")
@@ -94,11 +106,19 @@ export async function GET(req: Request) {
     const hasMore = rows.length > PAGE_SIZE;
     const page = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
 
+    // Two queries for the whole page, not one per row.
+    const checkins = await memberCheckins(page.map((u) => u.id), todayKey());
+
     return ok({
       users: page.map((u) => ({
         ...u,
+        // An inline data: avatar goes out as a /api/media URL, never as a
+        // base64 blob multiplied by the page size.
+        image: publicImageUrl(u.image, u.id),
         createdAt: u.createdAt.toISOString(),
         lastLoginAt: u.lastLoginAt ? u.lastLoginAt.toISOString() : null,
+        checkinStreak: checkins.get(u.id)?.streak ?? 0,
+        checkinTotal: checkins.get(u.id)?.total ?? 0,
       })),
       nextCursor: hasMore ? page[page.length - 1]!.id : null,
     });
