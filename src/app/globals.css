@@ -199,8 +199,16 @@ html.lenis body {
 }
 
 /* Starfield (orbital "deep space" backdrop) - each star twinkles from its own
-   base opacity (--o). will-change keeps it on the compositor. */
-.starfield span { will-change: opacity, transform; }
+   base opacity (--o).
+
+   `will-change` is on the ANIMATED stars only, and that distinction is the
+   whole point. It used to be on `.starfield span`, which promoted every star
+   to its own compositor layer - and the homepage mounts the field twice, so
+   that was ~244 layers for 1-3px dots of which only ~64 ever animate. Measured
+   on the homepage: 247 elements carrying `will-change`, 30% GPU and multi-GB
+   browser memory on an idle page. A layer per static dot buys nothing; it is
+   pure GPU memory and compositing work. */
+.starfield span.star-anim { will-change: opacity, transform; }
 @keyframes star-twinkle {
   0%, 100% { opacity: var(--o, 0.4); transform: scale(1); }
   50% { opacity: calc(var(--o, 0.4) * 0.35); transform: scale(0.6); }

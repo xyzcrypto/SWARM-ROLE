@@ -5,6 +5,79 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (14) — The chat's own poll was the last surface swallowing its errors
+
+Owner: *"chat me new wala dekhne ke liye refresh karna padta hai, page direct
+old data me show hota hai"*, plus a Task Manager screenshot: Chrome at 51.8%
+CPU, 30.5% GPU, 3.2 GB.
+
+### Why the chat went stale and only a reload fixed it
+
+The room has a 10s message poll behind the realtime channel. It ended in:
+
+```js
+if (!res.ok || !data?.messages) return;   // silent
+...
+} catch { /* transient */ }               // silent
+```
+
+The owner's production console showed `GET /api/chat/messages 503`. So the poll
+fired, got a 503, threw it away, and the pill kept reading **"Synced"**. The
+server render (a different path, on request) still worked - which is exactly
+why reloading was the only thing that ever helped. #223 did this same sweep
+across the live surfaces and missed this one.
+
+Two changes:
+
+- **The failure is now visible.** `pollError` drives an amber **"Stale"** on the
+  status pill with the HTTP status in the tooltip. "Synced" was actively
+  misleading: it is the honest word for a working fallback, and the wrong word
+  for a fallback that is failing.
+- **A healthy socket is no longer taken on trust.** `liveRef` used to skip the
+  poll entirely, so a channel that was SUBSCRIBED but silently delivering
+  nothing left the room permanently behind with "Live" showing. It now
+  reconciles once a minute regardless. Cost: one request per minute per open
+  room.
+
+The underlying 503 is server-side and still an owner action (see §8) - this
+makes it diagnosable and self-healing instead of silent.
+
+### CPU: what was actually true, and what was not
+
+Measured on the homepage, production build, 10s idle, tab visible:
+
+| | before | after |
+|---|---|---|
+| elements with `will-change` (compositor layers) | 247 | **67** |
+| running CSS animations | 182 | **158** |
+| main-thread task time | 1.76s | ~1.68s |
+
+**`.starfield span { will-change: opacity, transform }`** promoted *every* star
+to its own compositor layer. The homepage mounts the field twice, so that was
+~244 layers for 1-3px dots, of which only ~64 ever animate. A layer per static
+dot is pure GPU memory and compositing work - which is what the owner's 30.5%
+GPU and 3.2 GB reading is made of. `will-change` now applies only to stars that
+actually move, and `light` (the second mount) halves its animated share;
+density is untouched, so nothing looks different.
+
+**The honest part:** this is a GPU/memory fix, not a main-thread CPU fix, and
+the main-thread number barely moved. Attribution measurements are recorded
+here rather than hidden because they refuted the obvious hypothesis: disabling
+**every** CSS animation on the page changed task time from 1.431s to 1.472s -
+i.e. not at all, within a run-to-run variance of about ±0.3s (one row of that
+sweep came out *higher* than baseline, which is impossible and is the
+give-away). CSS animations are **not** the main-thread cost. The starfield is
+the biggest single contributor to style recalculation specifically (0.306s ->
+0.183s when disabled), which is what the change above targets.
+
+This machine's headless Chromium renders in software, so it cannot reproduce
+what 247 GPU layers cost on the owner's hardware. The mechanism is certain; the
+size of the win on their machine is not measured here. Worth re-checking on the
+real device after deploy.
+
+**Files:** `src/modules/community/components/ChatClient.tsx`,
+`src/app/globals.css`, `src/components/Starfield.tsx`.
+
 ## 2026-08-03 (13) — Every page was served invisible, and reduced motion made React throw it away
 
 The blank/stuck page, found and reproduced. Two independent faults in

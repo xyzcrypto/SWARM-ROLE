@@ -198,6 +198,13 @@ export function ChatClient({
   // this a missing ChatPresence table looks exactly like an empty room: a
   // confident "1 online" that no amount of refreshing changes.
   const [presenceError, setPresenceError] = useState<string | null>(null);
+  // Why the MESSAGE poll is not answering, when it is not. This is the last
+  // silent failure in the room: the poll swallowed its own errors, so a room
+  // whose /api/chat/messages was returning 503 sat there showing "Synced" and
+  // stale messages, and the only thing that ever fixed it was a manual reload
+  // (which re-renders on the server, down a different path). That is exactly
+  // the "new wala dekhne ke liye refresh karna padta hai" report.
+  const [pollError, setPollError] = useState<string | null>(null);
   const [online, setOnline] = useState(0);
   const [members, setMembers] = useState<PresenceMember[]>([]);
   const [typers, setTypers] = useState<Record<string, { name: string; until: number }>>({});
@@ -547,13 +554,32 @@ export function ChatClient({
     // everything broadcast in between - broadcast has no replay - so trusting
     // `liveRef` on the way back in is how a room quietly stays a few messages
     // behind. One reconcile on return settles it.
+    // A socket that is SUBSCRIBED is not proof that broadcasts are arriving -
+    // and when they silently are not, `liveRef` skipping the poll means the
+    // room never catches up at all. So the poll is skipped only for a bounded
+    // stretch: once a minute it reconciles even on a healthy channel. That is
+    // one extra request per minute per open room, which is the cheapest
+    // insurance available against the room being confidently wrong.
+    let lastReconcile = 0;
+    const SAFETY_RECONCILE_MS = 60_000;
+
     const tick = async (force = false) => {
       if (document.hidden) return;
-      if (liveRef.current && !force) return; // realtime has it covered
+      const now = Date.now();
+      if (liveRef.current && !force && now - lastReconcile < SAFETY_RECONCILE_MS) return;
+      lastReconcile = now;
       try {
         const res = await fetch("/api/chat/messages", { cache: "no-store" });
         const data = await res.json().catch(() => null);
-        if (!res.ok || !data?.messages) return;
+        if (!res.ok || !data?.messages) {
+          // Say so. A 503 here means the server cannot read the room - the
+          // messages on screen are frozen, and pretending otherwise is what
+          // turned a server problem into "the chat is broken and refreshing
+          // is the only thing that works".
+          setPollError(res.ok ? "malformed response" : `HTTP ${res.status}`);
+          return;
+        }
+        setPollError(null);
         setMessages((prev) => {
           // Pure reconcile (unit-tested in chat-view): refresh edits/reactions
           // on known messages, infer deletions inside the fetched window, and
@@ -576,8 +602,8 @@ export function ChatClient({
           }
           return incoming.length ? [...merged, ...incoming] : merged;
         });
-      } catch {
-        /* transient */
+      } catch (e) {
+        setPollError(e instanceof Error ? e.message : "network");
       }
     };
     tickRef.current = tick;
@@ -1141,15 +1167,17 @@ export function ChatClient({
               // same layout - but a hover (or a long-press) now answers "why?"
               // instead of leaving "Reconnecting..." as a dead end.
               title={
-                live
-                  ? "Live via Supabase Realtime"
-                  : realtimeConfigured
-                    ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages arrive on the 10s poll and the online count comes from the server heartbeat every 15s.${presenceError ? ` PRESENCE PROBLEM: ${presenceError}` : ""}`
-                    : "Realtime is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). Messages refresh by polling."
+                pollError
+                  ? `The server is not returning messages (${pollError}). What you see is frozen at the last successful load - new messages are NOT arriving. Retrying every 10s.`
+                  : live
+                    ? "Live via Supabase Realtime"
+                    : realtimeConfigured
+                      ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages arrive on the 10s poll and the online count comes from the server heartbeat every 15s.${presenceError ? ` PRESENCE PROBLEM: ${presenceError}` : ""}`
+                      : "Realtime is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). Messages refresh by polling."
               }
               className={cn(
                 "mono text-[10px] uppercase tracking-wider",
-                live ? "text-mint-300/80" : "text-zinc-400"
+                pollError ? "text-amber-300/90" : live ? "text-mint-300/80" : "text-zinc-400"
               )}
             >
               {/* "Reconnecting…" in alarming amber was overstating the problem.
@@ -1161,7 +1189,11 @@ export function ChatClient({
                   neutral is the honest description of the fallback, and the
                   tooltip still carries the detail (and the underlying error)
                   for anyone debugging it. */}
-              {live ? "Live" : "Synced"}
+              {/* "Stale" is the one state that must never be dressed up. The
+                  amber is not overstating anything here: the poll IS failing
+                  and the messages on screen are frozen. The two calm states
+                  below stay calm - a working fallback is not a problem. */}
+              {pollError ? "Stale" : live ? "Live" : "Synced"}
             </span>
           </div>
           <p className="mt-0.5 hidden mono text-[11px] text-zinc-500 sm:block">#general · markets, alpha &amp; Web3</p>
