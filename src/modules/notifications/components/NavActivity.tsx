@@ -7,6 +7,7 @@ import { useSession } from "next-auth/react";
 import { Bell, MessageCircle, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getRealtimeClient } from "@/lib/realtimeClient";
+import { useLiveData } from "@/lib/useLiveData";
 
 type Note = {
   id: string;
@@ -68,83 +69,60 @@ export function NavActivity() {
   const [dmUnread, setDmUnread] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
+  // These three no longer swallow their failures. They are driven by
+  // useLiveData, which retries a rejected load with backoff and refetches when
+  // the tab or the network comes back - and a swallowed error is invisible to
+  // it, so the badge simply stayed wrong until the next reload. Keeping the
+  // last known state on failure is still the behaviour: nothing is cleared,
+  // the error only travels upwards so something can act on it.
   const loadNotes = useCallback(async () => {
-    try {
-      const res = await fetch("/api/notifications", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      setItems(Array.isArray(data.items) ? data.items : []);
-      setUnread(typeof data.unread === "number" ? data.unread : 0);
-    } catch {
-      /* offline / transient - keep last known state */
-    }
+    const res = await fetch("/api/notifications", { cache: "no-store" });
+    if (!res.ok) throw new Error(`notifications ${res.status}`);
+    const data = await res.json();
+    setItems(Array.isArray(data.items) ? data.items : []);
+    setUnread(typeof data.unread === "number" ? data.unread : 0);
   }, []);
 
   const loadDm = useCallback(async () => {
-    try {
-      const res = await fetch("/api/dm/unread", { cache: "no-store" });
-      if (!res.ok) return;
-      const data = await res.json();
-      setDmUnread(typeof data.unread === "number" ? data.unread : 0);
-    } catch {
-      /* ignore */
-    }
+    const res = await fetch("/api/dm/unread", { cache: "no-store" });
+    if (!res.ok) throw new Error(`dm unread ${res.status}`);
+    const data = await res.json();
+    setDmUnread(typeof data.unread === "number" ? data.unread : 0);
   }, []);
 
   const loadChat = useCallback(async () => {
-    try {
-      // Only the latest message's timestamp is needed to flip the dot - not
-      // the full message list (see src/app/api/chat/last-activity/route.ts).
-      const res = await fetch("/api/chat/last-activity");
-      if (!res.ok) return;
-      const data = await res.json();
-      const latest: string | null = data.latestAt ?? null;
-      if (!latest) return setChatDot(false);
-      const seen = localStorage.getItem(CHAT_SEEN_KEY);
-      setChatDot(!seen || new Date(latest).getTime() > new Date(seen).getTime());
-    } catch {
-      /* ignore */
-    }
+    // Only the latest message's timestamp is needed to flip the dot - not the
+    // full message list (see src/app/api/chat/last-activity/route.ts).
+    const res = await fetch("/api/chat/last-activity");
+    if (!res.ok) throw new Error(`last-activity ${res.status}`);
+    const data = await res.json();
+    const latest: string | null = data.latestAt ?? null;
+    if (!latest) { setChatDot(false); return; }
+    const seen = localStorage.getItem(CHAT_SEEN_KEY);
+    setChatDot(!seen || new Date(latest).getTime() > new Date(seen).getTime());
   }, []);
 
-  useEffect(() => {
-    loadNotes();
-    loadChat();
-    loadDm();
-    // Full refresh, including the notification list.
-    const slow = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        loadNotes();
-        loadChat();
-        loadDm();
-      }
-    }, POLL_MS);
-    // Just the two cheap unread counts, three times as often. These are the
-    // badges a person actually watches, and they are the ones left stranded
-    // when the server half of realtime is unconfigured.
-    const fast = setInterval(() => {
-      if (document.visibilityState === "visible") {
-        loadDm();
-        loadChat();
-      }
-    }, FAST_POLL_MS);
-    // Coming back to the tab is the moment a stale badge is most obvious, and
-    // it costs one request instead of a permanently faster background poll.
-    const onVisible = () => {
-      if (document.visibilityState === "visible") {
-        loadDm();
-        loadChat();
-      }
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    window.addEventListener("focus", onVisible);
-    return () => {
-      clearInterval(slow);
-      clearInterval(fast);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("focus", onVisible);
-    };
+  // Two loops, both resilient. useLiveData retries a failed load with backoff,
+  // never overlaps requests, pauses while hidden, and refetches on
+  // visibilitychange / focus / online - the last of which nothing here had, so
+  // a phone moving between wifi and mobile data kept a stale badge until the
+  // next tick, or forever if that tick failed too.
+  const badges = useCallback(async () => {
+    // Both together, so one failure retries both rather than leaving the pair
+    // inconsistent.
+    await Promise.all([loadDm(), loadChat()]);
+  }, [loadDm, loadChat]);
+
+  const everything = useCallback(async () => {
+    await Promise.all([loadNotes(), loadChat(), loadDm()]);
   }, [loadNotes, loadChat, loadDm]);
+
+  // Full refresh, including the notification list.
+  useLiveData({ load: everything, intervalMs: POLL_MS });
+  // Just the two cheap unread counts, twice as often. These are the badges a
+  // person actually watches, and the ones left stranded when the server half
+  // of realtime is unconfigured.
+  useLiveData({ load: badges, intervalMs: FAST_POLL_MS });
 
   // Refetch the DM unread count on every navigation so the badge drops as soon
   // as the user opens /messages (a thread read clears its unread server-side).
