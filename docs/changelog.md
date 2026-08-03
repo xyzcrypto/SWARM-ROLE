@@ -5,6 +5,87 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (11) — Every live surface swallowed its own failures, so nothing could retry
+
+Reported, after several rounds of per-surface fixes: data still does not sync
+sometimes, the page gets stuck, the community chat sometimes fetches nothing,
+and the online count only works after a refresh. *"Fix properly taki baar baar
+na karna pade."*
+
+The reason it kept coming back is that each round fixed one loop. This is the
+thing all of them shared.
+
+### The audit
+
+Across every live surface - DM inbox, DM thread, navbar badges, ticker, journal
+feed, markets, news - **not one retried a failed request, and not one listened
+for the network coming back**:
+
+| surface | retry | visibility | `online` event |
+|---|---|---|---|
+| MessagesClient | ✗ | partial | ✗ |
+| NavActivity | ✗ | ✓ | ✗ |
+| JournalActivityFeed | ✗ | ✗ | ✗ |
+| useTickerPoll | ✗ | ✓ | ✗ |
+
+So one failed request - a dropped connection, a 503 from a busy database, a
+phone switching from wifi to mobile data - left that surface stale until the
+next tick, and if that tick failed too, **until the user reloaded the page**.
+Nothing was broken permanently; nothing recovered on its own either. That is
+exactly what "kabhi kabhi" and "refresh ke baad kaam karta hai" describe.
+
+### The blocker underneath it
+
+Even where a retry existed, it could never fire: **every loader caught its own
+error and resolved successfully.** `loadInbox`, the DM thread `load`,
+`loadNotes`, `loadDm`, `loadChat` all ended in a bare catch, so a failed request
+was indistinguishable from a successful one to anything wrapping it. All five
+now let the failure propagate; they still keep the last known state, the error
+just travels far enough for something to act on it.
+
+### The fix
+
+- **`useRealtime`'s poll now retries** a rejected load with backoff (1s → 30s),
+  never overlaps requests, and drops the backoff on wake. One change, and every
+  consumer gets it: comments, likes, Journal, Journal activity, profile follow
+  counts, both DM loops, the dashboard.
+- **`useLiveData`** (new) is the same contract for surfaces that have no
+  realtime channel at all, and NavActivity - the badges on every page - is the
+  first onto it. It gains retry and an `online` listener for the first time.
+
+**Verified end to end in a real browser.** Endpoints forced to 503 from first
+load, then healed with no reload and no interaction:
+
+```
+while failing : 21 retry attempts in 9s, with backoff
+after healing : recovered in 7.0s, no reload, no interaction
+```
+
+Previously that surface would have waited out a 30-60s interval and, if that
+also failed, stayed wrong indefinitely.
+
+### It costs nothing extra
+
+Measured on `main` and on this branch, 120s of healthy steady state on the
+homepage while signed in - **identical on both: 25 requests, 12.5/min per tab**
+(`chat/last-activity` 12, `dm/unread` 6, `chart` 4, `notifications` 2,
+`presence` 1). The retry only spends requests when something is already broken.
+
+Worth recording that the comparison is what settled it: the raw figure looked
+like a doubling against my own arithmetic, and building `main` to compare showed
+the rate was unchanged and the arithmetic was wrong.
+
+**Files:** `src/shared/hooks/useLiveData.ts` + `src/lib/useLiveData.ts` (new) ·
+`src/shared/hooks/useRealtime.ts` ·
+`src/modules/notifications/components/NavActivity.tsx` ·
+`src/modules/messages/components/MessagesClient.tsx` ·
+`src/lib/__tests__/useLiveData.test.ts` (new).
+
+**Gates:** typecheck ✅ · lint 0 errors / 36 warnings (one fewer) · 455/455
+tests ✅ · build ✅.
+
+---
+
 ## 2026-08-03 (10) — The homepage kept animating 190 things nobody could see
 
 Reported: opening the homepage pushes CPU high, and it stays high.

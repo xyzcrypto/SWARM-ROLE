@@ -35,7 +35,17 @@ const WAKE_MIN_GAP_MS = 4_000;
 type UseRealtimeOpts = {
   channel: string;
   event: string;
-  onMessage: (payload: unknown) => void;
+  /**
+   * Called with a payload on a realtime push, or `null` meaning "refetch".
+   *
+   * **Return the promise if it is async, and let it REJECT on failure.** That
+   * is what arms the retry below. Every loader in this codebase used to
+   * a bare `catch` that ignored the error internally, which made a failed request
+   * indistinguishable from a successful one - so the poll simply waited out a
+   * whole interval and the surface sat on stale data. Swallowing the error
+   * inside the loader silently disables the resilience around it.
+   */
+  onMessage: (payload: unknown) => void | Promise<void>;
   url?: string;
   anonKey?: string;
   /** Poll interval (ms) used whenever the realtime channel is not healthy. */
@@ -175,12 +185,34 @@ export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, e
       };
     }
 
-    const tick = () => {
+    // Retry a FAILED poll on its own short schedule rather than waiting out the
+    // whole interval. A dropped connection, a 503 from a busy database, or a
+    // phone switching from wifi to mobile data should cost a second, not a
+    // cycle - and if the next cycle fails too, the old behaviour left the
+    // surface stale until the user reloaded. That is "kabhi kabhi data sync
+    // nahi hota", and it is why per-component fixes kept not being enough.
+    let pollFailures = 0;
+    let pollRetry: ReturnType<typeof setTimeout> | undefined;
+    let polling = false;
+
+    const tick = async () => {
       if (!visible()) return;
       if (live) return; // realtime has it covered - costs nothing
-      cb.current(null);
+      if (polling) return; // never overlap; a slow response must not pile up
+      polling = true;
+      try {
+        await cb.current(null);
+        pollFailures = 0;
+        clearTimeout(pollRetry);
+      } catch {
+        pollFailures += 1;
+        clearTimeout(pollRetry);
+        pollRetry = setTimeout(() => void tick(), Math.min(1000 * 2 ** (pollFailures - 1), 30_000));
+      } finally {
+        polling = false;
+      }
     };
-    const pollTimer = setInterval(tick, pollMs && pollMs > 0 ? pollMs : FALLBACK_POLL_MS);
+    const pollTimer = setInterval(() => void tick(), pollMs && pollMs > 0 ? pollMs : FALLBACK_POLL_MS);
 
     // Back from a hidden tab, refocused, or back online: refetch now and, if the
     // channel is down, retry it now instead of waiting out the backoff.
@@ -189,7 +221,11 @@ export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, e
       const now = Date.now();
       if (now - lastWake < WAKE_MIN_GAP_MS) return;
       lastWake = now;
-      cb.current(null);
+      // A wake also abandons any long backoff: the user is here now and the
+      // network may have changed underneath it.
+      clearTimeout(pollRetry);
+      pollFailures = 0;
+      void tick();
       if (mode === "realtime") {
         clearTimeout(retryTimer);
         retries = 0;
@@ -208,6 +244,7 @@ export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, e
     return () => {
       cancelled = true;
       clearTimeout(retryTimer);
+      clearTimeout(pollRetry);
       clearInterval(pollTimer);
       if (typeof document !== "undefined") document.removeEventListener("visibilitychange", wake);
       if (typeof window !== "undefined") {

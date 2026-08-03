@@ -52,12 +52,19 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
     return () => clearInterval(t);
   }, []);
 
+  // Failures propagate on purpose. useRealtime retries a rejected load with
+  // backoff; swallowing the error here made a failed request look identical to
+  // a successful one, so the inbox would sit on stale data - or none at all -
+  // until the user reloaded. That is the "DM kabhi kabhi nahi khulta" report.
   const loadInbox = useCallback(async () => {
     try {
       const r = await fetch("/api/dm", { cache: "no-store" });
-      const j = r.ok ? await r.json() : null;
+      if (!r.ok) throw new Error(`inbox ${r.status}`);
+      const j = await r.json();
       if (j?.conversations) setConversations(j.conversations);
-    } catch { /* ignore */ } finally { setInboxLoaded(true); }
+    } finally {
+      setInboxLoaded(true);
+    }
   }, []);
 
   useEffect(() => { loadInbox(); }, [loadInbox]);
@@ -200,10 +207,12 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
 
   const scrollToEnd = () => requestAnimationFrame(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; });
 
+  // Same rule as loadInbox: a failure must reach useRealtime so it can retry.
   const load = useCallback(async (silent: boolean) => {
     try {
       const r = await fetch(`/api/dm/${id}`, { cache: "no-store" });
-      const j = r.ok ? await r.json() : null;
+      if (!r.ok) throw new Error(`thread ${r.status}`);
+      const j = await r.json();
       if (j) {
         setOther(j.other ?? null);
         setMessages((prev) => {
@@ -212,7 +221,9 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
           return next;
         });
       }
-    } catch { /* ignore */ } finally { if (!silent) { setLoaded(true); scrollToEnd(); } }
+    } finally {
+      if (!silent) { setLoaded(true); scrollToEnd(); }
+    }
   }, [id]);
 
   useEffect(() => { setLoaded(false); setMessages([]); load(false); }, [load]);
