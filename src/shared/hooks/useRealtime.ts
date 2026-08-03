@@ -6,6 +6,10 @@ import { getRealtimeClient } from "@/lib/realtimeClient";
 /**
  * Pure decision used by the hook (and unit-tested): prefer realtime when Supabase
  * is configured, else poll when a `pollMs` is given, else do nothing.
+ *
+ * Note what this does NOT decide: whether the poll is armed. It used to, and
+ * that was the bug - see the hook below. "realtime" here means "there is a
+ * connection worth attempting", not "polling is unnecessary".
  */
 export function realtimeMode(
   url?: string | null,
@@ -17,26 +21,61 @@ export function realtimeMode(
   return "off";
 }
 
+/**
+ * How often to refetch while the channel is DOWN and the caller named no
+ * interval of its own. Deliberately slow: it exists so a surface cannot go
+ * permanently silent, not to be a primary transport. Callers that want fresher
+ * data pass their own `pollMs`.
+ */
+const FALLBACK_POLL_MS = 60_000;
+
+/** Don't let focus/visibility/online churn turn into a request storm. */
+const WAKE_MIN_GAP_MS = 4_000;
+
 type UseRealtimeOpts = {
   channel: string;
   event: string;
   onMessage: (payload: unknown) => void;
   url?: string;
   anonKey?: string;
-  /** Fallback poll interval (ms) used only when realtime isn't configured. */
+  /** Poll interval (ms) used whenever the realtime channel is not healthy. */
   pollMs?: number;
   enabled?: boolean;
 };
 
 /**
- * The shared "live or poll" primitive for the site's realtime surfaces.
+ * The shared "live or poll" primitive for the site's realtime surfaces:
+ * comments, likes, journal, profile follow counts, DMs, the dashboard.
  *
  * When Supabase realtime is configured it subscribes to a broadcast
  * channel/event and calls `onMessage(payload)` on each push (the server emits a
  * tiny invalidation ping; the client then refetches a cached endpoint - no row
- * streaming, minimal DB load). When realtime isn't available it falls back to
- * polling `onMessage(null)` every `pollMs` while the tab is visible. Fully
- * degrades - no-op if neither realtime nor `pollMs` is provided.
+ * streaming, minimal DB load). `onMessage(null)` means "no payload, go refetch".
+ *
+ * ## Why this is more than a subscribe call
+ *
+ * The previous version chose realtime purely because the env vars existed, and
+ * **never looked at whether the subscription actually succeeded**. `.subscribe()`
+ * was called with no status callback at all. So a `CHANNEL_ERROR` (wrong anon
+ * key, project paused, connection cap reached, CSP, a phone that slept and
+ * dropped the socket) left the surface with no channel, no retry and no poll -
+ * permanently silent, on every one of the seven surfaces above. The only way to
+ * see new data was to reload the page, which is exactly what was reported.
+ *
+ * Three things fix that, all of them modelled on what the community chat already
+ * does (`ChatClient.tsx`, which had the same bug and was fixed locally there):
+ *
+ * 1. **The poll is always armed**, and early-returns on every tick while the
+ *    channel is healthy - so a working deployment issues *zero* extra requests
+ *    and this costs nothing on the Supabase/Vercel bills. The moment the channel
+ *    is not SUBSCRIBED, it is what keeps the surface alive.
+ * 2. **A failed channel is retried** with exponential backoff (1s → 30s), so a
+ *    project that is genuinely over its connection limit is not hammered.
+ * 3. **Waking up refetches immediately.** Returning to a hidden tab, regaining
+ *    focus, or the network coming back are precisely the moments the data is
+ *    stalest and the socket most likely dead - and waiting out a poll interval
+ *    there is what makes an app feel like it needs a refresh. Throttled so the
+ *    events cannot stack into a request storm.
  */
 export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, enabled = true }: UseRealtimeOpts) {
   const cb = useRef(onMessage);
@@ -56,29 +95,126 @@ export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, e
     const mode = realtimeMode(u, k, pollMs);
     if (mode === "off") return;
 
-    // Preferred path: realtime broadcast (DB-light).
-    if (mode === "realtime" && u && k) {
-      let cleanup: (() => void) | undefined;
-      let cancelled = false;
-      (async () => {
-        const client = await getRealtimeClient(u, k);
+    let cancelled = false;
+    let live = false;
+    let retries = 0;
+    let lastWake = 0;
+    // False until the channel has been up once, so the first subscribe does not
+    // trigger a redundant refetch on top of the server-rendered data.
+    let reconnected = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let teardown: (() => void) | undefined;
+
+    const visible = () => typeof document === "undefined" || document.visibilityState === "visible";
+
+    // Channel only. Retried on its own; must NOT arm the poll, or every retry
+    // would leave another interval behind.
+    //
+    // `connecting` matters because two things can call this at once - the
+    // backoff timer and a wake event - and `getRealtimeClient` is async. Without
+    // the guard the second call would build a second channel and overwrite
+    // `teardown`, leaking the first subscription for the life of the page.
+    let connecting = false;
+    async function connect() {
+      if (!u || !k || connecting) return;
+      connecting = true;
+      try {
+        await open();
+      } finally {
+        connecting = false;
+      }
+    }
+
+    async function open() {
+      if (!u || !k) return;
+      const client = await getRealtimeClient(u, k);
+      if (cancelled) return;
+      teardown?.(); // never stack subscriptions on a reconnect
+      teardown = undefined;
+      const ch = client.channel(channel);
+      const drop = () => {
+        try {
+          ch.unsubscribe();
+          client.removeChannel(ch);
+        } catch {
+          /* already gone */
+        }
+      };
+      ch.on("broadcast", { event }, ({ payload }) => cb.current(payload)).subscribe((status) => {
         if (cancelled) return;
-        const ch = client.channel(channel);
-        ch.on("broadcast", { event }, ({ payload }) => cb.current(payload)).subscribe();
-        cleanup = () => client.removeChannel(ch);
-      })();
-      return () => {
-        cancelled = true;
-        cleanup?.();
+        if (status === "SUBSCRIBED") {
+          live = true;
+          retries = 0;
+          // Anything broadcast while the channel was down was missed outright -
+          // broadcast has no replay - so reconcile once the socket is back.
+          // Only on a RE-connect: on the first subscribe the consumer has just
+          // rendered its own server data, and firing here would add a duplicate
+          // request to every page load, which this site cannot afford.
+          if (reconnected) cb.current(null);
+          reconnected = true;
+          return;
+        }
+        // Anything else is terminal for this channel object: supabase-js will
+        // not put it back by itself once the join has errored. Drop it and
+        // build a fresh one after a backoff. The poll carries the surface in
+        // the meantime, so this is a quality upgrade rather than the only thing
+        // between the user and a dead page.
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          live = false;
+          drop();
+          const delay = Math.min(1000 * 2 ** retries, 30_000);
+          retries += 1;
+          retryTimer = setTimeout(() => {
+            if (!cancelled) void connect();
+          }, delay);
+        }
+      });
+      teardown = () => {
+        drop();
+        live = false;
       };
     }
 
-    // Fallback path: poll while visible.
-    if (pollMs && pollMs > 0) {
-      const id = setInterval(() => {
-        if (typeof document === "undefined" || document.visibilityState === "visible") cb.current(null);
-      }, pollMs);
-      return () => clearInterval(id);
+    const tick = () => {
+      if (!visible()) return;
+      if (live) return; // realtime has it covered - costs nothing
+      cb.current(null);
+    };
+    const pollTimer = setInterval(tick, pollMs && pollMs > 0 ? pollMs : FALLBACK_POLL_MS);
+
+    // Back from a hidden tab, refocused, or back online: refetch now and, if the
+    // channel is down, retry it now instead of waiting out the backoff.
+    const wake = () => {
+      if (!visible() || live) return;
+      const now = Date.now();
+      if (now - lastWake < WAKE_MIN_GAP_MS) return;
+      lastWake = now;
+      cb.current(null);
+      if (mode === "realtime") {
+        clearTimeout(retryTimer);
+        retries = 0;
+        void connect();
+      }
+    };
+
+    if (typeof document !== "undefined") document.addEventListener("visibilitychange", wake);
+    if (typeof window !== "undefined") {
+      window.addEventListener("online", wake);
+      window.addEventListener("focus", wake);
     }
+
+    if (mode === "realtime") void connect();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+      clearInterval(pollTimer);
+      if (typeof document !== "undefined") document.removeEventListener("visibilitychange", wake);
+      if (typeof window !== "undefined") {
+        window.removeEventListener("online", wake);
+        window.removeEventListener("focus", wake);
+      }
+      teardown?.();
+    };
   }, [u, k, channel, event, pollMs, enabled]);
 }

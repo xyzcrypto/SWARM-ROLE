@@ -72,4 +72,17 @@ describe("every mutating API handler is rate-limited", () => {
       .map((h) => `${h.file}:${h.name}`);
     expect(unenforced).toEqual([]);
   });
+
+  it("keeps the chat presence heartbeat out of the composer's bucket", () => {
+    // The presence beat is unattended traffic: every 15s while realtime is down,
+    // plus one on every tab wake. It used to spend the `chat` bucket, which is
+    // the 10/min budget for SENDING - so a member typing normally in a room with
+    // a dead socket could get "Too many requests" because their own heartbeat
+    // had already spent a third of it. Any shared-bucket regression here shows
+    // up as the chat looking broken, so pin it.
+    const presence = handlers.find((h) => h.file.endsWith("api/chat/presence/route.ts"));
+    expect(presence, "chat presence route should exist").toBeTruthy();
+    expect(presence!.body).toContain('rateLimit("chatPresence"');
+    expect(presence!.body).not.toContain('rateLimit("chat"');
+  });
 });

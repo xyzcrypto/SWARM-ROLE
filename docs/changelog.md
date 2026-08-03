@@ -5,6 +5,95 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (6) — Live surfaces that quietly died and never came back
+
+Reported: the community room's online count still is not live, it "does not
+connect perfectly", and *"baar baar refresh karna padta hai"*.
+
+Four separate faults, and the first one is not a chat bug at all.
+
+**🔴 `useRealtime` never checked whether the subscription worked** —
+`src/shared/hooks/useRealtime.ts`.
+It chose the realtime path purely because the env vars existed, and called
+`.subscribe()` **with no status callback**. So a `CHANNEL_ERROR` - wrong anon
+key, project paused, connection cap, CSP, or just a phone that slept and dropped
+the socket - left the surface with **no channel, no retry and no poll**. It went
+silent permanently, and reloading the page was the only cure. That is exactly
+the report, and it was not limited to chat: this hook is what makes **comments,
+likes, the Journal, the Journal activity feed, profile follow counts, DMs and
+the dashboard** live. All seven had it.
+
+Fixed the way the chat already did it locally (that file had the same bug and
+was fixed there in isolation):
+- **The poll is always armed** and early-returns on every tick while the channel
+  is healthy, so a working deployment issues *zero* extra requests and this costs
+  nothing on the Supabase/Vercel bills. Callers that named no interval get a slow
+  60s safety net rather than nothing.
+- **A failed channel is retried** with 1s → 30s backoff, and a `connecting` guard
+  stops the backoff timer and a wake event from racing into two live
+  subscriptions.
+- **Waking refetches immediately** (visibility, focus, `online`), throttled to
+  one round trip per 4s. On *re*-connect it reconciles once, because broadcast
+  has no replay - but deliberately **not** on the first subscribe, which would
+  add a duplicate request to every page load.
+
+**🔴 The room did nothing when you came back to it** — `ChatClient.tsx`.
+Both loops skip while the tab is hidden, and the leave beacon has just removed
+you from the presence table - so returning left you **invisible to everyone else
+and the room stale**, with nothing scheduled to fix either sooner than the next
+interval (10s for messages, 25s for the roster), plus a dead socket on top if the
+device had slept. There was a `visibilitychange` handler, but it only handled the
+*hidden* direction. Now becoming visible re-registers presence, catches up on
+messages and rebuilds the channel immediately, throttled to 3s. The message
+catch-up is forced rather than skipped when the socket claims to be live: a
+socket that survived a frozen tab can come back apparently healthy having
+silently dropped everything in between.
+
+**Measured**, two real sessions with realtime *off* (the reported state):
+on hide, exactly 1 request (the leave beacon); on wake, `POST /api/chat/presence`
++ `GET /api/chat/messages` **within 1.5s**, and the sender's next message still
+arrived with no refresh.
+
+**🔴 A channel error blanked the roster** — `ChatClient.tsx`.
+The error branch did `setOnline(0)` and cleared the member list, and the server
+heartbeat only refilled it on its next tick. So a blip showed **"0 online" in a
+full room** for up to 25 seconds - and that gap is precisely when someone looks
+at it. It now keeps the last known list and asks the server for the truth
+immediately instead.
+
+**🔴 The presence heartbeat was spending the composer's rate limit** —
+`src/core/ratelimit/ratelimit.ts`, `api/chat/presence/route.ts`.
+It used the `chat` bucket, which is the **10/min budget for sending**. An
+unattended beat every 25s (more on every wake, and it only runs at all when
+realtime is down) quietly ate three or four of those - so typing normally in a
+room with a dead socket could answer **"Too many requests"**, which reads as the
+chat being broken. Presence now has its own `chatPresence` bucket (30/min per
+user; it is a cheap upsert of the caller's own row). Pinned by a new test so the
+buckets cannot silently merge again.
+
+**⚡ Roster latency 25s → 15s.** That interval *is* how fast a join shows up when
+realtime is down, and 25s is slow enough to read as "the online count is not
+live". It costs nothing on a healthy deployment - the beat returns before the
+fetch while the channel is up - so this only spends requests on the broken path.
+**Measured** end to end with realtime off: a join appears in **10.9s** and a
+departure in **15.1s** (both were up to 25s, and 90s before the leave beacon
+existed). With realtime working, both are instant via presence sync.
+
+**Files:** `src/shared/hooks/useRealtime.ts` ·
+`src/modules/community/components/ChatClient.tsx` ·
+`src/core/ratelimit/ratelimit.ts` · `src/app/api/chat/presence/route.ts` ·
+`src/lib/__tests__/api-rate-limits.test.ts`.
+
+**Gates:** typecheck ✅ · lint 0 errors / 37 warnings (unchanged) · 419/419
+tests ✅ · build ✅.
+
+**Still owner-side:** none of this makes realtime *connect* if it is not
+configured - it makes the site work properly when it does not. The decisive
+check is still whether an image upload in the room returns 501: `realtimeEnabled`
+and `storageEnabled` are the same credential pair (`docs/HANDOFF.md §8`).
+
+---
+
 ## 2026-08-03 (5) — The Following count that never moved, and a page that scrolled under every modal
 
 Reported: *"unfollow ke baad bhi numbers show hote hai"* — unfollow someone and
