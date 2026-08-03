@@ -146,10 +146,16 @@ through it, but note it does **not** yet enforce that: the zod result is only lo
 - A stale cached page can reference a JS chunk hash that no longer exists after
   a new deploy → 404 served as HTML → browser refuses to execute it (MIME
   mismatch) → hydration silently never finishes → the page LOOKS static (no
-  animations, stale data) even though nothing crashed. `public/sw.js` +
-  `PwaSetup.tsx` now self-heal this (SW cache versioning + guarded reload on a
-  detected stale-chunk failure) — bump the SW cache version string if you ship
-  something that could otherwise strand users on old JS.
+  animations, stale data) even though nothing crashed. **`public/sw.js` no
+  longer caches navigations at all** (2026-08-03), so an HTML shell can never
+  outlive the chunks it names and this class is gone — you do NOT need to bump
+  the SW cache version on every deploy any more. That ritual was the previous
+  mitigation and it did not survive contact with reality: the version was last
+  bumped in #140 and six deploys shipped over it in one day, which is when the
+  blank-page reports started. `PwaSetup.tsx`'s guarded one-shot reload stays as
+  a backstop for dynamic-import chunk errors. Cost: a previously-visited page
+  no longer renders offline (`/offline.html` still does), which is the right
+  trade for a live market/chat app.
 - `background-clip: text` on a wrapper element does not paint through to
   nested inline children — apply gradient-text classes (`text-shine`,
   `text-shimmer`) to each leaf span individually, not a parent wrapping

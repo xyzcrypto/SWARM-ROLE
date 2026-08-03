@@ -1,11 +1,32 @@
 /* XYZ Crypto service worker - PWA (installable + offline) and Web Push.
  *
  * Caching strategy is deliberately conservative so the app stays fresh:
- *  - Navigations: network-first, falling back to the cached page, then /offline.html.
+ *  - Navigations: NEVER cached. Straight to the network, /offline.html if that
+ *    fails. See the note below - this is the fix for the blank-page reports.
  *  - Hashed static assets (/_next/static, fonts): cache-first (immutable).
  *  - Everything else (APIs, auth, real-time): straight to the network, never cached.
+ *
+ * ## Why navigations are no longer cached
+ *
+ * They used to be, network-first with the cached copy as a fallback. The
+ * fallback is the problem: an HTML shell names the exact hashed chunks of the
+ * deploy that produced it, and those filenames are gone after the next deploy.
+ * So a cached shell served on a flaky connection asks for chunks that 404,
+ * the 404 comes back as HTML, the browser refuses to execute it on a MIME
+ * mismatch, hydration silently never finishes - and the page is blank or frozen
+ * with no error the user can see. That is the "website kabhi kabhi blank ho
+ * jata hai" report, and it is intermittent by construction: it needs a cached
+ * shell AND a deploy since it was cached AND a network hiccup.
+ *
+ * The previous mitigation was "bump CACHE on any deploy that could strand users
+ * on old JS" (CLAUDE.md) plus a one-shot reload in PwaSetup. Both are real, and
+ * both are patches on a ritual: the version was last bumped in #140 and six
+ * deploys shipped over it in a single day. Not caching HTML at all removes the
+ * class of bug instead of asking every future change to remember. The cost is
+ * that a previously-visited page no longer renders offline - /offline.html
+ * still does - which for a live market/chat app is the right trade.
  */
-const CACHE = "xyz-pwa-v6";
+const CACHE = "xyz-pwa-v7";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/logo.png"];
 
@@ -39,17 +60,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // App navigations: network-first, fall back to cache, then the offline page.
+  // App navigations: network only, with the offline page if the network is
+  // genuinely gone. Deliberately NOT cached - see the header note.
   if (req.mode === "navigate") {
-    event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-          return res;
-        })
-        .catch(() => caches.match(req).then((hit) => hit || caches.match(OFFLINE_URL)))
-    );
+    event.respondWith(fetch(req).catch(() => caches.match(OFFLINE_URL)));
     return;
   }
 
