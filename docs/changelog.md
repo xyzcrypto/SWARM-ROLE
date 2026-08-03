@@ -5,6 +5,84 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (5) — The Following count that never moved, and a page that scrolled under every modal
+
+Reported: *"unfollow ke baad bhi numbers show hote hai"* — unfollow someone and
+the **Following** number on the profile stayed exactly where it was.
+
+**🔴 The count had no way of ever changing** — `src/app/api/follow/route.ts`,
+`ProfileFollow.tsx`. Two independent halves of the same gap:
+
+- `GET /api/follow` returned `followers` and the viewer's `following` boolean.
+  It **never returned a following-count**. So there was nothing for the client
+  to read.
+- `ProfileFollow`'s `sync()` set `followers` and the boolean, and **never
+  touched `followingCount`**. So even if the API had returned it, nothing would
+  have set it.
+
+The number was frozen at whatever the server rendered on page load, and only a
+hard refresh moved it. Both ends are fixed: the API returns `followingCount`,
+`sync()` applies it, and `POST` now broadcasts on **two** realtime channels —
+the target's (carrying the new `followers`) and the actor's own (carrying their
+new `followingCount`), so your own profile open on a second device updates the
+number that actually moved. Previously only the target was told.
+
+On top of that the tap is now **optimistic**: `RowFollow` fires the delta before
+the request leaves, with a revert if it fails, so the number moves with the
+finger rather than a round trip later. It is applied only on your **own**
+profile — following someone from a stranger's follower list changes how many
+people *you* follow, not their count, and applying it blindly made someone
+else's number jump. The value also animates on change, because an unfollow used
+to swap a digit silently: no feedback that the tap had landed, which reads as
+"nothing happened" from the outside just like a stale number does.
+
+**Verified end to end** against a real Postgres, on a 390px phone and a 1440px
+desktop viewport: `1 Following` → instant `0` on tap → `0` still after the
+server settles, on both.
+
+**⚡ Data fetching** — `GET /api/follow` ran its queries **serially** (follower
+count, then the viewer's follow row). All three are independent, so they now run
+in one `Promise.all`. And the list itself is **prefetched** on the hover /
+touch-down that precedes the tap, cached for 30s and invalidated on any
+follow/unfollow — measured: 2 list requests fire on hover and the dialog opens
+with rows already painted, **no spinner frame at all** (it used to fetch on
+mount, so every open showed "Loading…" for a full round trip).
+
+**🐛 Every modal on the site let the page scroll underneath it** —
+`src/shared/hooks/useScrollLock.ts` (new), `SmoothScroll.tsx`,
+`CommandPalette.tsx`, `FollowListModal.tsx`.
+`document.body.style.overflow = "hidden"` was the lock, and it does not work
+here: **Lenis runs its own rAF loop and drives the scroll position with
+`window.scrollTo`, which does not consult `overflow` at all.** Measured with the
+follow list open, one wheel gesture: the profile behind it moved **171px** at
+390px wide and **20px** at 1440px. `useScrollLock` stops Lenis as well (the
+instance registers itself with the helper rather than being threaded through the
+tree), nests so two stacked dialogs release correctly, and is a no-op beyond the
+overflow half when smooth scroll is off (reduced motion, touch). Applied to the
+follow modal and to the command palette, which had the identical bug.
+**Verified**: page held at 0 with the dialog open in both viewports, and scrolls
+again after Escape — in dark *and* light theme, so the lock is not left stuck on.
+
+**🎨 The counts are chips now, not bare text.** They were small text with 4px of
+padding: a **20px** tap target, well under the 44px minimum, and easy to miss on
+a phone. They now match the location / social / Premium chips directly beside
+them on the same card — gold for Followers, mint for Following, both on the
+existing tinted-ring pattern — measured at **102x36**. Theme-checked: the number
+resolves to `#f3d488` on dark and `#9a6310` on light, both via the existing
+`html:not(.dark)` overrides rather than new colour values.
+
+**Files:** `src/app/api/follow/route.ts` ·
+`src/modules/profile/components/ProfileFollow.tsx` ·
+`src/modules/profile/components/FollowListModal.tsx` ·
+`src/shared/hooks/useScrollLock.ts` (new) · `src/lib/useScrollLock.ts` (new
+shim) · `src/shared/components/SmoothScroll.tsx` ·
+`src/shared/components/CommandPalette.tsx`.
+
+**Gates:** typecheck ✅ · lint 0 errors / 37 warnings (unchanged) · 418/418
+tests ✅ · build ✅.
+
+---
+
 ## 2026-08-03 (4) — Ghost users in the online count, and an alarmist status label
 
 A screenshot of the live room showed **"RECONNECTING" and "2 online" side by

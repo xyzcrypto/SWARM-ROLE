@@ -7,6 +7,7 @@ import { Search, Loader2, ArrowRight, Coins, Newspaper, FileText, Command as Com
 import { isStaff } from "@/lib/permissions";
 import { filterCommands, XYZ_CMDK_EVENT, type CommandItem } from "@/lib/command-search";
 import { safeHref } from "@/lib/links";
+import { useScrollLock } from "@/lib/useScrollLock";
 import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
 import { cn } from "@/lib/utils";
 
@@ -70,15 +71,11 @@ export function CommandPalette() {
     return () => clearTimeout(t);
   }, [open]);
 
-  // Lock body scroll while open (keeps the mobile sheet from scrolling the page behind).
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
+  // Lock the page while open (keeps the sheet from scrolling the page behind).
+  // This used to set `body { overflow: hidden }` by hand, which Lenis ignores -
+  // it drives the scroll position itself, so the page still moved on a wheel.
+  // useScrollLock stops Lenis too.
+  useScrollLock(open);
 
   // Debounced live search across coins / news / posts. Aborts in-flight requests
   // so results always reflect the current query (no fake/stale state).

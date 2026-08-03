@@ -17,15 +17,27 @@ export async function GET(req: Request) {
     const target = await prisma.user.findUnique({ where: { username }, select: { id: true } });
     if (!target) return fail("User not found.", 404);
 
-    const followers = await prisma.follow.count({ where: { followingId: target.id } }).catch(() => 0);
-    let following = false;
-    if (me && me.id !== target.id) {
-      const row = await prisma.follow
-        .findUnique({ where: { followerId_followingId: { followerId: me.id, followingId: target.id } }, select: { id: true } })
-        .catch(() => null);
-      following = !!row;
-    }
-    return ok({ followers, following });
+    // `followingCount` (how many people this profile follows) was never
+    // returned, so the client had no way to refresh it - the "Following" number
+    // stayed frozen at whatever the server rendered. Unfollow someone from the
+    // list and the count sat there unchanged, which is the reported bug.
+    //
+    // All three are independent, so they run together rather than as serial
+    // round trips - the previous version awaited the follower count and then
+    // the viewer's follow row one after the other.
+    const [followers, followingCount, row] = await Promise.all([
+      prisma.follow.count({ where: { followingId: target.id } }).catch(() => 0),
+      prisma.follow.count({ where: { followerId: target.id } }).catch(() => 0),
+      me && me.id !== target.id
+        ? prisma.follow
+            .findUnique({
+              where: { followerId_followingId: { followerId: me.id, followingId: target.id } },
+              select: { id: true },
+            })
+            .catch(() => null)
+        : Promise.resolve(null),
+    ]);
+    return ok({ followers, followingCount, following: !!row });
   } catch (err) {
     return handleError(err, "follow:get");
   }
@@ -66,10 +78,22 @@ export async function POST(req: Request) {
       following = true;
     }
 
-    const followers = await prisma.follow.count({ where: { followingId: target.id } });
+    // Both counts, in parallel. `myFollowingCount` is how many people the
+    // ACTOR now follows - the number on their own profile, which is the one
+    // that moves when you unfollow from the followers/following list and the
+    // one that had no way of ever being refreshed.
+    const [followers, myFollowingCount] = await Promise.all([
+      prisma.follow.count({ where: { followingId: target.id } }),
+      prisma.follow.count({ where: { followerId: me.id } }).catch(() => 0),
+    ]);
 
-    // Live: nudge the target's channel so any open profile updates the count.
+    // Live: nudge BOTH channels. The target's, so anyone looking at their
+    // profile sees the follower count move; and the actor's own, so their
+    // profile open in another tab updates its Following count too - previously
+    // only the target was told, so your own number went stale on every other
+    // device you had open.
     void broadcastEvent(userChannel(target.id), "follow", { followers, actorId: me.id, following });
+    void broadcastEvent(userChannel(me.id), "follow", { followingCount: myFollowingCount, actorId: me.id });
 
     // Best-effort notifications on a NEW follow (in-app bell + external phone
     // push - always on, no opt-in UI, gated only on VAPID being configured).
