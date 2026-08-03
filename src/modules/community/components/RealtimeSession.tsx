@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { getRealtimeClient } from "@/lib/realtimeClient";
+import { joinSharedChannel } from "@/lib/sharedChannel";
 import { chatOwnsPresence, SITE_BEAT_MS } from "@/lib/presence";
 
 /**
@@ -56,35 +56,31 @@ export function RealtimeSession({ url, anonKey }: { url: string; anonKey: string
     let cancelled = false;
 
     (async () => {
-      const client = await getRealtimeClient(url, anonKey);
       if (cancelled) return;
 
-      // Global presence for the live-visitor count.
+      // Global presence for the live-visitor count. This is the consumer that
+      // REPRESENTS the tab, so it owns the presence key; the dashboard tile and
+      // the online-set hooks are observers on the same shared topic.
       const presenceKey = userId || `guest-${Math.random().toString(36).slice(2)}`;
-      const site = client.channel("site-visitors", { config: { presence: { key: presenceKey } } });
-      site.subscribe((status) => {
+      const site = joinSharedChannel(url, anonKey, "site-visitors", presenceKey);
+      const offStatus = site.onStatus((status) => {
         liveRef.current = status === "SUBSCRIBED";
         if (status === "SUBSCRIBED") site.track({ at: Date.now() });
       });
 
       // Per-user channel: live membership changes → refresh the session.
-      let userCh: ReturnType<typeof client.channel> | null = null;
+      let userCh: ReturnType<typeof joinSharedChannel> | null = null;
       if (userId) {
-        userCh = client.channel(`user:${userId}`);
-        userCh
-          .on("broadcast", { event: "membership_changed" }, () => {
-            update();
-          })
-          // Staff permissions changed → refresh the session so gates update live.
-          .on("broadcast", { event: "access_changed" }, () => {
-            update();
-          })
-          .subscribe();
+        userCh = joinSharedChannel(url, anonKey, `user:${userId}`);
+        userCh.onBroadcast("membership_changed", () => update());
+        // Staff permissions changed → refresh the session so gates update live.
+        userCh.onBroadcast("access_changed", () => update());
       }
 
       cleanup = () => {
-        client.removeChannel(site);
-        if (userCh) client.removeChannel(userCh);
+        offStatus();
+        site.release();
+        userCh?.release();
       };
     })();
 

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Bell, MessageCircle, Mail } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getRealtimeClient } from "@/lib/realtimeClient";
+import { joinSharedChannel } from "@/lib/sharedChannel";
 import { useLiveData } from "@/lib/useLiveData";
 
 type Note = {
@@ -138,32 +138,28 @@ export function NavActivity() {
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const client = await getRealtimeClient(url, anon);
       if (cancelled) return;
-      const ch = client.channel("notifications");
-      ch.on("broadcast", { event: "ping" }, () => {
-        loadNotes();
-        loadChat();
-      }).subscribe();
+      const ch = joinSharedChannel(url, anon, "notifications");
+      ch.onBroadcast("ping", () => { void loadNotes(); void loadChat(); });
       // Live chat dot: light up on a new community message unless the user is
-      // currently on the chat page (which marks messages seen).
-      const chat = client.channel("community");
-      chat
-        .on("broadcast", { event: "new_message" }, () => {
-          if (!window.location.pathname.startsWith("/community")) setChatDot(true);
-        })
-        .subscribe();
+      // currently on the chat page (which marks messages seen). This shares the
+      // `community` topic with ChatClient - which is exactly the collision that
+      // used to throw and silently drop one side's listeners.
+      const chat = joinSharedChannel(url, anon, "community");
+      chat.onBroadcast("new_message", () => {
+        if (!window.location.pathname.startsWith("/community")) setChatDot(true);
+      });
       // Live DM badge: refetch my unread count when a message lands on my
       // per-user channel.
-      let dm: ReturnType<typeof client.channel> | undefined;
+      let dm: ReturnType<typeof joinSharedChannel> | undefined;
       if (meId) {
-        dm = client.channel(`user:${meId}`);
-        dm.on("broadcast", { event: "dm_message" }, () => { loadDm(); }).subscribe();
+        dm = joinSharedChannel(url, anon, `user:${meId}`);
+        dm.onBroadcast("dm_message", () => { void loadDm(); });
       }
       cleanup = () => {
-        client.removeChannel(ch);
-        client.removeChannel(chat);
-        if (dm) client.removeChannel(dm);
+        ch.release();
+        chat.release();
+        dm?.release();
       };
     })();
     return () => {

@@ -10,7 +10,7 @@ import {
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { compressImage } from "@/lib/image";
 import { chatMediaUrl } from "@/lib/chat-media";
-import { getRealtimeClient } from "@/lib/realtimeClient";
+import { joinSharedChannel } from "@/lib/sharedChannel";
 import { SendGlyph } from "@/components/SendGlyph";
 import { GifPicker } from "@/components/GifPicker";
 import { Avatar } from "@/components/Avatar";
@@ -386,143 +386,121 @@ export function ChatClient({
     // would leave another interval running.
     async function connect() {
       if (!realtime.url || !realtime.anonKey) return;
-      {
-        const client = await getRealtimeClient(realtime.url, realtime.anonKey);
-        if (cancelled) return;
-        const channel = client.channel(CHANNEL, { config: { presence: { key: me?.id || `guest-${Math.random().toString(36).slice(2)}` } } });
-        channel
-          .on("broadcast", { event: "new_message" }, ({ payload }) => {
-            const msg = payload as Message;
-            appendMessage(msg);
-            if (soundOnRef.current && msg.userId !== me?.id) playBlip(audioCtxRef.current);
-          })
-          .on("broadcast", { event: "message_hidden" }, ({ payload }) => hideMessage((payload as { id: string }).id))
-          .on("broadcast", { event: "message_edited" }, ({ payload }) => {
-            const p = payload as { id: string; body: string; editedAt: string };
-            applyEdit(p.id, p.body, p.editedAt);
-          })
-          .on("broadcast", { event: "message_pinned" }, ({ payload }) => {
-            const p = payload as { id: string; pinned: boolean };
-            applyPinned(p.id, p.pinned);
-          })
-          .on("broadcast", { event: "poll_vote" }, ({ payload }) => {
-            const p = payload as { messageId: string; counts: { optionId: string; count: number }[]; total: number };
-            applyPollCounts(p.messageId, p.counts, p.total);
-          })
-          .on("broadcast", { event: "reaction" }, ({ payload }) => {
-            const p = payload as { messageId: string; emoji: string; userId: string; op: "add" | "remove" };
-            applyReaction(p.messageId, p.emoji, p.userId, p.op);
-            // Blip when ANOTHER member reacts (adds an emoji) - same opt-in rule
-            // as new messages; never your own reactions. "remove" is silent.
-            if (soundOnRef.current && p.op === "add" && p.userId !== me?.id) playBlip(audioCtxRef.current);
-          })
-          .on("broadcast", { event: "typing" }, ({ payload }) => {
-            const p = payload as { userId: string; name: string };
-            if (p.userId === me?.id) return;
-            setTypers((t) => ({ ...t, [p.userId]: { name: p.name, until: Date.now() + 4000 } }));
-          })
-          .on("presence", { event: "sync" }, () => {
-            // Build the live "who's online" list, de-duped by user id (a member
-            // open in two tabs counts once). Entries without a user id fall back
-            // to their presence key - stable per client, so guests are counted
-            // once instead of re-counted on every sync.
-            const state = channel.presenceState() as Record<string, Array<Record<string, unknown>>>;
-            const seen = new Map<string, PresenceMember>();
-            for (const [presenceKey, entries] of Object.entries(state)) {
-              for (const e of entries) {
-                const id = (e.id as string) || presenceKey;
-                if (!seen.has(id)) {
-                  seen.set(id, {
-                    id,
-                    name: (e.name as string) ?? "Guest",
-                    image: (e.image as string | null) ?? null,
-                    username: (e.username as string | null) ?? null,
-                  });
-                }
-              }
-            }
-            const list = [...seen.values()];
-            setMembers(list);
-            setOnline(list.length);
-          })
-          .subscribe((status, err) => {
-            if (cancelled) return;
-            const ok = status === "SUBSCRIBED";
-            setLive(ok);
-            liveRef.current = ok;
-            if (ok) {
-              retries = 0;
-              setLiveError(null);
-              const self = meRef.current;
-              channel.track({
-                at: Date.now(),
-                id: self?.id,
-                name: self?.name ?? "Guest",
-                image: self?.image ?? null,
-                username: self?.username ?? null,
+      if (cancelled) return;
+
+      // Joined through the shared registry, not `client.channel()` directly.
+      // NavActivity also listens on `community`, and because supabase-js reuses
+      // a channel by topic, whichever mounted second was adding listeners to an
+      // already-subscribed channel - which throws, and silently dropped one
+      // side's handlers. In production that threw twice per load and is why the
+      // online count did not update, and why a refresh sometimes "fixed" it:
+      // the reload changed which component won the race.
+      const channel = joinSharedChannel(
+        realtime.url,
+        realtime.anonKey,
+        CHANNEL,
+        me?.id || `guest-${Math.random().toString(36).slice(2)}`
+      );
+
+      const offs: Array<() => void> = [];
+      offs.push(channel.onBroadcast("new_message", (payload) => {
+        const msg = payload as Message;
+        appendMessage(msg);
+        if (soundOnRef.current && msg.userId !== me?.id) playBlip(audioCtxRef.current);
+      }));
+      offs.push(channel.onBroadcast("message_hidden", (payload) => hideMessage((payload as { id: string }).id)));
+      offs.push(channel.onBroadcast("message_edited", (payload) => {
+        const p = payload as { id: string; body: string; editedAt: string };
+        applyEdit(p.id, p.body, p.editedAt);
+      }));
+      offs.push(channel.onBroadcast("message_pinned", (payload) => {
+        const p = payload as { id: string; pinned: boolean };
+        applyPinned(p.id, p.pinned);
+      }));
+      offs.push(channel.onBroadcast("poll_vote", (payload) => {
+        const p = payload as { messageId: string; counts: { optionId: string; count: number }[]; total: number };
+        applyPollCounts(p.messageId, p.counts, p.total);
+      }));
+      offs.push(channel.onBroadcast("reaction", (payload) => {
+        const p = payload as { messageId: string; emoji: string; userId: string; op: "add" | "remove" };
+        applyReaction(p.messageId, p.emoji, p.userId, p.op);
+        // Blip when ANOTHER member reacts - same opt-in rule as new messages.
+        if (soundOnRef.current && p.op === "add" && p.userId !== me?.id) playBlip(audioCtxRef.current);
+      }));
+      offs.push(channel.onBroadcast("typing", (payload) => {
+        const p = payload as { userId: string; name: string };
+        if (p.userId === me?.id) return;
+        setTypers((t) => ({ ...t, [p.userId]: { name: p.name, until: Date.now() + 4000 } }));
+      }));
+
+      offs.push(channel.onPresence((state) => {
+        // Build the live "who's online" list, de-duped by user id (a member
+        // open in two tabs counts once). Entries without a user id fall back to
+        // their presence key - stable per client, so guests are counted once.
+        const seen = new Map<string, PresenceMember>();
+        for (const [presenceKey, list] of Object.entries(state)) {
+          for (const e of list) {
+            const id = (e.id as string) || presenceKey;
+            if (!seen.has(id)) {
+              seen.set(id, {
+                id,
+                name: (e.name as string) ?? "Guest",
+                image: (e.image as string | null) ?? null,
+                username: (e.username as string | null) ?? null,
               });
-              return;
             }
-            // Anything that is not SUBSCRIBED is terminal for this channel
-            // object - supabase-js will not put it back on its own once the
-            // join errors. Build a fresh one, backing off so a project that is
-            // genuinely over its connection limit is not hammered. The poll
-            // below carries the room in the meantime, so this is a quality
-            // upgrade rather than the only thing standing between the user and
-            // a dead page.
-            if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-              // Record WHY, not just that it failed. "Reconnecting..." on its
-              // own is unactionable - it looks identical whether the anon key is
-              // wrong, the project is paused, the connection cap is hit, or the
-              // network blinked. supabase-js passes the underlying error as the
-              // second argument; surfacing it turns a support round-trip into
-              // one console line.
-              const reason = err instanceof Error ? err.message : err ? String(err) : status;
-              setLiveError(reason);
-              console.error(
-                `[chat] realtime channel "${CHANNEL}" -> ${status}${reason && reason !== status ? `: ${reason}` : ""}. ` +
-                  `Falling back to polling; messages arrive within ~10s and the online ` +
-                  `count switches to the server heartbeat.`
-              );
-              // Do NOT blank the roster here. It used to `setOnline(0)` and
-              // clear the member list, which is why a blip showed "0 online" in
-              // a room that was full - the server heartbeat only refilled it on
-              // its next 25s tick, so the count was wrong for the whole gap and
-              // that gap is exactly when someone looks at it. Keep the last
-              // known list and ask the server for the truth immediately.
-              void beatRef.current?.();
-              void tickRef.current?.();
-              try {
-                channel.unsubscribe();
-                client.removeChannel(channel);
-              } catch {
-                /* already gone */
-              }
-              const delay = Math.min(1000 * 2 ** retries, 30_000);
-              retries += 1;
-              retryTimer = setTimeout(() => {
-                if (!cancelled) void connect();
-              }, delay);
-            }
-          });
-        channelRef.current = channel;
-        const teardownChannel = () => {
-          // Fully tear down the subscription (socket) before dropping the channel
-          // so repeated mounts don't accumulate connections.
-          try {
-            channel.unsubscribe();
-            client.removeChannel(channel);
-          } catch {
-            /* already gone */
           }
-          channelRef.current = null;
-          setLive(false);
-          liveRef.current = false;
-          setOnline(0);
-          setMembers([]);
-        };
-        teardownRef = teardownChannel;
-      }
+        }
+        const arr = [...seen.values()];
+        setMembers(arr);
+        setOnline(arr.length);
+      }));
+
+      offs.push(channel.onStatus((status, err) => {
+        if (cancelled) return;
+        const ok = status === "SUBSCRIBED";
+        setLive(ok);
+        liveRef.current = ok;
+        if (ok) {
+          retries = 0;
+          setLiveError(null);
+          const self = meRef.current;
+          channel.track({
+            at: Date.now(),
+            id: self?.id,
+            name: self?.name ?? "Guest",
+            image: self?.image ?? null,
+            username: self?.username ?? null,
+          });
+          return;
+        }
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          // Record WHY, not just that it failed - "Reconnecting..." on its own
+          // looks identical whether the anon key is wrong, the project is
+          // paused, the connection cap is hit, or the network blinked.
+          const reason = err instanceof Error ? err.message : err ? String(err) : status;
+          setLiveError(reason);
+          console.error(
+            `[chat] realtime channel "${CHANNEL}" -> ${status}${reason && reason !== status ? `: ${reason}` : ""}. ` +
+              `Falling back to polling; messages arrive within ~10s and the online ` +
+              `count switches to the server heartbeat.`
+          );
+          // Do NOT blank the roster - keep the last known list and ask the
+          // server for the truth immediately.
+          void beatRef.current?.();
+          void tickRef.current?.();
+          retries += 1;
+        }
+      }));
+
+      channelRef.current = channel;
+      teardownRef = () => {
+        offs.forEach((off) => off());
+        channel.release();
+        channelRef.current = null;
+        setLive(false);
+        liveRef.current = false;
+      };
     }
 
     // Polling. Always armed - see the note on this effect. While the
@@ -799,7 +777,9 @@ export function ChatClient({
     const now = Date.now();
     if (now - lastTyping.current < 2000) return;
     lastTyping.current = now;
-    ch.send({ type: "broadcast", event: "typing", payload: { userId: me.id, name: me.name } });
+    // Goes through the shared handle now - the raw channel object is owned by
+    // the registry and must not be reached into from here.
+    ch.send("typing", { userId: me.id, name: me.name });
   }
 
   // Loads one older page. Returns true when new rows were actually added (used

@@ -5,6 +5,113 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (12) — Two components asking for the same realtime channel, and the second one losing
+
+The owner sent a production console. It contained the answer, and it was **not**
+what I had been telling them.
+
+```
+Uncaught (in promise) Error: cannot add `presence` callbacks for
+  realtime:site-visitors after `subscribe()`.
+Uncaught (in promise) Error: cannot add `presence` callbacks for
+  realtime:community after `subscribe()`.        (twice)
+```
+
+### What I had wrong
+
+I had said the problem was the Supabase credentials and that nothing in the code
+could help. **These errors disprove that**: a channel is only ever created when
+`NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are present, so
+they are set. This is our bug, not a key.
+
+### The mechanism, from the library source
+
+`getRealtimeClient()` returns ONE Supabase client per tab, on purpose. And
+supabase-js reuses channels by topic:
+
+```js
+channel(topic) {
+  const exists = this.getChannels().find(c => c.topic === realtimeTopic);
+  return exists ?? new RealtimeChannel(...);   // the SAME object
+}
+```
+
+Once that channel has been subscribed, adding a listener throws
+(`RealtimeChannel.js:418`).
+
+`site-visitors` was created from **five** places - RealtimeSession, the
+dashboard's live-online tile, `useLivePresence`, `useUserOnline` (twice) - and
+`community` from **two**: ChatClient and NavActivity. Whichever mounted first
+subscribed; every later one received that already-subscribed channel, threw, and
+**its listeners were never registered**.
+
+**That is why the online count did not update, and why it "worked after a
+refresh"**: a reload changes the mount order, so sometimes the component that
+needed presence won the race. It is also why every fix aimed at the fallback
+path helped without ever solving it.
+
+### The fix
+
+`joinSharedChannel()` owns each topic. It attaches exactly one presence listener
+and one **wildcard** broadcast listener *before* the single `subscribe()`, then
+fans out to consumers from its own sets. Consumers register and release freely
+afterwards, because they never touch the channel. A late presence key rebuilds
+the channel - safe precisely because the handlers live in the registry.
+
+**Every raw `client.channel()` call site is gone** - ChatClient, RealtimeSession,
+NavActivity, WhatsNewFeed, DashboardClient (×2), `useRealtime`,
+`useLivePresence`, `useUserOnline` (×2). `useRealtime` mattered most: it serves
+`user:<id>`, `notifications` and `post:<id>`, all topics other components also
+join.
+
+Presence keys are now a rule rather than an accident: **only the consumer that
+represents the tab passes one** (RealtimeSession for `site-visitors`, ChatClient
+for `community`). The dashboard tile and the online-set hooks are observers and
+pass none - previously each tried to impose its own key on the one shared
+channel.
+
+### Verified
+
+Seven unit tests against a fake client that reproduces the library's own throw:
+one channel per topic however many consumers join; a late consumer does not
+touch the channel and does not throw; presence reaches every consumer including
+a late one (replayed); broadcasts route only to the consumers that asked;
+refcounted teardown; a released consumer stops receiving; typing sends through
+the handle.
+
+Chat re-verified end to end with two sessions: a message arrives without a
+refresh, the online count reads 2, and the wake path still fires. Steady-state
+request rate measured identical to `main`: **25 requests / 12.5 per minute per
+signed-in tab**.
+
+**Honest scope:** I could not reproduce the console error locally. It only
+throws once a channel has actually JOINED, which needs a reachable Supabase
+project - with a stub URL it does not fire on this branch **or on `main`**, so
+that comparison proves nothing either way. The evidence the bug is real is the
+owner's production console plus the library source; the evidence the fix
+addresses it is structural (no component can reach a shared channel any more)
+plus the unit tests. **The place to confirm it is that same production console.**
+
+### Also in the console, not addressed here
+
+- `GET /api/notifications 503`, `GET /api/chat/messages 503`, repeatedly. The
+  server really is failing - which corroborates (9)'s pool finding, and those
+  now log `POOL EXHAUSTED (P2024)` when that is the cause.
+- `Minified React error #418` - a hydration mismatch, and a plausible cause of
+  the blank/stuck page. Separate work.
+- `Cannot redefine property: ethereum` - a wallet extension, not ours.
+
+**Files:** `src/shared/utils/sharedChannel.ts` + `src/lib/sharedChannel.ts`
+(new) · `ChatClient.tsx` · `RealtimeSession.tsx` · `NavActivity.tsx` ·
+`WhatsNewFeed.tsx` · `DashboardClient.tsx` · `useRealtime.ts` ·
+`useLivePresence.ts` · `useUserOnline.ts` ·
+`src/lib/__tests__/sharedChannel.test.ts` (new).
+
+**Gates:** typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 462/462
+tests ✅ · build ✅ · all nine pages 200.
+
+---
+
 ## 2026-08-03 (11) — Every live surface swallowed its own failures, so nothing could retry
 
 Reported, after several rounds of per-surface fixes: data still does not sync
