@@ -19,6 +19,7 @@ const PUBLIC_SELECT = {
   twitter: true,
   github: true,
   telegram: true,
+  dmPrivacy: true,
 } as const;
 
 // GET /api/profile - the signed-in user's own profile, image fields as stored

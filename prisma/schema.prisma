@@ -35,6 +35,10 @@ model User {
   // new requests. It is deliberately not on ChatPresence: that row is deleted
   // on leave, which is exactly the moment a last-seen time becomes interesting.
   lastSeenAt    DateTime?
+  // Who may open a DM with this member: "everyone" | "following" | "nobody".
+  // "following" means people THIS user follows - the inbox they opted into,
+  // not the crowd who opted into them.
+  dmPrivacy     String    @default("everyone")
 
   // Brute-force defence (works without Upstash): lock the account for a short
   // window after repeated failed password attempts; reset on success.
@@ -86,6 +90,10 @@ model User {
   directMessages    DirectMessage[]    @relation("DMSender")
   followers         Follow[]           @relation("Following") // rows where this user is followed
   following         Follow[]           @relation("Follower")  // rows where this user follows someone
+  blocksMade        Block[]            @relation("Blocker")   // people this user blocked
+  blocksAgainst     Block[]            @relation("Blocked")   // people who blocked this user
+  reportsMade       Report[]           @relation("Reporter")
+  reportsAgainst    Report[]           @relation("ReportSubject")
   trades            Trade[]
   riskProfile       RiskProfile?
   challenges        Challenge[]
@@ -553,6 +561,46 @@ model WatchdogRun {
 }
 
 // Twitter-style follow graph. One row per (follower -> following) edge.
+// One-way block. Enforced in BOTH directions when messaging: if either side has
+// blocked the other, neither can send. A block that only silenced one direction
+// would leave the blocker still receiving, which is the thing they asked to stop.
+model Block {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  blocker   User   @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockerId String
+  blocked   User   @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  blockedId String
+
+  @@unique([blockerId, blockedId])
+  // "has anyone blocked me?" is asked on every send, from the blocked side.
+  @@index([blockedId])
+}
+
+// A report of a member, optionally pointing at the DM that prompted it.
+//
+// `messageId` is a plain string, not a relation: the message is soft-deleted
+// rather than removed, but a report has to survive even if that ever changes,
+// and a report about someone's behaviour is not owned by one message.
+model Report {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  reason     String // "spam" | "harassment" | "scam" | "other"
+  note       String?
+  status     String   @default("open") // "open" | "reviewed"
+  messageId  String?
+
+  reporter   User   @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId String
+  subject    User   @relation("ReportSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId  String
+
+  // The moderation queue reads "open, newest first".
+  @@index([status, createdAt])
+  @@index([subjectId])
+}
+
 model Follow {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())

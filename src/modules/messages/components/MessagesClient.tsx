@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, CheckCheck, Copy, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Pin, PinOff, Search, Trash2, X, ImagePlus, Smile } from "lucide-react";
+import { ArrowLeft, Ban, Check, CheckCheck, Copy, Flag, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Pin, PinOff, Search, ShieldOff, Trash2, X, ImagePlus, Smile } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { SendGlyph } from "@/components/SendGlyph";
 import { EmojiPicker } from "@/components/EmojiPicker";
@@ -350,6 +350,13 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
   // has been read - that is the whole receipt calculation.
   const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
   const [pinned, setPinned] = useState<Pinned>(null);
+  // Whether this thread is closed, and whether it was me who closed it - the
+  // two need different words and different buttons.
+  const [blocked, setBlocked] = useState(false);
+  const [blockedByMe, setBlockedByMe] = useState(false);
+  const [threadMenu, setThreadMenu] = useState(false);
+  const [reporting, setReporting] = useState(false);
+  const [reported, setReported] = useState(false);
   const [actionOpenId, setActionOpenId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -384,6 +391,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
         // un-blue themselves look like a bug even when the data is merely late.
         setOtherReadAt((prev) => newestRead(prev, j.otherReadAt ?? null));
         setPinned(j.pinned ?? null);
+        setBlocked(!!j.blocked);
+        setBlockedByMe(!!j.blockedByMe);
         setMessages((prev) => {
           const next: Msg[] = Array.isArray(j.messages) ? j.messages : [];
           if (silent && next.length === prev.length) return prev;
@@ -400,6 +409,10 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
     setMessages([]);
     setOtherReadAt(null);
     setPinned(null);
+    setBlocked(false);
+    setBlockedByMe(false);
+    setThreadMenu(false);
+    setReported(false);
     setActionOpenId(null);
     setEditingId(null);
     setTranslations({});
@@ -505,6 +518,33 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
     void load(true);
   }
 
+  async function toggleBlock(next: boolean) {
+    setThreadMenu(false);
+    if (!other?.id) return;
+    const r = await fetch("/api/dm/block", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: other.id, blocked: next }),
+    }).catch(() => null);
+    if (!r?.ok) { setErr("Could not update the block."); return; }
+    setBlocked(next);
+    setBlockedByMe(next);
+  }
+
+  async function reportUser(reason: string) {
+    setThreadMenu(false);
+    if (!other?.id || reporting) return;
+    setReporting(true);
+    const r = await fetch("/api/dm/report", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: other.id, reason }),
+    }).catch(() => null);
+    setReporting(false);
+    if (r?.ok) setReported(true);
+    else setErr("Could not send the report.");
+  }
+
   async function copyMessage(text: string) {
     setActionOpenId(null);
     try {
@@ -591,7 +631,44 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
             other?.username && <p className="mono truncate text-[11px] text-zinc-500">@{other.username}</p>
           )}
         </div>
+
+        {/* Safety lives in the header, not buried per message: blocking and
+            reporting are about the person, not about one thing they said. */}
+        <div className="relative ml-auto shrink-0">
+          <button
+            type="button"
+            onClick={() => setThreadMenu((v) => !v)}
+            aria-label="Conversation options"
+            aria-expanded={threadMenu}
+            className="grid h-8 w-8 place-items-center rounded-full text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </button>
+          {threadMenu && (
+            <>
+              <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-40 cursor-default" onClick={() => setThreadMenu(false)} />
+              <div className="absolute right-0 top-9 z-50 w-52 overflow-hidden rounded-xl border border-white/10 bg-ink-900 py-1 shadow-elevate">
+                {blockedByMe ? (
+                  <ActionItem icon={ShieldOff} label="Unblock" onClick={() => void toggleBlock(false)} />
+                ) : (
+                  <ActionItem icon={Ban} label="Block" destructive onClick={() => void toggleBlock(true)} />
+                )}
+                <div className="my-1 border-t border-white/10" />
+                <p className="mono px-3 py-1 text-[10px] uppercase tracking-wider text-zinc-600">Report for</p>
+                {(["spam", "harassment", "scam", "other"] as const).map((reason) => (
+                  <ActionItem key={reason} icon={Flag} label={reason[0]!.toUpperCase() + reason.slice(1)} onClick={() => void reportUser(reason)} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
       </header>
+
+      {reported && (
+        <p className="border-b border-mint-500/20 bg-mint-500/[0.07] px-4 py-2 text-[12px] text-mint-200">
+          Thanks - this has been sent to the team for review.
+        </p>
+      )}
 
       {/* No `space-y` here: spacing is decided per message below, so that a run
           from the same person tightens up. A blanket gap would override it and
@@ -746,6 +823,21 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
         )}
       </div>
 
+      {blocked ? (
+        // No composer at all rather than a disabled one. A greyed-out box you
+        // can still click into invites people to type a message that will never
+        // send; the server rejects it either way, so say so plainly here.
+        <div className="border-t border-white/10 px-4 py-4 text-center">
+          <p className="text-[13px] text-zinc-400">
+            {blockedByMe ? "You blocked this member." : "You can't reply to this conversation."}
+          </p>
+          {blockedByMe && (
+            <button type="button" onClick={() => void toggleBlock(false)} className="btn-ghost mt-2 !px-4 !py-1.5 text-xs">
+              Unblock
+            </button>
+          )}
+        </div>
+      ) : (
       <div className="border-t border-white/10 p-3">
         {err && <p className="mb-1.5 px-1 text-[11px] text-amber-500">{err}</p>}
         <div className="flex items-end gap-1.5">
@@ -780,6 +872,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

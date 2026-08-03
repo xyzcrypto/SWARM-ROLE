@@ -29,6 +29,7 @@ type SettingsUser = {
   twitter: string | null;
   github: string | null;
   telegram: string | null;
+  dmPrivacy?: string | null;
   discord: string | null;
   youtube: string | null;
   linkedin: string | null;
@@ -143,6 +144,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
   const [twitter, setTwitter] = useState(user.twitter ?? "");
   const [github, setGithub] = useState(user.github ?? "");
   const [telegram, setTelegram] = useState(user.telegram ?? "");
+  const [dmPrivacy, setDmPrivacy] = useState(user.dmPrivacy ?? "everyone");
   const [discord, setDiscord] = useState(user.discord ?? "");
   const [youtube, setYoutube] = useState(user.youtube ?? "");
   const [linkedin, setLinkedin] = useState(user.linkedin ?? "");
@@ -211,6 +213,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
           youtube,
           linkedin,
           instagram,
+          dmPrivacy,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -387,6 +390,29 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
         <Field label="Discord" value={discord} onChange={setDiscord} placeholder="invite code" icon={<DiscordIcon className="h-4 w-4" />} prefix="discord.gg/" />
         <Field label="LinkedIn" value={linkedin} onChange={setLinkedin} placeholder="slug" icon={<LinkedInIcon className="h-4 w-4" />} prefix="linkedin.com/in/" />
         <Field label="GitHub" value={github} onChange={setGithub} placeholder="handle" icon={<GitHubIcon className="h-4 w-4" />} prefix="github.com/" />
+      </div>
+
+      {/* Privacy - who may start a DM with you. Only gates NEW conversations:
+          tightening this does not cut off threads already open, because that is
+          what blocking is for. */}
+      <div className="surface space-y-3 rounded-2xl p-5 sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Privacy</p>
+        <label className="block">
+          <span className="mb-1.5 block text-[13px] text-zinc-300">Who can message me</span>
+          <select
+            value={dmPrivacy}
+            onChange={(e) => setDmPrivacy(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2.5 text-[14px] text-zinc-100 outline-none focus:border-gold-500/40"
+          >
+            <option value="everyone">Everyone</option>
+            <option value="following">Only people I follow</option>
+            <option value="nobody">Nobody</option>
+          </select>
+        </label>
+        <p className="text-[11px] leading-relaxed text-zinc-500">
+          This decides who can start a new conversation with you. Conversations
+          you already have keep working - use Block in a thread to end one.
+        </p>
       </div>
 
       {error && (
