@@ -34,12 +34,23 @@ export async function GET(_req: Request, props: Ctx) {
     const conv = await loadMine(params.id, me.id);
     if (!conv) return fail("Conversation not found.", 404);
 
-    const rows = await prisma.directMessage.findMany({
-      where: { conversationId: conv.id },
-      orderBy: { createdAt: "asc" },
-      take: 200,
-      select: { id: true, body: true, createdAt: true, senderId: true },
-    });
+    // Deleted messages are still returned, as tombstones. Removing the row
+    // from the list would make the thread jump under the reader's cursor and
+    // would quietly rewrite a conversation they had already read; every
+    // messenger worth copying leaves "this message was deleted" in place.
+    const [rows, pinnedRow] = await Promise.all([
+      prisma.directMessage.findMany({
+        where: { conversationId: conv.id },
+        orderBy: { createdAt: "asc" },
+        take: 200,
+        select: { id: true, body: true, createdAt: true, senderId: true, status: true, editedAt: true, pinnedAt: true },
+      }),
+      prisma.directMessage.findFirst({
+        where: { conversationId: conv.id, status: "visible", pinnedAt: { not: null } },
+        orderBy: { pinnedAt: "desc" },
+        select: { id: true, body: true, createdAt: true, senderId: true },
+      }),
+    ]);
 
     // Mark read for whichever side I am (best-effort; never block the read).
     const iAmA = conv.userAId === me.id;
@@ -71,7 +82,18 @@ export async function GET(_req: Request, props: Ctx) {
     }
 
     const { other } = otherOf(conv, me.id);
-    const messages = rows.map((m) => ({ id: m.id, body: m.body, createdAt: m.createdAt, mine: m.senderId === me.id }));
+    const messages = rows.map((m) => ({
+      id: m.id,
+      // A deleted message must not ship its text. The tombstone is the whole
+      // point; sending the body and hiding it in CSS would mean "deleted" only
+      // held for people who do not open devtools.
+      body: m.status === "deleted" ? "" : m.body,
+      createdAt: m.createdAt,
+      mine: m.senderId === me.id,
+      deleted: m.status === "deleted",
+      editedAt: m.editedAt,
+      pinned: !!m.pinnedAt,
+    }));
 
     return ok({
       messages,
@@ -79,6 +101,9 @@ export async function GET(_req: Request, props: Ctx) {
       // has been read - that is the whole read-receipt calculation, and it
       // needs no new column and no per-message write.
       otherReadAt: (iAmA ? conv.readBAt : conv.readAAt) ?? null,
+      pinned: pinnedRow
+        ? { id: pinnedRow.id, body: pinnedRow.body, mine: pinnedRow.senderId === me.id }
+        : null,
       other: other
         ? {
             id: other.id,

@@ -5,6 +5,65 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (19) — DM message actions: edit, delete, pin, translate, copy
+
+First half of the owner's DM request. Block, report and the DM privacy setting
+are the second half and are deliberately a separate change - they are a safety
+model, not a message menu, and mixing them would make both harder to review.
+
+### What the messages can do now
+
+Every message gets an action menu. **Translate needed no new endpoint**: the
+community chat's `/api/chat/translate` already takes a bare `{ text }`, so a
+second one would only have been a second prompt to keep in step.
+
+Permissions, each verified against the real endpoints with two sessions:
+
+| action | who | result |
+|---|---|---|
+| edit | author only, inside 15 min | own 200, other's **403** |
+| delete | author only | own 200, other's **403** |
+| pin | **either participant** | 200 |
+
+The edit window is the same 15 minutes the community chat uses. Two different
+edit windows in one product is a rule nobody can remember.
+
+**Pin is not restricted to the author on purpose.** A pin marks what matters to
+*the conversation* - an address, a deadline - and half the time that is the
+other person's message. One pin per conversation, so pinning replaces the last.
+
+### Deletes are soft, and leave a tombstone
+
+`status` mirrors `ChatMessage`. Two reasons the row stays: removing it makes the
+thread jump under the reader's cursor and quietly rewrites a conversation they
+had already read, and a reported message needs to still be there after its
+sender removes it.
+
+The API sends `body: ""` for a deleted message. Shipping the text and hiding it
+in CSS would mean "deleted" only held for people who do not open devtools.
+
+### Two UI defects I built and then fixed
+
+Worth recording because the first version passed every functional test:
+
+- **The menu opened on top of the message it belonged to.** Anchored to the
+  trigger, it covered the text - so you could not see what you were about to
+  delete. It is now anchored to the message row and sits entirely above it.
+- **It used `.glass`,** which is translucent, so the message behind it showed
+  through the menu. Solid surface now.
+
+Both were only visible in a screenshot; the DOM assertions were perfectly happy.
+
+### Verified
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 505/505 tests ✅ ·
+build ✅ · permission matrix above ✅ · mobile screenshot ✅
+
+**Files:** `prisma/schema.prisma`, `prisma/migrations/32_dm_message_actions/`,
+`src/app/api/dm/[id]/message/[messageId]/route.ts` (new),
+`src/app/api/dm/[id]/route.ts`,
+`src/modules/messages/components/MessagesClient.tsx`.
+
 ## 2026-08-03 (18) — The members table now shows a face and a check-in record
 
 Two follow-ups from the owner, on the table shipped an hour earlier.

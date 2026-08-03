@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Check, CheckCheck, Loader2, MessageSquare, Search, X, ImagePlus, Smile } from "lucide-react";
+import { ArrowLeft, Check, CheckCheck, Copy, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Pin, PinOff, Search, Trash2, X, ImagePlus, Smile } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { SendGlyph } from "@/components/SendGlyph";
 import { EmojiPicker } from "@/components/EmojiPicker";
@@ -15,6 +15,7 @@ import { useOnlineSet } from "@/lib/useUserOnline";
 import { chatMediaUrl } from "@/lib/chat-media";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { clockTime, dayLabel, isReadBy, newestRead } from "@/lib/chat-time";
+import { canEditMessage } from "@/lib/chat-view";
 import { lastSeenLabel } from "@/lib/last-seen";
 import { useHydrated } from "@/lib/useClientFlag";
 import { compressImage } from "@/lib/image";
@@ -22,7 +23,17 @@ import { cn } from "@/lib/utils";
 
 type Other = { id?: string; name: string; username: string | null; image: string | null; lastSeenAt?: string | null } | null;
 type Conversation = { id: string; other: Other; lastBody: string; lastMessageAt: string; unread: boolean; lastMine?: boolean; otherReadAt?: string | null };
-type Msg = { id: string; body: string; createdAt: string; mine: boolean };
+type Msg = {
+  id: string;
+  body: string;
+  createdAt: string;
+  mine: boolean;
+  /** Soft-deleted: the row stays so the thread keeps its shape. Body is "". */
+  deleted?: boolean;
+  editedAt?: string | null;
+  pinned?: boolean;
+};
+type Pinned = { id: string; body: string; mine: boolean } | null;
 type Found = { id: string; name: string | null; username: string | null; image: string | null };
 
 const THREAD_POLL_MS = 5000;
@@ -65,6 +76,98 @@ function ReadTicks({ read, pending }: { read: boolean; pending?: boolean }) {
 function inboxPreview(lastBody: string): string {
   if (!lastBody) return "New conversation";
   return chatMediaUrl(lastBody) ? "\u{1F4F7} Photo" : lastBody;
+}
+
+/**
+ * The per-message action trigger and its menu.
+ *
+ * Two things it does deliberately differently from a naive dropdown:
+ *
+ * - **It lives outside the bubble.** An overlay button on top of the text
+ *   covers the message you are trying to act on, and on a narrow phone that is
+ *   most of it. Sitting alongside costs a few pixels of width and nothing else.
+ * - **It is always in the DOM, only faded.** Revealing on hover alone means it
+ *   does not exist on a touch device, which is where most of these messages are
+ *   read. `group-hover` raises the opacity on a mouse; a finger just taps it.
+ */
+function MessageActions({
+  open,
+  onToggle,
+  side,
+  children,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  side: "left" | "right";
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label="Message actions"
+        aria-expanded={open}
+        className={cn(
+          "grid h-7 w-7 shrink-0 place-items-center rounded-full text-zinc-500 transition-opacity hover:bg-white/5 hover:text-zinc-200",
+          open ? "opacity-100" : "opacity-40 group-hover:opacity-100"
+        )}
+      >
+        <MoreVertical className="h-4 w-4" />
+      </button>
+      {open && (
+        <>
+          {/* A full-screen catcher, so tapping anywhere closes the menu without
+              every parent needing an outside-click listener. */}
+          <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-40 cursor-default" onClick={onToggle} />
+          {/* Anchored to the message ROW (which is `relative`) and sitting
+              entirely ABOVE it, rather than to the trigger.
+              Anchoring to the trigger put the menu on top of the message it
+              belonged to - unreadable, and you could not see what you were
+              about to delete. Pinning it to the row's outer edge also means it
+              can never run off a narrow screen, which trigger-relative
+              placement did as soon as a bubble got wide. */}
+          <div
+            className={cn(
+              "absolute bottom-full z-50 mb-1 w-40 overflow-hidden rounded-xl border border-white/10 bg-ink-900 py-1 shadow-elevate",
+              side === "left" ? "right-0" : "left-0"
+            )}
+          >
+            {children}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function ActionItem({
+  icon: Icon,
+  label,
+  onClick,
+  disabled,
+  destructive,
+}: {
+  icon: typeof Copy;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        "flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-35",
+        destructive ? "text-red-300 hover:bg-red-500/10" : "text-zinc-300 hover:bg-white/5 hover:text-zinc-100"
+      )}
+    >
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      {label}
+    </button>
+  );
 }
 
 function OnlineDot({ show }: { show: boolean }) {
@@ -246,6 +349,13 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
   // When the other side last opened this thread. Everything I sent before it
   // has been read - that is the whole receipt calculation.
   const [otherReadAt, setOtherReadAt] = useState<string | null>(null);
+  const [pinned, setPinned] = useState<Pinned>(null);
+  const [actionOpenId, setActionOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  // Cached per message so tapping Translate again just hides it rather than
+  // spending another AI call on an answer we already have.
+  const [translations, setTranslations] = useState<Record<string, { text?: string; loading?: boolean; shown?: boolean }>>({});
   // Day separators and clock times must read in the viewer's timezone, but only
   // once hydrated - see chat-time.
   const hydrated = useHydrated();
@@ -273,6 +383,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
         // `dm_read` ping that already told us something newer, and ticks that
         // un-blue themselves look like a bug even when the data is merely late.
         setOtherReadAt((prev) => newestRead(prev, j.otherReadAt ?? null));
+        setPinned(j.pinned ?? null);
         setMessages((prev) => {
           const next: Msg[] = Array.isArray(j.messages) ? j.messages : [];
           if (silent && next.length === prev.length) return prev;
@@ -284,7 +395,16 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
     }
   }, [id]);
 
-  useEffect(() => { setLoaded(false); setMessages([]); setOtherReadAt(null); load(false); }, [load]);
+  useEffect(() => {
+    setLoaded(false);
+    setMessages([]);
+    setOtherReadAt(null);
+    setPinned(null);
+    setActionOpenId(null);
+    setEditingId(null);
+    setTranslations({});
+    load(false);
+  }, [load]);
   useRealtime({ channel: `user:${meId}`, event: "dm_message", onMessage: () => load(true), pollMs: THREAD_POLL_MS });
   // The receipt half. Carries the timestamp, so the ticks turn without a
   // refetch - a thread GET returns up to 200 messages, which is a lot of
@@ -330,6 +450,99 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
       if (fromDraft) setDraft((d) => (d.trim() ? d : body));
     } finally { setSending(false); }
   };
+
+  // --- Message actions -------------------------------------------------
+  //
+  // Every one of these reloads the thread rather than patching state by hand.
+  // The endpoints already broadcast to the other side, and a silent reload is
+  // one request against a conversation that is at most 200 messages - cheaper
+  // than a second source of truth that can drift from the first.
+
+  const messageUrl = (messageId: string) => `/api/dm/${id}/message/${messageId}`;
+
+  async function saveEdit(messageId: string) {
+    const body = editText.trim();
+    if (!body) return;
+    setEditingId(null);
+    // Optimistic: the edit window is 15 minutes and the request is tiny, but
+    // waiting for a round trip to see your own correction feels broken.
+    setMessages((m) => m.map((x) => (x.id === messageId ? { ...x, body, editedAt: new Date().toISOString() } : x)));
+    const r = await fetch(messageUrl(messageId), {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body }),
+    }).catch(() => null);
+    if (!r?.ok) {
+      setErr("Could not save the edit.");
+      void load(true);
+    } else {
+      onSent();
+    }
+  }
+
+  async function deleteMessage(messageId: string) {
+    setActionOpenId(null);
+    setMessages((m) => m.map((x) => (x.id === messageId ? { ...x, body: "", deleted: true, pinned: false } : x)));
+    const r = await fetch(messageUrl(messageId), { method: "DELETE" }).catch(() => null);
+    if (!r?.ok) {
+      setErr("Could not delete the message.");
+      void load(true);
+    } else {
+      // The inbox preview and the pinned banner may both have described it.
+      onSent();
+      void load(true);
+    }
+  }
+
+  async function togglePin(messageId: string, next: boolean) {
+    setActionOpenId(null);
+    const r = await fetch(messageUrl(messageId), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned: next }),
+    }).catch(() => null);
+    if (!r?.ok) setErr("Could not update the pin.");
+    void load(true);
+  }
+
+  async function copyMessage(text: string) {
+    setActionOpenId(null);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* clipboard blocked - nothing useful to say about it */
+    }
+  }
+
+  /**
+   * Translate English <-> Hinglish, reusing the community chat's endpoint.
+   * It takes a bare `{ text }`, so there was nothing DM-specific to build -
+   * and a second endpoint would have been a second prompt to keep in step.
+   */
+  async function translateMessage(messageId: string, text: string) {
+    setActionOpenId(null);
+    const cur = translations[messageId];
+    if (cur?.text) {
+      setTranslations((t) => ({ ...t, [messageId]: { ...cur, shown: !cur.shown } }));
+      return;
+    }
+    if (cur?.loading) return;
+    setTranslations((t) => ({ ...t, [messageId]: { loading: true, shown: true } }));
+    try {
+      const r = await fetch("/api/chat/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      const j = await r.json().catch(() => null);
+      setTranslations((t) => ({
+        ...t,
+        [messageId]: { text: r.ok && j?.text ? j.text : undefined, loading: false, shown: true },
+      }));
+    } catch {
+      setTranslations((t) => ({ ...t, [messageId]: { loading: false, shown: true } }));
+    }
+  }
 
   const sendGif = (url: string) => { setGifOpen(false); void postMessage(url); };
 
@@ -383,6 +596,30 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
       {/* No `space-y` here: spacing is decided per message below, so that a run
           from the same person tightens up. A blanket gap would override it and
           the grouping would silently do nothing. */}
+      {/* One pinned message per conversation - the address, the deadline, the
+          thing you keep scrolling back for. Tapping it scrolls to it. */}
+      {pinned && (
+        <button
+          type="button"
+          onClick={() => document.getElementById(`dm-${pinned.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" })}
+          className="flex w-full items-center gap-2 border-b border-gold-500/20 bg-gold-500/[0.07] px-4 py-2 text-left"
+        >
+          <Pin className="h-3.5 w-3.5 shrink-0 text-gold-300" aria-hidden />
+          <span className="mono shrink-0 text-[10px] uppercase tracking-wider text-gold-300/80">Pinned</span>
+          <span className="truncate text-[12px] text-zinc-300">{chatMediaUrl(pinned.body) ? "\u{1F4F7} Photo" : pinned.body}</span>
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label="Unpin"
+            onClick={(e) => { e.stopPropagation(); void togglePin(pinned.id, false); }}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); void togglePin(pinned.id, false); } }}
+            className="ml-auto shrink-0 text-zinc-500 hover:text-gold-200"
+          >
+            <PinOff className="h-3.5 w-3.5" />
+          </span>
+        </button>
+      )}
+
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {!loaded ? (
           <p className="py-10 text-center text-sm text-zinc-500"><Loader2 className="mr-1 inline h-4 w-4 animate-spin" /> Loading…</p>
@@ -407,9 +644,58 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
                     </span>
                   </div>
                 )}
-                <div className={cn("flex", grouped ? "mt-0.5" : "mt-2", m.mine ? "justify-end" : "justify-start")}>
-                  <div className={cn("max-w-[78%] rounded-2xl text-[14px] leading-relaxed", media ? "overflow-hidden p-1" : "px-3.5 py-2", m.mine ? "rounded-br-md bg-gold-500/20 text-gold-950 ring-1 ring-gold-500/30 dark:bg-gold-500/15 dark:text-gold-50" : "rounded-bl-md bg-black/[0.05] text-zinc-800 ring-1 ring-black/10 dark:bg-white/[0.05] dark:text-zinc-100 dark:ring-white/10")}>
-                    {media ? (
+                <div id={`dm-${m.id}`} className={cn("group relative flex items-end gap-1", grouped ? "mt-0.5" : "mt-2", m.mine ? "justify-end" : "justify-start")}>
+                  {/* The action trigger sits OUTSIDE the bubble, on the side the
+                      bubble is not, so it never covers the text and the layout
+                      does not shift when it appears. Always rendered on touch
+                      (where there is no hover to reveal it). */}
+                  {m.mine && !m.deleted && (
+                    <MessageActions
+                      open={actionOpenId === m.id}
+                      onToggle={() => setActionOpenId((x) => (x === m.id ? null : m.id))}
+                      side="left"
+                    >
+                      <ActionItem icon={Copy} label="Copy" onClick={() => void copyMessage(m.body)} disabled={!!media} />
+                      <ActionItem icon={Languages} label="Translate" onClick={() => void translateMessage(m.id, m.body)} disabled={!!media} />
+                      <ActionItem icon={m.pinned ? PinOff : Pin} label={m.pinned ? "Unpin" : "Pin"} onClick={() => void togglePin(m.id, !m.pinned)} />
+                      <ActionItem
+                        icon={Pencil}
+                        label="Edit"
+                        // Same 15-minute window as the community chat. Shown but
+                        // disabled once it lapses, so the rule is discoverable
+                        // rather than a button that silently stops existing.
+                        disabled={!!media || !canEditMessage(m.createdAt)}
+                        onClick={() => { setActionOpenId(null); setEditingId(m.id); setEditText(m.body); }}
+                      />
+                      <ActionItem icon={Trash2} label="Delete" destructive onClick={() => void deleteMessage(m.id)} />
+                    </MessageActions>
+                  )}
+                  <div className={cn("max-w-[78%] rounded-2xl text-[14px] leading-relaxed", media ? "overflow-hidden p-1" : "px-3.5 py-2", m.deleted ? "bg-black/[0.03] text-zinc-500 ring-1 ring-black/5 dark:bg-white/[0.03] dark:text-zinc-500 dark:ring-white/5" : m.mine ? "rounded-br-md bg-gold-500/20 text-gold-950 ring-1 ring-gold-500/30 dark:bg-gold-500/15 dark:text-gold-50" : "rounded-bl-md bg-black/[0.05] text-zinc-800 ring-1 ring-black/10 dark:bg-white/[0.05] dark:text-zinc-100 dark:ring-white/10")}>
+                    {m.deleted ? (
+                      // A tombstone, not a removal: taking the row out would
+                      // make the thread jump and would rewrite a conversation
+                      // the other person had already read.
+                      <p className="italic">This message was deleted</p>
+                    ) : editingId === m.id ? (
+                      <div className="min-w-[200px]">
+                        <textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void saveEdit(m.id); }
+                            if (e.key === "Escape") setEditingId(null);
+                          }}
+                          rows={2}
+                          maxLength={2000}
+                          autoFocus
+                          className="w-full resize-none rounded-lg border border-white/15 bg-ink-950/50 px-2 py-1.5 text-[14px] text-zinc-100 outline-none focus:border-gold-500/40"
+                        />
+                        <div className="mt-1 flex justify-end gap-2 text-[11px]">
+                          <button type="button" onClick={() => setEditingId(null)} className="text-zinc-400 hover:text-zinc-200">Cancel</button>
+                          <button type="button" onClick={() => void saveEdit(m.id)} className="font-semibold text-gold-200 hover:text-gold-100">Save</button>
+                        </div>
+                      </div>
+                    ) : media ? (
                       // Tap to open full-screen - see the note in ChatClient.
                       <ImageLightbox src={media} alt="shared media" className="inline-block">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -418,16 +704,41 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
                     ) : (
                       <p className="whitespace-pre-wrap break-words">{m.body}</p>
                     )}
+                    {/* The translation sits under the original rather than
+                        replacing it - you almost always want to compare. */}
+                    {translations[m.id]?.shown && (
+                      <p className="mt-1.5 border-t border-white/10 pt-1.5 text-[13px] text-zinc-400">
+                        {translations[m.id]?.loading
+                          ? "Translating…"
+                          : translations[m.id]?.text ?? "Couldn't translate. Try again."}
+                      </p>
+                    )}
                     {/* Clock time rather than "3 min ago": on a thread you are
                         reading top to bottom, a relative age on every bubble is
                         noise, and it has to be recomputed forever. */}
                     <div className={cn("mt-1 flex items-center justify-end gap-1", media && "px-2 pb-0.5")}>
+                      {m.editedAt && !m.deleted && (
+                        <span className={cn("mono text-[10px] italic", m.mine ? "text-gold-700/60 dark:text-gold-200/45" : "text-zinc-600")}>edited</span>
+                      )}
+                      {m.pinned && !m.deleted && <Pin className="h-3 w-3 shrink-0 text-gold-300/80" aria-label="Pinned" />}
                       <span className={cn("mono text-[10px]", m.mine ? "text-gold-700/70 dark:text-gold-200/60" : "text-zinc-500")}>
                         {clockTime(m.createdAt, hydrated)}
                       </span>
-                      {m.mine && <ReadTicks read={read} pending={m.id.startsWith("temp-")} />}
+                      {m.mine && !m.deleted && <ReadTicks read={read} pending={m.id.startsWith("temp-")} />}
                     </div>
                   </div>
+                  {/* Their message: the trigger goes on the right, mirroring. */}
+                  {!m.mine && !m.deleted && (
+                    <MessageActions
+                      open={actionOpenId === m.id}
+                      onToggle={() => setActionOpenId((x) => (x === m.id ? null : m.id))}
+                      side="right"
+                    >
+                      <ActionItem icon={Copy} label="Copy" onClick={() => void copyMessage(m.body)} disabled={!!media} />
+                      <ActionItem icon={Languages} label="Translate" onClick={() => void translateMessage(m.id, m.body)} disabled={!!media} />
+                      <ActionItem icon={m.pinned ? PinOff : Pin} label={m.pinned ? "Unpin" : "Pin"} onClick={() => void togglePin(m.id, !m.pinned)} />
+                    </MessageActions>
+                  )}
                 </div>
               </div>
             );
