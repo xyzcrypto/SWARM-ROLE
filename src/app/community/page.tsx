@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { schemaOrThrow, isMissingSchema } from "@/lib/db-error";
 import { env, gifEnabled } from "@/lib/env";
 import { CHAT_MESSAGE_SELECT, toChatPayload, getCommunityPreview } from "@/lib/chat";
 import { Navbar } from "@/components/Navbar";
@@ -72,14 +73,21 @@ export default async function CommunityPage() {
         take: INITIAL_COUNT + 1,
         select: CHAT_MESSAGE_SELECT,
       })
-      .catch(() => []),
+      // A missing table still renders an empty room (the pre-migration path);
+      // an unreachable database now surfaces as an error instead of
+      // "No messages yet - be the first to say gm." in a room with a full
+      // history, which is what production showed.
+      .catch((err) => {
+        if (isMissingSchema(err)) return [];
+        throw err;
+      }),
     prisma.chatMessage
       .findFirst({
         where: { status: "visible", pinnedAt: { not: null } },
         orderBy: { pinnedAt: "desc" },
         select: CHAT_MESSAGE_SELECT,
       })
-      .catch(() => null),
+      .catch(schemaOrThrow),
   ]);
 
   const hasMore = rows.length > INITIAL_COUNT;

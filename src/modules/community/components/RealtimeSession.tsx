@@ -101,13 +101,28 @@ export function RealtimeSession({ url, anonKey }: { url: string; anonKey: string
   useEffect(() => {
     if (!userId || onChat) return;
 
+    // Circuit breaker. This heartbeat runs on every page for every signed-in
+    // user, so if the database is struggling it is the last thing that should
+    // keep knocking - every open tab would add write pressure to exactly the
+    // thing that is already failing. Three consecutive failures and this tab
+    // stops until it is reloaded; the number it feeds is an admin nicety, not
+    // something worth deepening an outage for.
+    let consecutiveFailures = 0;
+    const GIVE_UP_AFTER = 3;
+
     const beat = () => {
-      if (document.hidden || liveRef.current) return;
+      if (document.hidden || liveRef.current || consecutiveFailures >= GIVE_UP_AFTER) return;
       fetch("/api/presence", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: "{}",
-      }).catch(() => {});
+      })
+        .then((r) => {
+          consecutiveFailures = r.ok ? 0 : consecutiveFailures + 1;
+        })
+        .catch(() => {
+          consecutiveFailures += 1;
+        });
     };
     const leave = () => {
       try {

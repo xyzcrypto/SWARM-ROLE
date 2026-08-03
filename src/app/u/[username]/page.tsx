@@ -20,6 +20,7 @@ import { EditProfileButton } from "@/components/EditProfileButton";
 import { ProfileBannerImage } from "@/components/ProfileBannerImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { cn, formatDate, formatDateTime, publicImageUrl } from "@/lib/utils";
+import { schemaOrThrow } from "@/lib/db-error";
 import { normalizeUsername } from "@/lib/profile";
 import { safeHref } from "@/lib/links";
 import { fetchExtraSocials } from "@/lib/user-socials";
@@ -45,7 +46,13 @@ const getProfile = cache(async (usernameParam: string) => {
         _count: { select: { comments: true, likes: true } },
       },
     })
-    .catch(() => null);
+    // NOT `.catch(() => null)`. That fed `notFound()` from ANY failure, so an
+    // unreachable database rendered as "Page not found" on a profile that
+    // exists - a confident, plausible, wrong answer, and one a user cannot
+    // tell from the real thing. A missing table still degrades to null (the
+    // deliberate pre-migration path); anything else now surfaces as an error,
+    // which is honest and clears itself the moment the database answers.
+    .catch(schemaOrThrow);
   // Route an inline data: URL image through /api/media instead of embedding it
   // (see publicImageUrl). This page is ISR-cached (300s) and public, so a raw
   // base64 blob here would be re-shipped to every viewer on every cache fill -

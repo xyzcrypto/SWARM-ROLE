@@ -7,6 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { Avatar } from "@/components/Avatar";
 import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
+import { schemaOrThrow } from "@/lib/db-error";
 import { cn, formatDate, readingTime, publicImageUrl } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -60,7 +61,7 @@ const getPost = cache(async (slug: string) => {
             author: { select: { id: true, name: true, username: true, image: true, membership: true } },
           },
         })
-        .catch(() => null);
+        .catch(schemaOrThrow);
       return post ? withSafeAuthorImage({ ...post, views: 0 }) : null;
     }
     return null;
