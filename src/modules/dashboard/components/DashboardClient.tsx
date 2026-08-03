@@ -615,8 +615,25 @@ type ModMessage = {
   author: { name: string | null; username: string | null };
 };
 
+type ReportRow = {
+  id: string;
+  createdAt: string;
+  reason: string;
+  note: string | null;
+  status: string;
+  reporter: { id: string; name: string | null; username: string | null; email: string };
+  subject: { id: string; name: string | null; username: string | null; email: string };
+  /** The DM the reporter cited, if any. Deleted messages still appear - that is
+      why DM deletes are soft. */
+  message: { body: string; deleted: boolean; createdAt: string } | null;
+};
+
 function ModerationPanel() {
-  const [view, setView] = useState<"comments" | "chat">("comments");
+  const [view, setView] = useState<"comments" | "chat" | "reports">("comments");
+  const [reports, setReports] = useState<ReportRow[]>([]);
+  // Reports have their own two states, so they get their own filter rather than
+  // borrowing the visible/hidden one, which means nothing here.
+  const [reportStatus, setReportStatus] = useState<"open" | "reviewed">("open");
   const [statusFilter, setStatusFilter] = useState<"all" | "visible" | "hidden">("all");
   const [comments, setComments] = useState<ModComment[]>([]);
   const [messages, setMessages] = useState<ModMessage[]>([]);
@@ -631,18 +648,21 @@ function ModerationPanel() {
       const url =
         view === "comments"
           ? `/api/comments?status=${statusFilter}`
-          : `/api/chat/messages/moderate?status=${statusFilter}`;
+          : view === "reports"
+            ? `/api/reports?status=${reportStatus}`
+            : `/api/chat/messages/moderate?status=${statusFilter}`;
       const res = await fetch(url, { cache: "no-store" });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d.error || "Could not load.");
       if (view === "comments") setComments(d.comments ?? []);
+      else if (view === "reports") setReports(d.reports ?? []);
       else setMessages(d.messages ?? []);
     } catch (e: any) {
       setError(e.message || "Could not load.");
     } finally {
       setLoading(false);
     }
-  }, [view, statusFilter]);
+  }, [view, statusFilter, reportStatus]);
 
   useEffect(() => {
     load();
@@ -706,6 +726,27 @@ function ModerationPanel() {
 
   const hiddenCount = view === "chat" ? messages.filter((m) => m.status === "hidden").length : 0;
 
+  async function setReportReviewed(id: string, status: "open" | "reviewed") {
+    setBusy(id);
+    setError("");
+    try {
+      const res = await fetch("/api/reports", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || "Failed.");
+      // Drop it from the current list rather than refetching the page: it no
+      // longer belongs to the filter you are looking at.
+      setReports((r) => r.filter((x) => x.id !== id));
+    } catch (e: any) {
+      setError(e.message || "Failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   const StatusBadge = ({ status }: { status: string }) =>
     status === "hidden" ? (
       <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-300 ring-1 ring-red-500/25">Hidden</span>
@@ -716,7 +757,7 @@ function ModerationPanel() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        {(["comments", "chat"] as const).map((v) => (
+        {(["comments", "chat", "reports"] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
@@ -724,11 +765,23 @@ function ModerationPanel() {
               view === v ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30" : "text-zinc-500 hover:text-zinc-300"
             }`}
           >
-            {v === "comments" ? "Comments" : "Chat messages"}
+            {v === "comments" ? "Comments" : v === "chat" ? "Chat messages" : "Reports"}
           </button>
         ))}
         <div className="ml-auto flex items-center gap-1.5">
-          {(["all", "visible", "hidden"] as const).map((s) => (
+          {view === "reports"
+            ? (["open", "reviewed"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setReportStatus(s)}
+                  className={`rounded-lg px-2.5 py-1 text-xs transition-colors ${
+                    reportStatus === s ? "bg-white/10 text-zinc-200" : "text-zinc-500 hover:text-zinc-300"
+                  }`}
+                >
+                  {s[0]!.toUpperCase() + s.slice(1)}
+                </button>
+              ))
+            : (["all", "visible", "hidden"] as const).map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -738,7 +791,7 @@ function ModerationPanel() {
             >
               {s[0]!.toUpperCase() + s.slice(1)}
             </button>
-          ))}
+              ))}
           {view === "chat" && hiddenCount > 0 && (
             <button
               onClick={restoreAllMessages}
@@ -754,6 +807,73 @@ function ModerationPanel() {
       {error && <p className="mb-3 rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">{error}</p>}
       {loading ? (
         <p className="rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">Loading…</p>
+      ) : view === "reports" ? (
+        reports.length === 0 ? (
+          <p className="rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">
+            {reportStatus === "open" ? "No open reports." : "Nothing reviewed yet."}
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {reports.map((r) => (
+              <li key={r.id} className="surface rounded-2xl p-4">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+                  <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-red-300 ring-1 ring-red-500/25">
+                    {r.reason}
+                  </span>
+                  <span className="font-medium text-zinc-300">{r.subject.name ?? "Member"}</span>
+                  {/* The handle is the way in: an admin reading a report almost
+                      always wants to look at the account next. */}
+                  {r.subject.username && (
+                    <a href={`/u/${r.subject.username}`} target="_blank" rel="noopener noreferrer" className="text-gold-200 hover:underline">
+                      @{r.subject.username}
+                    </a>
+                  )}
+                  <span className="text-zinc-600">{r.subject.email}</span>
+                  <span>· {formatDateTime(r.createdAt)}</span>
+                </div>
+
+                <p className="mt-1.5 text-[11px] text-zinc-500">
+                  Reported by{" "}
+                  <span className="text-zinc-400">{r.reporter.name ?? r.reporter.email}</span>
+                  {r.reporter.username && (
+                    <>
+                      {" "}
+                      <a href={`/u/${r.reporter.username}`} target="_blank" rel="noopener noreferrer" className="text-gold-200/80 hover:underline">
+                        @{r.reporter.username}
+                      </a>
+                    </>
+                  )}
+                </p>
+
+                {r.note && <p className="mt-2 whitespace-pre-wrap break-words text-sm text-zinc-300">{r.note}</p>}
+
+                {/* The cited message. A report you cannot evaluate is a report
+                    nobody can act on, which is why this is here at all - and
+                    why it stops at exactly the one message. */}
+                {r.message && (
+                  <div className="mt-2 rounded-xl border border-white/10 bg-black/20 p-3">
+                    <p className="mono mb-1 text-[10px] uppercase tracking-wider text-zinc-600">
+                      Reported message{r.message.deleted && " · deleted by sender"}
+                    </p>
+                    <p className="whitespace-pre-wrap break-words text-[13px] text-zinc-300">{r.message.body || "(empty)"}</p>
+                  </div>
+                )}
+
+                <div className="mt-3 flex gap-3 text-xs">
+                  {r.status === "open" ? (
+                    <button onClick={() => setReportReviewed(r.id, "reviewed")} disabled={busy === r.id} className="font-medium text-mint-300 hover:underline disabled:opacity-50">
+                      {busy === r.id ? "…" : "Mark reviewed"}
+                    </button>
+                  ) : (
+                    <button onClick={() => setReportReviewed(r.id, "open")} disabled={busy === r.id} className="font-medium text-amber-300 hover:underline disabled:opacity-50">
+                      {busy === r.id ? "…" : "Reopen"}
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )
       ) : view === "comments" ? (
         comments.length === 0 ? (
           <p className="rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center text-sm text-zinc-500">Nothing to review.</p>
