@@ -8,8 +8,17 @@
  * retry, no poll and no indication that its only source was gone.
  */
 
-/** A row counts as present if it was touched within this window. */
-export const PRESENCE_WINDOW_MS = 60_000;
+/**
+ * A row counts as present if it was touched within this window.
+ *
+ * Only the SITE-wide count uses this; the chat room keeps its own tighter 60s
+ * window (`api/chat/presence`), because there the roster is on screen and a
+ * stale name is obvious. Widened to 3 minutes so the site heartbeat below can
+ * be slow: every beat is a database write from every open page of every
+ * signed-in user, and that pressure is a plausible contributor to the
+ * intermittent connection-pool exhaustion this codebase is prone to.
+ */
+export const PRESENCE_WINDOW_MS = 180_000;
 
 /**
  * Rooms are just labels on the same table, and the row is keyed by user - so
@@ -21,8 +30,15 @@ export const PRESENCE_WINDOW_MS = 60_000;
 export const ROOM_COMMUNITY = "community";
 export const ROOM_SITE = "site";
 
-/** How often a non-chat page re-announces itself while realtime is down. */
-export const SITE_BEAT_MS = 45_000;
+/**
+ * How often a non-chat page re-announces itself while realtime is down.
+ *
+ * 120s, not 45s. This feeds ONE admin dashboard tile, and it costs a database
+ * write from every open page of every signed-in user. A number that is at most
+ * two minutes stale is entirely adequate for that tile; three times the write
+ * pressure to sharpen it is not a trade worth making on this plan.
+ */
+export const SITE_BEAT_MS = 120_000;
 
 /** Rows older than this are swept opportunistically on a fraction of reads. */
 export const PRESENCE_PRUNE_OLDER_THAN_MS = 30 * 60 * 1000;

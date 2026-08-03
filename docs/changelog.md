@@ -67,6 +67,105 @@ presence number on the site tell the truth while it is down.
 
 ---
 
+## 2026-08-03 (9) — Three causes behind "kabhi kabhi": an unbounded pool, a cached HTML shell, and a failure with no name
+
+Reported: profile breaking, DMs sometimes not opening, community chat not
+working, the site occasionally blank. **"Sometimes" is the whole signal** - each
+of these works most of the time, which rules out a plain bug and points at
+contention and caching.
+
+### 🔴 The connection pool was never bounded
+
+`prisma/schema.prisma` says, in its own header:
+
+```
+Recommended: `?pgbouncer=true&connection_limit=1`
+```
+
+and `.env.example` ships `…?pgbouncer=true` **without it**. A recommendation
+that lives only in a comment is not applied, and this one was not.
+
+Unbounded, Prisma sizes its pool at `num_cpus * 2 + 1` **per client**, and on
+serverless that is per warm function instance. Several instances, each holding
+its own handful of pooler connections, is how a Supabase free-tier pooler runs
+out. What that looks like from outside is not an outage - it is
+`P2024 Timed out fetching a new connection from the connection pool` on *some*
+requests. The profile breaks sometimes. The DM sometimes does not open. The chat
+is sometimes empty. Never together, never reproducible.
+
+`withPoolDefaults()` now sets the pool parameters on the datasource URL in code,
+so the setting cannot be lost to a copy-paste, and an explicit value in the env
+var still wins. **Measured after: 30 concurrent DB-backed requests hold exactly
+5 connections, steady, with no errors.**
+
+**`connection_limit=5`, deliberately not the 1 that Prisma's serverless guidance
+suggests.** This app fans out per page - `/u/[username]` alone issues six
+queries in one `Promise.all` - and a limit of 1 serializes every one of them.
+That is not theoretical: testing `connection_limit=1` with 40 concurrent queries
+produced **P2024**, the exact failure this is meant to prevent. `pool_timeout`
+also goes 10s → 20s, so brief contention queues instead of failing.
+
+**Honest scope:** whether the limit itself changes anything in production is
+**unconfirmed** - the old default derives from the runtime's CPU count, which is
+not observable from here, and on a small Vercel function it may already land
+near 5. What is definitely new is the longer timeout, the value being explicit
+rather than runtime-dependent, and the diagnostic below.
+
+### 🔴 Pool exhaustion had no name
+
+`handleError` maps P2002, P2025, P2021 and P2022 - and **had no branch for
+P2024**. So the signature failure of a serverless app against a pooler fell
+through to the generic `Something went wrong` 500 with a random trace id. That
+is why "kabhi kabhi" could never be pinned to a cause: the one error that
+explains it was indistinguishable from every other error. It now logs
+`POOL EXHAUSTED (P2024)` with what to do about it, and answers 503 "The service
+is busy" rather than a generic 500.
+
+### 🔴 The blank page: a cached HTML shell outliving its chunks
+
+`public/sw.js` cached navigations network-first, with the cached copy as a
+fallback. **The fallback is the bug.** An HTML shell names the exact hashed
+chunks of the deploy that produced it, and those filenames are gone after the
+next deploy. A cached shell served on a flaky connection then asks for chunks
+that 404, the 404 comes back as HTML, the browser refuses to execute it on a
+MIME mismatch, and hydration silently never finishes - blank or frozen, with no
+error the user can see. Intermittent by construction: it needs a cached shell
+**and** a deploy since **and** a network hiccup.
+
+The previous mitigation was "bump `CACHE` on any deploy that could strand users
+on old JS" (`CLAUDE.md`) plus a one-shot reload in `PwaSetup`. Both real, both
+patches on a ritual - and the ritual did not survive contact with reality: the
+version was last bumped in **#140**, and **six deploys shipped over it in a
+single day**, which is when the blank-page reports started. Mine were four of
+those six.
+
+**Navigations are no longer cached at all.** The class of bug is removed rather
+than delegated to everyone remembering. `CACHE` also goes v6 → v7 so existing
+poisoned caches are dropped on activate. Cost: a previously-visited page no
+longer renders offline (`/offline.html` still does) - the right trade for a live
+market/chat app. `CLAUDE.md`'s gotcha is updated; the per-deploy bump is no
+longer needed.
+
+### ⚡ And the heartbeat added earlier today is now much quieter
+
+`/api/presence` (from (7)) writes to the database from every open page of every
+signed-in user. Given the pool finding, that is pressure pointed at the thing
+already under pressure. Beat 45s → **120s**, its window 60s → 180s, plus the
+circuit breaker from (8). It feeds one admin dashboard tile; a number that is at
+most two minutes stale is entirely adequate for that.
+
+**Files:** `src/shared/utils/db-url.ts` + `src/lib/db-url.ts` (new) ·
+`src/core/db/prisma.ts` · `src/shared/utils/api.ts` ·
+`src/shared/utils/presence.ts` · `public/sw.js` · `CLAUDE.md` ·
+`src/lib/__tests__/db-url.test.ts` (new).
+
+**Gates:** typecheck ✅ · lint 0 errors / 37 warnings (unchanged) · 451/451
+tests ✅ · build ✅. Smoke-tested: `/`, `/community`, `/news`, `/markets`,
+`/research`, `/u/<handle>`, `/api/follow`, `/api/ticker` all 200 with the
+rewritten datasource URL.
+
+---
+
 ## 2026-08-03 (8) — The storage diagnostic was diagnosing the wrong thing
 
 The owner ran `/api/media/health` on production. It said the bucket probably did

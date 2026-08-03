@@ -35,6 +35,20 @@ export function handleError(err: unknown, context = "api") {
       return fail("Database not migrated: a required table is missing. Run the latest migration.", 503);
     if (err.code === "P2022")
       return fail("Database not migrated: a required column is missing. Run the latest migration.", 503);
+    // Connection pool exhausted. This had NO branch, so it fell through to the
+    // generic 500 with a random trace id - which is why intermittent "profile
+    // breaks sometimes / DM sometimes does not open / chat sometimes empty"
+    // could never be pinned to a cause. It is the signature failure of a
+    // serverless app against a pooler: a request could not get a connection
+    // within pool_timeout, while everything else on the page worked.
+    if (err.code === "P2024") {
+      console.error(
+        `[${context}] POOL EXHAUSTED (P2024): no database connection available within the timeout. ` +
+          `Raise connection_limit (see src/lib/db-url.ts) or reduce concurrent queries. ` +
+          `If this appears in bursts, it is the cause of intermittent failures across unrelated features.`
+      );
+      return fail("The service is busy. Please try again in a moment.", 503);
+    }
   }
   // DB unreachable / bad connection string (e.g. missing ?pgbouncer=true).
   if (err instanceof Prisma.PrismaClientInitializationError) {
