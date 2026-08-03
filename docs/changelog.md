@@ -5,6 +5,64 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (10) — The homepage kept animating 190 things nobody could see
+
+Reported: opening the homepage pushes CPU high, and it stays high.
+
+**Measured first, at 1280x800:** the homepage runs **281 CSS animations at
+once**, on a page **11.5 viewports tall**, and **190 of them are off screen**.
+Style recalculation was the largest single slice of an idle frame. Nothing here
+is one expensive effect - it is that the starfield, the mesh drift, the pulse
+dots, the Icons3D set and the shine sweeps all keep running to the bottom of the
+document no matter where the reader actually is.
+
+**The fix pauses a block's animations only while it is more than a full viewport
+away** (`PauseOffscreenAnimations.tsx` + one CSS rule). An IntersectionObserver
+toggles `animation-play-state: paused`; `rootMargin: 100%` means anything is
+already running well before it can be seen.
+
+**Nothing visual changes**, and that was checked rather than assumed: at 0 / 25 /
+50 / 75 / 100% scroll, on both 1280x800 and 390x844, the number of animations
+that are **visible AND frozen is 0** at every position. The motion here is
+deliberate brand identity (see the reduced-motion policy above), so a fix that
+dimmed it would not have been acceptable.
+
+**Result - a true A/B on the same build**, defeating the new rule with a
+stylesheet override so both sides are otherwise identical, four runs each:
+
+| | CPU (idle, 4 runs) | animations running |
+|---|---|---|
+| before | **24.9%** (25.9, 23.9, 26.3, 23.6) | 281 |
+| after | **20.1%** (20.1, 19.5, 20.5, 20.3) | 182 |
+
+The ranges do not overlap, against a measured noise floor of ±0.8 points (five
+runs of an identical page: 20.2, 20.2, 19.3, 18.7, 20.3). **~19% less CPU on an
+idle homepage**, and the frame cost is far steadier afterwards.
+
+**Two things this is NOT, stated because both were tested and both surprised
+me:**
+- It is not "animations are expensive, remove them". Turning **every** CSS
+  animation off measured **~27%** - *higher* than leaving them on. Removing an
+  animation de-promotes its compositor layer, and the repaint costs more than
+  the transform did. The win comes specifically from not animating the
+  off-screen 190, not from animating less in general.
+- `content-visibility: auto` would do this and more, and was deliberately **not**
+  used: it changes layout geometry, and this project already had to neutralise
+  `.sect-cv` because that broke anchor-jump scrolling. Pausing an animation
+  changes no geometry at all.
+
+Applies to every page, not just the homepage - it is mounted in the root layout.
+
+**Files:** `src/shared/components/PauseOffscreenAnimations.tsx` +
+`src/components/PauseOffscreenAnimations.tsx` (new) · `src/app/globals.css` ·
+`src/app/layout.tsx`.
+
+**Gates:** typecheck ✅ · lint 0 errors / 37 warnings (unchanged) · 451/451
+tests ✅ · build ✅. Smoke-tested `/`, `/community`, `/news`, `/markets`,
+`/research`, `/tools`, `/u/<handle>` - all 200.
+
+---
+
 ## 2026-08-03 (9) — The dashboard's "Live online" was a confident zero
 
 Asked: is the dashboard's online number realtime? **No - and it was worse than

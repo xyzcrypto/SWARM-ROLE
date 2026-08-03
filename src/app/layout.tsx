@@ -10,6 +10,7 @@ import { Analytics } from "@/components/Analytics";
 import { RealtimeSession } from "@/components/RealtimeSession";
 import { XyzAiWidgetMount } from "@/components/XyzAiWidgetMount";
 import { PwaSetup } from "@/components/PwaSetup";
+import { PauseOffscreenAnimations } from "@/components/PauseOffscreenAnimations";
 import { CommandPaletteMount } from "@/components/CommandPaletteMount";
 import { BottomNavMount } from "@/components/BottomNavMount";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
@@ -124,6 +125,7 @@ export default function RootLayout({
           {children}
           <XyzAiWidgetMount />
           <PwaSetup />
+          <PauseOffscreenAnimations />
           <CommandPaletteMount />
           <BottomNavMount />
         </Providers>
