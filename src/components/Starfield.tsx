@@ -1,18 +1,20 @@
 import type { CSSProperties } from "react";
 import { cn } from "@/lib/utils";
+import { starSeed, STAR_COUNT } from "@/lib/starfield-seed";
 import { RobotIcon } from "./RobotIcon";
 
 // Deterministic star positions (seeded, computed once at module load) so SSR and
-// the client render identically - no hydration mismatch, no layout shift, no
-// per-render Math.random. Gives the orbital section a deep-space backdrop so the
-// whole thing reads like a little solar system.
-const STARS = Array.from({ length: 110 }, (_, i) => {
-  const a = Math.sin(i * 12.9898) * 43758.5453;
-  const b = Math.sin(i * 78.233) * 12345.6789;
-  const c = Math.sin(i * 45.164) * 91537.4231;
-  const fa = Math.abs(a - Math.floor(a));
-  const fb = Math.abs(b - Math.floor(b));
-  const fc = Math.abs(c - Math.floor(c));
+// the client render identically - no layout shift, no per-render Math.random.
+// Gives the orbital section a deep-space backdrop so the whole thing reads like
+// a little solar system.
+//
+// The seeds come from `starfield-seed` rather than being computed inline
+// because they need to survive the SSR boundary: `Math.sin` is not required by
+// ECMAScript to be correctly rounded, and Node and the browser disagree in the
+// last bits, so every star used to report a hydration attribute mismatch on the
+// homepage. See that module for the numbers and the test that pins them.
+const STARS = Array.from({ length: STAR_COUNT }, (_, i) => {
+  const { fa, fb, fc } = starSeed(i);
   const bright = i % 7 === 0; // more glowing "hero" stars
   const drift = !bright && i % 6 === 1; // a few slow drifters
   return {
@@ -71,6 +73,15 @@ const NEBULAE = [
 // not two distinct scenes), so the second mount uses the lighter set.
 export function Starfield({ className, bodies = true, light = false }: { className?: string; bodies?: boolean; light?: boolean }) {
   const shooters = light ? SHOOTERS.filter((_, i) => i % 2 === 0) : SHOOTERS;
+  // `light` now also halves the number of stars that ANIMATE (density is
+  // untouched - every star still renders). The homepage mounts this component
+  // twice and, as the note above already says, the two read as one continuous
+  // backdrop rather than two scenes. Measured: the starfield is the single
+  // biggest contributor to style recalculation on the homepage - disabling its
+  // animations alone took recalc from 0.306s to 0.183s per 8s idle and running
+  // animations from 182 to 100. Halving the second mount's share of that costs
+  // nothing anyone can see.
+  const animates = (i: number) => (light ? i % 2 === 0 : true);
   return (
     <div aria-hidden className={cn("starfield pointer-events-none absolute inset-0 overflow-hidden", className)}>
       {NEBULAE.map((n, i) => (
@@ -125,6 +136,10 @@ export function Starfield({ className, bodies = true, light = false }: { classNa
           className={cn(
             "absolute rounded-full",
             st.gold ? "bg-gold-200 star-g" : "bg-white star-w",
+            // Only the stars that actually move get `will-change` (see the rule
+            // in globals.css) - the static majority must not each claim a
+            // compositor layer.
+            st.animated && animates(i) && "star-anim",
             i >= 42 && "starfield-extra"
           )}
           style={{
@@ -141,7 +156,7 @@ export function Starfield({ className, bodies = true, light = false }: { classNa
             // CSS custom properties consumed by the twinkle / drift keyframes
             ...({ "--o": st.o, "--dx": st.dx, "--dy": st.dy } as CSSProperties),
             // Only bright/drift stars animate; faint stars stay static (perf).
-            animation: st.animated
+            animation: st.animated && animates(i)
               ? st.drift
                 ? `star-drift ${st.driftDur}s ease-in-out ${st.delay}s infinite`
                 : `star-twinkle ${st.d}s ease-in-out ${st.delay}s infinite`

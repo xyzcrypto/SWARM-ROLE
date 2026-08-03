@@ -156,6 +156,39 @@ through it, but note it does **not** yet enforce that: the zod result is only lo
   a backstop for dynamic-import chunk errors. Cost: a previously-visited page
   no longer renders offline (`/offline.html` still does), which is the right
   trade for a live market/chat app.
+- **Nothing that reaches the DOM may be derived from a client-only signal
+  during render.** This caused the site's worst bug: `app/template.tsx` wrapped
+  every route in a `motion.div` unless framer-motion's `useReducedMotion()` said
+  otherwise. That hook returns `null` on the server but reads `matchMedia` on
+  the client's FIRST render, so reduced-motion visitors got a different DOM
+  shape than the server sent, React threw `#418` on **every page** and
+  re-rendered the whole document client-side. The server was also shipping every
+  page at `opacity: 0`, so any hydration failure showed as a **blank page** with
+  the content present but invisible. Reduced motion is on by default under
+  Android battery saver / iOS Low Power - this hit phones hardest.
+  - Use `useReducedMotionSafe()` / `useMediaQuery()` from `useClientFlag.ts`
+    (`useSyncExternalStore` with a server snapshot), never framer-motion's
+    `useReducedMotion()`, for anything that renders. Even `whileTap={reduced ?
+    undefined : ...}` counts: framer-motion emits a `tabindex` attribute when a
+    gesture prop is present.
+  - Prefer a CSS media query over a hook whenever the effect can be expressed in
+    CSS. A media query is not a render input, and the result survives JS failing.
+  - Never make content depend on JS to become visible.
+- **Format dates with an explicit `timeZone`.** Vercel runs UTC, readers do not.
+  `toLocaleDateString("en-US", …)` pins the locale but leaves the timezone to
+  the runtime, so a timestamp near midnight renders a different calendar day on
+  each side of hydration - measured `Aug 2, 2026` (server) vs `Aug 3, 2026`
+  (IST browser) on `/settings`, and `6:06 AM` vs `11:36 AM` on `/community`,
+  both #418. `formatDate`/`formatDateWithDay`/`formatDateTime` pin UTC. Where a
+  date genuinely means *the reader's* day (chat Today/Yesterday, clock times),
+  render UTC through hydration and switch to local afterwards via
+  `useHydrated()`. Same rule for `toLocaleString()` on numbers: pin `"en-US"`,
+  because `en-IN` groups digits differently from 10,000 up.
+- `Math.sin`/`Math.cos` are **not** required by ECMAScript to be correctly
+  rounded, and Node and the browser really do differ in the last bits (observed:
+  `5.721816934965318` vs `5.721816935692914`). Never let a raw transcendental
+  result reach an SSR'd attribute - quantize it first. See
+  `src/shared/utils/starfield-seed.ts` and its test.
 - `background-clip: text` on a wrapper element does not paint through to
   nested inline children — apply gradient-text classes (`text-shine`,
   `text-shimmer`) to each leaf span individually, not a parent wrapping

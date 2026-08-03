@@ -3,7 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Zap, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
@@ -19,6 +19,7 @@ import { AwardXpOnView } from "@/components/AwardXpOnView";
 import { useHydrated } from "@/lib/useClientFlag";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { cn } from "@/lib/utils";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 
 // Share a SHORT on-site link (`/news/read?u=<source-url>`) - opens the story on
 // our domain but stays tiny (just the source url), so it's easy to paste into a
@@ -578,7 +579,7 @@ const NewsCard = memo(function NewsCard({
 }: {
   item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: (item: NewsItem) => void; onOpen: (index: number) => void; loggedIn: boolean;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const open = () => onOpen(index);
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
@@ -964,7 +965,7 @@ function NewsReader({
 // Image-rich, auto-rotating "Breaking" hero for high-impact stories. Click opens
 // the on-site reader. Respects reduced motion.
 function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; onOpen: (id: string) => void }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const [idx, setIdx] = useState(0);
   const [paused, setPaused] = useState(false);
   const active = items[idx % items.length];

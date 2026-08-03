@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMediaQuery } from "@/lib/useClientFlag";
+import { useMediaQuery, useHydrated } from "@/lib/useClientFlag";
 import {
   ArrowDown, BarChart3, Check, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
@@ -98,14 +98,45 @@ function MessageBody({ text }: { text: string }) {
   );
 }
 
-function dayLabel(iso: string): string {
+/**
+ * Day separator for the message list.
+ *
+ * Unlike the site's other date stamps this one genuinely means "the reader's
+ * day" - "Today" has to follow the reader's midnight, not UTC's - so it cannot
+ * simply be pinned to UTC. But the reader's timezone is not knowable while
+ * server rendering, and guessing wrong is not free: the server said
+ * "Aug 2, 2026" where an IST browser said "Aug 3, 2026", which React treats as
+ * a hard hydration failure (#418) and recovers from by throwing away the
+ * server-rendered chat.
+ *
+ * So `local` is false for the server render AND the hydrating client render -
+ * both produce the same UTC-based string, nothing to mismatch - and true from
+ * the render right after hydration onwards, where the reader's own day is
+ * finally both knowable and correct. The two only ever disagree for messages
+ * within the timezone offset of midnight.
+ */
+/**
+ * Clock time on a message. Local for the reader, for the same reason and with
+ * the same hydration gate as dayLabel below: an IST reader saw "11:36 AM" where
+ * the server HTML said "6:06 AM", and React discarded the chat over it.
+ */
+function clockTime(iso: string, local: boolean): string {
+  return new Date(iso).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    timeZone: local ? undefined : "UTC",
+  });
+}
+
+function dayLabel(iso: string, local: boolean): string {
   const d = new Date(iso);
+  const zone = local ? undefined : "UTC";
+  const dayKey = (x: Date) => x.toLocaleDateString("en-CA", { timeZone: zone });
   const today = new Date();
   const yesterday = new Date(Date.now() - 864e5);
-  const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
-  if (same(d, today)) return "Today";
-  if (same(d, yesterday)) return "Yesterday";
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  if (dayKey(d) === dayKey(today)) return "Today";
+  if (dayKey(d) === dayKey(yesterday)) return "Yesterday";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: zone });
 }
 
 // Soft, asset-free "blip" for incoming messages (Web Audio). Best-effort.
@@ -147,6 +178,10 @@ export function ChatClient({
   realtime: { url: string; anonKey: string };
   gifEnabled?: boolean;
 }) {
+  // False on the server and during hydration, true from the next render on.
+  // Day separators need the reader's timezone, which is only knowable here -
+  // see dayLabel.
+  const hydrated = useHydrated();
   const [messages, setMessages] = useState<Message[]>(
     initialMessages.map((m) => ({ ...m, reactions: normalizeReactions(m.reactions) }))
   );
@@ -163,6 +198,13 @@ export function ChatClient({
   // this a missing ChatPresence table looks exactly like an empty room: a
   // confident "1 online" that no amount of refreshing changes.
   const [presenceError, setPresenceError] = useState<string | null>(null);
+  // Why the MESSAGE poll is not answering, when it is not. This is the last
+  // silent failure in the room: the poll swallowed its own errors, so a room
+  // whose /api/chat/messages was returning 503 sat there showing "Synced" and
+  // stale messages, and the only thing that ever fixed it was a manual reload
+  // (which re-renders on the server, down a different path). That is exactly
+  // the "new wala dekhne ke liye refresh karna padta hai" report.
+  const [pollError, setPollError] = useState<string | null>(null);
   const [online, setOnline] = useState(0);
   const [members, setMembers] = useState<PresenceMember[]>([]);
   const [typers, setTypers] = useState<Record<string, { name: string; until: number }>>({});
@@ -512,13 +554,32 @@ export function ChatClient({
     // everything broadcast in between - broadcast has no replay - so trusting
     // `liveRef` on the way back in is how a room quietly stays a few messages
     // behind. One reconcile on return settles it.
+    // A socket that is SUBSCRIBED is not proof that broadcasts are arriving -
+    // and when they silently are not, `liveRef` skipping the poll means the
+    // room never catches up at all. So the poll is skipped only for a bounded
+    // stretch: once a minute it reconciles even on a healthy channel. That is
+    // one extra request per minute per open room, which is the cheapest
+    // insurance available against the room being confidently wrong.
+    let lastReconcile = 0;
+    const SAFETY_RECONCILE_MS = 60_000;
+
     const tick = async (force = false) => {
       if (document.hidden) return;
-      if (liveRef.current && !force) return; // realtime has it covered
+      const now = Date.now();
+      if (liveRef.current && !force && now - lastReconcile < SAFETY_RECONCILE_MS) return;
+      lastReconcile = now;
       try {
         const res = await fetch("/api/chat/messages", { cache: "no-store" });
         const data = await res.json().catch(() => null);
-        if (!res.ok || !data?.messages) return;
+        if (!res.ok || !data?.messages) {
+          // Say so. A 503 here means the server cannot read the room - the
+          // messages on screen are frozen, and pretending otherwise is what
+          // turned a server problem into "the chat is broken and refreshing
+          // is the only thing that works".
+          setPollError(res.ok ? "malformed response" : `HTTP ${res.status}`);
+          return;
+        }
+        setPollError(null);
         setMessages((prev) => {
           // Pure reconcile (unit-tested in chat-view): refresh edits/reactions
           // on known messages, infer deletions inside the fetched window, and
@@ -541,8 +602,8 @@ export function ChatClient({
           }
           return incoming.length ? [...merged, ...incoming] : merged;
         });
-      } catch {
-        /* transient */
+      } catch (e) {
+        setPollError(e instanceof Error ? e.message : "network");
       }
     };
     tickRef.current = tick;
@@ -1106,15 +1167,17 @@ export function ChatClient({
               // same layout - but a hover (or a long-press) now answers "why?"
               // instead of leaving "Reconnecting..." as a dead end.
               title={
-                live
-                  ? "Live via Supabase Realtime"
-                  : realtimeConfigured
-                    ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages arrive on the 10s poll and the online count comes from the server heartbeat every 15s.${presenceError ? ` PRESENCE PROBLEM: ${presenceError}` : ""}`
-                    : "Realtime is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). Messages refresh by polling."
+                pollError
+                  ? `The server is not returning messages (${pollError}). What you see is frozen at the last successful load - new messages are NOT arriving. Retrying every 10s.`
+                  : live
+                    ? "Live via Supabase Realtime"
+                    : realtimeConfigured
+                      ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages arrive on the 10s poll and the online count comes from the server heartbeat every 15s.${presenceError ? ` PRESENCE PROBLEM: ${presenceError}` : ""}`
+                      : "Realtime is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). Messages refresh by polling."
               }
               className={cn(
                 "mono text-[10px] uppercase tracking-wider",
-                live ? "text-mint-300/80" : "text-zinc-400"
+                pollError ? "text-amber-300/90" : live ? "text-mint-300/80" : "text-zinc-400"
               )}
             >
               {/* "Reconnecting…" in alarming amber was overstating the problem.
@@ -1126,7 +1189,11 @@ export function ChatClient({
                   neutral is the honest description of the fallback, and the
                   tooltip still carries the detail (and the underlying error)
                   for anyone debugging it. */}
-              {live ? "Live" : "Synced"}
+              {/* "Stale" is the one state that must never be dressed up. The
+                  amber is not overstating anything here: the poll IS failing
+                  and the messages on screen are frozen. The two calm states
+                  below stay calm - a working fallback is not a problem. */}
+              {pollError ? "Stale" : live ? "Live" : "Synced"}
             </span>
           </div>
           <p className="mt-0.5 hidden mono text-[11px] text-zinc-500 sm:block">#general · markets, alpha &amp; Web3</p>
@@ -1256,7 +1323,7 @@ export function ChatClient({
         <AnimatePresence initial={false}>
           {messages.map((m, i) => {
             const prev = messages[i - 1];
-            const day = dayLabel(m.createdAt);
+            const day = dayLabel(m.createdAt, hydrated);
             const showDay = day !== lastDay;
             lastDay = day;
             const grouped =
@@ -1337,7 +1404,7 @@ export function ChatClient({
                           actionsOpen && "inline"
                         )}
                       >
-                        {new Date(m.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }).replace(" ", "")}
+                        {clockTime(m.createdAt, hydrated).replace(" ", "")}
                       </span>
                     )}
                   </div>
@@ -1357,7 +1424,7 @@ export function ChatClient({
                         <span className="text-[11px] text-zinc-600">
                           {m.pending
                             ? "sending…"
-                            : new Date(m.createdAt).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+                            : clockTime(m.createdAt, hydrated)}
                         </span>
                       </div>
                     )}

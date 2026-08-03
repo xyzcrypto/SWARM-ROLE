@@ -1,8 +1,9 @@
 "use client";
 
-import { motion, useReducedMotion, useInView } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { useRef, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 
 const TONES = {
   gold: { tile: "from-gold-400/30 via-gold-500/15 to-gold-600/[0.04] text-gold-200 ring-gold-400/40", glow: "bg-gold-500/50" },
@@ -28,7 +29,7 @@ export function AnimatedIcon({
   tone?: keyof typeof TONES;
   index?: number;
 }) {
-  const reduce = useReducedMotion();
+  const reduce = useReducedMotionSafe();
   const t = TONES[tone];
   const dir = index % 2 === 0 ? 1 : -1;
   const dur = 4 + (index % 4) * 0.6; // 4.0–5.8s

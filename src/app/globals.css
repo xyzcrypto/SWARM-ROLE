@@ -199,8 +199,16 @@ html.lenis body {
 }
 
 /* Starfield (orbital "deep space" backdrop) - each star twinkles from its own
-   base opacity (--o). will-change keeps it on the compositor. */
-.starfield span { will-change: opacity, transform; }
+   base opacity (--o).
+
+   `will-change` is on the ANIMATED stars only, and that distinction is the
+   whole point. It used to be on `.starfield span`, which promoted every star
+   to its own compositor layer - and the homepage mounts the field twice, so
+   that was ~244 layers for 1-3px dots of which only ~64 ever animate. Measured
+   on the homepage: 247 elements carrying `will-change`, 30% GPU and multi-GB
+   browser memory on an idle page. A layer per static dot buys nothing; it is
+   pure GPU memory and compositing work. */
+.starfield span.star-anim { will-change: opacity, transform; }
 @keyframes star-twinkle {
   0%, 100% { opacity: var(--o, 0.4); transform: scale(1); }
   50% { opacity: calc(var(--o, 0.4) * 0.35); transform: scale(0.6); }
@@ -1370,4 +1378,29 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 .anim-paused *::after,
 .anim-paused * {
   animation-play-state: paused !important;
+}
+
+/* Per-route entrance (src/app/template.tsx).
+
+   Deliberately CSS and not framer-motion. The previous JS version branched on
+   `useReducedMotion()`, which is `null` on the server and the real media query
+   on the client's first render - so a reduced-motion visitor got a different
+   DOM shape than the server sent and React threw #418 on every page, then
+   re-rendered the whole document on the client. It also meant every page was
+   server-rendered at `opacity: 0` and only became visible once JS ran, so any
+   hydration failure showed as a blank page.
+
+   A media query is not a render input, so this version cannot mismatch, and
+   the content becomes visible whether or not JavaScript ever arrives. */
+@keyframes route-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+.route-enter {
+  animation: route-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  /* No animation at all - not even the `from` frame - so the page is simply
+     visible immediately. */
+  .route-enter { animation: none; }
 }

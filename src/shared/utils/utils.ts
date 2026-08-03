@@ -13,11 +13,28 @@ export function readingTime(text: string): number {
   return Math.max(1, Math.round(words / 200));
 }
 
+// `timeZone: "UTC"` on all three is load-bearing, not a formatting preference.
+//
+// These render inside server-rendered surfaces (research posts, profiles,
+// settings, the dashboard). Pinning only the LOCALE still leaves the timezone
+// to the runtime - Vercel runs UTC, the reader's browser does not - so a
+// timestamp near midnight formatted to a different calendar day on each side.
+// Measured on /settings from an IST browser: the server sent "Aug 2, 2026" and
+// the client rendered "Aug 3, 2026", a text mismatch, which React treats as a
+// hard hydration failure (#418) and recovers from by re-rendering the subtree.
+//
+// UTC is also the better answer on its own terms here: these are "published
+// on" / "joined on" stamps, and a post should not appear to have been
+// published on different days to different readers. Where a date genuinely
+// means "the viewer's day" - the chat's Today/Yesterday separators - the local
+// timezone is correct and the fix is to format it after hydration instead.
+// (`DashboardClient` already pinned UTC for exactly this reason.)
 export function formatDate(date: Date | string): string {
   return new Date(date).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 
@@ -27,6 +44,7 @@ export function formatDateWithDay(date: Date | string): string {
     weekday: "short",
     month: "short",
     day: "numeric",
+    timeZone: "UTC",
   });
 }
 
@@ -37,6 +55,7 @@ export function formatDateTime(date: Date | string | null): string {
     day: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "UTC",
   });
 }
 

@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { ComponentProps } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 
 const MotionLink = motion(Link);
 
@@ -19,7 +20,7 @@ type ActionLinkProps = Omit<
 > & { className?: string };
 
 export function ActionLink({ className = "", children, ...props }: ActionLinkProps) {
-  const reduced = useReducedMotion();
+  const reduced = useReducedMotionSafe();
   return (
     <MotionLink
       className={`btn-press ${className}`}

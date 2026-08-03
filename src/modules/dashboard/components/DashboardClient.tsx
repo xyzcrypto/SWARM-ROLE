@@ -412,7 +412,7 @@ function StatCard({ label, value, hint, accent = "plain" }: { label: string; val
   return (
     <div className="surface surface-hover lift rounded-2xl p-6">
       <p className="text-sm text-zinc-500">{label}</p>
-      <p className={`mt-2 mono text-4xl font-semibold ${num}`}>{value.toLocaleString()}</p>
+      <p className={`mt-2 mono text-4xl font-semibold ${num}`}>{value.toLocaleString("en-US")}</p>
       <p className="mt-1 text-xs text-zinc-600">{hint}</p>
     </div>
   );
