@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getRealtimeClient } from "@/lib/realtimeClient";
+import { joinSharedChannel } from "@/lib/sharedChannel";
 
 // Public client-safe Supabase creds (inlined by Next at build). When unset the
 // hook is a no-op returning false, so callers degrade gracefully (no dot).
@@ -25,11 +25,13 @@ export function useOnlineSet(): Set<string> {
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const client = await getRealtimeClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       if (cancelled) return;
-      const ch = client.channel("site-visitors", { config: { presence: { key: `set-obs-${Math.random().toString(36).slice(2)}` } } });
-      ch.on("presence", { event: "sync" }, () => setSet(new Set(Object.keys(ch.presenceState())))).subscribe();
-      cleanup = () => client.removeChannel(ch);
+      // Observer only - no presence key. RealtimeSession represents the tab;
+      // this used to impose its own key on the same shared channel, which is
+      // what threw "cannot add presence callbacks after subscribe()".
+      const ch = joinSharedChannel(SUPABASE_URL, SUPABASE_ANON_KEY, "site-visitors");
+      const off = ch.onPresence((state) => setSet(new Set(Object.keys(state))));
+      cleanup = () => { off(); ch.release(); };
     })();
     return () => { cancelled = true; cleanup?.(); };
   }, []);
@@ -53,15 +55,12 @@ export function useUserOnline(userId: string | null | undefined): boolean {
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const client = await getRealtimeClient(SUPABASE_URL, SUPABASE_ANON_KEY);
       if (cancelled) return;
-      const ch = client.channel("site-visitors", {
-        config: { presence: { key: `dm-obs-${Math.random().toString(36).slice(2)}` } },
+      const ch = joinSharedChannel(SUPABASE_URL, SUPABASE_ANON_KEY, "site-visitors");
+      const off = ch.onPresence((state) => {
+        setOnline(Object.prototype.hasOwnProperty.call(state, userId));
       });
-      ch.on("presence", { event: "sync" }, () => {
-        setOnline(Object.prototype.hasOwnProperty.call(ch.presenceState(), userId));
-      }).subscribe();
-      cleanup = () => client.removeChannel(ch);
+      cleanup = () => { off(); ch.release(); };
     })();
     return () => {
       cancelled = true;

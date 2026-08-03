@@ -9,7 +9,7 @@ import { PostManager } from "@/components/PostManager";
 import { PERMISSIONS, ALL_PERMISSIONS, hasPermission, type Permission } from "@/lib/permissions";
 import { WhatsNewManager } from "@/components/WhatsNewManager";
 import { useRealtime } from "@/lib/useRealtime";
-import { getRealtimeClient } from "@/lib/realtimeClient";
+import { joinSharedChannel } from "@/lib/sharedChannel";
 
 type Viewer = { id: string; permissions: string[]; isSuperAdmin: boolean };
 
@@ -97,43 +97,33 @@ function useLiveOnline(realtime: Realtime): { count: number | null; live: boolea
 
     async function connect() {
       if (!realtime.url || !realtime.anonKey) return;
-      const client = await getRealtimeClient(realtime.url, realtime.anonKey);
       if (cancelled) return;
-      const ch = client.channel("site-visitors", {
-        config: { presence: { key: `admin-${Math.random().toString(36).slice(2)}` } },
-      });
-      ch.on("presence", { event: "sync" }, () => {
-        setCount(Object.keys(ch.presenceState()).length);
-      }).subscribe((status) => {
+      // Observer, not a participant: an admin watching the dashboard should not
+      // add themselves to the count, and must not claim the shared channel's
+      // presence key. Claiming it is what threw "cannot add presence callbacks
+      // for realtime:site-visitors after subscribe()" in production.
+      const ch = joinSharedChannel(realtime.url, realtime.anonKey, "site-visitors");
+      const offP = ch.onPresence((state) => setCount(Object.keys(state).length));
+      const offS = ch.onStatus((status) => {
         if (cancelled) return;
         if (status === "SUBSCRIBED") {
           setLiveBoth(true);
           retries = 0;
-          ch.track({ at: Date.now() });
           return;
         }
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
           setLiveBoth(false);
-          try {
-            ch.unsubscribe();
-            client.removeChannel(ch);
-          } catch {
-            /* already gone */
-          }
+          // The registry owns reconnection for the topic now; this only backs
+          // off its own view of "live" so the poll below takes over.
           const delay = Math.min(1000 * 2 ** retries, 30_000);
           retries += 1;
-          retryTimer = setTimeout(() => {
-            if (!cancelled) void connect();
-          }, delay);
+          retryTimer = setTimeout(() => { if (!cancelled) void connect(); }, delay);
         }
       });
       cleanup = () => {
-        try {
-          ch.unsubscribe();
-          client.removeChannel(ch);
-        } catch {
-          /* already gone */
-        }
+        offP();
+        offS();
+        ch.release();
         setLiveBoth(false);
       };
     }
@@ -193,14 +183,13 @@ function useMembersChannel(realtime: Realtime, onChange: (id: string, membership
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const client = await getRealtimeClient(realtime.url, realtime.anonKey);
       if (cancelled) return;
-      const ch = client.channel("members");
-      ch.on("broadcast", { event: "membership_changed" }, ({ payload }) => {
+      const ch = joinSharedChannel(realtime.url, realtime.anonKey, "members");
+      ch.onBroadcast("membership_changed", (payload) => {
         const p = payload as { id: string; membership: string };
         cb.current(p.id, p.membership);
-      }).subscribe();
-      cleanup = () => client.removeChannel(ch);
+      });
+      cleanup = () => ch.release();
     })();
     return () => {
       cancelled = true;

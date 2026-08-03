@@ -5,7 +5,7 @@ import { Sparkles, Wrench, Bug, Megaphone, ShieldCheck, Map } from "lucide-react
 import { Reveal } from "@/components/Reveal";
 import { formatDate } from "@/lib/utils";
 import { WHATS_NEW_TAGS, type WhatsNewEntry, type WhatsNewTag } from "@/lib/whatsnew";
-import { getRealtimeClient } from "@/lib/realtimeClient";
+import { joinSharedChannel } from "@/lib/sharedChannel";
 
 const tagStyle: Record<WhatsNewTag, { ring: string; text: string; Icon: typeof Sparkles }> = {
   New: { ring: "ring-mint-500/30 bg-mint-500/10", text: "text-mint-200", Icon: Sparkles },
@@ -42,16 +42,17 @@ export function WhatsNewFeed({ entries: initial, realtime }: { entries: WhatsNew
     let cleanup: (() => void) | undefined;
     let cancelled = false;
     (async () => {
-      const client = await getRealtimeClient(realtime.url, realtime.anonKey);
       if (cancelled) return;
-      const ch = client.channel("notifications");
-      ch.on("broadcast", { event: "whatsnew_updated" }, async () => {
+      // Shares the `notifications` topic with NavActivity - previously both
+      // called client.channel("notifications") and the second one threw.
+      const ch = joinSharedChannel(realtime.url, realtime.anonKey, "notifications");
+      ch.onBroadcast("whatsnew_updated", async () => {
         const data = await fetch("/api/whatsnew?limit=12", { cache: "no-store" })
           .then((r) => r.json())
           .catch(() => null);
         if (data?.entries) setEntries(data.entries as WhatsNewEntry[]);
-      }).subscribe();
-      cleanup = () => client.removeChannel(ch);
+      });
+      cleanup = () => ch.release();
     })();
     return () => {
       cancelled = true;

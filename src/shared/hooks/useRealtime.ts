@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { getRealtimeClient } from "@/lib/realtimeClient";
+import { joinSharedChannel } from "@/lib/sharedChannel";
 
 /**
  * Pure decision used by the hook (and unit-tested): prefer realtime when Supabase
@@ -137,41 +137,31 @@ export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, e
 
     async function open() {
       if (!u || !k) return;
-      const client = await getRealtimeClient(u, k);
       if (cancelled) return;
       teardown?.(); // never stack subscriptions on a reconnect
       teardown = undefined;
-      const ch = client.channel(channel);
-      const drop = () => {
-        try {
-          ch.unsubscribe();
-          client.removeChannel(ch);
-        } catch {
-          /* already gone */
-        }
-      };
-      ch.on("broadcast", { event }, ({ payload }) => cb.current(payload)).subscribe((status) => {
+
+      // Through the shared registry. This hook is used for `user:<id>`,
+      // `notifications`, `post:<id>` and more - topics that RealtimeSession,
+      // NavActivity and WhatsNewFeed also join. Calling client.channel()
+      // directly meant whichever mounted second got an already-subscribed
+      // channel and threw, losing its listeners silently.
+      const ch = joinSharedChannel(u, k, channel);
+      const offMsg = ch.onBroadcast(event, (payload) => cb.current(payload));
+      const offStatus = ch.onStatus((status) => {
         if (cancelled) return;
         if (status === "SUBSCRIBED") {
           live = true;
           retries = 0;
-          // Anything broadcast while the channel was down was missed outright -
-          // broadcast has no replay - so reconcile once the socket is back.
-          // Only on a RE-connect: on the first subscribe the consumer has just
-          // rendered its own server data, and firing here would add a duplicate
-          // request to every page load, which this site cannot afford.
-          if (reconnected) cb.current(null);
+          // Broadcast has no replay, so anything sent while the channel was
+          // down was missed. Reconcile once on a RE-connect only: on the first
+          // subscribe the consumer has just rendered its own server data.
+          if (reconnected) void cb.current(null);
           reconnected = true;
           return;
         }
-        // Anything else is terminal for this channel object: supabase-js will
-        // not put it back by itself once the join has errored. Drop it and
-        // build a fresh one after a backoff. The poll carries the surface in
-        // the meantime, so this is a quality upgrade rather than the only thing
-        // between the user and a dead page.
         if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
           live = false;
-          drop();
           const delay = Math.min(1000 * 2 ** retries, 30_000);
           retries += 1;
           retryTimer = setTimeout(() => {
@@ -179,8 +169,11 @@ export function useRealtime({ channel, event, onMessage, url, anonKey, pollMs, e
           }, delay);
         }
       });
+
       teardown = () => {
-        drop();
+        offMsg();
+        offStatus();
+        ch.release();
         live = false;
       };
     }
