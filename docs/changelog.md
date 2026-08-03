@@ -5,6 +5,62 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (18) — The members table now shows a face and a check-in record
+
+Two follow-ups from the owner, on the table shipped an hour earlier.
+
+### Avatars, so "who has set a photo?" is answerable
+
+A column of masked email addresses cannot tell you that at all. Each row now
+leads with the member's avatar, falling back to initials - so an account with
+no photo is obvious by the absence of one, which was the actual question.
+
+Inline `data:` avatars go out through `publicImageUrl()` as a `/api/media/...`
+URL rather than as base64 in the payload. Fifty rows of raw blob is exactly the
+Fast Origin Transfer trap this project already has a helper for.
+
+### Check-in history, which had nowhere to be seen
+
+The streak shipped in (17) existed only on the member's own button - the owner
+had no way to see who was actually turning up. There is now a **Check-ins**
+column: the current run as a "Day N" badge, and the all-time total beside it.
+
+**Both numbers, deliberately.** "Day 6 - 14 days" answers two different
+questions: the run says whether they are here now, the total says whether they
+ever were. Someone at "Day 1 - 60 days" is a returning regular who lapsed, and
+that reads nothing like "Day 1 - 1 day"; one number alone cannot tell those
+apart. A member who has never checked in reads "never" rather than a zero.
+
+Also added to the CSV export, along with the username, since that is how the
+question gets answered for everyone at once instead of a screen at a time.
+
+### Cost
+
+Two queries for the whole page, not one per row: a `groupBy` for the totals
+(never loads the rows) and one bounded read of the day keys. Both sit on the
+existing `[userId, action, day]` unique index. The streak window matches the
+one the member's own button uses, so the dashboard and the member can never
+disagree - a dashboard saying "Day 40" while the member sees "Day 41" is worse
+than no number.
+
+### Verified
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 505/505 tests ✅ ·
+build ✅
+
+In a real browser, against a seeded history (owner on a 5-day run, the other
+member lapsed after 8 days):
+
+```
+@owner  🔥 Day 5 · 5 days     avatar: photo
+@two       no run · 8 days    avatar: initials
+```
+
+CSV: `Name,Username,Email,…,Check-in Streak,Check-in Days` with `5,5` and `0,8`.
+
+**Files:** `src/core/db/member-checkins.ts` (+ shim), `src/app/dashboard/page.tsx`,
+`src/app/api/users/route.ts`, `src/modules/dashboard/components/DashboardClient.tsx`.
+
 ## 2026-08-03 (17) — Tap a shared photo, click through to a member, and see the streak
 
 Three owner asks, none of which needed a new table.
