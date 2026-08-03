@@ -13,6 +13,7 @@ import { timeAgo } from "@/lib/news";
 import { useRealtime } from "@/lib/useRealtime";
 import { useOnlineSet } from "@/lib/useUserOnline";
 import { chatMediaUrl } from "@/lib/chat-media";
+import { ImageLightbox } from "@/components/ImageLightbox";
 import { clockTime, dayLabel, isReadBy, newestRead } from "@/lib/chat-time";
 import { lastSeenLabel } from "@/lib/last-seen";
 import { useHydrated } from "@/lib/useClientFlag";
@@ -409,8 +410,11 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
                 <div className={cn("flex", grouped ? "mt-0.5" : "mt-2", m.mine ? "justify-end" : "justify-start")}>
                   <div className={cn("max-w-[78%] rounded-2xl text-[14px] leading-relaxed", media ? "overflow-hidden p-1" : "px-3.5 py-2", m.mine ? "rounded-br-md bg-gold-500/20 text-gold-950 ring-1 ring-gold-500/30 dark:bg-gold-500/15 dark:text-gold-50" : "rounded-bl-md bg-black/[0.05] text-zinc-800 ring-1 ring-black/10 dark:bg-white/[0.05] dark:text-zinc-100 dark:ring-white/10")}>
                     {media ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={media} alt="shared media" loading="lazy" className="max-h-72 w-auto max-w-full rounded-xl" />
+                      // Tap to open full-screen - see the note in ChatClient.
+                      <ImageLightbox src={media} alt="shared media" className="inline-block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={media} alt="shared media" loading="lazy" className="max-h-72 w-auto max-w-full cursor-zoom-in rounded-xl" />
+                      </ImageLightbox>
                     ) : (
                       <p className="whitespace-pre-wrap break-words">{m.body}</p>
                     )}

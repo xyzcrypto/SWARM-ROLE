@@ -29,6 +29,7 @@ type Stats = {
 type UserRow = {
   id: string;
   name: string | null;
+  username: string | null;
   email: string;
   provider: string;
   role: string;
@@ -1155,7 +1156,33 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
                   >
                     {revealedId === u.id ? u.email : maskEmail(u.email)}
                   </button>
-                  <div className="mono text-[11px] text-zinc-600">{u.name ?? "-"} · {u.provider}</div>
+                  {/* Name, then the handle as a link to the public profile.
+                      The email alone told an admin who someone is but gave them
+                      no way to go and look at the account. Opens in a new tab
+                      so the members list, its search and its scroll position
+                      are still there when you come back. */}
+                  <div className="mono flex flex-wrap items-center gap-x-1.5 text-[11px] text-zinc-600">
+                    <span>{u.name ?? "-"}</span>
+                    {u.username ? (
+                      <>
+                        <span aria-hidden>·</span>
+                        <a
+                          href={`/u/${u.username}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Open @${u.username}'s profile`}
+                          className="text-gold-300/80 underline decoration-gold-500/30 underline-offset-2 hover:text-gold-200"
+                        >
+                          @{u.username}
+                        </a>
+                      </>
+                    ) : (
+                      // Nothing to link to: the account never picked a handle.
+                      <><span aria-hidden>·</span><span className="text-zinc-700">no handle</span></>
+                    )}
+                    <span aria-hidden>·</span>
+                    <span>{u.provider}</span>
+                  </div>
                 </td>
                 <td className="hidden px-5 py-3 mono text-xs text-zinc-400 md:table-cell">{formatDate(u.createdAt)}</td>
                 <td className="hidden px-5 py-3 mono text-xs text-zinc-400 md:table-cell">

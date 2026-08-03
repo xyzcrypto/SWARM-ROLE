@@ -5,6 +5,83 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (17) — Tap a shared photo, click through to a member, and see the streak
+
+Three owner asks, none of which needed a new table.
+
+### 1. Shared photos open full-screen
+
+In a message list a photo is capped at 288px tall and 300px wide, so a chart or
+a screenshot is unreadable until it can be opened - and tapping it did nothing,
+in both the community chat and DMs.
+
+`ImageLightbox` already existed for the profile avatar and banner, portal and
+scroll-lock and Escape handling included, so this is that component wrapped
+around the two message images rather than a second implementation. Verified in
+a real browser on both surfaces: tap the thumbnail, a full-viewport overlay
+appears.
+
+### 2. The dashboard members table links to the profile
+
+The row showed a masked email and a name, which told an admin *who* someone is
+and gave them no way to go and *look*. It now shows the handle as a link to
+`/u/<username>`, opening in a new tab so the list, its search and its scroll
+position survive.
+
+`username` added to three selects that had all been assembled without it
+(`/api/users`, the dashboard page query, and the client's `UserRow`). Accounts
+that never picked a handle read "no handle" rather than rendering a dead link.
+
+### 3. Daily check-in shows the streak, live
+
+`XpEvent` already stores one row per user per action per UTC day, with `day` as
+a plain `YYYY-MM-DD` string. So a streak is "how many consecutive day keys lead
+back from today" - derived, not stored. **No column, no table, no migration.**
+
+Storing day keys as strings also makes the whole calculation timezone-free:
+everyone's streak rolls over at the same instant, which is the only rule that
+does not quietly reward or punish people for where they live, and it keeps this
+away from the hydration class of bug that timezone-dependent rendering caused
+elsewhere.
+
+Two decisions worth naming:
+
+- **A run counts from yesterday when today is unclaimed.** At 9am, before
+  checking in, someone on a 30-day run has a 30-day run - not a zero. Showing 0
+  there is both wrong and the moment they decide the feature is broken. The
+  badge turns amber in that state, because that is the one moment the number is
+  actionable.
+- **No badge at all below one day.** "Day 0" beside a check-in button reads as
+  a bug rather than a fact.
+
+**Live** in the way that matters: the award endpoint returns the new streak, so
+the number moves on the same click, and it broadcasts `xp_checkin` on the
+member's own channel so a second device stops showing yesterday's number. No
+poll - a streak changes at most once a day and only by their own hand.
+
+### Verified
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · **505/505 tests** ✅
+(+14) · build ✅
+
+In a real browser: DM photo → full-screen overlay ✅ · community photo →
+full-screen overlay ✅ · dashboard Members tab → `/u/two`, `/u/owner` ✅ ·
+check-in streak 0 → 1 on claim, returned in the response ✅
+
+**One correction to my own work along the way:** the first version of the
+check-in hook dropped the cancellation guard the original had, so a response
+arriving after unmount would set state, and it raised the lint warning count
+36 → 37. Both fixed by splitting the fetch from the state write.
+
+**Files:** `src/modules/community/components/ChatClient.tsx`,
+`src/modules/messages/components/MessagesClient.tsx`,
+`src/modules/dashboard/components/DashboardClient.tsx`,
+`src/app/api/users/route.ts`, `src/app/dashboard/page.tsx`,
+`src/shared/utils/xp-streak.ts` (+ shim), `src/app/api/xp/route.ts`,
+`src/app/api/xp/award/route.ts`,
+`src/modules/profile/components/DailyCheckIn.tsx`,
+`src/lib/__tests__/xp-streak.test.ts`.
+
 ## 2026-08-03 (16) — DM read receipts and last seen, both live, both on plumbing that already existed
 
 Owner asked for WhatsApp-style receipts and last seen in DMs, realtime, and a
