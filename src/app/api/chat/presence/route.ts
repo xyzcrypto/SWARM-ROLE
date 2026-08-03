@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { publicImageUrl } from "@/lib/utils";
+import { touchLastSeen } from "@/lib/touch-last-seen";
 
 // POST /api/chat/presence - "I am still here", and tell me who else is.
 //
@@ -48,7 +49,13 @@ export async function POST(req: Request) {
     // throttled goodbye is worse than no throttle at all.
     const body = await req.json().catch(() => null);
     if (body && typeof body === "object" && (body as { leave?: unknown }).leave === true) {
-      await prisma.chatPresence.deleteMany({ where: { userId: me.id } }).catch(() => null);
+      // Stamp last-seen before the row goes: leaving is exactly when a
+      // last-seen time becomes worth having, and exactly when the row that
+      // could have supplied it is deleted.
+      await Promise.all([
+        touchLastSeen(me.id),
+        prisma.chatPresence.deleteMany({ where: { userId: me.id } }).catch(() => null),
+      ]);
       return ok({ left: true });
     }
 
@@ -86,7 +93,8 @@ export async function POST(req: Request) {
       return null;
     };
 
-    const [, rows] = await Promise.all([
+    const [, , rows] = await Promise.all([
+      touchLastSeen(me.id),
       prisma.chatPresence
         .upsert({
           where: { userId: me.id },

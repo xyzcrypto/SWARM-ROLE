@@ -30,6 +30,11 @@ model User {
   provider      String    @default("credentials") // "credentials" | "google"
   createdAt     DateTime  @default(now())
   lastLoginAt   DateTime?
+  // "last seen" for DMs. Written by the presence endpoints the site ALREADY
+  // calls (the site-wide heartbeat and the pagehide beacon), so this costs no
+  // new requests. It is deliberately not on ChatPresence: that row is deleted
+  // on leave, which is exactly the moment a last-seen time becomes interesting.
+  lastSeenAt    DateTime?
 
   // Brute-force defence (works without Upstash): lock the account for a short
   // window after repeated failed password attempts; reset on success.

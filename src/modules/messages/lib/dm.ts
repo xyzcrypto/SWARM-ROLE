@@ -18,7 +18,10 @@ export function snippet(body: string, max = 140): string {
 }
 
 // The columns needed to describe the "other" participant in a conversation.
-export const DM_USER_SELECT = { id: true, name: true, username: true, image: true } as const;
+// `lastSeenAt` rides along here so the DM header can say "last seen 3 h ago"
+// without a second query. Written by the presence endpoints the site already
+// calls - see @core/db/touch-last-seen.
+export const DM_USER_SELECT = { id: true, name: true, username: true, image: true, lastSeenAt: true } as const;
 
 type ConvSides = {
   userAId: string;

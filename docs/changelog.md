@@ -5,6 +5,94 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (16) — DM read receipts and last seen, both live, both on plumbing that already existed
+
+Owner asked for WhatsApp-style receipts and last seen in DMs, realtime, and a
+better-looking thread. Typing was explicitly skipped.
+
+### Read receipts needed no schema change at all
+
+`Conversation` already carried `readAAt` / `readBAt` - "when this side last
+opened the thread" - written on every thread GET for the unread badge. That is
+the entire receipt calculation: a message I sent is read if the other side's
+`readAt` is at or after it. No per-message column, no per-message write.
+
+- The thread GET now returns `otherReadAt`, and the inbox returns `lastMine` +
+  `otherReadAt` so a row can show a tick without being opened.
+- **Live:** opening a thread broadcasts `dm_read` on the sender's existing
+  `user:<id>` channel, carrying the conversation id and the timestamp. The
+  ticks turn with no refetch. Verified end to end with two real sessions: user
+  1 sees `Sent`, user 2 opens the thread, user 1's tick becomes `Read` **without
+  a refresh**.
+- The broadcast fires only when the read actually advanced past something of
+  theirs. Every silent refetch also runs this GET, and broadcasting on all of
+  them is a loop - my refetch pings you, your refetch pings me.
+- It carries no message content. That channel is public (anon key,
+  `private: false`), which the `dm_message` ping already documents; a
+  conversation id and a date is strictly less than that ping already discloses,
+  and it saves the sender a 200-message thread refetch to learn one date.
+
+Three states, deliberately: sending, sent, read. **No "delivered".** WhatsApp
+has one because its server knows when a device received the message; there is
+no such signal here, and deriving it from "are they online right now" would be
+a guess dressed as a fact.
+
+Ticks are **mint, not blue**. Read is the positive outcome and mint is this
+palette's positive; a new colour is the one thing the design system asks not to
+add.
+
+### Last seen: one column, zero new requests
+
+`ChatPresence` looked like the natural home and is the wrong one - the pagehide
+beacon **deletes** that row, which is exactly the moment a last-seen time
+becomes worth having. So `User.lastSeenAt` (migration `31_last_seen`), stamped
+inside the presence endpoints the site already calls: the heartbeat and the
+leave beacon. No new endpoint, no new interval, no new request.
+
+Wording is relative only - "last seen 3 h ago", never a clock time or a date.
+Two reasons: a rendered timestamp needs a timezone, and this project has
+already lost days to that (#418); and exact times are surveillance where a
+bucket is information. Past a week it collapses to "a while ago".
+
+Reads degrade to null on a database that has not had the migration pushed, so
+the header falls back to the handle rather than 503-ing the thread.
+
+### The thread itself
+
+Day separators (Today / Yesterday / date), clock times instead of "3 min ago"
+on every bubble, and consecutive messages from one side grouped tighter. The
+time helpers moved out of `ChatClient` into `chat-time.ts` so DMs reuse the
+hydration-safe versions rather than growing a second copy - they format in UTC
+through hydration and switch to the reader's timezone after, which is the rule
+that keeps #418 away.
+
+Also: a photo DM showed its raw storage URL in the inbox preview. It says
+"📷 Photo" now.
+
+**One bug found in my own work while verifying:** the message list had
+`space-y-2` on the scroll container, which overrode the per-message spacing, so
+the grouping silently did nothing. Caught by looking at the screenshot rather
+than the diff.
+
+### Verified
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · **491/491 tests** ✅
+(+15) · build ✅ · two-session receipt test ✅ · last-seen-after-leave ✅ ·
+mobile + desktop screenshots ✅ · no page errors
+
+**Owner note:** last seen is visible to anyone you have a DM thread with. That
+is the normal messenger bargain, but it is a new disclosure - say if you want it
+behind a setting.
+
+**Files:** `prisma/schema.prisma`, `prisma/migrations/31_last_seen/`,
+`src/shared/utils/last-seen.ts`, `src/shared/utils/chat-time.ts`,
+`src/core/db/touch-last-seen.ts` (+ `src/lib` shims),
+`src/app/api/presence/route.ts`, `src/app/api/chat/presence/route.ts`,
+`src/app/api/dm/route.ts`, `src/app/api/dm/[id]/route.ts`,
+`src/modules/messages/lib/dm.ts`,
+`src/modules/messages/components/MessagesClient.tsx`,
+`src/modules/community/components/ChatClient.tsx`, tests in `src/lib/__tests__/`.
+
 ## 2026-08-03 (15) — Ten seconds after opening the room, the poll dropped you into four-day-old history
 
 The owner filmed it: open `/community`, today's messages are there, and then
