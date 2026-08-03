@@ -5,6 +5,138 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (7) — The profile photo that was never served, and two dialogs anchored to the wrong box
+
+Four reports, and three of them turned out to be one root cause each that no
+amount of CSS tuning would have reached.
+
+### 🔴 An uploaded profile photo was thrown away on the way out
+
+Reported as *"profile photo settings me add hone ke baad bhi profile me show
+nahi hota, bahut sare device me"*. It was in the database the whole time.
+
+`uploadImage()` falls back to storing the image as an inline `data:` URL in the
+`User` row whenever Supabase Storage is unconfigured or fails - that is the
+zero-setup upload path and it works. But **every read path then replaced that
+value with `null`** via `stripInlineImage()`, to keep a 700KB blob out of hot
+JSON payloads and ISR-cached HTML (a real Fast Origin Transfer incident). So the
+photo saved, and then vanished: profile, chat, comments, follow lists, DMs,
+research bylines, the online list, the navbar. For **everyone**, uploader
+included.
+
+The banner had a patch - an owner-only re-fetch of `/api/profile` - which meant
+the owner saw their own banner, nobody else did, and the owner pulled the whole
+base64 blob down on every visit to their own page. The avatar had no patch at
+all. The navbar's comment even said "the real image still renders from the DB on
+the profile + in comments", which was simply not true.
+
+**The fix serves it instead of hiding it.** New `GET /api/media/<kind>/<id>/<v>`
+decodes the stored data URL and returns real image bytes with
+`public, max-age=604800, s-maxage=2592000, stale-while-revalidate=86400`;
+`publicImageUrl()` replaces `stripInlineImage()` at every read path and rewrites
+an inline image to that URL. This is **better** for egress than either previous
+behaviour: the bytes leave the origin once and the CDN holds them, instead of
+being re-serialized into every response and every cache fill - or not being
+served at all. The owner-only banner re-fetch is gone with it.
+
+Two details worth keeping:
+- The version is a **path segment, not `?v=`**. `next/image` refuses to optimize
+  a local URL carrying a query string under the default config - it answers
+  `400 "url" parameter is not allowed`. Measured with `?v=`: every avatar
+  rendered as a **0x0 broken image**, banners fine. Moving the token into the
+  path fixed it without touching the image security config.
+- The token samples the value (length + head/middle/tail windows) rather than
+  hashing it, because these paths run per row on hot endpoints and hashing
+  hundreds of KB there is billable CPU. The first version sampled length + tail
+  only, and a unit test caught it: an edit near the *start* of the image left
+  the token unchanged, which would have pinned a stale avatar. The cache window
+  is long but finite for the same reason - not `immutable`.
+
+**Verified end to end** against a real Postgres, with the avatar and banner
+stored as `data:` URLs, for three viewers - logged out, the owner, and another
+member: image decodes (non-zero natural size) for all three, banner renders for
+all three, and **no base64 appears in the HTML for any of them**. Route checks:
+`200 image/png` with the cache header above, `404` for an unknown kind, `404`
+with a short cache for a user who has no image.
+
+### 🔴 The follow dialog was boxed inside the profile card
+
+Reported as *"follow wala background aligned nahi hai, desktop aur mobile
+dono"*, and it was not a padding problem.
+
+`position: fixed` only means "the viewport" while no ancestor establishes a
+containing block - and `filter`, `transform`, `backdrop-filter` and friends all
+do. The profile hero card is wrapped in `<Reveal variant="blur">`, which animates
+`filter: blur(...)` and settles on **`blur(0px)`**: visually nothing, and not
+`none`. **Measured at 1280x800:** the dialog's `fixed inset-0` overlay resolved
+to **832x328 at (224,112)** instead of 1280x800 at (0,0). It was a dialog
+anchored to the profile card, which is exactly what it looked like.
+
+Portalled to `document.body`, the way `ImageLightbox` already does for the
+backdrop-filter version of this. The overlay also now reserves the bottom nav so
+the panel centres in the space it may actually use, instead of shrinking itself
+by 9rem while still centring in the full viewport.
+**Measured after:** gaps above/below **344/344** at 1280x800, **484/484** at
+1920x1080, **370/362** at 390x844 (the 8px is the bottom nav clearance, which is
+the point).
+
+### 🔴 The news reader was anchored to a wrapper too, and never locked the feed
+
+Same class of bug, milder: **measured at 1280x800, the reader's overlay resolved
+to 1280x780 starting at y=20** rather than filling the viewport. It also had no
+scroll lock that worked - the hand-rolled `body { overflow: hidden }` in it is
+ignored by Lenis, which drives the scroll position itself - and its scroll body
+had neither `overscroll-contain` nor `data-lenis-prevent`, so the wheel fell
+through to `/news` whenever the briefing was short or you reached its end.
+
+Portalled, given the real `useScrollLock`, and both scroll attributes added.
+**Measured after:** overlay is the full viewport, twelve wheel gestures over the
+open reader leave the page at **71 → 71**, the reader's own body scrolls 341px,
+and Escape releases it.
+
+### 🔴 The Publish editor handed the wheel to the page
+
+Lenis's general rule only gives the wheel back to a box that is *currently*
+taller than its frame. So an empty editor, a nearly-empty one, or one at the top
+or bottom of its text handed the wheel straight to the page - which is the
+"cursor box me hai, poora page hilta hai" report, and why it looked
+device-dependent. `data-lenis-prevent` makes it unconditional: while the pointer
+is in the box, the box owns the wheel. That is a deliberate trade (reaching the
+end of your text no longer carries on down the page) and it is what was asked
+for.
+**Measured at 1280x800, 1920x1080 and 390x844**, including twelve gestures past
+the end of the text: page `242 → 242`, `0 → 0`, `346 → 346`.
+
+### Also
+
+- `useScrollLock` now compensates for the scrollbar it removes, so the page
+  behind a dialog does not shift by its width on open.
+- The lock replaced two more hand-rolled `body { overflow: hidden }` blocks that
+  never worked with Lenis: `ImageLightbox` and the dashboard access dialog. The
+  news "Customize your feed" sheet got one for the first time.
+
+**Files:** `src/app/api/media/[kind]/[id]/[v]/route.ts` (new) ·
+`src/shared/utils/media.ts` + `src/lib/media.ts` (new) ·
+`src/shared/utils/utils.ts` · `src/core/auth/auth.ts` ·
+`src/app/u/[username]/page.tsx` · `src/app/research/[slug]/page.tsx` ·
+`src/app/api/profile/route.ts` · `src/app/api/follow/list/route.ts` ·
+`src/app/api/posts/[id]/comments/route.ts` · `src/app/api/dm/search/route.ts` ·
+`src/app/api/chat/presence/route.ts` · `src/modules/community/lib/chat.ts` ·
+`src/modules/messages/lib/dm.ts` ·
+`src/modules/profile/components/ProfileBannerImage.tsx` ·
+`src/modules/profile/components/FollowListModal.tsx` ·
+`src/modules/news/components/NewsClient.tsx` ·
+`src/modules/community/components/PostContentEditor.tsx` ·
+`src/modules/community/components/ImageLightbox.tsx` ·
+`src/modules/dashboard/components/DashboardClient.tsx` ·
+`src/shared/hooks/useScrollLock.ts` ·
+`src/lib/__tests__/public-image.test.ts` (new).
+
+**Gates:** typecheck ✅ · lint 0 errors / 37 warnings (unchanged) · 430/430
+tests ✅ · build ✅.
+
+---
+
 ## 2026-08-03 (6) — Live surfaces that quietly died and never came back
 
 Reported: the community room's online count still is not live, it "does not

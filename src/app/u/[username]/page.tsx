@@ -19,7 +19,7 @@ import { JournalActivityFeed } from "@/components/JournalActivityFeed";
 import { EditProfileButton } from "@/components/EditProfileButton";
 import { ProfileBannerImage } from "@/components/ProfileBannerImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
-import { cn, formatDate, formatDateTime, stripInlineImage } from "@/lib/utils";
+import { cn, formatDate, formatDateTime, publicImageUrl } from "@/lib/utils";
 import { normalizeUsername } from "@/lib/profile";
 import { safeHref } from "@/lib/links";
 import { fetchExtraSocials } from "@/lib/user-socials";
@@ -46,10 +46,18 @@ const getProfile = cache(async (usernameParam: string) => {
       },
     })
     .catch(() => null);
-  // Strip any inline data: URL fallback image (see stripInlineImage) before it
-  // reaches metadata/HTML - this page is ISR-cached (300s) and public, so a
-  // raw base64 blob here gets re-shipped to every viewer on every cache fill.
-  return user ? { ...user, image: stripInlineImage(user.image), bannerImage: stripInlineImage(user.bannerImage) } : null;
+  // Route an inline data: URL image through /api/media instead of embedding it
+  // (see publicImageUrl). This page is ISR-cached (300s) and public, so a raw
+  // base64 blob here would be re-shipped to every viewer on every cache fill -
+  // but the previous fix for that dropped it to `null`, which is why an
+  // uploaded profile photo never appeared on the profile at all.
+  return user
+    ? {
+        ...user,
+        image: publicImageUrl(user.image, user.id, "avatar"),
+        bannerImage: publicImageUrl(user.bannerImage, user.id, "banner"),
+      }
+    : null;
 });
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
@@ -128,7 +136,7 @@ export default async function ProfilePage(props: Props) {
           <Reveal variant="blur">
           <div className={cn("glass overflow-hidden rounded-3xl", isPremium && "ring-1 ring-gold-500/40 shadow-gold")}>
             <div className="relative h-32 w-full sm:h-40">
-              <ProfileBannerImage profileId={user.id} bannerImage={user.bannerImage} />
+              <ProfileBannerImage bannerImage={user.bannerImage} />
               {/* Premium wash: a quiet gold vignette blended over the banner (or the
                   plain gradient when there isn't one) - not a different banner, just
                   a warmer tint that reads as "premium" without competing with it. */}

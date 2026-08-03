@@ -81,6 +81,55 @@ export function stripInlineImage(url: string | null | undefined): string | null 
 }
 
 /**
+ * Turn a stored profile image into something a browser can actually load.
+ *
+ * This replaces `stripInlineImage` at every read path, and the difference is
+ * the whole bug: stripping returned `null`, so an uploaded photo was silently
+ * discarded on the way out and **never appeared for anyone** - the uploader
+ * included. The bytes were in the database the entire time.
+ *
+ * - Already a real URL (Supabase Storage, an OAuth avatar, a pasted link):
+ *   returned untouched.
+ * - An inline `data:` URL: rewritten to `/api/media/<kind>/<ownerId>/<token>`,
+ *   which serves the same bytes with a long CDN cache. That keeps the blob out
+ *   of JSON payloads and ISR HTML - the Fast Origin Transfer problem stripping
+ *   was introduced for - while still showing the photo, because the CDN answers
+ *   every request after the first.
+ * - No owner id to build a URL from: falls back to null, i.e. the old
+ *   behaviour, so a caller that cannot supply one degrades rather than breaks.
+ *
+ * The trailing token exists so a new upload lands on a different URL instead
+ * of being masked by the previous image's cache entry. It is a path segment
+ * rather than `?v=` because `next/image` refuses to optimize a local URL with
+ * a query string under the default config (`400 "url" parameter is not
+ * allowed`), which rendered every avatar as a 0x0 broken image.
+ *
+ * It samples the value rather than hashing it, deliberately: these paths run per
+ * row on hot endpoints and the value can be several hundred KB of base64, so a
+ * real hash there is genuine synchronous CPU on a plan that bills for exactly
+ * that. Length plus three fixed windows (head, middle, tail) is O(1) and cannot
+ * realistically match across two different photos - a different image differs
+ * throughout its base64, not only in one place. The first version of this used
+ * length + tail alone, and a unit test caught it: an edit near the *start* of
+ * the data left the token identical, which would have pinned a stale avatar.
+ * The route's cache window is finite for the same reason - see its header - so
+ * even a freak collision self-heals rather than sticking forever.
+ */
+export function publicImageUrl(
+  url: string | null | undefined,
+  ownerId: string | null | undefined,
+  kind: "avatar" | "banner" = "avatar"
+): string | null {
+  if (typeof url !== "string" || !url) return null;
+  if (!url.startsWith("data:")) return url;
+  if (!ownerId) return null;
+  const mid = Math.floor(url.length / 2);
+  const sample = url.slice(24, 30) + url.slice(mid, mid + 6) + url.slice(-6);
+  const token = url.length.toString(36) + sample.replace(/[^a-zA-Z0-9]/g, "");
+  return `/api/media/${kind}/${encodeURIComponent(ownerId)}/${token}`;
+}
+
+/**
  * From GitHub's `GET /user/emails` response, return the address that is BOTH the
  * account's primary AND verified email, or null if there isn't one. Used by the
  * GitHub OAuth `profile()` callback (src/lib/auth.ts) so account-linking only

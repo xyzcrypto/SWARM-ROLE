@@ -21,12 +21,14 @@ const PUBLIC_SELECT = {
   telegram: true,
 } as const;
 
-// GET /api/profile - the signed-in user's own profile, image fields unstripped.
-// The public /u/[username] page strips inline data: URL avatars/banners before
-// they reach its ISR-cached HTML (see stripInlineImage - FOT protection for
-// every visitor), so an owner whose upload fell back to an inline data: URL
-// otherwise never sees it on their own page. This is a private, self-only,
-// no-store read that lets the owner's view rehydrate with the real image.
+// GET /api/profile - the signed-in user's own profile, image fields as stored
+// (an inline data: URL is returned verbatim). Private, self-only, no-store.
+//
+// The profile PAGE no longer calls this: public pages now serve a real
+// /api/media/... URL that works for every viewer, so there is nothing to
+// "rehydrate" for the owner (see publicImageUrl). It remains the settings
+// editor's read, where showing the current image in the form is the point and
+// one private request for it is fine.
 export async function GET() {
   try {
     const me = await getSessionUser();

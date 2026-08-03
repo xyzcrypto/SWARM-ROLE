@@ -4,7 +4,7 @@ import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { notifyNewComment } from "@/lib/notifications";
 import { broadcastEvent } from "@/lib/realtime";
-import { stripInlineImage } from "@/lib/utils";
+import { publicImageUrl } from "@/lib/utils";
 
 // GET /api/posts/:id/comments - public; visible comments, newest first, paginated.
 export async function GET(req: Request, props: { params: Promise<{ id: string }> }) {
@@ -26,7 +26,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
           id: true,
           body: true,
           createdAt: true,
-          user: { select: { name: true, username: true, image: true, membership: true } },
+          user: { select: { id: true, name: true, username: true, image: true, membership: true } },
         },
       }),
       prisma.comment.count({ where }),
@@ -44,7 +44,7 @@ export async function GET(req: Request, props: { params: Promise<{ id: string }>
       author: {
         name: c.user?.name || c.user?.username || "Member",
         username: c.user?.username ?? null,
-        image: stripInlineImage(c.user?.image),
+        image: publicImageUrl(c.user?.image, c.user?.id),
         premium: c.user?.membership === "Premium",
       },
     }));
@@ -85,7 +85,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
     const created = await prisma.comment.create({
       data: { body: parsed.data.body, postId: params.id, userId: user.id },
-      select: { id: true, body: true, createdAt: true, user: { select: { name: true, username: true, image: true, membership: true } } },
+      select: { id: true, body: true, createdAt: true, user: { select: { id: true, name: true, username: true, image: true, membership: true } } },
     });
 
     // Notify the post author (best-effort, skips self-comments).
@@ -109,7 +109,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
           author: {
             name: created.user?.name || created.user?.username || "Member",
             username: created.user?.username ?? null,
-            image: stripInlineImage(created.user?.image),
+            image: publicImageUrl(created.user?.image, created.user?.id),
             premium: created.user?.membership === "Premium",
           },
         },

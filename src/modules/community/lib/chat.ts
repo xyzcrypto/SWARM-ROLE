@@ -6,7 +6,7 @@
 import { z } from "zod";
 import { unstable_cache } from "next/cache";
 import { broadcastEvent } from "@/lib/realtime";
-import { stripInlineImage } from "@/lib/utils";
+import { publicImageUrl } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 
 export const CHAT_CHANNEL = "community";
@@ -205,7 +205,7 @@ export function toChatPayload(m: {
     pinnedAt: m.pinnedAt ? m.pinnedAt.toISOString() : null,
     userId: m.userId,
     poll,
-    author: { ...m.user, image: stripInlineImage(m.user.image) },
+    author: { ...m.user, image: publicImageUrl(m.user.image, m.userId) },
     replyTo: m.replyTo
       ? {
           id: m.replyTo.id,

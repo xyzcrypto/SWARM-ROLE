@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { publicImageUrl } from "@/lib/utils";
 
 // POST /api/chat/presence - "I am still here", and tell me who else is.
 //
@@ -97,9 +98,12 @@ export async function POST(req: Request) {
       id: r.userId,
       name: r.user?.name ?? "Member",
       username: r.user?.username ?? null,
-      // Never serialize an inline data: avatar - see stripInlineImage and the
-      // Fast Origin Transfer incident it exists for.
-      image: r.user?.image && !r.user.image.startsWith("data:") ? r.user.image : null,
+      // Never serialize an inline data: avatar into this payload - see
+      // publicImageUrl and the Fast Origin Transfer incident it exists for.
+      // It used to be dropped to null here, which is why members with an
+      // uploaded photo showed initials in the online list; it is now a real
+      // CDN-cacheable URL instead.
+      image: publicImageUrl(r.user?.image, r.userId),
     }));
     // `SessionUser` carries only access metadata (id/role/membership/email), not
     // a display name - so use the row the upsert just wrote rather than

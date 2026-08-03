@@ -7,7 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { Avatar } from "@/components/Avatar";
 import { Markdown } from "@/lib/markdown";
 import { prisma } from "@/lib/prisma";
-import { cn, formatDate, readingTime, stripInlineImage } from "@/lib/utils";
+import { cn, formatDate, readingTime, publicImageUrl } from "@/lib/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { JsonLd, articleJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
@@ -30,18 +30,20 @@ import { TrackPostView } from "@/components/TrackPostView";
 export const revalidate = 300;
 
 // Shared by generateMetadata + the page so both share one query per request.
-// Strip any inline data: URL fallback image (see stripInlineImage) from the
-// author before it reaches this ISR-cached (300s), public page - a raw base64
-// blob there gets re-shipped to every viewer on every cache fill.
-function withSafeAuthorImage<T extends { author: { image: string | null } | null }>(post: T): T {
-  return { ...post, author: post.author ? { ...post.author, image: stripInlineImage(post.author.image) } : null };
+// Route an inline data: URL author image through /api/media (see
+// publicImageUrl) rather than embedding it in this ISR-cached (300s), public
+// page, where a raw base64 blob would be re-shipped to every viewer on every
+// cache fill. The previous version dropped it to `null` instead, which is why
+// an author who had uploaded a photo showed initials to everyone.
+function withSafeAuthorImage<T extends { author: { id: string; image: string | null } | null }>(post: T): T {
+  return { ...post, author: post.author ? { ...post.author, image: publicImageUrl(post.author.image, post.author.id) } : null };
 }
 
 const getPost = cache(async (slug: string) => {
   try {
     const post = await prisma.post.findFirst({
       where: { slug, published: true },
-      include: { author: { select: { name: true, username: true, image: true, membership: true } } },
+      include: { author: { select: { id: true, name: true, username: true, image: true, membership: true } } },
     });
     return post ? withSafeAuthorImage(post) : null;
   } catch (err: any) {
@@ -55,7 +57,7 @@ const getPost = cache(async (slug: string) => {
             id: true, slug: true, title: true, excerpt: true, content: true,
             cover: true, category: true, tags: true, premium: true,
             createdAt: true, updatedAt: true,
-            author: { select: { name: true, username: true, image: true, membership: true } },
+            author: { select: { id: true, name: true, username: true, image: true, membership: true } },
           },
         })
         .catch(() => null);

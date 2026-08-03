@@ -2,7 +2,7 @@
 // without a DB. A conversation is the canonical pair of two user ids, always
 // stored with the smaller id as userAId so the pair is unique regardless of who
 // starts the chat.
-import { stripInlineImage } from "@/lib/utils";
+import { publicImageUrl } from "@/lib/utils";
 
 export const DM_MAX_LEN = 2000; // per-message character cap
 
@@ -35,7 +35,7 @@ export function otherOf(conv: ConvSides, myId: string) {
   const other = iAmA ? conv.userB ?? null : conv.userA ?? null;
   return {
     iAmA,
-    other: other ? { ...other, image: stripInlineImage(other.image) } : null,
+    other: other ? { ...other, image: publicImageUrl(other.image, other.id) } : null,
     myReadAt: iAmA ? conv.readAAt ?? null : conv.readBAt ?? null,
   };
 }
