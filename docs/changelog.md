@@ -5,6 +5,86 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (20) — DM safety: block, report, and who can message you
+
+Second half of the DM request. Kept apart from the message menu on purpose:
+this is a policy about people, not a control on a bubble.
+
+### One gate, called by both write paths
+
+`dm-gate.ts` answers "may these two message each other?" for both starting a
+conversation and sending into one. Three decisions in it are easy to get subtly
+wrong apart, so they are in one file with the reasoning attached:
+
+**Blocks bite in both directions even though the row is one-way.** If either
+side has blocked the other, neither can send. Enforcing it only against the
+blocked party leaves the blocker still receiving, which is the thing they asked
+to stop.
+
+**Privacy gates NEW conversations only.** Someone who sets "nobody" has not
+asked to have their open threads cut off mid-sentence; they have asked not to be
+approached by strangers. Blocking is the tool for ending a conversation.
+
+**"Only people I follow" means the people the RECIPIENT follows** - the inbox
+they opted into. Using their follower list instead would let anyone who follows
+them through, which is the opposite of a filter. There is a test that asserts
+the query is built that way round, because the two are one word apart.
+
+**The refusal message is identical** for "they blocked you" and "their settings
+don't allow it". Telling someone they were specifically blocked hands a
+harasser a confirmation signal, and the recipient gains nothing from the
+distinction.
+
+### Report, because block alone is half a safety story
+
+Block protects the person who pressed it and tells the owner nothing. A report
+lands in a queue with a reason (spam / harassment / scam / other) and, if it
+came from a thread, the id of the message that prompted it - referenced, not
+copied, since DM deletes are soft and the evidence is still there.
+
+Blocking does **not** delete history. A block stops what happens next; quietly
+erasing a conversation someone may need to report would be the wrong instinct.
+
+### In the UI
+
+The thread header gets the safety menu (Block / Unblock, and Report with a
+reason). A blocked thread replaces the composer with a plain sentence rather
+than a disabled box - a greyed-out field you can still click into invites
+someone to type a message that will never send.
+
+Settings gets "Who can message me", with the caveat spelled out next to it.
+
+### Verified end to end, two sessions
+
+```
+block                    200
+blocker sends            403        both directions
+blocked sends            403
+thread flags (blocker)   blocked:true  blockedByMe:true
+thread flags (blocked)   blocked:true  blockedByMe:false
+report                   200
+unblock -> send          200 -> 201
+privacy=nobody, new      403
+privacy=nobody, existing 201        thread survives
+```
+
+**A false alarm from my own harness:** the first run showed block and report
+returning 400. That was the test data, not the code - the seeded users had
+hand-written ids and the routes validate `isCuid`. Re-run with cuid ids, all
+green. Recorded because "400 on block" would have looked like a real defect.
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · **515/515 tests** ✅
+(+10, all on the gate) · build ✅
+
+**Files:** `prisma/schema.prisma`, `prisma/migrations/33_dm_safety/`,
+`src/modules/messages/lib/dm-gate.ts` (+ shim),
+`src/app/api/dm/block/route.ts`, `src/app/api/dm/report/route.ts`,
+`src/app/api/dm/route.ts`, `src/app/api/dm/[id]/route.ts`,
+`src/app/api/profile/route.ts`, `src/modules/profile/lib/profile.ts`,
+`src/app/settings/page.tsx`, `src/modules/settings/components/SettingsClient.tsx`,
+`src/modules/messages/components/MessagesClient.tsx`,
+`src/lib/__tests__/dm-gate.test.ts`.
+
 ## 2026-08-03 (19) — DM message actions: edit, delete, pin, translate, copy
 
 First half of the owner's DM request. Block, report and the DM privacy setting

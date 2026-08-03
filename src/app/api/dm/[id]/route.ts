@@ -6,6 +6,7 @@ import { otherOf, snippet, DM_MAX_LEN, DM_USER_SELECT } from "@/lib/dm";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
 import { sendPush, pushEnabled } from "@/lib/push";
 import { chatMediaUrl } from "@/lib/chat-media";
+import { canSendInThread, isBlockedEitherWay } from "@/lib/dm-gate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -104,6 +105,15 @@ export async function GET(_req: Request, props: Ctx) {
       pinned: pinnedRow
         ? { id: pinnedRow.id, body: pinnedRow.body, mine: pinnedRow.senderId === me.id }
         : null,
+      // Whether this thread is closed, and whether it was me who closed it -
+      // "you blocked them" and "you cannot message them" need different words.
+      blocked: await isBlockedEitherWay(me.id, iAmA ? conv.userBId : conv.userAId),
+      blockedByMe: !!(await prisma.block
+        .findUnique({
+          where: { blockerId_blockedId: { blockerId: me.id, blockedId: iAmA ? conv.userBId : conv.userAId } },
+          select: { id: true },
+        })
+        .catch(() => null)),
       other: other
         ? {
             id: other.id,
@@ -142,6 +152,11 @@ export async function POST(req: Request, props: Ctx) {
     const body = parsed.data.body;
 
     const iAmA = conv.userAId === me.id;
+    // A block ends an open thread in both directions. Deliberately checked here
+    // and not only in the UI: the composer being hidden is a courtesy, this is
+    // the rule.
+    const gate = await canSendInThread(me.id, iAmA ? conv.userBId : conv.userAId);
+    if (!gate.ok) return fail(gate.reason, 403);
     const now = new Date();
     const created = await prisma.directMessage.create({
       data: { conversationId: conv.id, senderId: me.id, body },
