@@ -5,6 +5,74 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (26) — The hero's live band is gone
+
+Owner: *"no need live one in hero section"*. The scrolling band of research
+titles is removed from the hero card. The card itself stays.
+
+### What the card keeps
+
+The two facts the band actually proved are still there, as one quiet sub-line:
+**how many reports exist** and **how recent the newest one is** (`5 reports ·
+newest 2h ago`). Both are still real rows, still server-rendered, still
+refreshed by the `revalidatePath("/")` the research write routes already call.
+So publishing a post still updates the card immediately - that behaviour did
+not depend on the band.
+
+What went: the `NEW`/`LATEST` badge, the blinking live dot, the marquee, and
+the panel they sat in.
+
+### Dead code went with it, deliberately
+
+Removing a feature and leaving its support behind is how a codebase collects
+things nobody can explain later. So these went too, in the same commit:
+
+- `.hero-feed`, `.hero-feed::before`, `.hero-feed-track`, `.hero-feed-mask`,
+  `.hero-badge-new`, `.hero-cta-blink` and the `hero-feed`/`hero-bloom`/
+  `hero-blink` keyframes (`globals.css`)
+- `research-freshness.ts`, its `src/lib` shim and its 7 tests - the freshness
+  gate existed only to decide whether the band's badge could honestly say
+  `NEW`, and nothing else consumed it. Test count moves 522 → 515.
+
+Both files keep a one-line note saying the band was here and where it went, so
+the next reader is not left wondering why the CSS block is named after a card
+that has no band.
+
+### One cost trim that came free
+
+`page.tsx` fetched **twelve** research rows to fill the band. With the band
+gone it reads exactly one - `findFirst` with `select: { createdAt: true }` -
+because eleven rows nobody renders are just payload. The count query is
+unchanged.
+
+### Verification
+
+```
+                360      412      1440
+card     x/w    20/320   20/372   92/580
+headline x/w    20/320   20/372   92/630
+scrollWidth     360      412      1440    (no horizontal overflow)
+band present    false    false    false
+```
+
+Checked in **both themes**. Route table unchanged at **131 / 22 static / 109
+dynamic / 12 ISR**, `/` still `○` on a 5m window.
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 515/515 tests ✅ ·
+build ✅
+
+The populated sub-line (`5 reports · newest 2h ago`) was verified by
+temporarily stubbing the two values, screenshotting both themes, and reverting
+the stub - this machine has no database, so the live render exercises the
+`.catch()` fallback path (`0 reports`) instead.
+
+**Files:** `src/components/HeroCta.tsx`, `src/app/page.tsx`,
+`src/app/globals.css`, deleted `src/shared/utils/research-freshness.ts` +
+`src/lib/research-freshness.ts` + `src/lib/__tests__/research-freshness.test.ts`,
+`docs/changelog.md`.
+
+---
+
 ## 2026-08-04 (25) — Write down who is allowed to merge
 
 Docs only, no code. `CLAUDE.md`'s "Branch / deploy model" now states the owner's
