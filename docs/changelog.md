@@ -5,6 +5,42 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 — NavActivity: switch the fast badge poll off once realtime proves itself
+Addresses the last open finding from the latency audit (#202 finding #2), which was
+also the only one that had got *worse* since — the component gained a
+`FAST_POLL_MS = 30_000` loop on top of the existing 60s one.
+- **Why the audit's own advice was wrong.** It said "widen `POLL_MS` to 120–180s;
+  realtime already carries the instant path." The code comment rebuts that: realtime
+  needs **both** halves of the Supabase setup and they are *separate credentials*. The
+  browser subscribes with `NEXT_PUBLIC_SUPABASE_URL/ANON_KEY`; the server pushes with
+  `SUPABASE_URL/SERVICE_ROLE_KEY` via `broadcastEvent()`. When the server half is unset
+  that call is a **silent no-op** and the poll is the only thing that ever moves the DM
+  badge. Widening it blindly would have made badges minutes-stale on exactly the broken
+  configuration the fast loop was added for.
+- **What changed instead:** the fast loop is now gated on `enabled: !realtimeProven`,
+  where `realtimeProven` flips the first time a broadcast actually **arrives**. That is
+  deliberately not "is the channel subscribed" — subscribing only proves the browser
+  half, and looks perfectly healthy on the configuration where the poll is load-bearing.
+  A *received* broadcast is the only signal that proves the path end-to-end, and since
+  every `broadcastEvent()` shares the same credentials, a ping on `notifications` proves
+  the DM path on `user:<id>` too.
+- **Effect:** when realtime works, two indexed queries per minute per logged-in tab stop
+  — permanently, per tab — and the component returns to its intended design (realtime for
+  instant, `POLL_MS` as backstop). When realtime is dark, behaviour is **byte-identical**
+  to before. The worst case cannot get worse.
+- **One-way on purpose.** It never re-enables: "realtime stopped" and "the room is quiet"
+  are indistinguishable from the client, so a re-enabling loop would flap. If realtime
+  dies mid-session the badge falls back to `POLL_MS` plus `useLiveData`'s existing
+  focus/visibility/online refetch, which is the path a returning user actually hits.
+- **Pinned by `navactivity-adaptive-poll.test.ts`**, proved non-vacuous against three
+  perturbations: dropping `proven()` from one handler (caught, naming the handler),
+  ungating the fast loop (caught), and gating the *full* backstop loop by mistake
+  (caught). No jsdom in this project, so it is a source-level invariant test in the same
+  style as `api-rate-limits` and `markets-poll-alignment`.
+- Route table unchanged at 131/22/109/12. `/dashboard` client JS 237 → 238 kB gz.
+
+---
+
 ## 2026-08-04 — Retire the cross-region framing everywhere it was still stated as current
 Docs and comments only. #210 co-located functions with Supabase in `bom1`, so the
 ~250ms-per-query penalty that shaped a lot of earlier performance advice is gone. This

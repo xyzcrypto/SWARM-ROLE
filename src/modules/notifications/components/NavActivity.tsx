@@ -69,6 +69,23 @@ export function NavActivity() {
   const [dmUnread, setDmUnread] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
+  // Has a realtime broadcast ever actually ARRIVED in this tab?
+  //
+  // This is deliberately not "is the channel subscribed". Subscribing only
+  // proves the *browser* half (NEXT_PUBLIC_SUPABASE_URL/ANON_KEY). The server
+  // half is separate credentials - broadcastEvent() needs SUPABASE_URL and
+  // SUPABASE_SERVICE_ROLE_KEY (core/realtime/realtime.ts) - and when those are
+  // unset it is a silent no-op while the client sits happily subscribed to a
+  // channel nothing will ever publish to. A subscription therefore looks
+  // perfectly healthy on the exact configuration where the poll is the only
+  // thing that works.
+  //
+  // A received broadcast is the one signal that proves the whole path
+  // end-to-end. Every broadcastEvent() call shares those same credentials, so a
+  // ping on `notifications` proves the DM path on `user:<id>` too - it is the
+  // config that is in question, not the topic.
+  const [realtimeProven, setRealtimeProven] = useState(false);
+
   // These three no longer swallow their failures. They are driven by
   // useLiveData, which retries a rejected load with backoff and refetches when
   // the tab or the network comes back - and a swallowed error is invisible to
@@ -117,12 +134,27 @@ export function NavActivity() {
     await Promise.all([loadNotes(), loadChat(), loadDm()]);
   }, [loadNotes, loadChat, loadDm]);
 
-  // Full refresh, including the notification list.
+  // Full refresh, including the notification list. Always on - this is the
+  // backstop, and 60s is what it was designed to be when realtime works.
   useLiveData({ load: everything, intervalMs: POLL_MS });
   // Just the two cheap unread counts, twice as often. These are the badges a
   // person actually watches, and the ones left stranded when the server half
   // of realtime is unconfigured.
-  useLiveData({ load: badges, intervalMs: FAST_POLL_MS });
+  //
+  // ...which is precisely the condition this is now gated on. The fast loop
+  // exists ONLY to cover realtime being dark; the moment a broadcast actually
+  // arrives, realtime is doing that job and this becomes duplicate work - two
+  // extra indexed queries per minute per logged-in tab, forever, for badges
+  // realtime has already updated. So it switches itself off, and what remains
+  // is the design this component had before the fast loop was needed: realtime
+  // for instant updates, POLL_MS as the backstop.
+  //
+  // Deliberately one-way. It does not re-enable if broadcasts stop, because
+  // "stopped" and "quiet" are indistinguishable from here and a flapping poll
+  // would be worse than either. If realtime dies mid-session the badge falls
+  // back to POLL_MS, plus useLiveData's own refetch on focus/visibility/online
+  // - which is the path a returning user actually hits.
+  useLiveData({ load: badges, intervalMs: FAST_POLL_MS, enabled: !realtimeProven });
 
   // Refetch the DM unread count on every navigation so the badge drops as soon
   // as the user opens /messages (a thread read clears its unread server-side).
@@ -139,14 +171,22 @@ export function NavActivity() {
     let cancelled = false;
     (async () => {
       if (cancelled) return;
+      // Any arriving broadcast proves the server half is configured - see the
+      // note on `realtimeProven`. Marked on every handler rather than just one,
+      // because which topic fires first depends entirely on what happens in the
+      // room; waiting specifically for a `ping` would leave a tab that only ever
+      // receives DMs polling forever.
+      const proven = () => setRealtimeProven(true);
+
       const ch = joinSharedChannel(url, anon, "notifications");
-      ch.onBroadcast("ping", () => { void loadNotes(); void loadChat(); });
+      ch.onBroadcast("ping", () => { proven(); void loadNotes(); void loadChat(); });
       // Live chat dot: light up on a new community message unless the user is
       // currently on the chat page (which marks messages seen). This shares the
       // `community` topic with ChatClient - which is exactly the collision that
       // used to throw and silently drop one side's listeners.
       const chat = joinSharedChannel(url, anon, "community");
       chat.onBroadcast("new_message", () => {
+        proven();
         if (!window.location.pathname.startsWith("/community")) setChatDot(true);
       });
       // Live DM badge: refetch my unread count when a message lands on my
@@ -154,7 +194,7 @@ export function NavActivity() {
       let dm: ReturnType<typeof joinSharedChannel> | undefined;
       if (meId) {
         dm = joinSharedChannel(url, anon, `user:${meId}`);
-        dm.onBroadcast("dm_message", () => { void loadDm(); });
+        dm.onBroadcast("dm_message", () => { proven(); void loadDm(); });
       }
       cleanup = () => {
         ch.release();
