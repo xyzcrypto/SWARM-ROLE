@@ -99,6 +99,27 @@ Owner reviewed the preview and asked for five things. All five landed:
    white. Verified at 412 and 1440 in both themes.
 
 
+
+### Follow-up 3: the research band came back out
+
+Owner asked what "newest 29d ago" meant, and whether the band should go. The
+honest answer to the first question exposed a defect in the second: the card was
+badging a **29-day-old** report as `NEW`, with a blinking live dot. A visitor who
+clicks that finds nothing new, which costs more trust than the badge buys.
+
+A freshness gate was built first (`NEW` only inside 7 days, `LATEST` after; the
+age label hidden past 14 days) and verified against the owner's real case by
+ageing the local posts to 29 days: badge fell back to `LATEST`, the dot stopped,
+`newest 29d ago` disappeared. Owner then chose to drop the band entirely, which
+is the simpler call while publishing is infrequent.
+
+So the band, the marquee, the freshness module and its 11 tests all came out
+rather than being left dormant - dead code with passing tests is worse than no
+code, and this is all recoverable from **dfa6249**. The card is now the icon, a
+title, `N reports`, and the arrow.
+
+The 12-row title query went with it; the homepage now only counts.
+
 ### Follow-up 2: a real research emblem, and one right edge on desktop
 
 **The icon was still a search glyph.** A lone magnifier says "search", not
