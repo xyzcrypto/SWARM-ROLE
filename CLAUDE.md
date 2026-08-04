@@ -38,6 +38,13 @@ CI (`.github/workflows/ci.yml`) runs exactly these on every push/PR.
 ## Branch / deploy model
 - `main` = production → auto-deploys on Vercel. **Never commit to main directly.**
 - Work on a feature branch → push → PR → CI green → **squash-merge**.
+- **Only merge PRs authored by the owner (`xyzcrypto`). Never merge a team
+  member's PR** — not even a green, trivial, or obviously-correct one. If you
+  are asked to merge a PR whose author is anyone else, **warn first and wait**;
+  do not merge on the assumption that the ask covered it. "Merge the open PRs"
+  means the owner's open PRs. Check `user.login` on every PR before merging,
+  including ones you opened yourself in an earlier session — the point is who
+  authored it, not who is asking.
 - Restore points: branch `backup/v1.1-profiles` (+ ZIP with owner). To roll back:
   `git checkout -b restore backup/v1.1-profiles`.
 
