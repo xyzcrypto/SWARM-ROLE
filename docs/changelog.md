@@ -5,6 +5,42 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 — Correct stale docs and skill facts; restore a followable bundle method
+Docs, comments and one dev script. No behaviour change. Every claim was re-verified
+against current `main` (`59dddbf`) after #203 moved 521 files, not against the tree the
+original report was written on.
+- **`cost-check` pointed at a file that does not exist.** Its bundle method said to read
+  `.next/app-build-manifest.json`; **Turbopack never emits it**, so the instruction was
+  unfollowable and bundle size went unchecked while the skill read as though a method
+  existed. Added `scripts/bundle-report.mjs`, reading the per-route RSC manifests
+  Turbopack *does* emit, plus a recorded baseline and how to read it.
+- **`cost-check` route baseline was stale:** 124/22/102/12 (measured at `2f34b83`) →
+  **131/22/109/12**, the seven new dynamic routes being the DM-safety work in #227–#231.
+  Its ISR table also still said `/api/ticker` 1m; it is **180s** since #207.
+- **`cost-check` repeated the false `env.ts` claim** ("has no `import "server-only"`").
+  #189 fixed that. Corrected in the same pass — this is the second copy of that claim,
+  and correcting one while leaving the other is how the drift started.
+- **`CLAUDE.md` carried the same stale `env.ts` claim.** Corrected. The *other* half of
+  that sentence was re-verified **still true** and deliberately kept: the zod result is
+  only logged and `process.env` is re-read directly, so `.url()`/`.min(16)` gate nothing.
+- **`CLAUDE.md` "Current state" was a dated narrative** predating ~48 merged PRs, whose
+  "three open OWNER actions" list said a resolved item was still open. Reduced to a
+  standing summary plus pointers, and it now flags the two things a returning reader
+  trips over: the `src/lib` re-export shims left by #203, and the Mumbai move.
+- **`docs/HANDOFF.md §7` stopped at 2026-07-24/25.** Added both missing sessions.
+- **`docs/component-registry.md` listed 6 API routes against 131 built ones** and called
+  the ticker 10s (it is 180s). Replaced the route/page/lib enumerations with a pointer
+  table at authoritative sources; kept the component tables, which describe reuse intent
+  that no build output can produce.
+- **`docs/AUDIT-2026-08-01-latency.md` was premised on a constraint that #210 removed.**
+  Functions now run in Mumbai with the database, so the ~250ms-per-query gap the audit
+  ranked everything around is gone. Rather than rewriting it, added a superseded-in-part
+  banner with a per-finding re-assessment: two already fixed (#3, #4), one obsoleted
+  (#11), one reclassified (#1), one being fixed (#9), five surviving on non-latency
+  grounds. The lesson recorded alongside it: findings that *remove work* survived the
+  change, findings that only *reorder work around a penalty* did not.
+- **Not changed:** `src/core/auth/auth.ts` — the false "routes always re-check DB anyway"
+  comment was already corrected on `main` at line 320. Verified, left alone.
 ## 2026-08-04 — Cover /api/ticker in the poll/window alignment test
 Test only. No behaviour change - `/api/ticker` keeps the 180s/180s/300 that #207 set.
 - **Why:** #207 fixed the ticker's 60s-window-against-a-150s-poll by hand, after an

@@ -63,9 +63,12 @@ getAdminSession) · `auth.ts` (NextAuth options) · `ratelimit.ts` (Upstash, key
 buckets) · `otp.ts` (HMAC-hashed 6-digit codes) · `email.ts` (Resend, console
 fallback) · `storage.ts` (Supabase upload) · `profile.ts` (zod schemas + handle
 normalization) · `env.ts` (the intended single door for env access — route new reads
-through it, but note it does **not** yet enforce that: the zod result is only logged,
-`process.env` is then re-read directly for the exported values, and the module lacks
-`import "server-only"` so it currently reaches the client bundle. `docs/HANDOFF.md §8`)
+through it, but note it does **not** validate: the zod result is only logged,
+`process.env` is then re-read directly for the exported values
+(`src/core/env/env.ts:55,66-70`), so `.url()` and `.min(16)` never reject or gate
+anything. It **is** now server-only — `import "server-only"` was added in #189, so a
+`"use client"` file importing it is a build error; client components get channel
+helpers from `realtime-channels.ts`)
 · `seo.ts`/`jsonld.tsx`.
 
 ## Conventions (match these — don't invent new patterns)
@@ -194,7 +197,12 @@ through it, but note it does **not** yet enforce that: the zod result is only lo
   `text-shimmer`) to each leaf span individually, not a parent wrapping
   multiple children, or the un-covered children render invisible.
 
-## Current state (2026-07-25)
+## Current state (2026-08-04)
+**This section is a standing summary, not a history.** Per-change detail lives in
+`docs/changelog.md` (newest first) and `docs/HANDOFF.md §7` (session by session);
+open items live in `docs/HANDOFF.md §8`. Those are authoritative — if this section
+disagrees with them, they win. It used to carry a dated narrative of every recent
+session, which drifted out of date within a week and duplicated both.
 - ✅ Live: homepage (orbital ecosystem + Fraunces hero headline with word-stagger
   reveal + continuous shimmer), research hub + premium gating, likes, comments,
   auth (email+password, OTP signup, Google optional), profiles (`/u/[handle]` +
@@ -205,62 +213,29 @@ through it, but note it does **not** yet enforce that: the zod result is only lo
   cards), Markets hub, News hub (AI briefings - manual "Generate" trigger, not
   auto-fired - push notifications, saved stories), XYZ AI assistant, `/terms`
   + `/privacy`.
-- 🔧 Hobby-plan cost pass: voice rooms (LiveKit) removed entirely; push-dispatch
-  + watchdog GitHub Actions crons paused (`workflow_dispatch` only - re-enable
-  `schedule:` when moving off the free plan); every realtime/presence hook
-  shares one Supabase client via `src/lib/realtimeClient.ts` instead of each
-  opening its own WebSocket connection; poll intervals widened across
-  ticker/news/markets pollers. Full detail: `docs/HANDOFF.md §7`.
-- 🔒 Security hardening (2026-07-17): login timing-oracle closed (equal-cost
-  dummy `bcrypt.compare()` on fast-fail paths), login-lockout counter made
-  atomic (`{ increment: 1 }`, was a race-bypassable read-then-write), IP-keyed
-  limiters switched to the un-spoofable `x-vercel-forwarded-for`, new `otpEmail`
-  + `loginIp` limiters. (The 14 Next.js-tree framework CVEs flagged here were
-  cleared 2026-07-23 by the Next 14 → 16 / React 19 upgrade — see the Current
-  state note below and `docs/HANDOFF.md §8`.)
-- 💸 Free-tier overage fixes (2026-07-19): the security timing fix's dummy
-  bcrypt (~330ms sync CPU, `bcryptjs` is pure-JS) blew past Fluid Active CPU —
-  fixed with the `loginIp` pre-bcrypt gate. Plus an ISR-Writes fix
-  (`/api/markets/search` window) and a Fast Origin Transfer fix
-  (`stripInlineImage()` stops raw base64 `data:` avatars stored in the DB from
-  being served across six hot read paths). Earlier rounds: static-regression
-  fixes, hero redesign, Terms/Privacy, three FOT rounds (all `docs/HANDOFF.md §7`).
-- ⚠️ Three open OWNER actions (`docs/HANDOFF.md §8`): (1) prod DB has drifted
-  behind `schema.prisma` — was silently starving signups; code now fails loudly
-  but the data needs a real migration re-run (fresh deploy or `db:push` with
-  prod creds). (2) One-time read-only check for existing inline `data:` avatars
-  in the DB. (3) 🔴 **Sentry is not configured in production at all** — verified
-  on the live site 2026-07-25: no `NEXT_PUBLIC_SENTRY_DSN` *or* `SENTRY_DSN` in
-  Vercel, `window.__SENTRY__` undefined, zero ingest requests, no DSN in any
-  served chunk. So there is **no error monitoring from any runtime** (browser,
-  server or edge). The #168/#171 code fixes are correct prerequisites, not
-  ineffective — they just can't run without a DSN. `NEXT_PUBLIC_*` is inlined at
-  build time, so adding the vars **requires a redeploy**. Full steps:
-  `docs/HANDOFF.md §8`.
-- ⬆️ Next 14 → 16 + React 19 upgrade (2026-07-23): next 14.2.35 → 16.2.11,
-  react 18 → 19, next-auth stayed on v4 (4.24.15, no Auth.js v5 rewrite), R3F
-  8→9 / drei 9→10 (compile-only — the WebGL orbital scene is gated off, CSS
-  orbital is the live centerpiece), eslint 9 flat config (`next lint` removed).
-  Async `params`/`searchParams` codemod across 31 files. Cleared all 14 Next.js
-  framework CVEs; typecheck/lint/test/build green + homepage runtime-verified
-  under React 19. Leftover: `sharp`/`postcss` audit residue (`docs/HANDOFF.md §8`).
-- 🛰️ Sentry client monitoring restored (2026-07-24/25) — it had been dark, from
-  **two independent faults**. (1) Next 16 builds with Turbopack, which never
-  loads `sentry.client.config.ts` (a webpack-plugin mechanism), so the browser
-  `Sentry.init()` stopped at the upgrade → moved to
-  `src/instrumentation-client.ts` + `onRouterTransitionStart`. (2) `connect-src`
-  had **never** allowed a Sentry host, so the ingest `fetch()` was CSP-blocked
-  regardless → added `https://*.sentry.io`. Deliberately *not* `tunnelRoute`,
-  which would route every event through a Vercel function. Server/edge Sentry
-  was never affected. **Still unconfirmed end-to-end — see the owner action above.**
-- 🧹 Housekeeping (2026-07-25): dead LiveKit CSP sources removed (`worker-src
-  'self'` kept — the PWA service worker needs it); react-hooks v6 warnings
-  73 → 41 with `purity` + `static-components` back on **error** (three were real
-  bugs: starfield reshuffling on re-render, `CommandPalette` remounting its whole
-  results list, `touchUi` never updating on pointer change). Mount-time browser
-  reads now go through `src/lib/useClientFlag.ts`. The fetch-on-mount group is a
-  **documented deliberate keep** — reasoning sits next to the rule in
-  `eslint.config.mjs`; don't "fix" it without reading that first.
+- 🗂️ **`src/` is organised into `modules/` · `core/` · `shared/` (#203).** The old
+  `src/lib/*` and `src/components/*` paths still exist as **one-line `export * from`
+  re-export shims**. Import from the real module; and if you are writing a script or
+  test that *reads a file*, point it at the real path — reading a shim silently
+  matches nothing, which is how a check passes while verifying nothing.
+- 🌏 **Functions run in Mumbai (`bom1`, see `vercel.json`), co-located with Supabase
+  (#210).** The old ~250ms-per-query cross-region penalty is gone. Advice written
+  before that — including `docs/AUDIT-2026-08-01-latency.md` — ranks findings around
+  a gap that no longer exists; that file now carries a banner saying so.
+- 🩹 **Recent work has been fixes and hardening, not new surface** — security batches,
+  cost/caching alignment, the fail-loud migration guard, realtime ownership, and DM
+  safety. Read `docs/changelog.md` for what and why.
+- ⚠️ **Open OWNER actions live in `docs/HANDOFF.md §8` and only there.** The headline
+  one: 🔴 **Sentry has no DSN in any runtime**, so nothing on this site reports an
+  error from the browser, server or edge. `NEXT_PUBLIC_*` is inlined at build time,
+  so adding the vars **requires a redeploy**. XYZ Sentinel (`/api/watchdog`) is also
+  still dark. Do not re-list §8's items here — this file has already carried a copy
+  that said a resolved item was still open.
+- 🧪 **Established invariants have tests, and the tests are the record.** Rate limiting
+  on every mutating handler, poll↔window alignment on every polled cached route
+  (`markets-poll-alignment.test.ts` — markets *and* the ticker), server-only channel
+  imports, journal-activity revocation. If you change one of those behaviours, the
+  test tells you.
 - 📋 **Before merging anything that touches routes, caching, data fetching or
   realtime, run the `pre-merge` skill** (route-table diff vs `main`, cost-pattern
   scan). CI proves nothing broke; it cannot see a page that stopped being cached

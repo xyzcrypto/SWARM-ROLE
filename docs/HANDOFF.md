@@ -310,7 +310,7 @@ usage-limit scare to retrofit it.
 
 ---
 
-## 7. Where things stand right now (newest sessions last; latest 2026-07-25)
+## 7. Where things stand right now (newest sessions last; latest 2026-08-04)
 
 This section is a chronological summary of everything shipped in the most
 recent working session, in case the changelog is too long to read in full.
@@ -630,6 +630,73 @@ listed here so this section isn't misleading about what moved. See
    list every render, and `ChatClient`'s `touchUi` never updated when a pointer
    device changed. The fetch-on-mount group is a **documented deliberate keep** -
    reasoning lives in `eslint.config.mjs`, summarised in §8.
+
+
+### 2026-07-27 → 2026-08-01 — Audit follow-through: security, deploy safety, cost alignment, skills
+
+Eighteen PRs, **no new features and no new dependencies** - closing findings from the
+two audit reports and making the invisible failures loud. Per-PR detail is in
+`docs/changelog.md`; this is the shape of it.
+
+- **Security (#180, `ec74473`, #181, #188, #189, #194).** The worst:
+  `api/journal/share/overview/[userId]` returned **any member's private trading P&L to
+  an anonymous caller** - no session check, no `visibility` filter, cached for an hour.
+  Also closed: the async-`params` codemod miss that had been making every article's
+  social share card the generic placeholder (an empty `catch {}` hid the thrown error
+  for weeks); a cross-challenge milestone IDOR; a commenter email local-part leaking on
+  a public cached endpoint; a **substring** rather than host check in chat media that
+  let any member make every connected client fetch an attacker-controlled URL; rate
+  limiters on 7 unprotected mutating handlers; and the OTP attempt-cap race.
+- **`env.ts` no longer reaches the browser (#189).** It had been dragged into the client
+  graph by three components importing `userChannel` from `@/lib/realtime`, shipping a
+  zod schema, the server env's shape and a `console.error` loop whose `NODE_ENV` guard
+  the bundler inlined away - so every visitor to those pages got two console errors
+  reading like a production outage. `import "server-only"` plus a zero-dependency
+  channels module makes it a **build error** now.
+- **Deploy safety (#185, #186).** Root-caused the P1001 that had failed `prisma db push`
+  on **every deploy for weeks**: `DIRECT_URL` pointed at the IPv6-only direct Supabase
+  host from an IPv4-only runtime. It hid because `db push … || echo` swallowed the
+  non-zero exit, so deploys succeeded and CI went green whether or not the schema
+  synced. Replaced with `scripts/db-push.mjs`, which fails the build loudly and skips
+  unless `VERCEL_ENV === "production"` - closing a second exposure, since previews share
+  the production `DATABASE_URL`.
+- **Cost/caching (#190 → #192).** #190 raised `export const revalidate` on six markets
+  routes and **did nothing**, because `s-maxage` is what the edge honours. Proven by
+  measurement: with `revalidate = 200` and `s-maxage=150`, the edge went STALE at
+  `age: 162`. #192 fixed the header. This is the origin of the rule that a caching fix
+  is not believed until `x-vercel-cache`/`age` say so.
+- **Journal Activity publishing is revocable (#191).** Rows carry `sourceType`/`sourceId`,
+  so making a trade or challenge private withdraws what it published. Rows created
+  before this have `sourceId = NULL` and still cannot be revoked - see §8.
+- **Process (#182, #193).** Three project skills committed to `.claude/skills/` so any
+  session loads them on trigger rather than on someone remembering a doc path. #193 made
+  live verification mandatory: every PR body names what changes on the live site, how to
+  check it, and what would falsify it - or says explicitly that it has no observable.
+- **CodeQL removed (#187).** Unavailable on a private repo without GitHub Advanced
+  Security. The scan succeeded and the job failed at upload, so it read as a red security
+  check on every PR - training everyone to ignore a failing security check.
+
+### 2026-08-01 → 2026-08-04 — Module reorganisation, Mumbai, realtime ownership, DM safety
+
+Roughly thirty PRs (#201-#233). The three a returning collaborator will trip over:
+
+1. **`src/` reorganised into `modules/` · `core/` · `shared/` (#203)** - 521 files. The
+   old `src/lib/*` and `src/components/*` paths survive as **one-line `export * from`
+   re-export shims**. Import from the real module. And note the second-order hazard:
+   anything that *reads a file by path* (tests, scripts, codemods) silently matches
+   nothing if pointed at a shim, so a check can pass while verifying nothing.
+2. **Functions moved to Mumbai (#210)** - `vercel.json` now pins `regions: ["bom1"]`,
+   co-locating them with Supabase. The ~250ms-per-query cross-region penalty that shaped
+   earlier performance advice is **gone**; `docs/AUDIT-2026-08-01-latency.md` was written
+   before this and now carries a banner marking which of its findings survive.
+3. **Realtime got a single owner per topic (#224)**, plus a run of fixes for surfaces
+   failing silently (#216, #220, #223, #225, #226) and a service worker that had been
+   caching 404s - one of which was the stylesheet (#232).
+
+Also: DM safety and message actions (#227-#231, seven new dynamic routes - the route
+table is now **131/22/109/12**), the ticker ISR churn fixed by hand (#207 - see the
+alignment-test note in §8), a Node version pin (#209), and `dependabot.yml` removed
+again (#201) after the version-update PRs turned out not to be wanted yet.
 
 ## 8. Open items / natural next steps
 - ~~**Is Upstash actually configured in production?**~~ **✅ Resolved 2026-07-29 —

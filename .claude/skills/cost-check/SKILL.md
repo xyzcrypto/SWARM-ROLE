@@ -15,9 +15,12 @@ here rather than repeat them.
 
 ## Route baseline
 
-Measured at `2f34b83` with `npm run build`:
+Measured at `59dddbf` with `npm run build`:
 
-**124 routes · 22 static · 102 dynamic · 12 ISR.**
+**131 routes · 22 static · 109 dynamic · 12 ISR.**
+
+(Was 124/22/102/12 at `2f34b83`; the seven new dynamic routes are the DM-safety and
+member-profile work in #227–#231.)
 
 Any change to those totals is a finding. The expensive direction is `○` (Static) →
 `ƒ` (Dynamic): a page that was served from cache now renders on every request. That
@@ -28,16 +31,23 @@ UTF-8 byte, so a naive `grep -c '○'` over the whole table over-counts by one.
 
 ### Known ISR windows
 
-`/` 5m · `/markets` 5m · `/research` 5m · `/tools` 1h · `/news` ≈2m · `/api/ticker` 1m ·
+`/` 5m · `/markets` 5m · `/research` 5m · `/tools` 1h · `/news` ≈2m · `/api/ticker` **180s** ·
 `/api/markets/coins` 200s · `/api/markets/defi` 200s · `/api/markets/global` 200s ·
 `/api/markets/perp` 200s · `/api/markets/dex` 320s · `/api/markets/yields` 320s.
 All with a 1y expire.
 
-The six `markets/*` values are **derived from the client poll intervals**, not chosen
-freely: 200s covers a 180s poll, 320s covers a 300s poll, each with ~10% margin.
+The seven polled values are **derived from the client poll intervals**, not chosen
+freely — each window is comfortably longer than the poll it serves:
+
+| Route | Poll | Window | Poll defined in |
+|---|---|---|---|
+| `markets/{coins,defi,global,perp}` | 180s | 200s | `modules/markets/components/MarketsClient.tsx` |
+| `markets/{dex,yields}` | 300s | 320s | ″ |
+| `api/ticker` | 150s | **180s** | `modules/markets/lib/useTickerPoll.ts` |
+
 Changing either side without the other re-opens the drift below.
 
-⚠️ Each of those six routes **also sets its own `Cache-Control: s-maxage=…`**, and
+⚠️ Each of those seven routes **also sets its own `Cache-Control: s-maxage=…`**, and
 that header — not the `revalidate` above — is what the edge honours (see trap 0).
 They are kept equal on purpose. The Revalidate column in the build output shows the
 `revalidate` value only, so it will look correct even when the edge is misaligned.
@@ -83,17 +93,29 @@ Writes and Fluid Active CPU.
 
 Rule: `revalidate` >= poll interval, with margin.
 
-**Fixed 2026-07-31, and now pinned by a test** —
-`src/lib/__tests__/markets-poll-alignment.test.ts` parses the poll intervals out of
-`MarketsClient.tsx` and the `revalidate` out of each route, and fails if any window
-is shorter than its poll (or equal to it, since exactly-equal makes jitter decide).
+**Pinned by a test** — `src/lib/__tests__/markets-poll-alignment.test.ts` drives off an
+explicit `TARGETS` list of every polled cached route, reads each one's poll interval
+from the file it actually lives in, and fails if either the `revalidate` or the
+`s-maxage` is shorter than that poll (or equal to it, since exactly-equal makes jitter
+decide). **Adding a polled route means adding it to `TARGETS`.**
 
-**The history is the reason the test exists.** Four of six routes were misaligned —
-`defi`/`coins` at 120s and `global`/`perp` at 150s against a 180s poll — while
-`changelog.md` claimed "pollers realigned to match each route's new window". Nothing
-failed and nothing logged; the only symptom was the bill. That is why this skill says
-**verify against the route files, never the changelog** — and why the check is now
-executable rather than written down.
+**The history is the reason the test exists — twice over.**
+1. Four of six markets routes were misaligned (`defi`/`coins` at 120s, `global`/`perp`
+   at 150s against a 180s poll) while `changelog.md` claimed "pollers realigned to match
+   each route's new window". Nothing failed and nothing logged; the only symptom was the
+   bill. That is why this skill says **verify against the route files, never the
+   changelog**.
+2. `/api/ticker` then had the identical defect — a 60s window and 60s `s-maxage` against
+   a 150s poll — and the test did **not** catch it, because its first version globbed
+   `src/app/api/markets/*` only and the ticker's poll lives in its own hook. It was
+   found by audit and fixed by hand in #207; #236 widened the test so it cannot recur.
+   **A check scoped to where the last bug was found does not prevent the next one.**
+
+⚠️ Second-order hazard after #203: anything that reads a file *by path* — this test,
+`bundle-report.mjs`, any codemod — must point at the real `src/modules/…` / `src/core/…`
+implementation, never the `src/lib` / `src/components` re-export shims. A shim is one
+`export * from` line, so a regex against it matches nothing and the check passes while
+verifying nothing at all.
 
 ### 1b. A single fetch hint inside a route governs the WHOLE route's ISR window
 **Next takes the MINIMUM `revalidate` across a route segment.** So one
@@ -167,23 +189,49 @@ fast-fail path to close a timing oracle blew Fluid Active CPU on its own, and ne
 the `loginIp` pre-bcrypt gate to recover. Treat any sync CPU on an unauthenticated
 path as a cost question.
 
-## Bundle size — currently a blind spot
+## Bundle size — measurable, via `scripts/bundle-report.mjs`
 
-Next 16 removed the `Size` and `First Load JS` columns from build output. Verified
-absent even in a real terminal. **There is no bundle-size regression detection on
-this project.** The old baseline was 160 kB First Load JS shared, under Next 14, and
-has no direct successor.
+Next 16 removed the `Size` and `First Load JS` columns from build output. This skill
+then told you to read **`.next/app-build-manifest.json`** instead — and **Turbopack
+never emits that file**, so the instruction was unfollowable and bundle size went
+unchecked entirely while the skill read as though a method existed.
 
-Treat bundle size as **unavailable**, not as passed. A PR can grow the client bundle
-substantially and nothing will report it.
+**Use this:**
 
-Two ways to close it, when someone chooses to: sum the `.next/static/chunks/*` sizes
-per route from `.next/app-build-manifest.json` on both sides and diff; or add
-`@next/bundle-analyzer` behind an env flag.
+```bash
+npm run build && node scripts/bundle-report.mjs            # this branch
+git checkout main && npm run build && node scripts/bundle-report.mjs > /tmp/before.txt
+# ...then diff the two.
+```
 
-Related: keep server-only modules out of the client graph. `src/lib/env.ts` has no
-`import "server-only"` and reaches the browser via `src/lib/realtime.ts`, shipping a
-zod schema and a `console.error` loop into public chunks.
+It reads the per-route RSC manifests at
+`.next/server/app/**/page_client-reference-manifest.js` — which Turbopack *does*
+emit — and sums the gzipped size of the unique JS chunks each route pulls in.
+
+**Baseline at `59dddbf`** (gzip kB): `/dashboard` **237** · `/settings` 134 ·
+`/news` 126 · `/journal` 124 · `/community` 121 · `/messages` 120 · `/` **117** ·
+`/news/read` 112 · `/research/[slug]` 112.
+
+**Read the number correctly:**
+- Routes share framework chunks, so the column does **not** sum to a site total.
+  Compare a route against **itself** across two builds — that is the regression
+  question.
+- Chunks behind `next/dynamic` still count if the route references them, so a large
+  number is not automatically a large download. Live example: three.js sits in `/`'s
+  graph but `useWebglGate()` returns a literal `false`, so it is never requested —
+  zero transfer.
+- `/dashboard` being ~2× everything else is the Tiptap editor loading eagerly for all
+  dashboard tabs. Known, admin-only, low traffic.
+
+The old Next 14 baseline of 160 kB "First Load JS shared" is **not comparable** to
+these numbers — different measurement basis. Do not diff against it.
+
+Related: keep server-only modules out of the client graph. `env.ts` gained
+`import "server-only"` in #189 after it had reached the browser via `realtime.ts`,
+shipping a zod schema, the server env's shape and a `console.error` loop into public
+chunks. Client components get channel helpers from `realtime-channels.ts` instead.
+The guard makes that class of regression a **build error** rather than something you
+have to notice.
 
 ## How to measure
 
