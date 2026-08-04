@@ -18,6 +18,7 @@ import { FAQ } from "@/lib/faq";
 import { StickyCta } from "@/components/StickyCta";
 import { GuestOnly } from "@/components/GuestOnly";
 import { prisma } from "@/lib/prisma";
+import { daysSince } from "@/lib/research-freshness";
 import type { Metadata } from "next";
 
 // Brand-tuned homepage metadata (absolute title so it isn't suffixed by the
@@ -34,14 +35,63 @@ export const metadata: Metadata = {
 // preview). Publishing content revalidates it on demand (see research routes).
 export const revalidate = 300;
 
+// "2h ago" / "3d ago" for the newest research post, computed on the SERVER and
+// passed down as a finished string. Deliberately not calculated in the client
+// component: a relative time derived at render time differs between the server
+// and the browser's first render, which is exactly the class of mismatch that
+// threw React #418 across this site before (see CLAUDE.md). One string,
+// rendered once, cannot disagree with itself.
+//
+// The clock is read inside the helper rather than in the component body: this
+// only runs on the server, but `Date.now()` in a render body trips the purity
+// lint rule, and that rule is right about client components.
+function agoLabel(then: Date): string {
+  const mins = Math.max(0, Math.round((Date.now() - then.getTime()) / 60000));
+  if (mins < 60) return `${Math.max(1, mins)}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
+// Same reason as agoLabel for reading the clock in here rather than in render.
+function newestAgeDays(then: Date): number {
+  return daysSince(then, Date.now());
+}
+
 export default async function HomePage() {
-  const memberCount = await prisma.user.count().catch(() => 0);
+  // Everything the hero card claims, all of it real rows.
+  //
+  // Server-rendered rather than polled, and that is the stronger option here,
+  // not the cheaper compromise: both research write routes already call
+  // revalidatePath("/"), so publishing a post regenerates this page at once.
+  // A poller would show the same post up to one interval LATER, and would add
+  // a route, a request per visitor and a timer. This adds none of those.
+  const [memberCount, researchRows, researchCount] = await Promise.all([
+    prisma.user.count().catch(() => 0),
+    prisma.post
+      .findMany({
+        where: { published: true, category: "Research" },
+        orderBy: { createdAt: "desc" },
+        take: 12,
+        select: { title: true, createdAt: true },
+      })
+      .catch(() => [] as { title: string; createdAt: Date }[]),
+    prisma.post.count({ where: { published: true, category: "Research" } }).catch(() => 0),
+  ]);
+
+  const research = {
+    titles: researchRows.map((p) => p.title),
+    count: researchCount,
+    newest: researchRows[0] ? agoLabel(researchRows[0].createdAt) : null,
+    // Whether "NEW" is a fair claim at all - see research-freshness.
+    newestDays: researchRows[0] ? newestAgeDays(researchRows[0].createdAt) : null,
+  };
 
   return (
     <>
       <Navbar />
       <main>
-        <Hero memberCount={memberCount} />
+        <Hero memberCount={memberCount} research={research} />
         <MarketTicker />
         {/* Orbital ecosystem - the signature centerpiece showcase. */}
         <OrbitalSection />

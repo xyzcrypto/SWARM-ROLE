@@ -5,6 +5,261 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (24) — The hero CTA is a research card, and the feed is our own posts
+
+Owner's brief, over several rounds: the hero's mint pill "AI feel" wala lagta
+tha; replace it with the card layout from their reference, show our own research
+posts live with a scrolling feed, and make the trust line small.
+
+### What changed (only these three blocks)
+
+The two stacked buttons and the separate trust sentence are gone. In their place:
+a research card, one secondary row, and a quiet trust line. Everything above
+(eyebrow, headline, lede) and below (live stats) is untouched.
+
+The card carries a `NEW LIVE` flag and a marquee of **our own published research
+titles, newest first** - titles only. The newest one is emphasised and holds
+still for 2.8s before the band starts moving, because a headline already
+mid-slide on arrival announces nothing.
+
+### Why the feed is server-rendered and not polled
+
+Both research write routes already call `revalidatePath("/")`. Publishing a post
+therefore regenerates the homepage **at once**, so rendering the titles on the
+server beats a poller on every axis: the update is immediate rather than up to
+one interval late, and it adds no route, no request and no timer.
+
+Route table after: **131 / 22 static / 109 dynamic / 12 ISR** - identical to the
+baseline in the `cost-check` skill. `/` is still `○` on a 5m window.
+
+### The layout bug this design kept hitting, and the fix
+
+The hero's text column is a **grid item**, so it carries the default
+`min-width: auto`. Any in-flow descendant with a wide max-content size grows the
+column and drags the site's own headline with it. Measured while building:
+
+```
+                                   column width @412px
+baseline                           372
+live-price row on the card line    420   (+48)
+5-post marquee, in flow            3036  (+2664)
+sub-line with nowrap, @360px       364   (+44)
+```
+
+`overflow: hidden` on the wrapper did **not** stop the marquee - only taking the
+track out of flow does, because an out-of-flow box contributes nothing to
+intrinsic sizing. So `.hero-feed-track` is `position: absolute`, and that is
+load-bearing rather than styling: no number of published posts can widen the
+hero. Separately, `min-width: 0` does not zero a *block* child's min-content
+contribution - `overflow: hidden` does, which is what the sub-line needed.
+
+Two of those three were found by bisecting element-by-element after guessing
+twice and watching the bug move rather than go away.
+
+### Guests keep their signup path
+
+The old hero gave logged-out visitors "Get early access". The reference design
+only had "View products", and silently dropping the signup CTA would have been
+an unflagged conversion change - so the secondary row switches: guests get
+signup, members get products.
+
+### Verified in a real browser
+
+```
+                360      412      1440
+headline x/w    20/320   20/372   92/630
+card     x/w    20/320   20/372   92/580
+scrollWidth     360      412      1440    (no horizontal overflow)
+feed titles     real rows from the DB, newest first
+```
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 515/515 tests ✅ ·
+build ✅
+
+
+### Follow-up (same day): 3D icons, a pinned "NEW", and the light theme
+
+Owner reviewed the preview and asked for five things. All five landed:
+
+1. **Every icon is now from the project's own `Icons3D` set** - the research
+   magnifier, the products stack, the crown on the guest CTA, and the shield /
+   lock / people on the trust line. That means the same gradient-body + gloss +
+   drop-shadow depth and the same always-on `i3d-*` signature motion as the rest
+   of the site, rather than a second, slightly-different 3D language invented
+   here.
+2. **The band is split in two.** The newest post is **pinned and static** behind
+   a `NEW` badge so it reads as "this one just went live"; everything already
+   published scrolls beneath it. Previously the newest title scrolled away with
+   the rest.
+3. The guest row's icon was the **same green shield** as "Free to join" two
+   lines below it. Now a crown - membership, not another safety claim.
+4. **Light theme.** The card, the band, the icon's glow pool and the row hover
+   each get their own light recipe rather than a lighter opacity of the dark
+   one; a mint tint that reads as a premium panel on near-black goes sickly on
+   white. Verified at 412 and 1440 in both themes.
+
+
+
+
+
+
+### Follow-up 6: colour discipline
+
+Owner asked for a best-in-class colour combination. The problem was not which
+colours - it was **how many**. A single card was carrying four hue families:
+mint, gold, amber and violet, with the loudest of them (a three-colour trust
+line) on the block that is supposed to be the quietest.
+
+Fixes, all subtraction rather than addition:
+
+- **The research icon dropped from three families to two.** Its star was amber
+  against an emerald card and a gold lens; at 48px a third family reads as
+  confetti, not as a system. The star is gold now: emerald is the data, gold is
+  the instrument, and that is the whole story.
+- **The trust line stopped shouting.** 22px saturated icons became 18px at 68%
+  opacity, returning to full colour only on hover. The 3D character survives;
+  the colour parade under an already-green card does not.
+- **The secondary row's icon shrank** (36 -> 32) so the card keeps the only loud
+  voice in the stack.
+- **Greens deepened out of neon.** On a near-black ground, restraint in
+  saturation is what reads as expensive: the card wash went from a bright mint
+  tint to a deep emerald one, and the action button from `#48e5aa -> #0bbb7c` to
+  `#3ddda0 -> #059669`.
+- **The band went nearly neutral.** It was green-on-green, which muddied the
+  titles sitting on it. Now near-black ink with the green kept to a hairline and
+  a faint bloom - the text is what should be read, not the panel.
+
+Boldness is spent in exactly one place now: the round action button. Everything
+around it is quiet. Both themes re-checked.
+
+### Follow-up 5: the band is back, gated and with a proper surface
+
+Owner asked for option A after all: the live band, with accurate data, and new
+posts showing up straight away.
+
+**The freshness gate ships this time.** `research-freshness` (7 unit tests) is
+what stops the card claiming a 29-day-old report is `NEW`:
+
+| newest post | badge | live dot |
+|---|---|---|
+| 3h old | `NEW` (lit mint pill) | blinking |
+| 29d old | `LATEST` (quiet outline) | off |
+
+Both states were checked against a real render by ageing the local rows, not
+by reading the code.
+
+**"Realtime" here is stronger than polling, not a compromise.** Both research
+write routes already call `revalidatePath("/")`, so publishing regenerates the
+homepage immediately - a poller would surface the same post up to one interval
+*later*, and would cost a route, a request per visitor and a timer. Route table
+after: **131 / 22 / 109 / 12**, `/` still `○` on 5m.
+
+**The band's surface got a body.** It was one flat translucent rectangle, which
+read as a hole punched in the card rather than a panel inside it. Now: a
+top-lit gradient, a 1px highlight along the top edge (light falls from above
+everywhere else on this site), and a slow mint bloom drifting behind the text so
+the strip looks alive between scroll cycles. The `NEW` pill got its own gradient
+and inner highlight so it reads as lit rather than as a flat swatch. Light theme
+has its own recipe for all of it.
+
+### Follow-up 4: the newest post's age is back
+
+Owner asked whether the count is real, whether it updates, and whether the last
+post's time could show too. Answers, verified against the code rather than
+recalled:
+
+- **Real.** `prisma.post.count({ published: true, category: "Research" })` -
+  their live count genuinely is 5.
+- **Updates twice over.** Publishing calls `revalidatePath("/")` from both
+  research write routes, so the homepage regenerates immediately; otherwise the
+  300s ISR window catches it.
+- **Time added back:** the card now reads `5 reports · newest 29d ago`. One
+  extra `findFirst` (one row, `createdAt` only), running in the same
+  `Promise.all` as the count, so no added round trip.
+
+Still server-computed and passed down as a finished string. A relative time
+derived during a client render disagrees between the server and the browser's
+first paint, which is the #418 class this site has already been bitten by.
+
+Flagged once for the record: with nothing published for a month, this line
+states that on the homepage. That was the owner's call after the freshness gate
+was built and shown; it is honest, just not flattering.
+
+### Follow-up 3: the research band came back out
+
+Owner asked what "newest 29d ago" meant, and whether the band should go. The
+honest answer to the first question exposed a defect in the second: the card was
+badging a **29-day-old** report as `NEW`, with a blinking live dot. A visitor who
+clicks that finds nothing new, which costs more trust than the badge buys.
+
+A freshness gate was built first (`NEW` only inside 7 days, `LATEST` after; the
+age label hidden past 14 days) and verified against the owner's real case by
+ageing the local posts to 29 days: badge fell back to `LATEST`, the dot stopped,
+`newest 29d ago` disappeared. Owner then chose to drop the band entirely, which
+is the simpler call while publishing is infrequent.
+
+So the band, the marquee, the freshness module and its 11 tests all came out
+rather than being left dormant - dead code with passing tests is worse than no
+code, and this is all recoverable from **dfa6249**. The card is now the icon, a
+title, `N reports`, and the arrow.
+
+The 12-row title query went with it; the homepage now only counts.
+
+### Follow-up 2: a real research emblem, and one right edge on desktop
+
+**The icon was still a search glyph.** A lone magnifier says "search", not
+"research". `ResearchLabIcon` is new in `Icons3D`: an emerald report card with
+three ticking bars, a gold magnifier held over its corner, and an amber star for
+the thing the lens found. Two palettes on purpose - emerald is the data, gold is
+the instrument - and three independent `i3d-*` motions (tick, scan, twinkle) so
+it reads as working rather than decorated. It stays inside the project's own 3D
+language: same gradient body, gloss and drop shadow as every other icon in the
+set.
+
+**Desktop had three right edges in one column.** Measured at 1440 before:
+
+```
+lede    576
+card    580
+stats   512   (max-w-lg)
+```
+
+Three widths stacked vertically read as ragged no matter how good each block is.
+The lede and the stats strip now both take the CTA stack's 580px, so everything
+below the headline shares one left edge and one right edge. The headline itself
+stays wider (630) - it is `whitespace-nowrap` on lg and is meant to be the one
+element that breaks the grid.
+
+Verified after: eyebrow / lede / card / row / stats all report x=92 at 1440,
+x=32 at 1280, x=260 at 1920.
+
+### The CSS rule this cost two wrong fixes to learn
+
+`overflow: hidden` zeroes the automatic minimum of a **flex item**. It does
+**not** do the same for a plain **block**: min-content stays at the full width
+of the nowrap text, and the hero's own column (a grid item, `min-width: auto`)
+grows to fit it.
+
+```
+                                    column @360px
+baseline                            320
+pinned title, as a block            367
+  + overflow-hidden on the row      369   (no effect)
+  + badge inlined into the title    367   (no effect)
+  + grid-cols-[minmax(0,1fr)]       320   (fixed)
+```
+
+Two fixes that "looked right" moved nothing, because they applied a flex rule to
+a block. A `minmax(0, 1fr)` grid track is what actually bounds it.
+
+Route table re-checked after the change: **131 / 22 / 109 / 12**, `/` still `○`
+on 5m.
+
+**Files:** `src/components/HeroCta.tsx` (new), `src/components/Hero.tsx`,
+`src/app/page.tsx`, `src/app/globals.css`.
+
+---
+
 ## 2026-08-04 — Retire the cross-region framing everywhere it was still stated as current
 Docs and comments only. #210 co-located functions with Supabase in `bom1`, so the
 ~250ms-per-query penalty that shaped a lot of earlier performance advice is gone. This

@@ -1404,3 +1404,137 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
      visible immediately. */
   .route-enter { animation: none; }
 }
+
+/* ----------------------------------------------------------------
+   Hero CTA — the research card and its live band
+   (src/components/HeroCta.tsx)
+----------------------------------------------------------------- */
+
+/* Surface + border live here rather than in Tailwind classes because the light
+   theme needs a genuinely different wash, not a lighter opacity of the dark one:
+   a mint tint that reads as "premium panel" on near-black turns into a washed
+   sickly green on white unless the whole recipe changes. */
+.hero-cta {
+  border: 1px solid rgba(34, 214, 146, 0.24);
+  background: linear-gradient(140deg, rgba(13, 122, 86, 0.22), rgba(7, 44, 32, 0.1) 55%, rgba(6, 20, 15, 0.04));
+}
+.hero-cta:hover {
+  border-color: rgba(34, 214, 146, 0.55);
+  box-shadow: 0 20px 44px -26px rgba(5, 120, 85, 0.6);
+}
+/* The one place boldness is spent. Still the brightest thing on the card, but
+   deepened out of neon: #34ddA0 -> #059669 instead of #48e5aa -> #0bbb7c. */
+.hero-cta-go { background: linear-gradient(158deg, #3ddda0, #059669); }
+/* A soft pool of light under the 3D icon, so it sits on the card instead of
+   floating on it. */
+.hero-cta-icon::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 55%, rgba(16, 160, 112, 0.3), transparent 68%);
+}
+
+/* ---- the live band ----
+   It used to be one flat translucent rectangle, which read as a hole punched in
+   the card rather than a panel sitting inside it. Three things give it a body:
+   a top-lit gradient, a 1px highlight along the top edge (light falls from
+   above everywhere else on this site), and a slow mint bloom drifting behind
+   the text so the strip looks alive even between scroll cycles. */
+.hero-feed {
+  background: linear-gradient(180deg, rgba(8, 13, 11, 0.72), rgba(5, 9, 8, 0.58));
+  border: 1px solid rgba(34, 214, 146, 0.13);
+  box-shadow: inset 0 1px 0 rgba(150, 255, 215, 0.07);
+  isolation: isolate;
+}
+.hero-feed::before {
+  content: "";
+  position: absolute;
+  inset: -60% -25%;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(42% 60% at 22% 50%, rgba(20, 170, 120, 0.13), transparent 70%);
+  animation: hero-bloom 9s ease-in-out infinite;
+}
+@keyframes hero-bloom {
+  0%, 100% { transform: translateX(-8%); opacity: 0.55; }
+  50%      { transform: translateX(14%); opacity: 1; }
+}
+/* The NEW pill gets a little gradient of its own so it reads as lit rather than
+   as a flat swatch of brand colour. */
+.hero-badge-new {
+  background: linear-gradient(150deg, #46e3a8, #0f9f6e);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.28) inset, 0 4px 12px -7px rgba(5, 120, 85, 0.85);
+}
+
+html:not(.dark) .hero-cta {
+  border-color: rgba(3, 149, 103, 0.35);
+  background: linear-gradient(135deg, rgba(34, 214, 146, 0.16), rgba(34, 214, 146, 0.05));
+}
+html:not(.dark) .hero-cta:hover {
+  border-color: rgba(3, 149, 103, 0.6);
+  box-shadow: 0 18px 40px -26px rgba(3, 149, 103, 0.5);
+}
+html:not(.dark) .hero-cta-icon::before {
+  background: radial-gradient(circle at 50% 55%, rgba(3, 149, 103, 0.16), transparent 68%);
+}
+html:not(.dark) .hero-feed {
+  background: linear-gradient(180deg, #ffffff, rgba(240, 253, 247, 0.85));
+  border-color: rgba(3, 149, 103, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(3, 60, 42, 0.05);
+}
+html:not(.dark) .hero-feed::before {
+  background: radial-gradient(42% 60% at 22% 50%, rgba(3, 149, 103, 0.1), transparent 70%);
+}
+/* The row hover tint follows the accent of what it leads to. */
+.hero-row:hover { border-color: rgba(34, 214, 146, 0.4); background: rgba(34, 214, 146, 0.05); }
+html:not(.dark) .hero-row:hover { border-color: rgba(3, 149, 103, 0.35); background: rgba(34, 214, 146, 0.08); }
+
+/* The track is ABSOLUTELY POSITIONED, and that is load-bearing rather than
+   styling. The hero's text column is a grid item, so it carries the default
+   `min-width: auto`: any in-flow descendant with a wide max-content size grows
+   the column and drags the site's own headline with it. Measured while building
+   this: a five-post track on one line took the column from 372px to 3036px at a
+   412px viewport. `overflow: hidden` on the wrapper did NOT stop it - only
+   taking the track out of flow does, because an out-of-flow box contributes
+   nothing to intrinsic sizing. So no number of published posts can widen the
+   hero. */
+.hero-feed-track {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: flex;
+  align-items: center;
+  height: 100%;
+  width: max-content;
+  animation: hero-feed linear infinite;
+  /* Hold the newest title still long enough to be read before the band starts
+     moving. A headline already mid-slide on arrival announces nothing. */
+  animation-delay: 2.8s;
+}
+@keyframes hero-feed {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.hero-cta:hover .hero-feed-track { animation-play-state: paused; }
+
+/* Both edges fade. Items exit leftwards, and a hard cut there reads as broken
+   text rather than as motion. */
+.hero-feed-mask {
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 3%, #000 86%, transparent);
+  mask-image: linear-gradient(90deg, transparent 0, #000 3%, #000 86%, transparent);
+}
+
+/* Ambient loops. Small and local, so per the project's deliberately narrow
+   reduced-motion policy they are exempt, the same way the ticker marquee and
+   the whole Icons3D system are - only heavy full-screen effects are gated. */
+.hero-cta-halo { animation: hero-halo 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+@keyframes hero-halo {
+  0%        { transform: scale(1);    opacity: 0.5; }
+  70%, 100% { transform: scale(1.42); opacity: 0; }
+}
+.hero-cta-blink { animation: hero-blink 2.2s ease-in-out infinite; }
+@keyframes hero-blink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.2; }
+}
