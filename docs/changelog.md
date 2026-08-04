@@ -5,6 +5,57 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (30) — DMs can finally reach a phone: the opt-in was missing, not the push
+
+Owner: *"DM me message karne pe kisi ko notification mobile me nahi milta hai,
+jaise chat me hota hai waise hi DM me bhi chaiye ... taki notification se bhi
+chat kar sake."*
+
+### The sending half was never broken
+
+Traced the whole path before changing anything, and `POST /api/dm/[id]` already
+does all of it: it looks up the **recipient's** push subscriptions, sends a
+private payload (`💬 <sender>` + snippet, or `📷 Photo` for an image), tags it
+`dm-<conversationId>` so repeat pings collapse, prunes dead endpoints, and
+deep-links to `/messages?c=<id>` - which `MessagesClient` honours via
+`search.get("c")`. The service worker's `push` handler is generic and renders it
+fine. It even lacks the lounge's 5-minute anti-spam window, so it pushes on
+*every* message.
+
+### What was actually missing
+
+**Nothing on the DM surface ever asked for permission.** Web Push is per-device
+and opt-in, and the only two places to turn it on were the **News page** and the
+**community lounge**. A member who lives in their inbox was never subscribed, so
+`findMany({ where: { userId: recipientId } })` returned zero rows and the push
+was a silent no-op. That is exactly why chat pinged and DMs did not: the lounge
+had the switch, `/messages` did not.
+
+Fix: the same `NewsAlertsToggle` the lounge uses now sits in the Messages
+header, worded for DMs. One permission grant covers both - it is one browser
+subscription, not a per-feature one.
+
+### "Notification se bhi chat kar sake"
+
+The tap target needed work too. `notificationclick` only focused a window whose
+URL already *contained* the target, and otherwise called `openWindow`. A phone
+sitting on any other page therefore matched nothing, and on an installed PWA
+that could surface a second copy of the app rather than the conversation. It now
+falls back to `client.navigate(url)` on an open window before opening a new one,
+so tapping a DM alert lands **in that thread**, ready to reply.
+
+### Stated plainly
+
+This machine has no VAPID keys, no database and no phone, so the end-to-end
+delivery was **not** exercised here. The diagnosis is code-level: the dispatcher
+was already correct and complete, and the opt-in surface was absent. The owner's
+own evidence supports it - lounge pings arrive, so VAPID is live in production.
+
+**Files:** `src/modules/messages/components/MessagesClient.tsx`, `public/sw.js`,
+`docs/changelog.md`.
+
+---
+
 ## 2026-08-04 (29) — Members' check-ins are visible on a phone, not just on a desktop
 
 Owner, with a screenshot of the dashboard Members tab on a phone: the members'
