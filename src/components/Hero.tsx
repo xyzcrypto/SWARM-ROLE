@@ -14,16 +14,19 @@ import type { ReactNode } from "react";
 // One chunk of the hero headline, revealed in its own staggered beat (blur ->
 // focus, rise -> settle) so the line reads as a deliberate cascade landing
 // into place rather than the whole headline fading in as one block.
+// The stagger is a CSS custom property rather than a framer-motion `delay`, so
+// the words are painted by the browser instead of by the bundle. See the
+// "Hero entrance" block in globals.css for why that distinction is the whole
+// point: a motion `initial` ships as style="opacity:0" and the headline then
+// waits for hydration.
 function HeroWord({ children, i, className }: { children: ReactNode; i: number; className?: string }) {
   return (
-    <motion.span
-      initial={{ opacity: 0, y: 26, filter: "blur(12px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1], delay: 0.05 + i * 0.1 }}
-      className={cn("inline-block", className)}
+    <span
+      style={{ "--rise-delay": `${0.05 + i * 0.1}s` } as React.CSSProperties}
+      className={cn("hero-word", className)}
     >
       {children}
-    </motion.span>
+    </span>
   );
 }
 
@@ -100,11 +103,9 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
       <Container className="relative grid items-center gap-10 sm:gap-12 lg:min-h-[76vh] lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 2xl:gap-20">
         {/* Copy */}
         <div className="text-center lg:text-left">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="mb-6 flex justify-center lg:justify-start"
+          <div
+            style={{ "--rise-y": "12px", "--rise-dur": "0.5s" } as React.CSSProperties}
+            className="hero-rise mb-6 flex justify-center lg:justify-start"
           >
             <span className="eyebrow eyebrow-glass text-zinc-200">
               <MagicStar size={14} variant="Bold" color="#e2a72f" />
@@ -112,7 +113,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
                 The Home Of Next Gen Web3..
               </span>
             </span>
-          </motion.div>
+          </div>
 
           <h1
             style={{ fontFamily: "var(--font-fraunces)" }}
@@ -131,16 +132,17 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
             </HeroWord>
           </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.12 }}
-            className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0 lg:max-w-[580px]"
+          {/* This paragraph is the page's LCP element. It was the single worst
+              offender: as a motion.p it left the largest block of text on the
+              site at opacity 0 until hydration finished. */}
+          <p
+            style={{ "--rise-dur": "0.6s", "--rise-delay": "0.12s" } as React.CSSProperties}
+            className="hero-rise mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0 lg:max-w-[580px]"
           >
             On-chain research, pro trading tools, a perpetual DEX, airdrop
             intelligence and a free academy, the complete Web3 toolkit, built
             for the next generation of traders and builders.
-          </motion.p>
+          </p>
 
           {/* Card + one secondary row + a quiet trust line. Replaces the two
               stacked buttons and the separate trust sentence that used to sit
@@ -148,11 +150,9 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
           <HeroCta research={research} />
 
           {/* live stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.4 }}
-            className="mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-[580px]"
+          <div
+            style={{ "--rise-y": "16px", "--rise-dur": "0.7s", "--rise-delay": "0.4s" } as React.CSSProperties}
+            className="hero-rise mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-[580px]"
           >
             {[
               { k: members, v: "Overall social community" },
@@ -164,51 +164,50 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
                 <div className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-[11px]">{s.v}</div>
               </div>
             ))}
-          </motion.div>
+          </div>
         </div>
 
-        {/* Medallion */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.7 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+        {/* Medallion. Its entrance is CSS too. Fixing only the copy was not
+            enough: with the text painting immediately, the logo <Image> became
+            the new LCP element at 5036ms, because these two wrappers still
+            shipped at opacity 0. The parallax springs stay on framer-motion -
+            they live on the INNER div, which no CSS animation touches, so the
+            two never write transform on the same element. */}
+        <div
           onMouseMove={onMove}
           onMouseLeave={onLeave}
-          style={{ perspective: 1000 }}
-          className="relative mx-auto flex aspect-square w-full max-w-[15rem] items-center justify-center xs:max-w-[17rem] sm:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl"
+          style={{ perspective: 1000, "--pop-from": "0.7" } as React.CSSProperties}
+          className="hero-pop relative mx-auto flex aspect-square w-full max-w-[15rem] items-center justify-center xs:max-w-[17rem] sm:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl"
         >
           <motion.div
             style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
             className="relative flex h-full w-full items-center justify-center"
           >
             {/* rings, animate in on open */}
-            <motion.div
-              initial={{ scale: 0.3, opacity: 0, rotate: -50 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              transition={{ duration: 0.9, delay: 0.1, ease: "easeOut" }}
-              className="absolute inset-0 animate-spin-slow rounded-full border border-gold-500/25"
+            <div
+              style={{ "--pop-delay": "0.1s" } as React.CSSProperties}
+              className="hero-fade absolute inset-0 animate-spin-slow rounded-full border border-gold-500/25"
             />
-            <motion.div
-              initial={{ scale: 0.3, opacity: 0, rotate: 50 }}
-              animate={{ scale: 1, opacity: 1, rotate: 0 }}
-              transition={{ duration: 0.9, delay: 0.22, ease: "easeOut" }}
-              className="absolute inset-6 animate-spin-rev rounded-full border border-dashed border-gold-400/30 sm:inset-7"
+            <div
+              style={{ "--pop-delay": "0.22s" } as React.CSSProperties}
+              className="hero-fade absolute inset-6 animate-spin-rev rounded-full border border-dashed border-gold-400/30 sm:inset-7"
             />
-            <motion.div
-              initial={{ scale: 0.3, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ duration: 0.9, delay: 0.34, ease: "easeOut" }}
-              className="absolute inset-12 animate-spin-slow rounded-full border border-mint-400/20 sm:inset-14"
+            <div
+              style={{ "--pop-delay": "0.34s" } as React.CSSProperties}
+              className="hero-fade absolute inset-12 animate-spin-slow rounded-full border border-mint-400/20 sm:inset-14"
             />
             <div className="absolute inset-16 animate-pulse-dot rounded-full bg-gold-500/20 blur-3xl" />
 
             {/* logo, pops in then floats */}
-            <motion.div
-              initial={{ scale: 0, rotate: -30, opacity: 0 }}
-              animate={{ scale: 1, rotate: 0, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.15, ease: [0.34, 1.56, 0.64, 1] }}
-              style={{ transformStyle: "preserve-3d" }}
-              className="relative h-[62%] w-[62%]"
+            <div
+              style={{
+                transformStyle: "preserve-3d",
+                "--pop-from": "0.2",
+                "--pop-rot": "-30deg",
+                "--pop-dur": "0.8s",
+                "--pop-delay": "0.15s",
+              } as React.CSSProperties}
+              className="hero-pop relative h-[62%] w-[62%]"
             >
               <motion.div
                 animate={{ y: [0, -12, 0] }}
@@ -225,7 +224,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
                   sizes="(max-width: 640px) 70vw, (max-width: 1024px) 45vw, 400px"
                 />
               </motion.div>
-            </motion.div>
+            </div>
 
             {/* orbiting badges (WEB3 + more), continuous rotation */}
             <motion.div
@@ -262,7 +261,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
               })}
             </motion.div>
           </motion.div>
-        </motion.div>
+        </div>
       </Container>
 
       {/* ticker */}

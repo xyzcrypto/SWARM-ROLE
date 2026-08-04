@@ -5,6 +5,78 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (27) — The homepage was not slow to arrive, it was slow to become visible
+
+Owner: *"website openning is slow and lagging somehow ... check properly and
+then fix."* Measured first, on a clean production build, at three CPU profiles.
+
+### What the measurement found
+
+The page was painting its background at ~700ms and then showing **nothing
+readable for seconds**. Cause: framer-motion's `initial={{ opacity: 0 }}` is
+serialised into the SSR HTML as `style="opacity:0"`, so the element is invisible
+until the bundle downloads, parses, hydrates and runs its first frame.
+**73 elements shipped at opacity 0**, including the entire hero. LCP - the hero's
+lede paragraph - landed at 4420ms on a 4x-throttled phone and **7756ms on a 6x**.
+
+This is the rule `CLAUDE.md` already states - *never make content depend on JS to
+become visible* - and the hero was the one place still breaking it.
+
+Two smaller findings, both measured:
+- **The RSC prefetch storm.** Every nav route was prefetched 4-5x per load,
+  because the navbar, the mobile menu, the footer and the bottom nav each render
+  the same links. **37 prefetch requests** on one homepage view.
+- **Eager below-fold images.** `BrandLogo` rendered a plain `<img>` with no
+  `loading` attribute, so the preload scanner fetched the two ecosystem logos
+  (122KB) at ~110ms - ahead of the hero, from far below the fold.
+
+### What changed
+
+Hero entrance animations are now **CSS keyframes** (`.hero-rise`, `.hero-word`,
+`.hero-pop`, `.hero-fade` in `globals.css`). Same motion, same curves, but they
+start at first paint instead of after hydration. `prefetch={false}` on the nav
+chrome (hover still prefetches, so navigation feels the same). `loading="lazy"`
+on `BrandLogo`.
+
+### Results (clean builds, CSS-applied gate on every run)
+
+```
+                    desktop 1440   mobile 412    budget 390
+                       (CPU 1x)      (CPU 4x)      (CPU 6x)
+LCP      before          2820          4420          7756
+         after           1364           804          1804
+requests before            97            84            51
+         after             64            58            55
+RSC prefetch before        37            30             8
+             after         11            11            11
+```
+
+### What is NOT fixed, stated plainly
+
+**Total Blocking Time barely moved**: 1180 → 1093ms at 4x, 3265 → 3107ms at 6x.
+The page now *appears* fast and is still *busy* afterwards. That cost is React
+hydrating a 2595-node tree from a 411KB JS bundle, and none of the three fixes
+here touch it. Making the page genuinely smooth on a budget phone means
+deferring below-fold client components, which is a real refactor and its own
+piece of work.
+
+### One process note worth keeping
+
+The first version of these numbers was **wrong and looked spectacular** - LCP
+344ms. Repeated builds had left `.next` mixed, so the served HTML referenced a
+stylesheet hash that no longer existed; the page rendered unstyled, which is
+very fast. The measurement harness now asserts the stylesheet applied (>500 CSS
+rules and a real border colour on `.hero-cta`) before reporting anything, and
+every number above comes from `rm -rf .next` + full rebuild. A perf result that
+looks too good is usually measuring a broken page.
+
+**Files:** `src/app/globals.css`, `src/components/Hero.tsx`,
+`src/components/HeroCta.tsx`, `src/shared/components/BrandLogo.tsx`,
+`src/shared/components/Navbar.tsx`, `src/shared/components/Footer.tsx`,
+`src/shared/components/BottomNav.tsx`, `docs/changelog.md`.
+
+---
+
 ## 2026-08-04 (26) — The hero's live band is gone
 
 Owner: *"no need live one in hero section"*. The scrolling band of research
