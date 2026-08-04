@@ -25,10 +25,13 @@ function fmt(n: number): string {
  * that the tap had done anything - the same complaint as the count being stale,
  * from the other direction. Keyed on the value so React remounts the span and
  * AnimatePresence can run the transition; `mode="popLayout"` keeps the label
- * from shifting while it does. (2) It is a chip rather than bare text, matching
- * the location/social chips directly below it on the same card, which also
- * makes it a real tap target - it was small text with 4px of padding, well
- * under the 44px minimum, and easy to miss on a phone.
+ * from shifting while it does. (2) It is a real 40px tap target - it was small
+ * text with 4px of padding, well under the minimum, and easy to miss on a phone.
+ *
+ * It used to be its OWN bordered pill. Two of those side by side are wide enough
+ * to wrap on a phone, which is what left the header with four ragged rows of
+ * different widths; they are now two halves of one segmented control, so the
+ * pair reads as a single object and fits one line at 360px.
  */
 function CountButton({ label, value, tone, onClick, onWarm }: {
   label: string;
@@ -48,10 +51,10 @@ function CountButton({ label, value, tone, onClick, onWarm }: {
       onFocus={onWarm}
       aria-label={`${value} ${label}`}
       className={cn(
-        "group inline-flex min-h-[2.25rem] items-center gap-1.5 rounded-full border bg-white/[0.03] px-3 py-1.5 text-sm transition-all duration-300 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2",
+        "group inline-flex h-10 items-center gap-1.5 px-4 text-sm transition-colors duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset",
         tone === "gold"
-          ? "border-gold-500/25 hover:border-gold-500/60 hover:bg-gold-500/10 focus-visible:ring-gold-500/40"
-          : "border-mint-500/25 hover:border-mint-500/60 hover:bg-mint-500/10 focus-visible:ring-mint-400/40"
+          ? "hover:bg-gold-500/10 focus-visible:ring-gold-500/40"
+          : "hover:bg-mint-500/10 focus-visible:ring-mint-400/40"
       )}
     >
       <AnimatePresence mode="popLayout" initial={false}>
@@ -79,11 +82,13 @@ export function ProfileFollow({
   profileId,
   initialFollowers,
   initialFollowing,
+  className,
 }: {
   username: string;
   profileId: string;
   initialFollowers: number;
   initialFollowing: number;
+  className?: string;
 }) {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -161,8 +166,11 @@ export function ProfileFollow({
   };
 
   return (
-    <div className="mt-2.5 flex flex-wrap items-center gap-x-5 gap-y-2">
-      <div className="flex flex-wrap items-center gap-2">
+    <div className={cn("flex flex-wrap items-center gap-3", className)}>
+      {/* One segmented control, not two pills. `divide-x` draws the single
+          hairline between the halves, so there is no separate spacer element to
+          keep vertically centred. */}
+      <div className="inline-flex divide-x divide-white/10 overflow-hidden rounded-full border border-white/10 bg-white/[0.03]">
         <CountButton label="Followers" value={followers} tone="gold" onClick={() => setListOpen("followers")} onWarm={warm} />
         <CountButton label="Following" value={followingCount} tone="mint" onClick={() => setListOpen("following")} onWarm={warm} />
       </div>
@@ -196,7 +204,16 @@ export function ProfileFollow({
           onMouseLeave={() => setHover(false)}
           aria-label={following ? "Unfollow" : "Follow"}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition-colors disabled:opacity-60",
+            // h-10 matches the counts strip beside it. The two used to be
+            // different heights, which is half of why the row looked unaligned.
+            //
+            // Full width on a phone by design. The strip (219px) plus this
+            // button plus the gap comes to 381px against 375px of usable card
+            // at 412px wide, so it wraps regardless - and a wrapped button
+            // hanging off the right edge looks like a mistake, where a
+            // full-width one reads as the primary action it is. From sm up
+            // there is room, so it returns to the end of the strip's line.
+            "inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-full px-5 text-sm font-semibold transition-colors disabled:opacity-60 sm:ml-auto sm:w-auto",
             following
               ? hover
                 ? "bg-red-500/15 text-red-500 ring-1 ring-red-500/40 dark:text-red-300"

@@ -55,7 +55,9 @@ export function MessageButton({ username, compact = false, className }: { userna
     <button
       onClick={start}
       disabled={busy}
-      className={cn("btn-secondary inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm disabled:opacity-60", className)}
+      // h-9 rather than py-1.5 so this lines up with Edit and the share button
+      // next to it in the profile header - see EditProfileButton.
+      className={cn("btn-secondary inline-flex h-9 items-center justify-center gap-2 rounded-full px-4 text-sm disabled:opacity-60", className)}
     >
       {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <MessageSquare className="h-4 w-4" />}
       Message
