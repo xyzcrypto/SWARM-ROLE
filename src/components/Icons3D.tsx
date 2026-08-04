@@ -60,6 +60,56 @@ export function ResearchIcon({ className }: IconProps) {
   );
 }
 
+// ---- Research Lab: report card + magnifier + found-insight star -----------
+// The hero's headline icon. A lone magnifier is just a search glyph; this is
+// the whole act - a report with live bars, a lens held over it, and a star for
+// the thing the lens found. Two palettes on purpose: emerald for the data
+// (it is the market), gold for the instrument (it is the brand). Three
+// independent signature motions, so it reads as working rather than decorated.
+export function ResearchLabIcon({ className }: IconProps) {
+  const [cFace, cGloss, cGlow, gFace, gGloss, gGlow, clip, sFace, sGloss, sGlow] = useIds(10);
+  const card = EMERALD;
+  const lens = GOLD;
+  const star = AMBER;
+  return (
+    <svg {...svgProps} className={className}>
+      <Defs face={cFace} gloss={cGloss} glow={cGlow} c={card} />
+      <Defs face={gFace} gloss={gGloss} glow={gGlow} c={lens} />
+      <Defs face={sFace} gloss={sGloss} glow={sGlow} c={star} />
+
+      {/* the report, tilted so the lens has somewhere to sit */}
+      <g transform="rotate(-7 20 23)" filter={`url(#${cGlow})`}>
+        <rect x="4" y="9" width="31" height="28" rx="4.5" fill={`url(#${cFace})`} />
+        <rect x="9" y="14" width="13" height="2.6" rx="1.3" fill="#04211a" fillOpacity="0.5" />
+        <rect className="i3d-tick" x="9" y="24" width="4.2" height="8" rx="1.6" fill="#04211a" fillOpacity="0.55" />
+        <rect className="i3d-tick" x="16" y="19" width="4.2" height="13" rx="1.6" fill="#04211a" fillOpacity="0.55" style={{ animationDelay: "0.35s" }} />
+        <rect className="i3d-tick" x="23" y="22" width="4.2" height="10" rx="1.6" fill="#04211a" fillOpacity="0.55" style={{ animationDelay: "0.7s" }} />
+        <rect x="4" y="9" width="31" height="28" rx="4.5" fill={`url(#${cGloss})`} />
+        <rect x="4" y="9" width="31" height="28" rx="4.5" stroke={card.ring} strokeOpacity="0.5" />
+      </g>
+
+      {/* the instrument, overlapping the card's corner so there is real depth */}
+      <clipPath id={clip}><circle cx="31.5" cy="30.5" r="7.4" /></clipPath>
+      <line x1="37" y1="36" x2="43.5" y2="42.5" stroke={`url(#${gFace})`} strokeWidth="6" strokeLinecap="round" filter={`url(#${gGlow})`} />
+      <circle cx="31.5" cy="30.5" r="10.4" fill={`url(#${gFace})`} filter={`url(#${gGlow})`} />
+      <circle cx="31.5" cy="30.5" r="7.4" fill="#07130f" />
+      <circle cx="31.5" cy="30.5" r="7.4" fill={card.b} fillOpacity="0.2" />
+      <g clipPath={`url(#${clip})`}>
+        <rect className="i3d-scan" x="27" y="20" width="4.2" height="21" rx="2.1" fill="#fff" fillOpacity="0.55" transform="rotate(18 31.5 30.5)" />
+      </g>
+      <circle cx="31.5" cy="30.5" r="10.4" fill={`url(#${gGloss})`} />
+      <circle cx="31.5" cy="30.5" r="10.4" stroke={lens.ring} strokeOpacity="0.55" />
+      <circle cx="31.5" cy="30.5" r="7.4" stroke="#000" strokeOpacity="0.3" />
+
+      {/* what it found */}
+      <g className="i3d-twinkle" filter={`url(#${sGlow})`}>
+        <path d="M39.5 5.5 l1.9 4 4.1 0.6 -3 2.9 0.7 4.1 -3.7 -1.9 -3.7 1.9 0.7 -4.1 -3 -2.9 4.1 -0.6 Z" fill={`url(#${sFace})`} />
+        <path d="M39.5 5.5 l1.9 4 4.1 0.6 -3 2.9 0.7 4.1 -3.7 -1.9 -3.7 1.9 0.7 -4.1 -3 -2.9 4.1 -0.6 Z" fill={`url(#${sGloss})`} />
+      </g>
+    </svg>
+  );
+}
+
 // ---- Tooling: gear, sky, spins --------------------------------------------
 export function ToolingIcon({ className }: IconProps) {
   const [face, gloss, glow] = useIds(3);

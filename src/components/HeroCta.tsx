@@ -5,7 +5,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { ActionLink } from "./ActionLink";
 import { scrollToHash } from "./HashScroll";
-import { CommunityIcon, CrownIcon, LayersIcon, LockIcon, ResearchIcon, SecurityIcon } from "./Icons3D";
+import { CommunityIcon, CrownIcon, LayersIcon, LockIcon, ResearchLabIcon, SecurityIcon } from "./Icons3D";
 
 export type HeroResearch = {
   /** Titles of our own published research posts, newest first. Titles only. */
@@ -79,7 +79,7 @@ export function HeroCta({ research }: { research: HeroResearch }) {
       >
         <span className="flex w-full min-w-0 items-center gap-3.5 lg:gap-[18px]">
           <span className="hero-cta-icon relative grid h-[58px] w-[58px] flex-none place-items-center lg:h-[72px] lg:w-[72px]">
-            <ResearchIcon className="relative h-full w-full" />
+            <ResearchLabIcon className="relative h-full w-full" />
           </span>
           <span className="min-w-0 flex-1 overflow-hidden">
             <span className="block truncate text-[17px] font-bold leading-tight tracking-[-0.022em] text-zinc-50 lg:text-[21px]">

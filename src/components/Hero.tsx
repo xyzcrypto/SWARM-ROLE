@@ -135,7 +135,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.12 }}
-            className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0"
+            className="mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0 lg:max-w-[580px]"
           >
             On-chain research, pro trading tools, a perpetual DEX, airdrop
             intelligence and a free academy, the complete Web3 toolkit, built
@@ -152,7 +152,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.4 }}
-            className="mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-lg"
+            className="mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-[580px]"
           >
             {[
               { k: members, v: "Overall social community" },

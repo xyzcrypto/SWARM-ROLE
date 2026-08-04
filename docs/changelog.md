@@ -98,6 +98,35 @@ Owner reviewed the preview and asked for five things. All five landed:
    one; a mint tint that reads as a premium panel on near-black goes sickly on
    white. Verified at 412 and 1440 in both themes.
 
+
+### Follow-up 2: a real research emblem, and one right edge on desktop
+
+**The icon was still a search glyph.** A lone magnifier says "search", not
+"research". `ResearchLabIcon` is new in `Icons3D`: an emerald report card with
+three ticking bars, a gold magnifier held over its corner, and an amber star for
+the thing the lens found. Two palettes on purpose - emerald is the data, gold is
+the instrument - and three independent `i3d-*` motions (tick, scan, twinkle) so
+it reads as working rather than decorated. It stays inside the project's own 3D
+language: same gradient body, gloss and drop shadow as every other icon in the
+set.
+
+**Desktop had three right edges in one column.** Measured at 1440 before:
+
+```
+lede    576
+card    580
+stats   512   (max-w-lg)
+```
+
+Three widths stacked vertically read as ragged no matter how good each block is.
+The lede and the stats strip now both take the CTA stack's 580px, so everything
+below the headline shares one left edge and one right edge. The headline itself
+stays wider (630) - it is `whitespace-nowrap` on lg and is meant to be the one
+element that breaks the grid.
+
+Verified after: eyebrow / lede / card / row / stats all report x=92 at 1440,
+x=32 at 1280, x=260 at 1920.
+
 ### The CSS rule this cost two wrong fixes to learn
 
 `overflow: hidden` zeroes the automatic minimum of a **flex item**. It does
