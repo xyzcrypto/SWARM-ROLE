@@ -11,10 +11,15 @@ type CardData = { platform?: string; domain?: string; sharePct?: number; tokens?
 
 // `cache()` is doing real work here, not decoration. Next calls
 // generateMetadata() and the page component separately, and BOTH need the card
-// - so this ran the identical query twice per request. Against Supabase in
-// Mumbai from a US Vercel region that is ~250ms of pure round trip paid twice,
-// on a page whose entire job is to show one row. React's per-request cache
-// collapses them into a single query.
+// - so this ran the identical query twice per request, on a page whose entire
+// job is to show one row. React's per-request cache collapses them into one.
+//
+// This comment used to justify it with "~250ms of pure round trip paid twice"
+// from a US Vercel region. **That is no longer true** - #210 moved functions to
+// `bom1`, co-located with Supabase (see `vercel.json`), so a round trip is now
+// cheap. Keep the `cache()` anyway: halving the query count is right on its own
+// merits, and it is the difference between one DB read and two regardless of
+// how far away the database is. Deleting work beats making work cheaper.
 const getCard = cache(async (id: string) => {
   const row = await prisma.sharedCard
     .findUnique({ where: { id }, select: { kind: true, data: true } })

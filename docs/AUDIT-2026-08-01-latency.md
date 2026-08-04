@@ -488,8 +488,10 @@ content: true, // stripped before it leaves the server; used for reading time
 ```
 
 The comment is accurate about the stripping — no body reaches the client. But those
-bodies still cross the Mumbai→`iad1` link on every regeneration, so `readingTime()`
-can count words and throw them away.
+bodies still cross the wire on every regeneration, so `readingTime()` can count words
+and throw them away. *(Originally written as "the Mumbai→`iad1` link" — that hop is
+gone since #210, but the bytes and the `JSON.parse` are not, which is why this finding
+partially survives. See the banner.)*
 
 **Scope, corrected on recheck.** This is bounded, not "every article": `take: 12` on
 `/research`, `take: 3` on the homepage, `take: 3` for related posts. ~12 bodies per

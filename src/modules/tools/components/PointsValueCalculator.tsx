@@ -138,8 +138,12 @@ export function PointsValueCalculator() {
     // noopener would have severed carries no cross-origin risk.
     const win = window.open("", "_blank");
     // The tab exists instantly; the card behind it does not. Creating the share
-    // row is a write to Supabase in Mumbai from a US region, then the card page
-    // itself is a fresh document load. That is a real second or more of nothing,
+    // row is a DB write, then the card page itself is a fresh document load.
+    // (This used to read "from a US region" and lean on the cross-region
+    // penalty; #210 co-located functions with Supabase in `bom1`, so that is no
+    // longer the reason. The placeholder is still worth it - a fresh document
+    // load is the dominant cost here, not the query.) That is a real second or
+    // more of nothing,
     // and on mobile the new tab has already taken focus - so the whole wait is
     // spent staring at a blank white page, which reads as "it broke".
     //
