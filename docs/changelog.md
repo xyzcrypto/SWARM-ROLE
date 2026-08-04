@@ -5,6 +5,76 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (23) — The profile header now has one left edge
+
+Owner sent a phone screenshot: "profile ka overall jo buttons hai like,
+following, followers and baki sabko acche se align karo". The complaint was
+alignment, and measuring it showed the complaint was literally true.
+
+### What was actually wrong
+
+The header was four stacked rows that each started at a different x, because
+some of them lived inside the name column (indented past the avatar) and the
+rest lived in the card. Measured at 412px wide:
+
+```
+badges      x = 149     <- inside the name column
+bio         x = 37
+buttons     x = 37
+counts      x = 149     <- inside the name column
+```
+
+Two left edges, alternating. On top of that:
+
+- **Followers / Following were two separate bordered pills.** Side by side they
+  are wide enough to wrap the name column on a phone, which is what turned them
+  into two tall stacked rows eating most of the header.
+- **The three action buttons were three different heights** - Edit sized itself
+  `text-[13px] py-1.5` (30px), Message `text-sm py-1.5` (32px), share `h-9`
+  (36px). Three buttons in a row, none of them the same height.
+- **Follow wrapped onto its own line.** The counts strip (219px) + gap + Follow
+  came to 381px against 375px of usable card, so it broke and hung off the
+  right edge looking like a mistake.
+
+### What it is now
+
+Identity (avatar, name, handle) with the actions pinned top-right on desktop and
+dropping to their own full-width bar on a phone. Then badges, bio, chips and the
+counts - every one of them on the card's own left edge, 37px, no exceptions.
+
+Followers / Following became one segmented control rather than two pills, so the
+pair reads as a single object and fits one line at 360px. Follow goes full-width
+under it on a phone (it does not fit beside it, and a full-width primary action
+looks deliberate where a wrapped one does not) and returns to the end of the
+strip's line from `sm` up. The three action buttons are all `h-9` now.
+
+The counts moving to the bottom of the card is not only about alignment: it puts
+them directly above the Posts / Comments / Likes cards, so all the numbers on
+the page sit together.
+
+### Measured, not eyeballed
+
+```
+                    before            after
+badges x            149               37     (= bio, buttons, counts)
+counts x            149               37
+button heights      30 / 32 / 36      36 / 36 / 36
+Follow at 412px     wrapped, ragged   full-width, aligned
+```
+
+Checked at 360 / 412 / 1440.
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 515/515 tests ✅ ·
+build ✅
+
+**Files:** `src/app/u/[username]/page.tsx`,
+`src/modules/profile/components/ProfileFollow.tsx`,
+`src/modules/profile/components/EditProfileButton.tsx`,
+`src/modules/profile/components/MessageButton.tsx`,
+`src/modules/community/components/CopyLinkButton.tsx`.
+
+---
+
 ## 2026-08-04 — Correct stale docs and skill facts; restore a followable bundle method
 Docs, comments and one dev script. No behaviour change. Every claim was re-verified
 against current `main` (`59dddbf`) after #203 moved 521 files, not against the tree the

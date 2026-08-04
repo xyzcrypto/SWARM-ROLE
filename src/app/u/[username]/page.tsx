@@ -154,7 +154,15 @@ export default async function ProfilePage(props: Props) {
               <div className={cn("absolute inset-x-0 bottom-0 h-px", isPremium ? "bg-gold-400/30" : "bg-white/10")} />
             </div>
             <div className="px-5 pb-6 sm:px-8 sm:pb-8">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              {/* Header layout, rewritten to have ONE left edge.
+                  It used to be four rows of different widths - two large stacked
+                  count pills indented under the name, then badges, then actions,
+                  then the bio - each starting at a different x. Now: identity
+                  (avatar + name + handle + badges) with the actions pinned to the
+                  right on desktop and dropping to their own full-width row on a
+                  phone, then bio, then chips, then one counts bar. Everything
+                  below the avatar row lines up with the card's padding. */}
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 {/* Only the avatar overlaps the banner; the name/handle stay in the
                     content area below it so the name is never hidden over the banner art. */}
                 <div className="flex min-w-0 items-start gap-4 sm:gap-5">
@@ -198,26 +206,29 @@ export default async function ProfilePage(props: Props) {
                       {user.name ?? `@${user.username}`}
                     </h1>
                     <p className="mono mt-1 truncate text-sm text-zinc-500 sm:text-[15px]">@{user.username}</p>
-                    <ProfileFollow
-                      username={user.username!}
-                      profileId={user.id}
-                      initialFollowers={followersCount}
-                      initialFollowing={followingCount}
-                    />
                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {isPremium && <PremiumBadge />}
-                  {isAdmin && <Badge tone="mint">Team</Badge>}
-                  <Badge tone="neutral">Joined {formatDate(user.createdAt)}</Badge>
-                  {/* Actions kept together so Share always sits right of Edit and
-                      the row never breaks apart awkwardly on mobile. */}
-                  <div className="flex items-center gap-2">
-                    <EditProfileButton username={user.username!} />
-                    <MessageButton username={user.username!} />
-                    <CopyLinkButton compact />
-                  </div>
+                {/* Actions. On a phone this is its own row at the card's left
+                    edge, with Edit/Message sharing the width evenly so it reads
+                    as a deliberate bar rather than three leftover buttons; from
+                    sm up it pins to the top right, beside the name. */}
+                <div className="flex items-center gap-2 sm:shrink-0">
+                  <EditProfileButton username={user.username!} className="flex-1 justify-center sm:flex-none" />
+                  <MessageButton username={user.username!} className="flex-1 sm:flex-none" />
+                  <CopyLinkButton compact />
                 </div>
+              </div>
+
+              {/* Badges get their own full-width band rather than living in the
+                  name column. Inside the column they were indented past the
+                  avatar, so they started at a different x from the bio, the
+                  chips and the buttons - measured 149px against 37px on a
+                  412px screen, which is precisely what read as "unaligned" -
+                  and the column was too narrow to hold all three on one line. */}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {isPremium && <PremiumBadge />}
+                {isAdmin && <Badge tone="mint">Team</Badge>}
+                <Badge tone="neutral">Joined {formatDate(user.createdAt)}</Badge>
               </div>
 
               {user.bio && (
@@ -247,6 +258,21 @@ export default async function ProfilePage(props: Props) {
                   </a>
                 ))}
               </div>
+
+              {/* Follower/following counts close the card as one full-width bar
+                  on the same left edge as the bio and the chips, with Follow
+                  pushed to the far right. They used to sit indented in the name
+                  column, where the two pills wrapped and pushed Follow onto a
+                  line of its own. Sitting here also puts them next to the
+                  Posts/Comments/Likes cards directly below - numbers with
+                  numbers. */}
+              <ProfileFollow
+                username={user.username!}
+                profileId={user.id}
+                initialFollowers={followersCount}
+                initialFollowing={followingCount}
+                className="mt-5 border-t border-white/10 pt-5"
+              />
             </div>
           </div>
           </Reveal>

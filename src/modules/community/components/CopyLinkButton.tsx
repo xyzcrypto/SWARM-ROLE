@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 // Copy the current profile URL to the clipboard with a brief "Copied" state.
 // `compact` = icon-only round button (takes little space on the profile header).
-export function CopyLinkButton({ compact = false }: { compact?: boolean }) {
+export function CopyLinkButton({ compact = false, className }: { compact?: boolean; className?: string }) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -23,7 +23,7 @@ export function CopyLinkButton({ compact = false }: { compact?: boolean }) {
         onClick={copy}
         aria-label="Copy profile link"
         title={copied ? "Copied!" : "Share profile"}
-        className={cn("btn-ghost grid h-9 w-9 place-items-center !rounded-full !p-0 text-zinc-200", copied && "!text-mint-300")}
+        className={cn("btn-ghost grid h-9 w-9 shrink-0 place-items-center !rounded-full !p-0 text-zinc-200", copied && "!text-mint-300", className)}
       >
         {copied ? <Check className="h-[18px] w-[18px]" /> : <Link2 className="h-[18px] w-[18px]" />}
       </button>
