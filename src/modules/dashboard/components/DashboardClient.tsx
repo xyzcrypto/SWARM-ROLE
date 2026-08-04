@@ -1344,6 +1344,15 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
                     <span aria-hidden>·</span>
                     <span>{u.provider}</span>
                   </div>
+                  {/* Below lg the dedicated Check-ins column is hidden, so the
+                      same record rides along under the member's name instead of
+                      vanishing. Deliberately NOT un-hiding that column on small
+                      screens: this table already scrolls horizontally on a
+                      phone, and a fifth column would push Membership and Action
+                      further off the edge to surface one more field. */}
+                  <div className="mt-1.5 lg:hidden">
+                    <CheckinCell streak={u.checkinStreak ?? 0} total={u.checkinTotal ?? 0} />
+                  </div>
                     </div>
                   </div>
                 </td>
