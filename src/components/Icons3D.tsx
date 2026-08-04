@@ -63,14 +63,16 @@ export function ResearchIcon({ className }: IconProps) {
 // ---- Research Lab: report card + magnifier + found-insight star -----------
 // The hero's headline icon. A lone magnifier is just a search glyph; this is
 // the whole act - a report with live bars, a lens held over it, and a star for
-// the thing the lens found. Two palettes on purpose: emerald for the data
-// (it is the market), gold for the instrument (it is the brand). Three
-// independent signature motions, so it reads as working rather than decorated.
+// the thing the lens found. Exactly TWO hue families, and that is the
+// discipline: emerald is the data, gold is the instrument. The star was amber,
+// which made three, and at 48px a third family reads as confetti rather than as
+// a system. Three independent signature motions, so it reads as working rather
+// than decorated.
 export function ResearchLabIcon({ className }: IconProps) {
   const [cFace, cGloss, cGlow, gFace, gGloss, gGlow, clip, sFace, sGloss, sGlow] = useIds(10);
   const card = EMERALD;
   const lens = GOLD;
-  const star = AMBER;
+  const star = GOLD;
   return (
     <svg {...svgProps} className={className}>
       <Defs face={cFace} gloss={cGloss} glow={cGlow} c={card} />

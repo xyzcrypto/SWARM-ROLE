@@ -178,7 +178,7 @@ export function HeroCta({ research }: { research: HeroResearch }) {
         }
         className="hero-row group/row flex min-w-0 max-w-full items-center gap-3 rounded-[14px] border border-hairline bg-surface-2 px-3.5 py-2.5 transition-colors duration-300 lg:px-4 lg:py-3"
       >
-        <span className="grid h-9 w-9 flex-none place-items-center transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] group-hover/row:-translate-y-px group-hover/row:scale-105 lg:h-10 lg:w-10">
+        <span className="grid h-8 w-8 flex-none place-items-center opacity-90 transition-[transform,opacity] duration-300 ease-[cubic-bezier(.22,1,.36,1)] group-hover/row:-translate-y-px group-hover/row:scale-105 group-hover/row:opacity-100 lg:h-9 lg:w-9">
           {session ? <LayersIcon className="h-full w-full" /> : <CrownIcon className="h-full w-full" />}
         </span>
         <span className="min-w-0 flex-1 truncate text-[14.5px] font-semibold text-zinc-100 lg:text-[15.5px]">
@@ -204,7 +204,7 @@ export function HeroCta({ research }: { research: HeroResearch }) {
 function TrustItem({ icon, label }: { icon: React.ReactNode; label: string }) {
   return (
     <span className="group/t inline-flex min-w-0 items-center gap-1.5">
-      <span className="grid h-[22px] w-[22px] flex-none place-items-center transition-transform duration-300 ease-[cubic-bezier(.22,1,.36,1)] group-hover/t:-translate-y-0.5 group-hover/t:scale-110 lg:h-6 lg:w-6">
+      <span className="grid h-[18px] w-[18px] flex-none place-items-center opacity-[0.68] transition-[transform,opacity] duration-300 ease-[cubic-bezier(.22,1,.36,1)] group-hover/t:-translate-y-0.5 group-hover/t:scale-110 group-hover/t:opacity-100 lg:h-5 lg:w-5">
         {icon}
       </span>
       <span className="whitespace-nowrap text-[10.5px] text-zinc-500 lg:text-[11.5px]">{label}</span>

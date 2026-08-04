@@ -102,6 +102,36 @@ Owner reviewed the preview and asked for five things. All five landed:
 
 
 
+
+### Follow-up 6: colour discipline
+
+Owner asked for a best-in-class colour combination. The problem was not which
+colours - it was **how many**. A single card was carrying four hue families:
+mint, gold, amber and violet, with the loudest of them (a three-colour trust
+line) on the block that is supposed to be the quietest.
+
+Fixes, all subtraction rather than addition:
+
+- **The research icon dropped from three families to two.** Its star was amber
+  against an emerald card and a gold lens; at 48px a third family reads as
+  confetti, not as a system. The star is gold now: emerald is the data, gold is
+  the instrument, and that is the whole story.
+- **The trust line stopped shouting.** 22px saturated icons became 18px at 68%
+  opacity, returning to full colour only on hover. The 3D character survives;
+  the colour parade under an already-green card does not.
+- **The secondary row's icon shrank** (36 -> 32) so the card keeps the only loud
+  voice in the stack.
+- **Greens deepened out of neon.** On a near-black ground, restraint in
+  saturation is what reads as expensive: the card wash went from a bright mint
+  tint to a deep emerald one, and the action button from `#48e5aa -> #0bbb7c` to
+  `#3ddda0 -> #059669`.
+- **The band went nearly neutral.** It was green-on-green, which muddied the
+  titles sitting on it. Now near-black ink with the green kept to a hairline and
+  a faint bloom - the text is what should be read, not the panel.
+
+Boldness is spent in exactly one place now: the round action button. Everything
+around it is quiet. Both themes re-checked.
+
 ### Follow-up 5: the band is back, gated and with a proper surface
 
 Owner asked for option A after all: the live band, with accurate data, and new

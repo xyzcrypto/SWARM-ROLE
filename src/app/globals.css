@@ -1415,14 +1415,16 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
    a mint tint that reads as "premium panel" on near-black turns into a washed
    sickly green on white unless the whole recipe changes. */
 .hero-cta {
-  border: 1px solid rgba(34, 214, 146, 0.32);
-  background: linear-gradient(135deg, rgba(34, 214, 146, 0.12), rgba(34, 214, 146, 0.02));
+  border: 1px solid rgba(34, 214, 146, 0.24);
+  background: linear-gradient(140deg, rgba(13, 122, 86, 0.22), rgba(7, 44, 32, 0.1) 55%, rgba(6, 20, 15, 0.04));
 }
 .hero-cta:hover {
-  border-color: rgba(34, 214, 146, 0.7);
-  box-shadow: 0 18px 40px -24px rgba(11, 187, 124, 0.55);
+  border-color: rgba(34, 214, 146, 0.55);
+  box-shadow: 0 20px 44px -26px rgba(5, 120, 85, 0.6);
 }
-.hero-cta-go { background: linear-gradient(160deg, #48e5aa, #0bbb7c); }
+/* The one place boldness is spent. Still the brightest thing on the card, but
+   deepened out of neon: #34ddA0 -> #059669 instead of #48e5aa -> #0bbb7c. */
+.hero-cta-go { background: linear-gradient(158deg, #3ddda0, #059669); }
 /* A soft pool of light under the 3D icon, so it sits on the card instead of
    floating on it. */
 .hero-cta-icon::before {
@@ -1430,7 +1432,7 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
   position: absolute;
   inset: -12%;
   border-radius: 999px;
-  background: radial-gradient(circle at 50% 55%, rgba(34, 214, 146, 0.28), transparent 68%);
+  background: radial-gradient(circle at 50% 55%, rgba(16, 160, 112, 0.3), transparent 68%);
 }
 
 /* ---- the live band ----
@@ -1440,9 +1442,9 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
    above everywhere else on this site), and a slow mint bloom drifting behind
    the text so the strip looks alive even between scroll cycles. */
 .hero-feed {
-  background: linear-gradient(180deg, rgba(6, 24, 17, 0.62), rgba(4, 15, 11, 0.5));
-  border: 1px solid rgba(34, 214, 146, 0.18);
-  box-shadow: inset 0 1px 0 rgba(120, 255, 205, 0.09);
+  background: linear-gradient(180deg, rgba(8, 13, 11, 0.72), rgba(5, 9, 8, 0.58));
+  border: 1px solid rgba(34, 214, 146, 0.13);
+  box-shadow: inset 0 1px 0 rgba(150, 255, 215, 0.07);
   isolation: isolate;
 }
 .hero-feed::before {
@@ -1451,7 +1453,7 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
   inset: -60% -25%;
   z-index: -1;
   pointer-events: none;
-  background: radial-gradient(42% 60% at 22% 50%, rgba(34, 214, 146, 0.16), transparent 70%);
+  background: radial-gradient(42% 60% at 22% 50%, rgba(20, 170, 120, 0.13), transparent 70%);
   animation: hero-bloom 9s ease-in-out infinite;
 }
 @keyframes hero-bloom {
@@ -1461,8 +1463,8 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 /* The NEW pill gets a little gradient of its own so it reads as lit rather than
    as a flat swatch of brand colour. */
 .hero-badge-new {
-  background: linear-gradient(150deg, #5cf0b6, #17c184);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.32) inset, 0 4px 12px -6px rgba(11, 187, 124, 0.8);
+  background: linear-gradient(150deg, #46e3a8, #0f9f6e);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.28) inset, 0 4px 12px -7px rgba(5, 120, 85, 0.85);
 }
 
 html:not(.dark) .hero-cta {
