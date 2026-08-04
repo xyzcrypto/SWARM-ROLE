@@ -5,6 +5,49 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (29) — Members' check-ins are visible on a phone, not just on a desktop
+
+Owner, with a screenshot of the dashboard Members tab on a phone: the members'
+daily check-in should be visible there too, *"desktop me sahi h but mobile me
+bhi kardo."*
+
+The Check-ins column was `hidden ... lg:table-cell`, so it only ever appeared at
+1024px and up. On a phone the data was not merely cramped - it was not rendered
+at all.
+
+### Why the column was not simply un-hidden
+
+That table already scrolls sideways on a phone (`min-w-[340px]`, and the owner's
+screenshot shows the email column clipped at the left edge). A fifth column
+would have pushed Membership and Action further off-screen to surface one more
+field - trading one hidden thing for two.
+
+Instead the same `CheckinCell` rides along **inside the Member cell**, under the
+name and handle, and only below `lg`:
+
+```
+              < lg                 >= lg
+inline cell   block                none
+Check-ins col none                 table-cell
+```
+
+Never both, never neither - verified at 412px and 1280px against the real
+compiled stylesheet.
+
+### Verifying an admin-only page without an admin session
+
+The dashboard needs a database and an ADMIN session, neither of which exists on
+this machine, so it cannot be opened locally. Rather than ship the change
+unseen, the row markup was rendered in a standalone page **linked against the
+build's own compiled CSS** (`.next/static/chunks/*.css`), which makes the
+responsive classes real rather than assumed. That checks the visibility logic
+and the layout; it does not exercise the live data path, and the fonts differ.
+
+**Files:** `src/modules/dashboard/components/DashboardClient.tsx`,
+`docs/changelog.md`.
+
+---
+
 ## 2026-08-04 (28) — The hero lede no longer strands its last words on their own line
 
 Owner sent a phone screenshot with the headline and lede circled: *"text ko
