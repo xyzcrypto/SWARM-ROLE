@@ -137,7 +137,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
               site at opacity 0 until hydration finished. */}
           <p
             style={{ "--rise-dur": "0.6s", "--rise-delay": "0.12s" } as React.CSSProperties}
-            className="hero-rise mx-auto mt-4 max-w-md text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0 lg:max-w-[580px]"
+            className="hero-rise mx-auto mt-4 max-w-md text-balance text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0 lg:max-w-[580px]"
           >
             On-chain research, pro trading tools, a perpetual DEX, airdrop
             intelligence and a free academy, the complete Web3 toolkit, built

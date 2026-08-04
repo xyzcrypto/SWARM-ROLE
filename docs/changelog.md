@@ -5,6 +5,51 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (28) — The hero lede no longer strands its last words on their own line
+
+Owner sent a phone screenshot with the headline and lede circled: *"text ko
+align karo taki poora text sahi se dikhe naki 2 line niche."*
+
+Measured the line boxes rather than eyeballing it, and the complaint was exact.
+At a 412px viewport the paragraph wrapped to:
+
+```
+line widths   371  369  361   89     <- column is 372px
+```
+
+Three lines running the full column edge to edge, then **"and builders." alone
+at 89px**, floating in the middle of an otherwise solid block. That orphan is
+what the circle was around.
+
+### Fix
+
+One class: `text-balance` on the lede. The browser distributes the text evenly
+across its lines instead of filling greedily and dumping the remainder:
+
+```
+                  before                after
+360px      266 311 313 300       266 311 313 300   (was already fine)
+390px      336 335 280 239       266 311 313 300
+412px      371 369 361  89       266 311 313 300
+430px      371 369 361  89       266 311 313 300
+```
+
+Desktop benefits too - the paragraph drops from four ragged lines to three even
+ones (443 / 498 / 486).
+
+Deliberately `text-balance` and not `text-pretty`: `pretty` only pulls the final
+orphan up and leaves the rest greedy, which fixes the symptom on one line.
+`balance` evens every line, which is what "poora text sahi se dikhe" asked for.
+Unsupported browsers just fall back to normal wrapping, so there is nothing to
+gate.
+
+The headline was circled too but needed nothing: it carries an explicit `<br>`,
+so its two lines are already fixed by hand.
+
+**Files:** `src/components/Hero.tsx`, `docs/changelog.md`.
+
+---
+
 ## 2026-08-04 (27) — The homepage was not slow to arrive, it was slow to become visible
 
 Owner: *"website openning is slow and lagging somehow ... check properly and
