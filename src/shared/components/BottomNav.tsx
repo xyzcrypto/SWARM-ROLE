@@ -72,6 +72,7 @@ export function BottomNav() {
         ))}
         <Link
           href={profileHref}
+          prefetch={false}
           aria-current={profileActive ? "page" : undefined}
           className="flex flex-col items-center justify-center gap-0.5 py-1"
         >
@@ -106,6 +107,7 @@ function NavCell({ item, active }: { item: Item; active: boolean }) {
   return (
     <Link
       href={item.href}
+      prefetch={false}
       aria-current={active ? "page" : undefined}
       className={cn(CELL_CLS, active ? "text-gold-200" : "text-zinc-500 hover:text-zinc-300")}
     >

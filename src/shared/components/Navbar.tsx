@@ -105,6 +105,7 @@ export function Navbar() {
             <Link
               key={l.href}
               href={l.href}
+              prefetch={false}
               aria-current={isActive(l.href) ? "page" : undefined}
               className={cn(
                 "group relative rounded-lg px-2.5 py-2 text-sm font-medium transition-colors lg:px-3.5",
@@ -218,6 +219,7 @@ export function Navbar() {
             <>
               <Link
                 href="/login"
+                prefetch={false}
                 className="rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:text-zinc-100"
               >
                 Log in
@@ -259,6 +261,7 @@ export function Navbar() {
               <Link
                 key={l.href}
                 href={l.href}
+                prefetch={false}
                 onClick={() => setOpen(false)}
                 aria-current={isActive(l.href) ? "page" : undefined}
                 className={cn(
@@ -301,20 +304,20 @@ export function Navbar() {
                       </span>
                     </span>
                   </div>
-                  <Link href={profileHref} onClick={() => setOpen(false)} className="btn-ghost">
+                  <Link href={profileHref} prefetch={false} onClick={() => setOpen(false)} className="btn-ghost">
                     Profile
                   </Link>
-                  <Link href="/messages" onClick={() => setOpen(false)} className="btn-ghost">
+                  <Link href="/messages" prefetch={false} onClick={() => setOpen(false)} className="btn-ghost">
                     Messages
                   </Link>
-                  <Link href="/journal" onClick={() => setOpen(false)} className="btn-ghost">
+                  <Link href="/journal" prefetch={false} onClick={() => setOpen(false)} className="btn-ghost">
                     Journal
                   </Link>
-                  <Link href="/settings" onClick={() => setOpen(false)} className="btn-ghost">
+                  <Link href="/settings" prefetch={false} onClick={() => setOpen(false)} className="btn-ghost">
                     Settings
                   </Link>
                   {canSeeDashboard && (
-                    <Link href="/dashboard" onClick={() => setOpen(false)} className="btn-ghost">
+                    <Link href="/dashboard" prefetch={false} onClick={() => setOpen(false)} className="btn-ghost">
                       Dashboard
                     </Link>
                   )}
@@ -325,7 +328,7 @@ export function Navbar() {
                 </>
               ) : (
                 <>
-                  <Link href="/login" onClick={() => setOpen(false)} className="btn-ghost">
+                  <Link href="/login" prefetch={false} onClick={() => setOpen(false)} className="btn-ghost">
                     Log in
                   </Link>
                   <ActionLink href="/signup" onClick={() => setOpen(false)} className="btn-primary">
@@ -355,6 +358,7 @@ function MenuItem({
   return (
     <Link
       href={href}
+      prefetch={false}
       onClick={onClick}
       className="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-zinc-300 transition-colors hover:bg-white/5 hover:text-gold-100"
     >

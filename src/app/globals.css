@@ -1406,6 +1406,73 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 }
 
 /* ----------------------------------------------------------------
+   Hero entrance — CSS, deliberately not JavaScript
+   (src/components/Hero.tsx, src/components/HeroCta.tsx)
+
+   These replace framer-motion `initial`/`animate` pairs on the hero's TEXT.
+   That is a performance fix and a robustness fix, and they are the same fix.
+
+   A framer-motion `initial={{ opacity: 0 }}` is rendered into the SSR HTML as
+   `style="opacity:0"`. The element is therefore invisible until the bundle has
+   downloaded, parsed, hydrated and run the first animation frame. Measured on
+   this page at a 4x CPU throttle, that put LCP - the hero's lede paragraph -
+   at 4868ms, while the background had already painted at 772ms. The page was
+   not slow to arrive; it was slow to become VISIBLE, which is what "opening
+   slow" actually described. 73 elements shipped at opacity 0.
+
+   A CSS animation starts at first paint instead. Same motion, same curve, but
+   it costs no JavaScript, cannot be delayed by hydration, and still runs if
+   the bundle fails outright. This is CLAUDE.md's standing rule - "never make
+   content depend on JS to become visible" - applied to the one place that was
+   still breaking it.
+
+   `both` holds the from-state during the delay. The delays are 0-0.45s from
+   PAINT, not from hydration, which is the whole difference.
+
+   Not gated on prefers-reduced-motion, matching the project's existing policy:
+   one-shot entrance animations never were. */
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(var(--rise-y, 18px)); }
+  to   { opacity: 1; transform: none; }
+}
+.hero-rise {
+  animation: hero-rise var(--rise-dur, 0.55s) cubic-bezier(0.22, 1, 0.36, 1) var(--rise-delay, 0s) both;
+}
+
+/* The headline words, which additionally focus in from a blur. */
+@keyframes hero-word {
+  from { opacity: 0; transform: translateY(26px); filter: blur(12px); }
+  to   { opacity: 1; transform: none; filter: blur(0px); }
+}
+.hero-word {
+  display: inline-block;
+  animation: hero-word 0.75s cubic-bezier(0.22, 1, 0.36, 1) var(--rise-delay, 0s) both;
+}
+
+/* The medallion. Converting only the TEXT first was not enough and the
+   measurement said so: with the copy fixed, the logo image became the new LCP
+   element at 5036ms, because it sits inside two wrappers that were still
+   `initial={{ opacity: 0 }}`. Fixing the text alone moved the bottleneck
+   rather than removing it. */
+@keyframes hero-pop {
+  from { opacity: 0; transform: scale(var(--pop-from, 0.7)) rotate(var(--pop-rot, 0deg)); }
+  to   { opacity: 1; transform: none; }
+}
+.hero-pop {
+  animation: hero-pop var(--pop-dur, 1s) cubic-bezier(0.22, 1, 0.36, 1) var(--pop-delay, 0s) both;
+}
+/* The rings fade rather than scale in. They already carry `animate-spin-*`,
+   which owns `transform` on the same element - two CSS animations writing one
+   property is a fight, and opacity alone is visually indistinguishable here. */
+@keyframes hero-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.hero-fade {
+  animation: hero-fade 0.9s ease-out var(--pop-delay, 0s) both;
+}
+
+/* ----------------------------------------------------------------
    Hero CTA — the research card
    (src/components/HeroCta.tsx)
 

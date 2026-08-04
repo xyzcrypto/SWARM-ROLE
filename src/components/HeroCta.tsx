@@ -1,7 +1,6 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { motion } from "framer-motion";
 import { ArrowRight, ChevronRight } from "lucide-react";
 import { ActionLink } from "./ActionLink";
 import { scrollToHash } from "./HashScroll";
@@ -56,11 +55,12 @@ export function HeroCta({ research }: { research: HeroResearch }) {
   const { data: session } = useSession();
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, delay: 0.24 }}
-      className="mt-7 flex w-full min-w-0 max-w-full flex-col gap-2.5 text-left lg:max-w-[580px] lg:gap-3"
+    // CSS entrance rather than a motion `initial`, so the card is painted by
+    // the browser instead of waiting for hydration - see the "Hero entrance"
+    // block in globals.css.
+    <div
+      style={{ "--rise-dur": "0.6s", "--rise-delay": "0.24s" } as React.CSSProperties}
+      className="hero-rise mt-7 flex w-full min-w-0 max-w-full flex-col gap-2.5 text-left lg:max-w-[580px] lg:gap-3"
     >
       {/* ---------------- primary: research ---------------- */}
       <ActionLink
@@ -126,7 +126,7 @@ export function HeroCta({ research }: { research: HeroResearch }) {
         <TrustItem icon={<LockIcon className="h-full w-full" />} label="No wallet required" />
         <TrustItem icon={<CommunityIcon className="h-full w-full" />} label="Community first" />
       </div>
-    </motion.div>
+    </div>
   );
 }
 

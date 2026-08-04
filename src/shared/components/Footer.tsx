@@ -23,7 +23,7 @@ export function Footer() {
 
         <div className="grid gap-10 py-14 lg:grid-cols-[1.6fr_1fr_1fr]">
           <div>
-            <Link href="/" className="flex items-center gap-3">
+            <Link href="/" prefetch={false} className="flex items-center gap-3">
               <span className="relative inline-flex h-10 w-10 overflow-hidden rounded-xl ring-1 ring-gold-500/40">
                 <Image src="/logo.png" alt="XYZ Crypto" fill className="object-cover" sizes="40px" />
               </span>
@@ -69,6 +69,7 @@ export function Footer() {
                 <li key={l.href}>
                   <Link
                     href={l.href}
+                    prefetch={false}
                     className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200"
                   >
                     {l.label}
@@ -86,15 +87,15 @@ export function Footer() {
             <ul className="mt-4 space-y-1.5 text-sm">
               {/* Guests get sign-up / log-in; members get profile / settings. */}
               <GuestOnly>
-                <li><Link href="/signup" className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Create account</Link></li>
-                <li><Link href="/login" className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Log in</Link></li>
+                <li><Link href="/signup" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Create account</Link></li>
+                <li><Link href="/login" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Log in</Link></li>
               </GuestOnly>
               <SignedIn>
-                <li><Link href="/profile" className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Your profile</Link></li>
-                <li><Link href="/settings" className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Settings</Link></li>
+                <li><Link href="/profile" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Your profile</Link></li>
+                <li><Link href="/settings" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Settings</Link></li>
               </SignedIn>
-              <li><Link href="/research" className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Research hub</Link></li>
-              <li><Link href="/contact" className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Contact us</Link></li>
+              <li><Link href="/research" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Research hub</Link></li>
+              <li><Link href="/contact" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Contact us</Link></li>
             </ul>
           </div>
         </div>
@@ -106,8 +107,8 @@ export function Footer() {
           <p className="mono text-[11px] text-zinc-600">© {new Date().getFullYear()} XYZ Crypto. All rights reserved.</p>
           <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-4">
             <div className="flex items-center gap-4">
-              <Link href="/terms" className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Terms</Link>
-              <Link href="/privacy" className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Privacy</Link>
+              <Link href="/terms" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Terms</Link>
+              <Link href="/privacy" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Privacy</Link>
             </div>
             <p className="mono text-[11px] text-zinc-600">Built for the Next Generation of Web3 · v2.0</p>
           </div>
