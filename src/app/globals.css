@@ -1406,19 +1406,62 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 }
 
 /* ----------------------------------------------------------------
-   Hero CTA — research feed band + the card's ambient loops
+   Hero CTA — the research card, its feed band, and the light theme
    (src/components/HeroCta.tsx)
 ----------------------------------------------------------------- */
+
+/* Surface + border live here rather than in Tailwind classes because the light
+   theme needs a genuinely different wash, not a lighter opacity of the dark one:
+   a mint tint that reads as "premium panel" on near-black turns into a washed
+   sickly green on white unless the whole recipe changes. */
+.hero-cta {
+  border: 1px solid rgba(34, 214, 146, 0.32);
+  background: linear-gradient(135deg, rgba(34, 214, 146, 0.12), rgba(34, 214, 146, 0.02));
+}
+.hero-cta:hover {
+  border-color: rgba(34, 214, 146, 0.7);
+  box-shadow: 0 18px 40px -24px rgba(11, 187, 124, 0.55);
+}
+.hero-cta-go { background: linear-gradient(160deg, #48e5aa, #0bbb7c); }
+.hero-feed { background: rgba(4, 18, 12, 0.35); border: 1px solid rgba(34, 214, 146, 0.14); }
+/* A soft pool of light under the 3D icon, so it sits on the card instead of
+   floating on it. */
+.hero-cta-icon::before {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  border-radius: 999px;
+  background: radial-gradient(circle at 50% 55%, rgba(34, 214, 146, 0.28), transparent 68%);
+}
+
+html:not(.dark) .hero-cta {
+  border-color: rgba(3, 149, 103, 0.35);
+  background: linear-gradient(135deg, rgba(34, 214, 146, 0.16), rgba(34, 214, 146, 0.05));
+}
+html:not(.dark) .hero-cta:hover {
+  border-color: rgba(3, 149, 103, 0.6);
+  box-shadow: 0 18px 40px -26px rgba(3, 149, 103, 0.5);
+}
+html:not(.dark) .hero-feed {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(3, 149, 103, 0.18);
+}
+html:not(.dark) .hero-cta-icon::before {
+  background: radial-gradient(circle at 50% 55%, rgba(3, 149, 103, 0.16), transparent 68%);
+}
+/* The row hover tints follow the accent of what they lead to. */
+.hero-row:hover { border-color: rgba(34, 214, 146, 0.4); background: rgba(34, 214, 146, 0.05); }
+html:not(.dark) .hero-row:hover { border-color: rgba(3, 149, 103, 0.35); background: rgba(34, 214, 146, 0.08); }
 
 /* The track is ABSOLUTELY POSITIONED, and that is load-bearing rather than
    styling. The hero's text column is a grid item, so it carries the default
    `min-width: auto`: any in-flow descendant with a wide max-content size grows
-   the column and drags the site's own headline along with it. Measured while
-   building this: a five-post track on the same line took the column from 372px
-   to 3036px at a 412px viewport. `overflow: hidden` on the wrapper did NOT stop
-   it - only taking the track out of flow does, because an out-of-flow box
-   contributes nothing to intrinsic sizing. So no number of published posts can
-   ever widen the hero. */
+   the column and drags the site's own headline with it. Measured while building
+   this: a five-post track on one line took the column from 372px to 3036px at a
+   412px viewport. `overflow: hidden` on the wrapper did NOT stop it - only
+   taking the track out of flow does, because an out-of-flow box contributes
+   nothing to intrinsic sizing. So no number of published posts can ever widen
+   the hero. */
 .hero-feed-track {
   position: absolute;
   left: 0;
@@ -1428,10 +1471,6 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
   height: 100%;
   width: max-content;
   animation: hero-feed linear infinite;
-  /* Hold the newest title still long enough to actually be read before the
-     band starts moving. A headline already mid-slide on arrival does not
-     announce anything, which is the whole point of the band. */
-  animation-delay: 2.8s;
 }
 @keyframes hero-feed {
   from { transform: translateX(0); }
@@ -1446,9 +1485,9 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
   mask-image: linear-gradient(90deg, transparent 0, #000 3%, #000 86%, transparent);
 }
 
-/* Ambient loops on the card. Small and local, so per the project's deliberately
-   narrow reduced-motion policy they are exempt, the same way the ticker marquee
-   is - only heavy full-screen effects are gated. */
+/* Ambient loops. Small and local, so per the project's deliberately narrow
+   reduced-motion policy they are exempt, the same way the ticker marquee and
+   the whole Icons3D system are - only heavy full-screen effects are gated. */
 .hero-cta-halo { animation: hero-halo 3.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
 @keyframes hero-halo {
   0%        { transform: scale(1);    opacity: 0.5; }
@@ -1458,26 +1497,4 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 @keyframes hero-blink {
   0%, 100% { opacity: 1; }
   50%      { opacity: 0.2; }
-}
-.hero-pad { transform-origin: 50% 78%; animation: hero-pad 4.2s ease-in-out infinite; }
-.hero-pad-2 { animation-delay: -1.4s; }
-.hero-pad-3 { animation-delay: -2.8s; }
-@keyframes hero-pad {
-  0%, 100% { opacity: 0.2;  transform: scale(0.95); }
-  50%      { opacity: 0.55; transform: scale(1.03); }
-}
-.hero-lens    { animation: hero-bob 5s   ease-in-out infinite; }
-.hero-panel-l { animation: hero-bob 5.8s ease-in-out infinite; animation-delay: -1.1s; }
-.hero-panel-r { animation: hero-bob 5.4s ease-in-out infinite; animation-delay: -2.4s; }
-@keyframes hero-bob {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-2.5px); }
-}
-.hero-candle { transform-origin: center bottom; animation: hero-candle 3s ease-in-out infinite; }
-.hero-candle:nth-of-type(2) { animation-delay: -0.6s; }
-.hero-candle:nth-of-type(3) { animation-delay: -1.3s; }
-.hero-candle:nth-of-type(4) { animation-delay: -2s; }
-@keyframes hero-candle {
-  0%, 100% { transform: scaleY(0.75); }
-  50%      { transform: scaleY(1.1); }
 }

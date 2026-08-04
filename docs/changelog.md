@@ -76,6 +76,50 @@ feed titles     real rows from the DB, newest first
 typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 515/515 tests ✅ ·
 build ✅
 
+
+### Follow-up (same day): 3D icons, a pinned "NEW", and the light theme
+
+Owner reviewed the preview and asked for five things. All five landed:
+
+1. **Every icon is now from the project's own `Icons3D` set** - the research
+   magnifier, the products stack, the crown on the guest CTA, and the shield /
+   lock / people on the trust line. That means the same gradient-body + gloss +
+   drop-shadow depth and the same always-on `i3d-*` signature motion as the rest
+   of the site, rather than a second, slightly-different 3D language invented
+   here.
+2. **The band is split in two.** The newest post is **pinned and static** behind
+   a `NEW` badge so it reads as "this one just went live"; everything already
+   published scrolls beneath it. Previously the newest title scrolled away with
+   the rest.
+3. The guest row's icon was the **same green shield** as "Free to join" two
+   lines below it. Now a crown - membership, not another safety claim.
+4. **Light theme.** The card, the band, the icon's glow pool and the row hover
+   each get their own light recipe rather than a lighter opacity of the dark
+   one; a mint tint that reads as a premium panel on near-black goes sickly on
+   white. Verified at 412 and 1440 in both themes.
+
+### The CSS rule this cost two wrong fixes to learn
+
+`overflow: hidden` zeroes the automatic minimum of a **flex item**. It does
+**not** do the same for a plain **block**: min-content stays at the full width
+of the nowrap text, and the hero's own column (a grid item, `min-width: auto`)
+grows to fit it.
+
+```
+                                    column @360px
+baseline                            320
+pinned title, as a block            367
+  + overflow-hidden on the row      369   (no effect)
+  + badge inlined into the title    367   (no effect)
+  + grid-cols-[minmax(0,1fr)]       320   (fixed)
+```
+
+Two fixes that "looked right" moved nothing, because they applied a flex rule to
+a block. A `minmax(0, 1fr)` grid track is what actually bounds it.
+
+Route table re-checked after the change: **131 / 22 / 109 / 12**, `/` still `○`
+on 5m.
+
 **Files:** `src/components/HeroCta.tsx` (new), `src/components/Hero.tsx`,
 `src/app/page.tsx`, `src/app/globals.css`.
 
