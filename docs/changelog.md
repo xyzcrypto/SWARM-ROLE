@@ -5,6 +5,53 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-03 (22) — Reports have somewhere to be read
+
+The report button shipped in (20) wrote to a table nobody could see. Dashboard
+-> Moderation now has a third view beside Comments and Chat messages.
+
+Each row carries what a decision actually needs: the reason, who was reported
+(with a link to their profile - an admin reading a report almost always wants
+to look at the account next), who reported them, the note, and the DM that was
+cited. Open / Reviewed filter; marking reviewed is reversible, because it is a
+triage state and reopening should not require a database console.
+
+### The privacy call, stated rather than assumed
+
+When a report cites a DM, that message's text is shown to staff. A private
+message becomes readable. That IS the point of citing it - a report nobody can
+evaluate is a report nobody can act on, and the reporter chose to hand it over -
+but it is a real disclosure and it should be a decision, not a side effect.
+
+The line is drawn at exactly that one message: the rest of the conversation is
+never fetched, and emails are masked the same way the members table masks them.
+Widening this should be a deliberate conversation, not a quiet `include`.
+
+A message the sender has since deleted still appears, labelled as deleted. That
+is precisely why DM deletes are soft.
+
+### Gate
+
+`post:manage` - the same permission Comments and Chat messages already use.
+Reports are about member behaviour, so they belong to whoever handles
+moderation rather than needing a permission of their own. Verified: a non-staff
+member gets **401**.
+
+### Verified in a real browser
+
+```
+non-staff GET /api/reports    401
+open reports                  1  harassment / @safeone / sa***@x.io / message attached
+UI                            reason, note, reported message, Mark reviewed all present
+after Mark reviewed           open: 0   reviewed: 1
+```
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 515/515 tests ✅ ·
+build ✅
+
+**Files:** `src/app/api/reports/route.ts` (new),
+`src/modules/dashboard/components/DashboardClient.tsx`.
+
 ## 2026-08-03 (21) — The service worker was caching 404s, and one of them was the stylesheet
 
 Owner sent a phone screenshot of a research post rendered as raw HTML: serif
