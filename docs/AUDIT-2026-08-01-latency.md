@@ -13,13 +13,58 @@ used as evidence. Findings are tagged `[VERIFIED]` (read and traced) or `[SUSPEC
 > keeping admin. The finding stands; its original fix does not.
 
 
+---
+
+# 🔴 SUPERSEDED IN PART — read this before acting on anything below (2026-08-04)
+
+**This audit's central premise no longer holds.** Everything below is framed around
+functions in `iad1` and Supabase in Mumbai, putting **~250 ms on every DB round trip**,
+and it says explicitly that this is "a fixed constraint, not something to design around
+later." It was designed around: **#210 moved functions to Mumbai** (`vercel.json` now
+pins `regions: ["bom1"]`), co-locating them with the database. That penalty is gone.
+
+The original text is left intact rather than rewritten, because the reasoning is still
+worth reading and quietly editing it would hide that the ranking was contingent. But
+the **ranking is no longer usable as written** — some findings existed *only* because
+of the gap, and some survive on their own merits. A removed query is still a removed
+query; a parallelised one that saved 250 ms now saves ~5 ms.
+
+## Per-finding status, re-verified against `59dddbf`
+
+| # | Finding | Status now |
+|---|---|---|
+| 1 | Extra DB round trip on every authenticated request | **Mechanism still live** (`src/core/auth/auth.ts:314`), but reclassified. The latency case is gone. Its proposed fix was already **withdrawn as an authorization regression**, and the false comment that made it look safe was corrected on `main`. What remains is one indexed query per authenticated request — a minor invocation/CPU cost, not the site-wide latency finding it was ranked as. |
+| 2 | `NavActivity` polls 3 endpoints every 60 s | **Survives, on invocation count rather than latency** — and is arguably worse: the component now also has a `FAST_POLL_MS = 30_000` path (`src/modules/notifications/components/NavActivity.tsx:30,42`). The requests are still made; only their cost per request fell. |
+| 3 | `/api/ticker` window shorter than its poll | ✅ **FIXED** by #207 (180 s at both layers). Region-independent — this was never about the gap. Now pinned by a test (#236). |
+| 4 | `journal/challenges/[id]` — 3 independent queries in series | ✅ **FIXED** by #210, which parallelised them (`Promise.all`, line 40) in the same pass as the region move. |
+| 5 | `POST_CARD_SELECT` pulls article bodies | **Partially survives.** The over-the-wire cost shrinks with the gap; the `JSON.parse` and word-count CPU do not. Was already demoted; stays demoted. |
+| 6 | `/api/markets/defi` — four llama.fi payloads vs the 2 MB data-cache cap | **Survives unchanged.** Entirely about an external API and Fluid CPU; the region move is irrelevant to it. Still unmeasured — needs `curl -sI https://api.llama.fi/protocols`. |
+| 7 | `/api/track` writes a row per navigation | **Survives, on write volume and invocation count.** Still present (`pageView.create`, per navigation, anonymous included). Only the latency of each write fell. |
+| 8 | `share/overview` has no `take` | **Survives.** Unbounded row count is region-independent. |
+| 9 | Bundle size unmeasurable | **Survives — and is being fixed now.** `.next/app-build-manifest.json` still does not exist under Turbopack; `scripts/bundle-report.mjs` replaces it. |
+| 10 | Rendering/caching largely clean | **Conclusions hold**, but the counts moved: the route table is now **131/22/109/12**, not 124/22/102/12. |
+| 11 | `/u/[username]` — one avoidable round trip | ❌ **Existed only because of the gap.** Still two sequential legs, but the saving is now ~5 ms rather than ~250 ms. **Not worth doing.** It was already the lowest-confidence finding. |
+
+**Net:** two fixed (#3, #4), one obsoleted (#11), one reclassified (#1), one being fixed
+(#9), and five that survive on non-latency grounds (#2, #5, #6, #7, #8).
+
+**The general lesson is worth more than the ranking was.** This audit ranked
+"parallelise these queries" above "delete this query" because of a constraint that a
+single `vercel.json` line removed. Findings that *remove work* survived the change;
+findings that only *reorder work around a penalty* did not. Prefer the former when both
+are available.
+
+---
+
 **Scope: analysis only.** No source changes were made as part of this audit; the
 proposals below are unimplemented at the time of writing.
 
 **Context.** Vercel Hobby. Three metered resources rationed: Fast Origin Transfer
 (10 GB/mo), ISR Writes, Fluid Active CPU. Fluid bills *Active CPU*, so I/O wait is
 cheap and CPU work is not. Functions run in `iad1`; Supabase is in Mumbai, so every
-DB round trip costs ~250 ms and that is fixed. Findings are ranked accordingly:
+DB round trip costs ~250 ms and that is fixed. *(**No longer true as of #210** — see
+the superseded-in-part banner above. Left as written because the ranking below depends
+on it.)* Findings are ranked accordingly:
 **eliminating a query beats parallelising it, and parallelising beats everything else.**
 
 `[VERIFIED]` = I read and traced it. `[SUSPECTED]` = confirmation step stated.
