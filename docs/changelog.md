@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (25) — Write down who is allowed to merge
+
+Docs only, no code. `CLAUDE.md`'s "Branch / deploy model" now states the owner's
+standing rule: **only PRs authored by `xyzcrypto` get merged; a team member's PR
+is never merged, and an ambiguous ask gets a warning first rather than a merge.**
+
+It was said in a session and lived only there, which means the next session (or
+the same one after a context reset, or a different account) would not have known
+it. A rule that only exists in a chat is not a rule the repo has. The wording is
+deliberately specific about the failure mode it prevents: "merge the open PRs"
+reads as *all* of them, and a green trivial PR from someone else is exactly the
+one that gets merged on autopilot. Check `user.login`, every time.
+
+**Files:** `CLAUDE.md`, `docs/changelog.md`.
+
+---
+
 ## 2026-08-04 (24) — The hero CTA is a research card, and the feed is our own posts
 
 Owner's brief, over several rounds: the hero's mint pill "AI feel" wala lagta
