@@ -28,16 +28,23 @@ UTF-8 byte, so a naive `grep -c '○'` over the whole table over-counts by one.
 
 ### Known ISR windows
 
-`/` 5m · `/markets` 5m · `/research` 5m · `/tools` 1h · `/news` ≈2m · `/api/ticker` 1m ·
+`/` 5m · `/markets` 5m · `/research` 5m · `/tools` 1h · `/news` ≈2m · `/api/ticker` 170s ·
 `/api/markets/coins` 200s · `/api/markets/defi` 200s · `/api/markets/global` 200s ·
 `/api/markets/perp` 200s · `/api/markets/dex` 320s · `/api/markets/yields` 320s.
 All with a 1y expire.
 
-The six `markets/*` values are **derived from the client poll intervals**, not chosen
-freely: 200s covers a 180s poll, 320s covers a 300s poll, each with ~10% margin.
+The seven polled values are **derived from the client poll intervals**, not chosen
+freely — the convention is **poll + 20s**:
+
+| Route | Poll | Window | Poll defined in |
+|---|---|---|---|
+| `markets/{coins,defi,global,perp}` | 180s | 200s | `MarketsClient.tsx` |
+| `markets/{dex,yields}` | 300s | 320s | `MarketsClient.tsx` |
+| `api/ticker` | 150s | **170s** | `src/lib/useTickerPoll.ts` |
+
 Changing either side without the other re-opens the drift below.
 
-⚠️ Each of those six routes **also sets its own `Cache-Control: s-maxage=…`**, and
+⚠️ Each of those seven routes **also sets its own `Cache-Control: s-maxage=…`**, and
 that header — not the `revalidate` above — is what the edge honours (see trap 0).
 They are kept equal on purpose. The Revalidate column in the build output shows the
 `revalidate` value only, so it will look correct even when the edge is misaligned.
@@ -84,9 +91,16 @@ Writes and Fluid Active CPU.
 Rule: `revalidate` >= poll interval, with margin.
 
 **Fixed 2026-07-31, and now pinned by a test** —
-`src/lib/__tests__/markets-poll-alignment.test.ts` parses the poll intervals out of
-`MarketsClient.tsx` and the `revalidate` out of each route, and fails if any window
-is shorter than its poll (or equal to it, since exactly-equal makes jitter decide).
+`src/lib/__tests__/markets-poll-alignment.test.ts` parses each route's poll interval
+and its `revalidate`/`s-maxage`, and fails if any window is shorter than its poll (or
+equal to it, since exactly-equal makes jitter decide).
+
+**The test's own scope has already been a bug.** Its first version globbed
+`src/app/api/markets/*`, so when `/api/ticker` had the identical defect — 60s window
+and 60s `s-maxage` against a 150s poll — nothing caught it, and it outlived the fix
+for markets by two days. It now uses an explicit `TARGETS` list covering every polled
+cached route. **Adding a polled route means adding it there**; a test scoped to where
+the last bug was found does not prevent the next one.
 
 **The history is the reason the test exists.** Four of six routes were misaligned —
 `defi`/`coins` at 120s and `global`/`perp` at 150s against a 180s poll — while

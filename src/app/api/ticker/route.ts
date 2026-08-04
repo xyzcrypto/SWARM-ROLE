@@ -7,8 +7,23 @@ import { NextResponse } from "next/server";
 // Was 10s - this is the homepage's highest-traffic route with a client poll
 // that matched it 1:1, making it the single biggest driver of Vercel's ISR
 // Writes quota (every regeneration on the free tier counts against a
-// 200k/month cap). 60s still reads as "live" for a price ticker.
-export const revalidate = 60;
+// 200k/month cap).
+//
+// 170s is DERIVED, not chosen: useTickerPoll polls every 150s, and the
+// project convention (see .claude/skills/cost-check) is `poll + 20s` - the
+// same margin that makes markets/* 200s for a 180s poll and 320s for a 300s
+// poll. A window shorter than the poll expires before every poll, so each
+// poll from every open tab pays a regeneration for data that has not changed.
+//
+// This was 60s against that 150s poll until 2026-08-01 - the identical defect
+// #190/#192 fixed for markets/*, which survived because the test that pins the
+// invariant only globbed src/app/api/markets/*. It now covers this route too.
+//
+// ⚠️ `s-maxage` below MUST move with this. That header is what the Vercel edge
+// honours; `export const revalidate` only governs Next's internal ISR cache,
+// and the build output's Revalidate column reports the export. Changing one
+// alone is cosmetic - that is exactly what made #190 a no-op.
+export const revalidate = 170;
 
 const COINS = [
   { symbol: "BTC", name: "Bitcoin", id: "bitcoin", binance: "BTCUSDT", seed: 68420 },
@@ -138,7 +153,11 @@ export async function GET() {
     lastGood = { coins, ts: Date.now() };
     return NextResponse.json(
       { coins, live: true, ts: Date.now() },
-      { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120" } }
+      // Kept EQUAL to `export const revalidate` above on purpose - see the note
+      // there. s-maxage governs the edge; revalidate governs Next's ISR cache.
+      // swr stays longer than s-maxage (as on markets/*, 200/300 and 320/600) so
+      // an expired entry is served stale while it refreshes rather than cold-MISSing.
+      { headers: { "Cache-Control": "public, s-maxage=170, stale-while-revalidate=300" } }
     );
   } catch {
     // Both upstreams failed - prefer the last real prices we successfully

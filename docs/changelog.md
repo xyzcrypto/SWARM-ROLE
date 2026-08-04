@@ -5,6 +5,33 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-01 — Align `/api/ticker` with its poll interval, and widen the test that missed it
+`/api/ticker` had `export const revalidate = 60` **and** `Cache-Control: s-maxage=60`
+against a 150s poll (`src/lib/useTickerPoll.ts:8`), so the window expired 90 seconds
+before every poll and each poll from every open homepage tab paid a regeneration.
+- **This is the identical defect #190/#192 fixed for `markets/*`**, on a route that fix
+  never looked at. Both layers moved together this time - `s-maxage` governs the edge,
+  `revalidate` governs Next's internal cache, and changing only one is what made #190 a
+  no-op.
+- **170s is derived, not picked:** the project convention is `poll + 20s` (180s poll →
+  200s, 300s poll → 320s), so a 150s poll → 170s. `stale-while-revalidate` 120 → 300 to
+  keep swr longer than s-maxage, matching the markets 200/300 and 320/600 pairs.
+- **Trap 1b checked and clean:** all three inner CoinGecko/CryptoCompare fetches already
+  pass `next: { revalidate }` - the shared const, not a literal - so they tracked the
+  export automatically and could not have drifted.
+- **The real fix is the test.** `markets-poll-alignment.test.ts` globbed
+  `src/app/api/markets/*`, which is the only reason this survived. It now drives off an
+  explicit `TARGETS` list covering every polled cached route, and reads the ticker's poll
+  from its own module (`useTickerPoll.ts`) rather than assuming every poll lives in
+  `MarketsClient.tsx`. **Verified the extended test fails against the unfixed values
+  first** - 2 of 6 assertions, both naming the ticker - so it cannot pass either way.
+- Route table unchanged at 124/22/102/12; the only diff is `/api/ticker` 1m → ≈3m, in the
+  cheaper direction. `cost-check` updated with the new number and the poll→window table.
+- Effect: ISR Writes and Fluid Active CPU down on the homepage's highest-traffic route.
+  Trade-off: ticker prices up to ~3 min stale instead of ~1 min.
+
+---
+
 ## 2026-07-31 — Make the live-verification step mandatory in the `pre-merge` skill
 Process change, prompted by #190 shipping a fix that did not work.
 - **The problem:** of everything merged this session, exactly one code change was checked against the
