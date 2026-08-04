@@ -3,15 +3,11 @@
 import { useRef } from "react";
 import Image from "next/image";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { useSession } from "next-auth/react";
-import { ArrowRight } from "lucide-react";
-import { MagicStar, ShieldTick } from "iconsax-react";
+import { MagicStar } from "iconsax-react";
 import { Container } from "./ui/primitives";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { Starfield } from "./Starfield";
-import { ActionLink } from "./ActionLink";
-import { MagneticButton } from "./MagneticButton";
-import { scrollToHash } from "./HashScroll";
+import { HeroCta, type HeroResearch } from "./HeroCta";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -59,8 +55,7 @@ const toneClass: Record<string, string> = {
   violet: "border-violet-500/45 text-violet-200 shadow-[0_0_18px_-4px_rgba(139,92,246,0.6)]",
 };
 
-export function Hero({ memberCount = 0 }: { memberCount?: number }) {
-  const { data: session } = useSession();
+export function Hero({ memberCount = 0, research }: { memberCount?: number; research: HeroResearch }) {
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [10, -10]), { stiffness: 120, damping: 14 });
@@ -147,68 +142,10 @@ export function Hero({ memberCount = 0 }: { memberCount?: number }) {
             for the next generation of traders and builders.
           </motion.p>
 
-          <motion.div
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.24 }}
-            className="mt-7 flex flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start"
-          >
-            {session ? (
-              // Account holders already have access - point them at the content.
-              <>
-                <MagneticButton className="w-full sm:w-auto">
-                  <ActionLink href="/research" className="btn-primary w-full sm:w-auto">
-                    Explore Research
-                    <ArrowRight className="h-4 w-4" />
-                  </ActionLink>
-                </MagneticButton>
-                {/* Explicit handler, deliberately. This button was reported
-                    dead on mobile three separate times. Each fix was measured
-                    correct in a real browser here (the anchor lands at exactly
-                    scroll-padding-top on 320/360/390/1280) and still failed on
-                    the owner's phone, which means the failure is somewhere in
-                    the chain between the tap and the scroll - Link, the App
-                    Router, or the document-level listener - and not in the
-                    landing maths.
-                    So it no longer depends on that chain. The href stays for
-                    semantics, SEO and middle-click; this just scrolls directly.
-                    preventDefault only when a target actually exists, so if
-                    #products were ever removed the browser still does something
-                    sensible instead of the click being silently swallowed. */}
-                <ActionLink
-                  href="/#products"
-                  className="btn-ghost w-full sm:w-auto"
-                  onClick={(e) => {
-                    if (scrollToHash("#products")) e.preventDefault();
-                  }}
-                >
-                  View products
-                </ActionLink>
-              </>
-            ) : (
-              <>
-                <MagneticButton className="w-full sm:w-auto">
-                  <ActionLink href="/signup" className="btn-primary w-full sm:w-auto">
-                    Get early access
-                    <ArrowRight className="h-4 w-4" />
-                  </ActionLink>
-                </MagneticButton>
-                <ActionLink href="/research" className="btn-ghost w-full sm:w-auto">
-                  Explore research
-                </ActionLink>
-              </>
-            )}
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.7, delay: 0.32 }}
-            className="mt-5 flex items-center justify-center gap-2 text-xs text-zinc-500 lg:justify-start"
-          >
-            <ShieldTick size={16} variant="Bold" color="#22d692" />
-            Free to join · No wallet required · Community first
-          </motion.div>
+          {/* Card + one secondary row + a quiet trust line. Replaces the two
+              stacked buttons and the separate trust sentence that used to sit
+              here; see HeroCta for why the card is a column. */}
+          <HeroCta research={research} />
 
           {/* live stats */}
           <motion.div

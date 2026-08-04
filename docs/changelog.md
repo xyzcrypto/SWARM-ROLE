@@ -5,6 +5,82 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (24) — The hero CTA is a research card, and the feed is our own posts
+
+Owner's brief, over several rounds: the hero's mint pill "AI feel" wala lagta
+tha; replace it with the card layout from their reference, show our own research
+posts live with a scrolling feed, and make the trust line small.
+
+### What changed (only these three blocks)
+
+The two stacked buttons and the separate trust sentence are gone. In their place:
+a research card, one secondary row, and a quiet trust line. Everything above
+(eyebrow, headline, lede) and below (live stats) is untouched.
+
+The card carries a `NEW LIVE` flag and a marquee of **our own published research
+titles, newest first** - titles only. The newest one is emphasised and holds
+still for 2.8s before the band starts moving, because a headline already
+mid-slide on arrival announces nothing.
+
+### Why the feed is server-rendered and not polled
+
+Both research write routes already call `revalidatePath("/")`. Publishing a post
+therefore regenerates the homepage **at once**, so rendering the titles on the
+server beats a poller on every axis: the update is immediate rather than up to
+one interval late, and it adds no route, no request and no timer.
+
+Route table after: **131 / 22 static / 109 dynamic / 12 ISR** - identical to the
+baseline in the `cost-check` skill. `/` is still `○` on a 5m window.
+
+### The layout bug this design kept hitting, and the fix
+
+The hero's text column is a **grid item**, so it carries the default
+`min-width: auto`. Any in-flow descendant with a wide max-content size grows the
+column and drags the site's own headline with it. Measured while building:
+
+```
+                                   column width @412px
+baseline                           372
+live-price row on the card line    420   (+48)
+5-post marquee, in flow            3036  (+2664)
+sub-line with nowrap, @360px       364   (+44)
+```
+
+`overflow: hidden` on the wrapper did **not** stop the marquee - only taking the
+track out of flow does, because an out-of-flow box contributes nothing to
+intrinsic sizing. So `.hero-feed-track` is `position: absolute`, and that is
+load-bearing rather than styling: no number of published posts can widen the
+hero. Separately, `min-width: 0` does not zero a *block* child's min-content
+contribution - `overflow: hidden` does, which is what the sub-line needed.
+
+Two of those three were found by bisecting element-by-element after guessing
+twice and watching the bug move rather than go away.
+
+### Guests keep their signup path
+
+The old hero gave logged-out visitors "Get early access". The reference design
+only had "View products", and silently dropping the signup CTA would have been
+an unflagged conversion change - so the secondary row switches: guests get
+signup, members get products.
+
+### Verified in a real browser
+
+```
+                360      412      1440
+headline x/w    20/320   20/372   92/630
+card     x/w    20/320   20/372   92/580
+scrollWidth     360      412      1440    (no horizontal overflow)
+feed titles     real rows from the DB, newest first
+```
+
+typecheck ✅ · lint 0 errors / 36 warnings (unchanged) · 515/515 tests ✅ ·
+build ✅
+
+**Files:** `src/components/HeroCta.tsx` (new), `src/components/Hero.tsx`,
+`src/app/page.tsx`, `src/app/globals.css`.
+
+---
+
 ## 2026-08-04 — Retire the cross-region framing everywhere it was still stated as current
 Docs and comments only. #210 co-located functions with Supabase in `bom1`, so the
 ~250ms-per-query penalty that shaped a lot of earlier performance advice is gone. This
