@@ -83,6 +83,20 @@ r.headers.get('age');             // seconds; resets when regenerated
 `age` climbing past a window and resetting *there* tells you which number is in
 charge. Nothing in the repo or the build log can tell you this.
 
+**The same method confirmed a fix, 2026-08-04** — `/api/ticker` after #207 set both
+layers to 180s:
+
+```
+age  51 … 147 … 157 … 167 … 177   HIT
+age 188                            STALE
+age   9                            HIT     (regenerated)
+```
+
+Expiry brackets between 177 and 188 at a ~10.5s sampling interval — **180s, the
+`s-maxage`**. So the method works in both directions: it caught #190 shipping a
+no-op, and it proved #207 landed. **Two data points, both saying the header wins.**
+Run it after any caching change; the source file cannot answer this question.
+
 **Rule:** keep `s-maxage` and `revalidate` equal on any route that sets both, and
 size them off the client poll. `markets-poll-alignment.test.ts` enforces both.
 
