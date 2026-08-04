@@ -14,6 +14,7 @@ import { useRealtime } from "@/lib/useRealtime";
 import { useOnlineSet } from "@/lib/useUserOnline";
 import { chatMediaUrl } from "@/lib/chat-media";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
 import { clockTime, dayLabel, isReadBy, newestRead } from "@/lib/chat-time";
 import { canEditMessage } from "@/lib/chat-view";
 import { lastSeenLabel } from "@/lib/last-seen";
@@ -251,7 +252,18 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
       <aside className={cn("flex min-h-0 flex-col border-white/10 md:border-r", activeId ? "hidden md:flex" : "flex")}>
         <header className="flex items-center justify-between border-b border-white/10 px-5 py-3.5">
           <h1 className="font-display text-lg font-semibold text-zinc-100">Messages</h1>
-          <MessageSquare className="h-4 w-4 text-gold-400/70" />
+          <div className="flex shrink-0 items-center gap-2.5">
+            {/* The reason DMs "didn't notify": nothing here ever asked.
+                Web Push is per-device and opt-in, and the only two places to
+                turn it on were the News page and the community lounge. The
+                sending half has always been complete - /api/dm/[id] pushes to
+                the recipient's devices and deep-links to this thread - but a
+                member who lives in their inbox was never subscribed, so there
+                was no device to push to. Same component the lounge uses, so
+                one grant covers both. */}
+            <NewsAlertsToggle loggedIn compact title="Get a phone notification when someone messages you" />
+            <MessageSquare className="h-4 w-4 text-gold-400/70" />
+          </div>
         </header>
         {/* Search people */}
         <div className="border-b border-white/10 px-3 py-2.5">

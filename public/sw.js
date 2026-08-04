@@ -143,8 +143,21 @@ self.addEventListener("notificationclick", (event) => {
   const url = (event.notification.data && event.notification.data.url) || "/news";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      // Already looking at the target - just focus it.
       for (const w of wins) {
         if (w.url.includes(url) && "focus" in w) return w.focus();
+      }
+      // Otherwise steer an already-open window to the target instead of
+      // launching a second copy of the app. This is what makes a DM alert
+      // land IN the conversation: its url is /messages?c=<id>, so a phone
+      // sitting on any other page would previously have matched nothing and
+      // opened a fresh window, losing the deep link on installed PWAs.
+      for (const w of wins) {
+        if ("navigate" in w && "focus" in w) {
+          return Promise.resolve(w.navigate(url))
+            .then((c) => (c || w).focus())
+            .catch(() => w.focus());
+        }
       }
       if (self.clients.openWindow) return self.clients.openWindow(url);
     })
