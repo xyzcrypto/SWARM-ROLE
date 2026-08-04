@@ -59,6 +59,30 @@ Test only. No behaviour change - `/api/ticker` keeps the 180s/180s/300 that #207
 - **Falsification proved, not assumed:** with the ticker temporarily reverted to its
   pre-#207 values, 2 of 6 assertions fail and both name the ticker and cite
   `useTickerPoll.ts`. Restored to 180/180/300 afterwards, byte-identical to `main`.
+- ✅ **VERIFIED ON PRODUCTION 2026-08-04.** The `pre-merge` rule is that a defined
+  check which is never run is worth nothing, so here is the run. Owner fetched
+  `/api/ticker` every ~10s from the live site and logged `x-vercel-cache` + `age`:
+
+  ```
+  age  51 … 147 … 157 … 167 … 177   HIT     ← 13 consecutive HITs above 60
+  age 188                            STALE   ← expires here
+  age   9                            HIT     ← regenerated
+  ```
+
+  **Both falsifiers came back negative.** `age` did not reset at ~60-70 (which would
+  mean the edge was still on the pre-#207 window), and the entry did not go `STALE`
+  before `age` reached 150 (which would mean every poll still regenerated). Expiry
+  brackets between 177 `HIT` and 188 `STALE` at a ~10.5s sampling interval — i.e.
+  **180s, the `s-maxage`**, confirming trap 0 once more: the edge tracks the header,
+  not `export const revalidate`.
+  - The `STALE` → `age 9` step is correct `stale-while-revalidate=300` behaviour, not
+    a glitch: the stale body was served immediately and refreshed in the background.
+  - **Effect:** the 150s poll now lands on a fresh cache instead of forcing a
+    regeneration. Under continuous traffic that is roughly **1440 → 480
+    regenerations/day** for this route — ~960 fewer ISR Writes/day, plus the
+    CoinGecko fetch, `JSON.parse` and origin→edge transfer each one carried.
+  - **Scale honestly:** real but modest against a 200k/month quota. The `/news`
+    pipeline (29 RSS data-cache entries on a 90s window) remains the dominant term.
 
 ---
 
