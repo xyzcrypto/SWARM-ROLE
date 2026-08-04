@@ -5,6 +5,38 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 — Retire the cross-region framing everywhere it was still stated as current
+Docs and comments only. #210 co-located functions with Supabase in `bom1`, so the
+~250ms-per-query penalty that shaped a lot of earlier performance advice is gone. This
+sweeps the repo for places still asserting it as present-tense fact.
+- **Swept every file** for `iad1` / `us-east` / `cross-region` / `250ms` / "US region".
+  Two hits in `tailwind.config.ts` (a `250ms` duration token) and `src/lib/ai/gateway.ts`
+  (a backoff interval) are unrelated false positives; one in
+  `docs/AUDIT-2026-08-02-responsive.md` is the word "region" in a layout sense.
+- **Two live source comments fixed.** `tools/share/points-value/[id]/page.tsx` justified
+  its `cache()` with "~250ms of pure round trip paid twice … from a US Vercel region",
+  and `PointsValueCalculator.tsx` described the share-row write as going "to Supabase in
+  Mumbai from a US region". **Both kept their code** — halving a query count and painting
+  a placeholder are right on their own merits — but the reasoning now says so instead of
+  leaning on a penalty that no longer exists.
+- **The important distinction, since it is easy to over-correct:** Supabase is *still* in
+  Mumbai. What changed is that functions are there too. Comments reading "round trip to
+  Mumbai" (in `challenges/[id]`, `posts/[id]/like`, `chat/messages`, `chat/presence`) are
+  **still accurate** and were deliberately left alone — they describe work that was
+  removed, and a removed query stays removed regardless of distance.
+- **`docs/PERFORMANCE.md` banner-ed.** Dated 2026-06-27, **not linked from
+  `docs/SUMMARY.md`**, and at least one claim is now false — it says `/research/[slug]`
+  is ISR at `revalidate=60`; it is **300**. Rather than rewrite a dated snapshot, it now
+  opens with a verify-before-acting banner pointing at the maintained sources.
+- **`docs/AUDIT-2026-08-01-latency.md`**: one remaining unqualified "Mumbai→`iad1`" inside
+  finding #5's body now carries an inline marker, so a reader landing mid-document does
+  not take it as current. The doc's top banner and per-finding re-assessment were already
+  in place from #237.
+- **`docs/changelog.md` deliberately untouched.** It records what was true on each date;
+  rewriting history is the worse error. This entry is the correction.
+
+---
+
 ## 2026-08-04 (23) — The profile header now has one left edge
 
 Owner sent a phone screenshot: "profile ka overall jo buttons hai like,

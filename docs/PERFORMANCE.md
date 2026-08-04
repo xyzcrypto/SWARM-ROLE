@@ -1,5 +1,27 @@
 # Performance Notes — XYZ Crypto
 
+> ## ⚠️ DATED SNAPSHOT — verify before acting (banner added 2026-08-04)
+>
+> This is a record of what was applied on **2026-06-27**, not a description of the
+> system today. Some of it has since changed, and at least one number in it is now
+> wrong: it says `/research/[slug]` is ISR at **`revalidate=60`**; it is **300**
+> (`src/app/research/[slug]/page.tsx:31`).
+>
+> It is also **not in `docs/SUMMARY.md`**, so nothing links here — treat anything you
+> find in it as a lead to verify, never as evidence.
+>
+> **Current, maintained sources instead:**
+> - **Every caching number, poll interval, route baseline and cost rule** → the
+>   `cost-check` skill. It owns those and is kept current.
+> - **Per-route client JS** → `npm run build && node scripts/bundle-report.mjs`
+> - **What changed and why** → `docs/changelog.md`, `docs/HANDOFF.md §7`
+>
+> **One thing here is globally obsolete:** advice written before **#210** assumes
+> functions ran in a US region while Supabase sat in Mumbai, ~250ms per query. They
+> are now co-located in `bom1` (`vercel.json`). Anything ranked around that gap needs
+> re-weighing — see the banner in `docs/AUDIT-2026-08-01-latency.md` for a worked
+> example of which findings survived that change and which did not.
+
 **Date:** 2026-06-27. Goal: faster Community (chat), Research/content, and Dashboard loads.
 
 ## Applied in this pass ✅
