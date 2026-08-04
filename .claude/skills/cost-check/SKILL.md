@@ -167,23 +167,50 @@ fast-fail path to close a timing oracle blew Fluid Active CPU on its own, and ne
 the `loginIp` pre-bcrypt gate to recover. Treat any sync CPU on an unauthenticated
 path as a cost question.
 
-## Bundle size — currently a blind spot
+## Bundle size — measurable again, via `scripts/bundle-report.mjs`
 
-Next 16 removed the `Size` and `First Load JS` columns from build output. Verified
-absent even in a real terminal. **There is no bundle-size regression detection on
-this project.** The old baseline was 160 kB First Load JS shared, under Next 14, and
-has no direct successor.
+Next 16 removed the `Size` and `First Load JS` columns from build output, and this
+skill then pointed at **`.next/app-build-manifest.json`** as the replacement. **That
+file does not exist under Turbopack** — the instruction was unfollowable, so in
+practice bundle size went unchecked entirely.
 
-Treat bundle size as **unavailable**, not as passed. A PR can grow the client bundle
-substantially and nothing will report it.
+**Use this instead:**
 
-Two ways to close it, when someone chooses to: sum the `.next/static/chunks/*` sizes
-per route from `.next/app-build-manifest.json` on both sides and diff; or add
-`@next/bundle-analyzer` behind an env flag.
+```bash
+npm run build && node scripts/bundle-report.mjs           # this branch
+git checkout main && npm run build && node scripts/bundle-report.mjs > /tmp/before.txt
+# ...then diff the two.
+```
 
-Related: keep server-only modules out of the client graph. `src/lib/env.ts` has no
-`import "server-only"` and reaches the browser via `src/lib/realtime.ts`, shipping a
-zod schema and a `console.error` loop into public chunks.
+It reads the per-route RSC manifests at
+`.next/server/app/**/page_client-reference-manifest.js` — which Turbopack *does*
+emit — and sums the gzipped size of the unique JS chunks each route pulls in.
+
+**Baseline at `319f722`** (gzip kB): `/dashboard` **232** · `/settings` 130 ·
+`/news` 121 · `/journal` 120 · `/community` 115 · `/` **113** · `/messages` 111 ·
+`/research/[slug]` 108 · `/research` 101 · `/u/[username]` 103 · shared floor
+(`/_not-found`) **69**.
+
+**Read the number correctly:**
+- Routes share framework chunks, so the column does **not** sum to a site total.
+  Compare a route against **itself** across two builds — that is the regression
+  question.
+- Chunks behind `next/dynamic` still count if the route references them, so a large
+  number is not automatically a large download. The live example: three.js is ~220 kB
+  gz on disk and in `/`'s graph, but `useWebglGate()` returns a literal `false`
+  (`src/components/orbital/useWebglGate.ts`), so it is **never requested** — zero FOT.
+- `/dashboard` being 2× everything else is Tiptap loading eagerly for all dashboard
+  tabs. Known, admin-only, low traffic.
+
+The old Next 14 baseline of 160 kB "First Load JS shared" is **not comparable** to
+these numbers — different measurement basis. Do not diff against it.
+
+Related: keep server-only modules out of the client graph. `src/lib/env.ts` gained
+`import "server-only"` in #189 after it had reached the browser via
+`src/lib/realtime.ts`, shipping a zod schema and a `console.error` loop into public
+chunks; client components now import channel helpers from the zero-dependency
+`src/lib/realtime-channels.ts`. The guard makes that class of regression a build
+error rather than something you have to notice.
 
 ## How to measure
 

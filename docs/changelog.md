@@ -5,6 +5,41 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-01 — Correct five stale or false docs/comments, and restore a followable bundle method
+Docs and comments only, no behaviour change. Each claim was verified against the code
+before being changed; two turned out to be described inaccurately and are recorded below.
+- **`src/lib/auth.ts` — a FALSE comment that made an authorization regression look safe.**
+  It read "routes always re-check DB anyway" as the justification for bounding
+  `MEMBERSHIP_TTL_MS`. They do not: `requirePermission()` (`src/lib/api.ts:97-101`) calls
+  `getSessionUser()`, which reads JWT claims and nothing else, as does `getAdminSession()`.
+  The token **is** the authorization decision, so that per-request refresh is the only
+  thing making revocation timely. Replaced with what is actually true plus an explicit
+  warning: raising the TTL is the window in which a demoted admin keeps admin, and the
+  `access_changed` broadcast does not cover it (it only reaches a cooperating browser).
+- **`cost-check` pointed at a file that does not exist.** Its bundle-size method said to
+  read `.next/app-build-manifest.json`; **Turbopack never emits it**, so the instruction
+  was unfollowable and bundle size went unchecked entirely. Replaced with
+  `scripts/bundle-report.mjs`, which reads the per-route RSC manifests Turbopack *does*
+  emit, plus a recorded baseline (`/dashboard` 232 kB gz, `/` 113, shared floor 69) and
+  a note on how to read it (routes share chunks; compare a route against itself).
+- **`CLAUDE.md` claimed `env.ts` still reaches the client bundle.** Fixed by #189 — it has
+  `import "server-only"`. Corrected. The *other* half of that sentence was verified
+  **still true** and deliberately kept: the zod result is only logged and `process.env` is
+  re-read directly, so `.url()`/`.min(16)` never gate anything.
+- **`CLAUDE.md` "Current state" was a dated narrative that had drifted.** It predated 18
+  merged PRs and its "three open OWNER actions" list said a resolved item was still open.
+  Reduced to a standing summary plus pointers at the changelog and HANDOFF §8, which own
+  that detail — rather than a second copy that drifts again in a week.
+- **`docs/HANDOFF.md §7` stopped at 2026-07-24/25.** Added the 2026-07-27 → 08-01 session,
+  keeping the existing chronological structure.
+- **`docs/component-registry.md` listed 6 API routes against 124 built ones**, and
+  described the ticker as "10s" (it is 170s). Reduced the route/page/lib enumerations to a
+  pointer table at authoritative sources rather than re-writing lists that go stale on the
+  next route added. The component tables — which describe reuse intent, and which no build
+  output can produce — were kept.
+
+---
+
 ## 2026-07-31 — Make the live-verification step mandatory in the `pre-merge` skill
 Process change, prompted by #190 shipping a fix that did not work.
 - **The problem:** of everything merged this session, exactly one code change was checked against the

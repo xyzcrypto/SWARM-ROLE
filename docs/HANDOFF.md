@@ -310,7 +310,7 @@ usage-limit scare to retrofit it.
 
 ---
 
-## 7. Where things stand right now (newest sessions last; latest 2026-07-25)
+## 7. Where things stand right now (newest sessions last; latest 2026-08-01)
 
 This section is a chronological summary of everything shipped in the most
 recent working session, in case the changelog is too long to read in full.
@@ -630,6 +630,73 @@ listed here so this section isn't misleading about what moved. See
    list every render, and `ChatClient`'s `touchUi` never updated when a pointer
    device changed. The fetch-on-mount group is a **documented deliberate keep** -
    reasoning lives in `eslint.config.mjs`, summarised in §8.
+
+
+### 2026-07-27 → 2026-08-01 — Audit follow-through: security batch, deploy safety, cost alignment, project skills
+
+Eighteen PRs, **no new features and no new dependencies** - the entire period was
+closing findings from the two audit reports and making the invisible failures loud.
+Per-PR detail is in `docs/changelog.md`; this is the shape of it.
+
+1. **Security (#180, `ec74473`, #181, #188, #189, #194).** The one that mattered most:
+   `api/journal/share/overview/[userId]` returned **any member's private trading P&L
+   to an anonymous caller** - no session check, no `visibility` filter, and cached
+   `s-maxage=3600`. Also closed: the async-`params` codemod miss that had been making
+   every article's social share card the generic placeholder (an empty `catch {}` hid
+   a thrown error for weeks); a cross-challenge milestone IDOR; the commenter
+   email local-part leaking on a public cached endpoint; a **substring** rather than
+   host check in `chat-media.ts` that let any member make every connected chat client
+   fetch an attacker-controlled URL; rate limiters on 7 mutating handlers that had
+   none; and the OTP attempt-cap race.
+
+2. **`src/lib/env.ts` no longer reaches the browser (#189).** It had been dragged into
+   the client graph by three components importing `userChannel` from `@/lib/realtime`,
+   shipping a zod schema, the server env's shape (including `SUPABASE_SERVICE_ROLE_KEY`
+   as a key name) and a `console.error` loop whose `NODE_ENV` guard the bundler
+   inlined away - so every visitor to those pages got two console errors that read
+   like a production outage. Fixed with `import "server-only"` plus a zero-dependency
+   `src/lib/realtime-channels.ts` for client use. The import is now a **build error**,
+   so the class cannot regress.
+
+3. **Deploy safety (#185, #186).** Root-caused the P1001 that had been failing
+   `prisma db push` on **every deploy for weeks**: `DIRECT_URL` pointed at the
+   IPv6-only direct Supabase host from an IPv4-only Vercel runtime. The reason nobody
+   saw it was `prisma db push … || echo 'db push skipped'` - the `||` swallowed every
+   non-zero exit, so deploys succeeded and CI went green whether or not the schema
+   synced. Replaced with `scripts/db-push.mjs`, which fails the build loudly and
+   **skips unless `VERCEL_ENV === "production"`** - closing a second live exposure,
+   since previews share the production `DATABASE_URL` and would otherwise have
+   rewritten the production schema on every branch push once P1001 was fixed.
+
+4. **Cost/caching (#190 → #192).** #190 raised `export const revalidate` on six
+   markets routes and **did nothing**, because `s-maxage` is what the Vercel edge
+   honours. Proven by measurement, not reading: with `revalidate = 200` and
+   `s-maxage=150`, the edge went STALE at `age: 162`. #192 fixed the header. Both
+   layers are now pinned by `markets-poll-alignment.test.ts`. This is the origin of
+   the rule that a caching fix is not believed until `x-vercel-cache`/`age` say so.
+
+5. **Journal Activity publishing is revocable (#191).** Activity rows now carry
+   `sourceType`/`sourceId`, so setting a trade or challenge back to private withdraws
+   what it published. Before this, a row could not be traced to its source - the title
+   is pre-rendered text like `"Closed BTC long with a win"`, which collides with every
+   other BTC long - so consent was captured once and was not revocable. **Rows created
+   before this have `sourceId = NULL` and still cannot be revoked**; see §8.
+
+6. **Process (#182, #193).** Three project skills committed to `.claude/skills/` so
+   any session loads them on trigger rather than on someone remembering a doc path:
+   `pre-merge` (procedure), `cost-check` (every caching and cost number), and
+   `design-system`. #193 then made the live-verification step mandatory in `pre-merge`
+   after #190 shipped a fix that did not work: every PR body must now name what changes
+   on the live site, the exact command to check it, and what result would falsify it -
+   or state explicitly that it has no observable.
+
+7. **CodeQL removed (#187).** Code scanning is unavailable on a private repo without
+   GitHub Advanced Security. The scan itself succeeded and the job failed at the upload
+   step, so it read as a red security check on every PR - training everyone to ignore
+   a failing security check, and burning ~4 minutes of metered Actions time each time.
+   Restore conditions are documented in `.github/workflows/security.yml`.
+
+**Route table across all eighteen: unchanged at 124 / 22 / 102 / 12.**
 
 ## 8. Open items / natural next steps
 - ~~**Is Upstash actually configured in production?**~~ **✅ Resolved 2026-07-29 —

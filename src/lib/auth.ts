@@ -315,7 +315,27 @@ export const authOptions: NextAuthOptions = {
       const stale =
         typeof (token as any).syncedAt !== "number" || Date.now() - (token as any).syncedAt > MEMBERSHIP_TTL_MS;
       // This also pulls fresh name/image/username/permissions so profile + access edits
-      // reflect in the UI without a re-login (routes always re-check DB anyway).
+      // reflect without a re-login.
+      //
+      // ⚠️ DO NOT RAISE `MEMBERSHIP_TTL_MS` TO SAVE A DB READ. This refresh is not a
+      // UI nicety - it is the ONLY thing that re-verifies authorization against the
+      // database. An earlier version of this comment claimed "routes always re-check
+      // DB anyway"; that is FALSE and was the stated reason the TTL looked safe to
+      // widen. `requirePermission()` (src/lib/api.ts:97-101) calls `getSessionUser()`,
+      // which reads JWT claims and nothing else - as does `getAdminSession()`. The
+      // token IS the authorization decision.
+      //
+      // So the TTL is the window in which a revoked `role`, `membership` or
+      // `permissions` value stays live: raise it to 30 minutes and a demoted admin
+      // keeps admin for 30 minutes on every server-rendered path. `RealtimeSession`
+      // broadcasting `access_changed` does NOT cover this - it only reaches a browser
+      // that is open, connected to realtime and cooperating, which an attacker's is
+      // not; they simply keep the cookie they already hold.
+      //
+      // This refresh IS a real per-request cost (~250ms to Supabase in Mumbai from
+      // iad1, on every authenticated request). If that cost has to come down, reduce
+      // the NUMBER of authenticated requests, or split the policy so only
+      // permission-gated and admin routes keep the short TTL. Do not widen it globally.
       if (
         token.email &&
         (!token.role || !token.membership || (token as any).isSuperAdmin === undefined || trigger === "update" || stale)

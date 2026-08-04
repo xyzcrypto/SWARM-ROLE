@@ -41,18 +41,29 @@ Reuse these; do not duplicate. Paths under `src/`.
 | DashboardClient | `DashboardClient.tsx` | admin tabs (overview/publish/content/members) |
 | AuthShell / LoginForm / SignupForm / GoogleButton | auth UI |
 
-## API routes — `app/api/`
-`ticker/` (live prices, 10s) · `chart/` (OHLC candles, coin+days) ·
-`subscribe/` (email capture) · `research/` + `research/[id]/` (CMS) ·
-`users/[id]/membership/` (admin) · `auth/[...nextauth]/`.
+## API routes, Pages, and Libs — deliberately NOT listed here
 
-## Pages — `app/`
-`page.tsx` (home) · `research/` + `research/[slug]/` · `login/` · `signup/` ·
-`dashboard/` · `layout.tsx` (fonts, metadata, SmoothScroll).
+This file used to enumerate them. Those lists were a Phase-1 artifact and had gone
+badly stale: **six API routes against a repo that builds 124**, a Pages list that
+stopped at `dashboard/`, and `ticker/ (live prices, 10s)` — a window that has since
+been 60s and is now 170s. A wrong map is worse than no map, and it was wrong in the
+most expensive way: someone trusting the `10s` would have drawn the wrong conclusion
+about the project's single largest ISR Writes driver.
 
-## Libs — `lib/`
-`site.ts` (brand, links, subBrands, navLinks) · `utils.ts` (cn, dates) ·
-`auth.ts` · `prisma.ts` · `markdown.tsx`.
+They are not being re-written by hand, because a hand-written list is stale the next
+time anyone adds a route and nothing regenerates it. **Go to the source instead:**
+
+| What you want | Where it actually lives |
+|---|---|
+| Every route, with static/dynamic and its ISR window | `npm run build` — the route table is the only authoritative list |
+| The architecture map, kept current | `CLAUDE.md` → "Architecture map" |
+| Caching windows, poll intervals, cost rules | the `cost-check` skill — it owns every one of those numbers |
+| Per-route client JS size | `npm run build && node scripts/bundle-report.mjs` |
+| What changed and why | `docs/changelog.md`, `docs/HANDOFF.md §7` |
+
+**What this file is still good for** is the component tables above and below — those
+describe intent and reuse rules, which no build output can tell you, and they are not
+invalidated by adding a route.
 
 ## Brand assets — `/public/`
 `logo.jpg` · `tradekaroverse.jpg` · `web3-academy.jpg`.
