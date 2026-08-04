@@ -34,15 +34,46 @@ export const metadata: Metadata = {
 // preview). Publishing content revalidates it on demand (see research routes).
 export const revalidate = 300;
 
+// "2h ago" / "3d ago" for the newest research post, computed on the SERVER and
+// passed down as a finished string. Deliberately not calculated in the client
+// component: a relative time derived at render time differs between the server
+// and the browser's first render, which is exactly the class of mismatch that
+// threw React #418 across this site before (see CLAUDE.md). One string,
+// rendered once, cannot disagree with itself.
+//
+// The clock is read inside the helper rather than in the component body: this
+// only runs on the server, but `Date.now()` in a render body trips the purity
+// lint rule, and that rule is right about client components.
+function agoLabel(then: Date): string {
+  const mins = Math.max(0, Math.round((Date.now() - then.getTime()) / 60000));
+  if (mins < 60) return `${Math.max(1, mins)}m ago`;
+  const hours = Math.round(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  return `${Math.round(hours / 24)}d ago`;
+}
+
 export default async function HomePage() {
-  // The hero card's one number. Counted rather than listed: the scrolling
-  // title feed it used to carry was removed, so nothing needs the rows.
-  const [memberCount, researchCount] = await Promise.all([
+  // What the hero card claims: how many research posts exist, and when the
+  // most recent one landed. Both are real rows, and both are server-rendered
+  // rather than polled - the research write routes already call
+  // revalidatePath("/"), so publishing refreshes this page at once instead of
+  // up to one poll interval later, and it costs no route, request or timer.
+  const [memberCount, researchCount, newestRow] = await Promise.all([
     prisma.user.count().catch(() => 0),
     prisma.post.count({ where: { published: true, category: "Research" } }).catch(() => 0),
+    prisma.post
+      .findFirst({
+        where: { published: true, category: "Research" },
+        orderBy: { createdAt: "desc" },
+        select: { createdAt: true },
+      })
+      .catch(() => null),
   ]);
 
-  const research = { count: researchCount };
+  const research = {
+    count: researchCount,
+    newest: newestRow ? agoLabel(newestRow.createdAt) : null,
+  };
 
   return (
     <>

@@ -100,6 +100,30 @@ Owner reviewed the preview and asked for five things. All five landed:
 
 
 
+
+### Follow-up 4: the newest post's age is back
+
+Owner asked whether the count is real, whether it updates, and whether the last
+post's time could show too. Answers, verified against the code rather than
+recalled:
+
+- **Real.** `prisma.post.count({ published: true, category: "Research" })` -
+  their live count genuinely is 5.
+- **Updates twice over.** Publishing calls `revalidatePath("/")` from both
+  research write routes, so the homepage regenerates immediately; otherwise the
+  300s ISR window catches it.
+- **Time added back:** the card now reads `5 reports · newest 29d ago`. One
+  extra `findFirst` (one row, `createdAt` only), running in the same
+  `Promise.all` as the count, so no added round trip.
+
+Still server-computed and passed down as a finished string. A relative time
+derived during a client render disagrees between the server and the browser's
+first paint, which is the #418 class this site has already been bitten by.
+
+Flagged once for the record: with nothing published for a month, this line
+states that on the homepage. That was the owner's call after the freshness gate
+was built and shown; it is honest, just not flattering.
+
 ### Follow-up 3: the research band came back out
 
 Owner asked what "newest 29d ago" meant, and whether the band should go. The

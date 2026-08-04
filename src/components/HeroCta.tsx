@@ -8,8 +8,10 @@ import { scrollToHash } from "./HashScroll";
 import { CommunityIcon, CrownIcon, LayersIcon, LockIcon, ResearchLabIcon, SecurityIcon } from "./Icons3D";
 
 export type HeroResearch = {
-  /** Published research posts. The only number the card claims. */
+  /** Published research posts. */
   count: number;
+  /** Pre-formatted "2h ago" for the most recent one, or null if there are none. */
+  newest: string | null;
 };
 
 /**
@@ -65,6 +67,7 @@ export function HeroCta({ research }: { research: HeroResearch }) {
           <span className="mt-0.5 block truncate text-xs text-zinc-400 lg:mt-1 lg:text-[13.5px]">
             <b className="mono font-semibold text-mint-300 tabular-nums">{research.count}</b>{" "}
             {research.count === 1 ? "report" : "reports"}
+            {research.newest ? ` · newest ${research.newest}` : ""}
           </span>
         </span>
         <span className="hero-cta-go relative grid h-11 w-11 flex-none place-items-center rounded-full text-[#04120c] lg:h-[52px] lg:w-[52px]">
