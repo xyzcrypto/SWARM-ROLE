@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
+import { rateLimit } from "@/lib/ratelimit";
 import { maskEmail } from "@/lib/utils";
 
 export const runtime = "nodejs";
@@ -105,6 +106,13 @@ export async function PATCH(req: Request) {
   try {
     const actor = await requirePermission("post:manage");
     if (!actor) return fail("Unauthorized", 401);
+
+    // Staff-gated, but still throttled - the repo's api-rate-limits guard test
+    // asks every mutating handler for this, and it is right to: a compromised
+    // or careless staff session should not be able to rewrite the whole queue
+    // as fast as it can post. Same `admin` bucket the other staff writes use.
+    const { success } = await rateLimit("admin", `reports:${actor.id}`);
+    if (!success) return fail("Too many requests. Please slow down.", 429);
 
     const parsed = patchSchema.safeParse(await req.json().catch(() => null));
     if (!parsed.success) return fail("Invalid request.", 400);
