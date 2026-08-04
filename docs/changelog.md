@@ -5,6 +5,27 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 — Cover /api/ticker in the poll/window alignment test
+Test only. No behaviour change - `/api/ticker` keeps the 180s/180s/300 that #207 set.
+- **Why:** #207 fixed the ticker's 60s-window-against-a-150s-poll by hand, after an
+  audit found it. Nothing in the suite would have caught it, and nothing would catch
+  it coming back: this test only ever globbed `src/app/api/markets/*`. The ticker's
+  poll lives in its own hook rather than at a `usePolledJson` call site, so the glob
+  could not see it by construction.
+- **What changed:** the file now drives off an explicit `TARGETS` list - six markets
+  routes plus the ticker - and reads each route's poll from the file it actually
+  lives in (`modules/markets/lib/useTickerPoll.ts` for the ticker). Adding a polled
+  route means adding it there.
+- **Deliberately reads the real modules, not the `src/lib` / `src/components` shims**
+  left by #203. A shim is a single `export * from` line; pointing the test at one
+  would make every regex match nothing and the suite would pass while checking
+  nothing. The empty-parse guard now also rejects a target whose poll failed to parse.
+- **Falsification proved, not assumed:** with the ticker temporarily reverted to its
+  pre-#207 values, 2 of 6 assertions fail and both name the ticker and cite
+  `useTickerPoll.ts`. Restored to 180/180/300 afterwards, byte-identical to `main`.
+
+---
+
 ## 2026-08-03 (22) — Reports have somewhere to be read
 
 The report button shipped in (20) wrote to a table nobody could see. Dashboard
