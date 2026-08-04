@@ -18,6 +18,7 @@ import { FAQ } from "@/lib/faq";
 import { StickyCta } from "@/components/StickyCta";
 import { GuestOnly } from "@/components/GuestOnly";
 import { prisma } from "@/lib/prisma";
+import { daysSince } from "@/lib/research-freshness";
 import type { Metadata } from "next";
 
 // Brand-tuned homepage metadata (absolute title so it isn't suffixed by the
@@ -52,27 +53,38 @@ function agoLabel(then: Date): string {
   return `${Math.round(hours / 24)}d ago`;
 }
 
+// Same reason as agoLabel for reading the clock in here rather than in render.
+function newestAgeDays(then: Date): number {
+  return daysSince(then, Date.now());
+}
+
 export default async function HomePage() {
-  // What the hero card claims: how many research posts exist, and when the
-  // most recent one landed. Both are real rows, and both are server-rendered
-  // rather than polled - the research write routes already call
-  // revalidatePath("/"), so publishing refreshes this page at once instead of
-  // up to one poll interval later, and it costs no route, request or timer.
-  const [memberCount, researchCount, newestRow] = await Promise.all([
+  // Everything the hero card claims, all of it real rows.
+  //
+  // Server-rendered rather than polled, and that is the stronger option here,
+  // not the cheaper compromise: both research write routes already call
+  // revalidatePath("/"), so publishing a post regenerates this page at once.
+  // A poller would show the same post up to one interval LATER, and would add
+  // a route, a request per visitor and a timer. This adds none of those.
+  const [memberCount, researchRows, researchCount] = await Promise.all([
     prisma.user.count().catch(() => 0),
-    prisma.post.count({ where: { published: true, category: "Research" } }).catch(() => 0),
     prisma.post
-      .findFirst({
+      .findMany({
         where: { published: true, category: "Research" },
         orderBy: { createdAt: "desc" },
-        select: { createdAt: true },
+        take: 12,
+        select: { title: true, createdAt: true },
       })
-      .catch(() => null),
+      .catch(() => [] as { title: string; createdAt: Date }[]),
+    prisma.post.count({ where: { published: true, category: "Research" } }).catch(() => 0),
   ]);
 
   const research = {
+    titles: researchRows.map((p) => p.title),
     count: researchCount,
-    newest: newestRow ? agoLabel(newestRow.createdAt) : null,
+    newest: researchRows[0] ? agoLabel(researchRows[0].createdAt) : null,
+    // Whether "NEW" is a fair claim at all - see research-freshness.
+    newestDays: researchRows[0] ? newestAgeDays(researchRows[0].createdAt) : null,
   };
 
   return (

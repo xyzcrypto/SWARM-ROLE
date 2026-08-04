@@ -101,6 +101,37 @@ Owner reviewed the preview and asked for five things. All five landed:
 
 
 
+
+### Follow-up 5: the band is back, gated and with a proper surface
+
+Owner asked for option A after all: the live band, with accurate data, and new
+posts showing up straight away.
+
+**The freshness gate ships this time.** `research-freshness` (7 unit tests) is
+what stops the card claiming a 29-day-old report is `NEW`:
+
+| newest post | badge | live dot |
+|---|---|---|
+| 3h old | `NEW` (lit mint pill) | blinking |
+| 29d old | `LATEST` (quiet outline) | off |
+
+Both states were checked against a real render by ageing the local rows, not
+by reading the code.
+
+**"Realtime" here is stronger than polling, not a compromise.** Both research
+write routes already call `revalidatePath("/")`, so publishing regenerates the
+homepage immediately - a poller would surface the same post up to one interval
+*later*, and would cost a route, a request per visitor and a timer. Route table
+after: **131 / 22 / 109 / 12**, `/` still `○` on 5m.
+
+**The band's surface got a body.** It was one flat translucent rectangle, which
+read as a hole punched in the card rather than a panel inside it. Now: a
+top-lit gradient, a 1px highlight along the top edge (light falls from above
+everywhere else on this site), and a slow mint bloom drifting behind the text so
+the strip looks alive between scroll cycles. The `NEW` pill got its own gradient
+and inner highlight so it reads as lit rather than as a flat swatch. Light theme
+has its own recipe for all of it.
+
 ### Follow-up 4: the newest post's age is back
 
 Owner asked whether the count is real, whether it updates, and whether the last
