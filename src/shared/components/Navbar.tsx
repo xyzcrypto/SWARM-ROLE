@@ -112,7 +112,14 @@ export function Navbar() {
           </span>
         </Link>
 
-        <div className="hidden items-center gap-0.5 md:flex">
+        {/* The desktop rail switches at `lg`, not `md`. At 768px it was shown
+            but needed 1025px, so an iPad in portrait overflowed the page by
+            257px horizontally - measured, and the reason this moved.
+            The roomier per-link padding is `xl:` rather than `lg:` for the same
+            reason one breakpoint up: at exactly 1024 (iPad landscape) the rail
+            still needed 1089px and overflowed by 65px. Eight links x 8px is
+            what buys that back. */}
+        <div className="hidden items-center gap-0.5 lg:flex">
           {navLinks.map((l) => (
             <Link
               key={l.href}
@@ -120,14 +127,14 @@ export function Navbar() {
               prefetch={false}
               aria-current={isActive(l.href) ? "page" : undefined}
               className={cn(
-                "group relative rounded-lg px-2.5 py-2 text-sm font-medium transition-colors lg:px-3.5",
+                "group relative rounded-lg px-2.5 py-2 text-sm font-medium transition-colors xl:px-3.5",
                 isActive(l.href) ? "text-zinc-50" : "text-zinc-400 hover:text-zinc-100"
               )}
             >
               {l.label}
               <span
                 className={cn(
-                  "absolute inset-x-2.5 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300 lg:inset-x-3.5",
+                  "absolute inset-x-2.5 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300 xl:inset-x-3.5",
                   isActive(l.href) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
                 )}
               />
@@ -147,13 +154,13 @@ export function Navbar() {
         </div>
 
         {/* Single mounted instance, shared between the desktop and mobile
-            layouts below via flex order - Tailwind's hidden/md:hidden only
+            layouts below via flex order - Tailwind's hidden/lg:hidden only
             toggles CSS display, so two separate <NavActivity /> elements (one
             per breakpoint wrapper) used to double-mount it, doubling its
             60s-interval polling + realtime subscription at every viewport size. */}
         {session && <NavActivity />}
 
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-2 lg:flex">
           <button
             onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
             className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 transition-colors hover:border-gold-500/30 hover:text-zinc-200"
@@ -245,7 +252,7 @@ export function Navbar() {
           )}
         </div>
 
-        <div className="flex items-center md:hidden">
+        <div className="flex items-center lg:hidden">
           <button
             onClick={() => window.dispatchEvent(new Event(XYZ_CMDK_EVENT))}
             className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-zinc-300"
@@ -271,7 +278,7 @@ export function Navbar() {
         // BottomNav), so both come off the height, and the same amount is added
         // back as padding so the final row can still scroll clear of it.
         <div
-          className="mx-auto mt-2 max-h-[calc(100dvh-6rem-3.5rem-env(safe-area-inset-bottom))] max-w-container overflow-y-auto overscroll-contain rounded-2xl border border-line bg-ink-900/95 p-3 backdrop-blur-xl md:max-h-[calc(100dvh-6rem)] md:hidden"
+          className="mx-auto mt-2 max-h-[calc(100dvh-6rem-3.5rem-env(safe-area-inset-bottom))] max-w-container overflow-y-auto overscroll-contain rounded-2xl border border-line bg-ink-900/95 p-3 backdrop-blur-xl lg:max-h-[calc(100dvh-6rem)] lg:hidden"
           style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
         >
           <div className="flex flex-col gap-0.5">

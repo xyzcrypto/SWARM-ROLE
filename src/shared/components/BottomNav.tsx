@@ -34,7 +34,7 @@ const LABEL_CLS = "w-full truncate px-0.5 text-center text-[clamp(9px,2.5vw,11px
 const ICON_CLS = "h-[clamp(18px,5vw,20px)] w-[clamp(18px,5vw,20px)] shrink-0";
 
 /**
- * App-style bottom navigation for mobile only (md:hidden). Two links, a
+ * App-style bottom navigation for phones and tablets (lg:hidden). Two links, a
  * raised centered Profile button (bigger than the rest - the one cell meant
  * to stand out), then three more links. Safe-area aware. XYZ AI lives as a
  * floating launcher (see XyzAiWidget.tsx).
@@ -56,16 +56,16 @@ export function BottomNav() {
     <>
       {/* In-flow spacer so page content + footer clear the fixed bar (only when
           the bar is actually shown - immersive routes above return null). */}
-      <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] md:hidden" />
+      <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] lg:hidden" />
       <nav
-        className="nav-shell fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-ink-950/95 md:hidden"
+        className="nav-shell fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-ink-950/95 lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         aria-label="Primary"
       >
       {/* max-w-lg (not md) so the six cells still have room on a large phone,
           and the grid fills the width below that instead of leaving side gaps.
           On a tablet the cap keeps it from stretching absurdly wide - though
-          the bar is md:hidden, so that only applies to small tablets. */}
+          the bar is lg:hidden, so that only applies below 1024px. */}
       <div className="mx-auto grid w-full max-w-lg grid-cols-6">
         {left.map((it) => (
           <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />

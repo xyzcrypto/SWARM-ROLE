@@ -1410,6 +1410,14 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
   .route-enter { animation: none; }
 }
 
+/* Decorative full-bleed layers (.aurora bleeds -10% each side, the starfield
+   nebulae likewise) can round out past the viewport by a pixel at particular
+   widths - 1024 is one. `clip` and not `hidden` on purpose: `hidden` would make
+   the body a scroll container and silently break every `position: sticky` on
+   the site (the markets table header, the news filter pills). `clip` clips
+   without creating one. Vertical scrolling is untouched. */
+body { overflow-x: clip; }
+
 /* ----------------------------------------------------------------
    Hero fit — the hero has to fit a SHORT laptop, not just a wide one
    (src/components/Hero.tsx)
