@@ -102,10 +102,10 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
 
       <Container className="hero-grid relative grid items-center gap-10 sm:gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 2xl:gap-20">
         {/* Copy */}
-        <div className="text-center lg:text-left">
+        <div className="hero-copy text-center lg:text-left">
           <div
             style={{ "--rise-y": "12px", "--rise-dur": "0.5s" } as React.CSSProperties}
-            className="hero-rise mb-6 flex justify-center lg:justify-start"
+            className="hero-rise hero-eyebrow mb-6 flex justify-center lg:justify-start"
           >
             <span className="eyebrow eyebrow-glass text-zinc-200">
               <MagicStar size={14} variant="Bold" color="#e2a72f" />
@@ -137,7 +137,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
               site at opacity 0 until hydration finished. */}
           <p
             style={{ "--rise-dur": "0.6s", "--rise-delay": "0.12s" } as React.CSSProperties}
-            className="hero-rise mx-auto mt-4 max-w-md text-balance text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0 lg:max-w-[580px]"
+            className="hero-rise hero-lede mx-auto mt-4 max-w-md text-balance text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0 lg:max-w-[580px]"
           >
             On-chain research, pro trading tools, a perpetual DEX, airdrop
             intelligence and a free academy, the complete Web3 toolkit, built
@@ -152,7 +152,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
           {/* live stats */}
           <div
             style={{ "--rise-y": "16px", "--rise-dur": "0.7s", "--rise-delay": "0.4s" } as React.CSSProperties}
-            className="hero-rise mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-[580px]"
+            className="hero-rise hero-stats mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-[580px]"
           >
             {[
               { k: members, v: "Overall social community" },
