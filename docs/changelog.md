@@ -5,6 +5,62 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-05 (34) — Changing a password now revokes sessions issued before it
+Closes the one genuine vulnerability out of ten claims in an external auth report — which
+ranked it **8th, as LOW**. (Both of that report's CRITICALs needed no work: `devCode` was
+already double-gated on `NODE_ENV !== "production"` **and** `!emailEnabled`, and the
+"no server-side password check" claim was simply false — both routes use `passwordSchema`,
+which enforces 8 chars plus lower + upper + digit.)
+- **The hole:** `api/auth/password/reset` rotated `passwordHash` and cleared the lockout,
+  and touched nothing that would kill an already-issued JWT. `session: { strategy: "jwt" }`
+  sets no `maxAge`, so next-auth's default **30 days** applied. Anyone else holding your
+  session kept full access for up to a month after you reset your password — the one action
+  a user takes specifically to lock that person out.
+- **The fix:** `User.passwordChangedAt`, written by **both** password-write paths
+  (forgot-password and the signed-in change), compared in the jwt callback against a
+  `pwdAt` timestamp the token carries. Older token → the callback returns `{}`, the session
+  callback returns an empty session, `getServerSession()` resolves to **null**, and every
+  gate fails closed.
+- **⚠️ The trap, recorded because it would have shipped silently.** `token.iat` is the
+  obvious thing to compare against and **does not work**: next-auth re-encodes the token on
+  every session read and `encode()` calls `.setIssuedAt()` with no argument
+  (`next-auth/jwt/index.js:44`), so `iat` is refreshed to "now" constantly. A check against
+  it compiles, reads correctly, and never fires. The plan for this change originally said to
+  use `iat`; reading the library source before implementing is what caught it. The test now
+  asserts the comparison uses `pwdAt` and not `iat`.
+- **Deploying this signs nobody out.** `passwordChangedAt` is nullable and absent reads as
+  0 on both sides, so the comparison is false for every existing user until they actually
+  change a password.
+- **Changing your own password signs you out too**, deliberately. Exempting the current
+  session would mean trusting a request carrying the token to say which token it is — and
+  the premise is that a token may be in the wrong hands.
+- **Self-review caught two defects before merge**, both recorded because they are the
+  interesting part. (a) The first draft put `passwordChangedAt` in **both** jwt-callback
+  selects, including the P2022 fallback whose entire job is to work when the newest column
+  is missing — so on a not-yet-migrated DB both selects would have thrown and the refresh
+  would have stopped entirely. (b) The test's anti-`iat` assertion did not work: a
+  perturbation swapping the comparison to `token.iat` **passed**, because `pwdAt` still
+  appeared in a nearby comment. It now pins the derivation itself and strips comments
+  before checking that `iat` is not load-bearing.
+- **Known bounded window: up to 60 seconds, on every path.** The check lives inside the
+  jwt callback's DB refresh, and that refresh is itself gated by `MEMBERSHIP_TTL_MS`
+  (60s) — so a token that synced 5 seconds ago keeps working for another 55, server-side
+  reads included. This is the same window that already bounds role, membership and
+  permission revocation, and it is deliberate: the alternative is a DB read on literally
+  every authenticated request. Against the 30 days it replaces, a minute is the point.
+  (An earlier draft of this entry claimed server-side revocation was *immediate* and only
+  the client lagged. That was wrong — recorded rather than quietly deleted, because
+  "immediate" is exactly the kind of claim someone later builds a decision on.)
+- Pinned by `password-change-revokes-sessions.test.ts`, proved against four perturbations:
+  dropping the write from either path, putting the column *back* into the P2022 fallback
+  select, making the session callback trust a revoked token, and swapping `pwdAt` for
+  `iat`. The
+  fail-closed assertion is **behavioural** — it calls the session callback directly, since
+  that callback is pure.
+- Route table unchanged at 131/22/109/12.
+
+---
+
 ## 2026-08-05 (33) — The navbar now fits the device it is on
 
 Owner: *"iPad, iPhone and sabhi device me website ka nav bar and baki size fit

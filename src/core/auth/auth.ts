@@ -335,12 +335,24 @@ export const authOptions: NextAuthOptions = {
         token.email &&
         (!token.role || !token.membership || (token as any).isSuperAdmin === undefined || trigger === "update" || stale)
       ) {
-        // Include `permissions`, but tolerate a not-yet-migrated DB (no column)
-        // by falling back to the pre-permissions select so auth never breaks.
+        // Include `permissions` and `passwordChangedAt`, but tolerate a
+        // not-yet-migrated DB by falling back to a select that names NEITHER, so
+        // auth never breaks.
+        //
+        // ⚠️ Do not add new columns to the fallback. Its whole job is to be the
+        // select that still works when the newest column has not landed yet - a
+        // Prisma select naming a column the DB lacks throws P2022, so putting the
+        // new field in BOTH means both throw and the refresh stops entirely,
+        // taking role/membership/permissions freshness down with it. A missing
+        // `passwordChangedAt` instead reads as undefined -> 0 below, i.e. "never
+        // changed", so revocation is merely inert until the column exists. That
+        // is the right degradation: this repo has had migrations fail silently on
+        // every deploy for weeks (see the migration gotcha in CLAUDE.md), so the
+        // pre-migration path is not hypothetical.
         let dbUser = await prisma.user
           .findUnique({
             where: { email: token.email },
-            select: { id: true, role: true, membership: true, name: true, image: true, username: true, permissions: true },
+            select: { id: true, role: true, membership: true, name: true, image: true, username: true, permissions: true, passwordChangedAt: true },
           })
           .catch(() => null);
         if (!dbUser) {
@@ -349,10 +361,52 @@ export const authOptions: NextAuthOptions = {
               where: { email: token.email },
               select: { id: true, role: true, membership: true, name: true, image: true, username: true },
             })
-            .then((u) => (u ? { ...u, permissions: [] as string[] } : null))
+            // Backfill both columns the fallback deliberately does not select, so
+            // its shape matches the primary lookup. `passwordChangedAt: null` is
+            // not a placeholder - on a DB without the column, "never changed" is
+            // the only honest answer, and it makes revocation inert rather than
+            // wrong until the migration lands.
+            .then((u) => (u ? { ...u, permissions: [] as string[], passwordChangedAt: null } : null))
             .catch(() => null);
         }
         if (dbUser) {
+          // ── Session revocation on password change ────────────────────────
+          // Any token minted before the last password change is dead. This is
+          // what makes "reset my password" actually lock out whoever else is
+          // holding a session, instead of only rotating the hash while their
+          // JWT stays valid for the rest of its 30-day life.
+          //
+          // ⚠️ This compares a timestamp WE persist in the token (`pwdAt`), NOT
+          // `token.iat`. `iat` looks like the obvious choice and does not work:
+          // next-auth re-encodes the token on every single session read, and
+          // `encode()` calls `.setIssuedAt()` with no argument
+          // (node_modules/next-auth/jwt/index.js:44), so `iat` is refreshed to
+          // "now" constantly. A check against it would silently never fire.
+          //
+          // Note where this sits: INSIDE the TTL-gated refresh above, so
+          // revocation takes effect within `MEMBERSHIP_TTL_MS` (60s) rather than
+          // instantly - a token that synced 5s ago keeps working for another 55,
+          // server-side reads included. That is the same window that already
+          // bounds role/membership/permission revocation, and it is the price of
+          // not doing a DB read on every authenticated request. Do not describe
+          // this as immediate.
+          //
+          // Absent/null on either side reads as 0, i.e. "never changed". That is
+          // why deploying this does not sign the entire userbase out: existing
+          // users have `passwordChangedAt = null`, so 0 > 0 is false for everyone
+          // until they actually change a password.
+          const dbPwdAt = (dbUser as any).passwordChangedAt
+            ? new Date((dbUser as any).passwordChangedAt).getTime()
+            : 0;
+          const tokenPwdAt = typeof (token as any).pwdAt === "number" ? (token as any).pwdAt : 0;
+          if (dbPwdAt > tokenPwdAt) {
+            // Empty token => the session callback below returns an empty session
+            // => getServerSession() resolves to null and useSession() reports
+            // signed-out. Every gate fails closed.
+            return {};
+          }
+          (token as any).pwdAt = dbPwdAt;
+
           token.uid = dbUser.id;
           token.role = dbUser.role;
           token.membership = dbUser.membership;
@@ -379,6 +433,21 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      // A token revoked by the password-change check above arrives here as `{}`.
+      // Returning an empty session makes BOTH halves resolve to "signed out",
+      // which is why this shape is safe rather than merely convenient:
+      //   - server: next-auth/next/index.js returns the body only when
+      //     `Object.keys(body).length` is truthy, else null -> getServerSession()
+      //     resolves to null.
+      //   - client: next-auth/client/_utils.js fetchData() returns
+      //     `Object.keys(data).length > 0 ? data : null`, so useSession() reports
+      //     `status: "unauthenticated"` rather than authenticated-with-no-user.
+      // Both sides use the same emptiness test, so there is no window in which
+      // the browser believes it is signed in while the server disagrees.
+      //
+      // `uid` is the right thing to test: it is set on the sign-in path and on
+      // every refresh, so its absence means the token is not a usable identity.
+      if (!token || !(token as any).uid) return {} as typeof session;
       if (session.user) {
         (session.user as any).id = token.uid;
         (session.user as any).role = token.role ?? "USER";

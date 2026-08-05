@@ -36,7 +36,12 @@ export async function POST(req: Request) {
     // with the new password immediately, not wait out the lock window.
     await prisma.user.update({
       where: { email },
-      data: { passwordHash, failedLoginCount: 0, lockedUntil: null },
+      // `passwordChangedAt` revokes every session issued before this moment - see
+      // the `pwdAt` check in core/auth/auth.ts. Without it, resetting the password
+      // rotated the hash but left existing JWTs valid for the full 30-day session
+      // lifetime, so the one action a user takes specifically to lock an intruder
+      // out did not do that.
+      data: { passwordHash, failedLoginCount: 0, lockedUntil: null, passwordChangedAt: new Date() },
     });
 
     return ok({ ok: true });

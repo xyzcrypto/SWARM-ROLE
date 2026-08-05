@@ -44,6 +44,11 @@ model User {
   // window after repeated failed password attempts; reset on success.
   failedLoginCount Int       @default(0)
   lockedUntil      DateTime?
+  // When the password was last changed. Any JWT minted before this instant is
+  // revoked on its next refresh (see the `pwdAt` check in core/auth/auth.ts).
+  // Nullable on purpose: existing users have no value, which reads as "never
+  // changed", so deploying this does NOT sign the whole userbase out.
+  passwordChangedAt DateTime?
 
   // Granular staff capabilities (catalog in src/lib/permissions.ts). Super Admins
   // (ADMIN_EMAILS) implicitly hold all permissions regardless of this column.
