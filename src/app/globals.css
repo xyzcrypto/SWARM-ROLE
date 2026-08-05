@@ -1406,6 +1406,86 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 }
 
 /* ----------------------------------------------------------------
+   Hero fit — the hero has to fit a SHORT laptop, not just a wide one
+   (src/components/Hero.tsx)
+
+   Every size in this hero was expressed as a WIDTH breakpoint, but on a laptop
+   the binding constraint is HEIGHT. `lg:` is true at 1280px whether the window
+   is 630px tall or 1000px tall, so a very common laptop viewport got desktop
+   padding and a desktop-sized medallion in a third less vertical space.
+
+   Measured on a 1280x630 window before this block:
+     medallion   199 -> 711   (81px past the fold, visibly clipped)
+     stats strip 683 -> 767   (137px below the fold, never seen)
+     section height 937 in a 630px viewport
+
+   The fixes are all "scale with viewport height, but never exceed what the
+   width breakpoint already allowed":
+     - `min(<old width cap>, Nvh)` on the medallion, so a short window shrinks
+       the circle instead of cropping it. On a tall window `min()` picks the
+       old value and nothing changes.
+     - `clamp()` on the section padding, so the whole block starts higher on a
+       short screen and keeps the generous spacing on a tall one.
+     - the 76vh min-height is dropped below 900px tall; it was reserving space
+       the window did not have.
+
+   Deliberately NOT a fixed `@media (max-height: …)` switch with hardcoded
+   sizes: that just moves the cliff to a different laptop. `min()`/`clamp()`
+   are continuous, so every window in between gets a sensible size too.
+
+   These three properties are owned HERE and nowhere else. The first attempt
+   left the Tailwind utilities (`lg:max-w-md`, `sm:pt-32`, `lg:min-h-[76vh]`)
+   on the elements and added this block alongside - and it changed nothing,
+   because Tailwind's utility layer is emitted AFTER globals.css and both are
+   single-class selectors, so the utility won every time. The measurement was
+   byte-identical before and after, which is how it was caught. Raising
+   specificity would have worked and would have been a trap for the next
+   person; giving each property exactly one owner does not. If you re-add a
+   `max-w-*`, `pt-*` or `min-h-*` utility to these elements, it will silently
+   beat everything below. */
+.hero-sect {
+  padding-top: 6rem;
+  padding-bottom: 3rem;
+}
+.hero-medallion {
+  max-width: 15rem;
+}
+/* 400px is the project's own `xs` breakpoint (tailwind.config.ts). Matching it
+   exactly keeps the phone medallion the size it already was - an invented
+   420px here quietly shrank it on a 412px phone. */
+@media (min-width: 400px) {
+  .hero-medallion { max-width: 17rem; }
+}
+@media (min-width: 640px) {
+  .hero-sect { padding-top: 8rem; padding-bottom: 4rem; }
+  .hero-medallion { max-width: 24rem; }
+}
+@media (min-width: 1024px) {
+  .hero-sect {
+    padding-top: clamp(5rem, 11vh, 9rem);
+    padding-bottom: clamp(1.5rem, 4vh, 4rem);
+  }
+  /* 28/32/36rem are the old lg/xl/2xl caps, so `min()` picks the ORIGINAL
+     size on any window tall enough for it and only shrinks a genuinely short
+     one. 68vh was chosen by measurement, not taste: 54vh also stopped the
+     clipping but shrank a 1920x950 monitor from 576px to 513px, changing a
+     screen that never had the problem. */
+  .hero-medallion { max-width: min(28rem, 68vh); }
+  .hero-grid { min-height: 76vh; }
+}
+@media (min-width: 1280px) {
+  .hero-medallion { max-width: min(32rem, 68vh); }
+}
+@media (min-width: 1536px) {
+  .hero-medallion { max-width: min(36rem, 68vh); }
+}
+/* A short window cannot honour a 76vh minimum AND fit the copy column; the
+   minimum only ever pushed content further down. */
+@media (min-width: 1024px) and (max-height: 900px) {
+  .hero-grid { min-height: 0; }
+}
+
+/* ----------------------------------------------------------------
    Hero entrance — CSS, deliberately not JavaScript
    (src/components/Hero.tsx, src/components/HeroCta.tsx)
 

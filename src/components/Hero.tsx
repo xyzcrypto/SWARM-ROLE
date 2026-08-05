@@ -92,7 +92,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
   const members = "50K+";
 
   return (
-    <section className="sect-cv relative overflow-hidden pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-36">
+    <section className="hero-sect sect-cv relative overflow-hidden">
       <AnimatedBackground />
       {/* deep-space starfield, same as the orbital section - ties the top of the
           page together and gives the hero a premium "space" depth on all sizes.
@@ -100,7 +100,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
           the orbital section so they never collide with the medallion. */}
       <Starfield className="opacity-80" bodies={false} />
 
-      <Container className="relative grid items-center gap-10 sm:gap-12 lg:min-h-[76vh] lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 2xl:gap-20">
+      <Container className="hero-grid relative grid items-center gap-10 sm:gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 2xl:gap-20">
         {/* Copy */}
         <div className="text-center lg:text-left">
           <div
@@ -177,7 +177,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
           onMouseMove={onMove}
           onMouseLeave={onLeave}
           style={{ perspective: 1000, "--pop-from": "0.7" } as React.CSSProperties}
-          className="hero-pop relative mx-auto flex aspect-square w-full max-w-[15rem] items-center justify-center xs:max-w-[17rem] sm:max-w-sm lg:max-w-md xl:max-w-lg 2xl:max-w-xl"
+          className="hero-pop hero-medallion relative mx-auto flex aspect-square w-full items-center justify-center"
         >
           <motion.div
             style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }}
