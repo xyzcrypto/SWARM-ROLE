@@ -60,7 +60,7 @@ export function HeroCta({ research }: { research: HeroResearch }) {
     // block in globals.css.
     <div
       style={{ "--rise-dur": "0.6s", "--rise-delay": "0.24s" } as React.CSSProperties}
-      className="hero-rise mt-7 flex w-full min-w-0 max-w-full flex-col gap-2.5 text-left lg:max-w-[580px] lg:gap-3"
+      className="hero-rise hero-ctablock mt-7 flex w-full min-w-0 max-w-full flex-col gap-2.5 text-left lg:max-w-[580px] lg:gap-3"
     >
       {/* ---------------- primary: research ---------------- */}
       <ActionLink

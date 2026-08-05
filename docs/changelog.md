@@ -5,6 +5,105 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-04 (31) — The hero fits a short laptop, not just a wide one
+
+Owner sent a desktop screenshot with the medallion clipped by the bottom of the
+window: *"Jo hamara XYZCrypto wala circle hai usko thora uper karo taki adjust
+ho jaye hero page desktop me."*
+
+### The cause was a units mistake, not a spacing one
+
+Every size in the hero was expressed as a **width** breakpoint, but on a laptop
+the binding constraint is **height**. `lg:` is true at 1280px whether the window
+is 630px tall or 1000px tall, so a very common laptop got desktop padding and a
+desktop-sized medallion in a third less vertical space. Measured on 1280x630:
+
+```
+medallion   199 -> 711    81px past the fold, visibly clipped
+stats strip 683 -> 767    137px below the fold
+section height 937 in a 630px viewport
+```
+
+### Fix
+
+Padding, medallion size and the 76vh minimum move into `globals.css` and become
+viewport-height aware - `clamp()` on the padding, `min(<old cap>, 68vh)` on the
+medallion, and the minimum dropped below 900px tall.
+
+`min()` is the point: on any window tall enough it picks the **original** value,
+so nothing changes on the screens that never had the problem.
+
+```
+                medallion       section height
+              before  after     before  after
+1280x630      512✂     428       937     834
+1366x660      512✂     449       937     835
+1440x780      512      512       937     846
+1536x830      576      564       952     869
+1920x950      576      576      1036     971
+412  phone    272      272      unchanged
+768  tablet   384      384      unchanged
+```
+
+✂ = clipped by the fold. Only genuinely short windows shrink.
+
+### Two mistakes worth recording
+
+**The first attempt changed nothing at all.** The Tailwind utilities were left
+on the elements (`lg:max-w-md`, `sm:pt-32`, `lg:min-h-[76vh]`) and this CSS was
+added alongside. Tailwind's utility layer is emitted *after* `globals.css` and
+both are single-class selectors, so the utility won every time - the measurement
+came back byte-identical, which is the only reason it was caught. Fixed by
+giving each property exactly one owner rather than by raising specificity, which
+would have worked and left a trap.
+
+**The first tuning over-corrected.** At `54vh` the clipping stopped, but a
+1920x950 monitor went from 576px to 513px - changing a screen that was never
+broken. Re-derived to `68vh` from the measurements so large screens are
+untouched.
+
+### Second pass: the stats strip too
+
+The owner came back with the same window and a sharper ask - the 50K+ strip
+should be on screen without scrolling. That is the part the first pass had
+explicitly left, so the copy column's rhythm now tightens below **700px tall**:
+smaller headline, tighter block margins, slightly smaller lede.
+
+The 700px ceiling is measured, not guessed. The strip was already fully visible
+at 1440x780 beforehand, so tightening there would have shrunk the headline on a
+common laptop to solve a problem it did not have.
+
+```
+              eyebrow top   medallion   stats bottom / viewport
+1280x630          88          428          586 / 630   visible
+1366x660          88          449          586 / 660   visible
+1280x700          88          476          586 / 700   visible
+1440x720          80          490          703 / 720   visible
+1440x780          86          512          708 / 780   visible
+1920x950         146          576          785 / 950   visible
+412  phone        96          272          unchanged
+768  tablet      128          384          unchanged
+```
+
+**A third mistake, caught in a screenshot rather than a number.** The first
+tightening dropped the section's padding floor to 3.25rem. The navbar is fixed
+and ~68px tall, so the eyebrow pill slid straight underneath it - every
+numeric check still passed, because none of them looked at the navbar. The
+floor is now 5.5rem, and the check script asserts `eyebrow.top > navbar.bottom`
+at every viewport so it cannot regress silently.
+
+### Pre-existing, not from this change
+
+At **768px** wide the page overflows horizontally by 257px. Verified against
+unmodified `main`: byte-identical (`scrollWidth 1025 / viewport 768`). It is the
+**navbar** - its `md:` desktop layout activates at 768 and does not fit - and
+has nothing to do with the hero. Left alone rather than widening this change.
+
+**Files:** `src/components/Hero.tsx`, `src/components/HeroCta.tsx`,
+`src/app/globals.css`, `docs/changelog.md`.
+
+---
+
 ## 2026-08-04 (30) — DMs can finally reach a phone: the opt-in was missing, not the push
 
 Owner: *"DM me message karne pe kisi ko notification mobile me nahi milta hai,
