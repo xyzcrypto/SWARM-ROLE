@@ -57,6 +57,18 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Flag the open mobile drawer on <html> so the floating XYZ AI launcher can
+  // get out of the way in CSS. It is `fixed` at z-[60] - above this menu - so
+  // while the drawer was open it sat on top of the check-in row. A DOM flag
+  // rather than shared state because the launcher is a sibling widget mounted
+  // by the layout, with no component relationship to the navbar.
+  useEffect(() => {
+    const el = document.documentElement;
+    if (open) el.setAttribute("data-nav-open", "");
+    else el.removeAttribute("data-nav-open");
+    return () => el.removeAttribute("data-nav-open");
+  }, [open]);
+
   // Close the account dropdown on outside click / Escape.
   useEffect(() => {
     if (!menu) return;
@@ -252,9 +264,15 @@ export function Navbar() {
       </nav>
 
       {open && (
+        // The drawer has to end ABOVE the fixed bottom nav, not behind it.
+        // `100dvh - 6rem` only reserved room for the header, so the last rows -
+        // the check-in line and Sign out - sat underneath the bar and could not
+        // be reached at all. The bar is 3.5rem plus the safe-area inset (see
+        // BottomNav), so both come off the height, and the same amount is added
+        // back as padding so the final row can still scroll clear of it.
         <div
-          className="mx-auto mt-2 max-h-[calc(100dvh-6rem)] max-w-container overflow-y-auto overscroll-contain rounded-2xl border border-line bg-ink-900/95 p-3 backdrop-blur-xl md:hidden"
-          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          className="mx-auto mt-2 max-h-[calc(100dvh-6rem-3.5rem-env(safe-area-inset-bottom))] max-w-container overflow-y-auto overscroll-contain rounded-2xl border border-line bg-ink-900/95 p-3 backdrop-blur-xl md:max-h-[calc(100dvh-6rem)] md:hidden"
+          style={{ paddingBottom: "calc(1rem + env(safe-area-inset-bottom))" }}
         >
           <div className="flex flex-col gap-0.5">
             {navLinks.map((l) => (
