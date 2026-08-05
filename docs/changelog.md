@@ -34,10 +34,22 @@ which enforces 8 chars plus lower + upper + digit.)
 - **Changing your own password signs you out too**, deliberately. Exempting the current
   session would mean trusting a request carrying the token to say which token it is — and
   the premise is that a token may be in the wrong hands.
-- Pinned by `password-change-revokes-sessions.test.ts`, proved against three perturbations:
+- **Self-review caught two defects before merge**, both recorded because they are the
+  interesting part. (a) The first draft put `passwordChangedAt` in **both** jwt-callback
+  selects, including the P2022 fallback whose entire job is to work when the newest column
+  is missing — so on a not-yet-migrated DB both selects would have thrown and the refresh
+  would have stopped entirely. (b) The test's anti-`iat` assertion did not work: a
+  perturbation swapping the comparison to `token.iat` **passed**, because `pwdAt` still
+  appeared in a nearby comment. It now pins the derivation itself and strips comments
+  before checking that `iat` is not load-bearing.
+- **Known bounded window:** revocation lands on the next *server-side* session read, which
+  is immediate. On the client `/api/auth/session` path the 60s `MEMBERSHIP_TTL_MS` can
+  delay it by up to a minute. Bounded and deliberate — against 30 days previously.
+- Pinned by `password-change-revokes-sessions.test.ts`, proved against four perturbations:
   dropping the write from either path, dropping the column from the P2022 fallback select,
-  and making the session callback trust a revoked token. The fail-closed assertion is
-  **behavioural** — it calls the session callback directly, since that callback is pure.
+  making the session callback trust a revoked token, and swapping `pwdAt` for `iat`. The
+  fail-closed assertion is **behavioural** — it calls the session callback directly, since
+  that callback is pure.
 - Route table unchanged at 131/22/109/12.
 
 ---

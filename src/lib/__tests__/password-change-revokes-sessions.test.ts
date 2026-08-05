@@ -46,28 +46,63 @@ describe("password change revokes existing sessions", () => {
     expect(missing, `path(s) that change a password without revoking sessions: ${missing.join(", ")}`).toEqual([]);
   });
 
-  it("selects passwordChangedAt in EVERY jwt-callback user lookup", () => {
-    // There are two lookups in the jwt callback - the second is the P2022
-    // fallback for a not-yet-migrated DB. If only the first carries the column,
-    // revocation silently stops working on exactly the degraded path.
+  it("selects passwordChangedAt in the primary lookup but NOT the P2022 fallback", () => {
+    // Both halves of this matter, and the second is counter-intuitive.
     //
-    // Scoped by `username: true`, which is what distinguishes the jwt-callback
-    // selects from the `authorize()` login lookup. That third select reads
-    // passwordHash to verify a login and has no business carrying this column -
-    // matching it too would force a pointless field and make this test lie about
-    // what it checks.
+    // The jwt callback has two lookups. The first names the newest columns; the
+    // second is the fallback that runs when the first throws P2022 because the DB
+    // has not picked up a migration yet. Its entire job is to be the select that
+    // still works without the newest column.
+    //
+    // So putting `passwordChangedAt` in BOTH is a bug, not extra safety: on a
+    // not-yet-migrated DB both selects would throw and the refresh would stop
+    // entirely - taking role/membership/permissions freshness down with it. The
+    // first draft of this change did exactly that. Missing column reads as
+    // undefined -> 0, so revocation is merely inert until the migration lands,
+    // which is the correct degradation.
+    //
+    // Scoped by `username: true`, which distinguishes the jwt-callback selects
+    // from the `authorize()` login lookup - that third select reads passwordHash
+    // to verify a login and has no business carrying this column.
     const selects = [...read(AUTH).matchAll(/select:\s*\{[^}]*\busername:\s*true[^}]*\}/g)].map((m) => m[0]);
-    expect(selects.length, "expected both jwt-callback selects").toBeGreaterThanOrEqual(2);
-    expect(selects.filter((s) => !s.includes("passwordChangedAt"))).toEqual([]);
+    expect(selects.length, "expected exactly the two jwt-callback selects").toBe(2);
+
+    const [primary, fallback] = selects;
+    expect(primary, "primary lookup must read passwordChangedAt").toContain("passwordChangedAt");
+    expect(primary, "primary lookup is the one that also reads permissions").toContain("permissions");
+    expect(
+      fallback,
+      "the P2022 fallback must NOT name passwordChangedAt - it is the pre-migration path"
+    ).not.toContain("passwordChangedAt");
   });
 
   it("compares against the token-persisted pwdAt, NOT token.iat", () => {
-    // See the trap note at the top of this file. This is the assertion that
-    // stops the mechanism being "simplified" into something inert.
+    // See the trap note at the top of this file. This is the assertion that stops
+    // the mechanism being "simplified" into something permanently inert.
+    //
+    // The first version of this test did not work. It asserted `/pwdAt/` appears
+    // somewhere and that `iat` and `passwordChangedAt` never share a line - and a
+    // perturbation swapping the comparison to `token.iat` PASSED, because `pwdAt`
+    // still appeared in the surrounding comment and assignment. A test that
+    // passes either way is worth nothing, so it now pins the derivation itself.
     const src = read(AUTH);
-    expect(src).toMatch(/pwdAt/);
-    // No comparison of iat against a password timestamp.
-    expect(src).not.toMatch(/token\.iat[^\n]*passwordChangedAt|passwordChangedAt[^\n]*token\.iat/);
+
+    // The value compared against the DB must be read out of the token's own
+    // `pwdAt` claim.
+    expect(
+      src,
+      "the compared timestamp must be derived from token.pwdAt"
+    ).toMatch(/const\s+tokenPwdAt\s*=\s*typeof\s*\(token as any\)\.pwdAt\s*===\s*"number"/);
+
+    // ...and `iat` must not be load-bearing in the CODE. Comments are stripped
+    // first on purpose: the source deliberately mentions `token.iat` to explain
+    // why it is not used, and an assertion that trips on its own warning would
+    // just get deleted by the next person.
+    const code = src
+      .split("\n")
+      .filter((l) => !l.trim().startsWith("//"))
+      .join("\n");
+    expect(code, "token.iat is refreshed on every re-encode - it cannot gate anything").not.toMatch(/token\.iat/);
   });
 
   it("fails closed: the session callback rejects a revoked token", async () => {

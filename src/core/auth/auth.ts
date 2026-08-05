@@ -335,8 +335,20 @@ export const authOptions: NextAuthOptions = {
         token.email &&
         (!token.role || !token.membership || (token as any).isSuperAdmin === undefined || trigger === "update" || stale)
       ) {
-        // Include `permissions`, but tolerate a not-yet-migrated DB (no column)
-        // by falling back to the pre-permissions select so auth never breaks.
+        // Include `permissions` and `passwordChangedAt`, but tolerate a
+        // not-yet-migrated DB by falling back to a select that names NEITHER, so
+        // auth never breaks.
+        //
+        // ⚠️ Do not add new columns to the fallback. Its whole job is to be the
+        // select that still works when the newest column has not landed yet - a
+        // Prisma select naming a column the DB lacks throws P2022, so putting the
+        // new field in BOTH means both throw and the refresh stops entirely,
+        // taking role/membership/permissions freshness down with it. A missing
+        // `passwordChangedAt` instead reads as undefined -> 0 below, i.e. "never
+        // changed", so revocation is merely inert until the column exists. That
+        // is the right degradation: this repo has had migrations fail silently on
+        // every deploy for weeks (see the migration gotcha in CLAUDE.md), so the
+        // pre-migration path is not hypothetical.
         let dbUser = await prisma.user
           .findUnique({
             where: { email: token.email },
@@ -347,9 +359,14 @@ export const authOptions: NextAuthOptions = {
           dbUser = await prisma.user
             .findUnique({
               where: { email: token.email },
-              select: { id: true, role: true, membership: true, name: true, image: true, username: true, passwordChangedAt: true },
+              select: { id: true, role: true, membership: true, name: true, image: true, username: true },
             })
-            .then((u) => (u ? { ...u, permissions: [] as string[] } : null))
+            // Backfill both columns the fallback deliberately does not select, so
+            // its shape matches the primary lookup. `passwordChangedAt: null` is
+            // not a placeholder - on a DB without the column, "never changed" is
+            // the only honest answer, and it makes revocation inert rather than
+            // wrong until the migration lands.
+            .then((u) => (u ? { ...u, permissions: [] as string[], passwordChangedAt: null } : null))
             .catch(() => null);
         }
         if (dbUser) {
@@ -409,10 +426,16 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       // A token revoked by the password-change check above arrives here as `{}`.
-      // Returning an empty session makes getServerSession() resolve to **null**
-      // (next-auth/next/index.js only returns the body when it has keys) and the
-      // client's useSession() report unauthenticated - so every gate in the app
-      // fails closed rather than seeing a session with an undefined user id.
+      // Returning an empty session makes BOTH halves resolve to "signed out",
+      // which is why this shape is safe rather than merely convenient:
+      //   - server: next-auth/next/index.js returns the body only when
+      //     `Object.keys(body).length` is truthy, else null -> getServerSession()
+      //     resolves to null.
+      //   - client: next-auth/client/_utils.js fetchData() returns
+      //     `Object.keys(data).length > 0 ? data : null`, so useSession() reports
+      //     `status: "unauthenticated"` rather than authenticated-with-no-user.
+      // Both sides use the same emptiness test, so there is no window in which
+      // the browser believes it is signed in while the server disagrees.
       //
       // `uid` is the right thing to test: it is set on the sign-in path and on
       // every refresh, so its absence means the token is not a usable identity.
