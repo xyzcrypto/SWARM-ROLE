@@ -5,6 +5,70 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-05 (32) — Sign out was unreachable on a phone, and the desktop hero was jammed against the header
+
+Two things from the owner, with screenshots.
+
+### 1. The mobile menu hid Sign out behind the bottom nav
+
+The drawer was capped at `100dvh - 6rem`, which reserves room for the **header**
+and nothing for the **fixed bottom nav**. So on a logged-in account the last
+rows - the check-in line and **Sign out** - sat underneath that bar and could
+not be tapped at all. The floating XYZ AI launcher (`fixed`, `z-[60]`, above
+the menu) covered the check-in row on top of that.
+
+Reproduced before fixing, then re-run after, by injecting the logged-in-only
+rows into the drawer so the overflow path actually runs - the logged-out menu
+is short and never overflows, so it proves nothing:
+
+```
+                     Sign out      bottom-nav top
+before   412x915     844 - 894          855      under the bar
+         360x740     669 - 719          687      under the bar
+after    412x915     772 - 822          855      reachable
+         360x740     597 - 647          687      reachable
+```
+
+The drawer now subtracts the bar (`3.5rem` + safe-area inset, per `BottomNav`)
+from its own height and adds the same back as padding, so the last row scrolls
+clear. The navbar sets `data-nav-open` on `<html>` while the drawer is open and
+CSS hides `.ai-fab` - a DOM flag rather than shared state, because the launcher
+is a sibling widget mounted by the layout with no component relationship to the
+navbar.
+
+### 2. The desktop hero was top-heavy
+
+Measured at 1280x640: **20px** between the navbar and the eyebrow, but **54px**
+of unused space below the stats strip, with internal gaps of 8-12px. The column
+read as jammed under the header with dead space beneath it.
+
+```
+                    before   after
+navbar -> eyebrow     20       32
+eyebrow -> headline   10       14
+headline -> lede       8       11
+lede -> card          12       15
+trust -> stats        12       16
+space below stats     54       27
+```
+
+Two related corrections while measuring:
+- **1440x780 had only 18px** of navbar clearance - tighter than the short-laptop
+  path - because the grid's 76vh minimum is smaller than the content there, so
+  there is no centring slack. The `lg` padding floor went 5rem -> 5.75rem.
+- **The short-laptop rule's ceiling moved 700px -> 740px.** At 700 a 1440x720
+  window fitted the strip by exactly **5px** - technically "visible" and far too
+  fragile to ship, since browser zoom or a taller chrome erases it. At 740 that
+  window gets ~107px of margin instead.
+
+Every desktop height from 630 to 950 now clears the navbar and shows the strip.
+Phone and tablet are unchanged.
+
+**Files:** `src/shared/components/Navbar.tsx`, `src/app/globals.css`,
+`docs/changelog.md`.
+
+---
+
 ## 2026-08-04 (31) — The hero fits a short laptop, not just a wide one
 
 Owner sent a desktop screenshot with the medallion clipped by the bottom of the
