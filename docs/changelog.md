@@ -5,6 +5,70 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-05 (33) — The navbar now fits the device it is on
+
+Owner: *"iPad, iPhone and sabhi device me website ka nav bar and baki size fit
+karo."*
+
+### The desktop rail was showing 256px before it fit
+
+The full nav rail appeared at `md` (768px) but needs **1089px**. On an iPad in
+portrait that pushed the page **257px** wider than the screen - a real
+horizontal scroll on every page.
+
+Two moves, both measured:
+- The rail switches at **`lg` (1024px)**, not `md`. Phones and iPad portrait get
+  the hamburger + bottom bar, which is what they should have had.
+- Per-link padding is `xl:` rather than `lg:`. At exactly 1024 - **iPad
+  landscape** - the rail still needed 1089px and overflowed by 65px. Eight links
+  x 8px buys that back.
+
+That left **1px** at 1024 from decorative full-bleed layers (`.aurora` bleeds
+-10% each side). `body { overflow-x: clip }` handles it - **`clip`, not
+`hidden`**, because `hidden` makes the body a scroll container and would
+silently kill every `position: sticky` on the site (markets table header, news
+filter pills). Verified after the change that a sticky element still sticks.
+
+### Result
+
+Real symptom tested - not "is `scrollWidth` bigger", but **can the reader drag
+the page sideways** - across 13 device sizes x 4 pages:
+
+```
+iPhone SE 320 · SE/8 375 · 12-14 390 · 15 393 · Pro Max 430 · Android 360
+iPad portrait 768 · 810 · Air 820 · iPad landscape 1024 · iPad Pro 1112
+laptop 1280 · desktop 1920
+```
+
+**No page scrolls sideways on any of them.** Before: iPad portrait +257px,
+iPad landscape +65px.
+
+### The Google-signup-opens-in-desktop-mode report: not reproduced
+
+Owner also reported that after signing up with Google on a phone the site opens
+in desktop mode until a manual refresh. **This is not fixed, because it was not
+reproduced or explained.** What was ruled out:
+
+- The usual cause is a missing viewport meta. It is **present and correct** on
+  `/`, `/signup` and `/login` - `width=device-width, initial-scale=1`, from the
+  single `viewport` export in `app/layout.tsx`.
+- No layout anywhere is decided in JavaScript: no `userAgent` sniffing, no
+  `innerWidth` branching. The mobile/desktop split is pure CSS, so a hydration
+  timing gap cannot produce it.
+
+There is no phone, no Google OAuth client and no way to run that flow here, so
+anything further would be a guess dressed as a fix. The one thing worth checking
+on the owner's side is whether the URL **after** the Google round-trip is the
+same host as the one before it (apex vs `www`) - "Request desktop site" is a
+per-host Chrome setting, and `next-auth` returns to `NEXTAUTH_URL`, not to
+wherever the visitor started.
+
+**Files:** `src/shared/components/Navbar.tsx`,
+`src/shared/components/BottomNav.tsx`, `src/app/globals.css`,
+`docs/changelog.md`.
+
+---
+
 ## 2026-08-05 (32) — Sign out was unreachable on a phone, and the desktop hero was jammed against the header
 
 Two things from the owner, with screenshots.
