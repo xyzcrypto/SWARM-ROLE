@@ -383,6 +383,14 @@ export const authOptions: NextAuthOptions = {
           // (node_modules/next-auth/jwt/index.js:44), so `iat` is refreshed to
           // "now" constantly. A check against it would silently never fire.
           //
+          // Note where this sits: INSIDE the TTL-gated refresh above, so
+          // revocation takes effect within `MEMBERSHIP_TTL_MS` (60s) rather than
+          // instantly - a token that synced 5s ago keeps working for another 55,
+          // server-side reads included. That is the same window that already
+          // bounds role/membership/permission revocation, and it is the price of
+          // not doing a DB read on every authenticated request. Do not describe
+          // this as immediate.
+          //
           // Absent/null on either side reads as 0, i.e. "never changed". That is
           // why deploying this does not sign the entire userbase out: existing
           // users have `passwordChangedAt = null`, so 0 > 0 is false for everyone

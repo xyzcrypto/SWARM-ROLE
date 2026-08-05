@@ -42,9 +42,15 @@ which enforces 8 chars plus lower + upper + digit.)
   perturbation swapping the comparison to `token.iat` **passed**, because `pwdAt` still
   appeared in a nearby comment. It now pins the derivation itself and strips comments
   before checking that `iat` is not load-bearing.
-- **Known bounded window:** revocation lands on the next *server-side* session read, which
-  is immediate. On the client `/api/auth/session` path the 60s `MEMBERSHIP_TTL_MS` can
-  delay it by up to a minute. Bounded and deliberate — against 30 days previously.
+- **Known bounded window: up to 60 seconds, on every path.** The check lives inside the
+  jwt callback's DB refresh, and that refresh is itself gated by `MEMBERSHIP_TTL_MS`
+  (60s) — so a token that synced 5 seconds ago keeps working for another 55, server-side
+  reads included. This is the same window that already bounds role, membership and
+  permission revocation, and it is deliberate: the alternative is a DB read on literally
+  every authenticated request. Against the 30 days it replaces, a minute is the point.
+  (An earlier draft of this entry claimed server-side revocation was *immediate* and only
+  the client lagged. That was wrong — recorded rather than quietly deleted, because
+  "immediate" is exactly the kind of claim someone later builds a decision on.)
 - Pinned by `password-change-revokes-sessions.test.ts`, proved against four perturbations:
   dropping the write from either path, putting the column *back* into the P2022 fallback
   select, making the session callback trust a revoked token, and swapping `pwdAt` for
