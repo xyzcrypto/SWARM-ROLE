@@ -46,8 +46,9 @@ which enforces 8 chars plus lower + upper + digit.)
   is immediate. On the client `/api/auth/session` path the 60s `MEMBERSHIP_TTL_MS` can
   delay it by up to a minute. Bounded and deliberate — against 30 days previously.
 - Pinned by `password-change-revokes-sessions.test.ts`, proved against four perturbations:
-  dropping the write from either path, dropping the column from the P2022 fallback select,
-  making the session callback trust a revoked token, and swapping `pwdAt` for `iat`. The
+  dropping the write from either path, putting the column *back* into the P2022 fallback
+  select, making the session callback trust a revoked token, and swapping `pwdAt` for
+  `iat`. The
   fail-closed assertion is **behavioural** — it calls the session callback directly, since
   that callback is pure.
 - Route table unchanged at 131/22/109/12.
