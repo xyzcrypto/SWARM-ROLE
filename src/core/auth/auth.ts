@@ -340,19 +340,48 @@ export const authOptions: NextAuthOptions = {
         let dbUser = await prisma.user
           .findUnique({
             where: { email: token.email },
-            select: { id: true, role: true, membership: true, name: true, image: true, username: true, permissions: true },
+            select: { id: true, role: true, membership: true, name: true, image: true, username: true, permissions: true, passwordChangedAt: true },
           })
           .catch(() => null);
         if (!dbUser) {
           dbUser = await prisma.user
             .findUnique({
               where: { email: token.email },
-              select: { id: true, role: true, membership: true, name: true, image: true, username: true },
+              select: { id: true, role: true, membership: true, name: true, image: true, username: true, passwordChangedAt: true },
             })
             .then((u) => (u ? { ...u, permissions: [] as string[] } : null))
             .catch(() => null);
         }
         if (dbUser) {
+          // ── Session revocation on password change ────────────────────────
+          // Any token minted before the last password change is dead. This is
+          // what makes "reset my password" actually lock out whoever else is
+          // holding a session, instead of only rotating the hash while their
+          // JWT stays valid for the rest of its 30-day life.
+          //
+          // ⚠️ This compares a timestamp WE persist in the token (`pwdAt`), NOT
+          // `token.iat`. `iat` looks like the obvious choice and does not work:
+          // next-auth re-encodes the token on every single session read, and
+          // `encode()` calls `.setIssuedAt()` with no argument
+          // (node_modules/next-auth/jwt/index.js:44), so `iat` is refreshed to
+          // "now" constantly. A check against it would silently never fire.
+          //
+          // Absent/null on either side reads as 0, i.e. "never changed". That is
+          // why deploying this does not sign the entire userbase out: existing
+          // users have `passwordChangedAt = null`, so 0 > 0 is false for everyone
+          // until they actually change a password.
+          const dbPwdAt = (dbUser as any).passwordChangedAt
+            ? new Date((dbUser as any).passwordChangedAt).getTime()
+            : 0;
+          const tokenPwdAt = typeof (token as any).pwdAt === "number" ? (token as any).pwdAt : 0;
+          if (dbPwdAt > tokenPwdAt) {
+            // Empty token => the session callback below returns an empty session
+            // => getServerSession() resolves to null and useSession() reports
+            // signed-out. Every gate fails closed.
+            return {};
+          }
+          (token as any).pwdAt = dbPwdAt;
+
           token.uid = dbUser.id;
           token.role = dbUser.role;
           token.membership = dbUser.membership;
@@ -379,6 +408,15 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      // A token revoked by the password-change check above arrives here as `{}`.
+      // Returning an empty session makes getServerSession() resolve to **null**
+      // (next-auth/next/index.js only returns the body when it has keys) and the
+      // client's useSession() report unauthenticated - so every gate in the app
+      // fails closed rather than seeing a session with an undefined user id.
+      //
+      // `uid` is the right thing to test: it is set on the sign-in path and on
+      // every refresh, so its absence means the token is not a usable identity.
+      if (!token || !(token as any).uid) return {} as typeof session;
       if (session.user) {
         (session.user as any).id = token.uid;
         (session.user as any).role = token.role ?? "USER";

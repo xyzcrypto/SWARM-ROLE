@@ -33,7 +33,20 @@ export async function POST(req: Request) {
     if (!valid) return fail("Current password is incorrect.", 400);
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
-    await prisma.user.update({ where: { id: me.id }, data: { passwordHash } });
+    // Same revocation as the forgot-password path (api/auth/password/reset). See
+    // `pwdAt` in core/auth/auth.ts.
+    //
+    // Note this signs out EVERY session including the caller's own, so the user
+    // has to sign in again straight after changing their password. That is the
+    // deliberate choice: the alternative is exempting the current token, which
+    // means a request carrying the token has to be trusted to say which token it
+    // is - and the whole point here is that a token may be in the wrong hands.
+    // "Changed your password? Sign in again" is the common, comprehensible
+    // behaviour; silently keeping one session alive is not.
+    await prisma.user.update({
+      where: { id: me.id },
+      data: { passwordHash, passwordChangedAt: new Date() },
+    });
 
     return ok({ ok: true });
   } catch (err) {
