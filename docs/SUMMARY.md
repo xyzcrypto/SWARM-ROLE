@@ -32,5 +32,6 @@
 * [Audit Report — 2026-06-11](AUDIT-2026-06-11.md)
 * [Audit & Handoff — 2026-07-11](AUDIT-2026-07-11.md)
 * [Latency & Resource Audit — 2026-08-01](AUDIT-2026-08-01-latency.md)
+* [Engineering Review — 2026-08-05](REPORT-2026-08-05-engineering-review.md)
 * [Team Setup & Collaboration](TEAM-SETUP.md)
 * [Changelog](changelog.md)
