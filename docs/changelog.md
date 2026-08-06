@@ -61,6 +61,46 @@ which enforces 8 chars plus lower + upper + digit.)
 
 ---
 
+## 2026-08-05 (34) — Profile is centred in the bottom bar, and a full engineering review
+
+### Bottom bar
+
+Research came out of the mobile bottom nav. Four links plus the raised Profile
+button is **five** cells, so Profile sits in the exact middle; with five links
+it was cell 3 of 6 - visibly left of centre. Measured at 320/390/430: the
+Profile cell centre and the bar centre are the same pixel (`offBy=0`).
+
+Research was the one to drop because it is still reachable from the navbar's own
+rail. `grid-cols-5` must stay equal to `ITEMS.length + 1` - that pairing is what
+centres the cell, and adding a fifth link would silently push it off again.
+
+### Engineering review
+
+`docs/REPORT-2026-08-05-engineering-review.md` - a full review covering the
+security architecture layer by layer, open bugs, process, teamwork and an
+industry-readiness scorecard. Every figure in it was measured at `bae69a7` or
+read from a live API; the section on what could **not** be verified is explicit
+rather than omitted.
+
+The three findings worth repeating here:
+
+- **`main` has no branch protection** and two collaborators hold `write`.
+  Verified via the API (`"protected": false`). The merge-ownership rule in
+  `CLAUDE.md` is therefore a social control, not a technical one - and PR #252,
+  an auth **and** schema change, was authored and merged by the same person the
+  day this was written.
+- **Sentry still has no DSN in any runtime**, so none of the above would page
+  anyone.
+- **CodeQL was removed because the repo was private. It is public again** -
+  `"visibility": "public"` - so free static analysis is available and currently
+  unused.
+
+**Files:** `src/shared/components/BottomNav.tsx`,
+`docs/REPORT-2026-08-05-engineering-review.md`, `docs/SUMMARY.md`,
+`docs/changelog.md`.
+
+---
+
 ## 2026-08-05 (33) — The navbar now fits the device it is on
 
 Owner: *"iPad, iPhone and sabhi device me website ka nav bar and baki size fit

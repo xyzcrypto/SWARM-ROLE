@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Wrench, Newspaper, NotebookPen, LineChart, FileText, User } from "lucide-react";
+import { Wrench, Newspaper, NotebookPen, LineChart, User } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { isBottomActive, isBottomHidden } from "@/lib/bottom-nav";
 import { cn } from "@/lib/utils";
@@ -12,11 +12,16 @@ type Item = { href: string; label: string; Icon: typeof Wrench };
 // Chat isn't listed here - it's already one tap away via the navbar's chat
 // bubble icon (top of every page), so a dedicated bottom-nav slot was
 // redundant. Markets takes that slot back instead.
+//
+// FOUR links, not five, and that is the whole point: four links plus the raised
+// Profile button is five cells, so Profile sits in the exact middle. With five
+// links it was cell 3 of 6 - visibly left of centre. Research came out because
+// it is the one still reachable in two taps from the navbar's own rail; adding
+// a fifth link back here would push Profile off-centre again.
 const ITEMS: Item[] = [
   { href: "/tools", label: "Tools", Icon: Wrench },
   { href: "/news", label: "News", Icon: Newspaper },
   { href: "/journal", label: "Journal", Icon: NotebookPen },
-  { href: "/research", label: "Research", Icon: FileText },
   { href: "/markets", label: "Markets", Icon: LineChart },
 ];
 
@@ -35,9 +40,9 @@ const ICON_CLS = "h-[clamp(18px,5vw,20px)] w-[clamp(18px,5vw,20px)] shrink-0";
 
 /**
  * App-style bottom navigation for phones and tablets (lg:hidden). Two links, a
- * raised centered Profile button (bigger than the rest - the one cell meant
- * to stand out), then three more links. Safe-area aware. XYZ AI lives as a
- * floating launcher (see XyzAiWidget.tsx).
+ * raised centred Profile button (bigger than the rest - the one cell meant to
+ * stand out), then two more links. Safe-area aware. XYZ AI lives as a floating
+ * launcher (see XyzAiWidget.tsx).
  */
 export function BottomNav() {
   const pathname = usePathname() || "/";
@@ -62,11 +67,13 @@ export function BottomNav() {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         aria-label="Primary"
       >
-      {/* max-w-lg (not md) so the six cells still have room on a large phone,
+      {/* max-w-lg (not md) so the five cells still have room on a large phone,
           and the grid fills the width below that instead of leaving side gaps.
           On a tablet the cap keeps it from stretching absurdly wide - though
-          the bar is lg:hidden, so that only applies below 1024px. */}
-      <div className="mx-auto grid w-full max-w-lg grid-cols-6">
+          the bar is lg:hidden, so that only applies below 1024px.
+          grid-cols-5 must match ITEMS.length + 1; they are what centres the
+          Profile cell. */}
+      <div className="mx-auto grid w-full max-w-lg grid-cols-5">
         {left.map((it) => (
           <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />
         ))}
@@ -80,7 +87,9 @@ export function BottomNav() {
             className={cn(
               // Fluid too, and for a concrete reason: at a fixed 56px this
               // circle was wider than its own grid cell on a 320px screen
-              // (320 / 6 ≈ 53px), so it overflowed into its neighbours.
+              // (320 / 6 ≈ 53px at the time), so it overflowed into its
+              // neighbours. Five columns give it more room now, but the clamp
+              // stays - it is what makes the cell safe at any count.
               "-mt-5 flex h-[clamp(44px,14vw,56px)] w-[clamp(44px,14vw,56px)] items-center justify-center rounded-full border-2 bg-ink-950 shadow-lg transition-colors",
               profileActive ? "border-gold-400 shadow-gold-500/30" : "border-white/15 shadow-black/40"
             )}
