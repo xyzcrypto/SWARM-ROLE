@@ -65,7 +65,12 @@ export function useDraggablePanel(enabled: boolean, storageKey: string) {
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (!enabled || !elRef.current) return;
-      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      // A press that starts on a control is that control's, not the drag's.
+      // Without this the header swallowed every click on Clear chat and Close,
+      // because pointer capture (below) redirects the click to the capturing
+      // element. This guard existed, was dropped in a rewrite, and took the
+      // header's buttons with it.
+      if ((e.target as HTMLElement)?.closest?.("button,a,input,textarea,select,[role='button']")) return;
       startRef.current = { px: e.clientX, py: e.clientY, ox: offset.x, oy: offset.y };
       movedRef.current = false;
     },
@@ -78,8 +83,14 @@ export function useDraggablePanel(enabled: boolean, storageKey: string) {
     const dx = e.clientX - s.px;
     const dy = e.clientY - s.py;
     if (!movedRef.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
-    movedRef.current = true;
-    setDragging(true);
+    if (!movedRef.current) {
+      // Capture only once this is genuinely a drag. Capturing on pointerdown
+      // would redirect the subsequent click to this element and break every
+      // control inside it, even for a press that never moved.
+      (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+      movedRef.current = true;
+      setDragging(true);
+    }
     setOffset(clampToViewport({ x: s.ox - dx, y: s.oy - dy }, elRef.current));
   }, []);
 

@@ -1770,3 +1770,37 @@ html:not(.dark) .ai-surface {
   50%      { opacity: 0.9;  transform: scale(1.12); }
 }
 .ai-fab:active { transform: scale(0.94); }
+
+/* ---------------------------------------------------------------------------
+   XYZ AI - elevated chrome (v2)
+   A slow-rotating conic aura behind the panel and an orbital ring on the
+   launcher. Both sit on ::before/::after so no extra DOM is needed, and both
+   are scoped to the assistant - nothing else on the site is touched.
+--------------------------------------------------------------------------- */
+
+/* No conic aura on the panel: it is `overflow: hidden` (the message list
+   scrolls inside it), so a rim drawn on ::after is clipped away to a stub. It
+   was built, rendered, and removed rather than shipped as a stub. The depth
+   comes from the radial glows and the lit top edge above, which do survive the
+   clip. The launcher is not clipped, so it keeps its orbital ring below. */
+
+/* Launcher: an orbital ring that counter-rotates against the halo. */
+.ai-fab::before {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  border: 1.5px solid transparent;
+  background: conic-gradient(from var(--ai-spin, 0deg), transparent 55%, rgba(243, 212, 136, 0.95), rgba(146, 245, 203, 0.9), transparent) border-box;
+  -webkit-mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) padding-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  animation: ai-spin 6s linear infinite;
+  pointer-events: none;
+}
+
+/* Message bubbles: a touch more separation and a lit top edge on answers. */
+.ai-surface .prose-xyz {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}

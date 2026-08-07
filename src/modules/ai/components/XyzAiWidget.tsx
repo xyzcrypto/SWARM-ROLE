@@ -79,7 +79,9 @@ export function XyzAiWidget() {
 
   // Dictation drops straight into the composer rather than sending, so a
   // misheard word can be fixed before it costs a request.
-  const speech = useSpeechInput((text) => setInput((v) => (v ? `${v} ${text}` : text)));
+  // continuous: Chrome otherwise ends the session at the first short pause,
+  // which cuts people off mid-sentence and reads as "it didn't hear me".
+  const speech = useSpeechInput((text) => setInput((v) => (v ? `${v} ${text}` : text)), { continuous: true });
 
   // Suggestions about the page the member is actually on, shown above the
   // general set. Derived from the path only - no extra fetch.

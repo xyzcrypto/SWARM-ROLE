@@ -5,6 +5,38 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (42) — The drag handle was swallowing the panel's own buttons
+
+- **🐛 Clear chat and Close stopped working, and I broke them in (41).** Rewriting
+  `useDraggablePanel` dropped a guard the first version had — *"a press that starts on a
+  control belongs to that control, not the drag"* — and the header calls
+  `setPointerCapture` on pointerdown. Pointer capture redirects the following **click** to the
+  capturing element, so every button inside the header went dead. Both halves are fixed:
+  the `closest("button,a,input,…")` guard is back, **and** capture now happens only once
+  movement passes the 6px threshold, so a press that never moves can never steal a click.
+  Pinned by `drag-guard.test.ts`.
+  - ⚠️ That test reads the hook's source and asserts the guard's *shape*, because this project's
+    vitest runs without a DOM. **It proves the guard is present, not that a click lands.** Said
+    plainly here so nobody later mistakes it for an interaction test.
+- **Dictation kept cutting off mid-sentence.** Chrome ends a non-continuous session at the
+  first short pause, which reads as "it didn't hear me". Composers (XYZ AI, DMs, community
+  chat) now dictate continuously until stopped; search boxes stay single-shot, which is right
+  for a short query.
+- **A conic aura on the panel was built, rendered, and removed.** The panel is
+  `overflow: hidden` — the message list scrolls inside it — so a rim drawn on `::after` is
+  clipped to a stub in one corner. The render showed it; it was deleted rather than shipped
+  looking broken. The launcher is not clipped, so it keeps its counter-rotating orbital ring.
+  Panel depth stays with the radial glows and lit top edge, which survive the clip.
+- Files: `src/shared/hooks/useDraggablePanel.ts`, `src/app/globals.css`,
+  `src/modules/ai/components/XyzAiWidget.tsx`, `MessagesClient.tsx`, `ChatClient.tsx`,
+  `src/shared/utils/__tests__/drag-guard.test.ts` (new, 3 cases).
+- Checks: 556 tests, lint at the 36-warning baseline, build exit 0, route table untouched.
+- **Still unverified live:** voice itself. The `microphone=(self)` fix from (41) is on this
+  branch and **not yet on production**, so any voice test against the live site is still
+  hitting the old blocking header.
+
+---
+
 ## 2026-08-07 (41) — Voice could never have worked: the site's own header blocked the mic
 
 **(40) fixed the wrong layer.** The three code-level causes it found were all real, but none of
