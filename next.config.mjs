@@ -43,7 +43,11 @@ const securityHeaders = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), interest-cohort=()" },
+  // `microphone=(self)`, not `()`. `()` blocks the mic for EVERY origin
+  // including this one, so the site's own dictation was refused by the browser
+  // before any of our code ran - #259's voice input could never have worked.
+  // Camera and geolocation stay fully blocked; nothing here needs them.
+  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), interest-cohort=()" },
   { key: "X-DNS-Prefetch-Control", value: "on" },
 ];
 

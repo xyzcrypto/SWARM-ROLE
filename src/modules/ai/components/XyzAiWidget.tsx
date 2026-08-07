@@ -12,7 +12,7 @@ import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
 import { RobotIcon } from "@/components/RobotIcon";
 import { cn } from "@/lib/utils";
-import { useReducedMotionSafe, useMediaQuery } from "@/lib/useClientFlag";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import { quotaLevel, type QuotaLevel } from "@shared/utils/ai-quota";
 import { extractSources } from "@shared/utils/ai-sources";
 import { stripMarkdown } from "@shared/utils/strip-markdown";
@@ -87,8 +87,11 @@ export function XyzAiWidget() {
 
   // Drag the panel anywhere; the position persists. Disabled on small screens,
   // where it is near full-width and there is nowhere useful to move it to.
-  const wideEnoughToDrag = useMediaQuery("(min-width: 768px)");
-  const drag = useDraggablePanel(wideEnoughToDrag);
+  // Both the launcher and the panel move, on every screen size. The earlier
+  // desktop-only gate meant it simply did nothing on a phone, which is where
+  // a floating button most gets in the way.
+  const drag = useDraggablePanel(true, "xyz-ai:panel-offset");
+  const fabDrag = useDraggablePanel(true, "xyz-ai:fab-offset");
 
   const firstName = String(user?.name ?? "").trim().split(/\s+/)[0] || null;
   // Not `user.membership` - that says "Premium" for an admin whose actual AI
@@ -269,7 +272,7 @@ export function XyzAiWidget() {
       exit={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.96 }}
       transition={{ type: "spring", stiffness: 240, damping: 24 }}
       className={cn(
-        "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950 shadow-2xl shadow-black/60 ring-1 ring-gold-500/25 sm:right-6",
+        "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-[20px] sm:right-6",
         hideOnMobile && "max-md:hidden"
       )}
       ref={drag.ref}
@@ -279,10 +282,10 @@ export function XyzAiWidget() {
     >
       {/* Header */}
       <div
-        {...(wideEnoughToDrag ? drag.handleProps : {})}
+        {...drag.handleProps}
         className={cn(
           "flex items-center gap-2.5 border-b border-white/10 bg-white/5 px-3.5 py-3",
-          wideEnoughToDrag && (drag.dragging ? "cursor-grabbing select-none" : "cursor-grab")
+          drag.dragging ? "cursor-grabbing select-none" : "cursor-grab"
         )}
       >
         <span className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold-shine text-ink ring-1 ring-gold-500/40">
@@ -575,12 +578,21 @@ export function XyzAiWidget() {
 
       {/* Launcher */}
       <motion.button
-        onClick={() => setOpen((v) => !v)}
+        ref={fabDrag.ref as any}
+        {...fabDrag.handleProps}
+        style={{
+          ...fabDrag.handleProps.style,
+          ...(fabDrag.moved ? { transform: `translate(${-fabDrag.offset.x}px, ${-fabDrag.offset.y}px)` } : {}),
+        }}
+        // A drag must not also open the panel, so a gesture that passed the
+        // movement threshold swallows its own click.
+        onClick={() => {
+          if (fabDrag.wasDragged()) return;
+          setOpen((v) => !v);
+        }}
         aria-label={open ? "Close XYZ AI" : "Open XYZ AI"}
-        initial={reduce ? undefined : { opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        whileHover={reduce ? undefined : { scale: 1.05 }}
-        whileTap={reduce ? undefined : { scale: 0.95 }}
+        initial={reduce ? undefined : { opacity: 0 }}
+        animate={{ opacity: 1 }}
         className={cn(
           "ai-fab fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-[60] inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-mint-400 to-mint-600 text-ink shadow-lg shadow-mint-500/30 ring-1 ring-mint-300/50 sm:right-6 md:bottom-5",
           hideOnMobile && "max-md:hidden"

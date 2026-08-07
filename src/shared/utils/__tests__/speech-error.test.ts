@@ -4,9 +4,13 @@ import { speechErrorMessage } from "@/shared/hooks/useSpeechInput";
 // The first version swallowed every failure, which is why voice read as
 // "not working" with no clue why. Each code must produce something actionable.
 describe("speech error messages", () => {
-  it("tells the member how to fix a blocked microphone", () => {
-    expect(speechErrorMessage("not-allowed")).toMatch(/mic access/i);
-    expect(speechErrorMessage("service-not-allowed")).toMatch(/mic access/i);
+  // `not-allowed` covers two very different causes: the visitor declined the
+  // browser prompt, or the site's own Permissions-Policy refused the mic first.
+  // The second is what actually shipped in #259, so the wording must not blame
+  // the visitor's browser settings.
+  it("points at site permission without blaming the visitor's browser", () => {
+    expect(speechErrorMessage("not-allowed")).toMatch(/allowed to use your mic/i);
+    expect(speechErrorMessage("service-not-allowed")).toMatch(/allowed to use your mic/i);
   });
 
   it("names the real cause for Chrome's network failure", () => {

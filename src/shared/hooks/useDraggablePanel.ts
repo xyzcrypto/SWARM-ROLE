@@ -2,46 +2,49 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-// Drag the assistant anywhere on screen and keep it there between visits.
+// Drag a bottom-right-anchored element anywhere on screen and keep it there.
+// Used by both the XYZ AI launcher and the panel itself.
 //
-// Offsets are stored relative to the panel's CSS anchor (bottom-right), not as
-// absolute coordinates, so the saved position survives a window resize and a
-// different monitor. A position restored off-screen is clamped back into view
-// on mount - otherwise a panel dragged to the edge of a wide desktop window
-// would be unreachable on a laptop.
+// Offsets are stored relative to the CSS anchor, not as absolute coordinates,
+// so a saved position survives a window resize and a different monitor. A
+// restored position is clamped back into view on mount - otherwise something
+// dragged to the edge of a wide desktop window would be unreachable on a phone.
 //
 // Pointer Events, not mouse+touch: one code path covers mouse, touch and pen,
-// and pointer capture means the drag keeps tracking even when the cursor
-// leaves the header.
-
-const KEY = "xyz-ai:panel-offset";
+// and pointer capture keeps the drag tracking when the pointer leaves the
+// handle.
 
 export type Offset = { x: number; y: number };
+
+/** Movement past this many px counts as a drag, not a tap. */
+const DRAG_THRESHOLD = 6;
 
 function clampToViewport(o: Offset, el: HTMLElement | null): Offset {
   if (typeof window === "undefined" || !el) return o;
   const r = el.getBoundingClientRect();
-  // The element is anchored bottom-right, so a positive x moves it left.
-  const maxX = Math.max(0, window.innerWidth - r.width);
-  const maxY = Math.max(0, window.innerHeight - r.height);
+  // Anchored bottom-right, so a positive offset moves it left/up.
   return {
-    x: Math.min(Math.max(o.x, -0), maxX),
-    y: Math.min(Math.max(o.y, -0), maxY),
+    x: Math.min(Math.max(o.x, 0), Math.max(0, window.innerWidth - r.width)),
+    y: Math.min(Math.max(o.y, 0), Math.max(0, window.innerHeight - r.height)),
   };
 }
 
-export function useDraggablePanel(enabled: boolean) {
+export function useDraggablePanel(enabled: boolean, storageKey: string) {
   const [offset, setOffset] = useState<Offset>({ x: 0, y: 0 });
   const [dragging, setDragging] = useState(false);
   const elRef = useRef<HTMLDivElement | null>(null);
   const startRef = useRef<{ px: number; py: number; ox: number; oy: number } | null>(null);
+  // Set once a gesture passes the threshold, so a click handler can tell a tap
+  // from the end of a drag. Without this, moving the launcher would also open
+  // the panel every time.
+  const movedRef = useRef(false);
 
   // Restore in an effect, never during render - localStorage is a client-only
   // signal and reading it while rendering would desync server and client DOM.
   useEffect(() => {
     if (!enabled) return;
     try {
-      const raw = localStorage.getItem(KEY);
+      const raw = localStorage.getItem(storageKey);
       if (!raw) return;
       const parsed = JSON.parse(raw);
       if (typeof parsed?.x === "number" && typeof parsed?.y === "number") {
@@ -50,9 +53,8 @@ export function useDraggablePanel(enabled: boolean) {
     } catch {
       // Corrupt or unavailable storage just means the default position.
     }
-  }, [enabled]);
+  }, [enabled, storageKey]);
 
-  // Keep it reachable when the window shrinks.
   useEffect(() => {
     if (!enabled) return;
     const onResize = () => setOffset((o) => clampToViewport(o, elRef.current));
@@ -62,14 +64,10 @@ export function useDraggablePanel(enabled: boolean) {
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      if (!enabled) return;
-      // Let buttons inside the drag handle still be clickable.
-      if ((e.target as HTMLElement)?.closest("button,a,input,textarea")) return;
-      const el = elRef.current;
-      if (!el) return;
+      if (!enabled || !elRef.current) return;
       (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
       startRef.current = { px: e.clientX, py: e.clientY, ox: offset.x, oy: offset.y };
-      setDragging(true);
+      movedRef.current = false;
     },
     [enabled, offset.x, offset.y]
   );
@@ -77,32 +75,37 @@ export function useDraggablePanel(enabled: boolean) {
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     const s = startRef.current;
     if (!s) return;
-    // Anchored bottom-right: dragging left/up increases the offset.
-    setOffset(clampToViewport({ x: s.ox - (e.clientX - s.px), y: s.oy - (e.clientY - s.py) }, elRef.current));
+    const dx = e.clientX - s.px;
+    const dy = e.clientY - s.py;
+    if (!movedRef.current && Math.hypot(dx, dy) < DRAG_THRESHOLD) return;
+    movedRef.current = true;
+    setDragging(true);
+    setOffset(clampToViewport({ x: s.ox - dx, y: s.oy - dy }, elRef.current));
   }, []);
 
   const endDrag = useCallback(() => {
     if (!startRef.current) return;
     startRef.current = null;
     setDragging(false);
+    if (!movedRef.current) return; // a tap - nothing to persist
     setOffset((o) => {
       try {
-        localStorage.setItem(KEY, JSON.stringify(o));
+        localStorage.setItem(storageKey, JSON.stringify(o));
       } catch {
         // Private mode / quota - the position just won't persist.
       }
       return o;
     });
-  }, []);
+  }, [storageKey]);
 
   const reset = useCallback(() => {
     setOffset({ x: 0, y: 0 });
     try {
-      localStorage.removeItem(KEY);
+      localStorage.removeItem(storageKey);
     } catch {
       /* nothing to clean up */
     }
-  }, []);
+  }, [storageKey]);
 
   return {
     ref: elRef,
@@ -110,6 +113,15 @@ export function useDraggablePanel(enabled: boolean) {
     dragging,
     reset,
     moved: offset.x !== 0 || offset.y !== 0,
-    handleProps: { onPointerDown, onPointerMove, onPointerUp: endDrag, onPointerCancel: endDrag },
+    /** True if the gesture that just ended was a drag - use to suppress a click. */
+    wasDragged: () => movedRef.current,
+    handleProps: {
+      onPointerDown,
+      onPointerMove,
+      onPointerUp: endDrag,
+      onPointerCancel: endDrag,
+      // Stops the browser from scrolling/panning while dragging on touch.
+      style: { touchAction: "none" as const },
+    },
   };
 }

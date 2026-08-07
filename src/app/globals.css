@@ -1701,3 +1701,72 @@ html:not(.dark) .ai-surface .border-white\/\[0\.05\] { border-color: rgba(10, 10
   0%, 100% { box-shadow: 0 0 0 0 rgba(34, 214, 146, 0.45); }
   50%      { box-shadow: 0 0 0 5px rgba(34, 214, 146, 0); }
 }
+
+/* ---------------------------------------------------------------------------
+   XYZ AI - panel chrome
+   The panel was a flat ink-950 rectangle with a hairline ring. This gives it
+   depth without touching anything else on the site: a warm radial at the head,
+   a cool one at the foot, a gradient hairline that catches light at the top
+   edge, and a layered shadow that reads as elevation rather than a drop.
+   Scoped to .ai-surface - nothing here leaks into other surfaces.
+--------------------------------------------------------------------------- */
+.ai-surface {
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(226, 167, 47, 0.10), transparent 60%),
+    radial-gradient(100% 50% at 50% 110%, rgba(34, 214, 146, 0.08), transparent 60%),
+    linear-gradient(180deg, #0c0c11 0%, var(--ink-950, #050507) 55%);
+  box-shadow:
+    0 32px 64px -24px rgba(0, 0, 0, 0.92),
+    0 0 0 1px rgba(226, 167, 47, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(12px);
+}
+
+/* A gradient hairline along the top edge - brighter in the middle, so the
+   panel reads as lit from above rather than outlined. */
+.ai-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(243, 212, 136, 0.55) 30%,
+    rgba(146, 245, 203, 0.45) 70%,
+    transparent
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+html:not(.dark) .ai-surface {
+  background:
+    radial-gradient(120% 60% at 50% -10%, rgba(226, 167, 47, 0.16), transparent 60%),
+    radial-gradient(100% 50% at 50% 110%, rgba(3, 149, 103, 0.10), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f7f7f9 100%);
+  box-shadow:
+    0 28px 60px -26px rgba(24, 16, 4, 0.35),
+    0 0 0 1px rgba(173, 111, 16, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Launcher: a soft halo that breathes, so the assistant reads as live rather
+   than as another round button. Exempt from prefers-reduced-motion per the
+   project's narrow policy - this is brand identity, not decoration. */
+.ai-fab { position: relative; }
+.ai-fab::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(34, 214, 146, 0.35), transparent 68%);
+  animation: ai-halo 3.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+@keyframes ai-halo {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50%      { opacity: 0.9;  transform: scale(1.12); }
+}
+.ai-fab:active { transform: scale(0.94); }

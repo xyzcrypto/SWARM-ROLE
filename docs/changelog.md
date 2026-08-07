@@ -5,6 +5,52 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (41) — Voice could never have worked: the site's own header blocked the mic
+
+**(40) fixed the wrong layer.** The three code-level causes it found were all real, but none of
+them was why voice failed.
+
+- **`next.config.mjs` sent `Permissions-Policy: microphone=()` on every route.** An empty
+  allowlist blocks the microphone for **every** origin — including this site. The browser
+  refused dictation before a single line of our code ran, so no amount of hook fixing could
+  have helped. Now `microphone=(self)`; camera and geolocation stay fully blocked.
+- **⚠️ And (40)'s error message actively pointed the wrong way**: *"Allow mic access for this
+  site in your browser settings."* The visitor's settings were fine — the site was refusing
+  itself. Reworded to *"Microphone unavailable. Check that this site is allowed to use your
+  mic."*, which is true for both causes.
+- **Pinned by `permissions-policy.test.ts`**, which reads the real `next.config.mjs`. Nothing
+  inside the app can observe this header, so the config file is the only place it can be
+  caught — and the test reads that file directly, not a re-export, since a shim would match
+  nothing and pass while verifying nothing.
+
+**Dragging did nothing where it was wanted.** (40) gated it to `min-width: 768px`, so on a
+phone — where a floating button most gets in the way — it was simply inert. And it moved only
+the *panel*; the **launcher** was never draggable, which is the thing that actually floats.
+- Both now drag, on every screen size. `useDraggablePanel` takes a storage key so the two
+  positions persist independently.
+- A **6px movement threshold** separates a tap from a drag, and `wasDragged()` lets the
+  launcher swallow the click that ends a drag — without it, moving the button would open the
+  panel every time.
+- `touch-action: none` on the handles, so dragging on a phone doesn't scroll the page instead.
+- framer-motion's `whileHover`/`whileTap` scale was dropped from the launcher: it writes its
+  own `transform` and would have fought the drag offset every frame.
+
+**Panel look.** Flat `ink-950` with a hairline ring became a warm gold radial at the head, a
+cool mint one at the foot, a gradient top-edge hairline that reads as lit-from-above, and a
+layered elevation shadow. The launcher gained a breathing halo. Both themes were **rendered and
+looked at**, not assumed — the first light-mode render came back with unreadable text, which
+turned out to be the *preview harness* hardcoding a dark-theme text colour rather than an app
+bug; the harness was corrected and re-rendered before drawing any conclusion.
+- Scoped to `.ai-surface` / `.ai-fab`. Nothing else on the site changes.
+- Files: `next.config.mjs`, `src/shared/hooks/useSpeechInput.ts`,
+  `src/shared/hooks/useDraggablePanel.ts`, `src/modules/ai/components/XyzAiWidget.tsx`,
+  `src/app/globals.css`, `src/shared/utils/__tests__/permissions-policy.test.ts` (new),
+  `speech-error.test.ts`.
+- Checks: 553 tests, lint at the 36-warning baseline, build exit 0, route table untouched.
+- **⌘K left alone at the owner's call** — `CommandPalette` keeps sole ownership of the chord.
+
+---
+
 ## 2026-08-07 (40) — Voice input fixed and rolled out to six surfaces; AI panel visible in light mode and draggable
 
 **(37) shipped voice input that didn't work in practice.** Reading the code back found three
