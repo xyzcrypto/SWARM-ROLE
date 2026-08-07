@@ -4,13 +4,19 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { SendHorizonal, X, Loader2, Trash2, BarChart3, Search, Compass, BookOpen, Coins } from "lucide-react";
+import {
+  SendHorizonal, X, Loader2, Trash2, BarChart3, Search, Compass, BookOpen, Coins,
+  Copy, Check, RotateCcw, Volume2, Square, FileText,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
 import { RobotIcon } from "@/components/RobotIcon";
 import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import { quotaLevel, type QuotaLevel } from "@shared/utils/ai-quota";
+import { extractSources } from "@shared/utils/ai-sources";
+import { stripMarkdown } from "@shared/utils/strip-markdown";
+import { pickVoice } from "@/lib/tts";
 
 // Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
 export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
@@ -60,7 +66,12 @@ export function XyzAiWidget() {
   // Learned from the response headers of the request we were already making -
   // null until the member's first question, which is also when it first matters.
   const [quota, setQuota] = useState<Quota | null>(null);
+  const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
+  const [speakingIdx, setSpeakingIdx] = useState<number | null>(null);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const reduce = useReducedMotionSafe();
+
+  const ttsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
   const firstName = String(user?.name ?? "").trim().split(/\s+/)[0] || null;
   const plan = String(user?.membership ?? "Free");
@@ -76,6 +87,27 @@ export function XyzAiWidget() {
   }, [messages, busy, open, reduce]);
 
   useEffect(() => () => abortRef.current?.abort(), []);
+
+  // Chrome populates the voice list asynchronously, so listen rather than read once.
+  useEffect(() => {
+    if (!ttsSupported) return;
+    const synth = window.speechSynthesis;
+    const load = () => setVoices(synth.getVoices());
+    load();
+    synth.addEventListener("voiceschanged", load);
+    return () => synth.removeEventListener("voiceschanged", load);
+  }, [ttsSupported]);
+
+  // Never leave speech running behind a closed panel or an unmounted widget.
+  useEffect(() => {
+    if (!open) stopSpeaking();
+  }, [open]);
+  useEffect(
+    () => () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    },
+    []
+  );
 
   // Let the navbar (or any surface) open the assistant by dispatching the event.
   useEffect(() => {
@@ -99,18 +131,73 @@ export function XyzAiWidget() {
 
   function clearChat() {
     abortRef.current?.abort();
+    stopSpeaking();
     setMessages([]);
     setError(null);
     setInput("");
   }
 
-  async function send(text: string) {
+  function stopSpeaking() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    setSpeakingIdx(null);
+  }
+
+  async function copyAnswer(i: number, text: string) {
+    try {
+      await navigator.clipboard.writeText(stripMarkdown(text));
+      setCopiedIdx(i);
+      setTimeout(() => setCopiedIdx((c) => (c === i ? null : c)), 1600);
+    } catch {
+      // Clipboard can be blocked (permissions, insecure context). Nothing to
+      // recover - staying silent beats an error toast for a convenience action.
+    }
+  }
+
+  // Mirrors the hard-won handling in BriefingBlock: toggle off if this answer is
+  // already speaking, only flush the queue when something is genuinely stuck,
+  // and keep speak() inside the same user gesture (iOS requires that).
+  function speakAnswer(i: number, text: string) {
+    if (!ttsSupported) return;
+    const synth = window.speechSynthesis;
+    if (speakingIdx === i) {
+      synth.cancel();
+      setSpeakingIdx(null);
+      return;
+    }
+    if (synth.speaking || synth.pending || synth.paused) synth.cancel();
+    const u = new SpeechSynthesisUtterance(stripMarkdown(text));
+    const v = pickVoice(voices.length ? voices : synth.getVoices(), ["en-US", "en-GB", "en-IN", "en"]);
+    if (v) {
+      u.voice = v;
+      u.lang = v.lang;
+    }
+    u.onend = () => setSpeakingIdx((s) => (s === i ? null : s));
+    u.onerror = () => setSpeakingIdx((s) => (s === i ? null : s));
+    setSpeakingIdx(i);
+    synth.speak(u);
+  }
+
+  /** Re-ask the last question, dropping the answer we didn't like. */
+  function regenerate() {
+    if (busy) return;
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") {
+        stopSpeaking();
+        // Pass the truncated history explicitly - setMessages is async, so
+        // send() would otherwise rebuild from the stale pre-truncation array.
+        send(messages[i].content, messages.slice(0, i));
+        return;
+      }
+    }
+  }
+
+  async function send(text: string, base?: ChatMsg[]) {
     const q = text.trim();
     if (!q || busy) return;
     setError(null);
     setInput("");
 
-    const history: ChatMsg[] = [...messages, { role: "user", content: q }];
+    const history: ChatMsg[] = [...(base ?? messages), { role: "user", content: q }];
     // Seed the in-flight assistant bubble so streamed text appends into it.
     setMessages([...history, { role: "assistant", content: "" }]);
     setBusy(true);
@@ -281,19 +368,64 @@ export function XyzAiWidget() {
               </>
             )}
 
-            {messages.map((m, i) => (
-              <Bubble key={i} role={m.role}>
-                {m.role === "assistant" ? (
-                  m.content ? (
-                    <Markdown content={m.content} />
-                  ) : (
-                    <Loader2 className="h-4 w-4 animate-spin text-gold-200" />
-                  )
-                ) : (
-                  <p className="whitespace-pre-wrap">{m.content}</p>
-                )}
-              </Bubble>
-            ))}
+            {messages.map((m, i) => {
+              // While the last answer is still streaming, its sources and tools
+              // are not final - hold them back rather than flickering.
+              const streaming = busy && i === messages.length - 1 && m.role === "assistant";
+              const done = m.role === "assistant" && Boolean(m.content) && !streaming;
+              const sources = done ? extractSources(m.content) : [];
+              return (
+                <div key={i} className="space-y-1.5">
+                  <Bubble role={m.role}>
+                    {m.role === "assistant" ? (
+                      m.content ? (
+                        <Markdown content={m.content} />
+                      ) : (
+                        <Loader2 className="h-4 w-4 animate-spin text-gold-200" />
+                      )
+                    ) : (
+                      <p className="whitespace-pre-wrap">{m.content}</p>
+                    )}
+                  </Bubble>
+
+                  {sources.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pl-1">
+                      {sources.map((s) => (
+                        <Link
+                          key={s.slug}
+                          href={s.href}
+                          title={s.title}
+                          className="mono inline-flex max-w-[13rem] items-center gap-1 rounded-md bg-gold-500/10 px-2 py-0.5 text-[10px] text-gold-100 ring-1 ring-gold-500/25 transition-colors hover:bg-gold-500/20"
+                        >
+                          <FileText className="h-2.5 w-2.5 shrink-0" />
+                          <span className="truncate">{s.title}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+
+                  {done && (
+                    <div className="flex flex-wrap gap-1 pl-1">
+                      <ToolBtn
+                        onClick={() => copyAnswer(i, m.content)}
+                        icon={copiedIdx === i ? Check : Copy}
+                        label={copiedIdx === i ? "Copied" : "Copy"}
+                      />
+                      {i === messages.length - 1 && (
+                        <ToolBtn onClick={regenerate} icon={RotateCcw} label="Regenerate" />
+                      )}
+                      {ttsSupported && (
+                        <ToolBtn
+                          onClick={() => speakAnswer(i, m.content)}
+                          icon={speakingIdx === i ? Square : Volume2}
+                          label={speakingIdx === i ? "Stop" : "Read aloud"}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
 
             {/* When the cap is hit, LimitCard below carries the message - a red
                 error line as well would say the same thing twice. */}
@@ -375,6 +507,27 @@ export function XyzAiWidget() {
         </AnimatePresence>
       </motion.button>
     </>
+  );
+}
+
+function ToolBtn({
+  onClick,
+  icon: Icon,
+  label,
+}: {
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label={label}
+      className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
+    >
+      <Icon className="h-3 w-3" />
+      {label}
+    </button>
   );
 }
 
