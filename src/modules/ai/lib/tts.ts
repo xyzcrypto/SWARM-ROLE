@@ -31,3 +31,54 @@ export function nextRate(rate: number): number {
   const i = (TTS_RATES as readonly number[]).indexOf(rate);
   return TTS_RATES[(i + 1) % TTS_RATES.length];
 }
+
+/**
+ * Split text into utterance-sized chunks on sentence boundaries.
+ *
+ * Long single utterances are the reason "Listen" failed on so many devices:
+ * Chrome (desktop and Android) silently stops speaking after roughly 15
+ * seconds, and several Android engines refuse a very long string outright. In
+ * both cases the button flips back with no error and nothing is spoken past the
+ * cut. Speaking a queue of short utterances avoids the limit entirely, because
+ * each one restarts the timer.
+ *
+ * Splits on sentence ends first; a sentence longer than `max` on its own is
+ * broken at the last space before the limit rather than mid-word.
+ */
+export function chunkForSpeech(text: string, max = 180): string[] {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (!clean) return [];
+  if (clean.length <= max) return [clean];
+
+  // Keep the terminator with its sentence.
+  const sentences = clean.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+$/g) ?? [clean];
+  const out: string[] = [];
+  let buf = "";
+
+  const flushLong = (s: string) => {
+    let rest = s;
+    while (rest.length > max) {
+      const cut = rest.lastIndexOf(" ", max);
+      const at = cut > max * 0.5 ? cut : max; // never chop a word in half unless forced
+      out.push(rest.slice(0, at).trim());
+      rest = rest.slice(at).trim();
+    }
+    return rest;
+  };
+
+  for (const raw of sentences) {
+    const s = raw.trim();
+    if (!s) continue;
+    if (s.length > max) {
+      if (buf) { out.push(buf); buf = ""; }
+      const tail = flushLong(s);
+      if (tail) buf = tail;
+      continue;
+    }
+    if (!buf) buf = s;
+    else if (buf.length + 1 + s.length <= max) buf += " " + s;
+    else { out.push(buf); buf = s; }
+  }
+  if (buf) out.push(buf);
+  return out;
+}

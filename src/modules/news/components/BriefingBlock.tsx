@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Volume2, Square, Languages, Gauge, Sparkles } from "lucide-react";
 import { MarkdownLite, stripMarkdown } from "@/components/MarkdownLite";
 import { RobotIcon } from "@/components/RobotIcon";
-import { pickVoice, nextRate } from "@/lib/tts";
+import { pickVoice, nextRate, chunkForSpeech } from "@/lib/tts";
 import { cn } from "@/lib/utils";
 
 // Shared AI-briefing block: renders the markdown briefing plus a "Listen" (free
@@ -26,6 +26,7 @@ export function BriefingBlock({
   const [lang, setLang] = useState<"en" | "hinglish">("en");
   const [hinglish, setHinglish] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [speaking, setSpeaking] = useState(false);
+  const [ttsError, setTtsError] = useState<string | null>(null);
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [rate, setRate] = useState(1);
 
@@ -63,26 +64,63 @@ export function BriefingBlock({
 
   const shown = lang === "hinglish" ? hinglish.text : englishText;
 
+  // Queue of remaining chunks for the utterance in progress. A ref, not state:
+  // the onend handler of a live utterance must read the current queue, and a
+  // stale closure would stop playback after the first chunk.
+  const queueRef = useRef<string[]>([]);
+
   const speak = useCallback(() => {
     if (!ttsSupported || !shown) return;
     const synth = window.speechSynthesis;
     // Toggle off if we're already talking.
-    if (speaking || synth.speaking) { synth.cancel(); setSpeaking(false); return; }
+    if (speaking || synth.speaking) {
+      queueRef.current = [];
+      synth.cancel();
+      setSpeaking(false);
+      setTtsError(null);
+      return;
+    }
     // Avoid the classic mobile bug where cancel() immediately followed by speak()
     // drops the utterance (cancel flushes asynchronously) - only clear the queue
     // when something is actually stuck pending/paused, and keep speak() inside the
     // same user gesture (iOS requires that).
     if (synth.pending || synth.paused) synth.cancel();
-    const u = new SpeechSynthesisUtterance(stripMarkdown(shown));
+
     const langs = lang === "hinglish" ? ["hi-IN", "en-IN", "en"] : ["en-US", "en-GB", "en-IN", "en"];
     const v = pickVoice(voices.length ? voices : synth.getVoices(), langs);
-    if (v) { u.voice = v; u.lang = v.lang; }
-    else u.lang = lang === "hinglish" ? "hi-IN" : "en-US";
-    u.rate = rate;
-    u.pitch = 1;
-    u.onend = () => setSpeaking(false);
-    u.onerror = () => setSpeaking(false);
-    synth.speak(u);
+
+    // One utterance per chunk. A single long one is why this failed on so many
+    // devices: Chrome stops after ~15s and some Android engines reject a long
+    // string, both without an error - the button just flipped back.
+    const chunks = chunkForSpeech(stripMarkdown(shown));
+    if (!chunks.length) return;
+    queueRef.current = chunks.slice(1);
+    setTtsError(null);
+
+    const utter = (text: string) => {
+      const u = new SpeechSynthesisUtterance(text);
+      if (v) { u.voice = v; u.lang = v.lang; }
+      else u.lang = lang === "hinglish" ? "hi-IN" : "en-US";
+      u.rate = rate;
+      u.pitch = 1;
+      u.onend = () => {
+        const next = queueRef.current.shift();
+        if (next) utter(next);
+        else setSpeaking(false);
+      };
+      u.onerror = (e: any) => {
+        queueRef.current = [];
+        setSpeaking(false);
+        // "interrupted"/"canceled" are what a deliberate stop looks like.
+        const code = String(e?.error ?? "");
+        if (code && code !== "interrupted" && code !== "canceled") {
+          setTtsError("Your browser couldn't play this out loud.");
+        }
+      };
+      synth.speak(u);
+    };
+
+    utter(chunks[0]);
     // iOS/Safari sometimes starts the synthesis queue paused - nudge it. No-op elsewhere.
     synth.resume();
     setSpeaking(true);
@@ -153,6 +191,9 @@ export function BriefingBlock({
       {busy && <p className="mt-2 inline-flex items-center gap-2 text-[13px] text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> {lang === "hinglish" ? "Hinglish me likh raha hoon…" : "Writing the full briefing…"}</p>}
       {shown && !busy && <MarkdownLite text={shown} className="mt-1" />}
       {showErr && <p className="mt-1.5 text-[12px] text-amber-300">{showErr}</p>}
+      {/* A speech failure used to be silent - the button simply flipped back,
+          which is indistinguishable from "nothing happened". */}
+      {ttsError && <p className="mt-1.5 text-[12px] text-amber-300">{ttsError}</p>}
       {!loggedIn && !err && <p className="mt-1.5 text-[12px] text-zinc-500">Log in to read the full AI briefing of any story.</p>}
       {loggedIn && onGenerate && !englishText && !loading && !err && (
         <button

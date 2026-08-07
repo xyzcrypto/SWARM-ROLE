@@ -5,6 +5,38 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (44) — The panel wouldn't move for the same reason the launcher didn't, and "Listen" was cut off by a browser limit
+
+- **🐛 Dragging the AI panel did nothing — same class of bug as (43), one layer up.** The
+  offset was applied as an inline `transform`, but the panel is a `motion.div` whose entrance
+  spring animates `y` and `scale`. **framer-motion rewrites `transform` on that element every
+  frame**, so the inline value was overwritten before it ever painted. Fixed by handing the
+  offset to framer-motion's own `x`/`y` instead, so there is exactly one writer of `transform`.
+  The launcher was moved onto `x`/`y` too, for the same reason rather than waiting for it to
+  bite. `transition: { duration: 0 }` while the pointer is down, or the panel springs along
+  behind the cursor.
+- **🐛 News "Listen" failed on many devices because the utterance was too long.** Chrome
+  (desktop and Android) silently stops speaking after roughly **15 seconds**, and several
+  Android engines reject a very long string outright. Both fail with no error — the button
+  just flips back, which is indistinguishable from "nothing happened". A briefing is easily
+  long enough to hit it.
+  - `chunkForSpeech()` splits on sentence boundaries into ~180-char utterances, spoken as a
+    queue that advances on `onend`. Each utterance restarts the browser's timer, so the limit
+    never applies. A sentence longer than the limit on its own breaks at the last space, never
+    mid-word. 6 unit tests, including "every word survives the split".
+  - The queue lives in a **ref, not state**: a live utterance's `onend` must read the current
+    queue, and a stale closure would stop playback after the first chunk.
+  - Genuine failures now surface a line instead of flipping the button back silently.
+    `interrupted`/`canceled` stay quiet - that is what a deliberate stop looks like.
+  - The AI panel's read-aloud had the identical defect and got the identical fix.
+- Files: `src/modules/ai/lib/tts.ts`, `src/lib/ai/__tests__/tts-chunk.test.ts` (new, 6 cases),
+  `src/modules/news/components/BriefingBlock.tsx`, `src/modules/ai/components/XyzAiWidget.tsx`.
+- Checks: 564 tests, lint at the 36-warning baseline, build exit 0, route table identical.
+- **Still not verified live:** voice input, dragging and Listen all need a real browser and a
+  session. The `microphone=(self)` header fix remains on this branch, not on production.
+
+---
+
 ## 2026-08-07 (43) — The launcher vanished because a hand-written CSS rule stole its `position`
 
 **🐛 Two bugs, both introduced by (41)/(42) on this branch, both in three lines of CSS.**
