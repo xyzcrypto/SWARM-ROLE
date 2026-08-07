@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   SendHorizonal, X, Loader2, Trash2, BarChart3, Search, Compass, BookOpen, Coins,
-  Copy, Check, RotateCcw, Volume2, Square, FileText,
+  Copy, Check, RotateCcw, Volume2, Square, FileText, Mic, Sparkles,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
@@ -17,6 +17,9 @@ import { quotaLevel, type QuotaLevel } from "@shared/utils/ai-quota";
 import { extractSources } from "@shared/utils/ai-sources";
 import { stripMarkdown } from "@shared/utils/strip-markdown";
 import { pickVoice } from "@/lib/tts";
+import { aiPlanFor } from "@shared/utils/ai-plan";
+import { pageSuggestions } from "@shared/utils/ai-page-context";
+import { useSpeechInput } from "../lib/useSpeechInput";
 
 // Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
 export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
@@ -73,8 +76,18 @@ export function XyzAiWidget() {
 
   const ttsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
+  // Dictation drops straight into the composer rather than sending, so a
+  // misheard word can be fixed before it costs a request.
+  const speech = useSpeechInput((text) => setInput((v) => (v ? `${v} ${text}` : text)));
+
+  // Suggestions about the page the member is actually on, shown above the
+  // general set. Derived from the path only - no extra fetch.
+  const contextual = pageSuggestions(pathname);
+
   const firstName = String(user?.name ?? "").trim().split(/\s+/)[0] || null;
-  const plan = String(user?.membership ?? "Free");
+  // Not `user.membership` - that says "Premium" for an admin whose actual AI
+  // allowance is the far larger Admin one, so the chip was lying to them.
+  const plan = aiPlanFor(user ?? null);
   const level: QuotaLevel = quota ? quotaLevel(quota.remaining) : "hidden";
   const blocked = level === "blocked";
 
@@ -331,6 +344,28 @@ export function XyzAiWidget() {
                   </span>
                 </div>
 
+                {contextual.length > 0 && (
+                  <>
+                    <p className="mono px-1 pt-1 text-[9.5px] uppercase tracking-[0.15em] text-mint-300/70">
+                      About this page
+                    </p>
+                    <div className="space-y-2">
+                      {contextual.map((s) => (
+                        <button
+                          key={s.q}
+                          onClick={() => send(s.q)}
+                          className="flex w-full items-center gap-3 rounded-xl border border-mint-500/20 bg-mint-500/[0.06] px-3 py-2.5 text-left transition-colors hover:border-mint-400/40 hover:bg-mint-500/10"
+                        >
+                          <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-mint-500/15">
+                            <Sparkles className="h-4 w-4 text-mint-200" />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-zinc-100">{s.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
                 <p className="mono px-1 pt-1 text-[9.5px] uppercase tracking-[0.15em] text-zinc-600">Start here</p>
 
                 <div className="space-y-2">
@@ -459,6 +494,22 @@ export function XyzAiWidget() {
               disabled={busy}
               className="max-h-28 min-h-[40px] flex-1 resize-none rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-gold-500/40 focus:outline-none focus:ring-1 focus:ring-gold-500/30"
             />
+            {speech.supported && (
+              <button
+                type="button"
+                onClick={speech.start}
+                aria-label={speech.listening ? "Stop dictation" : "Dictate a question"}
+                title={speech.listening ? "Stop dictation" : "Dictate a question"}
+                className={cn(
+                  "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors",
+                  speech.listening
+                    ? "bg-mint-500/20 text-mint-200 ring-mint-400/50"
+                    : "text-zinc-400 ring-white/10 hover:bg-white/5 hover:text-zinc-200"
+                )}
+              >
+                {speech.listening ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </button>
+            )}
             <button
               type="submit"
               disabled={busy || !input.trim()}

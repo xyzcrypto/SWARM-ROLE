@@ -5,6 +5,47 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (37) — XYZ AI: page-aware suggestions, voice input, and an honest plan label
+
+- **✅ (35)'s observable ran and passed on production.** `{status: 200, remaining: '2994',
+  limit: '3000', plan: 'Admin'}` — all three `X-Ai-*` headers present, and no quota pill
+  rendered, which is correct at 2994 remaining. Recorded here because a check that is
+  defined but never run is worth nothing.
+- **🐛 That same check exposed a real bug.** The console reported `plan: 'Admin'` while the
+  panel's chip read **PLAN Premium**. `aiPlanFor()` returns `"Admin"` for a super admin or
+  `role === "ADMIN"`, but the widget was reading `session.membership` — so an admin on the
+  3000/day Admin allowance was told they were on Premium (300/day). Fixed by using the
+  same function on both sides.
+  - `aiPlanFor` had to move to `@shared/utils/ai-plan` first: `@/lib/ai/gateway` reaches
+    prisma through the usage recorder, so a client component cannot import it. **Third time
+    this session** that a pure helper needed extracting from a server module before the UI
+    could use it (after `quotaLevel` and the markdown renderer).
+- **Page-aware suggestions.** `pageSuggestions(pathname)` adds an "About this page" row above
+  the general set: coin questions on `/markets/<id>`, article questions on `/research/<slug>`,
+  plus journal/news/markets-index cases. Pure and derived from the path alone — no fetch, no
+  new data dependency. `/markets/protocol/<type>/<slug>` is explicitly excluded from the coin
+  branch, which would otherwise have produced "Explain Protocol's move".
+- **Voice input** via the browser's own `SpeechRecognition` (webkit-prefixed on Safari,
+  absent on Firefox). Zero cost, no dependency. Dictation lands in the composer rather than
+  sending, so a misheard word can be fixed before it costs a request. The control is hidden
+  entirely where the API is missing.
+  - **⚠️ Support is read through `useClientFlag`**, not during render. Reading `window` in
+    render is the hydration-mismatch class that caused this project's worst bug; the lint
+    rule caught the first two attempts (ref-write-during-render, then setState-in-effect)
+    before this landed on the sanctioned `useSyncExternalStore` path.
+- **⌘K was left alone.** `CommandPalette` already owns ⌘K *and* `/`. Giving the assistant the
+  same chord would have made two surfaces fight over it. Deferred pending a decision on
+  putting an "Ask XYZ AI" entry inside the existing palette instead.
+- Files: `src/shared/utils/ai-plan.ts` (new), `src/shared/utils/ai-page-context.ts` (new),
+  `src/modules/ai/lib/useSpeechInput.ts` (new),
+  `src/shared/utils/__tests__/ai-page-context.test.ts` (new, 9 cases),
+  `src/lib/ai/gateway.ts`, `src/modules/ai/components/XyzAiWidget.tsx`.
+- Checks: route table identical (132/23/109/12), no cost patterns, 545 tests green,
+  lint back to the 36-warning baseline, build exit 0. Voice input and the contextual row are
+  **not** verified live — both need a browser with a session.
+
+---
+
 ## 2026-08-07 (36) — XYZ AI answers now show their sources, and can be copied, re-asked or read aloud
 
 Follow-up to (35). Three additions plus one shared-renderer fix.
