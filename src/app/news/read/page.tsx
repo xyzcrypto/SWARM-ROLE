@@ -27,10 +27,18 @@ async function resolve(sp: { d?: string; u?: string }): Promise<SharedStory | nu
 export async function generateMetadata(props: { searchParams: Promise<{ d?: string; u?: string }> }): Promise<Metadata> {
   const searchParams = await props.searchParams;
   const story = await resolve(searchParams);
-  if (!story) return { title: "News" };
+  // This page renders whatever URL is passed in `?u=`, so every distinct query
+  // string is a separate crawlable address whose content is mostly someone
+  // else's article. Left indexable that is an unbounded URL space: wasted crawl
+  // budget, thin/duplicate content, and a scraping-shaped signal. It is a
+  // reader convenience, not a landing page - so it stays out of the index while
+  // keeping its OpenGraph card, which is what makes a shared link look right.
+  const noindex = { robots: { index: false, follow: true } } satisfies Metadata;
+  if (!story) return { title: "News", ...noindex };
   const desc = (story.s || "").slice(0, 200) || "Read this story on XYZ Crypto.";
   const images = story.img ? [story.img] : undefined;
   return {
+    ...noindex,
     title: story.t,
     description: desc,
     openGraph: { title: story.t, description: desc, images, type: "article" },

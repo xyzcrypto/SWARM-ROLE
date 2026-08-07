@@ -51,7 +51,12 @@ export const metadata: Metadata = {
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium intelligence & education.",
     url: SITE_URL,
     siteName: "XYZ Crypto",
-    images: [{ url: "/logo.png", width: 640, height: 640, alt: "XYZ Crypto" }],
+    // No `images` here on purpose. Next's file convention picks up
+    // `app/opengraph-image.tsx` (1200x630) for every route that has no card of
+    // its own, and research posts keep their per-article one. Setting an
+    // explicit image here would override both - which is how a 640x640 square
+    // ended up in a `summary_large_image` slot and got centre-cropped on every
+    // share.
     type: "website",
   },
   twitter: {
@@ -60,7 +65,7 @@ export const metadata: Metadata = {
     description:
       "A next-generation Web3 ecosystem: research, trading tools, perp DEX, airdrop tools, premium & education.",
     site: "@XYZCryptos",
-    images: ["/logo.png"],
+    // Same reason as openGraph above - the generated card is the right ratio.
   },
   icons: { icon: "/logo.png", apple: "/logo.png" },
   applicationName: "XYZ Crypto",
