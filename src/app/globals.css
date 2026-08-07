@@ -1754,7 +1754,12 @@ html:not(.dark) .ai-surface {
 /* Launcher: a soft halo that breathes, so the assistant reads as live rather
    than as another round button. Exempt from prefers-reduced-motion per the
    project's narrow policy - this is brand identity, not decoration. */
-.ai-fab { position: relative; }
+/* NO `position` here. This file's rules sit OUTSIDE @layer, and unlayered CSS
+   beats everything Tailwind puts in @layer utilities - so `position: relative`
+   here silently overrode the button's `fixed` class, dropped it out of the
+   viewport corner into normal document flow at the end of <body>, and made the
+   launcher vanish. The button is already `fixed`, which is a positioned
+   ancestor, so the pseudo-elements below anchor to it correctly without it. */
 .ai-fab::after {
   content: "";
   position: absolute;
@@ -1769,7 +1774,6 @@ html:not(.dark) .ai-surface {
   0%, 100% { opacity: 0.45; transform: scale(1); }
   50%      { opacity: 0.9;  transform: scale(1.12); }
 }
-.ai-fab:active { transform: scale(0.94); }
 
 /* ---------------------------------------------------------------------------
    XYZ AI - elevated chrome (v2)
@@ -1785,6 +1789,14 @@ html:not(.dark) .ai-surface {
    clip. The launcher is not clipped, so it keeps its orbital ring below. */
 
 /* Launcher: an orbital ring that counter-rotates against the halo. */
+@property --ai-spin {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes ai-spin {
+  to { --ai-spin: 360deg; }
+}
 .ai-fab::before {
   content: "";
   position: absolute;

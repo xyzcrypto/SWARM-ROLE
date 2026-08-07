@@ -5,6 +5,37 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (43) — The launcher vanished because a hand-written CSS rule stole its `position`
+
+**🐛 Two bugs, both introduced by (41)/(42) on this branch, both in three lines of CSS.**
+
+- **`.ai-fab { position: relative }` removed the launcher from the page.** Tailwind flattens
+  its layers at build time, so in the emitted stylesheet plain **source order** decides — and
+  anything appended to `globals.css` lands after `.fixed{position:fixed}` and wins. The button
+  dropped out of the viewport corner into normal document flow at the end of `<body>`, about
+  2000px down, invisible. It was only ever there to give the pseudo-elements a positioned
+  ancestor, which `fixed` already provides.
+- **`.ai-fab:active { transform: scale(0.94) }` killed the drag.** The drag offset is applied
+  as an inline `translate`; a `transform` from `:active` replaces it outright, so the launcher
+  snapped back to the corner the moment it was pressed — which is every moment of a drag.
+- **⚠️ Measured, not reasoned.** The compiled stylesheet was loaded into a real browser and
+  the computed style read both ways: **with** the rule, `position: relative` at `y=1980`,
+  out of view; **without** it, `position: fixed` at the bottom-right corner, in view. The
+  first attempt at that harness linked the stylesheet by an absolute filesystem path, so it
+  404'd and *every* style was missing — which briefly looked like the fix had failed. Worth
+  recording: a harness that silently loads nothing produces the same symptom as the bug.
+- **Pinned by `ai-fab-position.test.ts`**, which parses `globals.css` and fails if any
+  hand-written `.ai-fab` rule sets `position` or `transform`.
+- Also: `@property --ai-spin` / `@keyframes ai-spin` had been deleted along with the removed
+  panel aura in (42) while `.ai-fab::before` still referenced them, leaving the orbital ring
+  static. Restored.
+- Files: `src/app/globals.css`, `src/shared/utils/__tests__/ai-fab-position.test.ts` (new).
+- Checks: 558 tests, lint at the 36-warning baseline, build exit 0, route table untouched.
+- **Still not verified live:** voice. `microphone=(self)` is on this branch and not on
+  production, so any test against the live site still meets the old blocking header.
+
+---
+
 ## 2026-08-07 (42) — The drag handle was swallowing the panel's own buttons
 
 - **🐛 Clear chat and Close stopped working, and I broke them in (41).** Rewriting
