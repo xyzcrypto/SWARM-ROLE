@@ -5,6 +5,45 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (36) — XYZ AI answers now show their sources, and can be copied, re-asked or read aloud
+
+Follow-up to (35). Three additions plus one shared-renderer fix.
+
+- **Sources under every answer.** New pure helper `extractSources()` reads
+  `[Title](/research/slug)` citations back out of the answer and renders them as a chip
+  row. **No prompt change and no extra tokens:** `buildAssistantSystemPrompt` already
+  instructs the model to cite in exactly that shape, and `buildCorpus` already hands it
+  the slug for every article. This only surfaces what was already being emitted — it just
+  had to be spotted mid-paragraph before.
+- **Copy · Regenerate · Read aloud** under each finished answer. Regenerate re-asks the
+  last question with the disliked answer dropped. Read-aloud reuses the existing
+  `pickVoice`/`stripMarkdown` helpers rather than duplicating the TTS handling.
+- **⚠️ The regenerate trap.** `send()` gained an optional `base` history argument.
+  `setMessages` is async, so calling it and then `send()` in the same tick would have had
+  `send` rebuild the request from the *stale, pre-truncation* array — re-asking with the
+  bad answer still in the history. Passing the truncated history explicitly is what makes
+  it correct.
+- **Internal links stopped opening new tabs.** `markdown.tsx` put
+  `target="_blank" rel="noopener noreferrer"` on *every* link, so following a citation
+  inside the AI panel spawned a tab. Now root-relative (`/…`) and in-page (`#…`) links
+  navigate in place; external links keep the new tab and the rel guard. Pinned by four
+  cases in `markdown-render.test.ts`.
+- **🗂️ `src/lib/markdown.tsx` was not a shim.** It was a 113-line near-duplicate of
+  `src/shared/utils/markdown.tsx`, differing only in one import path — and every consumer
+  imported the `lib` copy, so the `shared` one was dead code. Left alone, the fix above
+  would have landed in the unused file. It is now a real one-line re-export like
+  `links.ts`, with the implementation in `shared/utils`. **Worth checking for elsewhere:
+  the convention is not self-enforcing.**
+- Streaming answers hold back their sources and tools until the stream ends, so nothing
+  flickers mid-answer.
+- Files: `src/shared/utils/ai-sources.ts` (new), `src/shared/utils/__tests__/ai-sources.test.ts`
+  (new, 6 cases), `src/shared/utils/markdown.tsx`, `src/lib/markdown.tsx`,
+  `src/lib/__tests__/markdown-render.test.ts`, `src/modules/ai/components/XyzAiWidget.tsx`.
+- Not verified live: rendering and the TTS path need a browser with a session; only the
+  pure helpers are unit-tested (536 tests green).
+
+---
+
 ## 2026-08-07 (35) — XYZ AI: the daily budget is finally visible, and it warns before it blocks
 
 The daily AI cap has been enforced server-side since `16_ai_limits` (`checkDailyLimit()`,

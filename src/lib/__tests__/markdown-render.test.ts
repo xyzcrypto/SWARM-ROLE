@@ -99,3 +99,40 @@ describe("Markdown color spans", () => {
     expect(strongs[1].props.children).toEqual(["bar"]);
   });
 });
+
+describe("link targets", () => {
+  // Find the first <a> anywhere in a block's children tree.
+  function firstAnchor(content: string): any {
+    const seen: any[] = [];
+    const walk = (n: any) => {
+      if (!n || typeof n !== "object") return;
+      if (Array.isArray(n)) return n.forEach(walk);
+      if (n.type === "a") seen.push(n);
+      walk(n.props?.children);
+    };
+    walk(blocksOf(content));
+    return seen[0];
+  }
+
+  it("keeps internal links in the same tab", () => {
+    // Regression: every citation inside the XYZ AI panel used to spawn a tab.
+    const a = firstAnchor("See [Perp DEX](/research/perp-dex) for detail.");
+    expect(a.props.href).toBe("/research/perp-dex");
+    expect(a.props.target).toBeUndefined();
+    expect(a.props.rel).toBeUndefined();
+  });
+
+  it("keeps in-page anchors in the same tab", () => {
+    expect(firstAnchor("[Jump](#section)").props.target).toBeUndefined();
+  });
+
+  it("still opens external links in a new tab, with the rel guard", () => {
+    const a = firstAnchor("[Docs](https://example.com/x)");
+    expect(a.props.target).toBe("_blank");
+    expect(a.props.rel).toBe("noopener noreferrer");
+  });
+
+  it("applies the same rule to bare pasted URLs", () => {
+    expect(firstAnchor("see https://example.com/x here").props.target).toBe("_blank");
+  });
+});
