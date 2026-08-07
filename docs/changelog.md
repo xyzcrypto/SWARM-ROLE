@@ -5,6 +5,46 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (39) — A test that had been verifying nothing since #203
+
+`realtime-channels.test.ts` guards one property: the channel-name module stays free of
+imports, so a `"use client"` component can name a channel without dragging the server-only
+env module into the browser bundle. That regression really happened (#189) and this test
+is what stops it recurring.
+
+It stopped working the moment #203 landed, and nobody noticed for a month.
+
+- **The mechanism.** The test read `src/lib/realtime-channels.ts`. #203 turned that path
+  into a one-line re-export shim — `export * from "@core/realtime/realtime-channels"` — and
+  a shim contains **no `import` statements**, because it re-exports. So the test's
+  `importLines` came out as `[]`, and both assertions ("has no imports at all", "imports
+  nothing server-side") passed against an empty array. The file they exist to guard was
+  never opened.
+- **Proved, not assumed.** Adding `import { env } from "@/lib/env"` to the *real* module
+  and running the **old** test: **3 passed**. The same perturbation against the new test:
+  **2 failed**. That is the whole bug in two runs.
+- **The fix is one path plus a guard.** It now reads
+  `src/core/realtime/realtime-channels.ts`, and a new first assertion rejects a stale path
+  three ways: content under 200 chars, a body that looks like `export * from`, or a missing
+  `export const CH_SITE =`. Same role as
+  `expect(creates.length).toBeGreaterThanOrEqual(6)` in `journal-activity-revocation.test.ts`
+  — every other assertion in the suite is "this pattern does not appear", which an empty
+  file satisfies for free.
+- **Perturbations, all four behaving:** server-side import in the real module → 2 fail;
+  path pointed back at the shim → the guard fires; path pointed at a nonexistent file →
+  ENOENT, loud; restored → 4 pass.
+- **The runtime import still goes through the shim on purpose.** The channel-name
+  assertions are about values, so routing them through `../realtime-channels` also proves
+  the shim forwards correctly — app code still imports from that path.
+- **Swept the rest.** Every other source-reading test was re-checked against real paths:
+  `markets-poll-alignment`, `password-change-revokes-sessions` (7 literal paths between
+  them, all real code) and the two that glob `src/app/api/**/route.ts` — routes were never
+  moved by #203, the glob matches 99 files, and both already carry anti-vacuous guards
+  (`> 50` handlers, `>= 6` create sites). **`realtime-channels` was the only vacuous one.**
+- Test-only: no route, cache, or runtime behaviour changes.
+
+---
+
 ## 2026-08-07 (38) — `src/lib/ai/*` server modules now fail the build if a client imports them
 
 Audit of the `src/lib/*` / `src/components/*` shim convention, prompted by the `markdown.tsx`
