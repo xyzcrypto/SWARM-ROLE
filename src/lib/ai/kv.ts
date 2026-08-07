@@ -1,3 +1,4 @@
+import "server-only";
 // Shared Upstash Redis handle for the AI gateway's cache + concurrency guard.
 // Lazily constructed; null when Upstash isn't configured so both callers fail
 // open (same graceful pattern as src/lib/ratelimit.ts). The REST client is

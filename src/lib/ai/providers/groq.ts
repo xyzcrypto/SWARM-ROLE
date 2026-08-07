@@ -1,3 +1,4 @@
+import "server-only";
 // Groq provider - the OpenAI-compatible Llama models. Server-only.
 import Groq from "groq-sdk";
 import { env, groqEnabled } from "@/lib/env";

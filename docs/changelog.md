@@ -5,6 +5,41 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (38) — `src/lib/ai/*` server modules now fail the build if a client imports them
+
+Audit of the `src/lib/*` / `src/components/*` shim convention, prompted by the `markdown.tsx`
+duplicate found in (36).
+
+- **The `markdown.tsx` problem was a one-off, not a pattern.** 247 files checked: **212 are
+  proper one-line shims, 35 hold real content, and exactly one other has a twin** —
+  `src/lib/jsonld.tsx`. That one is the *inverse* case and harmless: `src/shared/utils/jsonld.tsx`
+  is a shim pointing back at it, so there is one implementation and no dead copy. The
+  direction is backwards from the convention; nothing is at risk. **No second dead-twin
+  exists.** Recorded so nobody re-runs this hunt.
+- **What the audit did find is worse and more useful: the coupling in `src/lib/ai/*` is
+  transitive and invisible.** `gateway.ts` imports no prisma and no env — grep it and it reads
+  client-safe. But `./usage` imports prisma, `./registry` imports server-only `env`, and
+  `./cache` → `./kv` reaches storage. Three of its six imports drag the server in. That is
+  exactly why `aiPlanFor` could not be imported by the widget in (37) despite `gateway.ts`
+  looking clean, and it would have caught the next person the same way.
+- **Fix: `import "server-only"` on the five genuinely server-only files** — `usage.ts`,
+  `registry.ts`, `kv.ts`, `providers/gemini.ts`, `providers/groq.ts`. A client component that
+  reaches any of them, however indirectly, is now a **build error naming the file**, instead of
+  a runtime surprise or a silently bloated bundle. Same guard `env.ts` got in #189, same reason.
+- **⚠️ The guard was proved to fire, not just assumed to.** Adding it left the build green,
+  which on its own only shows nothing broke. So the violation was staged deliberately — the
+  widget re-pointed at `@/lib/ai/gateway` — and the build **failed with exit 1** and a named
+  `server-only` error. Then reverted. A guard that has never been seen to reject anything is
+  not known to work.
+- Still-open (not a defect, just incomplete migration): 34 files live only in `src/lib` /
+  `src/components` with no twin — the whole `src/lib/ai/*` subtree and the marketing components
+  (`Hero`, `Icons3D`, `Orbital*`, …). They are single copies, so nothing can drift; moving them
+  under `modules/` is cosmetic and was left alone.
+- Files: `src/lib/ai/usage.ts`, `registry.ts`, `kv.ts`, `providers/gemini.ts`, `providers/groq.ts`
+  (one line each). Build exit 0, typecheck clean, 545 tests green.
+
+---
+
 ## 2026-08-07 (37) — XYZ AI: page-aware suggestions, voice input, and an honest plan label
 
 - **✅ (35)'s observable ran and passed on production.** `{status: 200, remaining: '2994',
