@@ -5,6 +5,44 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (45) — The AI panel resizes from any edge or corner
+
+- **Eight handles** — four edges, four corners — on the panel, with a faint grip in the
+  **bottom-left** corner (the bottom-right one is pinned against the screen edge, so there is
+  nothing to pull toward there). Size persists per browser and the reset control now clears
+  size *and* position together.
+- **⚠️ The anchoring is what makes this non-obvious.** The panel's CSS anchor is its
+  bottom-right corner and dragging moves it by an offset from that anchor. So pulling the
+  **left** or **top** edge only changes the size, but pulling the **right** or **bottom** edge
+  has to change the size **and** the drag offset together — otherwise the panel slides across
+  the screen instead of growing. The offset is nudged by the growth *actually applied after
+  clamping*, not by the raw pointer delta, or it drifts away from the cursor once the size
+  hits a limit.
+- Clamped to a usable minimum (320×340) and to the viewport (96% × 92%), re-clamped when the
+  window resizes, so a size saved on a desktop cannot leave the panel wider than a phone. The
+  **minimum wins over the maximum** on a tiny screen — an unusably narrow panel is worse than
+  a slightly overflowing one. `clampPanelSize()` is pure and takes the viewport as arguments,
+  so all six rules are unit-tested without a DOM.
+- **Verified by driving the real geometry in a browser**, not by reasoning: left +200 → 400→600,
+  top +150 → 560→710, right +300 → 600→900, bottom past the limit → clamped at 736 (92% of
+  800), shrink past the minimum → 320×340.
+- Resize handles carry `data-resize`, which the drag guard now excludes — otherwise a resize
+  would start a drag at the same time and the two would fight.
+- **⚠️ The restore is a lazy `useState` initializer, not an effect.** Reading localStorage
+  during render is normally a hydration hazard, but this hook only runs inside `XyzAiWidget`,
+  which is mounted via `next/dynamic` with `ssr: false` — it never renders on the server, so
+  there is no server HTML to disagree with. Doing it in an effect tripped
+  `set-state-in-effect` and pushed lint to 37; this fixed the cause rather than suppressing it,
+  and lint is back at the 36-warning baseline.
+- Files: `src/shared/hooks/useResizablePanel.ts` (new),
+  `src/shared/utils/__tests__/panel-resize.test.ts` (new, 6 cases),
+  `src/shared/hooks/useDraggablePanel.ts`, `src/modules/ai/components/XyzAiWidget.tsx`,
+  `src/app/globals.css`, `drag-guard.test.ts` (assertion widened to a selector list, so adding
+  a control type can't fail it for the wrong reason).
+- Checks: 571 tests, lint at the 36-warning baseline, build exit 0, route table untouched.
+
+---
+
 ## 2026-08-07 (44) — The panel wouldn't move for the same reason the launcher didn't, and "Listen" was cut off by a browser limit
 
 - **🐛 Dragging the AI panel did nothing — same class of bug as (43), one layer up.** The
