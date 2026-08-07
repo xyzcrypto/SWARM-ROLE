@@ -4,26 +4,39 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { SendHorizonal, X, Loader2 } from "lucide-react";
+import { SendHorizonal, X, Loader2, Trash2, BarChart3, Search, Compass, BookOpen, Coins } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
 import { RobotIcon } from "@/components/RobotIcon";
 import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/useClientFlag";
+import { quotaLevel, type QuotaLevel } from "@shared/utils/ai-quota";
 
 // Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
 export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
+type Quota = { remaining: number; limit: number };
 
-const GREETING =
-  "Hi - I'm **XYZ AI**, your research assistant. Ask me anything about crypto, Web3, or XYZ Crypto's research and I'll answer with links to our articles.";
-
-const SUGGESTIONS = [
-  "Summarise the latest research",
-  "What is a perp DEX?",
-  "Explain airdrop farming",
+// Two lead actions carry a subtitle; the rest stay compact. Subtitles describe
+// what the assistant will do - they must never claim data we haven't fetched.
+const LEAD_SUGGESTIONS = [
+  { icon: BarChart3, tone: "gold" as const, q: "What moved in the market today?", label: "Brief me on the market", sub: "Live prices and today's headlines" },
+  { icon: Search, tone: "mint" as const, q: "Summarise the latest research", label: "Summarise our research", sub: "Grounded in XYZ Crypto's published posts" },
 ];
+
+const QUICK_SUGGESTIONS = [
+  { icon: Coins, tone: "gold" as const, q: "What is a perp DEX?", label: "What's a perp?" },
+  { icon: Compass, tone: "violet" as const, q: "Explain airdrop farming", label: "Airdrop basics" },
+  { icon: BookOpen, tone: "mint" as const, q: "Explain how staking rewards work", label: "How staking works" },
+  { icon: BarChart3, tone: "gold" as const, q: "How should I think about position sizing?", label: "Position sizing" },
+];
+
+const TONE: Record<"gold" | "mint" | "violet", string> = {
+  gold: "bg-gold-500/10 text-gold-200",
+  mint: "bg-mint-500/10 text-mint-200",
+  violet: "bg-violet-500/10 text-violet-200",
+};
 
 export function XyzAiWidget() {
   const { data: session, status } = useSession();
@@ -44,7 +57,15 @@ export function XyzAiWidget() {
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Learned from the response headers of the request we were already making -
+  // null until the member's first question, which is also when it first matters.
+  const [quota, setQuota] = useState<Quota | null>(null);
   const reduce = useReducedMotionSafe();
+
+  const firstName = String(user?.name ?? "").trim().split(/\s+/)[0] || null;
+  const plan = String(user?.membership ?? "Free");
+  const level: QuotaLevel = quota ? quotaLevel(quota.remaining) : "hidden";
+  const blocked = level === "blocked";
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -62,6 +83,26 @@ export function XyzAiWidget() {
     window.addEventListener(XYZ_AI_OPEN_EVENT, openWidget);
     return () => window.removeEventListener(XYZ_AI_OPEN_EVENT, openWidget);
   }, []);
+
+  // Both headers must be present and numeric. Reading them loosely would be a
+  // trap: `Number(null)` is 0, so a single missing header would read as "no
+  // budget left" and lock a member out of a working assistant.
+  function readQuota(res: Response) {
+    const rawRemaining = res.headers.get("X-Ai-Remaining");
+    const rawLimit = res.headers.get("X-Ai-Limit");
+    if (rawRemaining === null || rawLimit === null) return;
+    const remaining = Number(rawRemaining);
+    const limit = Number(rawLimit);
+    if (!Number.isFinite(remaining) || !Number.isFinite(limit) || limit <= 0) return;
+    setQuota({ remaining, limit });
+  }
+
+  function clearChat() {
+    abortRef.current?.abort();
+    setMessages([]);
+    setError(null);
+    setInput("");
+  }
 
   async function send(text: string) {
     const q = text.trim();
@@ -83,6 +124,8 @@ export function XyzAiWidget() {
         body: JSON.stringify({ messages: history }),
         signal: ac.signal,
       });
+
+      readQuota(res);
 
       if (!res.ok || !res.body) {
         const msg = await res.json().catch(() => null);
@@ -127,20 +170,44 @@ export function XyzAiWidget() {
       aria-label="XYZ AI assistant"
     >
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/10 bg-white/5 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-950/60 ring-1 ring-mint-400/40">
-            <RobotIcon className="h-5 w-5" />
-          </span>
-          <div className="leading-tight">
-            <p className="text-sm font-semibold text-zinc-100">XYZ AI</p>
-            <p className="mono text-[10px] text-mint-200/80">Research assistant</p>
-          </div>
+      <div className="flex items-center gap-2.5 border-b border-white/10 bg-white/5 px-3.5 py-3">
+        <span className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold-shine text-ink ring-1 ring-gold-500/40">
+          <RobotIcon className="h-5 w-5" />
+          <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-mint-400 ring-2 ring-ink-950" />
+        </span>
+        <div className="min-w-0 flex-1 leading-tight">
+          <p className="truncate text-sm font-semibold text-zinc-100">XYZ AI</p>
+          <p className="mono truncate text-[10px] text-mint-200/80">Online · research &amp; live markets</p>
         </div>
+
+        {(level === "quiet" || level === "warn") && quota && (
+          <span
+            title={`${quota.remaining} of ${quota.limit} questions left today. Resets at midnight UTC.`}
+            className={cn(
+              "mono shrink-0 rounded-full px-2 py-0.5 text-[10px] tabular-nums ring-1",
+              level === "warn"
+                ? "bg-gold-500/15 text-gold-100 ring-gold-500/40"
+                : "bg-white/5 text-zinc-400 ring-white/10"
+            )}
+          >
+            {quota.remaining} left
+          </span>
+        )}
+
+        {messages.length > 0 && (
+          <button
+            onClick={clearChat}
+            aria-label="Clear chat"
+            title="Clear chat"
+            className="shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
         <button
           onClick={() => setOpen(false)}
           aria-label="Close"
-          className="rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100"
+          className="shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100"
         >
           <X className="h-4 w-4" />
         </button>
@@ -164,17 +231,50 @@ export function XyzAiWidget() {
             {/* Greeting + suggestions (only before the first message) */}
             {messages.length === 0 && (
               <>
-                <Bubble role="assistant">
-                  <Markdown content={GREETING} />
-                </Bubble>
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {SUGGESTIONS.map((s) => (
+                <div className="rounded-2xl border border-mint-500/15 bg-gradient-to-b from-mint-500/[0.08] to-transparent px-4 py-3.5 text-center">
+                  <p className="text-[15px] font-semibold text-zinc-100">
+                    {firstName ? `Hey ${firstName}` : "Hey there"} 👋
+                  </p>
+                  <p className="mt-1 text-xs leading-relaxed text-zinc-400">
+                    I read every research post and live market data. Ask me anything.
+                  </p>
+                  <span className="mono mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px] ring-1 ring-white/10">
+                    <span className="text-zinc-500">PLAN</span>
+                    <span className="font-semibold text-violet-200">{plan}</span>
+                  </span>
+                </div>
+
+                <p className="mono px-1 pt-1 text-[9.5px] uppercase tracking-[0.15em] text-zinc-600">Start here</p>
+
+                <div className="space-y-2">
+                  {LEAD_SUGGESTIONS.map((s) => (
                     <button
-                      key={s}
-                      onClick={() => send(s)}
-                      className="rounded-full border border-gold-500/25 bg-gold-500/5 px-3 py-1 text-xs text-gold-100 transition-colors hover:bg-gold-500/15"
+                      key={s.q}
+                      onClick={() => send(s.q)}
+                      className="flex w-full items-center gap-3 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3 py-2.5 text-left transition-colors hover:border-mint-400/30 hover:bg-white/[0.07]"
                     >
-                      {s}
+                      <span className={cn("inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", TONE[s.tone])}>
+                        <s.icon className="h-4 w-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] font-medium text-zinc-100">{s.label}</span>
+                        <span className="block truncate text-[11px] text-zinc-500">{s.sub}</span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  {QUICK_SUGGESTIONS.map((s) => (
+                    <button
+                      key={s.q}
+                      onClick={() => send(s.q)}
+                      className="flex items-center gap-2 rounded-xl border border-white/[0.05] bg-white/[0.03] px-2.5 py-2 text-left transition-colors hover:border-mint-400/30 hover:bg-white/[0.07]"
+                    >
+                      <span className={cn("inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md", TONE[s.tone])}>
+                        <s.icon className="h-3.5 w-3.5" />
+                      </span>
+                      <span className="truncate text-[12px] text-zinc-200">{s.label}</span>
                     </button>
                   ))}
                 </div>
@@ -195,12 +295,17 @@ export function XyzAiWidget() {
               </Bubble>
             ))}
 
-            {error && (
+            {/* When the cap is hit, LimitCard below carries the message - a red
+                error line as well would say the same thing twice. */}
+            {error && !blocked && (
               <p className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300 ring-1 ring-red-500/20">{error}</p>
             )}
           </div>
 
-          {/* Composer */}
+          {/* Out of budget: the composer is replaced rather than left to fail. */}
+          {blocked ? (
+            <LimitCard plan={plan} limit={quota?.limit ?? 0} />
+          ) : (
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -231,6 +336,7 @@ export function XyzAiWidget() {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
             </button>
           </form>
+          )}
           <p className="px-4 pb-2 text-center text-[10px] text-zinc-600">
             XYZ AI can be wrong. Not financial advice.
           </p>
@@ -285,6 +391,32 @@ function Bubble({ role, children }: { role: "user" | "assistant"; children: Reac
       >
         {children}
       </div>
+    </div>
+  );
+}
+
+/**
+ * Shown in place of the composer once today's budget is spent. This is the
+ * moment that actually decides whether someone upgrades, so it gets a real
+ * design rather than the generic red error line - and it always states when the
+ * budget comes back, so the offer never reads as the only way out.
+ */
+function LimitCard({ plan, limit }: { plan: string; limit: number }) {
+  const isFree = plan === "Free";
+  return (
+    <div className="border-t border-gold-500/20 bg-gold-500/[0.06] px-4 py-3.5 text-center">
+      <p className="text-[13px] font-semibold text-gold-100">
+        That&rsquo;s today&rsquo;s {limit > 0 ? `${limit} ` : ""}questions
+      </p>
+      <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+        Your budget resets at midnight UTC.
+        {isFree ? " Premium members get a much higher daily allowance." : ""}
+      </p>
+      {isFree && (
+        <Link href="/premium" className="btn-gold mt-2.5 inline-block px-4 py-1.5 text-xs">
+          Upgrade to Premium
+        </Link>
+      )}
     </div>
   );
 }

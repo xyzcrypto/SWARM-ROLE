@@ -74,6 +74,10 @@ export async function checkDailyLimit(userId: string, plan: AiPlan, now = Date.n
   return { allowed: used < limit, used, limit, remaining };
 }
 
+// Presentation rules live in a client-safe module (this file imports prisma and
+// server-only env, so the widget cannot import it directly).
+export { quotaLevel, QUOTA_QUIET_AT, QUOTA_WARN_AT, type QuotaLevel } from "@shared/utils/ai-quota";
+
 /** Friendly, plan-aware message when the daily cap is hit. */
 export function dailyLimitMessage(status: LimitStatus, plan: AiPlan): string {
   const base = `You've reached today's XYZ AI limit (${status.limit} requests). It resets at midnight UTC.`;

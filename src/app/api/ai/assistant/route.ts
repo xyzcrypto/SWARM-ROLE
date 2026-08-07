@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { fail, handleError, getSessionUser } from "@/lib/api";
@@ -83,7 +84,19 @@ export async function POST(req: Request) {
 
     const plan = aiPlanFor(me);
     const lim = await checkDailyLimit(me.id, plan);
-    if (!lim.allowed) return fail(dailyLimitMessage(lim, plan), 429);
+    // Report the remaining budget on every answer so the client can warn the
+    // member *before* they hit the wall. Headers rather than a separate GET:
+    // the widget learns the number from the request it was already making, so
+    // showing a quota costs no extra round trip and adds no polled route.
+    // `remaining` here is the count *before* this request is spent.
+    const quotaHeaders = {
+      "X-Ai-Remaining": String(Math.max(0, lim.remaining - (lim.allowed ? 1 : 0))),
+      "X-Ai-Limit": String(lim.limit),
+      "X-Ai-Plan": plan,
+    };
+    if (!lim.allowed) {
+      return NextResponse.json({ error: dailyLimitMessage(lim, plan) }, { status: 429, headers: quotaHeaders });
+    }
 
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -158,6 +171,7 @@ export async function POST(req: Request) {
         "Content-Type": "text/plain; charset=utf-8",
         "Cache-Control": "no-store",
         "X-Accel-Buffering": "no", // don't let proxies buffer the stream
+        ...quotaHeaders,
       },
     });
   } catch (err) {

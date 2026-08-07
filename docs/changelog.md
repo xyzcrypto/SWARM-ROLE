@@ -5,6 +5,47 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (35) — XYZ AI: the daily budget is finally visible, and it warns before it blocks
+
+The daily AI cap has been enforced server-side since `16_ai_limits` (`checkDailyLimit()`,
+per-plan defaults, per-member admin override). It had **never been shown in the UI** — so a
+member's only way to learn the limit existed was to hit it mid-task and get a red error line.
+
+- **Progressive disclosure, not a permanent counter.** New pure helper
+  `quotaLevel(remaining)` in `src/shared/utils/ai-quota.ts`: `hidden` above 10 left,
+  `quiet` at ≤10, `warn` at ≤3, `blocked` at 0. A counter that is always on teaches members
+  to ration a free tier, which works against the point of having one; a cap with no warning
+  is worse. This shows the number only once it changes what you'd do.
+  - Thresholds are **absolute, not a percentage**, so Free (25/day) and Premium (300/day)
+    behave the same near the end. A 40% rule would have shown Premium members a counter at
+    120 remaining, which is noise.
+- **No new route, no extra request.** `/api/ai/assistant` now returns `X-Ai-Remaining` /
+  `X-Ai-Limit` / `X-Ai-Plan` on both the streamed 200 and the 429. The widget learns the
+  budget from the request it was already making, so the quota costs nothing to display and
+  adds no polled endpoint.
+- **The 0 state got a real design.** `LimitCard` replaces the composer rather than letting
+  the send button fail: states the cap, states that it resets at midnight UTC, and offers
+  `/premium` to Free members only. The reset time is always shown so the upgrade never reads
+  as the only way out.
+- **Shell redesign** (`XyzAiWidget.tsx`): gold brand avatar with a mint live dot,
+  name-personalised greeting + plan chip, six iconed suggestions (two with subtitles, four
+  compact) replacing three plain pills, and a clear-chat control.
+- **⚠️ Two traps recorded.** (1) The pure helper lives in `@shared/utils/ai-quota`, **not**
+  `@/lib/ai/limits` — the latter imports prisma and server-only `env`, so a `"use client"`
+  file importing it is a build error. `limits.ts` re-exports it for server callers.
+  (2) `readQuota` checks both headers are non-null *before* coercing: `Number(null)` is `0`,
+  so reading them loosely would turn one missing header into a false "no budget left" and
+  lock a member out of a working assistant.
+- Suggestion subtitles describe what the assistant will do; they never assert data the
+  client hasn't fetched (no "8 trades logged" without a trades fetch).
+- Files: `src/shared/utils/ai-quota.ts` (new), `src/shared/utils/__tests__/ai-quota.test.ts`
+  (new, 6 cases), `src/lib/ai/limits.ts`, `src/app/api/ai/assistant/route.ts`,
+  `src/modules/ai/components/XyzAiWidget.tsx`.
+- Not yet done: XP/streak in the greeting (not in the session — would need a fetch), and
+  answer-level sources/copy/regenerate/read-aloud (planned as a follow-up).
+
+---
+
 ## 2026-08-05 (34) — Changing a password now revokes sessions issued before it
 Closes the one genuine vulnerability out of ten claims in an external auth report — which
 ranked it **8th, as LOW**. (Both of that report's CRITICALs needed no work: `devCode` was
