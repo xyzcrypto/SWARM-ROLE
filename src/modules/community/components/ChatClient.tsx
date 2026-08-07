@@ -23,6 +23,7 @@ import { MessageButton } from "@/components/MessageButton";
 import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
 import { cn } from "@/lib/utils";
 import { safeHref, cleanBareUrl } from "@/lib/links";
+import { MicButton } from "@/shared/components/MicButton";
 
 const MAX_LENGTH = 500;
 const CHANNEL = "community";
@@ -1738,7 +1739,7 @@ export function ChatClient({
                   }}
                   rows={1}
                   placeholder={touchUi ? "Say something…" : "Say something… (Enter to send)"}
-                  className="block max-h-28 min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-11 text-base leading-tight text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
+                  className="block max-h-28 min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-20 text-base leading-tight text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
                 />
                 <button
                   type="button"
@@ -1748,6 +1749,11 @@ export function ChatClient({
                 >
                   <Smile className="h-5 w-5" />
                 </button>
+                <MicButton
+                  size="sm"
+                  className="absolute bottom-1.5 right-10 !ring-0"
+                  onText={(t) => setBody((b) => (b ? `${b} ${t}` : t).slice(0, MAX_LENGTH))}
+                />
                 <AnimatePresence>
                   {pickerOpen && (
                     <EmojiPicker

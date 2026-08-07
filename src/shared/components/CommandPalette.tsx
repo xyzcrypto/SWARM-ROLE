@@ -10,6 +10,7 @@ import { safeHref } from "@/lib/links";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
 import { cn } from "@/lib/utils";
+import { MicButton } from "@/shared/components/MicButton";
 
 type Row =
   | { kind: "cmd"; key: string; item: CommandItem }
@@ -202,6 +203,7 @@ export function CommandPalette() {
             autoComplete="off"
             spellCheck={false}
           />
+          <MicButton size="sm" className="!ring-0" onText={(t) => setQ((v) => (v ? `${v} ${t}` : t))} />
           {loading && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-zinc-500" />}
           <button onClick={close} className="shrink-0 rounded-md px-2 py-1 text-[11px] text-zinc-500 hover:text-zinc-200 sm:hidden">
             Close

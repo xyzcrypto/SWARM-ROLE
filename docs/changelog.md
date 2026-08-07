@@ -5,6 +5,54 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (40) — Voice input fixed and rolled out to six surfaces; AI panel visible in light mode and draggable
+
+**(37) shipped voice input that didn't work in practice.** Reading the code back found three
+causes, all of which look identical to a person: nothing happens.
+
+- **`interimResults` was off.** Nothing appeared until the whole utterance was finalised —
+  seconds of a lit-up button doing nothing visible. Live partials are the feedback that
+  proves it is listening; they now stream into a line above the composer.
+- **Every failure was swallowed.** A blocked mic, a missing mic, or Chrome's `network` error
+  (its recognizer is a Google service, so it fails on restricted networks while the page
+  itself loads fine) all just dropped out of the listening state silently. `speechErrorMessage()`
+  now names each cause, and the panel shows it. **This is the fix that matters** — the other
+  two are why it felt broken, this is why nobody could tell why.
+- **Stopping discarded the result.** The toggle called `abort()`, which throws away the
+  utterance. Pressing the button to finish dictating deleted what you had just said. `stop()`
+  finalises; `cancel()` is now the only path that discards.
+- **Rolled out to six surfaces** via a shared `<MicButton>`: XYZ AI, DM composer, community
+  chat, ⌘K palette, news search, research search. The hook moved to `@/shared/hooks` since it
+  is no longer AI-specific. Renders nothing where `SpeechRecognition` is absent (Firefox), so
+  a dead button never ships.
+- **⚠️ `MicButton` mirrors transcript/error to its parent in effects, not during render.** The
+  first draft called `onInterim(...)` in the render body — the cascading-render shape the lint
+  rule rejects, and the same mistake (37) already made once.
+
+**Light theme: the assistant had no colour.** Its mint/gold surfaces are 6–25% alpha tints
+designed against near-black; on white they wash out to nothing. Text was already handled
+(`text-mint-200` etc. have light overrides) — the **tints** were not, except inside
+`#ecosystem-orbital`. Fixed with a `.ai-surface`-scoped block. **Deliberately not global:** the
+same tint classes are used site-wide against dark backgrounds, and lifting them everywhere
+would be an unrequested restyle of every page.
+
+**The panel is draggable** (`useDraggablePanel`), desktop only — on mobile it is near
+full-width with nowhere useful to go. Offsets are stored **relative to the bottom-right anchor,
+not as absolute coordinates**, so a saved position survives a resize or a different monitor,
+and a restored position is clamped back into view on mount — otherwise a panel dragged to the
+edge of a wide window would be unreachable on a laptop. A reset control appears once moved, so
+it can always be recovered. Pointer Events cover mouse, touch and pen in one path.
+
+- Files: `src/shared/hooks/useSpeechInput.ts` (moved + rewritten),
+  `src/shared/hooks/useDraggablePanel.ts` (new), `src/shared/components/MicButton.tsx` (new),
+  `src/shared/utils/__tests__/speech-error.test.ts` (new, 5 cases), `XyzAiWidget.tsx`,
+  `MessagesClient.tsx`, `ChatClient.tsx`, `CommandPalette.tsx`, `NewsClient.tsx`,
+  `ResearchGrid.tsx`, `globals.css`.
+- Checks: route table identical (132/23/109/12), no cost patterns, 550 tests, lint at the
+  36-warning baseline, build exit 0. Bundle +4 kB gzip per route (`/` 121 → 125) — the mic now
+  ships on six surfaces rather than one.
+- **Not verified live.** Voice, the light-mode palette and dragging all need a browser; I have
+  no access to one. The three voice causes were found by reading, not by reproducing.
 ## 2026-08-07 (39) — A test that had been verifying nothing since #203
 
 `realtime-channels.test.ts` guards one property: the channel-name module stays free of

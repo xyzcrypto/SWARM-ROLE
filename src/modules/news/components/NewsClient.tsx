@@ -20,6 +20,7 @@ import { useHydrated } from "@/lib/useClientFlag";
 import { useScrollLock } from "@/lib/useScrollLock";
 import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/useClientFlag";
+import { MicButton } from "@/shared/components/MicButton";
 
 // Share a SHORT on-site link (`/news/read?u=<source-url>`) - opens the story on
 // our domain but stays tiny (just the source url), so it's easy to paste into a
@@ -375,7 +376,12 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             value={rawQuery}
             onChange={(e) => setRawQuery(e.target.value)}
             placeholder="Search news…"
-            className="w-full rounded-xl border border-white/10 bg-ink-950/60 py-2.5 pl-9 pr-9 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-gold-500/40 focus:outline-none focus:ring-1 focus:ring-gold-500/30"
+            className="w-full rounded-xl border border-white/10 bg-ink-950/60 py-2.5 pl-9 pr-16 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-gold-500/40 focus:outline-none focus:ring-1 focus:ring-gold-500/30"
+          />
+          <MicButton
+            size="sm"
+            className="absolute right-9 top-1/2 -translate-y-1/2 !rounded-lg !ring-0"
+            onText={(t) => setRawQuery((v) => (v ? `${v} ${t}` : t))}
           />
           {rawQuery && (
             <button onClick={() => setRawQuery("")} aria-label="Clear" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">

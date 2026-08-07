@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Search, Sparkles } from "lucide-react";
 import { PostCard, type PostCardData } from "@/components/PostCard";
+import { MicButton } from "@/shared/components/MicButton";
 
 const categories = ["All", "Research", "Article", "Post"] as const;
 // "Premium" is a special filter (premium=1), not a Post category.
@@ -74,7 +75,12 @@ export function ResearchGrid({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search research, articles, tags…"
-            className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-11 pr-4 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/40 focus:bg-white/[0.07]"
+            className="w-full rounded-full border border-white/10 bg-white/5 py-2.5 pl-11 pr-12 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/40 focus:bg-white/[0.07]"
+          />
+          <MicButton
+            size="sm"
+            className="absolute right-2 top-1/2 -translate-y-1/2 !rounded-full !ring-0"
+            onText={(t) => setQuery((v) => (v ? `${v} ${t}` : t))}
           />
         </div>
         <div className="flex flex-wrap justify-center gap-2">

@@ -6,20 +6,21 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   SendHorizonal, X, Loader2, Trash2, BarChart3, Search, Compass, BookOpen, Coins,
-  Copy, Check, RotateCcw, Volume2, Square, FileText, Mic, Sparkles,
+  Copy, Check, RotateCcw, Volume2, Square, FileText, Mic, Sparkles, CornerDownRight,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
 import { RobotIcon } from "@/components/RobotIcon";
 import { cn } from "@/lib/utils";
-import { useReducedMotionSafe } from "@/lib/useClientFlag";
+import { useReducedMotionSafe, useMediaQuery } from "@/lib/useClientFlag";
 import { quotaLevel, type QuotaLevel } from "@shared/utils/ai-quota";
 import { extractSources } from "@shared/utils/ai-sources";
 import { stripMarkdown } from "@shared/utils/strip-markdown";
 import { pickVoice } from "@/lib/tts";
 import { aiPlanFor } from "@shared/utils/ai-plan";
 import { pageSuggestions } from "@shared/utils/ai-page-context";
-import { useSpeechInput } from "../lib/useSpeechInput";
+import { useSpeechInput } from "@/shared/hooks/useSpeechInput";
+import { useDraggablePanel } from "@/shared/hooks/useDraggablePanel";
 
 // Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
 export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
@@ -83,6 +84,11 @@ export function XyzAiWidget() {
   // Suggestions about the page the member is actually on, shown above the
   // general set. Derived from the path only - no extra fetch.
   const contextual = pageSuggestions(pathname);
+
+  // Drag the panel anywhere; the position persists. Disabled on small screens,
+  // where it is near full-width and there is nowhere useful to move it to.
+  const wideEnoughToDrag = useMediaQuery("(min-width: 768px)");
+  const drag = useDraggablePanel(wideEnoughToDrag);
 
   const firstName = String(user?.name ?? "").trim().split(/\s+/)[0] || null;
   // Not `user.membership` - that says "Premium" for an admin whose actual AI
@@ -263,14 +269,22 @@ export function XyzAiWidget() {
       exit={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.96 }}
       transition={{ type: "spring", stiffness: 240, damping: 24 }}
       className={cn(
-        "fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950 shadow-2xl shadow-black/60 ring-1 ring-gold-500/25 sm:right-6",
+        "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950 shadow-2xl shadow-black/60 ring-1 ring-gold-500/25 sm:right-6",
         hideOnMobile && "max-md:hidden"
       )}
+      ref={drag.ref}
+      style={drag.moved ? { transform: `translate(${-drag.offset.x}px, ${-drag.offset.y}px)` } : undefined}
       role="dialog"
       aria-label="XYZ AI assistant"
     >
       {/* Header */}
-      <div className="flex items-center gap-2.5 border-b border-white/10 bg-white/5 px-3.5 py-3">
+      <div
+        {...(wideEnoughToDrag ? drag.handleProps : {})}
+        className={cn(
+          "flex items-center gap-2.5 border-b border-white/10 bg-white/5 px-3.5 py-3",
+          wideEnoughToDrag && (drag.dragging ? "cursor-grabbing select-none" : "cursor-grab")
+        )}
+      >
         <span className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold-shine text-ink ring-1 ring-gold-500/40">
           <RobotIcon className="h-5 w-5" />
           <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-mint-400 ring-2 ring-ink-950" />
@@ -294,6 +308,16 @@ export function XyzAiWidget() {
           </span>
         )}
 
+        {drag.moved && (
+          <button
+            onClick={drag.reset}
+            aria-label="Reset position"
+            title="Snap back to the corner"
+            className="shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100"
+          >
+            <CornerDownRight className="h-4 w-4" />
+          </button>
+        )}
         {messages.length > 0 && (
           <button
             onClick={clearChat}
@@ -473,12 +497,28 @@ export function XyzAiWidget() {
           {blocked ? (
             <LimitCard plan={plan} limit={quota?.limit ?? 0} />
           ) : (
+          <>
+          {(speech.listening || speech.error) && (
+            <div className="border-t border-white/10 bg-white/5 px-4 pt-2 text-[11px]">
+              {speech.error ? (
+                <p className="text-amber-300/90">{speech.error}</p>
+              ) : (
+                <p className="flex items-center gap-1.5 text-mint-200">
+                  <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-mint-400" />
+                  {speech.interim || "Listening…"}
+                </p>
+              )}
+            </div>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
               send(input);
             }}
-            className="flex items-end gap-2 border-t border-white/10 bg-white/5 px-3 py-3"
+            className={cn(
+              "flex items-end gap-2 bg-white/5 px-3 py-3",
+              speech.listening || speech.error ? "" : "border-t border-white/10"
+            )}
           >
             <textarea
               value={input}
@@ -497,13 +537,13 @@ export function XyzAiWidget() {
             {speech.supported && (
               <button
                 type="button"
-                onClick={speech.start}
+                onClick={speech.toggle}
                 aria-label={speech.listening ? "Stop dictation" : "Dictate a question"}
                 title={speech.listening ? "Stop dictation" : "Dictate a question"}
                 className={cn(
                   "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ring-1 transition-colors",
                   speech.listening
-                    ? "bg-mint-500/20 text-mint-200 ring-mint-400/50"
+                    ? "mic-live bg-mint-500/25 text-mint-100 ring-mint-400/60"
                     : "text-zinc-400 ring-white/10 hover:bg-white/5 hover:text-zinc-200"
                 )}
               >
@@ -519,6 +559,7 @@ export function XyzAiWidget() {
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <SendHorizonal className="h-4 w-4" />}
             </button>
           </form>
+          </>
           )}
           <p className="px-4 pb-2 text-center text-[10px] text-zinc-600">
             XYZ AI can be wrong. Not financial advice.
