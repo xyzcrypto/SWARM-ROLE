@@ -21,6 +21,7 @@ import { lastSeenLabel } from "@/lib/last-seen";
 import { useHydrated } from "@/lib/useClientFlag";
 import { compressImage } from "@/lib/image";
 import { cn } from "@/lib/utils";
+import { MicButton } from "@/shared/components/MicButton";
 
 type Other = { id?: string; name: string; username: string | null; image: string | null; lastSeenAt?: string | null } | null;
 type Conversation = { id: string; other: Other; lastBody: string; lastMessageAt: string; unread: boolean; lastMine?: boolean; otherReadAt?: string | null };
@@ -871,11 +872,16 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
               placeholder="Write a message…"
               rows={1}
               maxLength={2000}
-              className="block max-h-32 min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/60 px-4 py-3 pr-10 text-[14px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
+              className="block max-h-32 min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/60 px-4 py-3 pr-20 text-[14px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
             />
             <button type="button" onClick={() => setPickerOpen((v) => !v)} className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 hover:text-gold-200" aria-label="Emoji">
               <Smile className="h-5 w-5" />
             </button>
+            <MicButton
+              size="sm"
+              className="absolute bottom-1.5 right-10 !ring-0"
+              onText={(t) => setDraft((b) => (b ? `${b} ${t}` : t).slice(0, 2000))}
+            />
             <AnimatePresence>{pickerOpen && <EmojiPicker onPick={(e) => setDraft((b) => (b + e).slice(0, 2000))} onClose={() => setPickerOpen(false)} />}</AnimatePresence>
           </div>
           <button onClick={() => void postMessage(draft, true)} disabled={!draft.trim() || sending} aria-label="Send message" className="btn-primary relative inline-flex h-11 shrink-0 items-center gap-1 rounded-2xl !px-2.5 disabled:opacity-50">
