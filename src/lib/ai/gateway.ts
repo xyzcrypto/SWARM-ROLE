@@ -59,11 +59,9 @@ async function withTimeout<T>(ms: number, fn: (signal: AbortSignal) => Promise<T
 }
 
 /** Map a SessionUser-ish object to its effective AI plan. */
-export function aiPlanFor(u: { membership?: string | null; role?: string | null; isSuperAdmin?: boolean | null } | null): AiPlan {
-  if (!u) return "Free";
-  if (u.isSuperAdmin || u.role === "ADMIN") return "Admin";
-  return u.membership === "Premium" ? "Premium" : "Free";
-}
+// Implementation lives in a client-safe module (this file reaches prisma through
+// the usage recorder, so the widget cannot import it). Re-exported for servers.
+export { aiPlanFor } from "@shared/utils/ai-plan";
 
 // --- one-shot completion ---------------------------------------------------
 
