@@ -12,11 +12,11 @@ import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
 import { RobotIcon } from "@/components/RobotIcon";
 import { cn } from "@/lib/utils";
-import { useReducedMotionSafe, useMediaQuery } from "@/lib/useClientFlag";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import { quotaLevel, type QuotaLevel } from "@shared/utils/ai-quota";
 import { extractSources } from "@shared/utils/ai-sources";
 import { stripMarkdown } from "@shared/utils/strip-markdown";
-import { pickVoice } from "@/lib/tts";
+import { pickVoice, chunkForSpeech } from "@/lib/tts";
 import { aiPlanFor } from "@shared/utils/ai-plan";
 import { pageSuggestions } from "@shared/utils/ai-page-context";
 import { useSpeechInput } from "@/shared/hooks/useSpeechInput";
@@ -79,7 +79,9 @@ export function XyzAiWidget() {
 
   // Dictation drops straight into the composer rather than sending, so a
   // misheard word can be fixed before it costs a request.
-  const speech = useSpeechInput((text) => setInput((v) => (v ? `${v} ${text}` : text)));
+  // continuous: Chrome otherwise ends the session at the first short pause,
+  // which cuts people off mid-sentence and reads as "it didn't hear me".
+  const speech = useSpeechInput((text) => setInput((v) => (v ? `${v} ${text}` : text)), { continuous: true });
 
   // Suggestions about the page the member is actually on, shown above the
   // general set. Derived from the path only - no extra fetch.
@@ -87,8 +89,11 @@ export function XyzAiWidget() {
 
   // Drag the panel anywhere; the position persists. Disabled on small screens,
   // where it is near full-width and there is nowhere useful to move it to.
-  const wideEnoughToDrag = useMediaQuery("(min-width: 768px)");
-  const drag = useDraggablePanel(wideEnoughToDrag);
+  // Both the launcher and the panel move, on every screen size. The earlier
+  // desktop-only gate meant it simply did nothing on a phone, which is where
+  // a floating button most gets in the way.
+  const drag = useDraggablePanel(true, "xyz-ai:panel-offset");
+  const fabDrag = useDraggablePanel(true, "xyz-ai:fab-offset");
 
   const firstName = String(user?.name ?? "").trim().split(/\s+/)[0] || null;
   // Not `user.membership` - that says "Premium" for an admin whose actual AI
@@ -99,6 +104,8 @@ export function XyzAiWidget() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Remaining speech chunks for the answer being read aloud.
+  const speechQueue = useRef<string[]>([]);
 
   // Keep the view pinned to the newest content while streaming.
   useEffect(() => {
@@ -157,6 +164,7 @@ export function XyzAiWidget() {
   }
 
   function stopSpeaking() {
+    speechQueue.current = [];
     if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
     setSpeakingIdx(null);
   }
@@ -179,21 +187,38 @@ export function XyzAiWidget() {
     if (!ttsSupported) return;
     const synth = window.speechSynthesis;
     if (speakingIdx === i) {
+      speechQueue.current = [];
       synth.cancel();
       setSpeakingIdx(null);
       return;
     }
     if (synth.speaking || synth.pending || synth.paused) synth.cancel();
-    const u = new SpeechSynthesisUtterance(stripMarkdown(text));
+
+    // One utterance per chunk: Chrome stops speaking after ~15s and some
+    // Android engines reject a long string, both silently. An AI answer is
+    // easily long enough to hit that.
+    const chunks = chunkForSpeech(stripMarkdown(text));
+    if (!chunks.length) return;
+    speechQueue.current = chunks.slice(1);
+
     const v = pickVoice(voices.length ? voices : synth.getVoices(), ["en-US", "en-GB", "en-IN", "en"]);
-    if (v) {
-      u.voice = v;
-      u.lang = v.lang;
-    }
-    u.onend = () => setSpeakingIdx((s) => (s === i ? null : s));
-    u.onerror = () => setSpeakingIdx((s) => (s === i ? null : s));
+    const utter = (t: string) => {
+      const u = new SpeechSynthesisUtterance(t);
+      if (v) { u.voice = v; u.lang = v.lang; }
+      u.onend = () => {
+        const next = speechQueue.current.shift();
+        if (next) utter(next);
+        else setSpeakingIdx((s) => (s === i ? null : s));
+      };
+      u.onerror = () => {
+        speechQueue.current = [];
+        setSpeakingIdx((s) => (s === i ? null : s));
+      };
+      synth.speak(u);
+    };
+    utter(chunks[0]);
+    synth.resume();
     setSpeakingIdx(i);
-    synth.speak(u);
   }
 
   /** Re-ask the last question, dropping the answer we didn't like. */
@@ -265,24 +290,30 @@ export function XyzAiWidget() {
   const panel = (
     <motion.div
       initial={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      // The drag offset rides framer-motion's own x/y rather than an inline
+      // `transform`. framer-motion rewrites transform every frame for the
+      // entrance spring, so an inline transform was simply overwritten and the
+      // panel never moved - the same class of bug as the launcher's :active
+      // scale. Handing it the offset means there is only ever one writer.
+      animate={{ opacity: 1, scale: 1, x: -drag.offset.x, y: -drag.offset.y }}
       exit={reduce ? { opacity: 0 } : { opacity: 0, y: 24, scale: 0.96 }}
-      transition={{ type: "spring", stiffness: 240, damping: 24 }}
+      // No spring while the pointer is down, or the panel lags behind the cursor.
+      transition={drag.dragging ? { duration: 0 } : { type: "spring", stiffness: 240, damping: 24 }}
       className={cn(
-        "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-950 shadow-2xl shadow-black/60 ring-1 ring-gold-500/25 sm:right-6",
+        "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-[20px] sm:right-6",
         hideOnMobile && "max-md:hidden"
       )}
       ref={drag.ref}
-      style={drag.moved ? { transform: `translate(${-drag.offset.x}px, ${-drag.offset.y}px)` } : undefined}
+      style={drag.handleProps.style}
       role="dialog"
       aria-label="XYZ AI assistant"
     >
       {/* Header */}
       <div
-        {...(wideEnoughToDrag ? drag.handleProps : {})}
+        {...drag.handleProps}
         className={cn(
           "flex items-center gap-2.5 border-b border-white/10 bg-white/5 px-3.5 py-3",
-          wideEnoughToDrag && (drag.dragging ? "cursor-grabbing select-none" : "cursor-grab")
+          drag.dragging ? "cursor-grabbing select-none" : "cursor-grab"
         )}
       >
         <span className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gold-shine text-ink ring-1 ring-gold-500/40">
@@ -575,12 +606,19 @@ export function XyzAiWidget() {
 
       {/* Launcher */}
       <motion.button
-        onClick={() => setOpen((v) => !v)}
+        ref={fabDrag.ref as any}
+        {...fabDrag.handleProps}
+        style={fabDrag.handleProps.style}
+        // A drag must not also open the panel, so a gesture that passed the
+        // movement threshold swallows its own click.
+        onClick={() => {
+          if (fabDrag.wasDragged()) return;
+          setOpen((v) => !v);
+        }}
         aria-label={open ? "Close XYZ AI" : "Open XYZ AI"}
-        initial={reduce ? undefined : { opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 1, scale: 1 }}
-        whileHover={reduce ? undefined : { scale: 1.05 }}
-        whileTap={reduce ? undefined : { scale: 0.95 }}
+        initial={reduce ? undefined : { opacity: 0 }}
+        animate={{ opacity: 1, x: -fabDrag.offset.x, y: -fabDrag.offset.y }}
+        transition={fabDrag.dragging ? { duration: 0 } : undefined}
         className={cn(
           "ai-fab fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-[60] inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-mint-400 to-mint-600 text-ink shadow-lg shadow-mint-500/30 ring-1 ring-mint-300/50 sm:right-6 md:bottom-5",
           hideOnMobile && "max-md:hidden"

@@ -5,6 +5,147 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (44) — The panel wouldn't move for the same reason the launcher didn't, and "Listen" was cut off by a browser limit
+
+- **🐛 Dragging the AI panel did nothing — same class of bug as (43), one layer up.** The
+  offset was applied as an inline `transform`, but the panel is a `motion.div` whose entrance
+  spring animates `y` and `scale`. **framer-motion rewrites `transform` on that element every
+  frame**, so the inline value was overwritten before it ever painted. Fixed by handing the
+  offset to framer-motion's own `x`/`y` instead, so there is exactly one writer of `transform`.
+  The launcher was moved onto `x`/`y` too, for the same reason rather than waiting for it to
+  bite. `transition: { duration: 0 }` while the pointer is down, or the panel springs along
+  behind the cursor.
+- **🐛 News "Listen" failed on many devices because the utterance was too long.** Chrome
+  (desktop and Android) silently stops speaking after roughly **15 seconds**, and several
+  Android engines reject a very long string outright. Both fail with no error — the button
+  just flips back, which is indistinguishable from "nothing happened". A briefing is easily
+  long enough to hit it.
+  - `chunkForSpeech()` splits on sentence boundaries into ~180-char utterances, spoken as a
+    queue that advances on `onend`. Each utterance restarts the browser's timer, so the limit
+    never applies. A sentence longer than the limit on its own breaks at the last space, never
+    mid-word. 6 unit tests, including "every word survives the split".
+  - The queue lives in a **ref, not state**: a live utterance's `onend` must read the current
+    queue, and a stale closure would stop playback after the first chunk.
+  - Genuine failures now surface a line instead of flipping the button back silently.
+    `interrupted`/`canceled` stay quiet - that is what a deliberate stop looks like.
+  - The AI panel's read-aloud had the identical defect and got the identical fix.
+- Files: `src/modules/ai/lib/tts.ts`, `src/lib/ai/__tests__/tts-chunk.test.ts` (new, 6 cases),
+  `src/modules/news/components/BriefingBlock.tsx`, `src/modules/ai/components/XyzAiWidget.tsx`.
+- Checks: 564 tests, lint at the 36-warning baseline, build exit 0, route table identical.
+- **Still not verified live:** voice input, dragging and Listen all need a real browser and a
+  session. The `microphone=(self)` header fix remains on this branch, not on production.
+
+---
+
+## 2026-08-07 (43) — The launcher vanished because a hand-written CSS rule stole its `position`
+
+**🐛 Two bugs, both introduced by (41)/(42) on this branch, both in three lines of CSS.**
+
+- **`.ai-fab { position: relative }` removed the launcher from the page.** Tailwind flattens
+  its layers at build time, so in the emitted stylesheet plain **source order** decides — and
+  anything appended to `globals.css` lands after `.fixed{position:fixed}` and wins. The button
+  dropped out of the viewport corner into normal document flow at the end of `<body>`, about
+  2000px down, invisible. It was only ever there to give the pseudo-elements a positioned
+  ancestor, which `fixed` already provides.
+- **`.ai-fab:active { transform: scale(0.94) }` killed the drag.** The drag offset is applied
+  as an inline `translate`; a `transform` from `:active` replaces it outright, so the launcher
+  snapped back to the corner the moment it was pressed — which is every moment of a drag.
+- **⚠️ Measured, not reasoned.** The compiled stylesheet was loaded into a real browser and
+  the computed style read both ways: **with** the rule, `position: relative` at `y=1980`,
+  out of view; **without** it, `position: fixed` at the bottom-right corner, in view. The
+  first attempt at that harness linked the stylesheet by an absolute filesystem path, so it
+  404'd and *every* style was missing — which briefly looked like the fix had failed. Worth
+  recording: a harness that silently loads nothing produces the same symptom as the bug.
+- **Pinned by `ai-fab-position.test.ts`**, which parses `globals.css` and fails if any
+  hand-written `.ai-fab` rule sets `position` or `transform`.
+- Also: `@property --ai-spin` / `@keyframes ai-spin` had been deleted along with the removed
+  panel aura in (42) while `.ai-fab::before` still referenced them, leaving the orbital ring
+  static. Restored.
+- Files: `src/app/globals.css`, `src/shared/utils/__tests__/ai-fab-position.test.ts` (new).
+- Checks: 558 tests, lint at the 36-warning baseline, build exit 0, route table untouched.
+- **Still not verified live:** voice. `microphone=(self)` is on this branch and not on
+  production, so any test against the live site still meets the old blocking header.
+
+---
+
+## 2026-08-07 (42) — The drag handle was swallowing the panel's own buttons
+
+- **🐛 Clear chat and Close stopped working, and I broke them in (41).** Rewriting
+  `useDraggablePanel` dropped a guard the first version had — *"a press that starts on a
+  control belongs to that control, not the drag"* — and the header calls
+  `setPointerCapture` on pointerdown. Pointer capture redirects the following **click** to the
+  capturing element, so every button inside the header went dead. Both halves are fixed:
+  the `closest("button,a,input,…")` guard is back, **and** capture now happens only once
+  movement passes the 6px threshold, so a press that never moves can never steal a click.
+  Pinned by `drag-guard.test.ts`.
+  - ⚠️ That test reads the hook's source and asserts the guard's *shape*, because this project's
+    vitest runs without a DOM. **It proves the guard is present, not that a click lands.** Said
+    plainly here so nobody later mistakes it for an interaction test.
+- **Dictation kept cutting off mid-sentence.** Chrome ends a non-continuous session at the
+  first short pause, which reads as "it didn't hear me". Composers (XYZ AI, DMs, community
+  chat) now dictate continuously until stopped; search boxes stay single-shot, which is right
+  for a short query.
+- **A conic aura on the panel was built, rendered, and removed.** The panel is
+  `overflow: hidden` — the message list scrolls inside it — so a rim drawn on `::after` is
+  clipped to a stub in one corner. The render showed it; it was deleted rather than shipped
+  looking broken. The launcher is not clipped, so it keeps its counter-rotating orbital ring.
+  Panel depth stays with the radial glows and lit top edge, which survive the clip.
+- Files: `src/shared/hooks/useDraggablePanel.ts`, `src/app/globals.css`,
+  `src/modules/ai/components/XyzAiWidget.tsx`, `MessagesClient.tsx`, `ChatClient.tsx`,
+  `src/shared/utils/__tests__/drag-guard.test.ts` (new, 3 cases).
+- Checks: 556 tests, lint at the 36-warning baseline, build exit 0, route table untouched.
+- **Still unverified live:** voice itself. The `microphone=(self)` fix from (41) is on this
+  branch and **not yet on production**, so any voice test against the live site is still
+  hitting the old blocking header.
+
+---
+
+## 2026-08-07 (41) — Voice could never have worked: the site's own header blocked the mic
+
+**(40) fixed the wrong layer.** The three code-level causes it found were all real, but none of
+them was why voice failed.
+
+- **`next.config.mjs` sent `Permissions-Policy: microphone=()` on every route.** An empty
+  allowlist blocks the microphone for **every** origin — including this site. The browser
+  refused dictation before a single line of our code ran, so no amount of hook fixing could
+  have helped. Now `microphone=(self)`; camera and geolocation stay fully blocked.
+- **⚠️ And (40)'s error message actively pointed the wrong way**: *"Allow mic access for this
+  site in your browser settings."* The visitor's settings were fine — the site was refusing
+  itself. Reworded to *"Microphone unavailable. Check that this site is allowed to use your
+  mic."*, which is true for both causes.
+- **Pinned by `permissions-policy.test.ts`**, which reads the real `next.config.mjs`. Nothing
+  inside the app can observe this header, so the config file is the only place it can be
+  caught — and the test reads that file directly, not a re-export, since a shim would match
+  nothing and pass while verifying nothing.
+
+**Dragging did nothing where it was wanted.** (40) gated it to `min-width: 768px`, so on a
+phone — where a floating button most gets in the way — it was simply inert. And it moved only
+the *panel*; the **launcher** was never draggable, which is the thing that actually floats.
+- Both now drag, on every screen size. `useDraggablePanel` takes a storage key so the two
+  positions persist independently.
+- A **6px movement threshold** separates a tap from a drag, and `wasDragged()` lets the
+  launcher swallow the click that ends a drag — without it, moving the button would open the
+  panel every time.
+- `touch-action: none` on the handles, so dragging on a phone doesn't scroll the page instead.
+- framer-motion's `whileHover`/`whileTap` scale was dropped from the launcher: it writes its
+  own `transform` and would have fought the drag offset every frame.
+
+**Panel look.** Flat `ink-950` with a hairline ring became a warm gold radial at the head, a
+cool mint one at the foot, a gradient top-edge hairline that reads as lit-from-above, and a
+layered elevation shadow. The launcher gained a breathing halo. Both themes were **rendered and
+looked at**, not assumed — the first light-mode render came back with unreadable text, which
+turned out to be the *preview harness* hardcoding a dark-theme text colour rather than an app
+bug; the harness was corrected and re-rendered before drawing any conclusion.
+- Scoped to `.ai-surface` / `.ai-fab`. Nothing else on the site changes.
+- Files: `next.config.mjs`, `src/shared/hooks/useSpeechInput.ts`,
+  `src/shared/hooks/useDraggablePanel.ts`, `src/modules/ai/components/XyzAiWidget.tsx`,
+  `src/app/globals.css`, `src/shared/utils/__tests__/permissions-policy.test.ts` (new),
+  `speech-error.test.ts`.
+- Checks: 553 tests, lint at the 36-warning baseline, build exit 0, route table untouched.
+- **⌘K left alone at the owner's call** — `CommandPalette` keeps sole ownership of the chord.
+
+---
+
 ## 2026-08-07 (40) — Voice input fixed and rolled out to six surfaces; AI panel visible in light mode and draggable
 
 **(37) shipped voice input that didn't work in practice.** Reading the code back found three

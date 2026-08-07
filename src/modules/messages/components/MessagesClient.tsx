@@ -878,6 +878,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
               <Smile className="h-5 w-5" />
             </button>
             <MicButton
+              continuous
               size="sm"
               className="absolute bottom-1.5 right-10 !ring-0"
               onText={(t) => setDraft((b) => (b ? `${b} ${t}` : t).slice(0, 2000))}

@@ -1750,6 +1750,7 @@ export function ChatClient({
                   <Smile className="h-5 w-5" />
                 </button>
                 <MicButton
+                  continuous
                   size="sm"
                   className="absolute bottom-1.5 right-10 !ring-0"
                   onText={(t) => setBody((b) => (b ? `${b} ${t}` : t).slice(0, MAX_LENGTH))}

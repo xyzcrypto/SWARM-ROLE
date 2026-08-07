@@ -50,7 +50,11 @@ export function speechErrorMessage(code: string): string {
   switch (code) {
     case "not-allowed":
     case "service-not-allowed":
-      return "Microphone blocked. Allow mic access for this site in your browser settings.";
+      // Two very different causes share this code: the visitor declined the
+      // browser prompt, or the site's own Permissions-Policy refused the mic
+      // before the prompt could appear. The second is what actually shipped in
+      // #259, so the message names the browser prompt without blaming it.
+      return "Microphone unavailable. Check that this site is allowed to use your mic.";
     case "no-speech":
       return "Didn't catch that - try speaking again.";
     case "audio-capture":
