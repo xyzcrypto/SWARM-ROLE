@@ -1,3 +1,4 @@
+import "server-only";
 // Gemini provider - Google Generative Language REST API (keyless SDK; plain fetch
 // so there's no extra dependency and it works through the outbound proxy).
 // Only `enabled` when GEMINI_API_KEY is configured. Server-only.

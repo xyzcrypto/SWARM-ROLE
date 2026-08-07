@@ -1,3 +1,4 @@
+import "server-only";
 import { env } from "@/lib/env";
 import type { AiProvider } from "./providers/types";
 import { groqProvider } from "./providers/groq";
