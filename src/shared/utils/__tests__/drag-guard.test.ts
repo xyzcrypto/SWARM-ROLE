@@ -14,7 +14,18 @@ const src = readFileSync("src/shared/hooks/useDraggablePanel.ts", "utf8");
 
 describe("drag handle must not swallow clicks on its controls", () => {
   it("ignores a press that starts on an interactive element", () => {
-    expect(src).toMatch(/closest\?\.\(\s*"button,a,input,textarea,select,\[role='button'\]"\s*\)/);
+    // Asserted per-selector rather than as one exact string, so adding a new
+    // kind of control to the list does not fail the test for the wrong reason.
+    const guard = src.match(/closest\?\.\(\s*"([^"]+)"\s*\)/)?.[1] ?? "";
+    for (const sel of ["button", "a", "input", "textarea", "select", "[role='button']"]) {
+      expect(guard.split(",")).toContain(sel);
+    }
+  });
+
+  it("also ignores presses on a resize handle", () => {
+    // A resize would otherwise start a drag at the same time and fight it.
+    const guard = src.match(/closest\?\.\(\s*"([^"]+)"\s*\)/)?.[1] ?? "";
+    expect(guard.split(",")).toContain("[data-resize]");
   });
 
   it("captures the pointer only once movement passes the threshold", () => {

@@ -21,6 +21,7 @@ import { aiPlanFor } from "@shared/utils/ai-plan";
 import { pageSuggestions } from "@shared/utils/ai-page-context";
 import { useSpeechInput } from "@/shared/hooks/useSpeechInput";
 import { useDraggablePanel } from "@/shared/hooks/useDraggablePanel";
+import { useResizablePanel, type Edge } from "@/shared/hooks/useResizablePanel";
 
 // Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
 export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
@@ -41,6 +42,19 @@ const QUICK_SUGGESTIONS = [
   { icon: BookOpen, tone: "mint" as const, q: "Explain how staking rewards work", label: "How staking works" },
   { icon: BarChart3, tone: "gold" as const, q: "How should I think about position sizing?", label: "Position sizing" },
 ];
+
+// Thin hit areas on each edge, larger square ones in the corners. Kept to a
+// few px so they never steal a click meant for the content underneath.
+const RESIZE_HANDLE: Record<Edge, string> = {
+  n: "left-3 right-3 top-0 h-1.5 cursor-ns-resize",
+  s: "left-3 right-3 bottom-0 h-1.5 cursor-ns-resize",
+  e: "top-3 bottom-3 right-0 w-1.5 cursor-ew-resize",
+  w: "top-3 bottom-3 left-0 w-1.5 cursor-ew-resize",
+  nw: "left-0 top-0 h-3 w-3 cursor-nwse-resize",
+  ne: "right-0 top-0 h-3 w-3 cursor-nesw-resize",
+  sw: "left-0 bottom-0 h-3 w-3 cursor-nesw-resize",
+  se: "right-0 bottom-0 h-3 w-3 cursor-nwse-resize",
+};
 
 const TONE: Record<"gold" | "mint" | "violet", string> = {
   gold: "bg-gold-500/10 text-gold-200",
@@ -94,6 +108,10 @@ export function XyzAiWidget() {
   // a floating button most gets in the way.
   const drag = useDraggablePanel(true, "xyz-ai:panel-offset");
   const fabDrag = useDraggablePanel(true, "xyz-ai:fab-offset");
+  // Resize from any edge or corner. Pulling the right/bottom edge also nudges
+  // the drag offset, so the opposite edge stays visually still instead of the
+  // whole panel sliding.
+  const resize = useResizablePanel("xyz-ai:panel-size", drag.nudge);
 
   const firstName = String(user?.name ?? "").trim().split(/\s+/)[0] || null;
   // Not `user.membership` - that says "Premium" for an admin whose actual AI
@@ -303,11 +321,28 @@ export function XyzAiWidget() {
         "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-[20px] sm:right-6",
         hideOnMobile && "max-md:hidden"
       )}
-      ref={drag.ref}
-      style={drag.handleProps.style}
+      ref={(el) => {
+        drag.ref.current = el;
+        resize.ref.current = el;
+      }}
+      style={{
+        ...drag.handleProps.style,
+        ...(resize.size ? { width: resize.size.w, height: resize.size.h } : {}),
+      }}
       role="dialog"
       aria-label="XYZ AI assistant"
     >
+      {/* Resize handles: four edges + four corners. `data-resize` (set by
+          handleProps) also keeps the header's drag handler off them. */}
+      {(["n", "s", "e", "w", "ne", "nw", "se", "sw"] as Edge[]).map((edge) => (
+        <span
+          key={edge}
+          {...resize.handleProps(edge)}
+          aria-hidden="true"
+          className={cn("absolute z-20", edge === "sw" && "resize-grip", RESIZE_HANDLE[edge])}
+        />
+      ))}
+
       {/* Header */}
       <div
         {...drag.handleProps}
@@ -339,11 +374,14 @@ export function XyzAiWidget() {
           </span>
         )}
 
-        {drag.moved && (
+        {(drag.moved || resize.resized) && (
           <button
-            onClick={drag.reset}
-            aria-label="Reset position"
-            title="Snap back to the corner"
+            onClick={() => {
+              drag.reset();
+              resize.reset();
+            }}
+            aria-label="Reset size and position"
+            title="Snap back to the default size and corner"
             className="shrink-0 rounded-lg p-1.5 text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100"
           >
             <CornerDownRight className="h-4 w-4" />

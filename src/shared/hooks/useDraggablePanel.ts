@@ -70,7 +70,7 @@ export function useDraggablePanel(enabled: boolean, storageKey: string) {
       // because pointer capture (below) redirects the click to the capturing
       // element. This guard existed, was dropped in a rewrite, and took the
       // header's buttons with it.
-      if ((e.target as HTMLElement)?.closest?.("button,a,input,textarea,select,[role='button']")) return;
+      if ((e.target as HTMLElement)?.closest?.("button,a,input,textarea,select,[role='button'],[data-resize]")) return;
       startRef.current = { px: e.clientX, py: e.clientY, ox: offset.x, oy: offset.y };
       movedRef.current = false;
     },
@@ -109,6 +109,12 @@ export function useDraggablePanel(enabled: boolean, storageKey: string) {
     });
   }, [storageKey]);
 
+  /** Shift the anchor by a delta - used when a resize from the right/bottom
+   *  edge must keep the opposite edge visually still. */
+  const nudge = useCallback((dx: number, dy: number) => {
+    setOffset((o) => clampToViewport({ x: o.x + dx, y: o.y + dy }, elRef.current));
+  }, []);
+
   const reset = useCallback(() => {
     setOffset({ x: 0, y: 0 });
     try {
@@ -123,6 +129,7 @@ export function useDraggablePanel(enabled: boolean, storageKey: string) {
     offset,
     dragging,
     reset,
+    nudge,
     moved: offset.x !== 0 || offset.y !== 0,
     /** True if the gesture that just ended was a drag - use to suppress a click. */
     wasDragged: () => movedRef.current,
