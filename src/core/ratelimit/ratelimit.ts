@@ -67,6 +67,11 @@ const limiters = {
   xp: make(30, 60, "xp"), // 30/min per user - XP award pings
   shareCreate: make(15, 60, "share_create"), // 15/min/IP - short-link creation (anonymous)
   postView: make(30, 60, "post_view"), // 30/min/IP - article view beacon (anonymous)
+  media: make(120, 60, "media"), // 120/min/IP - api/media image serving (anonymous). Generous on purpose:
+  // real traffic is served by the CDN and only reaches the origin on a genuine cache miss, so a visitor
+  // costs a handful of these per session even on an avatar-heavy page. What it bounds is the residue the
+  // token check cannot remove - a valid user id with a forged token still costs an invocation and a DB
+  // read before the 404, and that is the only part of the old unbounded cache-key vector left.
   otpEmail: make(3, 600, "otp_email"), // 3/10min per target email - anti email-bombing (independent of the IP-keyed signup/password limiters, since an attacker can rotate IPs but not the victim's email)
   loginIp: make(20, 60, "login_ip"), // 20/min/IP - independent of the per-email `login` limiter, which a
   // bot rotating through many fake/guessed emails from one IP barely engages. Each failed login attempt

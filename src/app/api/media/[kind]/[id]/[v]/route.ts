@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import { handleError } from "@/lib/api";
+import { handleError, isCuid } from "@/lib/api";
 import { parseDataUrl } from "@/lib/media";
+import { mediaToken } from "@/lib/utils";
+import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
@@ -63,32 +65,73 @@ const CACHE = "public, max-age=604800, s-maxage=2592000, stale-while-revalidate=
 // about to upload one. Short and revalidating.
 const MISS_CACHE = "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
 
-// `v` is deliberately unused: it exists only to make the URL change when the
-// image does, so a long cache window can never mask a new upload.
-export async function GET(_req: Request, ctx: { params: Promise<{ kind: string; id: string; v: string }> }) {
+const notFound = () => new Response("Not found", { status: 404, headers: { "Cache-Control": MISS_CACHE } });
+
+// ── Why `v` is now checked, when it used to be ignored ────────────────────────
+// It was documented as "deliberately unused: it exists only to make the URL
+// change when the image does". That is what it is FOR, but ignoring it made
+// every forged value a distinct URL - and therefore a guaranteed CDN MISS, i.e.
+// a function invocation and a DB read per request, from anonymous callers, with
+// no upper bound. Measured on production before this change:
+//
+//   GET /api/media/avatar/<real id>/forged<random>
+//   → 200, redirected:false, x-vercel-cache: MISS, 23,776 bytes
+//
+// A real link already carries the correct token, so verifying it changes nothing
+// for legitimate traffic and collapses the cache-key space from unbounded to one
+// key per image.
+//
+// ⚠️ The check CANNOT come before the DB read, and that is inherent, not an
+// oversight: the expected token is derived from the stored value (see
+// `mediaToken`), so the row has to be in hand to know what to compare against.
+// `isCuid` and the rate limiter are what stand in front of the query; the token
+// check stands in front of the body and the cache entry.
+export async function GET(req: Request, ctx: { params: Promise<{ kind: string; id: string; v: string }> }) {
   try {
-    const { kind, id } = await ctx.params;
-    if (!(kind in KINDS)) return new Response("Not found", { status: 404, headers: { "Cache-Control": MISS_CACHE } });
+    const { kind, id, v } = await ctx.params;
+    if (!(kind in KINDS)) return notFound();
     const field = KINDS[kind as Kind];
+
+    // Syntactic, free, and before anything that costs: a bogus id can no longer
+    // buy a database round trip.
+    if (!isCuid(id)) return notFound();
+
+    // Bounds the residue the token check cannot remove - a valid id with a wrong
+    // token still costs an invocation and a query, and 404s are not free at
+    // scale. Deliberately generous: legitimate loads are served by the CDN and
+    // only ever reach here on a cache miss, so a real visitor makes a handful of
+    // these per session, not dozens. Keyed by IP because the route is anonymous
+    // and there is no user to key on.
+    const { success } = await rateLimit("media", clientIp(req));
+    if (!success) return new Response("Too many requests", { status: 429, headers: { "Cache-Control": "private, no-store" } });
 
     const row = await prisma.user
       .findUnique({ where: { id }, select: { [field]: true } as { image: true } | { bannerImage: true } })
       .catch(() => null);
     const value = (row as Record<string, unknown> | null)?.[field];
-    if (typeof value !== "string" || !value) {
-      return new Response("Not found", { status: 404, headers: { "Cache-Control": MISS_CACHE } });
-    }
+    if (typeof value !== "string" || !value) return notFound();
 
     // Already hosted somewhere real (Supabase Storage, an OAuth avatar, a
     // pasted link) - send the caller there rather than proxying the bytes
     // through a function. `publicImageUrl` normally routes those direct, so
     // this only catches a URL that changed kind after a page was cached.
+    //
+    // The token is deliberately NOT enforced on this branch. A non-`data:` value
+    // has no token to derive - `publicImageUrl` returns it verbatim - so any
+    // request arriving here carries one computed from the OLD data: value, and
+    // checking it would 404 exactly the stale links this branch exists to
+    // rescue. It is also the cheap path: a redirect, no body.
     if (!value.startsWith("data:")) {
       return new Response(null, { status: 307, headers: { Location: value, "Cache-Control": MISS_CACHE } });
     }
 
+    // The expensive path, and the only one with an unbounded cache-key space.
+    // A token we did not issue gets a 404 that the CDN may cache briefly, so a
+    // repeated forged URL is absorbed at the edge instead of returning here.
+    if (v !== mediaToken(value)) return notFound();
+
     const parsed = parseDataUrl(value);
-    if (!parsed) return new Response("Not found", { status: 404, headers: { "Cache-Control": MISS_CACHE } });
+    if (!parsed) return notFound();
 
     return new Response(new Uint8Array(parsed.body), {
       status: 200,
