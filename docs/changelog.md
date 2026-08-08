@@ -5,6 +5,60 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-08 (47) — `/api/media` stops minting a new cache key for every forged URL
+
+- **✅ (46)'s observable ran and passed on production.** `document.querySelectorAll('script[type="application/ld+json"]').length`
+  → **3** on the homepage. The jsonld shim inversion did not break the re-export chain;
+  Organization, WebSite and FAQPage all still render.
+- **The bug, measured on production before the fix.** `api/media/[kind]/[id]/[v]` accepted
+  the `v` segment and never checked it — it was documented as *"deliberately unused: it
+  exists only to make the URL change when the image does"*. That is what it is for, but
+  ignoring it made every forged value a distinct URL, and a distinct URL is a guaranteed
+  CDN miss:
+
+  ```
+  GET /api/media/avatar/<real id>/forged<random>
+  → 200 · redirected:false · x-vercel-cache: MISS · 23,776 bytes
+  ```
+
+  Anonymous, unthrottled, one invocation and one DB read per request, no upper bound. Real
+  user ids need no guessing — `publicImageUrl` renders them into public HTML beside every
+  chat message. Three accounts currently store avatars as `data:` URLs, so the expensive
+  branch had live targets.
+- **⚠️ The 08-06 audit over-stated this by ~200×, and the correction is the useful part.**
+  It sized the finding on the 5 MB upload cap and said ~2,000 requests would consume the
+  10 GB monthly Fast Origin Transfer budget. The real avatar is ~24 KB, so it is nearer
+  **450,000 requests** — a deliberate script running for an hour, not an accident. The
+  mechanism was reported correctly; the magnitude was not. Fixed anyway: unbounded is
+  unbounded, and nobody will be watching this for months.
+- **Three defences, in cost order.** `isCuid(id)` rejects a bogus id before any query; an
+  IP-keyed `media` bucket (120/min — generous, since real traffic is CDN-served and only
+  reaches the origin on a genuine miss) bounds the rest; and `v` is now compared against
+  the token the URL was built with, so the cache-key space collapses from unbounded to one
+  key per image.
+- **The token check cannot come before the DB read, and that is inherent.** The expected
+  token is derived from the stored value, so the row has to be in hand to know what to
+  compare against. `isCuid` and the limiter are what stand in front of the query; the token
+  check stands in front of the body and the cache entry. Written into the route so the next
+  reader does not "fix" the ordering.
+- **`mediaToken()` is now exported and used by both sides** rather than the route
+  re-deriving the arithmetic. Two copies would drift, and the drift would surface as every
+  avatar 404ing at once — a link built by one formula judged by the other.
+- **The token is deliberately NOT enforced on the 307 branch.** A non-`data:` value has no
+  token to derive, so a request reaching it carries one computed from the old `data:` value;
+  checking it would 404 exactly the stale links that branch exists to rescue. It is also
+  the cheap path — a redirect, no body.
+- **Pinned by `media-cache-key.test.ts`, proved against four perturbations:** dropping the
+  `v` check, moving `isCuid` after the query, removing the limiter, and reverting the token
+  sampling to tail-only (the old stale-avatar bug). Each fails the assertion that covers it.
+- Route table unchanged at **131/22/109/12**. 583 tests green.
+- **Not fixed here, noticed while checking:** those three avatars are stored as base64 in
+  the `User` table because Supabase Storage is unconfigured or failing at upload. Any query
+  selecting `image` for those rows drags a multi-hundred-KB blob out of Postgres. Worth a
+  look, separately.
+
+---
+
 ## 2026-08-08 (46) — The last inverted shim, and a test for the `</script>` escaping
 
 Closes the duplicate-module trap from the 08-06 audit. **Two of its three items were

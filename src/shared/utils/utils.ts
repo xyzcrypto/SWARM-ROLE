@@ -142,10 +142,28 @@ export function publicImageUrl(
   if (typeof url !== "string" || !url) return null;
   if (!url.startsWith("data:")) return url;
   if (!ownerId) return null;
-  const mid = Math.floor(url.length / 2);
-  const sample = url.slice(24, 30) + url.slice(mid, mid + 6) + url.slice(-6);
-  const token = url.length.toString(36) + sample.replace(/[^a-zA-Z0-9]/g, "");
-  return `/api/media/${kind}/${encodeURIComponent(ownerId)}/${token}`;
+  return `/api/media/${kind}/${encodeURIComponent(ownerId)}/${mediaToken(url)}`;
+}
+
+/**
+ * The version token for a stored `data:` image — the trailing path segment of
+ * the URL `publicImageUrl` builds.
+ *
+ * Exported, and used by BOTH sides on purpose. `api/media/[kind]/[id]/[v]`
+ * recomputes it to reject a segment it did not issue; if that route derived the
+ * expected token with its own copy of this arithmetic, the two would drift and
+ * the drift would show up as every avatar 404ing at once. One function, two
+ * callers.
+ *
+ * Not a secret and not a signature — it is derived from a value the response
+ * itself contains, so anyone holding the image can compute it. Its job is to
+ * bound the cache-key space to one key per image, not to authenticate: these are
+ * public profile pictures, and the route was already anonymous by design.
+ */
+export function mediaToken(dataUrl: string): string {
+  const mid = Math.floor(dataUrl.length / 2);
+  const sample = dataUrl.slice(24, 30) + dataUrl.slice(mid, mid + 6) + dataUrl.slice(-6);
+  return dataUrl.length.toString(36) + sample.replace(/[^a-zA-Z0-9]/g, "");
 }
 
 /**
