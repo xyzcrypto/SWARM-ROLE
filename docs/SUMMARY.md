@@ -33,5 +33,6 @@
 * [Audit & Handoff — 2026-07-11](AUDIT-2026-07-11.md)
 * [Latency & Resource Audit — 2026-08-01](AUDIT-2026-08-01-latency.md)
 * [Engineering Review — 2026-08-05](REPORT-2026-08-05-engineering-review.md)
+* [Deep Audit (delta since 2f34b83) — 2026-08-06](AUDIT-2026-08-06-delta.md)
 * [Team Setup & Collaboration](TEAM-SETUP.md)
 * [Changelog](changelog.md)
