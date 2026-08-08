@@ -5,6 +5,39 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-08 (48) — The 08-06 audit is in the repo, with its findings marked resolved
+
+Docs only. Two things that existed nowhere durable are now committed.
+
+- **✅ (47)'s observable ran and passed on production.** On `www.xyzcrypto.io`: three real
+  media URLs → **200**, a forged version token → **404**. Both directions, against live
+  rows. The forged 404 alone would not have been proof — it is consistent with "the check
+  is too aggressive and everything 404s" — so the three 200s are the half that rules out
+  the drift failure.
+- **`AUDIT-2026-08-06-delta.md` is committed and listed in `SUMMARY.md`.** It had existed
+  only as a downloaded file. Five PRs (#256, #263, #264, and #255/#257 incidentally) were
+  written against its findings, and none of that was traceable to a document in the repo.
+- **⚠️ It carries a status banner, because a snapshot committed as a live task list is the
+  drift it was written to catch.** Four of its eight findings closed within two days: 1
+  (`/api/media`) by #264, 2 (vacuous test) by #256, 3 (duplicate `markdown.tsx`) by
+  #255/#257, 4 (inverted `jsonld` shim) by #263. Findings 5, 6 and 7 remain open and are
+  labelled as such, with why each is safe to leave.
+- **The banner also records the corrections the body does not make.** Finding 1's magnitude
+  was over-stated by ~200× — sized on the 5 MB upload cap when the real avatar is ~24 KB,
+  so budget exhaustion is ~450k requests, not ~2k. And repository configuration was never
+  examined at all, which outranks everything in the document: `main` is unprotected on a
+  **public** repo with two `write` collaborators.
+- **Why this was worth a PR of its own.** The audit's single most useful finding was that
+  the two prior audits it had been told to defer to **had never existed** — delivered in a
+  chat session, never committed, and days later nobody could say what they covered. Leaving
+  this one in a downloads folder would have reproduced that exactly.
+- **Still open, recorded so the next session inherits it rather than re-deriving it:**
+  findings 5/6/7 · three high npm advisories (CI is green only because of `|| true`) ·
+  branch protection · the Sentry DSN · CodeQL (free now the repo is public) · the two
+  competing admin definitions.
+
+---
+
 ## 2026-08-08 (47) — `/api/media` stops minting a new cache key for every forged URL
 
 - **✅ (46)'s observable ran and passed on production.** `document.querySelectorAll('script[type="application/ld+json"]').length`
