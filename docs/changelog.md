@@ -5,6 +5,44 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-08 (46) — The last inverted shim, and a test for the `</script>` escaping
+
+Closes the duplicate-module trap from the 08-06 audit. **Two of its three items were
+already gone** — worth recording, because the brief for this change asked to delete a
+file that had since become load-bearing.
+
+- **The `markdown.tsx` duplicate no longer exists, and acting on the old description
+  would have broken the site.** The audit found `src/lib/markdown.tsx` (94 lines, real)
+  and `src/shared/utils/markdown.tsx` (94 lines, real, unreferenced) and said to delete
+  the unreferenced one. #255/#257 have since **inverted them**: `src/lib` is now the
+  2-line shim and `src/shared/utils` holds the real 123-line renderer that all three
+  consumers reach through it. "Delete the unreferenced copy" would now delete the
+  sanitizer. Verified before touching anything; nothing was deleted.
+- **`jsonld` was the one real remaining item, and is now inverted to match the
+  convention.** `src/shared/utils/jsonld.tsx` holds the `<JsonLd>` component; `src/lib/jsonld.tsx`
+  is a 2-line shim. All seven consumers import `@/lib/jsonld` and are untouched. The
+  internal re-export was repointed `@/lib/seo-schema` → `@shared/utils/seo-schema`, so the
+  real module no longer reaches back through a shim.
+- **The `</script>` breakout escaping had no test, on a component that writes
+  attacker-influenceable data into `dangerouslySetInnerHTML`.** An HTML parser ends a
+  `<script>` at the first literal `</script>` *anywhere*, including inside a JSON string,
+  and `JSON.stringify` does not escape `<` — so `.replace(/</g, "\\u003c")` is the only
+  thing standing between a post title and script execution. Three tests added, and
+  **proved**: removing the escaping fails two of them. Moving untested XSS-prevention code
+  is how the test never gets written.
+- **`createElement`, not JSX, deliberately.** `vitest.config.ts` discovers only
+  `src/**/*.test.ts`, so renaming the file to `.tsx` would have made the whole suite
+  vanish from the run — the same vacuous shape as #256. Checked: no `.test.tsx` exists
+  anywhere, so nothing is currently being skipped.
+- **Full sweep, independent of #258's:** 217 legacy↔new pairs. **Zero two-real-copy
+  duplicates, zero inverted shims** after this change (one before). The convention now
+  holds everywhere without exception.
+- 574 tests green; typecheck, lint and build clean. No route, cache or runtime behaviour
+  change — the only runtime edit moves a component between two files that resolve to the
+  same import path.
+
+---
+
 ## 2026-08-07 (45) — The AI panel resizes from any edge or corner
 
 - **Eight handles** — four edges, four corners — on the panel, with a faint grip in the
