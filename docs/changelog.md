@@ -5,6 +5,43 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (49) — SEO: the default social card was the wrong shape, and /news/read was an unbounded index
+
+First step of the SEO work. **The audit's headline finding was how much already worked** —
+metadata on all 12 public pages, canonical on 4 of 5 dynamic routes, Organization / WebSite /
+FAQ / Article / Breadcrumb JSON-LD, a dynamic sitemap, `metadataBase`, a GSC hook, and an h1 on
+every public page but `/community`. This fixes the two real gaps, not the whole surface.
+
+- **🔴 The default social card was a 640×640 square in a `summary_large_image` slot.**
+  `layout.tsx` pinned `/logo.png` (655 KB, 1:1) as the OG and Twitter image, while declaring a
+  card format that promises **1.91:1** — so X, LinkedIn and WhatsApp centre-cropped it on
+  **every share of every page** except research posts, which already had their own 1200×630
+  generator. New `app/opengraph-image.tsx` renders a branded 1200×630 card on the edge runtime
+  (no DB needed, unlike the research one), and the explicit `images` were removed from the root
+  metadata — an explicit entry there overrides the file convention, which is exactly how the
+  square one got in. **`icons` keeps `/logo.png`**: favicons should be square.
+- **🔴 `/news/read` was an unbounded indexable URL space.** It renders whatever `?u=` points at,
+  so every distinct query string was a separate crawlable address whose content is mostly
+  someone else's article — wasted crawl budget, thin/duplicate content, and a scraping-shaped
+  signal. It now sends `noindex, follow` while keeping its OpenGraph card, so a shared link
+  still previews correctly.
+- **⚠️ The trap I walked into and backed out of.** I first *also* added `/news/read` to the
+  robots.txt `disallow`. That combination is self-defeating: a crawler has to be allowed to
+  **fetch** the page to see the `noindex` at all, and Google can still index a disallowed URL it
+  finds linked elsewhere. Disallow saves crawl budget; `noindex` removes from the index; doing
+  both means only the first happens. The disallow was removed and the reasoning pinned in a test
+  so it does not get "helpfully" re-added.
+  - `/settings`, `/messages` and `/journal` **were** added to disallow — those are auth-gated
+    with nothing to de-index, so saving the redirect crawl is exactly what disallow is for.
+- Route table: **133 routes · 23 static · 110 dynamic** (was 132/23/109) — the one new route is
+  `/opengraph-image`. It is `ƒ` but ships `s-maxage=86400, stale-while-revalidate=604800`, and
+  its only consumers are link-preview bots, so origin transfer stays negligible.
+- Files: `src/app/opengraph-image.tsx` (new), `src/app/layout.tsx`, `src/app/news/read/page.tsx`,
+  `src/app/robots.ts`, `src/shared/utils/__tests__/seo-indexing.test.ts` (new, 6 cases).
+- Checks: 577 tests, lint at the 36-warning baseline, build exit 0.
+- Still to come: sitemap is missing every coin and protocol page (both already have
+  `generateMetadata` **and** canonical, so they were built to be indexed and are simply never
+  advertised) plus `/tools`, `/terms`, `/privacy`. That is the next step.
 ## 2026-08-08 (48) — The 08-06 audit is in the repo, with its findings marked resolved
 
 Docs only. Two things that existed nowhere durable are now committed.
