@@ -6,28 +6,39 @@ export const dynamic = "force-dynamic";
 
 // Coin and protocol pages already carry `generateMetadata` AND a canonical -
 // they were built to be indexed, and were simply never advertised. They are the
-// largest indexable surface on the site, so listing them is the biggest single
-// SEO win available here.
+// largest indexable surface on the site.
 //
-// The lists come from this site's OWN cached market routes rather than
-// CoinGecko/llama.fi directly: those responses are already cached
-// (`s-maxage=200`), so the sitemap reuses work instead of adding a second
-// upstream call on every fetch. Each is best-effort with a tight timeout - a
-// slow upstream must never hold up or break the sitemap, which still has to
-// serve the pages we know statically.
+// ⚠️ These used to be fetched from this site's OWN api routes (`${SITE_URL}/api/...`).
+// That was wrong twice over: a serverless function calling itself back through
+// the CDN is fragile, and the failure was silent by design - so in production
+// the sitemap quietly served only the handful of static routes with no coin
+// pages at all, which is exactly what it did. Now:
+//   - coins come straight from the upstream, with a long cache window, and
+//   - a small curated fallback guarantees the sitemap is never coin-less.
 //
-// Coins are capped well below the 250 the API returns. Every listed page is an
-// ISR entry that a crawler can cause to regenerate, and the search demand for
-// the 200th coin by market cap does not justify the write. The cap is the
-// deliberate bound, not an accident of the upstream page size.
+// The fallback is COINS ONLY. A wrong CoinGecko id is one I can verify by
+// eye - these are canonical and stable - whereas guessing a llama.fi protocol
+// slug would publish a 404 to Google, which is worse than publishing nothing.
 const MAX_COINS = 100;
 const MAX_PROTOCOLS_PER_TYPE = 40;
 
-async function getJson(path: string): Promise<any | null> {
+// Enough of the majors that the sitemap always carries real coin pages even if
+// the upstream is down. Every one of these resolves at /markets/<id>.
+const FALLBACK_COINS = [
+  "bitcoin", "ethereum", "tether", "solana", "binancecoin", "ripple", "usd-coin",
+  "cardano", "dogecoin", "tron", "avalanche-2", "chainlink", "polkadot", "matic-network",
+  "litecoin", "shiba-inu", "uniswap", "aave", "arbitrum", "optimism",
+];
+
+async function getJson(url: string, revalidate: number): Promise<any | null> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 2500);
+  const timer = setTimeout(() => ctrl.abort(), 4000);
   try {
-    const res = await fetch(`${SITE_URL}${path}`, { signal: ctrl.signal, next: { revalidate: 300 } });
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { accept: "application/json" },
+      next: { revalidate },
+    });
     return res.ok ? await res.json() : null;
   } catch {
     return null;
@@ -88,37 +99,48 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.3,
     }));
 
-  // Market pages, best-effort. Fetched in parallel so a slow one does not
-  // serialise with the others.
-  const [coinsRes, perpRes, dexRes] = await Promise.all([
-    getJson("/api/markets/coins"),
-    getJson("/api/markets/perp"),
-    getJson("/api/markets/dex"),
+  // Market pages. Fetched straight from the upstream (never from our own
+  // origin) with a long cache window, since a sitemap does not need
+  // minute-fresh data. Both are best-effort.
+  const [coinsRes, dexRes, feeRes, perpRes] = await Promise.all([
+    getJson(
+      "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false",
+      3600
+    ),
+    getJson("https://api.llama.fi/overview/dexs?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true", 3600),
+    getJson("https://api.llama.fi/overview/fees?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true", 3600),
+    getJson(
+      "https://api.llama.fi/overview/derivatives?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true",
+      3600
+    ),
   ]);
 
-  const coinRoutes: MetadataRoute.Sitemap = (Array.isArray(coinsRes?.list) ? coinsRes.list : [])
+  const liveCoinIds = (Array.isArray(coinsRes) ? coinsRes : [])
     .map((c: { id?: unknown }) => String(c?.id ?? ""))
-    .filter(Boolean)
-    .slice(0, MAX_COINS)
-    .map((id: string) => ({
-      url: `${SITE_URL}/markets/${encodeURIComponent(id)}`,
-      lastModified: now,
-      changeFrequency: "daily" as const,
-      priority: 0.5,
-    }));
+    .filter(Boolean);
+  // Never emit a coin-less sitemap: fall back rather than silently drop them.
+  const coinIds = (liveCoinIds.length ? liveCoinIds : FALLBACK_COINS).slice(0, MAX_COINS);
 
-  // `type` here must match the segment the app links to and the TYPES set the
-  // page validates against ("derivatives" | "dexs" | "fees") - a mismatch would
-  // publish URLs that 404.
+  const coinRoutes: MetadataRoute.Sitemap = coinIds.map((id) => ({
+    url: `${SITE_URL}/markets/${encodeURIComponent(id)}`,
+    lastModified: now,
+    changeFrequency: "daily" as const,
+    priority: 0.5,
+  }));
+
+  // `type` must match the segment the app links to and the TYPES set the page
+  // validates against ("derivatives" | "dexs" | "fees") - a mismatch would
+  // publish URLs that 404. No fallback here on purpose: a guessed slug is a
+  // guaranteed 404, which is worse than omitting the section.
   const protocolRoutes: MetadataRoute.Sitemap = (
     [
-      ["derivatives", perpRes?.dexs],
-      ["dexs", dexRes?.dexs],
-      ["fees", dexRes?.fees],
+      ["derivatives", perpRes?.protocols],
+      ["dexs", dexRes?.protocols],
+      ["fees", feeRes?.protocols],
     ] as const
   ).flatMap(([type, rows]) =>
     (Array.isArray(rows) ? rows : [])
-      .map((r: { slug?: unknown }) => String(r?.slug ?? ""))
+      .map((r: { slug?: unknown; module?: unknown }) => String(r?.slug ?? r?.module ?? ""))
       .filter(Boolean)
       .slice(0, MAX_PROTOCOLS_PER_TYPE)
       .map((slug: string) => ({
