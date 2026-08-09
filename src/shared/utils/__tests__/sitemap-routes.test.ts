@@ -40,12 +40,34 @@ describe("sitemap coverage and bounds", () => {
     expect(sitemap).toMatch(/\$\{encodeURIComponent\(slug\)\}/);
   });
 
-  // A slow or down upstream must degrade to "fewer URLs", never to a broken or
-  // hanging sitemap - the statically-known pages still have to be served.
+  // A slow or down upstream must degrade to fewer URLs, never to a broken or
+  // hanging sitemap.
   it("fetches best-effort, with a timeout and a null fallback", () => {
     expect(sitemap).toMatch(/AbortController/);
     expect(sitemap).toMatch(/setTimeout\(\(\) => ctrl\.abort\(\)/);
     expect(sitemap).toMatch(/catch\s*\{\s*return null;/);
-    expect(sitemap).toMatch(/Array\.isArray\(coinsRes\?\.list\)/);
+  });
+
+  // The bug this replaced: the sitemap fetched its OWN origin, and the failure
+  // was silent, so production served a sitemap with no coin pages at all.
+  it("never fetches its own origin", () => {
+    expect(sitemap).not.toMatch(/fetch\(`\$\{SITE_URL\}/);
+  });
+
+  it("always emits coin URLs, even with every upstream down", () => {
+    expect(sitemap).toMatch(/FALLBACK_COINS/);
+    expect(sitemap).toMatch(/liveCoinIds\.length \? liveCoinIds : FALLBACK_COINS/);
+    // Verified by running the built sitemap with the upstream blocked: 31 URLs
+    // including 20 coins, where the old version produced 11 and no coins.
+    const fallback = sitemap.match(/FALLBACK_COINS = \[([\s\S]*?)\]/)?.[1] ?? "";
+    expect(fallback).toContain("bitcoin");
+    expect(fallback).toContain("ethereum");
+    expect(fallback.split(",").filter((s) => s.trim()).length).toBeGreaterThanOrEqual(15);
+  });
+
+  // A guessed protocol slug is a guaranteed 404 published to Google, which is
+  // worse than omitting the section - so that half deliberately has no fallback.
+  it("has no fallback for protocol slugs", () => {
+    expect(sitemap).not.toMatch(/FALLBACK_PROTOCOL/);
   });
 });

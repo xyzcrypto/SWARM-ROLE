@@ -5,6 +5,33 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-09 (52) — The sitemap was silently serving no coin pages at all
+
+**🐛 My own bug from (50).** The sitemap fetched the coin and protocol lists from **this
+site's own API routes** (`${SITE_URL}/api/markets/...`). That was wrong twice over:
+
+- A serverless function calling itself back through the CDN is fragile - an extra round trip
+  that can fail or stall for reasons that have nothing to do with the data.
+- The failure was **silent by design**. The "graceful degradation" I was pleased with meant
+  production served a sitemap of eleven static URLs and **no coin pages whatsoever**, with
+  nothing anywhere saying so. Exactly the failure shape this session has hit repeatedly.
+
+**Fixed:** coins now come straight from CoinGecko with a 1h cache window, and a curated
+**fallback list of 20 majors** guarantees the sitemap can never be coin-less again.
+
+- **⚠️ The fallback is coins only, on purpose.** A CoinGecko id is something I can verify by
+  eye and does not change; a guessed llama.fi protocol slug would publish a **404 to Google**,
+  which is worse than publishing nothing. So the protocol section still degrades to empty.
+- **Verified by running the built sitemap with the upstream completely blocked** - the worst
+  case: **31 URLs including 20 coins**, where the old code produced 11 and no coins. In
+  production, with CoinGecko reachable, it serves 100 coins plus protocols.
+- Pinned by three new cases: never fetches its own origin, always emits coin URLs, and has no
+  protocol fallback.
+- Files: `src/app/sitemap.ts`, `src/shared/utils/__tests__/sitemap-routes.test.ts`.
+- Checks: 600 tests, lint at the 36-warning baseline, build exit 0, route table untouched.
+
+---
+
 ## 2026-08-07 (51) — SEO step 3: /community gets an h1, and /news/read deliberately does not get a canonical
 
 Closes the two small items left from the audit.
