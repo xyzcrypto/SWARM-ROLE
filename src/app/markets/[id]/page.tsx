@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
+import { RelatedResearch } from "@/modules/research/components/RelatedResearch";
 import { CoinDetailClient } from "@/components/CoinDetailClient";
 
 // Shell is cached; the client fetches live numbers from the cached proxy route.
@@ -50,6 +51,11 @@ export default async function CoinPage(props: { params: Promise<{ id: string }> 
         <div className="mesh" />
         <div className="relative mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
           <CoinDetailClient id={id} />
+          {/* Coin pages are the largest indexable surface on the site and had
+              no path into the research library at all. Server-rendered so the
+              links are in the HTML a crawler sees. The id doubles as the query
+              ("perp-dex" ranks the perp research). */}
+          <RelatedResearch query={id.replace(/-/g, " ")} />
         </div>
       </main>
     </>
