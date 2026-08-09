@@ -74,3 +74,37 @@ describe("the default social card", () => {
     expect(layout).toMatch(/icons:\s*\{\s*icon:\s*"\/logo\.png"/);
   });
 });
+
+describe("auth pages: noindex vs robots.txt, applied consistently", () => {
+  const login = readFileSync("src/app/login/page.tsx", "utf8");
+  const forgot = readFileSync("src/app/forgot-password/page.tsx", "utf8");
+  const sitemap = readFileSync("src/app/sitemap.ts", "utf8");
+  const disallow = robots.match(/disallow:\s*\[([^\]]*)\]/)?.[1] ?? "";
+
+  it("login and forgot-password send noindex", () => {
+    expect(login).toMatch(/robots:\s*\{\s*index:\s*false/);
+    expect(forgot).toMatch(/robots:\s*\{\s*index:\s*false/);
+  });
+
+  // The whole point: a page you want OUT of the index must stay crawlable, or
+  // Google never sees the directive and anything already indexed stays stuck.
+  it("neither is ALSO blocked in robots.txt", () => {
+    expect(disallow).not.toMatch(/\/login/);
+    expect(disallow).not.toMatch(/forgot-password/);
+  });
+
+  // /signup is a real landing page - it should rank, and it is in the sitemap
+  // on purpose. Blanket-noindexing every "auth" page would have cost that.
+  it("signup stays indexable and listed", () => {
+    const signup = readFileSync("src/app/signup/page.tsx", "utf8");
+    expect(signup).not.toMatch(/index:\s*false/);
+    expect(sitemap).toContain("/signup`");
+    expect(disallow).not.toMatch(/signup/);
+  });
+
+  it("the auth-gated app surfaces stay blocked, since they have nothing to de-index", () => {
+    for (const p of ["/dashboard", "/settings", "/messages", "/journal", "/api/"]) {
+      expect(disallow).toContain(p);
+    }
+  });
+});
