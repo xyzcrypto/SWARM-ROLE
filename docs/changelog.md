@@ -5,6 +5,35 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (50) — SEO step 2: the sitemap now advertises coin and protocol pages
+
+- **Every coin and protocol page was missing from the sitemap.** Both already carry
+  `generateMetadata` **and** a canonical - they were built to be indexed and were simply never
+  advertised. This is the largest indexable surface on the site, so listing it is the biggest
+  single win the audit found.
+- **The lists come from this site's own cached market routes**, not from CoinGecko/llama.fi
+  directly. Those responses are already cached (`s-maxage=200`), so the sitemap reuses work
+  rather than adding a second upstream call on every fetch.
+- **⚠️ Coins are capped at 100, not the 250 the API returns.** Every listed page is an ISR entry
+  a crawler can cause to regenerate, and search demand for the 200th coin by market cap does not
+  justify the write. The cap is a deliberate bound, not an accident of the upstream page size.
+  Protocols are capped at 40 per type.
+- **⚠️ The sharp edge is the `type` segment.** The protocol page validates `type` against a fixed
+  set (`derivatives` | `dexs` | `fees`); publishing anything else would advertise 404s to Google
+  at scale. `sitemap-routes.test.ts` reads **both** files and compares the published list against
+  the set the page actually accepts, so the two cannot drift apart.
+- Fetches are best-effort with a 2.5s abort and a null fallback: a slow or down upstream degrades
+  to *fewer URLs*, never to a hanging or broken sitemap - the statically-known pages still have
+  to be served. Ids and slugs are `encodeURIComponent`'d so an odd upstream value cannot break
+  the XML.
+- Also added `/tools`, `/terms` and `/privacy`, which are real public pages with their own
+  metadata (and `/tools` has breadcrumb JSON-LD) that the sitemap never mentioned.
+- Files: `src/app/sitemap.ts`, `src/shared/utils/__tests__/sitemap-routes.test.ts` (new, 5 cases).
+- Checks: 594 tests, lint at the 36-warning baseline, build exit 0, **route table unchanged**
+  (133/23/110), no new cost patterns - the one added fetch targets an already-cached own route.
+
+---
+
 ## 2026-08-07 (49) — SEO: the default social card was the wrong shape, and /news/read was an unbounded index
 
 First step of the SEO work. **The audit's headline finding was how much already worked** —
