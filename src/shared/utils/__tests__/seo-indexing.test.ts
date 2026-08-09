@@ -29,6 +29,31 @@ describe("/news/read must stay out of the index", () => {
   });
 });
 
+describe("/news/read must NOT also carry a canonical", () => {
+  // The audit listed "no canonical" as a gap. Once the page went `noindex` that
+  // stopped being a gap and became the correct state: `noindex` and
+  // `rel=canonical` send contradictory signals - one says do not index, the
+  // other says index that other URL instead - and Google advises against
+  // combining them. Ticking the audit item off mechanically would have made
+  // this worse, so the absence is pinned deliberately.
+  it("has no canonical, because it is noindex", () => {
+    expect(newsRead).not.toMatch(/alternates:\s*\{[^}]*canonical/);
+  });
+});
+
+describe("/community has exactly one h1 per branch", () => {
+  const community = readFileSync("src/app/community/page.tsx", "utf8");
+  it("the crawlable anonymous view has a visible h1", () => {
+    // This is the branch Google sees, and it had no h1 at all.
+    expect(community).toMatch(/<h1 className="font-display/);
+  });
+  it("the logged-in view has one too, screen-reader-only", () => {
+    // A member in a full-height chat does not need the vertical space spent on
+    // a title, but the page still needs one h1 for assistive tech.
+    expect(community).toMatch(/<h1 className="sr-only">/);
+  });
+});
+
 describe("the default social card", () => {
   // A 640x640 square in a `summary_large_image` slot was centre-cropped on
   // every share of every page. The file-convention card is 1200x630, but an
