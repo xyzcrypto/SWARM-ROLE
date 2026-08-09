@@ -5,6 +5,30 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-09 (54) — About and Disclaimer pages
+
+- **`/about`** — what the site is, who it is for, **how it makes money**, where the market data
+  comes from, and what it deliberately is not. It carries the same honest not-yet-incorporated
+  note the Terms page already uses; a trust page that states its limits is worth more than one
+  that claims none.
+- **`/disclaimer`** — eight sections covering no-financial-advice, that **market data can be
+  wrong**, that **the AI assistant can be wrong**, that the Journal is a record rather than a
+  signal, third-party protocol risk, no custody (including that nobody here will ever ask for a
+  seed phrase), availability, and jurisdiction.
+- **⚠️ Both are linked from the footer, not just added to the sitemap.** A page that only exists
+  in the sitemap has no internal links pointing at it - a weak signal to a crawler and a dead end
+  for a real visitor. Pinned by a test that checks the footer, not only the sitemap.
+- Written against the existing trust-page structure (`prose-xyz`, the gold note block, the same
+  metadata shape) rather than a new pattern, and cross-linked to Terms, Privacy, Contact,
+  Research, Journal, Tools and Premium.
+- Route table **135 · 25 static · 110 dynamic** (was 133/23/110): both new pages are **`○`
+  static**, the cheapest render mode, and the dynamic count is unchanged.
+- Files: `src/app/about/page.tsx` (new), `src/app/disclaimer/page.tsx` (new),
+  `src/app/sitemap.ts`, `src/shared/components/Footer.tsx`, `sitemap-routes.test.ts`.
+- Checks: 607 tests, lint at the 36-warning baseline, build exit 0.
+
+---
+
 ## 2026-08-09 (53) — The SearchAction pointed at a URL that ignored the search, and profiles got Person schema
 
 - **🐛 The sitelinks SearchAction was advertising a lie.** `websiteJsonLd()` has told Google for

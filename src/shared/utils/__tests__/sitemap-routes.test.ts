@@ -24,7 +24,9 @@ describe("sitemap protocol URLs must match what the page accepts", () => {
 
 describe("sitemap coverage and bounds", () => {
   it("lists the public pages that were missing", () => {
-    for (const p of ["/tools", "/terms", "/privacy"]) {
+    // A trust page nobody can reach earns nothing - each of these is in the
+    // sitemap AND linked from the footer (see the footer case below).
+    for (const p of ["/tools", "/terms", "/privacy", "/about", "/disclaimer"]) {
       expect(sitemap).toContain(`\${SITE_URL}${p}\``);
     }
   });
@@ -69,5 +71,15 @@ describe("sitemap coverage and bounds", () => {
   // worse than omitting the section - so that half deliberately has no fallback.
   it("has no fallback for protocol slugs", () => {
     expect(sitemap).not.toMatch(/FALLBACK_PROTOCOL/);
+  });
+});
+
+describe("new trust pages must be reachable, not just present", () => {
+  const footer = readFileSync("src/shared/components/Footer.tsx", "utf8");
+  it("About and Disclaimer are linked from the footer", () => {
+    // A page only in the sitemap is a page with no internal links pointing at
+    // it, which is a weak signal and a dead end for a real visitor.
+    expect(footer).toContain('href="/about"');
+    expect(footer).toContain('href="/disclaimer"');
   });
 });
