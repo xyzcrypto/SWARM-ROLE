@@ -5,6 +5,37 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-09 (58) — Remove a stray `playwright` dependency I shipped by accident, and take the Next security bump
+
+Prompted by two Dependabot security PRs. Investigating them turned up something worse than
+what they were reporting.
+
+- **🐛 `playwright` was in `dependencies` — and I put it there.** While trying to render the AI
+  panel during (41) I ran `npm i playwright` from the repo root instead of the scratchpad. It
+  wrote itself into `package.json` and `package-lock.json`, and I committed it in #260 without
+  noticing or mentioning it. It is **imported nowhere**, and it was in `dependencies` rather
+  than `devDependencies`, so every production install pulled a browser-automation package and
+  its `playwright-core` payload for nothing. Removed.
+  - The lesson is specific: #260's diff included **110 lockfile lines** and I reviewed the
+    source changes without reading them. A lockfile diff in a PR about microphones was the
+    signal, and I walked past it.
+- **`next` 16.2.12 → 16.3.0**, which carries the fix for **CVE-2025-13465** (vendored lodash).
+  `sharp` came along transitively to 0.35.3.
+- **`postcss` needed nothing.** Dependabot asked for 8.5.23; the lockfile was already on
+  **8.5.25**. Worth recording so the same PR is not "fixed" again later.
+- **⚠️ Route table checked line by line, since a minor framework bump can silently change render
+  modes.** Totals unchanged at **135 · 25 static · 110 dynamic**. The single diff is cosmetic:
+  Next 16.3 labels the route `/research/[slug]/opengraph-image` where 16.2 wrote
+  `/research/-/opengraph-image`. Same route, clearer output.
+- Dependabot itself is **staying on**. There is no `dependabot.yml` (deliberately removed in
+  #201 because the *version*-update PRs were unwanted), so what remains is security-advisory PRs
+  only - which is exactly the part worth keeping. Turning it off would not remove a
+  vulnerability, only the notice.
+- Files: `package.json`, `package-lock.json`.
+- Checks: typecheck, 617 tests, lint at the 36-warning baseline, build exit 0.
+
+---
+
 ## 2026-08-09 (57) — The dashboard shows WHO is online, not just how many
 
 - `GET /api/presence` already answered "how busy"; it now also returns the visitors themselves,
