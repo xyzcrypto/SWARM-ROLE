@@ -35,7 +35,14 @@ export default async function CommunityPage() {
         <main className="relative flex h-[100svh] flex-col overflow-hidden pt-[4.75rem] sm:pt-20">
           <div className="mesh" />
           <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-2 pb-2 pt-2 sm:px-6 sm:pb-4 sm:pt-3 lg:px-8">
-            <div className="mb-2 flex shrink-0 items-center justify-center gap-2 sm:mb-3">
+            <div className="mb-2 flex shrink-0 flex-col items-center justify-center gap-1.5 sm:mb-3">
+              {/* The crawlable view of this page had no h1 at all - only the
+                  eyebrow below. Kept to one compact line because the room is
+                  `h-[100svh]` and the message list takes the rest; it names the
+                  page for a first-time visitor as much as for a crawler. */}
+              <h1 className="font-display text-base font-semibold tracking-tight text-zinc-100 sm:text-lg">
+                XYZ Crypto Community
+              </h1>
               <span className="eyebrow eyebrow-glass text-gold-200">
                 <span className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
@@ -130,6 +137,11 @@ export default async function CommunityPage() {
       <main className="relative flex h-[100svh] flex-col overflow-hidden pt-[4.75rem] sm:pt-20">
         <div className="mesh" />
         <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-2 pb-2 pt-2 sm:px-6 sm:pb-4 sm:pt-3 lg:px-8">
+          {/* Screen-reader-only here, visible in the anonymous view above. A
+              member already in the room does not need a title taking vertical
+              space out of a full-height chat, but the page still needs exactly
+              one h1 for assistive tech. */}
+          <h1 className="sr-only">XYZ Crypto Community</h1>
           <div className="mb-2 flex shrink-0 items-center justify-center gap-2 sm:mb-3">
             <span className="eyebrow eyebrow-glass text-gold-200">
               <span className="relative flex h-1.5 w-1.5">

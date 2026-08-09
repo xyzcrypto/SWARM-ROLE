@@ -5,6 +5,30 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-07 (51) — SEO step 3: /community gets an h1, and /news/read deliberately does not get a canonical
+
+Closes the two small items left from the audit.
+
+- **`/community` had no `h1` at all** - and the branch that matters is the **anonymous** one,
+  since that is what a crawler and a first-time visitor see. It now carries a compact visible
+  `h1`, kept to one line because the room is `h-[100svh]` and the message list takes the rest.
+- The **logged-in** branch gets an `sr-only` `h1` instead. A member already in the room does not
+  need vertical space spent on a title, but the page still needs exactly one `h1` for assistive
+  tech. The two branches never render together, so there is still one per page.
+- **⚠️ `/news/read` did NOT get a canonical, on purpose.** The audit listed "no canonical" as a
+  gap; once the page went `noindex` in step 1 that stopped being a gap and became the correct
+  state. `noindex` and `rel=canonical` send contradictory signals - one says do not index, the
+  other says index that other URL instead - and Google advises against combining them.
+  **Ticking the audit item off mechanically would have made the page worse.** The absence is now
+  pinned by a test with that reasoning attached, so it does not get "fixed" later.
+- Files: `src/app/community/page.tsx`, `src/shared/utils/__tests__/seo-indexing.test.ts`.
+- Checks: 597 tests, lint at the 36-warning baseline, build exit 0, route table untouched.
+- **The audit's code-side findings are now all closed.** What is left is not code: which queries
+  actually earn impressions, and which pages get impressions but no clicks. That needs Search
+  Console data, which only the owner can pull.
+
+---
+
 ## 2026-08-07 (50) — SEO step 2: the sitemap now advertises coin and protocol pages
 
 - **Every coin and protocol page was missing from the sitemap.** Both already carry
