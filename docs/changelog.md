@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-09 (53) — The SearchAction pointed at a URL that ignored the search, and profiles got Person schema
+
+- **🐛 The sitelinks SearchAction was advertising a lie.** `websiteJsonLd()` has told Google for
+  a while that searching happens at `/research?q={search_term_string}` - and `/research` **never
+  read `q` at all**. Following that URL showed the unfiltered list. (My own audit called
+  SearchAction "missing"; it was present and broken, which is worse. Corrected here.)
+  - `ResearchGrid` now seeds its query from `?q=`, so the advertised URL does what it claims and
+    a search is shareable.
+  - **⚠️ Read on the client, not from server `searchParams`.** Reading `searchParams` on the
+    server would have turned this ISR page **dynamic** - the most expensive regression class on
+    this project. `useSearchParams()` needs a Suspense boundary or the whole page opts out of
+    static rendering anyway, so one was added. **Verified in the build output: `/research` is
+    still `○` with its 5m window, and the route totals are unchanged at 133/23/110.**
+- **Person + BreadcrumbList on `/u/[username]`.** Only fields the profile already shows
+  publicly - **never an email**, per the site-wide rule.
+  - `sameAs` carries only absolute URLs. A bare handle or a bare `example.com` would make the
+    whole node invalid rather than merely incomplete, so those are dropped; `@handle` for
+    X/GitHub is normalised into a real profile URL.
+  - `username` is nullable in the schema even though the record was found *by* username, so it
+    is **narrowed rather than asserted** - no handle means no node, which beats emitting one
+    with a broken `url`. Typecheck caught this; it was not written that way first time.
+- Files: `src/shared/utils/seo-schema.ts`, `src/app/u/[username]/page.tsx`,
+  `src/modules/research/components/ResearchGrid.tsx`, `src/app/research/page.tsx`,
+  `src/lib/__tests__/person-schema.test.ts` (new, 6 cases).
+- Checks: 606 tests, lint at the 36-warning baseline, build exit 0, **route table unchanged**.
+
+---
+
 ## 2026-08-09 (52) — The sitemap was silently serving no coin pages at all
 
 **🐛 My own bug from (50).** The sitemap fetched the coin and protocol lists from **this

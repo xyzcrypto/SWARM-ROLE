@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { Search, Sparkles } from "lucide-react";
 import { PostCard, type PostCardData } from "@/components/PostCard";
 import { MicButton } from "@/shared/components/MicButton";
@@ -20,7 +21,17 @@ export function ResearchGrid({
 }) {
   const [items, setItems] = useState<PostCardData[]>(initial);
   const [active, setActive] = useState<Category>("All");
-  const [query, setQuery] = useState("");
+  // Seeded from `?q=` so a search URL is shareable - and so the SearchAction in
+  // `websiteJsonLd()` tells Google the truth. It advertises
+  // /research?q={search_term_string}, and until now this page ignored the
+  // parameter entirely: following that URL showed the unfiltered list.
+  //
+  // Read on the client, not from server `searchParams`, on purpose: reading
+  // searchParams on the server would turn this ISR page dynamic, which is the
+  // most expensive regression class on this project. The page still renders
+  // and caches statically; the filter applies on hydration.
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(() => (searchParams?.get("q") ?? "").slice(0, 100));
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(initial.length < total);
   const [loading, setLoading] = useState(false);

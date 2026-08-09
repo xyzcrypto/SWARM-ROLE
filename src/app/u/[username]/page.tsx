@@ -4,6 +4,7 @@ import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Globe, MapPin, MessageSquare } from "lucide-react";
+import { JsonLd, personJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { Avatar } from "@/components/Avatar";
@@ -135,6 +136,22 @@ export default async function ProfilePage(props: Props) {
 
   return (
     <>
+      {/* Public profile as a Person, plus a breadcrumb. Only fields the page
+          already shows publicly - never an email.
+          `username` is nullable in the schema even though this record was
+          found BY username, so it is narrowed rather than asserted: no handle
+          means no node, which beats emitting one with a broken url. */}
+      {user.username && (
+        <>
+          <JsonLd data={personJsonLd({ ...user, username: user.username })} />
+          <JsonLd
+            data={breadcrumbJsonLd([
+              { name: "Home", path: "/" },
+              { name: `@${user.username}`, path: `/u/${user.username}` },
+            ])}
+          />
+        </>
+      )}
       <Navbar />
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
