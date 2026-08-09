@@ -5,6 +5,33 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-09 (57) — The dashboard shows WHO is online, not just how many
+
+- `GET /api/presence` already answered "how busy"; it now also returns the visitors themselves,
+  and the dashboard renders them as chips that **link straight to each member's public profile**.
+  That is the question an admin actually follows up on.
+- **⚠️ The cap can never make the site look quieter than it is.** The list is capped at 50, but
+  the `online` figure still comes from a **separate COUNT** over the same window, so a truncated
+  list reads "showing 12 of 240" rather than silently "12". A capped list reported as the total
+  would be exactly the kind of confident-but-wrong number the presence route was written to stop.
+- **No email is selected**, per the site-wide rule - name, handle, avatar, plan and role are
+  enough to act on. Pinned by a test that reads the actual `select`.
+- **⚠️ The poll no longer short-circuits while realtime is healthy.** It used to return early,
+  which would have meant the list never loaded on a working deployment. Realtime presence gives a
+  count and opaque keys - it cannot give a name, avatar or handle, so the list has to come from
+  the database either way. Realtime still wins for the *count* when connected; the fetch owns
+  only the list.
+- Cost: **no new poller and no new channel** - the existing 20s admin poll carries the extra
+  payload, still paused on a hidden tab, still `private, no-store`, still admin-gated. Route
+  table unchanged at 135/25/110.
+- A member who never chose a handle has no profile URL, so their chip renders **unlinked** rather
+  than pointing at `/u/null`.
+- Files: `src/app/api/presence/route.ts`, `src/modules/dashboard/components/DashboardClient.tsx`,
+  `src/shared/utils/__tests__/presence-privacy.test.ts` (new, 4 cases).
+- Checks: 617 tests, lint at the 36-warning baseline, build exit 0.
+
+---
+
 ## 2026-08-09 (56) — Auth pages: noindex where it removes, robots.txt where it saves crawl
 
 The last audit item, and the interesting part is that "noindex every auth page" would have been

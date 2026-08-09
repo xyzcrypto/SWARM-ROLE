@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Flame } from "lucide-react";
@@ -113,9 +114,25 @@ export type HealthFlags = { storage: boolean; realtime: boolean; upstash: boolea
  * channel retried with backoff, and `null` (rendered as "unavailable") when
  * neither can answer - never a fabricated zero.
  */
-function useLiveOnline(realtime: Realtime): { count: number | null; live: boolean } {
+export type OnlineVisitor = {
+  id: string;
+  name: string | null;
+  /** Null for a member who never chose a handle - they have no profile URL. */
+  username: string | null;
+  image: string | null;
+  membership: string;
+  role: string;
+  room: string;
+  seenAt: string;
+};
+
+function useLiveOnline(
+  realtime: Realtime
+): { count: number | null; live: boolean; visitors: OnlineVisitor[]; truncated: boolean } {
   const [count, setCount] = useState<number | null>(null);
   const [live, setLive] = useState(false);
+  const [visitors, setVisitors] = useState<OnlineVisitor[]>([]);
+  const [truncated, setTruncated] = useState(false);
   const liveRef = useRef(false);
 
   useEffect(() => {
@@ -165,13 +182,23 @@ function useLiveOnline(realtime: Realtime): { count: number | null; live: boolea
     // Always armed, and free while the channel is healthy - it returns before
     // the fetch. This is the half that was missing entirely.
     const poll = async () => {
-      if (document.hidden || liveRef.current) return;
+      // No longer skipped while realtime is healthy. Realtime presence gives a
+      // count and opaque keys; it cannot give a name, avatar or handle, so the
+      // "who is online" list has to come from the database either way. Still
+      // paused on a hidden tab, and this page is admin-only, so it is one
+      // request per 20s from one or two people.
+      if (document.hidden) return;
       try {
         const r = await fetch("/api/presence", { cache: "no-store" });
         if (!r.ok) return;
         const j = await r.json().catch(() => null);
-        const n = j?.data?.online ?? j?.online;
-        if (liveRef.current) return; // recovered while in flight
+        const d = j?.data ?? j;
+        setVisitors(Array.isArray(d?.visitors) ? d.visitors : []);
+        setTruncated(Boolean(d?.truncated));
+        // Realtime still wins for the COUNT when it is connected - it is the
+        // more immediate source. The list is the only thing this fetch owns.
+        if (liveRef.current) return;
+        const n = d?.online;
         setCount(typeof n === "number" ? n : null);
       } catch {
         /* transient - keep the last known value */
@@ -202,7 +229,7 @@ function useLiveOnline(realtime: Realtime): { count: number | null; live: boolea
     };
   }, [realtime.url, realtime.anonKey]);
 
-  return { count, live };
+  return { count, live, visitors, truncated };
 }
 
 function useMembersChannel(realtime: Realtime, onChange: (id: string, membership: string) => void) {
@@ -452,7 +479,91 @@ function StatCard({ label, value, hint, accent = "plain" }: { label: string; val
   );
 }
 
-function Overview({ stats: initialStats, online, health }: { stats: Stats; online: { count: number | null; live: boolean }; health: HealthFlags }) {
+/**
+ * Who is online right now, not just how many. The count tile above answers
+ * "how busy"; this answers "who", which is the question an admin actually
+ * follows up on - so every row links straight to that member's public profile.
+ *
+ * A member with no handle has no profile URL, so their row renders unlinked
+ * rather than pointing at /u/null.
+ */
+function OnlineVisitors({
+  visitors,
+  truncated,
+  total,
+}: {
+  visitors: OnlineVisitor[];
+  truncated: boolean;
+  total: number | null;
+}) {
+  if (!visitors.length) return null;
+  return (
+    <div className="surface rounded-2xl p-5 ring-1 ring-mint-500/15">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-pulse-dot rounded-full bg-mint-400" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-400" />
+          </span>
+          <h3 className="text-sm font-semibold text-zinc-200">Online now</h3>
+        </div>
+        <span className="mono text-[11px] text-zinc-500">
+          {/* The cap never understates the total: the count comes from a
+              separate COUNT, so "12 of 240" is honest rather than "12". */}
+          {truncated && typeof total === "number"
+            ? `showing ${visitors.length} of ${total}`
+            : `${visitors.length} signed in`}
+        </span>
+      </div>
+
+      <ul className="mt-4 flex flex-wrap gap-2">
+        {visitors.map((v) => {
+          const label = v.name || (v.username ? `@${v.username}` : "Member");
+          const body = (
+            <>
+              {v.image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={v.image} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
+              ) : (
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-[10px] text-zinc-300">
+                  {label.replace(/^@/, "").charAt(0).toUpperCase()}
+                </span>
+              )}
+              <span className="truncate text-[13px] text-zinc-200">{label}</span>
+              {v.membership === "Premium" && (
+                <span className="mono text-[9px] uppercase tracking-wider text-gold-200">PRO</span>
+              )}
+              {v.role === "ADMIN" && (
+                <span className="mono text-[9px] uppercase tracking-wider text-violet-200">ADM</span>
+              )}
+            </>
+          );
+          const className =
+            "flex max-w-[15rem] items-center gap-2 rounded-full border border-white/[0.07] bg-white/[0.03] py-1.5 pl-1.5 pr-3";
+          return (
+            <li key={v.id}>
+              {v.username ? (
+                <Link
+                  href={`/u/${v.username}`}
+                  className={`${className} transition-colors hover:border-mint-400/40 hover:bg-white/[0.07]`}
+                  title={`View @${v.username}'s profile`}
+                >
+                  {body}
+                </Link>
+              ) : (
+                <span className={className} title="This member has not chosen a handle yet">
+                  {body}
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function Overview({ stats: initialStats, online, health }: { stats: Stats; online: { count: number | null; live: boolean; visitors: OnlineVisitor[]; truncated: boolean }; health: HealthFlags }) {
   const [stats, setStats] = useState(initialStats);
   const [series, setSeries] = useState<{ signups: DailyPoint[]; views: DailyPoint[] } | null>(null);
 
@@ -515,6 +626,8 @@ function Overview({ stats: initialStats, online, health }: { stats: Stats; onlin
   ];
   return (
     <div className="space-y-6">
+      <OnlineVisitors visitors={online.visitors} truncated={online.truncated} total={online.count} />
+
       {/* Live + analytics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="surface rounded-2xl p-6 ring-1 ring-mint-500/20">

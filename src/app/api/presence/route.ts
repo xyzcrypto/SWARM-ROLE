@@ -9,6 +9,9 @@ import {
   ROOM_SITE,
 } from "@/lib/presence";
 
+/** Most visitors one dashboard will ever need to see at once. */
+const ONLINE_LIST_LIMIT = 50;
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -87,8 +90,50 @@ export async function GET() {
       .count({ where: { seenAt: { gte: since } } })
       .catch(() => null);
 
+    // Who is online, not just how many. Capped so a busy site never ships a
+    // thousand rows to one dashboard - and the `online` COUNT above stays the
+    // true total regardless, so a truncated list can never read as fewer
+    // people being present.
+    const visitors = await prisma.chatPresence
+      .findMany({
+        where: { seenAt: { gte: since } },
+        orderBy: { seenAt: "desc" },
+        take: ONLINE_LIST_LIMIT,
+        select: {
+          room: true,
+          seenAt: true,
+          // Never `email`. Member emails are not exposed anywhere public or
+          // admin-facing without a reason, and a presence list has none.
+          user: {
+            select: { id: true, name: true, username: true, image: true, membership: true, role: true },
+          },
+        },
+      })
+      .catch(() => [] as never[]);
+
+    const list = visitors
+      .filter((v) => v.user)
+      .map((v) => ({
+        id: v.user.id,
+        name: v.user.name,
+        // May be null: a member who never picked a handle has no profile URL,
+        // so the client renders them unlinked rather than linking to /u/null.
+        username: v.user.username,
+        image: v.user.image,
+        membership: v.user.membership,
+        role: v.user.role,
+        room: v.room,
+        seenAt: v.seenAt.toISOString(),
+      }));
+
     // Admin-gated and per-request fresh - it must never sit in a shared cache.
-    const res = ok({ online, source: "server", windowMs: PRESENCE_WINDOW_MS });
+    const res = ok({
+      online,
+      visitors: list,
+      truncated: typeof online === "number" && online > list.length,
+      source: "server",
+      windowMs: PRESENCE_WINDOW_MS,
+    });
     res.headers.set("Cache-Control", "private, no-store");
     return res;
   } catch (err) {
