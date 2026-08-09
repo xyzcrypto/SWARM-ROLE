@@ -107,8 +107,10 @@ export function Footer() {
           <p className="mono text-[11px] text-zinc-600">© {new Date().getFullYear()} XYZ Crypto. All rights reserved.</p>
           <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-4">
             <div className="flex items-center gap-4">
+              <Link href="/about" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">About</Link>
               <Link href="/terms" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Terms</Link>
               <Link href="/privacy" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Privacy</Link>
+              <Link href="/disclaimer" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Disclaimer</Link>
             </div>
             <p className="mono text-[11px] text-zinc-600">Built for the Next Generation of Web3 · v2.0</p>
           </div>
