@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-09 (56) — Auth pages: noindex where it removes, robots.txt where it saves crawl
+
+The last audit item, and the interesting part is that "noindex every auth page" would have been
+wrong twice.
+
+- **`/login` and `/forgot-password` now send `noindex, follow`**, and **`/login` was REMOVED from
+  the robots.txt disallow** to make that work. A page already in the index can never be removed
+  by a disallow: Google must fetch the page to learn it should drop it, and a disallow forbids
+  exactly that. Allow the crawl, let the directive do the work - the same reasoning `/news/read`
+  needed.
+- **`/signup` was deliberately left alone.** It is a real landing page, it is in the sitemap on
+  purpose, and it should rank for branded signup queries. A blanket "noindex all auth pages"
+  sweep would have quietly cost that, which is why the test asserts signup stays indexable rather
+  than only asserting the others do not.
+- **`/dashboard`, `/settings`, `/messages`, `/journal`, `/api/` stay in robots.txt disallow** and
+  get no `noindex`. They are auth-gated with nothing to de-index, so blocking them saves the
+  crawl budget of a redirect - which is what disallow is actually for. Using the two mechanisms
+  for their different jobs, rather than applying both everywhere, is the whole point.
+- Files: `src/app/login/page.tsx`, `src/app/forgot-password/page.tsx`, `src/app/robots.ts`,
+  `src/shared/utils/__tests__/seo-indexing.test.ts` (4 new cases).
+- Checks: 613 tests, lint at the 36-warning baseline, build exit 0, route table unchanged at
+  135/25/110.
+- **This closes every code-side item on the SEO checklist.** What is left needs the owner:
+  the `NEXT_PUBLIC_GSC_VERIFICATION` / `NEXT_PUBLIC_GA_ID` env vars (with a redeploy, since
+  `NEXT_PUBLIC_*` is inlined at build time) and Core Web Vitals field data.
+
+---
+
 ## 2026-08-09 (55) — Coin and protocol pages finally link into the research library
 
 - **The gap:** coin pages are the largest indexable surface on the site and contained **zero

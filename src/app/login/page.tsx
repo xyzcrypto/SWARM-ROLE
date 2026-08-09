@@ -7,6 +7,11 @@ export const metadata: Metadata = {
   title: "Log in",
   description: "Log in to XYZ Crypto for Web3 research, trading tools and the community.",
   alternates: { canonical: "/login" },
+  // noindex rather than a robots.txt block. If this page is already in the
+  // index, a disallow can never remove it - Google would have to fetch the page
+  // to learn it should drop it, and a disallow forbids exactly that. Allow the
+  // crawl, let the directive do the work. (Same reasoning as /news/read.)
+  robots: { index: false, follow: true },
 };
 
 export default function LoginPage() {
