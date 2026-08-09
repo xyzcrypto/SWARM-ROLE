@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { ResearchGrid } from "@/components/ResearchGrid";
@@ -55,7 +56,12 @@ export default async function ResearchPage() {
           />
 
           <div className="mt-12">
-            <ResearchGrid initial={posts} total={total} pageSize={PAGE_SIZE} />
+            {/* useSearchParams() inside ResearchGrid needs a Suspense boundary, or the
+                whole page opts out of static rendering - which would undo this
+                route's ISR window. */}
+            <Suspense fallback={null}>
+              <ResearchGrid initial={posts} total={total} pageSize={PAGE_SIZE} />
+            </Suspense>
           </div>
         </div>
       </main>

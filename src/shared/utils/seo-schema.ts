@@ -110,3 +110,40 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
     })),
   };
 }
+
+/**
+ * A member's public profile as a Person. Only fields the profile page already
+ * shows publicly go in - never an email, per the site-wide rule that member
+ * emails are never exposed (see `maskEmail`).
+ *
+ * `sameAs` is the part search engines actually use, so it only carries links
+ * the member themselves added, and only as absolute URLs: a bare handle like
+ * "@someone" is not a URL and would make the whole node invalid.
+ */
+export function personJsonLd(user: {
+  name?: string | null;
+  username: string;
+  image?: string | null;
+  bio?: string | null;
+  website?: string | null;
+  twitter?: string | null;
+  github?: string | null;
+}) {
+  const sameAs = [
+    user.website,
+    user.twitter ? `https://x.com/${String(user.twitter).replace(/^@+/, "")}` : null,
+    user.github ? `https://github.com/${String(user.github).replace(/^@+/, "")}` : null,
+  ].filter((u): u is string => Boolean(u) && /^https?:\/\//i.test(String(u)));
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    name: user.name || `@${user.username}`,
+    alternateName: `@${user.username}`,
+    url: absoluteUrl(`/u/${user.username}`),
+    ...(user.image ? { image: user.image } : {}),
+    ...(user.bio ? { description: user.bio } : {}),
+    ...(sameAs.length ? { sameAs } : {}),
+    memberOf: { "@type": "Organization", name: site.name, url: SITE_URL },
+  };
+}
