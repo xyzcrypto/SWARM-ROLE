@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Navbar } from "@/components/Navbar";
+import { RelatedResearch } from "@/modules/research/components/RelatedResearch";
 import { ProtocolDetailClient } from "@/components/ProtocolDetailClient";
 
 export const revalidate = 300;
@@ -40,6 +41,7 @@ export default async function ProtocolPage(props: { params: Promise<{ type: stri
         <div className="mesh" />
         <div className="relative mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
           <ProtocolDetailClient type={type} slug={slug} />
+          <RelatedResearch query={slug.replace(/-/g, " ")} />
         </div>
       </main>
     </>

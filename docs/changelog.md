@@ -5,6 +5,33 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-09 (55) — Coin and protocol pages finally link into the research library
+
+- **The gap:** coin pages are the largest indexable surface on the site and contained **zero
+  links to research** - every one was a dead end for both a reader and a crawler. Research posts
+  already had related-post links; the market side had nothing.
+- `RelatedResearch` renders a small strip of the three most relevant published posts on
+  `/markets/[id]` and `/markets/protocol/[type]/[slug]`, plus an "All research" link.
+- **⚠️ Rendered on the server, deliberately.** The entire point is a crawlable `<a>` in the HTML;
+  a client-rendered list would be invisible to the thing this is for.
+- **Relevance reuses `rankPosts` from the AI grounding helpers** rather than inventing a second
+  ranking rule - it is already a pure keyword-overlap ranker (title weighted over excerpt over
+  body) and already tested. The coin id doubles as the query with hyphens turned to spaces.
+  Two new cases confirm it puts the on-topic post first, **and** that it preserves order when
+  nothing matches, so a page still gets links rather than an empty section.
+- The post list is fetched once per request via React `cache()` and the corpus is single-digit,
+  so two strips on one page cost one round trip. Failure degrades to rendering nothing.
+- Route table **unchanged** at 135/25/110 - both pages keep their existing ISR mode.
+- Files: `src/modules/research/components/RelatedResearch.tsx` (new),
+  `src/app/markets/[id]/page.tsx`, `src/app/markets/protocol/[type]/[slug]/page.tsx`,
+  `src/lib/__tests__/related-rank.test.ts` (new, 2 cases).
+- Checks: 609 tests, lint at the 36-warning baseline, build exit 0.
+- **Not verified rendering:** this sandbox has no database, so `allPublished()` returns empty and
+  the strip renders `null` here. Compilation, routing and the ranking are verified; the rendered
+  output needs the deployed site.
+
+---
+
 ## 2026-08-09 (54) — About and Disclaimer pages
 
 - **`/about`** — what the site is, who it is for, **how it makes money**, where the market data
