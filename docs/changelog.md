@@ -5,6 +5,62 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-10 (66) — The avatar fix was wrong; two screenshots said so
+
+**Correcting entry (64).** It shipped a real bug fix, but it was not the cause of "my photo
+doesn't show" — the photo was still missing after it deployed. Two screenshots settled it,
+and the reasoning in (64) is worth reading as an example of a correct process reaching the
+wrong conclusion: every link in the read path really was verified, so I concluded the
+failure had to be in the one link left unverified. It was in a link I never thought to
+list.
+
+### What the screenshots showed, on one screen each
+
+| Rendered fine | Broken |
+|---|---|
+| Profile banner — CSS `background-image` | Profile hero avatar |
+| Chat photos — plain `<img>`, **same Supabase host** | DM header avatar |
+| Navbar `/logo.png` — `next/image` over a **static** file | Chat header + bottom-nav avatars |
+
+So Supabase Storage **is** public and its URLs **do** load — (64)'s premise was wrong. The
+failure tracked one thing: **`next/image` fetching a source it has to go and get.** The
+logo works because Next reads it off disk; an avatar is a remote URL or an `/api/media`
+route, and that upstream fetch is what fails. Confirmed locally that `remotePatterns`
+accepts the host (`"url" parameter is valid`), so it is the fetch, not the config.
+
+The give-away was there from the start and I read past it: the avatar circles showed the
+member's **name as text**, not their initials. That is a broken `<img>` rendering its
+`alt` — never the initials fallback, which would have meant `image` was null.
+
+- **`Avatar` now renders a plain `<img>`.** The optimizer earns nothing here: these are
+  32–96px images already served with a long CDN cache, and each one spends a billable
+  Image Optimization transformation. The mechanism that demonstrably works on this site —
+  a plain `<img>` from the same host — is what it uses now. `width`/`height` are real
+  attributes so a list of avatars cannot shift layout as it loads.
+- Large hero images (`research/[slug]` covers) keep `next/image`, where it does earn it.
+
+### Also fixed, straight off the first screenshot
+
+Replying to a **photo** quoted the raw storage URL as text — two lines of
+`https://<ref>.supabase.co/storage/v1/object/…/covers/…webp` where the message above it
+shows a picture. `inboxPreview()` already existed for exactly this and was already used by
+the inbox; the three surfaces added in (64) and #280 just never called it. Now the quote
+above the bubble, the reply bar over the composer, and the forward sheet all do.
+
+**Files:** `src/modules/profile/components/Avatar.tsx` ·
+`src/modules/messages/components/MessagesClient.tsx` · tests: `avatar-img.test.ts`,
+`dm-quote-preview.test.ts`.
+
+**What (64) still got right, and keep:** the upload-verification check is correct on its
+own terms — a private bucket really would store an unreadable URL — it just was not this
+bucket. `/api/presence` and `/api/news/social` no longer shipping base64 blobs stands too.
+
+**Observable:** open any profile on a phone. The avatar shows a photo, not the member's
+name in text. In devtools: `document.querySelector('img[alt]').currentSrc` is non-empty and
+does **not** start with `/_next/image`.
+
+---
+
 ## 2026-08-10 (65) — XYZ Sentinel's 403 can finally be diagnosed
 
 `/api/watchdog` has been dark since 2026-07-29 with its cause recorded as **"not yet
