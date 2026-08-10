@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Ban, Check, CheckCheck, Copy, Flag, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Pin, PinOff, Search, ShieldOff, Trash2, X, ImagePlus, Smile } from "lucide-react";
+import { ArrowLeft, Ban, Check, CheckCheck, Copy, CornerUpLeft as Reply, Flag, Forward, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Pin, PinOff, Search, ShieldOff, Trash2, X, ImagePlus, Smile } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { SendGlyph } from "@/components/SendGlyph";
 import { EmojiPicker } from "@/components/EmojiPicker";
@@ -34,6 +34,10 @@ type Msg = {
   deleted?: boolean;
   editedAt?: string | null;
   pinned?: boolean;
+  /** Marked forwarded. A flag only - never a link back to the original thread. */
+  forwarded?: boolean;
+  /** The quoted parent, when this is a reply. Always from THIS conversation. */
+  replyTo?: { id: string; body: string; deleted: boolean; mine: boolean } | null;
 };
 type Pinned = { id: string; body: string; mine: boolean } | null;
 type Found = { id: string; name: string | null; username: string | null; image: string | null };
@@ -341,7 +345,8 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
       {/* Thread */}
       <section className={cn("min-h-0", activeId ? "flex" : "hidden md:flex")}>
         {activeId ? (
-          <Thread key={activeId} id={activeId} meId={meId} now={now} gifEnabled={gifEnabled} onlineSet={onlineSet} onBack={closeThread} onSent={loadInbox} />
+          <Thread key={activeId} id={activeId} meId={meId} now={now} gifEnabled={gifEnabled} onlineSet={onlineSet}
+              conversations={conversations} onBack={closeThread} onSent={loadInbox} />
         ) : (
           <div className="grid flex-1 place-items-center p-8 text-center">
             <div>
@@ -355,7 +360,7 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
   );
 }
 
-function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: string; meId: string; now: number; gifEnabled: boolean; onlineSet: Set<string>; onBack: () => void; onSent: () => void }) {
+function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, onSent }: { id: string; meId: string; now: number; gifEnabled: boolean; onlineSet: Set<string>; conversations: Conversation[]; onBack: () => void; onSent: () => void }) {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [other, setOther] = useState<Other>(null);
   const [loaded, setLoaded] = useState(false);
@@ -371,6 +376,10 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
   const [reporting, setReporting] = useState(false);
   const [reported, setReported] = useState(false);
   const [actionOpenId, setActionOpenId] = useState<string | null>(null);
+  /** The message being replied to, shown above the composer until sent or cleared. */
+  const [replyTo, setReplyTo] = useState<Msg | null>(null);
+  /** The message queued for forwarding; picking a conversation sends it there. */
+  const [forwarding, setForwarding] = useState<Msg | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
   // Cached per message so tapping Translate again just hides it rather than
@@ -452,17 +461,68 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
   });
   useEffect(() => { scrollToEnd(); }, [messages.length]);
 
+  /**
+   * Forward the queued message into another conversation.
+   *
+   * Sends straight to that thread's own endpoint, which re-runs its block and
+   * privacy gate. Forwarding must not become a way around a block, so the check
+   * has to happen on the destination rather than here.
+   */
+  const doForward = async (targetId: string) => {
+    const msg = forwarding;
+    if (!msg) return;
+    setForwarding(null);
+    try {
+      const r = await fetch(`/api/dm/${targetId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: msg.body, forwarded: true }),
+      });
+      if (!r.ok) {
+        const j = await r.json().catch(() => null);
+        setErr(j?.error ?? "Couldn't forward that message.");
+        return;
+      }
+      // Forwarded into THIS thread: show it now rather than waiting for a poll.
+      if (targetId === id) {
+        const j = await r.json().catch(() => null);
+        if (j?.message) setMessages((m) => (m.some((x) => x.id === j.message.id) ? m : [...m, j.message]));
+      }
+      onSent();
+    } catch {
+      setErr("Couldn't forward that message.");
+    }
+  };
+
   // Send any body (text, or a media URL). Optimistic + reconcile.
-  const postMessage = async (raw: string, fromDraft = false) => {
+  const postMessage = async (raw: string, fromDraft = false, opts?: { forwarded?: boolean }) => {
     const body = raw.trim();
     if (!body || sending) return;
     setSending(true);
     setErr(null);
+    // Captured before the optimistic row so a reply cleared mid-flight cannot
+    // change what was actually sent.
+    const parent = replyTo;
     const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setMessages((m) => [...m, { id: tempId, body, createdAt: new Date().toISOString(), mine: true }]);
+    setMessages((m) => [
+      ...m,
+      {
+        id: tempId,
+        body,
+        createdAt: new Date().toISOString(),
+        mine: true,
+        forwarded: opts?.forwarded,
+        replyTo: parent ? { id: parent.id, body: parent.body, deleted: !!parent.deleted, mine: parent.mine } : null,
+      },
+    ]);
     if (fromDraft) setDraft("");
+    setReplyTo(null);
     try {
-      const r = await fetch(`/api/dm/${id}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ body }) });
+      const r = await fetch(`/api/dm/${id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body, replyToId: parent?.id, forwarded: opts?.forwarded === true }),
+      });
       const j = r.ok ? await r.json() : null;
       if (j?.message) {
         setMessages((m) => { const without = m.filter((x) => x.id !== tempId); return without.some((x) => x.id === j.message.id) ? without : [...without, j.message]; });
@@ -745,6 +805,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
                       onToggle={() => setActionOpenId((x) => (x === m.id ? null : m.id))}
                       side="left"
                     >
+                      <ActionItem icon={Reply} label="Reply" onClick={() => { setActionOpenId(null); setReplyTo(m); }} />
+                      <ActionItem icon={Forward} label="Forward" onClick={() => { setActionOpenId(null); setForwarding(m); }} disabled={!!media} />
                       <ActionItem icon={Copy} label="Copy" onClick={() => void copyMessage(m.body)} disabled={!!media} />
                       <ActionItem icon={Languages} label="Translate" onClick={() => void translateMessage(m.id, m.body)} disabled={!!media} />
                       <ActionItem icon={m.pinned ? PinOff : Pin} label={m.pinned ? "Unpin" : "Pin"} onClick={() => void togglePin(m.id, !m.pinned)} />
@@ -761,6 +823,21 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
                     </MessageActions>
                   )}
                   <div className={cn("max-w-[78%] rounded-2xl text-[14px] leading-relaxed", media ? "overflow-hidden p-1" : "px-3.5 py-2", m.deleted ? "bg-black/[0.03] text-zinc-500 ring-1 ring-black/5 dark:bg-white/[0.03] dark:text-zinc-500 dark:ring-white/5" : m.mine ? "rounded-br-md bg-gold-500/20 text-gold-950 ring-1 ring-gold-500/30 dark:bg-gold-500/15 dark:text-gold-50" : "rounded-bl-md bg-black/[0.05] text-zinc-800 ring-1 ring-black/10 dark:bg-white/[0.05] dark:text-zinc-100 dark:ring-white/10")}>
+                    {m.forwarded && !m.deleted && (
+                      <p className="mb-1 flex items-center gap-1 text-[11px] italic opacity-60">
+                        <Forward className="h-3 w-3" /> Forwarded
+                      </p>
+                    )}
+                    {m.replyTo && !m.deleted && (
+                      // The quote. A deleted parent still shows a line, so a
+                      // reply never looks like it answers nothing.
+                      <div className="mb-1.5 border-l-2 border-current/30 pl-2 text-[12px] opacity-70">
+                        <span className="block font-medium">{m.replyTo.mine ? "You" : "Them"}</span>
+                        <span className="line-clamp-2 italic">
+                          {m.replyTo.deleted ? "message deleted" : m.replyTo.body}
+                        </span>
+                      </div>
+                    )}
                     {m.deleted ? (
                       // A tombstone, not a removal: taking the row out would
                       // make the thread jump and would rewrite a conversation
@@ -824,6 +901,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
                       onToggle={() => setActionOpenId((x) => (x === m.id ? null : m.id))}
                       side="right"
                     >
+                      <ActionItem icon={Reply} label="Reply" onClick={() => { setActionOpenId(null); setReplyTo(m); }} />
+                      <ActionItem icon={Forward} label="Forward" onClick={() => { setActionOpenId(null); setForwarding(m); }} disabled={!!media} />
                       <ActionItem icon={Copy} label="Copy" onClick={() => void copyMessage(m.body)} disabled={!!media} />
                       <ActionItem icon={Languages} label="Translate" onClick={() => void translateMessage(m.id, m.body)} disabled={!!media} />
                       <ActionItem icon={m.pinned ? PinOff : Pin} label={m.pinned ? "Unpin" : "Pin"} onClick={() => void togglePin(m.id, !m.pinned)} />
@@ -851,8 +930,74 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
           )}
         </div>
       ) : (
+      <>
+      {forwarding && (
+        // A small sheet rather than a new route: forwarding is a two-tap action
+        // and pushing a page for it would lose the thread you are in.
+        <div className="absolute inset-0 z-30 flex flex-col bg-ink-950/80 backdrop-blur-sm" role="dialog" aria-label="Forward to">
+          <button
+            type="button"
+            className="flex-1"
+            aria-label="Cancel forwarding"
+            onClick={() => setForwarding(null)}
+          />
+          <div className="max-h-[60%] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-ink-900 p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-sm font-semibold text-zinc-100">Forward to…</p>
+              <button type="button" onClick={() => setForwarding(null)} aria-label="Close" className="rounded-lg p-1 text-zinc-500 hover:text-zinc-200">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <p className="mb-2 truncate rounded-lg bg-white/5 px-3 py-2 text-[12px] text-zinc-400">{forwarding.body}</p>
+            {conversations.length === 0 ? (
+              <p className="px-1 py-3 text-[13px] text-zinc-500">No other conversations yet.</p>
+            ) : (
+              <ul className="space-y-1">
+                {conversations.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => void doForward(c.id)}
+                      className="flex w-full items-center gap-2.5 rounded-xl px-2 py-2 text-left hover:bg-white/5"
+                    >
+                      <Avatar image={c.other?.image ?? null} name={c.other?.name ?? "?"} size="sm" />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[13px] text-zinc-100">{c.other?.name ?? "Unknown"}</span>
+                        {c.id === id && <span className="text-[11px] text-zinc-500">this conversation</span>}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
       <div className="border-t border-white/10 p-3">
         {err && <p className="mb-1.5 px-1 text-[11px] text-amber-500">{err}</p>}
+        {replyTo && (
+          // Sits above the composer so what you are replying to stays visible
+          // while you type - and is dismissible, because changing your mind
+          // should not mean deleting your draft.
+          <div className="mb-2 flex items-start gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+            <div className="min-w-0 flex-1 border-l-2 border-gold-500/40 pl-2">
+              <p className="text-[11px] font-medium text-gold-200">
+                Replying to {replyTo.mine ? "yourself" : "them"}
+              </p>
+              <p className="truncate text-[12px] text-zinc-400">
+                {replyTo.deleted ? "message deleted" : replyTo.body}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyTo(null)}
+              aria-label="Cancel reply"
+              className="shrink-0 rounded-lg p-1 text-zinc-500 hover:bg-white/10 hover:text-zinc-200"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        )}
         <div className="flex items-end gap-1.5">
           {gifEnabled && (
             <div className="relative">
@@ -891,6 +1036,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, onBack, onSent }: { id: 
           </button>
         </div>
       </div>
+      </>
       )}
     </div>
   );

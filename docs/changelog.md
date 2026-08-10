@@ -5,6 +5,45 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-10 (62) — DM replies and forwarding
+
+Community chat had replies; DMs had neither. Both added, mirroring the chat pattern where it
+fits and diverging where DMs are genuinely different.
+
+- **⚠️ The reply target must be in the SAME conversation, and that is the whole security story.**
+  Community chat is one global room, so quoting any message is fine there. DMs are private and
+  there are many threads - a target accepted on its id alone would let someone quote a message
+  out of a conversation they are not in, and the quoted preview would then render that private
+  text to the other participant. The lookup is scoped by `conversationId` **and** `status`, and
+  an unmatched id is **dropped rather than rejected**, so a stale reply target sends as a normal
+  message instead of failing the send.
+- **⚠️ "Forwarded" is a flag, not a link.** A reference to the original would point into a
+  conversation the recipient has no right to read, and resolving it for a preview would leak that
+  thread. So `forwarded Boolean` and a bare label - the same choice WhatsApp makes, for the same
+  reason. There is deliberately no `forwardedFrom` relation, and a test asserts its absence.
+- **Forwarding goes through the destination's own endpoint**, which re-runs its block and privacy
+  gate. Forwarding must not become a way around a block, so that check belongs on the
+  destination, not on the sender's side.
+- A deleted parent still resolves, with its body stripped the same way the message itself is, so
+  the quote reads "message deleted" rather than vanishing and leaving a reply that appears to
+  answer nothing.
+- Migration `34_dm_reply_forward`, idempotent, matching the house style: `ADD COLUMN IF NOT
+  EXISTS`, the FK guarded by a `pg_constraint` check, `ON DELETE SET NULL` so a reply survives
+  its parent.
+- **⚠️ Two mistakes worth recording.** A `str.replace()` anchored on `const typingNames` matched
+  nothing - that identifier is in `ChatClient`, not `MessagesClient` - and passed silently,
+  leaving `doForward` undefined until typecheck caught it. And the picker was first inserted into
+  a ternary branch that accepts a single element, breaking the JSX; it needed a fragment.
+- Files: `prisma/schema.prisma`, `prisma/migrations/34_dm_reply_forward/migration.sql` (new),
+  `src/app/api/dm/[id]/route.ts`, `src/modules/messages/components/MessagesClient.tsx`,
+  `src/shared/utils/__tests__/dm-reply-scope.test.ts` (new, 5 cases).
+- Checks: 639 tests, lint at the 36-warning baseline, build exit 0, route table unchanged.
+- **Not verified against a database** - this sandbox has none, so the migration and the queries
+  are reviewed and typechecked but not run. Read the deploy build log for
+  `in sync with your Prisma schema` before trusting the schema half.
+
+---
+
 ## 2026-08-10 (61) — The chat translator stops presenting a non-answer as a translation
 
 Reported as "the translator doesn't work properly both ways". **The direction was not the

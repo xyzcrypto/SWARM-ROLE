@@ -42,8 +42,8 @@ model User {
 
   // Brute-force defence (works without Upstash): lock the account for a short
   // window after repeated failed password attempts; reset on success.
-  failedLoginCount Int       @default(0)
-  lockedUntil      DateTime?
+  failedLoginCount  Int       @default(0)
+  lockedUntil       DateTime?
   // When the password was last changed. Any JWT minted before this instant is
   // revoked on its next refresh (see the `pwdAt` check in core/auth/auth.ts).
   // Nullable on purpose: existing users have no value, which reads as "never
@@ -84,21 +84,21 @@ model User {
   chatReactions     ChatReaction[]
   chatPollVotes     ChatPollVote[]
   notifications     Notification[]
-  adminAudits       AdminAudit[]        @relation("AdminAuditActor")
+  adminAudits       AdminAudit[]           @relation("AdminAuditActor")
   pushSubscriptions PushSubscription[]
   aiUsage           AiUsage[]
   savedStories      SavedStory[]
   newsLikes         NewsLike[]
   newsComments      NewsComment[]
-  conversationsA    Conversation[]     @relation("ConvUserA")
-  conversationsB    Conversation[]     @relation("ConvUserB")
-  directMessages    DirectMessage[]    @relation("DMSender")
-  followers         Follow[]           @relation("Following") // rows where this user is followed
-  following         Follow[]           @relation("Follower")  // rows where this user follows someone
-  blocksMade        Block[]            @relation("Blocker")   // people this user blocked
-  blocksAgainst     Block[]            @relation("Blocked")   // people who blocked this user
-  reportsMade       Report[]           @relation("Reporter")
-  reportsAgainst    Report[]           @relation("ReportSubject")
+  conversationsA    Conversation[]         @relation("ConvUserA")
+  conversationsB    Conversation[]         @relation("ConvUserB")
+  directMessages    DirectMessage[]        @relation("DMSender")
+  followers         Follow[]               @relation("Following") // rows where this user is followed
+  following         Follow[]               @relation("Follower") // rows where this user follows someone
+  blocksMade        Block[]                @relation("Blocker") // people this user blocked
+  blocksAgainst     Block[]                @relation("Blocked") // people who blocked this user
+  reportsMade       Report[]               @relation("Reporter")
+  reportsAgainst    Report[]               @relation("ReportSubject")
   trades            Trade[]
   riskProfile       RiskProfile?
   challenges        Challenge[]
@@ -109,7 +109,7 @@ model User {
 
   // Basic engagement XP (foundation for a future gamified system). Denormalized
   // counter kept in sync with XpEvent rows inside a transaction.
-  xp       Int        @default(0)
+  xp       Int       @default(0)
   xpEvents XpEvent[]
 
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
@@ -257,13 +257,13 @@ model Post {
   title     String
   slug      String   @unique
   excerpt   String
-  content   String   // markdown / long text
-  cover     String?  // image URL
+  content   String // markdown / long text
+  cover     String? // image URL
   category  String   @default("Research") // Research | Article | Post
   tags      String   @default("") // comma separated
   published Boolean  @default(true)
   premium   Boolean  @default(false) // Premium Content — body gated to Premium users
-  summary   String?  // AI-generated TL;DR (XYZ AI) — shown atop the article
+  summary   String? // AI-generated TL;DR (XYZ AI) — shown atop the article
   views     Int      @default(0) // total opens (incremented on the article page)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -342,17 +342,17 @@ model NewsComment {
 // of who opens it. Denormalized last-message fields let the inbox render in a
 // single query (no join to messages) and drive the unread badge.
 model Conversation {
-  id            String    @id @default(cuid())
-  createdAt     DateTime  @default(now())
-  lastMessageAt DateTime  @default(now())
+  id            String          @id @default(cuid())
+  createdAt     DateTime        @default(now())
+  lastMessageAt DateTime        @default(now())
   lastBody      String? // preview snippet of the most recent message
   lastSenderId  String? // who sent the last message (for the unread calc)
   userAId       String
   userBId       String
   readAAt       DateTime? // when user A last opened the thread
   readBAt       DateTime? // when user B last opened the thread
-  userA         User      @relation("ConvUserA", fields: [userAId], references: [id], onDelete: Cascade)
-  userB         User      @relation("ConvUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  userA         User            @relation("ConvUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB         User            @relation("ConvUserB", fields: [userBId], references: [id], onDelete: Cascade)
   messages      DirectMessage[]
 
   @@unique([userAId, userBId])
@@ -373,6 +373,22 @@ model DirectMessage {
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   senderId       String
   sender         User         @relation("DMSender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  // Reply / quote (self-relation), mirroring ChatMessage. Detaches (null) if
+  // the parent is removed, so a thread never points at a ghost row.
+  //
+  // ⚠️ Unlike the community room, DMs are private and there are many of them,
+  // so the API must also check the parent belongs to the SAME conversation.
+  // The FK alone would happily quote a message from someone else's thread.
+  replyToId String?
+  replyTo   DirectMessage?  @relation("DMReply", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies   DirectMessage[] @relation("DMReply")
+
+  // "Forwarded" is a flag, not a link. A reference to the original would point
+  // into a conversation the recipient has no right to read, and resolving it
+  // for a preview would leak that thread. WhatsApp shows the same bare label
+  // for the same reason.
+  forwarded Boolean @default(false)
 
   @@index([conversationId, createdAt])
   // The pinned banner is "the newest pinned message in this conversation".
@@ -589,12 +605,12 @@ model Block {
 // rather than removed, but a report has to survive even if that ever changes,
 // and a report about someone's behaviour is not owned by one message.
 model Report {
-  id         String   @id @default(cuid())
-  createdAt  DateTime @default(now())
-  reason     String // "spam" | "harassment" | "scam" | "other"
-  note       String?
-  status     String   @default("open") // "open" | "reviewed"
-  messageId  String?
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  reason    String // "spam" | "harassment" | "scam" | "other"
+  note      String?
+  status    String   @default("open") // "open" | "reviewed"
+  messageId String?
 
   reporter   User   @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
   reporterId String
@@ -640,18 +656,18 @@ model Trade {
   stopLoss   Float?
   takeProfit Float?
 
-  setup          String? // strategy/setup tag
+  setup           String? // strategy/setup tag
   marketCondition String?
-  session        String? // e.g. "Asia" | "London" | "New York"
-  timeframe      String?
-  assetCategory  String?
-  tags           String[] @default([])
-  emotions       String[] @default([])
-  mistakes       String[] @default([])
-  lessons        String?
-  notes          String?
-  screenshots    String[] @default([])
-  customFields   Json?
+  session         String? // e.g. "Asia" | "London" | "New York"
+  timeframe       String?
+  assetCategory   String?
+  tags            String[] @default([])
+  emotions        String[] @default([])
+  mistakes        String[] @default([])
+  lessons         String?
+  notes           String?
+  screenshots     String[] @default([])
+  customFields    Json?
 
   visibility String @default("private") // "private" | "public" | "anonymous"
 
@@ -719,7 +735,7 @@ model RiskProfile {
   maxOpenRiskPct         Float?
   maxLeverage            Float?
   maxTradesPerDay        Int?
-  revengeCooldownMinutes Int?     @default(30)
+  revengeCooldownMinutes Int?   @default(30)
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId String @unique

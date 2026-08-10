@@ -44,7 +44,13 @@ export async function GET(_req: Request, props: Ctx) {
         where: { conversationId: conv.id },
         orderBy: { createdAt: "asc" },
         take: 200,
-        select: { id: true, body: true, createdAt: true, senderId: true, status: true, editedAt: true, pinnedAt: true },
+        select: {
+          id: true, body: true, createdAt: true, senderId: true, status: true,
+          editedAt: true, pinnedAt: true, forwarded: true,
+          // Only what a quote line needs. A deleted parent still resolves, so
+          // the preview can say "message deleted" instead of vanishing.
+          replyTo: { select: { id: true, body: true, senderId: true, status: true } },
+        },
       }),
       prisma.directMessage.findFirst({
         where: { conversationId: conv.id, status: "visible", pinnedAt: { not: null } },
@@ -94,6 +100,19 @@ export async function GET(_req: Request, props: Ctx) {
       deleted: m.status === "deleted",
       editedAt: m.editedAt,
       pinned: !!m.pinnedAt,
+      forwarded: m.forwarded,
+      // The quote line. A deleted parent still resolves, with its body stripped
+      // for the same reason the message itself is - so the preview can say
+      // "message deleted" rather than silently disappearing and making the
+      // reply look like it answers nothing.
+      replyTo: m.replyTo
+        ? {
+            id: m.replyTo.id,
+            body: m.replyTo.status === "deleted" ? "" : m.replyTo.body,
+            deleted: m.replyTo.status === "deleted",
+            mine: m.replyTo.senderId === me.id,
+          }
+        : null,
     }));
 
     return ok({
@@ -131,7 +150,12 @@ export async function GET(_req: Request, props: Ctx) {
   }
 }
 
-const sendSchema = z.object({ body: z.string().trim().min(1).max(DM_MAX_LEN) });
+const sendSchema = z.object({
+  body: z.string().trim().min(1).max(DM_MAX_LEN),
+  replyToId: z.string().optional(),
+  /** Marks the message as forwarded. A flag, never a link to the original. */
+  forwarded: z.boolean().optional(),
+});
 
 // POST /api/dm/[id] — send a message into this conversation.
 export async function POST(req: Request, props: Ctx) {
@@ -157,9 +181,30 @@ export async function POST(req: Request, props: Ctx) {
     // the rule.
     const gate = await canSendInThread(me.id, iAmA ? conv.userBId : conv.userAId);
     if (!gate.ok) return fail(gate.reason, 403);
+    // ⚠️ The reply target must live in THIS conversation. The foreign key alone
+    // would happily accept an id from someone else's thread, and the quoted
+    // preview would then render private text to a person with no right to it.
+    // Scoping the lookup by conversationId is the whole guard - an id that does
+    // not match is dropped rather than rejected, so a stale reply target just
+    // sends as a normal message.
+    let replyToId: string | null = null;
+    if (parsed.data.replyToId) {
+      const parent = await prisma.directMessage.findFirst({
+        where: { id: parsed.data.replyToId, conversationId: conv.id, status: "visible" },
+        select: { id: true },
+      });
+      replyToId = parent?.id ?? null;
+    }
+
     const now = new Date();
     const created = await prisma.directMessage.create({
-      data: { conversationId: conv.id, senderId: me.id, body },
+      data: {
+        conversationId: conv.id,
+        senderId: me.id,
+        body,
+        replyToId,
+        forwarded: parsed.data.forwarded === true,
+      },
       select: { id: true, body: true, createdAt: true },
     });
 
