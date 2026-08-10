@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { publicImageUrl } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,7 +41,11 @@ export async function GET(req: Request) {
       createdAt: c.createdAt,
       name: c.user?.name || c.user?.username || "Member",
       username: c.user?.username ?? null,
-      image: c.user?.image ?? null,
+      // Not the raw column. This route is polled per story card by anonymous
+      // visitors, so an inline `data:` avatar would be re-serialized into every
+      // one of those responses - the Fast Origin Transfer problem `publicImageUrl`
+      // exists for. The owner id comes from the comment row, which already has it.
+      image: publicImageUrl(c.user?.image, c.userId),
       mine: me ? c.userId === me.id : false,
     }));
 
@@ -77,7 +82,7 @@ export async function POST(req: Request) {
       comment: {
         id: c.id, body: c.body, createdAt: c.createdAt,
         name: c.user?.name || c.user?.username || "Member",
-        username: c.user?.username ?? null, image: c.user?.image ?? null, mine: true,
+        username: c.user?.username ?? null, image: publicImageUrl(c.user?.image, me.id), mine: true,
       },
     });
   } catch (err) {

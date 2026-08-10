@@ -116,13 +116,62 @@ export async function uploadImage(bytes: ArrayBuffer, declaredMime: string): Pro
       body: bytes,
     });
     if (res.ok) {
-      return { ok: true, url: `${env.SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}` };
+      const publicUrl = `${env.SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+      if (await isPubliclyReadable(publicUrl)) return { ok: true, url: publicUrl };
+      // Stored, but nobody can read it. Keep going - `inline()` below is the
+      // path that is actually known to render.
+    } else {
+      const detail = await res.text().catch(() => "");
+      console.error("[storage] upload failed, falling back to inline", res.status, detail);
     }
-    const detail = await res.text().catch(() => "");
-    console.error("[storage] upload failed, falling back to inline", res.status, detail);
   } catch (err) {
     console.error("[storage] upload error, falling back to inline", err);
   }
   // Supabase attempt failed → inline so the user's upload still succeeds.
   return inline();
+}
+
+/**
+ * Can an anonymous browser actually GET this object?
+ *
+ * ## Why an upload that "succeeded" is not enough
+ *
+ * The POST above is authenticated with the service-role key, which can write to
+ * a bucket whether or not that bucket is public. So a private bucket accepts the
+ * upload and returns 200, we hand back a `.../object/public/...` URL, and the
+ * database stores it. Every layer reports success. Then the browser - and the
+ * `next/image` optimizer - fetch that URL with no credentials, Supabase answers
+ * 400, and the photo renders as nothing.
+ *
+ * From the member's side that is exactly: **"I added a profile photo, it said it
+ * saved, and it never showed up anywhere."** Nothing logs, nothing 500s, and
+ * re-uploading reproduces it forever, because the bucket is a dashboard setting
+ * (`HANDOFF.md` step 2: "create a **public** bucket") that no code has ever
+ * checked. This is the same failure shape this project keeps re-learning: a
+ * fallback that hides the very thing it exists to protect against.
+ *
+ * One unauthenticated range request per upload settles it. Uploads are rare and
+ * already doing far more work than this, and the answer decides between a URL
+ * that renders and one that never will.
+ *
+ * A `Range: bytes=0-0` GET rather than HEAD: it costs one byte, and it is
+ * universally supported, whereas a storage backend answering 405 to HEAD would
+ * read as "broken" and push a perfectly good upload down the inline path.
+ * Erring is cheap in this direction and expensive in the other - inline is
+ * verified end-to-end (`/api/media` serves it), so a false negative still leaves
+ * the member with a working photo.
+ */
+async function isPubliclyReadable(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { headers: { Range: "bytes=0-0" }, cache: "no-store" });
+    if (res.ok || res.status === 206) return true;
+    console.error(
+      `[storage] uploaded object is NOT publicly readable (${res.status}). ` +
+        `Is the "${env.SUPABASE_STORAGE_BUCKET}" bucket public? Storing the image inline instead.`
+    );
+    return false;
+  } catch (err) {
+    console.error("[storage] could not verify public readability, storing inline instead", err);
+    return false;
+  }
 }
