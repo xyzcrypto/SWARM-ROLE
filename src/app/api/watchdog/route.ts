@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError } from "@/lib/api";
 import { env, aiEnabled } from "@/lib/env";
+import { checkCronAuth, cronAuthFailure, type CronAuth } from "@/core/auth/cron-auth";
 import { collectSignals, scoreSignals, type Severity } from "@/lib/security-signals";
 import { completeText } from "@/lib/ai";
 import { notifyOwner } from "@/lib/notify-owner";
@@ -14,18 +15,26 @@ export const dynamic = "force-dynamic";
 // severity, and alerts the owner (email + Telegram) on new warn/critical issues.
 // Secured by CRON_SECRET (same pattern as /api/push/dispatch). Detect + alert
 // only — it never changes anything.
-function authorized(req: Request): boolean {
-  if (!env.CRON_SECRET) return false; // disabled unless a secret is configured
-  const auth = req.headers.get("authorization");
-  const qs = new URL(req.url).searchParams.get("secret");
-  return auth === `Bearer ${env.CRON_SECRET}` || qs === env.CRON_SECRET;
+// See `cron-auth.ts` for why an unset secret and a wrong token no longer answer
+// the same thing: they are different problems, and blurring them is what left
+// XYZ Sentinel dark for two weeks with no way to tell which one it was.
+function authorized(req: Request): CronAuth {
+  return checkCronAuth(
+    env.CRON_SECRET,
+    req.headers.get("authorization"),
+    new URL(req.url).searchParams.get("secret")
+  );
 }
 
 const RANK: Record<Severity, number> = { ok: 0, info: 1, warn: 2, critical: 3 };
 
 export async function GET(req: Request) {
   try {
-    if (!authorized(req)) return fail("Forbidden", 403);
+    const auth = authorized(req);
+    if (!auth.ok) {
+      const { message, status } = cronAuthFailure(auth.reason);
+      return fail(message, status);
+    }
 
     const now = new Date();
     const signals = await collectSignals(now, 60);

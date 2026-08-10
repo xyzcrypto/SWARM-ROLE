@@ -5,6 +5,137 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-10 (65) — XYZ Sentinel's 403 can finally be diagnosed
+
+`/api/watchdog` has been dark since 2026-07-29 with its cause recorded as **"not yet
+pinned"** and two candidates that nobody could choose between. This does not fix the 403 —
+it makes it **readable**, which is what has actually been missing for two weeks.
+
+**The blocker was a design note, and §8 already named it:** `authorized()` opened with
+`if (!env.CRON_SECRET) return false` and then answered a flat `403 Forbidden` either way.
+So two unrelated situations were indistinguishable from outside:
+
+1. the secret **is** configured and the caller sent the wrong one, or
+2. the secret is **absent from this deployment's runtime** (Vercel captures env vars at
+   build time — a variable added after the last production build is genuinely missing,
+   while the dashboard shows it present; the same trap as the Sentry DSN).
+
+(2) is not a security condition at all — the endpoint is switched off and *nobody* can
+reach it with any credential. But with no oracle to check against, every diagnosis was a
+guess, and one guess was written into §8 **as a fact and later had to be retracted**.
+
+- **`checkCronAuth()`** (`src/core/auth/cron-auth.ts`) returns a reason, and both cron
+  routes (`/api/watchdog`, `/api/push/dispatch` — they carried the same six lines) use it:
+  - **`503`, naming `CRON_SECRET` and the redeploy** → candidate 2. Redeploy, no code change.
+  - **`403 Forbidden`**, bare → candidate 1. The secret is present; the token was wrong.
+    This one stays opaque, because it is the only case where a distinguishable answer
+    would teach an attacker anything.
+- **The usual objection does not apply here.** Blurring the two normally avoids confirming
+  an endpoint's config — but when the secret is unset the route is unreachable regardless,
+  so "it is unset" gives an attacker nothing. It gives the owner the answer in **one
+  unauthenticated request, with no secret involved**.
+- **Constant-time comparison** while in here: `===` on a secret is a timing side channel.
+  Now sha256 + `timingSafeEqual`, the same shape `otp.ts` already uses (hashing first
+  because `timingSafeEqual` throws on length-mismatched buffers, which leaks length).
+- **Tested against the real route handler**, not just the pure helper — status code and
+  body are what an owner actually sees. Proved by restoring the collapsed behaviour: the
+  unset case reports `forbidden` again and the assertion fails.
+
+**Owner, one request, no secret needed:**
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://xyzcrypto.io/api/watchdog
+```
+**503** → the variable is missing from the running deployment; redeploy.
+**403** → it is present and the token used in the earlier probe was simply wrong.
+
+Note this is only half the darkness: `.github/workflows/watchdog.yml` still has its
+`schedule:` commented out, and it reads `CRON_SECRET`/`PROD_URL` from **GitHub Actions**
+secrets, not Vercel — it exits 0 with a skip message when either is missing, so a green
+workflow run is not evidence it ran. Both doors have to be opened. See §8.
+
+**Files:** `src/core/auth/cron-auth.ts` (new) · `src/app/api/watchdog/route.ts` ·
+`src/app/api/push/dispatch/route.ts` · tests: `cron-auth.test.ts`, `watchdog-auth.test.ts`.
+
+---
+
+## 2026-08-10 (64) — A profile photo that saves and never appears, and a DM menu clipped off a phone
+
+Two reported items. Both had a root cause that reports success at every layer.
+
+### (1) 🔴 "I add a profile photo, it saves, and it never shows"
+
+**The read path is not the problem, and that was worth establishing before changing anything.**
+Each link was run rather than reasoned about:
+
+| Link | Result |
+|---|---|
+| `uploadImage()` → inline `data:` URL | ✅ |
+| `publicImageUrl()` → `/api/media/avatar/<id>/<token>` | ✅ |
+| the `/api/media` handler itself | ✅ 200, byte-identical to what went in |
+| `next/image` optimizing a local `/api/...` path with those headers | ✅ 200 (measured against a real dev server) |
+| `sw.js` | ✅ never touches `/api/` or `/_next/image` |
+| JWT `token.picture` refresh after upload | ✅ `trigger === "update"` already forces a DB re-read |
+
+That leaves exactly one unguarded assumption, and it produces this symptom exactly:
+
+- **A private Supabase bucket accepts the upload.** The POST is authenticated with the
+  service-role key, which can write whether or not the bucket is public. It answers 200, we build
+  `…/object/public/<bucket>/<path>`, and that URL goes in the database. Then the browser — which
+  has no credentials — fetches it and gets a **400**. The photo renders as nothing, everywhere,
+  for everyone, permanently. Nothing logs. Re-uploading reproduces it forever.
+- Making the bucket public is a **dashboard** step (`HANDOFF.md` §"Supabase Storage", step 2:
+  "create a **public** bucket"). No code has ever checked that it was done.
+- **Fix: verify before trusting.** After a successful upload, one *unauthenticated*
+  `Range: bytes=0-0` GET against the URL we are about to return. Not readable → fall back to the
+  inline `data:` URL, which the table above proves renders end to end, and **log which bucket
+  setting is wrong** instead of failing silently. One extra request per upload; uploads are rare
+  and already doing far more work than this.
+- A `Range` GET rather than `HEAD` so a backend that 405s on HEAD doesn't condemn a good upload —
+  and the check is deliberately conservative rather than optimistic, because a false negative
+  still leaves the member with a working photo.
+- `storage-public-check.test.ts` pins it, and was proved by deleting the check: the
+  private-bucket case then returns the unreadable URL, exactly as before.
+
+**Also fixed, same family:** `/api/presence` and `/api/news/social` were handing back the **raw**
+`image` column, so an inline `data:` avatar (hundreds of KB) was re-serialized into every poll —
+on `news/social`, into a *publicly cached* response. Both now go through `publicImageUrl`. Every
+other read path already did; these two were the last holdouts.
+
+### (2) 🔴 DM message menu clipped off the screen on a phone
+
+The menu was `absolute bottom-full` on the message row — the right design (it must not cover the
+message you are about to delete), and clipped by the message list's `overflow-y-auto`. So on a
+phone, opening it on any message in the **upper part of the thread** cut the menu off at the top
+of the list. **Reply is the first item**, so it was the first thing to vanish: the feature read as
+broken on mobile while working fine in a tall desktop window.
+
+- **Portalled to `<body>`, positioned `fixed` from the trigger's viewport rect.** `fixed` alone
+  would not have been enough — the panel's `backdrop-filter` re-establishes the containing block
+  (the same reason `ImageLightbox` portals).
+- **`placeMenu()`** (`@shared/utils/menu-placement.ts`) does the arithmetic: prefers opening
+  upward, flips down when there isn't room, falls to the roomier side when neither fits, and
+  always returns a `maxHeight` that fits — so the result is never "off the top", only ever
+  "scrollable". Kept pure so it is tested at real phone sizes instead of eyeballed.
+- **The trigger is now full-strength on touch.** `opacity-40` is a hover affordance and there is
+  no hover on a phone; a 40%-opacity dot does not read as a button, and it is the only way in to
+  Reply. Desktop hover behaviour is unchanged (`sm:` only).
+- Menu rows are `min-h-10`, so Reply and Forward are not one mis-tap apart.
+- `menu-placement.test.ts` sweeps an iPhone 13 viewport top to bottom and asserts the menu is
+  fully on screen at every position. Proved by reverting to always-up: the top-of-thread case
+  then places the menu at **-6px** and the placement assertion fails.
+
+**Files:** `src/core/storage/storage.ts` · `src/shared/utils/menu-placement.ts` (new) ·
+`src/modules/messages/components/MessagesClient.tsx` · `src/app/api/presence/route.ts` ·
+`src/app/api/news/social/route.ts` · tests: `storage-public-check.test.ts`,
+`menu-placement.test.ts`.
+
+**⚠️ Owner, one thing code cannot do:** rows that already hold a broken
+`…/object/public/…` URL stay broken — the fix only changes what *new* uploads store. Either make
+the bucket public in the Supabase dashboard, or have affected members re-upload once. To see
+whether any exist: `SELECT username, image FROM "User" WHERE image LIKE 'https://%supabase%';`
+
+---
+
 ## 2026-08-10 (63) — iOS: a missing prefix, and fields that zoomed the page
 
 Item (2) of the report. **⚠️ Stated up front: a real Safari engine could not be installed here -

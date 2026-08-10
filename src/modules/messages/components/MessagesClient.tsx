@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { createPortal } from "react-dom";
 import { AnimatePresence } from "framer-motion";
 import { ArrowLeft, Ban, Check, CheckCheck, Copy, CornerUpLeft as Reply, Flag, Forward, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Pin, PinOff, Search, ShieldOff, Trash2, X, ImagePlus, Smile } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
@@ -22,6 +23,7 @@ import { useHydrated } from "@/lib/useClientFlag";
 import { compressImage } from "@/lib/image";
 import { cn } from "@/lib/utils";
 import { MicButton } from "@/shared/components/MicButton";
+import { placeMenu, type MenuBox } from "@shared/utils/menu-placement";
 
 type Other = { id?: string; name: string; username: string | null; image: string | null; lastSeenAt?: string | null } | null;
 type Conversation = { id: string; other: Other; lastBody: string; lastMessageAt: string; unread: boolean; lastMine?: boolean; otherReadAt?: string | null };
@@ -84,6 +86,9 @@ function inboxPreview(lastBody: string): string {
   return chatMediaUrl(lastBody) ? "\u{1F4F7} Photo" : lastBody;
 }
 
+/** Menu width in px. Also fed to `placeMenu`, so the two can never disagree. */
+const MENU_WIDTH = 176;
+
 /**
  * The per-message action trigger and its menu.
  *
@@ -107,42 +112,81 @@ function MessageActions({
   side: "left" | "right";
   children: React.ReactNode;
 }) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [box, setBox] = useState<MenuBox | null>(null);
+  // Portals need a DOM target, so nothing is portalled until after hydration.
+  const mounted = useHydrated();
+
+  // Measured in an effect, never during render - the viewport is a client-only
+  // signal, and this project's worst bug was a client-only signal reaching the
+  // DOM on the first render (see CLAUDE.md).
+  useEffect(() => {
+    if (!open) {
+      setBox(null);
+      return;
+    }
+    const place = () => {
+      const el = btnRef.current;
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      setBox(placeMenu(r, window.innerWidth, window.innerHeight, { width: MENU_WIDTH, align: side === "left" ? "right" : "left" }));
+    };
+    place();
+    // The trigger moves with the thread, so the menu has to follow it. `true`
+    // catches scrolling on the message list itself, not just the window.
+    window.addEventListener("scroll", place, true);
+    window.addEventListener("resize", place);
+    return () => {
+      window.removeEventListener("scroll", place, true);
+      window.removeEventListener("resize", place);
+    };
+  }, [open, side]);
+
   return (
     <>
       <button
+        ref={btnRef}
         type="button"
         onClick={onToggle}
         aria-label="Message actions"
         aria-expanded={open}
         className={cn(
+          // `opacity-40` is a hover affordance and there is no hover on a phone,
+          // so touch gets the trigger at full strength - it is the only way in
+          // to Reply, and a 40%-opacity dot does not read as a button.
           "grid h-7 w-7 shrink-0 place-items-center rounded-full text-zinc-500 transition-opacity hover:bg-white/5 hover:text-zinc-200",
-          open ? "opacity-100" : "opacity-40 group-hover:opacity-100"
+          open ? "opacity-100" : "opacity-100 sm:opacity-40 sm:group-hover:opacity-100"
         )}
       >
         <MoreVertical className="h-4 w-4" />
       </button>
-      {open && (
-        <>
-          {/* A full-screen catcher, so tapping anywhere closes the menu without
-              every parent needing an outside-click listener. */}
-          <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-40 cursor-default" onClick={onToggle} />
-          {/* Anchored to the message ROW (which is `relative`) and sitting
-              entirely ABOVE it, rather than to the trigger.
-              Anchoring to the trigger put the menu on top of the message it
-              belonged to - unreadable, and you could not see what you were
-              about to delete. Pinning it to the row's outer edge also means it
-              can never run off a narrow screen, which trigger-relative
-              placement did as soon as a bubble got wide. */}
-          <div
-            className={cn(
-              "absolute bottom-full z-50 mb-1 w-40 overflow-hidden rounded-xl border border-white/10 bg-ink-900 py-1 shadow-elevate",
-              side === "left" ? "right-0" : "left-0"
-            )}
-          >
-            {children}
-          </div>
-        </>
-      )}
+      {mounted &&
+        open &&
+        box &&
+        createPortal(
+          <>
+            {/* A full-screen catcher, so tapping anywhere closes the menu without
+                every parent needing an outside-click listener. */}
+            <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-[80] cursor-default" onClick={onToggle} />
+            {/* Portalled to <body> and positioned from the trigger's viewport
+                rect. It used to be `absolute bottom-full` on the message row,
+                which is the right look but is clipped by the message list's
+                `overflow-y-auto`: on a phone, opening it on a message near the
+                top of the thread cut off the menu starting with Reply. `fixed`
+                alone would not have been enough either - the panel's
+                backdrop-filter re-establishes the containing block - hence the
+                portal. `placeMenu` picks the side with room and caps the height,
+                so the menu is always fully on screen. */}
+            <div
+              role="menu"
+              style={{ top: box.top, bottom: box.bottom, left: box.left, maxHeight: box.maxHeight, width: MENU_WIDTH }}
+              className="fixed z-[81] overflow-y-auto overscroll-contain rounded-xl border border-white/10 bg-ink-900 py-1 shadow-elevate"
+            >
+              {children}
+            </div>
+          </>,
+          document.body
+        )}
     </>
   );
 }
@@ -166,7 +210,9 @@ function ActionItem({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-35",
+        // min-h-10 so every row is a comfortable thumb target, not a 34px strip
+        // where Reply and Forward are one mis-tap apart.
+        "flex min-h-10 w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-35",
         destructive ? "text-red-300 hover:bg-red-500/10" : "text-zinc-300 hover:bg-white/5 hover:text-zinc-100"
       )}
     >

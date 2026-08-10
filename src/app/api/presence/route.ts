@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, getAdminSession } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { touchLastSeen } from "@/lib/touch-last-seen";
+import { publicImageUrl } from "@/lib/utils";
 import {
   PRESENCE_WINDOW_MS,
   PRESENCE_PRUNE_CHANCE,
@@ -119,7 +120,11 @@ export async function GET() {
         // May be null: a member who never picked a handle has no profile URL,
         // so the client renders them unlinked rather than linking to /u/null.
         username: v.user.username,
-        image: v.user.image,
+        // Never the raw column: an inline `data:` avatar is hundreds of KB, and
+        // this list is up to ONLINE_LIST_LIMIT rows on a polled endpoint. Route
+        // it through /api/media so the bytes are served (and CDN-cached) once
+        // instead of re-serialized into every poll. See `publicImageUrl`.
+        image: publicImageUrl(v.user.image, v.user.id),
         membership: v.user.membership,
         role: v.user.role,
         room: v.room,
