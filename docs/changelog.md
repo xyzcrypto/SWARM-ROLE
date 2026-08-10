@@ -5,6 +5,40 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-10 (63) — iOS: a missing prefix, and fields that zoomed the page
+
+Item (2) of the report. **⚠️ Stated up front: a real Safari engine could not be installed here -
+the WebKit download is blocked - so this is what an audit and an iPhone device profile can
+establish, not a claim that Safari was verified end to end.**
+
+Three known iOS breakers were checked and found **clean**: no `new Date("YYYY-MM-DD HH:mm")`
+(Invalid Date in Safari), no regex lookbehind (Safari 16.4+ only), no bare `100vh`. The codebase
+was already careful about those. Two real issues were found:
+
+- **`backdrop-filter` without the `-webkit-` prefix.** iOS Safari before 18 ignores the
+  unprefixed property entirely, so the panel renders **flat instead of frosted**. Sixteen of the
+  seventeen rules in `globals.css` already pair both - **the one that didn't was `.ai-surface`,
+  which I wrote.** Fixed, and a test now fails on any unprefixed rule without a prefixed twin.
+- **🔴 Focusing a form field zoomed the whole page.** Safari zooms the viewport when a focused
+  control's font-size is under 16px, **and does not zoom back out** - the layout stays jerked
+  until you pinch it back. The community and DM composers already dodge this by hand
+  (`text-base sm:text-sm`); the Journal's number and date inputs, which are the ones people tap
+  most, do not.
+  - Fixed with `font-size: max(16px, 1em)` under `@media (pointer: coarse)`.
+  - **`max()`, not a flat `16px`**: a flat value would have *shrunk* controls that are
+    deliberately larger. It only ever lifts.
+  - **Coarse pointers only**, so desktop keeps its designed sizes. Measured: **iPhone 13 profile
+    reads 16px, desktop still 14px.**
+  - Checkboxes, radios and ranges excluded - no text, and iOS does not zoom for them.
+- ⚠️ Also recorded: a `pkill` and a heredoc in the same command killed the heredoc (exit 144), so
+  a test file silently never got written. The suite count staying flat is what caught it - a
+  reminder that "the command ran" is not "the file exists".
+- Files: `src/app/globals.css`, `src/shared/utils/__tests__/ios-safari.test.ts` (new, 4 cases).
+- Checks: 643 tests, lint at the 36-warning baseline, build exit 0.
+- The bigger iOS win was (61)'s `position: fixed` fix, which affected every device.
+
+---
+
 ## 2026-08-10 (62) — DM replies and forwarding
 
 Community chat had replies; DMs had neither. Both added, mirroring the chat pattern where it
