@@ -5,6 +5,55 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-10 (60) — `position: fixed` was broken site-wide, and dictation delivered every word twice
+
+Two reported bugs, both root-caused by measurement rather than reading.
+
+### 🔴 The navbar, bottom nav and AI launcher scrolled away with the page — everywhere
+
+`.route-enter` used `animation-fill-mode: both`. `both` keeps the animation applied **after it
+finishes**, so `transform` stays resolved as a matrix - identity, but not the keyword `none` -
+forever. **Any** non-`none` transform makes an element a containing block for every
+`position: fixed` descendant, and `app/template.tsx` wraps **every route** in that div.
+
+So nothing on the site was truly fixed. Measured on an iPhone 13 viewport: at `scrollY 1455` the
+header's top was **-1455** - it had scrolled off with the content.
+
+`backwards` instead of `both` still applies the `from` frame before the animation starts (which
+is what prevents a flash of un-animated content) but lets the property revert when it ends.
+**Re-measured after the change: header top `0` at `scrollY 1434`, on both iPhone and iPad, and
+the ancestor walk now reports no containing block at all.**
+
+- ⚠️ Worth noting where this came from: `template.tsx` previously caused this project's worst bug
+  with framer-motion and was rewritten as a CSS animation. The rewrite was correct about
+  hydration and wrong about fill-mode - a different failure in the same file.
+
+### "Home" left you halfway down the page
+
+A same-route navigation does not reset scroll in Next, so tapping **Home** while already on `/`
+did nothing. Measured: `scrollY 1468` before the tap, still deep down the page after. Nav links
+now scroll to the top when they point at the current route - **verified: 2000 → 0**. Honours
+reduced motion, since this is a navigation jump rather than brand animation.
+
+### 🔴 Dictation doubled every phrase
+
+With `continuous: true` the `results` list is **cumulative** - every event carries the whole
+session - and `resultIndex` is only a hint about where the change began. Chrome fires events
+whose `resultIndex` still covers an already-final result, so looping from it and emitting every
+final delivered the same words again.
+
+A `deliveredRef` cursor now records how many results have actually been handed over, and the loop
+starts there. Reset on both start and teardown - left un-reset, a second dictation would begin
+past the whole first one and deliver **nothing**, the opposite failure.
+
+- Files: `src/app/globals.css`, `src/shared/components/Navbar.tsx`,
+  `src/shared/hooks/useSpeechInput.ts`, `src/shared/utils/__tests__/speech-dedupe.test.ts` (new).
+- Checks: 625 tests, lint at the 36-warning baseline, build exit 0, route table unchanged.
+- Still open from the same report: iPhone-specific behaviour (needs a description of what
+  "checking" means), DM reply/forward, and the chat translator's reverse direction.
+
+---
+
 ## 2026-08-10 (59) — "Live online 2" next to a list of 1 was two different populations, unlabelled
 
 Reported from the live dashboard: the tile said **2**, the panel listed **1**, and nothing
