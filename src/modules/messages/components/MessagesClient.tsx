@@ -880,7 +880,10 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                       <div className="mb-1.5 border-l-2 border-current/30 pl-2 text-[12px] opacity-70">
                         <span className="block font-medium">{m.replyTo.mine ? "You" : "Them"}</span>
                         <span className="line-clamp-2 italic">
-                          {m.replyTo.deleted ? "message deleted" : m.replyTo.body}
+                          {/* inboxPreview, not the raw body: a photo is sent as a
+                              bare media URL, so quoting one printed a wall of
+                              storage URL where the message itself shows a picture. */}
+                          {m.replyTo.deleted ? "message deleted" : inboxPreview(m.replyTo.body)}
                         </span>
                       </div>
                     )}
@@ -994,7 +997,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="mb-2 truncate rounded-lg bg-white/5 px-3 py-2 text-[12px] text-zinc-400">{forwarding.body}</p>
+            <p className="mb-2 truncate rounded-lg bg-white/5 px-3 py-2 text-[12px] text-zinc-400">{inboxPreview(forwarding.body)}</p>
             {conversations.length === 0 ? (
               <p className="px-1 py-3 text-[13px] text-zinc-500">No other conversations yet.</p>
             ) : (
@@ -1031,7 +1034,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                 Replying to {replyTo.mine ? "yourself" : "them"}
               </p>
               <p className="truncate text-[12px] text-zinc-400">
-                {replyTo.deleted ? "message deleted" : replyTo.body}
+                {replyTo.deleted ? "message deleted" : inboxPreview(replyTo.body)}
               </p>
             </div>
             <button

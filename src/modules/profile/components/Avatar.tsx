@@ -1,4 +1,3 @@
-import Image from "next/image";
 import { Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -51,16 +50,36 @@ export function Avatar({
         )}
       >
         {image ? (
-          <span className="relative block h-full w-full">
-            <Image
-              src={image}
-              alt={name || "Avatar"}
-              fill
-              sizes={`${s.px}px`}
-              className="object-cover"
-              unoptimized={image.startsWith("data:")}
-            />
-          </span>
+          // ⚠️ A plain <img>, deliberately, NOT next/image.
+          //
+          // Every avatar on the site was rendering as a broken image - profile
+          // hero, DM header, chat header, bottom nav - while every image that
+          // did NOT go through the optimizer rendered fine on the same screen:
+          // the profile banner (a CSS background-image) and chat photos (a plain
+          // <img>), both from the same Supabase host. So the failure tracked the
+          // *mechanism*, not any one URL. Taking the optimizer out of the path
+          // removes the whole class.
+          //
+          // It also costs nothing to give up here, and saves something. These are
+          // 32-96px images that are already small and already served with a long
+          // CDN cache by /api/media (or by Supabase); running them through the
+          // optimizer buys no meaningful bytes and spends a billable Image
+          // Optimization transformation per size per source. `sizes`/`fill` were
+          // doing real work only for large hero images, which this is not.
+          //
+          // `decoding="async"` keeps a slow decode off the main thread, and the
+          // explicit width/height (not just CSS) reserve the box so a list of
+          // avatars cannot shift layout while they load.
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={image}
+            alt={name || "Avatar"}
+            width={s.px}
+            height={s.px}
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
         ) : (
           <span
             aria-hidden
