@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { aiEnabled, completeText } from "@/lib/ai";
+import { translationOrNull } from "@shared/utils/translation";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -44,9 +45,13 @@ export async function POST(req: Request) {
       maxTokens: 240,
       ctx: { userId: me.id },
     });
-    if (!text) return fail("Couldn't translate that. Please try again.", 502);
+    // The model is told to strip wrappers and never echo the input; it mostly
+    // obeys. When it doesn't, an echo shown as a "translation" looks like the
+    // button is broken - so a non-answer is reported as one.
+    const clean = translationOrNull(text, parsed.data.text);
+    if (!clean) return fail("Couldn't translate that. Please try again.", 502);
 
-    return ok({ text });
+    return ok({ text: clean });
   } catch (err) {
     return handleError(err, "chat:translate");
   }
