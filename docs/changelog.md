@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-10 (59) — "Live online 2" next to a list of 1 was two different populations, unlabelled
+
+Reported from the live dashboard: the tile said **2**, the panel listed **1**, and nothing
+explained why.
+
+- **Both numbers were correct.** Realtime counts *everyone* on the site - anonymous visitors get
+  a `guest-<random>` presence key - while the list comes from the database, which only has rows
+  for signed-in members because `POST /api/presence` requires a session. So 2 = one member plus
+  one signed-out visitor.
+- Correct data presented so that it reads as a bug is still a defect, and it was mine from (57).
+  The panel now shows **"1 signed in · 1 guest"**, and the tile caption says
+  **"including signed-out guests"** rather than the ambiguous "Visitors on the site right now".
+- **⚠️ A second bug surfaced while fixing the first.** The panel's "showing X of Y" used the
+  **realtime** total as Y while X counted only members - so a truncated list would have read
+  "showing 12 of 240" where 240 included guests. The hook now carries `signedIn` (database)
+  separately from `count` (display), and the cap message compares against `signedIn`.
+- **The guest figure is only claimed under two conditions**, both necessary:
+  - **realtime is the source** - off realtime, `count` *is* the database figure, so the gap is
+    zero and there are no guests to report; and
+  - **the list is not truncated** - with a cap in play the gap is part hidden members and part
+    guests, and there is no honest way to split it, so it is not labelled.
+- Files: `src/modules/dashboard/components/DashboardClient.tsx`,
+  `src/shared/utils/__tests__/presence-privacy.test.ts` (4 new cases).
+- Checks: 621 tests, lint at the 36-warning baseline, build exit 0, route table unchanged.
+- Housekeeping: Dependabot #269 and #270 were commented and closed as superseded by #276.
+
+---
+
 ## 2026-08-09 (58) — Remove a stray `playwright` dependency I shipped by accident, and take the Next security bump
 
 Prompted by two Dependabot security PRs. Investigating them turned up something worse than

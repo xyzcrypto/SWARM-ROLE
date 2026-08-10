@@ -126,13 +126,20 @@ export type OnlineVisitor = {
   seenAt: string;
 };
 
-function useLiveOnline(
-  realtime: Realtime
-): { count: number | null; live: boolean; visitors: OnlineVisitor[]; truncated: boolean } {
+function useLiveOnline(realtime: Realtime): {
+  count: number | null;
+  live: boolean;
+  visitors: OnlineVisitor[];
+  truncated: boolean;
+  /** Signed-in members only, from the database - NOT the same population as
+   *  `count`, which includes anonymous visitors while realtime is connected. */
+  signedIn: number | null;
+} {
   const [count, setCount] = useState<number | null>(null);
   const [live, setLive] = useState(false);
   const [visitors, setVisitors] = useState<OnlineVisitor[]>([]);
   const [truncated, setTruncated] = useState(false);
+  const [signedIn, setSignedIn] = useState<number | null>(null);
   const liveRef = useRef(false);
 
   useEffect(() => {
@@ -195,6 +202,10 @@ function useLiveOnline(
         const d = j?.data ?? j;
         setVisitors(Array.isArray(d?.visitors) ? d.visitors : []);
         setTruncated(Boolean(d?.truncated));
+        // Always the database figure, whatever realtime is doing. Mixing this
+        // with `count` is what made "showing 12 of 240" wrong: 12 was
+        // signed-in members and 240 counted guests too.
+        setSignedIn(typeof d?.online === "number" ? d.online : null);
         // Realtime still wins for the COUNT when it is connected - it is the
         // more immediate source. The list is the only thing this fetch owns.
         if (liveRef.current) return;
@@ -229,7 +240,7 @@ function useLiveOnline(
     };
   }, [realtime.url, realtime.anonKey]);
 
-  return { count, live, visitors, truncated };
+  return { count, live, visitors, truncated, signedIn };
 }
 
 function useMembersChannel(realtime: Realtime, onChange: (id: string, membership: string) => void) {
@@ -490,13 +501,31 @@ function StatCard({ label, value, hint, accent = "plain" }: { label: string; val
 function OnlineVisitors({
   visitors,
   truncated,
-  total,
+  signedIn,
+  liveTotal,
+  live,
 }: {
   visitors: OnlineVisitor[];
   truncated: boolean;
-  total: number | null;
+  /** Signed-in members, from the database. */
+  signedIn: number | null;
+  /** Everyone on the site, from realtime - includes anonymous visitors. */
+  liveTotal: number | null;
+  live: boolean;
 }) {
   if (!visitors.length) return null;
+
+  // The two tiles measure different populations, which made "Live online 2"
+  // sit next to a list of 1 and look broken. Realtime counts every visitor
+  // including anonymous ones (they get a guest presence key); the database
+  // only has rows for signed-in members, because POST /api/presence requires a
+  // session. The difference IS the guest count - but only when realtime is the
+  // source, and only when the list is complete: with a truncated list the gap
+  // is part members, part guests, and there is no honest way to split it.
+  const guests =
+    live && !truncated && typeof liveTotal === "number" && typeof signedIn === "number"
+      ? Math.max(0, liveTotal - signedIn)
+      : 0;
   return (
     <div className="surface rounded-2xl p-5 ring-1 ring-mint-500/15">
       <div className="flex items-center justify-between gap-3">
@@ -508,11 +537,18 @@ function OnlineVisitors({
           <h3 className="text-sm font-semibold text-zinc-200">Online now</h3>
         </div>
         <span className="mono text-[11px] text-zinc-500">
-          {/* The cap never understates the total: the count comes from a
-              separate COUNT, so "12 of 240" is honest rather than "12". */}
-          {truncated && typeof total === "number"
-            ? `showing ${visitors.length} of ${total}`
+          {/* `signedIn`, never `liveTotal` - the cap applies to members, so
+              comparing against a figure that counts guests would overstate how
+              much was hidden. */}
+          {truncated && typeof signedIn === "number"
+            ? `showing ${visitors.length} of ${signedIn}`
             : `${visitors.length} signed in`}
+          {guests > 0 && (
+            <span className="text-zinc-600">
+              {" · "}
+              {guests} guest{guests === 1 ? "" : "s"}
+            </span>
+          )}
         </span>
       </div>
 
@@ -563,7 +599,7 @@ function OnlineVisitors({
   );
 }
 
-function Overview({ stats: initialStats, online, health }: { stats: Stats; online: { count: number | null; live: boolean; visitors: OnlineVisitor[]; truncated: boolean }; health: HealthFlags }) {
+function Overview({ stats: initialStats, online, health }: { stats: Stats; online: { count: number | null; live: boolean; visitors: OnlineVisitor[]; truncated: boolean; signedIn: number | null }; health: HealthFlags }) {
   const [stats, setStats] = useState(initialStats);
   const [series, setSeries] = useState<{ signups: DailyPoint[]; views: DailyPoint[] } | null>(null);
 
@@ -626,7 +662,13 @@ function Overview({ stats: initialStats, online, health }: { stats: Stats; onlin
   ];
   return (
     <div className="space-y-6">
-      <OnlineVisitors visitors={online.visitors} truncated={online.truncated} total={online.count} />
+      <OnlineVisitors
+        visitors={online.visitors}
+        truncated={online.truncated}
+        signedIn={online.signedIn}
+        liveTotal={online.count}
+        live={online.live}
+      />
 
       {/* Live + analytics */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -649,7 +691,10 @@ function Overview({ stats: initialStats, online, health }: { stats: Stats; onlin
             {online.count === null
               ? "Unavailable - no presence source is answering"
               : online.live
-                ? "Visitors on the site right now (live)"
+                ? // Says "including guests" because the panel above lists only
+                  // signed-in members - without this the two numbers disagree
+                  // with no explanation, which reads as a bug.
+                  "Everyone on the site right now, including signed-out guests (live)"
                 : "Signed-in members seen in the last minute (realtime is down, counted server-side)"}
           </p>
         </div>

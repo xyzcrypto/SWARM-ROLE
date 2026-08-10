@@ -34,3 +34,33 @@ describe("the online-visitors list", () => {
     expect(route).toMatch(/truncated:/);
   });
 });
+
+describe("the two online numbers must not silently disagree", () => {
+  const dash = readFileSync("src/modules/dashboard/components/DashboardClient.tsx", "utf8");
+
+  // "Live online" counts everyone via realtime (anonymous visitors get a guest
+  // presence key); the list comes from the database, which only has signed-in
+  // members. Side by side with no explanation, 2 vs 1 reads as a bug.
+  it("the live tile says it includes guests", () => {
+    expect(dash).toMatch(/including signed-out guests/);
+  });
+
+  it("the panel derives a guest count from the gap", () => {
+    expect(dash).toMatch(/const guests =/);
+    expect(dash).toMatch(/Math\.max\(0, liveTotal - signedIn\)/);
+  });
+
+  // Two conditions matter. Off realtime, `count` is the same database figure as
+  // `signedIn`, so the gap is zero and there are no guests to report. And with
+  // a truncated list the gap is part hidden members, part guests, with no
+  // honest way to split it - so it must not be labelled "guests".
+  it("only claims a guest count when realtime is the source AND the list is complete", () => {
+    expect(dash).toMatch(/live && !truncated &&/);
+  });
+
+  // The cap applies to members, so the "showing X of Y" figure must compare
+  // against the signed-in total, never the guest-inclusive live count.
+  it("compares the capped list against the signed-in total, not the live count", () => {
+    expect(dash).toMatch(/showing \$\{visitors\.length\} of \$\{signedIn\}/);
+  });
+});
