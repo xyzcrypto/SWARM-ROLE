@@ -5,6 +5,59 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-10 (65) — XYZ Sentinel's 403 can finally be diagnosed
+
+`/api/watchdog` has been dark since 2026-07-29 with its cause recorded as **"not yet
+pinned"** and two candidates that nobody could choose between. This does not fix the 403 —
+it makes it **readable**, which is what has actually been missing for two weeks.
+
+**The blocker was a design note, and §8 already named it:** `authorized()` opened with
+`if (!env.CRON_SECRET) return false` and then answered a flat `403 Forbidden` either way.
+So two unrelated situations were indistinguishable from outside:
+
+1. the secret **is** configured and the caller sent the wrong one, or
+2. the secret is **absent from this deployment's runtime** (Vercel captures env vars at
+   build time — a variable added after the last production build is genuinely missing,
+   while the dashboard shows it present; the same trap as the Sentry DSN).
+
+(2) is not a security condition at all — the endpoint is switched off and *nobody* can
+reach it with any credential. But with no oracle to check against, every diagnosis was a
+guess, and one guess was written into §8 **as a fact and later had to be retracted**.
+
+- **`checkCronAuth()`** (`src/core/auth/cron-auth.ts`) returns a reason, and both cron
+  routes (`/api/watchdog`, `/api/push/dispatch` — they carried the same six lines) use it:
+  - **`503`, naming `CRON_SECRET` and the redeploy** → candidate 2. Redeploy, no code change.
+  - **`403 Forbidden`**, bare → candidate 1. The secret is present; the token was wrong.
+    This one stays opaque, because it is the only case where a distinguishable answer
+    would teach an attacker anything.
+- **The usual objection does not apply here.** Blurring the two normally avoids confirming
+  an endpoint's config — but when the secret is unset the route is unreachable regardless,
+  so "it is unset" gives an attacker nothing. It gives the owner the answer in **one
+  unauthenticated request, with no secret involved**.
+- **Constant-time comparison** while in here: `===` on a secret is a timing side channel.
+  Now sha256 + `timingSafeEqual`, the same shape `otp.ts` already uses (hashing first
+  because `timingSafeEqual` throws on length-mismatched buffers, which leaks length).
+- **Tested against the real route handler**, not just the pure helper — status code and
+  body are what an owner actually sees. Proved by restoring the collapsed behaviour: the
+  unset case reports `forbidden` again and the assertion fails.
+
+**Owner, one request, no secret needed:**
+```bash
+curl -s -o /dev/null -w "%{http_code}\n" https://xyzcrypto.io/api/watchdog
+```
+**503** → the variable is missing from the running deployment; redeploy.
+**403** → it is present and the token used in the earlier probe was simply wrong.
+
+Note this is only half the darkness: `.github/workflows/watchdog.yml` still has its
+`schedule:` commented out, and it reads `CRON_SECRET`/`PROD_URL` from **GitHub Actions**
+secrets, not Vercel — it exits 0 with a skip message when either is missing, so a green
+workflow run is not evidence it ran. Both doors have to be opened. See §8.
+
+**Files:** `src/core/auth/cron-auth.ts` (new) · `src/app/api/watchdog/route.ts` ·
+`src/app/api/push/dispatch/route.ts` · tests: `cron-auth.test.ts`, `watchdog-auth.test.ts`.
+
+---
+
 ## 2026-08-10 (64) — A profile photo that saves and never appears, and a DM menu clipped off a phone
 
 Two reported items. Both had a root cause that reports success at every layer.

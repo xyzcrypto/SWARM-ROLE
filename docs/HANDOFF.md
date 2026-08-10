@@ -748,6 +748,24 @@ again (#201) after the version-update PRs turned out not to be wanted yet.
        while the dashboard shows it present. **Check: Deployments → current Production
        timestamp vs when `CRON_SECRET` was added.** If the var is newer, redeploy — no
        code change needed. This is the same build-time-capture trap as the Sentry DSN.
+  - **✅ The two candidates are now distinguishable from outside (2026-08-10).** The
+    "no oracle, by design" note above described the real blocker: the route answered an
+    identical 403 whether the secret was wrong or absent, so every diagnosis was a guess
+    — which is how a retracted wrong cause got written into this section in the first
+    place. `checkCronAuth()` (`src/core/auth/cron-auth.ts`) now separates them, and both
+    cron routes use it:
+    - **`503`, naming `CRON_SECRET` and the redeploy** → the secret is absent from the
+      running deployment. **That is candidate 2. Redeploy; no code change.**
+    - **`403 Forbidden`** → the secret *is* present at runtime and the token sent was
+      wrong. **That is candidate 1**, and it stays deliberately opaque.
+    - **The check needs no secret**, so it is one unauthenticated request:
+      `curl -s -o /dev/null -w "%{http_code}\n" https://xyzcrypto.io/api/watchdog`
+    - Saying "unset" leaks nothing: when it is unset the route is unreachable for
+      everyone anyway. A wrong *token* is the case that must stay silent, and does.
+    - Secret comparison is also constant-time now (sha256 + `timingSafeEqual`), same
+      shape as `otp.ts`.
+    - ⚠️ **Still owner action.** This makes the cause readable; it does not fix it.
+      Run the curl, then act on which of the two it reports.
   - **Compounding, and independent of the 403:** `.github/workflows/watchdog.yml` has its
     `schedule:` block commented out (`workflow_dispatch` only) from the Hobby-plan cost
     pass, so nothing invokes it automatically either. Both doors are shut. Re-enabling
