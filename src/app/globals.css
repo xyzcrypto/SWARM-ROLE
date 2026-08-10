@@ -1402,7 +1402,20 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
   to   { opacity: 1; transform: none; }
 }
 .route-enter {
-  animation: route-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* `backwards`, NOT `both`.
+     `both` keeps the animation applied after it finishes, so `transform` stays
+     resolved as a matrix (identity, but not the keyword `none`) forever. Any
+     non-`none` transform makes the element a containing block for every
+     `position: fixed` descendant - and template.tsx wraps EVERY route in this
+     div. The result: the navbar, the mobile bottom nav and the XYZ AI launcher
+     all scrolled away with the page instead of staying pinned, on every page
+     and every device.
+     `backwards` still applies the `from` frame before the animation starts
+     (which is what stops a flash of un-animated content) but lets the property
+     revert once it ends, so `transform` goes back to `none` and fixed
+     positioning works again. Measured on an iPhone 13 viewport: header top was
+     -1455 at scrollY 1455 before this, 0 after. */
+  animation: route-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1) backwards;
 }
 @media (prefers-reduced-motion: reduce) {
   /* No animation at all - not even the `from` frame - so the page is simply

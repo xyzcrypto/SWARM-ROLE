@@ -89,6 +89,16 @@ export function useSpeechInput(onText: (text: string) => void, opts?: { continuo
   const [interim, setInterim] = useState("");
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<RecognitionLike | null>(null);
+  // How many results from `e.results` have already been handed to the caller.
+  //
+  // ⚠️ This is what stops dictation doubling. With `continuous: true`,
+  // `e.results` is CUMULATIVE - every event carries the whole session, not just
+  // what changed - and `e.resultIndex` is only a hint about where the change
+  // started. Chrome routinely fires a second event whose `resultIndex` still
+  // covers a result that was already final, so looping from `resultIndex` and
+  // emitting every final it sees delivered the same words twice. Counting what
+  // has actually been delivered is the only reliable boundary.
+  const deliveredRef = useRef(0);
 
   // Keep the latest callback without re-creating the recognizer. Written in an
   // effect, not during render - a ref write during render is a side effect
@@ -100,6 +110,7 @@ export function useSpeechInput(onText: (text: string) => void, opts?: { continuo
 
   const teardown = useCallback(() => {
     ref.current = null;
+    deliveredRef.current = 0;
     setListening(false);
     setInterim("");
   }, []);
@@ -133,20 +144,30 @@ export function useSpeechInput(onText: (text: string) => void, opts?: { continuo
     rec.onstart = () => setListening(true);
 
     rec.onresult = (e: any) => {
+      const results = e.results;
       let finalText = "";
       let partial = "";
-      for (let i = e.resultIndex ?? 0; i < e.results.length; i++) {
-        const r = e.results[i];
+
+      // Start from what we have already delivered, NOT from `e.resultIndex`.
+      // Anything before this point has been emitted once and must never be
+      // emitted again.
+      for (let i = deliveredRef.current; i < results.length; i++) {
+        const r = results[i];
         const t = r?.[0]?.transcript ?? "";
-        if (r?.isFinal) finalText += t;
-        else partial += t;
+        if (r?.isFinal) {
+          finalText += t;
+          // Consume it the moment it is final, so the next event skips it.
+          deliveredRef.current = i + 1;
+        } else {
+          partial += t;
+        }
       }
-      setInterim(partial.trim());
+
       const done = finalText.trim();
-      if (done) {
-        cb.current(done);
-        setInterim("");
-      }
+      if (done) cb.current(done);
+      // Interim is whatever is still un-finalised; once a chunk finalises its
+      // partial text is gone, so this clears itself without a special case.
+      setInterim(partial.trim());
     };
 
     rec.onerror = (e: any) => {
@@ -158,6 +179,7 @@ export function useSpeechInput(onText: (text: string) => void, opts?: { continuo
     rec.onend = () => teardown();
 
     ref.current = rec;
+    deliveredRef.current = 0;
     try {
       rec.start();
       // Chrome fires onstart, but Safari has been seen to skip it; set the flag

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
@@ -25,6 +26,7 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const pathname = usePathname();
+  const reduceMotion = useReducedMotionSafe();
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
   const { data: session } = useSession();
@@ -87,6 +89,23 @@ export function Navbar() {
   // Always resolve to a real profile: /u/<handle> when known, else /profile
   // (a server route that mints a handle and redirects). Never Settings.
   const profileHref = username ? `/u/${username}` : "/profile";
+
+  /**
+   * Tapping a nav item for the route you are already on does nothing in Next -
+   * a same-route navigation does not reset scroll - so from halfway down the
+   * homepage, "Home" left you exactly where you were. Measured on an iPhone 13
+   * viewport: scrollY 1468 before, still deep down the page after.
+   *
+   * Scroll to the top instead, which is what the label promises. `auto` under
+   * reduced motion; the site's policy exempts brand animation, not a
+   * navigation jump someone may be sensitive to.
+   */
+  const onNavClick = (href: string) => (e: React.MouseEvent) => {
+    setOpen(false);
+    if (pathname !== href) return;
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
+  };
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3">
@@ -287,7 +306,7 @@ export function Navbar() {
                 key={l.href}
                 href={l.href}
                 prefetch={false}
-                onClick={() => setOpen(false)}
+                onClick={onNavClick(l.href)}
                 aria-current={isActive(l.href) ? "page" : undefined}
                 className={cn(
                   "rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
