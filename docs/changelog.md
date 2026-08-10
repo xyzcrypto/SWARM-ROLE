@@ -5,6 +5,35 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-10 (61) — The chat translator stops presenting a non-answer as a translation
+
+Reported as "the translator doesn't work properly both ways". **The direction was not the
+problem**: the prompt already handles English→Hinglish and Hinglish→English with an explicit
+rule, and both community chat and DMs already call it. So this fixes what actually breaks.
+
+- **An echo is not a translation.** When the model ignores the rule and returns the input
+  unchanged, the chat used to show a "translation" identical to the original - which reads as
+  the button doing nothing. `translationOrNull()` compares against the input **ignoring case,
+  punctuation and spacing**, so a cosmetic-only difference ("Gm everyone!" for "gm everyone")
+  counts as an echo too, and reports "couldn't translate" instead.
+- **Wrappers are stripped.** Models add `Output:`, a language label, wrapping quotes or a
+  trailing `(Hinglish)` despite being told not to. Those were being shown as part of the message.
+  - ⚠️ Quote-stripping only fires when the quotes wrap the **whole** string, so a message that
+    merely *contains* a quote - `He said "gm" to everyone` - survives untouched. That is the case
+    a naive `replace(/"/g, "")` would have quietly mangled.
+- Pure and unit-tested (9 cases) rather than verified by calling a model, which this environment
+  cannot do.
+- **⚠️ Honest limit:** I could not reproduce the original failure - translating needs AI keys
+  this sandbox does not have. These are the two failure modes the code can actually produce; if
+  the real problem is something else, the on-screen message is now at least truthful about
+  having failed, which the old behaviour was not.
+- Files: `src/shared/utils/translation.ts` (new),
+  `src/shared/utils/__tests__/translation.test.ts` (new, 9 cases),
+  `src/app/api/chat/translate/route.ts`.
+- Checks: 634 tests, lint at the 36-warning baseline, build exit 0.
+
+---
+
 ## 2026-08-10 (60) — `position: fixed` was broken site-wide, and dictation delivered every word twice
 
 Two reported bugs, both root-caused by measurement rather than reading.
