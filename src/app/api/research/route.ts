@@ -17,7 +17,7 @@ import { summarize } from "@/lib/ai-tasks";
 const POST_SCALARS = {
   id: true, title: true, slug: true, excerpt: true, content: true,
   cover: true, category: true, tags: true, published: true, premium: true,
-  views: true, createdAt: true, updatedAt: true, authorId: true,
+  views: true, readMinutes: true, createdAt: true, updatedAt: true, authorId: true,
 } satisfies Prisma.PostSelect;
 
 // Best-effort: generate + store an AI TL;DR for a post. Never throws (summarize
@@ -141,6 +141,7 @@ export async function POST(req: Request) {
       tags: data.tags || "",
       published: data.published ?? true,
       premium: data.premium ?? false,
+      readMinutes: readingTime(data.content),
       authorId,
     };
 

@@ -70,7 +70,7 @@ export function PostCard({ post, priority }: { post: PostCardData; priority?: bo
           <span>{post.author?.name ?? "XYZ Crypto"}</span>
           <span>
             {formatDate(post.createdAt)}
-            {post.premium ? " · 🔒" : ` · ${post.readMinutes ?? readingTime(post.content ?? "")}m`}
+            {post.premium ? " · 🔒" : ` · ${post.readMinutes}m`}
           </span>
         </div>
       </div>

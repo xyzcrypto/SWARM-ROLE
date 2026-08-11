@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { FormField } from "./FormField";
+
 export function ForgotPasswordForm() {
   const router = useRouter();
   const [step, setStep] = useState<"email" | "reset">("email");
@@ -78,7 +80,7 @@ export function ForgotPasswordForm() {
             <span className="mono font-bold">{devCode}</span>
           </p>
         )}
-        <Field
+        <FormField
           label="6-digit code"
           type="text"
           value={code}
@@ -86,7 +88,7 @@ export function ForgotPasswordForm() {
           placeholder="••••••"
           autoComplete="one-time-code"
         />
-        <Field
+        <FormField
           label="New password"
           type="password"
           value={password}
@@ -118,7 +120,7 @@ export function ForgotPasswordForm() {
       <p className="text-sm text-zinc-500">
         Enter your email and we&apos;ll send a 6-digit code to reset your password.
       </p>
-      <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
+      <FormField label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
       {error && (
         <p className="rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 ring-1 ring-red-500/20">
           {error}
@@ -134,38 +136,5 @@ export function ForgotPasswordForm() {
         </Link>
       </p>
     </form>
-  );
-}
-
-function Field({
-  label,
-  type,
-  value,
-  onChange,
-  placeholder,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
-        {label}
-      </span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        required
-        className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
-      />
-    </label>
   );
 }

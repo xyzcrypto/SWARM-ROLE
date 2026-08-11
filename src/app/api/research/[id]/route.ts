@@ -2,7 +2,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { slugify } from "@/lib/utils";
+import { slugify, readingTime } from "@/lib/utils";
 import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 import { summarize } from "@/lib/ai-tasks";
@@ -12,7 +12,7 @@ import { summarize } from "@/lib/ai-tasks";
 const POST_SCALARS = {
   id: true, title: true, slug: true, excerpt: true, content: true,
   cover: true, category: true, tags: true, published: true, premium: true,
-  views: true, createdAt: true, updatedAt: true, authorId: true,
+  views: true, readMinutes: true, createdAt: true, updatedAt: true, authorId: true,
 } satisfies Prisma.PostSelect;
 
 function revalidateContent(slug?: string) {
@@ -90,6 +90,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
       ...(data.tags !== undefined ? { tags: data.tags } : {}),
       ...(data.published !== undefined ? { published: data.published } : {}),
       ...(data.premium !== undefined ? { premium: data.premium } : {}),
+      ...(data.content !== undefined ? { readMinutes: readingTime(data.content) } : {}),
     };
 
     async function update(slug: string) {

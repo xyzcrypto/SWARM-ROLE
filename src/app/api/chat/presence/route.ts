@@ -93,13 +93,14 @@ export async function POST(req: Request) {
       return null;
     };
 
+    const now = new Date();
     const [, , rows] = await Promise.all([
       touchLastSeen(me.id),
       prisma.chatPresence
         .upsert({
           where: { userId: me.id },
-          create: { userId: me.id, room, seenAt: new Date() },
-          update: { room, seenAt: new Date() },
+          create: { userId: me.id, room, seenAt: now },
+          update: { room, seenAt: now },
         })
         .catch(note),
       prisma.chatPresence

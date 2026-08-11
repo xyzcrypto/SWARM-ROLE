@@ -26,11 +26,14 @@ export function OtpStep({
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(0);
 
+  // A single setInterval runs for the entire cooldown instead of a chained
+  // setTimeout that re-creates a new timer every second (30 effect cycles → 1).
   useEffect(() => {
     if (cooldown <= 0) return;
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [cooldown]);
+    const t = setInterval(() => setCooldown((c) => (c > 1 ? c - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cooldown > 0]); // only re-run when cooldown transitions on ↔ off
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();

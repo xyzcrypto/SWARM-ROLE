@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { FormField } from "./FormField";
 import { SocialButtons, type SocialProviders } from "@/components/SocialButtons";
 import { PasswordField } from "@/components/PasswordField";
 
@@ -85,7 +86,7 @@ export function LoginForm({ providers }: { providers: SocialProviders }) {
           Password reset. Please log in with your new password.
         </p>
       )}
-      <SocialButtons providers={providers} mode="in" />
+      <SocialButtons providers={providers} mode="in" callbackUrl={callbackUrl} />
 
       {(providers.google || providers.github || providers.twitter) && (
         <div className="flex items-center gap-3 text-xs text-zinc-600">
@@ -96,7 +97,7 @@ export function LoginForm({ providers }: { providers: SocialProviders }) {
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
-        <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
+        <FormField label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
         <div>
           <PasswordField label="Password" value={password} onChange={setPassword} placeholder="••••••••" autoComplete="current-password" />
           <div className="mt-1.5 text-right">
@@ -124,38 +125,5 @@ export function LoginForm({ providers }: { providers: SocialProviders }) {
         </Link>
       </p>
     </div>
-  );
-}
-
-function Field({
-  label,
-  type,
-  value,
-  onChange,
-  placeholder,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
-        {label}
-      </span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        required
-        className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
-      />
-    </label>
   );
 }
