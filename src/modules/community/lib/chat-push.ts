@@ -55,9 +55,15 @@ export async function dispatchChatPush(created: Created): Promise<void> {
       tag: "community-chat", // collapse repeat pings into one notification
     };
 
-    const results = await Promise.all(
-      subs.map((s) => sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload))
-    );
+    const BATCH_SIZE = 200;
+    const results: ("ok" | "gone" | "error")[] = [];
+    for (let i = 0; i < subs.length; i += BATCH_SIZE) {
+      const chunk = subs.slice(i, i + BATCH_SIZE);
+      const chunkResults = await Promise.all(
+        chunk.map((s) => sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload))
+      );
+      results.push(...chunkResults);
+    }
 
     // Prune dead endpoints (same as the news dispatcher).
     const gone = subs.filter((_, i) => results[i] === "gone").map((s) => s.endpoint);

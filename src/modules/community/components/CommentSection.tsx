@@ -28,6 +28,7 @@ export function CommentSection({ postId }: { postId: string }) {
   const [body, setBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   // Perf: don't fetch comments until the section is scrolled near the viewport.
   useEffect(() => {
@@ -87,12 +88,17 @@ export function CommentSection({ postId }: { postId: string }) {
     if (inView) load();
   }, [inView, load]);
 
-  // Live: refetch when anyone posts a new comment on this post (once in view).
   useRealtime({
     channel: `post:${postId}`,
     event: "comment",
     enabled: inView,
-    onMessage: () => load(),
+    onMessage: (payload) => {
+      setItems((prev) => {
+        if (prev.some((c) => c.id === (payload as Comment).id)) return prev;
+        setTotal((t) => t + 1);
+        return [payload as Comment, ...prev];
+      });
+    },
   });
 
   async function submit(e: React.FormEvent) {
@@ -122,11 +128,11 @@ export function CommentSection({ postId }: { postId: string }) {
   }
 
   async function remove(id: string) {
-    if (!confirm("Delete this comment?")) return;
     const res = await fetch(`/api/comments/${id}`, { method: "DELETE" });
     if (res.ok) {
       setItems((prev) => prev.filter((c) => c.id !== id));
       setTotal((t) => Math.max(0, t - 1));
+      setConfirmDeleteId(null);
     }
   }
 
@@ -190,9 +196,17 @@ export function CommentSection({ postId }: { postId: string }) {
                 <div className="flex items-center gap-2">
                   {c.author.username && <MessageButton username={c.author.username} compact />}
                   {isAdmin && (
-                    <button onClick={() => remove(c.id)} className="text-xs text-red-400 hover:underline">
-                      Delete
-                    </button>
+                    confirmDeleteId === c.id ? (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-500">Sure?</span>
+                        <button onClick={() => remove(c.id)} className="text-xs text-red-400 hover:underline">Yes</button>
+                        <button onClick={() => setConfirmDeleteId(null)} className="text-xs text-zinc-400 hover:underline">No</button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmDeleteId(c.id)} className="text-xs text-red-400 hover:underline">
+                        Delete
+                      </button>
+                    )
                   )}
                 </div>
               </div>

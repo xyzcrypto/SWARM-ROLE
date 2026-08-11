@@ -31,6 +31,7 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
   const [loadingEdit, setLoadingEdit] = useState<string | null>(null);
   const [sort, setSort] = useState<"date" | "views">("date");
   const [error, setError] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -99,7 +100,6 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
   }
 
   async function remove(p: PostRow) {
-    if (!confirm(`Delete "${p.title}" permanently?`)) return;
     setError("");
     setBusy(p.id);
     try {
@@ -110,6 +110,7 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
         return;
       }
       setRows((arr) => arr.filter((x) => x.id !== p.id));
+      setConfirmDeleteId(null);
       router.refresh();
     } catch {
       setError("Network error. Please try again.");
@@ -254,13 +255,21 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
                           View
                         </Link>
                       )}
-                      <button
-                        onClick={() => remove(p)}
-                        disabled={busy === p.id}
-                        className="text-red-400 hover:underline disabled:opacity-50"
-                      >
-                        Delete
-                      </button>
+                      {confirmDeleteId === p.id ? (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-zinc-500">Sure?</span>
+                          <button onClick={() => remove(p)} disabled={busy === p.id} className="text-red-400 hover:underline disabled:opacity-50">Yes</button>
+                          <button onClick={() => setConfirmDeleteId(null)} className="text-zinc-400 hover:underline">No</button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirmDeleteId(p.id)}
+                          disabled={busy === p.id}
+                          className="text-red-400 hover:underline disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

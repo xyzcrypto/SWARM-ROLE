@@ -11,40 +11,31 @@ import {
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { compressImage } from "@/lib/image";
 import { chatMediaUrl } from "@/lib/chat-media";
+import type { ChatAuthor, ChatReactionSummary, ChatReplyRef, ChatPollPayload, ChatMessagePayload } from "@/lib/chat";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { cn } from "@/lib/utils";
 import { joinSharedChannel } from "@/lib/sharedChannel";
-import { SendGlyph } from "@/components/SendGlyph";
-import { GifPicker } from "@/components/GifPicker";
+import { cleanBareUrl, safeHref } from "@/lib/links";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/primitives";
-import { EmojiPicker } from "@/components/EmojiPicker";
-import { MagneticButton } from "@/components/MagneticButton";
 import { MessageButton } from "@/components/MessageButton";
 import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
-import { cn } from "@/lib/utils";
-import { safeHref, cleanBareUrl } from "@/lib/links";
+import { GifPicker } from "./GifPicker";
+import { EmojiPicker } from "./EmojiPicker";
 import { MicButton } from "@/shared/components/MicButton";
+import { SendGlyph } from "@/components/SendGlyph";
+import { MagneticButton } from "@/components/MagneticButton";
 
 const MAX_LENGTH = 500;
 const CHANNEL = "community";
 const REACTIONS = ["👍", "❤️", "😂", "🔥", "🚀", "🎉", "👀", "💯"];
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
-type Author = { name: string | null; username: string | null; image: string | null; membership: string; role: string };
-type Reaction = { emoji: string; userIds: string[] };
-type ReplyRef = { id: string; body: string; authorName: string };
-type PollOption = { id: string; text: string; order: number; count: number };
-type Poll = { id: string; question: string; options: PollOption[]; total: number; myVote?: string | null };
-type Message = {
-  id: string;
-  body: string;
-  kind?: string; // "text" | "poll"
-  createdAt: string;
-  editedAt?: string | null;
-  pinnedAt?: string | null;
-  userId: string;
-  author: Author;
-  replyTo: ReplyRef | null;
+type Author = ChatAuthor;
+type Reaction = ChatReactionSummary;
+type ReplyRef = ChatReplyRef;
+type Poll = ChatPollPayload;
+type Message = Omit<ChatMessagePayload, "reactions" | "poll"> & {
   reactions: Reaction[];
   poll?: Poll | null;
   pending?: boolean;
@@ -55,7 +46,7 @@ type Me = { id: string; isAdmin: boolean; name: string; image?: string | null; u
 type PresenceMember = { id: string; name: string; image: string | null; username: string | null };
 
 const normalizeReactions = (rs: { emoji: string; userIds: string[] }[]): Reaction[] =>
-  rs.map((r) => ({ emoji: r.emoji, userIds: [...r.userIds] }));
+  rs.map((r) => ({ emoji: r.emoji, count: r.userIds.length, userIds: [...r.userIds] }));
 
 /* Plain-text body with safe linkified URLs + @mention highlights (no HTML).
    A lone trusted media URL renders as an inline image/GIF instead. */
@@ -376,7 +367,7 @@ export function ChatClient({
             reactions[idx].userIds = reactions[idx].userIds.filter((u) => u !== userId);
             reactions = reactions.filter((r) => r.userIds.length > 0);
           }
-          return { ...m, reactions };
+          return { ...m, reactions: normalizeReactions(reactions) };
         })
       );
     },
@@ -847,7 +838,7 @@ export function ChatClient({
           .filter((m) => !known.has(m.id))
           .map((m) => ({ ...m, reactions: normalizeReactions(m.reactions) }));
         if (older.length) {
-          setMessages((prev) => [...older.filter((o) => !prev.some((p) => p.id === o.id)), ...prev]);
+          setMessages((prev) => [...older, ...prev]);
           requestAnimationFrame(() => {
             if (el) el.scrollTop = el.scrollHeight - prevHeight;
           });
@@ -921,7 +912,10 @@ export function ChatClient({
     const optimistic: Message = {
       id: tempId,
       body: text,
+      kind: "text",
       createdAt: new Date().toISOString(),
+      editedAt: null,
+      pinnedAt: null,
       userId: me.id,
       author: { name: me.name, username: null, image: null, membership: "Free", role: me.isAdmin ? "ADMIN" : "USER" },
       replyTo: reply ? { id: reply.id, body: reply.body, authorName: reply.authorName } : null,
@@ -1320,6 +1314,7 @@ export function ChatClient({
             const isPremium = m.author.membership === "Premium";
             const isTeam = m.author.role === "ADMIN";
             const canDelete = !!me && (me.isAdmin || me.id === m.userId);
+            const isMediaMsg = Boolean(chatMediaUrl(m.body));
             const canEdit =
               !!me && me.id === m.userId && !m.pending && !m.hidden && m.kind !== "poll" && canEditMessage(m.createdAt);
             const actionsOpen = actionOpenId === m.id;
@@ -1563,7 +1558,7 @@ export function ChatClient({
                       <button
                         onClick={() => {
                           setActionOpenId(null);
-                          setReplyTarget({ id: m.id, body: chatMediaUrl(m.body) ? "📷 media" : m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
+                          setReplyTarget({ id: m.id, body: isMediaMsg ? "📷 media" : m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
                         }}
                         className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200"
                         aria-label="Reply"
@@ -1592,7 +1587,7 @@ export function ChatClient({
                           {m.pinnedAt ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
                         </button>
                       )}
-                      {!m.pending && !chatMediaUrl(m.body) && (
+                      {!m.pending && !isMediaMsg && (
                         <button
                           onClick={() => translateMessage(m.id, m.body)}
                           className={cn(
@@ -1753,7 +1748,7 @@ export function ChatClient({
                   continuous
                   size="sm"
                   className="absolute bottom-1.5 right-10 !ring-0"
-                  onText={(t) => setBody((b) => (b ? `${b} ${t}` : t).slice(0, MAX_LENGTH))}
+                  onText={(t: string) => setBody((b) => (b ? `${b} ${t}` : t).slice(0, MAX_LENGTH))}
                 />
                 <AnimatePresence>
                   {pickerOpen && (

@@ -17,12 +17,7 @@ export async function ResearchPreview() {
       select: POST_CARD_SELECT,
     })
     .catch(() => []);
-  // Never ship article bodies in the home payload - precomputed read time only.
-  const posts = rawPosts.map(({ content, ...p }) => ({
-    ...p,
-    content: "",
-    readMinutes: readingTime(content),
-  }));
+
 
   return (
     <Section id="research">
@@ -42,11 +37,11 @@ export async function ResearchPreview() {
           </div>
         </Reveal>
 
-        {posts.length > 0 ? (
+        {rawPosts.length > 0 ? (
           <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 lg:grid-cols-3">
-            {posts.map((p, i) => (
-              <Reveal key={p.id} delay={i} variant="pop">
-                <PostCard post={p} />
+            {rawPosts.map((post, i) => (
+              <Reveal key={post.id} delay={i} variant="pop">
+                <PostCard post={post} />
               </Reveal>
             ))}
           </div>

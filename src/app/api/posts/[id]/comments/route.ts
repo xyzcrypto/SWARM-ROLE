@@ -97,25 +97,22 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
       postSlug: post.slug,
     });
 
-    // Live: tell everyone viewing this post a new comment landed (they refetch).
-    void broadcastEvent(`post:${params.id}`, "comment", { id: created.id });
-
-    return ok(
-      {
-        comment: {
-          id: created.id,
-          body: created.body,
-          createdAt: created.createdAt,
-          author: {
-            name: created.user?.name || created.user?.username || "Member",
-            username: created.user?.username ?? null,
-            image: publicImageUrl(created.user?.image, created.user?.id),
-            premium: created.user?.membership === "Premium",
-          },
-        },
+    const payload = {
+      id: created.id,
+      body: created.body,
+      createdAt: created.createdAt,
+      author: {
+        name: created.user?.name || created.user?.username || "Member",
+        username: created.user?.username ?? null,
+        image: publicImageUrl(created.user?.image, created.user?.id),
+        premium: created.user?.membership === "Premium",
       },
-      201
-    );
+    };
+
+    // Live: tell everyone viewing this post a new comment landed (they append it).
+    void broadcastEvent(`post:${params.id}`, "comment", payload);
+
+    return ok({ comment: payload }, 201);
   } catch (err) {
     return handleError(err, "comments:create");
   }

@@ -185,9 +185,10 @@ export function toChatPayload(m: {
     grouped.set(r.emoji, arr);
   }
   // Preserve the allowlist order for a stable UI.
-  const reactions: ChatReactionSummary[] = REACTION_EMOJIS.filter((e) => grouped.has(e)).map(
-    (emoji) => ({ emoji, count: grouped.get(emoji)!.length, userIds: grouped.get(emoji)! })
-  );
+  const reactions: ChatReactionSummary[] = REACTION_EMOJIS.flatMap((emoji) => {
+    const userIds = grouped.get(emoji);
+    return userIds ? [{ emoji, count: userIds.length, userIds }] : [];
+  });
   const poll = m.poll
     ? {
         id: m.poll.id,

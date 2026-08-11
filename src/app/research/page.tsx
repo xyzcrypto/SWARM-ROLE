@@ -35,12 +35,7 @@ export default async function ResearchPage() {
     prisma.post.count({ where: { published: true } }).catch(() => 0),
   ]);
   // Never ship article bodies in the list payload (premium must never leak;
-  // free bodies just bloat the RSC payload). Cards get a precomputed read time.
-  const posts = rawPosts.map(({ content, ...p }) => ({
-    ...p,
-    content: "",
-    readMinutes: readingTime(content),
-  }));
+
 
   return (
     <>
@@ -60,7 +55,7 @@ export default async function ResearchPage() {
                 whole page opts out of static rendering - which would undo this
                 route's ISR window. */}
             <Suspense fallback={null}>
-              <ResearchGrid initial={posts} total={total} pageSize={PAGE_SIZE} />
+              <ResearchGrid initial={rawPosts} total={total} pageSize={PAGE_SIZE} />
             </Suspense>
           </div>
         </div>

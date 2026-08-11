@@ -145,20 +145,15 @@ export default async function PostPage(
     prisma.postLike.count({ where: { postId: post.id } }).catch(() => 0),
     sessionUser?.id
       ? prisma.postLike
-          .findUnique({
-            where: { postId_userId: { postId: post.id, userId: sessionUser.id } },
-            select: { id: true },
-          })
-          .catch(() => null)
+        .findUnique({
+          where: { postId_userId: { postId: post.id, userId: sessionUser.id } },
+          select: { id: true },
+        })
+        .catch(() => null)
       : Promise.resolve(null),
   ]);
 
-  // Related cards never need bodies - strip + precompute read time.
-  const related = relatedRaw.map(({ content, ...p }) => ({
-    ...p,
-    content: "",
-    readMinutes: readingTime(content),
-  }));
+  const related = relatedRaw;
 
   const tags = post.tags
     ? post.tags.split(",").map((t) => t.trim()).filter(Boolean)

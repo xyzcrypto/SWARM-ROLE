@@ -35,14 +35,16 @@ export function PasswordField({
 }) {
   const [show, setShow] = useState(false);
   const score = passwordScore(value);
+  const id = `field-${label.toLowerCase().replace(/\s+/g, "-")}`;
 
   return (
-    <label className="block">
+    <label htmlFor={id} className="block">
       <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
         {label}
       </span>
       <div className="relative">
         <input
+          id={id}
           type={show ? "text" : "password"}
           value={value}
           onChange={(e) => onChange(e.target.value)}

@@ -11,7 +11,7 @@ export const POST_CARD_SELECT = {
   title: true,
   slug: true,
   excerpt: true,
-  content: true, // stripped before it leaves the server; used for reading time
+  readMinutes: true, // Replaces fetching the heavy 'content' column just for reading time
   cover: true,
   category: true,
   tags: true,

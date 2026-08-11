@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import { FormField } from "./FormField";
 import { SocialButtons, type SocialProviders } from "@/components/SocialButtons";
 import { OtpStep } from "@/components/OtpStep";
 import { PasswordField } from "@/components/PasswordField";
@@ -93,8 +94,8 @@ export function SignupForm({ providers }: { providers: SocialProviders }) {
       )}
 
       <form onSubmit={startSignup} className="space-y-4">
-        <Field label="Full name" type="text" value={name} onChange={setName} placeholder="Satoshi Nakamoto" autoComplete="name" />
-        <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
+        <FormField label="Full name" type="text" value={name} onChange={setName} placeholder="Satoshi Nakamoto" autoComplete="name" />
+        <FormField label="Email" type="email" value={email} onChange={setEmail} placeholder="you@email.com" autoComplete="email" />
         <PasswordField label="Password" value={password} onChange={setPassword} placeholder="At least 6 characters" autoComplete="new-password" strength />
 
         {error && (
@@ -123,39 +124,5 @@ export function SignupForm({ providers }: { providers: SocialProviders }) {
         </Link>
       </p>
     </div>
-  );
-}
-
-function Field({
-  label,
-  type,
-  value,
-  onChange,
-  placeholder,
-  autoComplete,
-}: {
-  label: string;
-  type: string;
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  autoComplete?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
-        {label}
-      </span>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        required
-        minLength={type === "password" ? 6 : undefined}
-        className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
-      />
-    </label>
   );
 }
