@@ -5,6 +5,83 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-11 (67) — 🔴 Anyone who ever changed their password could no longer log in
+
+Reported as "login issue with the right password, only on some devices". It was not
+devices. **Every member who had ever reset or changed their password was permanently
+locked out of their own account, on every device, with the correct password and no error
+shown anywhere.**
+
+**What the video showed, frame by frame:** the button goes *Signing in…* → returns to
+*Sign in* with **no error message** → the page redirects to the homepage → the navbar
+still reads **"Log in"**. Nothing failed loudly because nothing failed: `authorize()`
+accepted the password, and the `jwt` callback then threw the brand-new token away.
+
+### The line
+
+```js
+const tokenPwdAt = typeof (token as any).pwdAt === "number" ? (token as any).pwdAt : 0;
+if (dbPwdAt > tokenPwdAt) return {};   // empty token == signed out
+```
+
+`pwdAt` is stamped **on the token**, four lines below that check. So a token minted one
+millisecond ago by a successful password check **does not have one yet**. Defaulting the
+absent value to `0` made the newest possible token look like it was minted at the epoch —
+older than any password change — so the revocation check fired on the one token that could
+not possibly be stale.
+
+`passwordChangedAt` is written **only** by the reset and change-password routes, never at
+signup. That is precisely why it looked device-specific: members who had never touched
+their password had `null` → `dbPwdAt = 0` → `0 > 0` false → fine. Everyone else, locked out.
+
+**The reasoning that shipped it is preserved in the old comment**, and it is worth reading:
+it argued, correctly, that *deploying* the feature would not sign the userbase out, because
+existing users have `passwordChangedAt = null`. Right about deployment. It just never asked
+what a brand-new token looks like on the way **in**.
+
+### The fix
+
+An absent `pwdAt` means "we do not know when this token was minted" — not "the epoch".
+Unknown is not evidence of staleness, so it is stamped rather than revoked:
+
+```js
+const tokenPwdAt = typeof rawPwdAt === "number" ? rawPwdAt : null;
+if (tokenPwdAt !== null && dbPwdAt > tokenPwdAt) return {};
+```
+
+**Revocation is not weakened.** The tokens it exists to kill — a session someone else is
+holding from before the change — carry a real, older `pwdAt`, and still die. Only a token
+with no `pwdAt` at all gets a pass, and it is stamped on that same pass, so the next
+password change revokes it. A token cannot be edited to drop the field: NextAuth encrypts
+and signs it.
+
+### And the silence, which is the other half
+
+`signIn()` returning no error only means `authorize()` accepted the password. It says
+nothing about whether a session exists — the jwt callback runs afterwards. `LoginForm` now
+confirms the session is real before navigating, and says so honestly if it is not, instead
+of pushing the member to a homepage that shows "Log in". **This bug was invisible for its
+whole life because that check was missing.**
+
+### Tests
+
+- `login-revocation.test.ts` — behavioural, driving the **real** jwt callback the way
+  NextAuth drives it. Three sign-in cases (never changed / changed an hour ago / changed
+  just now) plus the session callback, and two cases proving revocation still revokes.
+- `password-change-revokes-sessions.test.ts` gains an assertion that an absent `pwdAt` may
+  never be coerced to `0`. That file already existed to stop this mechanism being
+  "simplified" into something inert; it now also stops it being turned into a lockout.
+- Proved by restoring the `: 0` default: **4 tests fail**, including the pre-existing one.
+
+**Files:** `src/core/auth/auth.ts` · `src/modules/auth/components/LoginForm.tsx` · tests:
+`login-revocation.test.ts`, `password-change-revokes-sessions.test.ts`.
+
+**⚠️ Owner:** no data was lost and nothing needs migrating — affected members can log in
+normally the moment this deploys. If anyone reset their password while locked out, that
+reset was fine; it just could not help them.
+
+---
+
 ## 2026-08-10 (66) — The avatar fix was wrong; two screenshots said so
 
 **Correcting entry (64).** It shipped a real bug fix, but it was not the cause of "my photo

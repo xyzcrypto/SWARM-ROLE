@@ -92,7 +92,30 @@ describe("password change revokes existing sessions", () => {
     expect(
       src,
       "the compared timestamp must be derived from token.pwdAt"
-    ).toMatch(/const\s+tokenPwdAt\s*=\s*typeof\s*\(token as any\)\.pwdAt\s*===\s*"number"/);
+    ).toMatch(/const\s+rawPwdAt\s*=\s*\(token as any\)\.pwdAt/);
+    expect(
+      src,
+      "the compared timestamp must be derived from token.pwdAt"
+    ).toMatch(/const\s+tokenPwdAt\s*=\s*typeof\s+rawPwdAt\s*===\s*"number"\s*\?\s*rawPwdAt\s*:\s*null/);
+
+    // 🔴 An ABSENT pwdAt must never be coerced to 0.
+    //
+    // This assertion is here because the version it replaced - `: 0` instead of
+    // `: null` - locked members out of their own accounts. `pwdAt` is stamped ON
+    // the token, so a token minted milliseconds ago by a successful password
+    // check has none yet; reading that as "minted at the epoch" made the newest
+    // possible token look stale and the callback discarded it. Anyone who had
+    // ever reset or changed their password could no longer log in, on any device,
+    // with the correct password and no error shown. Behavioural coverage is in
+    // login-revocation.test.ts; this pins the derivation that caused it.
+    expect(
+      src,
+      "an unknown mint time is not evidence of staleness - it must not default to 0"
+    ).not.toMatch(/typeof\s*\(token as any\)\.pwdAt\s*===\s*"number"\s*\?\s*\(token as any\)\.pwdAt\s*:\s*0/);
+    expect(
+      src,
+      "revocation must be skipped, not applied, when the token carries no pwdAt"
+    ).toMatch(/if\s*\(tokenPwdAt\s*!==\s*null\s*&&\s*dbPwdAt\s*>\s*tokenPwdAt\)/);
 
     // ...and `iat` must not be load-bearing in the CODE. Comments are stripped
     // first on purpose: the source deliberately mentions `token.iat` to explain
