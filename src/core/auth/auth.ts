@@ -391,15 +391,40 @@ export const authOptions: NextAuthOptions = {
           // not doing a DB read on every authenticated request. Do not describe
           // this as immediate.
           //
-          // Absent/null on either side reads as 0, i.e. "never changed". That is
-          // why deploying this does not sign the entire userbase out: existing
-          // users have `passwordChangedAt = null`, so 0 > 0 is false for everyone
-          // until they actually change a password.
+          // 🔴 An ABSENT `pwdAt` means "we do not know when this token was
+          // minted". It must NEVER be read as 0 ("minted at the epoch"), and
+          // reading it that way locked people out of their own accounts.
+          //
+          // `pwdAt` is stamped ON the token, four lines below - so a token minted
+          // one millisecond ago by a successful password check does not have one
+          // yet. Defaulting it to 0 made the newest possible token look older
+          // than the password change, so `dbPwdAt > 0` fired and the callback
+          // threw the fresh token away. From the member's side: the correct
+          // password, the button goes "Signing in…", the page redirects home, and
+          // the navbar still says "Log in". **No error is ever shown, because
+          // nothing failed** - `authorize()` accepted the password and this
+          // discarded the result.
+          //
+          // `passwordChangedAt` is written ONLY by the reset and change-password
+          // routes, never at signup, so it hit exactly the members who had ever
+          // reset or changed a password - permanently, on every device - while
+          // everyone else was fine. That is why it read as "only some devices".
+          //
+          // The earlier note here reasoned about DEPLOYING this feature not
+          // signing the userbase out, which was right: `passwordChangedAt = null`
+          // gives `dbPwdAt = 0` and `0 > 0` is false. It just never asked what a
+          // brand-new token looks like on the way IN.
+          //
+          // Unknown is not evidence of staleness. Stamp it and move on; the next
+          // password change gives us a real `pwdAt` to compare against, so
+          // revocation keeps working for every token that has one. A token cannot
+          // be forged or edited to drop the field - NextAuth encrypts and signs it.
           const dbPwdAt = (dbUser as any).passwordChangedAt
             ? new Date((dbUser as any).passwordChangedAt).getTime()
             : 0;
-          const tokenPwdAt = typeof (token as any).pwdAt === "number" ? (token as any).pwdAt : 0;
-          if (dbPwdAt > tokenPwdAt) {
+          const rawPwdAt = (token as any).pwdAt;
+          const tokenPwdAt = typeof rawPwdAt === "number" ? rawPwdAt : null;
+          if (tokenPwdAt !== null && dbPwdAt > tokenPwdAt) {
             // Empty token => the session callback below returns an empty session
             // => getServerSession() resolves to null and useSession() reports
             // signed-out. Every gate fails closed.

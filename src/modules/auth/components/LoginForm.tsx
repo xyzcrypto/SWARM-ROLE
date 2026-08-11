@@ -52,6 +52,23 @@ export function LoginForm({ providers }: { providers: SocialProviders }) {
         setError("Invalid email or password.");
         return;
       }
+
+      // `res.error` being empty only means `authorize()` accepted the password.
+      // It does NOT mean a session exists: the jwt callback runs afterwards and
+      // can still empty the token, and when it did, this pushed the member to a
+      // homepage that showed "Log in" - a silent failure with no error anywhere,
+      // which is exactly how the password-change lockout stayed invisible.
+      //
+      // One request to confirm the session is real before navigating. If it is
+      // not, say so honestly instead of bouncing them somewhere logged-out.
+      const session = await fetch("/api/auth/session", { cache: "no-store" })
+        .then((r) => r.json())
+        .catch(() => null);
+      if (!session?.user) {
+        setError("Signed in, but the session could not be started. Please try again, or reset your password.");
+        return;
+      }
+
       router.push(callbackUrl);
       router.refresh();
     } catch {
