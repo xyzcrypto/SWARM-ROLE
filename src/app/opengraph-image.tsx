@@ -7,9 +7,23 @@ import { site } from "@/lib/site";
 // share of every page. It was also a 655 KB PNG fetched by link-preview bots on
 // each share; this renders at the right ratio and is cached hard.
 //
-// Edge runtime: unlike the research card this needs no database, so it can be
-// generated at the edge rather than waking a Node function.
-export const runtime = "edge";
+// ⚠️ Deliberately does NOT set `runtime = "edge"`, and the reason is the exact
+// opposite of the one that used to be written here.
+//
+// It said: "unlike the research card this needs no database, so it can be
+// generated at the edge rather than waking a Node function." Needing no database
+// is real — and it is precisely why this should be **static**, built once and
+// then served from the CDN forever, rather than run per request anywhere. Edge
+// was buying a cheaper way to do work that does not need doing at all.
+//
+// Two build warnings came from that one line:
+//   ⚠ The Edge Runtime is deprecated. You can use the "nodejs" runtime instead.
+//   ⚠ Using edge runtime on a page currently disables static generation
+// The second is the one that cost something: it held this route at `ƒ` (Dynamic)
+// in the route table. Without it the route prerenders to `○` (Static), which is
+// the direction this project's cost baseline cares about most.
+//
+// The image markup below is untouched, so the rendered card is identical.
 export const alt = `${site.name} - ${site.slogan}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

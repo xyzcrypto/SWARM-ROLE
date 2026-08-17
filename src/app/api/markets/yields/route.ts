@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { topBy, type YieldPool } from "@/lib/markets";
+import { llamaYieldPools } from "@modules/markets/lib/llama";
 
 // Top DeFi yield opportunities (DefiLlama yields, keyless). Filtered to pools
 // with a meaningful TVL and a sane APY so the list stays trustworthy. Graceful.
@@ -11,26 +12,10 @@ export const revalidate = 320;
 
 export async function GET() {
   try {
-    const res = await fetch("https://yields.llama.fi/pools", {
-      headers: { accept: "application/json" },
-      next: { revalidate },
-    });
-    if (!res.ok) throw new Error(`yields ${res.status}`);
-    const j = await res.json();
-    const raw: any[] = j?.data ?? [];
-    const pools: YieldPool[] = topBy(
-      raw
-        .filter((p) => (Number(p.tvlUsd) || 0) >= 1_000_000 && (Number(p.apy) || 0) < 1000)
-        .map((p) => ({
-          project: String(p.project ?? "-"),
-          symbol: String(p.symbol ?? "-"),
-          chain: String(p.chain ?? "-"),
-          apy: Number(p.apy) || 0,
-          tvl: Number(p.tvlUsd) || 0,
-        })),
-      (p) => p.apy,
-      10
-    );
+    // The 14.3 MB fetch, its TVL/APY filter and its trim now live in
+    // `llama.ts`, cached as a reduced value the data cache can actually hold -
+    // see the note there. Same filter, same ordering, same ten rows.
+    const pools: YieldPool[] = topBy(await llamaYieldPools(), (p) => p.apy, 10);
     return NextResponse.json(
       { pools, live: true, ts: Date.now() },
       { headers: { "Cache-Control": "public, s-maxage=320, stale-while-revalidate=600" } }

@@ -33,12 +33,18 @@ import { join } from "node:path";
 
 const read = (p: string) => readFileSync(join(process.cwd(), p), "utf8");
 
+/** Source with `//` and block comments removed, so prose cannot satisfy a check. */
+const stripComments = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
 // Read the REAL implementations, never the `src/lib` / `src/components` re-export
 // shims left behind by the modules/core/shared reorganisation (#203). A shim is one
 // `export * from` line: pointing this file at one would make every regex below match
 // nothing, and the suite would pass while checking absolutely nothing.
 const MARKETS_CLIENT = "src/modules/markets/components/MarketsClient.tsx";
 const TICKER_POLL = "src/modules/markets/lib/useTickerPoll.ts";
+// The shared cache for the >2 MB llama.fi upstreams (see the test at the bottom).
+const LLAMA = "src/modules/markets/lib/llama.ts";
 
 type Target = {
   /** Human label used in failure messages. */
@@ -191,6 +197,91 @@ describe("polled API routes keep their ISR + edge windows aligned with client po
         if (hint < routeWindow) {
           bad.push(`${t.label}: inner fetch hint ${hint}s < route window ${routeWindow}s — governs the whole route`);
         }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("keeps the shared llama.ts TTLs >= the windows they serve", () => {
+    // ⚠️ Widening the guard along with the code it guards.
+    //
+    // The >2 MB llama.fi upstreams used to carry `next: { revalidate }` inside
+    // the route files, where the "no inner hint shorter than the route window"
+    // test above could see them. Those hints were inert - the data cache rejects
+    // anything over ~2 MB - so they moved into `llama.ts` as `unstable_cache`
+    // TTLs around the REDUCED value, which does fit.
+    //
+    // That move would otherwise have quietly taken those numbers out of this
+    // file's sight, and this project has been bitten by exactly that before: the
+    // first version of this test globbed `api/markets/*` only, so /api/ticker's
+    // identical defect went uncaught because its poll lived elsewhere. A check
+    // scoped to where the last bug was found does not prevent the next one.
+    const src = read(LLAMA);
+    const ttl = (name: string) => {
+      const m = src.match(new RegExp(`export const ${name} = (\\d+);`));
+      return m ? Number(m[1]) : null;
+    };
+    const shortestPollSec = Math.min(...TARGETS.map((t) => t.pollMs / 1000));
+
+    // 🔴 The binding rule, and it is the opposite of the intuitive one.
+    //
+    // Next takes the MINIMUM revalidate across a route segment and an
+    // `unstable_cache` TTL counts, so a TTL BELOW a consumer's own
+    // `export const revalidate` silently becomes that route's real window.
+    // Measured when this landed: OVERVIEW_TTL at 200 pulled /api/markets/dex
+    // from ≈5m to ≈3m in the build output - under its 300s poll - while the
+    // route file still read 320. Hence: TTL >= the LARGEST consumer window.
+    const CONSUMERS: Record<string, string[]> = {
+      OVERVIEW_TTL: ["src/app/api/markets/dex/route.ts", "src/app/api/markets/perp/route.ts"],
+      PROTOCOLS_TTL: ["src/app/api/markets/defi/route.ts"],
+      YIELDS_TTL: ["src/app/api/markets/yields/route.ts"],
+    };
+
+    const bad: string[] = [];
+    for (const [name, consumers] of Object.entries(CONSUMERS)) {
+      const v = ttl(name);
+      if (v === null) {
+        bad.push(`${name}: not found in ${LLAMA} — did it get renamed or inlined?`);
+        continue;
+      }
+      // A shared TTL shorter than the fastest poll it feeds means the expensive
+      // upstream is re-fetched on essentially every poll.
+      if (v < shortestPollSec) {
+        bad.push(`${name} ${v}s < shortest poll ${shortestPollSec}s — the >2 MB upstream refetches per poll`);
+      }
+      for (const c of consumers) {
+        const w = revalidateSeconds(c);
+        if (w !== null && v < w) {
+          bad.push(`${name} ${v}s < ${c}'s window ${w}s — segment minimum makes ${v}s that route's REAL window`);
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("has no >2 MB llama upstream fetched outside llama.ts", () => {
+    // The four bodies the build log named as uncacheable. Fetching one directly
+    // from a route re-introduces both halves of the problem: it is re-downloaded
+    // and re-parsed per regeneration, and it is no longer shared with the other
+    // route that wants the same URL.
+    const OVERSIZED = [
+      "yields.llama.fi/pools",
+      "api.llama.fi/protocols",
+      "api.llama.fi/overview/dexs",
+      "api.llama.fi/overview/fees",
+      "api.llama.fi/overview/derivatives",
+    ];
+    const files = [...TARGETS.map((t) => t.routeFile), "src/app/sitemap.ts"];
+    const bad: string[] = [];
+    for (const f of files) {
+      // Comments are stripped first, the same way the `token.iat` assertion in
+      // password-change-revokes-sessions.test.ts does it: these files name the
+      // oversized URLs in prose to explain why they no longer fetch them, and an
+      // assertion that trips on its own explanation just gets deleted.
+      const src = stripComments(read(f));
+      for (const url of OVERSIZED) {
+        // `overview/${kind}` template literals count too, hence the loose match.
+        if (src.includes(url)) bad.push(`${f} fetches ${url} directly — route it through llama.ts`);
       }
     }
     expect(bad).toEqual([]);

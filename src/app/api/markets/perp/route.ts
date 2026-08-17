@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { topBy, protocolSlug, type PerpDex, type PerpMarket } from "@/lib/markets";
+import { llamaOverview } from "@modules/markets/lib/llama";
 
 // Perp DEX / derivatives snapshot: top perp DEXs by 24h volume (DefiLlama,
 // keyless) + top live perp markets by open interest with funding rates
@@ -15,23 +16,18 @@ export const revalidate = 200;
 async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> {
   // Exclude the (huge) chart arrays so the payload is small + fast; some hosts
   // also 403 requests without a User-Agent, so send one.
-  const res = await fetch(
-    "https://api.llama.fi/overview/derivatives?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true",
-    { headers: { accept: "application/json", "user-agent": "xyzcrypto-markets/1.0" }, next: { revalidate } }
-  );
-  if (!res.ok) throw new Error(`derivatives ${res.status}`);
-  const j = await res.json();
-  const list: any[] = j?.protocols ?? [];
-  const dexs = topBy(list, (p) => Number(p.total24h) || 0, 30).map((p: any) => ({
-    slug: protocolSlug(p.slug, String(p.name ?? "")),
-    name: String(p.name ?? "-"),
-    volume24h: Number(p.total24h) || 0,
-    change1d: Number(p.change_1d) || 0,
-    logo: typeof p.logo === "string" ? p.logo : null,
+  // Shared with sitemap.ts through llama.ts - the >2 MB body was never cacheable,
+  // so both used to download it separately. The aggregate fallback (sum of the
+  // full list, not the trimmed one) is computed there too.
+  const { protocols, total24h } = await llamaOverview("derivatives");
+  const dexs = topBy(protocols, (p) => p.total24h, 30).map((p) => ({
+    slug: protocolSlug(p.slug ?? undefined, p.name),
+    name: p.name,
+    volume24h: p.total24h,
+    change1d: p.change1d,
+    logo: p.logo,
   }));
-  // Prefer the API's aggregate; fall back to summing the protocol list.
-  const totalVolume24h = Number(j?.total24h) || list.reduce((s, p) => s + (Number(p.total24h) || 0), 0);
-  return { dexs, totalVolume24h };
+  return { dexs, totalVolume24h: total24h };
 }
 
 // Hyperliquid live perp markets - funding + open interest + 24h volume per coin.
