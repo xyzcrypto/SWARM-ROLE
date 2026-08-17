@@ -699,6 +699,87 @@ alignment-test note in §8), a Node version pin (#209), and `dependabot.yml` rem
 again (#201) after the version-update PRs turned out not to be wanted yet.
 
 ## 8. Open items / natural next steps
+
+### ⏸️ Parked 2026-08-11 — picked up in this order when work resumes
+
+Owner asked to park these. Newest context first; nothing here is started.
+
+1. **🔴 PR #284 (`deepakpss`, branch `security`) — reviewed, has ONE blocker.** Do not merge
+   until the backfill is ready. Full review: verdict was *code is sound*, it merges into
+   `main` cleanly, both 2026-08-11 auth fixes survive the merge, 682 tests pass, build green,
+   **route table byte-identical to `main`**, lockfile churn is benign transitive re-resolution
+   (no new dependency), and the `password-change-revokes-sessions.test.ts` edit is only a 15s
+   timeout — *not* a weakened guard. `content` is removed from `POST_CARD_SELECT`, so there is
+   **no premium-body leak** (it is strictly better than the mapping it replaced).
+   - **BLOCKER: `Post.readMinutes` has no backfill.** New column is `Int @default(0)`, and
+     `PostCard` renders `${post.readMinutes}m` with no fallback — so after deploy **every
+     existing article shows "0m read"** on `/` and `/research` until each post is edited.
+   - **⚠️ ORDER MATTERS.** The column does not exist until the deploy runs `db push`. Running
+     the SQL first fails with `column "readMinutes" does not exist`. Sequence: paste the SQL
+     into the Supabase editor *without running it* → merge → wait for the build → confirm
+     `in sync with your Prisma schema` in the build log → **then** run it → wait out the
+     **5m ISR** window on `/` and `/research`.
+   - Backfill (idempotent — a real value can never be 0, so `WHERE "readMinutes" = 0`
+     uniquely selects un-backfilled rows; formula matches `readingTime()` exactly):
+     ```sql
+     UPDATE "Post"
+     SET "readMinutes" = GREATEST(
+       1, ROUND(array_length(regexp_split_to_array(btrim(content), '\s+'), 1) / 200.0)::int
+     )
+     WHERE "readMinutes" = 0;
+     ```
+     Verify: `SELECT count(*) FILTER (WHERE "readMinutes" = 0) FROM "Post";` must be **0**.
+   - `db push` for this PR is **purely additive** — checked the whole schema diff, nothing is
+     removed: `Post.readMinutes` plus an `@@index([userId])` on `ChatPollVote`.
+   - **Ask Deepak for two fixes:** (a) `CommentSection.tsx` calls `setTotal` *inside* the
+     `setItems` updater — updaters must be pure, React may double-invoke and double the comment
+     count; move the dedupe out into a ref. (b) `otp.ts`'s new comment claims the old code
+     failed "silently" — it threw loudly too, so the stated rationale is wrong; the real change
+     is that a missing secret now takes down the whole auth module (`auth.ts` imports
+     `otp.ts`), not just OTP. Nits: `research/page.tsx` + `ResearchPreview.tsx` left a
+     half-sentence comment with an unclosed paren and **deleted the "premium must never leak"
+     rationale** for `content`'s absence — which invites someone re-adding it; and `CLAUDE.md`
+     still points at `Field` in `LoginForm.tsx`, now `FormField.tsx`.
+   - Repo rule: **#284 is a team member's PR — the owner merges it, not Claude.**
+
+2. **🟡 `next/font/google` can fail a production build.** Not a Vercel setting and not a
+   "block": `next/font/google` **downloads the font at build time**. CI hit exactly this on
+   2026-08-11 (`module-not-found` on `fraunces_*.module.css`, run 31513996251) while the *same
+   commit* built green in the parallel run. The same fetch failing on Vercel reds the deploy
+   with no code change. Fix: commit the font files and switch to `next/font/local` so the
+   build never depends on a third-party fetch. Fraunces and Geist are both OFL, so
+   redistribution is fine. ⚠️ Touches `app/layout.tsx` and the Fraunces hero headline — the UI
+   is approved and production-ready, so this must be byte-identical in output, not a restyle.
+
+3. **Three shipped fixes are still unverified on the live site** (Claude cannot reach
+   xyzcrypto.io — egress is blocked by policy, so the owner runs these):
+   - **Login** (#285): an affected member — anyone who has reset or changed their password —
+     signs in and lands *signed in*. If it still fails it is no longer silent; the form now
+     says "Signed in, but the session could not be started."
+   - **Avatar** (#283): any profile shows a photo, not the member's name as text.
+     `document.querySelector('img[alt]').currentSrc` must be non-empty and must **not** start
+     with `/_next/image`.
+   - **DM quote** (#283): replying to a photo shows **📷 Photo**, not a storage URL.
+
+4. **XYZ Sentinel** — one unauthenticated request now distinguishes the two candidates (see
+   the Sentinel entry below): `curl -s -o /dev/null -w "%{http_code}\n"
+   https://xyzcrypto.io/api/watchdog` → **503** = variable absent from the deployment,
+   redeploy; **403** = present, the earlier probe's token was wrong. Separately,
+   `watchdog.yml`'s `schedule:` is still commented out and it reads its secrets from **GitHub
+   Actions**, not Vercel — it exits 0 with a skip message when they are missing, so a green
+   workflow run is not evidence it ran. Both doors have to be opened.
+
+5. **Sentry DSN — owner deferred it on 2026-08-11** ("sentry wala baad me karte h"). Recording
+   the cost of the delay without re-arguing it: all three bugs fixed that day were reported by
+   users rather than caught, and all three were silent. Details in the Sentry entry below.
+
+6. **SEO: `NEXT_PUBLIC_GSC_VERIFICATION` and `NEXT_PUBLIC_GA_ID`** are still unset. `NEXT_PUBLIC_*`
+   is inlined at build time, so **adding them requires a redeploy** — setting them alone does
+   nothing. The remaining SEO work is blocked on this. Also outstanding: PageSpeed mobile
+   scores for the four key URLs.
+
+---
+
 - ~~**Is Upstash actually configured in production?**~~ **✅ Resolved 2026-07-29 —
   it is. Rate limiting is live.** This had been an explicit unknown: `ratelimit.ts`
   degrades to a permissive no-op when `UPSTASH_*` is absent, so every limiter
