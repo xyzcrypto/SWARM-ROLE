@@ -9,6 +9,14 @@ import { SITE_URL } from "@/lib/seo";
 // render an arbitrary attacker-controlled image.
 const SAFE_DOMAIN = /^[a-z0-9]([a-z0-9-]{0,62}\.)+[a-z]{2,}$/i;
 
+// ⚠️ This lives at `/tools/share/points-value/<id>/card`, NOT under `/api/`,
+// and moving it there is what makes the X preview work at all. `robots.ts`
+// disallows `/api/`, and X's card crawler obeys robots.txt for the IMAGE, not
+// just the page - so while it sat under `/api/` every points share on X went
+// out with no banner, for every listed perp DEX. The metadata was correct the
+// whole time; the crawler simply refused to fetch what it pointed at.
+// `og-image-crawlable.test.ts` pins this.
+//
 // Public share card for a Points/Airdrop Value calculator result - a branded
 // 1200x630 image with the real platform logo + our logo, not text wordmarks.
 // No session gate (this is a "share to the world" action, not private data).
