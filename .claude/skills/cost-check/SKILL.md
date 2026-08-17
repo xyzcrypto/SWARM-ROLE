@@ -155,8 +155,20 @@ output's Revalidate column (it shows the effective value), or grep the handler f
 `next: { revalidate:` and check every literal. Prefer passing the shared
 `{ revalidate }` const to inner fetches so they cannot drift apart.
 
+**An `unstable_cache` TTL counts toward that minimum too** — not just `fetch`
+hints. Measured 2026-08-17 while moving the >2 MB llama.fi bodies behind
+`unstable_cache`: a TTL of 200s inside a shared module pulled `/api/markets/dex`
+from **≈5m to ≈3m** in the build output, under its **300s** client poll, while
+the route file still read `export const revalidate = 320`. Nothing in the route
+file was wrong; only the route table showed it.
+
+**So a shared cache TTL must be >= the LARGEST window among its consumers**,
+which is the opposite of the intuitive "use the shortest so nobody gets stale
+data". The consumer with the longest window is the one whose window you break.
+
 Pinned by `src/lib/__tests__/markets-poll-alignment.test.ts`, which fails on any
-inner hint shorter than its route's window.
+inner hint shorter than its route's window, and on any shared TTL in
+`src/modules/markets/lib/llama.ts` shorter than a consumer route's window.
 
 ### 2. Large external payloads silently defeat the data cache
 Next's data cache **rejects responses over ~2 MB**. The `next: { revalidate }` hint
@@ -169,6 +181,20 @@ discards nearly all of it — 30 trend points and the top 8 of each survive.
 
 Before adding an external fetch with a cache hint, check the payload size
 (`curl -sI <url>` → `content-length`). Over 2 MB means the hint is inert.
+
+**The fix is to cache the REDUCED value, not the body.** `unstable_cache` stores a
+function's return value, and these routes return kilobytes, so the data cache
+accepts them. `src/modules/markets/lib/llama.ts` does this for the four upstreams
+the build log named — `yields.llama.fi/pools` (14.3 MB), `api.llama.fi/protocols`
+(11.4 MB) and `overview/{dexs,fees,derivatives}` — and the inner fetches are
+explicitly `cache: "no-store"` so Next stops trying to store a body it will always
+reject. One entry per upstream, **shared across routes**: `overview/dexs` was
+downloaded separately by `/api/markets/dex` and `sitemap.ts`, `derivatives` by
+`/api/markets/perp` and `sitemap.ts`.
+
+**How to tell it worked:** `npm run build` and grep the output. Every
+`Failed to set Next.js data cache …` line is a hint that is doing nothing. Zero of
+them is the pass condition — and mind trap 1b above while doing it.
 
 ### 3. `<img>` → `next/image` is sometimes the *more* expensive choice
 An `<img>` pointing at Supabase Storage is fetched browser-to-Supabase and costs

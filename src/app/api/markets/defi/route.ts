@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { DefiMarket } from "@/lib/markets";
+import { llamaProtocols } from "@modules/markets/lib/llama";
 import { topByTvl } from "@/lib/markets";
 
 // Server-side cached proxy: DeFi snapshot from DefiLlama (keyless, free) - total
@@ -34,14 +35,10 @@ async function totalTvlAndTrend() {
 }
 
 async function topProtocols() {
-  const list: any[] = await j("https://api.llama.fi/protocols");
-  return topByTvl(list.map((p) => ({ ...p, tvl: Number(p.tvl) || 0 })), 8).map((p: any) => ({
-    name: String(p.name ?? "-"),
-    tvl: Number(p.tvl) || 0,
-    chain: String(p.chain ?? p.chains?.[0] ?? "-"),
-    change1d: Number(p.change_1d) || 0,
-    logo: typeof p.logo === "string" ? p.logo : null,
-  }));
+  // `api.llama.fi/protocols` is 11.4 MB and we keep eight rows. The fetch and
+  // the trim moved to `llama.ts` so the small result is what gets cached - the
+  // >2 MB body never could be. See the note there.
+  return topByTvl(await llamaProtocols(), 8);
 }
 
 async function topChains() {

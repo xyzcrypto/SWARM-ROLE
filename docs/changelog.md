@@ -5,6 +5,94 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-17 (69) — The two warnings every production build was printing
+
+From a Vercel build log. **The build was succeeding** — these were warnings, and both
+had been printed on every deploy for a long time. Neither was caused by a recent change.
+
+### 1. Edge Runtime deprecated — one line, in one file
+
+```
+⚠ The Edge Runtime is deprecated. You can use the "nodejs" runtime instead.
+⚠ Using edge runtime on a page currently disables static generation for that page
+```
+
+Both came from `export const runtime = "edge"` in `src/app/opengraph-image.tsx`, and the
+second is the one that cost something: it held the route at **`ƒ` (Dynamic)**.
+
+The comment defending the line said *"unlike the research card this needs no database, so
+it can be generated at the edge rather than waking a Node function."* Needing no database
+is true, and it is exactly why the page should be **static** — built once, then served
+from the CDN. Edge was buying a cheaper way to do work that did not need doing.
+
+Removed. **`ƒ /opengraph-image` → `○ /opengraph-image`**, and it is the *only* line that
+changed in the route table. The image markup is untouched, so the share card is identical.
+
+### 2. 🔴 Four upstreams over the data cache's 2 MB limit
+
+```
+Failed to set Next.js data cache for https://api.llama.fi/protocols … (11396797 bytes)
+Failed to set Next.js data cache for https://yields.llama.fi/pools  … (14271767 bytes)
+… plus overview/dexs and overview/fees
+```
+
+This is **trap 2 in the `cost-check` skill**, which already named `/api/markets/defi` and
+llama.fi — the known state, not a new regression.
+
+The routes carried `next: { revalidate }` on those fetches, so the code read as though the
+responses were cached. **They never were.** The cost is not the download alone: 11–14 MB was
+re-fetched and re-`JSON.parse`d on every regeneration to keep about a kilobyte, which on
+this plan is Fluid Active CPU — and two routes wanting the same URL each paid separately
+(`overview/dexs` read by both `/api/markets/dex` and `sitemap.ts`; `derivatives` by both
+`/api/markets/perp` and `sitemap.ts`).
+
+**Fix: cache the reduced value, not the body.** `unstable_cache` stores a function's return
+value, and these return kilobytes, so the data cache accepts them — the thing the hints were
+only pretending to do. `src/modules/markets/lib/llama.ts` now owns all four upstreams, one
+shared entry each, with the inner fetches explicitly `cache: "no-store"` so Next stops
+trying to store a body it will always reject.
+
+**Build output: 4 failures → 0. Both warnings: gone.**
+
+### ⚠️ The route table caught a regression the unit test could not
+
+Setting the shared TTL to the *shortest* consumer window (200s, `/api/markets/perp`) looked
+obviously right — nobody gets staler data. The build output disagreed immediately:
+
+```
+/api/markets/dex   ≈5m  →  ≈3m
+```
+
+**An `unstable_cache` TTL counts toward the segment minimum, exactly like a `fetch` hint
+does** (trap 1b). `/api/markets/dex` exports 320s against a **300s client poll**, so a 200s
+effective window would have put every poll on an expired window and regenerated the route
+each time — trap 1, the expensive one — while the route file still read `revalidate = 320`.
+
+So the rule is the **opposite** of the intuitive one: a shared TTL must be **>= the largest**
+window among its consumers, because the longest-window consumer is the one you break.
+`OVERVIEW_TTL` is 320. `/api/markets/perp` may now serve derivatives figures up to 320s old
+instead of 200s; its own route window is untouched, and two minutes on a 24h volume
+aggregate is immaterial next to regenerating on every poll.
+
+`markets-poll-alignment.test.ts` gained two tests so this cannot recur silently: shared TTLs
+must be >= every consumer's window, and none of the five oversized URLs may be fetched
+outside `llama.ts`. Both were proved by staging the exact violations. Comments are stripped
+before matching, the same way the `token.iat` assertion does it — these files name the URLs
+in prose to explain why they no longer fetch them, and an assertion that trips on its own
+explanation just gets deleted.
+
+**Left alone deliberately:** `v2/historicalChainTvl`, `v2/chains`, `stablecoins` and
+`summary/*` are under 2 MB and cache correctly — the build log never named them.
+
+**Files:** `src/app/opengraph-image.tsx` · `src/modules/markets/lib/llama.ts` (new) ·
+`api/markets/{dex,perp,yields,defi}/route.ts` · `src/app/sitemap.ts` ·
+`markets-poll-alignment.test.ts` · `.claude/skills/cost-check/SKILL.md`.
+
+**No UI change is possible from this diff** — every file is server-side data fetching or an
+OG image's runtime declaration.
+
+---
+
 ## 2026-08-11 (68) — nanoid 3.3.16 → 3.3.18 (GHSA-2v37-7h3g-55p8), lockfile only
 
 Dependabot HIGH: *"nanoid: custom generators can loop indefinitely when size is zero"*.

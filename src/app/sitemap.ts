@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { llamaOverview } from "@modules/markets/lib/llama";
 import { SITE_URL } from "@/lib/seo";
 import { prisma } from "@/lib/prisma";
 
@@ -109,12 +110,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false",
       3600
     ),
-    getJson("https://api.llama.fi/overview/dexs?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true", 3600),
-    getJson("https://api.llama.fi/overview/fees?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true", 3600),
-    getJson(
-      "https://api.llama.fi/overview/derivatives?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true",
-      3600
-    ),
+    // Shared with /api/markets/{dex,perp} via llama.ts. These bodies are over
+    // 2 MB, so the data cache always refused them and the sitemap paid for its
+    // own copy of a download the markets routes had already made. `.catch`
+    // keeps the old contract: a failed upstream omits a section rather than
+    // failing the sitemap.
+    llamaOverview("dexs").catch(() => null),
+    llamaOverview("fees").catch(() => null),
+    llamaOverview("derivatives").catch(() => null),
   ]);
 
   const liveCoinIds = (Array.isArray(coinsRes) ? coinsRes : [])
