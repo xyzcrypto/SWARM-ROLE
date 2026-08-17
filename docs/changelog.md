@@ -5,6 +5,61 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-17 (70) — Points shares on X had no banner: robots.txt was blocking the image
+
+Reported from a screenshot of an X compose box — a competitor's link showed a full preview
+card, ours showed nothing.
+
+**Everything about the metadata was already right.** The share page declared
+`twitter:card = summary_large_image`, a title, a description and an absolute image URL; the
+image was a real 1200×630 `ImageResponse` with the platform's logo and the actual numbers;
+the X intent posted the share *page*, not the raw PNG. Reading the code, there was nothing
+to fix.
+
+**The image lived at `/api/tools/share/points-value/<id>`, and `robots.ts` disallows
+`/api/`.** X's card crawler obeys robots.txt **for the image, not just the page** — so it
+fetched the page, read a perfectly valid `twitter:image`, and then refused to fetch what it
+pointed at. Every points share went out bare, for every listed perp DEX.
+
+The asymmetry is what made it look like a tools-only bug: the homepage and research cards
+render from `/opengraph-image` and `/research/[slug]/opengraph-image`, outside `/api/`, so
+those previews always worked.
+
+- **The route moved** to `/tools/share/points-value/[id]/card`. Moving it rather than adding
+  an `Allow:` to robots.txt is deliberate: a more-specific `Allow` overriding a broader
+  `Disallow` depends on each crawler's precedence rules, and this has to work on all of them.
+  Nothing else changes — same renderer, same cache headers, same page.
+- **Explicit `width`/`height` on the metadata image.** `summary_large_image` is a request,
+  not a guarantee: without dimensions a crawler must fetch and measure the PNG before
+  committing to the large layout, and any hiccup there drops the post to a small card.
+- Route table: `/api/tools/share/points-value/[id]` out, `/tools/share/points-value/[id]/card`
+  in. Same count, same render mode, no cost change.
+
+**`og-image-crawlable.test.ts`** now reads the disallow list out of `robots.ts` itself and
+fails if any metadata image under `src/app` starts with a blocked prefix — so this cannot
+recur on a different page either. Proved by restoring the old path: two of its three tests
+fail. Comments are stripped before matching, for the reason that is becoming a habit here:
+these files name the old path in prose to explain why they no longer use it.
+
+**Related, parked rather than fixed (§8 item 6):** the Journal's three share cards are also
+under `/api/`, and `journal-share-overview.test.ts` justifies their public access with
+"link-preview bots must fetch it without cookies" — which robots.txt prevents. Unlike the
+points card, nothing declares them as a page's `og:image`; they are linked as direct
+open/download actions, which browsers do regardless. Whether they need the same move depends
+on whether those PNG links are meant to be pasted into social posts.
+
+**Files:** `src/app/tools/share/points-value/[id]/page.tsx` ·
+`.../[id]/card/route.tsx` (moved from `src/app/api/tools/share/points-value/[id]/route.tsx`) ·
+`og-image-crawlable.test.ts` (new). **No UI change** — the visible share page renders the
+same image from the new path.
+
+**Observable (owner, after deploy):** paste a points share link into
+[cards-dev.twitter.com/validator](https://cards-dev.twitter.com/validator) or just compose a
+post with it — the banner appears. *Falsifier:* still no image, or a small card instead of
+the wide one.
+
+---
+
 ## 2026-08-17 (69) — The two warnings every production build was printing
 
 From a Vercel build log. **The build was succeeding** — these were warnings, and both

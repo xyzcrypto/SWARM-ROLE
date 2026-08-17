@@ -773,7 +773,17 @@ Owner asked to park these. Newest context first; nothing here is started.
    the cost of the delay without re-arguing it: all three bugs fixed that day were reported by
    users rather than caught, and all three were silent. Details in the Sentry entry below.
 
-6. **SEO: `NEXT_PUBLIC_GSC_VERIFICATION` and `NEXT_PUBLIC_GA_ID`** are still unset. `NEXT_PUBLIC_*`
+6. **🟡 The Journal's three share cards may have the same robots problem the points card
+   just had.** `/api/journal/share/{activity,challenge,overview}/…` all sit under `/api/`,
+   which `robots.ts` disallows — and `journal-share-overview.test.ts` says in as many words
+   that the route is public "because link-preview bots must fetch it without cookies", which
+   robots.txt then prevents them from doing. **Not fixed, and not obviously broken either:**
+   unlike the points card, nothing declares these as a page's `og:image`; the UI links them
+   directly as open/download actions, which a browser does regardless of robots.txt. So the
+   question to settle is whether anyone is expected to paste those PNG links into a social
+   post. If yes, they need the same move out of `/api/` that the points card got.
+
+7. **SEO: `NEXT_PUBLIC_GSC_VERIFICATION` and `NEXT_PUBLIC_GA_ID`** are still unset. `NEXT_PUBLIC_*`
    is inlined at build time, so **adding them requires a redeploy** — setting them alone does
    nothing. The remaining SEO work is blocked on this. Also outstanding: PageSpeed mobile
    scores for the four key URLs.

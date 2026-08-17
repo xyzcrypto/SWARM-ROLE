@@ -41,12 +41,32 @@ export async function generateMetadata(props: { params: Promise<{ id: string }> 
   const usd = card.usd ?? 0;
   const title = `$${usd.toLocaleString(undefined, { maximumFractionDigits: 0 })} estimated points value - ${platform}`;
   const description = "Estimate what your points could be worth - try the free calculator on XYZ Crypto.";
-  const image = `${SITE_URL}/api/tools/share/points-value/${params.id}`;
+  // ⚠️ NOT under `/api/`, and that is the whole point.
+  //
+  // This card used to be served from `/api/tools/share/points-value/<id>` —
+  // and `robots.ts` disallows `/api/`. **X's card crawler obeys robots.txt for
+  // the image as well as the page**, so it fetched the page, found a perfectly
+  // correct `twitter:image` pointing into a disallowed path, and rendered the
+  // post with no banner at all. Every points share on X went out bare, for
+  // every listed perp DEX, while the research and homepage cards (whose images
+  // live outside `/api/`) worked fine — which is exactly why it looked like a
+  // tools-only problem.
+  //
+  // Moving the route rather than punching a hole in robots.txt is deliberate:
+  // an `Allow:` more specific than a `Disallow:` relies on each crawler's
+  // precedence rules, and this has to work on every one of them.
+  const image = `${SITE_URL}/tools/share/points-value/${params.id}/card`;
+  // Explicit dimensions, matching the route's own SIZE. `summary_large_image`
+  // is a request, not a guarantee: without width/height a crawler has to fetch
+  // and measure the PNG before it will commit to the large layout, and any
+  // hiccup there drops the post to the small card - or to none. Stating them
+  // costs nothing and removes that step.
+  const img = { url: image, width: 1200, height: 630, alt: title };
   return {
     title,
     description,
-    openGraph: { title, description, images: [image], type: "website" },
-    twitter: { card: "summary_large_image", title, description, images: [image] },
+    openGraph: { title, description, images: [img], type: "website" },
+    twitter: { card: "summary_large_image", title, description, images: [img] },
   };
 }
 
@@ -59,7 +79,7 @@ export default async function PointsValueSharePage(props: { params: Promise<{ id
   const sharePct = card.sharePct ?? 0;
   const tokens = card.tokens ?? 0;
   const platform = card.platform || "Perp DEX";
-  const image = `/api/tools/share/points-value/${params.id}`;
+  const image = `/tools/share/points-value/${params.id}/card`;
 
   return (
     <>
