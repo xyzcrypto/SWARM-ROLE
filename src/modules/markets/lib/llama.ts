@@ -111,25 +111,36 @@ export type OverviewRow = {
 
 export type Overview = { total24h: number; protocols: OverviewRow[] };
 
-/** Keep the list generous — the widest consumer takes 30, the sitemap 40. */
-const OVERVIEW_ROWS = 120;
-
-function reduceOverview(j: any): Overview {
+/**
+ * ⚠️ Every row is kept, in the upstream's ORIGINAL ORDER. Neither the sort nor a
+ * truncation belongs here, and an earlier version of this function had both.
+ *
+ * `sitemap.ts` takes the first 40 rows **as the API returned them** to build
+ * `/markets/protocol/<type>/<slug>` URLs. Sorting by `total24h` first quietly
+ * changed which forty protocols get published — not a crash, just a different
+ * sitemap than the one that was there before, which is exactly the kind of
+ * change that is never noticed. Meanwhile `/api/markets/{dex,perp}` run `topBy`
+ * over whatever they are given, so truncating here could have dropped a
+ * high-volume protocol that happened to sit past the cut in API order.
+ *
+ * Keeping everything costs nothing that matters: only six fields survive, so
+ * even a couple of thousand protocols is a couple of hundred KB — an order of
+ * magnitude under the 2 MB ceiling this whole module exists to stay beneath,
+ * and three orders under the raw body.
+ */
+export function reduceOverview(j: any): Overview {
   const list: any[] = Array.isArray(j?.protocols) ? j.protocols : [];
-  const protocols: OverviewRow[] = list
-    .map((p) => ({
-      slug: typeof p?.slug === "string" ? p.slug : null,
-      module: typeof p?.module === "string" ? p.module : null,
-      name: String(p?.name ?? "-"),
-      total24h: Number(p?.total24h) || 0,
-      change1d: Number(p?.change_1d) || 0,
-      logo: typeof p?.logo === "string" ? p.logo : null,
-    }))
-    .sort((a, b) => b.total24h - a.total24h)
-    .slice(0, OVERVIEW_ROWS);
-  // Prefer the API's own aggregate; fall back to summing the FULL list, not the
-  // truncated one, or the total would silently shrink with OVERVIEW_ROWS.
-  const total24h = Number(j?.total24h) || list.reduce((s, p) => s + (Number(p?.total24h) || 0), 0);
+  const protocols: OverviewRow[] = list.map((p) => ({
+    slug: typeof p?.slug === "string" ? p.slug : null,
+    module: typeof p?.module === "string" ? p.module : null,
+    name: String(p?.name ?? "-"),
+    total24h: Number(p?.total24h) || 0,
+    change1d: Number(p?.change_1d) || 0,
+    logo: typeof p?.logo === "string" ? p.logo : null,
+  }));
+  // Prefer the API's own aggregate; fall back to summing the list, exactly as
+  // /api/markets/perp did before this moved here.
+  const total24h = Number(j?.total24h) || protocols.reduce((s, p) => s + p.total24h, 0);
   return { total24h, protocols };
 }
 
