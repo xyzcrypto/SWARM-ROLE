@@ -5,6 +5,71 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-11 (68) — nanoid 3.3.16 → 3.3.18 (GHSA-2v37-7h3g-55p8), lockfile only
+
+Dependabot HIGH: *"nanoid: custom generators can loop indefinitely when size is zero"*.
+Audited before touching anything. **The alert's version range was misleading and following
+it literally would have broken the build.**
+
+### The audit
+
+| Question | Answer |
+|---|---|
+| Installed | `nanoid@3.3.16` (+ a separate copy vendored inside `next/dist/compiled/nanoid`) |
+| Direct or transitive | **Transitive.** Absent from all four dependency fields |
+| Brought in by | **`postcss`** — `next@16.3.0 → postcss@8.5.23` and `postcss@8.5.25`, both `^3.3.16` |
+| Does our code call nanoid | **No.** Zero references in `src/`, `scripts/`, `prisma/`. IDs come from Prisma `cuid()` and `crypto.randomInt` |
+| `customAlphabet` / `customRandom` | **Not called anywhere in the tree.** The only match is nanoid's own definition |
+| Vulnerable path reachable | **No** — three independent reasons below |
+| Lockfile pinning an old version | Yes, `3.3.16` |
+
+**The alert says "below 5.1.6". For the 3.x line the affected range is `< 3.3.18`** — the
+advisory carries several ranges and `< 5.1.6` is the 5.x one. That difference decides the fix:
+nanoid 4+ is **ESM-only** and postcss 8 does `require("nanoid/non-secure")`, so forcing 5.1.6
+through `overrides` would likely have broken the build. `^3.3.16` already admits 3.3.18, so
+this is a patch bump and nothing else.
+
+**Why it was never exploitable here**, from reading the installed source rather than the
+advisory text. The bug is in `index.cjs`'s `customRandom`: a character is appended *before*
+`if (id.length === size)` is tested, so `size === 0` can never satisfy the only exit and the
+`while (true)` spins forever. Three things independently prevent reaching it:
+
+1. **postcss imports `nanoid/non-secure`** — a wholly separate implementation with a bounded
+   `while (i-- > 0)` and no `while (true)`. The vulnerable function is not in that file.
+2. postcss calls **`nanoid(6)`** — a hardcoded literal, never 0, never user input.
+3. Our code never touches nanoid.
+
+⚠️ **Next's vendored copy does contain the vulnerable `customRandom`, and npm cannot patch
+it** — only a Next release can. Next only ever calls `nanoid()` (bounded `for` loop), so it is
+not reachable there either, but it is worth knowing the alert going quiet does not mean that
+copy changed.
+
+### The fix, and why the diff is three lines
+
+`npm update nanoid` reaches 3.3.18 but also writes ~128 **other-platform optional binaries**
+into the lockfile (`lightningcss-win32-*`, `darwin-*`, `fsevents`). This session already had a
+110-line lockfile diff hide a stray dependency, so the `node_modules/nanoid` entry was edited
+directly — version, `resolved`, `integrity`, nothing else. `engines` is identical between the
+two versions. `npm ci` then validated the integrity against the registry.
+(`npm audit fix --package-lock-only` was tried and does **nothing** — 0 changes, vuln intact.)
+
+`npm audit`: **0 vulnerabilities**.
+
+### The UI is untouched, measured rather than asserted
+
+The site's UI is approved and production-ready, so this was proved twice over:
+
+- **`nanoid/non-secure` is byte-identical between 3.3.16 and 3.3.18** — the file postcss
+  imports does not change at all, so postcss cannot behave differently. The patch is a single
+  `if (size <= 0) return ''` guard in `index.cjs`, which postcss never loads.
+- **Built production CSS is byte-identical**: same chunk filenames, same md5, from a full
+  rebuild on each version (`85ce9a2e…`, `d5cd08ae…`).
+- Route table identical to `main`: 135 routes, 12 ISR, no mode or window change.
+
+`typecheck` + `lint` + `test` (682) + `build` all green. **Files: `package-lock.json` only.**
+
+---
+
 ## 2026-08-11 (67) — 🔴 Anyone who ever changed their password could no longer log in
 
 Reported as "login issue with the right password, only on some devices". It was not
