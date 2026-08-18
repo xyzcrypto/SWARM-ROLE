@@ -111,3 +111,32 @@ describe("the all-providers-failed log", () => {
     spy.mockRestore();
   });
 });
+
+describe("errorKindOf buckets the 4xx that used to fall through", () => {
+  // ⚠️ Every other branch covers 401, 403, 429 or 5xx, so a 400/404 - a bad
+  // request, or a model the provider stopped serving - was filed as "unknown".
+  // A real outage showed ten `unknown` rows, which is the one label that cannot
+  // be acted on. This does not claim those ten WERE 4xx; it removes the blind
+  // spot so the next ones are legible.
+  it("labels a bad request and a retired model", async () => {
+    const { errorKindOf } = await import("@/lib/ai/usage");
+    for (const m of [
+      "400 Bad Request",
+      "404 model not found",
+      "The model `llama-3.1-70b` has been decommissioned",
+      "model does not exist",
+    ]) {
+      expect(errorKindOf(new Error(m)), m).toBe("bad_request");
+    }
+  });
+
+  it("does not steal the buckets that already worked", async () => {
+    const { errorKindOf } = await import("@/lib/ai/usage");
+    expect(errorKindOf(new Error("429 rate limit"))).toBe("rate_limit");
+    expect(errorKindOf(new Error("401 invalid api key"))).toBe("auth");
+    expect(errorKindOf(new Error("503 unavailable"))).toBe("server");
+    expect(errorKindOf(new Error("blocked by safety"))).toBe("safety");
+    expect(errorKindOf(new Error("request aborted"))).toBe("timeout");
+    expect(errorKindOf(new Error("something nobody predicted"))).toBe("unknown");
+  });
+});

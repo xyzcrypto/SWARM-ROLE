@@ -70,9 +70,40 @@ GROUP BY 1, 2 ORDER BY n DESC;
 (env vars are captured at build time — a key added after the last build needs a redeploy).
 `server`/`timeout` → genuinely upstream, and "busy" was the right message after all.
 
-**Files:** `src/modules/ai/lib/ai.ts` · `src/lib/ai/gateway.ts` ·
-`ai-error-message.test.ts` (new, 8 cases). Both fixes proved by reverting them: four tests
-fail. **No UI change** — only the words inside an error bubble, and only when one is shown.
+### What the owner's query then showed, and the third gap it exposed
+
+```
+error    | unknown    | none  | n=10
+fallback | -          | groq  | n=4
+ok       | -          | cache | n=1
+error    | rate_limit | none  | n=1
+```
+
+Two things follow immediately. **Groq works** — four calls succeeded on it as a *fallback*,
+which also means the primary provider ahead of it in the chain is the one failing. And
+**ten failures carry `errorKind = "unknown"`**, the one label that cannot be acted on.
+
+`unknown` is not a mystery, it is a hole in the classifier: every branch covers 401, 403,
+429 or 5xx, so **the rest of 4xx had no bucket at all**. A 400, a 404, or a model the
+provider has stopped serving ("decommissioned", "does not exist") fell straight through —
+a permanent, code-side failure filed under the label that says nothing.
+
+- **`errorKindOf` gains `bad_request`** for exactly that range. ⚠️ This does **not** claim
+  those ten rows were 4xx — nobody knows yet, and guessing is what this session has been
+  correcting all day. It removes the blind spot so the next ones are legible.
+- `errorKind`'s docstring says *"never store raw messages"*, so the real text still goes to
+  the log, not the column.
+
+**Files:** `src/modules/ai/lib/ai.ts` · `src/lib/ai/gateway.ts` · `src/lib/ai/usage.ts` ·
+`ai-error-message.test.ts` (new, 10 cases). The first two fixes proved by reverting them:
+four tests fail. **No UI change** — only the words inside an error bubble, and only when one
+is shown.
+
+**Unrelated but noticed on the same screenshot, and more urgent than this:** Supabase shows
+*"Organization exceeded its quota in the previous billing cycle · Projects will be restricted
+from 31 Aug, 2026."* The **current** cycle is well inside every limit (egress 2.36/5 GB,
+database 44/500 MB, storage 4 MB/1 GB, MAU 0/50k), so nothing is failing now — but the
+database is what the whole site runs on, and the restriction date is fixed. Tracked in §8.
 
 ---
 
