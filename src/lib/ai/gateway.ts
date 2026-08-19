@@ -63,6 +63,32 @@ async function withTimeout<T>(ms: number, fn: (signal: AbortSignal) => Promise<T
 // the usage recorder, so the widget cannot import it). Re-exported for servers.
 export { aiPlanFor } from "@shared/utils/ai-plan";
 
+/**
+ * Say out loud why every provider failed.
+ *
+ * ⚠️ Until this existed, nothing did. `AiCapacityError("all_failed")` carries the
+ * provider's real error on `.cause`, and `recordAiUsage` buckets it into a
+ * coarse `errorKind` - but the actual message ("Rate limit reached for model
+ * …", "API key expired") was never written anywhere. With Sentry still dark
+ * (HANDOFF §8) that meant an AI outage could only be described as "not
+ * working", which is precisely what happened.
+ *
+ * ⚠️ REDACTED, and not optionally. Gemini's REST API takes the key as a query
+ * parameter (`?key=…`), so a fetch/URL error can carry the live API key inside
+ * its message. Logging that verbatim would publish a secret into the Vercel log
+ * drain. Anything key-shaped is masked before it reaches the log.
+ */
+function logAllFailed(task: AiTask, chain: AiProvider[], err: unknown): void {
+  const raw = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+  const safe = raw
+    .replace(/([?&](?:key|api[_-]?key|access[_-]?token)=)[^&\s]+/gi, "$1***")
+    .replace(/\b(sk|gsk|AIza)[A-Za-z0-9_\-]{12,}/g, "$1***")
+    .slice(0, 500);
+  console.error(
+    `[ai] all providers failed task=${task} chain=${chain.map((p) => p.id).join(",") || "(empty)"} kind=${errorKindOf(err)} :: ${safe}`
+  );
+}
+
 // --- one-shot completion ---------------------------------------------------
 
 export async function runComplete(
@@ -135,6 +161,7 @@ export async function runComplete(
     }
   }
   await recordAiUsage(errorRow(ctx, "none", tier, task, started, lastErr));
+  logAllFailed(task, chain, lastErr);
   throw new AiCapacityError("all_failed", { cause: lastErr });
 }
 
@@ -220,5 +247,6 @@ export async function runStream(
     }
   }
   await recordAiUsage(errorRow(ctx, "none", tier, task, started, lastErr));
+  logAllFailed(task, chain, lastErr);
   throw new AiCapacityError("all_failed", { cause: lastErr });
 }

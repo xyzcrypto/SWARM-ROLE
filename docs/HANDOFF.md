@@ -783,7 +783,18 @@ Owner asked to park these. Newest context first; nothing here is started.
    question to settle is whether anyone is expected to paste those PNG links into a social
    post. If yes, they need the same move out of `/api/` that the points card got.
 
-7. **SEO: `NEXT_PUBLIC_GSC_VERIFICATION` and `NEXT_PUBLIC_GA_ID`** are still unset. `NEXT_PUBLIC_*`
+7. **🔴 Supabase org "exceeded its quota in the previous billing cycle" — projects restricted
+   from 31 Aug 2026 if it stays over.** Seen on the dashboard 2026-08-18. **The current cycle
+   is well inside every limit** — egress 2.36/5 GB, database 44/500 MB, file storage 4 MB/1 GB,
+   MAU 0/50 000 — so nothing is failing today and this is not the cause of the AI outage. But
+   the database is what the entire site runs on, and the date is fixed. **To settle it:**
+   Supabase → Usage, check which metric went over in the PREVIOUS cycle and how far into the
+   current one 2.36 GB represents (early-cycle 2.36 GB projects over 5 GB; late-cycle it does
+   not). Egress is the likely one, and the 2026-08 work already cuts it — inline `data:`
+   avatars stopped being re-serialized into every poll (#282/#283), and avatars are now
+   CDN-cached rather than re-read from Postgres.
+
+8. **SEO: `NEXT_PUBLIC_GSC_VERIFICATION` and `NEXT_PUBLIC_GA_ID`** are still unset. `NEXT_PUBLIC_*`
    is inlined at build time, so **adding them requires a redeploy** — setting them alone does
    nothing. The remaining SEO work is blocked on this. Also outstanding: PageSpeed mobile
    scores for the four key URLs.

@@ -19,12 +19,7 @@ export type { GatewayCtx } from "@/lib/ai/gateway";
  * request failed (usage limit vs misconfigured vs blocked) instead of a generic
  * "try again" - also makes the cause diagnosable from a screenshot.
  */
-export function aiErrorMessage(err: unknown): string {
-  if (err instanceof AiCapacityError) {
-    return err.reason === "no_provider"
-      ? "XYZ AI isn't configured right now. Please check back soon."
-      : "XYZ AI is busy at the moment. Please try again in a little while.";
-  }
+function classify(err: unknown, fallback: string): string {
   const s = (err instanceof Error ? err.message : String(err)).toLowerCase();
   if (/(429|resource_exhausted|quota|rate.?limit|too many requests)/.test(s))
     return "XYZ AI has hit its usage limit for now. Please try again in a little while.";
@@ -32,7 +27,28 @@ export function aiErrorMessage(err: unknown): string {
     return "XYZ AI isn't configured correctly right now. Please check back soon.";
   if (/(safety|blocked|content.?filter|flagged|recitation)/.test(s))
     return "XYZ AI couldn't answer that one. Try rephrasing your question.";
-  return "XYZ AI ran into an issue finishing that answer. Please try again.";
+  return fallback;
+}
+
+export function aiErrorMessage(err: unknown): string {
+  if (err instanceof AiCapacityError) {
+    if (err.reason === "no_provider") return "XYZ AI isn't configured right now. Please check back soon.";
+    // ⚠️ `all_failed` used to stop here and return the generic "busy" line, and
+    // that is why "AI is not working" was un-diagnosable.
+    //
+    // The gateway throws `new AiCapacityError("all_failed", { cause: lastErr })`
+    // - the provider's REAL error is right there on `.cause` - and this function
+    // never looked at it. So an expired key, an exhausted free quota and a
+    // network outage all rendered the same sentence, the one that says nothing.
+    // That is the opposite of what the docstring above promises, and the panel
+    // showing "busy" for days while the actual cause was something permanent is
+    // exactly the failure it was supposed to prevent.
+    //
+    // "Busy" stays as the fallback: when the cause genuinely is transient, or is
+    // an error shape we do not recognise, it is still the honest answer.
+    return classify(err.cause, "XYZ AI is busy at the moment. Please try again in a little while.");
+  }
+  return classify(err, "XYZ AI ran into an issue finishing that answer. Please try again.");
 }
 
 /**

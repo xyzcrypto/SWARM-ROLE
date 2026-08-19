@@ -26,6 +26,18 @@ export function errorKindOf(err: unknown): string {
   if (/(api.?key|401|403|permission|unauthorized|invalid.*key)/.test(s)) return "auth";
   if (/(timeout|timed out|aborted|abort)/.test(s)) return "timeout";
   if (/(50\d|unavailable|overloaded|network|fetch failed|econnreset|socket)/.test(s)) return "server";
+  // ⚠️ The rest of 4xx had no bucket at all. Every branch above covers 401, 403,
+  // 429 or 5xx, so a 400/404 - a bad request, or a model name the provider no
+  // longer serves ("decommissioned", "does not exist") - fell straight through
+  // to "unknown". That is a permanent, code-side failure being filed under the
+  // one label that says nothing, and a real AI outage showed ten rows of exactly
+  // that with no way to tell them apart from anything else.
+  //
+  // This closes the classification hole. It does NOT claim to be the cause of
+  // any particular outage - the gateway's `[ai] all providers failed` log is
+  // what carries the actual message.
+  if (/(\b400\b|\b404\b|bad request|not found|decommissioned|does not exist|unsupported|deprecated)/.test(s))
+    return "bad_request";
   return "unknown";
 }
 

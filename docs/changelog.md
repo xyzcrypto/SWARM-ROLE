@@ -5,6 +5,108 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-18 (71) — "XYZ AI is busy": the one message that could not be acted on
+
+Reported from a screenshot of the assistant panel. **This does not fix the outage** — the
+cause is on the provider side and only the owner can see it. It fixes the reason the outage
+was impossible to diagnose.
+
+### What that sentence actually meant
+
+`gateway.ts` throws two different capacity errors, and `aiErrorMessage` only distinguished
+one of them:
+
+```ts
+if (err instanceof AiCapacityError) {
+  return err.reason === "no_provider"
+    ? "XYZ AI isn't configured right now. …"
+    : "XYZ AI is busy at the moment. …";   // ← every other failure, collapsed
+}
+```
+
+So the panel was reporting `reason === "all_failed"` — **a provider IS configured and every
+one of them failed.** Not "busy". The gateway throws
+`new AiCapacityError("all_failed", { cause: lastErr })`, so the provider's real error was
+sitting on `.cause` the whole time, and this function never read it.
+
+An expired key, an exhausted free quota and a network outage therefore rendered the same
+sentence — the one that advises waiting, when waiting was never going to help. The
+function's own docstring says its job is to make the cause "diagnosable from a screenshot";
+on the most common failure path it did the exact opposite.
+
+- **`aiErrorMessage` now classifies `err.cause`** through the same rules it already applied
+  to plain errors. Quota → *"has hit its usage limit"*. Bad key → *"isn't configured
+  correctly"*. **"Busy" survives as the fallback**, which is honest when the failure really
+  is transient or the error shape is unrecognised.
+
+### And nothing was writing the error down
+
+`gateway.ts` had **no logging at all**. `recordAiUsage` buckets the failure into a coarse
+`errorKind`, but the provider's actual message ("Rate limit reached for model …", "API key
+expired") went nowhere. With **Sentry still dark** (§8), an AI outage could only ever be
+described as "not working" — which is how it was reported.
+
+- **`logAllFailed()`** now writes one line at both `all_failed` sites: task, provider chain,
+  `errorKind`, and the real message.
+- ⚠️ **Redacted, and not optionally.** Gemini's REST API takes the key as a query parameter
+  (`?key=…`), so a fetch/URL error can carry a **live API key** in its message. Logging it
+  verbatim would publish a secret into the Vercel log drain. Anything key-shaped is masked
+  first, and a test asserts a real-looking key never reaches the log.
+
+### The owner can answer "why" right now, with no deploy
+
+Every failed call already records its kind. This has been true the whole time:
+
+```sql
+SELECT "errorKind", provider, count(*) AS n, max("createdAt") AS latest
+FROM "AiUsage"
+WHERE status = 'error' AND "createdAt" > now() - interval '3 days'
+GROUP BY 1, 2 ORDER BY n DESC;
+```
+
+`rate_limit` → the provider's free quota is spent; add credit, or add the second provider
+(`GEMINI_API_KEY` promotes Gemini to primary with Groq as automatic fallback).
+`auth` → the key is expired, revoked, or was never picked up by the running deployment
+(env vars are captured at build time — a key added after the last build needs a redeploy).
+`server`/`timeout` → genuinely upstream, and "busy" was the right message after all.
+
+### What the owner's query then showed, and the third gap it exposed
+
+```
+error    | unknown    | none  | n=10
+fallback | -          | groq  | n=4
+ok       | -          | cache | n=1
+error    | rate_limit | none  | n=1
+```
+
+Two things follow immediately. **Groq works** — four calls succeeded on it as a *fallback*,
+which also means the primary provider ahead of it in the chain is the one failing. And
+**ten failures carry `errorKind = "unknown"`**, the one label that cannot be acted on.
+
+`unknown` is not a mystery, it is a hole in the classifier: every branch covers 401, 403,
+429 or 5xx, so **the rest of 4xx had no bucket at all**. A 400, a 404, or a model the
+provider has stopped serving ("decommissioned", "does not exist") fell straight through —
+a permanent, code-side failure filed under the label that says nothing.
+
+- **`errorKindOf` gains `bad_request`** for exactly that range. ⚠️ This does **not** claim
+  those ten rows were 4xx — nobody knows yet, and guessing is what this session has been
+  correcting all day. It removes the blind spot so the next ones are legible.
+- `errorKind`'s docstring says *"never store raw messages"*, so the real text still goes to
+  the log, not the column.
+
+**Files:** `src/modules/ai/lib/ai.ts` · `src/lib/ai/gateway.ts` · `src/lib/ai/usage.ts` ·
+`ai-error-message.test.ts` (new, 10 cases). The first two fixes proved by reverting them:
+four tests fail. **No UI change** — only the words inside an error bubble, and only when one
+is shown.
+
+**Unrelated but noticed on the same screenshot, and more urgent than this:** Supabase shows
+*"Organization exceeded its quota in the previous billing cycle · Projects will be restricted
+from 31 Aug, 2026."* The **current** cycle is well inside every limit (egress 2.36/5 GB,
+database 44/500 MB, storage 4 MB/1 GB, MAU 0/50k), so nothing is failing now — but the
+database is what the whole site runs on, and the restriction date is fixed. Tracked in §8.
+
+---
+
 ## 2026-08-17 (70) — Points shares on X had no banner: robots.txt was blocking the image
 
 Reported from a screenshot of an X compose box — a competitor's link showed a full preview
