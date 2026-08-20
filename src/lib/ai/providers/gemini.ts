@@ -5,7 +5,9 @@ import "server-only";
 import { env, geminiEnabled } from "@/lib/env";
 import type { AiProvider, ChatMessage, CompleteRequest, CompleteResult, StreamHandle, StreamRequest, TokenUsage } from "./types";
 
-const MODELS = { fast: "gemini-1.5-flash", quality: "gemini-1.5-pro" } as const;
+// gemini-2.0-flash is faster and cheaper than 1.5-pro with comparable quality
+// for Q&A. Use it for both tiers — 1.5-pro had rate issues on free quota.
+const MODELS = { fast: "gemini-2.0-flash", quality: "gemini-2.0-flash" } as const;
 const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 type UsageMeta = { promptTokenCount?: number; candidatesTokenCount?: number };
