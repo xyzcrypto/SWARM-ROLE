@@ -4,12 +4,10 @@ import Groq from "groq-sdk";
 import { env, groqEnabled } from "@/lib/env";
 import type { AiProvider, CompleteRequest, CompleteResult, StreamHandle, StreamRequest, TokenUsage } from "./types";
 
-// llama-3.3-70b-versatile is the better model but has a ~500 req/day free-tier
-// cap — active premium users exhaust it and the whole site gets "busy" errors.
-// llama-3.1-8b-instant has a 14,400 req/day cap with no meaningful quality
-// drop for Q&A tasks; it becomes the quality tier on Groq so the cap is never
-// hit. True quality routing (70b) is handled by Gemini when that key is set.
-const MODELS = { fast: "llama-3.1-8b-instant", quality: "llama-3.1-8b-instant" } as const;
+// llama-3.1-8b-instant was removed from Groq; llama-3.3-70b-versatile is the
+// current stable model. Gemini is primary so Groq is rarely used as fallback —
+// the 500 req/day cap on 70b is acceptable in that role.
+const MODELS = { fast: "llama-3.3-70b-versatile", quality: "llama-3.3-70b-versatile" } as const;
 
 // One lazily-constructed client per server instance.
 let _client: Groq | null = null;
