@@ -351,6 +351,10 @@ model Conversation {
   userBId       String
   readAAt       DateTime? // when user A last opened the thread
   readBAt       DateTime? // when user B last opened the thread
+  pinnedByA     Boolean         @default(false) // user A pinned this conversation in their inbox
+  pinnedByB     Boolean         @default(false) // user B pinned this conversation in their inbox
+  hiddenByA     Boolean         @default(false) // user A removed this conversation from their inbox
+  hiddenByB     Boolean         @default(false) // user B removed this conversation from their inbox
   userA         User            @relation("ConvUserA", fields: [userAId], references: [id], onDelete: Cascade)
   userB         User            @relation("ConvUserB", fields: [userBId], references: [id], onDelete: Cascade)
   messages      DirectMessage[]
