@@ -18,14 +18,21 @@ export async function GET() {
 
     const rows = await prisma.conversation
       .findMany({
-        where: { OR: [{ userAId: me.id }, { userBId: me.id }] },
+        // Exclude conversations the user has hidden, unless there's a new
+        // unread message that arrived after they hid it (re-surfaces it).
+        where: {
+          OR: [
+            { userAId: me.id, hiddenByA: false },
+            { userBId: me.id, hiddenByB: false },
+          ],
+        },
         orderBy: { lastMessageAt: "desc" },
         take: 50,
         include: { userA: { select: DM_USER_SELECT }, userB: { select: DM_USER_SELECT } },
       })
       .catch(() => [] as any[]);
 
-    const conversations = rows.map((c: any) => {
+    const mapped = rows.map((c: any) => {
       const { other } = otherOf(c, me.id);
       const iAmA = c.userAId === me.id;
       return {
@@ -34,11 +41,17 @@ export async function GET() {
         lastBody: c.lastBody ?? "",
         lastMessageAt: c.lastMessageAt,
         unread: isUnread(c, me.id),
-        // Enough for a tick on the row preview, the same way the thread does
-        // it: whether the last message was mine, and when they last read.
         lastMine: !!c.lastSenderId && c.lastSenderId === me.id,
         otherReadAt: (iAmA ? c.readBAt : c.readAAt) ?? null,
+        pinned: iAmA ? c.pinnedByA : c.pinnedByB,
       };
+    });
+
+    // Pinned conversations float to the top within the already-time-sorted list.
+    const conversations = mapped.sort((a: any, b: any) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      return 0;
     });
 
     return ok({ conversations, unread: conversations.filter((c: any) => c.unread).length });

@@ -217,7 +217,9 @@ export async function POST(req: Request, props: Ctx) {
           lastMessageAt: now,
           lastBody: snippet(body),
           lastSenderId: me.id,
-          ...(iAmA ? { readAAt: now } : { readBAt: now }),
+          // Mark read for me + un-hide for the recipient (if they removed the
+          // conversation, a new message should resurface it for them).
+          ...(iAmA ? { readAAt: now, hiddenByB: false } : { readBAt: now, hiddenByA: false }),
         },
       })
       .catch(() => null);

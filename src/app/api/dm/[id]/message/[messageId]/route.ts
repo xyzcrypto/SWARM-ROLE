@@ -92,11 +92,9 @@ export async function PATCH(req: Request, props: Ctx) {
   }
 }
 
-// DELETE - remove your own message. Soft: the row stays, so the thread keeps
-// its shape and a reported message is still there to look at afterwards.
-//
-// Only the author. A DM has two participants and no moderator, and letting the
-// other side delete your words would be a worse feature than having none.
+// DELETE - remove a message. Either participant can delete any message —
+// Telegram / WhatsApp style. Soft: the row stays so the thread keeps its shape
+// and a reported message is still there to look at afterwards.
 export async function DELETE(_req: Request, props: Ctx) {
   const params = await props.params;
   try {
@@ -109,7 +107,6 @@ export async function DELETE(_req: Request, props: Ctx) {
 
     const msg = await loadMine(params.id, params.messageId, me.id);
     if (!msg || msg.status !== "visible") return fail("Message not found.", 404);
-    if (msg.senderId !== me.id) return fail("You can only delete your own messages.", 403);
 
     await prisma.directMessage.update({
       where: { id: msg.id },
@@ -118,9 +115,8 @@ export async function DELETE(_req: Request, props: Ctx) {
       data: { status: "deleted", pinnedAt: null },
     });
 
-    // If that was the last message, the inbox preview now describes something
-    // that is gone.
-    if (msg.conversation.lastSenderId === me.id) {
+    // If this was the last message, update the inbox preview.
+    if (msg.conversation.lastSenderId === msg.senderId) {
       await prisma.conversation
         .update({ where: { id: msg.conversationId }, data: { lastBody: "Message deleted" } })
         .catch(() => null);

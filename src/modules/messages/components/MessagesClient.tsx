@@ -26,7 +26,7 @@ import { MicButton } from "@/shared/components/MicButton";
 import { placeMenu, type MenuBox } from "@shared/utils/menu-placement";
 
 type Other = { id?: string; name: string; username: string | null; image: string | null; lastSeenAt?: string | null } | null;
-type Conversation = { id: string; other: Other; lastBody: string; lastMessageAt: string; unread: boolean; lastMine?: boolean; otherReadAt?: string | null };
+type Conversation = { id: string; other: Other; lastBody: string; lastMessageAt: string; unread: boolean; lastMine?: boolean; otherReadAt?: string | null; pinned?: boolean };
 type Msg = {
   id: string;
   body: string;
@@ -244,6 +244,7 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
   const [results, setResults] = useState<Found[]>([]);
   const [searching, setSearching] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [convMenuId, setConvMenuId] = useState<string | null>(null);
 
   useEffect(() => {
     setNow(Date.now());
@@ -295,6 +296,24 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
       const j = r.ok ? await r.json() : null;
       if (j?.conversationId) { setQ(""); setResults([]); loadInbox(); openConversation(j.conversationId); }
     } catch { /* ignore */ } finally { setStarting(false); }
+  };
+
+  const pinConversation = async (convId: string, pinned: boolean) => {
+    setConvMenuId(null);
+    setConversations((prev) => prev.map((c) => (c.id === convId ? { ...c, pinned } : c)));
+    await fetch(`/api/dm/${convId}/pin`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinned }),
+    }).catch(() => null);
+    void loadInbox();
+  };
+
+  const removeConversation = async (convId: string) => {
+    setConvMenuId(null);
+    setConversations((prev) => prev.filter((c) => c.id !== convId));
+    if (activeId === convId) closeThread();
+    await fetch(`/api/dm/${convId}/hide`, { method: "DELETE" }).catch(() => null);
   };
 
   return (
@@ -362,25 +381,58 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
             </div>
           ) : (
             <ul>
-              {conversations.map((c) => (
-                <li key={c.id}>
-                  <button onClick={() => openConversation(c.id)} className={cn("flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-white/[0.04]", activeId === c.id && "bg-white/[0.06]")}>
-                    <span className="relative shrink-0"><Avatar name={c.other?.name} image={c.other?.image} size="md" /><OnlineDot show={!!c.other?.id && onlineSet.has(c.other.id)} /></span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="truncate text-sm font-medium text-zinc-100">{c.other?.name ?? "Member"}</span>
-                        {now > 0 && <span className="mono ml-auto shrink-0 text-[11px] text-zinc-600">{timeAgo(new Date(c.lastMessageAt).getTime(), now)}</span>}
+              {[...conversations]
+                .sort((a, b) => (a.pinned === b.pinned ? 0 : a.pinned ? -1 : 1))
+                .map((c) => (
+                <li key={c.id} className="group relative">
+                  <div className={cn("flex items-center transition-colors hover:bg-white/[0.04]", activeId === c.id && "bg-white/[0.06]", convMenuId === c.id && "bg-white/[0.04]")}>
+                    <button onClick={() => openConversation(c.id)} className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left">
+                      <span className="relative shrink-0"><Avatar name={c.other?.name} image={c.other?.image} size="md" /><OnlineDot show={!!c.other?.id && onlineSet.has(c.other.id)} /></span>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="flex min-w-0 items-center gap-1 truncate text-sm font-medium text-zinc-100">
+                            {c.pinned && <Pin className="h-3 w-3 shrink-0 text-gold-400/70" aria-label="Pinned" />}
+                            {c.other?.name ?? "Member"}
+                          </span>
+                          {now > 0 && <span className="mono ml-auto shrink-0 text-[11px] text-zinc-600">{timeAgo(new Date(c.lastMessageAt).getTime(), now)}</span>}
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {c.lastMine && <ReadTicks read={isReadBy(c.lastMessageAt, c.otherReadAt)} />}
+                          <span className={cn("truncate text-[13px]", c.unread ? "font-medium text-zinc-200" : "text-zinc-500")}>{inboxPreview(c.lastBody)}</span>
+                          {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-gold-400" />}
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        {/* A tick on the row only when the last word was mine -
-                            the same signal as in the thread, so the inbox
-                            answers "did they see it?" without opening it. */}
-                        {c.lastMine && <ReadTicks read={isReadBy(c.lastMessageAt, c.otherReadAt)} />}
-                        <span className={cn("truncate text-[13px]", c.unread ? "font-medium text-zinc-200" : "text-zinc-500")}>{inboxPreview(c.lastBody)}</span>
-                        {c.unread && <span className="ml-auto h-2 w-2 shrink-0 rounded-full bg-gold-400" />}
-                      </div>
+                    </button>
+                    {/* Per-conversation context menu: pin / remove */}
+                    <div className="relative mr-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setConvMenuId((x) => (x === c.id ? null : c.id)); }}
+                        aria-label="Conversation options"
+                        className="grid h-7 w-7 place-items-center rounded-full text-zinc-600 opacity-0 transition-opacity hover:bg-white/5 hover:text-zinc-300 group-hover:opacity-100"
+                      >
+                        <MoreVertical className="h-3.5 w-3.5" />
+                      </button>
+                      {convMenuId === c.id && (
+                        <>
+                          <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-40 cursor-default" onClick={() => setConvMenuId(null)} />
+                          <div className="absolute right-0 top-8 z-50 w-44 overflow-hidden rounded-xl border border-white/10 bg-ink-900 py-1 shadow-elevate">
+                            <ActionItem
+                              icon={c.pinned ? PinOff : Pin}
+                              label={c.pinned ? "Unpin" : "Pin"}
+                              onClick={() => void pinConversation(c.id, !c.pinned)}
+                            />
+                            <ActionItem
+                              icon={Trash2}
+                              label="Remove"
+                              destructive
+                              onClick={() => void removeConversation(c.id)}
+                            />
+                          </div>
+                        </>
+                      )}
                     </div>
-                  </button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -955,6 +1007,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                       <ActionItem icon={Copy} label="Copy" onClick={() => void copyMessage(m.body)} disabled={!!media} />
                       <ActionItem icon={Languages} label="Translate" onClick={() => void translateMessage(m.id, m.body)} disabled={!!media} />
                       <ActionItem icon={m.pinned ? PinOff : Pin} label={m.pinned ? "Unpin" : "Pin"} onClick={() => void togglePin(m.id, !m.pinned)} />
+                      <ActionItem icon={Trash2} label="Delete" destructive onClick={() => void deleteMessage(m.id)} />
                     </MessageActions>
                   )}
                 </div>
