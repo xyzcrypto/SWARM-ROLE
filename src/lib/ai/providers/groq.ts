@@ -4,10 +4,9 @@ import Groq from "groq-sdk";
 import { env, groqEnabled } from "@/lib/env";
 import type { AiProvider, CompleteRequest, CompleteResult, StreamHandle, StreamRequest, TokenUsage } from "./types";
 
-// llama-3.1-8b-instant was removed from Groq; llama-3.3-70b-versatile is the
-// current stable model. Gemini is primary so Groq is rarely used as fallback —
-// the 500 req/day cap on 70b is acceptable in that role.
-const MODELS = { fast: "llama-3.3-70b-versatile", quality: "llama-3.3-70b-versatile" } as const;
+// openai/gpt-oss-120b is the available model on this Groq account.
+// Gemini (gemini-3.6-flash) is primary; Groq is fallback only.
+const MODELS = { fast: "openai/gpt-oss-120b", quality: "openai/gpt-oss-120b" } as const;
 
 // One lazily-constructed client per server instance.
 let _client: Groq | null = null;
