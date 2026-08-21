@@ -67,7 +67,12 @@ export const metadata: Metadata = {
     site: "@XYZCryptos",
     // Same reason as openGraph above - the generated card is the right ratio.
   },
-  icons: { icon: "/logo.png", apple: "/logo.png" },
+  // `icon` (the browser tab favicon) stays on the original logo along with the
+  // rest of the site. `apple` is the iOS home screen icon - the thing you tap to
+  // open the installed app - so it gets the new coin, matching the Android
+  // icons in manifest.ts. It is opaque because iOS renders transparency as
+  // black and applies its own rounded-rect mask.
+  icons: { icon: "/logo.png", apple: "/logo-app-apple.png" },
   applicationName: "XYZ Crypto",
   appleWebApp: {
     capable: true,

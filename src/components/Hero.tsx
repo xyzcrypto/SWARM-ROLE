@@ -220,7 +220,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
                   alt="XYZ Crypto"
                   fill
                   priority
-                  className="object-contain drop-shadow-[0_0_30px_rgba(212,169,66,0.45)]"
+                  className="rounded-full object-cover shadow-gold ring-2 ring-gold-500/40"
                   sizes="(max-width: 640px) 70vw, (max-width: 1024px) 45vw, 400px"
                 />
               </motion.div>

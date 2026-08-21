@@ -182,15 +182,12 @@ export function OrbitalEcosystem() {
         <div className="absolute left-1/2 top-1/2 h-[28%] w-[28%] -translate-x-1/2 -translate-y-1/2">
           <div className="absolute -inset-[35%] rounded-full bg-gold-500/20 blur-2xl" />
           <div className="absolute inset-0 rounded-full bg-gold-500/40 blur-xl [animation:ping-soft_3.4s_ease-in-out_infinite]" />
-          {/* The coin carries its own gold rim, so it gets no ring and no
-              rounded-full clip - both fought the artwork. `object-contain`
-              keeps it whole; the glow follows its alpha via drop-shadow. */}
           <Image
             src="/logo.png"
             alt="XYZ Crypto"
             fill
             sizes="160px"
-            className="relative object-contain drop-shadow-[0_0_22px_rgba(212,169,66,0.5)]"
+            className="relative rounded-full object-cover ring-2 ring-gold-500/70 shadow-gold"
           />
         </div>
 
