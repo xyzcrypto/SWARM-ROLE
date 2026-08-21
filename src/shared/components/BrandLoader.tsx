@@ -37,9 +37,9 @@ export function BrandLoader({ label = "Loading" }: { label?: string }) {
           initial={reduced ? false : { scale: 0.9, opacity: 0.85 }}
           animate={reduced ? {} : { scale: [0.92, 1, 0.92], opacity: [0.9, 1, 0.9] }}
           transition={reduced ? undefined : { duration: 2.2, ease: "easeInOut", repeat: Infinity }}
-          className="relative h-[60%] w-[60%]"
+          className="relative h-[50%] w-[50%]"
         >
-          <Image src="/logo.png" alt="XYZ Crypto" fill sizes="140px" className="object-contain drop-shadow-[0_0_18px_rgba(212,169,66,0.55)]" />
+          <Image src="/logo.png" alt="XYZ Crypto" fill sizes="120px" className="object-contain drop-shadow-[0_0_18px_rgba(212,169,66,0.55)]" />
         </motion.span>
       </div>
       <p className="mono mt-6 text-[11px] uppercase tracking-[0.22em] text-zinc-500">
