@@ -5,6 +5,56 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-21 (72) — 3D coin logo, scoped to the installed app only
+
+New 3D gold coin logo for the **installed app's identity only** — Android/iOS home
+screen icon and the splash Android draws while the app opens. **The website is
+unchanged**: navbar, footer, hero, orbital core, login, loaders, offline page,
+favicon, share cards and JSON-LD all stay on the original `/logo.png`.
+
+### Files
+
+- **Added** `public/logo-app.png` (512, transparent, coin 94%) → manifest `purpose: "any"`
+- **Added** `public/logo-app-192.png` (192) → the recommended 192 slot
+- **Added** `public/logo-app-maskable.png` (512, opaque, coin 70%) → `purpose: "maskable"`
+- **Added** `public/logo-app-apple.png` (180, opaque, coin 86%) → `apple-touch-icon`
+- **Changed** `src/app/manifest.ts` — `icons`; **Changed** `src/app/layout.tsx` — `icons.apple`
+- **Added** `docs/brand/` — master artwork + the rollout runbook
+
+### Four files, not one
+
+Each slot crops differently and one file gets damaged in at least one of them.
+Maskable icons are cropped to a circle/squircle with only the centre **80%**
+guaranteed, so a full-bleed coin loses its gold rim — hence the 70% opaque
+variant. iOS renders transparency as **black** and applies its own mask, hence
+the opaque apple icon. The splash wants transparency so Android can centre it on
+`background_color`.
+
+### Two bugs found on the way
+
+- The first attempt shipped the **512px Telegram-emoji export**, which has the
+  coin's dark face punched out of the alpha channel (centre alpha min **0**, mean
+  152). Every dark surface showed through it; the homepage mesh made it read as a
+  green hole on mobile and desktop. The 1254px master measures min **252**.
+  Rebuilt from the master.
+- The old manifest declared a `192x192` **and** a `512x512` entry that both
+  pointed at the same **640×640** file. The new entries state real dimensions.
+
+All four icons are cropped to the coin's true bounding box and re-centred — the
+master was off-centre (24px top margin vs 47px bottom) and sat high in a square
+frame.
+
+### Archived for later
+
+`docs/brand/logo-3d-master.png` (1024, centred, transparent) plus
+`docs/brand/README.md`, which carries the three traps a site-wide rollout hits:
+the emoji-export alpha hole, the `rounded-full`/`ring`/`object-cover` frames that
+fight the coin's own gold rim, and the `sw.js` `CACHE` bump required to evict the
+precached `/logo.png` (without it, returning visitors and installed PWAs keep the
+old logo forever).
+
+---
+
 ## 2026-08-18 (71) — "XYZ AI is busy": the one message that could not be acted on
 
 Reported from a screenshot of the assistant panel. **This does not fix the outage** — the
