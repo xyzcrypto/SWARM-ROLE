@@ -24,8 +24,8 @@ export function Footer() {
         <div className="grid gap-10 py-14 lg:grid-cols-[1.6fr_1fr_1fr]">
           <div>
             <Link href="/" prefetch={false} className="flex items-center gap-3">
-              <span className="relative inline-flex h-10 w-10 overflow-hidden rounded-xl ring-1 ring-gold-500/40">
-                <Image src="/logo.png" alt="XYZ Crypto" fill className="object-cover" sizes="40px" />
+              <span className="relative inline-flex h-10 w-10 rounded-xl ring-1 ring-gold-500/40">
+                <Image src="/logo.png" alt="XYZ Crypto" fill className="object-contain" sizes="40px" />
               </span>
               <span className="font-display text-lg font-semibold">
                 <span className="text-gold-gradient">XYZ</span>{" "}
