@@ -197,6 +197,59 @@ Then we scope Sept + Oct against a November Devcon date.
 
 ---
 
+## 🅿️ Parked — X / trusted-source feed (decide on Day 10)
+
+Owner idea, 2026-08-21: a section in `/news` that surfaces important posts from
+trusted X accounts as fast as possible. **Parked, not rejected.** Research below so
+it does not have to be redone.
+
+**It fits the existing architecture.** `/api/news` is already an RSS aggregator —
+29 keyless sources (`news-sources.ts`), best-effort (a down feed is skipped),
+`revalidate = 90` with `s-maxage=90, stale-while-revalidate=300`, and **no cron**
+(it refreshes on demand, so it costs nothing when nobody is looking). Adding a new
+*source type* is a natural extension, not a rewrite.
+
+**The blocker is X API pricing, not engineering.**
+
+| Tier | Cost | Read access |
+|---|---|---|
+| Free | $0 | effectively write-only — not usable for reading timelines |
+| Basic | **~$200/month** | ~15k tweet reads/month |
+| Pro | ~$5,000/month | — |
+
+Even Basic does not obviously work: 20 accounts polled every 5 min is ~5,760
+calls/day, which burns a 15k/month quota inside a week. ⚠️ **Pricing is from
+training data and moves — verify at x.com/products/x-api before committing.**
+
+Unofficial routes (Nitter, RSSHub) are largely blocked by X, break constantly, and
+carry ToS risk. Not production-worthy for this site.
+
+**The cheaper path that actually works — Telegram.** Nearly every crypto "trusted
+source" that posts on X also broadcasts on Telegram (Whale Alert, Watcher Guru,
+protocol announcements, analysts). The Bot API is free and reliable, and public
+channels also expose a keyless HTML page at `t.me/s/<channel>`. Same outcome, no
+$200/month.
+
+**Plus admin curation.** A "pin this post" action in `/dashboard` (the admin CRUD
+pattern already exists) lets the owner put any X URL at the top by hand. Zero cost,
+and it is the literal meaning of "trusted source" — the owner's judgement.
+
+**Reframe the goal.** Being *faster than X* is not achievable — the post originates
+there. What is achievable, and more defensible, is being the one place where a
+curated trusted set is **ranked and summarised**. The AI briefing already does the
+summarising half.
+
+**Estimated size:** ~1–2 days of Claude work for the Telegram + admin-pin version,
+because the whole RSS pipeline is reused. **Recommended slot: September**, not these
+10 days — RAG is the stronger Devcon differentiator, and two large features do not
+fit ~8 hours of owner time per month.
+
+**If it is built:** it adds a polled GET route and external fetches, so load the
+`cost-check` skill first — every caching and cost number lives there, and CLAUDE.md
+requires `Cache-Control` on a new public GET route from day one.
+
+---
+
 ## What is deliberately NOT in these 10 days
 
 Naming these so they are decisions, not oversights:
