@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
@@ -26,7 +25,6 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const [menu, setMenu] = useState(false);
   const pathname = usePathname();
-  const reduceMotion = useReducedMotionSafe();
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(href + "/");
   const { data: session } = useSession();
@@ -91,21 +89,20 @@ export function Navbar() {
   const profileHref = username ? `/u/${username}` : "/profile";
 
   /**
-   * Tapping a nav item for the route you are already on does nothing in Next -
-   * a same-route navigation does not reset scroll - so from halfway down the
-   * homepage, "Home" left you exactly where you were. Measured on an iPhone 13
-   * viewport: scrollY 1468 before, still deep down the page after.
+   * Closing the drawer is all this does now.
    *
-   * Scroll to the top instead, which is what the label promises. `auto` under
-   * reduced motion; the site's policy exempts brand animation, not a
-   * navigation jump someone may be sensitive to.
+   * It used to also scroll to the top when you tapped the route you were
+   * already on - because a same-route navigation does not reset scroll in Next,
+   * so "Home" from halfway down the page left you where you were. That fix was
+   * correct but it lived here, on this one link list, and the desktop rail, the
+   * footer and the logo never got it. Measured while parked at the bottom of
+   * the homepage: the drawer's Home went 13237px -> 0, while the footer's and
+   * the rail's did not move at all.
+   *
+   * It is handled once at the document now (`SameRouteTopScroll`, mounted in
+   * app/layout.tsx), so every link gets it including ones added later.
    */
-  const onNavClick = (href: string) => (e: React.MouseEvent) => {
-    setOpen(false);
-    if (pathname !== href) return;
-    e.preventDefault();
-    window.scrollTo({ top: 0, behavior: reduceMotion ? "auto" : "smooth" });
-  };
+  const closeMenu = () => setOpen(false);
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3">
@@ -306,7 +303,7 @@ export function Navbar() {
                 key={l.href}
                 href={l.href}
                 prefetch={false}
-                onClick={onNavClick(l.href)}
+                onClick={closeMenu}
                 aria-current={isActive(l.href) ? "page" : undefined}
                 className={cn(
                   "rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
