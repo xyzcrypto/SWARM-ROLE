@@ -13,7 +13,6 @@ next-env.d.ts
 
 # misc
 .DS_Store
-*.pem
 
 # debug
 npm-debug.log*
@@ -27,6 +26,51 @@ yarn-error.log*
 # it would commit the entire production secret set.
 .env*
 !.env.example
+
+# secrets & key material - nothing here has ever been committed (history audit
+# 2026-08-24 checked all 403 commits across all 67 refs and found no credential
+# anywhere). These rules exist so it stays that way: `.env*` above only catches
+# env files, and a secret does not have to arrive in one. `secrets.json`, an SSH
+# key copied in to debug a deploy, or a `.npmrc` carrying an auth token were all
+# committable before this block.
+#
+# Note what gitignore cannot do: it does not apply to a file that is ALREADY
+# tracked, so it prevents the next accident rather than fixing a past one. If a
+# secret is ever committed, rewriting history is not enough on its own - rotate
+# the credential, because the push already happened.
+secrets.json
+secrets.yml
+secrets.yaml
+secret.json
+secret.yml
+secret.yaml
+credentials.json
+credentials.yml
+credentials.yaml
+serviceAccountKey.json
+service-account*.json
+gcloud-*.json
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+*.ppk
+# `*.pem` was already here under "misc"; it belongs with the rest of the key
+# material rather than beside .DS_Store.
+*.pem
+id_rsa
+id_dsa
+id_ecdsa
+id_ed25519
+*.pub.bak
+.netrc
+.npmrc
+.pypirc
+.htpasswd
+.ssh/
+.aws/
+.gnupg/
 
 # database (local sqlite)
 /prisma/*.db
