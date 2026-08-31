@@ -45,6 +45,9 @@ const MARKETS_CLIENT = "src/modules/markets/components/MarketsClient.tsx";
 const TICKER_POLL = "src/modules/markets/lib/useTickerPoll.ts";
 // The news feed's poll lives in the component itself - a third shape again.
 const NEWS_CLIENT = "src/modules/news/components/NewsClient.tsx";
+// And the chat room's, a fourth - on a force-dynamic route with an edge-cached
+// anonymous response rather than an ISR window.
+const CHAT_CLIENT = "src/modules/community/components/ChatClient.tsx";
 // The shared cache for the >2 MB llama.fi upstreams (see the test at the bottom).
 const LLAMA = "src/modules/markets/lib/llama.ts";
 
@@ -57,6 +60,13 @@ type Target = {
   pollMs: number;
   /** Where that poll interval is defined - named so a failure says where to look. */
   pollSource: string;
+  /**
+   * True for a `force-dynamic` route that is never ISR-cached and only sets an
+   * edge header on its anonymous response. It has no `export const revalidate`
+   * to check, so the revalidate assertion skips it - but the `s-maxage` one,
+   * which is the assertion that actually protects the CDN, still applies.
+   */
+  edgeOnly?: boolean;
 };
 
 /**
@@ -135,7 +145,32 @@ function newsTarget(): Target {
   };
 }
 
-const TARGETS: Target[] = [...marketsTargets(), tickerTarget(), newsTarget()];
+/**
+ * `/api/chat/messages` - `force-dynamic`, so it has no ISR window at all. Its
+ * signed-in response is `private, no-store` (genuinely per-viewer), but its
+ * ANONYMOUS response is edge-cached, and `/community` shows signed-out visitors
+ * a live read-only preview that polls on this interval.
+ *
+ * That anonymous window was `s-maxage=8` against a 10s poll, so the edge entry
+ * expired about two seconds before every poll arrived and each one fell through
+ * to Postgres. Found while hunting Supabase egress at 84% of a 5 GB quota.
+ *
+ * A fourth distinct place a poll interval has lived. The rule stands: any route
+ * a client polls belongs in TARGETS, ISR-cached or not.
+ */
+function chatTarget(): Target {
+  const m = read(CHAT_CLIENT).match(/^export const CHAT_POLL_MS = ([\d_]+);/m);
+  if (!m) throw new Error(`could not parse CHAT_POLL_MS out of ${CHAT_CLIENT}`);
+  return {
+    label: "chat/messages (anonymous edge cache)",
+    routeFile: "src/app/api/chat/messages/route.ts",
+    pollMs: Number(m[1]!.replace(/_/g, "")),
+    pollSource: CHAT_CLIENT,
+    edgeOnly: true,
+  };
+}
+
+const TARGETS: Target[] = [...marketsTargets(), tickerTarget(), newsTarget(), chatTarget()];
 
 describe("polled API routes keep their ISR + edge windows aligned with client polling", () => {
   it("finds every polled route (guards against a silently empty parse)", () => {
@@ -151,6 +186,7 @@ describe("polled API routes keep their ISR + edge windows aligned with client po
   it("gives every polled route a revalidate window >= its poll interval", () => {
     const bad: string[] = [];
     for (const t of TARGETS) {
+      if (t.edgeOnly) continue; // force-dynamic, no ISR cache to align - see `edgeOnly`
       const revalidate = revalidateSeconds(t.routeFile);
       if (revalidate === null) {
         bad.push(`${t.label}: no 'export const revalidate' found in ${t.routeFile}`);

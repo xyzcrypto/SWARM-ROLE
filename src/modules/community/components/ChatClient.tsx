@@ -30,6 +30,19 @@ const CHANNEL = "community";
 const REACTIONS = ["👍", "❤️", "😂", "🔥", "🚀", "🎉", "👀", "💯"];
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
+/**
+ * Fallback poll for the room when realtime is not carrying messages.
+ *
+ * Named rather than inlined so `markets-poll-alignment.test.ts` can read it. The
+ * anonymous response from `/api/chat/messages` is edge-cached, and that window
+ * has to clear this interval: it was `s-maxage=8` against this 10s poll, so the
+ * edge entry expired ~2s before every poll arrived and **every anonymous poll
+ * reached Postgres**. On a page that gives signed-out visitors a live read-only
+ * preview, that is a direct Supabase egress cost for traffic that could have
+ * been served from the CDN.
+ */
+export const CHAT_POLL_MS = 10_000;
+
 type Author = { name: string | null; username: string | null; image: string | null; membership: string; role: string };
 type Reaction = { emoji: string; userIds: string[] };
 type ReplyRef = { id: string; body: string; authorName: string };
@@ -592,7 +605,7 @@ export function ChatClient({
       }
     };
     tickRef.current = tick;
-    const pollTimer = setInterval(tick, 10_000);
+    const pollTimer = setInterval(tick, CHAT_POLL_MS);
 
     // Server-backed presence. Realtime presence is the nice path; this is the
     // dependable one. It runs on its own interval regardless of the channel

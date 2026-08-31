@@ -79,9 +79,23 @@ export async function GET(req: Request) {
     // given cursor is identical across all visitors, so it's safe to cache
     // publicly for a few seconds - matches the api/news/social recipe.
     // Logged-in responses stay live since myVote is genuinely per-viewer.
+    //
+    // ⚠️ s-maxage 8 -> 15, and the number has to clear CHAT_POLL_MS (10s), not
+    // merely be "a few seconds". At 8s against a 10s poll the edge entry expired
+    // roughly two seconds before every poll arrived, so **every anonymous poll
+    // fell through to Postgres** - on the one page that gives signed-out
+    // visitors a live read-only preview. That is Supabase egress bought for
+    // traffic the CDN was already willing to serve, and egress is the metric
+    // this project is closest to its quota on.
+    //
+    // 15s costs a signed-out viewer up to ~7 extra seconds of staleness on a
+    // preview they cannot post into. Signed-in viewers are untouched: they stay
+    // `private, no-store` and are driven by realtime, with this poll only as a
+    // fallback. Same defect as `/api/news`, same rule - the window must be
+    // longer than the poll that drives it, with margin.
     return NextResponse.json(
       { messages, hasMore, nextCursor: hasMore ? page[0]!.id : null, pinned },
-      { headers: { "Cache-Control": me ? "private, no-store" : "public, s-maxage=8, stale-while-revalidate=20" } }
+      { headers: { "Cache-Control": me ? "private, no-store" : "public, s-maxage=15, stale-while-revalidate=60" } }
     );
   } catch (err) {
     return handleError(err, "chat:list");
