@@ -17,10 +17,12 @@ here rather than repeat them.
 
 Measured at `59dddbf` with `npm run build`:
 
-**131 routes · 22 static · 109 dynamic · 12 ISR.**
+**137 routes · 25 static · 112 dynamic · 10 ISR.**
 
-(Was 124/22/102/12 at `2f34b83`; the seven new dynamic routes are the DM-safety and
-member-profile work in #227–#231.)
+(Was 131/22/109/12 at `59dddbf`, and 124/22/102/12 at `2f34b83`. The six new routes
+are the DM pin/hide work, `/api/ai/health` and the AI additions. **ISR fell 12 → 10
+deliberately**: `/markets` and `/tools` are pure static shells — not `async`, no data
+— so their `revalidate` only rebuilt byte-identical HTML, and it was removed.)
 
 Any change to those totals is a finding. The expensive direction is `○` (Static) →
 `ƒ` (Dynamic): a page that was served from cache now renders on every request. That
@@ -31,10 +33,27 @@ UTF-8 byte, so a naive `grep -c '○'` over the whole table over-counts by one.
 
 ### Known ISR windows
 
-`/` 5m · `/markets` 5m · `/research` 5m · `/tools` 1h · `/news` ≈2m · `/api/ticker` **180s** ·
-`/api/markets/coins` 200s · `/api/markets/defi` 200s · `/api/markets/global` 200s ·
-`/api/markets/perp` 200s · `/api/markets/dex` 320s · `/api/markets/yields` 320s.
-All with a 1y expire.
+`/` **15m** · `/research` **30m** · `/research/[slug]` **1h** · `/news` **2m** ·
+`/api/news` **120s** · `/api/ticker` **180s** · `/api/markets/coins` 200s ·
+`/api/markets/defi` 200s · `/api/markets/global` 200s · `/api/markets/perp` 200s ·
+`/api/markets/dex` 320s · `/api/markets/yields` 320s. All with a 1y expire.
+
+`/markets` and `/tools` have **no window at all** — fully static, 0 ISR writes.
+
+⚠️ **`/news`'s page window is pinned by the shared feed cache, not by its own
+export.** The page declares `revalidate = 300` but `getNewsPage` uses
+`NEWS_REVALIDATE` (120s) for both its fetch hint and its `unstable_cache`, and Next
+takes the minimum across a segment — so the build reports the page at **2m**. This
+is trap 1b in the wild on a *page* rather than an API route. `NEWS_REVALIDATE` is
+the lever; changing the page export alone does nothing.
+
+**Windows were raised on 2026-08-30 in response to real Vercel ISR analytics**
+showing writes exceeding reads: `/` 385 writes vs 185 reads, `/research` 414 vs 177,
+`/news` 560 vs 166, `/markets` 304 vs 175, `/tools` 88 vs 95. Raising them is safe
+because on-demand `revalidatePath` already covers the content that actually changes
+— both research write routes and all three whatsnew routes call it, so a publish
+still appears immediately. The timers were only refreshing a member count and a
+relative-time label.
 
 The seven polled values are **derived from the client poll intervals**, not chosen
 freely — each window is comfortably longer than the poll it serves:
@@ -44,8 +63,17 @@ freely — each window is comfortably longer than the poll it serves:
 | `markets/{coins,defi,global,perp}` | 180s | 200s | `modules/markets/components/MarketsClient.tsx` |
 | `markets/{dex,yields}` | 300s | 320s | ″ |
 | `api/ticker` | 150s | **180s** | `modules/markets/lib/useTickerPoll.ts` |
+| `api/news` | 90s | **120s** | `modules/news/components/NewsClient.tsx` (`NEWS_POLL_MS`) |
 
 Changing either side without the other re-opens the drift below.
+
+⚠️ `api/news` is the **third** distinct place a poll interval has lived — markets
+client, then a hook, now a component. It sat at `revalidate = 90` and `s-maxage=90`
+against a 90s poll (exactly equal, so jitter decided every tick) and produced the
+worst write ratio on the site, **560 writes / 166 reads**. The alignment test did not
+catch it because `TARGETS` did not list it. It does now. The lesson is the same one
+the ticker taught: a check scoped to where the last bug was found does not prevent
+the next one, so **any new polled route must be added to `TARGETS`**.
 
 ⚠️ Each of those seven routes **also sets its own `Cache-Control: s-maxage=…`**, and
 that header — not the `revalidate` above — is what the edge honours (see trap 0).

@@ -29,10 +29,23 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-// Incrementally cached: the page is served instantly from cache and
-// regenerated in the background every 5 minutes (member count / research
-// preview). Publishing content revalidates it on demand (see research routes).
-export const revalidate = 300;
+// Incrementally cached: served instantly from cache, regenerated in the
+// background, and revalidated ON DEMAND the moment content changes.
+//
+// ⚠️ 300s -> 900s, and the on-demand path is why that is safe rather than
+// merely cheaper. Every write route that can change what this page shows
+// already calls `revalidatePath("/")` - both research routes and all three
+// whatsnew routes - so a publish appears here immediately, not up to a window
+// later. The timer is therefore only refreshing a member count and the "Xh ago"
+// label, and at 300s it was rebuilding the page 288 times a day to do it:
+// **385 ISR Writes against 185 Reads**.
+//
+// Not pushed further than 900s because `agoLabel` below is rendered on the
+// server, so the window is also the worst-case error on that label. 15 minutes
+// keeps it honest; an hour would not. Moving that label to the client
+// `useHydrated()` pattern (as chat timestamps already do) would lift this
+// ceiling, but that is a UI change, not a caching one.
+export const revalidate = 900;
 
 // "2h ago" / "3d ago" for the newest research post, computed on the SERVER and
 // passed down as a finished string. Deliberately not calculated in the client

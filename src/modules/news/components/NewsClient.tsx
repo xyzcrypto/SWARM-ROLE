@@ -43,6 +43,16 @@ const SAVED_KEY = "xyz:news:saved"; // guests: full saved stories in localStorag
 const BREAKING_SEEN_KEY = "xyz:breakingSeen";
 const BREAKING_SEEN_MAX = 120;
 
+/**
+ * How often the feed pulls `/api/news` for new stories.
+ *
+ * Named rather than inlined so `markets-poll-alignment.test.ts` can read it and
+ * fail if that route's `revalidate` / `s-maxage` ever drop to or below it. This
+ * route sat at exactly 90s against this exact 90s poll and produced the worst
+ * ISR write ratio on the site (560 writes / 166 reads) - see NEWS_REVALIDATE.
+ */
+export const NEWS_POLL_MS = 90_000;
+
 export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const { data: session } = useSession();
   const [category, setCategory] = useState("All");
@@ -233,7 +243,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       });
     };
 
-    const t = setInterval(refresh, 90_000);
+    const t = setInterval(refresh, NEWS_POLL_MS);
 
     // Refresh the moment the reader comes back, rather than making them wait out
     // whatever is left of a 90s tick. Returning to a tab is the point at which
