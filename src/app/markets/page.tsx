@@ -15,7 +15,21 @@ export const metadata: Metadata = pageSeo({
 
 // The shell is static; all numbers are fetched live client-side (cached proxy
 // routes), so there's nothing per-request to render here.
-export const revalidate = 300;
+//
+// ⚠️ There is deliberately NO `export const revalidate` any more, and the old
+// comment above is exactly why it should never have had one. This component is
+// not `async`, awaits nothing, and reads no database - so every regeneration
+// produced byte-identical HTML. It carried `revalidate = 300`, which told Next
+// to rebuild that unchanging shell every five minutes: **304 ISR Writes against
+// 175 Reads** in Vercel analytics, for a page whose output cannot change.
+//
+// Without the export the page is prerendered once at build time and served from
+// the CDN until the next deploy - the same shape as `/login` and `/premium`,
+// which report 0 writes. Market data freshness is unaffected: every number on
+// this page comes from `MarketsClient` polling the cached `/api/markets/*`
+// routes, which keep their own (tested) windows.
+//
+// If server-side data is ever added here, this needs a window again.
 
 export default function MarketsPage() {
   return (

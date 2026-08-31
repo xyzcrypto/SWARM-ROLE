@@ -18,7 +18,14 @@ export const metadata: Metadata = pageSeo({
 });
 
 // Cached; revalidated on demand when admin publishes/deletes (research routes).
-export const revalidate = 300;
+//
+// ⚠️ 300s -> 1800s. The on-demand path is the real freshness guarantee here:
+// `POST /api/research` and `PATCH|DELETE /api/research/[id]` both call
+// `revalidatePath("/research")`, so a new or removed article shows up at once.
+// The timer was doing nothing except rebuilding an article list that changes a
+// few times a week, 288 times a day - **414 ISR Writes against 177 Reads**, the
+// second-worst ratio on the site.
+export const revalidate = 1800;
 
 const PAGE_SIZE = 12;
 

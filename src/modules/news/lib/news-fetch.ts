@@ -6,8 +6,21 @@ import { parseFeed, categorize, sentiment, impact, relatedTokens, dedupe, rankNe
 // the first batch can be server-rendered for an instant first paint). Keyless.
 // Was 20s - this caches per-source-URL (one Data Cache entry per RSS feed), so
 // with a couple dozen sources a short window multiplies into a large share of
-// Vercel's ISR Writes quota. 90s still reads as "real-time" for a news feed.
-export const NEWS_REVALIDATE = 90; // seconds - keep the feed fresh
+// Vercel's ISR Writes quota.
+//
+// ⚠️ 90s -> 120s, and the 30s of margin is the entire point. `NewsClient` polls
+// `/api/news` every **90s** (`NEWS_POLL_MS`), and this const set both that
+// route's `revalidate` and its `s-maxage` to exactly 90 as well. A window equal
+// to the poll that drives it means every tick lands on the boundary and jitter
+// decides whether it regenerates - so in practice most polls did, and `/news`
+// showed **560 ISR Writes against 166 Reads** in Vercel analytics, the worst
+// ratio on the site.
+//
+// This is the same defect `markets-poll-alignment.test.ts` was written for,
+// twice. It did not catch this one because `/api/news` was never in its
+// TARGETS list - the poll lives in `NewsClient.tsx`, not in the markets client
+// the test globbed. That test now covers this route too.
+export const NEWS_REVALIDATE = 120; // seconds - must stay > the 90s client poll
 
 export type NewsPage = {
   items: NewsItem[];

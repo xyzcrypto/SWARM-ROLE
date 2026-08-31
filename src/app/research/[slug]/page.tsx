@@ -28,7 +28,15 @@ import { TrackPostView } from "@/components/TrackPostView";
 // posts DO call getServerSession, which opts that specific slug's render out
 // of the static cache entirely - premium HTML is therefore never written to a
 // shared cache (not "cached safely", simply never cached).
-export const revalidate = 300;
+//
+// ⚠️ 300s -> 3600s. An individual article is the least volatile content on the
+// site: once published its body does not change until someone edits it, and
+// every route that edits one already calls `revalidatePath("/research/<slug>")`
+// - the two research write routes and `POST /api/ai/summarize`. So edits appear
+// immediately and the timer only served to rebuild unchanged article HTML.
+// This scales per slug, so it is the window with the most ISR-write leverage as
+// the article count grows.
+export const revalidate = 3600;
 
 // Shared by generateMetadata + the page so both share one query per request.
 // Route an inline data: URL author image through /api/media (see

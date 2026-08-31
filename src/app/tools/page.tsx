@@ -14,7 +14,11 @@ export const metadata: Metadata = pageSeo({
 });
 
 // Every calculator here is pure client-side math - nothing per-request to render.
-export const revalidate = 3600;
+//
+// ⚠️ No `export const revalidate`, for the same reason as `/markets`: this
+// component is not `async` and reads nothing, so a window only bought hourly
+// rebuilds of identical HTML (88 ISR Writes against 95 Reads). Prerendered once
+// per deploy instead. Add a window back only if this page gains server data.
 
 export default function ToolsPage() {
   return (

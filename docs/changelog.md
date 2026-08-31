@@ -5,6 +5,80 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-08-30 (73) — ISR writes exceeded reads on five routes; windows re-derived
+
+Owner's Vercel ISR analytics showed **writes above reads**, which is backwards — you
+write a cache entry once and serve it many times:
+
+| route | reads | writes | ratio |
+|---|---|---|---|
+| `/news` | 166 | **560** | 3.4× |
+| `/research` | 177 | 414 | 2.3× |
+| `/` | 185 | 385 | 2.1× |
+| `/markets` | 175 | 304 | 1.7× |
+| `/tools` | 95 | 88 | 0.9× |
+
+By contrast `/login` (50/0) and `/premium` (25/0) are fully static and write nothing —
+that is the shape the fixed routes now aim at.
+
+### Three distinct causes, not one
+
+**1. Two pages were pure static shells carrying a `revalidate`.** `/markets` and
+`/tools` are not `async`, await nothing and read no database — every number on
+`/markets` comes from `MarketsClient` polling the cached `/api/markets/*` routes. So
+each regeneration produced **byte-identical HTML**. `/markets` did that every 5
+minutes and `/tools` hourly, for 392 writes of nothing between them. Both windows
+removed; the pages are now prerendered per deploy.
+
+**2. `/api/news` expired exactly on its own poll boundary.** `NewsClient` polls every
+**90s**; the route had `revalidate = 90` *and* `s-maxage=90`. Equal is the documented
+defect — the window expires as the next poll arrives and jitter decides whether it
+regenerates. `NEWS_REVALIDATE` 90 → **120s**, restoring the margin the markets routes
+already have.
+
+**3. Timers duplicated on-demand revalidation.** `/` and `/research` both rebuild on a
+timer *and* via `revalidatePath` — the two research write routes and all three
+whatsnew routes call it. So publishes were already instant, and the timer only
+refreshed a member count and an "Xh ago" label 288 times a day. `/` 300 → **900s**,
+`/research` 300 → **1800s**, `/research/[slug]` 300 → **3600s**.
+
+### Measured, and one honest limit
+
+Route table before → after, from the build output (the only place the *effective*
+window is visible):
+
+```
+/           5m  → 15m        /markets   5m → (none, static)
+/research   5m  → 30m        /tools     1h → (none, static)
+/news      ≈2m  →  2m
+```
+
+`/news` is the honest one. Its page declares `revalidate = 300`, but `getNewsPage`
+uses `NEWS_REVALIDATE` (120s) for both its fetch hint and its `unstable_cache`, and
+**Next takes the minimum across a route segment** — so the page reports 2m, not 5m.
+The real gain there is 90s → 120s plus the poll-boundary fix, not the 3.3× the export
+implies. Trap 1b, on a page rather than an API route. Raising the page export alone
+does nothing; `NEWS_REVALIDATE` is the lever.
+
+The structural alternative — dropping the server-rendered first batch so `/news`
+becomes fully static like `/markets` — is **not** done here: it would remove the feed
+from the initial HTML and change first paint, which is a product call, not a caching
+one.
+
+### The durable part
+
+`/api/news` is now in `markets-poll-alignment.test.ts`'s `TARGETS`. It was missing
+because its poll lives in a **component** — a third shape after the markets client
+and the ticker hook, which is exactly why the same defect reached a third route.
+`NEWS_POLL_MS` is now a named export so the test can read it. **Mutation-checked:**
+reverting `/api/news` to 90 fails the suite with `news: revalidate 90s vs poll 90s`,
+and restoring it passes.
+
+Route totals unchanged at **25 static / 112 dynamic**; ISR windows 12 → 10 by design.
+0 data-cache rejections. 703 tests pass. No route de-opted to dynamic.
+
+---
+
 ## 2026-08-21 (72) — 3D coin logo, scoped to the installed app only
 
 New 3D gold coin logo for the **installed app's identity only** — Android/iOS home

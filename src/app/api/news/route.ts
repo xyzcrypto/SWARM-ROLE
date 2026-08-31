@@ -7,7 +7,7 @@ import { getNewsPage } from "@/lib/news-fetch";
 // Next 16 requires a statically-analyzable literal here (an imported const is
 // rejected as an invalid segment config). Keep in sync with NEWS_REVALIDATE in
 // src/lib/news-fetch.ts.
-export const revalidate = 90;
+export const revalidate = 120;
 
 export async function GET(req: Request) {
   try {
@@ -19,7 +19,10 @@ export async function GET(req: Request) {
       pageSize: Number(searchParams.get("pageSize")) || 15,
     });
     return NextResponse.json(data, {
-      headers: { "Cache-Control": "public, s-maxage=90, stale-while-revalidate=300" },
+      // s-maxage is what the EDGE honours, not the `revalidate` above, so both
+      // have to clear the 90s client poll - see NEWS_REVALIDATE for the measured
+      // reason. Kept equal to `revalidate` on purpose.
+      headers: { "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300" },
     });
   } catch {
     return NextResponse.json(

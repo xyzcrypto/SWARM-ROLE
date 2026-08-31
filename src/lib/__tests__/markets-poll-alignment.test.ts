@@ -43,6 +43,8 @@ const stripComments = (src: string) =>
 // nothing, and the suite would pass while checking absolutely nothing.
 const MARKETS_CLIENT = "src/modules/markets/components/MarketsClient.tsx";
 const TICKER_POLL = "src/modules/markets/lib/useTickerPoll.ts";
+// The news feed's poll lives in the component itself - a third shape again.
+const NEWS_CLIENT = "src/modules/news/components/NewsClient.tsx";
 // The shared cache for the >2 MB llama.fi upstreams (see the test at the bottom).
 const LLAMA = "src/modules/markets/lib/llama.ts";
 
@@ -108,7 +110,32 @@ function successSMaxAge(routeFile: string): number[] {
   return [...read(routeFile).matchAll(/s-maxage=(\d+),\s*stale-while-revalidate=\d+/g)].map((x) => Number(x[1]));
 }
 
-const TARGETS: Target[] = [...marketsTargets(), tickerTarget()];
+/**
+ * `/api/news` - polled from `NewsClient`, so its interval lives in a component
+ * rather than in the markets client or a hook. That is the third distinct shape
+ * for "where a poll interval lives", and it is why this route went uncovered.
+ *
+ * It had the identical defect the two above were added for: `revalidate = 90`
+ * and `s-maxage=90` against a **90s** poll. Equal is not safe - the window
+ * expires exactly as the next poll arrives and jitter decides whether it
+ * regenerates - and Vercel analytics showed the result plainly: `/news` at
+ * **560 ISR Writes against 166 Reads**, the worst ratio on the site.
+ *
+ * The lesson from the ticker repeats: a check scoped to where the last bug was
+ * found does not prevent the next one. Any new polled route belongs here.
+ */
+function newsTarget(): Target {
+  const m = read(NEWS_CLIENT).match(/^export const NEWS_POLL_MS = ([\d_]+);/m);
+  if (!m) throw new Error(`could not parse NEWS_POLL_MS out of ${NEWS_CLIENT}`);
+  return {
+    label: "news",
+    routeFile: "src/app/api/news/route.ts",
+    pollMs: Number(m[1]!.replace(/_/g, "")),
+    pollSource: NEWS_CLIENT,
+  };
+}
+
+const TARGETS: Target[] = [...marketsTargets(), tickerTarget(), newsTarget()];
 
 describe("polled API routes keep their ISR + edge windows aligned with client polling", () => {
   it("finds every polled route (guards against a silently empty parse)", () => {
