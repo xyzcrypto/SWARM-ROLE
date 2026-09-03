@@ -11,7 +11,7 @@ export function organizationJsonLd() {
     name: site.name,
     alternateName: "XYZ Crypto Ecosystem",
     url: SITE_URL,
-    logo: { "@type": "ImageObject", url: absoluteUrl("/logo.png"), width: 640, height: 640 },
+    logo: { "@type": "ImageObject", url: absoluteUrl("/logo.png"), width: 512, height: 512 },
     image: absoluteUrl("/logo.png"),
     description: site.description,
     slogan: site.slogan,
@@ -89,7 +89,7 @@ export function articleJsonLd(post: {
     publisher: {
       "@type": "Organization",
       name: site.name,
-      logo: { "@type": "ImageObject", url: absoluteUrl("/logo.png"), width: 640, height: 640 },
+      logo: { "@type": "ImageObject", url: absoluteUrl("/logo.png"), width: 512, height: 512 },
     },
     mainEntityOfPage: {
       "@type": "WebPage",

@@ -32,7 +32,16 @@
 // came back, including 404s. `activate` deletes every cache whose name is not
 // this one, so bumping is the only thing that clears a device that already
 // stored a broken asset.
-const CACHE = "xyz-pwa-v8";
+//
+// v8 -> v9: an eviction, not a deploy ritual. `/logo.png` is precached below at
+// a URL that did NOT change when the artwork behind it did (the site logo became
+// the 3D coin). Without this bump, every device that already installed the SW
+// keeps serving the OLD logo from cache indefinitely - the brand change simply
+// never reaches returning visitors or any installed PWA, because `activate`
+// only deletes caches whose name is not this one.
+//
+// Bump this ONLY when a precached URL's CONTENT changes underneath it.
+const CACHE = "xyz-pwa-v9";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/logo.png"];
 
