@@ -51,7 +51,11 @@ describe("organizationJsonLd", () => {
     expect(o["@type"]).toBe("Organization");
     expect(o.foundingDate).toBe("2019");
     expect(o.logo["@type"]).toBe("ImageObject");
-    expect(o.logo.width).toBe(640);
+    // 640 -> 512: the site logo became the 3D coin, which ships at 512x512.
+    // This assertion is doing its job - a declared dimension that does not match
+    // the actual file is exactly the kind of thing Google's structured-data
+    // validator flags, so it should fail when the asset is swapped.
+    expect(o.logo.width).toBe(512);
     expect(Array.isArray(o.sameAs) && o.sameAs.length).toBeGreaterThanOrEqual(4);
   });
 });
@@ -80,6 +84,6 @@ describe("articleJsonLd", () => {
     }) as Record<string, any>;
     expect(a["@type"]).toBe("BlogPosting");
     expect(a.author["@type"]).toBe("Person");
-    expect(a.publisher.logo.width).toBe(640);
+    expect(a.publisher.logo.width).toBe(512); // see the Organization test above
   });
 });
