@@ -45,14 +45,27 @@ const config: Config = {
         // Each step is now clearly above the one below it instead of three of
         // them crowding into the first 2 L*. Still very dark greys - the brand
         // stays dark luxe - they are just distinguishable now.
+        // Second raise. The first one took ink-900 from +0.57 to +2.60 L* above
+        // the page, which moved it from "invisible" to "subtle" but left dark at
+        // roughly half the separation the light theme got (+5.28). Subtle was
+        // still being read as "nothing changed", and on a default-dark site that
+        // is the only impression most visitors form. Matching the bands:
+        //
+        //   ink-900  +0.57 -> +4.73 L*   (the common card, 42 usages)
+        //   ink-800  +1.84 -> +8.77 L*   (raised card / hover, 11)
+        //   ink-700  +4.77 -> +12.7 L*   (popovers, menus)
+        //
+        // These are still very dark greys - #15151a is not a light surface - so
+        // the dark-luxe direction holds. What changes is that a card now has an
+        // edge you can see without hunting for its border.
         ink: {
           DEFAULT: "#08080a",
           950: "#050507",
-          900: "#101015",
-          800: "#17171d",
-          700: "#1f1f26",
-          600: "#282830",
-          500: "#33333c",
+          900: "#15151a",
+          800: "#1d1d23",
+          700: "#25252c",
+          600: "#2e2e37",
+          500: "#3a3a44",
         },
         // Brand gold — premium / identity
         gold: {
