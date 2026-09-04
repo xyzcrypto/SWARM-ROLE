@@ -5,6 +5,106 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-04 (74) — Animation polish: a motion tier, and one entrance language
+
+PR 3 of the four-part visual pass. Two halves: the homepage was dropping frames on
+a mid-range phone, and the site's entrance animations did not agree with each other.
+
+### The homepage was animation-bound, and it was the count, not one effect
+
+Measured at 390×844 with 6× CPU throttling (roughly a mid-range Android):
+
+| | on-screen animations | fps |
+|---|---|---|
+| homepage | 54 | **16–21** |
+| `/markets` | 13 | 60 |
+| `/community` | 1 | 60 |
+
+Then a ceiling test on the same page: with **every** animation disabled it ran at
+**44 fps**, while removing `backdrop-filter`, removing `filter` and removing
+`box-shadow` each changed nothing at all. So animation was the entire bottleneck.
+
+Bisecting it mattered, because the obvious next step — find the one heavy effect —
+would have failed. No group was worth more than ~3 fps on its own (Icons3D +3.4,
+the assistant launcher +2.3, the orbit/shooter/spinner set +1.3, the shine sweeps
+−0.7, i.e. noise); the ambient wash as a whole was worth +4.3 and the small brand
+loops as a whole +17.1. It is the *number of simultaneously running animations*
+that costs, so the fix has to be broad or it does nothing.
+
+Worth recording that `PauseOffscreenAnimations` was **not** the problem, because it
+looked like a suspect: 46 running animations were off screen, but 44 of them sat
+inside the one-viewport `rootMargin` that component keeps deliberately alive. It is
+working as designed.
+
+### A motion tier, keyed on capability — not on `prefers-reduced-motion`
+
+`html.lite-motion`, set in the same pre-paint script as the theme (a class on
+`<html>` is not a render input, so it cannot produce the React #418 mismatch this
+project has been bitten by). It drops the always-running ambient wash and the small
+idle loops: mesh, aurora, particles, animated stars, nebula haze, Saturn/Moon,
+the Icons3D idle set, the assistant launcher's glow, and everything inside
+`.mini-viz`. It keeps what a reader would actually name as the brand — the ticker
+marquee, `text-shine`/`text-shimmer`, the shooting stars, the medallion's orbiting
+rings, spinners, shimmers, and every one-shot entrance. The robot's blink and
+antenna stay too: a recorded owner decision, and worth about a frame per second.
+
+**Result: 54 → 17 on-screen animations, 16–17 → 32 fps on the same throttled phone.**
+Full tier is untouched — same 54 animations, same pixels.
+
+`prefers-reduced-motion` is deliberately *not* the lever, and the tests pin that.
+This project exempts brand motion from that preference on purpose, after repeated
+"the site looks static" reports traced to the preference being on in a test
+environment. Capability is a separate axis: a fast phone with reduced motion on
+still gets the full identity; a weak phone with it off still gets a usable one.
+
+Criteria (conservative on purpose): `saveData`, or `deviceMemory <= 4`, or
+`hardwareConcurrency <= 2`. `deviceMemory` is Chromium-only and undefined on iOS,
+which is the right outcome rather than a gap — iPhones are not the devices dropping
+frames here, and cores alone would demote them wrongly (an iPhone reports 4–6).
+`localStorage.motion = 'lite' | 'full'` forces either tier for testing on a real
+device.
+
+### One entrance language
+
+`Reveal` is used ~40 times across 19 files, so its presets *are* the site's motion
+language — and they disagreed on all three axes at once: six travel distances
+(16/24/40/56/64px), five springs plus two tweens, three stagger steps. `pop` sat at
+a damping ratio of **0.61**, a visible bounce, directly beside `up` at 0.89.
+
+Now: one spring at a 0.92 damping ratio (single hairline settle, no bounce), one
+tween, one 0.07s stagger, and a three-step distance ladder — 12px / 20px / 28px.
+Shorter on purpose: 56px of travel on a 390px phone is a sixth of the screen, which
+reads as sliding rather than settling. The `blur` preset's radius drops 14px → 8px;
+`filter` is one of the few properties here the compositor cannot animate for free.
+
+### One easing, everywhere
+
+Tailwind's default for a bare `transition-*` is `cubic-bezier(0.4, 0, 0.2, 1)`,
+which accelerates *into* the change. Every hand-written easing in this codebase had
+already converged on the decelerating `cubic-bezier(0.22, 1, 0.36, 1)` (12 uses in
+`globals.css`, 6 in framer variants), so `transitionTimingFunction.DEFAULT` now
+points at it. Measured after: 78 interactive elements on the brand curve, 8 left on
+the old one. Durations untouched — this is a curve change only. The two remaining
+hard-coded transitions (`body` theme cross-fade, `.surface-hover`) moved onto
+`--dur-slow` / `--dur-med`, same lengths, so the scale has no exceptions left.
+
+### Files
+
+`src/app/layout.tsx` (pre-paint tier script) · `src/app/globals.css` (`.lite-motion`
+block, two transitions tokenised) · `src/shared/components/Reveal.tsx` ·
+`tailwind.config.ts` (DEFAULT easing) · `src/components/OrbitalEcosystem.tsx`
+(`motion-decor` markers) · `src/shared/utils/__tests__/motion-tier.test.ts` (new,
+11 tests pinning both halves of the contract).
+
+**Live observable:** on the homepage, `localStorage.setItem('motion','lite')` +
+reload drops on-screen animations from 54 to 17 and roughly doubles the frame rate
+on a throttled phone, with the ticker, shine, shooting stars and medallion rings
+still running. Falsified if the full tier's animation count changes at all, or if
+`document.documentElement.classList` lacks `lite-motion` on a `deviceMemory <= 4`
+device.
+
+---
+
 ## 2026-08-30 (73) — ISR writes exceeded reads on five routes; windows re-derived
 
 Owner's Vercel ISR analytics showed **writes above reads**, which is backwards — you

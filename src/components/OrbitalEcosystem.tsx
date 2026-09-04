@@ -137,7 +137,11 @@ export function OrbitalEcosystem() {
         {particles.map((p, i) => (
           <span
             key={i}
-            className="absolute rounded-full bg-gold-300/40"
+            // `motion-decor` marks an always-running decorative loop so the
+            // lite motion tier can drop it (globals.css). The animation is an
+            // inline style here because its duration and delay come from the
+            // loop index, so a class is the only handle a stylesheet gets.
+            className="motion-decor absolute rounded-full bg-gold-300/40"
             style={{
               left: `${p.x}%`,
               top: `${p.y}%`,
@@ -181,7 +185,7 @@ export function OrbitalEcosystem() {
         {/* center logo with layered halo */}
         <div className="absolute left-1/2 top-1/2 h-[28%] w-[28%] -translate-x-1/2 -translate-y-1/2">
           <div className="absolute -inset-[35%] rounded-full bg-gold-500/20 blur-2xl" />
-          <div className="absolute inset-0 rounded-full bg-gold-500/40 blur-xl [animation:ping-soft_3.4s_ease-in-out_infinite]" />
+          <div className="motion-decor absolute inset-0 rounded-full bg-gold-500/40 blur-xl [animation:ping-soft_3.4s_ease-in-out_infinite]" />
           {/* No ring and no rounded clip: the coin has its own gold rim, and the
               clip was shaving it. The glow follows the alpha via drop-shadow. */}
           <Image
@@ -202,7 +206,7 @@ export function OrbitalEcosystem() {
             className="group absolute z-10 -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${n.left}%`, top: `${n.top}%` }}
           >
-            <div style={{ animation: `floatY ${5 + (i % 4)}s ease-in-out ${i * 0.3}s infinite` }}>
+            <div className="motion-decor" style={{ animation: `floatY ${5 + (i % 4)}s ease-in-out ${i * 0.3}s infinite` }}>
               <span
                 className={`flex items-center gap-1.5 rounded-full border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-[10px] font-semibold tracking-wide ring-1 backdrop-blur-md transition-all duration-300 group-hover:scale-110 sm:text-[11px] ${toneRing[n.tone]}`}
               >

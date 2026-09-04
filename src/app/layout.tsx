@@ -117,11 +117,40 @@ export default function RootLayout({
         <link rel="dns-prefetch" href="https://www.google.com" />
       </head>
       <body>
-        {/* No-FOUC theme: apply the saved choice before paint. Dark is the default. */}
+        {/* No-FOUC theme AND motion tier: both are decided before paint, in one
+            script, for the same reason - a class on <html> that CSS reads is not
+            a render input, so it can never disagree with what the server sent
+            (the React #418 class of bug documented in CLAUDE.md).
+
+            ## Why a motion tier exists
+
+            Measured on this homepage at 390x844 with 6x CPU throttling (a
+            mid-range Android, roughly): 54 CSS animations running on screen at
+            once and 18-21 fps. Turning every animation off took the same page
+            to 44 fps, while removing backdrop-filter, filter and box-shadow
+            each changed nothing - so animation is the whole bottleneck here,
+            and it is the COUNT that costs, not any one heavy effect (no single
+            group was worth more than ~3 fps on its own).
+
+            `prefers-reduced-motion` is deliberately NOT the lever. This project
+            exempts its brand motion from that preference on purpose (see the
+            reduced-motion note further down globals.css and the design-system
+            skill), after repeated reports of the site reading as "static"
+            because the preference was on in a test environment. Capability is a
+            different axis: a fast phone keeps the full identity, a weak one
+            gets a page that actually holds a frame rate.
+
+            `deviceMemory` is Chromium-only and undefined on iOS Safari, which
+            is the correct outcome rather than a gap - iPhones are not the
+            devices dropping frames here, and `hardwareConcurrency` alone would
+            wrongly demote them (an iPhone reports 4-6 cores). `saveData` is an
+            explicit request from the reader, so it is honoured directly.
+            `localStorage.motion` ('lite' / 'full') forces either tier for
+            testing on a device you actually hold. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){try{var t=localStorage.getItem('theme');if(t==='light'){document.documentElement.classList.remove('dark');}else{document.documentElement.classList.add('dark');}}catch(e){}})();",
+              "(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}try{var m=localStorage.getItem('motion');var n=navigator,c=n.connection||{},mem=n.deviceMemory,lite;if(m==='lite'){lite=true;}else if(m==='full'){lite=false;}else{lite=c.saveData===true||(typeof mem==='number'&&mem<=4)||(n.hardwareConcurrency||8)<=2;}if(lite){d.classList.add('lite-motion');}}catch(e){}})();",
           }}
         />
         <JsonLd data={organizationJsonLd()} />
