@@ -134,7 +134,18 @@ const config: Config = {
         "4xl": "2rem",
       },
       // Shared motion tokens (design system) - additive.
+      //
+      // DEFAULT is the one that changes the site: Tailwind's own default for a
+      // bare `transition-*` is `cubic-bezier(0.4, 0, 0.2, 1)` (ease-in-out),
+      // which accelerates INTO the change and reads as slightly sluggish on a
+      // hover. Every hand-written easing in this codebase already converged on
+      // the decelerating `0.22, 1, 0.36, 1` curve (12 uses in globals.css, 6 in
+      // framer variants), so pointing DEFAULT at it makes the ~40 bare
+      // `transition-colors` / `transition-all` utilities agree with the
+      // primitives instead of quietly disagreeing with them. Durations are
+      // untouched - this is a curve change only.
       transitionTimingFunction: {
+        DEFAULT: "cubic-bezier(0.22, 1, 0.36, 1)",
         premium: "cubic-bezier(0.22, 1, 0.36, 1)",
         "premium-in": "cubic-bezier(0.4, 0, 0.2, 1)",
       },
