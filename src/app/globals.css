@@ -46,6 +46,33 @@
       0 12px 28px -8px rgba(16, 18, 27, 0.08);
     --shadow-3: 0 1px 2px rgba(16, 18, 27, 0.07), 0 8px 20px -4px rgba(16, 18, 27, 0.10),
       0 24px 48px -12px rgba(16, 18, 27, 0.12);
+
+    /* ── Motion scale ────────────────────────────────────────────────────
+       One vocabulary for interaction timing. Durations in the codebase had
+       drifted to five different values (duration-300 x28, 200 x5, 700 x3,
+       500 x3, 150 x1, plus 0.3s and 0.35s in CSS) with no rule for which to
+       reach for, so two adjacent controls could respond at different speeds.
+
+       The important one is --press-fast. A press must complete inside the time
+       a finger is actually down; anything near 300ms is still travelling when
+       the touch ends, which is what makes a button feel mushy rather than
+       clicked. 90ms is under the ~100ms threshold where a response still reads
+       as instant.
+
+       These are defined on :root (not inside a theme block) because timing is
+       not a theme concern - both themes move at the same speed. */
+    --press-fast: 90ms;   /* press down / release - must feel instant */
+    --dur-fast: 150ms;    /* icon buttons, chips, small state flips */
+    --dur-med: 240ms;     /* hover colour + shadow, dropdowns */
+    --dur-slow: 350ms;    /* card lift, larger surfaces */
+    /* Decelerating curve: fast out of the gate, settles softly. Used for
+       anything the user initiated, so the response feels immediate. */
+    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-press: cubic-bezier(0.4, 0, 0.2, 1);
+    /* Focus ring. Gold in both themes so the indicator is unmistakably ours and
+       not a browser default, but each theme needs its own value: the light gold
+       is the darkened #8a5810 used for gold text, the dark one the brand gold. */
+    --ring-focus: #8a5810;
     /* Market direction. Deliberately theme-aware: measured against each ground,
        NO single step of either scale clears AA on both. On this light ground
        mint-300/400/500/600 land at 1.46 / 1.78 / 2.35 / 3.59:1 - so the "+9.84%"
@@ -93,6 +120,7 @@
        here (mint-400 10.58:1, red-400 7.23:1), so the design is unchanged. */
     --data-up: #22d692;               /* mint-400, 10.58:1 */
     --data-down: #f87171;             /* red-400,   7.23:1 */
+    --ring-focus: #e2a72f;
     --chart-mint: #039567;
     --chart-gold: #ad6f10;
     color-scheme: dark;
@@ -100,6 +128,73 @@
   * {
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
+  }
+  /* Mobile: replace the browser's own tap flash with our own press states.
+     Android Chrome paints a translucent grey rectangle on every tap, clipped to
+     the element's box rather than its border radius - so a pill button flashes
+     as a rectangle. That is the single most "not designed" thing about tapping
+     this site today.
+     ⚠️ Only safe to remove BECAUSE `.btn:active` and `.lift:active` now exist.
+     Suppressing it without a replacement is worse than leaving it: the tap
+     becomes completely dead. Do not keep this line if those are ever removed. */
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* A real fallback press for interactive elements that do NOT carry `.btn` or
+     `.lift` - icon buttons, nav links, chips, social links. Without this the
+     rule above would leave them with no feedback whatsoever, which is worse than
+     the grey flash it replaces.
+     Opacity rather than transform on purpose: it composes with any transform the
+     element already has (hover lifts, scale-on-hover) instead of fighting it for
+     the same property, and it costs nothing to composite. */
+  a:not(.btn):not(.lift):active,
+  button:not(.btn):not(.lift):active,
+  [role="button"]:not(.btn):not(.lift):active,
+  summary:active {
+    opacity: 0.72;
+    transition-duration: var(--press-fast);
+  }
+
+  /* Keyboard focus safety net.
+     Measured by tabbing 40 stops on the homepage in both themes: 34 had a
+     visible indicator and 6 did not - the ProofStrip social links and the
+     Ecosystem cards, which style `transition-all hover:...` by hand and never
+     added a `focus-visible:` variant. Patching those two components would have
+     fixed exactly those six and left the next hand-styled link to repeat it,
+     which is the mistake this pass already made once on colour.
+
+     `:where()` gives this ZERO specificity, so it is a floor, not a rule: any
+     component that defines its own `focus-visible:ring-*` still wins outright.
+     It only paints where nothing else would.
+
+     `:focus-visible` (not `:focus`) so it appears for keyboard and assistive
+     navigation and never on a mouse click. */
+  /* ⚠️ NOT wrapped in `:where()`. It was, for the good reason that zero
+     specificity makes a rule a floor rather than an override - but zero
+     specificity also loses to literally everything, including Tailwind's own
+     base layer, and the ring never painted: computed style came back
+     style:solid / width:0px / color:currentColor on every link that lacked its
+     own ring. Plain selectors give this (0,1,1), which still loses to a
+     component's `focus-visible:ring-*` utility at (0,2,0) - so the intent holds
+     and it now actually applies. */
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  summary:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible {
+    /* box-shadow, not outline. Three attempts at `outline` all computed to
+       width:0px / color:currentColor on the very links that needed it - as the
+       shorthand, as longhands, and with real specificity instead of `:where()`.
+       Something in the base layer wins that property here and reading the
+       stylesheet did not reveal what.
+       box-shadow is also what Tailwind's own `ring-*` utilities use, so this
+       matches how the rest of the codebase draws focus rings, and it is
+       verifiable: the tab test asserts a non-`none` box-shadow. Replacing any
+       resting shadow for the duration of focus is the standard trade rings make. */
+    box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--ring-focus);
   }
   html {
     scroll-behavior: smooth;
@@ -684,18 +779,36 @@ html.lenis body {
 
 /* Border-light sweep on hover */
 .lift {
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s, border-color 0.35s;
+  transition: transform var(--dur-slow) var(--ease-out), box-shadow var(--dur-slow), border-color var(--dur-slow);
 }
 .lift:hover {
   transform: translateY(-4px);
+}
+/* Cards get a press too - 23 `.lift` usages had a hover but no `:active`, so a
+   tapped card looked identical to an untapped one for the whole navigation
+   delay. Smaller than a button's: a card is large, so the same 0.97 would read
+   as the whole layout flinching. The transform snaps back fast on release. */
+.lift:active {
+  transform: translateY(-1px) scale(0.995);
+  transition-duration: var(--press-fast);
 }
 
 /* ----------------------------------------------------------------
    Buttons - mint = primary action, gold = premium/brand
 ----------------------------------------------------------------- */
 .btn {
-  @apply inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all duration-300;
+  @apply inline-flex items-center justify-center gap-2 rounded-full text-sm font-semibold;
   padding: 0.7rem 1.4rem;
+  /* Split out of the old blanket `transition-all duration-300`. A press has to
+     land immediately to read as a press: at 300ms the button is still travelling
+     when the finger leaves. Transform gets a fast curve, colour and shadow keep
+     the slower one. */
+  transition:
+    transform var(--press-fast) var(--ease-press),
+    box-shadow var(--dur-med) ease,
+    background var(--dur-med) ease,
+    border-color var(--dur-med) ease,
+    color var(--dur-med) ease;
 }
 /* Primary = premium green (high-conversion CTA) */
 .btn-primary {
@@ -745,6 +858,29 @@ html.lenis body {
   border-color: rgba(255, 255, 255, 0.28);
   color: #fff;
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* Pressed state for EVERY variant. Before this only `.btn-primary` had one -
+   `btn-ghost` (35 usages), `btn-gold` (29) and `btn-secondary` (13) had none at
+   all, so ~77 buttons gave no confirmation that a click had registered.
+   0.97 reads as a press; 0.9 reads as a bounce.
+
+   ⚠️ POSITION IS LOAD-BEARING. This must sit AFTER every `.btn-*:hover` rule
+   above. `.btn:active` and `.btn-gold:hover` have identical specificity (one
+   class + one pseudo-class), so source order decides - and with this block
+   placed up at the `.btn` base, hover won and a pressed button still rendered
+   its -2px hover lift. Caught by measuring the computed transform under a real
+   mouse-down rather than by reading the CSS.
+
+   `.btn-primary:active` is listed explicitly for the same reason: it sets its
+   own `transform: translateY(0)` for the shadow change, which would otherwise
+   override the scale here. It keeps that shadow; only the transform is unified. */
+.btn:active,
+.btn-primary:active,
+.btn-gold:active,
+.btn-secondary:active,
+.btn-ghost:active {
+  transform: translateY(0) scale(0.97);
 }
 
 /* Premium auto + hover shine sweep on solid CTAs */

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Heart, MessageCircle, Loader2, Trash2 } from "lucide-react";
 import { timeAgo } from "@/lib/news";
+import { hapticToggle } from "@shared/utils/haptics";
 import { MessageButton } from "@/components/MessageButton";
 import { SendGlyph } from "@/components/SendGlyph";
 import { cn } from "@/lib/utils";
@@ -47,6 +48,11 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
 
   const toggleLike = async () => {
     if (!loggedIn) return;
+    // Fires on the optimistic flip, not on the server response - the buzz should
+    // land with the visual change the reader already sees, not a round-trip
+    // later. If the request then fails the UI reverts, which is the correct
+    // signal on its own; a second buzz there would be noise.
+    hapticToggle();
     const optimistic = !liked;
     setLiked(optimistic);
     setLikes((n) => n + (optimistic ? 1 : -1));
