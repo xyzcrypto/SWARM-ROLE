@@ -8,12 +8,51 @@
     --font-mono: var(--font-geist-mono);
 
     /* Semantic theme tokens - LIGHT (softened for smoother, less-harsh surfaces). */
-    --bg: #f7f8fa;
-    --surface: #ffffff;
-    --surface-2: #f1f3f6;
+    /* Elevation ladder, in perceptual lightness (L*), because contrast ratio is
+       the wrong metric for surfaces - it answers "is this text readable", not
+       "can I see where the card ends".
+
+       It used to be bg 97.6 / surface 100 / surface-2 95.8, and cards fade from
+       #ffffff to #f9fafc at the bottom - which put the bottom of every card
+       0.69 L* from the page. Below ~1 that is invisible, so cards genuinely
+       melted into the background and the whole theme read flat and washed out.
+       That, not text colour, is what "light theme looks unfinished" was.
+
+       Now a real 3-step ladder: 95.1 -> 97.2 -> 100. A white card sits 4.9 L*
+       above the page, which is the "clearly separated" band, while the page stays
+       light and airy rather than going grey. */
+    --bg: #eef1f6;        /* L* 95.1 */
+    --surface: #ffffff;   /* L* 100  */
+    --surface-2: #f6f7fa; /* L* 97.2 - the intermediate step, above the page */
     --content: #1b1b22;
-    --content-muted: #5b5b66;
-    --hairline: rgba(0, 0, 0, 0.07);
+    --content-muted: #55555f;         /* 6.93:1 on --bg, headroom over tinted card fills */
+    /* Third text tier, for 9-12px labels, legal lines and timestamps. It exists
+       because that copy was reaching for `text-zinc-600/700`, which the light
+       ramp below mapped to #87878f / #a6a6ad - 3.35:1 and 2.28:1, both under AA.
+       5.03:1, so it still passes at 11px. */
+    --content-subtle: #6a6a74;
+    /* 0.07 -> 0.10. On a white card a 7% black hairline is close to invisible;
+       light themes carry their structure in borders and shadows, where dark
+       carries it in glow. */
+    --hairline: rgba(16, 18, 27, 0.10);
+    /* Light-mode elevation. There was no such token: cards reused shadows built
+       for dark, whose signature move is an `inset rgba(255,255,255,...)` top
+       highlight - a lit top edge against a black ground, which does nothing on
+       white - plus a very wide, very soft black blur that reads as a grey smudge
+       rather than a lift. These are tight, layered and low-alpha, the way a light
+       UI actually gets depth. */
+    --shadow-1: 0 1px 2px rgba(16, 18, 27, 0.06), 0 1px 3px rgba(16, 18, 27, 0.04);
+    --shadow-2: 0 1px 2px rgba(16, 18, 27, 0.06), 0 4px 10px -2px rgba(16, 18, 27, 0.08),
+      0 12px 28px -8px rgba(16, 18, 27, 0.08);
+    --shadow-3: 0 1px 2px rgba(16, 18, 27, 0.07), 0 8px 20px -4px rgba(16, 18, 27, 0.10),
+      0 24px 48px -12px rgba(16, 18, 27, 0.12);
+    /* Market direction. Deliberately theme-aware: measured against each ground,
+       NO single step of either scale clears AA on both. On this light ground
+       mint-300/400/500/600 land at 1.46 / 1.78 / 2.35 / 3.59:1 - so the "+9.84%"
+       on /markets was effectively unreadable - and red-400 at 2.60:1. These are
+       the first steps that pass here. */
+    --data-up: #057653;               /* mint-700, 5.31:1 */
+    --data-down: #dc2626;             /* red-600,  4.54:1 */
     /* Dashboard chart hues - per-surface steps validated with the dataviz
        six-checks (lightness band, chroma, CVD separation, contrast). */
     --chart-mint: #0bbb7c;
@@ -23,12 +62,37 @@
   /* Semantic theme tokens - DARK (default). Values match the current design
      exactly, so dark mode is pixel-identical to before this change. */
   .dark {
-    --bg: #08080a;
-    --surface: #0e0e12;
-    --surface-2: #15151b;
+    /* Dark elevation ladder, raised for the same reason the light one was, and
+       found the same way - by sampling rendered pixels rather than trusting the
+       hex values. The homepage stat card measured just +0.82 L* above the page.
+
+       The cause is that `--surface` was #0e0e12, only +1.84 L* above the #08080a
+       page, and the classes real components actually use (`bg-ink-900`,
+       `bg-ink-900/90`, `bg-ink-950`) resolve to it - so an opacity variant like
+       /90 pulled a card back down to within 1 L* of the ground and it stopped
+       reading as a card at all. Fixing `.surface`/`.glass` alone did not help,
+       because most cards never touch those primitives.
+
+           --surface    +1.84 -> +4.73 L*
+           --surface-2  +4.77 -> +8.77 L*
+
+       Still unmistakably dark luxe - #15151a is a very dark grey - but a card now
+       has an edge you can see without relying entirely on its border. */
+    --bg: #08080a;        /* L*  2.2 */
+    --surface: #15151a;   /* L*  7.0 */
+    --surface-2: #1d1d23; /* L* 11.0 */
     --content: #d4d4d8;
-    --content-muted: #a1a1aa;
+    --content-muted: #a1a1aa;         /* 7.81:1 on --bg */
+    /* Same third tier as light. Dark was NOT exempt from this: measured on the
+       live pages, `text-zinc-500` sat at 4.14:1 and `text-zinc-600` at 2.59:1
+       against this ground - dark actually had slightly MORE contrast failures
+       than light (20 vs 17). 5.93:1. */
+    --content-subtle: #8b8b95;
     --hairline: rgba(255, 255, 255, 0.08);
+    /* Dark keeps the original brand steps - they already clear AA comfortably
+       here (mint-400 10.58:1, red-400 7.23:1), so the design is unchanged. */
+    --data-up: #22d692;               /* mint-400, 10.58:1 */
+    --data-down: #f87171;             /* red-400,   7.23:1 */
     --chart-mint: #039567;
     --chart-gold: #ad6f10;
     color-scheme: dark;
@@ -505,21 +569,40 @@ html.lenis body {
 /* ----------------------------------------------------------------
    Surfaces - glass + hairline cards (Vercel/Jupiter)
 ----------------------------------------------------------------- */
+/* Same fade fix, one step stronger: .glass is the overlay/dialog surface, so it
+   sits above .surface in the elevation order and needs to stay clearly above it
+   even where the two are adjacent. Bottom 0.02 -> 0.05. */
 .glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.13);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
     0 20px 50px -28px rgba(0, 0, 0, 0.8);
 }
 /* Rich glassmorphism for cards (blurs the animated backdrop behind) */
+/* Dark cards had the SAME fade-to-invisible problem the light ones did, and it
+   went unnoticed because dark leans on its border to define edges.
+   Measured from rendered pixels against the #08080a page:
+
+     gradient top    alpha 0.045  ->  dL* +3.71   visible
+     gradient bottom alpha 0.012  ->  dL* +0.83   INVISIBLE
+
+   So every card was legible along its top edge and dissolved into the page by
+   its bottom one. The top only moves 0.045 -> 0.055; the fix is the BOTTOM not
+   dying, 0.012 -> 0.032, which holds the whole card ~2.6-5.0 L* clear. That is
+   still firmly dark-luxe - restraint is the house rule - it is just no longer
+   a card that stops existing halfway down.
+
+   Border 0.09 -> 0.11 and a soft outer shadow under the existing inset
+   highlight, so elevation reads even where a card sits on a busy background. */
 .surface {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.032));
+  border: 1px solid rgba(255, 255, 255, 0.11);
   backdrop-filter: blur(10px) saturate(130%);
   -webkit-backdrop-filter: blur(10px) saturate(130%);
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 12px 28px -12px rgba(0, 0, 0, 0.6);
 }
 /* Mobile GPUs stall on heavy backdrop blur during scroll (30fps jank) - keep
    the glass look but cut the filter cost on small screens. Visual difference
@@ -1059,20 +1142,39 @@ html:not(.dark) .text-zinc-100 { color: #16161b; }
 html:not(.dark) .text-zinc-200 { color: #26262c; }
 html:not(.dark) .text-zinc-300 { color: #393941; }
 html:not(.dark) .text-zinc-400 { color: #52525b; }
-html:not(.dark) .text-zinc-500 { color: #6a6a74; }
-html:not(.dark) .text-zinc-600 { color: #87878f; }
-html:not(.dark) .text-zinc-700 { color: #a6a6ad; }
+/* The bottom of the ramp now resolves to the semantic tier rather than to three
+   hand-picked greys that kept drifting apart. Measured before: zinc-600 #87878f
+   was 3.35:1 and zinc-700 #a6a6ad was 2.28:1 on this ground - both under AA, and
+   zinc-700 is what the footer disclaimer uses. */
+html:not(.dark) .text-zinc-500 { color: var(--content-muted); }
+html:not(.dark) .text-zinc-600 { color: var(--content-subtle); }
+html:not(.dark) .text-zinc-700 { color: var(--content-subtle); }
+
+/* ⚠️ DARK overrides for the same three classes, which did not exist before.
+   That asymmetry - 154 light override rules against 3 dark ones - is why dark
+   was never audited the way light was, and why it quietly carried MORE failures
+   (20 vs 17): `text-zinc-500` at 4.14:1, `text-zinc-600` at 2.59:1 and
+   `text-zinc-700` far below, all on secondary copy that is genuinely meant to be
+   read. Mapping both sides to the same two tokens is what keeps them in step
+   from here - change a tier once and both themes follow. */
+.dark .text-zinc-500 { color: var(--content-subtle); }
+.dark .text-zinc-600 { color: var(--content-subtle); }
+.dark .text-zinc-700 { color: var(--content-subtle); }
 
 /* Brand accent text - gold-200/300 & mint-200/300 are too pale on white. */
 html:not(.dark) .text-gold-100 { color: #7a4a0d; }
-html:not(.dark) .text-gold-200 { color: #9a6310; }
-html:not(.dark) .text-gold-300 { color: #ad6f10; }
-html:not(.dark) .text-mint-200 { color: #057653; }
-html:not(.dark) .text-mint-300 { color: #039567; }
+html:not(.dark) .text-gold-200 { color: #8a5810; }
+html:not(.dark) .text-gold-300 { color: #8a5810; }
+html:not(.dark) .text-mint-200 { color: var(--data-up); }
+/* Was #039567 (mint-600) = 3.59:1, under AA. mint-300/400 are what the markets
+   UI paints "+9.84%" with, so this was the worst finding of the audit: the
+   positive-direction colour on a crypto site, unreadable on its own ground.
+   --data-up is mint-700, 5.31:1. Text only - bg-/border-mint are untouched. */
+html:not(.dark) .text-mint-300 { color: var(--data-up); }
 html:not(.dark) .hover\:text-gold-100:hover { color: #7a4a0d; }
-html:not(.dark) .hover\:text-gold-200:hover { color: #9a6310; }
+html:not(.dark) .hover\:text-gold-200:hover { color: #8a5810; }
 html:not(.dark) .hover\:text-mint-200:hover { color: #057653; }
-html:not(.dark) .group:hover .group-hover\:text-gold-200 { color: #9a6310; }
+html:not(.dark) .group:hover .group-hover\:text-gold-200 { color: #8a5810; }
 html:not(.dark) .group:hover .group-hover\:text-mint-200 { color: #057653; }
 
 /* Gradient text - darken so the pale end doesn't vanish on white. */
@@ -1105,11 +1207,39 @@ html:not(.dark) .border-white\/5  { border-color: rgba(0, 0, 0, 0.06); }
 html:not(.dark) .border-white\/10 { border-color: rgba(0, 0, 0, 0.10); }
 
 /* Subtle white tints → subtle dark tints. */
-html:not(.dark) .bg-white\/5  { background-color: rgba(0, 0, 0, 0.04); }
-html:not(.dark) .bg-white\/10 { background-color: rgba(0, 0, 0, 0.06); }
-html:not(.dark) .bg-white\/\[0\.02\] { background-color: rgba(0, 0, 0, 0.02); }
-html:not(.dark) .bg-white\/\[0\.03\] { background-color: rgba(0, 0, 0, 0.03); }
-html:not(.dark) .bg-white\/\[0\.04\] { background-color: rgba(0, 0, 0, 0.045); }
+/* ⚠️ This block is the single biggest reason the light theme read flat, and it
+   is an inverted-elevation bug rather than a colour-picking one.
+
+   In dark, `bg-white/5` means "a raised surface catching a little light" - the
+   standard way a dark UI signals elevation. Inverting it literally for light
+   turned it into a 4% BLACK tint, i.e. a panel slightly DARKER than the page.
+   Darker-than-ground reads as recessed or disabled, which is the opposite of the
+   intent, and with no shadow to correct it these became flat grey rectangles.
+
+   It matters at scale: ~190 elements use this family directly rather than the
+   `.surface`/`.glass` primitives (which have 144 usages between them), so fixing
+   only the primitives left most of the UI untouched - which is exactly what the
+   review reported.
+
+   Light UIs raise a surface by making it LIGHTER than the page and giving it a
+   shadow, so that is what these do now. The page is #eef1f6 and these land on
+   white, so they sit ~4.9 L* above it. `border-line` already resolves to the
+   hairline, which keeps a white chip visible when it sits on a white card.
+
+   Hover variants (`.hover\:bg-white\/5:hover`) are a different class and are
+   deliberately NOT caught here - a hover tint should stay a tint. */
+html:not(.dark) .bg-white\/5,
+html:not(.dark) .bg-white\/\[0\.03\],
+html:not(.dark) .bg-white\/\[0\.04\] {
+  background-color: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+/* The faintest step stays a tint: at 2% it is a wash behind content (table
+   stripes, inset wells), not a card, so lifting it would be wrong. */
+html:not(.dark) .bg-white\/\[0\.02\] { background-color: rgba(16, 18, 27, 0.025); }
+/* /10 is the heavier step - inputs, pressed states, dividers. Keep it a tint so
+   it still reads as inset, just neutral rather than muddy. */
+html:not(.dark) .bg-white\/10 { background-color: rgba(16, 18, 27, 0.055); }
 
 /* Inputs & dark overlays/dropdowns → light surfaces. */
 html:not(.dark) .bg-ink-700\/60 { background-color: var(--surface-2); }
@@ -1132,27 +1262,123 @@ html:not(.dark) .bg-ink-900 { background-color: var(--surface); }
 html:not(.dark) .placeholder\:text-zinc-600::placeholder { color: #9a9aa2; }
 
 /* Surface primitives - clean white cards (ambient behind them is hidden). */
+/* Cards keep a whisper of top-down gradient, but it now ends near-white instead
+   of at #f9fafc. That old endpoint sat 0.69 L* from the page, so the bottom of
+   every card dissolved into the background; holding it near #fdfdfe keeps the
+   card ~4.5 L* clear along its whole height, which is what makes it read as a
+   distinct object rather than a tinted region of the page. */
 html:not(.dark) .glass {
-  background: linear-gradient(180deg, #ffffff, #f7f8fb);
-  border-color: rgba(16, 18, 27, 0.09);
-  box-shadow: 0 1px 2px rgba(16, 18, 27, 0.05), 0 26px 50px -32px rgba(16, 18, 27, 0.28);
+  background: linear-gradient(180deg, #ffffff, #fbfcfd);
+  border-color: var(--hairline);
+  box-shadow: var(--shadow-3);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
-/* Premium light cards: a whisper of top-down gradient + a soft lift shadow +
-   a hairline warm border, so cards read crisp and elevated (not flat white). */
 html:not(.dark) .surface {
-  background: linear-gradient(180deg, #ffffff, #f9fafc);
-  border-color: rgba(16, 18, 27, 0.08);
-  box-shadow: 0 1px 2px rgba(16, 18, 27, 0.04), 0 10px 26px -20px rgba(16, 18, 27, 0.16);
+  background: linear-gradient(180deg, #ffffff, #fdfdfe);
+  border-color: var(--hairline);
+  box-shadow: var(--shadow-2);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
+/* Hover raises the card a level rather than recolouring it: the shadow steps up
+   and the border warms to gold, while the fill stays essentially white. A card
+   that changes colour under the cursor reads as a different card; one that
+   changes height reads as the same card, lifted. */
 html:not(.dark) .surface-hover:hover {
-  border-color: rgba(226, 167, 47, 0.5);
-  background: linear-gradient(180deg, #ffffff, #fbf7ee);
-  box-shadow: 0 2px 4px rgba(16, 18, 27, 0.05), 0 16px 34px -22px rgba(226, 167, 47, 0.28);
+  border-color: rgba(226, 167, 47, 0.55);
+  background: linear-gradient(180deg, #ffffff, #fffdf8);
+  box-shadow: 0 1px 2px rgba(16, 18, 27, 0.07), 0 8px 20px -4px rgba(16, 18, 27, 0.10),
+    0 24px 48px -12px rgba(226, 167, 47, 0.22);
 }
+
+/* ── Product mock visuals (.mini-viz) ─────────────────────────────────────
+   Seven of these sit inside the product cards (TradingVisual, AirdropVisual,
+   PremiumVisual, AcademyVisual, AiVisual, GamifiedVisual, MoreVisual) and none
+   of them had any light treatment at all, which is why the AI "THINKING" panel
+   and the Gamified XP panel rendered as dark slabs on a white card.
+
+   The cause is an opacity-variant blind spot. Each container is either
+   `bg-ink-950/60` or `bg-gradient-to-br from-<hue>/1x to-ink-950/70`, and the
+   light override that remaps `bg-ink-950` does NOT apply to `bg-ink-950/60` -
+   that is a different class - so the raw #050507 came through at 60-70% on a
+   white surface. Same blind spot as the `bg-white/5` family, one level deeper.
+
+   In light these are inset wells: slightly BELOW the white card they sit in,
+   which is the correct direction for a recessed panel, and the inverse of a
+   card, which sits above the page. */
+html:not(.dark) .mini-viz {
+  background-image: none;
+  background-color: #eef1f6;
+  border-color: var(--hairline);
+  box-shadow: inset 0 1px 2px rgba(16, 18, 27, 0.05);
+}
+/* Each visual keeps a hint of its accent hue, hooked off the border class it
+   already carries so no component markup has to change. */
+html:not(.dark) .mini-viz.border-gold-500\/20   { background-color: #faf5e9; border-color: rgba(138, 88, 16, 0.22); }
+html:not(.dark) .mini-viz.border-violet-500\/20 { background-color: #f2effb; border-color: rgba(109, 40, 217, 0.22); }
+html:not(.dark) .mini-viz.border-mint-500\/15   { background-color: #e9f6f1; border-color: rgba(5, 118, 83, 0.22); }
+
+/* The animated bars/fills inside are tuned for a dark ground - pale violet,
+   mint and gold at low alpha, which on a light well is the "washed out" look
+   reported. Darkening them in place keeps every animation, gradient direction
+   and keyframe exactly as authored; only the rendered value changes. Scoped to
+   `.mini-viz`, so nothing outside these mock panels is affected. */
+html:not(.dark) .mini-viz [class*="from-violet"],
+html:not(.dark) .mini-viz [class*="from-mint"],
+html:not(.dark) .mini-viz [class*="from-gold"],
+html:not(.dark) .mini-viz [class*="from-sky"],
+html:not(.dark) .mini-viz [class*="bg-violet"],
+html:not(.dark) .mini-viz [class*="bg-mint"],
+html:not(.dark) .mini-viz [class*="bg-gold"] {
+  filter: saturate(1.45) brightness(0.66);
+}
+/* The inner level badge is `bg-ink-950` (no opacity variant), so it already
+   resolves to a light surface - it just needs an edge to read against the well. */
+html:not(.dark) .mini-viz .bg-ink-950 { box-shadow: inset 0 0 0 1px var(--hairline); }
+/* Caption text inside the wells uses opacity variants (`text-violet-300/70`,
+   `text-zinc-500/70`), which are separate classes and so miss the colour
+   overrides above. On a dark ground the dimming reads as "secondary"; on a light
+   one it reads as unreadable - the same alpha problem as `text-mint-300/70`
+   elsewhere. Full opacity, and the hue darkened to sit on a light well. */
+html:not(.dark) .mini-viz [class*="text-violet-300"] { color: #5b21b6; }
+html:not(.dark) .mini-viz [class*="text-mint-300"],
+html:not(.dark) .mini-viz [class*="text-mint-200"] { color: var(--data-up); }
+html:not(.dark) .mini-viz [class*="text-zinc-500"],
+html:not(.dark) .mini-viz [class*="text-zinc-400"] { color: var(--content-muted); }
+/* gold too - `text-gold-300/70` on the PRO badge measured 1.62:1. Every accent
+   family has an opacity variant somewhere in these mocks, so all four are
+   covered rather than fixing them one review round at a time. */
+html:not(.dark) .mini-viz [class*="text-gold-300"],
+html:not(.dark) .mini-viz [class*="text-gold-200"] { color: #8a5810; }
+html:not(.dark) .mini-viz [class*="text-sky-300"] { color: #0369a1; }
+html:not(.dark) .mini-viz [class*="text-rose-300"] { color: #b91c1c; }
+
+/* ── Premium ("MEMBERS ONLY") well ────────────────────────────────────────
+   This one needed more than a recolour. On dark it is a crisp gold-rimmed panel
+   whose depth comes from two glow elements: a `bg-gold-500/25 blur-2xl` orb in
+   the corner and a skewed `via-gold-200/30 blur-md` sheen sweeping across it.
+   Both are additive light effects - they work by being BRIGHTER than what is
+   behind them. On a pale gold well there is nothing left to be brighter than,
+   so instead of depth they produced the washed, unaligned smear in the report.
+
+   The blur orb is dropped in light and the sheen is reduced to a narrow, low
+   alpha pass. What carries the panel here is what carries a light UI generally:
+   a defined edge, a clean fill, and crisp content - so the rows, the rule under
+   the header and the crown badge are all given real contrast instead. The
+   layout, the animation and every element stay exactly as authored. */
+html:not(.dark) .mini-viz .bg-gold-500\/25 { display: none; }
+html:not(.dark) .mini-viz [class*="via-gold-200"] {
+  background-image: linear-gradient(to right, transparent, rgba(138, 88, 16, 0.10), transparent);
+  filter: none;
+}
+/* The crown badge sits on `bg-ink-950`, which resolves light - give it a gold
+   rim so it reads as a badge rather than a blank chip. */
+html:not(.dark) .mini-viz .ring-gold-500\/50 { --tw-ring-color: rgba(138, 88, 16, 0.55); }
+/* Row bullets and the PRO tags: these are the panel's only structure once the
+   glows are gone, so they carry the hierarchy. */
+html:not(.dark) .mini-viz .bg-gold-400 { background-color: #8a5810; filter: none; }
+html:not(.dark) .mini-viz [class*="text-zinc-300"] { color: var(--content); }
 
 /* Soft buttons on light. */
 html:not(.dark) .btn-secondary {
@@ -1229,9 +1455,9 @@ html:not(.dark) .orbital-aurora {
     rgba(34,214,146,0.26) 215deg, rgba(226,167,47,0) 360deg) !important;
   opacity: 0.5;
 }
-html:not(.dark) #ecosystem-orbital .border-gold-500\/45 { border-color: rgba(174,111,16,0.6); }
-html:not(.dark) #ecosystem-orbital .border-gold-400\/40 { border-color: rgba(174,111,16,0.5); }
-html:not(.dark) #ecosystem-orbital .border-mint-400\/45 { border-color: rgba(3,149,103,0.55); }
+html:not(.dark) #ecosystem-orbital .border-gold-500\/45 { border-color: rgba(138,88,16,0.72); }
+html:not(.dark) #ecosystem-orbital .border-gold-400\/40 { border-color: rgba(138,88,16,0.6); }
+html:not(.dark) #ecosystem-orbital .border-mint-400\/45 { border-color: rgba(5,118,83,0.68); }
 html:not(.dark) #ecosystem-orbital .bg-gold-500\/12 { background-color: rgba(226,167,47,0.3); }
 html:not(.dark) #ecosystem-orbital .bg-gold-300\/40 { background-color: rgba(174,111,16,0.55); }
 html:not(.dark) #ecosystem-orbital .bg-gold-500\/20 { background-color: rgba(226,167,47,0.34); }
@@ -1244,6 +1470,14 @@ html:not(.dark) #ecosystem-orbital .bg-ink-900\/85 {
   background-color: #ffffff;
   box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 10px 26px -18px rgba(0,0,0,0.28);
 }
+/* The orbit rings themselves. Four concentric circles draw the "3D model" ring
+   system, and one of them - `border-white/10` - had no orbital-scoped override,
+   so it fell back to the global light remap of rgba(0,0,0,0.10). Ten percent
+   black over a near-white hero reads as nothing, which is why the ring set
+   looked incomplete on desktop light. The gold/mint rings were present but at
+   0.5-0.6 alpha, faint against white where the same alpha is emphatic against
+   black. All four are lifted together so the system reads as one object. */
+html:not(.dark) #ecosystem-orbital .border-white\/10 { border-color: rgba(16, 18, 27, 0.22); }
 html:not(.dark) #ecosystem-orbital .ring-gold-500\/40 { --tw-ring-color: rgba(174,111,16,0.55); }
 html:not(.dark) #ecosystem-orbital .ring-mint-500\/40 { --tw-ring-color: rgba(3,149,103,0.55); }
 html:not(.dark) #ecosystem-orbital .ring-violet-400\/40 { --tw-ring-color: rgba(124,58,237,0.55); }
@@ -1259,21 +1493,42 @@ html:not(.dark) .grid-bg {
 html:not(.dark) .ring-white\/10 { --tw-ring-color: rgba(0, 0, 0, 0.10); }
 html:not(.dark) .ring-white\/5  { --tw-ring-color: rgba(0, 0, 0, 0.06); }
 
-html:not(.dark) .text-gold-400 { color: #ad6f10; }
-html:not(.dark) .text-gold-500 { color: #9a6310; }
-html:not(.dark) .text-mint-400 { color: #039567; }
-html:not(.dark) .hover\:text-gold-300:hover { color: #ad6f10; }
+html:not(.dark) .text-gold-400 { color: #8a5810; }
+html:not(.dark) .text-gold-500 { color: #8a5810; }
+html:not(.dark) .text-mint-400 { color: var(--data-up); }
+html:not(.dark) .hover\:text-gold-300:hover { color: #8a5810; }
 html:not(.dark) .hover\:text-mint-300:hover { color: #039567; }
 html:not(.dark) .group:hover .group-hover\:text-gold-100 { color: #7a4a0d; }
-html:not(.dark) .group:hover .group-hover\:text-gold-300 { color: #ad6f10; }
+html:not(.dark) .group:hover .group-hover\:text-gold-300 { color: #8a5810; }
 
 /* Status / semantic text - lift to readable shades on white. */
 html:not(.dark) .text-red-200,
 html:not(.dark) .text-red-300,
-html:not(.dark) .text-red-400 { color: #dc2626; }
+html:not(.dark) .text-red-400 { color: var(--data-down); }
+/* `rose` is a separate Tailwind scale from `red`, and the markets/news UI reaches
+   for BOTH interchangeably for the negative direction - LiveMarketVisual paints
+   "-0.9%" with text-rose-400 and LiveNewsVisual paints "Breaking" with
+   text-rose-300. Because only `red` was listed here, those two sat at 2.69:1 and
+   1.70:1 on this ground while their `red` twins were already fixed. Same role,
+   same token. */
+html:not(.dark) .text-rose-400 { color: var(--data-down); }
+/* The lighter end of the scale carries the SMALLER text here (the 9px "Breaking"
+   chip, dim labels), and small text needs more contrast, not less - so it maps
+   darker than rose-400, the same inversion the zinc ramp above already uses in
+   light. At --data-down it measured 4.34:1 against its card surface, just under
+   AA; red-700 is 6.09:1. */
+html:not(.dark) .text-rose-200,
+html:not(.dark) .text-rose-300 { color: #b91c1c; }
 html:not(.dark) .text-amber-300 { color: #b45309; }
+/* sky-600 was 3.85:1 - close enough to look deliberate, still under AA. sky-700
+   is 5.58:1. */
 html:not(.dark) .text-sky-300,
-html:not(.dark) .text-sky-400 { color: #0284c7; }
+html:not(.dark) .text-sky-400 { color: #0369a1; }
+/* Opacity variants do not inherit the overrides above, because `/70` is a
+   different class. Composited over this ground, --data-up at 70% lands at
+   3.05:1, so the alpha itself is the problem, not the hue: on a light ground the
+   dimming that reads as "quiet" in dark reads as "unreadable". Full opacity. */
+html:not(.dark) .text-mint-300\/70 { color: var(--data-up); }
 html:not(.dark) .text-violet-200,
 html:not(.dark) .text-violet-300,
 html:not(.dark) .text-violet-400 { color: #7c3aed; }
@@ -1829,6 +2084,43 @@ html:not(.dark) .ai-surface {
   animation: ai-spin 6s linear infinite;
   pointer-events: none;
 }
+
+/* ── XYZ AI launcher on light ─────────────────────────────────────────────
+   Everything about the launcher is authored to glow against near-black, and on
+   a white page each piece of that reads as absent rather than subtle:
+
+   - the button fill is `from-mint-400 to-mint-600`; mint-400 is 1.78:1 against
+     white, so the button looked pale and the robot inside it washed out;
+   - the halo on ::after is a mint radial at 0.35 alpha - invisible on white;
+   - the orbital ring on ::before is a conic sweep through rgba(243,212,136)
+     and rgba(146,245,203), i.e. PALE gold and PALE mint. Those are chosen to
+     read as light against black. On white they are effectively the background,
+     which is why the ring animation appeared missing in light rather than
+     merely quiet.
+
+   Fixed by deepening each, not by removing any: the animation, timing and
+   geometry are untouched, only the colours move down the scale so the same
+   design reads on a light ground. */
+html:not(.dark) .ai-fab {
+  background-image: linear-gradient(to bottom right, #0bbb7c, #057653);
+}
+html:not(.dark) .ai-fab::after {
+  background: radial-gradient(circle, rgba(5, 118, 83, 0.42), transparent 68%);
+}
+html:not(.dark) .ai-fab::before {
+  background: conic-gradient(
+    from var(--ai-spin, 0deg),
+    transparent 55%,
+    rgba(138, 88, 16, 0.95),
+    rgba(5, 118, 83, 0.9),
+    transparent
+  ) border-box;
+}
+@keyframes ai-fab-glow-light {
+  0%, 100% { box-shadow: 0 8px 22px -8px rgba(5, 118, 83, 0.45); }
+  50%      { box-shadow: 0 0 20px 2px rgba(5, 118, 83, 0.32), 0 10px 28px -8px rgba(5, 118, 83, 0.6); }
+}
+html:not(.dark) .ai-fab { animation: ai-fab-glow-light 2.4s ease-in-out infinite; }
 
 /* Message bubbles: a touch more separation and a lit top edge on answers. */
 .ai-surface .prose-xyz {

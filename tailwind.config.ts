@@ -26,14 +26,46 @@ const config: Config = {
       },
       colors: {
         // Base surfaces — near-black with cool depth (Vercel/Hyperliquid)
+        // Dark elevation ladder. This scale is what real components reach for -
+        // `bg-ink-900` (42 usages), `bg-ink-950` (49), `bg-ink-800` (11) - and it
+        // is DARK-ONLY in effect, because the light theme already remaps every
+        // `bg-ink-*` class onto its semantic surface tokens.
+        //
+        // The low end was compressed almost flat against the #08080a page, which
+        // is why dark cards looked as undefined as light ones did. Measured from
+        // rendered pixels, the homepage stat card (`bg-ink-900/90`) sat just
+        // +0.82 L* above the ground - below the ~1 threshold where the eye can
+        // separate two surfaces at all. Fixing `.surface`/`.glass` did nothing
+        // for it, because that card never touches those primitives.
+        //
+        //   ink-900  +0.57 -> +2.60 L*   (the common card)
+        //   ink-800  +1.84 -> +5.75 L*   (raised card / hover)
+        //   ink-700  +4.77 -> +9.80 L*   (popovers, menus)
+        //
+        // Each step is now clearly above the one below it instead of three of
+        // them crowding into the first 2 L*. Still very dark greys - the brand
+        // stays dark luxe - they are just distinguishable now.
+        // Second raise. The first one took ink-900 from +0.57 to +2.60 L* above
+        // the page, which moved it from "invisible" to "subtle" but left dark at
+        // roughly half the separation the light theme got (+5.28). Subtle was
+        // still being read as "nothing changed", and on a default-dark site that
+        // is the only impression most visitors form. Matching the bands:
+        //
+        //   ink-900  +0.57 -> +4.73 L*   (the common card, 42 usages)
+        //   ink-800  +1.84 -> +8.77 L*   (raised card / hover, 11)
+        //   ink-700  +4.77 -> +12.7 L*   (popovers, menus)
+        //
+        // These are still very dark greys - #15151a is not a light surface - so
+        // the dark-luxe direction holds. What changes is that a card now has an
+        // edge you can see without hunting for its border.
         ink: {
           DEFAULT: "#08080a",
           950: "#050507",
-          900: "#0a0a0d",
-          800: "#0e0e12",
-          700: "#15151b",
-          600: "#1c1c24",
-          500: "#26262f",
+          900: "#15151a",
+          800: "#1d1d23",
+          700: "#25252c",
+          600: "#2e2e37",
+          500: "#3a3a44",
         },
         // Brand gold — premium / identity
         gold: {
@@ -72,7 +104,17 @@ const config: Config = {
         "surface-2": "var(--surface-2)",
         content: "var(--content)",
         "content-muted": "var(--content-muted)",
+        // Third text tier for 9-12px labels, legal lines and timestamps. Prefer
+        // this over reaching further down the zinc ramp: zinc-600/700 were the
+        // classes carrying that copy, and they measured under AA in BOTH themes.
+        "content-subtle": "var(--content-subtle)",
         hairline: "var(--hairline)",
+        // Market direction, theme-aware because no single step of either scale
+        // clears AA on both grounds (mint-400 is 1.78:1 on light; red-600 is
+        // 4.14:1 on dark). Use these for up/down numbers rather than
+        // text-mint-*/text-red-* so new UI is readable in both themes.
+        "data-up": "var(--data-up)",
+        "data-down": "var(--data-down)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
