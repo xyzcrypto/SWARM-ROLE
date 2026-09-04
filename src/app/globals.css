@@ -1172,11 +1172,39 @@ html:not(.dark) .border-white\/5  { border-color: rgba(0, 0, 0, 0.06); }
 html:not(.dark) .border-white\/10 { border-color: rgba(0, 0, 0, 0.10); }
 
 /* Subtle white tints → subtle dark tints. */
-html:not(.dark) .bg-white\/5  { background-color: rgba(0, 0, 0, 0.04); }
-html:not(.dark) .bg-white\/10 { background-color: rgba(0, 0, 0, 0.06); }
-html:not(.dark) .bg-white\/\[0\.02\] { background-color: rgba(0, 0, 0, 0.02); }
-html:not(.dark) .bg-white\/\[0\.03\] { background-color: rgba(0, 0, 0, 0.03); }
-html:not(.dark) .bg-white\/\[0\.04\] { background-color: rgba(0, 0, 0, 0.045); }
+/* ⚠️ This block is the single biggest reason the light theme read flat, and it
+   is an inverted-elevation bug rather than a colour-picking one.
+
+   In dark, `bg-white/5` means "a raised surface catching a little light" - the
+   standard way a dark UI signals elevation. Inverting it literally for light
+   turned it into a 4% BLACK tint, i.e. a panel slightly DARKER than the page.
+   Darker-than-ground reads as recessed or disabled, which is the opposite of the
+   intent, and with no shadow to correct it these became flat grey rectangles.
+
+   It matters at scale: ~190 elements use this family directly rather than the
+   `.surface`/`.glass` primitives (which have 144 usages between them), so fixing
+   only the primitives left most of the UI untouched - which is exactly what the
+   review reported.
+
+   Light UIs raise a surface by making it LIGHTER than the page and giving it a
+   shadow, so that is what these do now. The page is #eef1f6 and these land on
+   white, so they sit ~4.9 L* above it. `border-line` already resolves to the
+   hairline, which keeps a white chip visible when it sits on a white card.
+
+   Hover variants (`.hover\:bg-white\/5:hover`) are a different class and are
+   deliberately NOT caught here - a hover tint should stay a tint. */
+html:not(.dark) .bg-white\/5,
+html:not(.dark) .bg-white\/\[0\.03\],
+html:not(.dark) .bg-white\/\[0\.04\] {
+  background-color: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+/* The faintest step stays a tint: at 2% it is a wash behind content (table
+   stripes, inset wells), not a card, so lifting it would be wrong. */
+html:not(.dark) .bg-white\/\[0\.02\] { background-color: rgba(16, 18, 27, 0.025); }
+/* /10 is the heavier step - inputs, pressed states, dividers. Keep it a tint so
+   it still reads as inset, just neutral rather than muddy. */
+html:not(.dark) .bg-white\/10 { background-color: rgba(16, 18, 27, 0.055); }
 
 /* Inputs & dark overlays/dropdowns → light surfaces. */
 html:not(.dark) .bg-ink-700\/60 { background-color: var(--surface-2); }
