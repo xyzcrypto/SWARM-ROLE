@@ -26,14 +26,33 @@ const config: Config = {
       },
       colors: {
         // Base surfaces — near-black with cool depth (Vercel/Hyperliquid)
+        // Dark elevation ladder. This scale is what real components reach for -
+        // `bg-ink-900` (42 usages), `bg-ink-950` (49), `bg-ink-800` (11) - and it
+        // is DARK-ONLY in effect, because the light theme already remaps every
+        // `bg-ink-*` class onto its semantic surface tokens.
+        //
+        // The low end was compressed almost flat against the #08080a page, which
+        // is why dark cards looked as undefined as light ones did. Measured from
+        // rendered pixels, the homepage stat card (`bg-ink-900/90`) sat just
+        // +0.82 L* above the ground - below the ~1 threshold where the eye can
+        // separate two surfaces at all. Fixing `.surface`/`.glass` did nothing
+        // for it, because that card never touches those primitives.
+        //
+        //   ink-900  +0.57 -> +2.60 L*   (the common card)
+        //   ink-800  +1.84 -> +5.75 L*   (raised card / hover)
+        //   ink-700  +4.77 -> +9.80 L*   (popovers, menus)
+        //
+        // Each step is now clearly above the one below it instead of three of
+        // them crowding into the first 2 L*. Still very dark greys - the brand
+        // stays dark luxe - they are just distinguishable now.
         ink: {
           DEFAULT: "#08080a",
           950: "#050507",
-          900: "#0a0a0d",
-          800: "#0e0e12",
-          700: "#15151b",
-          600: "#1c1c24",
-          500: "#26262f",
+          900: "#101015",
+          800: "#17171d",
+          700: "#1f1f26",
+          600: "#282830",
+          500: "#33333c",
         },
         // Brand gold — premium / identity
         gold: {

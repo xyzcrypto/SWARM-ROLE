@@ -62,9 +62,25 @@
   /* Semantic theme tokens - DARK (default). Values match the current design
      exactly, so dark mode is pixel-identical to before this change. */
   .dark {
-    --bg: #08080a;
-    --surface: #0e0e12;
-    --surface-2: #15151b;
+    /* Dark elevation ladder, raised for the same reason the light one was, and
+       found the same way - by sampling rendered pixels rather than trusting the
+       hex values. The homepage stat card measured just +0.82 L* above the page.
+
+       The cause is that `--surface` was #0e0e12, only +1.84 L* above the #08080a
+       page, and the classes real components actually use (`bg-ink-900`,
+       `bg-ink-900/90`, `bg-ink-950`) resolve to it - so an opacity variant like
+       /90 pulled a card back down to within 1 L* of the ground and it stopped
+       reading as a card at all. Fixing `.surface`/`.glass` alone did not help,
+       because most cards never touch those primitives.
+
+           --surface    +1.84 -> +4.73 L*
+           --surface-2  +4.77 -> +8.77 L*
+
+       Still unmistakably dark luxe - #15151a is a very dark grey - but a card now
+       has an edge you can see without relying entirely on its border. */
+    --bg: #08080a;        /* L*  2.2 */
+    --surface: #15151a;   /* L*  7.0 */
+    --surface-2: #1d1d23; /* L* 11.0 */
     --content: #d4d4d8;
     --content-muted: #a1a1aa;         /* 7.81:1 on --bg */
     /* Same third tier as light. Dark was NOT exempt from this: measured on the
@@ -553,21 +569,40 @@ html.lenis body {
 /* ----------------------------------------------------------------
    Surfaces - glass + hairline cards (Vercel/Jupiter)
 ----------------------------------------------------------------- */
+/* Same fade fix, one step stronger: .glass is the overlay/dialog surface, so it
+   sits above .surface in the elevation order and needs to stay clearly above it
+   even where the two are adjacent. Bottom 0.02 -> 0.05. */
 .glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.085), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.13);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.08) inset,
     0 20px 50px -28px rgba(0, 0, 0, 0.8);
 }
 /* Rich glassmorphism for cards (blurs the animated backdrop behind) */
+/* Dark cards had the SAME fade-to-invisible problem the light ones did, and it
+   went unnoticed because dark leans on its border to define edges.
+   Measured from rendered pixels against the #08080a page:
+
+     gradient top    alpha 0.045  ->  dL* +3.71   visible
+     gradient bottom alpha 0.012  ->  dL* +0.83   INVISIBLE
+
+   So every card was legible along its top edge and dissolved into the page by
+   its bottom one. The top only moves 0.045 -> 0.055; the fix is the BOTTOM not
+   dying, 0.012 -> 0.032, which holds the whole card ~2.6-5.0 L* clear. That is
+   still firmly dark-luxe - restraint is the house rule - it is just no longer
+   a card that stops existing halfway down.
+
+   Border 0.09 -> 0.11 and a soft outer shadow under the existing inset
+   highlight, so elevation reads even where a card sits on a busy background. */
 .surface {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.032));
+  border: 1px solid rgba(255, 255, 255, 0.11);
   backdrop-filter: blur(10px) saturate(130%);
   -webkit-backdrop-filter: blur(10px) saturate(130%);
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.05) inset;
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    0 2px 8px -2px rgba(0, 0, 0, 0.5), 0 12px 28px -12px rgba(0, 0, 0, 0.6);
 }
 /* Mobile GPUs stall on heavy backdrop blur during scroll (30fps jank) - keep
    the glass look but cut the filter cost on small screens. Visual difference
