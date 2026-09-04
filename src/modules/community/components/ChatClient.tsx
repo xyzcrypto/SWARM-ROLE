@@ -24,6 +24,8 @@ import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
 import { cn } from "@/lib/utils";
 import { safeHref, cleanBareUrl } from "@/lib/links";
 import { MicButton } from "@/shared/components/MicButton";
+import { hapticToggle } from "@shared/utils/haptics";
+import { hapticTap } from "@shared/utils/haptics";
 
 const MAX_LENGTH = 500;
 const CHANNEL = "community";
@@ -919,6 +921,7 @@ export function ChatClient({
     const isMedia = overrideText != null;
     const text = (overrideText ?? body).trim();
     if (!text || sending || !me) return;
+    hapticTap(); // message committed
     // Sending is a user gesture - unlock audio here too so incoming-message
     // blips work even if the toggle was already on at page load.
     if (soundOnRef.current) ensureAudio();
@@ -993,6 +996,7 @@ export function ChatClient({
 
   async function toggleReaction(messageId: string, emoji: string) {
     if (!me) return;
+    hapticToggle(); // reaction lands optimistically; the buzz goes with the visual flip
     setReactOpenId(null);
     const msg = messages.find((m) => m.id === messageId);
     const mine = msg?.reactions.find((r) => r.emoji === emoji)?.userIds.includes(me.id) ?? false;
@@ -1009,6 +1013,7 @@ export function ChatClient({
   // Vote / retract / move (Telegram semantics), optimistic with rollback.
   async function vote(m: Message, optionId: string) {
     if (!me || !m.poll || m.pending) return;
+    hapticToggle(); // poll vote
     const prevPoll = m.poll;
     const from = m.poll.myVote ?? null;
     const to = from === optionId ? null : optionId; // same option again = retract

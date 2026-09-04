@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Link2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { hapticTap } from "@shared/utils/haptics";
 
 // Copy the current profile URL to the clipboard with a brief "Copied" state.
 // `compact` = icon-only round button (takes little space on the profile header).
@@ -13,6 +14,7 @@ export function CopyLinkButton({ compact = false, className }: { compact?: boole
     try {
       await navigator.clipboard.writeText(window.location.href);
       setCopied(true);
+      hapticTap(); // on mobile the buzz confirms the copy more reliably than the toast
       setTimeout(() => setCopied(false), 1800);
     } catch { /* clipboard blocked — no-op */ }
   };

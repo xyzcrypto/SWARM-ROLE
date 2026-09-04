@@ -22,6 +22,7 @@ import { pageSuggestions } from "@shared/utils/ai-page-context";
 import { useSpeechInput } from "@/shared/hooks/useSpeechInput";
 import { useDraggablePanel } from "@/shared/hooks/useDraggablePanel";
 import { useResizablePanel, type Edge } from "@/shared/hooks/useResizablePanel";
+import { hapticTap } from "@shared/utils/haptics";
 
 // Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
 export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
@@ -256,6 +257,7 @@ export function XyzAiWidget() {
   async function send(text: string, base?: ChatMsg[]) {
     const q = text.trim();
     if (!q || busy) return;
+    hapticTap(); // asking the assistant is a committed action, not a navigation
     setError(null);
     setInput("");
 
