@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Sun, Moon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { hapticToggle } from "@shared/utils/haptics";
 
 /**
  * Light/dark theme toggle. Toggles the `dark` class on <html> and persists the
@@ -17,6 +18,9 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   }, []);
 
   function toggle() {
+    // A state flip the user should feel land. No-ops on iOS (no Vibration API)
+    // and under reduced motion, so the visual flip is always the real feedback.
+    hapticToggle();
     const isDark = document.documentElement.classList.toggle("dark");
     try {
       localStorage.setItem("theme", isDark ? "dark" : "light");

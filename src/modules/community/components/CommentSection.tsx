@@ -7,6 +7,7 @@ import { cn, formatDateTime } from "@/lib/utils";
 import { useRealtime } from "@/lib/useRealtime";
 import { MessageButton } from "@/components/MessageButton";
 import { Avatar } from "@/components/Avatar";
+import { hapticTap } from "@shared/utils/haptics";
 
 type CommentAuthor = { name: string; username: string | null; image: string | null; premium?: boolean };
 type Comment = { id: string; body: string; createdAt: string; author: CommentAuthor };
@@ -98,6 +99,7 @@ export function CommentSection({ postId }: { postId: string }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!body.trim()) return;
+    hapticTap(); // posting a comment
     setError("");
     setPosting(true);
     try {

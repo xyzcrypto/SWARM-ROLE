@@ -21,6 +21,7 @@ import { useScrollLock } from "@/lib/useScrollLock";
 import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import { MicButton } from "@/shared/components/MicButton";
+import { hapticToggle } from "@shared/utils/haptics";
 
 // Share a SHORT on-site link (`/news/read?u=<source-url>`) - opens the story on
 // our domain but stays tiny (just the source url), so it's easy to paste into a
@@ -274,6 +275,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
 
   // Toggle save. Optimistic local update + DB sync (signed in) or localStorage (guest).
   const toggleSave = useCallback((item: NewsItem) => {
+    hapticToggle(); // save / unsave is a state flip the reader should feel land
     setSaved((prev) => {
       const exists = prev.some((s) => s.id === item.id);
       const next = exists ? prev.filter((s) => s.id !== item.id) : [item, ...prev];
