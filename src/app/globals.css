@@ -1292,6 +1292,68 @@ html:not(.dark) .surface-hover:hover {
     0 24px 48px -12px rgba(226, 167, 47, 0.22);
 }
 
+/* ── Product mock visuals (.mini-viz) ─────────────────────────────────────
+   Seven of these sit inside the product cards (TradingVisual, AirdropVisual,
+   PremiumVisual, AcademyVisual, AiVisual, GamifiedVisual, MoreVisual) and none
+   of them had any light treatment at all, which is why the AI "THINKING" panel
+   and the Gamified XP panel rendered as dark slabs on a white card.
+
+   The cause is an opacity-variant blind spot. Each container is either
+   `bg-ink-950/60` or `bg-gradient-to-br from-<hue>/1x to-ink-950/70`, and the
+   light override that remaps `bg-ink-950` does NOT apply to `bg-ink-950/60` -
+   that is a different class - so the raw #050507 came through at 60-70% on a
+   white surface. Same blind spot as the `bg-white/5` family, one level deeper.
+
+   In light these are inset wells: slightly BELOW the white card they sit in,
+   which is the correct direction for a recessed panel, and the inverse of a
+   card, which sits above the page. */
+html:not(.dark) .mini-viz {
+  background-image: none;
+  background-color: #eef1f6;
+  border-color: var(--hairline);
+  box-shadow: inset 0 1px 2px rgba(16, 18, 27, 0.05);
+}
+/* Each visual keeps a hint of its accent hue, hooked off the border class it
+   already carries so no component markup has to change. */
+html:not(.dark) .mini-viz.border-gold-500\/20   { background-color: #faf5e9; border-color: rgba(138, 88, 16, 0.22); }
+html:not(.dark) .mini-viz.border-violet-500\/20 { background-color: #f2effb; border-color: rgba(109, 40, 217, 0.22); }
+html:not(.dark) .mini-viz.border-mint-500\/15   { background-color: #e9f6f1; border-color: rgba(5, 118, 83, 0.22); }
+
+/* The animated bars/fills inside are tuned for a dark ground - pale violet,
+   mint and gold at low alpha, which on a light well is the "washed out" look
+   reported. Darkening them in place keeps every animation, gradient direction
+   and keyframe exactly as authored; only the rendered value changes. Scoped to
+   `.mini-viz`, so nothing outside these mock panels is affected. */
+html:not(.dark) .mini-viz [class*="from-violet"],
+html:not(.dark) .mini-viz [class*="from-mint"],
+html:not(.dark) .mini-viz [class*="from-gold"],
+html:not(.dark) .mini-viz [class*="from-sky"],
+html:not(.dark) .mini-viz [class*="bg-violet"],
+html:not(.dark) .mini-viz [class*="bg-mint"],
+html:not(.dark) .mini-viz [class*="bg-gold"] {
+  filter: saturate(1.45) brightness(0.66);
+}
+/* The inner level badge is `bg-ink-950` (no opacity variant), so it already
+   resolves to a light surface - it just needs an edge to read against the well. */
+html:not(.dark) .mini-viz .bg-ink-950 { box-shadow: inset 0 0 0 1px var(--hairline); }
+/* Caption text inside the wells uses opacity variants (`text-violet-300/70`,
+   `text-zinc-500/70`), which are separate classes and so miss the colour
+   overrides above. On a dark ground the dimming reads as "secondary"; on a light
+   one it reads as unreadable - the same alpha problem as `text-mint-300/70`
+   elsewhere. Full opacity, and the hue darkened to sit on a light well. */
+html:not(.dark) .mini-viz [class*="text-violet-300"] { color: #5b21b6; }
+html:not(.dark) .mini-viz [class*="text-mint-300"],
+html:not(.dark) .mini-viz [class*="text-mint-200"] { color: var(--data-up); }
+html:not(.dark) .mini-viz [class*="text-zinc-500"],
+html:not(.dark) .mini-viz [class*="text-zinc-400"] { color: var(--content-muted); }
+/* gold too - `text-gold-300/70` on the PRO badge measured 1.62:1. Every accent
+   family has an opacity variant somewhere in these mocks, so all four are
+   covered rather than fixing them one review round at a time. */
+html:not(.dark) .mini-viz [class*="text-gold-300"],
+html:not(.dark) .mini-viz [class*="text-gold-200"] { color: #8a5810; }
+html:not(.dark) .mini-viz [class*="text-sky-300"] { color: #0369a1; }
+html:not(.dark) .mini-viz [class*="text-rose-300"] { color: #b91c1c; }
+
 /* Soft buttons on light. */
 html:not(.dark) .btn-secondary {
   color: var(--content);
