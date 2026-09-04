@@ -8,17 +8,44 @@
     --font-mono: var(--font-geist-mono);
 
     /* Semantic theme tokens - LIGHT (softened for smoother, less-harsh surfaces). */
-    --bg: #f7f8fa;
-    --surface: #ffffff;
-    --surface-2: #f1f3f6;
+    /* Elevation ladder, in perceptual lightness (L*), because contrast ratio is
+       the wrong metric for surfaces - it answers "is this text readable", not
+       "can I see where the card ends".
+
+       It used to be bg 97.6 / surface 100 / surface-2 95.8, and cards fade from
+       #ffffff to #f9fafc at the bottom - which put the bottom of every card
+       0.69 L* from the page. Below ~1 that is invisible, so cards genuinely
+       melted into the background and the whole theme read flat and washed out.
+       That, not text colour, is what "light theme looks unfinished" was.
+
+       Now a real 3-step ladder: 95.1 -> 97.2 -> 100. A white card sits 4.9 L*
+       above the page, which is the "clearly separated" band, while the page stays
+       light and airy rather than going grey. */
+    --bg: #eef1f6;        /* L* 95.1 */
+    --surface: #ffffff;   /* L* 100  */
+    --surface-2: #f6f7fa; /* L* 97.2 - the intermediate step, above the page */
     --content: #1b1b22;
-    --content-muted: #5b5b66;         /* 6.31:1 on --bg */
+    --content-muted: #55555f;         /* 6.93:1 on --bg, headroom over tinted card fills */
     /* Third text tier, for 9-12px labels, legal lines and timestamps. It exists
        because that copy was reaching for `text-zinc-600/700`, which the light
        ramp below mapped to #87878f / #a6a6ad - 3.35:1 and 2.28:1, both under AA.
        5.03:1, so it still passes at 11px. */
     --content-subtle: #6a6a74;
-    --hairline: rgba(0, 0, 0, 0.07);
+    /* 0.07 -> 0.10. On a white card a 7% black hairline is close to invisible;
+       light themes carry their structure in borders and shadows, where dark
+       carries it in glow. */
+    --hairline: rgba(16, 18, 27, 0.10);
+    /* Light-mode elevation. There was no such token: cards reused shadows built
+       for dark, whose signature move is an `inset rgba(255,255,255,...)` top
+       highlight - a lit top edge against a black ground, which does nothing on
+       white - plus a very wide, very soft black blur that reads as a grey smudge
+       rather than a lift. These are tight, layered and low-alpha, the way a light
+       UI actually gets depth. */
+    --shadow-1: 0 1px 2px rgba(16, 18, 27, 0.06), 0 1px 3px rgba(16, 18, 27, 0.04);
+    --shadow-2: 0 1px 2px rgba(16, 18, 27, 0.06), 0 4px 10px -2px rgba(16, 18, 27, 0.08),
+      0 12px 28px -8px rgba(16, 18, 27, 0.08);
+    --shadow-3: 0 1px 2px rgba(16, 18, 27, 0.07), 0 8px 20px -4px rgba(16, 18, 27, 0.10),
+      0 24px 48px -12px rgba(16, 18, 27, 0.12);
     /* Market direction. Deliberately theme-aware: measured against each ground,
        NO single step of either scale clears AA on both. On this light ground
        mint-300/400/500/600 land at 1.46 / 1.78 / 2.35 / 3.59:1 - so the "+9.84%"
@@ -1101,8 +1128,8 @@ html:not(.dark) .text-zinc-700 { color: var(--content-subtle); }
 
 /* Brand accent text - gold-200/300 & mint-200/300 are too pale on white. */
 html:not(.dark) .text-gold-100 { color: #7a4a0d; }
-html:not(.dark) .text-gold-200 { color: #9a6310; }
-html:not(.dark) .text-gold-300 { color: #ad6f10; }
+html:not(.dark) .text-gold-200 { color: #8a5810; }
+html:not(.dark) .text-gold-300 { color: #8a5810; }
 html:not(.dark) .text-mint-200 { color: var(--data-up); }
 /* Was #039567 (mint-600) = 3.59:1, under AA. mint-300/400 are what the markets
    UI paints "+9.84%" with, so this was the worst finding of the audit: the
@@ -1110,9 +1137,9 @@ html:not(.dark) .text-mint-200 { color: var(--data-up); }
    --data-up is mint-700, 5.31:1. Text only - bg-/border-mint are untouched. */
 html:not(.dark) .text-mint-300 { color: var(--data-up); }
 html:not(.dark) .hover\:text-gold-100:hover { color: #7a4a0d; }
-html:not(.dark) .hover\:text-gold-200:hover { color: #9a6310; }
+html:not(.dark) .hover\:text-gold-200:hover { color: #8a5810; }
 html:not(.dark) .hover\:text-mint-200:hover { color: #057653; }
-html:not(.dark) .group:hover .group-hover\:text-gold-200 { color: #9a6310; }
+html:not(.dark) .group:hover .group-hover\:text-gold-200 { color: #8a5810; }
 html:not(.dark) .group:hover .group-hover\:text-mint-200 { color: #057653; }
 
 /* Gradient text - darken so the pale end doesn't vanish on white. */
@@ -1172,26 +1199,34 @@ html:not(.dark) .bg-ink-900 { background-color: var(--surface); }
 html:not(.dark) .placeholder\:text-zinc-600::placeholder { color: #9a9aa2; }
 
 /* Surface primitives - clean white cards (ambient behind them is hidden). */
+/* Cards keep a whisper of top-down gradient, but it now ends near-white instead
+   of at #f9fafc. That old endpoint sat 0.69 L* from the page, so the bottom of
+   every card dissolved into the background; holding it near #fdfdfe keeps the
+   card ~4.5 L* clear along its whole height, which is what makes it read as a
+   distinct object rather than a tinted region of the page. */
 html:not(.dark) .glass {
-  background: linear-gradient(180deg, #ffffff, #f7f8fb);
-  border-color: rgba(16, 18, 27, 0.09);
-  box-shadow: 0 1px 2px rgba(16, 18, 27, 0.05), 0 26px 50px -32px rgba(16, 18, 27, 0.28);
+  background: linear-gradient(180deg, #ffffff, #fbfcfd);
+  border-color: var(--hairline);
+  box-shadow: var(--shadow-3);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
-/* Premium light cards: a whisper of top-down gradient + a soft lift shadow +
-   a hairline warm border, so cards read crisp and elevated (not flat white). */
 html:not(.dark) .surface {
-  background: linear-gradient(180deg, #ffffff, #f9fafc);
-  border-color: rgba(16, 18, 27, 0.08);
-  box-shadow: 0 1px 2px rgba(16, 18, 27, 0.04), 0 10px 26px -20px rgba(16, 18, 27, 0.16);
+  background: linear-gradient(180deg, #ffffff, #fdfdfe);
+  border-color: var(--hairline);
+  box-shadow: var(--shadow-2);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
+/* Hover raises the card a level rather than recolouring it: the shadow steps up
+   and the border warms to gold, while the fill stays essentially white. A card
+   that changes colour under the cursor reads as a different card; one that
+   changes height reads as the same card, lifted. */
 html:not(.dark) .surface-hover:hover {
-  border-color: rgba(226, 167, 47, 0.5);
-  background: linear-gradient(180deg, #ffffff, #fbf7ee);
-  box-shadow: 0 2px 4px rgba(16, 18, 27, 0.05), 0 16px 34px -22px rgba(226, 167, 47, 0.28);
+  border-color: rgba(226, 167, 47, 0.55);
+  background: linear-gradient(180deg, #ffffff, #fffdf8);
+  box-shadow: 0 1px 2px rgba(16, 18, 27, 0.07), 0 8px 20px -4px rgba(16, 18, 27, 0.10),
+    0 24px 48px -12px rgba(226, 167, 47, 0.22);
 }
 
 /* Soft buttons on light. */
@@ -1299,13 +1334,13 @@ html:not(.dark) .grid-bg {
 html:not(.dark) .ring-white\/10 { --tw-ring-color: rgba(0, 0, 0, 0.10); }
 html:not(.dark) .ring-white\/5  { --tw-ring-color: rgba(0, 0, 0, 0.06); }
 
-html:not(.dark) .text-gold-400 { color: #ad6f10; }
-html:not(.dark) .text-gold-500 { color: #9a6310; }
+html:not(.dark) .text-gold-400 { color: #8a5810; }
+html:not(.dark) .text-gold-500 { color: #8a5810; }
 html:not(.dark) .text-mint-400 { color: var(--data-up); }
-html:not(.dark) .hover\:text-gold-300:hover { color: #ad6f10; }
+html:not(.dark) .hover\:text-gold-300:hover { color: #8a5810; }
 html:not(.dark) .hover\:text-mint-300:hover { color: #039567; }
 html:not(.dark) .group:hover .group-hover\:text-gold-100 { color: #7a4a0d; }
-html:not(.dark) .group:hover .group-hover\:text-gold-300 { color: #ad6f10; }
+html:not(.dark) .group:hover .group-hover\:text-gold-300 { color: #8a5810; }
 
 /* Status / semantic text - lift to readable shades on white. */
 html:not(.dark) .text-red-200,
