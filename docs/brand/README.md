@@ -76,7 +76,9 @@ Sites to change (`grep -rn 'logo\.png' src/ public/`):
 - `src/modules/notifications/components/PwaSetup.tsx` — install prompt
 - `src/components/Hero.tsx`
 - `src/components/OrbitalEcosystem.tsx` — the homepage core
-- `src/modules/markets/components/EcosystemCore.tsx` — three.js sprite
+  <br>(the three.js sprite in `EcosystemCore.tsx` was here too; that scene was
+  deleted in #305 — it had been unreachable behind a `false` gate, and its
+  856 KB chunk was the largest in the bundle)
 - `public/offline.html` — `box-shadow` → `filter: drop-shadow(...)`
 - `src/shared/utils/seo-schema.ts` — JSON-LD `width`/`height` (4 spots)
 

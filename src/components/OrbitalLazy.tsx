@@ -1,8 +1,6 @@
 "use client";
 
-import { Component, ReactNode } from "react";
 import dynamic from "next/dynamic";
-import { useWebglGate } from "./orbital/useWebglGate";
 
 // Same-size placeholder - avoids layout shift while the (deferred) JS loads.
 // Below-the-fold; never blocks first paint/hydration.
@@ -12,43 +10,36 @@ function Placeholder() {
   );
 }
 
-// The branded CSS orbital - the reliable, theme-correct (light + dark),
-// reduced-motion-safe centerpiece. It's the FALLBACK for the WebGL scene.
+/**
+ * The homepage centrepiece: the branded CSS orbital, code-split and mounted on
+ * the client so it never blocks first paint.
+ *
+ * ## There used to be a second option here
+ *
+ * This file chose between a three.js / React-Three-Fiber cosmos and the CSS
+ * orbital, behind `useWebglGate()` and a class error boundary. The gate had
+ * hard-returned `false` since well before the scene was deleted - it rendered
+ * inconsistently across desktop setups (blank on the owner's machine) and could
+ * not be verified in CI - so the WebGL branch had been unreachable the whole
+ * time, and the boundary was catching errors from a component that could never
+ * mount.
+ *
+ * That was not free. `three` + `@react-three/fiber` + `@react-three/drei`
+ * built an **856 KB chunk, the largest in the bundle**. Measured in a real
+ * browser it was never fetched, on mobile or desktop, before or after a full
+ * page scroll - `dynamic()` did its job - so it cost visitors nothing and cost
+ * every build, deploy and `npm install` the full amount. Dead weight that is
+ * genuinely invisible in production is the kind that survives longest.
+ *
+ * If the cinematic scene comes back, it comes back as its own verified piece of
+ * work with a capability gate that has been shown to work on real hardware -
+ * not as a branch kept warm in case someone gets to it.
+ */
 const CssOrbital = dynamic(() => import("./OrbitalEcosystem").then((m) => m.OrbitalEcosystem), {
   ssr: false,
   loading: Placeholder,
 });
 
-// The cinematic WebGL scene (three.js / R3F). Heavier, so it's only fetched when
-// the gate actually chooses it (dark theme + motion allowed + WebGL available).
-const WebglOrbital = dynamic(() => import("./orbital/OrbitalScene"), {
-  ssr: false,
-  loading: Placeholder,
-});
-
-// If the WebGL scene ever throws at runtime (shader/driver/geometry issue on some
-// device), fall back to the CSS orbital instead of blanking the whole section.
-class WebglBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  componentDidCatch(err: unknown) {
-     
-    console.warn("[orbital] WebGL scene failed, using CSS fallback:", err);
-  }
-  render() {
-    return this.state.failed ? this.props.fallback : this.props.children;
-  }
-}
-
-// The centerpiece: cinematic WebGL cosmos on capable dark sessions, else the CSS
-// orbital. Gate logic lives in useWebglGate (shared with OrbitalBackdrop).
 export function OrbitalLazy() {
-  if (!useWebglGate()) return <CssOrbital />;
-  return (
-    <WebglBoundary fallback={<CssOrbital />}>
-      <WebglOrbital />
-    </WebglBoundary>
-  );
+  return <CssOrbital />;
 }

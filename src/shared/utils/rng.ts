@@ -1,7 +1,12 @@
 /**
- * Tiny deterministic PRNG (mulberry32) for the decorative WebGL scene.
+ * Tiny deterministic PRNG (mulberry32) for decorative fields.
  *
- * The star/dust fields used to seed themselves with `Math.random()` inside a
+ * Written for the WebGL orbital's star/dust fields, which have since been
+ * deleted; it lives here rather than in that folder because the CSS orbital
+ * (`OrbitalEcosystem`) uses it for its particle field and is the only caller
+ * left. Generic enough that this is where it belonged anyway.
+ *
+ * Those fields used to seed themselves with `Math.random()` inside a
  * `useMemo`. That is an impure call during render: React may re-run the memo
  * (StrictMode double-render, a cache miss on remount), and the whole field
  * would silently jump to a different layout. It also trips

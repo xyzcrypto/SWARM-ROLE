@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { mulberry32 } from "@/components/orbital/rng";
+import { mulberry32 } from "@shared/utils/rng";
 import { useMediaQuery } from "@/lib/useClientFlag";
 
 type Node = { label: string; desc: string; href: string; tone: "gold" | "mint" | "violet" };

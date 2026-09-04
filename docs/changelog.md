@@ -5,6 +5,72 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-04 (76) — Deleting the WebGL orbital, and one obsolete header
+
+Follow-up to (75), which reported both of these and changed neither. Owner said
+remove.
+
+### The three.js cosmos is gone
+
+`useWebglGate()` hard-returned `false`, so `OrbitalLazy`'s WebGL branch had been
+unreachable for months and the `WebglBoundary` around it was catching errors from
+a component that could never mount. `three` + `@react-three/fiber` +
+`@react-three/drei` still built the largest chunk in the bundle for it.
+
+Measured, `main` vs this branch, same machine:
+
+| | main | after |
+|---|---|---|
+| `.next/static/chunks` | 3820 KB | **3112 KB** (−708 KB, −19%) |
+| `node_modules` | 1184 MB | **1063 MB** (−121 MB, −10%) |
+| `WebGLRenderer` in any emitted chunk | yes | **no** |
+
+Visitors gain nothing, and that is the honest framing: `dynamic()` did its job, so
+the chunk was never fetched by anyone. **Dead weight that is genuinely invisible
+in production is the kind that survives longest** — this one outlived the decision
+to disable it by months precisely because no user-facing number ever moved.
+
+Deleted: `OrbitalScene`, `EcosystemCore`, `Glow`, `HeroLighting`, `Moon`,
+`Saturn`, `SpaceParticles`, `StarField`, `textures`, `constants`, `useWebglGate`
+(and their `src/components/orbital/*` shims), plus `OrbitalScene3D.tsx` — an
+older R3F attempt that nothing imported at all.
+
+**Kept and moved:** `rng.ts` (mulberry32). It was written for the WebGL star
+fields but the CSS orbital uses it for its particle field, so it moved to
+`src/shared/utils/rng.ts` rather than dying with its old neighbours. That is the
+one thing a bulk delete here could quietly have broken.
+
+`OrbitalLazy` keeps its `dynamic({ ssr: false })` + placeholder — that part was
+always doing real work — and now just renders the CSS orbital. If the cinematic
+scene returns, it returns as its own verified piece of work with a gate shown to
+work on real hardware, not as a branch kept warm in case someone gets to it.
+
+Verified after: homepage and orbital section render (9 nodes, coin, rings,
+starfield, shooting stars), no console or page errors, no stuck placeholder,
+route table byte-identical, 721 tests green.
+
+### `interest-cohort=()` removed from `Permissions-Policy`
+
+It was the opt-out for FLoC, which Google withdrew in 2023 and replaced with the
+Topics API. No shipping browser has recognised the token since, so every page
+load logged `Unrecognized feature: 'interest-cohort'` and opted out of nothing.
+Topics has its own token (`browsing-topics`) and is not enabled here, so there is
+nothing to replace it with. Verified on the built server:
+
+```
+Permissions-Policy: camera=(), microphone=(self), geolocation=()
+```
+
+`microphone=(self)` is untouched — `()` there blocks the mic for every origin
+including this one, which is the bug that made dictation impossible in #259.
+
+**Live observable:** the homepage console no longer logs
+`Unrecognized feature: 'interest-cohort'`, and DevTools → Network → JS shows no
+~856 KB chunk. Falsified if the orbital section renders as a stuck grey pulsing
+circle (the lazy placeholder never resolving).
+
+---
+
 ## 2026-09-04 (75) — The 512px logo master was the site's heaviest request
 
 PR 4 of the four-part visual pass, and it did not end up being the PR the brief
