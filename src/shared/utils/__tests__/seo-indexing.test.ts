@@ -71,7 +71,18 @@ describe("the default social card", () => {
   });
 
   it("keeps the square logo for favicons, which should stay square", () => {
-    expect(layout).toMatch(/icons:\s*\{\s*icon:\s*"\/logo\.png"/);
+    // The point of this test is the SHAPE - a favicon must not inherit the
+    // 1200x630 card. It used to assert the literal `icon: "/logo.png"`, which
+    // pinned the file rather than the property: `/logo.png` is the 512x512
+    // master and serving it as a favicon cost 338 KB on every page load (see
+    // logo-asset-weight.test.ts). The favicons are now square PNGs at favicon
+    // sizes, so the shape is unchanged and the weight is 6% of what it was.
+    const icons = layout.match(/icons:\s*\{[\s\S]*?\n  \},/)?.[0] ?? "";
+    expect(icons).not.toBe("");
+    const sizes = [...icons.matchAll(/sizes:\s*"(\d+)x(\d+)"/g)];
+    expect(sizes.length).toBeGreaterThan(0);
+    for (const [, w, h] of sizes) expect(w).toBe(h);
+    expect(icons).not.toMatch(/icon:\s*\[?[\s\S]{0,80}\/logo\.png/);
   });
 });
 

@@ -36,7 +36,14 @@
 </head>
 <body>
   <div class="card">
-    <img class="logo" src="/logo.png" alt="XYZ Crypto" />
+    <!-- A dedicated 168px asset, not /logo.png. This page is precached by the
+         service worker, so whatever it names is downloaded by every first-time
+         visitor whether or not they ever go offline - and /logo.png is a 512px
+         RGBA master weighing 338 KB, to fill the 84px box below. 13.9 KB does
+         the same job. Every other use of the coin on the site goes through
+         next/image, which already emits 4-18 KB; this page cannot, because it
+         has to render with no server and no framework. -->
+    <img class="logo" src="/logo-offline.webp" alt="XYZ Crypto" />
     <h1>You're offline</h1>
     <p>XYZ Crypto needs a connection for live market &amp; news data. Check your network - your last-viewed pages still work.</p>
     <button onclick="location.reload()">Try again</button>

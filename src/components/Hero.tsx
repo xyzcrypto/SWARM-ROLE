@@ -8,6 +8,7 @@ import { Container } from "./ui/primitives";
 import { AnimatedBackground } from "./AnimatedBackground";
 import { Starfield } from "./Starfield";
 import { HeroCta, type HeroResearch } from "./HeroCta";
+import { useLiteMotion } from "@shared/hooks/useClientFlag";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -59,6 +60,16 @@ const toneClass: Record<string, string> = {
 };
 
 export function Hero({ memberCount = 0, research }: { memberCount?: number; research: HeroResearch }) {
+  // The medallion is the heaviest thing left on the lite tier. Measured at
+  // 390x844 / 6x CPU with the ambient wash already gated: 30.9 fps with it,
+  // 41.7 without it entirely - and of that gap, the seven badge pulses below
+  // were 4.1 and the glow's blur 4.6. Only those two are dropped; the coin,
+  // the rings and the orbit stay, because they are the thing itself.
+  //
+  // This is a hook and not a CSS rule because framer-motion runs its `animate`
+  // loop on its own rAF: it shows up in neither `document.getAnimations()` nor
+  // `animation-play-state`, so `html.lite-motion` genuinely cannot see it.
+  const lite = useLiteMotion();
   const mx = useMotionValue(0);
   const my = useMotionValue(0);
   const rx = useSpring(useTransform(my, [-0.5, 0.5], [10, -10]), { stiffness: 120, damping: 14 });
@@ -196,7 +207,12 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
               style={{ "--pop-delay": "0.34s" } as React.CSSProperties}
               className="hero-fade absolute inset-12 animate-spin-slow rounded-full border border-mint-400/20 sm:inset-14"
             />
-            <div className="absolute inset-16 animate-pulse-dot rounded-full bg-gold-500/20 blur-3xl" />
+            {/* `hero-glow` is a handle for the lite tier, which swaps the 3xl
+                Gaussian blur for an equivalent radial gradient. A blur that
+                large is re-rasterised as the medallion tilts and pulses, and
+                removing it was worth ~4.6 fps on a throttled phone - see the
+                `.hero-glow` rule in globals.css. */}
+            <div className="hero-glow absolute inset-16 animate-pulse-dot rounded-full bg-gold-500/20 blur-3xl" />
 
             {/* logo, pops in then floats */}
             <div
@@ -249,7 +265,12 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
                     {/* counter-rotate to keep text upright + gentle bob */}
                     <div style={{ animation: "badge-orbit 22s linear infinite reverse" }}>
                       <motion.span
-                        animate={{ scale: [1, 1.08, 1] }}
+                        // Only the loop is switched off, never the element:
+                        // server and hydration both read `lite === false`, so
+                        // anything that changed the rendered HTML here would
+                        // flip on the render after hydration. An absent
+                        // `animate` adds and removes no attribute.
+                        animate={lite ? undefined : { scale: [1, 1.08, 1] }}
                         transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
                         className={`block rounded-full border bg-ink-900/85 px-2.5 py-1 mono text-[9px] font-semibold tracking-widest backdrop-blur-md sm:text-[10px] ${toneClass[b.tone]}`}
                       >

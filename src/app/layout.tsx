@@ -68,12 +68,33 @@ export const metadata: Metadata = {
     site: "@XYZCryptos",
     // Same reason as openGraph above - the generated card is the right ratio.
   },
-  // `icon` (the browser tab favicon) stays on the original logo along with the
-  // rest of the site. `apple` is the iOS home screen icon - the thing you tap to
-  // open the installed app - so it gets the new coin, matching the Android
-  // icons in manifest.ts. It is opaque because iOS renders transparency as
-  // black and applies its own rounded-rect mask.
-  icons: { icon: "/logo.png", apple: "/logo-app-apple.png" },
+  // `icon` is the browser tab favicon - same artwork as the site logo, at
+  // favicon sizes.
+  //
+  // ⚠️ This line used to read `icon: "/logo.png"`, and that made it the single
+  // heaviest request on the site: **338 KB fetched on every page load**, by
+  // every browser, to paint a 16x16 tab icon. It was easy to miss in a network
+  // panel because a favicon has no JS initiator - it shows up as "other" with
+  // no stack, which reads like a service-worker fetch. (The service worker was
+  // separately precaching the same file; that is fixed in public/sw.js.)
+  //
+  // Two sizes so the browser can pick: 32px for the tab (2 KB), 192px for the
+  // places that want a crisp larger one - a pinned tab, a bookmark tile, a
+  // high-DPI tab strip (20 KB). Together they are 6% of what one of them cost
+  // before. The rule this is an instance of: `/logo.png` is a 512x512 RGBA
+  // master and belongs behind next/image, never in a raw href.
+  //
+  // `apple` is the iOS home screen icon - the thing you tap to open the
+  // installed app - so it gets the new coin, matching the Android icons in
+  // manifest.ts. It is opaque because iOS renders transparency as black and
+  // applies its own rounded-rect mask.
+  icons: {
+    icon: [
+      { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/logo-app-apple.png",
+  },
   applicationName: "XYZ Crypto",
   appleWebApp: {
     capable: true,
