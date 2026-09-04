@@ -1354,6 +1354,32 @@ html:not(.dark) .mini-viz [class*="text-gold-200"] { color: #8a5810; }
 html:not(.dark) .mini-viz [class*="text-sky-300"] { color: #0369a1; }
 html:not(.dark) .mini-viz [class*="text-rose-300"] { color: #b91c1c; }
 
+/* ── Premium ("MEMBERS ONLY") well ────────────────────────────────────────
+   This one needed more than a recolour. On dark it is a crisp gold-rimmed panel
+   whose depth comes from two glow elements: a `bg-gold-500/25 blur-2xl` orb in
+   the corner and a skewed `via-gold-200/30 blur-md` sheen sweeping across it.
+   Both are additive light effects - they work by being BRIGHTER than what is
+   behind them. On a pale gold well there is nothing left to be brighter than,
+   so instead of depth they produced the washed, unaligned smear in the report.
+
+   The blur orb is dropped in light and the sheen is reduced to a narrow, low
+   alpha pass. What carries the panel here is what carries a light UI generally:
+   a defined edge, a clean fill, and crisp content - so the rows, the rule under
+   the header and the crown badge are all given real contrast instead. The
+   layout, the animation and every element stay exactly as authored. */
+html:not(.dark) .mini-viz .bg-gold-500\/25 { display: none; }
+html:not(.dark) .mini-viz [class*="via-gold-200"] {
+  background-image: linear-gradient(to right, transparent, rgba(138, 88, 16, 0.10), transparent);
+  filter: none;
+}
+/* The crown badge sits on `bg-ink-950`, which resolves light - give it a gold
+   rim so it reads as a badge rather than a blank chip. */
+html:not(.dark) .mini-viz .ring-gold-500\/50 { --tw-ring-color: rgba(138, 88, 16, 0.55); }
+/* Row bullets and the PRO tags: these are the panel's only structure once the
+   glows are gone, so they carry the hierarchy. */
+html:not(.dark) .mini-viz .bg-gold-400 { background-color: #8a5810; filter: none; }
+html:not(.dark) .mini-viz [class*="text-zinc-300"] { color: var(--content); }
+
 /* Soft buttons on light. */
 html:not(.dark) .btn-secondary {
   color: var(--content);
@@ -1429,9 +1455,9 @@ html:not(.dark) .orbital-aurora {
     rgba(34,214,146,0.26) 215deg, rgba(226,167,47,0) 360deg) !important;
   opacity: 0.5;
 }
-html:not(.dark) #ecosystem-orbital .border-gold-500\/45 { border-color: rgba(174,111,16,0.6); }
-html:not(.dark) #ecosystem-orbital .border-gold-400\/40 { border-color: rgba(174,111,16,0.5); }
-html:not(.dark) #ecosystem-orbital .border-mint-400\/45 { border-color: rgba(3,149,103,0.55); }
+html:not(.dark) #ecosystem-orbital .border-gold-500\/45 { border-color: rgba(138,88,16,0.72); }
+html:not(.dark) #ecosystem-orbital .border-gold-400\/40 { border-color: rgba(138,88,16,0.6); }
+html:not(.dark) #ecosystem-orbital .border-mint-400\/45 { border-color: rgba(5,118,83,0.68); }
 html:not(.dark) #ecosystem-orbital .bg-gold-500\/12 { background-color: rgba(226,167,47,0.3); }
 html:not(.dark) #ecosystem-orbital .bg-gold-300\/40 { background-color: rgba(174,111,16,0.55); }
 html:not(.dark) #ecosystem-orbital .bg-gold-500\/20 { background-color: rgba(226,167,47,0.34); }
@@ -1444,6 +1470,14 @@ html:not(.dark) #ecosystem-orbital .bg-ink-900\/85 {
   background-color: #ffffff;
   box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 10px 26px -18px rgba(0,0,0,0.28);
 }
+/* The orbit rings themselves. Four concentric circles draw the "3D model" ring
+   system, and one of them - `border-white/10` - had no orbital-scoped override,
+   so it fell back to the global light remap of rgba(0,0,0,0.10). Ten percent
+   black over a near-white hero reads as nothing, which is why the ring set
+   looked incomplete on desktop light. The gold/mint rings were present but at
+   0.5-0.6 alpha, faint against white where the same alpha is emphatic against
+   black. All four are lifted together so the system reads as one object. */
+html:not(.dark) #ecosystem-orbital .border-white\/10 { border-color: rgba(16, 18, 27, 0.22); }
 html:not(.dark) #ecosystem-orbital .ring-gold-500\/40 { --tw-ring-color: rgba(174,111,16,0.55); }
 html:not(.dark) #ecosystem-orbital .ring-mint-500\/40 { --tw-ring-color: rgba(3,149,103,0.55); }
 html:not(.dark) #ecosystem-orbital .ring-violet-400\/40 { --tw-ring-color: rgba(124,58,237,0.55); }
@@ -2050,6 +2084,43 @@ html:not(.dark) .ai-surface {
   animation: ai-spin 6s linear infinite;
   pointer-events: none;
 }
+
+/* ── XYZ AI launcher on light ─────────────────────────────────────────────
+   Everything about the launcher is authored to glow against near-black, and on
+   a white page each piece of that reads as absent rather than subtle:
+
+   - the button fill is `from-mint-400 to-mint-600`; mint-400 is 1.78:1 against
+     white, so the button looked pale and the robot inside it washed out;
+   - the halo on ::after is a mint radial at 0.35 alpha - invisible on white;
+   - the orbital ring on ::before is a conic sweep through rgba(243,212,136)
+     and rgba(146,245,203), i.e. PALE gold and PALE mint. Those are chosen to
+     read as light against black. On white they are effectively the background,
+     which is why the ring animation appeared missing in light rather than
+     merely quiet.
+
+   Fixed by deepening each, not by removing any: the animation, timing and
+   geometry are untouched, only the colours move down the scale so the same
+   design reads on a light ground. */
+html:not(.dark) .ai-fab {
+  background-image: linear-gradient(to bottom right, #0bbb7c, #057653);
+}
+html:not(.dark) .ai-fab::after {
+  background: radial-gradient(circle, rgba(5, 118, 83, 0.42), transparent 68%);
+}
+html:not(.dark) .ai-fab::before {
+  background: conic-gradient(
+    from var(--ai-spin, 0deg),
+    transparent 55%,
+    rgba(138, 88, 16, 0.95),
+    rgba(5, 118, 83, 0.9),
+    transparent
+  ) border-box;
+}
+@keyframes ai-fab-glow-light {
+  0%, 100% { box-shadow: 0 8px 22px -8px rgba(5, 118, 83, 0.45); }
+  50%      { box-shadow: 0 0 20px 2px rgba(5, 118, 83, 0.32), 0 10px 28px -8px rgba(5, 118, 83, 0.6); }
+}
+html:not(.dark) .ai-fab { animation: ai-fab-glow-light 2.4s ease-in-out infinite; }
 
 /* Message bubbles: a touch more separation and a lit top edge on answers. */
 .ai-surface .prose-xyz {
