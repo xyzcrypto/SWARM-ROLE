@@ -1280,6 +1280,7 @@ html.lite-motion .i3d-tick,
 html.lite-motion .i3d-float,
 html.lite-motion .i3d-twinkle,
 html.lite-motion .hero-cta-halo,
+html.lite-motion .hero-glow,
 html.lite-motion .ai-fab,
 html.lite-motion .ai-fab::before,
 html.lite-motion .ai-fab::after,
@@ -1309,6 +1310,23 @@ html.lite-motion .starfield span.star-anim,
 html.lite-motion .ai-fab,
 html.lite-motion .ai-fab-bot {
   will-change: auto;
+}
+
+/* The hero medallion's glow. Once the ambient wash above is gated, this is the
+   single most expensive thing left on the page: `blur-3xl` is a 64px Gaussian
+   over a disc that is simultaneously pulsing and being tilted by the parallax
+   spring, so the blurred layer is re-rasterised rather than just recomposited.
+   Measured at 390x844 / 6x CPU on the lite tier: 30.9 fps with it, 35.5 without.
+
+   A radial gradient paints the same soft falloff with no filter at all. It is
+   not pixel-identical - a Gaussian falls off differently from a radial stop -
+   but at 20% opacity behind a gold coin, on the devices this tier is for, that
+   is a difference nobody can see and 4.6 fps everybody can feel. Its
+   `animate-pulse-dot` loop is stopped by the block above, which lists
+   `.hero-glow` for exactly that reason. */
+html.lite-motion .hero-glow {
+  filter: none;
+  background: radial-gradient(circle, rgba(226, 167, 47, 0.26), rgba(226, 167, 47, 0.1) 45%, transparent 72%);
 }
 
 /* ================================================================

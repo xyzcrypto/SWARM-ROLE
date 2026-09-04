@@ -5,6 +5,122 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-04 (75) — The 512px logo master was the site's heaviest request
+
+PR 4 of the four-part visual pass, and it did not end up being the PR the brief
+imagined. Measuring first changed what it was.
+
+### What the brief asked for, and what is actually there
+
+The brief asked for texture and geometry optimization, pixel-ratio control and
+frame-rate-aware rendering for the 3D model. All four are WebGL concepts, and
+**the WebGL scene has been switched off since before this session**:
+`useWebglGate()` hard-returns `false`, with a comment saying the three.js cosmos
+rendered inconsistently on some desktops and could not be verified in CI.
+
+So there is no live 3D scene to optimise. What a reader calls "the 3D model" is
+the CSS-3D hero medallion. Two more of the brief's assumed defects also failed
+to reproduce, and both are worth recording as *not* problems:
+
+- **Zoom clipping.** Measured at 1280 / 1440 / 1920 across 1x-2.5x browser zoom
+  and four phone widths: the medallion scales cleanly (512 → 429 → 384 → 272px),
+  and not one of the seven orbiting badges is ever clipped by an ancestor or
+  pushed off screen. A first pass *did* report a "collapse to 94px" - that was
+  an artefact of emulating zoom with `body { zoom }` instead of a smaller CSS
+  viewport at a higher DPR, and it is not real.
+- **Horizontal overflow.** `scrollWidth === clientWidth` on `/`, `/markets`,
+  `/research`, `/news`, `/tools` and `/community` at 320px. Everything that
+  extends past the viewport (marquee tracks, filter rails, decorative layers) is
+  clipped by an ancestor, as intended.
+
+### The real finding: 338 KB per page load, to paint a 16x16 tab icon
+
+`/logo.png` is a 512x512 RGBA master, ~338 KB. Behind `next/image` that is
+exactly right - Next emits 4-18 KB per rendered size and the master is the
+quality source it optimises from. In a raw `href` it is a disaster. It was in
+**two** raw references at once, and neither was obvious:
+
+| where | cost |
+|---|---|
+| `metadata.icons.icon` (the favicon) | 338 KB on **every page load, every browser** |
+| `sw.js` `PRECACHE` | 338 KB at `install`, for every first-time visitor |
+| `PwaSetup` install prompt (`<img width={40}>`) | full decode of a 512px PNG for a 40px box |
+
+The favicon one hid well: a favicon request has no JS initiator, so it appears in
+a network panel as type `other` with no stack - which reads like a service-worker
+fetch. Chasing it as an SW problem is how the first attempt at this fixed the
+wrong thing; the raw file was still being downloaded afterwards, which is what
+made the culprit obvious.
+
+Now: `/icon-32.png` (2.0 KB) and `/icon-192.png` (19.8 KB) for the favicon,
+`/logo-offline.webp` (13.9 KB, 168px for an 84px box) precached and shown by
+`/offline.html`, `/logo-app-192.png` for the install prompt and for push
+notification `icon`/`badge`. The master is untouched - shrinking it would make
+every `next/image` output worse.
+
+**Measured on the homepage: 2677 KB → 2321 KB for a first visit (−356 KB).**
+`sw.js` CACHE bumped v9 → v10 so devices already holding the old 338 KB entry
+reclaim it; `activate` only deletes caches whose name is not the current one.
+
+### The medallion is the second bottleneck, and CSS could not reach it
+
+With PR 74's ambient gate doing its job, the medallion became the most expensive
+thing left. Ablated at 390x844 / 6x CPU on the lite tier:
+
+| | fps |
+|---|---|
+| lite baseline | 30.9 |
+| without the 7 badge pulses | 35.0 |
+| without the glow's `blur-3xl` | 35.5 |
+| without the medallion entirely | 41.7 |
+
+The badge pulses are framer-motion `animate` loops, and framer drives those from
+its own rAF - they appear in **neither** `document.getAnimations()` nor
+`animation-play-state`, so `PauseOffscreenAnimations` and the `html.lite-motion`
+CSS block are both blind to them. That blind spot is the point: a purely-CSS tier
+would have silently missed 4 fps. Hence `useLiteMotion()`, backed by
+`useSyncExternalStore` with a server snapshot, gating the **animation and never
+the markup** - server and hydration both read `false`, so a conditional element
+or gesture prop would flip after hydration, which is the React #418 trap in a new
+coat.
+
+The glow's `blur-3xl` is a 64px Gaussian over a disc that is simultaneously
+pulsing and being tilted by the parallax spring, so it re-rasterises rather than
+recompositing. On the lite tier it becomes an equivalent radial gradient. Not
+pixel-identical, but at 20% opacity behind a gold coin it is a difference nobody
+can see and 4.6 fps everybody can feel. Screenshots of both tiers side by side
+are indistinguishable apart from the badges' orbit phase.
+
+**Lite tier: 30.9 → 33.9 fps.** Full tier unchanged.
+
+### Reported, not changed: the dead three.js chunk
+
+`three` + `@react-three/fiber` + `@react-three/drei` build an **856 KB chunk -
+the largest in the bundle** - for a scene that cannot render. Verified in a real
+browser: it is **never fetched**, on mobile or desktop, before or after a full
+page scroll. So it costs users zero bytes; the cost is build time, deploy size
+and `npm install`. Left in place deliberately - the gate's comment says the code
+is kept for a future verified pass, and that is an owner call, not a cleanup to
+make silently.
+
+### Files
+
+`src/app/layout.tsx` (favicon sizes) · `public/sw.js` (precache + notification
+icons, CACHE v10) · `public/offline.html` · `src/modules/notifications/components/PwaSetup.tsx`
+· `src/components/Hero.tsx` + `src/shared/hooks/useClientFlag.ts` (`useLiteMotion`)
+· `src/app/globals.css` (`.hero-glow`) · new `public/icon-32.png`,
+`public/icon-192.png`, `public/logo-offline.webp` · new
+`src/shared/utils/__tests__/logo-asset-weight.test.ts` (7 tests) ·
+`seo-indexing.test.ts` (its favicon test asserted the literal `/logo.png`; it now
+asserts the squareness it was actually about).
+
+**Live observable:** DevTools → Network → filter `logo` on a hard reload of the
+homepage. `/logo.png` must not appear as a document-level request at all; only
+`/_next/image?url=%2Flogo.png&…` entries at 4-18 KB should. Falsified if a
+~338 KB `/logo.png` still loads, or if the tab icon goes blank.
+
+---
+
 ## 2026-09-04 (74) — Animation polish: a motion tier, and one entrance language
 
 PR 3 of the four-part visual pass. Two halves: the homepage was dropping frames on

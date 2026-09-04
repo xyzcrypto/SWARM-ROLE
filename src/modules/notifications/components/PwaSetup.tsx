@@ -128,8 +128,13 @@ export function PwaSetup() {
 
   return (
     <div className="fixed inset-x-3 bottom-[4.75rem] z-[60] mx-auto flex max-w-sm items-center gap-3 rounded-2xl border border-gold-500/25 bg-ink-900/95 p-3 shadow-elevate backdrop-blur sm:left-4 sm:right-auto md:bottom-3">
+      {/* The 192px app icon rather than the 512px master. A raw <img> gets no
+          next/image resizing, so `width={40}` only scaled the box - the browser
+          still fetched and decoded all 338 KB of a 512x512 RGBA PNG to paint a
+          40px square. This is also the icon the installed app will actually
+          use, so the prompt now previews the real thing. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/logo.png" alt="" width={40} height={40} className="h-10 w-10 shrink-0 object-contain" />
+      <img src="/logo-app-192.png" alt="" width={40} height={40} className="h-10 w-10 shrink-0 object-contain" />
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-zinc-100">Install XYZ Crypto</p>
         <p className="truncate text-[11px] text-zinc-500">Add to your home screen - fast, app-like, works offline.</p>

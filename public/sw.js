@@ -40,10 +40,27 @@
 // never reaches returning visitors or any installed PWA, because `activate`
 // only deletes caches whose name is not this one.
 //
-// Bump this ONLY when a precached URL's CONTENT changes underneath it.
-const CACHE = "xyz-pwa-v9";
+// v9 -> v10: also an eviction. The precache list below dropped `/logo.png`
+// for a 168px WebP, and `activate` only deletes caches whose name is not the
+// current one - so without the bump every device that already installed v9
+// would keep that 338 KB entry on disk forever, having gained nothing.
+//
+// Bump this ONLY when a precached URL's CONTENT changes underneath it, or when
+// an entry leaves this list and should be reclaimed.
+const CACHE = "xyz-pwa-v10";
 const OFFLINE_URL = "/offline.html";
-const PRECACHE = [OFFLINE_URL, "/logo.png"];
+// Measured on the homepage: `/logo.png` was **338 KB of the 2.68 MB** a first
+// visit downloads, and it was here, not on any page - `install` runs on the
+// first load, so every visitor paid for it whether or not they ever went
+// offline. It is a 512x512 RGBA master, and the only thing that rendered it
+// from this cache was /offline.html's 84px box. Every other use of the coin on
+// the site goes through next/image, which emits 4-18 KB.
+//
+// `/logo-offline.webp` is 168px (2x that box) and 13.9 KB. Same picture, 324 KB
+// less on every first visit. If a future change needs the full-resolution coin
+// offline, add it deliberately and bump CACHE - do not widen this list casually,
+// because everything in it is downloaded by everyone.
+const PRECACHE = [OFFLINE_URL, "/logo-offline.webp"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -139,8 +156,11 @@ self.addEventListener("push", (event) => {
   const title = data.title || "XYZ Crypto";
   const options = {
     body: data.body || "",
-    icon: "/logo.png",
-    badge: "/logo.png",
+    // The 192px app icon, not the 512px master. The OS scales these into a
+    // status-bar-sized slot and fetches them at notification time, so pointing
+    // at a 338 KB file was 5x the bytes for a picture nobody sees above 24-64px.
+    icon: "/logo-app-192.png",
+    badge: "/logo-app-192.png",
     tag: data.tag || undefined,
     data: { url: data.url || "/news" },
   };

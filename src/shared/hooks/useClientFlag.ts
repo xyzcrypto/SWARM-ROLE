@@ -66,3 +66,30 @@ export function useMediaQuery(query: string): boolean {
 export function useReducedMotionSafe(): boolean {
   return useMediaQuery("(prefers-reduced-motion: reduce)");
 }
+
+/**
+ * Whether this session is on the lite motion tier - safe to render from.
+ *
+ * The tier itself is a class on `<html>`, decided before paint in
+ * `src/app/layout.tsx` from device capability, and CSS reads it directly. This
+ * hook exists only for the animations CSS *cannot* reach: framer-motion drives
+ * an `animate` loop from its own rAF, so it appears in neither
+ * `document.getAnimations()` nor `animation-play-state`, which means both
+ * `PauseOffscreenAnimations` and the `html.lite-motion` block are blind to it.
+ *
+ * Measured on the lite tier at 390x844 / 6x CPU: the seven orbiting hero badges
+ * are ~4 fps between them, entirely through this blind spot.
+ *
+ * **Gate the animation, never the markup.** Server and hydration both read
+ * `false` here (see `useClientFlag`), so anything that changes the rendered
+ * HTML would flip on the render after hydration - and framer-motion is
+ * unusually good at turning a prop into an attribute (a `whileTap` emits
+ * `tabindex`). Switching an `animate` target off adds and removes nothing;
+ * switching an element off would be the #418 trap in a new coat.
+ *
+ * Not subscribed to changes: the class is written once before paint and only
+ * changes on reload (including via the `localStorage.motion` override).
+ */
+export function useLiteMotion(): boolean {
+  return useClientFlag(() => document.documentElement.classList.contains("lite-motion"));
+}
