@@ -47,7 +47,13 @@ const securityHeaders = [
   // including this one, so the site's own dictation was refused by the browser
   // before any of our code ran - #259's voice input could never have worked.
   // Camera and geolocation stay fully blocked; nothing here needs them.
-  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=(), interest-cohort=()" },
+  // `interest-cohort=()` dropped. It was the opt-out for FLoC, which Google
+  // withdrew in 2023 and replaced with the Topics API; no shipping browser has
+  // recognised the token since, so every page load logged
+  // `Unrecognized feature: 'interest-cohort'` in the console and opted out of
+  // nothing. Topics has its own token (`browsing-topics`) and is not enabled
+  // for this site, so there is nothing to replace it with.
+  { key: "Permissions-Policy", value: "camera=(), microphone=(self), geolocation=()" },
   { key: "X-DNS-Prefetch-Control", value: "on" },
 ];
 
