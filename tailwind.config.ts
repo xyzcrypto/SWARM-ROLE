@@ -72,7 +72,17 @@ const config: Config = {
         "surface-2": "var(--surface-2)",
         content: "var(--content)",
         "content-muted": "var(--content-muted)",
+        // Third text tier for 9-12px labels, legal lines and timestamps. Prefer
+        // this over reaching further down the zinc ramp: zinc-600/700 were the
+        // classes carrying that copy, and they measured under AA in BOTH themes.
+        "content-subtle": "var(--content-subtle)",
         hairline: "var(--hairline)",
+        // Market direction, theme-aware because no single step of either scale
+        // clears AA on both grounds (mint-400 is 1.78:1 on light; red-600 is
+        // 4.14:1 on dark). Use these for up/down numbers rather than
+        // text-mint-*/text-red-* so new UI is readable in both themes.
+        "data-up": "var(--data-up)",
+        "data-down": "var(--data-down)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],

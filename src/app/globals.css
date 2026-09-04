@@ -12,8 +12,20 @@
     --surface: #ffffff;
     --surface-2: #f1f3f6;
     --content: #1b1b22;
-    --content-muted: #5b5b66;
+    --content-muted: #5b5b66;         /* 6.31:1 on --bg */
+    /* Third text tier, for 9-12px labels, legal lines and timestamps. It exists
+       because that copy was reaching for `text-zinc-600/700`, which the light
+       ramp below mapped to #87878f / #a6a6ad - 3.35:1 and 2.28:1, both under AA.
+       5.03:1, so it still passes at 11px. */
+    --content-subtle: #6a6a74;
     --hairline: rgba(0, 0, 0, 0.07);
+    /* Market direction. Deliberately theme-aware: measured against each ground,
+       NO single step of either scale clears AA on both. On this light ground
+       mint-300/400/500/600 land at 1.46 / 1.78 / 2.35 / 3.59:1 - so the "+9.84%"
+       on /markets was effectively unreadable - and red-400 at 2.60:1. These are
+       the first steps that pass here. */
+    --data-up: #057653;               /* mint-700, 5.31:1 */
+    --data-down: #dc2626;             /* red-600,  4.54:1 */
     /* Dashboard chart hues - per-surface steps validated with the dataviz
        six-checks (lightness band, chroma, CVD separation, contrast). */
     --chart-mint: #0bbb7c;
@@ -27,8 +39,17 @@
     --surface: #0e0e12;
     --surface-2: #15151b;
     --content: #d4d4d8;
-    --content-muted: #a1a1aa;
+    --content-muted: #a1a1aa;         /* 7.81:1 on --bg */
+    /* Same third tier as light. Dark was NOT exempt from this: measured on the
+       live pages, `text-zinc-500` sat at 4.14:1 and `text-zinc-600` at 2.59:1
+       against this ground - dark actually had slightly MORE contrast failures
+       than light (20 vs 17). 5.93:1. */
+    --content-subtle: #8b8b95;
     --hairline: rgba(255, 255, 255, 0.08);
+    /* Dark keeps the original brand steps - they already clear AA comfortably
+       here (mint-400 10.58:1, red-400 7.23:1), so the design is unchanged. */
+    --data-up: #22d692;               /* mint-400, 10.58:1 */
+    --data-down: #f87171;             /* red-400,   7.23:1 */
     --chart-mint: #039567;
     --chart-gold: #ad6f10;
     color-scheme: dark;
@@ -1059,16 +1080,35 @@ html:not(.dark) .text-zinc-100 { color: #16161b; }
 html:not(.dark) .text-zinc-200 { color: #26262c; }
 html:not(.dark) .text-zinc-300 { color: #393941; }
 html:not(.dark) .text-zinc-400 { color: #52525b; }
-html:not(.dark) .text-zinc-500 { color: #6a6a74; }
-html:not(.dark) .text-zinc-600 { color: #87878f; }
-html:not(.dark) .text-zinc-700 { color: #a6a6ad; }
+/* The bottom of the ramp now resolves to the semantic tier rather than to three
+   hand-picked greys that kept drifting apart. Measured before: zinc-600 #87878f
+   was 3.35:1 and zinc-700 #a6a6ad was 2.28:1 on this ground - both under AA, and
+   zinc-700 is what the footer disclaimer uses. */
+html:not(.dark) .text-zinc-500 { color: var(--content-muted); }
+html:not(.dark) .text-zinc-600 { color: var(--content-subtle); }
+html:not(.dark) .text-zinc-700 { color: var(--content-subtle); }
+
+/* ⚠️ DARK overrides for the same three classes, which did not exist before.
+   That asymmetry - 154 light override rules against 3 dark ones - is why dark
+   was never audited the way light was, and why it quietly carried MORE failures
+   (20 vs 17): `text-zinc-500` at 4.14:1, `text-zinc-600` at 2.59:1 and
+   `text-zinc-700` far below, all on secondary copy that is genuinely meant to be
+   read. Mapping both sides to the same two tokens is what keeps them in step
+   from here - change a tier once and both themes follow. */
+.dark .text-zinc-500 { color: var(--content-subtle); }
+.dark .text-zinc-600 { color: var(--content-subtle); }
+.dark .text-zinc-700 { color: var(--content-subtle); }
 
 /* Brand accent text - gold-200/300 & mint-200/300 are too pale on white. */
 html:not(.dark) .text-gold-100 { color: #7a4a0d; }
 html:not(.dark) .text-gold-200 { color: #9a6310; }
 html:not(.dark) .text-gold-300 { color: #ad6f10; }
-html:not(.dark) .text-mint-200 { color: #057653; }
-html:not(.dark) .text-mint-300 { color: #039567; }
+html:not(.dark) .text-mint-200 { color: var(--data-up); }
+/* Was #039567 (mint-600) = 3.59:1, under AA. mint-300/400 are what the markets
+   UI paints "+9.84%" with, so this was the worst finding of the audit: the
+   positive-direction colour on a crypto site, unreadable on its own ground.
+   --data-up is mint-700, 5.31:1. Text only - bg-/border-mint are untouched. */
+html:not(.dark) .text-mint-300 { color: var(--data-up); }
 html:not(.dark) .hover\:text-gold-100:hover { color: #7a4a0d; }
 html:not(.dark) .hover\:text-gold-200:hover { color: #9a6310; }
 html:not(.dark) .hover\:text-mint-200:hover { color: #057653; }
@@ -1261,7 +1301,7 @@ html:not(.dark) .ring-white\/5  { --tw-ring-color: rgba(0, 0, 0, 0.06); }
 
 html:not(.dark) .text-gold-400 { color: #ad6f10; }
 html:not(.dark) .text-gold-500 { color: #9a6310; }
-html:not(.dark) .text-mint-400 { color: #039567; }
+html:not(.dark) .text-mint-400 { color: var(--data-up); }
 html:not(.dark) .hover\:text-gold-300:hover { color: #ad6f10; }
 html:not(.dark) .hover\:text-mint-300:hover { color: #039567; }
 html:not(.dark) .group:hover .group-hover\:text-gold-100 { color: #7a4a0d; }
@@ -1270,10 +1310,31 @@ html:not(.dark) .group:hover .group-hover\:text-gold-300 { color: #ad6f10; }
 /* Status / semantic text - lift to readable shades on white. */
 html:not(.dark) .text-red-200,
 html:not(.dark) .text-red-300,
-html:not(.dark) .text-red-400 { color: #dc2626; }
+html:not(.dark) .text-red-400 { color: var(--data-down); }
+/* `rose` is a separate Tailwind scale from `red`, and the markets/news UI reaches
+   for BOTH interchangeably for the negative direction - LiveMarketVisual paints
+   "-0.9%" with text-rose-400 and LiveNewsVisual paints "Breaking" with
+   text-rose-300. Because only `red` was listed here, those two sat at 2.69:1 and
+   1.70:1 on this ground while their `red` twins were already fixed. Same role,
+   same token. */
+html:not(.dark) .text-rose-400 { color: var(--data-down); }
+/* The lighter end of the scale carries the SMALLER text here (the 9px "Breaking"
+   chip, dim labels), and small text needs more contrast, not less - so it maps
+   darker than rose-400, the same inversion the zinc ramp above already uses in
+   light. At --data-down it measured 4.34:1 against its card surface, just under
+   AA; red-700 is 6.09:1. */
+html:not(.dark) .text-rose-200,
+html:not(.dark) .text-rose-300 { color: #b91c1c; }
 html:not(.dark) .text-amber-300 { color: #b45309; }
+/* sky-600 was 3.85:1 - close enough to look deliberate, still under AA. sky-700
+   is 5.58:1. */
 html:not(.dark) .text-sky-300,
-html:not(.dark) .text-sky-400 { color: #0284c7; }
+html:not(.dark) .text-sky-400 { color: #0369a1; }
+/* Opacity variants do not inherit the overrides above, because `/70` is a
+   different class. Composited over this ground, --data-up at 70% lands at
+   3.05:1, so the alpha itself is the problem, not the hue: on a light ground the
+   dimming that reads as "quiet" in dark reads as "unreadable". Full opacity. */
+html:not(.dark) .text-mint-300\/70 { color: var(--data-up); }
 html:not(.dark) .text-violet-200,
 html:not(.dark) .text-violet-300,
 html:not(.dark) .text-violet-400 { color: #7c3aed; }
