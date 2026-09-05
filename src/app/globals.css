@@ -2490,3 +2490,50 @@ textarea:focus-visible {
 }
 
 }
+
+/* ── News reader swipe coach mark ─────────────────────────────────────────
+   Shown once per device, until the reader actually swipes.
+
+   The label this replaced said "swipe ‹ ›" at 10px in `text-zinc-600` on a
+   near-black panel: present in the DOM, invisible in practice, and static. A
+   gesture that gives no feedback while it happens and announces itself in
+   text nobody can read is a gesture nobody finds.
+
+   The arrows carry the meaning - they lean the way the finger should go, one
+   after the other, so the hint reads as a direction rather than a caption.
+   `transform` and `opacity` only, so it is compositor-only and costs nothing
+   on the phones this exists for.
+
+   Not gated on `prefers-reduced-motion`: per the project policy this is
+   functional feedback teaching an interaction, not ambient decoration - and a
+   frozen arrow would teach the opposite of what it means. It IS gated on the
+   lite motion tier below, because on a device that cannot hold a frame rate a
+   moving hint is the first thing to give up. */
+@keyframes news-swipe-in {
+  from { opacity: 0; transform: translateY(6px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes news-swipe-left {
+  0%, 100% { transform: translateX(0); opacity: 0.45; }
+  50%      { transform: translateX(-4px); opacity: 1; }
+}
+@keyframes news-swipe-right {
+  0%, 100% { transform: translateX(0); opacity: 0.45; }
+  50%      { transform: translateX(4px); opacity: 1; }
+}
+.news-swipe-hint {
+  animation: news-swipe-in var(--dur-med) var(--ease-out) both;
+}
+.news-swipe-arrow-l {
+  animation: news-swipe-left 1.6s var(--ease-out) infinite;
+}
+.news-swipe-arrow-r {
+  /* Half a cycle behind, so the pair reads as a back-and-forth rather than
+     two arrows twitching in unison. */
+  animation: news-swipe-right 1.6s var(--ease-out) 0.8s infinite;
+}
+html.lite-motion .news-swipe-arrow-l,
+html.lite-motion .news-swipe-arrow-r,
+html.lite-motion .news-swipe-hint {
+  animation: none !important;
+}
