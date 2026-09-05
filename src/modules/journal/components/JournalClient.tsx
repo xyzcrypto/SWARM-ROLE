@@ -18,11 +18,15 @@ import {
   type Fill,
 } from "@/lib/journal";
 import { periodBreakdown, periodKey } from "@/lib/journal-analytics";
+import dynamic from "next/dynamic";
 import { EquityCurveChart } from "./EquityCurveChart";
-import { AnalyticsPanel } from "./AnalyticsPanel";
-import { RiskPanel, type SerializedRiskProfile } from "./RiskPanel";
-import { ChallengesPanel } from "./ChallengesPanel";
-import { TradeForm, type NewTradeInput } from "./TradeForm";
+import type { SerializedRiskProfile } from "./RiskPanel";
+import type { NewTradeInput } from "./TradeForm";
+
+const AnalyticsPanel = dynamic(() => import("./AnalyticsPanel").then((m) => m.AnalyticsPanel), { ssr: false });
+const RiskPanel = dynamic(() => import("./RiskPanel").then((m) => m.RiskPanel), { ssr: false });
+const ChallengesPanel = dynamic(() => import("./ChallengesPanel").then((m) => m.ChallengesPanel), { ssr: false });
+const TradeForm = dynamic(() => import("./TradeForm").then((m) => m.TradeForm), { ssr: false });
 
 export type SerializedFill = { id: string; kind: "entry" | "exit"; price: number; size: number; fee: number; executedAt: string };
 export type SerializedTrade = {

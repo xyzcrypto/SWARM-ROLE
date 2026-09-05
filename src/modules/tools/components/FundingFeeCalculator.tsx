@@ -18,6 +18,11 @@ const PRESETS = [
 
 const DEFAULT_PLATFORM = DEX_REGISTRY.find((p) => p.hasLiveFunding)?.id ?? DEX_REGISTRY[0]?.id ?? "";
 
+// In-memory cache for live perp rates across calculator tab-switches (30s TTL).
+let cachedPerpResp: PerpResp | null = null;
+let cachedPerpTime = 0;
+const CACHE_TTL_MS = 30_000;
+
 // Estimate funding for any perp DEX in the registry (src/lib/dex-registry.ts),
 // so it's always clear WHICH exchange a rate belongs to. Live prefill only
 // exists for platforms with `hasLiveFunding` (Hyperliquid today, via
@@ -27,21 +32,29 @@ export function FundingFeeCalculator() {
   const [platformId, setPlatformId] = useState(DEFAULT_PLATFORM);
   const platform = getPlatform(platformId);
 
-  const [markets, setMarkets] = useState<PerpMarket[]>([]);
-  const [live, setLive] = useState(false);
-  const [coin, setCoin] = useState("");
+  const [markets, setMarkets] = useState<PerpMarket[]>(() => cachedPerpResp?.markets ?? []);
+  const [live, setLive] = useState(() => cachedPerpResp?.live ?? false);
+  const [coin, setCoin] = useState(() => cachedPerpResp?.markets?.[0]?.coin ?? "");
   const [custom, setCustom] = useState(false);
   const [notional, setNotional] = useState("10000");
-  const [rate, setRate] = useState("0.01"); // % per hour
+  const [rate, setRate] = useState(() =>
+    cachedPerpResp?.markets?.[0] ? (cachedPerpResp.markets[0].funding * 100).toFixed(4) : "0.01"
+  );
   const [hours, setHours] = useState("8");
   const [side, setSide] = useState<Side>("long");
 
   useEffect(() => {
     let active = true;
+    const now = Date.now();
+    if (cachedPerpResp && now - cachedPerpTime < CACHE_TTL_MS) {
+      return;
+    }
     fetch("/api/markets/perp", { cache: "no-store" })
       .then((r) => r.json())
       .then((j: PerpResp) => {
         if (!active) return;
+        cachedPerpResp = j;
+        cachedPerpTime = Date.now();
         setMarkets(j.markets ?? []);
         setLive(Boolean(j.live));
         if (!coin && j.markets?.length) {

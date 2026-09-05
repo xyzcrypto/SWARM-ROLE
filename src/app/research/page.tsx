@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { ResearchGrid } from "@/components/ResearchGrid";
 import { prisma } from "@/lib/prisma";
-import { readingTime } from "@/lib/utils";
 import { POST_CARD_SELECT } from "@/lib/post-select";
 import { PageHeader } from "@/components/PageHeader";
 import { PageBackground } from "@/components/PageBackground";
@@ -41,8 +40,6 @@ export default async function ResearchPage() {
       .catch(() => []),
     prisma.post.count({ where: { published: true } }).catch(() => 0),
   ]);
-  // Never ship article bodies in the list payload (premium must never leak;
-
 
   return (
     <>

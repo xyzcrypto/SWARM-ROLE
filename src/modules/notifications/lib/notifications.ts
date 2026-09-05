@@ -56,8 +56,11 @@ export async function notifyNewPost(post: {
   const MAX_RECIPIENTS = 50_000;
   const BATCH = 500;
   try {
-    const users = await prisma.user.findMany({ select: { id: true }, take: MAX_RECIPIENTS });
-    const recipients = users.filter((u) => u.id !== post.authorId);
+    const recipients = await prisma.user.findMany({
+      where: post.authorId ? { id: { not: post.authorId } } : {},
+      select: { id: true },
+      take: MAX_RECIPIENTS,
+    });
     if (recipients.length === 0) return;
     for (let i = 0; i < recipients.length; i += BATCH) {
       await prisma.notification.createMany({

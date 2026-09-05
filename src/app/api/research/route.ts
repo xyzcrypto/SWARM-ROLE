@@ -9,6 +9,8 @@ import { notifyNewPost } from "@/lib/notifications";
 import { broadcastEvent, CH_NOTIFY } from "@/lib/realtime";
 import { summarize } from "@/lib/ai-tasks";
 
+import { POST_CARD_SELECT } from "@/lib/post-select";
+
 // Explicit post field list that OMITS the AI `summary` column. Used by every
 // query that doesn't render the TL;DR so the site keeps working before the
 // `12_post_summary` migration lands (a missing column would otherwise throw
@@ -80,7 +82,7 @@ export async function GET(req: Request) {
       prisma.post.findMany({
         where,
         orderBy: { createdAt: "desc" },
-        select: { ...POST_SCALARS, author: { select: { name: true } } },
+        select: POST_CARD_SELECT,
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
@@ -88,11 +90,11 @@ export async function GET(req: Request) {
     ]);
 
     // Never ship article bodies in list payloads (premium must never leak; free
-    // bodies just ballooned the JSON). Cards show a precomputed reading time.
-    const safe = posts.map(({ content, ...p }) => ({
+    // bodies just ballooned the JSON). Cards use precomputed readMinutes from write time.
+    const safe = posts.map((p) => ({
       ...p,
       content: "",
-      readMinutes: readingTime(content),
+      readMinutes: p.readMinutes || 1,
     }));
 
     // Public + identical for all users (premium redacted) → CDN-cacheable.

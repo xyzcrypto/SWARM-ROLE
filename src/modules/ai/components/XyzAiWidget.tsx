@@ -353,16 +353,30 @@ export function XyzAiWidget() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let acc = "";
+      let lastFlush = 0;
       for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
         acc += decoder.decode(value, { stream: true });
-        setMessages((prev) => {
-          const next = [...prev];
-          next[next.length - 1] = { role: "assistant", content: acc };
-          return next;
-        });
+        const now = Date.now();
+        // Throttle UI updates to ~45ms (approx. 22fps) during fast token streaming,
+        // preventing dozens of expensive markdown re-parses and framer-motion re-renders per second.
+        if (now - lastFlush >= 45) {
+          lastFlush = now;
+          const currentText = acc;
+          setMessages((prev) => {
+            const next = [...prev];
+            next[next.length - 1] = { role: "assistant", content: currentText };
+            return next;
+          });
+        }
       }
+      // Final flush to guarantee 100% of the completed response is rendered
+      setMessages((prev) => {
+        const next = [...prev];
+        next[next.length - 1] = { role: "assistant", content: acc };
+        return next;
+      });
     } catch (err: any) {
       if (err?.name === "AbortError") return;
       // Drop the empty assistant bubble and show the error line.

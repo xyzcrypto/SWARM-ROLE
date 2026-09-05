@@ -23,7 +23,19 @@ const MAX_TURNS = 12;
 /** How long a live-grounding fetch may delay the first token. See below. */
 const LIVE_TIMEOUT_MS = 900;
 
+// Cached snapshots to eliminate internal HTTP loopbacks and heavy DB queries on every turn.
+let cachedSnapshot: { timestamp: number; data: LiveSnapshot } | null = null;
+const SNAPSHOT_TTL_MS = 60_000; // 60s TTL for live market + news snapshot
+
+let cachedCorpus: { timestamp: number; posts: GroundingPost[] } | null = null;
+const CORPUS_TTL_MS = 5 * 60_000; // 5 minutes TTL for research corpus
+
 async function fetchLiveSnapshot(origin: string): Promise<LiveSnapshot> {
+  const now = Date.now();
+  if (cachedSnapshot && now - cachedSnapshot.timestamp < SNAPSHOT_TTL_MS) {
+    return cachedSnapshot.data;
+  }
+
   const get = async (path: string) => {
     const ctrl = new AbortController();
     // 1800ms -> 900ms. This is a hard ceiling on how long optional context may
@@ -48,7 +60,7 @@ async function fetchLiveSnapshot(origin: string): Promise<LiveSnapshot> {
     get("/api/markets/coins"),
     get("/api/news?pageSize=6"),
   ]);
-  return {
+  const data: LiveSnapshot = {
     global: global ?? null,
     coins: Array.isArray(coins?.list)
       ? coins.list.slice(0, 8).map((c: { symbol?: string; price?: number; change24h?: number }) => ({
@@ -65,6 +77,32 @@ async function fetchLiveSnapshot(origin: string): Promise<LiveSnapshot> {
         }))
       : [],
   };
+  cachedSnapshot = { timestamp: now, data };
+  return data;
+}
+
+async function getGroundingPosts(): Promise<GroundingPost[]> {
+  const now = Date.now();
+  if (cachedCorpus && now - cachedCorpus.timestamp < CORPUS_TTL_MS) {
+    return cachedCorpus.posts;
+  }
+  const rows = await prisma.post
+    .findMany({
+      where: { published: true },
+      orderBy: { createdAt: "desc" },
+      take: 30,
+      select: { title: true, slug: true, excerpt: true, content: true, premium: true },
+    })
+    .catch(() => []);
+  const posts: GroundingPost[] = rows.map((p) => ({
+    title: p.title,
+    slug: p.slug,
+    excerpt: p.excerpt,
+    premium: p.premium,
+    content: p.premium ? "" : p.content, // redact premium bodies from the corpus
+  }));
+  cachedCorpus = { timestamp: now, posts };
+  return posts;
 }
 
 const bodySchema = z.object({
@@ -125,43 +163,13 @@ export async function POST(req: Request) {
     const slot = await acquireSlot(me.id);
     if (!slot) return fail("Too many XYZ AI requests at once - let one finish first.", 429);
 
-    // Grounding corpus: latest published research. The assistant is open to all
-    // logged-in members (incl. free), so **premium article bodies must never enter
-    // the prompt** - a free user could otherwise ask the model to reproduce paid
-    // content. For premium posts we pass only the public title + excerpt (already
-    // shown on cards); free posts contribute their body.
-    // ⚠️ These two run TOGETHER, and that is the point.
-    //
-    // They used to be two sequential `await`s: the research query, and then
-    // three self-origin HTTP round trips for the live snapshot. Neither needs
-    // the other's result, so the second was waiting on the first for nothing -
-    // and every millisecond here is time-to-first-token, before the model has
-    // even been called. The assistant streams correctly; what made it feel slow
-    // was everything queued up in front of the stream.
+    // Grounding corpus + live market & news snapshots fetched concurrently, backed by fast in-memory caching.
+    // Note: getGroundingPosts() redacts premium article bodies so free users cannot access paid content.
     const origin = new URL(req.url).origin;
-    const [rows, live] = await Promise.all([
-      prisma.post
-        .findMany({
-          where: { published: true },
-          orderBy: { createdAt: "desc" },
-          take: 30,
-          select: { title: true, slug: true, excerpt: true, content: true, premium: true },
-        })
-        .catch(() => []),
-      // Live market + news grounding. Best-effort by design: `formatLiveContext`
-      // renders nothing for an empty snapshot and the answer is still correct
-      // without it, so this must never be the reason a reply is late.
+    const [posts, live] = await Promise.all([
+      getGroundingPosts(),
       fetchLiveSnapshot(origin).catch(() => ({} as LiveSnapshot)),
     ]);
-
-    const posts: GroundingPost[] = rows.map((p) => ({
-      title: p.title,
-      slug: p.slug,
-      excerpt: p.excerpt,
-      premium: p.premium,
-      content: p.premium ? "" : p.content, // redact premium bodies from the corpus
-    }));
-
     const system = buildAssistantSystemPrompt(posts, lastUser.content, formatLiveContext(live));
 
     const stream = streamAssistant({

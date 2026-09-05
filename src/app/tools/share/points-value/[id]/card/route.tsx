@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { prisma } from "@/lib/prisma";
+import { getSharedPointsCard, type CardData } from "@/lib/shared-card";
 import { favicon } from "@/lib/news-sources";
 import { SITE_URL } from "@/lib/seo";
 
@@ -47,8 +47,6 @@ const CACHE = {
 // revalidatable on purpose.
 const FALLBACK_CACHE = { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60" } };
 
-type CardData = { platform?: string; domain?: string; sharePct?: number; tokens?: number; usd?: number; fdv?: number };
-
 function num(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
 }
@@ -84,12 +82,8 @@ function fallbackCard() {
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
-    const row = await prisma.sharedCard
-      .findUnique({ where: { id: params.id }, select: { kind: true, data: true } })
-      .catch(() => null);
-    if (!row || row.kind !== "points-value") return fallbackCard();
-
-    const d = (row.data ?? {}) as CardData;
+    const d = await getSharedPointsCard(params.id);
+    if (!d) return fallbackCard();
     const platform = (d.platform || "Perp DEX").slice(0, 40);
     const domain = (d.domain || "").slice(0, 253);
     const logo = SAFE_DOMAIN.test(domain) ? favicon(domain) : null;

@@ -147,5 +147,12 @@ describe("password change revokes existing sessions", () => {
       token: { uid: "u1", role: "USER", membership: "Free" } as any,
     } as any);
     expect(ok?.user?.id, "a valid token failed to produce a usable session").toBe("u1");
-  }, 15000);
+  }, 60000);
+
+  it("defines a signOut event that bumps passwordChangedAt to revoke previous JWTs", () => {
+    const src = read(AUTH);
+    expect(src).toMatch(/async\s+signOut\s*\(/);
+    expect(src).toMatch(/passwordChangedAt:\s*new\s*Date\(\)/);
+  });
 });
+

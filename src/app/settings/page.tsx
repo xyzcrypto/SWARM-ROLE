@@ -15,23 +15,24 @@ export default async function SettingsPage() {
   if (!session?.user) redirect("/login?callbackUrl=/settings");
 
   const id = (session.user as any).id as string;
-  const user = await prisma.user
-    .findUnique({
-      where: { id },
-      select: {
-        id: true, name: true, email: true, image: true, bannerImage: true, username: true,
-        bio: true, location: true, website: true, twitter: true, github: true,
-        telegram: true, dmPrivacy: true, role: true, membership: true, provider: true,
-        passwordHash: true, createdAt: true,
-      },
-    })
-    .catch(() => null);
+  const [user, extra] = await Promise.all([
+    prisma.user
+      .findUnique({
+        where: { id },
+        select: {
+          id: true, name: true, email: true, image: true, bannerImage: true, username: true,
+          bio: true, location: true, website: true, twitter: true, github: true,
+          telegram: true, dmPrivacy: true, role: true, membership: true, provider: true,
+          passwordHash: true, createdAt: true,
+        },
+      })
+      .catch(() => null),
+    // Migration-20 social columns, read through a guarded query (tolerates an
+    // un-migrated DB so settings never breaks).
+    fetchExtraSocials({ id }),
+  ]);
 
   if (!user) redirect("/login?callbackUrl=/settings");
-
-  // Migration-20 social columns, read through a guarded query (tolerates an
-  // un-migrated DB so settings never breaks).
-  const extra = await fetchExtraSocials({ id });
 
   // Strip the hash; the client only needs to know whether a password exists.
   const { passwordHash, createdAt, ...rest } = user;

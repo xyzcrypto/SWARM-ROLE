@@ -96,14 +96,21 @@ export function highLeverageTrades(trades: RiskTrade[], maxLeverage = 10): RiskT
 export function isRevengeTrade(trade: RiskTrade, priorTrades: RiskTrade[], cooldownMinutes: number): boolean {
   const openedAt = firstEntryAt(trade.fills);
   if (!openedAt) return false;
-  const priorLosses = priorTrades
-    .filter((t) => t.id !== trade.id && deriveStatus(t.fills) !== "open" && realizedPnl(t.side, t.fills) < 0)
-    .map((t) => lastExitAt(t.fills))
-    .filter(Boolean);
-  return priorLosses.some((exitAt) => {
-    const gapMin = (new Date(openedAt).getTime() - new Date(exitAt).getTime()) / 60_000;
-    return gapMin >= 0 && gapMin < cooldownMinutes;
-  });
+  const openedTime = new Date(openedAt).getTime();
+  const maxGapMs = cooldownMinutes * 60_000;
+
+  for (const t of priorTrades) {
+    if (t.id === trade.id) continue;
+    if (deriveStatus(t.fills) === "open") continue;
+    if (realizedPnl(t.side, t.fills) >= 0) continue;
+    const exitAt = lastExitAt(t.fills);
+    if (!exitAt) continue;
+    const gapMs = openedTime - new Date(exitAt).getTime();
+    if (gapMs >= 0 && gapMs < maxGapMs) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /** Consecutive losing trades counting back from the most recently closed. */
@@ -156,9 +163,27 @@ export function scanBreaches(trades: RiskTrade[], profile: RiskProfile, now: Dat
   }
 
   if (profile.revengeCooldownMinutes) {
-    const openTrades = trades.filter((t) => deriveStatus(t.fills) === "open");
+    const openTrades: RiskTrade[] = [];
+    const priorLosses: { id: string; exitTime: number }[] = [];
+    for (const t of trades) {
+      if (deriveStatus(t.fills) === "open") {
+        openTrades.push(t);
+      } else if (realizedPnl(t.side, t.fills) < 0) {
+        const exitAt = lastExitAt(t.fills);
+        if (exitAt) {
+          priorLosses.push({ id: t.id, exitTime: new Date(exitAt).getTime() });
+        }
+      }
+    }
+    const maxGapMs = profile.revengeCooldownMinutes * 60_000;
     for (const t of openTrades) {
-      if (isRevengeTrade(t, trades, profile.revengeCooldownMinutes)) {
+      const openedAt = firstEntryAt(t.fills);
+      if (!openedAt) continue;
+      const openedTime = new Date(openedAt).getTime();
+      const isRevenge = priorLosses.some(
+        (l) => l.id !== t.id && openedTime >= l.exitTime && openedTime - l.exitTime < maxGapMs
+      );
+      if (isRevenge) {
         breaches.push({ rule: "revenge-trade", severity: "warn", message: `${t.symbol} was opened shortly after a loss.` });
       }
     }
@@ -188,13 +213,19 @@ export type AdherencePoint = { date: string; score: number };
  * score have shown" trend. Entirely derived, nothing persisted. */
 export function adherenceTrend(trades: RiskTrade[], profile: RiskProfile, now: Date, days = 30): AdherencePoint[] {
   const out: AdherencePoint[] = [];
+  const tradesWithDay = trades
+    .map((t) => {
+      const openedAt = firstEntryAt(t.fills);
+      return { trade: t, dayStr: openedAt !== "" ? dayKey(openedAt) : "" };
+    })
+    .filter((x) => x.dayStr !== "");
+
   for (let i = days - 1; i >= 0; i--) {
     const day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
     const dayStr = day.toISOString().slice(0, 10);
-    const tradesAsOf = trades.filter((t) => {
-      const openedAt = firstEntryAt(t.fills);
-      return openedAt !== "" && dayKey(openedAt) <= dayStr;
-    });
+    const tradesAsOf = tradesWithDay
+      .filter((x) => x.dayStr <= dayStr)
+      .map((x) => x.trade);
     out.push({ date: dayStr, score: ruleAdherenceScore(scanBreaches(tradesAsOf, profile, day)) });
   }
   return out;

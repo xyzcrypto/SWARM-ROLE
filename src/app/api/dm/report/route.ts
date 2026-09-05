@@ -43,6 +43,28 @@ export async function POST(req: Request) {
     if (!isCuid(userId)) return fail("Invalid member.", 400);
     if (userId === me.id) return fail("You can't report yourself.", 400);
 
+    const targetUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!targetUser) return fail("User not found.", 404);
+
+    let verifiedMessageId: string | null = null;
+    if (messageId && isCuid(messageId)) {
+      const msg = await prisma.directMessage.findFirst({
+        where: {
+          id: messageId,
+          conversation: {
+            OR: [
+              { userAId: me.id, userBId: userId },
+              { userAId: userId, userBId: me.id },
+            ],
+          },
+        },
+        select: { id: true },
+      });
+      if (msg) {
+        verifiedMessageId = msg.id;
+      }
+    }
+
     await prisma.report
       .create({
         data: {
@@ -50,7 +72,7 @@ export async function POST(req: Request) {
           subjectId: userId,
           reason,
           note: note || null,
-          messageId: messageId && isCuid(messageId) ? messageId : null,
+          messageId: verifiedMessageId,
         },
       })
       .catch(() => null); // a not-yet-migrated DB must not swallow the UI

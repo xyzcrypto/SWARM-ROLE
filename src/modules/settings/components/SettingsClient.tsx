@@ -169,16 +169,24 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
       return;
     }
     setHandleState("checking");
+    const controller = new AbortController();
     const t = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/profile/username?handle=${encodeURIComponent(normalizedHandle)}`);
+        const res = await fetch(`/api/profile/username?handle=${encodeURIComponent(normalizedHandle)}`, {
+          signal: controller.signal,
+        });
         const data = await res.json().catch(() => ({}));
         setHandleState(data.available ? "ok" : "taken");
-      } catch {
-        setHandleState("idle");
+      } catch (err: any) {
+        if (err?.name !== "AbortError") {
+          setHandleState("idle");
+        }
       }
     }, 400);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      controller.abort();
+    };
   }, [normalizedHandle, handleChanged]);
 
   async function save(e: React.FormEvent) {

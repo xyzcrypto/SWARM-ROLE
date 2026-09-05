@@ -10,6 +10,7 @@ import { isStaff } from "@/lib/permissions";
 import { publicImageUrl } from "@/lib/utils";
 import { todayKey } from "@/lib/xp";
 import { memberCheckins } from "@/lib/member-checkins";
+import { getDashboardStats } from "@/lib/dashboard-stats";
 
 export const metadata: Metadata = { title: "Dashboard" };
 export const dynamic = "force-dynamic";
@@ -51,9 +52,6 @@ export default async function DashboardPage() {
     isSuperAdmin: Boolean(me.isSuperAdmin) || me.role === "ADMIN",
   };
 
-  const startOfToday = new Date();
-  startOfToday.setHours(0, 0, 0, 0);
-
   const userSelect = {
     id: true,
     name: true,
@@ -70,44 +68,13 @@ export default async function DashboardPage() {
     lastLoginAt: true,
   } as const;
 
-  // One groupBy replaces three separate user counts (total/google/premium are
-  // derived from the provider+membership buckets). New: self-hosted analytics.
-  const [userBuckets, last7days, subscribers, recentUsers, premiumMembers, posts, totalVisits, todayVisits, postViews] =
-    await Promise.all([
-      prisma.user.groupBy({ by: ["provider", "membership"], _count: { _all: true } }),
-      // Server Component: evaluated once per request, so Date.now() is stable
-      // for this render - the purity rule's re-render concern is client-only.
-      // eslint-disable-next-line react-hooks/purity
-      prisma.user.count({ where: { createdAt: { gte: new Date(Date.now() - 7 * 864e5) } } }),
-      prisma.subscriber.count(),
-      prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: userSelect }),
-      prisma.user.findMany({ where: { membership: "Premium" }, orderBy: { createdAt: "desc" }, take: 100, select: userSelect }),
-      getDashboardPosts(),
-      prisma.pageView.count().catch(() => 0),
-      prisma.pageView.count({ where: { createdAt: { gte: startOfToday } } }).catch(() => 0),
-      prisma.post.aggregate({ _sum: { views: true } }).catch(() => ({ _sum: { views: 0 } })),
-    ]);
-
-  const totalUsers = userBuckets.reduce((n, b) => n + b._count._all, 0);
-  const googleUsers = userBuckets
-    .filter((b) => b.provider === "google")
-    .reduce((n, b) => n + b._count._all, 0);
-  const premiumUsers = userBuckets
-    .filter((b) => b.membership === "Premium")
-    .reduce((n, b) => n + b._count._all, 0);
-
-  const stats = {
-    totalUsers,
-    googleUsers,
-    emailUsers: totalUsers - googleUsers,
-    last7days,
-    premiumUsers,
-    subscribers,
-    totalPosts: posts.length,
-    totalVisits,
-    todayVisits,
-    totalPostViews: postViews._sum.views ?? 0,
-  };
+  // Parallelize stats aggregation (with 30s in-memory cache) and member lists
+  const [stats, recentUsers, premiumMembers, posts] = await Promise.all([
+    getDashboardStats(),
+    prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: userSelect }),
+    prisma.user.findMany({ where: { membership: "Premium" }, orderBy: { createdAt: "desc" }, take: 100, select: userSelect }),
+    getDashboardPosts(),
+  ]);
 
   // Check-in totals + streaks for everyone on screen, in two queries for the
   // whole page rather than one per row.

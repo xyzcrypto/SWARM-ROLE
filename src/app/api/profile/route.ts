@@ -61,10 +61,13 @@ export async function PATCH(req: Request) {
     // Only write keys the user actually sent (so blanks don't wipe other fields).
     const data = parsed.data;
     try {
-      const before = await prisma.user.findUnique({
-        where: { id: me.id },
-        select: { username: true },
-      });
+      const willChangeUsername = data.username !== undefined;
+      const before = willChangeUsername
+        ? await prisma.user.findUnique({
+            where: { id: me.id },
+            select: { username: true },
+          })
+        : null;
       const user = await prisma.user.update({
         where: { id: me.id },
         data,

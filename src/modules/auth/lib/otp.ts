@@ -48,7 +48,14 @@ export async function issueCode(
   const code = generateCode();
   const codeHash = hashCode(code);
   await prisma.$transaction([
-    prisma.verificationCode.deleteMany({ where: { email, purpose } }),
+    prisma.verificationCode.deleteMany({
+      where: {
+        OR: [
+          { email, purpose },
+          { expiresAt: { lt: new Date() } },
+        ],
+      },
+    }),
     prisma.verificationCode.create({
       data: {
         email,

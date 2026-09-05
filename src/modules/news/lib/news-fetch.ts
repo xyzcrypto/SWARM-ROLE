@@ -106,6 +106,18 @@ export async function findNewsByUrl(url: string): Promise<NewsItem | null> {
   return items.find((i) => i.url === url) ?? null;
 }
 
+let defaultRankedCache: { items: NewsItem[]; ts: number; sourceItems: NewsItem[] } | null = null;
+
+function getRankedDefaultFeed(allItems: NewsItem[]): NewsItem[] {
+  const now = Date.now();
+  if (defaultRankedCache && defaultRankedCache.sourceItems === allItems && now - defaultRankedCache.ts < 15_000) {
+    return defaultRankedCache.items;
+  }
+  const ranked = rankNews(allItems, now);
+  defaultRankedCache = { items: ranked, ts: now, sourceItems: allItems };
+  return ranked;
+}
+
 /** Fetch, classify, de-dupe, filter and paginate the live news feed. */
 export async function getNewsPage(opts: { category?: string; q?: string; page?: number; pageSize?: number } = {}): Promise<NewsPage> {
   const category = opts.category || "All";
@@ -114,11 +126,13 @@ export async function getNewsPage(opts: { category?: string; q?: string; page?: 
   const pageSize = Math.min(30, Math.max(6, opts.pageSize || 15));
 
   const { items: allItems, live } = await getClassifiedItems();
-  let items = allItems;
-  if (category !== "All") items = items.filter((i) => i.categories.includes(category));
-  if (q) items = items.filter((i) => (i.title + " " + i.summary).toLowerCase().includes(q));
-  // Surface the most important news first (breaking/high-impact + fresh).
-  items = rankNews(items, Date.now());
+  const isDefault = category === "All" && !q;
+  const items = isDefault
+    ? getRankedDefaultFeed(allItems)
+    : rankNews(
+        allItems.filter((i) => (category === "All" || i.categories.includes(category)) && (!q || (i.title + " " + i.summary).toLowerCase().includes(q))),
+        Date.now()
+      );
 
   const total = items.length;
   const start = (page - 1) * pageSize;

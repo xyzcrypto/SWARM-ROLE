@@ -2,30 +2,15 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { SITE_URL } from "@/lib/seo";
 import { PointsShareActions } from "@/components/tools/PointsShareActions";
 
-type CardData = { platform?: string; domain?: string; sharePct?: number; tokens?: number; usd?: number; fdv?: number };
+import { getSharedPointsCard, type CardData } from "@/lib/shared-card";
 
-// `cache()` is doing real work here, not decoration. Next calls
-// generateMetadata() and the page component separately, and BOTH need the card
-// - so this ran the identical query twice per request, on a page whose entire
-// job is to show one row. React's per-request cache collapses them into one.
-//
-// This comment used to justify it with "~250ms of pure round trip paid twice"
-// from a US Vercel region. **That is no longer true** - #210 moved functions to
-// `bom1`, co-located with Supabase (see `vercel.json`), so a round trip is now
-// cheap. Keep the `cache()` anyway: halving the query count is right on its own
-// merits, and it is the difference between one DB read and two regardless of
-// how far away the database is. Deleting work beats making work cheaper.
+// React per-request cache + in-memory snapshot cache in getSharedPointsCard.
 const getCard = cache(async (id: string) => {
-  const row = await prisma.sharedCard
-    .findUnique({ where: { id }, select: { kind: true, data: true } })
-    .catch(() => null);
-  if (!row || row.kind !== "points-value") return null;
-  return row.data as CardData;
+  return getSharedPointsCard(id);
 });
 
 // Rich-preview landing page for a shared Points Value result - a short link

@@ -17,11 +17,16 @@ export async function collectSignals(now = new Date(), windowMinutes = 60): Prom
   const since = new Date(now.getTime() - windowMinutes * 60_000);
   const dayStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-  const [locked, highFail, otpAgg, otpActive, aiCalls, aiErrors, aiCostAgg, adminActions] = await Promise.all([
+  const [locked, highFail, otpAgg, aiCalls, aiErrors, aiCostAgg, adminActions] = await Promise.all([
     prisma.user.count({ where: { lockedUntil: { gt: now } } }).catch(() => 0),
     prisma.user.count({ where: { failedLoginCount: { gte: 3 } } }).catch(() => 0),
-    prisma.verificationCode.aggregate({ where: { expiresAt: { gt: now } }, _max: { attempts: true } }).catch(() => ({ _max: { attempts: null } as { attempts: number | null } })),
-    prisma.verificationCode.count({ where: { expiresAt: { gt: now } } }).catch(() => 0),
+    prisma.verificationCode
+      .aggregate({
+        where: { expiresAt: { gt: now } },
+        _max: { attempts: true },
+        _count: { _all: true },
+      })
+      .catch(() => ({ _max: { attempts: null as number | null }, _count: { _all: 0 } })),
     prisma.aiUsage.count({ where: { createdAt: { gte: since } } }).catch(() => 0),
     prisma.aiUsage.count({ where: { createdAt: { gte: since }, status: "error" } }).catch(() => 0),
     prisma.aiUsage.aggregate({ where: { createdAt: { gte: dayStart } }, _sum: { estCostUsdMicros: true } }).catch(() => ({ _sum: { estCostUsdMicros: null } as { estCostUsdMicros: number | null } })),
@@ -34,7 +39,7 @@ export async function collectSignals(now = new Date(), windowMinutes = 60): Prom
     lockedAccounts: locked,
     highFailAccounts: highFail,
     otpAttemptsMax: otpAgg._max.attempts ?? 0,
-    otpActiveCodes: otpActive,
+    otpActiveCodes: otpAgg._count._all,
     aiCalls,
     aiErrors,
     aiErrorRatePct: aiCalls > 0 ? Math.round((aiErrors / aiCalls) * 100) : 0,

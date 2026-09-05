@@ -114,13 +114,12 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     }
 
     // AI TL;DR is FREE-articles only. Regenerate when a free post's body changes;
-    // if a post is premium, make sure no stale summary lingers. Best-effort - a
-    // missing `summary` column (pre-migration) throws P2022 and is swallowed.
-    if (post.premium) {
+    // if a post was switched to premium, make sure no stale summary lingers.
+    if (data.premium === true) {
       post = await prisma.post
         .update({ where: { id: params.id }, data: { summary: null }, select: POST_SCALARS })
         .catch(() => post);
-    } else if (data.content !== undefined) {
+    } else if (!post.premium && data.content !== undefined) {
       const summary = await summarize(post.title, post.content);
       if (summary) {
         post = await prisma.post

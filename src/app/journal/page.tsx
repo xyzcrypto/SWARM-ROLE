@@ -23,7 +23,7 @@ export default async function JournalPage() {
       .findMany({
         where: { userId },
         orderBy: { createdAt: "desc" },
-        take: 1000,
+        take: 500, // Bounded for fast initial SSR payload and quick paint
         include: { fills: { orderBy: { executedAt: "asc" } } },
       })
       .catch(() => [] as any[]),

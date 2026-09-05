@@ -16,7 +16,15 @@ export type DashboardStats = {
   totalPostViews: number;
 };
 
-export async function getDashboardStats(): Promise<DashboardStats> {
+let cachedStats: { timestamp: number; data: DashboardStats } | null = null;
+const STATS_TTL_MS = 30_000; // 30s cache
+
+export async function getDashboardStats(force = false): Promise<DashboardStats> {
+  const now = Date.now();
+  if (!force && cachedStats && now - cachedStats.timestamp < STATS_TTL_MS) {
+    return cachedStats.data;
+  }
+
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
@@ -34,7 +42,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const googleUsers = userBuckets.filter((b) => b.provider === "google").reduce((n, b) => n + b._count._all, 0);
   const premiumUsers = userBuckets.filter((b) => b.membership === "Premium").reduce((n, b) => n + b._count._all, 0);
 
-  return {
+  const data: DashboardStats = {
     totalUsers,
     googleUsers,
     emailUsers: totalUsers - googleUsers,
@@ -46,4 +54,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     todayVisits,
     totalPostViews: postViews._sum.views ?? 0,
   };
+  cachedStats = { timestamp: now, data };
+  return data;
 }

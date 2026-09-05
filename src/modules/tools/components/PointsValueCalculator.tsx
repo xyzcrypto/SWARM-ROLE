@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Share2, Loader2 } from "lucide-react";
 import { airdropValue, priceFromFdv } from "@/lib/calculators";
-import { DEX_REGISTRY, platformDomain, platformLogo, platformsWithPointValue } from "@/lib/dex-registry";
+import { getPlatform, platformDomain, platformLogo, platformsWithPointValue } from "@/lib/dex-registry";
 import { AssumptionBanner, CalcField, ResultTile } from "./CalcField";
 import { cn } from "@/lib/utils";
 
@@ -84,7 +84,7 @@ function showPlaceholder(win: Window) {
 // (see src/lib/dex-registry.ts) rather than pulling live figures.
 export function PointsValueCalculator() {
   const [platformId, setPlatformId] = useState(PRESETS[0]?.id ?? "");
-  const platform = DEX_REGISTRY.find((p) => p.id === platformId);
+  const platform = getPlatform(platformId);
   const scenario = platform?.pointValueScenario;
 
   const [yourPoints, setYourPoints] = useState("940");
@@ -95,7 +95,7 @@ export function PointsValueCalculator() {
 
   function applyPreset(id: string) {
     setPlatformId(id);
-    const p = DEX_REGISTRY.find((x) => x.id === id)?.pointValueScenario;
+    const p = getPlatform(id)?.pointValueScenario;
     if (p) {
       setTotalPoints(String(p.totalPoints));
       setSupply(String(p.totalSupply));

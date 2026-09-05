@@ -124,6 +124,26 @@ production use a hosted Postgres (Vercel Postgres, Neon, or Supabase):
 
 ---
 
+## 🛡️ Pre-Deployment Security & Secret Rotation Checklist
+
+Before deploying this application to production, complete the following security checks:
+
+1. **Rotate Any Previously Exposed Secrets:**
+   - If any API key, database password, or secret was ever hardcoded or committed into Git history during local development or testing, **rotate that credential immediately** in its provider dashboard (Supabase, Resend, Google Cloud, GitHub OAuth, Telegram, Groq/Gemini, Upstash). Old values remain in Git history even after deletion from code.
+2. **Supabase Key Isolation & Row Level Security (RLS):**
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: Safe for client-side realtime subscriptions, but **Row Level Security (RLS) MUST be enabled on every table** in your Supabase dashboard to prevent unauthorized data access.
+   - `SUPABASE_SERVICE_ROLE_KEY`: Must **NEVER** be prefixed with `NEXT_PUBLIC_` or shared in client-side code. It must stay in Vercel environment variables as server-only.
+3. **Frontend Exposure Review:**
+   - Only non-sensitive identifiers (`NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_GA_ID`, `NEXT_PUBLIC_GSC_VERIFICATION`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`) should use the `NEXT_PUBLIC_` prefix.
+   - All private keys (OAuth secrets, JWT secrets, database connection URLs, Resend API key, Telegram bot token, AI API keys) must be server-only environment variables.
+4. **Environment File Safety:**
+   - Ensure `.env` is listed in `.gitignore` (already ignored via `.env*`). Never commit live `.env` files to source control. Use `.env.example` as a template with placeholder values only.
+5. **Log & Response Safety:**
+   - All server error handlers and logging routines must sanitize and redact connection strings, passwords, and bot tokens before logging to prevent credential leakage into production log streams.
+
+
+---
+
 ## 🖼️ Swapping logos & images
 
 - **Main XYZ Crypto logo:** `public/logo.jpg` (already added).

@@ -21,9 +21,10 @@ export const PERMISSIONS = {
 export type Permission = keyof typeof PERMISSIONS;
 
 export const ALL_PERMISSIONS = Object.keys(PERMISSIONS) as Permission[];
+const PERMISSION_SET = new Set<string>(ALL_PERMISSIONS);
 
 export function isPermission(v: unknown): v is Permission {
-  return typeof v === "string" && Object.prototype.hasOwnProperty.call(PERMISSIONS, v);
+  return typeof v === "string" && PERMISSION_SET.has(v);
 }
 
 export type Principal = {

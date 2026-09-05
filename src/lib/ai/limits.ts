@@ -53,23 +53,16 @@ function utcDayStart(now: number): number {
  *  - missing AiUsage table (pre-15_ai_usage) → treated as 0 used (fail open).
  */
 export async function checkDailyLimit(userId: string, plan: AiPlan, now = Date.now()): Promise<LimitStatus> {
-  let override: number | null = null;
-  try {
-    const u = await prisma.user.findUnique({ where: { id: userId }, select: { aiDailyLimit: true } });
-    override = u?.aiDailyLimit ?? null;
-  } catch {
-    override = null; // column not migrated yet → use plan default
-  }
-  const limit = effectiveDailyLimit(plan, override);
-
-  let used = 0;
-  try {
-    used = await prisma.aiUsage.count({
+  const [userResult, countResult] = await Promise.all([
+    prisma.user.findUnique({ where: { id: userId }, select: { aiDailyLimit: true } }).catch(() => null),
+    prisma.aiUsage.count({
       where: { userId, task: { in: ["assistant", "why", "digest"] }, createdAt: { gte: new Date(utcDayStart(now)) } },
-    });
-  } catch {
-    used = 0; // analytics table not migrated → don't block
-  }
+    }).catch(() => 0),
+  ]);
+
+  const override = userResult?.aiDailyLimit ?? null;
+  const limit = effectiveDailyLimit(plan, override);
+  const used = typeof countResult === "number" ? countResult : 0;
   const remaining = Math.max(0, limit - used);
   return { allowed: used < limit, used, limit, remaining };
 }

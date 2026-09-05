@@ -4,16 +4,20 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Percent, Gift, AlertTriangle, Shield, TrendingUp, Sigma, ArrowDownRight } from "lucide-react";
+import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
-import { FundingFeeCalculator } from "@/components/tools/FundingFeeCalculator";
-import { PointsValueCalculator } from "@/components/tools/PointsValueCalculator";
-import { LiquidationCalculator } from "@/components/tools/LiquidationCalculator";
-import { PositionSizeCalculator } from "@/components/tools/PositionSizeCalculator";
-import { PnlCalculator } from "@/components/tools/PnlCalculator";
-import { BreakEvenCalculator } from "@/components/tools/BreakEvenCalculator";
-import { CompoundingCalculator } from "@/components/tools/CompoundingCalculator";
-import { DrawdownRecoveryCalculator } from "@/components/tools/DrawdownRecoveryCalculator";
 import { AwardXpOnView } from "@/components/AwardXpOnView";
+
+const FallbackPanel = () => <div className="h-64 animate-pulse rounded-2xl bg-white/[0.02]" />;
+
+const FundingFeeCalculator = dynamic(() => import("@/components/tools/FundingFeeCalculator").then((m) => m.FundingFeeCalculator), { ssr: false, loading: FallbackPanel });
+const PointsValueCalculator = dynamic(() => import("@/components/tools/PointsValueCalculator").then((m) => m.PointsValueCalculator), { ssr: false, loading: FallbackPanel });
+const LiquidationCalculator = dynamic(() => import("@/components/tools/LiquidationCalculator").then((m) => m.LiquidationCalculator), { ssr: false, loading: FallbackPanel });
+const PositionSizeCalculator = dynamic(() => import("@/components/tools/PositionSizeCalculator").then((m) => m.PositionSizeCalculator), { ssr: false, loading: FallbackPanel });
+const PnlCalculator = dynamic(() => import("@/components/tools/PnlCalculator").then((m) => m.PnlCalculator), { ssr: false, loading: FallbackPanel });
+const BreakEvenCalculator = dynamic(() => import("@/components/tools/BreakEvenCalculator").then((m) => m.BreakEvenCalculator), { ssr: false, loading: FallbackPanel });
+const CompoundingCalculator = dynamic(() => import("@/components/tools/CompoundingCalculator").then((m) => m.CompoundingCalculator), { ssr: false, loading: FallbackPanel });
+const DrawdownRecoveryCalculator = dynamic(() => import("@/components/tools/DrawdownRecoveryCalculator").then((m) => m.DrawdownRecoveryCalculator), { ssr: false, loading: FallbackPanel });
 
 const TABS = [
   { id: "funding", label: "Funding Fee", icon: Percent, Panel: FundingFeeCalculator },

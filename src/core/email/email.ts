@@ -18,8 +18,9 @@ export async function sendEmail(
     if (process.env.NODE_ENV !== "production") {
       console.log(`\n[email:dev] to=${to}\n[email:dev] subject=${subject}\n[email:dev] ${text}\n`);
     } else {
-      // Never dump message bodies (OTP codes, contact messages) into prod logs.
-      console.warn(`[email] RESEND_API_KEY not set - email to ${to} ("${subject}") was NOT sent.`);
+      // Never dump plain email addresses or message bodies (OTP codes, contact messages) into prod logs.
+      const domain = to.split("@")[1] ?? "unknown";
+      console.warn(`[email] RESEND_API_KEY not set - email to [REDACTED]@${domain} ("${subject}") was NOT sent.`);
     }
     return { ok: true, dev: true };
   }

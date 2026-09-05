@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { isCuid, handleError, fail, ok } from "@/lib/api";
+import { isCuid, handleError, fail, ok, sanitizeDbError } from "@/lib/api";
 
 describe("isCuid", () => {
   it("accepts cuid-like ids", () => {
@@ -23,8 +23,13 @@ describe("handleError", () => {
     }
     expect(res?.status).toBe(400);
   });
-  it("maps unknown errors to 500", () => {
-    expect(handleError(new Error("boom"), "test").status).toBe(500);
+  it("maps unknown errors to 500 with correlation traceId", async () => {
+    const res = handleError(new Error("boom"), "test");
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.error).toBe("Something went wrong. Please try again.");
+    expect(body.traceId).toBeDefined();
+    expect(typeof body.traceId).toBe("string");
   });
 });
 
@@ -36,3 +41,17 @@ describe("ok/fail", () => {
     expect(fail("nope").status).toBe(400);
   });
 });
+
+describe("sanitizeDbError", () => {
+  it("redacts credentials from connection URLs in error messages", () => {
+    const raw = "Error connecting to postgresql://postgres:SuperSecretPass123@aws-0.pooler.supabase.com:6543/postgres?pgbouncer=true";
+    const sanitized = sanitizeDbError(raw);
+    expect(sanitized).not.toContain("SuperSecretPass123");
+    expect(sanitized).toContain("postgresql://postgres:***@aws-0.pooler.supabase.com:6543/postgres?pgbouncer=true");
+  });
+  it("leaves error strings without credentials unchanged", () => {
+    const raw = "Record not found in database table";
+    expect(sanitizeDbError(raw)).toBe(raw);
+  });
+});
+

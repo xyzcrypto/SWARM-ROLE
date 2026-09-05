@@ -8,8 +8,10 @@ import { AnimatePresence } from "framer-motion";
 import { ArrowLeft, Ban, Check, CheckCheck, Copy, CornerUpLeft as Reply, Flag, Forward, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Pin, PinOff, Search, ShieldOff, Trash2, X, ImagePlus, Smile } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { SendGlyph } from "@/components/SendGlyph";
-import { EmojiPicker } from "@/components/EmojiPicker";
-import { GifPicker } from "@/components/GifPicker";
+import dynamic from "next/dynamic";
+
+const EmojiPicker = dynamic(() => import("@/components/EmojiPicker").then((m) => m.EmojiPicker), { ssr: false });
+const GifPicker = dynamic(() => import("@/components/GifPicker").then((m) => m.GifPicker), { ssr: false });
 import { timeAgo } from "@/lib/news";
 import { useRealtime } from "@/lib/useRealtime";
 import { useOnlineSet } from "@/lib/useUserOnline";

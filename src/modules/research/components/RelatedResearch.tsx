@@ -15,12 +15,20 @@ import { rankPosts } from "@/lib/ai-ground";
 // HTML; a client-rendered list would be invisible to the thing this is for.
 
 /**
- * Every published post, fetched once per request. The corpus is small (single
- * digits), so this is a trivial query - and `cache()` means two strips on one
- * page still cost one round trip.
+ * Every published post, cached in-memory with a 60s TTL across server requests.
+ * The corpus is small, and `cache()` + in-memory TTL means protocol/coin pages
+ * do not hit the database on every page view.
  */
+let cachedPosts: { title: string; slug: string; excerpt: string; category: string }[] | null = null;
+let lastFetch = 0;
+const CACHE_TTL_MS = 60_000;
+
 const allPublished = cache(async () => {
-  return prisma.post
+  const now = Date.now();
+  if (cachedPosts && now - lastFetch < CACHE_TTL_MS) {
+    return cachedPosts;
+  }
+  const posts = await prisma.post
     .findMany({
       where: { published: true },
       select: { title: true, slug: true, excerpt: true, category: true },
@@ -28,6 +36,9 @@ const allPublished = cache(async () => {
       take: 60,
     })
     .catch(() => [] as { title: string; slug: string; excerpt: string; category: string }[]);
+  cachedPosts = posts;
+  lastFetch = now;
+  return posts;
 });
 
 export async function RelatedResearch({
@@ -52,12 +63,14 @@ export async function RelatedResearch({
 
   if (!ranked.length) return null;
 
+  const categoryMap = new Map(posts.map((x) => [x.slug, x.category]));
+
   return (
     <section className="mt-12">
       <h2 className="font-display text-lg font-semibold text-zinc-100">{heading}</h2>
       <ul className="mt-4 space-y-2">
         {ranked.map((p) => {
-          const category = posts.find((x) => x.slug === p.slug)?.category;
+          const category = categoryMap.get(p.slug);
           return (
             <li key={p.slug}>
               <Link

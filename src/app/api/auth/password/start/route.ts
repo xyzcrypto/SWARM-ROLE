@@ -31,7 +31,10 @@ export async function POST(req: Request) {
     const emailLimit = await rateLimit("otpEmail", email);
     if (!emailLimit.success) return fail("Too many attempts. Please try again shortly.", 429);
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, passwordHash: true },
+    });
     let devCode: string | undefined;
     if (user && user.passwordHash) {
       const code = await issueCode(email, "reset");

@@ -219,7 +219,7 @@ export default async function PostPage(
                         {post.author?.name ?? "XYZ Crypto"}
                       </p>
                       <p className="mono text-[11px] text-zinc-500">
-                        {formatDate(post.createdAt)} · {readingTime(post.content)} min read
+                        {formatDate(post.createdAt)} · {(post as { readMinutes?: number }).readMinutes || readingTime(post.content)} min read
                         {" · "}
                         {(post.views + 1).toLocaleString()} views
                       </p>

@@ -13,8 +13,10 @@ import { RobotIcon } from "@/components/RobotIcon";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import type { NewsPage } from "@/lib/news-fetch";
 import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
-import { BriefingBlock } from "@/components/BriefingBlock";
-import { NewsSocial } from "@/components/NewsSocial";
+import dynamic from "next/dynamic";
+
+const BriefingBlock = dynamic(() => import("@/components/BriefingBlock").then((m) => m.BriefingBlock), { ssr: false });
+const NewsSocial = dynamic(() => import("@/components/NewsSocial").then((m) => m.NewsSocial), { ssr: false });
 import { AwardXpOnView } from "@/components/AwardXpOnView";
 import { useHydrated } from "@/lib/useClientFlag";
 import { useScrollLock, scrollPageToSmooth } from "@/lib/useScrollLock";

@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       // last-seen time becomes worth having, and exactly when the row that
       // could have supplied it is deleted.
       await Promise.all([
-        touchLastSeen(me.id),
+        touchLastSeen(me.id, true),
         prisma.chatPresence.deleteMany({ where: { userId: me.id } }).catch(() => null),
       ]);
       return ok({ left: true });

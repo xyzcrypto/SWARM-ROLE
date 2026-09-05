@@ -38,8 +38,10 @@ export function ResearchGrid({
   const [error, setError] = useState("");
   // Skip the first filter-effect run so we keep the server-rendered first page.
   const firstRun = useRef(true);
+  const reqSeq = useRef(0);
 
   async function fetchPage(nextPage: number, replace: boolean) {
+    const seq = ++reqSeq.current;
     setLoading(true);
     setError("");
     try {
@@ -52,6 +54,7 @@ export function ResearchGrid({
       if (query.trim()) params.set("q", query.trim());
       const res = await fetch(`/api/research?${params.toString()}`);
       const data = await res.json().catch(() => ({}));
+      if (seq !== reqSeq.current) return;
       if (!res.ok) {
         setError(data.error || "Could not load posts.");
         return;
@@ -60,9 +63,12 @@ export function ResearchGrid({
       setPage(nextPage);
       setHasMore(Boolean(data.hasMore));
     } catch {
+      if (seq !== reqSeq.current) return;
       setError("Network error. Please try again.");
     } finally {
-      setLoading(false);
+      if (seq === reqSeq.current) {
+        setLoading(false);
+      }
     }
   }
 

@@ -7,12 +7,14 @@ import { Flame } from "lucide-react";
 import { formatDate, formatDateTime, maskEmail } from "@/lib/utils";
 import { Avatar } from "@/components/Avatar";
 import { useScrollLock } from "@/lib/useScrollLock";
-import { PostEditor } from "@/components/PostEditor";
-import { PostManager } from "@/components/PostManager";
+import dynamic from "next/dynamic";
 import { PERMISSIONS, ALL_PERMISSIONS, hasPermission, type Permission } from "@/lib/permissions";
-import { WhatsNewManager } from "@/components/WhatsNewManager";
 import { useRealtime } from "@/lib/useRealtime";
 import { joinSharedChannel } from "@/lib/sharedChannel";
+
+const PostEditor = dynamic(() => import("@/components/PostEditor").then((m) => m.PostEditor), { ssr: false });
+const PostManager = dynamic(() => import("@/components/PostManager").then((m) => m.PostManager), { ssr: false });
+const WhatsNewManager = dynamic(() => import("@/components/WhatsNewManager").then((m) => m.WhatsNewManager), { ssr: false });
 
 type Viewer = { id: string; permissions: string[]; isSuperAdmin: boolean };
 

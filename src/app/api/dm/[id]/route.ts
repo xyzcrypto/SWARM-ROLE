@@ -70,12 +70,17 @@ export async function GET(_req: Request, props: Ctx) {
     ]);
 
     // Mark read for whichever side I am (best-effort; never block the read).
+    // Only update DB when there is actually something newer than my previous read,
+    // avoiding useless write operations every 5s poll when idle.
     const iAmA = conv.userAId === me.id;
     const myPrevRead = iAmA ? conv.readAAt : conv.readBAt;
     const readAt = new Date();
-    await prisma.conversation
-      .update({ where: { id: conv.id }, data: iAmA ? { readAAt: readAt } : { readBAt: readAt } })
-      .catch(() => null);
+    const wasUnread = !myPrevRead || myPrevRead < conv.lastMessageAt;
+    if (wasUnread) {
+      await prisma.conversation
+        .update({ where: { id: conv.id }, data: iAmA ? { readAAt: readAt } : { readBAt: readAt } })
+        .catch(() => null);
+    }
 
     // Tell the OTHER side their message has been read, so their ticks turn
     // without waiting for a poll.
@@ -85,8 +90,7 @@ export async function GET(_req: Request, props: Ctx) {
     // ping), and broadcasting on all of those would be a loop: my refetch pings
     // you, your refetch pings me.
     const theyWroteLast = conv.lastSenderId && conv.lastSenderId !== me.id;
-    const wasUnread = theyWroteLast && (!myPrevRead || myPrevRead < conv.lastMessageAt);
-    if (wasUnread) {
+    if (wasUnread && theyWroteLast) {
       // Same rule as the `dm_message` ping below: this channel is public, so
       // nothing goes on the wire but the conversation id and a timestamp. That
       // is strictly less than the existing ping already discloses, and it saves

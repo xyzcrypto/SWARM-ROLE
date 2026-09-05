@@ -5,6 +5,7 @@ import { Fragment, type ReactNode } from "react";
 export { stripMarkdown } from "@/lib/strip-markdown";
 
 function inline(text: string, keyBase: string): ReactNode[] {
+  if (!text.includes("*")) return [text];
   // Split on **bold** and *italic* while keeping the delimiters' content.
   const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean);
   return parts.map((p, i) => {

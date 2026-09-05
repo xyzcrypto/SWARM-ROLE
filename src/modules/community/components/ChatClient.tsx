@@ -20,13 +20,15 @@ import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/primitives";
 import { MessageButton } from "@/components/MessageButton";
 import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
-import { GifPicker } from "./GifPicker";
-import { EmojiPicker } from "./EmojiPicker";
+import dynamic from "next/dynamic";
 import { MicButton } from "@/shared/components/MicButton";
 import { SendGlyph } from "@/components/SendGlyph";
 import { MagneticButton } from "@/components/MagneticButton";
 import { MessageText } from "@shared/components/MessageText";
 import { hapticToggle, hapticTap } from "@shared/utils/haptics";
+
+const GifPicker = dynamic(() => import("./GifPicker").then((m) => m.GifPicker), { ssr: false });
+const EmojiPicker = dynamic(() => import("./EmojiPicker").then((m) => m.EmojiPicker), { ssr: false });
 
 const MAX_LENGTH = 500;
 const CHANNEL = "community";
@@ -291,7 +293,12 @@ export function ChatClient({
       }
     }
 
-    setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, next]));
+    setMessages((prev) => {
+      if (prev.some((x) => x.id === m.id)) return prev;
+      const list = [...prev, next];
+      // Keep active in-memory buffer bounded to latest 200 messages to avoid DOM bloat in long sessions
+      return list.length > 200 ? list.slice(list.length - 200) : list;
+    });
   }, []);
   // In-place tombstone (this session only) - keeps conversation context
   // instead of messages silently vanishing mid-read. Gone after reload.

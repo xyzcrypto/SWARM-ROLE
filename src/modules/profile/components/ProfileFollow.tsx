@@ -4,10 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { UserPlus, UserCheck, UserMinus, Loader2 } from "lucide-react";
+import { Loader2, UserMinus, UserCheck, UserPlus } from "lucide-react";
 import { userChannel } from "@/lib/realtime-channels";
 import { useRealtime } from "@/lib/useRealtime";
-import { FollowListModal, prefetchFollowList, invalidateFollowLists } from "@/components/FollowListModal";
+import dynamic from "next/dynamic";
+import { prefetchFollowList, invalidateFollowLists } from "@/components/FollowListModal";
+
+const FollowListModal = dynamic(() => import("@/components/FollowListModal").then((m) => m.FollowListModal), { ssr: false });
 import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/useClientFlag";
 

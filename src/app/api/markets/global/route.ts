@@ -46,16 +46,14 @@ const FALLBACK: GlobalMarket = {
 const GAS_RPCS = ["https://eth.llamarpc.com", "https://rpc.ankr.com/eth", "https://ethereum-rpc.publicnode.com"];
 async function ethGas(): Promise<number | null> {
   for (const rpc of GAS_RPCS) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 1800);
     try {
       const res = await fetch(rpc, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 1 }),
-        // Was 20s, chosen because gas moves fast - but Next takes the MINIMUM
-        // revalidate across the segment, so it silently pinned this ENTIRE route
-        // to a 20s ISR window (regenerating ~3x/min under steady traffic) rather
-        // than only making gas fresher. Gas that is up to `revalidate` old is
-        // fine on a markets dashboard; a 10x regeneration rate is not.
+        signal: ctrl.signal,
         next: { revalidate },
       });
       if (!res.ok) continue;
@@ -64,6 +62,8 @@ async function ethGas(): Promise<number | null> {
       if (Number.isFinite(wei) && wei > 0) return Math.round((wei / 1e9) * 10) / 10;
     } catch {
       /* try next */
+    } finally {
+      clearTimeout(timer);
     }
   }
   return null;

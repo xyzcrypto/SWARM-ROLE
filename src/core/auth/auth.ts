@@ -221,15 +221,31 @@ export const authOptions: NextAuthOptions = {
         if (!ipLimit.success) return null;
         const { success } = await rateLimit("login", email);
         if (!success) return null;
-        // Explicit select keeps the login path independent of the lockout
-        // columns, so auth keeps working even before that migration is applied.
-        const user = await prisma.user.findUnique({
-          where: { email },
-          select: {
-            id: true, passwordHash: true, name: true, email: true,
-            image: true, role: true, membership: true,
-          },
-        });
+        // Consolidate user profile and lockout counters into a single query to eliminate
+        // redundant sequential round-trips on every login attempt.
+        let user: any = await prisma.user
+          .findUnique({
+            where: { email },
+            select: {
+              id: true, passwordHash: true, name: true, email: true,
+              image: true, role: true, membership: true,
+              failedLoginCount: true, lockedUntil: true,
+            },
+          })
+          .catch(() => null);
+
+        // Fail-safe fallback if lockout columns are not in the DB schema
+        if (!user) {
+          user = await prisma.user
+            .findUnique({
+              where: { email },
+              select: {
+                id: true, passwordHash: true, name: true, email: true,
+                image: true, role: true, membership: true,
+              },
+            })
+            .catch(() => null);
+        }
         if (!user || !user.passwordHash) {
           // Normalize timing with the real-account path below (dummy compare
           // costs the same ~80-150ms as a real bcrypt.compare) so a
@@ -239,15 +255,10 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // Brute-force lockout. Read/write the counters in guarded queries so a
-        // not-yet-migrated DB (no lockout columns) simply skips the feature
-        // rather than blocking sign-in.
+        // Brute-force lockout check from the already fetched user record.
         const MAX_FAILED = 5;
         const LOCK_MS = 15 * 60 * 1000;
-        const lock = await prisma.user
-          .findUnique({ where: { id: user.id }, select: { failedLoginCount: true, lockedUntil: true } })
-          .catch(() => null);
-        if (lock?.lockedUntil && lock.lockedUntil.getTime() > Date.now()) {
+        if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
           // Same normalization for the locked-account fast path.
           await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
           return null;
@@ -280,7 +291,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
         // Success: clear any accumulated failure state.
-        if (lock && (lock.failedLoginCount || lock.lockedUntil)) {
+        if (user.failedLoginCount || user.lockedUntil) {
           await prisma.user
             .update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null } })
             .catch(() => null);
@@ -303,6 +314,7 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role ?? "USER";
         token.membership = (user as any).membership ?? "Free";
         (token as any).syncedAt = Date.now();
+        (token as any).pwdAt = Date.now();
       }
       // Refresh from DB when missing, on an explicit `update()` call, or once
       // this TTL has elapsed. Without the TTL, an admin granting Premium (or
@@ -430,7 +442,7 @@ export const authOptions: NextAuthOptions = {
             // signed-out. Every gate fails closed.
             return {};
           }
-          (token as any).pwdAt = dbPwdAt;
+          (token as any).pwdAt = Math.max(tokenPwdAt ?? 0, dbPwdAt);
 
           token.uid = dbUser.id;
           token.role = dbUser.role;
@@ -523,6 +535,22 @@ export const authOptions: NextAuthOptions = {
       await prisma.user
         .update({ where: { id: user.id }, data: { provider: account.provider } })
         .catch(() => null);
+    },
+    // Invalidate sessions on explicit logout: bump `passwordChangedAt` so that any
+    // copied/stolen JWT issued before this instant is killed on its next refresh.
+    async signOut(message) {
+      const token = (message as any)?.token;
+      const id = token?.uid;
+      const email = token?.email;
+      if (id) {
+        await prisma.user
+          .update({ where: { id }, data: { passwordChangedAt: new Date() } })
+          .catch(() => null);
+      } else if (email) {
+        await prisma.user
+          .update({ where: { email }, data: { passwordChangedAt: new Date() } })
+          .catch(() => null);
+      }
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

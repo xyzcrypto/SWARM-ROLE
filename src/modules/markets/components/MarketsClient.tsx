@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins, LineChart, Search, Newspaper, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { PerpChartLazy as PerpChart } from "./PerpChartLazy";
+import { useLiveData } from "@shared/hooks/useLiveData";
 import {
   compactUsd,
   pct,
@@ -26,71 +27,54 @@ import {
   type CoinRow,
 } from "@/lib/markets";
 import { cn } from "@/lib/utils";
-import { useLiveData } from "@shared/hooks/useLiveData";
 
-/**
- * Visibility-gated poller (same pattern as MarketTicker/PerpChart).
- *
- * ⚠️ The `live` guard on `setData` is the whole point, and it was missing.
- *
- * Every markets route answers a failed upstream with **HTTP 200** carrying
- * empty arrays and `live: false` - deliberately, so the page never shows an
- * error screen. But this hook only checked `res.ok`, which is true for exactly
- * that response. So one transient CoinGecko 429 replaced a fully populated
- * 250-row table with `{ list: [], trending: [], gainers: [], losers: [] }`, and
- * the Coins tab read "Coin data is loading…" for the next 180 seconds.
- *
- * Keeping the last good payload is strictly better: stale numbers with an
- * honest "stale" badge beat no numbers at all, and the badge (see `Freshness`
- * below) is what tells the reader which they are looking at.
- *
- * `CoinDetailClient` already did this correctly (`if (j && j.live)`). The hub -
- * the higher-traffic surface - did not.
- *
- * The loop itself is now `useLiveData`, the shared primitive that already
- * existed for exactly this (`shared/hooks/useLiveData.ts`, written after an
- * audit that names markets) but that only one surface had been moved onto. Two
- * things come with it, both of which this hand-rolled loop lacked:
- *
- *  - **Retry with backoff.** A failed poll waited out the whole 180-300s
- *    interval, and if that one failed too, until the reader reloaded the page.
- *    Now a blip costs a second.
- *  - **An age-gated wake.** Six of these run on this page plus two perp charts
- *    and the ticker - nine loops, each refetching on every return to the tab.
- *    `wakeMinAgeMs` says the obvious thing: a refetch is only worth a request
- *    once the poll would have been due anyway.
- */
+// Client-side cache to eliminate skeleton flashes on tab switches and page navigations
+const pollerCache = new Map<string, { data: any; live: boolean; ts: number }>();
+
+// Visibility-gated poller (same pattern as MarketTicker/PerpChart).
 function usePolledJson<T>(url: string, everyMs: number) {
-  const [data, setData] = useState<T | null>(null);
-  const [live, setLive] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const cached = pollerCache.get(url);
+  const [data, setData] = useState<T | null>(() => (cached ? (cached.data as T) : null));
+  const [live, setLive] = useState(() => (cached ? cached.live : false));
+  const [loading, setLoading] = useState(() => !cached);
 
-  const load = useCallback(async () => {
-    let ok = false;
-    try {
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error("bad status");
-      const j = await res.json();
-      // Only replace what is on screen with something the server vouches for.
-      // A `live: false` payload is the route's "I could not reach upstream"
-      // signal, not data.
-      if (j?.live) setData(j);
-      ok = Boolean(j?.live);
-    } finally {
-      // In `finally` so a thrown fetch also lands here: `ok` is still false,
-      // which is exactly what the badge should say.
-      setLive(ok);
-      setLoading(false);
+  useEffect(() => {
+    let active = true;
+    async function load() {
+      try {
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("bad status");
+        const j = await res.json();
+        if (!active) return;
+        pollerCache.set(url, { data: j, live: Boolean(j.live), ts: Date.now() });
+        setData(j);
+        setLive(Boolean(j.live));
+      } catch {
+        if (active) setLive(false);
+      } finally {
+        if (active) setLoading(false);
+      }
     }
-    // Throwing is how retry is requested. `live: false` is a real failure even
-    // though it arrives as HTTP 200 - that is the routes' deliberate graceful
-    // shape - and it is worth retrying: the route caches its own failure for
-    // ~30s, so the backoff (1s…30s cap) mostly lands on the CDN rather than
-    // upstream, and the page recovers in seconds instead of after a full cycle.
-    if (!ok) throw new Error("upstream not live");
-  }, [url]);
 
-  useLiveData({ load, intervalMs: everyMs, wakeMinAgeMs: everyMs });
+    // If cached data is fresh (less than 10s old), skip immediate redundant fetch
+    const fresh = pollerCache.get(url);
+    if (!fresh || Date.now() - fresh.ts > 10_000) {
+      load();
+    }
+
+    const t = setInterval(() => {
+      if (!document.hidden) load();
+    }, everyMs);
+    const onVis = () => {
+      if (!document.hidden) load();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      active = false;
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [url, everyMs]);
   return { data, live, loading };
 }
 
