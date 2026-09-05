@@ -7,7 +7,7 @@ import { Providers } from "./providers";
 import { SmoothScrollMount } from "@/components/SmoothScrollMount";
 import { HashScroll } from "@/components/HashScroll";
 import { SameRouteTopScroll } from "@/components/SameRouteTopScroll";
-import { RouteTopScroll } from "@/components/RouteTopScroll";
+import { RouteScroll } from "@/components/RouteScroll";
 import { Analytics } from "@/components/Analytics";
 import { RealtimeSession } from "@/components/RealtimeSession";
 import { XyzAiWidgetMount } from "@/components/XyzAiWidgetMount";
@@ -180,10 +180,11 @@ export default function RootLayout({
         <SmoothScrollMount />
         <HashScroll />
         <SameRouteTopScroll />
-        {/* Cross-route: land at the top after navigating to a different page.
-            Pairs with SameRouteTopScroll above, which covers clicking a link to
-            the page you are already on. Neither one covers the other's case. */}
-        <RouteTopScroll />
+        {/* Where the page sits after a navigation: the top on a forward
+            click, the saved offset on back/forward. Pairs with
+            SameRouteTopScroll above, which covers clicking a link to the page
+            you are already on - no navigation, so this never fires for it. */}
+        <RouteScroll />
         <Providers>
           <RealtimeSession
             url={env.NEXT_PUBLIC_SUPABASE_URL}
