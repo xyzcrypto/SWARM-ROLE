@@ -20,10 +20,20 @@ const MAX_TURNS = 12;
 // Pull the cached market + news snapshots so the assistant can answer with
 // current numbers/headlines. Best-effort with a tight timeout - if anything is
 // slow or down we simply omit the live block (the answer still works).
+/** How long a live-grounding fetch may delay the first token. See below. */
+const LIVE_TIMEOUT_MS = 900;
+
 async function fetchLiveSnapshot(origin: string): Promise<LiveSnapshot> {
   const get = async (path: string) => {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), 1800);
+    // 1800ms -> 900ms. This is a hard ceiling on how long optional context may
+    // hold up the answer, and it is paid on EVERY message. The three routes
+    // behind it are all edge-cached and answer in tens of milliseconds when
+    // warm, so the old budget only ever bought something on a cold cache - and
+    // in exactly that case the block it produces is the least useful, because a
+    // cold route is usually a route that is failing. Dropping the block costs a
+    // sentence of market colour; waiting nearly two seconds costs the reader.
+    const timer = setTimeout(() => ctrl.abort(), LIVE_TIMEOUT_MS);
     try {
       const res = await fetch(`${origin}${path}`, { signal: ctrl.signal, cache: "no-store" });
       return res.ok ? await res.json() : null;
@@ -107,23 +117,43 @@ export async function POST(req: Request) {
     const lastUser = [...history].reverse().find((m) => m.role === "user");
     if (!lastUser) return fail("Ask a question to start.", 400);
 
-    // One in-flight AI request per member (abuse/cost guard; fail-open w/o Redis).
+    // Caps in-flight AI requests per member (abuse/cost guard; fail-open w/o
+    // Redis). The cap is 2, not 1 - `MAX_CONCURRENT` in concurrency.ts - which
+    // is deliberate, because a member with the site open in two tabs is a
+    // normal thing and not abuse. The message used to say "one at a time",
+    // which described neither the code nor what a reader hitting it had done.
     const slot = await acquireSlot(me.id);
-    if (!slot) return fail("One XYZ AI request at a time, please - let the current answer finish.", 429);
+    if (!slot) return fail("Too many XYZ AI requests at once - let one finish first.", 429);
 
     // Grounding corpus: latest published research. The assistant is open to all
     // logged-in members (incl. free), so **premium article bodies must never enter
     // the prompt** - a free user could otherwise ask the model to reproduce paid
     // content. For premium posts we pass only the public title + excerpt (already
     // shown on cards); free posts contribute their body.
-    const rows = await prisma.post
-      .findMany({
-        where: { published: true },
-        orderBy: { createdAt: "desc" },
-        take: 30,
-        select: { title: true, slug: true, excerpt: true, content: true, premium: true },
-      })
-      .catch(() => []);
+    // ⚠️ These two run TOGETHER, and that is the point.
+    //
+    // They used to be two sequential `await`s: the research query, and then
+    // three self-origin HTTP round trips for the live snapshot. Neither needs
+    // the other's result, so the second was waiting on the first for nothing -
+    // and every millisecond here is time-to-first-token, before the model has
+    // even been called. The assistant streams correctly; what made it feel slow
+    // was everything queued up in front of the stream.
+    const origin = new URL(req.url).origin;
+    const [rows, live] = await Promise.all([
+      prisma.post
+        .findMany({
+          where: { published: true },
+          orderBy: { createdAt: "desc" },
+          take: 30,
+          select: { title: true, slug: true, excerpt: true, content: true, premium: true },
+        })
+        .catch(() => []),
+      // Live market + news grounding. Best-effort by design: `formatLiveContext`
+      // renders nothing for an empty snapshot and the answer is still correct
+      // without it, so this must never be the reason a reply is late.
+      fetchLiveSnapshot(origin).catch(() => ({} as LiveSnapshot)),
+    ]);
+
     const posts: GroundingPost[] = rows.map((p) => ({
       title: p.title,
       slug: p.slug,
@@ -132,9 +162,6 @@ export async function POST(req: Request) {
       content: p.premium ? "" : p.content, // redact premium bodies from the corpus
     }));
 
-    // Live market + news grounding (best-effort; never blocks the answer).
-    const origin = new URL(req.url).origin;
-    const live = await fetchLiveSnapshot(origin).catch(() => ({} as LiveSnapshot));
     const system = buildAssistantSystemPrompt(posts, lastUser.content, formatLiveContext(live));
 
     const stream = streamAssistant({
