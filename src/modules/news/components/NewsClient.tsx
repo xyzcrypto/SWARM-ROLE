@@ -54,6 +54,11 @@ const BREAKING_SEEN_MAX = 120;
  */
 export const NEWS_POLL_MS = 90_000;
 
+/** How far a horizontal drag must travel to change story. */
+const SWIPE_COMMIT_PX = 60;
+/** Shown until the reader has actually swiped once. */
+const SWIPE_HINT_KEY = "xyz:news:swiped";
+
 export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const { data: session } = useSession();
   const [category, setCategory] = useState("All");
@@ -71,7 +76,14 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const [saved, setSaved] = useState<NewsItem[]>([]); // full stored stories (source of truth for Saved)
   const [interests, setInterests] = useState<string[]>([]);
   const [customizing, setCustomizing] = useState(false);
-  const [readerIndex, setReaderIndex] = useState<number | null>(null);
+  // ⚠️ The open story is tracked by ID, never by index into `visible`.
+  //
+  // It used to be an index, and the 90s poll PREPENDS fresh stories to the feed
+  // whenever the reader is near the top (see the insert block above). Every
+  // index shifts by however many arrived - so a reader with story 5 open was
+  // silently moved to a different article mid-read, and `onBookmark`, which
+  // read `visible[readerIndex]`, saved the wrong story.
+  const [readerId, setReaderId] = useState<string | null>(null);
   const loggedIn = Boolean(session?.user);
 
   const sentinel = useRef<HTMLDivElement>(null);
@@ -112,7 +124,19 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   }, [loggedIn]);
 
   const savedUrls = useMemo(() => new Set(saved.map((s) => s.id)), [saved]);
-  const openReader = useCallback((i: number) => setReaderIndex(i), []);
+  // By id, not index - the card already knows which story it is, and passing
+  // an index would need a ref to the current list to resolve it (and would be
+  // wrong the moment the list grew, which is the bug fixed above).
+  const openReader = useCallback((id: string) => setReaderId(id), []);
+  // Tapping a token chip searches for it. Deliberately the existing search
+  // rather than a new filter dimension: the search box already narrows the feed,
+  // shows what it is narrowed by, and can be cleared - a hidden token filter
+  // would be a state the reader could get stuck in with nothing to undo it.
+  const searchToken = useCallback((t: string) => {
+    setRawQuery(t);
+    setCategory("All");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
 
   // Debounce the search box.
   useEffect(() => {
@@ -315,6 +339,14 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     if (category === "For You" && interests.length) list = list.filter((i) => i.categories.some((c) => interests.includes(c)));
     return list;
   }, [items, savedOnly, saved, category, interests, query]);
+
+  // The open story, resolved from the CURRENT list. Position is derived rather
+  // than stored, so a feed that grew or was refiltered underneath the reader
+  // cannot move them to a different article - `readerAt` simply follows the
+  // story they actually have open.
+  const readerAt = readerId ? visible.findIndex((v) => v.id === readerId) : -1;
+  const readerItem = readerAt >= 0 ? visible[readerAt] : null;
+
   // Stories already shown in the breaking hero on this device.
   //
   // Fixing the timestamp alone is not enough, because there are several ways a
@@ -368,16 +400,13 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       /* storage full or unavailable - the session still behaves correctly */
     }
   }, [breakingList]);
-  const openById = useCallback((id: string) => {
-    const idx = visible.findIndex((v) => v.id === id);
-    if (idx >= 0) setReaderIndex(idx);
-  }, [visible]);
+
 
   return (
     <div className="space-y-5">
       {/* Breaking hero - image-rich, auto-rotating, opens the reader */}
       {!savedOnly && breakingList.length > 0 && (
-        <BreakingHero items={breakingList} now={now} onOpen={openById} />
+        <BreakingHero items={breakingList} now={now} onOpen={openReader} />
       )}
 
       {/* Search + saved toggle */}
@@ -491,6 +520,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               bookmarked={savedUrls.has(item.id)}
               onBookmark={toggleSave}
               onOpen={openReader}
+              onToken={searchToken}
               loggedIn={loggedIn}
             />
           ))}
@@ -522,24 +552,32 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       )}
 
       <AnimatePresence>
-        {readerIndex !== null && visible[readerIndex] && (
+        {readerItem && (
           <NewsReader
             key="news-reader"
-            item={visible[readerIndex]}
+            item={readerItem}
             now={now}
             loggedIn={loggedIn}
-            bookmarked={savedUrls.has(visible[readerIndex].id)}
-            onBookmark={() => toggleSave(visible[readerIndex])}
-            hasPrev={readerIndex > 0}
-            hasNext={readerIndex < visible.length - 1 || (!savedOnly && hasMore)}
-            onPrev={() => setReaderIndex((i) => (i !== null && i > 0 ? i - 1 : i))}
-            onNext={() => setReaderIndex((i) => {
-              if (i === null) return i;
+            bookmarked={savedUrls.has(readerItem.id)}
+            onBookmark={() => toggleSave(readerItem)}
+            hasPrev={readerAt > 0}
+            hasNext={readerAt < visible.length - 1 || (!savedOnly && hasMore)}
+            position={readerAt + 1}
+            total={visible.length}
+            // Neighbours are resolved from the CURRENT list at the moment of the
+            // tap, so prev/next stay correct even if the feed grew underneath.
+            onPrev={() => setReaderId((id) => {
+              const i = visible.findIndex((v) => v.id === id);
+              return i > 0 ? visible[i - 1].id : id;
+            })}
+            onNext={() => setReaderId((id) => {
+              const i = visible.findIndex((v) => v.id === id);
+              if (i < 0) return id;
               // Prefetch the next page as we near the end so swipe traverses ALL news.
               if (!savedOnly && i >= visible.length - 3) loadMore();
-              return i < visible.length - 1 ? i + 1 : i;
+              return i < visible.length - 1 ? visible[i + 1].id : id;
             })}
-            onClose={() => setReaderIndex(null)}
+            onClose={() => setReaderId(null)}
           />
         )}
       </AnimatePresence>
@@ -593,12 +631,12 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
 }
 
 const NewsCard = memo(function NewsCard({
-  item, index, now, bookmarked, onBookmark, onOpen, loggedIn,
+  item, index, now, bookmarked, onBookmark, onOpen, onToken, loggedIn,
 }: {
-  item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: (item: NewsItem) => void; onOpen: (index: number) => void; loggedIn: boolean;
+  item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: (item: NewsItem) => void; onOpen: (id: string) => void; onToken: (t: string) => void; loggedIn: boolean;
 }) {
   const reduce = useReducedMotionSafe();
-  const open = () => onOpen(index);
+  const open = () => onOpen(item.id);
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
 
@@ -687,8 +725,21 @@ const NewsCard = memo(function NewsCard({
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
         <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", sentBadge.cls)}>{sentBadge.icon}{sentBadge.label}</span>
         <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium ring-1", impactCls)}>{item.impact} impact</span>
+        {/* Tokens were inert <span>s. They are the most specific thing a story
+            carries - "this is about ETH" - and on a site with a markets hub and
+            a search box, being unable to act on that is the odd part. Tapping
+            one searches the feed for it.
+
+            `stopPropagation` because the whole card opens the reader, and a tap
+            on a chip means the chip. */}
         {item.tokens.map((t) => (
-          <span key={t} className="mono rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-400">{t}</span>
+          <button
+            key={t}
+            onClick={(e) => { e.stopPropagation(); onToken(t); }}
+            className="mono rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-400 transition-colors hover:bg-gold-500/15 hover:text-gold-200"
+          >
+            {t}
+          </button>
         ))}
       </div>
 
@@ -737,10 +788,12 @@ const NewsCard = memo(function NewsCard({
 // bouncing off-site, with prev/next through the current list. Keyboard: Esc to
 // close, ←/→ to navigate.
 function NewsReader({
-  item, now, loggedIn, bookmarked, onBookmark, hasPrev, hasNext, onPrev, onNext, onClose,
+  item, now, loggedIn, bookmarked, onBookmark, hasPrev, hasNext, onPrev, onNext, onClose, position, total,
 }: {
   item: NewsItem; now: number; loggedIn: boolean; bookmarked: boolean; onBookmark: () => void;
   hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; onClose: () => void;
+  /** 1-based place in the feed, and how many stories are loaded. */
+  position: number; total: number;
 }) {
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [progress, setProgress] = useState(0); // reading scroll progress (0-1)
@@ -783,15 +836,83 @@ function NewsReader({
     });
   };
 
-  // Mobile swipe: horizontal-dominant swipe → prev/next (doesn't fight vertical scroll).
-  const onTouchStart = (e: ReactTouchEvent) => { touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }; };
+  // Mobile swipe: horizontal-dominant drag -> prev/next.
+  //
+  // This used to be touchstart + touchend only, with nothing in between: the
+  // story did not follow your finger, there was no rubber-band, no way to
+  // change your mind mid-gesture, and no way to discover the gesture existed
+  // beyond a 10px `text-zinc-600` label reading "swipe < >" that is effectively
+  // invisible on a dark panel. A gesture nobody can see and that gives no
+  // feedback while it happens is a gesture nobody uses.
+  //
+  // `drag` is the live offset. It is committed to state rather than written
+  // straight to the DOM because the panel is a framer-motion element and an
+  // inline transform would be overwritten by its own animation frame - the same
+  // conflict documented on the hero medallion.
+  const [drag, setDrag] = useState(0);
+  const dragging = useRef(false);
+
+  // The coach mark. Read once on mount rather than during render: a lazy
+  // initialiser runs on the server too, and anything derived from storage that
+  // reaches the DOM on the first render is the hydration trap in CLAUDE.md.
+  const [showSwipeHint, setShowSwipeHint] = useState(() => {
+    // Safe to read storage in a lazy initialiser HERE specifically because the
+    // reader is only ever mounted by a tap, i.e. always after hydration - there
+    // is no server-rendered output for a client-only value to disagree with.
+    // In a component that renders on the server this would be the #418 trap.
+    if (typeof window === "undefined") return false;
+    try {
+      return !localStorage.getItem(SWIPE_HINT_KEY);
+    } catch {
+      return false; // private mode: the hint simply never shows
+    }
+  });
+  const dismissSwipeHint = () => {
+    setShowSwipeHint(false);
+    try {
+      localStorage.setItem(SWIPE_HINT_KEY, "1");
+    } catch {
+      /* it will show again next time; harmless */
+    }
+  };
+
+  const onTouchStart = (e: ReactTouchEvent) => {
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    dragging.current = false;
+  };
+
+  const onTouchMove = (e: ReactTouchEvent) => {
+    const s = touchStart.current;
+    if (!s) return;
+    const dx = e.touches[0].clientX - s.x;
+    const dy = e.touches[0].clientY - s.y;
+    // Claim the gesture only once it is clearly horizontal, so a normal
+    // vertical read is never hijacked. Once claimed, it stays claimed for the
+    // rest of the gesture - otherwise a slightly diagonal swipe flickers
+    // between scrolling and dragging.
+    if (!dragging.current) {
+      if (Math.abs(dx) < 12 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
+      dragging.current = true;
+      // Learned. Dismiss on the gesture STARTING, not on it committing: a
+      // cancelled swipe still proves the reader knows the gesture is there.
+      if (showSwipeHint) dismissSwipeHint();
+    }
+    // Resistance at the ends: it moves, so the gesture is acknowledged, but it
+    // moves badly, which is how a phone says "there is nothing that way".
+    const blocked = (dx < 0 && !hasNext) || (dx > 0 && !hasPrev);
+    setDrag(blocked ? dx * 0.25 : dx);
+  };
+
   const onTouchEnd = (e: ReactTouchEvent) => {
     const s = touchStart.current;
     touchStart.current = null;
-    if (!s) return;
+    const wasDragging = dragging.current;
+    dragging.current = false;
+    setDrag(0);
+    if (!s || !wasDragging) return;
     const dx = e.changedTouches[0].clientX - s.x;
     const dy = e.changedTouches[0].clientY - s.y;
-    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+    if (Math.abs(dx) > SWIPE_COMMIT_PX && Math.abs(dx) > Math.abs(dy) * 1.5) {
       if (dx < 0 && hasNext) onNext();
       else if (dx > 0 && hasPrev) onPrev();
     }
@@ -881,9 +1002,34 @@ function NewsReader({
         className="panel-solid surface relative flex max-h-[100svh] w-full max-w-2xl flex-col overflow-hidden sm:max-h-[90svh] sm:rounded-2xl"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
         onTouchEnd={onTouchEnd}
+        // Follows the finger while dragging, springs back when it lets go.
+        // `transform` only - no layout, no paint, so it stays smooth on the
+        // phones this gesture exists for.
+        style={{
+          transform: drag ? `translateX(${drag}px)` : undefined,
+          transition: drag ? "none" : "transform 220ms cubic-bezier(0.22,1,0.36,1)",
+        }}
       >
         <AwardXpOnView action="news_read" keyId={item.id} />
+
+        {/* First-run swipe coach mark.
+            Shown once per device, dismissed the moment the reader actually
+            swipes - a hint that keeps appearing after you have learned the
+            gesture is nagging, not teaching. Touch only: there is no swipe on a
+            mouse, and the chevrons next to it are the discoverable path there.
+            The arrow animation is what carries the meaning; a static label was
+            what we had, and it taught nobody. */}
+        {showSwipeHint && (
+          <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center sm:hidden">
+            <span className="news-swipe-hint inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-ink-950/85 px-3.5 py-2 text-[12px] font-medium text-gold-100 shadow-elevate backdrop-blur">
+              <ChevronLeft className="news-swipe-arrow-l h-4 w-4" />
+              Swipe for the next story
+              <ChevronRight className="news-swipe-arrow-r h-4 w-4" />
+            </span>
+          </div>
+        )}
         {/* reading progress */}
         <div className="absolute inset-x-0 top-0 z-10 h-0.5 bg-transparent">
           <div className="h-full bg-gradient-to-r from-gold-500 to-gold-300 transition-[width] duration-150" style={{ width: `${Math.round(progress * 100)}%` }} />
@@ -963,7 +1109,17 @@ function NewsReader({
           <button onClick={onNext} disabled={!hasNext} aria-label="Next story" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-30">
             <ChevronRight className="h-5 w-5" />
           </button>
-          <span className="text-[10px] text-zinc-600 sm:hidden">swipe ‹ ›</span>
+          {/* Position, and the swipe affordance. The label this replaces read
+              "swipe < >" at 10px in text-zinc-600 on a dark panel - present in
+              the DOM and invisible in practice, which is why nobody found the
+              gesture. This says the same thing in a size and colour that can
+              actually be read, and adds the count so the reader knows a feed
+              exists to move through at all. */}
+          {total > 0 && (
+            <span className="mono ml-1 shrink-0 text-[11px] text-zinc-500">
+              {position} / {total}
+            </span>
+          )}
           <button onClick={onBookmark} aria-label="Bookmark" className={cn("rounded-lg p-2 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "text-zinc-400 hover:text-zinc-100")}>
             {bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
           </button>
