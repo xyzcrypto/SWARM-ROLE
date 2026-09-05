@@ -92,10 +92,23 @@ export async function PATCH(req: Request, props: Ctx) {
   }
 }
 
-// DELETE - remove a message. Either participant can delete any message —
-// Telegram / WhatsApp style. Soft: the row stays so the thread keeps its shape
-// and a reported message is still there to look at afterwards.
-export async function DELETE(_req: Request, props: Ctx) {
+// DELETE - remove a message, in one of two senses.
+//
+//   ?scope=me        removes it from MY view only. The row stays, the other
+//                    side is unaffected and is not even told. Any message.
+//   ?scope=everyone  the tombstone. Replaces the body for both sides.
+//                    **Your own messages only.**
+//
+// ⚠️ This used to be one behaviour: a tombstone that EITHER participant could
+// apply to ANY message, including the other person's. The comment called that
+// "Telegram / WhatsApp style", and neither of those lets you delete someone
+// else's message for everyone - the handler simply had no `senderId` check,
+// while `PATCH` a few lines above does. So anyone could erase what the other
+// person had said, in a private thread, with no trace beyond a tombstone.
+//
+// The delete stays SOFT either way: the row survives so the thread keeps its
+// shape and a reported message is still there to look at afterwards.
+export async function DELETE(req: Request, props: Ctx) {
   const params = await props.params;
   try {
     const me = await getSessionUser();
@@ -105,8 +118,29 @@ export async function DELETE(_req: Request, props: Ctx) {
     const { success } = await rateLimit("dm", me.id);
     if (!success) return fail("You're doing that too fast. Take a breath.", 429);
 
+    // Defaults to the narrower, unprivileged action. An old client that sends
+    // no scope removes the message for itself rather than for both sides -
+    // which is the safe direction for a default to fail in.
+    const scope = new URL(req.url).searchParams.get("scope") === "everyone" ? "everyone" : "me";
+
     const msg = await loadMine(params.id, params.messageId, me.id);
     if (!msg || msg.status !== "visible") return fail("Message not found.", 404);
+
+    if (scope === "me") {
+      const iAmUserA = msg.conversation.userAId === me.id;
+      await prisma.directMessage.update({
+        where: { id: msg.id },
+        data: iAmUserA ? { hiddenByA: true } : { hiddenByB: true },
+      });
+      // Deliberately no broadcast and no `lastBody` change: for the other
+      // participant nothing has happened, and their inbox preview is still
+      // accurate. Telling them would leak that I hid something.
+      return ok({ ok: true, scope });
+    }
+
+    if (msg.senderId !== me.id) {
+      return fail("You can only delete your own messages for everyone.", 403);
+    }
 
     await prisma.directMessage.update({
       where: { id: msg.id },
@@ -115,17 +149,36 @@ export async function DELETE(_req: Request, props: Ctx) {
       data: { status: "deleted", pinnedAt: null },
     });
 
-    // If this was the last message, update the inbox preview.
-    if (msg.conversation.lastSenderId === msg.senderId) {
+    // Refresh the inbox preview only if this actually WAS the newest message.
+    //
+    // ⚠️ The old guard was `lastSenderId === msg.senderId`, i.e. "was the
+    // deleted message's sender also the last sender" - which is a different
+    // question. Send m1 then m2, delete m1, and the preview became "Message
+    // deleted" while m2 was still sitting there as the newest message.
+    // Recomputing from the newest surviving row cannot get that wrong.
+    const newest = await prisma.directMessage
+      .findFirst({
+        where: { conversationId: msg.conversationId },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, body: true, status: true, senderId: true },
+      })
+      .catch(() => null);
+    if (newest) {
       await prisma.conversation
-        .update({ where: { id: msg.conversationId }, data: { lastBody: "Message deleted" } })
+        .update({
+          where: { id: msg.conversationId },
+          data: {
+            lastBody: newest.status === "deleted" ? "Message deleted" : snippet(newest.body),
+            lastSenderId: newest.senderId,
+          },
+        })
         .catch(() => null);
     }
 
     await broadcastEvent(userChannel(otherId(msg.conversation, me.id)), "dm_message", {
       conversationId: msg.conversationId,
     });
-    return ok({ ok: true });
+    return ok({ ok: true, scope });
   } catch (err) {
     return handleError(err, "dm:delete");
   }
