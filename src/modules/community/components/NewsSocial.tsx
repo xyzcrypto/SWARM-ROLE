@@ -61,7 +61,16 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }),
       });
       const j = await r.json().catch(() => null);
-      if (r.ok && j) { setLiked(Boolean(j.liked)); setLikes(j.count ?? likes); }
+      if (r.ok && j) {
+        setLiked(Boolean(j.liked));
+        // ⚠️ Updater form, and the fallback reads `n`, not `likes`.
+        //
+        // `likes` here is the value from the render this callback closed over -
+        // i.e. from BEFORE the optimistic bump a few lines up. So on a response
+        // with no count the counter silently rolled back by one, and two quick
+        // taps could leave it a full step behind what the server holds.
+        setLikes((n) => (typeof j.count === "number" ? j.count : n));
+      }
     } catch { /* keep optimistic */ }
   };
 
@@ -100,8 +109,22 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
   };
 
   const remove = async (id: string) => {
-    setComments((c) => c.filter((x) => x.id !== id));
-    try { await fetch(`/api/news/social?id=${id}`, { method: "DELETE" }); } catch { /* ignore */ }
+    // Snapshot for the rollback. Taken from the updater rather than the render
+    // closure so a comment that arrived since this render is not lost by it.
+    let snapshot: Comment[] = [];
+    setComments((c) => {
+      snapshot = c;
+      return c.filter((x) => x.id !== id);
+    });
+    try {
+      const r = await fetch(`/api/news/social?id=${id}`, { method: "DELETE" });
+      // Was: `catch { /* ignore */ }` with no check on the response either. A
+      // failed delete removed the comment from view and left it on the server,
+      // so it reappeared on the next load with nothing having said why.
+      if (!r.ok) setComments(snapshot);
+    } catch {
+      setComments(snapshot);
+    }
   };
 
   return (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { SharedArticle } from "@/components/SharedArticle";
 import { decodeStory, type SharedStory } from "@/lib/news-share";
-import { getNewsPage } from "@/lib/news-fetch";
+import { findNewsByUrl } from "@/lib/news-fetch";
 
 // Depends on the ?d= / ?u= param, so render on demand.
 export const dynamic = "force-dynamic";
@@ -15,8 +15,11 @@ async function resolve(sp: { d?: string; u?: string }): Promise<SharedStory | nu
   if (sp.u) {
     const url = decodeURIComponent(sp.u);
     try {
-      const { items } = await getNewsPage({ pageSize: 30 });
-      const it = items.find((i) => i.url === url);
+      // The WHOLE classified pool, not a page of it. `getNewsPage`'s pageSize
+      // is clamped to 30, so this used to see only the newest 30 stories - and
+      // a link shared for anything older fell through to the stub below within
+      // minutes, losing its title, image and summary in every preview.
+      const it = await findNewsByUrl(url);
       if (it) return { u: it.url, t: it.title, s: it.summary, src: it.source, img: it.image, ts: it.publishedAt, cat: it.category };
     } catch { /* fall through to the minimal card */ }
     return { u: url, t: "News on XYZ Crypto" };

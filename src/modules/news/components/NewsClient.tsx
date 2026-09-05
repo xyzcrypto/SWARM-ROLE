@@ -521,6 +521,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               onBookmark={toggleSave}
               onOpen={openReader}
               onToken={searchToken}
+              onSource={searchToken}
               loggedIn={loggedIn}
             />
           ))}
@@ -631,9 +632,9 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
 }
 
 const NewsCard = memo(function NewsCard({
-  item, index, now, bookmarked, onBookmark, onOpen, onToken, loggedIn,
+  item, index, now, bookmarked, onBookmark, onOpen, onToken, onSource, loggedIn,
 }: {
-  item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: (item: NewsItem) => void; onOpen: (id: string) => void; onToken: (t: string) => void; loggedIn: boolean;
+  item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: (item: NewsItem) => void; onOpen: (id: string) => void; onToken: (t: string) => void; onSource: (s: string) => void; loggedIn: boolean;
 }) {
   const reduce = useReducedMotionSafe();
   const open = () => onOpen(item.id);
@@ -710,9 +711,27 @@ const NewsCard = memo(function NewsCard({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.sourceIcon} alt="" width={16} height={16} loading="lazy" className="h-4 w-4 rounded" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
         )}
-        <span className="font-medium text-zinc-400">{item.source}</span>
+        {/* Tapping the source filters to it. 29 feeds and no way to say "more
+            from this one" (or "not this one") was the gap. Same reasoning as
+            the token chips: it drives the visible search box rather than a
+            hidden filter dimension, so it can be seen and undone. */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onSource(item.source); }}
+          className="font-medium text-zinc-400 transition-colors hover:text-gold-200"
+        >
+          {item.source}
+        </button>
         <span>·</span>
-        <span className="mono">{now ? timeAgo(item.publishedAt, now) : ""}</span>
+        {/* A real <time>, not a bare span. `timeAgo` is the readable form and
+            `dateTime` is the machine-readable one; `title` gives the absolute
+            timestamp on hover, which "3h ago" alone never could. */}
+        <time
+          className="mono"
+          dateTime={item.publishedAt ? new Date(item.publishedAt).toISOString() : undefined}
+          title={item.publishedAt ? new Date(item.publishedAt).toUTCString() : undefined}
+        >
+          {now ? timeAgo(item.publishedAt, now) : ""}
+        </time>
         <span className="ml-auto rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{item.category}</span>
       </div>
 
@@ -723,6 +742,20 @@ const NewsCard = memo(function NewsCard({
 
       {/* badges */}
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        {/* Every category the story matched, not just the primary one.
+            `categories` has always been computed and shipped - it drives the
+            "For You" filter and push targeting - but only `category` was ever
+            rendered, so a story matching Hacks + Security + DeFi + Ethereum
+            showed exactly one tag. Capped at two extras so a busy story does
+            not turn the card into a tag cloud. */}
+        {item.categories
+          .filter((c) => c !== item.category)
+          .slice(0, 2)
+          .map((c) => (
+            <span key={c} className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
+              {c}
+            </span>
+          ))}
         <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", sentBadge.cls)}>{sentBadge.icon}{sentBadge.label}</span>
         <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium ring-1", impactCls)}>{item.impact} impact</span>
         {/* Tokens were inert <span>s. They are the most specific thing a story
