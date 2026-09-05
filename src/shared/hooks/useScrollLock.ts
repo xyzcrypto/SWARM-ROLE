@@ -23,7 +23,7 @@ import { useEffect } from "react";
  * unfreeze the page under the outer one.
  */
 
-type Controls = { stop: () => void; start: () => void; toTop: () => void };
+type Controls = { stop: () => void; start: () => void; toOffset: (y: number) => void };
 
 let smooth: Controls | null = null;
 let depth = 0;
@@ -77,9 +77,21 @@ export function unlockScroll() {
  * reduced motion) - there is nothing registered, and native is already correct.
  */
 export function scrollPageToTop() {
+  scrollPageTo(0);
+}
+
+/**
+ * Move the page to an absolute offset, taking the smooth-scroll engine with it.
+ *
+ * Same reasoning as `scrollPageToTop` (which is now just this with 0): Lenis
+ * owns a target position and writes it back on its own rAF tick, so a native
+ * scroll it did not initiate is undone on the next frame. Both halves move or
+ * neither does.
+ */
+export function scrollPageTo(y: number) {
   if (typeof window === "undefined") return;
-  window.scrollTo(0, 0);
-  smooth?.toTop();
+  window.scrollTo(0, y);
+  smooth?.toOffset(y);
 }
 
 /** Hold the lock for as long as the component is mounted (or `active` is true). */
