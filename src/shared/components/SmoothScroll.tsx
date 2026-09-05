@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import Lenis from "lenis";
 import { registerSmoothScroll } from "@shared/hooks/useScrollLock";
 
@@ -10,6 +11,9 @@ import { registerSmoothScroll } from "@shared/hooks/useScrollLock";
  * is smoother there and skipping the rAF loop saves main-thread time/battery.
  */
 export function SmoothScroll() {
+  const pathname = usePathname();
+  const lenisRef = useRef<Lenis | null>(null);
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -54,6 +58,7 @@ export function SmoothScroll() {
         return overflowY === "auto" || overflowY === "scroll";
       },
     });
+    lenisRef.current = lenis;
 
     document.documentElement.classList.add("lenis");
     // Hand the stop/start controls to the scroll-lock helper. Lenis drives the
@@ -86,9 +91,21 @@ export function SmoothScroll() {
       cancelAnimationFrame(raf);
       registerSmoothScroll(null);
       lenis.destroy();
+      lenisRef.current = null;
       document.documentElement.classList.remove("lenis");
     };
   }, []);
+
+  // Reset scroll to top on page navigation (unless URL targets an in-page anchor).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (window.location.hash) return;
+
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(0, { immediate: true });
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [pathname]);
 
   return null;
 }

@@ -94,7 +94,7 @@ async function getGroundingPosts(): Promise<GroundingPost[]> {
       select: { title: true, slug: true, excerpt: true, content: true, premium: true },
     })
     .catch(() => []);
-  const posts: GroundingPost[] = rows.map((p) => ({
+  const posts: GroundingPost[] = rows.map((p: GroundingPost) => ({
     title: p.title,
     slug: p.slug,
     excerpt: p.excerpt,
