@@ -23,7 +23,7 @@ import { useEffect } from "react";
  * unfreeze the page under the outer one.
  */
 
-type Controls = { stop: () => void; start: () => void };
+type Controls = { stop: () => void; start: () => void; toTop: () => void };
 
 let smooth: Controls | null = null;
 let depth = 0;
@@ -62,6 +62,24 @@ export function unlockScroll() {
   document.body.style.overflow = previousOverflow;
   document.body.style.paddingRight = previousPaddingRight;
   smooth?.start();
+}
+
+/**
+ * Jump the page to the top immediately, taking the smooth-scroll engine with it.
+ *
+ * `window.scrollTo(0, 0)` alone is not enough while Lenis is running. Lenis owns
+ * an internal target position and writes it back on its own rAF tick, so a
+ * native scroll it did not initiate is simply undone on the next frame. Both
+ * halves have to move, which is why this lives next to the lock controls rather
+ * than being called inline at the two places that need it.
+ *
+ * No-op beyond the native scroll when Lenis is not running (touch devices,
+ * reduced motion) - there is nothing registered, and native is already correct.
+ */
+export function scrollPageToTop() {
+  if (typeof window === "undefined") return;
+  window.scrollTo(0, 0);
+  smooth?.toTop();
 }
 
 /** Hold the lock for as long as the component is mounted (or `active` is true). */

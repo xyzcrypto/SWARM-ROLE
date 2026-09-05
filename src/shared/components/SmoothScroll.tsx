@@ -59,7 +59,16 @@ export function SmoothScroll() {
     // Hand the stop/start controls to the scroll-lock helper. Lenis drives the
     // scroll position itself, so `body { overflow: hidden }` alone does not
     // hold the page still behind a modal - see useScrollLock.ts.
-    registerSmoothScroll({ stop: () => lenis.stop(), start: () => lenis.start() });
+    // `toTop` is what lets a route change actually land at the top. Lenis holds
+    // its own target position and rewrites the scroll on every rAF tick, so a
+    // native `window.scrollTo(0, 0)` it did not initiate is undone on the next
+    // frame. `immediate` skips the easing - a route change should arrive at the
+    // top, not glide there for a second after the new page has painted.
+    registerSmoothScroll({
+      stop: () => lenis.stop(),
+      start: () => lenis.start(),
+      toTop: () => lenis.scrollTo(0, { immediate: true, force: true }),
+    });
 
     let raf = 0;
     const loop = (time: number) => {
