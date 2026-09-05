@@ -6,7 +6,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   SendHorizonal, X, Loader2, Trash2, BarChart3, Search, Compass, BookOpen, Coins,
-  Copy, Check, RotateCcw, Volume2, Square, FileText, Mic, Sparkles, CornerDownRight,
+  Copy, Check, RotateCcw, Volume2, Square, Mic, Sparkles, CornerDownRight,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { Markdown } from "@/lib/markdown";
@@ -14,7 +14,6 @@ import { RobotIcon } from "@/components/RobotIcon";
 import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import { quotaLevel, type QuotaLevel } from "@shared/utils/ai-quota";
-import { extractSources } from "@shared/utils/ai-sources";
 import { stripMarkdown } from "@shared/utils/strip-markdown";
 import { pickVoice, chunkForSpeech } from "@/lib/tts";
 import { aiPlanFor } from "@shared/utils/ai-plan";
@@ -92,11 +91,44 @@ export function XyzAiWidget() {
 
   const ttsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
-  // Dictation drops straight into the composer rather than sending, so a
-  // misheard word can be fixed before it costs a request.
+  // Dictation lands in the composer AND sends itself once you stop speaking.
+  //
+  // It used to only land in the composer, on the reasoning that a misheard word
+  // should be fixable before it costs a request. That is a real cost, but it
+  // was being paid on every single dictation to insure against a minority of
+  // them - and the whole point of talking to an assistant is not touching the
+  // keyboard. Auto-send is now the behaviour, with two things that keep the old
+  // protection where it actually matters:
+  //
+  //   - Nothing is sent unless there is something to send (`inputRef` below).
+  //   - Tapping the mic again mid-sentence still just stops and leaves the text
+  //     in the composer to edit, because `toggle()` on a running session calls
+  //     `stop()`, which finalises - and `onEnd` then sends what was finalised.
+  //     Discarding instead of sending is `cancel()`, which suppresses `onEnd`.
+  //
   // continuous: Chrome otherwise ends the session at the first short pause,
   // which cuts people off mid-sentence and reads as "it didn't hear me".
-  const speech = useSpeechInput((text) => setInput((v) => (v ? `${v} ${text}` : text)), { continuous: true });
+  //
+  // `inputRef` mirrors `input` because `onEnd` fires from a recognizer callback
+  // that closed over an older render - reading `input` there would send the
+  // value from before the last transcript landed, i.e. almost always the wrong
+  // thing (and an empty string on a single-utterance dictation).
+  const inputRef = useRef("");
+  const speech = useSpeechInput(
+    (text) =>
+      setInput((v) => {
+        const next = v ? `${v} ${text}` : text;
+        inputRef.current = next;
+        return next;
+      }),
+    {
+      continuous: true,
+      onEnd: () => {
+        const q = inputRef.current.trim();
+        if (q) void send(q);
+      },
+    }
+  );
 
   // Suggestions about the page the member is actually on, shown above the
   // general set. Derived from the path only - no extra fetch.
@@ -123,6 +155,19 @@ export function XyzAiWidget() {
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // Re-entrancy guard for `send`. Deliberately a ref and not the `busy` state -
+  // see the note at the top of `send` for why state cannot do this job.
+  const sendingRef = useRef(false);
+
+  // Mirror of `input` for the dictation auto-send path. The updater inside
+  // `useSpeechInput` writes it too, and it has to: `onEnd` can fire in the same
+  // task as the last `onresult`, before React has committed - so an effect
+  // alone would hand `onEnd` the previous value. This effect covers everything
+  // else that changes the composer (typing, clearing, a suggestion chip), so
+  // the two together mean the ref is never behind whichever path got there.
+  useEffect(() => {
+    inputRef.current = input;
+  }, [input]);
   // Remaining speech chunks for the answer being read aloud.
   const speechQueue = useRef<string[]>([]);
 
@@ -176,6 +221,10 @@ export function XyzAiWidget() {
 
   function clearChat() {
     abortRef.current?.abort();
+    // The aborted request's `finally` releases this too, but not until its
+    // microtask runs - and "clear" should leave the composer usable now, not a
+    // tick later.
+    sendingRef.current = false;
     stopSpeaking();
     setMessages([]);
     setError(null);
@@ -256,7 +305,25 @@ export function XyzAiWidget() {
 
   async function send(text: string, base?: ChatMsg[]) {
     const q = text.trim();
-    if (!q || busy) return;
+    // ⚠️ The guard is a REF, not `busy`.
+    //
+    // `busy` is React state, so it stays `false` until React commits the
+    // `setBusy(true)` below. Two sends fired in the same tick - Enter twice, or
+    // Enter plus a click, or dictation ending while a finger is on the button -
+    // both read `busy === false` and both proceed. Then both streaming loops
+    // run `next[next.length - 1] = { role: "assistant", content: acc }` against
+    // the SAME bubble with two different accumulators, alternately overwriting
+    // each other. That is the "double word" - not a parser or a decoder fault;
+    // the provider deltas and the incremental decode are both correct.
+    //
+    // A ref flips synchronously, so the second call cannot get past this line.
+    if (!q || sendingRef.current) return;
+    sendingRef.current = true;
+    // Belt and braces: if a previous request somehow survived (an early return
+    // that skipped the `finally`, a re-mount), stop it before starting another.
+    // The old code reassigned `abortRef.current` without aborting the old one,
+    // which orphaned it from both `finally` and `clearChat`.
+    abortRef.current?.abort();
     hapticTap(); // asking the assistant is a committed action, not a navigation
     setError(null);
     setInput("");
@@ -302,6 +369,7 @@ export function XyzAiWidget() {
       setMessages((prev) => prev.filter((m, i) => !(i === prev.length - 1 && m.role === "assistant" && !m.content)));
       setError(err?.message ?? "Something went wrong. Please try again.");
     } finally {
+      sendingRef.current = false;
       setBusy(false);
       abortRef.current = null;
     }
@@ -503,7 +571,6 @@ export function XyzAiWidget() {
               // are not final - hold them back rather than flickering.
               const streaming = busy && i === messages.length - 1 && m.role === "assistant";
               const done = m.role === "assistant" && Boolean(m.content) && !streaming;
-              const sources = done ? extractSources(m.content) : [];
               return (
                 <div key={i} className="space-y-1.5">
                   <Bubble role={m.role}>
@@ -518,22 +585,27 @@ export function XyzAiWidget() {
                     )}
                   </Bubble>
 
-                  {sources.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pl-1">
-                      {sources.map((s) => (
-                        <Link
-                          key={s.slug}
-                          href={s.href}
-                          title={s.title}
-                          className="mono inline-flex max-w-[13rem] items-center gap-1 rounded-md bg-gold-500/10 px-2 py-0.5 text-[10px] text-gold-100 ring-1 ring-gold-500/25 transition-colors hover:bg-gold-500/20"
-                        >
-                          <FileText className="h-2.5 w-2.5 shrink-0" />
-                          <span className="truncate">{s.title}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  )}
+                  {/* The source-chip row that used to sit here has been removed:
+                      it repeated titles that were ALREADY in the answer.
 
+                      `extractSources` read every `[Title](/research/slug)`
+                      citation out of the markdown - and `Markdown` renders each
+                      of those inline as an `<a>` a few lines above, to the same
+                      destination. So a cited article's title was on screen
+                      twice, with the second copy carrying no information the
+                      first did not. Measured: an answer citing one article
+                      rendered its title 2 times.
+
+                      That is the "double word" in the assistant. Labelling the
+                      row "Sources" was tried first and rejected - it explains
+                      the repetition instead of removing it, and the reader is
+                      still reading the same title twice.
+
+                      If numbered citations are wanted later (a `[1]` marker
+                      inline plus a numbered list at the end, Perplexity-style),
+                      that is a real improvement and a clean follow-up - but it
+                      means rewriting the model's links, not re-adding a second
+                      copy of them. */}
                   {done && (
                     <div className="flex flex-wrap gap-1 pl-1">
                       <ToolBtn

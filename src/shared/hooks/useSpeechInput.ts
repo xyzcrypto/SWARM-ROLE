@@ -83,12 +83,29 @@ export type SpeechInput = {
   clearError: () => void;
 };
 
-export function useSpeechInput(onText: (text: string) => void, opts?: { continuous?: boolean }): SpeechInput {
+export function useSpeechInput(
+  onText: (text: string) => void,
+  opts?: {
+    continuous?: boolean;
+    /**
+     * Fired once a dictation session ends normally, after the final transcript
+     * has been handed to `onText`. Not fired when the session is discarded
+     * (`cancel()`), nor when it ends because of an error - "the user gave up"
+     * and "the mic failed" must never look like "the user finished speaking".
+     *
+     * Exists so a caller can auto-submit. Callers that want the old
+     * dictate-then-review behaviour simply omit it.
+     */
+    onEnd?: () => void;
+  }
+): SpeechInput {
   const supported = useClientFlag(() => getCtor() !== null);
   const [listening, setListening] = useState(false);
   const [interim, setInterim] = useState("");
   const [error, setError] = useState<string | null>(null);
   const ref = useRef<RecognitionLike | null>(null);
+  /** Set when a session is being discarded, so `onend` knows not to submit. */
+  const discardedRef = useRef(false);
   // How many results from `e.results` have already been handed to the caller.
   //
   // ⚠️ This is what stops dictation doubling. With `continuous: true`,
@@ -108,14 +125,24 @@ export function useSpeechInput(onText: (text: string) => void, opts?: { continuo
     cb.current = onText;
   }, [onText]);
 
+  const endCb = useRef(opts?.onEnd);
+  useEffect(() => {
+    endCb.current = opts?.onEnd;
+  }, [opts?.onEnd]);
+
   const teardown = useCallback(() => {
     ref.current = null;
     deliveredRef.current = 0;
     setListening(false);
     setInterim("");
+    // NOTE: `discardedRef` is deliberately NOT reset here. `onend` reads it
+    // after calling this, and `toggle` clears it when the next session starts.
   }, []);
 
   const cancel = useCallback(() => {
+    // Mark before aborting: `abort()` fires `onend` synchronously in some
+    // engines, and a discarded utterance must not be auto-submitted.
+    discardedRef.current = true;
     ref.current?.abort();
     teardown();
   }, [teardown]);
@@ -173,13 +200,25 @@ export function useSpeechInput(onText: (text: string) => void, opts?: { continuo
     rec.onerror = (e: any) => {
       const msg = speechErrorMessage(String(e?.error ?? ""));
       if (msg) setError(msg);
+      // A failed session is not a finished one - never auto-submit from here.
+      discardedRef.current = true;
       teardown();
     };
 
-    rec.onend = () => teardown();
+    rec.onend = () => {
+      const discarded = discardedRef.current;
+      teardown();
+      // After `teardown`, so a consumer that submits and then re-focuses the
+      // composer is not fighting the hook's own state reset. `onresult` has
+      // already delivered the final transcript by this point - the spec fires
+      // the last result before `end` - so whatever the consumer reads is
+      // complete.
+      if (!discarded) endCb.current?.();
+    };
 
     ref.current = rec;
     deliveredRef.current = 0;
+    discardedRef.current = false;
     try {
       rec.start();
       // Chrome fires onstart, but Safari has been seen to skip it; set the flag
