@@ -371,6 +371,15 @@ model DirectMessage {
   // Mirrors ChatMessage: deletes are soft, so the thread keeps its shape and a
   // report stays investigable after the sender removes the evidence.
   status         String       @default("visible") // "visible" | "deleted"
+  // Delete for me, as opposed to `status: "deleted"` which is delete for
+  // everyone. Named to match Conversation.hiddenByA/B, which already means
+  // "this side removed it from their view" for a whole thread.
+  //
+  // Two columns rather than one relation because a DM has exactly two
+  // participants and "A"/"B" are already fixed by Conversation.userAId/userBId
+  // - the same shape the pin and hide flags above use.
+  hiddenByA      Boolean      @default(false) // user A removed this message from their own view
+  hiddenByB      Boolean      @default(false) // user B removed this message from their own view
   editedAt       DateTime?
   pinnedAt       DateTime?
   conversationId String
@@ -397,6 +406,12 @@ model DirectMessage {
   @@index([conversationId, createdAt])
   // The pinned banner is "the newest pinned message in this conversation".
   @@index([conversationId, pinnedAt])
+  // Loading a thread filters on the requester's own hidden flag. Two indexes
+  // rather than one because the filtered column depends on which participant
+  // is asking, and Postgres can still use the leading `conversationId` of
+  // either for the unfiltered shape.
+  @@index([conversationId, hiddenByA, createdAt])
+  @@index([conversationId, hiddenByB, createdAt])
 }
 
 // Post comments — auto-published, logged-in users only; `status` enables

@@ -39,9 +39,16 @@ export async function GET(_req: Request, props: Ctx) {
     // from the list would make the thread jump under the reader's cursor and
     // would quietly rewrite a conversation they had already read; every
     // messenger worth copying leaves "this message was deleted" in place.
+    // "Delete for me" is filtered HERE, on the server, per requester - the row
+    // stays and the other side still sees it. Doing this client-side would ship
+    // the body to a reader who asked never to see it again, which is the same
+    // mistake as hiding a `status: "deleted"` body in CSS.
+    const iAmUserA = conv.userAId === me.id;
+    const notHiddenForMe = iAmUserA ? { hiddenByA: false } : { hiddenByB: false };
+
     const [rows, pinnedRow] = await Promise.all([
       prisma.directMessage.findMany({
-        where: { conversationId: conv.id },
+        where: { conversationId: conv.id, ...notHiddenForMe },
         orderBy: { createdAt: "asc" },
         take: 200,
         select: {
@@ -53,7 +60,9 @@ export async function GET(_req: Request, props: Ctx) {
         },
       }),
       prisma.directMessage.findFirst({
-        where: { conversationId: conv.id, status: "visible", pinnedAt: { not: null } },
+        // Same filter: a banner pointing at a message I removed for myself is a
+        // dead end I cannot clear.
+        where: { conversationId: conv.id, status: "visible", pinnedAt: { not: null }, ...notHiddenForMe },
         orderBy: { pinnedAt: "desc" },
         select: { id: true, body: true, createdAt: true, senderId: true },
       }),

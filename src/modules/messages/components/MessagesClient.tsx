@@ -86,6 +86,35 @@ function inboxPreview(lastBody: string): string {
   return chatMediaUrl(lastBody) ? "\u{1F4F7} Photo" : lastBody;
 }
 
+/**
+ * Do two payloads of the same length render identically?
+ *
+ * Only the fields that actually reach the screen, and only the ones a refetch
+ * can change in place: a delete blanks `body` and sets `deleted`, an edit
+ * changes `body` and `editedAt`, a pin flips `pinned`. `createdAt`, `mine` and
+ * `forwarded` are fixed at insert, so comparing them would cost time and never
+ * differ.
+ *
+ * Exists so the silent-refetch shortcut can skip an identical payload without
+ * also skipping an in-place change - which is what a length check did.
+ */
+function sameThread(a: Msg[], b: Msg[]): boolean {
+  for (let i = 0; i < a.length; i++) {
+    const x = a[i];
+    const y = b[i];
+    if (
+      x.id !== y.id ||
+      x.body !== y.body ||
+      !!x.deleted !== !!y.deleted ||
+      !!x.pinned !== !!y.pinned ||
+      (x.editedAt ?? null) !== (y.editedAt ?? null)
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /** Menu width in px. Also fed to `placeMenu`, so the two can never disagree. */
 const MENU_WIDTH = 176;
 
@@ -515,7 +544,20 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
         setBlockedByMe(!!j.blockedByMe);
         setMessages((prev) => {
           const next: Msg[] = Array.isArray(j.messages) ? j.messages : [];
-          if (silent && next.length === prev.length) return prev;
+          // ⚠️ This used to be `if (silent && next.length === prev.length) return prev`,
+          // and that one line silently defeated three features.
+          //
+          // A DM delete is SOFT - the row stays as a tombstone - so the count
+          // does not change. Neither does editing, nor pinning. Every silent
+          // refetch (the 5s poll, and every `dm_message` realtime ping) threw
+          // the fresh payload away and kept the stale one, so the other side's
+          // delete, edit or pin never appeared until the thread was closed and
+          // reopened. The very three things the message route broadcasts for.
+          //
+          // Comparing what actually renders instead of how many rows there are
+          // keeps the original intent - don't re-render on an identical payload -
+          // without being blind to in-place changes.
+          if (silent && next.length === prev.length && sameThread(prev, next)) return prev;
           return next;
         });
       }
@@ -664,10 +706,21 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     }
   }
 
-  async function deleteMessage(messageId: string) {
+  /**
+   * `scope: "me"` removes the message from my view only - the other side keeps
+   * it and is not told. `scope: "everyone"` is the tombstone, and the server
+   * only allows it on my own messages.
+   */
+  async function deleteMessage(messageId: string, scope: "me" | "everyone") {
     setActionOpenId(null);
-    setMessages((m) => m.map((x) => (x.id === messageId ? { ...x, body: "", deleted: true, pinned: false } : x)));
-    const r = await fetch(messageUrl(messageId), { method: "DELETE" }).catch(() => null);
+    setMessages((m) =>
+      scope === "me"
+        ? // Gone from my thread entirely. A tombstone would be wrong here: for
+          // me the message is not "deleted", it is no longer mine to see.
+          m.filter((x) => x.id !== messageId)
+        : m.map((x) => (x.id === messageId ? { ...x, body: "", deleted: true, pinned: false } : x))
+    );
+    const r = await fetch(`${messageUrl(messageId)}?scope=${scope}`, { method: "DELETE" }).catch(() => null);
     if (!r?.ok) {
       setErr("Could not delete the message.");
       void load(true);
@@ -917,7 +970,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                         disabled={!!media || !canEditMessage(m.createdAt)}
                         onClick={() => { setActionOpenId(null); setEditingId(m.id); setEditText(m.body); }}
                       />
-                      <ActionItem icon={Trash2} label="Delete" destructive onClick={() => void deleteMessage(m.id)} />
+                      <ActionItem icon={Trash2} label="Delete for me" destructive onClick={() => void deleteMessage(m.id, "me")} />
+                      <ActionItem icon={Trash2} label="Delete for everyone" destructive onClick={() => void deleteMessage(m.id, "everyone")} />
                     </MessageActions>
                   )}
                   <div className={cn("max-w-[78%] rounded-2xl text-[14px] leading-relaxed", media ? "overflow-hidden p-1" : "px-3.5 py-2", m.deleted ? "bg-black/[0.03] text-zinc-500 ring-1 ring-black/5 dark:bg-white/[0.03] dark:text-zinc-500 dark:ring-white/5" : m.mine ? "rounded-br-md bg-gold-500/20 text-gold-950 ring-1 ring-gold-500/30 dark:bg-gold-500/15 dark:text-gold-50" : "rounded-bl-md bg-black/[0.05] text-zinc-800 ring-1 ring-black/10 dark:bg-white/[0.05] dark:text-zinc-100 dark:ring-white/10")}>
@@ -1007,7 +1061,11 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                       <ActionItem icon={Copy} label="Copy" onClick={() => void copyMessage(m.body)} disabled={!!media} />
                       <ActionItem icon={Languages} label="Translate" onClick={() => void translateMessage(m.id, m.body)} disabled={!!media} />
                       <ActionItem icon={m.pinned ? PinOff : Pin} label={m.pinned ? "Unpin" : "Pin"} onClick={() => void togglePin(m.id, !m.pinned)} />
-                      <ActionItem icon={Trash2} label="Delete" destructive onClick={() => void deleteMessage(m.id)} />
+                      {/* Only "for me" on their message. Deleting someone else's words
+                          for both sides is not a thing a participant gets to do -
+                          the server refuses it, and offering it here would be a
+                          button that only ever produces a 403. */}
+                      <ActionItem icon={Trash2} label="Delete for me" destructive onClick={() => void deleteMessage(m.id, "me")} />
                     </MessageActions>
                   )}
                 </div>
