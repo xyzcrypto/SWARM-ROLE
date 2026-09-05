@@ -5,6 +5,87 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-05 (77) — "Home" landed at the bottom of the homepage
+
+Reported twice, and the first fix (#296) did not touch it — because it is a
+different bug in a different place. Worth writing down, because the two look
+identical from the outside.
+
+### What was happening
+
+Clicking "Home" or the logo from another page dropped the reader at the **bottom**
+of the homepage. Measured on a production build at 1280x900:
+
+| from | before | after |
+|---|---|---|
+| `/research` -> `/` | **8171px** (page is 9146px) | 9px |
+| `/news` -> `/` | **8246px** | 9px |
+| `/markets` -> `/` | 0px | 0px |
+
+Not a jump — a ~1s animation gliding *downward*: `0 -> 9 -> 3750 -> 7712 -> 8171`.
+That shape is what gave it away.
+
+### Why
+
+Hooking `scrollIntoView` and `documentElement.scrollTop` before app code ran caught
+the App Router calling `scrollIntoView()` once per top-level element of the incoming
+page, from inside its own `dontForceLayout` handler:
+
+```
+documentElement.scrollTop = 0
+scrollIntoView <div.fixed inset-x-0 bottom-0>   the mobile bottom bar
+scrollIntoView <footer>
+scrollIntoView <main>
+scrollIntoView <header.fixed inset-x-0 top-0>
+```
+
+The two `fixed` elements are no-ops — they are always in the viewport — so what the
+router *effectively* did was scroll to the **footer**. Natively the `<main>` call a
+moment later corrects that, which is why this is not a router bug on its own. But
+Lenis drives the scroll here: it latched the footer position as its target and eased
+toward it over its 1.15s duration, **arriving last**. Last writer wins, and the last
+writer was a smooth-scroll engine holding a stale target.
+
+That is also why it looked intermittent — whether the router's element walk ends on
+a `fixed` element depends on where the reader was on the page they left, so the same
+click behaved differently from different pages. `/markets` worked; `/research` and
+`/news` did not.
+
+### The fix
+
+`RouteTopScroll` — a root-layout client component that, on a pathname change, runs
+`scrollPageToTop()` inside two nested `requestAnimationFrame`s so it lands *after*
+both the router's walk and Lenis's next tick.
+
+`scrollPageToTop` (in `useScrollLock.ts`, beside the existing lock controls) moves
+**both** halves: `window.scrollTo(0, 0)` and a new `toTop` control on the registered
+Lenis instance (`lenis.scrollTo(0, { immediate: true, force: true })`). Moving only
+one is what the bug was made of. Nothing is monkey-patched and no scroll is
+cancelled — this simply runs last and sets the position both must agree on.
+
+Deliberately not handled: **back/forward** (a reader returning to a list expects to
+come back where they were — this also keeps the component out of the way of real
+scroll restoration later), **hash links** (`HashScroll` owns those), and
+**query-only changes** (a filter change is not a new page).
+
+No `useSearchParams()`, which would have been the obvious way to cover that last
+case: called from the root layout it opts every page under it out of static
+rendering unless each is wrapped in its own Suspense boundary. Route table verified
+byte-identical after: 25 static, 112 dynamic.
+
+### How this relates to #296
+
+`SameRouteTopScroll` (#296) handles clicking a link to the page you are **already
+on** — no navigation, no pathname change, so the router never runs and this new
+component never fires. They cover different halves and neither covers the other's.
+A test pins that distinction so a later cleanup does not "consolidate" them.
+
+**Live observable:** from `/research`, click "Home" in the header. You should land in
+the hero. Falsified if you land in the footer, or if browser Back from an article no
+longer returns you to where you were in the list.
+
+---
+
 ## 2026-09-04 (76) — Deleting the WebGL orbital, and one obsolete header
 
 Follow-up to (75), which reported both of these and changed neither. Owner said
