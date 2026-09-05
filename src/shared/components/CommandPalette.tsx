@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Search, Loader2, ArrowRight, Coins, Newspaper, FileText, Command as CommandIcon } from "lucide-react";
+import { Search, Loader2, ArrowRight, Coins, Newspaper, FileText, Clock, Command as CommandIcon } from "lucide-react";
 import { isStaff } from "@/lib/permissions";
 import { filterCommands, XYZ_CMDK_EVENT, type CommandItem } from "@/lib/command-search";
 import { safeHref } from "@/lib/links";
@@ -14,11 +14,43 @@ import { MicButton } from "@/shared/components/MicButton";
 
 type Row =
   | { kind: "cmd"; key: string; item: CommandItem }
-  | { kind: "coin"; key: string; symbol: string; name: string; image: string | null; price: number }
+  // `id` is the CoinGecko id and it is what makes a coin result land on the
+  // coin. The API has always returned it (api/markets/search returns
+  // `id: String(d.id ?? "")` on every row); this component used to map the
+  // response and drop it, so `choose` had nothing to route with and pushed
+  // everyone to the `/markets` index instead. Search "Chainlink", click
+  // Chainlink, get the top-250 table with no filter and no anchor.
+  | { kind: "coin"; key: string; id: string; symbol: string; name: string; image: string | null; price: number; change24h: number }
   | { kind: "news"; key: string; title: string; url: string; source: string }
-  | { kind: "post"; key: string; title: string; slug: string; category: string };
+  | { kind: "post"; key: string; title: string; slug: string; category: string }
+  | { kind: "recent"; key: string; query: string };
 
 const money = (n: number) => (n >= 1 ? `$${n.toLocaleString(undefined, { maximumFractionDigits: 2 })}` : `$${n.toPrecision(3)}`);
+
+/** Last few queries that actually led somewhere. */
+const RECENT_KEY = "xyz:search:recent";
+const RECENT_MAX = 6;
+
+function readRecent(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(RECENT_KEY) || "[]");
+    return Array.isArray(raw) ? raw.filter((s): s is string => typeof s === "string").slice(0, RECENT_MAX) : [];
+  } catch {
+    return [];
+  }
+}
+
+function pushRecent(query: string): string[] {
+  const q = query.trim();
+  if (q.length < 2) return readRecent();
+  const next = [q, ...readRecent().filter((r) => r.toLowerCase() !== q.toLowerCase())].slice(0, RECENT_MAX);
+  try {
+    localStorage.setItem(RECENT_KEY, JSON.stringify(next));
+  } catch {
+    /* private mode / storage disabled - recents are a convenience, not state */
+  }
+  return next;
+}
 
 export function CommandPalette() {
   const router = useRouter();
@@ -33,6 +65,7 @@ export function CommandPalette() {
   const [remote, setRemote] = useState<{ coins: Row[]; news: Row[]; posts: Row[] }>({ coins: [], news: [], posts: [] });
   const [loading, setLoading] = useState(false);
   const [active, setActive] = useState(0);
+  const [recent, setRecent] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const close = useCallback(() => {
@@ -105,10 +138,33 @@ export function CommandPalette() {
       ]);
       if (ctrl.signal.aborted) return;
       const coins: Row[] = Array.isArray(coinsRes?.list)
-        ? coinsRes.list.slice(0, 5).map((c: { symbol: string; name: string; image: string | null; price: number }) => ({ kind: "coin" as const, key: `coin-${c.symbol}`, symbol: c.symbol, name: c.name, image: c.image, price: Number(c.price) || 0 }))
+        ? coinsRes.list
+            .slice(0, 5)
+            .map((c: { id?: string; symbol: string; name: string; image: string | null; price: number; change24h?: number }) => ({
+              kind: "coin" as const,
+              key: `coin-${c.id || c.symbol}`,
+              id: String(c.id || ""),
+              symbol: c.symbol,
+              name: c.name,
+              image: c.image,
+              price: Number(c.price) || 0,
+              // Already in the payload and previously thrown away. On a crypto
+              // site the 24h move is the second thing anyone looks at after the
+              // price, and showing it costs nothing.
+              change24h: Number(c.change24h) || 0,
+            }))
         : [];
       const news: Row[] = Array.isArray(newsRes?.items)
-        ? newsRes.items.slice(0, 5).map((n: { title: string; url: string; source: string }, i: number) => ({ kind: "news" as const, key: `news-${i}`, title: n.title, url: n.url, source: n.source }))
+        ? newsRes.items.slice(0, 5).map((n: { title: string; url: string; source: string }) => ({
+            // Keyed by URL, not by array index. With an index, row 0 of the old
+            // result set and row 0 of the new one reconcile as the same element,
+            // so a headline can visibly morph into a different story mid-type.
+            kind: "news" as const,
+            key: `news-${n.url}`,
+            title: n.title,
+            url: n.url,
+            source: n.source,
+          }))
         : [];
       const posts: Row[] = Array.isArray(postsRes?.results)
         ? postsRes.results.map((p: { title: string; slug: string; category: string }) => ({ kind: "post" as const, key: `post-${p.slug}`, title: p.title, slug: p.slug, category: p.category }))
@@ -123,7 +179,16 @@ export function CommandPalette() {
   }, [q]);
 
   const cmds: Row[] = useMemo(() => filterCommands(q, ctx).map((item) => ({ kind: "cmd" as const, key: `cmd-${item.id}`, item })), [q, ctx]);
-  const rows: Row[] = useMemo(() => [...cmds, ...remote.coins, ...remote.posts, ...remote.news], [cmds, remote]);
+  // Recents only stand in for an empty query. Once there is something to search
+  // they are noise, and they must never sit between the reader and a real hit.
+  const recents: Row[] = useMemo(
+    () => (q.trim().length >= 2 ? [] : recent.map((r) => ({ kind: "recent" as const, key: `recent-${r}`, query: r }))),
+    [q, recent]
+  );
+  const rows: Row[] = useMemo(
+    () => [...cmds, ...recents, ...remote.coins, ...remote.posts, ...remote.news],
+    [cmds, recents, remote]
+  );
 
   // Re-point the highlight at the first row whenever the result set changes.
   // Adjusted during render (React's documented "adjusting state when a prop
@@ -137,14 +202,45 @@ export function CommandPalette() {
     setActive(0);
   }
 
+  // Refresh the recents list when the panel opens, using the same
+  // adjust-state-during-render pattern as the highlight above rather than an
+  // effect - `setState` in an effect body schedules a second render for
+  // something React can settle in the first one, which is what
+  // `react-hooks/set-state-in-effect` is pointing at.
+  //
+  // Reading `localStorage` here is safe specifically because the panel renders
+  // nothing until `open` is true: there is no server-rendered output for a
+  // client-only value to disagree with, so this is not the #418 trap that
+  // CLAUDE.md warns about. Deriving anything from storage in a component that
+  // renders on the server would be.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (open) setRecent(readRecent());
+  }
+
   const choose = useCallback(
     (row: Row) => {
+      // Re-running the search you just ran is the one case that should NOT
+      // close the panel - it is a refinement, not a destination.
+      if (row.kind === "recent") {
+        setQ(row.query);
+        inputRef.current?.focus();
+        return;
+      }
+      // Remember the query that led somewhere, not every keystroke: a list of
+      // half-typed fragments is worse than no list.
+      setRecent(pushRecent(q));
       close();
       if (row.kind === "cmd") {
         if (row.item.action === "ai") window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT));
         else if (row.item.href) router.push(row.item.href);
       } else if (row.kind === "coin") {
-        router.push("/markets");
+        // `/markets/<coingecko-id>` is the coin's own page (it is also what
+        // ai-page-context treats as canonical). Falling back to the index only
+        // when a row somehow arrived without an id, rather than silently
+        // sending everyone there as before.
+        router.push(row.id ? `/markets/${encodeURIComponent(row.id)}` : "/markets");
       } else if (row.kind === "post") {
         router.push(`/research/${row.slug}`);
       } else if (row.kind === "news") {
@@ -156,7 +252,7 @@ export function CommandPalette() {
         if (href) window.open(href, "_blank", "noopener,noreferrer");
       }
     },
-    [close, router]
+    [close, router, q]
   );
 
   const onListKey = (e: React.KeyboardEvent) => {
@@ -180,7 +276,8 @@ export function CommandPalette() {
   // Section offsets mirror how `rows` is assembled (cmds, coins, posts, news),
   // so each row's index into `rows` is its position within its own list plus
   // the length of everything before it.
-  const coinsOffset = cmds.length;
+  const recentsOffset = cmds.length;
+  const coinsOffset = recentsOffset + recents.length;
   const postsOffset = coinsOffset + remote.coins.length;
   const newsOffset = postsOffset + remote.posts.length;
 
@@ -212,6 +309,22 @@ export function CommandPalette() {
 
         <div className="flex-1 overflow-y-auto overscroll-contain py-1" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           <Section title="Actions" list={cmds} offset={0} active={active} onHover={setActive} onChoose={choose} />
+          <Section
+            title="Recent"
+            list={recents}
+            offset={recentsOffset}
+            active={active}
+            onHover={setActive}
+            onChoose={choose}
+            onClear={() => {
+              try {
+                localStorage.removeItem(RECENT_KEY);
+              } catch {
+                /* nothing to clear */
+              }
+              setRecent([]);
+            }}
+          />
           <Section title="Coins" list={remote.coins} offset={coinsOffset} active={active} onHover={setActive} onChoose={choose} />
           <Section title="Research" list={remote.posts} offset={postsOffset} active={active} onHover={setActive} onChoose={choose} />
           <Section title="News" list={remote.news} offset={newsOffset} active={active} onHover={setActive} onChoose={choose} />
@@ -243,6 +356,7 @@ function Section({
   active,
   onHover,
   onChoose,
+  onClear,
 }: {
   title: string;
   list: Row[];
@@ -250,11 +364,22 @@ function Section({
   active: number;
   onHover: (i: number) => void;
   onChoose: (row: Row) => void;
+  onClear?: () => void;
 }) {
   if (!list.length) return null;
   return (
     <div className="py-1">
-      <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{title}</p>
+      <div className="flex items-center justify-between px-3 pb-1 pt-2">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{title}</p>
+        {onClear && (
+          <button
+            onClick={onClear}
+            className="text-[10px] uppercase tracking-wider text-zinc-600 transition-colors hover:text-zinc-300"
+          >
+            Clear
+          </button>
+        )}
+      </div>
       {list.map((row, n) => {
         const i = offset + n;
         return (
@@ -272,6 +397,18 @@ function Section({
               <span className="block truncate text-sm text-zinc-100">{rowLabel(row)}</span>
               {rowHint(row) && <span className="block truncate text-[11px] text-zinc-500">{rowHint(row)}</span>}
             </span>
+            {row.kind === "coin" && row.change24h !== 0 && (
+              <span
+                className={cn(
+                  "mono shrink-0 text-[11px] font-medium",
+                  // The colour rule: mint = positive data, red-400 = negative.
+                  row.change24h > 0 ? "text-mint-300" : "text-red-400"
+                )}
+              >
+                {row.change24h > 0 ? "+" : ""}
+                {row.change24h.toFixed(2)}%
+              </span>
+            )}
             {active === i && <ArrowRight className="h-3.5 w-3.5 shrink-0 text-zinc-500" />}
           </button>
         );
@@ -291,11 +428,13 @@ function RowIcon({ row }: { row: Row }) {
     );
   if (row.kind === "news") return <Newspaper className={cls} />;
   if (row.kind === "post") return <FileText className={cls} />;
+  if (row.kind === "recent") return <Clock className={cls} />;
   return <ArrowRight className={cls} />;
 }
 function rowLabel(row: Row): string {
   if (row.kind === "cmd") return row.item.label;
   if (row.kind === "coin") return `${row.name} (${row.symbol})`;
+  if (row.kind === "recent") return row.query;
   return row.title;
 }
 function rowHint(row: Row): string | undefined {
