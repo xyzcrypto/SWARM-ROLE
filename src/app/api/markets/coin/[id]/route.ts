@@ -6,7 +6,20 @@ import { NextResponse } from "next/server";
 // Was 60s - lengthened since this is a dynamic route (one ISR cache entry per
 // coin id), so the write cost multiplies with how many distinct coins get
 // traffic.
-export const revalidate = 150;
+// ⚠️ 150 -> 200, and the client poll stays at 150s (CoinDetailClient).
+//
+// They were EQUAL, which markets-poll-alignment.test.ts calls out in its own
+// words: "Exactly equal is a coin flip: the window expires at the same moment
+// the poll fires, so scheduling jitter decides whether it regenerates." Every
+// poll was a coin toss between a cache hit and a full CoinGecko round trip -
+// on coin pages, which this route's own page comment calls the largest
+// indexable surface on the site.
+//
+// That test never ran against this route: its target scanner only matches
+// `usePolledJson<...>("/api/markets/<word>", N)`, and this is a bare fetch +
+// setInterval behind a bracketed path. Coverage for exactly that gap is added
+// in the same change.
+export const revalidate = 200;
 
 const BASE = "https://api.coingecko.com/api/v3";
 
@@ -61,7 +74,7 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
       live: true,
       ts: Date.now(),
     };
-    return NextResponse.json(data, { headers: { "Cache-Control": "public, s-maxage=150, stale-while-revalidate=300" } });
+    return NextResponse.json(data, { headers: { "Cache-Control": "public, s-maxage=200, stale-while-revalidate=300" } });
   } catch {
     return NextResponse.json({ id, live: false, ts: Date.now() }, { headers: { "Cache-Control": "public, s-maxage=30" } });
   }

@@ -27,7 +27,25 @@ import {
 } from "@/lib/markets";
 import { cn } from "@/lib/utils";
 
-// Visibility-gated poller (same pattern as MarketTicker/PerpChart).
+/**
+ * Visibility-gated poller (same pattern as MarketTicker/PerpChart).
+ *
+ * ⚠️ The `live` guard on `setData` is the whole point, and it was missing.
+ *
+ * Every markets route answers a failed upstream with **HTTP 200** carrying
+ * empty arrays and `live: false` - deliberately, so the page never shows an
+ * error screen. But this hook only checked `res.ok`, which is true for exactly
+ * that response. So one transient CoinGecko 429 replaced a fully populated
+ * 250-row table with `{ list: [], trending: [], gainers: [], losers: [] }`, and
+ * the Coins tab read "Coin data is loading…" for the next 180 seconds.
+ *
+ * Keeping the last good payload is strictly better: stale numbers with an
+ * honest "stale" badge beat no numbers at all, and the badge (see `Freshness`
+ * below) is what tells the reader which they are looking at.
+ *
+ * `CoinDetailClient` already did this correctly (`if (j && j.live)`). The hub -
+ * the higher-traffic surface - did not.
+ */
 function usePolledJson<T>(url: string, everyMs: number) {
   const [data, setData] = useState<T | null>(null);
   const [live, setLive] = useState(false);
@@ -40,8 +58,11 @@ function usePolledJson<T>(url: string, everyMs: number) {
         if (!res.ok) throw new Error("bad status");
         const j = await res.json();
         if (!active) return;
-        setData(j);
-        setLive(Boolean(j.live));
+        // Only replace what is on screen with something the server vouches for.
+        // A `live: false` payload is the route's "I could not reach upstream"
+        // signal, not data.
+        if (j?.live) setData(j);
+        setLive(Boolean(j?.live));
       } catch {
         if (active) setLive(false);
       } finally {
@@ -95,7 +116,21 @@ export function MarketsClient() {
   const x = usePolledJson<DexResp>("/api/markets/dex", 300_000);
   const y = usePolledJson<YieldResp>("/api/markets/yields", 300_000);
   const c = usePolledJson<CoinsResp>("/api/markets/coins", 180_000);
-  const anyLive = g.live || d.live || p.live || x.live || y.live || c.live;
+  // ⚠️ ALL, not ANY.
+  //
+  // This was `g.live || d.live || ... || c.live`, so a single healthy source
+  // was enough to light the badge. With `/api/markets/global` down and coins
+  // up, the page said "Live market data" while the KPI strip showed the route's
+  // hardcoded fallback - a $2.35T market cap and a Fear & Greed of exactly 50.
+  // Invented numbers under a badge asserting they were live.
+  //
+  // `every` is the honest reduction: the badge speaks for the whole page, so it
+  // can only claim what every source on the page supports. The count says how
+  // many are behind, because "Cached snapshot" alone does not distinguish one
+  // slow feed from a total outage.
+  const sources = [g.live, d.live, p.live, x.live, y.live, c.live];
+  const allLive = sources.every(Boolean);
+  const staleCount = sources.filter((v) => !v).length;
 
   return (
     <div className="space-y-6">
@@ -103,10 +138,16 @@ export function MarketsClient() {
       <div className="flex flex-col items-center gap-4">
         <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-zinc-500">
           <span className="relative flex h-2 w-2">
-            {anyLive && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />}
-            <span className={cn("relative inline-flex h-2 w-2 rounded-full", anyLive ? "bg-mint-400" : "bg-amber-400")} />
+            {allLive && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />}
+            <span className={cn("relative inline-flex h-2 w-2 rounded-full", allLive ? "bg-mint-400" : "bg-amber-400")} />
           </span>
-          <span className="mono">{anyLive ? "Live market data" : "Cached snapshot"}</span>
+          <span className="mono">
+            {allLive
+              ? "Live market data"
+              : staleCount === sources.length
+                ? "Cached snapshot"
+                : `Live · ${staleCount} feed${staleCount === 1 ? "" : "s"} stale`}
+          </span>
         </div>
         <div className="flex max-w-full flex-wrap items-center justify-center gap-1.5 rounded-2xl border border-line bg-ink-950/50 p-1.5">
           {TABS.map((t) => {
@@ -189,6 +230,14 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
   const query = q.trim().toLowerCase();
 
   // Live price flash - fires ONLY on a real price delta between two real polls.
+  //
+  // ⚠️ Keyed by `r.id`, the CoinGecko id, NOT by `r.symbol`.
+  //
+  // Ticker symbols are not unique in crypto - plenty of coins share one. Two
+  // rows with the same symbol overwrote each other's previous price on every
+  // poll, so both flashed on every tick and the direction was whichever row
+  // happened to be written last. `CoinRow.id` exists for exactly this ("links
+  // each row to its coin detail page") and is already used for the row's link.
   const prevPrices = useRef<Map<string, number>>(new Map());
   const [flash, setFlash] = useState<Map<string, "up" | "down">>(new Map());
   useEffect(() => {
@@ -196,9 +245,9 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
     if (!list.length) return;
     const next = new Map<string, "up" | "down">();
     for (const r of list) {
-      const prev = prevPrices.current.get(r.symbol);
-      if (prev != null && r.price !== prev) next.set(r.symbol, r.price > prev ? "up" : "down");
-      prevPrices.current.set(r.symbol, r.price);
+      const prev = prevPrices.current.get(r.id);
+      if (prev != null && r.price !== prev) next.set(r.id, r.price > prev ? "up" : "down");
+      prevPrices.current.set(r.id, r.price);
     }
     if (!next.size) return;
     setFlash(next);
@@ -207,22 +256,45 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
   }, [c]);
 
   // Any coin - not just the top 250 - via the on-demand search route (debounced).
+  //
+  // ⚠️ The cleanup cancelled the TIMER but never the REQUEST, and there was no
+  // sequence guard. Type "bit", pause past the 350ms debounce, keep typing to
+  // "bitc": two requests are in flight and whichever the network returns last
+  // wins - which can be the one for the query you have already moved past.
+  //
+  // The stale `.finally` was the more visible half: it set `searching = false`
+  // while the newer request was still running, and the empty-state below reads
+  // `!rows.length && !searching`, so the reader got a "No coins match" flash
+  // mid-typing for a search that had not finished.
+  //
+  // `usePolledJson` above and `CoinDetailClient` both already had an `active`
+  // flag; this one did not.
   useEffect(() => {
     if (query.length < 2) { setRemote([]); setSearching(false); return; }
     setSearching(true);
+    let active = true;
+    const ctrl = new AbortController();
     const id = setTimeout(() => {
-      fetch(`/api/markets/search?q=${encodeURIComponent(query)}`, { cache: "no-store" })
+      fetch(`/api/markets/search?q=${encodeURIComponent(query)}`, { cache: "no-store", signal: ctrl.signal })
         .then((r) => r.json())
-        .then((j) => setRemote(Array.isArray(j.list) ? j.list : []))
-        .catch(() => setRemote([]))
-        .finally(() => setSearching(false));
+        .then((j) => { if (active) setRemote(Array.isArray(j.list) ? j.list : []); })
+        .catch(() => { if (active) setRemote([]); })
+        .finally(() => { if (active) setSearching(false); });
     }, 350);
-    return () => clearTimeout(id);
+    return () => {
+      active = false;
+      clearTimeout(id);
+      ctrl.abort();
+    };
   }, [query]);
 
   const local = query ? base.filter((r) => r.name.toLowerCase().includes(query) || r.symbol.toLowerCase().includes(query)) : base;
-  const seen = new Set(local.map((r) => r.symbol));
-  const merged = query ? [...local, ...remote.filter((r) => !seen.has(r.symbol))] : base;
+  // Also by id, for the same reason as the flash map above: de-duping search
+  // results by SYMBOL silently dropped any coin that happens to share a ticker
+  // with one of the top 250 - which defeats the whole point of the search route
+  // ("finds ANY coin, not just the top 250").
+  const seen = new Set(local.map((r) => r.id));
+  const merged = query ? [...local, ...remote.filter((r) => !seen.has(r.id))] : base;
   const rows = sortCoins(merged, sort.key, sort.dir);
 
   const onSort = (key: SortKey) =>
@@ -269,7 +341,7 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
             </thead>
             <tbody className="divide-y divide-white/5">
               {rows.map((r) => (
-                <tr key={r.symbol + r.rank} className="transition-colors hover:bg-white/[0.03]">
+                <tr key={r.id} className="transition-colors hover:bg-white/[0.03]">
                   <td className="mono px-2 py-2.5 text-left text-[11px] text-zinc-600">{r.rank}</td>
                   <td className="px-2 py-2.5">
                     {r.id ? (
@@ -292,7 +364,7 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
                       </div>
                     )}
                   </td>
-                  <td className={cn("mono px-2 py-2.5 text-right font-medium text-zinc-100", flash.get(r.symbol) === "up" && "flash-up", flash.get(r.symbol) === "down" && "flash-down")}>{coinPrice(r.price)}</td>
+                  <td className={cn("mono px-2 py-2.5 text-right font-medium text-zinc-100", flash.get(r.id) === "up" && "flash-up", flash.get(r.id) === "down" && "flash-down")}>{coinPrice(r.price)}</td>
                   <ChangeCell v={r.change1h} />
                   <ChangeCell v={r.change24h} />
                   <ChangeCell v={r.change7d} />
@@ -600,11 +672,11 @@ function RankList({ rows, loading }: { rows: RankRow[]; loading?: boolean }) {
           </>
         );
         return r.href ? (
-          <Link key={r.name + i} href={r.href} className="group flex items-center gap-3 py-2 transition-colors hover:bg-white/[0.03]">
+          <Link key={r.name} href={r.href} className="group flex items-center gap-3 py-2 transition-colors hover:bg-white/[0.03]">
             {inner}
           </Link>
         ) : (
-          <div key={r.name + i} className="flex items-center gap-3 py-2">{inner}</div>
+          <div key={r.name} className="flex items-center gap-3 py-2">{inner}</div>
         );
       })}
     </div>
@@ -629,11 +701,11 @@ function MoverList({ rows }: { rows: MoverCoin[] }) {
           </>
         );
         return r.id ? (
-          <Link key={r.symbol + i} href={`/markets/${r.id}`} className="group flex items-center gap-3 py-2 transition-colors hover:bg-white/[0.03]">
+          <Link key={r.id} href={`/markets/${r.id}`} className="group flex items-center gap-3 py-2 transition-colors hover:bg-white/[0.03]">
             {inner}
           </Link>
         ) : (
-          <div key={r.symbol + i} className="flex items-center gap-3 py-2">{inner}</div>
+          <div key={r.id} className="flex items-center gap-3 py-2">{inner}</div>
         );
       })}
     </div>

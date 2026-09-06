@@ -43,6 +43,8 @@ const stripComments = (src: string) =>
 // nothing, and the suite would pass while checking absolutely nothing.
 const MARKETS_CLIENT = "src/modules/markets/components/MarketsClient.tsx";
 const TICKER_POLL = "src/modules/markets/lib/useTickerPoll.ts";
+const COIN_DETAIL = "src/modules/markets/components/CoinDetailClient.tsx";
+const PROTOCOL_DETAIL = "src/modules/markets/components/ProtocolDetailClient.tsx";
 // The news feed's poll lives in the component itself - a third shape again.
 const NEWS_CLIENT = "src/modules/news/components/NewsClient.tsx";
 // And the chat room's, a fourth - on a force-dynamic route with an edge-cached
@@ -85,6 +87,36 @@ function marketsTargets(): Target[] {
     });
   }
   return out;
+}
+
+/**
+ * The two DETAIL pages, which `marketsTargets` above structurally cannot see.
+ *
+ * ⚠️ This gap had already cost something. `marketsTargets` matches
+ * `usePolledJson<...>("/api/markets/<word>", N)` - one word, no brackets - and
+ * both detail clients use a bare `fetch` inside their own `setInterval`, behind
+ * a bracketed route path. So `/api/markets/coin/[id]` sat at `revalidate = 150`
+ * against a 150s poll: EXACTLY equal, which the final assertion in this file
+ * calls a coin flip, on the site's largest indexable surface. The suite that
+ * exists to catch that could not look at it.
+ *
+ * Parsed from each client's own `setInterval`, so the number here can never
+ * drift from the one that ships.
+ */
+function detailTargets(): Target[] {
+  const specs = [
+    { label: "markets/coin/[id]", file: COIN_DETAIL, routeFile: "src/app/api/markets/coin/[id]/route.ts" },
+    {
+      label: "markets/protocol/[type]/[slug]",
+      file: PROTOCOL_DETAIL,
+      routeFile: "src/app/api/markets/protocol/[type]/[slug]/route.ts",
+    },
+  ];
+  return specs.map(({ label, file, routeFile }) => {
+    const m = read(file).match(/setInterval\([^,]*,\s*([\d_]+)\s*\)/);
+    if (!m) throw new Error(`could not parse a poll interval out of ${file}`);
+    return { label, routeFile, pollMs: Number(m[1]!.replace(/_/g, "")), pollSource: file };
+  });
 }
 
 /**
@@ -170,7 +202,7 @@ function chatTarget(): Target {
   };
 }
 
-const TARGETS: Target[] = [...marketsTargets(), tickerTarget(), newsTarget(), chatTarget()];
+const TARGETS: Target[] = [...marketsTargets(), ...detailTargets(), tickerTarget(), newsTarget(), chatTarget()];
 
 describe("polled API routes keep their ISR + edge windows aligned with client polling", () => {
   it("finds every polled route (guards against a silently empty parse)", () => {

@@ -45,12 +45,39 @@ async function hyperliquid(): Promise<{ markets: PerpMarket[]; totalVolume24h: n
     const data = await res.json();
     const universe: any[] = data?.[0]?.universe ?? [];
     const ctxs: any[] = data?.[1] ?? [];
-    const rows: PerpMarket[] = universe.map((u, i) => ({
-      coin: String(u?.name ?? "-"),
-      price: Number(ctxs[i]?.markPx) || 0,
-      funding: Number(ctxs[i]?.funding) || 0, // hourly funding fraction
-      openInterest: (Number(ctxs[i]?.openInterest) || 0) * (Number(ctxs[i]?.markPx) || 0),
-    }));
+
+    // ⚠️ These two arrays are joined BY POSITION, and that is Hyperliquid's
+    // documented contract for `metaAndAssetCtxs` - `assetCtxs[i]` describes
+    // `meta.universe[i]`. It cannot be done any other way here: an assetCtx
+    // carries `markPx`, `funding`, `openInterest` and friends, and no name to
+    // match on.
+    //
+    // What was missing is what happens when the contract does NOT hold. The map
+    // ran over `universe` and indexed blindly into `ctxs`, so a short or
+    // reordered `ctxs` produced a full table of rows whose price, funding and
+    // open interest belonged to a different coin - or were silently zero - with
+    // no throw and no `live: false`. Wrong financial data presented as right.
+    //
+    // A length mismatch means the assumption has broken, so the honest answer
+    // is no perp data rather than confidently mismatched perp data.
+    if (universe.length !== ctxs.length) {
+      return { markets: [], totalVolume24h: 0, totalOi: 0 };
+    }
+
+    const rows: PerpMarket[] = universe
+      .map((u, i) => {
+        const c = ctxs[i];
+        const price = Number(c?.markPx) || 0;
+        return {
+          coin: String(u?.name ?? "-"),
+          price,
+          funding: Number(c?.funding) || 0, // hourly funding fraction
+          openInterest: (Number(c?.openInterest) || 0) * price,
+        };
+      })
+      // A row with no price is not a market anyone can read - it renders as
+      // "$0" beside a real funding rate, which is worse than being absent.
+      .filter((r) => r.price > 0 && r.coin !== "-");
     const totalVolume24h = ctxs.reduce((s, c) => s + (Number(c?.dayNtlVlm) || 0), 0);
     const totalOi = rows.reduce((s, r) => s + r.openInterest, 0);
     return { markets: topBy(rows, (r) => r.openInterest, 20), totalVolume24h, totalOi };
