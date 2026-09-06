@@ -39,8 +39,15 @@ export default function MarketsPage() {
       <main className="relative min-h-screen pt-28">
         <PageBackground />
         <div className="relative mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
+          {/* ⚠️ No `eyebrow` here on purpose.
+              It read "Live Data" as a static pill, 20px above the status line
+              MarketsClient renders - two claims about the same thing, in two
+              different styles, one under the other. And the static one is the
+              one that can be wrong: it says "Live Data" even when every feed is
+              a cached snapshot, which is the exact class of lie #316 was about.
+              The one that stays knows the difference and says "Cached snapshot"
+              or "Live · 2 feeds stale". */}
           <PageHeader
-            eyebrow="Live Data"
             title={<>Web3 <span className="text-shine">Markets</span></>}
             subtitle="The whole market at a glance - prices, dominance, sentiment and DeFi, aggregated live from CoinGecko, DefiLlama and more."
           />

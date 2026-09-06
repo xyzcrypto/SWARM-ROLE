@@ -179,7 +179,13 @@ export function MarketsClient() {
       </div>
 
       {/* Always-visible global KPI strip */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      {/* ⚠️ Two-up on phones, not one.
+          `grid-cols-1` gave each of these a full 358px row for a label and a
+          short number like "$2.31T" - five tiles, ~600px of scrolling, and the
+          Coins table pushed entirely off the first screen on a 390x844 phone.
+          The values are all short and `sm:grid-cols-2` already proved two fit;
+          there was never a reason the same pair did not fit 40px narrower. */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Tile label="Market Cap" value={compactUsd(g.data?.marketCap)} sub={g.data ? pct(g.data.mcapChange24h) : undefined} subTone={(g.data?.mcapChange24h ?? 0) >= 0 ? "up" : "down"} loading={g.loading} />
         <Tile label="24h Volume" value={compactUsd(g.data?.volume24h)} loading={g.loading} />
         <Tile label="BTC Dom." value={g.data ? `${g.data.btcDominance.toFixed(1)}%` : "-"} sub={g.data ? `ETH ${g.data.ethDominance.toFixed(1)}%` : undefined} loading={g.loading} />
@@ -208,9 +214,9 @@ export function MarketsClient() {
 function Overview({ g, d, c }: { g: GlobalMarket | null; d: DefiMarket | null; c: CoinsResp | null }) {
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCardMini label="Total DeFi TVL" value={compactUsd(d?.totalTvl)} accent="mint" trend={d?.tvlTrend ?? []} />
-        <StatCardMini label="Stablecoin Mcap" value={compactUsd(d?.stableMcap ?? g?.stableMcap)} accent="gold" />
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+        <StatCardMini label="Total DeFi TVL" value={compactUsd(d?.totalTvl)} trend={d?.tvlTrend ?? []} />
+        <StatCardMini label="Stablecoin Mcap" value={compactUsd(d?.stableMcap ?? g?.stableMcap)} />
         <StatCardMini label="DeFi Mcap" value={compactUsd(g?.defiMcap)} sub={g?.defiMcap ? undefined : "add CMC key"} />
       </div>
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -445,8 +451,8 @@ function DefiPanel({ d, loading }: { d: DefiMarket | null; loading: boolean }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCardMini label="Total DeFi TVL" value={compactUsd(d?.totalTvl)} accent="mint" trend={d?.tvlTrend ?? []} />
-        <StatCardMini label="Stablecoin Mcap" value={compactUsd(d?.stableMcap)} accent="gold" />
+        <StatCardMini label="Total DeFi TVL" value={compactUsd(d?.totalTvl)} trend={d?.tvlTrend ?? []} />
+        <StatCardMini label="Stablecoin Mcap" value={compactUsd(d?.stableMcap)} />
         <StatCardMini label="Tracked Protocols" value={`${d?.topProtocols?.length ? "Top 8" : "-"}`} />
       </div>
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -465,8 +471,8 @@ function PerpPanel({ p, loading }: { p: PerpResp | null; loading: boolean }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatCardMini label="Perp DEX Volume (24h)" value={compactUsd(p?.totalVolume24h)} accent="gold" />
-        <StatCardMini label="Open Interest (Hyperliquid)" value={compactUsd(p?.totalOi)} accent="mint" />
+        <StatCardMini label="Perp DEX Volume (24h)" value={compactUsd(p?.totalVolume24h)} />
+        <StatCardMini label="Open Interest (Hyperliquid)" value={compactUsd(p?.totalOi)} />
       </div>
       <Panel title="Top Perp DEXs (24h Volume)" icon={<Activity className="h-4 w-4 text-gold-300" />}>
         <RankList loading={loading} rows={(p?.dexs ?? []).map((r) => ({ name: r.name, logo: r.logo, value: compactUsd(r.volume24h), change: r.change1d, href: r.slug ? `/markets/protocol/derivatives/${r.slug}` : undefined }))} />
@@ -737,11 +743,26 @@ function Tile({ label, value, sub, subTone, icon, loading }: { label: string; va
   );
 }
 
-function StatCardMini({ label, value, sub, accent, trend }: { label: string; value: string; sub?: string; accent?: "mint" | "gold"; trend?: number[] }) {
+/**
+ * ⚠️ This sits directly under the five `Tile`s and shows the same class of
+ * thing - a global market figure - so it has to speak the same size language.
+ * It did not: `p-5` against `p-4`, `text-2xl` against `text-xl`, `gap-4`
+ * against `gap-3`, which is why the KPI strip read as two unrelated rows
+ * stacked rather than one strip.
+ *
+ * The `accent` prop is gone rather than defaulted. It coloured the value mint
+ * or gold across eight call sites - TVL mint, Stablecoin Mcap gold, Perp
+ * Volume gold, Open Interest mint - and none of those is what those colours
+ * mean here. The rule (design-system skill) is gold = brand identity, mint =
+ * action and POSITIVE data, red = negative data. A stablecoin market cap is
+ * none of the three; it is a neutral total, so it takes the same `zinc-50` the
+ * Tile row uses. Restraint over glow.
+ */
+function StatCardMini({ label, value, sub, trend }: { label: string; value: string; sub?: string; trend?: number[] }) {
   return (
-    <div className="surface lift rounded-2xl p-5">
+    <div className="surface lift rounded-2xl p-4">
       <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">{label}</p>
-      <p className={cn("mono mt-1.5 text-2xl font-bold", accent === "mint" ? "text-mint-gradient" : accent === "gold" ? "text-gold-gradient" : "text-zinc-50")}>{value}</p>
+      <p className="mono mt-1.5 text-xl font-bold text-zinc-50">{value}</p>
       {sub && <p className="mt-1 text-[11px] text-zinc-600">{sub}</p>}
       {trend && trend.length > 1 && (
         <div className="mt-3">
@@ -782,7 +803,7 @@ function Sparkline({ data }: { data: number[] }) {
   const up = data[data.length - 1] >= data[0];
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-8 w-full" aria-hidden>
-      <polyline points={pts} fill="none" stroke={up ? "var(--chart-mint)" : "var(--chart-gold)"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      <polyline points={pts} fill="none" stroke={up ? "var(--chart-mint)" : "#ef4444"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }

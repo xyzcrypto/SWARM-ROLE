@@ -5,6 +5,76 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (87) — Markets, design pass 1
+
+No screenshots came back, so this was done by rendering `/markets` with
+realistic stubbed data at 1280x1000 and 390x844, in both themes, and looking at
+it. Everything below is a **measurable inconsistency**, not a matter of taste —
+which is the only kind of design finding that belongs in a test.
+
+### The colour rule was not being followed
+
+`gold = brand/identity · mint = action + positive data · red = negative data`
+(design-system skill).
+
+- **A falling sparkline was drawn in gold.** `stroke={up ? mint : gold}` — so a
+  coin down 12% over 7 days drew its line in the wordmark's colour, directly
+  beside that same row's red percentages. Now `#ef4444`, the value
+  `CoinDetailClient` already uses for the same thing.
+- **`StatCardMini` painted neutral totals mint or gold** across eight call
+  sites: TVL mint, Stablecoin Mcap gold, Perp Volume gold, Open Interest mint.
+  None of those is brand identity or positive data — they are numbers. The
+  `accent` prop is removed rather than defaulted, so it cannot come back by
+  accident. Restraint over glow.
+
+### The KPI strip read as two unrelated rows
+
+Five `Tile`s, and directly beneath them three `StatCardMini`s showing the same
+class of thing — and they disagreed on every axis at once:
+
+| | `Tile` | `StatCardMini` |
+|---|---|---|
+| padding | `p-4` | `p-5` |
+| value | `text-xl` | `text-2xl` |
+| row gap | `gap-3` | `gap-4` |
+| value colour | `zinc-50` | mint / gold / zinc-50 |
+
+Now identical. The column counts still differ (5 vs 3) because the content
+genuinely does — but the cards themselves speak one language, which is what
+made the strip look unfinished.
+
+### The strip did not fit a phone
+
+`grid-cols-1` on mobile gave every tile a full 358px row for a label and a short
+value like `$2.31T`. Five tiles ≈ **600px of scrolling**, and the coin table was
+pushed entirely off the first screen of a 390x844 phone. Two-up brings that to
+~330px and puts "Top Coins by Market Cap" back on screen. `sm:grid-cols-2`
+already proved two fit; there was never a reason the same pair did not fit 40px
+narrower.
+
+### Two claims about freshness, stacked
+
+A static `eyebrow="Live Data"` pill sat 20px above the status line
+`MarketsClient` renders. Same claim, two styles — and the static one is the one
+that can be wrong: it says "Live Data" while every feed is a cached snapshot,
+which is exactly the class of lie #316 was about. Dropped; the one that knows
+the difference stays and says "Cached snapshot" or "Live · 2 feeds stale".
+`PageHeader.eyebrow` becomes optional so that is a choice rather than a type
+error; every other page still passes one.
+
+### Deliberately not changed
+
+The tab bar wraps to three rows on a phone (~115px). The news page's
+horizontal-scroll chip strip would save ~70px, but it would hide three of the
+seven tabs behind a scroll on the page whose whole job is switching between
+them. Showing all seven is worth the height.
+
+**Files:** `modules/markets/components/MarketsClient.tsx`,
+`app/markets/page.tsx`, `shared/components/PageHeader.tsx`,
+`__tests__/markets-design.test.ts`.
+
+---
+
 ## 2026-09-06 (86) — The same interactions on every device
 
 Follow-up to (85), which fixed the wrong half. The capability tier was demoting
