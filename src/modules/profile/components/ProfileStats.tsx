@@ -61,7 +61,7 @@ function StatCard({ label, value, Icon, iconClass, valueClass, animate, delay, p
               premium ? "bg-gold-500/20" : "bg-gold-500/10"
             )}
           />
-          <Icon className={cn("relative mx-auto h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110", iconClass)} />
+          <Icon className={cn("relative mx-auto h-5 w-5 transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:scale-110 group-active:-translate-y-0.5 group-active:scale-110", iconClass)} />
           <p className={cn("relative mono mt-2 text-2xl font-semibold tabular-nums sm:text-3xl", valueClass)}>{shown.toLocaleString("en-US")}</p>
           <p className="relative mt-1 text-xs text-zinc-500">{label}</p>
         </div>

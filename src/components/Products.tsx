@@ -97,7 +97,7 @@ export function Products() {
             <div className="surface lift group relative h-full overflow-hidden rounded-4xl p-7 transition-all duration-300 hover:shadow-[0_0_50px_-12px_rgba(226,167,47,0.35)] sm:p-9">
               <div className="glow-orb -right-10 top-0 h-48 w-48 bg-gold-500/15" />
               <div className="relative flex items-start justify-between">
-                <MarketsIcon className="h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
+                <MarketsIcon className="h-12 w-12 transition-transform duration-300 group-hover:scale-110 group-active:scale-110" />
                 <Chip s="In Research" />
               </div>
               <h3 className="relative mt-6 font-display text-2xl font-semibold text-zinc-50">Perp DEX</h3>
@@ -120,7 +120,7 @@ export function Products() {
             <TiltCard max={4}>
             <Link href="/tools" className="surface surface-hover lift group flex h-full flex-col rounded-4xl p-7">
               <div className="flex items-start justify-between">
-                <GaugeIcon className="h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
+                <GaugeIcon className="h-12 w-12 transition-transform duration-300 group-hover:scale-110 group-active:scale-110" />
                 <Chip s="Live" />
               </div>
               <h3 className="mt-6 font-display text-xl font-semibold text-zinc-50">Trading Tools</h3>
@@ -139,11 +139,11 @@ export function Products() {
             const inner = (
               <>
                 <div className="flex items-start justify-between gap-2">
-                  <p.Icon className="h-11 w-11 transition-transform duration-300 group-hover:scale-110" />
+                  <p.Icon className="h-11 w-11 transition-transform duration-300 group-hover:scale-110 group-active:scale-110" />
                   <div className="flex items-center gap-2">
                     <Chip s={p.status} />
                     {p.href && (
-                      <ArrowUpRight className="h-4 w-4 shrink-0 text-zinc-600 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold-200" />
+                      <ArrowUpRight className="h-4 w-4 shrink-0 text-zinc-600 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-gold-200 group-active:-translate-y-0.5 group-active:translate-x-0.5 group-active:text-gold-200" />
                     )}
                   </div>
                 </div>

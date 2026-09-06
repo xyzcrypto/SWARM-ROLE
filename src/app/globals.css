@@ -737,7 +737,20 @@ html.lenis body {
     border-color var(--dur-med) var(--ease-out),
     background var(--dur-med) var(--ease-out);
 }
-.surface-hover:hover {
+/* ⚠️ Scoped to devices that actually hover, and given a touch equivalent.
+   On a phone a `:hover` rule either never fires or - worse - STICKS after a
+   tap, leaving one card lit up until you tap elsewhere. So the whole
+   card-highlight language existed on desktop only: on mobile a tap changed the
+   border and the background not at all, which is the "mobile me product wala
+   layout ka animation nahi hai" report. `:active` gives touch the same
+   highlight while the finger is down. */
+@media (hover: hover) {
+  .surface-hover:hover {
+    border-color: rgba(226, 167, 47, 0.35);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  }
+}
+.surface-hover:active {
   border-color: rgba(226, 167, 47, 0.35);
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
 }
@@ -746,8 +759,10 @@ html.lenis body {
 .lift {
   transition: transform var(--dur-slow) var(--ease-out), box-shadow var(--dur-slow), border-color var(--dur-slow);
 }
-.lift:hover {
-  transform: translateY(-4px);
+@media (hover: hover) {
+  .lift:hover {
+    transform: translateY(-4px);
+  }
 }
 /* Cards get a press too - 23 `.lift` usages had a hover but no `:active`, so a
    tapped card looked identical to an untapped one for the whole navigation

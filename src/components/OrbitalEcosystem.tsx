@@ -208,7 +208,7 @@ export function OrbitalEcosystem() {
           >
             <div className="motion-decor" style={{ animation: `floatY ${5 + (i % 4)}s ease-in-out ${i * 0.3}s infinite` }}>
               <span
-                className={`flex items-center gap-1.5 rounded-full border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-[10px] font-semibold tracking-wide ring-1 backdrop-blur-md transition-all duration-300 group-hover:scale-110 sm:text-[11px] ${toneRing[n.tone]}`}
+                className={`flex items-center gap-1.5 rounded-full border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-[10px] font-semibold tracking-wide ring-1 backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-active:scale-110 sm:text-[11px] ${toneRing[n.tone]}`}
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
                 {n.label}

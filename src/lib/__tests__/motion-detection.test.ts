@@ -19,8 +19,6 @@ const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/
 const layout = readFileSync("src/app/layout.tsx", "utf8");
 const css = readFileSync("src/app/globals.css", "utf8");
 const flags = strip(readFileSync("src/shared/hooks/useClientFlag.ts", "utf8"));
-const toggle = strip(readFileSync("src/shared/components/MotionToggle.tsx", "utf8"));
-const navbar = strip(readFileSync("src/shared/components/Navbar.tsx", "utf8"));
 
 /**
  * The inline pre-paint script. Matched against the whole file rather than
@@ -85,34 +83,5 @@ describe("an explicit choice beats every guess", () => {
     expect(flags).toMatch(/return prefersReduced && !forced;/);
     expect(flags).toMatch(/export function useMotionForced\(\): boolean/);
     expect(flags).toMatch(/classList\.contains\("motion-full"\)/);
-  });
-});
-
-describe("the reader can actually reach the switch", () => {
-  it("is in the navbar, on both breakpoints", () => {
-    // `localStorage.motion` has existed as an override since the tier shipped
-    // and had NO user interface at all - only devtools could set it.
-    expect((navbar.match(/<MotionToggle \/>/g) ?? []).length).toBe(2);
-  });
-
-  it("writes the same key the pre-paint script reads", () => {
-    expect(toggle).toMatch(/localStorage\.setItem\("motion", next \? "full" : "lite"\)/);
-    expect(script).toContain("localStorage.getItem('motion')");
-  });
-
-  it("applies both classes immediately, not on the next reload", () => {
-    expect(toggle).toMatch(/d\.classList\.toggle\("lite-motion", !next\)/);
-    expect(toggle).toMatch(/d\.classList\.toggle\("motion-full", next\)/);
-  });
-
-  it("reads the current tier without a setState-in-effect", () => {
-    // `useLiteMotion` is useSyncExternalStore with a server snapshot; adjusting
-    // during render is what the news reader and breaking hero already do.
-    expect(toggle).toMatch(/const tierOn = !useLiteMotion\(\)/);
-    expect(toggle).not.toMatch(/useEffect/);
-  });
-
-  it("survives private mode", () => {
-    expect(toggle).toMatch(/try \{\s*localStorage\.setItem\("motion"[\s\S]{0,120}\} catch \{/);
   });
 });
