@@ -23,6 +23,7 @@ import { useHydrated } from "@/lib/useClientFlag";
 import { compressImage } from "@/lib/image";
 import { cn } from "@/lib/utils";
 import { MicButton } from "@/shared/components/MicButton";
+import { MessageText } from "@shared/components/MessageText";
 import { placeMenu, type MenuBox } from "@shared/utils/menu-placement";
 
 type Other = { id?: string; name: string; username: string | null; image: string | null; lastSeenAt?: string | null } | null;
@@ -1024,7 +1025,10 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                         <img src={media} alt="shared media" loading="lazy" className="max-h-72 w-auto max-w-full cursor-zoom-in rounded-xl" />
                       </ImageLightbox>
                     ) : (
-                      <p className="whitespace-pre-wrap break-words">{m.body}</p>
+                      // Was a raw `{m.body}` in a <p>: a mention was grey text
+                      // and a pasted link was not a link. Same renderer as the
+                      // community room, so the two cannot drift again.
+                      <MessageText text={m.body} className="whitespace-pre-wrap break-words" />
                     )}
                     {/* The translation sits under the original rather than
                         replacing it - you almost always want to compare. */}

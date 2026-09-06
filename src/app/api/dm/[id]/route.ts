@@ -4,6 +4,7 @@ import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { otherOf, snippet, DM_MAX_LEN, DM_USER_SELECT } from "@/lib/dm";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
+import { notifyMentions } from "@modules/notifications/lib/notifications";
 import { sendPush, pushEnabled } from "@/lib/push";
 import { chatMediaUrl } from "@/lib/chat-media";
 import { canSendInThread, isBlockedEitherWay } from "@/lib/dm-gate";
@@ -243,6 +244,21 @@ export async function POST(req: Request, props: Ctx) {
     // ping, so a bare ping is all that's needed (matches the CH_NOTIFY pattern).
     const recipientId = iAmA ? conv.userBId : conv.userAId;
     await broadcastEvent(userChannel(recipientId), "dm_message", { conversationId: conv.id });
+
+    // Tell the other participant if they were @mentioned.
+    //
+    // `restrictToUserIds` is doing real work here, not being cautious: a DM has
+    // exactly two participants, and without it `@someone_else` in a private
+    // thread would notify a third party that they were mentioned somewhere they
+    // cannot open - which leaks that the conversation exists at all.
+    void notifyMentions({
+      body,
+      authorId: me.id,
+      authorName: (me as { name?: string | null }).name || "Someone",
+      context: "dm",
+      href: `/messages?c=${conv.id}`,
+      restrictToUserIds: [recipientId],
+    });
 
     // Fire-and-forget external push to the recipient's devices (private DM alert).
     if (pushEnabled) {
