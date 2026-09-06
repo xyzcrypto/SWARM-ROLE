@@ -26,13 +26,13 @@ export async function GET(req: Request) {
       take: PAGE_SIZE + 1,
       ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
       orderBy: { createdAt: "desc" },
-      select: { ...CHAT_MESSAGE_SELECT, status: true },
+      select: { ...CHAT_MESSAGE_SELECT, status: true, hiddenBy: true },
     });
     const hasMore = rows.length > PAGE_SIZE;
     const page = hasMore ? rows.slice(0, PAGE_SIZE) : rows;
 
     return ok({
-      messages: page.map((m) => ({ ...toChatPayload(m), status: m.status })),
+      messages: page.map((m) => ({ ...toChatPayload(m), status: m.status, hiddenBy: m.hiddenBy })),
       nextCursor: hasMore ? page[page.length - 1]!.id : null,
     });
   } catch (err) {
@@ -42,12 +42,13 @@ export async function GET(req: Request) {
 
 const actionSchema = z.object({
   id: z.string().optional(),
-  action: z.enum(["hide", "restore", "restore_all", "pin", "unpin"]),
+  action: z.enum(["hide", "restore", "restore_all", "restore_ai", "pin", "unpin"]),
 });
 
 // POST /api/chat/messages/moderate - moderation actions (post:manage):
 //  - hide / restore a single message (broadcast so live clients update)
 //  - restore_all: un-hide EVERY hidden message (bulk recovery)
+//  - restore_ai:  un-hide only what the AI filter hid (the usual recovery)
 //  - pin / unpin: Telegram-style pinned message (staff only)
 export async function POST(req: Request) {
   try {
@@ -61,10 +62,23 @@ export async function POST(req: Request) {
     if (!parsed.success) return fail("Invalid input.", 400);
     const { id, action } = parsed.data;
 
-    if (action === "restore_all") {
+    if (action === "restore_all" || action === "restore_ai") {
+      // ⚠️ Two actions, because they are two different intentions.
+      //
+      // `restore_all` was the ONLY bulk recovery, and until `hiddenBy` existed
+      // it had to be: nothing could tell an AI false positive from a deliberate
+      // staff hide, so recovering from a bad classification meant un-hiding
+      // every moderated message in the room. That is a moderation tool undoing
+      // moderation, which is the opposite of what it is for.
+      //
+      // `restore_ai` is the one you actually want after the classifier
+      // misfires. `restore_all` stays, because sometimes you do mean all of it.
+      const where = action === "restore_ai"
+        ? { status: "hidden", hiddenBy: "ai" }
+        : { status: "hidden" };
       const { count } = await prisma.chatMessage.updateMany({
-        where: { status: "hidden" },
-        data: { status: "visible" },
+        where,
+        data: { status: "visible", hiddenBy: null },
       });
       // ⚠️ This used to broadcast nothing at all, on the reasoning that
       // "clients pick the messages up on their next poll/refresh". Only half
@@ -100,7 +114,14 @@ export async function POST(req: Request) {
 
     const nextStatus = action === "hide" ? "hidden" : "visible";
     if (msg.status !== nextStatus) {
-      await prisma.chatMessage.update({ where: { id }, data: { status: nextStatus } });
+      await prisma.chatMessage.update({
+        where: { id },
+        // Who did it, so the queue can tell a staff decision from an AI one.
+        // Cleared on restore: a visible message has not been hidden by anyone,
+        // and leaving the old value would make a restored message look like it
+        // was still someone's call.
+        data: { status: nextStatus, hiddenBy: action === "hide" ? actor.id : null },
+      });
       if (action === "hide") {
         await broadcastChatEvent({ event: "message_hidden", payload: { id } });
       } else {

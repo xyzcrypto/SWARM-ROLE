@@ -769,6 +769,8 @@ type ModMessage = {
   id: string;
   body: string;
   status: string;
+  /** "ai" when the toxicity filter hid it, else the moderator's user id. */
+  hiddenBy: string | null;
   createdAt: string;
   author: { name: string | null; username: string | null };
 };
@@ -860,21 +862,32 @@ function ModerationPanel() {
     }
   }
 
-  // One-click recovery: un-hide EVERY hidden chat message (soft-deletes only -
-  // nothing is ever destroyed, so "deleted" messages can always come back).
-  async function restoreAllMessages() {
-    if (!confirm("Restore ALL hidden chat messages? They will reappear for everyone.")) return;
-    setBusy("restore_all");
+  // Bulk recovery. Two scopes, because they are two different intentions:
+  // "the classifier misfired" is the common one, and it should not require
+  // undoing every deliberate staff hide in the room to fix.
+  async function restoreMessages(scope: "restore_all" | "restore_ai") {
+    const ai = scope === "restore_ai";
+    const question = ai
+      ? "Restore the messages the AI filter hid? They will reappear for everyone."
+      : "Restore ALL hidden chat messages, including ones staff hid deliberately? They will reappear for everyone.";
+    if (!confirm(question)) return;
+    setBusy(scope);
     setError("");
     try {
       const res = await fetch("/api/chat/messages/moderate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "restore_all" }),
+        body: JSON.stringify({ action: scope }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d.error || "Failed.");
-      setMessages((arr) => arr.map((m) => ({ ...m, status: "visible" })));
+      setMessages((arr) =>
+        arr.map((m) =>
+          m.status === "hidden" && (!ai || m.hiddenBy === "ai")
+            ? { ...m, status: "visible", hiddenBy: null }
+            : m
+        )
+      );
     } catch (e: any) {
       setError(e.message || "Failed.");
     } finally {
@@ -882,7 +895,9 @@ function ModerationPanel() {
     }
   }
 
-  const hiddenCount = view === "chat" ? messages.filter((m) => m.status === "hidden").length : 0;
+  const hiddenMessages = view === "chat" ? messages.filter((m) => m.status === "hidden") : [];
+  const hiddenCount = hiddenMessages.length;
+  const aiHiddenCount = hiddenMessages.filter((m) => m.hiddenBy === "ai").length;
 
   async function setReportReviewed(id: string, status: "open" | "reviewed") {
     setBusy(id);
@@ -950,11 +965,23 @@ function ModerationPanel() {
               {s[0]!.toUpperCase() + s.slice(1)}
             </button>
               ))}
+          {/* The AI-only restore comes first and is the safe one: it undoes
+              false positives without touching a single deliberate staff hide.
+              "Restore all" stays for when you really do mean all of it. */}
+          {view === "chat" && aiHiddenCount > 0 && (
+            <button
+              onClick={() => restoreMessages("restore_ai")}
+              disabled={busy === "restore_ai"}
+              className="ml-2 rounded-lg border border-mint-500/30 px-2.5 py-1 text-xs font-medium text-mint-200 transition-colors hover:bg-mint-500/10 disabled:opacity-50"
+            >
+              {busy === "restore_ai" ? "Restoring…" : `Restore AI-hidden (${aiHiddenCount})`}
+            </button>
+          )}
           {view === "chat" && hiddenCount > 0 && (
             <button
-              onClick={restoreAllMessages}
+              onClick={() => restoreMessages("restore_all")}
               disabled={busy === "restore_all"}
-              className="ml-2 rounded-lg border border-mint-500/30 px-2.5 py-1 text-xs font-medium text-mint-200 transition-colors hover:bg-mint-500/10 disabled:opacity-50"
+              className="ml-2 rounded-lg border border-white/15 px-2.5 py-1 text-xs font-medium text-zinc-300 transition-colors hover:bg-white/5 disabled:opacity-50"
             >
               {busy === "restore_all" ? "Restoring…" : `Restore all hidden (${hiddenCount})`}
             </button>
@@ -1076,6 +1103,24 @@ function ModerationPanel() {
                 </span>
                 <span>· {formatDateTime(m.createdAt)}</span>
                 <StatusBadge status={m.status} />
+                {/* Which decision this was. Without it, a false positive from
+                    the toxicity filter is indistinguishable from a colleague's
+                    deliberate hide - and treating those two the same is how a
+                    bad classification either sits there unnoticed or gets
+                    "fixed" by undoing real moderation.
+                    Null means hidden before attribution shipped; saying so is
+                    better than guessing. */}
+                {m.status === "hidden" && (
+                  <span
+                    className={
+                      m.hiddenBy === "ai"
+                        ? "rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-medium text-sky-300"
+                        : "rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-400"
+                    }
+                  >
+                    {m.hiddenBy === "ai" ? "AI filter" : m.hiddenBy ? "By staff" : "Unknown"}
+                  </span>
+                )}
               </div>
               <p className="mt-2 whitespace-pre-wrap break-words text-sm text-zinc-300">{m.body}</p>
               <div className="mt-2 flex gap-3 text-xs">

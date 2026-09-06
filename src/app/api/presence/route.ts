@@ -60,7 +60,22 @@ export async function POST(req: Request) {
         .upsert({
           where: { userId: me.id },
           create: { userId: me.id, room: ROOM_SITE, seenAt: new Date() },
-          update: { room: ROOM_SITE, seenAt: new Date() },
+          // ⚠️ `seenAt` only - deliberately NOT `room`.
+          //
+          // The row is keyed by user id alone, so one member has exactly one
+          // row no matter how many tabs are open. `chatOwnsPresence` stops THIS
+          // heartbeat from running on /community for that reason - but it can
+          // only see its own tab's pathname. With /community open in one tab
+          // and any other page in a second, both writers reach the same row and
+          // this one used to stamp `room: "site"` over `room: "community"`, so
+          // the chat's own count - which filters on room - dropped that member
+          // until their next 25s chat beat put it back.
+          //
+          // Not writing `room` on an existing row fixes it outright: the site
+          // count (`GET` below) is room-agnostic, so it loses nothing, and the
+          // chat's leave beacon DELETES the row on exit, so a stale "community"
+          // cannot outlive the visit either.
+          update: { seenAt: new Date() },
         })
         .catch(() => null), // a not-yet-migrated DB must not break every page
       touchLastSeen(me.id),

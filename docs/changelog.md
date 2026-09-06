@@ -5,6 +5,72 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (84) — Who hid this, and whose row is this
+
+The last two open bugs from the ten-item pass.
+
+### A moderator could not tell the AI's decisions from their colleagues'
+
+The chat's AI auto-moderation sets `status: "hidden"` — the exact same write a
+human moderator makes. `ChatMessage` had no other field, so in the moderation
+queue a false positive from the toxicity classifier was **indistinguishable**
+from a deliberate staff hide.
+
+That is worse than an inconvenience, because of what it did to recovery. The
+only bulk action was **"Restore all hidden"**, and it had to be: with nothing to
+filter on, fixing one bad classification meant un-hiding every moderated message
+in the room. A moderation tool whose repair mechanism undoes moderation.
+
+`hiddenBy` is now `"ai"` for the filter and the moderator's user id otherwise,
+cleared on restore. It is deliberately **not** a foreign key to `User` — "ai" is
+not a user, and a moderator whose account is later deleted should not
+cascade-null the record of who hid something. It is an audit trail, not a
+relation. Nullable with no backfill: messages hidden before this shipped
+genuinely have no known author, and the queue says "Unknown" rather than
+guessing.
+
+On top of that, `restore_ai` — un-hide only what the filter hid. That is the
+action you actually want after a misfire. `restore_all` stays for when you do
+mean all of it, and its confirmation now says out loud that it includes
+deliberate staff hides. Each hidden row carries an **AI filter** / **By staff**
+badge.
+
+### Two writers, one presence row
+
+`ChatPresence.userId` is the primary key, so a member is one row however many
+tabs they have open — deliberately, so three tabs count once. Two routes write
+it: `/api/chat/presence` (room `"community"`) and `/api/presence` (room
+`"site"`), and `chatOwnsPresence(pathname)` stops the site heartbeat running on
+`/community` precisely so they don't collide.
+
+But that guard only sees **its own tab's** pathname. With `/community` open in
+one tab and any other page in a second, both writers reach the same row, and the
+site one stamped `room: "site"` over `room: "community"` — so the chat's count,
+which filters on room, dropped that member until their next 25s beat put them
+back. The existing code comment describes this failure and believed the guard
+prevented it.
+
+The site heartbeat now refreshes `seenAt` and leaves `room` alone. It loses
+nothing: the site count is room-agnostic (`count({ where: { seenAt } })`, no room
+filter — there is a test pinning that, because if it ever *did* filter by room
+this fix would break that tile instead). And a stale `"community"` cannot outlive
+the visit, because the chat's leave beacon deletes the row on exit.
+
+No schema change for this half — the compound-key alternative would have meant a
+primary-key migration on a live table for a bug a one-line change fixes.
+
+**Verification:** unit tests, typecheck and build. Both surfaces are
+admin/auth-gated, so neither was exercised in a browser here. ⚠️ **This ships a
+migration** — check the deployment's build log for `in sync with your Prisma
+schema` before trusting the moderation queue.
+
+**Files:** `prisma/schema.prisma`, `prisma/migrations/36_chat_hidden_by/`,
+`api/chat/messages/route.ts`, `api/chat/messages/moderate/route.ts`,
+`api/presence/route.ts`, `dashboard/components/DashboardClient.tsx`,
+`__tests__/chat-hidden-by.test.ts`.
+
+---
+
 ## 2026-09-06 (83) — Voice-to-message: one dropped prop
 
 Dictating a DM ended with hunting for the Send button, and the reason turned out

@@ -175,6 +175,14 @@ model ChatMessage {
   body      String // plain text, <= 500 chars (zod-enforced)
   kind      String    @default("text") // "text" | "poll"
   status    String    @default("visible") // "visible" | "hidden"
+  // WHO hid it: "ai" for the auto-moderation filter, otherwise the moderator's
+  // user id. Null while visible.
+  //
+  // `status` alone could not tell the two apart, so a false positive from the
+  // toxicity classifier looked exactly like a deliberate staff decision in the
+  // moderation queue - and "Restore all hidden" was the only recovery, which
+  // also undid every human hide.
+  hiddenBy  String?
   createdAt DateTime  @default(now())
   editedAt  DateTime? // set when the author edits (15-min window)
   pinnedAt  DateTime? // set when staff pins (Telegram-style; latest pinned shows in the banner)
