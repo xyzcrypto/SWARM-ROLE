@@ -21,6 +21,18 @@ function isMissingSchemaError(err: unknown): boolean {
   return typeof err === "object" && err !== null && "code" in err && (err.code === "P2021" || err.code === "P2022");
 }
 
+interface LoginUser {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: string;
+  membership: string;
+  passwordHash: string | null;
+  failedLoginCount?: number | null;
+  lockedUntil?: Date | null;
+}
+
 // A fixed, never-matched bcrypt hash used purely to normalize response time
 // (see `authorize()` below) - comparing against it costs the same as a real
 // bcrypt.compare, so "no such account" / "account locked" / "wrong password"
@@ -223,7 +235,7 @@ export const authOptions: NextAuthOptions = {
         if (!success) return null;
         // Consolidate user profile and lockout counters into a single query to eliminate
         // redundant sequential round-trips on every login attempt.
-        let user;
+        let user: LoginUser | null = null;
         try {
           user = await prisma.user.findUnique({
             where: { email },

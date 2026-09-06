@@ -143,7 +143,6 @@ export function Navbar() {
               key={l.href}
               href={l.href}
               prefetch={false}
-              onClick={onNavClick(l.href)}
               aria-current={isActive(l.href) ? "page" : undefined}
               className={cn(
                 "group relative rounded-lg px-2.5 py-2 text-sm font-medium transition-colors xl:px-3.5",
