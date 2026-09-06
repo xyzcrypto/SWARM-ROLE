@@ -166,10 +166,11 @@ export async function POST(req: Request) {
     // Grounding corpus + live market & news snapshots fetched concurrently, backed by fast in-memory caching.
     // Note: getGroundingPosts() redacts premium article bodies so free users cannot access paid content.
     const origin = new URL(req.url).origin;
-    const [posts, live] = await Promise.all([
+    const [rows, live] = await Promise.all([
       getGroundingPosts(),
       fetchLiveSnapshot(origin).catch(() => ({} as LiveSnapshot)),
     ]);
+    const posts = rows;
     const system = buildAssistantSystemPrompt(posts, lastUser.content, formatLiveContext(live));
 
     const stream = streamAssistant({

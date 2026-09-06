@@ -293,12 +293,7 @@ export function ChatClient({
       }
     }
 
-    setMessages((prev) => {
-      if (prev.some((x) => x.id === m.id)) return prev;
-      const list = [...prev, next];
-      // Keep active in-memory buffer bounded to latest 200 messages to avoid DOM bloat in long sessions
-      return list.length > 200 ? list.slice(list.length - 200) : list;
-    });
+    setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, next]));
   }, []);
   // In-place tombstone (this session only) - keeps conversation context
   // instead of messages silently vanishing mid-read. Gone after reload.
