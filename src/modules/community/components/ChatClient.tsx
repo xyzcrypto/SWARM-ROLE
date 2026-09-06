@@ -290,19 +290,29 @@ export function ChatClient({
   }, [messages]);
 
   const appendMessage = useCallback((m: Message) => {
-    setMessages((prev) => {
-      if (prev.some((x) => x.id === m.id)) return prev;
-      if (!stickRef.current) {
-        setUnread((u) => u + 1);
-        // First message that arrived while scrolled up ⇒ anchor for the
-        // in-stream "New messages" divider.
-        if (!firstUnreadRef.current) {
-          firstUnreadRef.current = m.id;
-          setFirstUnreadId(m.id);
-        }
+    // ⚠️ Same fix as the poll's `tick`, and this is the hotter path - every
+    // realtime message goes through here. `setUnread`, the `firstUnreadRef`
+    // write and the divider anchor all used to sit INSIDE the updater below. An
+    // updater must be pure and React may invoke it more than once for a single
+    // update, which counted one arriving message as two on the badge.
+    //
+    // The mirror ref is written synchronously here as well as by its effect, so
+    // two messages arriving in the same tick cannot both be treated as new.
+    if (messagesRef.current.some((x) => x.id === m.id)) return;
+    const next = { ...m, reactions: normalizeReactions(m.reactions) };
+    messagesRef.current = [...messagesRef.current, next];
+
+    if (!stickRef.current) {
+      setUnread((u) => u + 1);
+      // First message that arrived while scrolled up ⇒ anchor for the
+      // in-stream "New messages" divider.
+      if (!firstUnreadRef.current) {
+        firstUnreadRef.current = m.id;
+        setFirstUnreadId(m.id);
       }
-      return [...prev, { ...m, reactions: normalizeReactions(m.reactions) }];
-    });
+    }
+
+    setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev, next]));
   }, []);
   // In-place tombstone (this session only) - keeps conversation context
   // instead of messages silently vanishing mid-read. Gone after reload.
@@ -399,7 +409,9 @@ export function ChatClient({
     // `tick` and `beat` are defined below but needed inside the subscribe
     // callback above them; these hold the live references without hoisting the
     // whole poll body above the channel setup.
-    const tickRef: { current?: () => Promise<void> } = {};
+    // `force` skips the 60s safety-reconcile throttle - needed by the bulk
+    // restore handler, which has no message payload to apply directly.
+    const tickRef: { current?: (force?: boolean) => Promise<void> } = {};
     const beatRef: { current?: () => Promise<void> } = {};
 
     // Channel only. Retried on its own; must NOT arm the poll, or every retry
@@ -429,6 +441,10 @@ export function ChatClient({
         if (soundOnRef.current && msg.userId !== me?.id) playBlip(audioCtxRef.current);
       }));
       offs.push(channel.onBroadcast("message_hidden", (payload) => hideMessage((payload as { id: string }).id)));
+      // A bulk restore carries no messages - it means "history changed under
+      // you". `tick(true)` bypasses the 60s safety-reconcile throttle, which is
+      // the whole point: without it a restore was invisible for up to a minute.
+      offs.push(channel.onBroadcast("messages_restored", () => { void tickRef.current?.(true); }));
       offs.push(channel.onBroadcast("message_edited", (payload) => {
         const p = payload as { id: string; body: string; editedAt: string };
         applyEdit(p.id, p.body, p.editedAt);
@@ -558,27 +574,41 @@ export function ChatClient({
           return;
         }
         setPollError(null);
+        const fresh = (data.messages as Message[]).map((m) => ({
+          ...m,
+          reactions: normalizeReactions(m.reactions),
+        }));
+
+        // ⚠️ These side effects used to run INSIDE the `setMessages` updater
+        // below. An updater must be pure - React is free to invoke it more than
+        // once for a single update - and this one bumped the unread counter,
+        // wrote a ref, and played a sound. Two invocations meant the badge
+        // counted every new message twice and the blip played twice.
+        //
+        // `reconcilePoll` is pure and cheap, so the honest fix is to run it
+        // again here, where side effects are legal. The mirror ref is the same
+        // base `loadOlder` already trusts for exactly this reason.
+        const { incoming } = reconcilePoll(messagesRef.current, fresh);
+        if (incoming.length && !stickRef.current) {
+          setUnread((u) => u + incoming.length);
+          if (!firstUnreadRef.current && incoming[0]) {
+            firstUnreadRef.current = incoming[0].id;
+            setFirstUnreadId(incoming[0].id);
+          }
+        }
+        // Blip for messages from others, same as the realtime path.
+        if (soundOnRef.current && incoming.some((m) => m.userId !== meRef.current?.id)) {
+          playBlip(audioCtxRef.current);
+        }
+
         setMessages((prev) => {
           // Pure reconcile (unit-tested in chat-view): refresh edits/reactions
           // on known messages, infer deletions inside the fetched window, and
-          // split out genuinely new messages.
-          const fresh = (data.messages as Message[]).map((m) => ({
-            ...m,
-            reactions: normalizeReactions(m.reactions),
-          }));
-          const { merged, incoming } = reconcilePoll(prev, fresh);
-          if (incoming.length && !stickRef.current) {
-            setUnread((u) => u + incoming.length);
-            if (!firstUnreadRef.current && incoming[0]) {
-              firstUnreadRef.current = incoming[0].id;
-              setFirstUnreadId(incoming[0].id);
-            }
-          }
-          // Blip for messages from others, same as the realtime path.
-          if (soundOnRef.current && incoming.some((m) => m.userId !== meRef.current?.id)) {
-            playBlip(audioCtxRef.current);
-          }
-          return incoming.length ? [...merged, ...incoming] : merged;
+          // split out genuinely new messages. Against `prev`, so the merge
+          // itself cannot miss a message that landed over realtime since the
+          // ref was last synced.
+          const r = reconcilePoll(prev, fresh);
+          return r.incoming.length ? [...r.merged, ...r.incoming] : r.merged;
         });
       } catch (e) {
         setPollError(e instanceof Error ? e.message : "network");
@@ -845,7 +875,17 @@ export function ChatClient({
             if (el) el.scrollTop = el.scrollHeight - prevHeight;
           });
         }
-        setHasMore(Boolean(data.hasMore) && (older.length > 0 || (data.messages as Message[]).length > 0));
+        // ⚠️ `older.length === 0` means the cursor cannot advance.
+        //
+        // This used to keep `hasMore` true whenever the SERVER said so and the
+        // page was non-empty, even if every row in it was already on screen. A
+        // page that comes back fully de-duped means the next request will use
+        // the same cursor and return the same rows - so "Load older" stayed on
+        // screen, and every press re-fetched the identical page forever. A
+        // button that cannot ever finish its own job is worse than no button.
+        //
+        // Nothing new arrived, so there is no reachable history: say so.
+        setHasMore(Boolean(data.hasMore) && older.length > 0);
         return older.length > 0;
       }
       return false;

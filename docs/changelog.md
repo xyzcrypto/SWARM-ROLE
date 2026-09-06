@@ -5,6 +5,61 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (80) — Community: the room disagreeing with the server
+
+Three bugs, one shape: the room quietly holding a different view of itself than
+the server has.
+
+### One arriving message counted as two
+
+`appendMessage` — the realtime path, so **every** live message — bumped the
+unread badge, wrote the `firstUnreadRef` divider anchor and played the blip from
+**inside its `setMessages` updater**. An updater must be pure; React is free to
+invoke it more than once for a single update, and two invocations counted one
+message twice. The poll's `tick` had the identical shape.
+
+Both now do the arrival bookkeeping outside the updater, which stays pure. The
+poll re-runs `reconcilePoll` (pure and cheap) against the mirror ref to work out
+what arrived, while the merge itself still uses the updater's own `prev` — or a
+message that landed over realtime since the ref was last synced would be
+dropped. `appendMessage` also writes the mirror ref synchronously, so two
+messages in one tick cannot both be treated as new.
+
+The second one was found by a test written for the first, failing on a call site
+I had not looked at.
+
+### "Load older" that could never finish
+
+`hasMore` stayed true whenever the **server** said so and the page was
+non-empty — even when every row in it was already on screen. A fully de-duped
+page means the next request uses the same cursor and returns the same rows, so
+the button stayed put and every press re-fetched the identical page. Now: no new
+rows means the cursor cannot advance, so there is no reachable history.
+
+### A bulk restore nobody could see
+
+`restore_all` broadcast nothing, on the reasoning that clients pick the messages
+up on their next poll. Half true, and the wrong half: a live client's poll is
+throttled to a 60s safety reconcile, so an admin clicking "Restore all hidden"
+watched nothing happen for up to a minute — and the poll only fetches the
+**latest** page, so a restored message older than that window never came back at
+all without a reload.
+
+One `messages_restored` event for the whole batch, carrying a count and no
+messages: the batch is every hidden message ever, and N broadcasts to every
+connected client is not a thing to do on a bulk action. Clients force a
+reconcile, bypassing the throttle.
+
+**Verification:** unit tests, typecheck and build only. `/community` renders
+`ChatClient` for signed-in members and `CommunityPreview` for everyone else, and
+this environment has no session — so unlike the markets and news passes, none of
+this was exercised in a browser. The PR's observable section says what to click.
+
+**Files:** `community/components/ChatClient.tsx`, `community/lib/chat.ts`,
+`api/chat/messages/moderate/route.ts`, `__tests__/chat-bugs.test.ts`.
+
+---
+
 ## 2026-09-06 (79) — News: the things it said it had done
 
 Markets was showing wrong numbers. News had the opposite failure: it reported
