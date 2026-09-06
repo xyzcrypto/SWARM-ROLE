@@ -165,6 +165,10 @@ export default async function CommunityPage() {
                 name: (me.name as string | null) ?? "Member",
                 image: (me.image as string | null) ?? null,
                 username: (me.username as string | null) ?? null,
+                // Needed so an optimistic message can carry the sender's real
+                // badge. Without it the client had to guess, and it guessed
+                // "Free" - see the note in ChatClient's `doSend`.
+                membership: (me.membership as string | null) ?? "Free",
               }}
               realtime={{
                 url: env.NEXT_PUBLIC_SUPABASE_URL,

@@ -67,7 +67,7 @@ type Message = {
   /** Session-local tombstone: removed by author/moderator while we watched. */
   hidden?: boolean;
 };
-type Me = { id: string; isAdmin: boolean; name: string; image?: string | null; username?: string | null };
+type Me = { id: string; isAdmin: boolean; name: string; image?: string | null; username?: string | null; membership?: string };
 type PresenceMember = { id: string; name: string; image: string | null; username: string | null };
 
 const normalizeReactions = (rs: { emoji: string; userIds: string[] }[]): Reaction[] =>
@@ -193,7 +193,7 @@ export function ChatClient({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   // Per-message translation (English <-> Hinglish); toggled from the action bar.
-  const [translations, setTranslations] = useState<Record<string, { text?: string; loading?: boolean; shown?: boolean }>>({});
+  const [translations, setTranslations] = useState<Record<string, { text?: string; loading?: boolean; shown?: boolean; error?: string }>>({});
   const [soundOn, setSoundOn] = useState(false);
   // Touch UI (no hover): actions open on tap instead of hover, Enter makes a
   // newline instead of sending. Detected client-side to stay hydration-safe.
@@ -917,7 +917,18 @@ export function ChatClient({
       body: text,
       createdAt: new Date().toISOString(),
       userId: me.id,
-      author: { name: me.name, username: null, image: null, membership: "Free", role: me.isAdmin ? "ADMIN" : "USER" },
+      // The sender's own details, not placeholders. `membership: "Free"` and
+      // `username: null` were hardcoded here, so a Premium member's own message
+      // appeared without its badge and with an unlinked avatar for the ~200ms
+      // until the server copy replaced it - then both popped in. Small, but it
+      // is the one message on screen whose author the client already knows.
+      author: {
+        name: me.name,
+        username: me.username ?? null,
+        image: me.image ?? null,
+        membership: me.membership ?? "Free",
+        role: me.isAdmin ? "ADMIN" : "USER",
+      },
       replyTo: reply ? { id: reply.id, body: reply.body, authorName: reply.authorName } : null,
       reactions: [],
       pending: true,
@@ -966,10 +977,37 @@ export function ChatClient({
   }
 
   async function remove(id: string) {
-    const snapshot = messages;
+    // ⚠️ The snapshot is taken INSIDE the updater, not from `messages` in this
+    // closure. It used to be `const snapshot = messages`, captured at the moment
+    // of the click - so in a busy room, every message that arrived over realtime
+    // while the DELETE was in flight was wiped by the rollback. A failed delete
+    // silently rewound the room.
+    let snapshot: Message[] = [];
+    let pinnedSnapshot: Message | null = null;
+    // No-op updaters, used only to READ the current values. `hideMessage` does
+    // the actual hiding a line below - inlining its body here instead would
+    // have quietly dropped the two other things it does (blanking `body`, and
+    // clearing a pinned banner that points at the message being removed).
+    setMessages((prev) => {
+      snapshot = prev;
+      return prev;
+    });
+    setPinned((p) => {
+      pinnedSnapshot = p;
+      return p;
+    });
     hideMessage(id);
     const res = await fetch(`/api/chat/messages/${id}`, { method: "DELETE" }).catch(() => null);
-    if (!res || !res.ok) setMessages(snapshot);
+    if (!res || !res.ok) {
+      setMessages(snapshot);
+      // The banner too: `hideMessage` clears it when it pointed at this message,
+      // so restoring only the list would leave a pin silently dropped.
+      setPinned(pinnedSnapshot);
+      // Every other mutation here (saveEdit, togglePin, vote, doSend) reports a
+      // failure. This one put the message back and said nothing, so it read as
+      // the delete having been undone by someone else.
+      setError("Couldn't delete that message.");
+    }
   }
 
   async function toggleReaction(messageId: string, emoji: string) {
@@ -1087,8 +1125,19 @@ export function ChatClient({
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text }),
       });
       const j = await r.json().catch(() => null);
-      if (r.ok && j?.text) setTranslations((t) => ({ ...t, [id]: { text: j.text, loading: false, shown: true } }));
-      else setTranslations((t) => ({ ...t, [id]: { loading: false, shown: true, text: undefined } }));
+      if (r.ok && j?.text) {
+        setTranslations((t) => ({ ...t, [id]: { text: j.text, loading: false, shown: true } }));
+      } else {
+        // Keep the server's reason. It was being thrown away and replaced with
+        // "Couldn't translate. Try again." - which is advice that can never
+        // work when the actual answer is a 503 "Translation is not available
+        // right now" because AI is switched off. Retrying forever was the only
+        // thing the reader could do with the old message.
+        setTranslations((t) => ({
+          ...t,
+          [id]: { loading: false, shown: true, text: undefined, error: j?.error || undefined },
+        }));
+      }
     } catch {
       setTranslations((t) => ({ ...t, [id]: { loading: false, shown: true, text: undefined } }));
     }
@@ -1469,7 +1518,9 @@ export function ChatClient({
                                 {translations[m.id]!.text}
                               </>
                             ) : (
-                              <span className="text-zinc-500">Couldn&apos;t translate. Try again.</span>
+                              <span className="text-zinc-500">
+                                {translations[m.id]?.error ?? "Couldn't translate. Try again."}
+                              </span>
                             )}
                           </div>
                         )}
