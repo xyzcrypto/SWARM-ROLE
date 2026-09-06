@@ -555,6 +555,11 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
   // once hydrated - see chat-time.
   const hydrated = useHydrated();
   const [draft, setDraft] = useState("");
+  // Mirror of `draft` for the dictation auto-send path - see the MicButton
+  // below for why an effect alone is not enough. This effect covers every
+  // other way the composer changes; the mic handler writes it synchronously.
+  const draftRef = useRef("");
+  useEffect(() => { draftRef.current = draft; }, [draft]);
   const [sending, setSending] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
@@ -1304,11 +1309,33 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
             <button type="button" onClick={() => setPickerOpen((v) => !v)} className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 hover:text-gold-200" aria-label="Emoji">
               <Smile className="h-5 w-5" />
             </button>
+            {/* Dictation now sends when you stop talking.
+                `draftRef` is not optional here. `onEnd` fires from a recognizer
+                callback that can run in the SAME task as the last `onresult`,
+                before React has committed - so reading `draft` there would send
+                the composer's contents from before the transcript landed, i.e.
+                an empty string on a single-utterance dictation. The ref is
+                written synchronously below and re-synced by an effect for every
+                other path into the composer (typing, emoji, a cleared draft).
+                Same reasoning, same shape as the XYZ AI panel.
+
+                Tapping the mic again mid-sentence still just stops and leaves
+                the text to edit: `toggle()` calls `stop()`, which finalises,
+                and `onEnd` then sends what was finalised. Discarding is
+                `cancel()`, which suppresses `onEnd` entirely. */}
             <MicButton
               continuous
               size="sm"
               className="absolute bottom-1.5 right-10 !ring-0"
-              onText={(t) => setDraft((b) => (b ? `${b} ${t}` : t).slice(0, 2000))}
+              onText={(t) => {
+                const next = (draftRef.current ? `${draftRef.current} ${t}` : t).slice(0, 2000);
+                draftRef.current = next;
+                setDraft(next);
+              }}
+              onEnd={() => {
+                const text = draftRef.current.trim();
+                if (text && !sending) void postMessage(text, true);
+              }}
             />
             <AnimatePresence>{pickerOpen && <EmojiPicker onPick={(e) => setDraft((b) => (b + e).slice(0, 2000))} onClose={() => setPickerOpen(false)} />}</AnimatePresence>
           </div>

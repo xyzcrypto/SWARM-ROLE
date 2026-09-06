@@ -5,6 +5,61 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (83) — Voice-to-message: one dropped prop
+
+Dictating a DM ended with hunting for the Send button, and the reason turned out
+to be a single omission rather than a missing feature.
+
+`useSpeechInput` has supported auto-submit all along. Its own doc comment on
+`onEnd` reads *"Exists so a caller can auto-submit"*, and the XYZ AI panel does
+exactly that — because that panel calls the hook **directly**. Every other
+composer on the site goes through `MicButton`, and `MicButton` called the hook
+as `useSpeechInput(onText, { continuous })`, dropping `onEnd` on the floor. So
+the capability existed, was documented, was used in one place, and was
+unreachable from every other.
+
+`MicButton` now forwards it, and the DM composer opts in.
+
+### The ref is not optional
+
+`onEnd` fires from a recognizer callback that can run in the **same task** as
+the last `onresult`, before React has committed. Reading `draft` there sends the
+composer's contents from before the transcript landed — an empty string on a
+single-utterance dictation. So the mic handler writes `draftRef` synchronously,
+and an effect keeps it in step with every other path into the composer (typing,
+emoji, a cleared draft). Same reasoning and same shape as the AI panel, which
+documents it in its own words.
+
+### Why turning this on is safe
+
+`onEnd` fires only when a session ends **normally**. `cancel()` marks the
+session discarded *before* calling `abort()` — because `abort()` fires `onend`
+synchronously in some engines — and every error path marks it too. So "the mic
+failed" and "the user gave up" cannot be mistaken for "the user finished
+speaking" and post a message they never meant to send. Tapping the mic again
+mid-sentence still just stops and leaves the text to edit, since `toggle()`
+calls `stop()`, which finalises.
+
+### What deliberately does not auto-send
+
+The command palette, news search and research search. A misheard query running
+itself is a different bug from the one being fixed, so auto-send is opt-in and
+they pass no `onEnd`. There's a test pinning that.
+
+Community chat is also unchanged: its `doSend` infers "this is media" from
+whether it was given an argument, so wiring auto-send there needs a signature
+change that does not belong in this PR.
+
+**Verification:** unit tests, typecheck and build. Headless Chromium exposes no
+`SpeechRecognition`, so `MicButton` renders nothing there by design — dictation
+cannot be exercised in this environment at all, and `/messages` is behind a
+server session besides.
+
+**Files:** `shared/components/MicButton.tsx`,
+`messages/components/MessagesClient.tsx`, `__tests__/voice-autosend.test.ts`.
+
+---
+
 ## 2026-09-06 (82) — The AI was told to write tables nothing could render
 
 ### "Structured nahi hai"
