@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { scoreCommand, filterCommands, STATIC_COMMANDS } from "@/lib/command-search";
 
 describe("scoreCommand", () => {
@@ -28,5 +29,29 @@ describe("filterCommands (content-search: only the Ask AI action is static)", ()
   });
   it("returns nothing for a content query (coins/news handled by live sources)", () => {
     expect(filterCommands("ethereum", guest)).toHaveLength(0);
+  });
+});
+
+describe("keyboard navigation keeps the highlighted row on screen", () => {
+  // Real source path on purpose: `src/components/*` is a re-export shim.
+  const P = readFileSync("src/shared/components/CommandPalette.tsx", "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/^\s*\/\/.*$/gm, " ");
+
+  it("scrolls the active row into view", () => {
+    // Nothing did. A full result set is one action + up to 5 coins + 6 research
+    // posts + 5 news items in a scrolling panel, so holding ArrowDown moved the
+    // highlight past the fold and Enter opened a result the reader could not
+    // see - while the footer advertised "↑↓ navigate".
+    expect(P).toMatch(/querySelector<HTMLElement>\(`\[data-row="\$\{active\}"\]`\)\?\.scrollIntoView\(\{ block: "nearest" \}\)/);
+  });
+
+  it("labels each row with its index into `rows`", () => {
+    expect(P).toMatch(/data-row=\{i\}/);
+  });
+
+  it("holds a ref to the scrolling list", () => {
+    expect(P).toMatch(/const listRef = useRef<HTMLDivElement>\(null\)/);
+    expect(P).toMatch(/<div ref=\{listRef\} className="flex-1 overflow-y-auto/);
   });
 });
