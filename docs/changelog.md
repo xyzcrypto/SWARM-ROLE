@@ -5,6 +5,79 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (78) — Markets: invented candles, a blind effect, and nine wake-up calls
+
+Second markets pass, after #316. Same theme — the page must not present
+something it made up, or cannot show, as if it were the market.
+
+### The perp chart drew data it had invented
+
+`PerpChart` seeded its state with **44 generated candles**: a sine wave walked
+out from a price hardcoded at the call site (`base: 64000` for BTC, `3400` for
+ETH — both years stale). That shape rendered on first paint and for as long as
+`/api/chart` was unreachable. It is a candlestick chart — bodies, wicks, a
+trend — and nothing about it looks generated. The only tells were an amber dot
+and a price reading `$-`.
+
+There is no honest fallback for a price chart, so there is no longer one: a flat
+baseline reading "Loading chart…" or "Chart unavailable". The snapshot is also
+keyed by `coin:days`, so tapping 1M no longer shows 1D candles under the new
+label while the request is in flight.
+
+### The detail pages could not see their own data
+
+Both `CoinDetailClient` and `ProtocolDetailClient` ran their poll in an effect
+that depended on the id only — so the closure pinned the coin at `null` forever
+and `else if (!coin)` meant "always", not "if we have nothing". Now a ref, which
+the effect can actually read. The `eslint-disable` that hid it is gone.
+
+They also had **no way out of an error**: the next attempt was 150s (coin) /
+120s (protocol) away, while the routes cache their own failures for ~30s. A
+"Try again" button and automatic retry now cover that. Measured against a
+failing route: **2 attempts in the first 6 seconds** where the old loop made
+one every 150.
+
+And "finished with no data, no error" fell through to a skeleton that animated
+forever. Three states are now three states.
+
+### Nine polling loops, each refetching on every glance at the tab
+
+`/markets` runs six hub feeds, two perp charts, the shared ticker and a news
+panel. Every one refetched on **every** return to the tab, however recently it
+had fetched — while every route behind them caches for 150–300s server-side. A
+three-second app switch on a phone fired requests that could not contain
+anything new.
+
+Measured on a production build, three short tab switches:
+
+| | before | after |
+|---|---|---|
+| markets fetches | **24** (8 per switch) | **0** |
+| navbar activity (deliberately eager) | 5 | 5 |
+
+The fix is a `wakeMinAgeMs` option on `useLiveData` — the shared poll primitive
+that already existed for exactly this, written after an audit that names
+markets, but that only `NavActivity` had ever been moved onto. Markets is now on
+it too, which also gets it retry-with-backoff and `online`/`focus` wake. A
+failing surface drops to the bare 3s floor rather than skipping the gate, so an
+outage cannot rebuild the burst. Surfaces where returning should feel instant —
+DM threads, notification badges — pass nothing and are unchanged.
+
+### Also
+
+- `EcosystemPills` deleted: zero imports anywhere, still compiled, still pulled
+  framer-motion and five lucide icons, still listed in two docs as if it were on
+  the page.
+- `TrendingNews` was the one poller that swallowed its failure outright
+  (`.catch(() => {})`).
+
+**Files:** `shared/hooks/useLiveData.ts`, `markets/components/{PerpChart,
+MarketsClient,CoinDetailClient,ProtocolDetailClient}.tsx`,
+`markets/lib/useTickerPoll.ts`, `-EcosystemPills.tsx` (×2),
+`__tests__/{useLiveData,markets-honest-states}.test.ts`, docs.
+
+---
+
 ## 2026-09-05 (77) — "Home" landed at the bottom of the homepage
 
 Reported twice, and the first fix (#296) did not touch it — because it is a

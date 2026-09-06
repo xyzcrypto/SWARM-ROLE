@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, ExternalLink, Loader2, Newspaper } from "lucide-react";
 import { RobotIcon } from "@/components/RobotIcon";
 import { compactUsd, coinPrice, pct } from "@/lib/markets";
 import { cn } from "@/lib/utils";
+import { useLiveData } from "@shared/hooks/useLiveData";
 
 type Coin = {
   id: string;
@@ -42,47 +43,72 @@ export function CoinDetailClient({ id }: { id: string }) {
   const [coin, setCoin] = useState<Coin | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  // ⚠️ `coin` cannot be read from inside the effect.
+  //
+  // The effect depends on `[id]` only, so its closure keeps the `coin` from the
+  // render that created it - `null`, forever. `else if (!coin)` therefore read
+  // "if we have never had data" as "always", which is not what it says and not
+  // what the next person will assume it does. A ref is the value the effect can
+  // actually see.
+  const hasData = useRef(false);
 
-  // Live snapshot (cached proxy) - refreshed while the tab is visible.
-  useEffect(() => {
-    let stop = false;
-    const load = async () => {
-      try {
-        const r = await fetch(`/api/markets/coin/${encodeURIComponent(id)}`, { cache: "no-store" });
-        const j = (await r.json()) as Coin;
-        if (stop) return;
-        if (j && j.live) {
-          setCoin(j);
-          setFailed(false);
-        } else if (!coin) {
-          setFailed(true);
-        }
-      } catch {
-        if (!stop && !coin) setFailed(true);
-      } finally {
-        if (!stop) setLoading(false);
+  const load = useCallback(async () => {
+    let live = false;
+    try {
+      const r = await fetch(`/api/markets/coin/${encodeURIComponent(id)}`, { cache: "no-store" });
+      const j = (await r.json()) as Coin;
+      live = Boolean(j?.live);
+      if (live) {
+        hasData.current = true;
+        setCoin(j);
+        setFailed(false);
+      } else if (!hasData.current) {
+        setFailed(true);
       }
-    };
-    load();
-    // Matches /api/markets/coin/[id]'s revalidate window - polling faster than
-    // the cache regenerates just re-fetches the same stale data.
-    const t = setInterval(() => document.visibilityState === "visible" && load(), 150_000);
-    return () => {
-      stop = true;
-      clearInterval(t);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    } catch {
+      if (!hasData.current) setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+    // Retry rather than sit on a failure for the next 150 seconds. The route
+    // caches its own failures for 30s, so the backoff mostly hits the CDN.
+    if (!live) throw new Error("coin not live");
   }, [id]);
 
+  // 150s matches /api/markets/coin/[id]'s poll budget - polling faster than the
+  // cache regenerates just re-fetches the same data. The hand-rolled interval
+  // this replaces had no focus refresh at all, so coming back to the tab after
+  // ten minutes showed ten-minute-old prices until the next tick landed.
+  const { refresh } = useLiveData({ load, intervalMs: 150_000, wakeMinAgeMs: 150_000 });
+
+  const retry = () => {
+    setLoading(true);
+    setFailed(false);
+    refresh();
+  };
+
   if (loading && !coin) return <CoinSkeleton />;
-  if (failed && !coin)
+  if (!coin)
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-amber-300">Couldn&apos;t load this coin.</p>
-        <Link href="/markets" className="mt-3 inline-block text-sm text-gold-200 hover:underline">← Back to Markets</Link>
+        {/* Three states, not two. This branch used to be `failed && !coin`,
+            with a second `if (!coin) return <CoinSkeleton />` behind it - so a
+            load that finished with nothing to show and no error fell through to
+            a skeleton that animated forever. And when it did show the error,
+            the only way out was a full page reload: the next automatic attempt
+            was 150 seconds away, while the route caches its own failures for
+            just 30, so a retry a few seconds later usually works. */}
+        <p className="text-sm text-amber-300">
+          {failed ? "Couldn't load this coin." : "No data for this coin right now."}
+        </p>
+        <div className="mt-3 flex items-center justify-center gap-4">
+          <button onClick={retry} className="text-sm font-semibold text-gold-200 hover:underline">
+            Try again
+          </button>
+          <Link href="/markets" className="text-sm text-zinc-400 hover:text-zinc-200 hover:underline">← Back to Markets</Link>
+        </div>
       </div>
     );
-  if (!coin) return <CoinSkeleton />;
 
   const up24 = coin.change24h >= 0;
 

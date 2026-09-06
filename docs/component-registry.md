@@ -22,7 +22,6 @@ Reuse these; do not duplicate. Paths under `src/`.
 | Hero | `Hero.tsx` | flagship hero, 7-badge orbit, glass eyebrow |
 | AnimatedBackground | `AnimatedBackground.tsx` | mesh + aurora + particles + grid |
 | MarketTicker | `MarketTicker.tsx` | live scrolling ticker (10 coins) |
-| EcosystemPills | `EcosystemPills.tsx` | Alpha/Web3/Perp DEX/DeFi/NFT pills |
 | ProofStrip | `ProofStrip.tsx` | brand-colored clickable platform logos |
 | About | `About.tsx` | Who We Are + SINCE 2019 credibility block |
 | Products | `Products.tsx` | bento product cards |

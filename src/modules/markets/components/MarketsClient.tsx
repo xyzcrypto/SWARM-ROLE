@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { TrendingUp, TrendingDown, Activity, Fuel, Flame, BarChart3, Layers, Percent, Coins, LineChart, Search, Newspaper, ArrowUp, ArrowDown, ChevronsUpDown } from "lucide-react";
 import { PerpChartLazy as PerpChart } from "./PerpChartLazy";
@@ -26,6 +26,7 @@ import {
   type CoinRow,
 } from "@/lib/markets";
 import { cn } from "@/lib/utils";
+import { useLiveData } from "@shared/hooks/useLiveData";
 
 /**
  * Visibility-gated poller (same pattern as MarketTicker/PerpChart).
@@ -45,44 +46,51 @@ import { cn } from "@/lib/utils";
  *
  * `CoinDetailClient` already did this correctly (`if (j && j.live)`). The hub -
  * the higher-traffic surface - did not.
+ *
+ * The loop itself is now `useLiveData`, the shared primitive that already
+ * existed for exactly this (`shared/hooks/useLiveData.ts`, written after an
+ * audit that names markets) but that only one surface had been moved onto. Two
+ * things come with it, both of which this hand-rolled loop lacked:
+ *
+ *  - **Retry with backoff.** A failed poll waited out the whole 180-300s
+ *    interval, and if that one failed too, until the reader reloaded the page.
+ *    Now a blip costs a second.
+ *  - **An age-gated wake.** Six of these run on this page plus two perp charts
+ *    and the ticker - nine loops, each refetching on every return to the tab.
+ *    `wakeMinAgeMs` says the obvious thing: a refetch is only worth a request
+ *    once the poll would have been due anyway.
  */
 function usePolledJson<T>(url: string, everyMs: number) {
   const [data, setData] = useState<T | null>(null);
   const [live, setLive] = useState(false);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const res = await fetch(url, { cache: "no-store" });
-        if (!res.ok) throw new Error("bad status");
-        const j = await res.json();
-        if (!active) return;
-        // Only replace what is on screen with something the server vouches for.
-        // A `live: false` payload is the route's "I could not reach upstream"
-        // signal, not data.
-        if (j?.live) setData(j);
-        setLive(Boolean(j?.live));
-      } catch {
-        if (active) setLive(false);
-      } finally {
-        if (active) setLoading(false);
-      }
+
+  const load = useCallback(async () => {
+    let ok = false;
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("bad status");
+      const j = await res.json();
+      // Only replace what is on screen with something the server vouches for.
+      // A `live: false` payload is the route's "I could not reach upstream"
+      // signal, not data.
+      if (j?.live) setData(j);
+      ok = Boolean(j?.live);
+    } finally {
+      // In `finally` so a thrown fetch also lands here: `ok` is still false,
+      // which is exactly what the badge should say.
+      setLive(ok);
+      setLoading(false);
     }
-    load();
-    const t = setInterval(() => {
-      if (!document.hidden) load();
-    }, everyMs);
-    const onVis = () => {
-      if (!document.hidden) load();
-    };
-    document.addEventListener("visibilitychange", onVis);
-    return () => {
-      active = false;
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", onVis);
-    };
-  }, [url, everyMs]);
+    // Throwing is how retry is requested. `live: false` is a real failure even
+    // though it arrives as HTTP 200 - that is the routes' deliberate graceful
+    // shape - and it is worth retrying: the route caches its own failure for
+    // ~30s, so the backoff (1s…30s cap) mostly lands on the CDN rather than
+    // upstream, and the page recovers in seconds instead of after a full cycle.
+    if (!ok) throw new Error("upstream not live");
+  }, [url]);
+
+  useLiveData({ load, intervalMs: everyMs, wakeMinAgeMs: everyMs });
   return { data, live, loading };
 }
 
@@ -593,18 +601,20 @@ type NewsHeadline = { title: string; url: string; source: string; category: stri
 function TrendingNews() {
   const [items, setItems] = useState<NewsHeadline[]>([]);
   const [loading, setLoading] = useState(true);
-  useEffect(() => {
-    let stop = false;
-    const load = () =>
-      fetch("/api/news?pageSize=10", { cache: "no-store" })
-        .then((r) => r.json())
-        .then((j) => { if (!stop) setItems(Array.isArray(j.items) ? j.items : []); })
-        .catch(() => {})
-        .finally(() => { if (!stop) setLoading(false); });
-    load();
-    const id = setInterval(() => { if (document.visibilityState === "visible") load(); }, 180_000);
-    return () => { stop = true; clearInterval(id); };
+  // A tenth poller on this page, and the only one that swallowed its failure
+  // outright (`.catch(() => {})`): a failed fetch left the panel on whatever it
+  // had, with nothing retried for three minutes and nothing said.
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch("/api/news?pageSize=10", { cache: "no-store" });
+      if (!r.ok) throw new Error("bad status");
+      const j = await r.json();
+      setItems(Array.isArray(j.items) ? j.items : []);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+  useLiveData({ load, intervalMs: 180_000, wakeMinAgeMs: 180_000 });
   return (
     <Panel title="Latest Trading News" icon={<Newspaper className="h-4 w-4 text-gold-300" />}>
       {loading && !items.length ? (

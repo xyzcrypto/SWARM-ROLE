@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { useLiveData } from "@shared/hooks/useLiveData";
 
 type CoinCfg = { id: string; symbol: string; base: number };
 type Candle = number[]; // [open, high, low, close]
@@ -11,62 +12,69 @@ const TIMEFRAMES = [
   { d: 30, label: "1M" },
 ];
 
-function makeFallback(base: number): Candle[] {
-  const candles: Candle[] = [];
-  let prev = base;
-  for (let i = 0; i < 44; i++) {
-    const drift = Math.sin(i / 5) * (base * 0.012) + (i - 22) * (base * 0.0011);
-    const open = prev;
-    const close = open + drift;
-    const high = Math.max(open, close) + base * 0.005;
-    const low = Math.min(open, close) - base * 0.005;
-    candles.push([open, high, low, close]);
-    prev = close;
-  }
-  return candles;
-}
+/**
+ * ⚠️ This component used to seed itself with 44 INVENTED candles.
+ *
+ * `makeFallback(coin.base)` walked a sine wave out from a hardcoded price -
+ * 64000 for BTC, 3400 for ETH, both written into the JSX at the call site and
+ * both years out of date - and that shape was what rendered on first paint and
+ * for as long as `/api/chart` was unreachable. It is a candlestick chart: green
+ * and red bodies, wicks, a plausible trend. Nothing about it looks generated.
+ *
+ * The only tells were an amber dot instead of a green one and a price reading
+ * "$-", against a chart drawing what appeared to be real price action. On a
+ * page whose entire job is telling people what the market is doing, that is the
+ * worst thing this file could render.
+ *
+ * There is no honest fallback for a price chart. When there is no data, say so.
+ */
+type Snapshot = {
+  key: string;
+  candles: Candle[];
+  price: number | null;
+  change: number;
+  live: boolean;
+};
 
 export function PerpChart({ coin }: { coin: CoinCfg }) {
   const [days, setDays] = useState(1);
-  const [candles, setCandles] = useState<Candle[]>(() => makeFallback(coin.base));
-  const [price, setPrice] = useState<number | null>(null);
-  const [change, setChange] = useState(0);
-  const [live, setLive] = useState(false);
+  // Keyed by `coin:days` rather than cleared in a second effect. Switching
+  // timeframe used to leave the previous timeframe's candles on screen under
+  // the new label until the request came back; a stale snapshot now simply
+  // stops matching and is not read.
+  const key = `${coin.id}:${days}`;
+  const [snap, setSnap] = useState<Snapshot | null>(null);
+  const [failedKey, setFailedKey] = useState<string | null>(null);
+  const data = snap?.key === key ? snap : null;
+  const failed = failedKey === key;
 
-  useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const r = await fetch(`/api/chart?coin=${coin.id}&days=${days}`, { cache: "no-store" });
-        if (!r.ok) throw new Error("bad");
-        const d = await r.json();
-        if (!active || !Array.isArray(d.candles) || d.candles.length < 2) return;
-        setCandles(d.candles);
-        setPrice(d.price);
-        setChange(d.change);
-        setLive(Boolean(d.live));
-      } catch {
-        if (active) setLive(false);
-      }
+  const load = useCallback(async () => {
+    try {
+      const r = await fetch(`/api/chart?coin=${coin.id}&days=${days}`, { cache: "no-store" });
+      if (!r.ok) throw new Error("bad");
+      const d = await r.json();
+      // Fewer than two candles cannot be drawn, so it is a failure - not a
+      // reason to return early and leave whatever was there before on screen.
+      if (!Array.isArray(d.candles) || d.candles.length < 2) throw new Error("empty");
+      setSnap({ key, candles: d.candles, price: d.price, change: d.change, live: Boolean(d.live) });
+      setFailedKey(null);
+    } catch (e) {
+      setFailedKey(key);
+      throw e; // retry with backoff rather than waiting out the minute
     }
-    load();
-    // Don't poll while the tab is hidden - saves API calls/bandwidth; refresh
-    // immediately when the user returns so the chart isn't stale.
-    const t = setInterval(() => {
-      if (!document.hidden) load();
-    }, 60_000);
-    const onVisible = () => {
-      if (!document.hidden) load();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-    return () => {
-      active = false;
-      clearInterval(t);
-      document.removeEventListener("visibilitychange", onVisible);
-    };
-  }, [coin.id, days]);
+  }, [coin.id, days, key]);
+
+  // Pauses while hidden, retries a failure in ~1s, and only refetches on return
+  // to the tab once the minute has actually elapsed - two of these render on
+  // /markets and two more on the homepage.
+  useLiveData({ load, intervalMs: 60_000, wakeMinAgeMs: 60_000 });
+
+  const candles = data?.candles ?? null;
+  const change = data?.change ?? 0;
+  const live = data?.live ?? false;
 
   const { min, range } = useMemo(() => {
+    if (!candles?.length) return { min: 0, range: 1 };
     const highs = candles.map((c) => c[1]);
     const lows = candles.map((c) => c[2]);
     const mn = Math.min(...lows);
@@ -77,8 +85,8 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
   const yTop = (p: number) => ((1 - (p - min) / range) * 100).toFixed(2);
   const up = change >= 0;
   const priceLabel =
-    price != null
-      ? `$${price.toLocaleString("en-US", { maximumFractionDigits: coin.base >= 1000 ? 0 : 2 })}`
+    data?.price != null
+      ? `$${data.price.toLocaleString("en-US", { maximumFractionDigits: coin.base >= 1000 ? 0 : 2 })}`
       : "$-";
 
   return (
@@ -88,13 +96,19 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
             {live && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />}
-            <span className={`relative inline-flex h-2 w-2 rounded-full ${live ? "bg-mint-400" : "bg-amber-400"}`} />
+            <span
+              className={`relative inline-flex h-2 w-2 rounded-full ${
+                live ? "bg-mint-400" : failed ? "bg-amber-400" : "animate-pulse bg-zinc-500"
+              }`}
+            />
           </span>
           <span className="mono text-[11px] font-semibold text-zinc-200">{coin.symbol}</span>
           <span className="mono text-[11px] text-zinc-400">{priceLabel}</span>
-          <span className={`mono text-[10px] ${up ? "text-mint-300" : "text-red-300"}`}>
-            {up ? "+" : ""}{change.toFixed(2)}%
-          </span>
+          {data && (
+            <span className={`mono text-[10px] ${up ? "text-mint-300" : "text-red-300"}`}>
+              {up ? "+" : ""}{change.toFixed(2)}%
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-0.5 rounded-lg border border-line bg-ink-900/60 p-0.5">
           {TIMEFRAMES.map((tf) => (
@@ -118,7 +132,17 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
         </div>
       </div>
 
-      {/* candlesticks */}
+      {/* candlesticks - or an honest empty frame, never invented ones */}
+      {!candles ? (
+        <div className="relative flex h-24 items-center justify-center overflow-hidden rounded-lg bg-white/[0.02]">
+          {/* A flat baseline reads as "no data" the way a drawn trend never
+              could, and holds the same height so the card doesn't jump. */}
+          <div className="absolute inset-x-3 top-1/2 h-px bg-white/10" />
+          <span className="relative mono text-[10px] text-zinc-500">
+            {failed ? "Chart unavailable" : "Loading chart…"}
+          </span>
+        </div>
+      ) : (
       <div className="relative flex h-24 items-stretch gap-px overflow-hidden">
         {candles.map((c, i) => {
           const [o, h, l, cl] = c;
@@ -141,6 +165,7 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
           style={{ animation: "sheen 4s ease-in-out infinite" }}
         />
       </div>
+      )}
     </div>
   );
 }
