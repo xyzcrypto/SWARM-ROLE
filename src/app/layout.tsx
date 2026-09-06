@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Fraunces } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { Providers } from "./providers";
 import { SmoothScrollMount } from "@/components/SmoothScrollMount";
@@ -107,12 +107,12 @@ export const metadata: Metadata = {
 // Headline display face - a warm, high-contrast serif with real character,
 // scoped to ONLY the hero's main headline (not the shared `font-display`
 // class, which stays Geist Sans everywhere else) via its own CSS variable.
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  style: ["normal"],
+// Loaded via localFont to eliminate build/dev timeouts from Google Fonts CDN (docs/HANDOFF.md §7 #2).
+const fraunces = localFont({
+  src: "./fonts/fraunces-latin.woff2",
   variable: "--font-fraunces",
   display: "swap",
+  weight: "500 700",
 });
 
 export const viewport: Viewport = {
