@@ -107,26 +107,48 @@ export function NavActivity() {
   // visibilitychange / focus / online - the last of which nothing here had, so
   // a phone moving between wifi and mobile data kept a stale badge until the
   // next tick, or forever if that tick failed too.
+  /**
+   * Run all of them, fail if any failed - without leaking a rejection.
+   *
+   * ⚠️ `Promise.all` settles on the FIRST rejection and leaves the others
+   * unhandled. These three loaders were changed to throw (see above), so the
+   * moment two of them fail together - `/api/notifications` and
+   * `/api/dm/unread` both 500 while the database is unreachable, which is
+   * exactly when they fail - one rejection had nobody to catch it and surfaced
+   * as an uncaught error in the browser. `allSettled` waits for all of them,
+   * then re-throws one so useLiveData still sees the failure and retries.
+   */
+  const allOf = async (jobs: Promise<void>[]) => {
+    const results = await Promise.allSettled(jobs);
+    const failed = results.find((r) => r.status === "rejected");
+    if (failed) throw (failed as PromiseRejectedResult).reason;
+  };
+
   const badges = useCallback(async () => {
     // Both together, so one failure retries both rather than leaving the pair
     // inconsistent.
-    await Promise.all([loadDm(), loadChat()]);
+    await allOf([loadDm(), loadChat()]);
   }, [loadDm, loadChat]);
 
   const everything = useCallback(async () => {
-    await Promise.all([loadNotes(), loadChat(), loadDm()]);
+    await allOf([loadNotes(), loadChat(), loadDm()]);
   }, [loadNotes, loadChat, loadDm]);
 
   // Full refresh, including the notification list.
-  useLiveData({ load: everything, intervalMs: POLL_MS });
+  const { refresh: refreshAll } = useLiveData({ load: everything, intervalMs: POLL_MS });
   // Just the two cheap unread counts, twice as often. These are the badges a
   // person actually watches, and the ones left stranded when the server half
   // of realtime is unconfigured.
-  useLiveData({ load: badges, intervalMs: FAST_POLL_MS });
+  const { refresh: refreshBadges } = useLiveData({ load: badges, intervalMs: FAST_POLL_MS });
 
   // Refetch the DM unread count on every navigation so the badge drops as soon
   // as the user opens /messages (a thread read clears its unread server-side).
-  useEffect(() => { loadDm(); }, [pathname, loadDm]);
+  //
+  // Through `refresh`, not `loadDm()` directly: a bare call is a floating
+  // promise, and `loadDm` rejects now. `refresh` runs inside useLiveData's own
+  // try/catch, so a failure here is retried with backoff instead of becoming an
+  // uncaught error.
+  useEffect(() => { refreshBadges(); }, [pathname, refreshBadges]);
 
   // Real-time: refetch the moment the server pings (new post/comment), so the
   // bell + chat dot update instantly instead of waiting for the next poll.
@@ -140,7 +162,10 @@ export function NavActivity() {
     (async () => {
       if (cancelled) return;
       const ch = joinSharedChannel(url, anon, "notifications");
-      ch.onBroadcast("ping", () => { void loadNotes(); void loadChat(); });
+      // `refreshAll`, not `void loadNotes(); void loadChat();` - `void` on a
+      // promise that rejects IS an uncaught error, and these reject now. This
+      // also gives a ping-triggered refresh the same backoff retry the poll has.
+      ch.onBroadcast("ping", () => refreshAll());
       // Live chat dot: light up on a new community message unless the user is
       // currently on the chat page (which marks messages seen). This shares the
       // `community` topic with ChatClient - which is exactly the collision that
@@ -154,7 +179,7 @@ export function NavActivity() {
       let dm: ReturnType<typeof joinSharedChannel> | undefined;
       if (meId) {
         dm = joinSharedChannel(url, anon, `user:${meId}`);
-        dm.onBroadcast("dm_message", () => { void loadDm(); });
+        dm.onBroadcast("dm_message", () => refreshBadges());
       }
       cleanup = () => {
         ch.release();
@@ -166,7 +191,7 @@ export function NavActivity() {
       cancelled = true;
       cleanup?.();
     };
-  }, [loadNotes, loadChat, loadDm, meId]);
+  }, [refreshAll, refreshBadges, meId]);
 
   // Opening the community page marks chat as seen.
   useEffect(() => {

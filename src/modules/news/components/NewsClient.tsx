@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Zap, Loader2,
+  Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
   ChevronLeft, ChevronRight, ArrowUp,
 } from "lucide-react";
@@ -17,11 +17,12 @@ import { BriefingBlock } from "@/components/BriefingBlock";
 import { NewsSocial } from "@/components/NewsSocial";
 import { AwardXpOnView } from "@/components/AwardXpOnView";
 import { useHydrated } from "@/lib/useClientFlag";
-import { useScrollLock } from "@/lib/useScrollLock";
+import { useScrollLock, scrollPageToSmooth } from "@/lib/useScrollLock";
 import { cn } from "@/lib/utils";
 import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import { MicButton } from "@/shared/components/MicButton";
 import { hapticToggle } from "@shared/utils/haptics";
+import { wakeIsDue } from "@shared/hooks/useLiveData";
 
 // Share a SHORT on-site link (`/news/read?u=<source-url>`) - opens the story on
 // our domain but stays tiny (just the source url), so it's easy to paste into a
@@ -36,6 +37,28 @@ async function shareStory(item: NewsItem) {
 }
 
 type Resp = { items: NewsItem[]; hasMore: boolean; live: boolean; page: number };
+
+/**
+ * An `<img>` that removes itself when the source fails to load.
+ *
+ * Six call sites in this file did it by hand, and all six reached into the DOM
+ * from the error handler - `e.currentTarget.style.display = "none"`, and in the
+ * card's case `e.currentTarget.parentElement.style.display = "none"`, which
+ * hides a wrapper React owns and renders. Writing styles React does not know
+ * about means the next render it does control can put them back, and a hidden
+ * parent is invisible to anyone reading the JSX to work out why a card has no
+ * image.
+ *
+ * Failure is a fact about this story, so it belongs in state. A remounted
+ * element (the reader keys on `item.id`) starts clean, which is right - a new
+ * story's image has not failed yet.
+ */
+function SafeImg({ src, ...rest }: Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src"> & { src?: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return null;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" {...rest} onError={() => setFailed(true)} />;
+}
 const SAVED_KEY = "xyz:news:saved"; // guests: full saved stories in localStorage
 
 // Breaking-hero rotation state (per device). Capped so the list cannot grow
@@ -76,6 +99,9 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const [saved, setSaved] = useState<NewsItem[]>([]); // full stored stories (source of truth for Saved)
   const [interests, setInterests] = useState<string[]>([]);
   const [customizing, setCustomizing] = useState(false);
+  // Why a save or a topic change did not stick. There was nowhere to put this
+  // before, which is most of the reason both were swallowed.
+  const [saveErr, setSaveErr] = useState<string | null>(null);
   // ⚠️ The open story is tracked by ID, never by index into `visible`.
   //
   // It used to be an index, and the 90s poll PREPENDS fresh stories to the feed
@@ -95,6 +121,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // interval every time a story arrives.
   const pendingRef = useRef(pending);
   useEffect(() => { pendingRef.current = pending; }, [pending]);
+  /** When the last refresh started - see the wake handler below. */
+  const lastRefreshAt = useRef(0);
 
   // Start the "now" clock (client-only to avoid hydration drift).
   useEffect(() => {
@@ -135,7 +163,10 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const searchToken = useCallback((t: string) => {
     setRawQuery(t);
     setCategory("All");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    // Not `window.scrollTo` - Lenis owns the scroll position and undoes a
+    // native scroll it did not initiate on its next frame, so on desktop this
+    // simply did not move. See scrollPageToSmooth.
+    scrollPageToSmooth(0);
   }, []);
 
   // Debounce the search box.
@@ -192,15 +223,27 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   }, [fetchPage]);
 
   // Load the next page (shared by infinite scroll + reader swipe-past-the-end).
-  const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+  //
+  // Returns what it actually appended, which the reader needs: swiping past the
+  // last loaded story has to land on the first story of the next page, and
+  // there is no other way to know which one that is at the moment of the swipe.
+  const loadMore = useCallback(async (): Promise<NewsItem[]> => {
+    if (loadingMore || !hasMore) return [];
     setLoadingMore(true);
     const next = page + 1;
     const r = await fetchPage(next);
+    let added: NewsItem[] = [];
     if (r) {
+      // Computed from the ref, not inside the updater: an updater must be pure,
+      // and one that assigns to an outer variable is neither pure nor reliably
+      // run before this function returns.
+      const seen = new Set(itemsRef.current.map((i) => i.id));
+      added = r.items.filter((i) => !seen.has(i.id));
       setItems((prev) => {
-        const seen = new Set(prev.map((i) => i.id));
-        return [...prev, ...r.items.filter((i) => !seen.has(i.id))];
+        // Re-checked against `prev` because the 90s poll can prepend stories
+        // while this request is in flight.
+        const known = new Set(prev.map((i) => i.id));
+        return [...prev, ...added.filter((i) => !known.has(i.id))];
       });
       setHasMore(Boolean(r.hasMore));
       setPage(next);
@@ -208,6 +251,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       setHasMore(false);
     }
     setLoadingMore(false);
+    return added;
   }, [loadingMore, hasMore, page, fetchPage]);
 
   // Infinite scroll.
@@ -237,6 +281,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     // so there was never a reason for the gate.
     const refresh = async () => {
       if (document.hidden) return; // don't poll while the tab is backgrounded
+      lastRefreshAt.current = Date.now();
       const r = await fetchPage(1);
       if (!r?.items?.length) return;
       setLive(Boolean(r.live));
@@ -274,8 +319,14 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     // whatever is left of a 90s tick. Returning to a tab is the point at which
     // stale content is most obvious, and this costs one request per return
     // instead of a faster background poll for everyone.
+    // ⚠️ `visibilitychange` and `focus` both fire when a tab comes forward, so
+    // this was TWO `/api/news` requests on every return, not one - and on a
+    // phone, switching apps fires both every time. `wakeIsDue`'s 3s floor is
+    // exactly the event-collapsing rule, and no more than that: news genuinely
+    // does want to refresh eagerly on return, so it passes no minimum age and
+    // keeps the behaviour the comment above describes.
     const onVisible = () => {
-      if (!document.hidden) void refresh();
+      if (!document.hidden && wakeIsDue(Date.now(), lastRefreshAt.current)) void refresh();
     };
     document.addEventListener("visibilitychange", onVisible);
     window.addEventListener("focus", onVisible);
@@ -294,40 +345,113 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       return [...pending.filter((i) => !seen.has(i.id)), ...prev];
     });
     setPending([]);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+    // Same Lenis problem as `searchToken`. This one is worse: tapping "3 new
+    // stories" prepended them ABOVE the reader's position and then failed to
+    // move, so the pill vanished and the feed looked unchanged.
+    scrollPageToSmooth(0);
   }, [pending]);
 
-  // Toggle save. Optimistic local update + DB sync (signed in) or localStorage (guest).
-  const toggleSave = useCallback((item: NewsItem) => {
+  /**
+   * Toggle save. Optimistic, and it now UNDOES itself when the write fails.
+   *
+   * Two bugs lived in the old six lines, and they compounded.
+   *
+   * 1. **The request was fired from inside a `setSaved` updater.** A state
+   *    updater must be pure - React is free to call it more than once for one
+   *    update - so the POST/DELETE and the `localStorage.setItem` were sitting
+   *    in the one place they must not be.
+   * 2. **`.catch(() => {})` and no check on `res.ok`.** So a save that the
+   *    server refused looked exactly like one it accepted: the bookmark filled
+   *    in and stayed filled in until the next reload, when the story was simply
+   *    gone. And refusal is not exotic - `/api/news/saved` shares the `like`
+   *    rate-limit bucket, so bookmarking a few stories quickly returns a 429
+   *    with a message, which the client threw away.
+   *
+   * The ref mirror keeps this callback stable (`NewsCard` is memoised, so a new
+   * identity re-renders every card) while still letting it read current state.
+   */
+  const savedRef = useRef(saved);
+  useEffect(() => { savedRef.current = saved; }, [saved]);
+
+  const toggleSave = useCallback(async (item: NewsItem) => {
     hapticToggle(); // save / unsave is a state flip the reader should feel land
-    setSaved((prev) => {
-      const exists = prev.some((s) => s.id === item.id);
-      const next = exists ? prev.filter((s) => s.id !== item.id) : [item, ...prev];
-      if (loggedIn) {
-        if (exists) {
-          fetch(`/api/news/saved?url=${encodeURIComponent(item.url)}`, { method: "DELETE" }).catch(() => {});
-        } else {
-          fetch("/api/news/saved", {
+    const before = savedRef.current;
+    const exists = before.some((s) => s.id === item.id);
+    const next = exists ? before.filter((s) => s.id !== item.id) : [item, ...before];
+    savedRef.current = next;
+    setSaved(next);
+    setSaveErr(null);
+
+    // Undo THIS story only, rather than restoring the whole array - two toggles
+    // in flight at once must not clobber each other's result.
+    const rollback = (msg: string) => {
+      const cur = savedRef.current;
+      const has = cur.some((s) => s.id === item.id);
+      const restored = exists
+        ? (has ? cur : [item, ...cur])            // a removal that failed: put it back
+        : cur.filter((s) => s.id !== item.id);    // an add that failed: take it out
+      savedRef.current = restored;
+      setSaved(restored);
+      setSaveErr(msg);
+    };
+
+    if (!loggedIn) {
+      try {
+        localStorage.setItem(SAVED_KEY, JSON.stringify(next));
+      } catch {
+        // Private mode, or the quota is full. Silently keeping it on screen
+        // would promise a bookmark that is gone the moment the tab closes.
+        rollback("Couldn't save on this device — storage is blocked or full.");
+      }
+      return;
+    }
+
+    try {
+      const res = exists
+        ? await fetch(`/api/news/saved?url=${encodeURIComponent(item.url)}`, { method: "DELETE" })
+        : await fetch("/api/news/saved", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: item.url, title: item.title, summary: item.summary, source: item.source, image: item.image, category: item.category, publishedAt: item.publishedAt }),
-          }).catch(() => {});
-        }
-      } else {
-        try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+          });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        rollback(j?.error ?? (exists ? "Couldn't remove that story." : "Couldn't save that story."));
       }
-      return next;
-    });
+    } catch {
+      rollback("You appear to be offline — nothing was saved.");
+    }
   }, [loggedIn]);
 
+  // Same shape, same reason: this was optimistic with `catch { /* best-effort */ }`,
+  // so the Customize sheet closed on a save the server never accepted and the
+  // member's topics silently reverted on the next load.
   const saveInterests = useCallback(async (next: string[]) => {
-    setInterests(next); // optimistic
+    const before = interests;
+    setInterests(next);
+    setSaveErr(null);
     try {
-      await fetch("/api/news/interests", {
+      const res = await fetch("/api/news/interests", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ interests: next }),
       });
-    } catch { /* best-effort */ }
-  }, []);
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        setInterests(before);
+        setSaveErr(j?.error ?? "Couldn't save your topics — they're unchanged.");
+      }
+    } catch {
+      setInterests(before);
+      setSaveErr("You appear to be offline — your topics are unchanged.");
+    }
+  }, [interests]);
+
+  // The one rule that decides whether a story belongs in the current feed.
+  // Shared with the reader, which has to know whether a story it just loaded
+  // will actually be on screen before it navigates to it.
+  const inFeed = useCallback(
+    (i: NewsItem) => category !== "For You" || !interests.length || i.categories.some((c) => interests.includes(c)),
+    [category, interests]
+  );
 
   const visible = useMemo(() => {
     // Saved view renders the stored stories directly (survives feed aging out).
@@ -335,10 +459,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       const q = query.toLowerCase();
       return q ? saved.filter((i) => (i.title + " " + i.summary).toLowerCase().includes(q)) : saved;
     }
-    let list = items;
-    if (category === "For You" && interests.length) list = list.filter((i) => i.categories.some((c) => interests.includes(c)));
-    return list;
-  }, [items, savedOnly, saved, category, interests, query]);
+    return items.filter(inFeed);
+  }, [items, savedOnly, saved, query, inFeed]);
 
   // The open story, resolved from the CURRENT list. Position is derived rather
   // than stored, so a feed that grew or was refiltered underneath the reader
@@ -445,6 +567,16 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
           {live ? "Live" : "Cached"}
         </span>
       </div>
+
+      {/* Why a save or a topic change did not stick. The server has a specific
+          answer for each - "Please log in to save stories.", "Too many
+          requests. Please slow down." - and every one of them used to be
+          discarded, leaving a bookmark that looked saved and was not. */}
+      {saveErr && (
+        <p role="status" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-[12px] text-amber-200">
+          {saveErr}
+        </p>
+      )}
 
       {/* Category chips */}
       <div className="flex items-center gap-2">
@@ -571,13 +703,38 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               const i = visible.findIndex((v) => v.id === id);
               return i > 0 ? visible[i - 1].id : id;
             })}
-            onNext={() => setReaderId((id) => {
-              const i = visible.findIndex((v) => v.id === id);
-              if (i < 0) return id;
-              // Prefetch the next page as we near the end so swipe traverses ALL news.
-              if (!savedOnly && i >= visible.length - 3) loadMore();
-              return i < visible.length - 1 ? visible[i + 1].id : id;
-            })}
+            // ⚠️ At the LAST loaded story this used to do nothing at all.
+            //
+            // It called `loadMore()` and then returned the same id, so the
+            // swipe (and the enabled chevron next to it) landed on the story
+            // you were already reading. You had to swipe a second time, after
+            // the page had quietly arrived, for anything to happen - which
+            // reads as the gesture being broken, not as loading. The comment
+            // claimed "swipe traverses ALL news"; it stopped at every page
+            // boundary.
+            onNext={async () => {
+              const i = visible.findIndex((v) => v.id === readerId);
+              if (i < 0) return;
+              if (i < visible.length - 1) {
+                setReaderId(visible[i + 1].id);
+                // Prefetch as we near the end so the next boundary is seamless.
+                if (!savedOnly && i >= visible.length - 3) void loadMore();
+                return;
+              }
+              if (savedOnly || !hasMore) return;
+              // Await the page and land on its first story. Filtered by `inFeed`
+              // because on "For You" a freshly loaded story may not be in this
+              // feed at all, and navigating to one that is not on screen would
+              // close the reader.
+              const next = (await loadMore()).find(inFeed);
+              if (next) setReaderId(next.id);
+            }}
+            // Only while the READER is waiting on a page - i.e. it is sitting
+            // on the last loaded story. `loadingMore` on its own is true during
+            // every background prefetch the infinite-scroll sentinel fires,
+            // which would grey out a button that could advance perfectly well
+            // inside the list already loaded.
+            loadingNext={loadingMore && readerAt >= visible.length - 1}
             onClose={() => setReaderId(null)}
           />
         )}
@@ -640,6 +797,7 @@ const NewsCard = memo(function NewsCard({
   const open = () => onOpen(item.id);
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
+  const [heroFailed, setHeroFailed] = useState(false);
 
   const share = () => shareStory(item);
 
@@ -699,18 +857,18 @@ const NewsCard = memo(function NewsCard({
         : item.sentiment === "bearish" ? "bg-gradient-to-r from-red-400/0 via-red-400 to-red-400/0"
         : "bg-gradient-to-r from-gold-400/0 via-gold-400/60 to-gold-400/0")} />
       {/* hero image (when the feed provides one) - opens the on-site reader */}
-      {item.image && (
+      {/* The wrapper carries the negative margins that bleed the image to the
+          card edge, so it has to go with the image - hiding it from the error
+          handler is what the old code did, behind React's back. */}
+      {item.image && !heroFailed && (
         <button onClick={open} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.image} alt="" loading="lazy" className="h-36 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" onError={(e) => ((e.currentTarget.parentElement as HTMLElement).style.display = "none")} />
+          <img src={item.image} alt="" loading="lazy" className="h-36 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" onError={() => setHeroFailed(true)} />
         </button>
       )}
       {/* meta row */}
       <div className="mb-2 flex items-center gap-2 text-[11px] text-zinc-500">
-        {item.sourceIcon && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.sourceIcon} alt="" width={16} height={16} loading="lazy" className="h-4 w-4 rounded" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
-        )}
+        <SafeImg src={item.sourceIcon} width={16} height={16} loading="lazy" className="h-4 w-4 rounded" />
         {/* Tapping the source filters to it. 29 feeds and no way to say "more
             from this one" (or "not this one") was the gap. Same reasoning as
             the token chips: it drives the visible search box rather than a
@@ -821,12 +979,14 @@ const NewsCard = memo(function NewsCard({
 // bouncing off-site, with prev/next through the current list. Keyboard: Esc to
 // close, ←/→ to navigate.
 function NewsReader({
-  item, now, loggedIn, bookmarked, onBookmark, hasPrev, hasNext, onPrev, onNext, onClose, position, total,
+  item, now, loggedIn, bookmarked, onBookmark, hasPrev, hasNext, onPrev, onNext, onClose, position, total, loadingNext,
 }: {
   item: NewsItem; now: number; loggedIn: boolean; bookmarked: boolean; onBookmark: () => void;
   hasPrev: boolean; hasNext: boolean; onPrev: () => void; onNext: () => void; onClose: () => void;
   /** 1-based place in the feed, and how many stories are loaded. */
   position: number; total: number;
+  /** True while `onNext` is fetching the next page - the reader says so. */
+  loadingNext: boolean;
 }) {
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [progress, setProgress] = useState(0); // reading scroll progress (0-1)
@@ -1070,10 +1230,7 @@ function NewsReader({
         {/* top bar */}
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
           <div className="flex min-w-0 items-center gap-2 text-[12px] text-zinc-400">
-            {item.sourceIcon && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={item.sourceIcon} alt="" width={16} height={16} className="h-4 w-4 rounded" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
-            )}
+            <SafeImg src={item.sourceIcon} width={16} height={16} className="h-4 w-4 rounded" />
             <span className="truncate font-medium text-zinc-300">{item.source}</span>
             <span>·</span>
             <span className="mono shrink-0">{now ? timeAgo(item.publishedAt, now) : ""}</span>
@@ -1101,10 +1258,7 @@ function NewsReader({
           onScroll={onBodyScroll}
         >
           <motion.div key={item.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
-          {item.image && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.image} alt="" decoding="async" className="h-48 w-full object-cover sm:h-60" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
-          )}
+          <SafeImg src={item.image} decoding="async" className="h-48 w-full object-cover sm:h-60" />
           <div className="p-4 sm:p-6">
             <div className="mb-3 flex flex-wrap items-center gap-1.5">
               <span className="rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{item.category}</span>
@@ -1139,8 +1293,9 @@ function NewsReader({
           <button onClick={onPrev} disabled={!hasPrev} aria-label="Previous story" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-30">
             <ChevronLeft className="h-5 w-5" />
           </button>
-          <button onClick={onNext} disabled={!hasNext} aria-label="Next story" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-30">
-            <ChevronRight className="h-5 w-5" />
+          <button onClick={onNext} disabled={!hasNext || loadingNext} aria-label="Next story" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100 disabled:opacity-30">
+            {/* Says "fetching", where before the tap simply had no effect. */}
+            {loadingNext ? <Loader2 className="h-5 w-5 animate-spin" /> : <ChevronRight className="h-5 w-5" />}
           </button>
           {/* Position, and the swipe affordance. The label this replaces read
               "swipe < >" at 10px in text-zinc-600 on a dark panel - present in
@@ -1167,6 +1322,22 @@ function NewsReader({
     </motion.div>,
     document.body
   );
+}
+
+/**
+ * The breaking hero's backdrop: the story image, or the gradient when there
+ * isn't one - or when there is one and it fails.
+ *
+ * That last case is the bug. The old handler hid the `<img>` and stopped, so a
+ * dead image URL left a black rectangle behind the headline instead of the
+ * gradient that exists precisely for stories with no image. The headline is
+ * white text with a `drop-shadow`, so it survived; the hero just looked broken.
+ */
+function BreakingImage({ src }: { src: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return <div className="h-full w-full bg-gradient-to-br from-red-500/25 via-ink-950 to-ink-950" />;
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={src} alt="" decoding="async" className="h-full w-full object-cover" onError={() => setFailed(true)} />;
 }
 
 // Image-rich, auto-rotating "Breaking" hero for high-impact stories. Click opens
@@ -1215,12 +1386,11 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
           transition={{ duration: reduce ? 0.2 : 0.8, ease: "easeOut" }}
           className="absolute inset-0"
         >
-          {active.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={active.image} alt="" decoding="async" className="h-full w-full object-cover" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
-          ) : (
-            <div className="h-full w-full bg-gradient-to-br from-red-500/25 via-ink-950 to-ink-950" />
-          )}
+          {/* The gradient is the fallback, so a failed image must fall THROUGH
+              to it rather than leave a black rectangle - which is what hiding
+              the <img> from its own error handler did. `key` resets SafeImg's
+              failure state per story. */}
+          <BreakingImage key={active.id} src={active.image} />
         </motion.div>
       </AnimatePresence>
 
