@@ -5,6 +5,53 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (82) — The AI was told to write tables nothing could render
+
+### "Structured nahi hai"
+
+The XYZ AI system prompt asks the model, in its own words, for "tight markdown
+(bold key terms, bullet lists, **tables when comparing**)". `shared/utils/markdown.tsx`
+renders headings, lists, blockquotes, links, bold, italic, inline code and
+colour spans — and has never had any notion of a table. A `|`-row fell through
+to the paragraph branch, where `inline()` leaves pipes alone.
+
+So asking the assistant to compare two coins — the single most obvious thing to
+ask it — produced a wall of `|` and `|---|---|` in the chat panel. Measured in
+the real widget at a 420px viewport, before and after:
+
+| | before | after |
+|---|---|---|
+| `<table>` elements | **0** | 1 |
+| literal `\|---` on screen | **yes** | no |
+| page scrolls sideways | no | no |
+
+`globals.css` has carried `.prose-xyz table / th / td` styling, in both themes,
+the whole time. The CSS was written for tables the renderer could not produce;
+this finishes that, rather than deleting the instruction from the prompt.
+
+The table gets its own `overflow-x-auto` container — the AI panel is narrow and
+the four-column comparison above is genuinely wider than it, so without one this
+would trade a formatting bug for the horizontal-overflow bug CLAUDE.md says is
+never acceptable. Short rows are padded out to the header width, so a model that
+drops a cell does not shift every later column left. A line containing a pipe
+but no separator row stays a paragraph.
+
+Research posts get tables too, since they share this renderer.
+
+### Keyboard search selected rows you could not see
+
+The command palette's footer advertises "↑↓ navigate". A full result set is one
+action plus up to five coins, six research posts and five news items, in a panel
+that scrolls — and nothing ever scrolled the highlighted row into view. Holding
+ArrowDown moved the highlight past the fold, and Enter then opened a result the
+reader had never seen. `block: "nearest"`, so a row already visible does not
+jolt the list.
+
+**Files:** `shared/utils/markdown.tsx`, `shared/components/CommandPalette.tsx`,
+`__tests__/{markdown-render,command-search}.test.ts`.
+
+---
+
 ## 2026-09-06 (81) — DM: you could not read a thread while it was active
 
 ### The thread threw you back to the bottom every few seconds

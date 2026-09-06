@@ -255,6 +255,24 @@ export function CommandPalette() {
     [close, router, q]
   );
 
+  /**
+   * Keep the highlighted row on screen.
+   *
+   * ⚠️ Nothing did this. A full result set is one action + up to five coins +
+   * six research posts + five news items, in a panel that scrolls - so holding
+   * ArrowDown moved the highlight straight past the fold and Enter then opened
+   * a result the reader could not see. The footer advertises "↑↓ navigate",
+   * which only half worked.
+   *
+   * `block: "nearest"` scrolls the minimum needed, so a row already in view
+   * does not jolt the list.
+   */
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    listRef.current?.querySelector<HTMLElement>(`[data-row="${active}"]`)?.scrollIntoView({ block: "nearest" });
+  }, [active, open]);
+
   const onListKey = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -307,7 +325,7 @@ export function CommandPalette() {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto overscroll-contain py-1" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
+        <div ref={listRef} className="flex-1 overflow-y-auto overscroll-contain py-1" style={{ paddingBottom: "env(safe-area-inset-bottom)" }}>
           <Section title="Actions" list={cmds} offset={0} active={active} onHover={setActive} onChoose={choose} />
           <Section
             title="Recent"
@@ -385,6 +403,9 @@ function Section({
         return (
           <button
             key={row.key}
+            // Its index into `rows`, so the keyboard handler can scroll the
+            // highlighted row into view without threading refs through here.
+            data-row={i}
             onMouseEnter={() => onHover(i)}
             onClick={() => onChoose(row)}
             className={cn(

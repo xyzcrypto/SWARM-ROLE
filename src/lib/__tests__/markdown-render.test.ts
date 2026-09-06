@@ -136,3 +136,60 @@ describe("link targets", () => {
     expect(firstAnchor("see https://example.com/x here").props.target).toBe("_blank");
   });
 });
+
+describe("Markdown tables", () => {
+  // The XYZ AI system prompt asks the model for "tables when comparing", and
+  // globals.css has styled `.prose-xyz table/th/td` in both themes all along -
+  // but nothing here ever produced a <table>. A comparison answer ("BTC vs
+  // ETH") fell through to the paragraph branch and rendered as a wall of
+  // literal `|` and `|---|---|` in the chat panel. That is a large part of what
+  // "AI ka jawab structured nahi hai" was pointing at.
+  const TABLE = ["| Coin | Price |", "| --- | --- |", "| BTC | $64k |", "| ETH | $3.4k |"].join("\n");
+
+  it("renders a header + separator + rows as a real <table>", () => {
+    const [wrap] = blocksOf(TABLE);
+    expect(wrap.type).toBe("div");
+    const table = wrap.props.children;
+    expect(table.type).toBe("table");
+    const [thead, tbody] = table.props.children;
+    expect(thead.props.children.props.children).toHaveLength(2);
+    expect(tbody.props.children).toHaveLength(2);
+  });
+
+  it("scrolls inside its own container rather than widening the page", () => {
+    // The AI panel is narrow, and CLAUDE.md is explicit that wide content must
+    // never make the page scroll sideways.
+    const [wrap] = blocksOf(TABLE);
+    expect(wrap.props.className).toContain("overflow-x-auto");
+  });
+
+  it("still renders inline markup inside cells", () => {
+    const [wrap] = blocksOf("| A | B |\n| --- | --- |\n| **bold** | x |");
+    const firstCell = wrap.props.children.props.children[1].props.children[0].props.children[0];
+    expect(JSON.stringify(firstCell)).toContain("strong");
+  });
+
+  it("pads a ragged row out to the header width", () => {
+    // A model that drops a cell should not shift every later column left.
+    const [wrap] = blocksOf("| A | B | C |\n| --- | --- | --- |\n| 1 | 2 |");
+    const row = wrap.props.children.props.children[1].props.children[0];
+    expect(row.props.children).toHaveLength(3);
+  });
+
+  it("does NOT treat a sentence containing a pipe as a table", () => {
+    // The separator row is what makes a table a table; without requiring it,
+    // ordinary prose would be swallowed.
+    const [block] = blocksOf("Use grep | head to page the output.");
+    expect(block.type).toBe("p");
+  });
+
+  it("does not need a separator row to be perfectly formatted", () => {
+    expect(blocksOf("| A | B |\n|:---|---:|\n| 1 | 2 |")[0].type).toBe("div");
+  });
+
+  it("ends the table at the first non-row line", () => {
+    const blocks = blocksOf("| A |\n| --- |\n| 1 |\nAfter the table.");
+    expect(blocks[0].type).toBe("div");
+    expect(blocks[1].type).toBe("p");
+  });
+});

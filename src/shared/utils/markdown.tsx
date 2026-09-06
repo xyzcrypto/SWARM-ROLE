@@ -83,6 +83,26 @@ function inline(text: string, keyBase: string): ReactNode[] {
   return tokens;
 }
 
+/** `| a | b |` - a row is any line whose first non-space character is a pipe. */
+const isTableRow = (s: string) => s.trim().startsWith("|");
+
+/** The cells of one row, without the outer pipes. */
+const tableCells = (s: string) =>
+  s.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim());
+
+/**
+ * `| --- | :---: |` - the row that makes a table a table.
+ *
+ * Every cell must be dashes (with optional alignment colons). Requiring it is
+ * what keeps an ordinary sentence containing a pipe from being swallowed as a
+ * one-row table.
+ */
+const isTableSeparator = (s: string) => {
+  if (!isTableRow(s)) return false;
+  const cells = tableCells(s);
+  return cells.length > 0 && cells.every((c) => /^:?-{2,}:?$/.test(c));
+};
+
 export function Markdown({ content }: { content: string }) {
   const lines = content.replace(/\r\n/g, "\n").split("\n");
   const blocks: ReactNode[] = [];
@@ -103,14 +123,58 @@ export function Markdown({ content }: { content: string }) {
     }
   };
 
-  for (const raw of lines) {
-    const line = raw.trimEnd();
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!.trimEnd();
     if (/^\s*[-*]\s+/.test(line)) {
       list.push(line.replace(/^\s*[-*]\s+/, ""));
       continue;
     }
     flushList();
     if (!line.trim()) continue;
+
+    // ⚠️ Tables. The XYZ AI system prompt asks the model for "tables when
+    // comparing", and globals.css has carried `.prose-xyz table/th/td` styling
+    // for both themes all along - but nothing here ever produced a <table>, so
+    // a comparison answer ("BTC vs ETH") fell through to the paragraph branch
+    // and rendered as a wall of literal `|` and `|---|---|` in the chat panel
+    // and in any research post that tried one.
+    //
+    // A table is a header row, a separator row of dashes, then body rows. The
+    // separator is what distinguishes it from a paragraph that merely contains
+    // a pipe, so it is required rather than optional.
+    if (isTableRow(line) && i + 1 < lines.length && isTableSeparator(lines[i + 1]!)) {
+      const head = tableCells(line);
+      const body: string[][] = [];
+      let j = i + 2;
+      while (j < lines.length && isTableRow(lines[j]!)) {
+        body.push(tableCells(lines[j]!));
+        j++;
+      }
+      const k = key++;
+      blocks.push(
+        // Its own scroll container: the AI panel is narrow and a four-column
+        // comparison would otherwise push the whole page sideways, which
+        // CLAUDE.md calls out as never acceptable.
+        <div key={`tw-${k}`} className="my-4 overflow-x-auto">
+          <table>
+            <thead>
+              <tr>{head.map((c, ci) => <th key={ci}>{inline(c, `th-${k}-${ci}`)}</th>)}</tr>
+            </thead>
+            <tbody>
+              {body.map((row, ri) => (
+                <tr key={ri}>
+                  {/* Pad short rows to the header width so a ragged table from
+                      a model that dropped a cell still lines up. */}
+                  {head.map((_, ci) => <td key={ci}>{inline(row[ci] ?? "", `td-${k}-${ri}-${ci}`)}</td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+      i = j - 1;
+      continue;
+    }
     if (line.startsWith("### ")) blocks.push(<h3 key={key++}>{inline(line.slice(4), `h3-${key}`)}</h3>);
     else if (line.startsWith("## ")) blocks.push(<h2 key={key++}>{inline(line.slice(3), `h2-${key}`)}</h2>);
     else if (line.startsWith("# ")) blocks.push(<h1 key={key++}>{inline(line.slice(2), `h1-${key}`)}</h1>);
