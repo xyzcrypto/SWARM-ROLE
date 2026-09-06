@@ -64,7 +64,29 @@ export function useMediaQuery(query: string): boolean {
  * scroll `behavior`, a duration passed to an imperative animation).
  */
 export function useReducedMotionSafe(): boolean {
-  return useMediaQuery("(prefers-reduced-motion: reduce)");
+  const prefersReduced = useMediaQuery("(prefers-reduced-motion: reduce)");
+  // An explicit "Animations on" from the navbar's Motion control outranks the
+  // OS preference for this person on this device. Without this, framer-driven
+  // entrances - `initial={reduce ? false : ...}` in the news cards and
+  // elsewhere - would still be skipped for someone who had just asked for the
+  // full experience, and the switch would read as broken.
+  //
+  // Read through `useClientFlag`, never during render, for the usual reason:
+  // server and hydration must agree, and `motion-full` is a client-only class.
+  const forced = useMotionForced();
+  return prefersReduced && !forced;
+}
+
+/**
+ * Has the reader explicitly asked for full motion (`localStorage.motion` =
+ * "full", written by the navbar's Motion control)?
+ *
+ * Not subscribed to `matchMedia` - it is a class on `<html>` set before paint,
+ * and the toggle re-applies it synchronously, so a re-render is what surfaces
+ * a change.
+ */
+export function useMotionForced(): boolean {
+  return useClientFlag(() => document.documentElement.classList.contains("motion-full"));
 }
 
 /**

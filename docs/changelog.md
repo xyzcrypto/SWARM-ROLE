@@ -5,6 +5,78 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (85) — The site was static on ordinary desktops
+
+Reported as "mere desktop aur kuch aur desktop me animation static hai, baaki
+devices me theek chalta hai". It was not a rendering failure, a stale chunk or
+reduced motion — the site was **deliberately** turning the animations off, on
+the wrong machines.
+
+### The measurement
+
+The capability tier demoted a session to `html.lite-motion` when
+`navigator.deviceMemory <= 4`. Chrome reports that value **quantised to a power
+of two and capped at 8** — so a 6 GB desktop reports `4`. Measured on the
+homepage with a production build, counting running animations:
+
+| device | `deviceMemory` | tier | running animations |
+|---|---|---|---|
+| desktop, ≥8 GB | 8 | full | 163 |
+| **desktop, 6 GB, 8 cores** | **4** | **lite** | **56** |
+| desktop, 4 GB, 4 cores | 4 | lite | 56 |
+| Firefox / Safari (no API) | — | full | 163 |
+| mid-range Android, 4 GB | 4 | lite | 38 |
+
+So an ordinary desktop with eight fast cores lost 107 animations for having
+6 GB of RAM, and the *same machine on Firefox or Safari* kept all of them,
+because those browsers do not expose `deviceMemory` at all. Same site, same
+person, a different answer per browser — and nothing on screen saying why.
+
+### The fix, in two halves
+
+**The memory clause is now paired with `(pointer: coarse)`.** The measurement
+the tier exists for (18→30 fps) was taken on a *phone*; on a desktop, RAM says
+nothing about whether CSS animations hold 60 fps. After:
+
+```
+desktop, 6GB, 8 cores  -> full, 163   (was lite, 56)
+desktop, 4GB, 4 cores  -> full, 163   (was lite, 56)
+mid-range Android      -> lite,  38   (unchanged - the case it was built for)
+```
+
+Nothing else moved. A genuinely weak machine of any shape is still caught by
+the `hardwareConcurrency <= 2` clause, and `saveData` is still honoured.
+
+**And a Motion control in the navbar**, because a heuristic will misjudge some
+other device eventually and that should not need a redeploy to put right.
+`localStorage.motion` has been an override since the tier shipped and had **no
+user interface at all** — only devtools could set it. Now it is a switch, next
+to the theme toggle, on both breakpoints.
+
+"On" overrides *both* gates: the capability tier, and the OS
+`prefers-reduced-motion` preference via `html.motion-full`, which the
+reduced-motion blocks in `globals.css` and `useReducedMotionSafe()` both now
+defer to. That last part matters because framer-driven entrances are gated on
+the hook and appear in neither `getAnimations()` nor `animation-play-state`, so
+CSS alone cannot reach them.
+
+Verified in a browser, both directions:
+
+```
+phone (auto-demoted)      lite, 38  -> [toggle] -> full, 100 -> [reload] -> full, 100
+OS reduced-motion on     full, 163  -> [off] -> 56 -> [on] -> full, 163
+```
+
+Calm scrolling is the one reduced-motion rule "on" does **not** override — a
+genuine vestibular accommodation, and nobody calls a page static because it
+scrolls calmly.
+
+**Files:** `app/layout.tsx`, `app/globals.css`,
+`shared/hooks/useClientFlag.ts`, `shared/components/MotionToggle.tsx` (new),
+`shared/components/Navbar.tsx`, `__tests__/motion-detection.test.ts`.
+
+---
+
 ## 2026-09-06 (84) — Who hid this, and whose row is this
 
 The last two open bugs from the ten-item pass.
