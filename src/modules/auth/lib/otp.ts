@@ -6,16 +6,13 @@ export type OtpPurpose = "signup" | "login" | "reset";
 const TTL_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_ATTEMPTS = 5;
 
-// Cache the secret once at module load. Fails fast at server boot in production
-// if the secret is missing — much better than silently failing on the first real
-// OTP request. In development/test the insecure fallback is intentionally allowed.
-const OTP_SECRET = (() => {
-  const s = process.env.NEXTAUTH_SECRET ?? "insecure-dev-secret";
-  if (process.env.NODE_ENV === "production" && s === "insecure-dev-secret") {
+function getOtpSecret(): string {
+  const s = process.env.NEXTAUTH_SECRET;
+  if (!s && process.env.NODE_ENV === "production") {
     throw new Error("NEXTAUTH_SECRET must be set in production (OTP hashing).");
   }
-  return s;
-})();
+  return s || "insecure-dev-secret";
+}
 
 /** Cryptographically-random 6-digit code (zero-padded). */
 export function generateCode(): string {
@@ -26,7 +23,7 @@ export function generateCode(): string {
 // both fast and secure: an attacker can't brute-force the stored hash offline
 // without NEXTAUTH_SECRET. Much faster than bcrypt on the hot auth path.
 function hashCode(code: string): string {
-  return createHmac("sha256", OTP_SECRET).update(code).digest("hex");
+  return createHmac("sha256", getOtpSecret()).update(code).digest("hex");
 }
 
 function codesMatch(code: string, storedHash: string): boolean {

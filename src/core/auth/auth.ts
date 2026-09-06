@@ -223,28 +223,31 @@ export const authOptions: NextAuthOptions = {
         if (!success) return null;
         // Consolidate user profile and lockout counters into a single query to eliminate
         // redundant sequential round-trips on every login attempt.
-        let user: any = await prisma.user
-          .findUnique({
+        let user;
+        try {
+          user = await prisma.user.findUnique({
             where: { email },
             select: {
               id: true, passwordHash: true, name: true, email: true,
               image: true, role: true, membership: true,
               failedLoginCount: true, lockedUntil: true,
             },
-          })
-          .catch(() => null);
-
-        // Fail-safe fallback if lockout columns are not in the DB schema
-        if (!user) {
-          user = await prisma.user
-            .findUnique({
-              where: { email },
-              select: {
-                id: true, passwordHash: true, name: true, email: true,
-                image: true, role: true, membership: true,
-              },
-            })
-            .catch(() => null);
+          });
+        } catch (err) {
+          // Fallback only if lockout columns are not in the DB schema yet (P2021/P2022)
+          if (isMissingSchemaError(err)) {
+            user = await prisma.user
+              .findUnique({
+                where: { email },
+                select: {
+                  id: true, passwordHash: true, name: true, email: true,
+                  image: true, role: true, membership: true,
+                },
+              })
+              .catch(() => null);
+          } else {
+            return null;
+          }
         }
         if (!user || !user.passwordHash) {
           // Normalize timing with the real-account path below (dummy compare
@@ -442,7 +445,7 @@ export const authOptions: NextAuthOptions = {
             // signed-out. Every gate fails closed.
             return {};
           }
-          (token as any).pwdAt = Math.max(tokenPwdAt ?? 0, dbPwdAt);
+          (token as any).pwdAt = tokenPwdAt ?? dbPwdAt;
 
           token.uid = dbUser.id;
           token.role = dbUser.role;
