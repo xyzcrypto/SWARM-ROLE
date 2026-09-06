@@ -167,12 +167,32 @@ export default function RootLayout({
             devices dropping frames here, and `hardwareConcurrency` alone would
             wrongly demote them (an iPhone reports 4-6 cores). `saveData` is an
             explicit request from the reader, so it is honoured directly.
-            `localStorage.motion` ('lite' / 'full') forces either tier for
-            testing on a device you actually hold. */}
+            `localStorage.motion` ('lite' / 'full') forces either tier, and is
+            what the Motion control in the navbar writes. 'full' also adds
+            `html.motion-full`, which overrides the reduced-motion media blocks
+            in globals.css and makes `useReducedMotionSafe()` report false - one
+            switch that turns everything on, whatever the device or the OS says.
+
+            ⚠️ THE MEMORY CLAUSE IS GATED ON A COARSE POINTER, and that is the
+            whole bug this paragraph exists for. It used to read
+            `typeof mem === 'number' && mem <= 4` on its own, and Chrome reports
+            `deviceMemory` quantised to a power of two and capped at 8 - so a
+            6 GB desktop reports **4** and was demoted, with 8 fast cores, while
+            the identical machine on Firefox or Safari (no `deviceMemory` at
+            all) kept the full set. Measured on the homepage: 163 running
+            animations at `deviceMemory: 8`, **56** at `deviceMemory: 4`. Same
+            site, same person, different answer per browser - which is exactly
+            what "mere desktop pe static hai, doosre pe chalta hai" was.
+
+            The measurement above was taken on a PHONE. Pairing memory with
+            `(pointer: coarse)` keeps that case demoted exactly as measured and
+            stops guessing about desktops, where RAM says nothing useful about
+            whether CSS animations hold 60 fps. A genuinely weak machine of any
+            shape is still caught by the `<= 2` cores clause. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}try{var m=localStorage.getItem('motion');var n=navigator,c=n.connection||{},mem=n.deviceMemory,lite;if(m==='lite'){lite=true;}else if(m==='full'){lite=false;}else{lite=c.saveData===true||(typeof mem==='number'&&mem<=4)||(n.hardwareConcurrency||8)<=2;}if(lite){d.classList.add('lite-motion');}}catch(e){}})();",
+              "(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}try{var m=localStorage.getItem('motion');var n=navigator,c=n.connection||{},mem=n.deviceMemory,coarse=false;try{coarse=matchMedia('(pointer: coarse)').matches;}catch(e){}var lite;if(m==='lite'){lite=true;}else if(m==='full'){lite=false;}else{lite=c.saveData===true||(n.hardwareConcurrency||8)<=2||(coarse&&typeof mem==='number'&&mem<=4);}if(lite){d.classList.add('lite-motion');}if(m==='full'){d.classList.add('motion-full');}}catch(e){}})();",
           }}
         />
         <JsonLd data={organizationJsonLd()} />

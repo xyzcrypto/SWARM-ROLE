@@ -1072,7 +1072,12 @@ html[data-nav-open] .ai-fab { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .btn-press:active::before { animation: none; }
+  /* `html:not(.motion-full)` on each of these: the Motion control in the navbar
+     is an explicit, per-person override of the OS preference, and a switch
+     labelled "Animations on" has to actually mean it. The scroll-behaviour rule
+     below is deliberately NOT scoped this way - it is a real vestibular
+     accommodation and nobody calls a page "static" because it scrolls calmly. */
+  html:not(.motion-full) .btn-press:active::before { animation: none; }
 }
 
 /* Eyebrow / pill */
@@ -1771,7 +1776,7 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 .flash-up { animation: xyzFlashUp 1s ease-out; }
 .flash-down { animation: xyzFlashDown 1s ease-out; }
 @media (prefers-reduced-motion: reduce) {
-  .flash-up, .flash-down { animation: none; }
+  html:not(.motion-full) .flash-up, html:not(.motion-full) .flash-down { animation: none; }
 }
 
 /* Shimmer skeleton (News v2). Respects reduced motion. */
@@ -1791,7 +1796,7 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
   animation: xyzShimmer 1.5s infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .shimmer::after { animation: none; }
+  html:not(.motion-full) .shimmer::after { animation: none; }
 }
 
 /* Skip rendering work for offscreen news cards (long feeds stay smooth).
@@ -1878,7 +1883,7 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
 @media (prefers-reduced-motion: reduce) {
   /* No animation at all - not even the `from` frame - so the page is simply
      visible immediately. */
-  .route-enter { animation: none; }
+  html:not(.motion-full) .route-enter { animation: none; }
 }
 
 /* Decorative full-bleed layers (.aurora bleeds -10% each side, the starfield

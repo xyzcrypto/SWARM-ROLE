@@ -18,6 +18,7 @@ import { MagneticButton } from "@/components/MagneticButton";
 import { isStaff } from "@/lib/permissions";
 import { NavActivity } from "@/components/NavActivity";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MotionToggle } from "@shared/components/MotionToggle";
 import { DailyCheckIn } from "@/components/DailyCheckIn";
 
 export function Navbar() {
@@ -188,6 +189,7 @@ export function Navbar() {
             <Search className="h-4 w-4" />
           </button>
           <ThemeToggle />
+          <MotionToggle />
           {session ? (
             <div className="relative" ref={menuRef}>
               {/* Account button - avatar + membership, opens a dropdown */}
@@ -335,6 +337,7 @@ export function Navbar() {
               <div className="flex items-center justify-between rounded-lg bg-white/5 px-3 py-2">
                 <span className="text-sm font-medium text-zinc-300">Theme</span>
                 <ThemeToggle />
+                <MotionToggle />
               </div>
               {session ? (
                 <>
