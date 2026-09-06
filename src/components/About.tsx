@@ -70,7 +70,7 @@ export function About() {
           {pillars.map((p, i) => (
             <Reveal key={p.title} delay={i} variant="pop">
               <div className="surface surface-hover lift group h-full rounded-3xl p-6">
-                <p.Icon3D className="mb-4 h-12 w-12 transition-transform duration-300 group-hover:scale-110" />
+                <p.Icon3D className="mb-4 h-12 w-12 transition-transform duration-300 group-hover:scale-110 group-active:scale-110" />
                 <h3 className="font-display text-base font-semibold text-zinc-100">{p.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.body}</p>
               </div>

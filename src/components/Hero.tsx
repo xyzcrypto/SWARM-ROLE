@@ -79,8 +79,21 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
   // spring update per frame is all the eye can use.
   const moveRaf = useRef(0);
   function onMove(e: React.MouseEvent<HTMLDivElement>) {
-    // Respect reduced-motion: skip the 3D parallax spring entirely.
-    if (typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // ⚠️ This used to bail out entirely under `prefers-reduced-motion`, which
+    // made the medallion's 3D tilt simply dead on any machine with the OS
+    // setting on - reported as "hero page ka teesre wale me mouse pointer se
+    // kuch nahi hota", and it is a per-device difference nobody can explain
+    // from the page.
+    //
+    // The tilt is direct manipulation, not an ambient loop: it moves only while
+    // the reader's own hand moves, and stops the instant they stop. That is a
+    // different thing from an autoplaying effect, and gating it also disagreed
+    // with this project's stated policy - brand motion is deliberately exempt
+    // from the preference (globals.css, and the design-system skill), after
+    // repeated reports of the site reading as "static" for exactly this reason.
+    //
+    // Nothing is needed for touch: `mousemove` does not fire there, so a phone
+    // simply never enters this path.
     if (moveRaf.current) return;
     const el = e.currentTarget;
     const { clientX, clientY } = e;

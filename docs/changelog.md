@@ -5,6 +5,78 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (86) — The same interactions on every device
+
+Follow-up to (85), which fixed the wrong half. The capability tier was demoting
+desktops — that was real — but the owner's actual report was narrower and
+different: **specific interactions do nothing on their machine, and nothing on
+mobile.** Two separate causes, neither related to the tier.
+
+The Motion control added in (85) is removed — the owner doesn't want it, and the
+detection fix underneath it is what mattered. `localStorage.motion` remains as
+the devtools-level override.
+
+### The hero medallion's 3D tilt was dead under reduced motion
+
+`Hero.onMove` opened with:
+
+```ts
+if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+```
+
+So the medallion simply did not respond to the mouse on any machine with the OS
+setting on — "hero page ka teesre wale me mouse pointer se kuch nahi hota", with
+nothing on the page to explain why it behaves differently from someone else's
+desktop.
+
+The gate was also inconsistent with this project's own policy: brand motion is
+deliberately exempt from `prefers-reduced-motion` (see globals.css and the
+design-system skill) precisely because gating it made the site read as static.
+And a pointer-following tilt is direct manipulation, not an autoplaying loop —
+it moves only while the reader's hand moves. Touch needs nothing here, because
+`mousemove` never fires there.
+
+Measured, homepage, pointer moved to the medallion's top-right corner:
+
+| `prefers-reduced-motion` | before | after |
+|---|---|---|
+| `no-preference` | tilts | tilts |
+| `reduce` | **no tilt** | tilts |
+
+### Hover-only feedback meant phones got nothing
+
+The card language — gold border, lit background, icon scaling to 110%, the
+arrow nudging — was written entirely in `:hover` and `group-hover:`. Neither
+fires on a touch screen, so on a phone those cards were completely inert while
+the identical cards on a laptop moved. That is the "mobile me product wala
+layout ka animation nahi hai" half.
+
+- `.surface-hover` gained an `:active` twin, so a press produces the same gold
+  border and background.
+- Every `group-hover:scale-110` gained `group-active:scale-110` — five files:
+  Products, About, OrbitalEcosystem, ProfileStats and the profile page — and the
+  product-card arrow nudges on press too.
+- The `:hover` rules on `.surface-hover` and `.lift` are now scoped to
+  `@media (hover: hover)`. Without that, mobile browsers leave `:hover` applied
+  **after** a tap, so one card sits lit and lifted until you tap elsewhere —
+  which reads as a rendering bug rather than a hover state. `:active` stays
+  outside the media query, or the fix would undo itself.
+
+Verified in the shipped CSS and in a browser: a press on a card changes its
+border from `rgba(255,255,255,0.11)` to `rgba(226,167,47,0.35)`. The icon-scale
+rule is present as `.group:active .group-active\:scale-110{…}` — the interactive
+check for that one could not run, because the first element carrying the class
+lives inside the continuously-orbiting ecosystem pill and Playwright refuses to
+act on a moving target.
+
+**Files:** `components/Hero.tsx`, `components/Products.tsx`,
+`components/About.tsx`, `components/OrbitalEcosystem.tsx`,
+`modules/profile/components/ProfileStats.tsx`, `app/u/[username]/page.tsx`,
+`app/globals.css`, `-MotionToggle.tsx`, `shared/components/Navbar.tsx`,
+`__tests__/touch-parity.test.ts`.
+
+---
+
 ## 2026-09-06 (85) — The site was static on ordinary desktops
 
 Reported as "mere desktop aur kuch aur desktop me animation static hai, baaki
