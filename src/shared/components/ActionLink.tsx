@@ -5,7 +5,7 @@ import type { ComponentProps } from "react";
 import { motion } from "framer-motion";
 import { useReducedMotionSafe } from "@/lib/useClientFlag";
 
-const MotionLink = motion(Link);
+const MotionLink = motion.create(Link);
 
 /**
  * A drop-in replacement for next/link styled as a button. Adds a tactile press

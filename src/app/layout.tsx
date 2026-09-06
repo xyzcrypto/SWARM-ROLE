@@ -127,7 +127,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} ${fraunces.variable} dark`}>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${GeistSans.variable} ${GeistMono.variable} ${fraunces.variable} dark`}>
       <head>
         {/* Warm up connections to the third-party image CDNs used on the Markets
             and News pages (coin logos + source favicons) so those images paint
