@@ -66,8 +66,20 @@ export async function POST(req: Request) {
         where: { status: "hidden" },
         data: { status: "visible" },
       });
-      // No per-message broadcast for bulk restore - clients pick the messages
-      // up on their next poll/refresh (realtime clients too, on reload).
+      // ⚠️ This used to broadcast nothing at all, on the reasoning that
+      // "clients pick the messages up on their next poll/refresh". Only half
+      // true, and the wrong half:
+      //  - a live client's poll is throttled to a safety reconcile every 60s,
+      //    so an admin watching the room after clicking "Restore all hidden"
+      //    saw nothing happen for up to a minute;
+      //  - and the poll only fetches the LATEST page, so a restored message
+      //    older than that window never came back without a full reload.
+      //
+      // One event for the whole batch, not one per message: the count here is
+      // unbounded (it is every hidden message ever), and N broadcasts to every
+      // connected client is not a thing to do on a bulk action. Clients treat
+      // it as "your view of history is stale, refetch".
+      if (count > 0) await broadcastChatEvent({ event: "messages_restored", payload: { count } });
       return ok({ ok: true, restored: count });
     }
 

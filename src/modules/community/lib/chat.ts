@@ -88,7 +88,10 @@ type ChatEvent =
   | { event: "message_edited"; payload: { id: string; body: string; editedAt: string } }
   | { event: "message_pinned"; payload: { id: string; pinned: boolean } }
   | { event: "poll_vote"; payload: { pollId: string; messageId: string; counts: { optionId: string; count: number }[]; total: number } }
-  | { event: "reaction"; payload: { messageId: string; emoji: string; userId: string; op: "add" | "remove" } };
+  | { event: "reaction"; payload: { messageId: string; emoji: string; userId: string; op: "add" | "remove" } }
+  // Bulk un-hide. Deliberately carries no messages: the batch is unbounded, so
+  // this says "your view of history is stale" and each client refetches once.
+  | { event: "messages_restored"; payload: { count: number } };
 
 /**
  * Push a chat event to the public `community` Realtime channel via Supabase's
