@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMediaQuery, useHydrated } from "@/lib/useClientFlag";
@@ -14,6 +14,7 @@ import { chatMediaUrl } from "@/lib/chat-media";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { joinSharedChannel } from "@/lib/sharedChannel";
 import { SendGlyph } from "@/components/SendGlyph";
+import { MessageText } from "@shared/components/MessageText";
 import { GifPicker } from "@/components/GifPicker";
 import { Avatar } from "@/components/Avatar";
 import { Badge } from "@/components/ui/primitives";
@@ -76,7 +77,6 @@ const normalizeReactions = (rs: { emoji: string; userIds: string[] }[]): Reactio
    A lone trusted media URL renders as an inline image/GIF instead. */
 function MessageBody({ text }: { text: string }) {
   const media = chatMediaUrl(text);
-  const parts = useMemo(() => text.split(/(https?:\/\/\S+|@[a-zA-Z0-9_]{3,20})/g), [text]);
   if (media) {
     // Tapping a shared photo opens it full-screen, the same wrapper the profile
     // avatar and banner already use. In a message list the thumbnail is capped
@@ -94,32 +94,10 @@ function MessageBody({ text }: { text: string }) {
       </ImageLightbox>
     );
   }
-  return (
-    <p className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-zinc-200">
-      {parts.map((part, i) => {
-        if (/^https?:\/\//.test(part)) {
-          const url = cleanBareUrl(part);
-          const href = safeHref(url);
-          if (href) {
-            return (
-              <a key={i} href={href} target="_blank" rel="noopener noreferrer nofollow"
-                className="text-gold-200 underline decoration-gold-500/40 underline-offset-2 hover:text-gold-100">
-                {url}
-              </a>
-            );
-          }
-        }
-        if (/^@[a-zA-Z0-9_]{3,20}$/.test(part)) {
-          return (
-            <Link key={i} href={`/u/${part.slice(1).toLowerCase()}`} className="font-medium text-mint-300 hover:underline">
-              {part}
-            </Link>
-          );
-        }
-        return <span key={i}>{part}</span>;
-      })}
-    </p>
-  );
+  // The link/mention rendering is shared with DM (see MessageText). It used to
+  // live here with its own regex literals, which is how DM ended up with none
+  // at all and the two rooms rendered the same message differently.
+  return <MessageText text={text} className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-zinc-200" />;
 }
 
 /**

@@ -12,6 +12,7 @@ import {
   CHAT_PAGE_SIZE,
 } from "@/lib/chat";
 import { dispatchChatPush } from "@/lib/chat-push";
+import { notifyMentions } from "@modules/notifications/lib/notifications";
 
 // GET /api/chat/messages[?cursor=<id>] - public chat history, newest page
 // first; pass the oldest message id as cursor to page further back. Includes
@@ -143,6 +144,23 @@ export async function POST(req: Request) {
     // Nudge subscribed members' phones when the lounge wakes up after a quiet
     // spell (gated on VAPID + anti-spam inside; never blocks send).
     void dispatchChatPush(created);
+
+    // Tell anyone tagged in the message. Fire-and-forget for the same reason as
+    // everything else on this path - a mention that fails to notify must never
+    // take the message with it.
+    //
+    // This room has parsed, highlighted and autocompleted mentions since it was
+    // built, and until now being tagged was something you found out by
+    // scrolling back through the room.
+    void notifyMentions({
+      body: parsed.data.body,
+      authorId: me.id,
+      // From the message payload, not the session: `SessionUser` carries only
+      // access metadata (id, role, membership, permissions), no display name.
+      authorName: message.author.name || message.author.username || "Someone",
+      context: "community",
+      href: "/community",
+    });
 
     // AI auto-moderation - FIRE-AND-FORGET so the send stays instant (never block
     // the composer on a classify call). The message is already created + broadcast;
