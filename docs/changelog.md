@@ -5,6 +5,52 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (81) — DM: you could not read a thread while it was active
+
+### The thread threw you back to the bottom every few seconds
+
+`useEffect(() => { scrollToEnd(); }, [messages.length])` — unconditional. Every
+new message jumped the thread to the newest one, including a message from the
+other side and one the 5s poll happened to pick up. So scrolling up to find
+something in a live conversation and being yanked back down is what the thread
+did on its own, roughly every five seconds.
+
+Community chat has had a `stickToBottom` guard since it was built. DM never got
+one — there was no `scrollTop` read anywhere in the file.
+
+Now it follows the conversation only when the reader is already following it
+(80px of slack), always jumps for **your own** message because sending is an
+explicit "take me there", and shows a **"New messages ↓"** pill otherwise —
+because not yanking the reader is only half the fix, and without the pill a
+message arriving while they read history would be completely silent.
+
+Two details worth keeping:
+
+- It is **state, not a ref.** The "did this arrive while I was reading history"
+  decision is made during render, and a ref may not be read or written there.
+  The first version of this fix did exactly that and the lint rule caught it.
+- **Switching threads resets it.** Otherwise scrolling up in one conversation
+  and opening another showed the new one part-way up, with a "New messages"
+  pill for what were simply its contents.
+
+### People search could show results for a query you had moved past
+
+The same race #316 fixed in the markets search, in a second place: the cleanup
+cancelled the **timer** but never the **request**, and nothing guarded the
+response — so of two searches in flight, the slower one won. Type `ali`, pause,
+type `alice`, and the results for `ali` could land last and stay on screen under
+the newer query. The stale `.finally` was the other half, flipping `searching`
+off while a newer request was still running, so the empty state could flash
+"no one found" mid-typing.
+
+**Verification:** unit tests, typecheck and build only. `/messages` redirects to
+login without a server session, so — like the community pass — none of this was
+exercised in a browser here.
+
+**Files:** `messages/components/MessagesClient.tsx`, `__tests__/dm-stick.test.ts`.
+
+---
+
 ## 2026-09-06 (80) — Community: the room disagreeing with the server
 
 Three bugs, one shape: the room quietly holding a different view of itself than

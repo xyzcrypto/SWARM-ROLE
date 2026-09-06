@@ -308,14 +308,25 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
     const term = q.trim();
     if (!term) { setResults([]); setSearching(false); return; }
     setSearching(true);
+    // ⚠️ The same race that was fixed in the markets search in #316, in a
+    // second place: the cleanup cancelled the TIMER but never the REQUEST, and
+    // nothing guarded the response. So of two searches in flight the SLOWER one
+    // won - type "ali", pause, type "alice", and the results for "ali" could
+    // land last and stay on screen under the newer query.
+    //
+    // The stale `.finally` was the other half: it flipped `searching` off while
+    // the newer request was still running, so the empty state could flash
+    // "no one found" mid-typing.
+    let active = true;
+    const ctrl = new AbortController();
     const t = setTimeout(() => {
-      fetch(`/api/dm/search?q=${encodeURIComponent(term)}`, { cache: "no-store" })
+      fetch(`/api/dm/search?q=${encodeURIComponent(term)}`, { cache: "no-store", signal: ctrl.signal })
         .then((r) => (r.ok ? r.json() : null))
-        .then((j) => setResults(Array.isArray(j?.users) ? j.users : []))
-        .catch(() => setResults([]))
-        .finally(() => setSearching(false));
+        .then((j) => { if (active) setResults(Array.isArray(j?.users) ? j.users : []); })
+        .catch(() => { if (active) setResults([]); })
+        .finally(() => { if (active) setSearching(false); });
     }, 300);
-    return () => clearTimeout(t);
+    return () => { active = false; ctrl.abort(); clearTimeout(t); };
   }, [q]);
 
   const openConversation = (id: string) => router.replace(`/messages?c=${id}`, { scroll: false });
@@ -553,7 +564,41 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
   const scrollRef = useRef<HTMLDivElement>(null);
   const otherOnline = !!other?.id && onlineSet.has(other.id);
 
-  const scrollToEnd = () => requestAnimationFrame(() => { const el = scrollRef.current; if (el) el.scrollTop = el.scrollHeight; });
+  /**
+   * Is the reader at (or near) the newest message?
+   *
+   * ⚠️ Nothing here tracked this, and `useEffect(scrollToEnd, [messages.length])`
+   * therefore jumped the thread to the bottom on EVERY new message - including
+   * one that arrived from the other side, or off the 5s poll, while you were
+   * scrolled up reading older messages. Community chat has had a `stickToBottom`
+   * guard for exactly this since it was built; DM never got one.
+   *
+   * 80px of slack so "as good as at the bottom" counts - a couple of pixels of
+   * momentum scroll should not mean the thread stops following the conversation.
+   *
+   * State rather than a ref, deliberately: the "did this arrive while I was
+   * reading history" decision is made during render, and a ref may not be read
+   * or written there. It only changes when the reader crosses the boundary, so
+   * it does not re-render per scroll event.
+   */
+  const [stick, setStick] = useState(true);
+  const [hasNew, setHasNew] = useState(false);
+  const atBottom = () => {
+    const el = scrollRef.current;
+    if (!el) return true;
+    return el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+  };
+  const onScroll = () => {
+    const at = atBottom();
+    setStick((s) => (s === at ? s : at));
+    if (at) setHasNew(false);
+  };
+  const scrollToEnd = () => requestAnimationFrame(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+    setStick(true);
+    setHasNew(false);
+  });
 
   // Same rule as loadInbox: a failure must reach useRealtime so it can retry.
   const load = useCallback(async (silent: boolean) => {
@@ -597,6 +642,12 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
   useEffect(() => {
     setLoaded(false);
     setMessages([]);
+    // Opening a conversation always starts at its newest message. Without
+    // these two, scrolling up in one thread and then switching to another
+    // carried "not following" across, so the new thread opened part-way up
+    // with a "New messages" pill for messages that were simply its contents.
+    setStick(true);
+    setHasNew(false);
     setOtherReadAt(null);
     setPinned(null);
     setBlocked(false);
@@ -627,7 +678,25 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     // dm_message poll above is already doing. Either way, no new requests.
     pollMs: 0,
   });
-  useEffect(() => { scrollToEnd(); }, [messages.length]);
+  // Follow the conversation only when the reader is already following it.
+  //
+  // The "did something arrive while I was reading history" decision is adjusted
+  // during render (the pattern used by the news reader and the breaking hero)
+  // rather than in an effect, so it never lags a frame behind the messages it
+  // describes. The scroll itself is a DOM side effect and stays in an effect.
+  const [prevLen, setPrevLen] = useState(messages.length);
+  if (prevLen !== messages.length) {
+    const grew = messages.length > prevLen;
+    setPrevLen(messages.length);
+    const last = messages[messages.length - 1];
+    // Your own message always wins - sending is an explicit "take me there".
+    if (grew && last?.mine) setStick(true);
+    else if (grew && !stick) setHasNew(true);
+  }
+  // `stick` is in the deps on purpose: scrolling back down to the bottom
+  // re-attaches the thread to the conversation, which is what every chat app
+  // does. When it is already at the bottom this call is a no-op.
+  useEffect(() => { if (stick) scrollToEnd(); }, [messages.length, stick]);
 
   /**
    * Forward the queued message into another conversation.
@@ -863,7 +932,9 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    /* `relative` so the "New messages ↓" pill below can anchor to the thread
+       pane rather than to whatever ancestor happens to be positioned. */
+    <div className="relative flex min-h-0 flex-1 flex-col">
       <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
         <button onClick={onBack} aria-label="Back" className="grid h-8 w-8 place-items-center rounded-full text-zinc-400 hover:bg-white/5 hover:text-zinc-100 md:hidden">
           <ArrowLeft className="h-4 w-4" />
@@ -956,7 +1027,20 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
         </button>
       )}
 
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      {/* Not yanking the reader to the bottom is only half the fix - without
+          this, a message that arrives while they are reading history is
+          completely silent. Sits above the composer, clears itself the moment
+          the thread is back at the bottom by any means. */}
+      {hasNew && (
+        <button
+          onClick={scrollToEnd}
+          className="pointer-events-auto absolute inset-x-0 bottom-20 z-20 mx-auto w-fit rounded-full border border-gold-500/40 bg-gold-500/15 px-3.5 py-1.5 text-[12px] font-semibold text-gold-100 shadow-lg shadow-black/30 backdrop-blur transition-colors hover:bg-gold-500/25"
+        >
+          New messages ↓
+        </button>
+      )}
+
+      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {!loaded ? (
           <p className="py-10 text-center text-sm text-zinc-500"><Loader2 className="mr-1 inline h-4 w-4 animate-spin" /> Loading…</p>
         ) : messages.length === 0 ? (
