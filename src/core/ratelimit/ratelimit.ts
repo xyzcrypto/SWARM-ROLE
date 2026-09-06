@@ -49,7 +49,8 @@ const limiters = {
   comment: make(8, 60, "comment"), // 8/min/IP
   like: make(20, 60, "like"), // 20/min/IP
   login: make(5, 60, "login"), // 5/min per account (brute-force guard)
-  password: make(3, 3600, "password"), // 3/hour/IP - reset flow, isolated from signup
+  // 5/hour/IP - reset flow, isolated from signup. Accommodates shared CGNAT/office IPs while mitigating abuse.
+  password: make(5, 3600, "password"),
   chat: make(10, 60, "chat"), // 10 messages/min per user (community chat)
   // The presence heartbeat needs its own bucket. It used to spend the `chat`
   // one, which is the budget for SENDING - so an unattended beat every 25s
@@ -73,7 +74,14 @@ const limiters = {
   // token check cannot remove - a valid user id with a forged token still costs an invocation and a DB
   // read before the 404, and that is the only part of the old unbounded cache-key vector left.
   otpEmail: make(3, 3600, "otp_email"), // 3/hour per target email - anti email-bombing
-  loginIp: make(5, 60, "login_ip"), // 5/min/IP - independent of the per-email `login` limiter
+  // 10/min/IP - independent of the per-email `login` limiter, which a
+  // bot rotating through many fake/guessed emails from one IP barely engages. Each failed login attempt
+  // (real or fake account) does a bcrypt compare - genuine synchronous CPU, not just I/O - so unthrottled
+  // per-IP volume is a real cost, not just a security concern.
+  // In India and emerging markets, mobile carriers (Jio, Airtel) and college/office WiFis heavily rely on
+  // CGNAT where thousands of users share a single public IP. 10/min avoids locking out legitimate users on
+  // shared IPs while still bounding bcrypt CPU exhaustion.
+  loginIp: make(10, 60, "login_ip"),
 };
 
 export type RateKey = keyof typeof limiters;
