@@ -3,12 +3,35 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { categorize, sentiment, impact, relatedTokens, type NewsItem } from "@/lib/news";
+import { favicon } from "@/lib/news-sources";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // Rebuild a full NewsItem from a stored row so the Saved tab renders identically
 // to the live feed (classification is pure + recomputed from title + summary).
+/** The publisher's domain, for the favicon. Never throws on a malformed url. */
+function hostOf(url: string): string | null {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
+const iconFromUrl = (url: string) => {
+  const h = hostOf(url);
+  return h ? favicon(h) : null;
+};
+
+/** A readable publisher name when the stored row has none: "coindesk.com" -> "Coindesk". */
+const sourceFromUrl = (url: string) => {
+  const h = hostOf(url);
+  if (!h) return "Saved";
+  const name = h.split(".")[0] ?? h;
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
 function hydrate(r: any): NewsItem {
   const text = `${r.title} ${r.summary ?? ""}`;
   const { primary, all } = categorize(text);
@@ -17,8 +40,16 @@ function hydrate(r: any): NewsItem {
     title: r.title,
     url: r.url,
     summary: r.summary ?? "",
-    source: r.source ?? "Saved",
-    sourceIcon: null,
+    // ⚠️ These two lines used to read `source: r.source ?? "Saved"` and
+    // `sourceIcon: null`, which made the Saved tab visibly different from the
+    // live feed the comment above claims it matches: every card lost its
+    // publisher icon, and any row stored without a source was labelled with the
+    // literal word "Saved" as if that were a publication.
+    //
+    // The icon is derivable - it is a function of the story's own domain, which
+    // is right there in the url - so there was never anything to store.
+    source: r.source || sourceFromUrl(r.url),
+    sourceIcon: iconFromUrl(r.url),
     image: r.image ?? null,
     publishedAt: r.publishedAt ? new Date(r.publishedAt).getTime() : 0,
     category: r.category ?? primary,

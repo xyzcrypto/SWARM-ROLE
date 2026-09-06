@@ -88,6 +88,24 @@ const getClassifiedItems = unstable_cache(
   { revalidate: NEWS_REVALIDATE }
 );
 
+/**
+ * Find one story by its source URL, across the WHOLE classified pool.
+ *
+ * `getNewsPage` cannot do this: its `pageSize` is clamped to 30, so the share
+ * page was only ever looking at the newest 30 stories. Any link shared for a
+ * story that had since been pushed past that - which on a 29-feed aggregator is
+ * a matter of minutes - fell through to a stub card titled "News on XYZ Crypto",
+ * with no image, no summary and no source. The share worked; the card that
+ * represented it went generic almost immediately.
+ *
+ * Costs nothing extra: the pool is the same `unstable_cache` entry the feed
+ * itself is served from, so this is a lookup in memory that is already warm.
+ */
+export async function findNewsByUrl(url: string): Promise<NewsItem | null> {
+  const { items } = await getClassifiedItems();
+  return items.find((i) => i.url === url) ?? null;
+}
+
 /** Fetch, classify, de-dupe, filter and paginate the live news feed. */
 export async function getNewsPage(opts: { category?: string; q?: string; page?: number; pageSize?: number } = {}): Promise<NewsPage> {
   const category = opts.category || "All";
