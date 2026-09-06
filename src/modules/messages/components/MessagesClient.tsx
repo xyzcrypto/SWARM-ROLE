@@ -274,6 +274,9 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
   const [results, setResults] = useState<Found[]>([]);
   const [searching, setSearching] = useState(false);
   const [starting, setStarting] = useState(false);
+  /** Why starting a conversation failed. The Thread component has its own
+   *  `err`; this is the inbox side, which had no way to say anything at all. */
+  const [startErr, setStartErr] = useState<string | null>(null);
   const [convMenuId, setConvMenuId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -321,11 +324,31 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
   const startDm = async (username: string) => {
     if (starting) return;
     setStarting(true);
+    setStartErr(null);
     try {
       const r = await fetch("/api/dm", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username }) });
-      const j = r.ok ? await r.json() : null;
-      if (j?.conversationId) { setQ(""); setResults([]); loadInbox(); openConversation(j.conversationId); }
-    } catch { /* ignore */ } finally { setStarting(false); }
+      const j = await r.json().catch(() => null);
+      if (r.ok && j?.conversationId) {
+        setQ("");
+        setResults([]);
+        loadInbox();
+        openConversation(j.conversationId);
+        return;
+      }
+      // ⚠️ This used to be `r.ok ? await r.json() : null` followed by
+      // `catch { /* ignore */ }`, so EVERY failure was silent: tapping
+      // "Message" simply did nothing.
+      //
+      // And the failures here are the ones a reader most needs explained -
+      // `canStartConversation` returns 403 when the other member's DM privacy
+      // is "nobody" or "people I follow", or when either side has blocked the
+      // other. "Nothing happened" is the worst possible way to say that.
+      setStartErr(j?.error ?? "Couldn't start that conversation.");
+    } catch {
+      setStartErr("Couldn't start that conversation. Check your connection.");
+    } finally {
+      setStarting(false);
+    }
   };
 
   const pinConversation = async (convId: string, pinned: boolean) => {
@@ -377,6 +400,10 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
             />
             {q && <button onClick={() => setQ("")} aria-label="Clear" className="shrink-0 text-zinc-500 hover:text-zinc-200"><X className="h-3.5 w-3.5" /></button>}
           </div>
+          {/* Why "Message" did nothing. The server's own words when it has them
+              - a DM privacy setting or a block is the usual reason, and neither
+              is something the reader can guess from silence. */}
+          {startErr && <p className="mt-1.5 px-1 text-[11px] text-amber-500">{startErr}</p>}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -664,17 +691,24 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body, replyToId: parent?.id, forwarded: opts?.forwarded === true }),
       });
-      const j = r.ok ? await r.json() : null;
-      if (j?.message) {
+      const j = await r.json().catch(() => null);
+      if (r.ok && j?.message) {
         setMessages((m) => { const without = m.filter((x) => x.id !== tempId); return without.some((x) => x.id === j.message.id) ? without : [...without, j.message]; });
         onSent();
       } else {
         setMessages((m) => m.filter((x) => x.id !== tempId));
         if (fromDraft) setDraft((d) => (d.trim() ? d : body));
+        // The rollback was already correct; the silence was not. A send can fail
+        // because the recipient blocked you, because their DM privacy changed
+        // since the thread was opened, or because you hit the rate limit - and
+        // all three looked identical: the message vanishes, the draft comes
+        // back, nothing said why. The server has words for each of them.
+        setErr(j?.error ?? "Couldn't send that message.");
       }
     } catch {
       setMessages((m) => m.filter((x) => x.id !== tempId));
       if (fromDraft) setDraft((d) => (d.trim() ? d : body));
+      setErr("Couldn't send that message. Check your connection.");
     } finally { setSending(false); }
   };
 

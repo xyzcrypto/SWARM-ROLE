@@ -16,21 +16,48 @@ export async function GET() {
     const me = await getSessionUser();
     if (!me) return fail("Please log in.", 401);
 
-    const rows = await prisma.conversation
-      .findMany({
-        // Exclude conversations the user has hidden, unless there's a new
-        // unread message that arrived after they hid it (re-surfaces it).
-        where: {
-          OR: [
-            { userAId: me.id, hiddenByA: false },
-            { userBId: me.id, hiddenByB: false },
-          ],
-        },
-        orderBy: { lastMessageAt: "desc" },
-        take: 50,
-        include: { userA: { select: DM_USER_SELECT }, userB: { select: DM_USER_SELECT } },
-      })
-      .catch(() => [] as any[]);
+    // Exclude conversations the user has hidden. A new message un-hides one on
+    // the send path, so this does not bury anything that is actually active.
+    const mine = [
+      { userAId: me.id, hiddenByA: false },
+      { userBId: me.id, hiddenByB: false },
+    ];
+    const include = { userA: { select: DM_USER_SELECT }, userB: { select: DM_USER_SELECT } };
+
+    // ⚠️ Two queries, and the first one is the fix.
+    //
+    // This was a single `take: 50` ordered by `lastMessageAt`, with the pinned
+    // ones floated to the top in JS AFTERWARDS. So the sort could only reorder
+    // what the window had already selected: a pinned conversation that had gone
+    // quiet fell past 50 by time and was gone - pinned, and invisible. Pinning
+    // a conversation you rarely use is precisely what pinning is FOR, so the
+    // feature failed hardest at its own purpose.
+    //
+    // Pinned rows are fetched on their own so they cannot be crowded out.
+    // Capped anyway: pinning is user-driven and nothing else bounds it.
+    const [pinnedRows, recentRows] = await Promise.all([
+      prisma.conversation
+        .findMany({
+          where: {
+            OR: [
+              { userAId: me.id, hiddenByA: false, pinnedByA: true },
+              { userBId: me.id, hiddenByB: false, pinnedByB: true },
+            ],
+          },
+          orderBy: { lastMessageAt: "desc" },
+          take: 50,
+          include,
+        })
+        .catch(() => [] as any[]),
+      prisma.conversation
+        .findMany({ where: { OR: mine }, orderBy: { lastMessageAt: "desc" }, take: 50, include })
+        .catch(() => [] as any[]),
+    ]);
+
+    // De-dupe: a pinned conversation that is also recent appears in both.
+    const byId = new Map<string, any>();
+    for (const c of [...pinnedRows, ...recentRows]) byId.set(c.id, c);
+    const rows = [...byId.values()];
 
     const mapped = rows.map((c: any) => {
       const { other } = otherOf(c, me.id);
@@ -47,11 +74,16 @@ export async function GET() {
       };
     });
 
-    // Pinned conversations float to the top within the already-time-sorted list.
+    // Pinned first, then newest first WITHIN each group.
+    //
+    // The time comparison is not decoration: this used to `return 0` for two
+    // rows of the same pinned state and lean on the query having already
+    // ordered them. That held while there was one query; it stopped holding the
+    // moment pinned rows were fetched separately and merged in, which would
+    // have left the inbox in an arbitrary order for anyone with a pin.
     const conversations = mapped.sort((a: any, b: any) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-      return 0;
+      if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+      return new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime();
     });
 
     return ok({ conversations, unread: conversations.filter((c: any) => c.unread).length });

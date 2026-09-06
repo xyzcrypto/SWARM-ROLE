@@ -14,7 +14,21 @@ export async function GET() {
 
     const rows = await prisma.conversation
       .findMany({
-        where: { OR: [{ userAId: me.id }, { userBId: me.id }] },
+        // ⚠️ Must match the INBOX's filter (src/app/api/dm/route.ts), and did
+        // not. This counted conversations the inbox refuses to show, so hiding
+        // a conversation that still had an unread message left a badge in the
+        // navbar with no thread behind it to open and clear.
+        //
+        // It needs the hidden ones excluded rather than "usually excluded":
+        // a new message un-hides a conversation on the send path, so the only
+        // way to be hidden AND unread is to have removed it without reading it
+        // - which is exactly the case that got stuck.
+        where: {
+          OR: [
+            { userAId: me.id, hiddenByA: false },
+            { userBId: me.id, hiddenByB: false },
+          ],
+        },
         select: { userAId: true, lastMessageAt: true, lastSenderId: true, readAAt: true, readBAt: true },
         take: 200,
       })
