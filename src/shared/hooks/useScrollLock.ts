@@ -23,7 +23,14 @@ import { useEffect } from "react";
  * unfreeze the page under the outer one.
  */
 
-type Controls = { stop: () => void; start: () => void; toOffset: (y: number) => void };
+type Controls = {
+  stop: () => void;
+  start: () => void;
+  /** Instant jump - arriving at a route should not be a second-long glide. */
+  toOffset: (y: number) => void;
+  /** Eased glide - for an in-page move the reader asked for and should follow. */
+  smoothTo: (y: number) => void;
+};
 
 let smooth: Controls | null = null;
 let depth = 0;
@@ -92,6 +99,28 @@ export function scrollPageTo(y: number) {
   if (typeof window === "undefined") return;
   window.scrollTo(0, y);
   smooth?.toOffset(y);
+}
+
+/**
+ * Glide the page to an offset, taking the smooth-scroll engine with it.
+ *
+ * The same Lenis problem as `scrollPageTo`, with one difference that matters:
+ * here the two halves must NOT both run. An eased native scroll and an eased
+ * Lenis scroll are two animations racing for the same property, so when Lenis
+ * is up it does the whole job and the native call is skipped entirely. Without
+ * Lenis - touch devices, reduced motion - native is already correct.
+ *
+ * This exists because `window.scrollTo({ behavior: "smooth" })` written inline
+ * silently does nothing while Lenis is running: Lenis holds its own target and
+ * rewrites the position on the next rAF tick. Two places in the news feed did
+ * exactly that - the "N new stories" pill and the token/source chips - so the
+ * one thing each of them promised (take me back to the top) did not happen on
+ * desktop.
+ */
+export function scrollPageToSmooth(y: number) {
+  if (typeof window === "undefined") return;
+  if (smooth) smooth.smoothTo(y);
+  else window.scrollTo({ top: y, behavior: "smooth" });
 }
 
 /** Hold the lock for as long as the component is mounted (or `active` is true). */

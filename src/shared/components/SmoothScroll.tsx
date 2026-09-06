@@ -68,6 +68,11 @@ export function SmoothScroll() {
       stop: () => lenis.stop(),
       start: () => lenis.start(),
       toOffset: (y) => lenis.scrollTo(y, { immediate: true, force: true }),
+      // `smoothTo` is the eased counterpart, for an in-page move the reader
+      // asked for - tapping "N new stories", tapping a token chip. Those had
+      // been written as `window.scrollTo({ behavior: "smooth" })`, which Lenis
+      // undoes on its next tick exactly like the immediate case.
+      smoothTo: (y) => lenis.scrollTo(y, { force: true }),
     });
 
     let raf = 0;

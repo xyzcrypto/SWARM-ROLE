@@ -5,6 +5,92 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-06 (79) — News: the things it said it had done
+
+Markets was showing wrong numbers. News had the opposite failure: it reported
+success for work that had not happened.
+
+### A bookmark the server refused still filled in
+
+`toggleSave` fired its request from **inside a `setSaved` updater** — a state
+updater must be pure, and the POST, the DELETE and the `localStorage.setItem`
+were all in there — and then discarded the answer: `.catch(() => {})`, with no
+`res.ok` check at all. So a save the server **refused** looked exactly like one
+it accepted. The icon filled in, stayed filled until the next reload, and the
+story was simply gone.
+
+Refusal is not exotic. `/api/news/saved` shares the `like` rate-limit bucket, so
+bookmarking a few stories quickly returns a 429 **with a message**, which the
+client threw away. Measured against a stubbed 429:
+
+```
+before → bookmark stays filled, no message
+after  → bookmark reverts, banner reads "Too many requests. Please slow down."
+```
+
+The rollback undoes only the story it touched, so two toggles in flight cannot
+clobber each other. `saveInterests` had the same shape and the same fix — the
+Customize sheet used to close on a save the server never took.
+
+### Two taps that promised to scroll and did not
+
+Lenis owns the scroll position and rewrites it on its own rAF tick, so a native
+scroll it did not initiate is undone a frame later. Both news call sites were
+plain `window.scrollTo({ behavior: "smooth" })`: the **"N new stories"** pill
+(which prepends stories *above* you and then failed to move, so the pill
+vanished and the feed looked unchanged) and the **token/source chips**.
+
+`scrollPageToSmooth` is the eased counterpart to the existing
+`scrollPageToTop` — and it must *not* run both halves, unlike the instant one,
+because two eased scrolls race for the same property. Measured: `scrollY 1400 →
+0` on a token-chip tap.
+
+### Swiping past the last story went nowhere
+
+`onNext` called `loadMore()` and then returned the **same** story id, so at
+every page boundary the swipe (and the enabled chevron beside it) landed on the
+story you were already reading. You had to swipe again once the page had quietly
+arrived. The comment claimed "swipe traverses ALL news".
+
+```
+at the true end: 3 / 3  Page 1 story 2   next: busy + spinner
+page arrives:    3 / 6                   next: enabled
+tap:             4 / 6  Page 2 story 0
+```
+
+`loadMore` now returns what it appended (computed from the ref, not assigned
+from inside an updater), and the reader lands on the first story that passes the
+feed's own filter — on "For You" a freshly loaded story may not be in this feed
+at all, and navigating to one that is off-screen closes the reader.
+
+⚠️ The first version of this fix greyed the chevron out during *every*
+background prefetch, reintroducing the same dead tap. Caught in the browser, not
+by reading. It is busy only while the reader itself is waiting.
+
+### Also
+
+- **Six `onError` handlers wrote styles React does not know about**, one of them
+  hiding `e.currentTarget.parentElement`. Now `SafeImg` / `BreakingImage` — and
+  the breaking hero falls through to its gradient instead of leaving a black
+  rectangle.
+- **Returning to a tab cost two `/api/news` requests, not one**: `visibilitychange`
+  and `focus` both fire and both refreshed. Collapsed with `wakeIsDue`'s 3s
+  floor, and no more — news genuinely wants an eager refresh on return.
+- **An uncaught error in the navbar**, found while browser-testing the above:
+  `NavActivity`'s loaders were changed to throw, but `Promise.all` orphans every
+  rejection after the first, and `void loadDm()` in a realtime handler has no
+  catch at all. Reproduced with `/api/notifications` and `/api/dm/unread` both
+  500 — which is what happens together when the database is unreachable.
+- `CommunityPreview` moved to the community module it renders in, and one unused
+  icon import dropped.
+
+**Files:** `news/components/NewsClient.tsx`,
+`notifications/components/NavActivity.tsx`, `shared/hooks/useScrollLock.ts`,
+`shared/components/SmoothScroll.tsx`, `community/components/CommunityPreview.tsx`
+(moved), `__tests__/news-bugs.test.ts`.
+
+---
+
 ## 2026-09-06 (78) — Markets: invented candles, a blind effect, and nine wake-up calls
 
 Second markets pass, after #316. Same theme — the page must not present

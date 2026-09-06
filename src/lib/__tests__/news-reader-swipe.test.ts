@@ -49,7 +49,13 @@ describe("the open story cannot change under the reader", () => {
 
   it("resolves prev/next from the list at the moment of the tap", () => {
     expect(N).toMatch(/onPrev=\{\(\) => setReaderId\(\(id\) => \{[\s\S]{0,200}visible\.findIndex/);
-    expect(N).toMatch(/onNext=\{\(\) => setReaderId\(\(id\) => \{[\s\S]{0,320}visible\.findIndex/);
+    // `onNext` grew an await (see news-bugs.test.ts - it used to do nothing at
+    // all at a page boundary), so it is no longer a `setReaderId` updater. What
+    // this test is actually pinning is unchanged and still holds: the position
+    // is resolved from the CURRENT list at the moment of the tap, never from a
+    // stored index.
+    expect(N).toMatch(/onNext=\{async \(\) => \{[\s\S]{0,160}visible\.findIndex\(\(v\) => v\.id === readerId\)/);
+    expect(N).not.toMatch(/onNext=\{\(\) => \{[\s\S]{0,200}visible\[readerIndex\]/);
   });
 
   it("opens by id from both the grid and the hero", () => {
