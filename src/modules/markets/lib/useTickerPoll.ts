@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { wakeIsDue } from "@shared/hooks/useLiveData";
 
 export type TickerCoin = { symbol: string; name: string; price: number; change: number; image: string };
 type TickerState = { coins: TickerCoin[] | null; live: boolean; loading: boolean };
@@ -20,12 +21,15 @@ const listeners = new Set<() => void>();
 let subscriberCount = 0;
 let intervalId: ReturnType<typeof setInterval> | null = null;
 let onVisible: (() => void) | null = null;
+// When the last request STARTED - see `wakeIsDue`.
+let lastRunAt = 0;
 
 function emit() {
   for (const l of listeners) l();
 }
 
 async function load() {
+  lastRunAt = Date.now();
   try {
     const res = await fetch("/api/ticker", { cache: "no-store" });
     if (!res.ok) throw new Error("bad status");
@@ -38,6 +42,10 @@ async function load() {
   emit();
 }
 
+// This one keeps its own loop rather than moving to `useLiveData`: it is a
+// module-level store deliberately shared by every consumer on the page (see the
+// hook's doc comment below), so there is no component to own the hook. It does
+// borrow the hook's wake rule, which is the part that had the bug.
 function start() {
   if (intervalId) return; // a subscriber is already driving the poll
   load();
@@ -45,7 +53,10 @@ function start() {
     if (!document.hidden) load();
   }, POLL_MS);
   onVisible = () => {
-    if (!document.hidden) load();
+    // Was: refetch on EVERY return to the tab. /api/ticker is cached for longer
+    // than this poll, so a glance at the tab could only ever re-fetch the same
+    // bytes - and this store backs the ticker on nearly every page.
+    if (!document.hidden && wakeIsDue(Date.now(), lastRunAt, POLL_MS)) load();
   };
   document.addEventListener("visibilitychange", onVisible);
 }

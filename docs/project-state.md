@@ -80,10 +80,6 @@
 - **Green/red flash** on price change. Auto-refresh **10s**. Loading / Live /
   fallback (amber) states. Server-cached to avoid rate limits.
 
-### Ecosystem Pills (`EcosystemPills.tsx`)
-- Interactive floating pills: **Alpha · Web3 · Perp DEX · DeFi · NFT** with
-  icon+label, scroll-reveal, float + hover lift.
-
 ### Proof Strip (`ProofStrip.tsx`)
 - "One ecosystem · trusted across every platform" — brand-colored, clickable:
   YouTube (red), X (white), Telegram (sky), LinkedIn (blue) + Web3 Academy &

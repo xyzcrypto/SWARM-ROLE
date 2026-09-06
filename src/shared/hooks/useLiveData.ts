@@ -45,15 +45,46 @@ export function backoffDelay(failures: number): number {
   return Math.min(BACKOFF_BASE_MS * 2 ** Math.max(0, failures - 1), BACKOFF_MAX_MS);
 }
 
+/**
+ * Is a wake worth a request, given how long ago the last one started?
+ *
+ * The 3s floor collapses the three wake events - `visibilitychange`, `focus`
+ * and `online` all fire together when a tab comes forward - into one request.
+ * That is all it was ever doing, so any surface whose data is cached for
+ * minutes still refetched on every glance at the tab.
+ *
+ * `/markets` is where that becomes visible: nine of these loops run on it (six
+ * hub feeds, two perp charts, the shared ticker), and every one of those routes
+ * caches for 150-300 seconds server-side. A three-second app switch on a phone
+ * - the most ordinary thing a phone does - fired nine requests whose responses
+ * could not differ from what the page already had.
+ *
+ * Callers whose freshness is bounded by a server cache pass `wakeMinAgeMs`
+ * (their own poll interval). Surfaces where returning to the tab should feel
+ * instant - a DM thread, notification badges - leave it alone and keep the 3s
+ * floor. There is no single right answer here, which is why it is a parameter.
+ *
+ * Exported for its unit test; the timing is the whole behaviour.
+ */
+export function wakeIsDue(now: number, lastRunAt: number, wakeMinAgeMs?: number): boolean {
+  return now - lastRunAt >= Math.max(WAKE_THROTTLE_MS, wakeMinAgeMs ?? 0);
+}
+
 type Options = {
   /** Runs the request. Throw (or reject) to signal failure - that drives retry. */
   load: () => Promise<void>;
   /** Poll interval while the tab is visible. Omit for wake-only refreshing. */
   intervalMs?: number;
+  /**
+   * Minimum age before a wake (visibility/focus/online) is worth a request.
+   * Defaults to the 3s event-collapsing floor. Pass the poll interval when the
+   * response is cached server-side for that long anyway - see `wakeIsDue`.
+   */
+  wakeMinAgeMs?: number;
   enabled?: boolean;
 };
 
-export function useLiveData({ load, intervalMs, enabled = true }: Options) {
+export function useLiveData({ load, intervalMs, wakeMinAgeMs, enabled = true }: Options) {
   const [failures, setFailures] = useState(0);
 
   const loadRef = useRef(load);
@@ -66,12 +97,16 @@ export function useLiveData({ load, intervalMs, enabled = true }: Options) {
   const inFlight = useRef(false);
   const failRef = useRef(0);
   const retryTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const lastWake = useRef(0);
+  // When the last request STARTED. Marking on completion would let a burst of
+  // rapid tab switches stack overlapping requests that each read a `lastRunAt`
+  // from before any of them began.
+  const lastRunAt = useRef(0);
   const alive = useRef(true);
 
   const run = useCallback(async (reason: "mount" | "interval" | "wake" | "retry") => {
     if (!alive.current || inFlight.current) return;
     if (reason !== "mount" && typeof document !== "undefined" && document.hidden) return;
+    lastRunAt.current = Date.now();
     inFlight.current = true;
     try {
       await loadRef.current();
@@ -103,11 +138,13 @@ export function useLiveData({ load, intervalMs, enabled = true }: Options) {
 
     const wake = () => {
       if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
-      const now = Date.now();
-      if (now - lastWake.current < WAKE_THROTTLE_MS) return;
-      lastWake.current = now;
-      // A wake is also the moment to abandon a long backoff: the user is here
-      // now, and the network may well have changed underneath it.
+      // A failing surface drops back to the bare 3s floor rather than skipping
+      // the gate: the user arriving is a good moment to try again - the network
+      // may well have changed underneath it - but "keep retrying on every tab
+      // switch" would rebuild the burst precisely while upstream is down, which
+      // is when it costs the most. The backoff timer is already running anyway.
+      const minAge = failRef.current > 0 ? undefined : wakeMinAgeMs;
+      if (!wakeIsDue(Date.now(), lastRunAt.current, minAge)) return;
       clearTimeout(retryTimer.current);
       void run("wake");
     };
@@ -124,7 +161,7 @@ export function useLiveData({ load, intervalMs, enabled = true }: Options) {
       window.removeEventListener("focus", wake);
       window.removeEventListener("online", wake);
     };
-  }, [run, intervalMs, enabled]);
+  }, [run, intervalMs, wakeMinAgeMs, enabled]);
 
   /** Force a refresh now (e.g. after the user takes an action). */
   const refresh = useCallback(() => void run("wake"), [run]);

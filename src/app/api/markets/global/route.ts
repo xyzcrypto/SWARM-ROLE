@@ -14,6 +14,21 @@ import type { GlobalMarket } from "@/lib/markets";
 // src/lib/__tests__/markets-poll-alignment.test.ts - change both together.
 export const revalidate = 200;
 
+/**
+ * Shape-filler for a failed upstream. **These numbers are not real.**
+ *
+ * ⚠️ Only ever returned alongside `live: false`, and a consumer MUST check that
+ * flag before rendering any of it. The figures below were plausible in 2024 and
+ * are now simply wrong - a market cap frozen in the past, and a Fear & Greed of
+ * exactly 50 that has never been measured.
+ *
+ * This was being painted straight into the KPI strip: `usePolledJson` checked
+ * only `res.ok`, which is true here (the route answers 200 by design so the
+ * page never shows an error screen), and the hub's "Live market data" badge was
+ * an OR across six sources, so one healthy feed lit it. The page asserted these
+ * were live numbers. Both halves are fixed in MarketsClient; this comment is
+ * here so the next consumer does not have to rediscover it.
+ */
 const FALLBACK: GlobalMarket = {
   marketCap: 2_350_000_000_000,
   volume24h: 92_000_000_000,

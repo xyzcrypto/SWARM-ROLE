@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, ExternalLink, Loader2, Newspaper } from "lucide-react";
 import { RobotIcon } from "@/components/RobotIcon";
 import { compactUsd, pct } from "@/lib/markets";
 import { cn } from "@/lib/utils";
+import { useLiveData } from "@shared/hooks/useLiveData";
 
 type Protocol = {
   type: string;
@@ -38,44 +39,54 @@ export function ProtocolDetailClient({ type, slug }: { type: string; slug: strin
   const [p, setP] = useState<Protocol | null>(null);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  // See CoinDetailClient - identical bug, identical fix. The effect's closure
+  // pins `p` at `null`, so `!p` inside it was always true.
+  const hasData = useRef(false);
 
-  useEffect(() => {
-    let stop = false;
-    const load = async () => {
-      try {
-        const r = await fetch(`/api/markets/protocol/${encodeURIComponent(type)}/${encodeURIComponent(slug)}`, { cache: "no-store" });
-        const j = (await r.json()) as Protocol;
-        if (stop) return;
-        if (j && j.live) {
-          setP(j);
-          setFailed(false);
-        } else if (!p) {
-          setFailed(true);
-        }
-      } catch {
-        if (!stop && !p) setFailed(true);
-      } finally {
-        if (!stop) setLoading(false);
+  const load = useCallback(async () => {
+    let live = false;
+    try {
+      const r = await fetch(`/api/markets/protocol/${encodeURIComponent(type)}/${encodeURIComponent(slug)}`, { cache: "no-store" });
+      const j = (await r.json()) as Protocol;
+      live = Boolean(j?.live);
+      if (live) {
+        hasData.current = true;
+        setP(j);
+        setFailed(false);
+      } else if (!hasData.current) {
+        setFailed(true);
       }
-    };
-    load();
-    const t = setInterval(() => document.visibilityState === "visible" && load(), 120_000);
-    return () => {
-      stop = true;
-      clearInterval(t);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    } catch {
+      if (!hasData.current) setFailed(true);
+    } finally {
+      setLoading(false);
+    }
+    if (!live) throw new Error("protocol not live");
   }, [type, slug]);
 
+  const { refresh } = useLiveData({ load, intervalMs: 120_000, wakeMinAgeMs: 120_000 });
+
+  const retry = () => {
+    setLoading(true);
+    setFailed(false);
+    refresh();
+  };
+
   if (loading && !p) return <ProtocolSkeleton />;
-  if (failed && !p)
+  if (!p)
     return (
       <div className="py-16 text-center">
-        <p className="text-sm text-amber-300">Couldn&apos;t load this protocol.</p>
-        <Link href="/markets" className="mt-3 inline-block text-sm text-gold-200 hover:underline">← Back to Markets</Link>
+        <p className="text-sm text-amber-300">
+          {failed ? "Couldn't load this protocol." : "No data for this protocol right now."}
+        </p>
+        <div className="mt-3 flex items-center justify-center gap-4">
+          <button onClick={retry} className="text-sm font-semibold text-gold-200 hover:underline">
+            Try again
+          </button>
+          <Link href="/markets" className="text-sm text-zinc-400 hover:text-zinc-200 hover:underline">← Back to Markets</Link>
+        </div>
       </div>
     );
-  if (!p) return <ProtocolSkeleton />;
 
   const kind = KIND[p.type] ?? "Protocol";
   const metricLabel = p.metric === "fees" ? "Fees" : "Volume";
