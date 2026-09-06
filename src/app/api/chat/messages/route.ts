@@ -171,7 +171,12 @@ export async function POST(req: Request) {
         .then((toxic) =>
           toxic
             ? prisma.chatMessage
-                .update({ where: { id: created.id }, data: { status: "hidden" } })
+                // `hiddenBy: "ai"` is the whole point. Without it this write is
+                // byte-identical to a moderator's hide, so a false positive
+                // from the classifier was indistinguishable from a deliberate
+                // staff decision in the queue - and the only way back was
+                // "Restore all hidden", which undid every human hide too.
+                .update({ where: { id: created.id }, data: { status: "hidden", hiddenBy: "ai" } })
                 .then(() => broadcastChatEvent({ event: "message_hidden", payload: { id: created.id } }))
             : null
         )
