@@ -1397,20 +1397,28 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
       {/* legibility gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/25" />
 
-      {/* left / right swap arrows - tap to change the breaking story */}
+      {/* left / right swap arrows - tap to change the breaking story.
+          ⚠️ `hidden sm:grid`, because on a phone they landed ON the headline.
+          Measured at 390px: the hero is `h-56` (224px), the arrows sit at
+          `top-1/2` and are 36px tall, so they span y=94-130 - and the content
+          block is bottom-anchored and about 142px tall on two lines of
+          headline, so it spans y=82-224. The left arrow covered the "B" of the
+          BREAKING badge. Nudging them up would only hold until a three-line
+          headline, so they step aside instead and the dots below take over,
+          which is why those needed a real hit area. */}
       {items.length > 1 && (
         <>
           <button
             onClick={(e) => { e.stopPropagation(); go(-1); }}
             aria-label="Previous breaking story"
-            className="absolute left-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/40 !text-white backdrop-blur-sm transition-all hover:bg-black/60 active:scale-90 sm:h-10 sm:w-10"
+            className="absolute left-2 top-1/2 z-10 hidden h-9 w-9 sm:grid -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/40 !text-white backdrop-blur-sm transition-all hover:bg-black/60 active:scale-90 sm:h-10 sm:w-10"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); go(1); }}
             aria-label="Next breaking story"
-            className="absolute right-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/40 !text-white backdrop-blur-sm transition-all hover:bg-black/60 active:scale-90 sm:h-10 sm:w-10"
+            className="absolute right-2 top-1/2 z-10 hidden h-9 w-9 sm:grid -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/40 !text-white backdrop-blur-sm transition-all hover:bg-black/60 active:scale-90 sm:h-10 sm:w-10"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -1453,7 +1461,11 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
               key={it.id}
               onClick={(e) => { e.stopPropagation(); setIdx(i); }}
               aria-label={`Story ${i + 1}`}
-              className={cn("h-1.5 rounded-full transition-all", i === idx % items.length ? "w-5 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70")}
+              // `tap-target-all` grows only the HIT area, via a pseudo-element, so
+              // the dot still looks like a dot. It has clear space around it, so
+              // both axes are safe here. 6px was the target before - on the one
+              // control a phone has left now that the arrows step aside.
+              className={cn("tap-target-all h-1.5 rounded-full transition-all", i === idx % items.length ? "w-5 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70")}
             />
           ))}
         </div>

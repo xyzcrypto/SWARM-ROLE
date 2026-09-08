@@ -5,6 +5,45 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-08 (89) — News: an arrow on the headline, and a 6px tap target
+
+Same method as the markets pass: rendered `/news` with realistic stubbed
+stories at 1280x1100 and 390x900 and looked at it. Two findings, both
+measurable.
+
+### The breaking hero's arrow sat on the BREAKING badge
+
+At 390px the hero is `h-56` — 224px. The prev/next arrows sit at `top-1/2` and
+are 36px tall, so they span **y=94–130**. The content block is bottom-anchored
+and about 142px tall on a two-line headline, so it spans **y=82–224**. The
+arrows are therefore entirely inside the content, and the left one covered the
+"B" of the BREAKING badge.
+
+They now step aside below `sm` and stay on wider screens, where they fit.
+Nudging them up with a percentage offset was the other option and it would have
+held exactly until the first three-line headline.
+
+### Which left the dots as the only control, at 6px
+
+`h-1.5` — a 6px tap target, against a 44px guideline. They get
+`tap-target-all`, the helper this project already uses on the perp chart's
+timeframe pills: a transparent pseudo-element grows the **hit** area by 8px on
+each side while the dot still looks like a dot.
+
+### Deliberately not changed
+
+The `LIVE INTELLIGENCE` eyebrow stays, even though markets lost its equivalent
+in (87). There it read "Live Data" and duplicated a status line 20px below it
+that could contradict it. Here it reads as a section label, the stateful
+`● LIVE / Cached` indicator is 200px away beside the Saved button, and
+`PageHeader`'s eyebrow is the shared language across `/news` and `/research` —
+so removing it would cost consistency for a weaker reason than markets had.
+
+**Files:** `modules/news/components/NewsClient.tsx`,
+`__tests__/news-design.test.ts`.
+
+---
+
 ## 2026-09-08 (88) — Markets: distance from the high, and a category filter
 
 Two additions the owner asked for. The interesting part of both is what they
