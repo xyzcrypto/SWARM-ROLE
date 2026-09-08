@@ -48,6 +48,9 @@ export async function POST(req: Request) {
       data: { passwordHash, passwordChangedAt: new Date() },
     });
 
+    // Also purge all stored sessions for this user so all devices are revoked immediately
+    await prisma.session?.deleteMany({ where: { userId: me.id } }).catch(() => null);
+
     return ok({ ok: true });
   } catch (err) {
     return handleError(err, "profile:password");

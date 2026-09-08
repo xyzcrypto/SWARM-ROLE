@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -332,6 +333,20 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role ?? "USER";
         token.membership = (user as any).membership ?? "Free";
         (token as any).syncedAt = Date.now();
+        (token as any).pwdAt = Date.now();
+        const sid = randomUUID();
+        (token as any).sid = sid;
+        if ((user as any).id) {
+          await prisma.session
+            ?.create({
+              data: {
+                sessionToken: sid,
+                userId: (user as any).id,
+                expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              },
+            })
+            .catch(() => null);
+        }
       }
       // Refresh from DB when missing, on an explicit `update()` call, or once
       // this TTL has elapsed. Without the TTL, an admin granting Premium (or
@@ -459,7 +474,50 @@ export const authOptions: NextAuthOptions = {
             // signed-out. Every gate fails closed.
             return {};
           }
-          (token as any).pwdAt = dbPwdAt;
+          (token as any).pwdAt = tokenPwdAt ?? dbPwdAt;
+
+          // ── Per-device session revocation check ─────────────────────────
+          // Each device holds a unique `sid`. Single-device logout deletes only
+          // that row from `Session`, leaving other devices (laptop, phone) alive.
+          // If this token carries a `sid` that no longer exists in `Session`, the
+          // session was revoked: return an empty token to fail closed.
+          const sid = (token as any).sid;
+          if (sid) {
+            let sessionValid = true;
+            try {
+              if (prisma.session) {
+                const active = await prisma.session.findUnique({
+                  where: { sessionToken: sid },
+                  select: { id: true },
+                });
+                if (!active) {
+                  sessionValid = false;
+                }
+              }
+            } catch {
+              // Fail open on DB blip or missing table: a transient DB error
+              // must never falsely log members out.
+              sessionValid = true;
+            }
+            if (!sessionValid) {
+              return {};
+            }
+          } else if (dbUser.id) {
+            // Existing token from before per-session tracking was deployed:
+            // stamp a new `sid` now so subsequent single-device logouts work,
+            // ensuring deploying this change signs nobody out.
+            const newSid = randomUUID();
+            (token as any).sid = newSid;
+            await prisma.session
+              ?.create({
+                data: {
+                  sessionToken: newSid,
+                  userId: dbUser.id,
+                  expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                },
+              })
+              .catch(() => null);
+          }
 
           token.uid = dbUser.id;
           token.role = dbUser.role;
@@ -552,6 +610,22 @@ export const authOptions: NextAuthOptions = {
       await prisma.user
         .update({ where: { id: user.id }, data: { provider: account.provider } })
         .catch(() => null);
+    },
+    // Invalidate session on explicit logout: remove this specific device's session
+    // from the DB so any copied/stolen JWT from this device is killed on its next refresh.
+    //
+    // ⚠️ Crucially: do NOT bump `passwordChangedAt` here.
+    // Bumping `passwordChangedAt` broke the invariant that it is written ONLY on
+    // password reset/change, and it caused single-device logouts (e.g. on a phone)
+    // to silently and randomly sign out all other devices (laptop, tablet, etc.).
+    async signOut(message) {
+      const token = (message as any)?.token;
+      const sid = token?.sid ?? token?.sessionId;
+      if (sid) {
+        await prisma.session
+          ?.deleteMany({ where: { sessionToken: sid } })
+          .catch(() => null);
+      }
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
