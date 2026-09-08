@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 //   no deviceMemory (FF/Safari)    ... 163
 //
 // Same site, same person, a different answer per browser.
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const layout = readFileSync("src/app/layout.tsx", "utf8");
 const css = readFileSync("src/app/globals.css", "utf8");
 const flags = strip(readFileSync("src/shared/hooks/useClientFlag.ts", "utf8"));

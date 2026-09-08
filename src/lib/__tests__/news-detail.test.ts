@@ -18,7 +18,7 @@ const social = readFileSync("src/modules/community/components/NewsSocial.tsx", "
 const fetchLib = readFileSync("src/modules/news/lib/news-fetch.ts", "utf8");
 const readPage = readFileSync("src/app/news/read/page.tsx", "utf8");
 const saved = readFileSync("src/app/api/news/saved/route.ts", "utf8");
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const N = strip(client);
 const S = strip(social);
 

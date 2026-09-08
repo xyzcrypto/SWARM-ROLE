@@ -34,7 +34,7 @@ const widget = readFileSync("src/modules/ai/components/XyzAiWidget.tsx", "utf8")
 const route = readFileSync("src/app/api/ai/assistant/route.ts", "utf8");
 const speech = readFileSync("src/shared/hooks/useSpeechInput.ts", "utf8");
 const conc = readFileSync("src/lib/ai/concurrency.ts", "utf8");
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const W = strip(widget);
 const R = strip(route);
 const S = strip(speech);

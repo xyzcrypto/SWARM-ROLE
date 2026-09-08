@@ -5,6 +5,58 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-08 (89) — Community: the jump that moved the page, and a strip that ate code
+
+### "Tag pe page upar chala jata hai"
+
+Tapping a reply quote, or the pinned banner, called:
+
+```ts
+el.scrollIntoView({ behavior: "smooth", block: "center" })
+```
+
+`scrollIntoView` walks the **whole ancestor chain** and scrolls every scrollable
+box it finds on the way up, and `block: "center"` always scrolls rather than
+doing the minimum. The room is meant to be a fixed frame - `main` is
+`h-[100svh] overflow-hidden` and only the message list scrolls - but
+"overflow-hidden ancestors" is not the same as "nothing above can move".
+
+It now scrolls the list directly, which cannot move anything outside it, with
+the arithmetic that centres the message the way `center` intended.
+
+### Picking a mention closed the keyboard
+
+`insertMention` replaced the token and stopped, so focus stayed on the
+suggestion button: the caret was lost, and on a phone the keyboard closed the
+moment you picked someone. Focus returns to the composer with the caret at the
+end, inside a frame so the value is committed first.
+
+### ⚠️ The test helper was eating 5KB of the file it checked
+
+Found while writing the test for the above: an assertion for `ref={composerRef}`
+failed against a file that plainly contained it.
+
+Every one of these source-scanning tests strips comments before asserting, so a
+test cannot pass on its own prose. The stripper opened a block comment at any
+`/*` — including the one inside `accept="image/*"`, whose nearest `*/` is **5179
+characters later**. So `strip()` silently deleted the entire photo-upload and
+composer region of `ChatClient` before any assertion ran.
+
+The same hole existed in `MessageClient` (read by three DM test suites),
+`markets/page.tsx`, `PostEditor` and four other files.
+
+**Nothing was actually passing vacuously** — the full suite still passes with the
+stripper fixed, so no `not.toMatch` had been sitting inside a hole. That is luck
+rather than design, and it is the second time this session a source-scanning
+test has been caught checking less than it claims. `/*` now only opens a comment
+when preceded by whitespace or `{`, which is where a real one lives and where
+`image/*` never is. Fixed in all 23 files that carried the pattern.
+
+**Files:** `modules/community/components/ChatClient.tsx`,
+`__tests__/chat-jump.test.ts`, and the `strip()` in 23 test files.
+
+---
+
 ## 2026-09-08 (88) — Markets: distance from the high, and a category filter
 
 Two additions the owner asked for. The interesting part of both is what they

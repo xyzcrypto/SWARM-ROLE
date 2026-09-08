@@ -8,7 +8,7 @@ import { existsSync, readFileSync } from "node:fs";
 //
 // Real source paths on purpose: `src/components/*` and `src/lib/*` are
 // re-export shims after #203.
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const read = (p: string) => strip(readFileSync(p, "utf8"));
 const chart = read("src/modules/markets/components/PerpChart.tsx");
 const coin = read("src/modules/markets/components/CoinDetailClient.tsx");

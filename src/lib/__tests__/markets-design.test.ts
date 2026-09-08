@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 //
 // Real source paths on purpose: `src/components/*` and `src/lib/*` are
 // re-export shims after #203.
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const M = strip(readFileSync("src/modules/markets/components/MarketsClient.tsx", "utf8"));
 const page = strip(readFileSync("src/app/markets/page.tsx", "utf8"));
 const header = strip(readFileSync("src/shared/components/PageHeader.tsx", "utf8"));

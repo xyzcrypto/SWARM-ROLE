@@ -13,7 +13,7 @@ import { speechErrorMessage } from "@/shared/hooks/useSpeechInput";
 //
 // Real source paths on purpose: `src/components/*` and `src/lib/*` are
 // re-export shims after #203.
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const read = (p: string) => strip(readFileSync(p, "utf8"));
 const mic = read("src/shared/components/MicButton.tsx");
 const dm = read("src/modules/messages/components/MessagesClient.tsx");

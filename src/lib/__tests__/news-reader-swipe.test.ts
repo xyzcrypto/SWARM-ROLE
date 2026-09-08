@@ -26,7 +26,7 @@ import { readFileSync } from "node:fs";
 // re-export shims after #203.
 const news = readFileSync("src/modules/news/components/NewsClient.tsx", "utf8");
 const css = readFileSync("src/app/globals.css", "utf8");
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const N = strip(news);
 
 describe("the open story cannot change under the reader", () => {

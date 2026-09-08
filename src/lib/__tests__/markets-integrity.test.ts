@@ -10,7 +10,7 @@ const hub = readFileSync("src/modules/markets/components/MarketsClient.tsx", "ut
 const perp = readFileSync("src/app/api/markets/perp/route.ts", "utf8");
 const coinRoute = readFileSync("src/app/api/markets/coin/[id]/route.ts", "utf8");
 const coinPage = readFileSync("src/app/markets/[id]/page.tsx", "utf8");
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const H = strip(hub);
 
 describe("a failed feed cannot blank the page", () => {

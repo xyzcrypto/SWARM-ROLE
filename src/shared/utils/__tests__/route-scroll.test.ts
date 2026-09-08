@@ -34,7 +34,7 @@ const route = readFileSync("src/shared/components/RouteScroll.tsx", "utf8");
 const lock = readFileSync("src/shared/hooks/useScrollLock.ts", "utf8");
 const smooth = readFileSync("src/shared/components/SmoothScroll.tsx", "utf8");
 const layout = readFileSync("src/app/layout.tsx", "utf8");
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const R = strip(route);
 
 describe("a forward navigation lands at the top", () => {

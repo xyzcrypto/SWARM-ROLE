@@ -10,7 +10,7 @@ import { readFileSync } from "node:fs";
 //
 // Real source paths on purpose: `src/components/*` and `src/lib/*` are
 // re-export shims after #203.
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const read = (p: string) => strip(readFileSync(p, "utf8"));
 const send = read("src/app/api/chat/messages/route.ts");
 const mod = read("src/app/api/chat/messages/moderate/route.ts");

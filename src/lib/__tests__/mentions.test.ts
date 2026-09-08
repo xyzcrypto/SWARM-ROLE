@@ -83,7 +83,7 @@ describe("mentions notify, on both surfaces", () => {
   const notifications = readFileSync("src/modules/notifications/lib/notifications.ts", "utf8");
   const chat = readFileSync("src/app/api/chat/messages/route.ts", "utf8");
   const dm = readFileSync("src/app/api/dm/[id]/route.ts", "utf8");
-  const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 
   it("has a real notification type, not the dead one", () => {
     expect(strip(notifications)).toMatch(/NotificationType = [^;]*"mention"/);
