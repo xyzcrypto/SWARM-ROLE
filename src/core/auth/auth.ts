@@ -21,6 +21,18 @@ function isMissingSchemaError(err: unknown): boolean {
   return typeof err === "object" && err !== null && "code" in err && (err.code === "P2021" || err.code === "P2022");
 }
 
+interface LoginUser {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: string;
+  membership: string;
+  passwordHash: string | null;
+  failedLoginCount?: number | null;
+  lockedUntil?: Date | null;
+}
+
 // A fixed, never-matched bcrypt hash used purely to normalize response time
 // (see `authorize()` below) - comparing against it costs the same as a real
 // bcrypt.compare, so "no such account" / "account locked" / "wrong password"
@@ -221,15 +233,37 @@ export const authOptions: NextAuthOptions = {
         if (!ipLimit.success) return null;
         const { success } = await rateLimit("login", email);
         if (!success) return null;
-        // Explicit select keeps the login path independent of the lockout
-        // columns, so auth keeps working even before that migration is applied.
-        const user = await prisma.user.findUnique({
-          where: { email },
-          select: {
-            id: true, passwordHash: true, name: true, email: true,
-            image: true, role: true, membership: true,
-          },
-        });
+        // Consolidate user profile and lockout counters into a single query to eliminate
+        // redundant sequential round-trips on every login attempt.
+        let user: LoginUser | null = null;
+        try {
+          user = await prisma.user.findUnique({
+            where: { email },
+            select: {
+              id: true, passwordHash: true, name: true, email: true,
+              image: true, role: true, membership: true,
+              failedLoginCount: true, lockedUntil: true,
+            },
+          });
+        } catch (err) {
+          // Fallback only if lockout columns are not in the DB schema yet (P2021/P2022)
+          if (isMissingSchemaError(err)) {
+            user = await prisma.user
+              .findUnique({
+                where: { email },
+                select: {
+                  id: true, passwordHash: true, name: true, email: true,
+                  image: true, role: true, membership: true,
+                },
+              })
+              .catch(() => null);
+          } else {
+            // Transient or unhandled DB error: log it, but do NOT return null early.
+            // Leaving `user = null` ensures execution falls through to the dummy
+            // bcrypt.compare below, preventing timing side-channel leaks.
+            console.error("[auth:login] transient database error during lookup", err);
+          }
+        }
         if (!user || !user.passwordHash) {
           // Normalize timing with the real-account path below (dummy compare
           // costs the same ~80-150ms as a real bcrypt.compare) so a
@@ -239,15 +273,10 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // Brute-force lockout. Read/write the counters in guarded queries so a
-        // not-yet-migrated DB (no lockout columns) simply skips the feature
-        // rather than blocking sign-in.
+        // Brute-force lockout check from the already fetched user record.
         const MAX_FAILED = 5;
         const LOCK_MS = 15 * 60 * 1000;
-        const lock = await prisma.user
-          .findUnique({ where: { id: user.id }, select: { failedLoginCount: true, lockedUntil: true } })
-          .catch(() => null);
-        if (lock?.lockedUntil && lock.lockedUntil.getTime() > Date.now()) {
+        if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
           // Same normalization for the locked-account fast path.
           await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
           return null;
@@ -280,7 +309,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
         // Success: clear any accumulated failure state.
-        if (lock && (lock.failedLoginCount || lock.lockedUntil)) {
+        if (user.failedLoginCount || user.lockedUntil) {
           await prisma.user
             .update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null } })
             .catch(() => null);

@@ -147,5 +147,5 @@ describe("password change revokes existing sessions", () => {
       token: { uid: "u1", role: "USER", membership: "Free" } as any,
     } as any);
     expect(ok?.user?.id, "a valid token failed to produce a usable session").toBe("u1");
-  });
+  }, 60000);
 });

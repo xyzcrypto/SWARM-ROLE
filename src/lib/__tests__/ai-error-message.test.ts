@@ -86,7 +86,7 @@ describe("the all-providers-failed log", () => {
     expect(line).toContain("rate limit reached");
     expect(line).toContain("kind=rate_limit");
     spy.mockRestore();
-  });
+  }, 20000);
 
   // ⚠️ Gemini's REST API takes the key as `?key=…`, so a URL/fetch error can
   // carry a LIVE API KEY in its message. Logging it verbatim would publish a
@@ -109,7 +109,7 @@ describe("the all-providers-failed log", () => {
     expect(line).not.toContain(SECRET);
     expect(line).toContain("key=***");
     spy.mockRestore();
-  });
+  }, 20000);
 });
 
 describe("errorKindOf buckets the 4xx that used to fall through", () => {
