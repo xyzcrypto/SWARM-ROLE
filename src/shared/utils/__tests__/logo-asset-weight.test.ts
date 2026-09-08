@@ -28,7 +28,7 @@ const sw = readFileSync("public/sw.js", "utf8");
 const offline = readFileSync("public/offline.html", "utf8");
 
 const strip = (s: string) =>
-  s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ").replace(/<!--[\s\S]*?-->/g, " ");
+  s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ").replace(/<!--[\s\S]*?-->/g, " ");
 
 const kb = (p: string) => statSync(p).size / 1024;
 

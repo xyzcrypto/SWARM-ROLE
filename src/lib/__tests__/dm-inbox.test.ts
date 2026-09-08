@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 const inbox = readFileSync("src/app/api/dm/route.ts", "utf8");
 const unread = readFileSync("src/app/api/dm/unread/route.ts", "utf8");
 const client = readFileSync("src/modules/messages/components/MessagesClient.tsx", "utf8");
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const I = strip(inbox);
 const U = strip(unread);
 const C = strip(client);

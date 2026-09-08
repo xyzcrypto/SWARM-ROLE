@@ -16,7 +16,7 @@ import { readFileSync } from "node:fs";
 // verifying nothing.
 const palette = readFileSync("src/shared/components/CommandPalette.tsx", "utf8");
 const api = readFileSync("src/app/api/markets/search/route.ts", "utf8");
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const src = strip(palette);
 
 describe("a search result lands on the thing you clicked", () => {

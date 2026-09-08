@@ -81,7 +81,7 @@ describe("the markets pollers are on the shared loop", () => {
   //
   // Real source paths on purpose: `src/components/*` and `src/lib/*` are
   // re-export shims after #203, so reading one matches nothing and passes.
-  const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+  const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
   const sites: Record<string, string> = {
     "markets hub (x6 feeds)": "src/modules/markets/components/MarketsClient.tsx",
     "perp chart (x2 per page)": "src/modules/markets/components/PerpChart.tsx",

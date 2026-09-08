@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 //
 // Two separate causes, both of which make the site behave differently from one
 // device to the next for reasons nothing on the page explains.
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const read = (p: string) => strip(readFileSync(p, "utf8"));
 const hero = read("src/components/Hero.tsx");
 const css = readFileSync("src/app/globals.css", "utf8");

@@ -29,7 +29,7 @@ const thread = readFileSync("src/app/api/dm/[id]/route.ts", "utf8");
 const client = readFileSync("src/modules/messages/components/MessagesClient.tsx", "utf8");
 const schema = readFileSync("prisma/schema.prisma", "utf8");
 const migration = readFileSync("prisma/migrations/35_dm_delete_for_me/migration.sql", "utf8");
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const R = strip(route);
 const T = strip(thread);
 const C = strip(client);

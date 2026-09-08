@@ -14,7 +14,7 @@ import { readFileSync } from "node:fs";
 // re-export shims after #203.
 const chat = readFileSync("src/modules/community/components/ChatClient.tsx", "utf8");
 const page = readFileSync("src/app/community/page.tsx", "utf8");
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const C = strip(chat);
 
 describe("a failed delete does not rewind the room", () => {

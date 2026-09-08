@@ -1128,7 +1128,23 @@ export function ChatClient({
     for (let attempt = 0; attempt < 6; attempt++) {
       const el = document.getElementById(`msg-${id}`);
       if (el) {
-        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        // ⚠️ NOT `el.scrollIntoView({ block: "center" })`.
+        //
+        // `scrollIntoView` walks the whole ancestor chain and scrolls every
+        // scrollable box it finds on the way up, and `center` means it always
+        // scrolls rather than doing the minimum. The room is meant to be a
+        // fixed frame - `main` is `h-[100svh] overflow-hidden` and only this
+        // list scrolls - but "overflow-hidden ancestors" is not the same as
+        // "nothing above can move", and the reported symptom is the page
+        // jumping upward when you tap a reply quote or the pinned banner.
+        //
+        // Scrolling the list directly cannot move anything outside it. The
+        // maths centres the message in the list the way `center` intended.
+        const list = listRef.current;
+        if (list) {
+          const top = el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
+          list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+        }
         el.classList.add("ring-1", "ring-gold-500/50");
         setTimeout(() => el.classList.remove("ring-1", "ring-gold-500/50"), 1200);
         return;
@@ -1210,8 +1226,21 @@ export function ChatClient({
           )
           .slice(0, 6)
       : [];
-  const insertMention = (username: string) =>
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+  const insertMention = (username: string) => {
     setBody((b) => b.replace(/@[a-zA-Z0-9_]*$/, `@${username} `).slice(0, MAX_LENGTH));
+    // Focus goes back to the composer, caret at the end. Without this the
+    // focus stayed on the suggestion button - so on a phone the keyboard
+    // closed the moment you picked someone, and the next thing you typed had
+    // nowhere to go. In a rAF because the value has to be committed first, or
+    // the caret lands at the old length.
+    requestAnimationFrame(() => {
+      const el = composerRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  };
 
   // dvh (where supported) tracks the *visible* viewport, so the composer
   // stays above the mobile keyboard instead of being pushed off-screen.
@@ -1810,6 +1839,7 @@ export function ChatClient({
               )}
               <div className="relative flex-1">
                 <textarea
+                  ref={composerRef}
                   value={body}
                   onChange={(e) => {
                     setBody(e.target.value.slice(0, MAX_LENGTH));

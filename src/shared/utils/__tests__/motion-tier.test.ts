@@ -21,7 +21,7 @@ const reveal = readFileSync("src/shared/components/Reveal.tsx", "utf8");
 
 /** Comments out. Every file here documents itself heavily enough that leaving
  *  them in makes a test pass on its own prose - which is worse than no test. */
-const strip = (s: string) => s.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/^\s*\/\/.*$/gm, " ");
+const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 
 /** Every flat `selector { body }` rule in the stylesheet.
  *
