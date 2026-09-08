@@ -339,15 +339,22 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
         <SkeletonRows />
       ) : rows.length ? (
         <div className="-mx-2 overflow-x-auto md:mx-0 md:max-h-[65vh] md:overflow-auto">
-          <table className="w-full min-w-[720px] text-sm">
+          {/* ⚠️ `min-w-[720px]` was unconditional, and it defeated the responsive
+                column hiding right below it. Market Cap, Volume and the sparkline
+                were correctly dropped at small widths - and then the table forced
+                itself to 720px regardless, so a 390px phone saw the first 390px of
+                it: rank and name. The price, the one number this page exists for,
+                sat off-screen to the right with nothing indicating it was there.
+                The min-width now starts where the columns it is sized for do. */}
+            <table className="w-full text-sm md:min-w-[720px]">
             <thead className="sticky top-0 z-10">
               <tr className="border-b border-white/10 bg-ink-950 text-[11px] uppercase tracking-wide text-zinc-500">
                 <SortTh label="#" col="rank" sort={sort} onSort={onSort} align="left" />
                 <SortTh label="Coin" col="name" sort={sort} onSort={onSort} align="left" />
                 <SortTh label="Price" col="price" sort={sort} onSort={onSort} />
-                <SortTh label="1h" col="change1h" sort={sort} onSort={onSort} />
+                <SortTh label="1h" col="change1h" sort={sort} onSort={onSort} className="hidden sm:table-cell" />
                 <SortTh label="24h" col="change24h" sort={sort} onSort={onSort} />
-                <SortTh label="7d" col="change7d" sort={sort} onSort={onSort} />
+                <SortTh label="7d" col="change7d" sort={sort} onSort={onSort} className="hidden sm:table-cell" />
                 <SortTh label="Market Cap" col="marketCap" sort={sort} onSort={onSort} className="hidden md:table-cell" />
                 <SortTh label="Volume (24h)" col="volume24h" sort={sort} onSort={onSort} className="hidden lg:table-cell" />
                 <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">Last 7d</th>
@@ -379,9 +386,9 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
                     )}
                   </td>
                   <td className={cn("mono px-2 py-2.5 text-right font-medium text-zinc-100", flash.get(r.id) === "up" && "flash-up", flash.get(r.id) === "down" && "flash-down")}>{coinPrice(r.price)}</td>
-                  <ChangeCell v={r.change1h} />
+                  <ChangeCell v={r.change1h} className="hidden sm:table-cell" />
                   <ChangeCell v={r.change24h} />
-                  <ChangeCell v={r.change7d} />
+                  <ChangeCell v={r.change7d} className="hidden sm:table-cell" />
                   <td className="mono hidden px-2 py-2.5 text-right text-zinc-300 md:table-cell">{compactUsd(r.marketCap)}</td>
                   <td className="mono hidden px-2 py-2.5 text-right text-zinc-400 lg:table-cell">{compactUsd(r.volume24h)}</td>
                   <td className="hidden px-2 py-2.5 sm:table-cell">
@@ -441,9 +448,9 @@ function UpdatedPill({ ts }: { ts?: number }) {
   );
 }
 
-function ChangeCell({ v }: { v: number }) {
+function ChangeCell({ v, className }: { v: number; className?: string }) {
   return (
-    <td className={cn("mono px-2 py-2.5 text-right text-[13px]", v >= 0 ? "text-mint-400" : "text-red-400")}>{pct(v, 1)}</td>
+    <td className={cn("mono px-2 py-2.5 text-right text-[13px]", v >= 0 ? "text-mint-400" : "text-red-400", className)}>{pct(v, 1)}</td>
   );
 }
 

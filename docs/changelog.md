@@ -62,6 +62,24 @@ the difference stays and says "Cached snapshot" or "Live · 2 feeds stale".
 `PageHeader.eyebrow` becomes optional so that is a choice rather than a type
 error; every other page still passes one.
 
+### The coins table showed no prices on a phone
+
+The worst thing on the page, and it was one class.
+
+The table already dropped Market Cap, Volume and the sparkline at small widths -
+someone did the right thing - and then `min-w-[720px]` forced it to 720px
+regardless. On a 390px phone that renders the first 390px of the table: **rank
+and coin name**. The price, the one number this page exists for, sat off-screen
+to the right with nothing indicating it was there.
+
+The min-width now starts at `md`, where the columns it was sized for start, and
+`1h` / `7d` join the columns that wait for a wider screen. A phone now shows
+rank, coin, **price** and **24h** with no horizontal scroll and fifteen coins on
+one screen.
+
+`ChangeCell` gained a `className` so a cell can be hidden with its header -
+hiding one without the other shifts every column after it.
+
 ### Deliberately not changed
 
 The tab bar wraps to three rows on a phone (~115px). The news page's

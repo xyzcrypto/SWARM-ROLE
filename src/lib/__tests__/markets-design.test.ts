@@ -81,3 +81,35 @@ describe("the page makes one claim about freshness, not two", () => {
     expect(header).toMatch(/\{eyebrow && \(/);
   });
 });
+
+describe("the coins table shows prices on a phone", () => {
+  // The worst thing on the page, and it was one class. The table already hid
+  // Market Cap, Volume and the sparkline at small widths - and then forced
+  // itself 720px wide anyway, so a 390px phone rendered the first 390px of it:
+  // rank and name. The PRICE, the one number this page exists for, sat
+  // off-screen to the right with nothing indicating it was there.
+  it("does not force a width the screen cannot show", () => {
+    expect(M).toMatch(/<table className="w-full text-sm md:min-w-\[720px\]">/);
+    expect(M).not.toMatch(/className="w-full min-w-\[720px\] text-sm"/);
+  });
+
+  it("keeps price and 24h at every width", () => {
+    // These two are the whole point of the table; they must never be the
+    // columns that get dropped.
+    expect(M).toMatch(/<SortTh label="Price" col="price" sort=\{sort\} onSort=\{onSort\} \/>/);
+    expect(M).toMatch(/<SortTh label="24h" col="change24h" sort=\{sort\} onSort=\{onSort\} \/>/);
+    expect(M).toMatch(/<ChangeCell v=\{r\.change24h\} \/>/);
+  });
+
+  it("drops 1h and 7d instead, and drops the cell with its header", () => {
+    // A hidden header with a visible cell shifts every column after it.
+    expect(M).toMatch(/label="1h"[^/]*className="hidden sm:table-cell"/);
+    expect(M).toMatch(/label="7d"[^/]*className="hidden sm:table-cell"/);
+    expect(M).toMatch(/<ChangeCell v=\{r\.change1h\} className="hidden sm:table-cell" \/>/);
+    expect(M).toMatch(/<ChangeCell v=\{r\.change7d\} className="hidden sm:table-cell" \/>/);
+  });
+
+  it("ChangeCell can be hidden at a breakpoint at all", () => {
+    expect(M).toMatch(/function ChangeCell\(\{ v, className \}/);
+  });
+});
