@@ -8,16 +8,23 @@ import { cn } from "@/lib/utils";
 // staggered entrance and type tokens the homepage uses. `title` accepts markup
 // so a page can highlight part of it with <span className="text-shine">.
 export function PageHeader({ eyebrow, title, subtitle, className }: {
-  eyebrow: ReactNode;
+  /**
+   * Optional. A page whose own content already carries a live status line
+   * (markets) would otherwise show two claims about the same thing, stacked -
+   * and the static one is the one that can be wrong.
+   */
+  eyebrow?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
   className?: string;
 }) {
   return (
     <div className={cn("mx-auto max-w-3xl text-center", className)}>
-      <Reveal variant="fade">
-        <AnimatedEyebrow>{eyebrow}</AnimatedEyebrow>
-      </Reveal>
+      {eyebrow && (
+        <Reveal variant="fade">
+          <AnimatedEyebrow>{eyebrow}</AnimatedEyebrow>
+        </Reveal>
+      )}
       <Reveal variant="blur" delay={1}>
         <h1 className="mt-4 font-display text-display-lg font-semibold tracking-tight text-zinc-50">
           {title}
