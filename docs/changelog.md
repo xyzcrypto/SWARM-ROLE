@@ -5,6 +5,68 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-08 (88) — Markets: distance from the high, and a category filter
+
+Two additions the owner asked for. The interesting part of both is what they
+cost, because `cost-check` is explicit that a new external fetch is a cost
+decision and this project has already had a real Vercel overage.
+
+### "How far below its all-time high" — free
+
+`/coins/markets` returns `ath` and `ath_change_percentage` on **every row**, and
+both were already in the response being parsed. They were dropped at the
+`.map()`. So a sortable **From ATH** column costs **zero new requests** — the
+coin detail route has been reading the same two fields all along.
+
+Sortable on purpose: "which of these is furthest from its high" is the question
+the column exists to answer, and it is useless without ordering. Added to the
+search route too, so a searched coin's row carries the same columns as a listed
+one.
+
+**Not painted red.** Every coin is at or below its high, so an all-red column
+carries no signal — the rule is red for negative *movement*, and this is a
+*distance*. A coin sitting **at** its high is the one thing worth colouring, so
+that is the only value that gets mint.
+
+### Category filter — one request, only if you use it
+
+CoinGecko does not carry per-coin categories in `/coins/markets`, so this needs
+a request. Three options, and the cost is the whole reason for the new route:
+
+1. **A hand-written coin→category map.** No requests, but wrong the moment a new
+   coin enters the top 250 — and "with accuracy" was the ask.
+2. **Fetch every category up front.** Accurate, but eight requests per
+   revalidation for readers who never touch the filter, which is most of them.
+3. **Fetch one category, only when a chip is pressed.** ✅
+
+`/api/markets/category` returns **ids only** — the client filters the 250 rows
+it already has, so the table never renders from a second source that could
+disagree with the first. Its window is 200s, matching `/api/markets/coins`: a
+shorter one would add regenerations without making the filtered table any
+fresher than the rows it filters.
+
+Measured in a browser: **0 category requests** until a chip is pressed, then
+**exactly 1**; pressing Meme leaves only Dogecoin, and All restores every row.
+
+The id is allow-listed rather than sanitised, because it is interpolated into an
+upstream URL and the set the UI can ask for is closed. `MARKET_CATEGORIES` lives
+in the shared markets lib rather than the route, since a client importing a
+route module would drag `NextResponse` into the browser bundle — the class of
+mistake `env.ts` gained `server-only` to make impossible.
+
+An empty result says "No top-250 coin is in this category right now" rather than
+showing a blank table that looks broken.
+
+⚠️ **Route table 137 → 138** — one new dynamic route, `/api/markets/category`.
+That is the only change; nothing moved between static and dynamic.
+
+**Files:** `api/markets/category/route.ts` (new), `api/markets/coins/route.ts`,
+`api/markets/search/route.ts`, `modules/markets/lib/markets.ts`,
+`modules/markets/components/MarketsClient.tsx`,
+`__tests__/markets-design.test.ts`.
+
+---
+
 ## 2026-09-06 (87) — Markets, design pass 1
 
 No screenshots came back, so this was done by rendering `/markets` with

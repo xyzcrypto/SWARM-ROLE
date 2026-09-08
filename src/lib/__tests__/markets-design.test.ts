@@ -113,3 +113,85 @@ describe("the coins table shows prices on a phone", () => {
     expect(M).toMatch(/function ChangeCell\(\{ v, className \}/);
   });
 });
+
+describe("how far below its all-time high", () => {
+  const route = strip(readFileSync("src/app/api/markets/coins/route.ts", "utf8"));
+  const search = strip(readFileSync("src/app/api/markets/search/route.ts", "utf8"));
+  const lib = strip(readFileSync("src/modules/markets/lib/markets.ts", "utf8"));
+
+  it("costs no extra request", () => {
+    // `/coins/markets` returns `ath` and `ath_change_percentage` on every row.
+    // Both were already in the response being parsed and were dropped at the
+    // `.map()`, so this is free - which is why it could be added at all on a
+    // plan that has already had a usage overage.
+    expect(route).toMatch(/ath: Number\(d\.ath\) \|\| 0/);
+    expect(route).toMatch(/athChange: Number\(d\.ath_change_percentage\) \|\| 0/);
+    // No new upstream call was introduced alongside it.
+    expect((route.match(/https:\/\/api\.coingecko\.com/g) ?? []).length).toBeLessThanOrEqual(2);
+  });
+
+  it("a searched coin carries the same columns as a listed one", () => {
+    expect(search).toMatch(/ath: Number\(d\.ath\) \|\| 0/);
+    expect(search).toMatch(/athChange: Number\(d\.ath_change_percentage\) \|\| 0/);
+  });
+
+  it("is sortable", () => {
+    // "Which of these is furthest from its high" is the question the column
+    // exists to answer, and it is useless without ordering.
+    expect(lib).toMatch(/\| "athChange";/);
+    expect(M).toMatch(/label="From ATH" col="athChange"/);
+  });
+
+  it("is not painted red", () => {
+    // Every coin is at or below its high, so an all-red column carries no
+    // signal - the rule is red for negative MOVEMENT, and this is a distance.
+    // A coin AT its high is the one thing worth colouring.
+    expect(M).toMatch(/r\.athChange >= 0 \? "text-mint-400" : "text-zinc-400"/);
+  });
+});
+
+describe("category filter", () => {
+  const route = strip(readFileSync("src/app/api/markets/category/route.ts", "utf8"));
+  const lib = strip(readFileSync("src/modules/markets/lib/markets.ts", "utf8"));
+
+  it("costs nothing until someone actually filters", () => {
+    // The whole reason it is a separate route rather than part of the coins
+    // payload: readers who never touch a chip make no request at all. Verified
+    // in a browser too - 0 requests until a chip is pressed, then exactly 1.
+    expect(M).toMatch(/useEffect\(\(\) => \{\s*if \(!catFilter\) return;/);
+  });
+
+  it("only asks for categories it offers", () => {
+    // The id is interpolated into an upstream URL, so the accepted set is
+    // closed rather than sanitised.
+    expect(route).toMatch(/const ALLOWED = new Set<string>\(MARKET_CATEGORIES\.map\(\(c\) => c\.id\)\)/);
+    expect(route).toMatch(/if \(!ALLOWED\.has\(id\)\)/);
+  });
+
+  it("keeps the shared constant out of the route", () => {
+    // A client importing a route module drags `NextResponse` into the browser
+    // bundle - the class of mistake `env.ts` gained `server-only` to prevent.
+    expect(lib).toMatch(/export const MARKET_CATEGORIES = \[/);
+    expect(M).not.toMatch(/from "@\/app\/api\//);
+  });
+
+  it("matches the coins window it filters", () => {
+    // A shorter window here would add regenerations without making the filtered
+    // table any fresher than the rows it filters.
+    expect(route).toMatch(/export const revalidate = 200;/);
+    expect(route).toMatch(/s-maxage=200/);
+  });
+
+  it("only trusts a payload the route vouches for", () => {
+    expect(M).toMatch(/if \(j\?\.live && Array\.isArray\(j\.ids\)\)/);
+  });
+
+  it("says so when a category has nothing in the top 250", () => {
+    // Otherwise an empty table looks broken rather than correct.
+    expect(M).toMatch(/No top-250 coin is in this category right now\./);
+  });
+
+  it("aborts a filter the reader moved past", () => {
+    expect(M).toMatch(/return \(\) => \{ active = false; ctrl\.abort\(\); \};/);
+  });
+});

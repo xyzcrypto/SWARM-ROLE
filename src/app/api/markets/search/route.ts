@@ -46,6 +46,10 @@ export async function GET(req: Request) {
       change7d: Number(d.price_change_percentage_7d_in_currency) || 0,
       marketCap: Number(d.market_cap) || 0,
       volume24h: Number(d.total_volume) || 0,
+      // Same two free fields as the main coins route, so a searched coin's row
+      // carries the same columns as a listed one.
+      ath: Number(d.ath) || 0,
+      athChange: Number(d.ath_change_percentage) || 0,
       sparkline: Array.isArray((d.sparkline_in_7d as { price?: unknown })?.price)
         ? ((d.sparkline_in_7d as { price: unknown[] }).price as unknown[]).filter((x): x is number => Number.isFinite(x as number)) as number[]
         : [],

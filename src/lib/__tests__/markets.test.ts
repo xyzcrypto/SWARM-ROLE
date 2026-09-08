@@ -96,7 +96,7 @@ describe("toGwei", () => {
 describe("sortCoins", () => {
   const mk = (rank: number, name: string, price: number, change24h: number): CoinRow => ({
     id: name.toLowerCase(), rank, name, symbol: name.slice(0, 3).toUpperCase(), image: null, price,
-    change1h: 0, change24h, change7d: 0, marketCap: 1000 - rank, volume24h: price * 10, sparkline: [],
+    change1h: 0, change24h, change7d: 0, marketCap: 1000 - rank, volume24h: price * 10, ath: price * 2, athChange: -50, sparkline: [],
   });
   const rows = [mk(1, "Bitcoin", 67000, 2.1), mk(2, "Ethereum", 3400, -0.4), mk(3, "Solana", 150, 8.2)];
 
