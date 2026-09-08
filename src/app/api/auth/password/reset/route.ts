@@ -27,14 +27,17 @@ export async function POST(req: Request) {
     const result = await verifyCode(email, "reset", code);
     if (!result.ok) return fail(result.error, 400);
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true },
+    });
     if (!user) return fail("Account not found.", 404);
 
     const passwordHash = await bcrypt.hash(password, 12);
     // Clear brute-force lockout state atomically with the password change: a user
     // who locked their account by guessing before resetting must be able to sign in
     // with the new password immediately, not wait out the lock window.
-    await prisma.user.update({
+    const updated = await prisma.user.update({
       where: { email },
       // `passwordChangedAt` revokes every session issued before this moment - see
       // the `pwdAt` check in core/auth/auth.ts. Without it, resetting the password
@@ -42,7 +45,13 @@ export async function POST(req: Request) {
       // lifetime, so the one action a user takes specifically to lock an intruder
       // out did not do that.
       data: { passwordHash, failedLoginCount: 0, lockedUntil: null, passwordChangedAt: new Date() },
+      select: { id: true },
     });
+
+    // Also purge all stored sessions for this user so all active devices are revoked immediately
+    if (updated?.id) {
+      await prisma.session?.deleteMany({ where: { userId: updated.id } }).catch(() => null);
+    }
 
     return ok({ ok: true });
   } catch (err) {

@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // The real jwt callback, driven the way NextAuth drives it.
-const DB = { passwordChangedAt: null as Date | null };
+const DB = {
+  passwordChangedAt: null as Date | null,
+  activeSessions: new Set<string>(),
+};
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     user: {
@@ -15,6 +18,24 @@ vi.mock("@/lib/prisma", () => ({
         permissions: [],
         passwordChangedAt: DB.passwordChangedAt,
       }),
+    },
+    session: {
+      create: async ({ data }: any) => {
+        if (data?.sessionToken) DB.activeSessions.add(data.sessionToken);
+        return { id: "sess_1", ...data };
+      },
+      findUnique: async ({ where }: any) => {
+        if (where?.sessionToken && DB.activeSessions.has(where.sessionToken)) {
+          return { id: "sess_1", sessionToken: where.sessionToken };
+        }
+        return null;
+      },
+      deleteMany: async ({ where }: any) => {
+        if (where?.sessionToken) {
+          DB.activeSessions.delete(where.sessionToken);
+        }
+        return { count: 1 };
+      },
     },
   },
 }));
@@ -42,6 +63,7 @@ const signedOut = (t: Record<string, unknown>) => !t || !t.uid;
 
 beforeEach(() => {
   DB.passwordChangedAt = null;
+  DB.activeSessions.clear();
 });
 
 describe("signing in with the correct password", () => {
@@ -118,5 +140,51 @@ describe("revocation still revokes what it is meant to", () => {
     };
     const token = (await jwt({ token: fresh } as never)) as Record<string, unknown>;
     expect(signedOut(token)).toBe(false);
+  });
+});
+
+describe("per-device session revocation", () => {
+  const signOut = authOptions.events!.signOut!;
+
+  it("stamps a sid on sign-in and tracks it in active sessions", async () => {
+    const token = (await signIn()) as Record<string, unknown>;
+    expect(typeof token.sid).toBe("string");
+    expect(DB.activeSessions.has(token.sid as string)).toBe(true);
+  });
+
+  it("logging out on phone revokes phone session but leaves laptop session active", async () => {
+    // 1. User signs in on phone
+    const phoneToken = (await signIn()) as Record<string, unknown>;
+    const phoneSid = phoneToken.sid as string;
+
+    // 2. User signs in on laptop
+    const laptopToken = (await signIn()) as Record<string, unknown>;
+    const laptopSid = laptopToken.sid as string;
+
+    expect(phoneSid).not.toBe(laptopSid);
+    expect(DB.activeSessions.has(phoneSid)).toBe(true);
+    expect(DB.activeSessions.has(laptopSid)).toBe(true);
+
+    // 3. User logs out on phone
+    await signOut({ token: phoneToken } as never);
+
+    // Phone session is deleted from DB
+    expect(DB.activeSessions.has(phoneSid)).toBe(false);
+    // Laptop session remains alive in DB
+    expect(DB.activeSessions.has(laptopSid)).toBe(true);
+    // passwordChangedAt is NOT touched
+    expect(DB.passwordChangedAt).toBeNull();
+
+    // 4. Laptop token refreshes - it must NOT be signed out
+    const laptopRefreshed = (await jwt({
+      token: { ...laptopToken, syncedAt: 0 },
+    } as never)) as Record<string, unknown>;
+    expect(signedOut(laptopRefreshed)).toBe(false);
+
+    // 5. Phone token refreshes (e.g. stolen copy used after logout) - it MUST be revoked
+    const phoneRefreshed = (await jwt({
+      token: { ...phoneToken, syncedAt: 0 },
+    } as never)) as Record<string, unknown>;
+    expect(signedOut(phoneRefreshed)).toBe(true);
   });
 });
