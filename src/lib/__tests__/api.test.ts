@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { z } from "zod";
-import { isCuid, handleError, fail, ok } from "@/lib/api";
+import { isCuid, handleError, fail, ok, sanitizeDbError } from "@/lib/api";
 
 describe("isCuid", () => {
   it("accepts cuid-like ids", () => {
@@ -25,6 +25,27 @@ describe("handleError", () => {
   });
   it("maps unknown errors to 500", () => {
     expect(handleError(new Error("boom"), "test").status).toBe(500);
+  });
+  it("includes traceId in 500 responses", async () => {
+    const res = handleError(new Error("boom"), "test");
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(body.traceId).toBeDefined();
+    expect(typeof body.traceId).toBe("string");
+  });
+});
+
+describe("sanitizeDbError", () => {
+  it("redacts credentials from connection strings", () => {
+    expect(sanitizeDbError("Error connecting to postgresql://postgres:SecretPass123@db.host.com:5432/db")).toBe(
+      "Error connecting to postgresql://postgres:***@db.host.com:5432/db"
+    );
+    expect(sanitizeDbError("postgresql://user:p%40ssw0rd@localhost:5432/mydb")).toBe(
+      "postgresql://user:***@localhost:5432/mydb"
+    );
+  });
+  it("leaves error strings without credentials alone", () => {
+    expect(sanitizeDbError("Connection timeout")).toBe("Connection timeout");
   });
 });
 

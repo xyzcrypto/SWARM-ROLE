@@ -12,8 +12,13 @@ export function ok<T>(data: T, status = 200) {
 }
 
 /** JSON error response with a safe shape. */
-export function fail(message: string, status = 400) {
-  return NextResponse.json({ error: message }, { status });
+export function fail(message: string, status = 400, extra?: Record<string, unknown>) {
+  return NextResponse.json({ error: message, ...extra }, { status });
+}
+
+/** Redacts passwords/credentials from database connection URLs embedded in error strings. */
+export function sanitizeDbError(msg: string): string {
+  return msg.replace(/(:\/\/[^:\s]+:)[^@\s]+(@)/g, "$1***$2");
 }
 
 /**
@@ -26,8 +31,8 @@ export function handleError(err: unknown, context = "api") {
   }
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     // Always log the Prisma error code so the cause is visible in Vercel logs.
-    const detail = err.message.split("\n").pop()?.trim();
-    console.error(`[${context}] Prisma ${err.code}: ${detail}`);
+    const detail = err.message.split("\n").pop()?.trim() ?? "";
+    console.error(`[${context}] Prisma ${err.code}: ${sanitizeDbError(detail)}`);
     if (err.code === "P2002") return fail("That record already exists.", 409);
     if (err.code === "P2025") return fail("Not found.", 404);
     // Schema drift - a table/column the code expects is missing in the DB.
@@ -52,7 +57,7 @@ export function handleError(err: unknown, context = "api") {
   }
   // DB unreachable / bad connection string (e.g. missing ?pgbouncer=true).
   if (err instanceof Prisma.PrismaClientInitializationError) {
-    console.error(`[${context}] Prisma init/connection error:`, err.message);
+    console.error(`[${context}] Prisma init/connection error:`, sanitizeDbError(err.message));
     return fail("Database connection error. Please try again shortly.", 503);
   }
   if (err instanceof SyntaxError) {
@@ -62,7 +67,7 @@ export function handleError(err: unknown, context = "api") {
   console.error(`[${context}:${traceId}]`, err);
   // Report unexpected 500s to Sentry (no-op until a DSN is configured).
   Sentry.captureException(err, { tags: { context, traceId } });
-  return fail("Something went wrong. Please try again.", 500);
+  return fail("Something went wrong. Please try again.", 500, { traceId });
 }
 
 /** Loose CUID validation for path params before hitting the DB. */
