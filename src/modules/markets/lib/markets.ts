@@ -105,6 +105,9 @@ export type CoinRow = {
   change7d: number;
   marketCap: number;
   volume24h: number;
+  /** All-time high in USD, and how far below it the price is (always <= 0). */
+  ath: number;
+  athChange: number;
   sparkline: number[];
 };
 
@@ -119,7 +122,7 @@ export function coinPrice(n: number | null | undefined): string {
 
 /* ---------------- Coins table sorting (pure, for the Markets Coins panel) ---------------- */
 
-export type SortKey = "rank" | "name" | "price" | "change1h" | "change24h" | "change7d" | "marketCap" | "volume24h";
+export type SortKey = "rank" | "name" | "price" | "change1h" | "change24h" | "change7d" | "marketCap" | "volume24h" | "athChange";
 export type SortDir = "asc" | "desc";
 
 /** Sort a coin list by a column. "name" is alphabetical; the rest are numeric.
@@ -145,3 +148,25 @@ export function protocolSlug(apiSlug: unknown, name: string): string {
   if (s) return s;
   return String(name || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
+
+/**
+ * The category chips the markets table offers, as CoinGecko's own category ids.
+ *
+ * Lives here rather than in the route because both sides need it and the client
+ * must not import a route module - that would drag `NextResponse` and anything
+ * else server-side into the browser bundle, which is the class of mistake
+ * `env.ts` gained `import "server-only"` to make impossible.
+ *
+ * A fixed list rather than `/coins/categories`: that returns ~300, and a filter
+ * with 300 options is not a filter. These ids are stable.
+ */
+export const MARKET_CATEGORIES = [
+  { id: "layer-1", label: "Layer 1" },
+  { id: "layer-2", label: "Layer 2" },
+  { id: "decentralized-finance-defi", label: "DeFi" },
+  { id: "meme-token", label: "Meme" },
+  { id: "artificial-intelligence", label: "AI" },
+  { id: "gaming", label: "Gaming" },
+  { id: "real-world-assets-rwa", label: "RWA" },
+  { id: "stablecoins", label: "Stablecoins" },
+] as const;

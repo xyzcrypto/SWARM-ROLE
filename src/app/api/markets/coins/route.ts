@@ -55,6 +55,12 @@ async function markets(): Promise<CoinRow[]> {
     change7d: Number(d.price_change_percentage_7d_in_currency) || 0,
     marketCap: Number(d.market_cap) || 0,
     volume24h: Number(d.total_volume) || 0,
+    // Already in this response and previously thrown away - `/coins/markets`
+    // returns `ath` and `ath_change_percentage` on every row, so "how far below
+    // its all-time high" costs no extra request. The coin detail route has read
+    // the same two fields all along.
+    ath: Number(d.ath) || 0,
+    athChange: Number(d.ath_change_percentage) || 0,
     sparkline: Array.isArray(d.sparkline_in_7d?.price) ? d.sparkline_in_7d.price.filter((x: any) => Number.isFinite(x)) : [],
   }));
 }

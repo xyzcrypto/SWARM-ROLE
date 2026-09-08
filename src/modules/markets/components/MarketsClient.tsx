@@ -24,6 +24,7 @@ import {
   type TrendingCoin,
   type MoverCoin,
   type CoinRow,
+  MARKET_CATEGORIES,
 } from "@/lib/markets";
 import { cn } from "@/lib/utils";
 import { useLiveData } from "@shared/hooks/useLiveData";
@@ -241,6 +242,37 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
   const [remote, setRemote] = useState<CoinRow[]>([]);
   const [searching, setSearching] = useState(false);
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: "rank", dir: "asc" });
+  const [catFilter, setCatFilter] = useState<string | null>(null);
+  // Keyed by the filter it belongs to, not stored loose - the same shape as
+  // PerpChart's snapshot, and for the same reason: a result that no longer
+  // matches the current selection simply stops being read, so nothing has to be
+  // cleared. That also keeps every `setState` inside an async callback rather
+  // than in the effect body, which is what `react-hooks/set-state-in-effect`
+  // is pointing at.
+  const [catData, setCatData] = useState<{ id: string; ids: Set<string> } | null>(null);
+  const [catErrorId, setCatErrorId] = useState<string | null>(null);
+  const categoryIds = catFilter && catData?.id === catFilter ? catData.ids : null;
+  const catError = catFilter !== null && catErrorId === catFilter;
+  const catLoading = catFilter !== null && categoryIds === null && !catError;
+
+  // One request per chip press, aborted if the reader changes their mind - the
+  // same guard the coin search already uses, for the same reason: of two
+  // in-flight requests the slower one would otherwise win.
+  useEffect(() => {
+    if (!catFilter) return;
+    let active = true;
+    const ctrl = new AbortController();
+    fetch(`/api/markets/category?id=${encodeURIComponent(catFilter)}`, { cache: "no-store", signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => {
+        if (!active) return;
+        // Only trust a payload the route vouches for, exactly like the pollers.
+        if (j?.live && Array.isArray(j.ids)) setCatData({ id: catFilter, ids: new Set<string>(j.ids) });
+        else setCatErrorId(catFilter);
+      })
+      .catch(() => { if (active) setCatErrorId(catFilter); })
+    return () => { active = false; ctrl.abort(); };
+  }, [catFilter]);
   const query = q.trim().toLowerCase();
 
   // Live price flash - fires ONLY on a real price delta between two real polls.
@@ -302,6 +334,14 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
     };
   }, [query]);
 
+  // Category filter. The ids come from `/api/markets/category`, which is only
+  // requested when a chip is actually pressed - readers who never filter cost
+  // nothing (see that route's own note on why it is shaped this way). The 250
+  // rows we already have are then filtered locally, so the table never renders
+  // from a second source that could disagree with the first.
+  const catIds = catFilter ? categoryIds : null;
+  const inCategory = (r: CoinRow) => !catIds || catIds.has(r.id);
+
   const local = query ? base.filter((r) => r.name.toLowerCase().includes(query) || r.symbol.toLowerCase().includes(query)) : base;
   // Also by id, for the same reason as the flash map above: de-duping search
   // results by SYMBOL silently dropped any coin that happens to share a ticker
@@ -309,7 +349,7 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
   // ("finds ANY coin, not just the top 250").
   const seen = new Set(local.map((r) => r.id));
   const merged = query ? [...local, ...remote.filter((r) => !seen.has(r.id))] : base;
-  const rows = sortCoins(merged, sort.key, sort.dir);
+  const rows = sortCoins(merged.filter(inCategory), sort.key, sort.dir);
 
   const onSort = (key: SortKey) =>
     setSort((s) => (s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: defaultDirFor(key) }));
@@ -333,7 +373,45 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
           </button>
         )}
       </div>
-      {query && !rows.length && !searching ? (
+      {/* Category chips. The site's existing chip language (news categories,
+          markets tabs) rather than a new control. "All" is a real option, not
+          the absence of one, so clearing the filter is a tap and not a guess. */}
+      <div className="-mx-1 mb-3 flex snap-x items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button
+          onClick={() => setCatFilter(null)}
+          className={cn(
+            "inline-flex h-7 shrink-0 snap-start items-center rounded-full px-3 text-[12px] font-medium leading-none transition-colors",
+            !catFilter ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/40" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+          )}
+        >
+          All
+        </button>
+        {MARKET_CATEGORIES.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setCatFilter((v) => (v === cat.id ? null : cat.id))}
+            className={cn(
+              "inline-flex h-7 shrink-0 snap-start items-center rounded-full px-3 text-[12px] font-medium leading-none transition-colors",
+              catFilter === cat.id ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/40" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+            )}
+          >
+            {cat.label}
+          </button>
+        ))}
+      </div>
+      {catError && (
+        <p className="mb-3 text-[12px] text-amber-300">Couldn&apos;t load that category. Showing everything.</p>
+      )}
+
+      {catLoading && !rows.length ? (
+        <SkeletonRows />
+      ) : catFilter && !catLoading && !rows.length && !catError ? (
+        // A category can legitimately have no coin inside the top 250 - say so
+        // rather than showing an empty table that looks broken.
+        <p className="py-6 text-center text-sm text-zinc-500">
+          No top-250 coin is in this category right now.
+        </p>
+      ) : query && !rows.length && !searching ? (
         <p className="py-6 text-center text-sm text-zinc-500">No coins match “{q.trim()}”.</p>
       ) : loading && !rows.length ? (
         <SkeletonRows />
@@ -357,6 +435,7 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
                 <SortTh label="7d" col="change7d" sort={sort} onSort={onSort} className="hidden sm:table-cell" />
                 <SortTh label="Market Cap" col="marketCap" sort={sort} onSort={onSort} className="hidden md:table-cell" />
                 <SortTh label="Volume (24h)" col="volume24h" sort={sort} onSort={onSort} className="hidden lg:table-cell" />
+                <SortTh label="From ATH" col="athChange" sort={sort} onSort={onSort} className="hidden lg:table-cell" />
                 <th className="hidden px-2 py-2 text-right font-medium sm:table-cell">Last 7d</th>
               </tr>
             </thead>
@@ -391,6 +470,15 @@ function CoinsPanel({ c, loading }: { c: CoinsResp | null; loading: boolean }) {
                   <ChangeCell v={r.change7d} className="hidden sm:table-cell" />
                   <td className="mono hidden px-2 py-2.5 text-right text-zinc-300 md:table-cell">{compactUsd(r.marketCap)}</td>
                   <td className="mono hidden px-2 py-2.5 text-right text-zinc-400 lg:table-cell">{compactUsd(r.volume24h)}</td>
+                  {/* Deliberately NOT red. Every coin here is at or below its
+                      all-time high, so an all-red column carries no signal -
+                      the rule is red for negative MOVEMENT, and this is a
+                      distance. `0` means the coin is at its high right now,
+                      which is worth seeing, so it is the one value that gets
+                      the positive colour. */}
+                  <td className={cn("mono hidden px-2 py-2.5 text-right text-[13px] lg:table-cell", r.athChange >= 0 ? "text-mint-400" : "text-zinc-400")}>
+                    {r.athChange ? pct(r.athChange, 1) : "-"}
+                  </td>
                   <td className="hidden px-2 py-2.5 sm:table-cell">
                     <div className="ml-auto w-24">
                       <Sparkline data={r.sparkline} />
