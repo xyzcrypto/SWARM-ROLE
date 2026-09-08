@@ -6,6 +6,14 @@ export type OtpPurpose = "signup" | "login" | "reset";
 const TTL_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_ATTEMPTS = 5;
 
+function getOtpSecret(): string {
+  const s = process.env.NEXTAUTH_SECRET;
+  if (!s && process.env.NODE_ENV === "production") {
+    throw new Error("NEXTAUTH_SECRET must be set in production (OTP hashing).");
+  }
+  return s || "insecure-dev-secret";
+}
+
 /** Cryptographically-random 6-digit code (zero-padded). */
 export function generateCode(): string {
   return String(randomInt(0, 1_000_000)).padStart(6, "0");
@@ -15,13 +23,7 @@ export function generateCode(): string {
 // both fast and secure: an attacker can't brute-force the stored hash offline
 // without NEXTAUTH_SECRET. Much faster than bcrypt on the hot auth path.
 function hashCode(code: string): string {
-  const secret = process.env.NEXTAUTH_SECRET || "insecure-dev-secret";
-  // Fail closed: never hash OTP codes with the guessable dev fallback in
-  // production - that would let an attacker precompute the stored hashes.
-  if (process.env.NODE_ENV === "production" && secret === "insecure-dev-secret") {
-    throw new Error("NEXTAUTH_SECRET must be set in production (OTP hashing).");
-  }
-  return createHmac("sha256", secret).update(code).digest("hex");
+  return createHmac("sha256", getOtpSecret()).update(code).digest("hex");
 }
 
 function codesMatch(code: string, storedHash: string): boolean {
@@ -42,16 +44,25 @@ export async function issueCode(
 ): Promise<string> {
   const code = generateCode();
   const codeHash = hashCode(code);
-  await prisma.verificationCode.deleteMany({ where: { email, purpose } });
-  await prisma.verificationCode.create({
-    data: {
-      email,
-      purpose,
-      codeHash,
-      payload: payload ? JSON.stringify(payload) : null,
-      expiresAt: new Date(Date.now() + TTL_MS),
-    },
-  });
+  await prisma.$transaction([
+    prisma.verificationCode.deleteMany({
+      where: {
+        OR: [
+          { email, purpose },
+          { expiresAt: { lt: new Date() } },
+        ],
+      },
+    }),
+    prisma.verificationCode.create({
+      data: {
+        email,
+        purpose,
+        codeHash,
+        payload: payload ? JSON.stringify(payload) : null,
+        expiresAt: new Date(Date.now() + TTL_MS),
+      },
+    }),
+  ]);
   return code;
 }
 
