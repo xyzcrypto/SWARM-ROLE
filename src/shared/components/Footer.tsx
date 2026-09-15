@@ -44,7 +44,7 @@ export function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={s.label}
-                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 transition-all hover:-translate-y-0.5 hover:scale-110 ${s.color} ${s.hover}`}
+                  className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 transition-all hover:-translate-y-0.5 active:-translate-y-0.5 hover:scale-110 active:scale-110 ${s.color} ${s.hover}`}
                 >
                   <s.Icon className="h-5 w-5" />
                 </a>
@@ -70,7 +70,7 @@ export function Footer() {
                   <Link
                     href={l.href}
                     prefetch={false}
-                    className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200"
+                    className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200"
                   >
                     {l.label}
                   </Link>
@@ -87,15 +87,15 @@ export function Footer() {
             <ul className="mt-4 space-y-1.5 text-sm">
               {/* Guests get sign-up / log-in; members get profile / settings. */}
               <GuestOnly>
-                <li><Link href="/signup" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Create account</Link></li>
-                <li><Link href="/login" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Log in</Link></li>
+                <li><Link href="/signup" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Create account</Link></li>
+                <li><Link href="/login" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Log in</Link></li>
               </GuestOnly>
               <SignedIn>
-                <li><Link href="/profile" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Your profile</Link></li>
-                <li><Link href="/settings" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Settings</Link></li>
+                <li><Link href="/profile" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Your profile</Link></li>
+                <li><Link href="/settings" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Settings</Link></li>
               </SignedIn>
-              <li><Link href="/research" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Research hub</Link></li>
-              <li><Link href="/contact" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 hover:text-gold-200">Contact us</Link></li>
+              <li><Link href="/research" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Research hub</Link></li>
+              <li><Link href="/contact" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Contact us</Link></li>
             </ul>
           </div>
         </div>

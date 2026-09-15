@@ -41,7 +41,7 @@ export function ProofStrip() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={it.label}
-                className={`group flex items-center gap-2.5 rounded-xl border border-line bg-ink-900/50 px-4 py-2.5 text-zinc-400 transition-all duration-300 hover:-translate-y-0.5 ${it.hover}`}
+                className={`group flex items-center gap-2.5 rounded-xl border border-line bg-ink-900/50 px-4 py-2.5 text-zinc-400 transition-all duration-300 hover:-translate-y-0.5 active:-translate-y-0.5 ${it.hover}`}
               >
                 {it.logo ? (
                   // eslint-disable-next-line @next/next/no-img-element

@@ -96,7 +96,7 @@ export function AvatarUploader({
           aria-label="Change profile picture"
         >
           <Avatar name={name} image={image} size="xl" />
-          <span className="absolute inset-0 flex items-center justify-center rounded-full bg-ink-950/60 opacity-0 transition-opacity group-hover:opacity-100">
+          <span className="absolute inset-0 flex items-center justify-center rounded-full bg-ink-950/60 opacity-0 transition-opacity group-hover:opacity-100 group-active:opacity-100">
             {busy ? (
               <Loader2 className="h-5 w-5 animate-spin text-zinc-100" />
             ) : (

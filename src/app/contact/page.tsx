@@ -122,7 +122,7 @@ export default function ContactPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           aria-label={s.label}
-                          className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 transition-all hover:-translate-y-0.5 ${s.color} ${s.hover}`}
+                          className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border border-line bg-white/5 transition-all hover:-translate-y-0.5 active:-translate-y-0.5 ${s.color} ${s.hover}`}
                         >
                           <s.Icon className="h-5 w-5" />
                         </a>

@@ -121,7 +121,7 @@ export function Navbar() {
         <Link href="/" className="group flex items-center gap-2.5">
           {/* The coin carries its own gold rim, so no ring and no rounded clip -
               both fought the artwork. object-contain keeps it whole. */}
-          <span className="relative inline-flex h-9 w-9 transition-transform group-hover:scale-105">
+          <span className="relative inline-flex h-9 w-9 transition-transform group-hover:scale-105 group-active:scale-105">
             <Image src="/logo.png" alt="XYZ Crypto" fill className="object-contain" sizes="36px" />
           </span>
           <span className="font-display text-[15px] font-semibold tracking-tight">
@@ -153,7 +153,7 @@ export function Navbar() {
               <span
                 className={cn(
                   "absolute inset-x-2.5 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300 xl:inset-x-3.5",
-                  isActive(l.href) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                  isActive(l.href) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100 group-active:scale-x-100"
                 )}
               />
             </Link>

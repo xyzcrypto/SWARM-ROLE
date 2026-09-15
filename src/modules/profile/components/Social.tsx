@@ -42,10 +42,10 @@ export function Social() {
                 className={`surface lift group relative flex h-full flex-col items-start rounded-3xl p-6 transition-all duration-300 ${c.hover} ${c.glow}`}
               >
                 <div className="flex w-full items-start justify-between">
-                  <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 p-3 ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-105 ${c.color}`}>
+                  <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/5 p-3 ring-1 ring-white/10 transition-transform duration-300 group-hover:scale-105 group-active:scale-105 ${c.color}`}>
                     <c.Icon className="h-6 w-6" />
                   </span>
-                  <ArrowUpRight className="h-5 w-5 text-zinc-600 transition-all group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-zinc-300" />
+                  <ArrowUpRight className="h-5 w-5 text-zinc-600 transition-all group-hover:-translate-y-0.5 group-active:-translate-y-0.5 group-hover:translate-x-0.5 group-active:translate-x-0.5 group-hover:text-zinc-300" />
                 </div>
                 <span className="mt-5 font-display text-base font-semibold text-zinc-100">{c.name}</span>
                 <span className="mt-1 mono text-xs text-zinc-500">{c.handle}</span>

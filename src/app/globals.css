@@ -997,7 +997,13 @@ html[data-nav-open] .ai-fab { display: none; }
    Tuned lively (snappy) but not jittery; a `.group:hover` speeds a few up. */
 .i3d-spin { transform-box: fill-box; transform-origin: center; animation: i3d-spin 6s linear infinite; }
 @keyframes i3d-spin { to { transform: rotate(360deg); } }
-.group:hover .i3d-spin { animation-duration: 2.4s; }
+/* Speed-up on interaction. Hand-written, so Tailwind's `hoverOnlyWhenSupported`
+   does not reach it - scope it here, and give touch the press equivalent, or
+   the card that speeds up under a mouse sits inert under a finger. */
+@media (hover: hover) {
+  .group:hover .i3d-spin { animation-duration: 2.4s; }
+}
+.group:active .i3d-spin { animation-duration: 2.4s; }
 
 .i3d-bob { transform-box: fill-box; transform-origin: center; animation: i3d-bob 2.2s ease-in-out infinite; }
 @keyframes i3d-bob { 0%, 100% { transform: translateY(0.8px); } 50% { transform: translateY(-2px); } }
