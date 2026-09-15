@@ -5,6 +5,84 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-15 (90) — Every phone gets the same site
+
+### "Sare specs ke device me same animation show hona chahiye"
+
+The motion tier decided `html.lite-motion` from `navigator.deviceMemory`. That
+is the one input that gives different answers for identical hardware depending
+on which browser is open:
+
+- **Chrome** quantises it to a power of two capped at 8, so a 4 GB phone and a
+  6 GB phone both report `4` and there is no way to tell them apart. 8 GB+
+  phones report `8` and escaped the tier entirely.
+- **iOS Safari and Firefox** do not implement it at all, so every iPhone fell
+  through to the FULL tier — the expensive one.
+
+Measured on the homepage, 393x851, production build, 4x CPU throttle, median of
+five 2.5s samples:
+
+| device | tier | on-screen anims | fps |
+|---|---|---|---|
+| Android reporting 4 GB | lite | 17 | **55.5** |
+| iPhone (no `deviceMemory`) | FULL | 55 | **31.4** |
+| Android reporting 8 GB | FULL | 55 | **30.6** |
+
+So the phones the heuristic could not identify were the ones being handed the
+janky page, and two phones of the same class disagreed purely on which browser
+was open. That is the whole report, and it cut both ways — some readers saw a
+static site, others a stuttering one.
+
+A phone is a phone whatever it reports. The tier now keys on `(pointer: coarse)`
+plus a short screen edge (`Math.min(screen.width, screen.height) < 600`), which
+every browser answers the same way. `screen` rather than `innerWidth` because a
+430x932 phone in landscape has an `innerWidth` of 932 — it would have crossed
+into the full tier mid-session on rotation. Tablets (iPad's shorter side is 820)
+and desktops are excluded by construction; `saveData` and `<= 2` cores still
+demote a genuinely weak machine of any shape.
+
+**Every phone now lands on the same tier.** Measured across eight device
+profiles, homepage on-screen animation counts went from
+`iPhone 55 / Android-4GB 17 / Android-8GB 55` to **27 on all of them**.
+
+### The capability tier was overruling the identity policy
+
+`.i3d-bob` / `-scan` / `-pulse` / `-tick` / `-float` / `-twinkle` were in the
+lite suppression set. They should not have been: CLAUDE.md names the Icons3D
+system as core brand identity and exempts it from `prefers-reduced-motion` for
+exactly that reason — and this block switched it off anyway, on every phone,
+through the other axis. Two motion policies contradicted each other and the
+capability one won silently.
+
+It is also the visible half: those animations live on the product and feature
+cards, so the report was *"mobile me product wala layout ka animation nahi
+hai"* — which was true, and was this rule rather than a broken card.
+
+Restoring them is **not free — 13.6 fps at 4x CPU** (55.5 → 41.9). Bought
+deliberately, and the row that justifies it is the third one in the table
+above: a large share of phones were sitting at 30.6 fps with no tier at all, so
+41.9 is an improvement for them and a regression only against a tier half of
+all phones never received. If real hardware says 41.9 is not holding, suppress
+more of the ambient wash before reaching for `.i3d-*` again.
+
+### What the audit did NOT find
+
+Eight device profiles x seven routes, production build, checked for horizontal
+overflow, content rendered at `opacity: 0` (the blank-page class), broken
+images, and console/page errors. **No layout overflow on any device, no
+invisible content, no hydration failures.** The React #441 seen on `/community`
+locally is `NO_SECRET` from a missing `NEXTAUTH_SECRET` in the audit
+environment, not a site bug — confirmed in the server log before reporting it.
+
+**Files:** `src/app/layout.tsx` (tier script + the comment recording why
+`deviceMemory` is not an input), `src/app/globals.css` (lite block + measured
+numbers), `src/lib/__tests__/motion-detection.test.ts` and
+`src/shared/utils/__tests__/motion-tier.test.ts` (both already owned this
+ground; updated in place rather than adding a third file that would duplicate
+the facts). Both tests were verified to fail when the old behaviour is put back.
+
+---
+
 ## 2026-09-08 (89) — Community: the jump that moved the page, and a strip that ate code
 
 ### "Tag pe page upar chala jata hai"

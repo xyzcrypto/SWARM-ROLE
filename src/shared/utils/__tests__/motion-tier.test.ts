@@ -7,10 +7,20 @@ import { readFileSync } from "node:fs";
 // phones that visit. Both failure modes look fine in review and only show up on
 // a device nobody testing it owns.
 //
-// The measurement it exists for (homepage, 390x844, 6x CPU throttle):
+// The measurement it exists for (homepage, 393x851, production build, median
+// of five 2.5s samples):
 //
-//     full tier .... 54 on-screen animations ... 16-17 fps
-//     lite tier .... 17 on-screen animations ... 32 fps
+//                                        @4x CPU     @6x CPU   on screen
+//     no tier at all .................. 30.6 fps ... 19.1 fps ... 55
+//     lite tier, Icons3D suppressed ... 55.5 fps ... 33.7 fps ... 17
+//     lite tier as it stands now ...... 41.9 fps ... 26.0 fps ... 27
+//
+// The middle row is what the tier used to do. It is the fastest of the three
+// and it is NOT what ships, because it bought those frames by switching off
+// the `.i3d-*` system - which CLAUDE.md names as core brand identity and
+// exempts from `prefers-reduced-motion` for that reason. Two motion policies
+// contradicted each other and this one won silently, on every phone. See the
+// "What stays" note in the lite-motion block in globals.css.
 //
 // Real source paths on purpose. `src/components/*` and `src/lib/*` are one-line
 // re-export shims after the #203 reorganisation, so a test that READS one of
@@ -57,9 +67,9 @@ describe("the lite motion tier drops the ambient load", () => {
       .map((r) => r.selectors)
       .join("\n");
     // The mesh, the aurora, the particle drift, the starfield's animated stars,
-    // the nebula haze, the celestial bodies, the Icons3D idle set and the
-    // assistant launcher's glow. Cutting these took the homepage from 54
-    // on-screen animations to 17, and from ~17 fps to ~32.
+    // the nebula haze, the celestial bodies and the assistant launcher's glow -
+    // the always-running full-screen wash. This set is worth ~21 fps on the
+    // measured device and is the whole reason the tier exists.
     for (const sel of [
       ".mesh::before",
       ".mesh::after",
@@ -69,12 +79,6 @@ describe("the lite motion tier drops the ambient load", () => {
       ".starfield-neb",
       ".saturn",
       ".moon",
-      ".i3d-bob",
-      ".i3d-scan",
-      ".i3d-pulse",
-      ".i3d-tick",
-      ".i3d-float",
-      ".i3d-twinkle",
       ".hero-cta-halo",
       ".ai-fab",
       ".ai-fab-bot",
@@ -91,8 +95,30 @@ describe("the lite motion tier drops the ambient load", () => {
     // there is no performance argument for taking them, only a tidiness one.
     // The ticker is data that is moving, the shimmer and spinner are feedback,
     // and the shooting stars and the medallion's rings are the look itself.
+    //
+    // The `.i3d-*` entries moved into THIS list, from the gated one above. They
+    // sit on the product and feature cards, so gating them is what "mobile me
+    // product wala layout ka animation nahi hai" actually was - and CLAUDE.md
+    // already classes the Icons3D system as identity rather than decoration.
+    // It is not free: restoring them costs 13.6 fps at 4x CPU. It is bought
+    // knowingly, and the reason it is affordable is that a large share of
+    // phones were never on this tier at all (30.6 fps, top of file).
     const gated = liteRules.map((r) => r.selectors).join("\n");
-    for (const sel of [".marquee", ".text-shine", ".text-shimmer", ".star-shooter", ".shimmer", ".robot-eye", ".robot-antenna"]) {
+    for (const sel of [
+      ".marquee",
+      ".text-shine",
+      ".text-shimmer",
+      ".star-shooter",
+      ".shimmer",
+      ".robot-eye",
+      ".robot-antenna",
+      ".i3d-bob",
+      ".i3d-scan",
+      ".i3d-pulse",
+      ".i3d-tick",
+      ".i3d-float",
+      ".i3d-twinkle",
+    ]) {
       expect(gated, `${sel} must not be gated by the lite motion tier`).not.toContain(sel);
     }
   });
@@ -124,8 +150,10 @@ describe("the tier is decided before paint, from device capability", () => {
     // instead is the React #418 hydration trap documented in CLAUDE.md.
     expect(layout).toMatch(/dangerouslySetInnerHTML/);
     expect(layout).toContain("lite-motion");
-    expect(layout).toContain("deviceMemory");
     expect(layout).toContain("saveData");
+    // Device CLASS, not `deviceMemory` - see motion-detection.test.ts, which
+    // owns that decision and the measurements behind it.
+    expect(layout).toContain("Math.min(w,h)<600");
   });
 
   it("is NOT keyed on prefers-reduced-motion", () => {
