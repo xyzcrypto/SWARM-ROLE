@@ -16,6 +16,31 @@ const config: Config = {
   // green, because none of them look at generated CSS. Enumerating directories
   // here means any future move re-breaks this the same silent way, so don't.
   content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
+  future: {
+    // Wraps every `hover:` utility in `@media (hover: hover)`, so hover styles
+    // apply only where a pointer can actually hover.
+    //
+    // Without it, a tap on a phone applies `:hover` and LEAVES IT APPLIED until
+    // you tap something else - so one card sits lifted and lit up while you read
+    // the page, which reads as a rendering glitch rather than a hover state.
+    // globals.css already hand-scoped `.surface-hover` and `.lift` for exactly
+    // this reason; the ~200 Tailwind `hover:` utilities were never covered, and
+    // the built CSS contained precisely one `@media (hover: hover)` - the
+    // hand-written one.
+    //
+    // The other half of the fix is `active:` twins: with this flag a touch
+    // device gets NO hover feedback at all, so anything that said "you picked
+    // this one" through hover alone needs a press equivalent. Those were added
+    // alongside this change - see touch-parity.test.ts, which holds the two
+    // halves together.
+    //
+    // ⚠️ Before turning this on, every `hover:` that gates VISIBILITY or
+    // REACHABILITY has to have a touch path, or the flag hides a feature from
+    // phones instead of fixing one. All ten were audited; the only genuine gap
+    // was the conversation options button in MessagesClient, fixed in the same
+    // pass. Check that list again before adding a new `group-hover:opacity-100`.
+    hoverOnlyWhenSupported: true,
+  },
   // Class-based theming (light/dark). Dark is the default (see <html class="dark">).
   darkMode: "class",
   theme: {

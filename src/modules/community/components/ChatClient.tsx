@@ -1318,7 +1318,7 @@ export function ChatClient({
                     key={m.id}
                     href={`/u/${m.username}`}
                     title={m.name}
-                    className="transition-transform duration-200 hover:z-10 hover:-translate-y-0.5"
+                    className="transition-transform duration-200 hover:z-10 hover:-translate-y-0.5 active:-translate-y-0.5"
                   >
                     <Avatar name={m.name} image={m.image} size="sm" className="ring-2 ring-ink-900" />
                   </Link>

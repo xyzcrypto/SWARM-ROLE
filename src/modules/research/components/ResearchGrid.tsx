@@ -124,7 +124,7 @@ export function ResearchGrid({
               }`}
             />
             Premium Content
-            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+            <span className="pointer-events-none absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/25 to-transparent transition-transform duration-700 group-hover:translate-x-full group-active:translate-x-full" />
           </button>
         </div>
       </div>

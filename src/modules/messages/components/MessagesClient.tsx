@@ -477,7 +477,14 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setConvMenuId((x) => (x === c.id ? null : c.id)); }}
                         aria-label="Conversation options"
-                        className="grid h-7 w-7 place-items-center rounded-full text-zinc-600 opacity-0 transition-opacity hover:bg-white/5 hover:text-zinc-300 group-hover:opacity-100"
+                        /* Pin and remove live behind this button, and it used to be
+                           `opacity-0` with only a `group-hover:` reveal - so on a
+                           phone, where nothing ever hovers, the only way to reach
+                           either action was invisible. The feature effectively did
+                           not exist on touch. Always shown below `sm`, revealed on
+                           hover above it: the same idiom as the thread header
+                           further up this file. */
+                        className="grid h-7 w-7 place-items-center rounded-full text-zinc-600 opacity-100 transition-opacity hover:bg-white/5 hover:text-zinc-300 sm:opacity-0 sm:group-hover:opacity-100"
                       >
                         <MoreVertical className="h-3.5 w-3.5" />
                       </button>

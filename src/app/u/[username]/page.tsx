@@ -269,7 +269,7 @@ export default async function ProfilePage(props: Props) {
                     rel="noopener noreferrer nofollow"
                     title={label}
                     aria-label={label}
-                    className={`group grid h-10 w-10 place-items-center rounded-full border bg-white/[0.03] transition-all duration-300 hover:-translate-y-0.5 ${ring} ${color}`}
+                    className={`group grid h-10 w-10 place-items-center rounded-full border bg-white/[0.03] transition-all duration-300 hover:-translate-y-0.5 active:-translate-y-0.5 ${ring} ${color}`}
                   >
                     <Icon className="h-[19px] w-[19px] transition-transform duration-300 group-hover:scale-110 group-active:scale-110" />
                   </a>

@@ -5,6 +5,98 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-15 (91) — What a mouse can do, a finger can do
+
+Follow-on to (90). That pass made every phone agree about *animation*; this one
+makes them agree about *interaction*. Measured the same way — production build,
+real browser, desktop and phone contexts across eight routes — rather than by
+reading class names.
+
+### A tap left the page stuck looking hovered
+
+globals.css hand-scoped `.surface-hover` and `.lift` inside `@media (hover:
+hover)`, and that was the whole of it. The built stylesheet contained **2**
+scoped hover rules against **121 unscoped ones**, all Tailwind utilities. So on
+a phone, tapping a card applied `:hover` and *left it applied* until you tapped
+something else — one card sitting lifted and lit while you read, which reads as
+a rendering glitch rather than a hover state.
+
+`future: { hoverOnlyWhenSupported: true }` in `tailwind.config.ts` wraps every
+`hover:` utility in `@media (hover: hover) and (pointer: fine)`.
+
+**Scoped hover rules: 2 → 114.**
+
+The nine still outside are light-mode text-colour overrides
+(`html:not(.dark) .hover\:text-gold-200`). Colour only, no layout shift —
+deliberately left, on the same rule used throughout this pass: a colour hover is
+decoration a finger does not miss, something that **moves or appears** is the
+page saying "this is the one you picked" and has to reach touch too.
+
+### The flag alone would have made things worse
+
+Turning it on removes hover feedback from touch entirely. So it is only safe
+once two things are true, and both were done first:
+
+**1. Every meaningful hover has a press twin.** The previous pass covered
+`scale-110` and nothing else — a browser audit still found **14 live hover-only
+effects**: the nav underline, the hero CTA lift, the social-icon hop, the
+research card shine sweep, the ecosystem logo scale, the orbital tooltip. All
+dead on a phone. Added 24 `active:` / `group-active:` twins across 10 files.
+`.group:hover .i3d-spin` is hand-written CSS, so the Tailwind flag never reached
+it — scoped and given a `:active` twin by hand.
+
+**Hover-only effects on touch: 14 → 4**, and those four are glow-only
+(`hover:shadow-[...]`) on elements that already carry `.lift:active` /
+`.surface-hover:active`.
+
+**2. No `hover:` may be the only way to reach something.** All ten hover
+utilities that gate visibility or reachability were audited. Nine already had a
+touch path — `ChatClient` has an explicit `touchUi` / `actionsOpen` branch, the
+messages header is already `opacity-100` below `sm`, `AvatarUploader`'s overlay
+is a shortcut for a visible "Change photo" button sitting next to it.
+
+One was a real gap: **the per-conversation options button in `/messages`**. Pin
+and remove live behind it, and it was `opacity-0` revealed only by
+`group-hover:`, with no long-press, swipe or touch branch anywhere in the file.
+On a phone the control was invisible — **the feature did not exist on touch.**
+Now `opacity-100` by default, hover-revealed from `sm` up, matching the idiom
+already used in that same file.
+
+The orbital ecosystem node's description was in its `aria-label` (so a screen
+reader had it) and in a hover-only tooltip (so a mouse had it). Touch had
+neither; it now has `group-active:`.
+
+### Tap targets: seven flagged, zero real
+
+The audit flagged seven interactive targets under 24×24. **None needed
+changing**, and this is worth recording so the next audit does not "fix" them:
+
+- Five carry `tap-target-y` / `tap-target-all`, which add an invisible `::after`
+  hit surface (`inset: -9px 0` / `-8px`). A 16px link is a 34px target.
+  `getBoundingClientRect()` on the element does not see it.
+- Two are inline links inside a sentence — the `/tools` assumption banner and
+  the signup Terms/Privacy line. WCAG 2.2 SC 2.5.8 has an explicit **inline
+  exception** for these, and padding them would overlap the hit areas of the
+  text lines above and below — which is exactly what `tap-target-y`'s own
+  comment ("safe next to horizontal neighbours") warns about.
+
+### Verified, not assumed
+
+- Desktop hover still works: the hero CTA measures `none` → `matrix(1,0,0,1,0,-2)`
+  on a real mouse hover after the change.
+- Device matrix re-run: animation counts unchanged from (90), no horizontal
+  overflow, no `opacity: 0` content, no new console errors.
+- `touch-parity.test.ts` gained three assertions and each was verified to
+  **fail** when its fix is reverted.
+
+**Files:** `tailwind.config.ts`, `src/app/globals.css`,
+`src/modules/messages/components/MessagesClient.tsx`,
+`src/components/OrbitalEcosystem.tsx`, plus `active:` twins in `Navbar`,
+`Footer`, `HeroCta`, `Ecosystem`, `ProofStrip`, `Social`, `ResearchGrid`,
+`ChatClient`, `AvatarUploader`, `contact/page`, `u/[username]`.
+
+---
+
 ## 2026-09-15 (90) — Every phone gets the same site
 
 ### "Sare specs ke device me same animation show hona chahiye"

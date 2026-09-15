@@ -214,7 +214,11 @@ export function OrbitalEcosystem() {
                 {n.label}
               </span>
               {/* tooltip */}
-              <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-40 -translate-x-1/2 rounded-lg border border-white/10 bg-ink-900/95 px-3 py-2 text-center text-[11px] leading-snug text-zinc-300 opacity-0 shadow-elevate backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100">
+              {/* `group-active:` so a finger gets the description too. Without it
+                  the node's `desc` was readable with a mouse and by a screen
+                  reader (it is in the `aria-label`), and invisible to everyone
+                  else - the one audience that cannot ask for it another way. */}
+              <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-40 -translate-x-1/2 rounded-lg border border-white/10 bg-ink-900/95 px-3 py-2 text-center text-[11px] leading-snug text-zinc-300 opacity-0 shadow-elevate backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100 group-active:opacity-100">
                 {n.desc}
               </span>
             </div>
