@@ -1278,8 +1278,40 @@ html[data-nav-open] .ai-fab { display: none; }
    ticker marquee (it is data, not decoration), text-shine / text-shimmer, the
    shooting stars, the hero medallion's orbiting rings, spinners and loading
    shimmers (feedback, not flourish), and every one-shot entrance. What goes is
-   only the always-running ambient wash and the small idle loops - the things
-   that are moving right now on a part of the page nobody is looking at.
+   only the always-running ambient wash - the full-screen layers that are
+   moving right now on a part of the page nobody is looking at.
+
+   ## The Icons3D system stays too, and that is a correction
+
+   `.i3d-bob` / `-scan` / `-pulse` / `-tick` / `-float` / `-twinkle` used to be
+   in the list below. They should not have been. CLAUDE.md's motion policy
+   names the `.i3d-*` system as core brand identity rather than decoration and
+   exempts it from `prefers-reduced-motion` for exactly that reason - and this
+   block then switched it off anyway, on every phone, via the other axis. The
+   two policies contradicted each other and the capability one won silently.
+
+   It is also the most visible half of the contradiction: those ten animations
+   live on the product and feature cards, so the report that reached us was
+   "mobile me product wala layout ka animation nahi hai" - which was true, and
+   was this rule, not a broken card.
+
+   Re-measured with them restored. Homepage, 393x851, production build, median
+   of five 2.5s samples:
+
+                                        @4x CPU        @6x CPU     on screen
+       phone tier, i3d restored ....... 41.9 fps ..... 26.0 fps ..... 27
+       phone tier, i3d suppressed ..... 55.5 fps ..... 33.7 fps ..... 17
+       no tier at all (what iPhones
+         and 8 GB Androids used to get)  30.6 fps ..... 19.1 fps ..... 55
+
+   So this is NOT free: ten animations cost 13.6 fps at 4x. It is bought
+   deliberately, and the row that justifies it is the third one - before this
+   change a large share of phones were sitting at 30.6 fps with no tier applied
+   at all, so 41.9 is an improvement for them and a regression only against a
+   tier that half of all phones never received. If a future measurement shows
+   41.9 is not holding up on real hardware, suppress the ambient wash further
+   before reaching for `.i3d-*` again - the contradiction with the identity
+   policy is the thing worth not re-introducing.
 
    The robot mascot's blink and antenna pulse also stay, deliberately: they are
    an explicit owner decision recorded further up this file, and the bisect put
@@ -1293,12 +1325,6 @@ html.lite-motion .starfield span.star-anim,
 html.lite-motion .starfield-neb,
 html.lite-motion .saturn,
 html.lite-motion .moon,
-html.lite-motion .i3d-bob,
-html.lite-motion .i3d-scan,
-html.lite-motion .i3d-pulse,
-html.lite-motion .i3d-tick,
-html.lite-motion .i3d-float,
-html.lite-motion .i3d-twinkle,
 html.lite-motion .hero-cta-halo,
 html.lite-motion .hero-glow,
 html.lite-motion .ai-fab,

@@ -162,37 +162,46 @@ export default function RootLayout({
             different axis: a fast phone keeps the full identity, a weak one
             gets a page that actually holds a frame rate.
 
-            `deviceMemory` is Chromium-only and undefined on iOS Safari, which
-            is the correct outcome rather than a gap - iPhones are not the
-            devices dropping frames here, and `hardwareConcurrency` alone would
-            wrongly demote them (an iPhone reports 4-6 cores). `saveData` is an
-            explicit request from the reader, so it is honoured directly.
-            `localStorage.motion` ('lite' / 'full') forces either tier, and is
-            what the Motion control in the navbar writes. 'full' also adds
+            `saveData` is an explicit request from the reader, so it is honoured
+            directly. `localStorage.motion` ('lite' / 'full') forces either tier,
+            and is what the Motion control in the navbar writes. 'full' also adds
             `html.motion-full`, which overrides the reduced-motion media blocks
             in globals.css and makes `useReducedMotionSafe()` report false - one
             switch that turns everything on, whatever the device or the OS says.
 
-            ⚠️ THE MEMORY CLAUSE IS GATED ON A COARSE POINTER, and that is the
-            whole bug this paragraph exists for. It used to read
-            `typeof mem === 'number' && mem <= 4` on its own, and Chrome reports
-            `deviceMemory` quantised to a power of two and capped at 8 - so a
-            6 GB desktop reports **4** and was demoted, with 8 fast cores, while
-            the identical machine on Firefox or Safari (no `deviceMemory` at
-            all) kept the full set. Measured on the homepage: 163 running
-            animations at `deviceMemory: 8`, **56** at `deviceMemory: 4`. Same
-            site, same person, different answer per browser - which is exactly
-            what "mere desktop pe static hai, doosre pe chalta hai" was.
+            ⚠️ THE TIER IS DECIDED BY DEVICE CLASS, NOT BY `deviceMemory`, and
+            that is what this paragraph is for. The clause used to read
+            `coarse && typeof mem === 'number' && mem <= 4`, and `deviceMemory`
+            is the wrong input twice over:
 
-            The measurement above was taken on a PHONE. Pairing memory with
-            `(pointer: coarse)` keeps that case demoted exactly as measured and
-            stops guessing about desktops, where RAM says nothing useful about
-            whether CSS animations hold 60 fps. A genuinely weak machine of any
-            shape is still caught by the `<= 2` cores clause. */}
+              - It does not exist on iOS Safari or Firefox, so those browsers
+                fell through to the FULL tier - the expensive one.
+              - Chrome quantises it to a power of two capped at 8, so a 6 GB
+                phone reports **4** and a 4 GB phone reports **4**. There is no
+                way to tell them apart, and 8 GB+ phones report 8 and escaped.
+
+            Measured on the homepage at 393x844 (production build, this build):
+
+                Android reporting 4 GB ....... lite ... 17 anims ... 55.5 fps @4x
+                iPhone (no deviceMemory) ..... FULL ... 55 anims ... 31.4 fps @4x
+                Android reporting 8 GB ....... FULL ... 55 anims ... 31.0 fps @4x
+
+            So the phones the heuristic could not identify were the ones being
+            handed the janky page, and two phones of the same class disagreed
+            purely on which browser was open. That is the whole of "kuch device
+            me animation hai kuch me nahi", and it cut both ways: some readers
+            saw a static site, others saw a stuttering one.
+
+            A phone is a phone whatever it reports. `(pointer: coarse)` plus a
+            short min-dimension identifies one on every browser, does not change
+            on rotation (`Math.min` of the screen's two sides), and leaves
+            tablets and desktops - where the frame-rate problem was never
+            measured - on the full tier. A genuinely weak machine of any shape is
+            still caught by the `<= 2` cores clause. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}try{var m=localStorage.getItem('motion');var n=navigator,c=n.connection||{},mem=n.deviceMemory,coarse=false;try{coarse=matchMedia('(pointer: coarse)').matches;}catch(e){}var lite;if(m==='lite'){lite=true;}else if(m==='full'){lite=false;}else{lite=c.saveData===true||(n.hardwareConcurrency||8)<=2||(coarse&&typeof mem==='number'&&mem<=4);}if(lite){d.classList.add('lite-motion');}if(m==='full'){d.classList.add('motion-full');}}catch(e){}})();",
+              "(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}try{var m=localStorage.getItem('motion');var n=navigator,c=n.connection||{},coarse=false;try{coarse=matchMedia('(pointer: coarse)').matches;}catch(e){}var s=window.screen||{},w=s.width||window.innerWidth||0,h=s.height||window.innerHeight||0,phone=coarse&&Math.min(w,h)>0&&Math.min(w,h)<600;var lite;if(m==='lite'){lite=true;}else if(m==='full'){lite=false;}else{lite=c.saveData===true||(n.hardwareConcurrency||8)<=2||phone;}if(lite){d.classList.add('lite-motion');}if(m==='full'){d.classList.add('motion-full');}}catch(e){}})();",
           }}
         />
         <JsonLd data={organizationJsonLd()} />

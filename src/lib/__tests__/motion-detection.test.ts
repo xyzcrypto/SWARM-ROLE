@@ -1,20 +1,38 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-// "Mere desktop pe animation static hai, doosre device pe chalta hai."
+// "Mere desktop pe animation static hai, doosre device pe chalta hai", and then
+// "sare specs ke device me same animation show hona chahiye".
 //
-// The motion tier demoted a machine to `html.lite-motion` when
-// `navigator.deviceMemory <= 4`. Chrome reports that value quantised to a power
-// of two and capped at 8, so a 6 GB desktop reports **4** and was demoted with
-// eight fast cores - while the same machine on Firefox or Safari, which do not
-// expose `deviceMemory` at all, kept everything. Measured on the homepage with
-// a production build:
+// Both reports are the same root cause: the tier was decided by
+// `navigator.deviceMemory`, which is the one input that gives different answers
+// for identical hardware depending on which browser is open.
 //
-//   deviceMemory 8 (>=8GB desktop) ... 163 running animations
-//   deviceMemory 4 (6GB desktop)   ....  56          <- the bug
-//   no deviceMemory (FF/Safari)    ... 163
+//   - Chrome quantises it to a power of two capped at 8, so a 6 GB machine
+//     reports **4**. That demoted 6 GB desktops with eight fast cores:
 //
-// Same site, same person, a different answer per browser.
+//         deviceMemory 8 (>=8GB desktop) ... 163 running animations
+//         deviceMemory 4 (6GB desktop)   ....  56          <- the first report
+//
+//     Pairing the clause with `(pointer: coarse)` fixed the desktop half.
+//
+//   - It does not exist at all on iOS Safari or Firefox. So the coarse-pointer
+//     fix left every iPhone falling through to the FULL tier - the expensive
+//     one - while Chrome Androids reporting 4 got the lite one. Measured on the
+//     homepage at 393x851, production build, 4x CPU throttle:
+//
+//         Android reporting 4 GB ..... lite ... 17 anims ... 55.5 fps
+//         iPhone (no deviceMemory) ... FULL ... 55 anims ... 31.4 fps
+//         Android reporting 8 GB ..... FULL ... 55 anims ... 30.6 fps
+//
+//     Same site, same class of phone, a different answer per browser - and the
+//     phones the heuristic could not identify were the ones handed the janky
+//     page. That is the second report, and it cut both ways: some readers saw a
+//     static site, others a stuttering one.
+//
+// A phone is a phone whatever it reports. `(pointer: coarse)` plus a short
+// screen edge identifies one on every browser, so every phone now lands on the
+// same tier: 27 on-screen animations at 41.9 fps.
 const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const layout = readFileSync("src/app/layout.tsx", "utf8");
 const css = readFileSync("src/app/globals.css", "utf8");
@@ -28,14 +46,34 @@ const flags = strip(readFileSync("src/shared/hooks/useClientFlag.ts", "utf8"));
  */
 const script = layout;
 
-describe("the capability tier stops guessing about desktops", () => {
-  it("pairs the memory clause with a coarse pointer", () => {
-    // The measurement the tier exists for was taken on a PHONE (390x844, 6x CPU
-    // throttle). Keeping memory as a signal only where a touch pointer says
-    // "phone" preserves that case exactly and stops demoting desktops, where
-    // RAM says nothing about whether CSS animations hold 60fps.
-    expect(script).toContain("coarse&&typeof mem==='number'&&mem<=4");
-    expect(script).not.toMatch(/\|\|\(typeof mem==='number'&&mem<=4\)\|\|/);
+describe("the capability tier is decided by device class, not by a browser API", () => {
+  it("does not read navigator.deviceMemory at all", () => {
+    // The whole bug, both halves of it. Reintroducing this input brings back
+    // the per-browser split - nothing else about `deviceMemory` has changed.
+    // Checked against the stripped file: the prose above names it repeatedly.
+    expect(strip(layout)).not.toContain("deviceMemory");
+  });
+
+  it("identifies a phone by a coarse pointer plus a short screen edge", () => {
+    expect(script).toContain("matchMedia('(pointer: coarse)')");
+    expect(script).toContain("Math.min(w,h)<600");
+  });
+
+  it("measures the SCREEN, so rotating a phone does not flip tiers mid-session", () => {
+    // `innerWidth` on a 430x932 phone in landscape is 932, over any sane phone
+    // threshold - so turning the phone sideways would have crossed into the
+    // full tier and changed the page. The screen's shorter side is the same
+    // number in both orientations.
+    expect(script).toContain("var s=window.screen||{}");
+    expect(script).toContain("w=s.width||window.innerWidth");
+    expect(script).toContain("h=s.height||window.innerHeight");
+  });
+
+  it("leaves tablets and desktops on the full tier", () => {
+    // The frame-rate problem was only ever measured on a phone. An iPad's
+    // shorter side is 820, so the `<600` clause excludes it by construction -
+    // this asserts the threshold has not drifted up into tablet territory.
+    expect(script).not.toMatch(/Math\.min\(w,h\)<(6[1-9]\d|[7-9]\d\d|\d{4})/);
   });
 
   it("still catches a genuinely weak machine of any shape", () => {
