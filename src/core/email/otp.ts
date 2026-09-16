@@ -42,17 +42,37 @@ export async function issueCode(
 ): Promise<string> {
   const code = generateCode();
   const codeHash = hashCode(code);
-  await prisma.verificationCode.deleteMany({ where: { email, purpose } });
-  await prisma.verificationCode.create({
-    data: {
-      email,
-      purpose,
-      codeHash,
-      payload: payload ? JSON.stringify(payload) : null,
-      expiresAt: new Date(Date.now() + TTL_MS),
-    },
-  });
+  // Atomic transaction: invalidate previous codes for this user + issue fresh code.
+  // Scoped to (email, purpose) so this hot auth path stays ultra-fast on @@index([email, purpose])
+  // without scanning or locking other users' expired rows.
+  await prisma.$transaction([
+    prisma.verificationCode.deleteMany({
+      where: { email, purpose },
+    }),
+    prisma.verificationCode.create({
+      data: {
+        email,
+        purpose,
+        codeHash,
+        payload: payload ? JSON.stringify(payload) : null,
+        expiresAt: new Date(Date.now() + TTL_MS),
+      },
+    }),
+  ]);
   return code;
+}
+
+/**
+ * Purge all expired verification codes across the database.
+ * Uses @@index([expiresAt]) to perform a fast index scan.
+ */
+export async function purgeExpiredVerificationCodes(): Promise<number> {
+  const res = await prisma.verificationCode
+    .deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    })
+    .catch(() => ({ count: 0 }));
+  return res.count;
 }
 
 type VerifyResult =

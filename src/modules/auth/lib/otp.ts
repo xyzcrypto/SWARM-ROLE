@@ -7,11 +7,15 @@ const TTL_MS = 10 * 60 * 1000; // 10 minutes
 const MAX_ATTEMPTS = 5;
 
 function getOtpSecret(): string {
-  const s = process.env.NEXTAUTH_SECRET;
-  if (!s && process.env.NODE_ENV === "production") {
+  const secret = process.env.NEXTAUTH_SECRET;
+  // Fail closed: never hash OTP codes with the guessable dev fallback in production
+  if (
+    process.env.NODE_ENV === "production" &&
+    (!secret || secret === "insecure-dev-secret")
+  ) {
     throw new Error("NEXTAUTH_SECRET must be set in production (OTP hashing).");
   }
-  return s || "insecure-dev-secret";
+  return secret || "insecure-dev-secret";
 }
 
 /** Cryptographically-random 6-digit code (zero-padded). */
@@ -44,14 +48,12 @@ export async function issueCode(
 ): Promise<string> {
   const code = generateCode();
   const codeHash = hashCode(code);
+  // Atomic transaction: invalidate previous codes for this user + issue fresh code.
+  // Scoped to (email, purpose) so this hot auth path stays ultra-fast on @@index([email, purpose])
+  // without scanning or locking other users' expired rows.
   await prisma.$transaction([
     prisma.verificationCode.deleteMany({
-      where: {
-        OR: [
-          { email, purpose },
-          { expiresAt: { lt: new Date() } },
-        ],
-      },
+      where: { email, purpose },
     }),
     prisma.verificationCode.create({
       data: {
@@ -64,6 +66,19 @@ export async function issueCode(
     }),
   ]);
   return code;
+}
+
+/**
+ * Purge all expired verification codes across the database.
+ * Uses @@index([expiresAt]) to perform a fast index scan.
+ */
+export async function purgeExpiredVerificationCodes(): Promise<number> {
+  const res = await prisma.verificationCode
+    .deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    })
+    .catch(() => ({ count: 0 }));
+  return res.count;
 }
 
 type VerifyResult =
