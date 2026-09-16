@@ -18,7 +18,7 @@ export function fail(message: string, status = 400, extra?: Record<string, unkno
 
 /** Redacts passwords/credentials from database connection URLs embedded in error strings. */
 export function sanitizeDbError(msg: string): string {
-  return msg.replace(/(:\/\/[^:\s]+:)[^@\s]+(@)/g, "$1***$2");
+  return msg.replace(/(:\/\/[^:\s\/]+:)(?:(?!\s)[\s\S])*?(@[^@\s\/]+(?::\d+)?(?:\/|\s|$))/g, "$1***$2");
 }
 
 /**
@@ -64,7 +64,8 @@ export function handleError(err: unknown, context = "api") {
     return fail("Invalid JSON body.", 400);
   }
   const traceId = Math.random().toString(36).slice(2, 8);
-  console.error(`[${context}:${traceId}]`, err);
+  const rawDetail = err instanceof Error ? (err.stack || err.message) : String(err);
+  console.error(`[${context}:${traceId}]`, sanitizeDbError(rawDetail));
   // Report unexpected 500s to Sentry (no-op until a DSN is configured).
   Sentry.captureException(err, { tags: { context, traceId } });
   return fail("Something went wrong. Please try again.", 500, { traceId });

@@ -334,10 +334,19 @@ export const authOptions: NextAuthOptions = {
         token.membership = (user as any).membership ?? "Free";
         (token as any).syncedAt = Date.now();
         (token as any).pwdAt = Date.now();
-        const sid = randomUUID();
-        (token as any).sid = sid;
         if ((user as any).id) {
+          const sid = randomUUID();
+          // Opportunistically clean up expired sessions for this user to prevent table bloat
           await prisma.session
+            ?.deleteMany({
+              where: {
+                userId: (user as any).id,
+                expires: { lt: new Date() },
+              },
+            })
+            .catch(() => null);
+
+          const row = await prisma.session
             ?.create({
               data: {
                 sessionToken: sid,
@@ -346,6 +355,12 @@ export const authOptions: NextAuthOptions = {
               },
             })
             .catch(() => null);
+          // Only claim per-device revocation if we actually have a row to revoke.
+          // Failing open on DB error falls back to passwordChangedAt-only revocation,
+          // which is strictly better than bouncing a member who typed the right password.
+          if (row) {
+            (token as any).sid = sid;
+          }
         }
       }
       // Refresh from DB when missing, on an explicit `update()` call, or once
@@ -487,7 +502,10 @@ export const authOptions: NextAuthOptions = {
             try {
               if (prisma.session) {
                 const active = await prisma.session.findUnique({
-                  where: { sessionToken: sid },
+                  where: {
+                    sessionToken: sid,
+                    expires: { gt: new Date() },
+                  },
                   select: { id: true },
                 });
                 if (!active) {
@@ -507,8 +525,16 @@ export const authOptions: NextAuthOptions = {
             // stamp a new `sid` now so subsequent single-device logouts work,
             // ensuring deploying this change signs nobody out.
             const newSid = randomUUID();
-            (token as any).sid = newSid;
             await prisma.session
+              ?.deleteMany({
+                where: {
+                  userId: dbUser.id,
+                  expires: { lt: new Date() },
+                },
+              })
+              .catch(() => null);
+
+            const row = await prisma.session
               ?.create({
                 data: {
                   sessionToken: newSid,
@@ -517,6 +543,11 @@ export const authOptions: NextAuthOptions = {
                 },
               })
               .catch(() => null);
+            // Only stamp sid if the row was confirmed written to avoid falsely
+            // signing the user out on the next refresh if write fails.
+            if (row) {
+              (token as any).sid = newSid;
+            }
           }
 
           token.uid = dbUser.id;

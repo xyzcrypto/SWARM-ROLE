@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { AiCapacityError } from "@/lib/ai/gateway";
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    aiUsage: {
+      create: async () => ({}),
+    },
+  },
+}));
+
+import { AiCapacityError, runComplete } from "@/lib/ai/gateway";
 import { aiErrorMessage } from "@modules/ai/lib/ai";
 
 // "XYZ AI is busy at the moment. Please try again in a little while."
@@ -68,7 +77,6 @@ describe("the all-providers-failed log", () => {
   // un-diagnosable again.
   it("logs the real error when every provider fails", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { runComplete } = await import("@/lib/ai/gateway");
     const provider = {
       id: "fake",
       models: { fast: "m", deep: "m" },
@@ -86,14 +94,13 @@ describe("the all-providers-failed log", () => {
     expect(line).toContain("rate limit reached");
     expect(line).toContain("kind=rate_limit");
     spy.mockRestore();
-  }, 20000);
+  });
 
   // ⚠️ Gemini's REST API takes the key as `?key=…`, so a URL/fetch error can
   // carry a LIVE API KEY in its message. Logging it verbatim would publish a
   // secret to the Vercel log drain.
   it("never writes an API key into the log", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { runComplete } = await import("@/lib/ai/gateway");
     const SECRET = "AIzaSyD1234567890abcdefghijklmno";
     const provider = {
       id: "fake",
@@ -109,7 +116,7 @@ describe("the all-providers-failed log", () => {
     expect(line).not.toContain(SECRET);
     expect(line).toContain("key=***");
     spy.mockRestore();
-  }, 20000);
+  });
 });
 
 describe("errorKindOf buckets the 4xx that used to fall through", () => {
