@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // The real jwt callback, driven the way NextAuth drives it.
 const DB = {
   passwordChangedAt: null as Date | null,
-  activeSessions: new Set<string>(),
+  activeSessions: new Map<string, { userId: string; expires: Date }>(),
+  sessionCreateThrows: false,
 };
 vi.mock("@/lib/prisma", () => ({
   prisma: {
@@ -21,20 +22,47 @@ vi.mock("@/lib/prisma", () => ({
     },
     session: {
       create: async ({ data }: any) => {
-        if (data?.sessionToken) DB.activeSessions.add(data.sessionToken);
+        if (DB.sessionCreateThrows) {
+          throw new Error("P1001: Can't reach database server");
+        }
+        if (data?.sessionToken) {
+          DB.activeSessions.set(data.sessionToken, {
+            userId: data.userId,
+            expires: data.expires ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          });
+        }
         return { id: "sess_1", ...data };
       },
       findUnique: async ({ where }: any) => {
-        if (where?.sessionToken && DB.activeSessions.has(where.sessionToken)) {
-          return { id: "sess_1", sessionToken: where.sessionToken };
+        if (!where?.sessionToken) return null;
+        const record = DB.activeSessions.get(where.sessionToken);
+        if (!record) return null;
+        if (where.expires?.gt && !(record.expires > where.expires.gt)) {
+          return null;
         }
-        return null;
+        return { id: "sess_1", sessionToken: where.sessionToken, expires: record.expires };
       },
       deleteMany: async ({ where }: any) => {
+        let count = 0;
         if (where?.sessionToken) {
-          DB.activeSessions.delete(where.sessionToken);
+          if (DB.activeSessions.delete(where.sessionToken)) count++;
         }
-        return { count: 1 };
+        if (where?.userId) {
+          for (const [sid, sess] of Array.from(DB.activeSessions.entries())) {
+            if (sess.userId === where.userId) {
+              if (where.expires?.lt) {
+                if (sess.expires < where.expires.lt) {
+                  DB.activeSessions.delete(sid);
+                  count++;
+                }
+              } else {
+                DB.activeSessions.delete(sid);
+                count++;
+              }
+            }
+          }
+        }
+        return { count };
       },
     },
   },
@@ -64,6 +92,7 @@ const signedOut = (t: Record<string, unknown>) => !t || !t.uid;
 beforeEach(() => {
   DB.passwordChangedAt = null;
   DB.activeSessions.clear();
+  DB.sessionCreateThrows = false;
 });
 
 describe("signing in with the correct password", () => {
@@ -188,3 +217,113 @@ describe("per-device session revocation", () => {
     expect(signedOut(phoneRefreshed)).toBe(true);
   });
 });
+
+describe("resilience to session write failure", () => {
+  it("keeps member signed in if session.create throws at login", async () => {
+    DB.sessionCreateThrows = true;
+    const token = (await signIn()) as Record<string, unknown>;
+    // Crucial: transient DB failure at login must NOT bounce the user
+    expect(signedOut(token)).toBe(false);
+    expect(token.uid).toBe("cmq9kzbdw0005bwb7taega6av");
+    // sid must not be claimed if row was not confirmed written
+    expect(token.sid).toBeUndefined();
+  });
+
+  it("keeps legacy member signed in if backfill session.create throws", async () => {
+    // Legacy token with no sid
+    const legacyToken = {
+      email: EMAIL,
+      uid: "cmq9kzbdw0005bwb7taega6av",
+      role: "USER",
+      membership: "Free",
+      isSuperAdmin: false,
+      pwdAt: Date.now(),
+      syncedAt: 0,
+    };
+    DB.sessionCreateThrows = true;
+    const refreshed = (await jwt({ token: legacyToken } as never)) as Record<string, unknown>;
+    expect(signedOut(refreshed)).toBe(false);
+    expect(refreshed.sid).toBeUndefined();
+
+    // Even on the subsequent refresh after DB recovers, they must still stay signed in
+    DB.sessionCreateThrows = false;
+    const secondRefresh = (await jwt({
+      token: { ...refreshed, syncedAt: 0 },
+    } as never)) as Record<string, unknown>;
+    expect(signedOut(secondRefresh)).toBe(false);
+  });
+});
+
+describe("session expiration enforcement and cleanup", () => {
+  it("rejects an expired session row even if it exists in DB", async () => {
+    // Manually plant an expired session in DB
+    const expiredSid = "expired_session_123";
+    DB.activeSessions.set(expiredSid, {
+      userId: "cmq9kzbdw0005bwb7taega6av",
+      expires: new Date(Date.now() - 1000), // expired 1s ago
+    });
+
+    const token = {
+      email: EMAIL,
+      uid: "cmq9kzbdw0005bwb7taega6av",
+      role: "USER",
+      membership: "Free",
+      isSuperAdmin: false,
+      sid: expiredSid,
+      syncedAt: 0, // trigger DB check
+    };
+
+    const refreshed = (await jwt({ token } as never)) as Record<string, unknown>;
+    // Because expires < now, lookup rejects it -> signed out
+    expect(signedOut(refreshed)).toBe(true);
+  });
+
+  it("accepts a session row whose expiry is in the future", async () => {
+    const validSid = "valid_session_123";
+    DB.activeSessions.set(validSid, {
+      userId: "cmq9kzbdw0005bwb7taega6av",
+      expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    });
+
+    const token = {
+      email: EMAIL,
+      uid: "cmq9kzbdw0005bwb7taega6av",
+      role: "USER",
+      membership: "Free",
+      isSuperAdmin: false,
+      sid: validSid,
+      syncedAt: 0,
+    };
+
+    const refreshed = (await jwt({ token } as never)) as Record<string, unknown>;
+    expect(signedOut(refreshed)).toBe(false);
+    expect(refreshed.sid).toBe(validSid);
+  });
+
+  it("deletes expired sessions on login while preserving active sessions", async () => {
+    // 1 expired session and 1 active session for this user
+    const expiredSid = "old_expired_sid";
+    const activeSid = "active_other_device_sid";
+    DB.activeSessions.set(expiredSid, {
+      userId: "cmq9kzbdw0005bwb7taega6av",
+      expires: new Date(Date.now() - 24 * 60 * 60 * 1000), // expired yesterday
+    });
+    DB.activeSessions.set(activeSid, {
+      userId: "cmq9kzbdw0005bwb7taega6av",
+      expires: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000), // 10 days left
+    });
+
+    // Login creates a new session and purges expired ones
+    const token = (await signIn()) as Record<string, unknown>;
+    expect(signedOut(token)).toBe(false);
+
+    // Expired session was deleted
+    expect(DB.activeSessions.has(expiredSid)).toBe(false);
+    // Active session on other device remains intact
+    expect(DB.activeSessions.has(activeSid)).toBe(true);
+    // Brand-new session was added
+    expect(DB.activeSessions.has(token.sid as string)).toBe(true);
+  });
+});
+
+

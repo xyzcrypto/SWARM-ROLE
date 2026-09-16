@@ -506,6 +506,7 @@ model VerificationCode {
   createdAt DateTime @default(now())
 
   @@index([email, purpose])
+  @@index([expiresAt])
 }
 
 // "What's New" feed — admin-managed changelog surfaced on the homepage. Entries

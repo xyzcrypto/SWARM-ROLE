@@ -43,6 +43,9 @@ describe("sanitizeDbError", () => {
     expect(sanitizeDbError("postgresql://user:p%40ssw0rd@localhost:5432/mydb")).toBe(
       "postgresql://user:***@localhost:5432/mydb"
     );
+    expect(sanitizeDbError("postgresql://user:raw@secret@db.host.internal:5432/db")).toBe(
+      "postgresql://user:***@db.host.internal:5432/db"
+    );
   });
   it("leaves error strings without credentials alone", () => {
     expect(sanitizeDbError("Connection timeout")).toBe("Connection timeout");
