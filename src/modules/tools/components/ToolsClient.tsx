@@ -6,7 +6,6 @@ import { useSession } from "next-auth/react";
 import { Percent, Gift, AlertTriangle, Shield, TrendingUp, Sigma, ArrowDownRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FundingFeeCalculator } from "@/components/tools/FundingFeeCalculator";
-import { PointsValueCalculator } from "@/components/tools/PointsValueCalculator";
 import { LiquidationCalculator } from "@/components/tools/LiquidationCalculator";
 import { PositionSizeCalculator } from "@/components/tools/PositionSizeCalculator";
 import { PnlCalculator } from "@/components/tools/PnlCalculator";
@@ -17,7 +16,6 @@ import { AwardXpOnView } from "@/components/AwardXpOnView";
 
 const TABS = [
   { id: "funding", label: "Funding Fee", icon: Percent, Panel: FundingFeeCalculator },
-  { id: "points", label: "Points Value", icon: Gift, Panel: PointsValueCalculator },
   { id: "liquidation", label: "Liquidation", icon: AlertTriangle, Panel: LiquidationCalculator },
   { id: "size", label: "Position Size", icon: Shield, Panel: PositionSizeCalculator },
   { id: "pnl", label: "PnL", icon: Percent, Panel: PnlCalculator },
@@ -81,6 +79,28 @@ export function ToolsClient() {
       <div className="surface rounded-4xl p-6 sm:p-8">
         <Active />
       </div>
+
+      {/* The Points Value calculator used to be a tab here. It outgrew a tab -
+          it now has live comparables, a cost basis and a sensitivity grid - so
+          it lives at /points. This signpost stays permanently: anyone who
+          learned where it was will come back looking for it here. */}
+      <Link
+        href="/points"
+        className="surface surface-hover lift group flex flex-col items-center gap-3 rounded-3xl p-7 text-center sm:flex-row sm:justify-between sm:text-left"
+      >
+        <div className="flex items-start gap-3.5">
+          <span className="mt-0.5 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-500/10 text-gold-200 transition-transform group-hover:scale-105 group-active:scale-105">
+            <Gift className="h-5 w-5" strokeWidth={1.7} />
+          </span>
+          <div>
+            <h3 className="font-display text-lg font-semibold text-zinc-50">Points and airdrop value</h3>
+            <p className="mt-1 text-sm text-zinc-400">
+              Moved to its own section, with live peer comparables, cost basis and break-even.
+            </p>
+          </div>
+        </div>
+        <span className="btn-secondary shrink-0">Open Points</span>
+      </Link>
 
       <div className="surface surface-hover lift flex flex-col items-center gap-3 rounded-3xl p-7 text-center sm:flex-row sm:justify-between sm:text-left">
         <div>
