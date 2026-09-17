@@ -110,7 +110,7 @@ export function CostPanel({
         ) : (
           <div className="flex flex-wrap items-baseline justify-between gap-4">
             <div>
-              <p className="text-xs text-content0">Break-even FDV</p>
+              <p className="text-xs text-content-subtle">Break-even FDV</p>
               <p className="mt-1.5 mono text-3xl font-semibold sm:text-4xl">
                 <span className={profitable ? "text-mint-gradient" : "text-gold-gradient"}>
                   {usdCompact(be.fdvUsd)}
@@ -121,15 +121,15 @@ export function CostPanel({
               </p>
             </div>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-right text-xs">
-              <dt className="text-content0">Cost per point</dt>
+              <dt className="text-content-subtle">Cost per point</dt>
               <dd className="mono text-content">
                 ${eff.costPerPoint.toLocaleString("en-US", { maximumFractionDigits: 4 })}
               </dd>
-              <dt className="text-content0">Points per $1k volume</dt>
+              <dt className="text-content-subtle">Points per $1k volume</dt>
               <dd className="mono text-content">
                 {eff.pointsPer1kVolume.toLocaleString("en-US", { maximumFractionDigits: 2 })}
               </dd>
-              <dt className="text-content0">Value per point</dt>
+              <dt className="text-content-subtle">Value per point</dt>
               <dd className="mono text-content">
                 $
                 {(Number(form.yourPoints) > 0

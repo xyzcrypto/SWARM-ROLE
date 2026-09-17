@@ -95,7 +95,7 @@ export function ValuePanel({
                   "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors",
                   linked
                     ? "bg-mint-500/15 text-mint-200 hover:bg-mint-500/25"
-                    : "text-content0 hover:text-content-muted"
+                    : "text-content-subtle hover:text-content-muted"
                 )}
               >
                 {linked ? <Link2 className="h-3 w-3" /> : <Unlink className="h-3 w-3" />}
@@ -120,7 +120,7 @@ export function ValuePanel({
                 linked ? "border-mint-500/30" : "border-hairline focus:border-gold-500/50"
               )}
             />
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-content0">
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-content-subtle">
               USD
             </span>
           </div>

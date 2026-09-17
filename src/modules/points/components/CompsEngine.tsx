@@ -92,7 +92,7 @@ export function CompsEngine({
             state === "live"
               ? "border-mint-500/30 bg-mint-500/10 text-mint-200"
               : state === "loading"
-                ? "border-hairline text-content0"
+                ? "border-hairline text-content-subtle"
                 : "border-rose-500/30 bg-rose-500/10 text-rose-300"
           )}
         >
@@ -258,7 +258,7 @@ function RangeBar({
     <div className="mt-6 rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <p className="text-xs text-content0">
+          <p className="text-xs text-content-subtle">
             Implied FDV from {range.count} peer{range.count === 1 ? "" : "s"} on {COMP_METRIC_LABEL[metric]}
           </p>
           <p className="mt-1.5 mono text-3xl font-semibold sm:text-4xl">
@@ -309,14 +309,14 @@ function CompsTable({
 }) {
   return (
     <div className="mt-6">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-content0">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-content-subtle">
         Peer by peer
       </p>
       {/* Only the table scrolls sideways, never the page. */}
       <div className="-mx-1 overflow-x-auto px-1">
         <table className="w-full text-sm md:min-w-[640px]">
           <thead>
-            <tr className="border-b border-hairline text-left text-[11px] uppercase tracking-wide text-content0">
+            <tr className="border-b border-hairline text-left text-[11px] uppercase tracking-wide text-content-subtle">
               <th className="py-2 pr-3 font-medium">Peer</th>
               <th className="py-2 pr-3 text-right font-medium">Their {COMP_METRIC_LABEL[metric]}</th>
               <th className="hidden py-2 pr-3 text-right font-medium sm:table-cell">vs you</th>
@@ -346,7 +346,7 @@ function CompsTable({
                 <td className="mono py-2.5 pr-3 text-right text-content-muted">
                   {usdCompact(metricOf(c.peer, metric))}
                 </td>
-                <td className="mono hidden py-2.5 pr-3 text-right text-content0 sm:table-cell">
+                <td className="mono hidden py-2.5 pr-3 text-right text-content-subtle sm:table-cell">
                   {c.ratio.toFixed(2)}x
                 </td>
                 <td className="mono py-2.5 pr-3 text-right text-content-muted">{usdCompact(c.peer.fdv ?? 0)}</td>

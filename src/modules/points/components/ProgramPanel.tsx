@@ -11,7 +11,7 @@ const PHASE_TONE: Record<ProgramView["phase"], string> = {
   live: "border-mint-500/30 bg-mint-500/10 text-mint-200",
   upcoming: "border-sky-500/30 bg-sky-500/10 text-sky-200",
   distributed: "border-gold-500/30 bg-gold-500/10 text-gold-200",
-  ended: "border-hairline bg-white/[0.03] text-content0",
+  ended: "border-hairline bg-white/[0.03] text-content-subtle",
 };
 
 export function ProgramPanel({
@@ -94,7 +94,7 @@ export function ProgramPanel({
               <span
                 className={cn(
                   "mt-3 inline-flex items-center gap-1 text-[11px] font-medium",
-                  p.confirmed ? "text-mint-300" : "text-content0"
+                  p.confirmed ? "text-mint-300" : "text-content-subtle"
                 )}
               >
                 {p.confirmed ? (

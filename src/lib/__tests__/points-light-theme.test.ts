@@ -73,6 +73,46 @@ describe("the points UI themes instead of assuming a dark ground", () => {
   });
 });
 
+describe("every semantic colour class actually exists", () => {
+  // ⚠️ This test exists because of a real bug it would have caught instantly.
+  //
+  // The zinc-to-semantic migration was done with an ordered find-and-replace,
+  // and `text-zinc-50` was listed BEFORE `text-zinc-500`. So every
+  // `text-zinc-500` matched the shorter rule first and became `text-content`
+  // plus a leftover `0`: **`text-content0`**, thirteen times.
+  //
+  // Tailwind does not generate that class, so those elements silently
+  // inherited their parent's colour. Nothing threw, the build passed, and the
+  // CONTRAST AUDIT PASSED TOO - the inherited colour happened to be legible,
+  // so measuring contrast could not see it. Only the class name itself can.
+  const config = readFileSync("tailwind.config.ts", "utf8");
+
+  /** The semantic token names Tailwind is actually configured to emit. */
+  const tokens = new Set<string>();
+  for (const m of config.matchAll(/^\s*"?([a-z][a-z0-9-]*)"?:\s*"var\(--/gm)) tokens.add(m[1]);
+  // `content` and friends are declared as bare keys too; catch those.
+  for (const k of ["base", "surface", "surface-2", "content", "content-muted", "content-subtle", "hairline", "data-up", "data-down"]) {
+    if (config.includes(`"${k}"`) || config.includes(`${k}:`)) tokens.add(k);
+  }
+
+  it("parsed a plausible token set from tailwind.config.ts", () => {
+    // Guard against a silently empty parse making the check below vacuous.
+    expect(tokens.size).toBeGreaterThanOrEqual(6);
+    expect(tokens.has("content")).toBe(true);
+    expect(tokens.has("hairline")).toBe(true);
+  });
+
+  it("uses no semantic class Tailwind will not generate", () => {
+    const bad: string[] = [];
+    for (const [file, src] of Object.entries(sources)) {
+      for (const m of src.matchAll(/\b(?:text|bg|border|ring|fill|stroke)-((?:content|surface|hairline|data|base)[a-z0-9-]*)/g)) {
+        if (!tokens.has(m[1])) bad.push(`${file}: ${m[0]}`);
+      }
+    }
+    expect(bad, `classes referencing a token that does not exist:\n  ${bad.join("\n  ")}`).toEqual([]);
+  });
+});
+
 describe("the share name cannot silently fail the share", () => {
   it("falls back through label -> programme -> venue", () => {
     expect(shareName("My Variational bag", "Variational", "Variational")).toBe("My Variational bag");
