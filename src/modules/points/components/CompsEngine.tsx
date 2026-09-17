@@ -51,7 +51,15 @@ export function CompsEngine({
   windows: Record<string, boolean>;
   /** Stage counts from the route, shown only when there is nothing to show.
    *  A failure a reader can describe is a failure someone can fix. */
-  diag: { protocols: number; afterFilter: number; pricedTokens: number; matched: number; upstream: string | null } | null;
+  diag: {
+    protocols: number;
+    afterFilter: number;
+    pricedTokens: number;
+    matched: number;
+    /** Which upstream produced the venue list: "llama", a fallback, or "none". */
+    source?: string;
+    upstream: string | null;
+  } | null;
   onRefresh: () => void;
   onTarget: (slug: string) => void;
   onMetric: (m: CompMetric) => void;
@@ -120,8 +128,8 @@ export function CompsEngine({
           </p>
           {diag && (
             <p className="mono mt-2 text-[11px] leading-relaxed text-content-subtle">
-              venues from upstream: {diag.protocols} · past the volume filter: {diag.afterFilter} · priced tokens:{" "}
-              {diag.pricedTokens} · matched: {diag.matched}
+              source: {diag.source ?? "?"} · venues from upstream: {diag.protocols} · past the volume filter:{" "}
+              {diag.afterFilter} · priced tokens: {diag.pricedTokens} · matched: {diag.matched}
               {diag.upstream ? ` · ${diag.upstream}` : ""}
             </p>
           )}
@@ -146,7 +154,7 @@ export function CompsEngine({
               <select
                   value={target?.slug ?? ""}
                   onChange={(e) => onTarget(e.target.value)}
-                  className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+                  className="min-h-11 w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
                 >
                   <option value="">Pick a venue to compare against…</option>
                   {unlisted.length > 0 && (
@@ -256,7 +264,15 @@ function VenueTape({
 }: {
   venues: CompVenue[];
   priced: number;
-  diag: { protocols: number; afterFilter: number; pricedTokens: number; matched: number; upstream: string | null } | null;
+  diag: {
+    protocols: number;
+    afterFilter: number;
+    pricedTokens: number;
+    matched: number;
+    /** Which upstream produced the venue list: "llama", a fallback, or "none". */
+    source?: string;
+    upstream: string | null;
+  } | null;
 }) {
   return (
     <div className="mt-8 border-t border-hairline pt-6">
@@ -274,8 +290,8 @@ function VenueTape({
           derive an FDV from. The venue activity below is still current.
           {diag && (
             <span className="mono mt-1.5 block text-[11px] opacity-80">
-              venues {diag.protocols} · past filter {diag.afterFilter} · priced tokens {diag.pricedTokens} ·
-              matched {diag.matched}
+              source {diag.source ?? "?"} · venues {diag.protocols} · past filter {diag.afterFilter} · priced
+              tokens {diag.pricedTokens} · matched {diag.matched}
               {diag.upstream ? ` · ${diag.upstream}` : ""}
             </span>
           )}

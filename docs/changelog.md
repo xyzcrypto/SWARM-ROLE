@@ -5,6 +5,117 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (101) — Aggregate, because one refusing upstream was blanking the page
+
+### The diagnosis, at last
+
+Three releases of "Data unavailable", two wrong theories. The stage diagnostics
+added for exactly this printed it from production:
+
+```
+venues from upstream: 0 · past the volume filter: 0 ·
+priced tokens: 249 · matched: 0 · llama Error
+```
+
+**CoinGecko was fine - 249 tokens priced. DefiLlama was refusing.** `llama.ts`
+throws `new Error("<url> <status>")` on a non-OK response, so `err.name` is the
+generic "Error" and the reporting threw the status away, which is why every
+earlier report said only "llama Error". It reports `err.message` now, so the
+next one carries the code.
+
+**One upstream being able to blank a page is the actual defect**, and no amount
+of retrying a refusing host fixes it. `/api/points/comps` now falls back to
+CoinGecko's derivatives exchange list - the host production proved reachable in
+the very same request - converting BTC-denominated volumes with a spot price
+fetched alongside, and dropping the whole source if that price is missing rather
+than emitting numbers five orders of magnitude wrong.
+
+⚠️ **The fallback may only ADD venues it can name.** Its list mixes centralised
+exchanges in with perp DEXs, so it filters through an explicit allowlist and
+fails **closed**: an unrecognised venue is dropped. Quietly pricing a points
+programme against Binance's volume would be the "wrong number presented as
+right" failure this codebase keeps meeting. Tested against eight CEX names.
+
+⚠️ The fallback's fetches are **cached, not `no-store`**. A single `no-store`
+anywhere in a segment makes the whole route dynamic, and it did:
+`/api/points/comps` dropped from prerendered back to per-request until this was
+caught in the route-table diff. That response is ~100 rows, far under the 2 MB
+data-cache ceiling, so it caches fine.
+
+### A second lane for the desk: trusted sources
+
+`/api/points/radar` plus `AirdropRadar`, at the bottom of the page. Airdrop,
+points and perp DEX stories, each credited and linked.
+
+⚠️ **No new upstream.** It is a FILTER over `getNewsPage`, the site's existing
+RSS pipeline - already fetched, parsed, deduped and cached for /news, and its
+taxonomy already ships "Airdrops", "Perp DEX" and "Token Launches" categories.
+A second fetch of the same twenty feeds would have doubled a cost the site
+already pays, and a second parser would have been a second thing to keep correct.
+
+⚠️ **X/Twitter is deliberately not a source.** There is no free API for it, and
+claiming to read X while actually reading an outlet that quotes X would be a
+false claim about sourcing. A specific tweet belongs in the desk's own posts,
+with its link.
+
+Collapsible, and the choice is remembered. Venue chips filter it.
+
+### The nav: opaque, and it gets out of the way
+
+Two bugs, both visible in the reported screenshot:
+
+1. **It was see-through.** `.glass` over dense cards let their text read through
+   the labels, so mid-scroll it rendered as superimposed strings
+   ("RiseFarmingVariational") and looked like a rendering fault.
+2. **It was always there**, sitting on the first card and costing ~44px of a
+   phone viewport permanently. It now hides on scroll down and returns on scroll
+   up.
+
+⚠️ **And the fix reintroduced the first bug.** `bg-base/95` reads perfectly and
+emits **nothing at all**: these semantic tokens are declared as plain
+`var(--bg)`, not in the `rgb(... / <alpha-value>)` form an opacity modifier
+requires, so Tailwind produces no background rule. Measured at **alpha 0**. Same
+family as the `text-content0` incident - a class that parses, means nothing, and
+fails silently. Now `bg-base`, and `points-light-theme.test.ts` fails on any
+opacity modifier applied to a var-based token.
+
+### Every outcome: bear / base / bull
+
+Three scenarios computed from the **live peer spread** - cheapest peer, median,
+dearest - each showing value and ROI, each clickable to adopt. Requires three
+peers: a "range" from two is one peer either side of nothing, and dressing that
+as a band would be inventing precision.
+
+### Mobile
+
+Measured at 393px: five controls came out **32px tall**, under the 36px floor a
+thumb needs - the segmented metric buttons, both selects and the radar chips.
+All raised. The dense outcome grid is exempt and verified to scroll inside its
+own box rather than the page.
+
+### Also
+
+- `docs/guides/perp-quiz-structure.md` - a full build plan for the quiz/score
+  game: schema, routes, the "client never receives the answer" rule, live
+  question generators with their ambiguity guards, scoring, build order.
+  **Not built.** The document is the deliverable.
+
+**Route table:** 143 → 144 routes, static 27 → 28, ISR 11 → 12, dynamic
+unchanged at 115. The one addition is `/api/points/radar` at 2m, matching
+`NEWS_REVALIDATE` because the shared cache imposes it (trap 1b).
+
+### Files
+
+`src/modules/points/lib/{perp-sources,airdrop-radar}.ts` (new) ·
+`src/app/api/points/radar/route.ts` (new) ·
+`src/modules/points/components/AirdropRadar.tsx` (new) ·
+`src/app/api/points/comps/route.ts` · `PointsNav/SensitivityGrid/CompsEngine/CostPanel/PointsClient.tsx` ·
+`src/modules/tools/components/CalcField.tsx` ·
+`src/lib/__tests__/points-sources.test.ts` (new) · `points-light-theme.test.ts` ·
+`docs/guides/perp-quiz-structure.md` (new)
+
+---
+
 ## 2026-09-17 (100) — One header grammar, a desk that stays quiet, and a tape that is always live
 
 ### The alignment complaint, measured

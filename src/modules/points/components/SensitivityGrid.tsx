@@ -49,6 +49,9 @@ export function SensitivityGrid({
   onPick,
   liveFdv = 0,
   liveLabel,
+  liveLow = 0,
+  liveHigh = 0,
+  livePeers = 0,
   fetchedAt = null,
   breakEvenFdvs,
   linked = false,
@@ -73,6 +76,14 @@ export function SensitivityGrid({
   liveFdv?: number;
   /** What the live anchor is, in words: "peer median", "published scenario". */
   liveLabel?: string;
+  /** The cheapest and dearest FDV the peer set implies. 0 when the anchor did
+   *  not come from comparables, in which case no band is drawn - a published
+   *  scenario is a single number and must not be dressed in a range it does
+   *  not have. */
+  liveLow?: number;
+  liveHigh?: number;
+  /** How many peers produced that band. A range from two peers is not a range. */
+  livePeers?: number;
   /** When the live data last arrived. Null until the first fetch resolves, so
    *  this is state, never a clock read during render. */
   fetchedAt?: number | null;
@@ -136,6 +147,33 @@ export function SensitivityGrid({
   const beHere = hasCost ? breakEvenFdvs?.[row] ?? 0 : 0;
   const clearsIt = beHere > 0 && liveFdv > 0 ? liveFdv >= beHere : null;
 
+  // ── the band the market actually implies ──────────────────────────────────
+  // A median alone invites planning around the median. The low and the high are
+  // the peers DISAGREEING, and the width of that disagreement is usually the
+  // finding - so bear / base / bull are computed from real comparables rather
+  // than from a made-up +/- percentage.
+  //
+  // Requires three peers. A "range" from two is one peer either side of nothing,
+  // and dressing that as a scenario band would be inventing precision.
+  const hasBand = livePeers >= 3 && liveLow > 0 && liveHigh > liveLow;
+  const scenarios = hasBand
+    ? ([
+        { key: "Bear", fdv: liveLow, tone: "down" as const, note: "cheapest peer" },
+        { key: "Base", fdv: liveFdv, tone: "base" as const, note: "peer median" },
+        { key: "Bull", fdv: liveHigh, tone: "up" as const, note: "dearest peer" },
+      ])
+    : [];
+  /** Value at an arbitrary FDV, read off the row the reader is actually on. */
+  const atFdv = (fdv: number) => {
+    const cells = grid[row] ?? [];
+    const base = cells[0];
+    if (!base || !(base.fdvUsd > 0)) return { gross: 0, roi: 0 };
+    // Gross is linear in FDV once the share is fixed, so this scales exactly
+    // rather than needing another pass of projectValue.
+    const gross = (base.grossUsd / base.fdvUsd) * fdv;
+    return { gross, roi: hasCost ? gross / totalCostUsd : 0 };
+  };
+
   return (
     <PointsPanel
       eyebrow="Every outcome"
@@ -178,6 +216,46 @@ export function SensitivityGrid({
         ) : null
       }
     >
+      {/* Bear / base / bull, from the live peer spread. Three numbers a reader
+          can act on, above a grid that shows why they are those numbers. */}
+      {scenarios.length > 0 && (
+        <div className="mt-5 grid gap-2 sm:grid-cols-3">
+          {scenarios.map((sc) => {
+            const { gross, roi } = atFdv(sc.fdv);
+            return (
+              <button
+                key={sc.key}
+                type="button"
+                onClick={onPick ? () => onPick(sc.fdv, allocs[row]) : undefined}
+                disabled={!onPick}
+                className={cn(
+                  "rounded-2xl border border-hairline bg-surface-2 p-4 text-left transition-colors",
+                  onPick && "hover:border-gold-500/25 active:border-gold-500/25"
+                )}
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-content-subtle">
+                    {sc.key}
+                  </span>
+                  <span className="text-[10px] text-content-subtle">{sc.note}</span>
+                </span>
+                <span className="mono mt-1.5 block text-lg font-semibold tabular-nums text-content">
+                  {usdCompact(gross)}
+                </span>
+                <span className="mt-0.5 flex items-center gap-2 text-[11px]">
+                  <span className="mono text-content-subtle">{usdCompact(sc.fdv)} FDV</span>
+                  {hasCost && (
+                    <span className={cn("mono font-semibold", roi >= 1 ? "grid-net-up" : "grid-net-down")}>
+                      {formatMultiple(roi)}
+                    </span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* The verdict, stated. A grid shows you everything; this says the one
           thing you came to find out. */}
       {beHere > 0 && (

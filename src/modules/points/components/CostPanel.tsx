@@ -53,7 +53,7 @@ export function CostPanel({
             <select
               value={analyseId}
               onChange={(e) => onAnalyse(e.target.value)}
-              className="rounded-lg border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs text-content outline-none transition-colors focus:border-gold-500/50"
+              className="min-h-9 rounded-lg border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs text-content outline-none transition-colors focus:border-gold-500/50"
             >
               {programs.map((p) => (
                 <option key={p.id} value={p.id}>

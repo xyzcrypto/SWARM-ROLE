@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { llamaOverview, type OverviewRow } from "@modules/markets/lib/llama";
+import { coingeckoDerivatives, mergeVenues } from "@modules/points/lib/perp-sources";
 import { protocolSlug } from "@/lib/markets";
 import type { CompVenue } from "@modules/points/lib/points";
 
@@ -159,7 +160,14 @@ async function derivatives(): Promise<{ protocols: OverviewRow[]; error: string 
     const { protocols } = await llamaOverview("derivatives");
     return { protocols, error: protocols.length ? null : "llama returned 0 protocols" };
   } catch (err) {
-    return { protocols: [], error: `llama ${(err as Error)?.name ?? "failed"}` };
+    // ⚠️ `message`, not `name`. `llama.ts` throws `new Error("<url> <status>")`,
+    // so `name` is the generic "Error" - which is exactly what production
+    // printed for three releases ("llama Error"), telling nobody whether it was
+    // a 403, a 429, a 500 or a timeout. The status is the entire diagnosis.
+    const e = err as Error;
+    const detail = e?.name === "TimeoutError" || e?.name === "AbortError" ? e.name : e?.message || "failed";
+    // The URL prefix is noise in a UI string; keep the tail, which is the code.
+    return { protocols: [], error: `llama ${detail.replace(/^https?:\/\/\S+\s*/, "").slice(0, 60)}` };
   }
 }
 
@@ -174,7 +182,7 @@ export async function GET() {
     if (k && !byName.has(k)) byName.set(k, p);
   }
 
-  const venues: CompVenue[] = deriv.protocols
+  const primary: CompVenue[] = deriv.protocols
     .filter((p) => (Number(p.total24h) || 0) >= MIN_VOLUME_24H)
     .sort((a, b) => (Number(b.total24h) || 0) - (Number(a.total24h) || 0))
     .slice(0, MAX_VENUES)
@@ -193,6 +201,35 @@ export async function GET() {
         coingeckoId: match?.id ?? null,
       };
     });
+
+  // ⚠️ AGGREGATE. One upstream refusing must not be able to blank this panel,
+  // and that is not hypothetical: production ran for three releases on
+  // "venues from upstream: 0 ... llama Error" while the other host in the same
+  // request answered with 249 priced tokens.
+  //
+  // The fallback runs only when the primary produced nothing, so the normal path
+  // costs exactly what it did before. It may only ADD venues it can name - see
+  // the allowlist in perp-sources.ts - so a bad guess about its response shape
+  // yields zero extra rows and a diagnostic, never a wrong number.
+  let fallback: CompVenue[] = [];
+  let fallbackError: string | null = null;
+  if (!primary.length) {
+    const alt = await coingeckoDerivatives(revalidate);
+    fallbackError = alt.error;
+    fallback = alt.venues
+      // The same floor the primary source applies. Below this, volume is too
+      // thin for a multiple built on it to mean anything, and a fallback that
+      // quietly used a looser rule would change what the median means.
+      .filter((v) => v.volume24h >= MIN_VOLUME_24H)
+      .map((v) => {
+        const match = byName.get(normalise(v.name));
+        return { ...v, fdv: match?.fdv ?? null, coingeckoId: match?.id ?? null };
+      });
+  }
+
+  const venues = mergeVenues(primary, fallback)
+    .sort((a, b) => b.volume24h - a.volume24h)
+    .slice(0, MAX_VENUES);
 
   // `live` is about the volume side only. FDVs can be entirely absent (a
   // CoinGecko outage) and the page still has something true to show.
@@ -220,7 +257,9 @@ export async function GET() {
     afterFilter: venues.length,
     pricedTokens: priced.rows.length,
     matched: pricedCount,
-    upstream: [deriv.error, priced.error].filter(Boolean).join("; ") || null,
+    /** Which upstream actually produced the venue list this cycle. */
+    source: primary.length ? "llama" : fallback.length ? "coingecko-derivatives" : "none",
+    upstream: [deriv.error, fallbackError, priced.error].filter(Boolean).join("; ") || null,
   };
 
   return NextResponse.json(

@@ -25,6 +25,7 @@ import { UpdatesFeed } from "./UpdatesFeed";
 import { CompsEngine } from "./CompsEngine";
 import { CostPanel } from "./CostPanel";
 import { SensitivityGrid } from "./SensitivityGrid";
+import { AirdropRadar } from "./AirdropRadar";
 
 const STORE_KEY = "xyz.points.v2";
 
@@ -134,6 +135,8 @@ export function PointsClient() {
   const [form, setForm] = useState<Form>(DEFAULTS);
   const [venues, setVenues] = useState<CompVenue[]>([]);
   const [windows, setWindows] = useState<Record<string, boolean>>({});
+  // Shape mirrors the route's `diag`. `source` says which upstream actually
+  // produced the venue list, which is the first question when a number looks off.
   const [diag, setDiag] = useState<any>(null);
   const [state, setState] = useState<"loading" | "live" | "down">("loading");
   const [fetchedAt, setFetchedAt] = useState<number | null>(null);
@@ -281,7 +284,11 @@ export function PointsClient() {
           fdvUsd: num(fdv),
           tgeUnlockPct: num(st.tgeUnlock),
         };
-        return { program: p, st: { ...st, fdv }, anchor, anchorFdv, inputs, value: projectValue(inputs) };
+        // `range` travels with the view so the outcome grid can show the whole
+        // band the market implies, not just its midpoint. The low and the high
+        // are the disagreement between peers, and the width of that
+        // disagreement is usually the finding.
+        return { program: p, st: { ...st, fdv }, anchor, anchorFdv, range, inputs, value: projectValue(inputs) };
       }),
     [programs, form, venues, metric]
   );
@@ -298,6 +305,7 @@ export function PointsClient() {
       ...views.map((v) => ({ id: `programme-${v.program.id}`, label: v.program.name })),
       { id: "points-cost", label: "Cost" },
       { id: "points-outcomes", label: "Outcomes" },
+      { id: "points-radar", label: "Radar" },
     ],
     [views]
   );
@@ -437,6 +445,11 @@ export function PointsClient() {
               // than dressing a fallback up as live.
               liveFdv={analysed.anchorFdv}
               liveLabel={analysed.anchor === "comps" ? "live peer median" : "published scenario"}
+              // The band, only when it came from real comparables. A published
+              // scenario has no low/high and must not be dressed in one.
+              liveLow={analysed.anchor === "comps" ? analysed.range.low : 0}
+              liveHigh={analysed.anchor === "comps" ? analysed.range.high : 0}
+              livePeers={analysed.anchor === "comps" ? analysed.range.count : 0}
               fetchedAt={analysed.anchor === "comps" ? fetchedAt : null}
               breakEvenFdvs={beLadder}
               linked={Boolean(analysed.st.fdvLinked)}
@@ -453,6 +466,13 @@ export function PointsClient() {
           </Reveal>
         </>
       )}
+
+      {/* The trusted-source lane, last. The desk's own posts lead the page
+          because they are the team's word; this is other people's reporting and
+          belongs after everything the reader came for. */}
+      <Reveal delay={0.1}>
+        <AirdropRadar />
+      </Reveal>
     </div>
   );
 }
