@@ -5,6 +5,90 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (97) — The airdrop desk: post an update, everyone sees it
+
+`/points` now opens with a live feed of what is happening - a programme going
+live, a snapshot landing, a TGE date - posted by staff and updated on open
+pages without a reload.
+
+### Its own model, not the What's New feed
+
+`WhatsNewEntry` is about **this site** shipping things. `PointsUpdate` is about
+**the outside world**: someone else's programme opening or closing. Mixing them
+would make both unreadable, and the audiences are different people.
+
+Kinds are a closed vocabulary - `live · soon · snapshot · tge · ended · alert ·
+update` - because the feed's job is answering "can I still farm this, and do I
+need to do something today?" fast, and free text cannot be sorted, filtered or
+coloured. Every kind is a distinct ACTION for the reader; two kinds that would
+produce the same action should be one kind.
+
+### The composer is inline, on the page
+
+Not in the dashboard. "Sodex snapshot is tomorrow" is a thirty-second thought,
+and making it a trip to an admin screen is how a live feed quietly stops being
+live. Staff with `points:manage` get a composer at the top of the desk; nobody
+else sees it exists.
+
+### Live through the shared primitive, not a hand-rolled channel
+
+Writes broadcast on a new `CH_POINTS` topic and open pages refetch. It goes
+through `useRealtime`, which already carries the retry with backoff, the armed
+fallback poll and the wake refetch that seven other surfaces needed - and that
+this one would otherwise have got wrong on its own, the same way they did.
+
+`CH_POINTS` rather than `CH_NOTIFY` because that one is a signed-in bell and
+this feed is public: anonymous readers have to get the ping too.
+
+Edits and deletes broadcast as well, not just creates. Fixing a wrong date or
+unpinning something is exactly the kind of change a reader with the page open
+needs to see, and a deleted update that stays on screen is worse than one that
+was never posted.
+
+### Things that had to be got right
+
+- **A link cannot carry script.** `safeUrl` accepts only `http(s)` and rejects
+  what it cannot parse rather than sanitising into something plausible. Applied
+  **on the way in**, not at render: a bad URL filtered only at render time is
+  one careless consumer away from being rendered.
+- **Drafts are never edge-cached.** A response containing unpublished rows is
+  `private, no-store`. The whole point of a draft is that nobody has seen it.
+- **A draft does not broadcast.** It would make every open page refetch and
+  find nothing new.
+- **"Nothing posted yet" and "we could not reach the feed" are different
+  statements.** Collapsing them is a lie in the reader's favour - an outage
+  would read as a quiet desk. Caught while testing against a local environment
+  with no database.
+- **The table not existing is survivable.** `db push` runs on production
+  deploys only, so the code ships before the table does; an empty feed is the
+  truth in that window and a 503 is not.
+- **The edge window (30s) sits under the fallback poll (60s)**, so a poll
+  during a channel outage can never land on a fresh cache entry and spin the
+  origin.
+
+### Cost
+
+`/api/points/updates` and `/api/points/updates/[id]` are both **dynamic**, and
+deliberately: every write broadcasts, so a cached feed would be handing readers
+a stale list seconds after the entire point of the feature is that it is not
+stale. Neither is polled on an interval, so neither belongs in `TARGETS` - the
+route comments say so, in case that changes.
+
+One additive migration (`37_points_updates`), `CREATE TABLE IF NOT EXISTS` plus
+one index matching the feed's exact ORDER BY. Drops nothing, safe to re-run.
+
+⚠️ **The table appears on the next production deploy.** Until then the feed
+renders empty rather than erroring. Check the build log for `in sync with your
+Prisma schema` per the CLAUDE.md gotcha.
+
+**Files:** `prisma/schema.prisma` + `prisma/migrations/37_points_updates/`,
+`src/modules/points/lib/points-updates.ts`,
+`src/modules/points/components/UpdatesFeed.tsx`,
+`src/app/api/points/updates/{route.ts,[id]/route.ts}`,
+`src/core/realtime/realtime-channels.ts`, `permissions.ts`. 23 new tests.
+
+---
+
 ## 2026-09-17 (96) — /points in the light theme, a grid that says something, and a name on the card
 
 ### The light theme was not dim, it was invisible

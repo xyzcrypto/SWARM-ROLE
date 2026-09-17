@@ -14,6 +14,7 @@ export const PERMISSIONS = {
   "users:manage": "View & manage members",
   "premium:manage": "Change members' Premium status",
   "whatsnew:manage": "Manage the What's New feed",
+  "points:manage": "Post perp DEX & airdrop updates",
   "users:roles": "Grant staff roles & permissions",
   "ai:manage": "View AI usage & set members' AI limits",
 } as const;

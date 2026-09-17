@@ -16,6 +16,7 @@ import {
 } from "@modules/points/lib/points";
 import { buildPrograms, hasLiveComps, scenarioFdv, sortPrograms, type ProgramView } from "@modules/points/lib/programs";
 import { ProgramPanel } from "./ProgramPanel";
+import { UpdatesFeed } from "./UpdatesFeed";
 import { CompsEngine } from "./CompsEngine";
 import { ValuePanel } from "./ValuePanel";
 import { CostPanel } from "./CostPanel";
@@ -229,7 +230,14 @@ export function PointsClient() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {/* First, deliberately. "What changed today" is why someone opens this
+          page on a given morning; the calculator is why they opened it the
+          first time. */}
       <Reveal>
+        <UpdatesFeed />
+      </Reveal>
+
+      <Reveal delay={0.05}>
         <ProgramPanel
           programs={programs}
           selectedId={program?.id ?? ""}
@@ -253,7 +261,7 @@ export function PointsClient() {
         />
       </Reveal>
 
-      <Reveal delay={0.05}>
+      <Reveal delay={0.1}>
         <CompsEngine
           venues={venues}
           target={target}
@@ -272,7 +280,7 @@ export function PointsClient() {
         />
       </Reveal>
 
-      <Reveal delay={0.1}>
+      <Reveal delay={0.15}>
         <ValuePanel
           form={{ ...form, fdv }}
           set={set}
@@ -285,11 +293,11 @@ export function PointsClient() {
         />
       </Reveal>
 
-      <Reveal delay={0.15}>
+      <Reveal delay={0.2}>
         <CostPanel form={form} set={set} cost={cost} be={be} eff={eff} value={value} />
       </Reveal>
 
-      <Reveal delay={0.2}>
+      <Reveal delay={0.25}>
         {/* `fdv`, not `form.fdv`. While the comparables link is on, `form.fdv`
             still holds whatever was typed before linking - so passing it here
             outlined a cell one column away from the one every other panel was

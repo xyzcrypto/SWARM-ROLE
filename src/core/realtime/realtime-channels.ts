@@ -21,4 +21,8 @@
 export const CH_SITE = "site-visitors"; // global presence → live-online count
 export const CH_MEMBERS = "members"; // admin member-list live updates
 export const CH_NOTIFY = "notifications"; // global "new notification" ping → bell refetch
+// Perp DEX / airdrop updates → the /points feed refetches. Its own topic
+// rather than CH_NOTIFY because that one is a signed-in bell and this feed is
+// public: anonymous readers must get the ping too.
+export const CH_POINTS = "points-updates";
 export const userChannel = (userId: string) => `user:${userId}`; // per-user events
