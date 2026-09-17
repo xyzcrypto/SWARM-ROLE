@@ -35,6 +35,10 @@ export type ProgramView = {
   earnRate?: string;
   rules: string;
   rewardLogic: string;
+  /** Venue facts a farmer asks before committing capital anywhere. */
+  supportedMarkets: string;
+  maxLeverage: string;
+  fees: string;
   notes: string;
   chain: string;
   links: DexPlatform["links"];
@@ -86,6 +90,9 @@ export function buildPrograms(venues: CompVenue[], registry: DexPlatform[] = DEX
         earnRate: meta?.earnRate,
         rules: p.pointsRules,
         rewardLogic: p.rewardLogic,
+        supportedMarkets: p.supportedMarkets,
+        maxLeverage: p.maxLeverage,
+        fees: p.fees,
         notes: p.notes,
         chain: p.chain,
         links: p.links,

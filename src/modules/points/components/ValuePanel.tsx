@@ -3,7 +3,7 @@
 import { Unlink, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CalcField, ResultTile } from "@modules/tools/components/CalcField";
-import { usdCompact, type CompVenue, type ValueResult } from "@modules/points/lib/points";
+import { SHARE_NAME_MAX, shareName, usdCompact, type CompVenue, type ValueResult } from "@modules/points/lib/points";
 import { ShareResultButton } from "./ShareResultButton";
 
 export function ValuePanel({
@@ -33,12 +33,34 @@ export function ValuePanel({
   const anchorLabel = anchor === "comps" ? "from comparables" : "from programme";
   return (
     <section className="surface rounded-3xl p-5 sm:p-8">
-      <h2 className="font-display text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
+      <h2 className="font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
         Your <span className="text-shine">share</span>, in dollars
       </h2>
-      <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-400">
+      <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
         Points to share of the pool, pool to tokens, tokens to a price. Every input is yours to change.
       </p>
+
+      {/* The share card leads with this, so it is the first field rather than
+          an afterthought buried next to the button. Empty means "use the
+          programme's name", which is why the placeholder shows it rather than
+          pre-filling the input - a pre-filled value someone has to clear before
+          typing their own is a worse default than an empty box. */}
+      <label className="mt-6 block">
+        <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-content-muted">
+          Name this calculation
+        </span>
+        <input
+          type="text"
+          value={form.label}
+          maxLength={SHARE_NAME_MAX}
+          onChange={(e) => set("label", e.target.value)}
+          placeholder={programName ?? "Your position"}
+          className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors placeholder:text-content-subtle focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+        />
+        <span className="mt-1 block text-[11px] text-content-subtle">
+          Appears on the share card. {form.label.length}/{SHARE_NAME_MAX}
+        </span>
+      </label>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <CalcField label="Your points" value={form.yourPoints} onChange={(v) => set("yourPoints", v)} />
@@ -64,7 +86,7 @@ export function ValuePanel({
         />
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400">FDV</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-content-muted">FDV</span>
             {anchorFdv > 0 && (
               <button
                 type="button"
@@ -73,7 +95,7 @@ export function ValuePanel({
                   "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors",
                   linked
                     ? "bg-mint-500/15 text-mint-200 hover:bg-mint-500/25"
-                    : "text-zinc-500 hover:text-zinc-300"
+                    : "text-content-subtle hover:text-content-muted"
                 )}
               >
                 {linked ? <Link2 className="h-3 w-3" /> : <Unlink className="h-3 w-3" />}
@@ -94,15 +116,15 @@ export function ValuePanel({
                 set("fdv", e.target.value);
               }}
               className={cn(
-                "w-full rounded-xl border bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors focus:ring-2 focus:ring-gold-500/20",
-                linked ? "border-mint-500/30" : "border-white/10 focus:border-gold-500/50"
+                "w-full rounded-xl border bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:ring-2 focus:ring-gold-500/20",
+                linked ? "border-mint-500/30" : "border-hairline focus:border-gold-500/50"
               )}
             />
-            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-500">
+            <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-content-subtle">
               USD
             </span>
           </div>
-          <span className="mt-1 block text-[11px] text-zinc-600">
+          <span className="mt-1 block text-[11px] text-content-subtle">
             Implied price: ${value.priceUsd.toLocaleString("en-US", { maximumFractionDigits: 6 })}
             {linked && anchor === "comps" && target ? ` · peers of ${target.name}` : ""}
             {linked && anchor === "program" && programName ? ` · ${programName} scenario` : ""}
@@ -133,9 +155,14 @@ export function ValuePanel({
       <div className="mt-5">
         <ShareResultButton
           payload={() => ({
-            // The programme is the identity a reader shared - "Variational",
+            // The name the reader gave it, else the programme - "Variational",
             // not whichever venue the comparables happened to anchor on.
-            platform: programName ?? target?.name ?? "Perp DEX",
+            //
+            // ⚠️ Trimmed to SHARE_NAME_MAX because the share API's zod schema
+            // caps `platform` at 40 characters and REJECTS anything longer. A
+            // long name would have failed with "Couldn't create the share
+            // link" and no indication that the name was the reason.
+            platform: shareName(form.label, programName, target?.name),
             domain: "",
             sharePct: value.sharePct,
             tokens: value.tokens,

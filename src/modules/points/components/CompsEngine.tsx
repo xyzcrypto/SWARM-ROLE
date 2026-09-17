@@ -66,10 +66,10 @@ export function CompsEngine({
             <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.7} />
             Live comparables
           </p>
-          <h2 className="mt-3 font-display text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
+          <h2 className="mt-3 font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
             What is an <span className="text-shine">unlisted venue</span> worth?
           </h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-400">
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
             Every points calculator asks you to type an FDV, and that guess decides the answer. This derives it
             instead: peers that already have a token, priced against the volume they actually do.
           </p>
@@ -92,7 +92,7 @@ export function CompsEngine({
             state === "live"
               ? "border-mint-500/30 bg-mint-500/10 text-mint-200"
               : state === "loading"
-                ? "border-white/10 text-zinc-500"
+                ? "border-hairline text-content-subtle"
                 : "border-rose-500/30 bg-rose-500/10 text-rose-300"
           )}
         >
@@ -105,7 +105,7 @@ export function CompsEngine({
           {state === "live" ? `${venues.length} venues` : state === "loading" ? "Loading" : "Data unavailable"}
         </span>
         {state === "live" && (
-          <span className="text-zinc-600">
+          <span className="text-content-subtle">
             {venues.filter((v) => v.fdv !== null).length} with a listed token
             {unlisted.length > 0 && ` · ${unlisted.length} unlisted`}
           </span>
@@ -116,12 +116,12 @@ export function CompsEngine({
             unpinned timestamp near midnight renders a different day on each
             side of hydration (React #418, documented in CLAUDE.md). */}
         {fetchedAt !== null && (
-          <span className="text-zinc-600">updated {formatDateTime(new Date(fetchedAt))}</span>
+          <span className="text-content-subtle">updated {formatDateTime(new Date(fetchedAt))}</span>
         )}
       </div>
 
       {state === "down" && (
-        <p className="mt-5 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-3 text-sm text-zinc-400">
+        <p className="mt-5 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content-muted">
           Comparables need live market data and it is not reachable right now. The calculators below still work —
           enter an FDV by hand.
         </p>
@@ -139,7 +139,7 @@ export function CompsEngine({
               is the first thing a reader reaches for. */}
           <div className="mt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <label className="block">
-              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-content-muted">
                 {locked ? "Market data for" : "Compare against"}
               </span>
               {locked ? (
@@ -151,7 +151,7 @@ export function CompsEngine({
                 <select
                   value={target?.slug ?? ""}
                   onChange={(e) => onTarget(e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+                  className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
                 >
                   <option value="">Pick a venue to compare against…</option>
                   {unlisted.length > 0 && (
@@ -176,7 +176,7 @@ export function CompsEngine({
               )}
             </label>
             <div>
-              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
+              <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-content-muted">
                 Compare on
               </span>
               {usable.length > 0 && <CalcSegmented options={usable} value={metric} onChange={onMetric} />}
@@ -200,10 +200,10 @@ export function CompsEngine({
           )}
 
           {!locked && !target && (
-            <p className="mt-4 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-3 text-sm leading-relaxed text-zinc-400">
+            <p className="mt-4 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm leading-relaxed text-content-muted">
               {programName ? (
                 <>
-                  <span className="text-zinc-200">{programName}</span> has no row in any market-data feed, which is
+                  <span className="text-content">{programName}</span> has no row in any market-data feed, which is
                   normal for a programme this early — there is nothing to compare its volume against. The FDV below
                   comes from its own scenario instead. You can pick a venue above to compare against as a proxy, but
                   that is your judgement call, not a measurement.
@@ -221,7 +221,7 @@ export function CompsEngine({
               situation. With no target at all the note above already explains
               why, and showing both reads as two different failures. */}
           {target && range.count === 0 && (
-            <p className="mt-6 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-3 text-sm text-zinc-400">
+            <p className="mt-6 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content-muted">
               No peer with both a token and {COMP_METRIC_LABEL[metric]} data to compare against. Try another
               window.
             </p>
@@ -255,16 +255,16 @@ function RangeBar({
   const span = range.high - range.low;
   const pos = span > 0 ? ((range.median - range.low) / span) * 100 : 50;
   return (
-    <div className="mt-6 rounded-2xl border border-white/10 bg-ink-950/40 p-5 sm:p-6">
+    <div className="mt-6 rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
       <div className="flex flex-wrap items-baseline justify-between gap-3">
         <div>
-          <p className="text-xs text-zinc-500">
+          <p className="text-xs text-content-subtle">
             Implied FDV from {range.count} peer{range.count === 1 ? "" : "s"} on {COMP_METRIC_LABEL[metric]}
           </p>
           <p className="mt-1.5 mono text-3xl font-semibold sm:text-4xl">
             <span className="text-gold-gradient">{usdCompact(range.median)}</span>
           </p>
-          <p className="mt-1 text-[11px] text-zinc-600">median of the peer set</p>
+          <p className="mt-1 text-[11px] text-content-subtle">median of the peer set</p>
         </div>
         <button
           type="button"
@@ -289,9 +289,9 @@ function RangeBar({
           />
         </div>
         <div className="mt-2.5 flex justify-between text-[11px]">
-          <span className="mono text-zinc-400">{usdCompact(range.low)}</span>
-          <span className="text-zinc-600">spread {span > 0 ? `${(range.high / range.low).toFixed(1)}x` : "—"}</span>
-          <span className="mono text-zinc-400">{usdCompact(range.high)}</span>
+          <span className="mono text-content-muted">{usdCompact(range.low)}</span>
+          <span className="text-content-subtle">spread {span > 0 ? `${(range.high / range.low).toFixed(1)}x` : "—"}</span>
+          <span className="mono text-content-muted">{usdCompact(range.high)}</span>
         </div>
       </div>
     </div>
@@ -309,14 +309,14 @@ function CompsTable({
 }) {
   return (
     <div className="mt-6">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-content-subtle">
         Peer by peer
       </p>
       {/* Only the table scrolls sideways, never the page. */}
       <div className="-mx-1 overflow-x-auto px-1">
         <table className="w-full text-sm md:min-w-[640px]">
           <thead>
-            <tr className="border-b border-white/10 text-left text-[11px] uppercase tracking-wide text-zinc-500">
+            <tr className="border-b border-hairline text-left text-[11px] uppercase tracking-wide text-content-subtle">
               <th className="py-2 pr-3 font-medium">Peer</th>
               <th className="py-2 pr-3 text-right font-medium">Their {COMP_METRIC_LABEL[metric]}</th>
               <th className="hidden py-2 pr-3 text-right font-medium sm:table-cell">vs you</th>
@@ -326,7 +326,7 @@ function CompsTable({
           </thead>
           <tbody>
             {comps.map((c) => (
-              <tr key={c.peer.slug} className="border-b border-white/5 last:border-0">
+              <tr key={c.peer.slug} className="border-b border-hairline last:border-0">
                 <td className="py-2.5 pr-3">
                   <span className="flex items-center gap-2">
                     {c.peer.logo && (
@@ -340,23 +340,23 @@ function CompsTable({
                         onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
                       />
                     )}
-                    <span className="truncate text-zinc-200">{c.peer.name}</span>
+                    <span className="truncate text-content">{c.peer.name}</span>
                   </span>
                 </td>
-                <td className="mono py-2.5 pr-3 text-right text-zinc-400">
+                <td className="mono py-2.5 pr-3 text-right text-content-muted">
                   {usdCompact(metricOf(c.peer, metric))}
                 </td>
-                <td className="mono hidden py-2.5 pr-3 text-right text-zinc-500 sm:table-cell">
+                <td className="mono hidden py-2.5 pr-3 text-right text-content-subtle sm:table-cell">
                   {c.ratio.toFixed(2)}x
                 </td>
-                <td className="mono py-2.5 pr-3 text-right text-zinc-300">{usdCompact(c.peer.fdv ?? 0)}</td>
+                <td className="mono py-2.5 pr-3 text-right text-content-muted">{usdCompact(c.peer.fdv ?? 0)}</td>
                 <td className="mono py-2.5 text-right font-semibold text-gold-200">{usdCompact(c.impliedFdv)}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-[11px] leading-relaxed text-zinc-600">
+      <p className="mt-3 text-[11px] leading-relaxed text-content-subtle">
         Implied FDV = peer FDV x ({target?.name ?? "your venue"}&apos;s {COMP_METRIC_LABEL[metric]} ÷ theirs). It
         assumes the market would price the same volume the same way, which it demonstrably does not — the spread
         above is that assumption failing, measured.

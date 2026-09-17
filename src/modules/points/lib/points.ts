@@ -329,3 +329,16 @@ export function usdCompact(n: number): string {
   if (abs >= 1e3) return `${sign}$${(abs / 1e3).toFixed(1)}k`;
   return `${sign}$${abs.toFixed(2)}`;
 }
+
+/**
+ * The share API's zod schema caps `platform` at 40 characters and REJECTS
+ * anything longer - a 41-character name failed with "Couldn't create the share
+ * link" and nothing indicating the name was why. Truncating here keeps that
+ * rule next to the value it constrains.
+ */
+export const SHARE_NAME_MAX = 40;
+
+export function shareName(label: string, programName?: string | null, venueName?: string | null): string {
+  const picked = label.trim() || programName || venueName || "Perp DEX";
+  return picked.slice(0, SHARE_NAME_MAX);
+}

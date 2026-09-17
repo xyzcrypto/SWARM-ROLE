@@ -19,6 +19,18 @@ export const site = {
     web3Academy: "https://t.me/X_Y_Z_Web3",
     tradeKaroVerse: "https://t.me/TradeKaro_Verse",
   },
+  /**
+   * The running list of perp DEX airdrops worth farming, maintained in the
+   * Telegram channel.
+   *
+   * It lives here rather than inline in the points page because it is a
+   * published destination like any other social link, and because a channel
+   * post id is exactly the kind of value that gets hardcoded once and then
+   * cannot be found when it needs updating.
+   */
+  farming: {
+    ongoingAirdrops: "https://t.me/X_Y_Z_Crypto/16537",
+  },
 };
 
 /**
