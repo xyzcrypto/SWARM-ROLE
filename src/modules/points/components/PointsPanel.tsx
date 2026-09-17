@@ -69,8 +69,20 @@ export function PointsPanel({
         className
       )}
     >
-      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-        <div className="min-w-0 flex-1">
+      {/* ⚠️ STACKS on narrow screens, and that is a fix rather than a preference.
+          This was one row with `flex-wrap`, which does not help: `flex-wrap` only
+          moves a child to the next line when it cannot fit AT ITS MINIMUM, and a
+          heading's minimum is one word. So the actions kept their place on the
+          right and the title was squeezed into whatever remained - measured at
+          393px, "What the desk is reading" wrapped to ONE WORD PER LINE with
+          half the card empty beside it, and the cost and outcome panels had the
+          same hole.
+
+          `flex-col` below `sm` puts the controls under the text at full width;
+          `sm:flex-row` restores the side-by-side arrangement where there is
+          room for it. */}
+      <header className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-x-6">
+        <div className="min-w-0 sm:flex-1">
           <p className="eyebrow-glass inline-flex items-center gap-1.5 text-[11px]">
             {Icon && <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />}
             {eyebrow}
@@ -88,7 +100,12 @@ export function PointsPanel({
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-content-muted">{description}</p>
           )}
         </div>
-        {actions && <div className="flex shrink-0 items-center gap-2">{actions}</div>}
+        {actions && (
+          // `flex-wrap` here so two buttons never overflow a 393px card, and
+          // ordered first on mobile only when it is a single control - kept
+          // simple: they sit under the text, left-aligned with everything else.
+          <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+        )}
       </header>
 
       {meta && <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">{meta}</div>}

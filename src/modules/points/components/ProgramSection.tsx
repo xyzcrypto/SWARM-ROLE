@@ -69,9 +69,9 @@ export function ProgramSection({
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full flex-wrap items-start justify-between gap-x-6 gap-y-4 text-left"
+        className="flex w-full flex-col items-stretch gap-3 text-left sm:flex-row sm:items-start sm:justify-between sm:gap-x-6"
       >
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 sm:flex-1">
           <span className={cn("eyebrow-glass inline-flex items-center gap-1.5 text-[11px]", PHASE_TONE[program.phase])}>
             {PHASE_LABEL[program.phase]}
           </span>
@@ -102,7 +102,11 @@ export function ProgramSection({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center gap-3">
+        {/* Under the name on a phone, beside it on a desktop. Measured at
+            393px with this row held to the right, the programme name was given
+            42% of the card and wrapped mid-word while the value sat in space
+            beside it - the same squeeze the panel header had. */}
+        <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-start">
           {/* The headline number, always visible. This is what makes a closed
               section still worth reading. */}
           <span className="text-right">
@@ -169,6 +173,10 @@ export function ProgramSection({
           anchor={anchor}
           anchorFdv={anchorFdv}
           programName={program.name}
+          // Automatic for every programme, present and future: the host comes
+          // from the registry entry's own website, so adding a venue needs no
+          // second edit anywhere for its share card to carry its logo.
+          shareDomain={hostOf(program.links.website)}
           allocationScenarios={program.scenario.allocationScenarios}
           fdvScenarios={program.scenario.fdvScenariosUsd}
           bare
@@ -188,6 +196,22 @@ export function ProgramSection({
       )}
     </section>
   );
+}
+
+/**
+ * Host of a URL, or undefined.
+ *
+ * `URL` throws on anything malformed, and a registry entry with a typo in its
+ * website must not take the whole section down - an absent logo is the correct
+ * degradation.
+ */
+function hostOf(url?: string): string | undefined {
+  if (!url) return undefined;
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return undefined;
+  }
 }
 
 function Fact({ icon: Icon, label, value }: { icon: typeof Layers; label: string; value: string }) {

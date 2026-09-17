@@ -35,6 +35,9 @@ export function CompsEngine({
   onRefresh,
   onTarget,
   onMetric,
+  allComps = [],
+  excluded = [],
+  onTogglePeer,
 }: {
   venues: CompVenue[];
   target: CompVenue | null;
@@ -63,6 +66,21 @@ export function CompsEngine({
   onRefresh: () => void;
   onTarget: (slug: string) => void;
   onMetric: (m: CompMetric) => void;
+  /**
+   * Peer slugs the reader switched off.
+   *
+   * A comparable set is a JUDGEMENT, not a fact. Whether Hyperliquid is a fair
+   * analogue for a venue doing a thousandth of its volume is exactly the thing
+   * an experienced farmer disagrees about, and a panel that will not let them
+   * disagree is asking to be ignored. Excluding a peer removes it from the
+   * median, and the count says how many are left so nobody ends up reading a
+   * "range" built from one survivor.
+   */
+  excluded?: string[];
+  /** Every peer, including switched-off ones, so an exclusion is reversible.
+   *  Hiding an excluded peer would make the control a one-way door. */
+  allComps?: Comparable[];
+  onTogglePeer?: (slug: string) => void;
 }) {
   // Only offer a metric the data can actually answer on. Offering "OI" when
   // the upstream reported none produces an empty table and looks broken, when
@@ -231,7 +249,16 @@ export function CompsEngine({
             </p>
           )}
 
-          {comps.length > 0 && <CompsTable comps={comps} target={target} metric={metric} />}
+          {(comps.length > 0 || excluded.length > 0) && (
+            <CompsTable
+              comps={comps}
+              allComps={allComps}
+              excluded={excluded}
+              onTogglePeer={onTogglePeer}
+              target={target}
+              metric={metric}
+            />
+          )}
         </>
       )}
 
@@ -395,16 +422,33 @@ function CompsTable({
   comps,
   target,
   metric,
+  allComps,
+  excluded,
+  onTogglePeer,
 }: {
   comps: Comparable[];
   target: CompVenue | null;
   metric: CompMetric;
+  /** Every peer including the switched-off ones, so they stay visible and can
+   *  be switched back on. Hiding an excluded peer would make the control a
+   *  one-way door. */
+  allComps: Comparable[];
+  excluded: string[];
+  onTogglePeer?: (slug: string) => void;
 }) {
+  const off = new Set(excluded);
+  const rows = onTogglePeer ? allComps : comps;
   return (
     <div className="mt-6">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-content-subtle">
-        Peer by peer
-      </p>
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-content-subtle">Peer by peer</p>
+        {onTogglePeer && (
+          <p className="text-[11px] text-content-subtle">
+            Tap a peer to drop it from the median
+            {off.size > 0 && <span className="text-gold-200"> · {off.size} excluded</span>}
+          </p>
+        )}
+      </div>
       {/* Only the table scrolls sideways, never the page. */}
       <div className="-mx-1 overflow-x-auto px-1">
         <table className="w-full text-sm md:min-w-[640px]">
@@ -418,8 +462,17 @@ function CompsTable({
             </tr>
           </thead>
           <tbody>
-            {comps.map((c) => (
-              <tr key={c.peer.slug} className="border-b border-hairline last:border-0">
+            {rows.map((c) => (
+              <tr
+                key={c.peer.slug}
+                onClick={onTogglePeer ? () => onTogglePeer(c.peer.slug) : undefined}
+                aria-hidden={false}
+                className={cn(
+                  "border-b border-hairline last:border-0",
+                  onTogglePeer && "cursor-pointer transition-opacity hover:bg-white/[0.02]",
+                  off.has(c.peer.slug) && "opacity-40"
+                )}
+              >
                 <td className="py-2.5 pr-3">
                   <span className="flex items-center gap-2">
                     {c.peer.logo && (
@@ -433,7 +486,14 @@ function CompsTable({
                         onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
                       />
                     )}
-                    <span className="truncate text-content">{c.peer.name}</span>
+                    <span
+                      className={cn(
+                        "truncate text-content",
+                        off.has(c.peer.slug) && "line-through decoration-content-subtle"
+                      )}
+                    >
+                      {c.peer.name}
+                    </span>
                   </span>
                 </td>
                 <td className="mono py-2.5 pr-3 text-right text-content-muted">

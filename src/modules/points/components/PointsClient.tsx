@@ -25,7 +25,7 @@ import { UpdatesFeed } from "./UpdatesFeed";
 import { CompsEngine } from "./CompsEngine";
 import { CostPanel } from "./CostPanel";
 import { SensitivityGrid } from "./SensitivityGrid";
-import { AirdropRadar } from "./AirdropRadar";
+import { LiveWire } from "./LiveWire";
 
 const STORE_KEY = "xyz.points.v2";
 
@@ -61,6 +61,10 @@ type Form = {
    *  complaint this answers is "bahut scroll karna padta hai", and an accordion
    *  that can open everything is the same page again. */
   openId: string;
+  /** Peer slugs the reader has switched OFF. A comparable set is a judgement,
+   *  not a fact: a peer the reader considers a bad analogue should not silently
+   *  keep dragging the median. Stored so the judgement survives a reload. */
+  excludedPeers: string[];
   volumeUsd: string;
   feeRatePct: string;
   gasUsd: string;
@@ -75,6 +79,7 @@ const DEFAULTS: Form = {
   targetSlug: "",
   analyseId: "",
   openId: "",
+  excludedPeers: [],
   volumeUsd: "5000000",
   feeRatePct: "0.04",
   gasUsd: "120",
@@ -255,9 +260,16 @@ export function PointsClient() {
   // question `buildComparables` actually asks before returning an empty set.
   const explorerMetric = useMemo(() => pickMetricFor(explorerTarget, metric), [explorerTarget, metric]);
 
-  const explorerComps = useMemo(
+  const excluded = useMemo(() => new Set(form.excludedPeers ?? []), [form.excludedPeers]);
+
+  /** Every peer the data supports, before the reader's own judgement is applied. */
+  const explorerAllComps = useMemo(
     () => (explorerTarget ? buildComparables(explorerTarget, venues, explorerMetric) : []),
     [explorerTarget, venues, explorerMetric]
+  );
+  const explorerComps = useMemo(
+    () => explorerAllComps.filter((c) => !excluded.has(c.peer.slug)),
+    [explorerAllComps, excluded]
   );
   const explorerRange = useMemo(() => compRange(explorerComps), [explorerComps]);
 
@@ -305,7 +317,6 @@ export function PointsClient() {
       ...views.map((v) => ({ id: `programme-${v.program.id}`, label: v.program.name })),
       { id: "points-cost", label: "Cost" },
       { id: "points-outcomes", label: "Outcomes" },
-      { id: "points-radar", label: "Radar" },
     ],
     [views]
   );
@@ -355,6 +366,13 @@ export function PointsClient() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      {/* ⚠️ ABOVE the nav, and outside the section list.
+          "What changed today" is the question a returning farmer opens this page
+          with, and it used to be answered in two places a full screen apart -
+          the desk at the top, the press feed at the very bottom. One band, both
+          lanes, before anything the reader has to navigate to. */}
+      <LiveWire />
+
       <PointsNav sections={navSections} />
 
       <Reveal>
@@ -388,6 +406,16 @@ export function PointsClient() {
           onRefresh={load}
           onTarget={(slug) => set("targetSlug", slug)}
           onMetric={(m) => set("metric", m)}
+          allComps={explorerAllComps}
+          excluded={form.excludedPeers ?? []}
+          onTogglePeer={(slug: string) =>
+            set(
+              "excludedPeers",
+              (form.excludedPeers ?? []).includes(slug)
+                ? (form.excludedPeers ?? []).filter((s2) => s2 !== slug)
+                : [...(form.excludedPeers ?? []), slug]
+            )
+          }
         />
         </div>
       </Reveal>
@@ -445,6 +473,9 @@ export function PointsClient() {
               // than dressing a fallback up as live.
               liveFdv={analysed.anchorFdv}
               liveLabel={analysed.anchor === "comps" ? "live peer median" : "published scenario"}
+              // Only comps are live. A registry scenario wearing a "Live" chip
+              // is the exact dishonesty this page exists to argue against.
+              anchorIsLive={analysed.anchor === "comps"}
               // The band, only when it came from real comparables. A published
               // scenario has no low/high and must not be dressed in one.
               liveLow={analysed.anchor === "comps" ? analysed.range.low : 0}
@@ -467,12 +498,6 @@ export function PointsClient() {
         </>
       )}
 
-      {/* The trusted-source lane, last. The desk's own posts lead the page
-          because they are the team's word; this is other people's reporting and
-          belongs after everything the reader came for. */}
-      <Reveal delay={0.1}>
-        <AirdropRadar />
-      </Reveal>
     </div>
   );
 }

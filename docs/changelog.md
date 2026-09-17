@@ -5,6 +5,85 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (102) — Two normalisers were one normaliser and a bug
+
+### The wrong numbers had a name: `futures`
+
+A reader's screenshot showed the comparables panel live and confidently wrong:
+**"12 venues · 2 with a listed token · 10 unlisted"**, target *Hyperliquid
+(Futures)*, **"Implied FDV from 2 peers"**.
+
+Two things in one picture. First, the **fallback was working** - "(Futures)" is
+CoinGecko's derivatives naming and only 24h/OI windows were offered, which is
+exactly what entry 101's fallback provides. Second, the route carried **its own
+copy** of the name normaliser, and that copy did not strip `futures`.
+
+So `"Hyperliquid (Futures)"` reduced to `hyperliquidfutures`, matched nothing in
+a token list keyed on `hyperliquid`, came back `fdv: null`, and **the largest
+perp DEX in existence was served as an unlisted venue** - which the explorer
+then auto-selected as its target, deriving a valuation for it from the two peers
+that happened to survive.
+
+One normaliser now, imported by both, and it strips anything parenthesised
+because a registry's qualifier is never part of a project's name.
+
+### The gap in three screenshots had one cause
+
+`PointsPanel`'s header was one row with `flex-wrap`. ⚠️ **`flex-wrap` does not
+solve this**: it moves a child to the next line only when it cannot fit *at its
+minimum*, and a heading's minimum is one word. So the actions kept the
+right-hand side and the title took whatever remained - measured at 393px, "What
+the desk is reading" wrapped **one word per line** with half the card empty.
+
+`flex-col` below `sm`, `sm:flex-row` above. `ProgramSection` had the identical
+squeeze (its header is a `<button>`, so it cannot nest in the panel) and its
+titles measured **42-46% of the card**; same fix. Pinned by a probe assertion
+that no panel title may fall under 80% of its card's inner width.
+
+### "Live anchor" on a number that was not live
+
+The outcome panel drew a green **Live anchor** chip directly above "Ladder
+centred on the **published scenario** $290.00M". A published scenario is a
+hand-entered registry figure. Labelling it live is the exact dishonesty this
+page argues against, so the chip is now driven by whether the anchor actually
+came from comparables.
+
+### The wire
+
+The desk's posts sat at the top and the press feed at the bottom, a full screen
+apart, both full-height panels, both answering "what changed today". They are
+one band now, **above the nav**: one promoted item as a banner, the rest folded
+behind a count.
+
+Both lanes stay labelled - "Posted by the XYZ desk" versus "Reported by
+&lt;outlet&gt;" - because those are different claims and a farmer acts
+differently on each. A pinned desk post outranks everything.
+
+⚠️ **X still is not a source.** No free API exists. It appears the honest way:
+when the desk posts a link to a tweet, the row is badged `X`.
+
+### Also
+
+- **Share cards had `domain: ""` hard-coded**, which is why no card has ever
+  carried a venue logo. Derived from the registry's own `links.website` now, so
+  a programme added tomorrow gets its logo with no second place to edit.
+- **The hero warning** occupied roughly a quarter of the first phone screen. It
+  is a `<details>` one-liner - native, no JS, no hydration risk, still the first
+  thing under the headline.
+- **Peers are selectable.** A comparable set is a judgement, not a fact: tap a
+  peer to drop it from the median. Excluded peers stay visible so the control is
+  not a one-way door. Measured: 4 peers → 3.
+- A `text-amber-200/90` in the new disclosure measured **1.05:1 in light** - the
+  light override targets `.text-amber-200`, and the opacity modifier makes a
+  *different class name* the override never matches.
+
+### Verification
+
+typecheck / 1170 tests / lint / build green. Browser probe at 1440px and 393px,
+**90 behaviours**, both themes AA.
+
+---
+
 ## 2026-09-17 (101) — Aggregate, because one refusing upstream was blanking the page
 
 ### The diagnosis, at last
