@@ -204,10 +204,21 @@ Also: `Cache-Control` is now a **literal** rather than `s-maxage=${revalidate}`.
 A template literal is invisible to the alignment test's regex, so the one number
 that actually governs the CDN (trap 0) was the one number nothing verified.
 
-**Route table:** one line changed, in the cheap direction.
-`/api/points/comps` went **ƒ (dynamic) → ○ (prerendered, ≈5m)** once the uncached
-fetch was removed, so it is served from cache instead of running per request.
-Totals 143 routes, static 26 → 27, dynamic 116 → 115, ISR 10 → 11.
+**Route table:** no change against `main`. ⚠️ **This entry originally claimed
+`/api/points/comps` went ƒ (dynamic) → ○ (prerendered, ≈5m), with totals moving
+static 26 → 27 and dynamic 116 → 115. That was wrong**, and the way it was wrong
+is worth keeping: the comparison was produced with `git stash` → build →
+`git stash pop` → build, and **`git stash` reverts to HEAD, which on a feature
+branch is the branch's own previous commit, not `main`.** So the two sides were
+entry 99 and entry 100, both mid-branch.
+
+Re-measured properly (`git checkout origin/main` → build → checkout back), the
+route is **`○ ≈5m` on both sides**. The ƒ → ○ transition was real but internal:
+entry 99 had introduced the dynamic render with its `cache: "no-store"` fallback
+fetch, and entry 100 removed it. Relative to `main`, nothing moved.
+
+The lesson is the one this project keeps relearning: a baseline you did not
+explicitly check out is not a baseline.
 
 ### Files
 
