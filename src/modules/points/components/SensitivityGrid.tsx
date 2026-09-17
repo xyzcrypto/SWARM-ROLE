@@ -30,6 +30,7 @@ export function SensitivityGrid({
   currentFdv,
   currentAlloc,
   totalCostUsd,
+  programName,
 }: {
   grid: GridCell[][];
   fdvs: number[];
@@ -37,6 +38,9 @@ export function SensitivityGrid({
   currentFdv: number;
   currentAlloc: number;
   totalCostUsd: number;
+  /** Named in the heading, so a grid of numbers cannot be read against the
+   *  wrong programme. */
+  programName?: string;
 }) {
   if (!grid.length || !fdvs.length) return null;
 
@@ -58,17 +62,28 @@ export function SensitivityGrid({
    * first version, intensities ran 0.004 to 0.42 and every cell but two painted
    * as plain background.
    */
+  // ⚠️ The cap is 0.28, not 0.45, and it is a CONTRAST limit rather than a
+  // taste one. The cell text is `--data-down` (#dc2626, 4.54:1 on white) - only
+  // just over AA - and a tint darkens the ground under it. Measured in the
+  // light theme at 0.45 alpha, every loss cell scored **4.27:1**, under the 4.5
+  // it needs. At 0.28 they clear it, and the ramp is still perfectly readable
+  // because its job is ranking, not saturation.
+  //
+  // This did not show up in the first audit because that fixture happened to
+  // have no losing cells - the whole grid was green, where the foreground has
+  // far more headroom.
+  const MAX_TINT = 0.28;
   const tint = (c: GridCell): { alpha: number; up: boolean } => {
     if (!hasCost) {
       const peak = Math.max(...grid.flat().map((x) => Math.abs(x.netUsd)), 1);
-      return { alpha: Math.min(0.4, Math.sqrt(Math.abs(c.netUsd) / peak) * 0.4), up: c.netUsd >= 0 };
+      return { alpha: Math.min(MAX_TINT, Math.sqrt(Math.abs(c.netUsd) / peak) * MAX_TINT), up: c.netUsd >= 0 };
     }
     const r = c.roiMultiple;
     const up = r >= 1;
     // 1x -> 0 intensity, 10x (or 1/10th) -> full. Beyond that it saturates,
     // which is correct: at 30x nobody needs the colour to keep getting louder.
     const mag = Math.min(1, Math.abs(Math.log10(Math.max(r, 1e-6))) / 1);
-    return { alpha: 0.06 + mag * 0.34, up };
+    return { alpha: 0.05 + mag * (MAX_TINT - 0.05), up };
   };
 
   return (
@@ -76,7 +91,8 @@ export function SensitivityGrid({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
-            Every outcome, <span className="text-shine">not just one</span>
+            Every outcome{programName ? ` for ${programName}` : ""},{" "}
+            <span className="text-shine">not just one</span>
           </h2>
           <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
             {hasCost ? (
@@ -149,7 +165,7 @@ export function SensitivityGrid({
                         // the light theme, `text-mint-100` on this tint scored
                         // 1.01:1 - the entire grid was invisible. These two
                         // tokens exist for exactly this and flip per theme.
-                        up ? "text-data-up" : "text-data-down",
+                        up ? "grid-net-up" : "grid-net-down",
                         here && "ring-2 ring-gold-400/80"
                       )}
                       style={{
@@ -203,7 +219,7 @@ function Legend({ hasCost }: { hasCost: boolean }) {
       <div className="flex items-center gap-1.5">
         <span
           className="h-3 w-3 rounded"
-          style={{ backgroundColor: "color-mix(in srgb, var(--data-down) 32%, transparent)" }}
+          style={{ backgroundColor: "color-mix(in srgb, var(--data-down) 24%, transparent)" }}
         />
         <dt className="sr-only">Loss</dt>
         <dd className="text-content-muted">under 1x</dd>
@@ -216,7 +232,7 @@ function Legend({ hasCost }: { hasCost: boolean }) {
       <div className="flex items-center gap-1.5">
         <span
           className="h-3 w-3 rounded"
-          style={{ backgroundColor: "color-mix(in srgb, var(--data-up) 32%, transparent)" }}
+          style={{ backgroundColor: "color-mix(in srgb, var(--data-up) 24%, transparent)" }}
         />
         <dt className="sr-only">Profit</dt>
         <dd className="text-content-muted">over 1x</dd>

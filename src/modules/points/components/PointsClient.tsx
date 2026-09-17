@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Reveal } from "@/components/Reveal";
+import { wakeIsDue } from "@/lib/useLiveData";
 import {
   breakEven,
   buildComparables,
@@ -14,30 +15,44 @@ import {
   type CompMetric,
   type CompVenue,
 } from "@modules/points/lib/points";
-import { buildPrograms, hasLiveComps, scenarioFdv, sortPrograms, type ProgramView } from "@modules/points/lib/programs";
+import { buildPrograms, scenarioFdv, sortPrograms, type ProgramView } from "@modules/points/lib/programs";
 import { ProgramPanel } from "./ProgramPanel";
+import { ProgramSection } from "./ProgramSection";
 import { UpdatesFeed } from "./UpdatesFeed";
 import { CompsEngine } from "./CompsEngine";
-import { ValuePanel } from "./ValuePanel";
 import { CostPanel } from "./CostPanel";
 import { SensitivityGrid } from "./SensitivityGrid";
 
-const STORE_KEY = "xyz.points.v1";
+const STORE_KEY = "xyz.points.v2";
 
-/** Form state, all strings so a half-typed field is never coerced to 0 mid-edit. */
-type Form = {
-  /** Free-text name for this calculation; drives the share card's headline. */
+/**
+ * One programme's inputs. All strings so a half-typed field is never coerced to
+ * 0 mid-edit.
+ *
+ * ⚠️ Per programme, not global. A single shared set of inputs meant switching
+ * from Sodex to RiseX silently reinterpreted your Sodex points against RiseX's
+ * pool - and the two cannot be seen at once, which is the comparison anyone
+ * farming both actually wants.
+ */
+type ProgState = {
   label: string;
-  programId: string;
-  targetSlug: string;
-  metric: CompMetric;
-  fdv: string;
-  fdvLinked: boolean;
   yourPoints: string;
   totalPoints: string;
   supply: string;
   allocPct: string;
   tgeUnlock: string;
+  fdv: string;
+  fdvLinked: boolean;
+};
+
+type Form = {
+  progs: Record<string, Partial<ProgState>>;
+  /** The comparables explorer's own target and window - independent of any
+   *  programme, because it is a market tool rather than a position. */
+  metric: CompMetric;
+  targetSlug: string;
+  /** Which programme the cost / outcome panels below are analysing. */
+  analyseId: string;
   volumeUsd: string;
   feeRatePct: string;
   gasUsd: string;
@@ -47,17 +62,10 @@ type Form = {
 };
 
 const DEFAULTS: Form = {
-  label: "",
-  programId: "variational",
-  targetSlug: "",
+  progs: {},
   metric: "volume30d",
-  fdv: "1500000000",
-  fdvLinked: true,
-  yourPoints: "940",
-  totalPoints: "9400000",
-  supply: "1000000000",
-  allocPct: "30",
-  tgeUnlock: "25",
+  targetSlug: "",
+  analyseId: "",
   volumeUsd: "5000000",
   feeRatePct: "0.04",
   gasUsd: "120",
@@ -66,25 +74,56 @@ const DEFAULTS: Form = {
   aprPct: "8",
 };
 
+/** The comps route's own `revalidate`/`s-maxage`. Refetching sooner than this
+ *  can only ever return the same cached body. */
+const COMPS_WINDOW_MS = 320_000;
+
 const num = (s: string) => {
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
 };
 
+/**
+ * A programme's inputs, seeded from its own published scenario.
+ *
+ * Derived on every render rather than written into state by an effect: an
+ * effect would render once with the previous programme's numbers before
+ * correcting itself, which is the flicker this file has already been fixed for
+ * once.
+ */
+function progStateOf(form: Form, p: ProgramView): ProgState {
+  const saved = form.progs[p.id] ?? {};
+  return {
+    label: saved.label ?? "",
+    yourPoints: saved.yourPoints ?? "940",
+    totalPoints: saved.totalPoints ?? String(p.scenario.totalPoints),
+    supply: saved.supply ?? String(p.scenario.totalSupply),
+    allocPct: saved.allocPct ?? String(p.scenario.allocationPctOfSupply),
+    tgeUnlock: saved.tgeUnlock ?? String(p.scenario.tgeUnlockPcts[0] ?? 25),
+    fdv: saved.fdv ?? String(scenarioFdv(p) || 1_000_000_000),
+    fdvLinked: saved.fdvLinked ?? true,
+  };
+}
+
 export function PointsClient() {
   const [form, setForm] = useState<Form>(DEFAULTS);
   const [venues, setVenues] = useState<CompVenue[]>([]);
+  const [windows, setWindows] = useState<Record<string, boolean>>({});
   const [state, setState] = useState<"loading" | "live" | "down">("loading");
   const [fetchedAt, setFetchedAt] = useState<number | null>(null);
+  const fetchedAtRef = useRef(0);
 
   const set = useCallback(<K extends keyof Form>(k: K, v: Form[K]) => {
     setForm((f) => (f[k] === v ? f : { ...f, [k]: v }));
   }, []);
 
+  const setProg = useCallback((id: string, k: keyof ProgState, v: string | boolean) => {
+    setForm((f) => ({ ...f, progs: { ...f.progs, [id]: { ...(f.progs[id] ?? {}), [k]: v } } }));
+  }, []);
+
   // Restore after mount, never during render. A value read from localStorage
   // while rendering is a client-only signal reaching the DOM, which is the
-  // React #418 hydration trap documented in CLAUDE.md - the one that shipped a
-  // blank page to every reduced-motion visitor.
+  // React #418 hydration trap documented in CLAUDE.md.
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORE_KEY);
@@ -109,8 +148,10 @@ export function PointsClient() {
       const j = await res.json();
       if (res.ok && Array.isArray(j.venues) && j.venues.length) {
         setVenues(j.venues);
+        setWindows(j.windows ?? {});
         setState("live");
         setFetchedAt(Date.now());
+        fetchedAtRef.current = Date.now();
       } else {
         setState("down");
       }
@@ -119,85 +160,83 @@ export function PointsClient() {
     }
   }, []);
 
-  // Fetched once on mount, not polled: perp volumes move on a daily cadence and
-  // a poll here would need an entry in markets-poll-alignment.test.ts plus a
-  // window to match. The refresh control in the header covers the rest.
   useEffect(() => {
     void load();
   }, [load]);
 
-  // ⚠️ Both of the values below are DERIVED during render rather than pushed
-  // into state from an effect.
-  //
-  // The effect version worked, and was wrong in the way this codebase has been
-  // bitten by before: it rendered once with the old value, then again with the
-  // new one, so the FDV field visibly flickered through the previous venue's
-  // number on every metric change. Deriving makes that impossible - there is no
-  // intermediate render to see, and no second source of truth to fall out of
-  // sync with.
+  // A reader coming back to the tab after an hour should not be looking at an
+  // hour-old number with no way to know it. Refetch on wake, and only once the
+  // route's own cache window has elapsed - so returning three times in a minute
+  // costs exactly one request, not three.
+  useEffect(() => {
+    const onWake = () => {
+      if (document.visibilityState === "hidden") return;
+      if (wakeIsDue(Date.now(), fetchedAtRef.current, COMPS_WINDOW_MS)) void load();
+    };
+    document.addEventListener("visibilitychange", onWake);
+    window.addEventListener("focus", onWake);
+    window.addEventListener("online", onWake);
+    return () => {
+      document.removeEventListener("visibilitychange", onWake);
+      window.removeEventListener("focus", onWake);
+      window.removeEventListener("online", onWake);
+    };
+  }, [load]);
 
-  // The curated programmes are always present, with or without live data -
-  // see programs.ts for why that ordering matters.
   const programs = useMemo(() => sortPrograms(buildPrograms(venues)), [venues]);
-  const program = useMemo(
-    () => programs.find((p) => p.id === form.programId) ?? programs[0] ?? null,
-    [programs, form.programId]
+
+  // ⚠️ The chosen metric must be one the data can answer on. `volume30d` was
+  // hard-coded, so a response without 30d volume produced an empty comparable
+  // set on a page full of venues. Falls back to the widest window actually
+  // present, which is 24h at minimum.
+  const metric: CompMetric =
+    windows[form.metric] === false
+      ? ((["volume30d", "volume7d", "volume24h", "openInterest"] as CompMetric[]).find((m) => windows[m]) ??
+        form.metric)
+      : form.metric;
+
+  // The explorer at the top is a MARKET tool, not a position: pick any venue,
+  // see what its peers imply. Each programme section carries its own anchor
+  // separately, so the two never fight over one target.
+  const explorerTarget = useMemo(() => {
+    const chosen = venues.find((v) => v.slug === form.targetSlug);
+    if (chosen) return chosen;
+    return venues.find((v) => v.fdv === null) ?? venues[0] ?? null;
+  }, [venues, form.targetSlug]);
+
+  const explorerComps = useMemo(
+    () => (explorerTarget ? buildComparables(explorerTarget, venues, metric) : []),
+    [explorerTarget, venues, metric]
+  );
+  const explorerRange = useMemo(() => compRange(explorerComps), [explorerComps]);
+
+  /** Everything one programme section needs, including its own FDV anchor. */
+  const views = useMemo(
+    () =>
+      programs.map((p) => {
+        const st = progStateOf(form, p);
+        const comps = p.venue ? buildComparables(p.venue, venues, metric) : [];
+        const range = compRange(comps);
+        const scenario = scenarioFdv(p);
+        const anchor: "comps" | "program" | "none" =
+          range.median > 0 ? "comps" : scenario > 0 ? "program" : "none";
+        const anchorFdv = anchor === "comps" ? range.median : anchor === "program" ? scenario : 0;
+        const fdv = st.fdvLinked && anchorFdv > 0 ? String(Math.round(anchorFdv)) : st.fdv;
+        const inputs = {
+          yourPoints: num(st.yourPoints),
+          totalPoolPoints: num(st.totalPoints),
+          allocationPctOfSupply: num(st.allocPct),
+          totalSupply: num(st.supply),
+          fdvUsd: num(fdv),
+          tgeUnlockPct: num(st.tgeUnlock),
+        };
+        return { program: p, st: { ...st, fdv }, anchor, anchorFdv, inputs, value: projectValue(inputs) };
+      }),
+    [programs, form, venues, metric]
   );
 
-  // A selected programme drives the comparables target when the market has a
-  // row for it, and the venue picker is then read-only: two controls for one
-  // value is a control that does nothing, and the one that does nothing is
-  // always the one a reader tries first.
-  //
-  // ⚠️ When the programme has NO market row - Sodex and RiseX have none - this
-  // deliberately resolves to NOTHING rather than to the largest unlisted venue.
-  // An earlier version fell back that way and it was quietly wrong: choosing
-  // Sodex showed Variational's peers, Variational's implied FDV, and no
-  // indication that the numbers had nothing to do with Sodex. A reader can opt
-  // into a proxy venue explicitly; the page will not pick one for them.
-  const targetLocked = Boolean(program && hasLiveComps(program));
-  const targetSlug = targetLocked ? program!.venue!.slug : form.targetSlug;
-
-  const target = useMemo(
-    () => venues.find((v) => v.slug === targetSlug) ?? null,
-    [venues, targetSlug]
-  );
-
-  const comps = useMemo(
-    () => (target ? buildComparables(target, venues, form.metric) : []),
-    [target, venues, form.metric]
-  );
-  const range = useMemo(() => compRange(comps), [comps]);
-
-  // The link that makes this one tool instead of five. While linked, the FDV
-  // every panel below follows the best anchor available:
-  //
-  //   1. live peer comparables, when the programme's venue is tracked
-  //   2. otherwise the programme's own scenario ladder
-  //
-  // Two anchors rather than one because most programmes worth farming are not
-  // tracked by any market-data feed, and a "linked" toggle that silently does
-  // nothing for two of the three programmes on this page would be worse than
-  // no toggle. Typing in the FDV field breaks the link, visibly.
-  const programFdv = program ? scenarioFdv(program) : 0;
-  const anchor: "comps" | "program" | "none" =
-    range.median > 0 ? "comps" : programFdv > 0 ? "program" : "none";
-  const anchorFdv = anchor === "comps" ? range.median : anchor === "program" ? programFdv : 0;
-  const fdv = form.fdvLinked && anchorFdv > 0 ? String(Math.round(anchorFdv)) : form.fdv;
-
-  const valueInputs = useMemo(
-    () => ({
-      yourPoints: num(form.yourPoints),
-      totalPoolPoints: num(form.totalPoints),
-      allocationPctOfSupply: num(form.allocPct),
-      totalSupply: num(form.supply),
-      fdvUsd: num(fdv),
-      tgeUnlockPct: num(form.tgeUnlock),
-    }),
-    [form.yourPoints, form.totalPoints, form.allocPct, form.supply, fdv, form.tgeUnlock]
-  );
-
-  const value = useMemo(() => projectValue(valueInputs), [valueInputs]);
+  // ── the deep dive, on one chosen programme ────────────────────────────────
+  const analysed = views.find((v) => v.program.id === form.analyseId) ?? views[0] ?? null;
 
   const cost = useMemo(
     () =>
@@ -212,105 +251,97 @@ export function PointsClient() {
     [form.volumeUsd, form.feeRatePct, form.gasUsd, form.capitalUsd, form.days, form.aprPct]
   );
 
-  const be = useMemo(() => breakEven(valueInputs, cost), [valueInputs, cost]);
+  const be = useMemo(
+    () => (analysed ? breakEven(analysed.inputs, cost) : null),
+    [analysed, cost]
+  );
   const eff = useMemo(
-    () => efficiency({ points: num(form.yourPoints), cost, volumeUsd: num(form.volumeUsd) }),
-    [form.yourPoints, cost]
+    () =>
+      efficiency({
+        points: analysed ? analysed.inputs.yourPoints : 0,
+        cost,
+        volumeUsd: num(form.volumeUsd),
+      }),
+    [analysed, cost, form.volumeUsd]
   );
 
-  // The ladder is built around whatever FDV is in play, so the grid always
-  // brackets the current assumption instead of a fixed set of round numbers
-  // that may sit nowhere near it.
-  const fdvs = useMemo(() => fdvLadder(num(fdv) || 1e9), [fdv]);
+  const fdvs = useMemo(() => fdvLadder(analysed?.inputs.fdvUsd || 1e9), [analysed]);
   const allocs = useMemo(() => [10, 20, 30, 40, 50], []);
   const grid = useMemo(
-    () => sensitivityGrid(valueInputs, fdvs, allocs, cost.totalCostUsd),
-    [valueInputs, fdvs, allocs, cost.totalCostUsd]
+    () => (analysed ? sensitivityGrid(analysed.inputs, fdvs, allocs, cost.totalCostUsd) : []),
+    [analysed, fdvs, allocs, cost.totalCostUsd]
   );
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* First, deliberately. "What changed today" is why someone opens this
-          page on a given morning; the calculator is why they opened it the
-          first time. */}
       <Reveal>
         <UpdatesFeed />
       </Reveal>
 
       <Reveal delay={0.05}>
-        <ProgramPanel
-          programs={programs}
-          selectedId={program?.id ?? ""}
-          onSelect={(p: ProgramView) => {
-            // A click, not an effect: applying a preset is a user action, so
-            // setting state here cannot cascade the way a derived-state effect
-            // would. The scenario overwrites the supply-side fields only -
-            // points, cost and volume are the reader's own and are never
-            // clobbered by switching programmes.
-            setForm((f) => ({
-              ...f,
-              programId: p.id,
-              targetSlug: "",
-              fdvLinked: true,
-              totalPoints: String(p.scenario.totalPoints),
-              supply: String(p.scenario.totalSupply),
-              allocPct: String(p.scenario.allocationPctOfSupply),
-              tgeUnlock: p.scenario.tgeUnlockPcts.length ? String(p.scenario.tgeUnlockPcts[0]) : f.tgeUnlock,
-            }));
-          }}
-        />
+        <ProgramPanel programs={programs} />
       </Reveal>
 
       <Reveal delay={0.1}>
         <CompsEngine
           venues={venues}
-          target={target}
-          metric={form.metric}
-          comps={comps}
-          range={range}
+          target={explorerTarget}
+          metric={metric}
+          comps={explorerComps}
+          range={explorerRange}
           state={state}
           fetchedAt={fetchedAt}
-          linked={form.fdvLinked}
+          windows={windows}
           onRefresh={load}
-          locked={targetLocked}
-          programName={program?.name ?? null}
           onTarget={(slug) => set("targetSlug", slug)}
           onMetric={(m) => set("metric", m)}
-          onUseMedian={() => set("fdvLinked", true)}
         />
       </Reveal>
 
-      <Reveal delay={0.15}>
-        <ValuePanel
-          form={{ ...form, fdv }}
-          set={set}
-          value={value}
-          target={target}
-          linked={form.fdvLinked}
-          anchor={anchor}
-          anchorFdv={anchorFdv}
-          programName={program?.name ?? null}
-        />
-      </Reveal>
+      {/* One section per programme, each a complete calculation of its own. */}
+      {views.map((v, i) => (
+        <Reveal key={v.program.id} delay={0.15 + i * 0.05}>
+          <ProgramSection
+            program={v.program}
+            form={v.st}
+            set={(k: keyof ProgState, val: string | boolean) => setProg(v.program.id, k, val)}
+            value={v.value}
+            anchor={v.anchor}
+            anchorFdv={v.anchorFdv}
+            target={v.program.venue}
+          />
+        </Reveal>
+      ))}
 
-      <Reveal delay={0.2}>
-        <CostPanel form={form} set={set} cost={cost} be={be} eff={eff} value={value} />
-      </Reveal>
+      {analysed && be && (
+        <>
+          <Reveal>
+            <CostPanel
+              form={form}
+              set={set}
+              cost={cost}
+              be={be}
+              eff={eff}
+              value={analysed.value}
+              programs={views.map((v) => ({ id: v.program.id, name: v.program.name }))}
+              analyseId={analysed.program.id}
+              onAnalyse={(id) => set("analyseId", id)}
+            />
+          </Reveal>
 
-      <Reveal delay={0.25}>
-        {/* `fdv`, not `form.fdv`. While the comparables link is on, `form.fdv`
-            still holds whatever was typed before linking - so passing it here
-            outlined a cell one column away from the one every other panel was
-            using, with nothing on screen to explain the disagreement. */}
-        <SensitivityGrid
-          grid={grid}
-          fdvs={fdvs}
-          allocs={allocs}
-          currentFdv={num(fdv)}
-          currentAlloc={num(form.allocPct)}
-          totalCostUsd={cost.totalCostUsd}
-        />
-      </Reveal>
+          <Reveal delay={0.05}>
+            <SensitivityGrid
+              grid={grid}
+              fdvs={fdvs}
+              allocs={allocs}
+              currentFdv={analysed.inputs.fdvUsd}
+              currentAlloc={analysed.inputs.allocationPctOfSupply}
+              totalCostUsd={cost.totalCostUsd}
+              programName={analysed.program.name}
+            />
+          </Reveal>
+        </>
+      )}
     </div>
   );
 }

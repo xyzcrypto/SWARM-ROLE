@@ -5,6 +5,84 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (98) — Three programmes, three calculations, and comparables that actually load
+
+### "Data unavailable" — an unverified field was gating the whole route
+
+`/api/points/comps` filtered AND sorted its entire venue list on `total30d`, a
+field added to `OverviewRow` from an API this environment cannot reach to
+verify. When the upstream does not return it, every row reads 0, **every venue
+is filtered out**, `live` is false, and the page says "Data unavailable" on a
+response that contained forty perfectly good venues.
+
+`total24h` is the field `/api/markets/perp` has used in production for months,
+so it is the one known to exist. It filters and sorts now; the longer windows
+are **enrichment**: present, they unlock the 7d/30d metrics; absent, the engine
+works on 24h.
+
+The rule this encodes: **an unverified field may add capability, never gate it.**
+
+Two more layers of the same failure, fixed with it:
+
+- The client's default metric was hard-coded `volume30d`, so a response without
+  30d produced an empty comparable set on a page full of venues. It now falls
+  back to the widest window actually present.
+- The route reports which `windows` it populated, and the metric selector offers
+  only those — a selector that renders an empty table reads as broken when the
+  truth is "nobody publishes that".
+
+Verified by rendering against the exact payload shape that failed (venues with
+`total7d`/`total30d` absent): comparables compute, `Data unavailable` gone.
+
+### One section per programme, each a complete calculation
+
+Sodex, RiseX and Variational each get their own section with their own inputs,
+their own scenario quick-picks and their own result — rather than one calculator
+you switch between.
+
+Switching was worse than it looked: a single shared set of inputs meant moving
+from Sodex to RiseX silently reinterpreted your Sodex points against RiseX's
+pool, and the two could never be seen at once, which is the comparison anyone
+farming both actually wants.
+
+**The scenario quick-picks are back.** `fdvScenariosUsd` and
+`allocationScenarios` were in the registry all along and had been rendered by
+the `/tools` calculator; the move to `/points` dropped them. They sit under the
+field each one sets, exactly as before. Rendered per programme from the
+registry: Sodex 1 FDV + 3 allocation pills, RiseX 4 + 3, Variational 5 + 0.
+
+Clicking a scenario breaks the live FDV anchor, deliberately — while linked the
+value is derived every render, so setting it without clearing the link would be
+reverted on the next render and the pill would look broken.
+
+The comparables engine above is now a **market explorer** rather than a
+position: pick any venue, see what its peers imply. Each section carries its own
+anchor separately, so the two never fight over one target. The overview strip
+became a map — its cards scroll to a section instead of swapping its contents.
+
+### A contrast failure the first audit could not have caught
+
+The grid's losing cells scored **4.27:1** in the light theme. `--data-down` is
+documented at 4.54:1 — against **pure white**; these cells sit on `.surface`
+under a tint of their own hue.
+
+Lowering the tint did not fix it. Re-measured at 0.28 alpha: still 4.27, because
+the foreground was what was short, not the ground. A scoped `.grid-net-down`
+with red-700 in light clears it, and the markets tables keep the shared token.
+
+⚠️ The earlier audit passed because that fixture happened to have **no losing
+cells** — the whole grid was green, where the foreground has far more headroom.
+Measuring the right page with the wrong data is not measuring.
+
+**After: 0 AA failures in light and dark**, 1440px and 393px, no overflow.
+
+**Files:** `src/app/api/points/comps/route.ts`, `PointsClient.tsx` (per-programme
+state), `ProgramSection.tsx` (new), `ValuePanel.tsx` (scenario pills, bare mode),
+`CompsEngine.tsx`, `ProgramPanel.tsx`, `CostPanel.tsx`, `SensitivityGrid.tsx`,
+`globals.css`. 11 new tests.
+
+---
+
 ## 2026-09-17 (97) — The airdrop desk: post an update, everyone sees it
 
 `/points` now opens with a live feed of what is happening - a programme going

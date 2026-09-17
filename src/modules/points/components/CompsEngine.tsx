@@ -28,13 +28,10 @@ export function CompsEngine({
   range,
   state,
   fetchedAt,
-  linked,
-  locked,
-  programName,
+  windows,
   onRefresh,
   onTarget,
   onMetric,
-  onUseMedian,
 }: {
   venues: CompVenue[];
   target: CompVenue | null;
@@ -43,19 +40,20 @@ export function CompsEngine({
   range: CompRange;
   state: "loading" | "live" | "down";
   fetchedAt: number | null;
-  linked: boolean;
-  /** True when the selected programme has a market row and drives the target. */
-  locked: boolean;
-  programName: string | null;
+  /** Which comparison windows the upstream actually returned this time. */
+  windows: Record<string, boolean>;
   onRefresh: () => void;
   onTarget: (slug: string) => void;
   onMetric: (m: CompMetric) => void;
-  onUseMedian: () => void;
 }) {
   // Only offer a metric the data can actually answer on. Offering "OI" when
   // the upstream reported none produces an empty table and looks broken, when
   // the truth is simply that nobody publishes it.
-  const usable = METRICS.filter((m) => venues.some((v) => metricOf(v, m.value) > 0));
+  // ⚠️ Offer only what the upstream really returned. DefiLlama does not always
+  // include the longer windows, and a metric that renders an empty table looks
+  // broken when the truth is "nobody publishes that". `windows` is computed
+  // server-side from the same payload, so the two cannot disagree.
+  const usable = METRICS.filter((m) => windows[m.value] ?? venues.some((v) => metricOf(v, m.value) > 0));
   const unlisted = venues.filter((v) => v.fdv === null);
 
   return (
@@ -140,15 +138,9 @@ export function CompsEngine({
           <div className="mt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-content-muted">
-                {locked ? "Market data for" : "Compare against"}
+                Compare against
               </span>
-              {locked ? (
-                <p className="flex items-center gap-2 rounded-xl border border-mint-500/25 bg-mint-500/[0.06] px-4 py-3 text-sm text-mint-100">
-                  <span className="font-medium">{target?.name}</span>
-                  <span className="text-xs text-mint-300/70">follows the programme above</span>
-                </p>
-              ) : (
-                <select
+              <select
                   value={target?.slug ?? ""}
                   onChange={(e) => onTarget(e.target.value)}
                   className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
@@ -173,7 +165,6 @@ export function CompsEngine({
                       ))}
                   </optgroup>
                 </select>
-              )}
             </label>
             <div>
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-content-muted">
@@ -199,24 +190,13 @@ export function CompsEngine({
             </p>
           )}
 
-          {!locked && !target && (
+          {!target && (
             <p className="mt-4 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm leading-relaxed text-content-muted">
-              {programName ? (
-                <>
-                  <span className="text-content">{programName}</span> has no row in any market-data feed, which is
-                  normal for a programme this early — there is nothing to compare its volume against. The FDV below
-                  comes from its own scenario instead. You can pick a venue above to compare against as a proxy, but
-                  that is your judgement call, not a measurement.
-                </>
-              ) : (
-                "Pick a venue above to build a comparable set."
-              )}
+              Pick a venue above to build a comparable set.
             </p>
           )}
 
-          {range.count > 0 && (
-            <RangeBar range={range} metric={metric} linked={linked} onUseMedian={onUseMedian} />
-          )}
+          {range.count > 0 && <RangeBar range={range} metric={metric} />}
           {/* Only a real target with no usable peers is a "try another window"
               situation. With no target at all the note above already explains
               why, and showing both reads as two different failures. */}
@@ -241,17 +221,7 @@ export function CompsEngine({
  * the spread makes the width of the disagreement the first thing you see, and
  * the width is usually the finding.
  */
-function RangeBar({
-  range,
-  metric,
-  linked,
-  onUseMedian,
-}: {
-  range: CompRange;
-  metric: CompMetric;
-  linked: boolean;
-  onUseMedian: () => void;
-}) {
+function RangeBar({ range, metric }: { range: CompRange; metric: CompMetric }) {
   const span = range.high - range.low;
   const pos = span > 0 ? ((range.median - range.low) / span) * 100 : 50;
   return (
@@ -266,18 +236,6 @@ function RangeBar({
           </p>
           <p className="mt-1 text-[11px] text-content-subtle">median of the peer set</p>
         </div>
-        <button
-          type="button"
-          onClick={onUseMedian}
-          disabled={linked}
-          className={cn(
-            "btn-secondary inline-flex items-center gap-1.5 text-xs",
-            linked && "cursor-default opacity-60"
-          )}
-        >
-          <Link2 className="h-3.5 w-3.5" strokeWidth={1.7} />
-          {linked ? "Linked below" : "Use for the numbers below"}
-        </button>
       </div>
 
       <div className="mt-6">
