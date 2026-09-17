@@ -7,7 +7,7 @@ import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
 import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown, Search, MessageCircle, NotebookPen } from "lucide-react";
-import { navLinks } from "@/lib/site";
+import { navLinks, railLinks, moreLinks } from "@/lib/site";
 import { XYZ_CMDK_EVENT } from "@/lib/command-search";
 import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
 import { RobotIcon } from "@/components/RobotIcon";
@@ -37,6 +37,8 @@ export function Navbar() {
   const masked = maskEmail(session?.user?.email);
   const [signingOut, setSigningOut] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [more, setMore] = useState(false);
+  const moreRef = useRef<HTMLDivElement>(null);
 
   // Robust sign-out: clear the session via the API (no server redirect that
   // depends on NEXTAUTH_URL), then hard-navigate home so the UI always updates.
@@ -68,6 +70,22 @@ export function Navbar() {
     else el.removeAttribute("data-nav-open");
     return () => el.removeAttribute("data-nav-open");
   }, [open]);
+
+  // Same outside-click / Escape contract as the account dropdown below. Kept as
+  // its own effect rather than a shared one so neither menu can close the other.
+  useEffect(() => {
+    if (!more) return;
+    const onClick = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMore(false);
+    };
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMore(false);
+    document.addEventListener("mousedown", onClick);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onClick);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [more]);
 
   // Close the account dropdown on outside click / Escape.
   useEffect(() => {
@@ -151,7 +169,7 @@ export function Navbar() {
             contents. If a TENTH link is ever added, measure again - this
             comment is the record of what happens when nobody does. */}
         <div className="hidden items-center gap-0.5 xl:flex">
-          {navLinks.map((l) => (
+          {railLinks.map((l) => (
             <Link
               key={l.href}
               href={l.href}
@@ -171,6 +189,63 @@ export function Navbar() {
               />
             </Link>
           ))}
+          {/* Secondary destinations. They are still in `navLinks`, so the footer
+              and the mobile drawer render them exactly as before - this only
+              changes how the desktop rail presents them. */}
+          {moreLinks.length > 0 && (
+            <div className="relative" ref={moreRef}>
+              <button
+                type="button"
+                onClick={() => setMore((v) => !v)}
+                aria-expanded={more}
+                aria-haspopup="menu"
+                className={cn(
+                  "group relative inline-flex items-center gap-1 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
+                  moreLinks.some((l) => isActive(l.href)) || more
+                    ? "text-zinc-50"
+                    : "text-zinc-400 hover:text-zinc-100"
+                )}
+              >
+                More
+                <ChevronDown
+                  className={cn("h-3.5 w-3.5 transition-transform", more && "rotate-180")}
+                  strokeWidth={1.7}
+                />
+                <span
+                  className={cn(
+                    "absolute inset-x-3.5 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300",
+                    moreLinks.some((l) => isActive(l.href)) ? "scale-x-100" : "scale-x-0"
+                  )}
+                />
+              </button>
+              {more && (
+                <div
+                  role="menu"
+                  className="absolute left-0 top-11 z-50 w-44 overflow-hidden rounded-xl border border-line bg-ink-900/95 py-1 shadow-elevate backdrop-blur-xl"
+                >
+                  {moreLinks.map((l) => (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      prefetch={false}
+                      role="menuitem"
+                      onClick={() => setMore(false)}
+                      aria-current={isActive(l.href) ? "page" : undefined}
+                      className={cn(
+                        "block px-3.5 py-2.5 text-sm font-medium transition-colors",
+                        isActive(l.href)
+                          ? "bg-white/5 text-gold-200"
+                          : "text-zinc-300 hover:bg-white/5 hover:text-zinc-100"
+                      )}
+                    >
+                      {l.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Dedicated XYZ AI launcher - transparent glass, live green pulse, 3D robot. */}
           <button
             type="button"

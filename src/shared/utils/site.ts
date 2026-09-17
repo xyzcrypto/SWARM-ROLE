@@ -21,6 +21,11 @@ export const site = {
   },
 };
 
+/**
+ * Every destination in the site navigation. This is the COMPLETE list and it
+ * stays complete: the footer and the mobile drawer both render it, so anything
+ * removed here stops being reachable by navigation at all.
+ */
 export const navLinks = [
   { label: "Home", href: "/" },
   { label: "Markets", href: "/markets" },
@@ -32,3 +37,19 @@ export const navLinks = [
   { label: "Premium", href: "/premium" },
   { label: "Contact", href: "/contact" },
 ];
+
+/**
+ * What the DESKTOP RAIL shows directly. Everything else moves into the rail's
+ * "More" dropdown.
+ *
+ * ⚠️ The two lists below are DERIVED from `navLinks`, never written out by
+ * hand, and that is the whole point: a link can only ever be in exactly one of
+ * them, and adding one to `navLinks` puts it in "More" rather than nowhere.
+ * Two hand-maintained arrays would drift, and the failure mode is a page that
+ * quietly cannot be reached from anywhere - which is exactly what happened to
+ * Sodex and RiseX on /points.
+ */
+const RAIL_HREFS = new Set(["/", "/markets", "/news", "/research", "/community", "/premium"]);
+
+export const railLinks = navLinks.filter((l) => RAIL_HREFS.has(l.href));
+export const moreLinks = navLinks.filter((l) => !RAIL_HREFS.has(l.href));

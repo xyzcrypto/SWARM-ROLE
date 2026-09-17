@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Wrench, Newspaper, NotebookPen, LineChart, User } from "lucide-react";
+import { Wrench, Newspaper, NotebookPen, LineChart, User, FlaskConical } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { isBottomActive, isBottomHidden } from "@/lib/bottom-nav";
 import { cn } from "@/lib/utils";
@@ -15,11 +15,15 @@ type Item = { href: string; label: string; Icon: typeof Wrench };
 //
 // FOUR links, not five, and that is the whole point: four links plus the raised
 // Profile button is five cells, so Profile sits in the exact middle. With five
-// links it was cell 3 of 6 - visibly left of centre. Research came out because
-// it is the one still reachable in two taps from the navbar's own rail; adding
-// a fifth link back here would push Profile off-centre again.
+// links it was cell 3 of 6 - visibly left of centre. So this list only ever
+// changes by SWAPPING, never by appending.
+//
+// Tools -> Research is that swap. Tools is a set of one-off calculators you
+// reach for when you already know you need one; Research is the thing people
+// come back to. Tools stays reachable from the drawer, and the same drawer now
+// carries Points and Contact for the same reason - see `moreLinks` in site.ts.
 const ITEMS: Item[] = [
-  { href: "/tools", label: "Tools", Icon: Wrench },
+  { href: "/research", label: "Research", Icon: FlaskConical },
   { href: "/news", label: "News", Icon: Newspaper },
   { href: "/journal", label: "Journal", Icon: NotebookPen },
   { href: "/markets", label: "Markets", Icon: LineChart },
