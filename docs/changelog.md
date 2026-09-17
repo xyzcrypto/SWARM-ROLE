@@ -5,6 +5,85 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (103) — The Refresh buttons never refreshed, and the AI briefing never had time
+
+### Every Refresh button on this site was decoration
+
+They all fetched with `cache: "no-store"`, which looks exactly right and is not.
+`no-store` tells the **browser** not to use its own HTTP cache. It says nothing
+to the Vercel edge, which kept serving the same body for the rest of its
+`s-maxage` window - 320s for comparables, 120s for the press feed.
+
+So pressing Refresh re-rendered identical numbers behind a spinner. Worse than
+no button: a reader who presses it concludes the data really has not changed.
+
+`src/lib/refetch.ts` mints a distinct URL - a distinct edge key - but only for a
+**button press**, and at most once per 10s per route. Polls and wake refetches
+keep the shared cached URL, because those happen without anyone asking and are
+exactly the paths that must stay cheap.
+
+### The news briefing never worked, and took a minute not to
+
+`COMPLETE_TIMEOUT_MS` was a flat **15 seconds for every completion**.
+`/api/ai/why-matters` asks for **2000 tokens** in `briefing` mode. No model emits
+two thousand tokens in fifteen seconds, so it timed out every time - and a
+timeout classifies as a transient "retry", so the gateway then burned
+`MAX_RETRIES` more attempts against the same provider with backoff, then the next
+provider, before raising `AiCapacityError`.
+
+Three things, all of them wrong:
+
+1. **The budget is now proportional to the requested length** (~45ms/token),
+   with the 15s as a floor.
+2. **A timeout on a long generation is no longer retried** against the same
+   provider. It had not failed transiently - it was still working, and asking
+   the identical question again takes at least as long. Short requests keep the
+   retry, where a blip is plausible.
+3. ⚠️ **No AI route declared `maxDuration`.** Vercel kills a function at its
+   duration limit, so the platform was killing the request mid-generation and
+   the caller got an opaque 504 rather than the graceful 502 the route is
+   written to return. All five AI routes declare 60s now, and the gateway's own
+   cap sits at 55s **below** it, so when something fails it is our message that
+   reaches the reader.
+
+`maxTokens` for a briefing drops 2000 → 1400: the prompt asks for 650-900 words
+(~900-1250 tokens), so 2000 was never the length of the answer, only the size of
+the window it could take.
+
+### Points
+
+- **"Live wire" → "Latest updates".** A wire service is a newsroom term; nobody
+  outside one reads it as "the latest updates", which is all it is.
+- **A "From X" lens**, offered only when there is something to filter to. X is
+  still not a source - no free API - but desk posts linking a tweet are badged
+  and can now be isolated.
+- **An AI briefing on the band**, built from the headlines the reader can
+  actually see. A briefing summarising something other than what is on screen
+  invites trusting it over the sources, and the sources have names attached. On
+  demand only.
+- **The nav stops flickering.** It hid after **8px** of downward scroll, less
+  than one wheel notch. Now 140px of accumulated downward intent to hide, 24px up
+  to reveal, accumulator resets on direction change, and it stays put in the
+  first 240px. Deliberately asymmetric: hiding wrongly steals a control, showing
+  wrongly costs 44px for a moment.
+- **The tracked programmes are comparable at last.** Variational, Sodex, RiseX
+  and Pacifica appear in **no** market feed - too new - and the engine needs the
+  target's own volume to form a ratio, so the venues this page exists for were
+  the ones it could never price. There is no honest way to invent that number, so
+  it is asked for, and labelled as the reader's figure wherever it appears.
+- **The share card's "Try the calculator" pointed at `/tools`**, which has not
+  held the points calculator since it moved. It deep-links to
+  `/points#programme-<id>`, resolved against the registry by name so a new
+  programme works with no second edit.
+
+### Verification
+
+typecheck / 1177 tests / lint / build green. Browser probe at 1440px and 393px,
+**92 behaviours**, both themes AA. New: `ai-timeout-budget.test.ts` pins the
+budget against the routes' declared `maxDuration`.
+
+---
+
 ## 2026-09-18 (102) — Two normalisers were one normaliser and a bug
 
 ### The wrong numbers had a name: `futures`

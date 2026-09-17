@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Reveal } from "@/components/Reveal";
 import { wakeIsDue } from "@/lib/useLiveData";
+import { refreshUrl } from "@/lib/refetch";
 import {
   breakEven,
   breakEvenLadder,
@@ -65,6 +66,20 @@ type Form = {
    *  not a fact: a peer the reader considers a bad analogue should not silently
    *  keep dragging the median. Stored so the judgement survives a reload. */
   excludedPeers: string[];
+  /**
+   * 24h volume the reader supplied for a venue no feed reports, keyed by slug.
+   *
+   * ⚠️ The tracked programmes - Variational, Sodex, RiseX, Pacifica - are the
+   * whole reason this page exists, and NOT ONE of them appears in DefiLlama's
+   * derivatives overview or CoinGecko's exchange list. They are too new. So the
+   * comparables engine, which needs the target's own volume to form a ratio,
+   * could never price the venues the reader actually came to price.
+   *
+   * There is no honest way to invent that number, so the reader supplies it and
+   * the engine does the rest against real peers. It is labelled as their input
+   * everywhere it appears.
+   */
+  manualVolume: Record<string, string>;
   volumeUsd: string;
   feeRatePct: string;
   gasUsd: string;
@@ -80,6 +95,7 @@ const DEFAULTS: Form = {
   analyseId: "",
   openId: "",
   excludedPeers: [],
+  manualVolume: {},
   volumeUsd: "5000000",
   feeRatePct: "0.04",
   gasUsd: "120",
@@ -175,10 +191,20 @@ export function PointsClient() {
     }
   }, [form]);
 
-  const load = useCallback(async () => {
+  /**
+   * `force` is passed by the Refresh BUTTON only.
+   *
+   * ⚠️ `cache: "no-store"` alone was not a refresh. It tells the browser not to
+   * use its own HTTP cache and says nothing to the Vercel edge, which kept
+   * serving the same body for the rest of its 320s window - so pressing Refresh
+   * re-rendered identical numbers behind a spinner. A distinct URL is a distinct
+   * edge key; `refreshUrl` mints one, throttled so the button cannot be held
+   * down into a stream of origin hits.
+   */
+  const load = useCallback(async (force = false) => {
     setState((s) => (s === "live" ? s : "loading"));
     try {
-      const res = await fetch("/api/points/comps", { cache: "no-store" });
+      const res = await fetch(refreshUrl("/api/points/comps", force), { cache: "no-store" });
       const j = await res.json();
       // Kept whatever the outcome: the diagnosis matters most when the list is
       // empty, which is exactly when the success branch does not run.
@@ -236,6 +262,31 @@ export function PointsClient() {
 
   const programs = useMemo(() => sortPrograms(buildPrograms(venues)), [venues]);
 
+  /**
+   * Every venue the explorer may target: the live feed, plus each tracked
+   * programme the feed does not carry.
+   *
+   * A tracked programme enters with volume 0 and `fdv: null` - honest, and
+   * enough to appear in the picker. Its volume arrives from the reader.
+   */
+  const targetable = useMemo<CompVenue[]>(() => {
+    const seen = new Set(venues.map((v) => v.slug));
+    const extra: CompVenue[] = programs
+      .filter((p) => !p.venue && !seen.has(p.id))
+      .map((p) => ({
+        slug: p.id,
+        name: p.name,
+        logo: p.logo ?? null,
+        volume24h: 0,
+        volume7d: 0,
+        volume30d: 0,
+        openInterest: 0,
+        fdv: null,
+        coingeckoId: null,
+      }));
+    return [...venues, ...extra];
+  }, [venues, programs]);
+
   // ⚠️ The chosen metric must be one the data can answer on. `volume30d` was
   // hard-coded, so a response without 30d volume produced an empty comparable
   // set on a page full of venues. Falls back to the widest window actually
@@ -250,10 +301,15 @@ export function PointsClient() {
   // see what its peers imply. Each programme section carries its own anchor
   // separately, so the two never fight over one target.
   const explorerTarget = useMemo(() => {
-    const chosen = venues.find((v) => v.slug === form.targetSlug);
-    if (chosen) return chosen;
-    return venues.find((v) => v.fdv === null) ?? venues[0] ?? null;
-  }, [venues, form.targetSlug]);
+    const chosen = targetable.find((v) => v.slug === form.targetSlug);
+    const base = chosen ?? targetable.find((v) => v.fdv === null) ?? targetable[0] ?? null;
+    if (!base) return null;
+    // A reader-supplied volume overrides whatever the feed said (usually
+    // nothing). Applied here, once, so every downstream calculation sees one
+    // consistent target rather than each panel re-deciding.
+    const manual = num(form.manualVolume?.[base.slug] ?? "");
+    return manual > 0 ? { ...base, volume24h: manual } : base;
+  }, [targetable, form.targetSlug, form.manualVolume]);
 
   // ⚠️ Per TARGET, not per response. `metric` above only knows whether ANY
   // venue populated a window; this knows whether THIS venue did, which is the
@@ -390,7 +446,7 @@ export function PointsClient() {
       <Reveal delay={0.1}>
         <div id="points-comparables" className="scroll-mt-32">
         <CompsEngine
-          venues={venues}
+          venues={targetable}
           target={explorerTarget}
           metric={explorerMetric}
           // What the reader asked for, so the panel can say when it had to
@@ -403,10 +459,14 @@ export function PointsClient() {
           fetchedAt={fetchedAt}
           windows={windows}
           diag={diag}
-          onRefresh={load}
+          onRefresh={() => void load(true)}
           onTarget={(slug) => set("targetSlug", slug)}
           onMetric={(m) => set("metric", m)}
           allComps={explorerAllComps}
+          manualVolume={form.manualVolume?.[explorerTarget?.slug ?? ""] ?? ""}
+          onManualVolume={(v: string) =>
+            set("manualVolume", { ...(form.manualVolume ?? {}), [explorerTarget?.slug ?? ""]: v })
+          }
           excluded={form.excludedPeers ?? []}
           onTogglePeer={(slug: string) =>
             set(

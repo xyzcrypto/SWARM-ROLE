@@ -2,12 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronDown, ExternalLink, Pin, Plus, Radio, RefreshCw } from "lucide-react";
+import { ChevronDown, ExternalLink, Loader2, Pin, Plus, Radio, RefreshCw, Sparkles } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 import { useRealtime } from "@/lib/useRealtime";
 import { CH_POINTS } from "@/lib/realtime-channels";
 import { wakeIsDue } from "@/lib/useLiveData";
+import { refreshUrl } from "@/lib/refetch";
+import { MarkdownLite } from "@/components/MarkdownLite";
 import { KIND_LABEL, KIND_TONE, sortUpdates, type PointsUpdateDto } from "@modules/points/lib/points-updates";
 import type { RadarItem } from "@modules/points/lib/airdrop-radar";
 
@@ -99,6 +101,13 @@ export function LiveWire() {
   const [pressState, setPressState] = useState<"loading" | "ready" | "down">("loading");
   const [open, setOpen] = useState(false);
   const [fetchedAt, setFetchedAt] = useState<number | null>(null);
+  /** "all" | "x" - narrow the band to items that link to X/Twitter. */
+  const [lens, setLens] = useState<"all" | "x">("all");
+  const [brief, setBrief] = useState<{ loading: boolean; text: string | null; err: string | null }>({
+    loading: false,
+    text: null,
+    err: null,
+  });
   const pressAtRef = useRef(0);
 
   // ⚠️ Restored in an effect. A localStorage value reaching the DOM during the
@@ -123,9 +132,9 @@ export function LiveWire() {
     });
   }, []);
 
-  const loadDesk = useCallback(async () => {
+  const loadDesk = useCallback(async (force = false) => {
     try {
-      const res = await fetch(`/api/points/updates${canManage ? "?all=1" : ""}`, { cache: "no-store" });
+      const res = await fetch(refreshUrl(`/api/points/updates${canManage ? "?all=1" : ""}`, force), { cache: "no-store" });
       const j = await res.json();
       if (res.ok && Array.isArray(j.updates)) {
         setDesk(sortUpdates(j.updates));
@@ -136,9 +145,9 @@ export function LiveWire() {
     }
   }, [canManage]);
 
-  const loadPress = useCallback(async () => {
+  const loadPress = useCallback(async (force = false) => {
     try {
-      const res = await fetch("/api/points/radar", { cache: "no-store" });
+      const res = await fetch(refreshUrl("/api/points/radar", force), { cache: "no-store" });
       const j = await res.json();
       if (res.ok && Array.isArray(j.items)) {
         setPress(j.items);
@@ -220,8 +229,46 @@ export function LiveWire() {
     });
   }, [desk, press]);
 
-  const [hot, ...rest] = items;
+  /** X links, whichever lane they came from. */
+  const isX = (i: WireItem) => prettyHost(hostOf(i.url)) === "X";
+  const xCount = items.filter(isX).length;
+  const shownItems = lens === "x" ? items.filter(isX) : items;
+
+  const [hot, ...rest] = shownItems;
   const live = deskState !== "down" || pressState !== "down";
+
+  /**
+   * One AI briefing over what is actually on the band right now.
+   *
+   * ⚠️ Built from the HEADLINES the reader can see, not from a separate query.
+   * A briefing that summarises something other than what is on screen is an
+   * invitation to trust it over the sources, and the sources are the thing with
+   * a name attached.
+   *
+   * On demand only. Auto-firing an AI call on every page view would bill for a
+   * generation nobody asked for, on a page most visitors scroll straight past.
+   */
+  const generateBrief = useCallback(async () => {
+    const top = shownItems.slice(0, 8);
+    if (!top.length || brief.loading) return;
+    setBrief({ loading: true, text: null, err: null });
+    try {
+      const res = await fetch("/api/ai/why-matters", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          title: "Perp DEX and airdrop briefing",
+          summary: top.map((i) => `${i.source}: ${i.title}. ${i.body}`).join("\n").slice(0, 1200),
+          mode: "briefing",
+        }),
+      });
+      const j = await res.json();
+      if (!res.ok) throw new Error(j?.error || "Could not generate the briefing.");
+      setBrief({ loading: false, text: j?.data?.text ?? j?.text ?? null, err: null });
+    } catch (e) {
+      setBrief({ loading: false, text: null, err: (e as Error).message });
+    }
+  }, [shownItems, brief.loading]);
 
   return (
     <section aria-label="Live updates" className="relative">
@@ -241,11 +288,48 @@ export function LiveWire() {
               />
             </span>
             <Radio className="h-3.5 w-3.5" strokeWidth={1.7} />
-            Live wire
+            {/* ⚠️ "Live wire" was jargon. A wire service is a newsroom term and
+                nobody outside one reads it as "the latest updates", which is all
+                this is. Plain words beat clever ones on a label a reader has to
+                understand in the half second before they decide to keep reading. */}
+            Latest updates
           </span>
           <span className="text-[11px] text-content-subtle">Perp DEX &amp; airdrops</span>
 
+          {/* ⚠️ Only offered when there is something to filter TO. A dead "X"
+              chip that always yields an empty list teaches a reader the control
+              is broken. */}
+          {xCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setLens((l) => (l === "x" ? "all" : "x"))}
+              aria-pressed={lens === "x"}
+              className={cn(
+                "inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition-colors",
+                lens === "x"
+                  ? "border-gold-500/40 bg-gold-500/15 text-gold-200"
+                  : "border-hairline text-content-muted hover:text-content"
+              )}
+            >
+              From X <span className="mono opacity-70">{xCount}</span>
+            </button>
+          )}
+
           <div className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => void generateBrief()}
+              disabled={brief.loading || shownItems.length === 0}
+              className="btn-ghost inline-flex min-h-8 shrink-0 items-center gap-1.5 text-[11px] disabled:opacity-50"
+            >
+              {brief.loading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.7} />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
+              )}
+              <span className="hidden sm:inline">{brief.text ? "Re-brief" : "AI brief"}</span>
+              <span className="sm:hidden">Brief</span>
+            </button>
             {canManage && (
               <a
                 href="#points-desk"
@@ -258,11 +342,14 @@ export function LiveWire() {
             <button
               type="button"
               onClick={() => {
-                void loadDesk();
-                void loadPress();
+                // ⚠️ `true` - a BUTTON press forces an origin read. Without it
+                // this refetched the same edge-cached bytes and the button was
+                // decoration. See `refreshUrl`.
+                void loadDesk(true);
+                void loadPress(true);
               }}
               className="btn-ghost inline-flex min-h-8 shrink-0 items-center gap-1.5 text-[11px]"
-              aria-label="Refresh the wire"
+              aria-label="Refresh the latest updates"
             >
               <RefreshCw
                 className={cn(
@@ -276,14 +363,40 @@ export function LiveWire() {
           </div>
         </div>
 
+        {/* ── the AI briefing, when asked for ───────────────────────────── */}
+        {(brief.loading || brief.text || brief.err) && (
+          <div className="border-b border-hairline bg-surface-2 px-4 py-4 sm:px-5">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gold-200">
+              <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
+              XYZ AI briefing
+            </p>
+            {brief.loading && (
+              <p className="mt-2 text-xs text-content-muted">
+                Reading {Math.min(shownItems.length, 8)} headlines and writing the breakdown…
+              </p>
+            )}
+            {brief.err && <p className="mt-2 text-xs text-amber-200">{brief.err}</p>}
+            {brief.text && (
+              // MarkdownLite is the same renderer the news briefing uses, so the
+              // headings, bullets and emphasis land identically on both pages.
+              <div className="prose-brief mt-2 text-xs leading-relaxed text-content-muted">
+                <MarkdownLite text={brief.text} />
+              </div>
+            )}
+            <p className="mt-2.5 text-[10px] text-content-subtle">
+              Generated from the headlines above. Not financial advice, and no substitute for the sources.
+            </p>
+          </div>
+        )}
+
         {/* ── the hot item, as a banner ─────────────────────────────────── */}
         {hot ? (
           <WireHero item={hot} />
         ) : (
           <p className="px-4 py-4 text-xs text-content-muted sm:px-5">
             {deskState === "loading" || pressState === "loading"
-              ? "Loading the wire…"
-              : "Nothing on the wire right now. Snapshots, TGE dates and new programmes land here live."}
+              ? "Loading the latest…"
+              : "Nothing new right now. Snapshots, TGE dates and new programmes land here live."}
           </p>
         )}
 

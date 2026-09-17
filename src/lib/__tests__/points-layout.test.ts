@@ -143,7 +143,10 @@ describe("the wire leads the page with both lanes, distinguishable", () => {
   it("promotes exactly one item and folds the rest behind a count", () => {
     // A list of twelve equal rows has no answer to "what matters right now".
     const src = sources["LiveWire.tsx"];
-    expect(src).toMatch(/const \[hot, \.\.\.rest\] = items/);
+    // Destructured from the FILTERED list, not the raw one - the X lens has to
+    // move the promoted item too, or filtering would leave a headline on top
+    // that the filter excluded.
+    expect(src).toMatch(/const \[hot, \.\.\.rest\] = shownItems/);
     expect(src).toMatch(/\$\{rest\.length\} more/);
   });
 

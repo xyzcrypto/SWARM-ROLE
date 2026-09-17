@@ -9,6 +9,15 @@ import { summarize } from "@/lib/ai-tasks";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * ⚠️ Declared, not defaulted. An AI call routinely runs longer than Vercel's
+ * default function duration, and when the platform kills a function the caller
+ * gets an opaque 504 instead of the graceful error this route is written to
+ * return. The gateway's own budget is capped below this on purpose, so that when
+ * something fails it is OUR message that reaches the reader.
+ */
+export const maxDuration = 60;
+
 const bodySchema = z.object({ postId: z.string() });
 
 // POST /api/ai/summarize - (re)generate a post's AI TL;DR on demand. Admin only;

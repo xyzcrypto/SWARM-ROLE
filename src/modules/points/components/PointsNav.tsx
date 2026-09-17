@@ -68,22 +68,58 @@ export function PointsNav({ sections }: { sections: NavSection[] }) {
     return () => io.disconnect();
   }, [sections]);
 
-  // Direction, not position. A threshold of 8px stops the bar flickering on the
-  // sub-pixel scroll deltas a trackpad and Lenis's easing both produce.
+  /**
+   * Hide on a SUSTAINED downward scroll, reveal on the first hint of upward.
+   *
+   * ⚠️ The first version hid the bar after 8px of downward movement, which is
+   * less than one notch of a mouse wheel. Nudging the page a little made the
+   * nav vanish, and since it only returned on an upward scroll, a reader
+   * inching down a long page lost it constantly - it read as flickering, not as
+   * behaviour.
+   *
+   * So the two directions are deliberately ASYMMETRIC, because the costs are:
+   * hiding wrongly steals a control the reader wanted, while revealing wrongly
+   * costs 44px for a moment. Hiding needs 140px of accumulated downward intent;
+   * revealing needs 24px up. The accumulator resets whenever the direction
+   * changes, so a hesitant scroll never adds up to a hide.
+   *
+   * It also stays put in the first 240px, where the bar is part of the header
+   * rather than a floating control.
+   */
   useEffect(() => {
     lastY.current = window.scrollY;
     let frame = 0;
+    let downAccum = 0;
+    let upAccum = 0;
+    const HIDE_AFTER = 140;
+    const SHOW_AFTER = 24;
+    const TOP_ZONE = 240;
     const onScroll = () => {
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
         const y = window.scrollY;
         const dy = y - lastY.current;
-        if (Math.abs(dy) < 8) return;
-        // Always visible at the very top, so the bar cannot get stuck hidden
-        // after a scroll-to-top that never produces an upward delta.
-        setShown(y < 120 || dy < 0);
         lastY.current = y;
+        // 2px, not 8: this filters sub-pixel jitter only. The real threshold is
+        // the accumulator below, which is what stops the twitchiness.
+        if (Math.abs(dy) < 2) return;
+
+        if (y < TOP_ZONE) {
+          downAccum = 0;
+          upAccum = 0;
+          setShown(true);
+          return;
+        }
+        if (dy > 0) {
+          upAccum = 0;
+          downAccum += dy;
+          if (downAccum > HIDE_AFTER) setShown(false);
+        } else {
+          downAccum = 0;
+          upAccum -= dy;
+          if (upAccum > SHOW_AFTER) setShown(true);
+        }
       });
     };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -97,7 +133,9 @@ export function PointsNav({ sections }: { sections: NavSection[] }) {
     <nav
       aria-label="Sections"
       className={cn(
-        "sticky top-16 z-30 -mx-1 px-1 py-2 transition-all duration-300 sm:top-20",
+        // 220ms out, but the reveal is what a reader feels - it rides the same
+        // transition, and anything slower reads as the bar lagging the scroll.
+        "sticky top-16 z-30 -mx-1 px-1 py-2 transition-all duration-200 ease-out sm:top-20",
         // `invisible` rather than `hidden` so the anchors stay in the a11y tree
         // for a screen reader and the transition has something to animate.
         shown ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"

@@ -38,6 +38,8 @@ export function CompsEngine({
   allComps = [],
   excluded = [],
   onTogglePeer,
+  manualVolume = "",
+  onManualVolume,
 }: {
   venues: CompVenue[];
   target: CompVenue | null;
@@ -81,6 +83,9 @@ export function CompsEngine({
    *  Hiding an excluded peer would make the control a one-way door. */
   allComps?: Comparable[];
   onTogglePeer?: (slug: string) => void;
+  /** 24h volume the reader supplied for a venue no feed reports. */
+  manualVolume?: string;
+  onManualVolume?: (v: string) => void;
 }) {
   // Only offer a metric the data can actually answer on. Offering "OI" when
   // the upstream reported none produces an empty table and looks broken, when
@@ -175,13 +180,26 @@ export function CompsEngine({
                   className="min-h-11 w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
                 >
                   <option value="">Pick a venue to compare against…</option>
-                  {unlisted.length > 0 && (
+                  {unlisted.filter((v) => v.volume24h <= 0).length > 0 && (
+                    <optgroup label="Tracked here — no feed data, enter volume">
+                      {unlisted
+                        .filter((v) => v.volume24h <= 0)
+                        .map((v) => (
+                          <option key={v.slug} value={v.slug}>
+                            {v.name}
+                          </option>
+                        ))}
+                    </optgroup>
+                  )}
+                  {unlisted.filter((v) => v.volume24h > 0).length > 0 && (
                     <optgroup label="No token yet">
-                      {unlisted.map((v) => (
-                        <option key={v.slug} value={v.slug}>
-                          {v.name}
-                        </option>
-                      ))}
+                      {unlisted
+                        .filter((v) => v.volume24h > 0)
+                        .map((v) => (
+                          <option key={v.slug} value={v.slug}>
+                            {v.name}
+                          </option>
+                        ))}
                     </optgroup>
                   )}
                   <optgroup label="Already listed — for sanity-checking the method">
@@ -202,6 +220,53 @@ export function CompsEngine({
               {usable.length > 0 && <CalcSegmented options={usable} value={metric} onChange={onMetric} />}
             </div>
           </div>
+
+          {/* ⚠️ The venues this page exists for - Variational, Sodex, RiseX,
+              Pacifica - appear in NO market feed. They are too new. And the
+              comparables engine needs the target's own volume to form a ratio,
+              so the one thing a reader came to price was the one thing it could
+              never price.
+
+              There is no honest way to invent that number, so it is asked for.
+              Everything downstream then runs against real peers, and the figure
+              is labelled as the reader's own wherever it shows up. */}
+          {target && metricOf(target, "volume24h") <= 0 && onManualVolume && (
+            <div className="mt-4 rounded-xl border border-gold-500/25 bg-gold-500/[0.06] px-4 py-3.5">
+              <label className="block">
+                <span className="text-xs font-semibold text-gold-200">
+                  No feed reports {target.name}&apos;s volume yet
+                </span>
+                <span className="mt-1 block text-[11px] leading-relaxed text-content-muted">
+                  It is too new to be listed. Enter its 24h volume and it will be priced against the peers below,
+                  the same way every listed venue is.
+                </span>
+                <span className="mt-2.5 flex items-center gap-2">
+                  <input
+                    inputMode="numeric"
+                    value={manualVolume}
+                    onChange={(e) => onManualVolume(e.target.value.replace(/[^\d.]/g, ""))}
+                    placeholder="e.g. 40000000"
+                    className="mono min-h-11 w-full rounded-xl border border-hairline bg-surface-2 px-4 py-2.5 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+                  />
+                  <span className="shrink-0 text-xs text-content-subtle">USD / 24h</span>
+                </span>
+              </label>
+            </div>
+          )}
+
+          {target && manualVolume && metricOf(target, "volume24h") > 0 && onManualVolume && (
+            <p className="mt-4 rounded-xl border border-gold-500/25 bg-gold-500/[0.06] px-4 py-2.5 text-[11px] leading-relaxed text-gold-200">
+              Using <span className="mono font-semibold">{usdCompact(metricOf(target, "volume24h"))}</span> 24h
+              volume for {target.name} — <span className="font-semibold">your figure</span>, not a feed&apos;s.{" "}
+              <button
+                type="button"
+                onClick={() => onManualVolume("")}
+                className="underline underline-offset-2 hover:text-gold-100"
+              >
+                Clear
+              </button>
+            </p>
+          )}
 
           {/* A venue that already has a token is a TEST of the method, not a
               use of it - so say what the method gets wrong on it. This is the
@@ -435,6 +500,9 @@ function CompsTable({
   allComps: Comparable[];
   excluded: string[];
   onTogglePeer?: (slug: string) => void;
+  /** 24h volume the reader supplied for a venue no feed reports. */
+  manualVolume?: string;
+  onManualVolume?: (v: string) => void;
 }) {
   const off = new Set(excluded);
   const rows = onTogglePeer ? allComps : comps;
