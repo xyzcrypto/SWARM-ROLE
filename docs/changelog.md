@@ -5,6 +5,49 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (95) — Nav: six links and a More menu, Research on the bottom bar
+
+### Desktop
+
+Points, Tools and Contact move out of the rail into a **More** dropdown beside
+it. The rail keeps the six destinations people actually navigate between: Home,
+Markets, News, Research, Community, Premium.
+
+`railLinks` and `moreLinks` are **derived** from `navLinks`, never written out
+by hand, and that is deliberate. Two hand-maintained arrays drift, and the
+failure mode is a page that quietly cannot be reached from anywhere - which is
+exactly what happened to Sodex and RiseX in (93). A partition makes that
+impossible: a new link joins `navLinks` and lands in More rather than nowhere.
+Pinned by a test that the two lists reconstruct `navLinks` exactly.
+
+The footer and the mobile drawer still render the **complete** list, so nothing
+moved out of reach - only out of the rail.
+
+**⚠️ The breakpoint did NOT move back to `lg`.** The shorter rail needs 684px
+(down from 1071), and simulating the `lg` layout at 1024 the nav's children
+summed to **990px against 998px available - it fits by eight pixels**, measured
+while signed out, and a signed-in header is wider still. Eight pixels is what
+"it fits" looked like both previous times this overflowed. It stays at xl.
+
+### Mobile
+
+The bottom bar swaps **Tools for Research**. It is four links, not five, and
+that is load-bearing: four plus the raised Profile button is five cells, so
+Profile sits dead centre. Measured after the change on a 393px viewport -
+Profile's centre at 196px against a viewport centre of 197px, one pixel of
+rounding. A fifth link makes it cell 3 of 6, visibly left of centre, so this
+list only ever changes by swapping.
+
+Tools is a set of one-off calculators you reach for knowing you need one;
+Research is the thing people come back to. Tools stays in the drawer.
+
+**Files:** `src/shared/utils/site.ts` (the partition),
+`src/shared/components/Navbar.tsx` (More dropdown, same outside-click/Escape
+contract as the account menu), `src/shared/components/BottomNav.tsx`,
+`src/lib/__tests__/nav-rail-width.test.ts`.
+
+---
+
 ## 2026-09-17 (94) — The programmes are back, and the page stops guessing quietly
 
 Follow-on to (93). Two problems, one of them mine.
