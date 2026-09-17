@@ -25,6 +25,8 @@ const STORE_KEY = "xyz.points.v1";
 
 /** Form state, all strings so a half-typed field is never coerced to 0 mid-edit. */
 type Form = {
+  /** Free-text name for this calculation; drives the share card's headline. */
+  label: string;
   programId: string;
   targetSlug: string;
   metric: CompMetric;
@@ -44,6 +46,7 @@ type Form = {
 };
 
 const DEFAULTS: Form = {
+  label: "",
   programId: "variational",
   targetSlug: "",
   metric: "volume30d",
@@ -297,6 +300,7 @@ export function PointsClient() {
           allocs={allocs}
           currentFdv={num(fdv)}
           currentAlloc={num(form.allocPct)}
+          totalCostUsd={cost.totalCostUsd}
         />
       </Reveal>
     </div>

@@ -30,10 +30,10 @@ export function CostPanel({
 
   return (
     <section className="surface rounded-3xl p-5 sm:p-8">
-      <h2 className="font-display text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
+      <h2 className="font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
         What this farm has <span className="text-shine">cost you</span>
       </h2>
-      <p className="mt-2 max-w-xl text-sm leading-relaxed text-zinc-400">
+      <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
         Fees are asked for as volume x rate rather than a round total, because the fee line is usually what decides
         whether a farm was worth doing, and almost nobody adds it up.
       </p>
@@ -99,7 +99,7 @@ export function CostPanel({
           "mt-6 rounded-2xl border p-5 sm:p-6",
           be.unreachable
             ? "border-rose-500/25 bg-rose-500/[0.06]"
-            : "border-white/10 bg-ink-950/40"
+            : "border-hairline bg-surface-2"
         )}
       >
         {be.unreachable ? (
@@ -110,27 +110,27 @@ export function CostPanel({
         ) : (
           <div className="flex flex-wrap items-baseline justify-between gap-4">
             <div>
-              <p className="text-xs text-zinc-500">Break-even FDV</p>
+              <p className="text-xs text-content0">Break-even FDV</p>
               <p className="mt-1.5 mono text-3xl font-semibold sm:text-4xl">
                 <span className={profitable ? "text-mint-gradient" : "text-gold-gradient"}>
                   {usdCompact(be.fdvUsd)}
                 </span>
               </p>
-              <p className="mt-1 text-[11px] text-zinc-600">
+              <p className="mt-1 text-[11px] text-content-subtle">
                 Below this, the farm lost money. Value scales linearly with FDV, so this is exact, not a search.
               </p>
             </div>
             <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-right text-xs">
-              <dt className="text-zinc-500">Cost per point</dt>
-              <dd className="mono text-zinc-200">
+              <dt className="text-content0">Cost per point</dt>
+              <dd className="mono text-content">
                 ${eff.costPerPoint.toLocaleString("en-US", { maximumFractionDigits: 4 })}
               </dd>
-              <dt className="text-zinc-500">Points per $1k volume</dt>
-              <dd className="mono text-zinc-200">
+              <dt className="text-content0">Points per $1k volume</dt>
+              <dd className="mono text-content">
                 {eff.pointsPer1kVolume.toLocaleString("en-US", { maximumFractionDigits: 2 })}
               </dd>
-              <dt className="text-zinc-500">Value per point</dt>
-              <dd className="mono text-zinc-200">
+              <dt className="text-content0">Value per point</dt>
+              <dd className="mono text-content">
                 $
                 {(Number(form.yourPoints) > 0
                   ? value.grossUsd / Number(form.yourPoints)

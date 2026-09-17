@@ -5,6 +5,84 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (96) — /points in the light theme, a grid that says something, and a name on the card
+
+### The light theme was not dim, it was invisible
+
+Measured on `/points` with the light theme active: **21 distinct text runs below
+WCAG AA**, and not marginally.
+
+| what | contrast | needed |
+|---|---|---|
+| assumption banner | **1.1:1** | 4.5 |
+| locked-venue box | **1.01:1** | 4.5 |
+| every cell of the sensitivity grid | **1.01:1** | 4.5 |
+
+One cause for all of it: dark-theme foregrounds - `text-mint-100`,
+`text-amber-200`, `text-sky-200`, `text-rose-200` - painted on translucent
+tints of their own hue. Over near-black they read fine. Over near-white the
+tint stays pale and the text stays pale with it, so the grid was not
+low-contrast, it was **gone**.
+
+The design system says this in as many words - use `data-up` / `data-down`
+"for up/down numbers rather than `text-mint-*`/`text-red-*` so new UI is
+readable in both themes" - and the grid did the opposite. It now uses the
+semantic tokens, and the cell tints are `color-mix` over `var(--data-up)` /
+`var(--data-down)` instead of a hard-coded `rgba(34, 214, 146, a)` pinned to
+the dark palette. The four callout foregrounds gained light overrides in
+globals.css, following the pattern already there for `text-mint-200`. The whole
+points UI moved off the zinc ramp onto `text-content` / `-muted` / `-subtle`,
+`border-hairline` and `bg-surface-2`.
+
+**After: 0 AA failures in light AND 0 in dark, at 1440px and 393px**, with no
+overflow and nothing invisible in either.
+
+### The grid showed dollars, which told you nothing
+
+Net dollars across a geometric FDV ladder is dominated by the top-right corner,
+and when the farm is profitable at every cell - the common case - the result is
+a uniformly green table where no cell means anything relative to any other. A
+grid nobody can read is worse than no grid, because it looks like information.
+
+It now shows **return on cost**, which is scale-free, with the pivot everyone
+already understands: **1.0x is break-even**. The colour scale is built around
+that boundary rather than around the largest number present, log-scaled on each
+side so 2x-to-4x looks like 4x-to-8x. There is a legend, the cells carry the
+dollar figures in a title and a small secondary label, and with no cost entered
+it falls back to gross dollars rather than dividing by zero.
+
+### A name that reaches the share card
+
+"Name this calculation" sits at the top of the value panel, because that is
+what the share card leads with. Empty means "use the programme's name", so the
+placeholder shows it rather than pre-filling - a value someone has to clear
+before typing their own is a worse default than an empty box.
+
+⚠️ It is **truncated to 40 characters**, because the share API's zod schema
+caps `platform` there and rejects anything longer. Without that, a long name
+failed with "Couldn't create the share link" and nothing pointing at the name
+as the cause. The input carries the same `maxLength`, so the counter never lies.
+
+### What you are farming, with the facts that decide it
+
+The selected programme now shows **markets, max leverage and fees** - all three
+already in the registry and simply never rendered, and all three the first thing
+anyone asks before committing capital somewhere.
+
+Added below the cards: **Ongoing perp DEX airdrops**, linking to the running
+list in the Telegram channel. The three tracked programmes are the ones with
+full scenario numbers; the live list of everything else worth farming changes
+far too often to hard-code, so linking it is honest where copying it would be
+stale within a week. The URL lives in `site.ts` beside the other channel links,
+not inline in a component.
+
+**Files:** `SensitivityGrid.tsx` (rewritten), `ProgramPanel.tsx`,
+`ValuePanel.tsx`, `CompsEngine.tsx`, `CostPanel.tsx`, `PointsClient.tsx`,
+`src/modules/points/lib/{points,programs}.ts`, `src/app/globals.css`,
+`src/shared/utils/site.ts`. 11 new tests.
+
+---
+
 ## 2026-09-17 (95) — Nav: six links and a More menu, Research on the bottom bar
 
 ### Desktop

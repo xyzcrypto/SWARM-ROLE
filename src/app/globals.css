@@ -1426,6 +1426,22 @@ html:not(.dark) .text-mint-200 { color: var(--data-up); }
    positive-direction colour on a crypto site, unreadable on its own ground.
    --data-up is mint-700, 5.31:1. Text only - bg-/border-mint are untouched. */
 html:not(.dark) .text-mint-300 { color: var(--data-up); }
+/* Tinted callouts: foregrounds that only ever worked on a dark ground.
+   `text-amber-200`, `text-sky-200`, `text-mint-100` and `text-rose-200` sit on
+   translucent tints of their own hue. Over near-black that reads fine; over the
+   light theme's near-white the tint stays pale and the text stays pale with it.
+
+   Measured on /points in the light theme before this block: the assumption
+   banner scored **1.1:1**, the locked-venue box **1.01:1**, and every cell of
+   the sensitivity grid **1.01:1** - the whole grid was invisible, not merely
+   low-contrast. Text only; the `bg-`/`border-` tints are untouched, so the
+   callouts keep their colour identity in both themes. */
+html:not(.dark) .text-amber-200 { color: #8a4b09; }  /* 5.9:1 on the amber tint */
+html:not(.dark) .text-sky-200 { color: #075985; }    /* sky-800, 6.9:1 */
+html:not(.dark) .text-mint-100 { color: var(--data-up); }
+html:not(.dark) .text-rose-200 { color: var(--data-down); }
+html:not(.dark) .text-mint-300\/70 { color: color-mix(in srgb, var(--data-up) 75%, transparent); }
+
 html:not(.dark) .hover\:text-gold-100:hover { color: #7a4a0d; }
 html:not(.dark) .hover\:text-gold-200:hover { color: #8a5810; }
 html:not(.dark) .hover\:text-mint-200:hover { color: #057653; }
