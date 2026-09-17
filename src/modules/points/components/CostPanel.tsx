@@ -1,5 +1,7 @@
 "use client";
 
+import { Wallet } from "lucide-react";
+import { PointsPanel } from "./PointsPanel";
 import { cn } from "@/lib/utils";
 import { CalcField, ResultTile } from "@modules/tools/components/CalcField";
 import { usdCompact, type BreakEven, type CostResult, type ValueResult } from "@modules/points/lib/points";
@@ -38,18 +40,20 @@ export function CostPanel({
   const profitable = be.netUsd >= 0 && !be.unreachable;
 
   return (
-    <section className="surface rounded-3xl p-5 sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <h2 className="font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
-          What this farm has <span className="text-shine">cost you</span>
-        </h2>
-        {programs.length > 1 && (
+    <PointsPanel
+      eyebrow="Your cost basis"
+      icon={Wallet}
+      title="What this farm has"
+      accent="cost you"
+      description="Points are only worth what they cost to earn. Fees, gas and the yield your capital gave up while it sat here are the three most people never count."
+      actions={
+        programs.length > 1 ? (
           <label className="flex items-center gap-2 text-xs text-content-muted">
             Costing
             <select
               value={analyseId}
               onChange={(e) => onAnalyse(e.target.value)}
-              className="rounded-lg border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs text-content outline-none transition-colors focus:border-gold-500/50"
+              className="min-h-9 rounded-lg border border-hairline bg-surface-2 px-2.5 py-1.5 text-xs text-content outline-none transition-colors focus:border-gold-500/50"
             >
               {programs.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -58,9 +62,10 @@ export function CostPanel({
               ))}
             </select>
           </label>
-        )}
-      </div>
-      <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
+        ) : null
+      }
+    >
+      <p className="mt-5 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-xs leading-relaxed text-content-muted">
         Fees are asked for as volume x rate rather than a round total, because the fee line is usually what decides
         whether a farm was worth doing, and almost nobody adds it up.
       </p>
@@ -168,6 +173,6 @@ export function CostPanel({
           </div>
         )}
       </div>
-    </section>
+    </PointsPanel>
   );
 }

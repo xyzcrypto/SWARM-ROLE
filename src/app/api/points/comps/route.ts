@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { llamaOverview } from "@modules/markets/lib/llama";
+import { llamaOverview, type OverviewRow } from "@modules/markets/lib/llama";
+import { coingeckoDerivatives, mergeVenues } from "@modules/points/lib/perp-sources";
 import { protocolSlug } from "@/lib/markets";
 import type { CompVenue } from "@modules/points/lib/points";
 
@@ -24,10 +25,14 @@ import type { CompVenue } from "@modules/points/lib/points";
  * two numbers can now drift silently, which is exactly the shape of trap 1b;
  * `points-comps-window.test.ts` fails if they stop matching.
  *
- * ⚠️ NOT POLLED. The client fetches once on mount plus an explicit refresh
- * button, so this is deliberately absent from `TARGETS` in
- * markets-poll-alignment.test.ts. **If a poll is ever added, add it there** -
- * that test is the only thing standing between a poll and an ISR-write bill.
+ * ⚠️ POLLED, at 300s (`COMPS_POLL_MS` in PointsClient.tsx), and registered in
+ * `TARGETS` in markets-poll-alignment.test.ts. This header used to say the
+ * opposite - "NOT POLLED ... if a poll is ever added, add it there, that test is
+ * the only thing standing between a poll and an ISR-write bill" - and that
+ * instruction was followed when the poll landed. The margin is 300 against 320:
+ * polling faster than the window regenerates the route on every tick of every
+ * open tab, and equal lets jitter decide. Change one number and that test names
+ * the others.
  */
 export const revalidate = 320; // must equal OVERVIEW_TTL - pinned by a test
 
@@ -94,16 +99,26 @@ type Priced = { name: string; fdv: number; id: string };
  * by market cap is too illiquid for its multiple to mean anything, so paging
  * further would add cost and noise in equal measure.
  */
-async function pricedTokens(): Promise<Priced[]> {
+async function pricedTokens(): Promise<{ rows: Priced[]; error: string | null }> {
   try {
     const res = await fetch(
       "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false",
-      { next: { revalidate }, headers: { accept: "application/json" } }
+      {
+        next: { revalidate },
+        headers: { accept: "application/json" },
+        // ⚠️ This fetch had NO timeout. `llama.ts` has had one for months
+        // precisely because "upstream can be slow; a card must never hang on
+        // it" - and CoinGecko rate-limits shared cloud IPs hard. A hang here
+        // does not degrade the page, it kills the whole route: both fetches sit
+        // in one Promise.all, so the function runs to its platform timeout and
+        // the client sees nothing at all.
+        signal: AbortSignal.timeout(8000),
+      }
     );
-    if (!res.ok) return [];
+    if (!res.ok) return { rows: [], error: `coingecko ${res.status}` };
     const j: any[] = await res.json();
-    if (!Array.isArray(j)) return [];
-    return j
+    if (!Array.isArray(j)) return { rows: [], error: "coingecko shape" };
+    const rows = j
       .map((c) => ({
         name: String(c?.name ?? ""),
         id: String(c?.id ?? ""),
@@ -113,31 +128,66 @@ async function pricedTokens(): Promise<Priced[]> {
         fdv: Number(c?.fully_diluted_valuation ?? c?.market_cap) || 0,
       }))
       .filter((c) => c.name && c.fdv > 0);
-  } catch {
-    return [];
+    return { rows, error: null };
+  } catch (err) {
+    return { rows: [], error: `coingecko ${(err as Error)?.name ?? "failed"}` };
+  }
+}
+
+/**
+ * Perp DEX activity, via the shared reduced cache.
+ *
+ * ⚠️ `llamaOverview` and nothing else. An earlier version of this function added
+ * a DIRECT `api.llama.fi/overview/derivatives` fetch as a retry for when the
+ * shared cache yielded an empty list, on the theory that an empty list is not a
+ * valid answer for this route. Two things were wrong with it:
+ *
+ * - That body is one of the four this project moved behind `unstable_cache`
+ *   precisely because it is over Next's ~2 MB data-cache ceiling. Fetching it
+ *   `cache: "no-store"` re-downloads and re-parses megabytes on a request path,
+ *   which is Fluid Active CPU on a plan where that is rationed (cost-check trap
+ *   2). `markets-poll-alignment.test.ts` refuses it by name, and it was right to.
+ * - It was a guess. The empty comparables panel was never caused by an empty
+ *   protocol list; it was `pickMetricFor` measuring a brand-new venue on a
+ *   30-day window. Adding an unverifiable upstream path to fix a bug that was
+ *   somewhere else is how the first two attempts at this went wrong.
+ *
+ * A cache miss surfaces through `diag` instead, where it is visible and costs
+ * nothing.
+ */
+async function derivatives(): Promise<{ protocols: OverviewRow[]; error: string | null }> {
+  try {
+    const { protocols } = await llamaOverview("derivatives");
+    return { protocols, error: protocols.length ? null : "llama returned 0 protocols" };
+  } catch (err) {
+    // ⚠️ `message`, not `name`. `llama.ts` throws `new Error("<url> <status>")`,
+    // so `name` is the generic "Error" - which is exactly what production
+    // printed for three releases ("llama Error"), telling nobody whether it was
+    // a 403, a 429, a 500 or a timeout. The status is the entire diagnosis.
+    const e = err as Error;
+    const detail = e?.name === "TimeoutError" || e?.name === "AbortError" ? e.name : e?.message || "failed";
+    // The URL prefix is noise in a UI string; keep the tail, which is the code.
+    return { protocols: [], error: `llama ${detail.replace(/^https?:\/\/\S+\s*/, "").slice(0, 60)}` };
   }
 }
 
 export async function GET() {
-  const [overview, priced] = await Promise.all([
-    llamaOverview("derivatives").catch(() => ({ total24h: 0, protocols: [] as any[] })),
-    pricedTokens(),
-  ]);
+  const [deriv, priced] = await Promise.all([derivatives(), pricedTokens()]);
 
   const byName = new Map<string, Priced>();
-  for (const p of priced) {
+  for (const p of priced.rows) {
     const k = normalise(p.name);
     // First writer wins: the list arrives in market-cap order, so a collision
     // resolves to the larger, better-known token rather than the last one seen.
     if (k && !byName.has(k)) byName.set(k, p);
   }
 
-  const venues: CompVenue[] = overview.protocols
-    .filter((p: any) => (Number(p.total24h) || 0) >= MIN_VOLUME_24H)
-    .sort((a: any, b: any) => (Number(b.total24h) || 0) - (Number(a.total24h) || 0))
+  const primary: CompVenue[] = deriv.protocols
+    .filter((p) => (Number(p.total24h) || 0) >= MIN_VOLUME_24H)
+    .sort((a, b) => (Number(b.total24h) || 0) - (Number(a.total24h) || 0))
     .slice(0, MAX_VENUES)
-    .map((p: any) => {
-      const alias = NAME_ALIASES[p.name.toLowerCase()];
+    .map((p) => {
+      const alias = NAME_ALIASES[String(p.name ?? "").toLowerCase()];
       const match = byName.get(normalise(alias ?? p.name));
       return {
         slug: protocolSlug(p.slug ?? undefined, p.name),
@@ -151,6 +201,35 @@ export async function GET() {
         coingeckoId: match?.id ?? null,
       };
     });
+
+  // ⚠️ AGGREGATE. One upstream refusing must not be able to blank this panel,
+  // and that is not hypothetical: production ran for three releases on
+  // "venues from upstream: 0 ... llama Error" while the other host in the same
+  // request answered with 249 priced tokens.
+  //
+  // The fallback runs only when the primary produced nothing, so the normal path
+  // costs exactly what it did before. It may only ADD venues it can name - see
+  // the allowlist in perp-sources.ts - so a bad guess about its response shape
+  // yields zero extra rows and a diagnostic, never a wrong number.
+  let fallback: CompVenue[] = [];
+  let fallbackError: string | null = null;
+  if (!primary.length) {
+    const alt = await coingeckoDerivatives(revalidate);
+    fallbackError = alt.error;
+    fallback = alt.venues
+      // The same floor the primary source applies. Below this, volume is too
+      // thin for a multiple built on it to mean anything, and a fallback that
+      // quietly used a looser rule would change what the median means.
+      .filter((v) => v.volume24h >= MIN_VOLUME_24H)
+      .map((v) => {
+        const match = byName.get(normalise(v.name));
+        return { ...v, fdv: match?.fdv ?? null, coingeckoId: match?.id ?? null };
+      });
+  }
+
+  const venues = mergeVenues(primary, fallback)
+    .sort((a, b) => b.volume24h - a.volume24h)
+    .slice(0, MAX_VENUES);
 
   // `live` is about the volume side only. FDVs can be entirely absent (a
   // CoinGecko outage) and the page still has something true to show.
@@ -166,12 +245,39 @@ export async function GET() {
     openInterest: venues.some((v) => v.openInterest > 0),
   };
 
+  // ⚠️ Diagnosis, not decoration. This route failed in production with the page
+  // saying only "Data unavailable", and there was no way from the outside to
+  // tell whether the upstream was down, the response was a different shape, or
+  // the filter had dropped everything. One wrong guess about the cause already
+  // shipped. Counts at each stage make the next answer a fact.
+  //
+  // Nothing here is sensitive: list sizes and a short upstream status.
+  const diag = {
+    protocols: deriv.protocols.length,
+    afterFilter: venues.length,
+    pricedTokens: priced.rows.length,
+    matched: pricedCount,
+    /** Which upstream actually produced the venue list this cycle. */
+    source: primary.length ? "llama" : fallback.length ? "coingecko-derivatives" : "none",
+    upstream: [deriv.error, fallbackError, priced.error].filter(Boolean).join("; ") || null,
+  };
+
   return NextResponse.json(
-    { venues, live, pricedCount, windows, ts: Date.now() },
+    { venues, live, pricedCount, windows, diag, ts: Date.now() },
     {
       headers: {
+        // ⚠️ Literals, not `s-maxage=${revalidate}`. The edge honours THIS
+        // header rather than `export const revalidate` (cost-check trap 0), and
+        // `markets-poll-alignment.test.ts` has to be able to read the success
+        // path's number to check it against the 300s client poll. A template
+        // literal is invisible to that check, so the one number that actually
+        // governs the CDN would have been the one number nothing verified.
+        //
+        // 320 here must equal the `revalidate` above and stay above the poll.
+        // The failure path stays short on purpose: a recovered upstream should
+        // appear in half a minute, not after five more.
         "Cache-Control": live
-          ? `public, s-maxage=${revalidate}, stale-while-revalidate=${revalidate + 100}`
+          ? "public, s-maxage=320, stale-while-revalidate=420"
           : "public, s-maxage=30",
       },
     }

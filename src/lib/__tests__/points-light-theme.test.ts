@@ -108,6 +108,30 @@ describe("every semantic colour class actually exists", () => {
     expect(tokens.has("hairline")).toBe(true);
   });
 
+  it("never puts an opacity modifier on a var-based semantic token", () => {
+    // ⚠️ Measured: `bg-base/95` on the section nav rendered the bar at **alpha
+    // 0** - no background rule emitted at all - so dense card text read straight
+    // through the labels while scrolling.
+    //
+    // These tokens are declared as plain `var(--bg)` rather than in the
+    // `rgb(... / <alpha-value>)` form, and Tailwind cannot apply an opacity
+    // modifier to an arbitrary value. It does not warn; it emits nothing. Same
+    // family as `text-content0`: a class that parses, means nothing, and fails
+    // silently. Brand ramps (`gold-500/15`, `mint-500/10`) are real colours and
+    // are unaffected.
+    const bad: string[] = [];
+    const semantic = "base|surface|surface-2|content|content-muted|content-subtle|hairline|data-up|data-down";
+    for (const [file, src] of Object.entries(sources)) {
+      for (const m of src.matchAll(new RegExp(`\\b(?:bg|text|border|ring|from|to|via)-(?:${semantic})\\/[0-9]+`, "g"))) {
+        bad.push(`${file}: ${m[0]}`);
+      }
+    }
+    expect(
+      bad,
+      `an opacity modifier on a var() token emits NO rule:\n  ${bad.join("\n  ")}`
+    ).toEqual([]);
+  });
+
   it("uses no semantic class Tailwind will not generate", () => {
     const bad: string[] = [];
     for (const [file, src] of Object.entries(sources)) {

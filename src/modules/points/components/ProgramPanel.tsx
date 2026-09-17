@@ -2,6 +2,7 @@
 
 import { BadgeCheck, CircleHelp, ExternalLink, Activity, Send, Gauge, Layers, Percent } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PointsPanel } from "./PointsPanel";
 import { platformLogo } from "@/lib/dex-registry";
 import { site } from "@/lib/site";
 import { usdCompact } from "@modules/points/lib/points";
@@ -24,22 +25,13 @@ const PHASE_TONE: Record<ProgramView["phase"], string> = {
 export function ProgramPanel({ programs }: { programs: ProgramView[] }) {
 
   return (
-    <section className="surface rounded-3xl p-5 sm:p-8">
-      <header>
-        <p className="eyebrow-glass inline-flex items-center gap-1.5 text-[11px]">
-          <Activity className="h-3.5 w-3.5" strokeWidth={1.7} />
-          Tracked programmes
-        </p>
-        <h2 className="mt-3 font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
-          What you are <span className="text-shine">farming</span>
-        </h2>
-        <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
-          Pick a programme to load its supply, pool and allocation. Most programmes worth farming are too small for
-          any market-data feed to list, so these are tracked by hand and each one says whether its numbers are
-          official or a community guess.
-        </p>
-      </header>
-
+    <PointsPanel
+      eyebrow="Tracked programmes"
+      icon={Activity}
+      title="What you are"
+      accent="farming"
+      description="Pick a programme to load its supply, pool and allocation. Most programmes worth farming are too small for any market-data feed to list, so these are tracked by hand and each one says whether its numbers are official or a community guess."
+    >
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {programs.map((p) => {
           const logo = platformLogo({ links: p.links, logo: p.logo ?? undefined });
@@ -147,7 +139,7 @@ export function ProgramPanel({ programs }: { programs: ProgramView[] }) {
           Open the list <ExternalLink className="h-3.5 w-3.5" strokeWidth={1.7} />
         </span>
       </a>
-    </section>
+    </PointsPanel>
   );
 }
 

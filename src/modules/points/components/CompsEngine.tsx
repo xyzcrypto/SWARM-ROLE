@@ -3,6 +3,7 @@
 import { RefreshCw, Link2, TrendingUp } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
 import { CalcSegmented } from "@modules/tools/components/CalcField";
+import { LiveChip, PointsPanel } from "./PointsPanel";
 import {
   COMP_METRIC_LABEL,
   metricOf,
@@ -24,24 +25,41 @@ export function CompsEngine({
   venues,
   target,
   metric,
+  requestedMetric,
   comps,
   range,
   state,
   fetchedAt,
   windows,
+  diag,
   onRefresh,
   onTarget,
   onMetric,
 }: {
   venues: CompVenue[];
   target: CompVenue | null;
+  /** The window actually used, which may be wider than the one asked for when
+   *  this target has no history on that one. */
   metric: CompMetric;
+  /** The window the reader selected. Equal to `metric` unless it was widened. */
+  requestedMetric?: CompMetric;
   comps: Comparable[];
   range: CompRange;
   state: "loading" | "live" | "down";
   fetchedAt: number | null;
   /** Which comparison windows the upstream actually returned this time. */
   windows: Record<string, boolean>;
+  /** Stage counts from the route, shown only when there is nothing to show.
+   *  A failure a reader can describe is a failure someone can fix. */
+  diag: {
+    protocols: number;
+    afterFilter: number;
+    pricedTokens: number;
+    matched: number;
+    /** Which upstream produced the venue list: "llama", a fallback, or "none". */
+    source?: string;
+    upstream: string | null;
+  } | null;
   onRefresh: () => void;
   onTarget: (slug: string) => void;
   onMetric: (m: CompMetric) => void;
@@ -56,22 +74,18 @@ export function CompsEngine({
   const usable = METRICS.filter((m) => windows[m.value] ?? venues.some((v) => metricOf(v, m.value) > 0));
   const unlisted = venues.filter((v) => v.fdv === null);
 
+  /** Live market rows, independent of whether any peer can be matched to a token. */
+  const byVolume = [...venues].sort((a, b) => b.volume24h - a.volume24h).slice(0, 8);
+  const priced = venues.filter((v) => v.fdv !== null).length;
+
   return (
-    <section className="surface rounded-3xl p-5 sm:p-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow-glass inline-flex items-center gap-1.5 text-[11px]">
-            <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.7} />
-            Live comparables
-          </p>
-          <h2 className="mt-3 font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
-            What is an <span className="text-shine">unlisted venue</span> worth?
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
-            Every points calculator asks you to type an FDV, and that guess decides the answer. This derives it
-            instead: peers that already have a token, priced against the volume they actually do.
-          </p>
-        </div>
+    <PointsPanel
+      eyebrow="Live comparables"
+      icon={TrendingUp}
+      title="What is an"
+      accent="unlisted venue worth?"
+      description="Every points calculator asks you to type an FDV, and that guess decides the answer. This derives it instead: peers that already have a token, priced against the volume they actually do."
+      actions={
         <button
           type="button"
           onClick={onRefresh}
@@ -81,48 +95,45 @@ export function CompsEngine({
           <RefreshCw className={cn("h-3.5 w-3.5", state === "loading" && "animate-spin")} strokeWidth={1.7} />
           Refresh
         </button>
-      </header>
-
-      <div className="mt-5 flex flex-wrap items-center gap-2 text-[11px]">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium",
-            state === "live"
-              ? "border-mint-500/30 bg-mint-500/10 text-mint-200"
-              : state === "loading"
-                ? "border-hairline text-content-subtle"
-                : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+      }
+      meta={
+        <>
+          <LiveChip state={state}>
+            {state === "live" ? `${venues.length} venues` : state === "loading" ? "Loading" : "Data unavailable"}
+          </LiveChip>
+          {state === "live" && (
+            <span className="text-content-subtle">
+              {priced} with a listed token
+              {venues.length - priced > 0 && ` · ${venues.length - priced} unlisted`}
+            </span>
           )}
-        >
-          <span
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              state === "live" ? "bg-mint-400" : state === "loading" ? "bg-zinc-600" : "bg-rose-400"
-            )}
-          />
-          {state === "live" ? `${venues.length} venues` : state === "loading" ? "Loading" : "Data unavailable"}
-        </span>
-        {state === "live" && (
-          <span className="text-content-subtle">
-            {venues.filter((v) => v.fdv !== null).length} with a listed token
-            {unlisted.length > 0 && ` · ${unlisted.length} unlisted`}
-          </span>
-        )}
-        {/* `fetchedAt` is null until the client has actually fetched, so this
-            renders nothing on the server and cannot disagree at hydration.
-            The formatter pins UTC - Vercel runs UTC and readers do not, and an
-            unpinned timestamp near midnight renders a different day on each
-            side of hydration (React #418, documented in CLAUDE.md). */}
-        {fetchedAt !== null && (
-          <span className="text-content-subtle">updated {formatDateTime(new Date(fetchedAt))}</span>
-        )}
-      </div>
-
+          {/* `fetchedAt` is null until the client has actually fetched, so this
+              renders nothing on the server and cannot disagree at hydration.
+              The formatter pins UTC - Vercel runs UTC and readers do not, and an
+              unpinned timestamp near midnight renders a different day on each
+              side of hydration (React #418, documented in CLAUDE.md). */}
+          {fetchedAt !== null && (
+            <span className="text-content-subtle">
+              updated {formatDateTime(new Date(fetchedAt))} · refreshes every 5 min
+            </span>
+          )}
+        </>
+      }
+    >
       {state === "down" && (
-        <p className="mt-5 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content-muted">
-          Comparables need live market data and it is not reachable right now. The calculators below still work —
-          enter an FDV by hand.
-        </p>
+        <div className="mt-5 rounded-xl border border-hairline bg-surface-2 px-4 py-3">
+          <p className="text-sm text-content-muted">
+            Comparables need live market data and it is not reachable right now. The calculators below still work —
+            enter an FDV by hand.
+          </p>
+          {diag && (
+            <p className="mono mt-2 text-[11px] leading-relaxed text-content-subtle">
+              source: {diag.source ?? "?"} · venues from upstream: {diag.protocols} · past the volume filter:{" "}
+              {diag.afterFilter} · priced tokens: {diag.pricedTokens} · matched: {diag.matched}
+              {diag.upstream ? ` · ${diag.upstream}` : ""}
+            </p>
+          )}
+        </div>
       )}
 
       {venues.length > 0 && (
@@ -143,7 +154,7 @@ export function CompsEngine({
               <select
                   value={target?.slug ?? ""}
                   onChange={(e) => onTarget(e.target.value)}
-                  className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+                  className="min-h-11 w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
                 >
                   <option value="">Pick a venue to compare against…</option>
                   {unlisted.length > 0 && (
@@ -196,6 +207,19 @@ export function CompsEngine({
             </p>
           )}
 
+          {/* ⚠️ Say it out loud when the window was widened. This panel exists to
+              value venues that are NEW, and a new venue has no 30-day history -
+              so the honest window is often not the one selected. Silently
+              swapping it would make the number depend on something invisible,
+              which is how the whole section came to show nothing at all. */}
+          {target && requestedMetric && requestedMetric !== metric && (
+            <p className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-xs leading-relaxed text-amber-200">
+              {target.name} has no {COMP_METRIC_LABEL[requestedMetric]} history yet — it is too new. Comparing on{" "}
+              <span className="font-semibold">{COMP_METRIC_LABEL[metric]}</span> instead, which is the widest window
+              it can actually answer on.
+            </p>
+          )}
+
           {range.count > 0 && <RangeBar range={range} metric={metric} />}
           {/* Only a real target with no usable peers is a "try another window"
               situation. With no target at all the note above already explains
@@ -210,7 +234,118 @@ export function CompsEngine({
           {comps.length > 0 && <CompsTable comps={comps} target={target} metric={metric} />}
         </>
       )}
-    </section>
+
+      {/* ⚠️ The live market, shown whether or not a single peer could be matched
+          to a token.
+
+          Everything above depends on a peer having BOTH volume and an FDV. When
+          CoinGecko returns nothing that matches, all of it collapses and the
+          panel went blank while holding forty venues of live, real volume data.
+          "Live" that disappears whenever the derived number cannot be computed
+          is not live; it is a calculator with a status light.
+
+          This is the floor: what is trading right now, refreshed on the same
+          cycle, useful on its own. */}
+      {byVolume.length > 0 && <VenueTape venues={byVolume} priced={priced} diag={diag} />}
+    </PointsPanel>
+  );
+}
+
+/**
+ * The live tape: who is doing volume right now, and what the market pays for it.
+ *
+ * Sorted by 24h volume rather than by anything derived, so it says something
+ * true even when every valuation is missing.
+ */
+function VenueTape({
+  venues,
+  priced,
+  diag,
+}: {
+  venues: CompVenue[];
+  priced: number;
+  diag: {
+    protocols: number;
+    afterFilter: number;
+    pricedTokens: number;
+    matched: number;
+    /** Which upstream produced the venue list: "llama", a fallback, or "none". */
+    source?: string;
+    upstream: string | null;
+  } | null;
+}) {
+  return (
+    <div className="mt-8 border-t border-hairline pt-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-content-subtle">The live tape</p>
+        <p className="text-[11px] text-content-subtle">Top venues by 24h volume</p>
+      </div>
+
+      {/* Peer valuations can be entirely absent while volumes are perfect. Say
+          which of the two is missing, here, rather than leaving a column of
+          dashes to be read as zero. */}
+      {priced === 0 && (
+        <p className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-xs leading-relaxed text-amber-200">
+          Volumes are live, but no peer could be matched to a listed token this cycle, so there is nothing to
+          derive an FDV from. The venue activity below is still current.
+          {diag && (
+            <span className="mono mt-1.5 block text-[11px] opacity-80">
+              source {diag.source ?? "?"} · venues {diag.protocols} · past filter {diag.afterFilter} · priced
+              tokens {diag.pricedTokens} · matched {diag.matched}
+              {diag.upstream ? ` · ${diag.upstream}` : ""}
+            </span>
+          )}
+        </p>
+      )}
+
+      <div className="-mx-1 mt-4 overflow-x-auto px-1">
+        <table className="w-full text-sm md:min-w-[560px]">
+          <thead>
+            <tr className="border-b border-hairline text-left text-[11px] uppercase tracking-wide text-content-subtle">
+              <th className="py-2 pr-3 font-medium">Venue</th>
+              <th className="py-2 pr-3 text-right font-medium">24h volume</th>
+              <th className="hidden py-2 pr-3 text-right font-medium sm:table-cell">Open interest</th>
+              <th className="py-2 text-right font-medium">FDV</th>
+            </tr>
+          </thead>
+          <tbody>
+            {venues.map((v) => (
+              <tr key={v.slug} className="border-b border-hairline last:border-0">
+                <td className="py-2.5 pr-3">
+                  <span className="flex items-center gap-2">
+                    {v.logo && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={v.logo}
+                        alt=""
+                        width={18}
+                        height={18}
+                        className="h-[18px] w-[18px] shrink-0 rounded-full"
+                        onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
+                      />
+                    )}
+                    <span className="truncate text-content">{v.name}</span>
+                  </span>
+                </td>
+                <td className="mono py-2.5 pr-3 text-right tabular-nums text-content-muted">
+                  {usdCompact(v.volume24h)}
+                </td>
+                <td className="mono hidden py-2.5 pr-3 text-right tabular-nums text-content-subtle sm:table-cell">
+                  {v.openInterest > 0 ? usdCompact(v.openInterest) : "not reported"}
+                </td>
+                <td className="mono py-2.5 text-right tabular-nums">
+                  {v.fdv !== null ? (
+                    <span className="text-content-muted">{usdCompact(v.fdv)}</span>
+                  ) : (
+                    <span className="text-[11px] text-gold-200">no token yet</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

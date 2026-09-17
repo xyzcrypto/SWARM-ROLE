@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { OVERVIEW_TTL } from "@modules/markets/lib/llama";
+import { buildComparables, pickMetricFor, type CompVenue } from "@modules/points/lib/points";
 
 // `/api/points/comps` reads `llamaOverview("derivatives")`, an `unstable_cache`
 // shared with /api/markets/{perp,dex} and sitemap.ts. Next takes the MINIMUM
@@ -49,20 +50,36 @@ describe("the comparables route stays aligned with the cache it reads", () => {
     ).toBe(OVERVIEW_TTL);
   });
 
-  it("sets an edge Cache-Control derived from the same number", () => {
+  it("sets an edge Cache-Control that AGREES with the revalidate export", () => {
     // Trap 0: `s-maxage` is what the Vercel edge honours, not `revalidate`.
-    // Building the header from the const means they cannot disagree.
-    expect(src).toMatch(/s-maxage=\$\{revalidate\}/);
-    expect(src).toMatch(/stale-while-revalidate=\$\{revalidate \+ \d+\}/);
+    //
+    // ⚠️ This asserted the TEMPLATE form, `s-maxage=${revalidate}`, on the
+    // reasoning that building the header from the const means they cannot
+    // disagree. True, and still the wrong call: a template literal is invisible
+    // to `markets-poll-alignment.test.ts`, which greps the success-path
+    // `s-maxage` to check it against the client poll. So the one number that
+    // actually governs the CDN became the one number nothing could verify.
+    //
+    // Literal in the route, and this test compares the two values instead - it
+    // fails just as loudly if they drift, and the alignment check can read it.
+    const win = Number(src.match(/^export const revalidate = (\d+);/m)?.[1]);
+    const edge = Number(src.match(/"public, s-maxage=(\d+), stale-while-revalidate=(\d+)"/)?.[1]);
+    const swr = Number(src.match(/"public, s-maxage=(\d+), stale-while-revalidate=(\d+)"/)?.[2]);
+    expect(win).toBe(320);
+    expect(edge, "s-maxage must equal the revalidate export").toBe(win);
+    expect(swr).toBeGreaterThan(edge);
   });
 
-  it("is honest about not being polled", () => {
-    // If a poll is ever added it needs a TARGETS entry in
-    // markets-poll-alignment.test.ts. This keeps the note that says so.
+  it("is honest about BEING polled, and points at the test that guards it", () => {
+    // This asserted /NOT POLLED/ while the route genuinely was not. It is now,
+    // so the note has to say the opposite and name the poll, or the next reader
+    // adds a second one on the strength of a stale comment.
     //
-    // `raw`, not `src`: this is the one assertion here that is ABOUT a comment,
-    // so it is the one that must not have comments stripped first.
-    expect(raw).toMatch(/NOT POLLED/);
+    // `raw`, not `src`: the one assertion here that is ABOUT a comment, so it is
+    // the one that must not have comments stripped first.
+    expect(raw).toMatch(/POLLED, at 300s/);
+    expect(raw).toMatch(/markets-poll-alignment\.test\.ts/);
+    expect(raw).not.toMatch(/⚠️ NOT POLLED/);
   });
 
   it("never serves a stale-forever response when the data is missing", () => {
@@ -103,8 +120,11 @@ describe("an unverified upstream field may add capability, never gate it", () =>
   // months, so it is the one known to exist. Longer windows are enrichment.
   it("filters and sorts on the field that is known to exist", () => {
     expect(src).toMatch(/const MIN_VOLUME_24H = /);
-    expect(src).toMatch(/\.filter\(\(p: any\) => \(Number\(p\.total24h\) \|\| 0\) >= MIN_VOLUME_24H\)/);
-    expect(src).toMatch(/\.sort\(\(a: any, b: any\) => \(Number\(b\.total24h\)/);
+    // Untyped on the `p: any` spelling: the rows are `OverviewRow` now that
+    // both paths run through `reduceOverview`. What matters is which FIELD
+    // decides inclusion and order, not how the parameter is annotated.
+    expect(src).toMatch(/\.filter\(\(p\)? *:? *(any)?\)? *=> \(Number\(p\.total24h\) \|\| 0\) >= MIN_VOLUME_24H\)/);
+    expect(src).toMatch(/\.sort\(\(a(: any)?, b(: any)?\) => \(Number\(b\.total24h\)/);
   });
 
   it("no longer lets a longer window decide who is included", () => {
@@ -127,7 +147,10 @@ describe("an unverified upstream field may add capability, never gate it", () =>
     for (const k of ["volume24h", "volume7d", "volume30d", "openInterest"]) {
       expect(src, `windows is missing ${k}`).toMatch(new RegExp(`${k}: venues\\.some`));
     }
-    expect(src).toMatch(/\{ venues, live, pricedCount, windows, ts: Date\.now\(\) \}/);
+    // `diag` joined the payload after this route shipped a failure the page
+    // could only describe as "Data unavailable". Pin the fields, not the exact
+    // object literal, so adding an honest one is not a test failure.
+    expect(src).toMatch(/NextResponse\.json\(\s*\{ venues, live, pricedCount, windows, diag, ts: Date\.now\(\) \}/);
   });
 });
 
@@ -185,5 +208,112 @@ describe("each programme is its own calculation", () => {
     expect(section).toMatch(/id=\{`programme-\$\{program\.id\}`\}/);
     const panel = readFileSync("src/modules/points/components/ProgramPanel.tsx", "utf8");
     expect(panel).toMatch(/href=\{`#programme-\$\{p\.id\}`\}/);
+  });
+});
+
+describe("a venue is measured on a window IT has, not one the response has", () => {
+  // ⚠️ This is the bug that made the comparables panel show nothing, and it
+  // survived two rounds of guessing at the route because it was never in the
+  // route.
+  //
+  // `buildComparables` correctly returns [] when the TARGET's own metric is 0 -
+  // a ratio against zero says nothing. The explorer's entire purpose is valuing
+  // an UNLISTED venue, so it auto-selects the first venue with no FDV: the
+  // newest one on the page. The default window was 30-day volume. **A venue new
+  // enough to be unlisted has no 30 days of history.** So the panel picked the
+  // one venue guaranteed to score zero on the window it then measured, every
+  // single time, and rendered "Data unavailable" with live data in hand.
+  //
+  // The route-level `windows` map could not catch it: it answers "did ANY venue
+  // populate this window", not "did THIS one".
+  const listed = (name: string, v24: number, v30: number, fdv: number): CompVenue => ({
+    slug: name.toLowerCase(),
+    name,
+    logo: null,
+    volume24h: v24,
+    volume7d: v24 * 7,
+    volume30d: v30,
+    openInterest: 0,
+    fdv,
+    coingeckoId: null,
+  });
+  /** Launched this week: real volume, no history, no token. */
+  const fresh: CompVenue = {
+    slug: "fresh-venue",
+    name: "Fresh Venue",
+    logo: null,
+    volume24h: 40_000_000,
+    volume7d: 0,
+    volume30d: 0,
+    openInterest: 0,
+    fdv: null,
+    coingeckoId: null,
+  };
+  const peers = [fresh, listed("Hyperliquid", 8e9, 240e9, 40e9), listed("dYdX", 1e9, 30e9, 2e9)];
+
+  it("reproduces the empty set the old behaviour produced", () => {
+    // Guard on the premise: if this ever stops being empty the test below is
+    // no longer testing anything.
+    expect(buildComparables(fresh, peers, "volume30d")).toHaveLength(0);
+  });
+
+  it("widens to the widest window the target can actually answer on", () => {
+    const m = pickMetricFor(fresh, "volume30d");
+    expect(m).toBe("volume24h");
+    expect(buildComparables(fresh, peers, m).length).toBeGreaterThan(0);
+  });
+
+  it("leaves an explicit choice alone while it still works", () => {
+    // Silently overriding a window the reader picked, and which the data can
+    // answer, would be its own bug.
+    expect(pickMetricFor(peers[1], "volume30d")).toBe("volume30d");
+    expect(pickMetricFor(peers[1], "volume24h")).toBe("volume24h");
+  });
+
+  it("falls back to the preferred window when the venue has no data at all", () => {
+    const empty: CompVenue = { ...fresh, volume24h: 0 };
+    expect(pickMetricFor(empty, "volume7d")).toBe("volume7d");
+    expect(pickMetricFor(null, "volume7d")).toBe("volume7d");
+  });
+
+  it("is what the client actually calls, for the explorer AND each programme", () => {
+    const client = readFileSync("src/modules/points/components/PointsClient.tsx", "utf8");
+    expect(client).toMatch(/pickMetricFor\(explorerTarget, metric\)/);
+    expect(client).toMatch(/buildComparables\(p\.venue, venues, pickMetricFor\(p\.venue, metric\)\)/);
+  });
+
+  it("tells the reader when the window was widened", () => {
+    // A number quietly computed on a different window than the one highlighted
+    // is how a correct figure becomes untrustworthy.
+    const comps = readFileSync("src/modules/points/components/CompsEngine.tsx", "utf8");
+    expect(comps).toMatch(/requestedMetric !== metric/);
+  });
+});
+
+describe("the route reads its heavy upstream only through the shared cache", () => {
+  it("has no direct llama fetch of its own", () => {
+    // A direct `api.llama.fi/overview/derivatives` fetch was added here as a
+    // retry for an empty cached list. It was wrong twice over: that body is one
+    // of the four moved behind `unstable_cache` for being over Next's ~2 MB
+    // data-cache ceiling, so an uncached fetch re-parses megabytes on a request
+    // path (Fluid Active CPU, cost-check trap 2) - and the empty comparables
+    // panel it was meant to fix was never caused by an empty protocol list.
+    //
+    // `markets-poll-alignment.test.ts` refuses it by name too. This states the
+    // same rule where the route's own reader will see it.
+    expect(src).not.toMatch(/fetch\(\s*["'`]https:\/\/api\.llama\.fi/);
+    expect(src).toMatch(/await llamaOverview\("derivatives"\)/);
+  });
+
+  it("cannot throw on a missing name", () => {
+    expect(src).toMatch(/NAME_ALIASES\[String\(p\.name \?\? ""\)\.toLowerCase\(\)\]/);
+  });
+
+  it("states the success-path s-maxage as a literal the edge check can read", () => {
+    // ⚠️ The edge honours this header, NOT `export const revalidate`
+    // (cost-check trap 0). It was written as `s-maxage=${revalidate}`, which is
+    // invisible to the alignment test's regex - so the one number that actually
+    // governs the CDN would have been the one number nothing verified.
+    expect(src).toMatch(/"public, s-maxage=320, stale-while-revalidate=420"/);
   });
 });
