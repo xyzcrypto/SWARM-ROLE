@@ -5,6 +5,227 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (104) — Read it here, and a bar that actually gets out of the way
+
+### The briefing works
+
+Confirmed from production: entry 103's timeout fix landed. The band now renders a
+full TL;DR → What happened → Key numbers → Jargon buster, in the style the news
+reader uses.
+
+### Latest updates reads like news now
+
+- **A headline expands IN PLACE.** Tapping one used to leave - straight out to
+  the outlet. On a page whose whole argument is "check the number before you
+  act", throwing the reader off-site at the first tap is the opposite of the job.
+- **The story opens on THIS site.** A press row links to `/news/read?u=…`, which
+  renders it here with its own briefing, instead of `coingape.com`. The outlet is
+  still named and still one tap further. A **desk** link stays external, because
+  the desk chose that URL - usually a tweet - and there is nothing to render
+  on-site for it.
+- **The briefing can be closed.** A briefing is long; once read it is in the way,
+  and scrolling past it forever is not a substitute for a close button.
+- **The "Post" button is gone.** It only jumped to the composer further down the
+  same page: a control that looked like an action and was actually a scroll.
+
+Expanding is a `<button>` and reading is an `<a>`, never one element doing both -
+a link that sometimes navigates and sometimes does not is the control readers
+learn to distrust first.
+
+### The nav gap
+
+⚠️ Fading the bar out left its box exactly where it was. A `sticky` element stays
+in **normal flow**, so hiding it produced a ~56px hole between the band and the
+first panel - the bar had not got out of the way, it had become invisible
+furniture. That is what "gap dikhta hai" was.
+
+It animates its row height to zero alongside the fade now. Measured: **62px →
+0px**. The hide threshold also moves 140px → 260px, so it takes a deliberate
+scroll rather than a nudge.
+
+### Publish from /research
+
+`QuickPublish` - title, summary, body, category, premium, draft or publish -
+inline on the page, for anyone with `post:publish`. Posting a short note meant
+leaving for the dashboard, finding the editor, and navigating back: five steps
+for something that is often one paragraph and a link.
+
+It is **not** a replacement for the dashboard editor, which keeps the rich
+editor, covers, tags and scheduling. This is the short-form door, and what it
+omits is deliberate. The client-side permission check hides a control that would
+403; `/api/research` enforces the same permission independently, because a
+client gate is never the boundary.
+
+### Verification
+
+typecheck / 1177 tests / lint / build green. Browser probe at 1440px and 393px,
+**100 behaviours**, both themes AA.
+
+⚠️ Two probe assertions were themselves wrong and were fixed, not the code: the
+nav-opacity check selected `nav > div`, which after the height-collapse wrapper
+was added pointed at a deliberately transparent box; and the nav-nudge check
+started from an already-hidden bar.
+
+---
+
+## 2026-09-18 (103) — The Refresh buttons never refreshed, and the AI briefing never had time
+
+### Every Refresh button on this site was decoration
+
+They all fetched with `cache: "no-store"`, which looks exactly right and is not.
+`no-store` tells the **browser** not to use its own HTTP cache. It says nothing
+to the Vercel edge, which kept serving the same body for the rest of its
+`s-maxage` window - 320s for comparables, 120s for the press feed.
+
+So pressing Refresh re-rendered identical numbers behind a spinner. Worse than
+no button: a reader who presses it concludes the data really has not changed.
+
+`src/lib/refetch.ts` mints a distinct URL - a distinct edge key - but only for a
+**button press**, and at most once per 10s per route. Polls and wake refetches
+keep the shared cached URL, because those happen without anyone asking and are
+exactly the paths that must stay cheap.
+
+### The news briefing never worked, and took a minute not to
+
+`COMPLETE_TIMEOUT_MS` was a flat **15 seconds for every completion**.
+`/api/ai/why-matters` asks for **2000 tokens** in `briefing` mode. No model emits
+two thousand tokens in fifteen seconds, so it timed out every time - and a
+timeout classifies as a transient "retry", so the gateway then burned
+`MAX_RETRIES` more attempts against the same provider with backoff, then the next
+provider, before raising `AiCapacityError`.
+
+Three things, all of them wrong:
+
+1. **The budget is now proportional to the requested length** (~45ms/token),
+   with the 15s as a floor.
+2. **A timeout on a long generation is no longer retried** against the same
+   provider. It had not failed transiently - it was still working, and asking
+   the identical question again takes at least as long. Short requests keep the
+   retry, where a blip is plausible.
+3. ⚠️ **No AI route declared `maxDuration`.** Vercel kills a function at its
+   duration limit, so the platform was killing the request mid-generation and
+   the caller got an opaque 504 rather than the graceful 502 the route is
+   written to return. All five AI routes declare 60s now, and the gateway's own
+   cap sits at 55s **below** it, so when something fails it is our message that
+   reaches the reader.
+
+`maxTokens` for a briefing drops 2000 → 1400: the prompt asks for 650-900 words
+(~900-1250 tokens), so 2000 was never the length of the answer, only the size of
+the window it could take.
+
+### Points
+
+- **"Live wire" → "Latest updates".** A wire service is a newsroom term; nobody
+  outside one reads it as "the latest updates", which is all it is.
+- **A "From X" lens**, offered only when there is something to filter to. X is
+  still not a source - no free API - but desk posts linking a tweet are badged
+  and can now be isolated.
+- **An AI briefing on the band**, built from the headlines the reader can
+  actually see. A briefing summarising something other than what is on screen
+  invites trusting it over the sources, and the sources have names attached. On
+  demand only.
+- **The nav stops flickering.** It hid after **8px** of downward scroll, less
+  than one wheel notch. Now 140px of accumulated downward intent to hide, 24px up
+  to reveal, accumulator resets on direction change, and it stays put in the
+  first 240px. Deliberately asymmetric: hiding wrongly steals a control, showing
+  wrongly costs 44px for a moment.
+- **The tracked programmes are comparable at last.** Variational, Sodex, RiseX
+  and Pacifica appear in **no** market feed - too new - and the engine needs the
+  target's own volume to form a ratio, so the venues this page exists for were
+  the ones it could never price. There is no honest way to invent that number, so
+  it is asked for, and labelled as the reader's figure wherever it appears.
+- **The share card's "Try the calculator" pointed at `/tools`**, which has not
+  held the points calculator since it moved. It deep-links to
+  `/points#programme-<id>`, resolved against the registry by name so a new
+  programme works with no second edit.
+
+### Verification
+
+typecheck / 1177 tests / lint / build green. Browser probe at 1440px and 393px,
+**92 behaviours**, both themes AA. New: `ai-timeout-budget.test.ts` pins the
+budget against the routes' declared `maxDuration`.
+
+---
+
+## 2026-09-18 (102) — Two normalisers were one normaliser and a bug
+
+### The wrong numbers had a name: `futures`
+
+A reader's screenshot showed the comparables panel live and confidently wrong:
+**"12 venues · 2 with a listed token · 10 unlisted"**, target *Hyperliquid
+(Futures)*, **"Implied FDV from 2 peers"**.
+
+Two things in one picture. First, the **fallback was working** - "(Futures)" is
+CoinGecko's derivatives naming and only 24h/OI windows were offered, which is
+exactly what entry 101's fallback provides. Second, the route carried **its own
+copy** of the name normaliser, and that copy did not strip `futures`.
+
+So `"Hyperliquid (Futures)"` reduced to `hyperliquidfutures`, matched nothing in
+a token list keyed on `hyperliquid`, came back `fdv: null`, and **the largest
+perp DEX in existence was served as an unlisted venue** - which the explorer
+then auto-selected as its target, deriving a valuation for it from the two peers
+that happened to survive.
+
+One normaliser now, imported by both, and it strips anything parenthesised
+because a registry's qualifier is never part of a project's name.
+
+### The gap in three screenshots had one cause
+
+`PointsPanel`'s header was one row with `flex-wrap`. ⚠️ **`flex-wrap` does not
+solve this**: it moves a child to the next line only when it cannot fit *at its
+minimum*, and a heading's minimum is one word. So the actions kept the
+right-hand side and the title took whatever remained - measured at 393px, "What
+the desk is reading" wrapped **one word per line** with half the card empty.
+
+`flex-col` below `sm`, `sm:flex-row` above. `ProgramSection` had the identical
+squeeze (its header is a `<button>`, so it cannot nest in the panel) and its
+titles measured **42-46% of the card**; same fix. Pinned by a probe assertion
+that no panel title may fall under 80% of its card's inner width.
+
+### "Live anchor" on a number that was not live
+
+The outcome panel drew a green **Live anchor** chip directly above "Ladder
+centred on the **published scenario** $290.00M". A published scenario is a
+hand-entered registry figure. Labelling it live is the exact dishonesty this
+page argues against, so the chip is now driven by whether the anchor actually
+came from comparables.
+
+### The wire
+
+The desk's posts sat at the top and the press feed at the bottom, a full screen
+apart, both full-height panels, both answering "what changed today". They are
+one band now, **above the nav**: one promoted item as a banner, the rest folded
+behind a count.
+
+Both lanes stay labelled - "Posted by the XYZ desk" versus "Reported by
+&lt;outlet&gt;" - because those are different claims and a farmer acts
+differently on each. A pinned desk post outranks everything.
+
+⚠️ **X still is not a source.** No free API exists. It appears the honest way:
+when the desk posts a link to a tweet, the row is badged `X`.
+
+### Also
+
+- **Share cards had `domain: ""` hard-coded**, which is why no card has ever
+  carried a venue logo. Derived from the registry's own `links.website` now, so
+  a programme added tomorrow gets its logo with no second place to edit.
+- **The hero warning** occupied roughly a quarter of the first phone screen. It
+  is a `<details>` one-liner - native, no JS, no hydration risk, still the first
+  thing under the headline.
+- **Peers are selectable.** A comparable set is a judgement, not a fact: tap a
+  peer to drop it from the median. Excluded peers stay visible so the control is
+  not a one-way door. Measured: 4 peers → 3.
+- A `text-amber-200/90` in the new disclosure measured **1.05:1 in light** - the
+  light override targets `.text-amber-200`, and the opacity modifier makes a
+  *different class name* the override never matches.
+
+### Verification
+
+typecheck / 1170 tests / lint / build green. Browser probe at 1440px and 393px,
+**90 behaviours**, both themes AA.
+
+---
+
 ## 2026-09-17 (101) — Aggregate, because one refusing upstream was blanking the page
 
 ### The diagnosis, at last

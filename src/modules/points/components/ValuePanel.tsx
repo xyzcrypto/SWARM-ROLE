@@ -15,6 +15,7 @@ export function ValuePanel({
   anchor,
   anchorFdv,
   programName,
+  shareDomain,
   allocationScenarios,
   fdvScenarios,
   bare = false,
@@ -28,6 +29,9 @@ export function ValuePanel({
   anchor: "comps" | "program" | "none";
   anchorFdv: number;
   programName: string | null;
+  /** Host of the programme's own site, for the share card's logo. Absent simply
+   *  means no logo, never someone else's. */
+  shareDomain?: string;
   /** Quick-picks from the registry, shown under the field each one sets.
    *  These existed in the /tools calculator and were lost in the move - they
    *  are the difference between "type a number" and "compare the scenarios the
@@ -215,7 +219,14 @@ export function ValuePanel({
             // long name would have failed with "Couldn't create the share
             // link" and no indication that the name was the reason.
             platform: shareName(form.label, programName, target?.name),
-            domain: "",
+            // ⚠️ This was hard-coded `""`, which is why no share card has ever
+            // carried a venue logo. The card builds its image from
+            // `favicon(domain)` and renders nothing when the domain is blank.
+            //
+            // Derived from the registry's own `links.website` rather than a
+            // lookup table keyed by name, so a programme added tomorrow gets its
+            // logo with no second place to remember to edit.
+            domain: shareDomain ?? "",
             sharePct: value.sharePct,
             tokens: value.tokens,
             usd: value.grossUsd,

@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { ResearchGrid } from "@/components/ResearchGrid";
+import { QuickPublish } from "@modules/research/components/QuickPublish";
 import { prisma } from "@/lib/prisma";
 import { readingTime } from "@/lib/utils";
 import { POST_CARD_SELECT } from "@/lib/post-select";
@@ -62,7 +63,14 @@ export default async function ResearchPage() {
             subtitle="Deep dives, market intelligence and educational content, written to keep you ahead in the on-chain economy."
           />
 
-          <div className="mt-12">
+          {/* Publish from here rather than from the dashboard. Renders nothing
+              without `post:publish`; the route enforces the same permission
+              independently, so this gate is a courtesy and never the boundary. */}
+          <div className="mt-10">
+            <QuickPublish />
+          </div>
+
+          <div className="mt-8">
             {/* useSearchParams() inside ResearchGrid needs a Suspense boundary, or the
                 whole page opts out of static rendering - which would undo this
                 route's ISR window. */}

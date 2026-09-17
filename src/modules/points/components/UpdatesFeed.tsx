@@ -221,7 +221,7 @@ function UpdateCard({
             href={u.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-xs font-medium text-gold-200 transition-colors hover:text-gold-100"
+            className="inline-flex min-h-9 items-center gap-1 text-xs font-medium text-gold-200 transition-colors hover:text-gold-100"
           >
             Open link <ExternalLink className="h-3 w-3" strokeWidth={1.7} />
           </a>
@@ -231,7 +231,7 @@ function UpdateCard({
             type="button"
             onClick={remove}
             disabled={busy}
-            className="inline-flex items-center gap-1 text-xs text-content-subtle transition-colors hover:text-data-down disabled:opacity-50"
+            className="inline-flex min-h-9 items-center gap-1 text-xs text-content-subtle transition-colors hover:text-data-down disabled:opacity-50"
           >
             {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" strokeWidth={1.7} />}
             Delete

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { llamaOverview, type OverviewRow } from "@modules/markets/lib/llama";
-import { coingeckoDerivatives, mergeVenues } from "@modules/points/lib/perp-sources";
+import { coingeckoDerivatives, mergeVenues, normaliseVenue } from "@modules/points/lib/perp-sources";
 import { protocolSlug } from "@/lib/markets";
 import type { CompVenue } from "@modules/points/lib/points";
 
@@ -83,12 +83,13 @@ const NAME_ALIASES: Record<string, string> = {
   "gains network": "gains network",
 };
 
-const normalise = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/\b(v\d+|perpetual|perpetuals|perps?|exchange|protocol|finance|network|dex)\b/g, "")
-    .replace(/[^a-z0-9]/g, "")
-    .trim();
+/**
+ * ⚠️ Imported, not redeclared. This file used to carry its own copy that did not
+ * strip `futures`, so "Hyperliquid (Futures)" normalised to `hyperliquidfutures`,
+ * matched no token, and the largest perp DEX in existence was served to readers
+ * as an UNLISTED venue with a derived valuation. One normaliser, one behaviour.
+ */
+const normalise = normaliseVenue;
 
 type Priced = { name: string; fdv: number; id: string };
 

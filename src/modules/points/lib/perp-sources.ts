@@ -86,13 +86,38 @@ const PERP_DEX_NAMES = [
   "holdstation",
 ];
 
-/** Shared with the route: strips the decoration two registries disagree on. */
+/**
+ * Strip the decoration the registries disagree on, so one project is one key.
+ *
+ * ⚠️ THE ONLY normaliser. The route used to carry its own copy that did not
+ * strip `futures`, and that single missing word produced the wrong numbers a
+ * reader actually saw:
+ *
+ * CoinGecko's derivatives list names the venue **"Hyperliquid (Futures)"**. The
+ * route's copy reduced that to `hyperliquidfutures`, which matches nothing in a
+ * token list keyed on `hyperliquid` - so Hyperliquid came back with `fdv: null`
+ * and was classified **unlisted**. The explorer auto-selects the first unlisted
+ * venue, so it targeted the single largest perp DEX in existence as though it
+ * had no token, and derived its "implied FDV" from the two peers that happened
+ * to survive. Measured live: "12 venues · 2 with a listed token · 10 unlisted".
+ *
+ * Two normalisers is one normaliser and a bug waiting for a name it cannot
+ * spell. Both sides import this.
+ */
 export function normaliseVenue(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/\b(v\d+|perpetual|perpetuals|perps?|exchange|protocol|finance|network|dex|futures)\b/g, "")
-    .replace(/[^a-z0-9]/g, "")
-    .trim();
+  return (
+    s
+      .toLowerCase()
+      // Anything parenthesised is a registry's qualifier, never part of the
+      // project's name: "(Futures)", "(Perpetual)", "(Spot)", "(v2)".
+      .replace(/\([^)]*\)/g, " ")
+      .replace(
+        /\b(v\d+|perpetual|perpetuals|perps?|futures|swaps?|exchange|protocol|finance|network|dex|labs|io|fi)\b/g,
+        ""
+      )
+      .replace(/[^a-z0-9]/g, "")
+      .trim()
+  );
 }
 
 const PERP_SET = new Set(PERP_DEX_NAMES.map(normaliseVenue).filter(Boolean));

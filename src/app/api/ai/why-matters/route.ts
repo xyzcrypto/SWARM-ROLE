@@ -9,6 +9,18 @@ import { buildWhyMattersPrompt, buildNewsDigestPrompt, buildNewsBriefingPrompt, 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * ⚠️ Declared, not defaulted. A full briefing asks the model for well over a
+ * thousand tokens, which takes far longer than Vercel's DEFAULT function
+ * duration - so the platform killed the request mid-generation and the caller
+ * got an opaque 504, not the graceful 502 this route is written to return.
+ *
+ * 60s is the Hobby plan's maximum. The gateway's own budget is capped below it
+ * (`MAX_COMPLETE_TIMEOUT_MS`) so that when something does go wrong, the app's
+ * error message wins the race against the platform's.
+ */
+export const maxDuration = 60;
+
 const bodySchema = z.object({
   title: z.string().trim().min(4).max(300),
   summary: z.string().trim().max(1200).optional().default(""),
@@ -48,7 +60,12 @@ export async function POST(req: Request) {
     const text = await completeText({
       task: mode === "why" ? "why" : "digest",
       prompt,
-      maxTokens: mode === "briefing" ? 2000 : mode === "hinglish" ? 2100 : mode === "digest" ? 320 : 160,
+      // ⚠️ 1400, not 2000. The briefing prompt asks for 650-900 words, which is
+      // roughly 900-1250 tokens - so 2000 was never the length of the answer,
+      // only the size of the window it was allowed to take. Lowering the ceiling
+      // removes nothing from the output and brings the worst case inside both
+      // the gateway budget and the function's 60s duration.
+      maxTokens: mode === "briefing" ? 1400 : mode === "hinglish" ? 1500 : mode === "digest" ? 320 : 160,
       ctx: { userId: me.id, plan },
     });
     if (!text) return fail("Couldn't generate that right now. Please try again.", 502);

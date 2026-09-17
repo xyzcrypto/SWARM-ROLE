@@ -49,6 +49,7 @@ export function SensitivityGrid({
   onPick,
   liveFdv = 0,
   liveLabel,
+  anchorIsLive = false,
   liveLow = 0,
   liveHigh = 0,
   livePeers = 0,
@@ -74,8 +75,19 @@ export function SensitivityGrid({
    *  in which case none of the live affordances render at all - a stale or
    *  absent number must never be dressed up as a live one. */
   liveFdv?: number;
-  /** What the live anchor is, in words: "peer median", "published scenario". */
+  /** What the anchor is, in words: "live peer median", "published scenario". */
   liveLabel?: string;
+  /**
+   * Whether the anchor actually came from live comparables.
+   *
+   * ⚠️ Separate from `liveFdv > 0`, and that distinction shipped wrong: the
+   * panel drew a green **"Live anchor"** chip directly above the sentence
+   * "Ladder centred on the published scenario $290.00M". A published scenario is
+   * a hand-entered registry figure that has not moved in weeks. Labelling it
+   * live is the precise failure this whole page argues against - a static number
+   * wearing the costume of a measured one.
+   */
+  anchorIsLive?: boolean;
   /** The cheapest and dearest FDV the peer set implies. 0 when the anchor did
    *  not come from comparables, in which case no band is drawn - a published
    *  scenario is a single number and must not be dressed in a range it does
@@ -189,7 +201,14 @@ export function SensitivityGrid({
       meta={
         liveFdv > 0 ? (
           <>
-            <LiveChip state="live">Live anchor</LiveChip>
+            {anchorIsLive ? (
+              <LiveChip state="live">Live anchor</LiveChip>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-hairline px-2.5 py-1 font-medium text-content-subtle">
+                <span className="h-1.5 w-1.5 rounded-full bg-content-subtle" />
+                Published scenario
+              </span>
+            )}
             <span className="text-content-muted">
               Ladder centred on the {liveLabel ?? "live anchor"}{" "}
               <span className="mono text-content">{usdCompact(liveFdv)}</span>

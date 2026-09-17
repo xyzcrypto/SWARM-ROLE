@@ -39,8 +39,14 @@ describe("every points panel is built from one header grammar", () => {
     // `surface rounded-3xl p-5 sm:p-8` repeated in six files is how the padding
     // drifted apart in the first place. One component owns it now.
     const offenders: string[] = [];
+    // PointsPanel owns the chrome. ProgramSection is a collapsible panel whose
+    // header is a <button>, so it cannot nest inside one. LiveWire is a BAND,
+    // not a panel - it has no eyebrow/title/description grammar to share, it
+    // sits above the nav rather than in the section list, and forcing it
+    // through PointsPanel would give it a heading it should not have.
+    const OWNS_ITS_CHROME = new Set(["PointsPanel.tsx", "ProgramSection.tsx", "LiveWire.tsx"]);
     for (const [file, src] of Object.entries(sources)) {
-      if (file === "PointsPanel.tsx" || file === "ProgramSection.tsx") continue;
+      if (OWNS_ITS_CHROME.has(file)) continue;
       for (const m of src.matchAll(/className="surface[^"]*rounded-3xl[^"]*"/g)) {
         offenders.push(`${file}: ${m[0]}`);
       }
@@ -81,6 +87,17 @@ describe("every points panel is built from one header grammar", () => {
       expect(sources[f], `${f} should use <LiveChip>`).toMatch(/<LiveChip/);
     }
   });
+
+  it("stacks the panel header on a phone instead of squeezing the title", () => {
+    // ⚠️ `flex-wrap` does NOT solve this and was what shipped. It moves a child
+    // to the next line only when it cannot fit AT ITS MINIMUM, and a heading's
+    // minimum is one word - so the actions kept the right-hand side and the
+    // title was measured at 393px wrapping ONE WORD PER LINE with half the card
+    // empty beside it.
+    const panel = sources["PointsPanel.tsx"];
+    expect(panel).toMatch(/flex-col[^"]*sm:flex-row/);
+    expect(panel).not.toMatch(/<header className="flex flex-wrap/);
+  });
 });
 
 describe("the desk does not occupy the top of the page while empty", () => {
@@ -100,6 +117,41 @@ describe("the desk does not occupy the top of the page while empty", () => {
     const src = sources["UpdatesFeed.tsx"];
     expect(src).toMatch(/state === "ready" && updates\.length === 0/);
     expect(src).toMatch(/not reachable right now/);
+  });
+});
+
+describe("the wire leads the page with both lanes, distinguishable", () => {
+  it("merges the desk and the press into one band", () => {
+    // They answer the same question - "what changed today" - and used to sit a
+    // full screen apart, the desk at the top and the press feed at the bottom.
+    const src = sources["LiveWire.tsx"];
+    expect(src).toMatch(/lane: "desk" \| "press"/);
+    expect(src).toMatch(/getNewsPage|points\/radar/);
+    expect(src).toMatch(/points\/updates/);
+  });
+
+  it("never lets a press item pass as the desk's own word", () => {
+    // "We are telling you" and "someone reported" are different claims and a
+    // farmer acts differently on each, so the lane is never inferred from the
+    // wording of a headline.
+    const src = sources["LiveWire.tsx"];
+    expect(src).toMatch(/function LaneBadge/);
+    expect(src).toMatch(/Posted by the XYZ desk/);
+    expect(src).toMatch(/Reported by \$\{item\.source\}/);
+  });
+
+  it("promotes exactly one item and folds the rest behind a count", () => {
+    // A list of twelve equal rows has no answer to "what matters right now".
+    const src = sources["LiveWire.tsx"];
+    // Destructured from the FILTERED list, not the raw one - the X lens has to
+    // move the promoted item too, or filtering would leave a headline on top
+    // that the filter excluded.
+    expect(src).toMatch(/const \[hot, \.\.\.rest\] = shownItems/);
+    expect(src).toMatch(/\$\{rest\.length\} more/);
+  });
+
+  it("ranks a pinned desk post above everything", () => {
+    expect(sources["LiveWire.tsx"]).toMatch(/if \(a\.pinned !== b\.pinned\)/);
   });
 });
 
