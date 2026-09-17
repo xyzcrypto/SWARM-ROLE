@@ -48,8 +48,9 @@ const limiters = {
   profile: make(10, 60, "profile"), // 10/min per user - avatar + profile edits
   comment: make(8, 60, "comment"), // 8/min/IP
   like: make(20, 60, "like"), // 20/min/IP
-  login: make(10, 60, "login"), // 10/min per account (brute-force guard)
-  password: make(10, 60, "password"), // 10/min/IP - reset flow, isolated from signup
+  login: make(5, 60, "login"), // 5/min per account (brute-force guard)
+  // 10/min/IP - reset flow (start + reset), isolated from signup. Accommodates shared CGNAT/office IPs while mitigating abuse.
+  password: make(10, 60, "password"),
   chat: make(10, 60, "chat"), // 10 messages/min per user (community chat)
   // The presence heartbeat needs its own bucket. It used to spend the `chat`
   // one, which is the budget for SENDING - so an unattended beat every 25s
@@ -72,12 +73,15 @@ const limiters = {
   // costs a handful of these per session even on an avatar-heavy page. What it bounds is the residue the
   // token check cannot remove - a valid user id with a forged token still costs an invocation and a DB
   // read before the 404, and that is the only part of the old unbounded cache-key vector left.
-  otpEmail: make(3, 600, "otp_email"), // 3/10min per target email - anti email-bombing (independent of the IP-keyed signup/password limiters, since an attacker can rotate IPs but not the victim's email)
-  loginIp: make(20, 60, "login_ip"), // 20/min/IP - independent of the per-email `login` limiter, which a
+  otpEmail: make(3, 600, "otp_email"), // 3/10min per target email - anti email-bombing (allows retry without hour-long lockouts on mistype or latency)
+  // 20/min/IP - independent of the per-email `login` limiter, which a
   // bot rotating through many fake/guessed emails from one IP barely engages. Each failed login attempt
   // (real or fake account) does a bcrypt compare - genuine synchronous CPU, not just I/O - so unthrottled
-  // per-IP volume is a real cost, not just a security concern. 20/min is generous enough not to lock out a
-  // shared/NAT IP with several real users, while still capping how much bcrypt cost one source can force.
+  // per-IP volume is a real cost, not just a security concern.
+  // In India and emerging markets, mobile carriers (Jio, Airtel) and college/office WiFis heavily rely on
+  // CGNAT where thousands of users share a single public IP. 20/min avoids locking out legitimate users on
+  // shared IPs while still bounding bcrypt CPU exhaustion.
+  loginIp: make(20, 60, "login_ip"),
 };
 
 export type RateKey = keyof typeof limiters;

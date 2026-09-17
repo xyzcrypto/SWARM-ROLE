@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import type { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -19,6 +20,18 @@ import { pickPrimaryVerifiedEmail, publicImageUrl } from "@/lib/utils";
 // below to make that loud instead of it looking like "wrong code" to users.
 function isMissingSchemaError(err: unknown): boolean {
   return typeof err === "object" && err !== null && "code" in err && (err.code === "P2021" || err.code === "P2022");
+}
+
+interface LoginUser {
+  id: string;
+  name: string | null;
+  email: string;
+  image: string | null;
+  role: string;
+  membership: string;
+  passwordHash: string | null;
+  failedLoginCount?: number | null;
+  lockedUntil?: Date | null;
 }
 
 // A fixed, never-matched bcrypt hash used purely to normalize response time
@@ -221,15 +234,37 @@ export const authOptions: NextAuthOptions = {
         if (!ipLimit.success) return null;
         const { success } = await rateLimit("login", email);
         if (!success) return null;
-        // Explicit select keeps the login path independent of the lockout
-        // columns, so auth keeps working even before that migration is applied.
-        const user = await prisma.user.findUnique({
-          where: { email },
-          select: {
-            id: true, passwordHash: true, name: true, email: true,
-            image: true, role: true, membership: true,
-          },
-        });
+        // Consolidate user profile and lockout counters into a single query to eliminate
+        // redundant sequential round-trips on every login attempt.
+        let user: LoginUser | null = null;
+        try {
+          user = await prisma.user.findUnique({
+            where: { email },
+            select: {
+              id: true, passwordHash: true, name: true, email: true,
+              image: true, role: true, membership: true,
+              failedLoginCount: true, lockedUntil: true,
+            },
+          });
+        } catch (err) {
+          // Fallback only if lockout columns are not in the DB schema yet (P2021/P2022)
+          if (isMissingSchemaError(err)) {
+            user = await prisma.user
+              .findUnique({
+                where: { email },
+                select: {
+                  id: true, passwordHash: true, name: true, email: true,
+                  image: true, role: true, membership: true,
+                },
+              })
+              .catch(() => null);
+          } else {
+            // Transient or unhandled DB error: log it, but do NOT return null early.
+            // Leaving `user = null` ensures execution falls through to the dummy
+            // bcrypt.compare below, preventing timing side-channel leaks.
+            console.error("[auth:login] transient database error during lookup", err);
+          }
+        }
         if (!user || !user.passwordHash) {
           // Normalize timing with the real-account path below (dummy compare
           // costs the same ~80-150ms as a real bcrypt.compare) so a
@@ -239,15 +274,10 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // Brute-force lockout. Read/write the counters in guarded queries so a
-        // not-yet-migrated DB (no lockout columns) simply skips the feature
-        // rather than blocking sign-in.
+        // Brute-force lockout check from the already fetched user record.
         const MAX_FAILED = 5;
         const LOCK_MS = 15 * 60 * 1000;
-        const lock = await prisma.user
-          .findUnique({ where: { id: user.id }, select: { failedLoginCount: true, lockedUntil: true } })
-          .catch(() => null);
-        if (lock?.lockedUntil && lock.lockedUntil.getTime() > Date.now()) {
+        if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
           // Same normalization for the locked-account fast path.
           await bcrypt.compare(password, DUMMY_BCRYPT_HASH);
           return null;
@@ -280,7 +310,7 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
         // Success: clear any accumulated failure state.
-        if (lock && (lock.failedLoginCount || lock.lockedUntil)) {
+        if (user.failedLoginCount || user.lockedUntil) {
           await prisma.user
             .update({ where: { id: user.id }, data: { failedLoginCount: 0, lockedUntil: null } })
             .catch(() => null);
@@ -303,6 +333,35 @@ export const authOptions: NextAuthOptions = {
         token.role = (user as any).role ?? "USER";
         token.membership = (user as any).membership ?? "Free";
         (token as any).syncedAt = Date.now();
+        (token as any).pwdAt = Date.now();
+        if ((user as any).id) {
+          const sid = randomUUID();
+          // Opportunistically clean up expired sessions for this user to prevent table bloat
+          await prisma.session
+            ?.deleteMany({
+              where: {
+                userId: (user as any).id,
+                expires: { lt: new Date() },
+              },
+            })
+            .catch(() => null);
+
+          const row = await prisma.session
+            ?.create({
+              data: {
+                sessionToken: sid,
+                userId: (user as any).id,
+                expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+              },
+            })
+            .catch(() => null);
+          // Only claim per-device revocation if we actually have a row to revoke.
+          // Failing open on DB error falls back to passwordChangedAt-only revocation,
+          // which is strictly better than bouncing a member who typed the right password.
+          if (row) {
+            (token as any).sid = sid;
+          }
+        }
       }
       // Refresh from DB when missing, on an explicit `update()` call, or once
       // this TTL has elapsed. Without the TTL, an admin granting Premium (or
@@ -430,7 +489,66 @@ export const authOptions: NextAuthOptions = {
             // signed-out. Every gate fails closed.
             return {};
           }
-          (token as any).pwdAt = dbPwdAt;
+          (token as any).pwdAt = tokenPwdAt ?? dbPwdAt;
+
+          // ── Per-device session revocation check ─────────────────────────
+          // Each device holds a unique `sid`. Single-device logout deletes only
+          // that row from `Session`, leaving other devices (laptop, phone) alive.
+          // If this token carries a `sid` that no longer exists in `Session`, the
+          // session was revoked: return an empty token to fail closed.
+          const sid = (token as any).sid;
+          if (sid) {
+            let sessionValid = true;
+            try {
+              if (prisma.session) {
+                const active = await prisma.session.findUnique({
+                  where: {
+                    sessionToken: sid,
+                    expires: { gt: new Date() },
+                  },
+                  select: { id: true },
+                });
+                if (!active) {
+                  sessionValid = false;
+                }
+              }
+            } catch {
+              // Fail open on DB blip or missing table: a transient DB error
+              // must never falsely log members out.
+              sessionValid = true;
+            }
+            if (!sessionValid) {
+              return {};
+            }
+          } else if (dbUser.id) {
+            // Existing token from before per-session tracking was deployed:
+            // stamp a new `sid` now so subsequent single-device logouts work,
+            // ensuring deploying this change signs nobody out.
+            const newSid = randomUUID();
+            await prisma.session
+              ?.deleteMany({
+                where: {
+                  userId: dbUser.id,
+                  expires: { lt: new Date() },
+                },
+              })
+              .catch(() => null);
+
+            const row = await prisma.session
+              ?.create({
+                data: {
+                  sessionToken: newSid,
+                  userId: dbUser.id,
+                  expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+                },
+              })
+              .catch(() => null);
+            // Only stamp sid if the row was confirmed written to avoid falsely
+            // signing the user out on the next refresh if write fails.
+            if (row) {
+              (token as any).sid = newSid;
+            }
+          }
 
           token.uid = dbUser.id;
           token.role = dbUser.role;
@@ -523,6 +641,22 @@ export const authOptions: NextAuthOptions = {
       await prisma.user
         .update({ where: { id: user.id }, data: { provider: account.provider } })
         .catch(() => null);
+    },
+    // Invalidate session on explicit logout: remove this specific device's session
+    // from the DB so any copied/stolen JWT from this device is killed on its next refresh.
+    //
+    // ⚠️ Crucially: do NOT bump `passwordChangedAt` here.
+    // Bumping `passwordChangedAt` broke the invariant that it is written ONLY on
+    // password reset/change, and it caused single-device logouts (e.g. on a phone)
+    // to silently and randomly sign out all other devices (laptop, tablet, etc.).
+    async signOut(message) {
+      const token = (message as any)?.token;
+      const sid = token?.sid ?? token?.sessionId;
+      if (sid) {
+        await prisma.session
+          ?.deleteMany({ where: { sessionToken: sid } })
+          .catch(() => null);
+      }
     },
   },
   secret: process.env.NEXTAUTH_SECRET,

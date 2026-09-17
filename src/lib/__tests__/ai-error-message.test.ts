@@ -1,5 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
-import { AiCapacityError } from "@/lib/ai/gateway";
+
+vi.mock("@/lib/prisma", () => ({
+  prisma: {
+    aiUsage: {
+      create: async () => ({}),
+    },
+  },
+}));
+
+import { AiCapacityError, runComplete } from "@/lib/ai/gateway";
 import { aiErrorMessage } from "@modules/ai/lib/ai";
 
 // "XYZ AI is busy at the moment. Please try again in a little while."
@@ -68,7 +77,6 @@ describe("the all-providers-failed log", () => {
   // un-diagnosable again.
   it("logs the real error when every provider fails", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { runComplete } = await import("@/lib/ai/gateway");
     const provider = {
       id: "fake",
       models: { fast: "m", deep: "m" },
@@ -93,7 +101,6 @@ describe("the all-providers-failed log", () => {
   // secret to the Vercel log drain.
   it("never writes an API key into the log", async () => {
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const { runComplete } = await import("@/lib/ai/gateway");
     const SECRET = "AIzaSyD1234567890abcdefghijklmno";
     const provider = {
       id: "fake",

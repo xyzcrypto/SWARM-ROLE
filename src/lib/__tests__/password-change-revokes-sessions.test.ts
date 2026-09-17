@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { authOptions } from "@/core/auth/auth";
 
 // Changing a password must invalidate sessions that were issued before it.
 //
@@ -133,7 +134,6 @@ describe("password change revokes existing sessions", () => {
     // called directly. A revoked token arrives as `{}`; the callback must not
     // hand back a session carrying an undefined user id, because callers that
     // test `session?.user` truthiness would read that as signed-in.
-    const { authOptions } = await import("@/core/auth/auth");
     const sessionCb = authOptions.callbacks?.session;
     expect(sessionCb, "auth options expose no session callback").toBeDefined();
 
