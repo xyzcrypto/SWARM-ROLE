@@ -5,6 +5,103 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (92) — Per-device session revocation, and one OTP file instead of two
+
+Auth hardening **authored by @deepakpss** (PR #330). Landed from this branch
+rather than merged from his, because this repo only merges the owner's PRs —
+his three commits are cherry-picked with authorship intact. Reviewed over two
+rounds; the review history is on #330.
+
+### Logging out no longer means logging out everywhere
+
+A stateless JWT cannot be revoked server-side, and the first attempt at this
+solved it by bumping `User.passwordChangedAt` on `signOut` — which meant
+logging out on your phone silently signed out your laptop, and broke the
+invariant `auth.ts` states in its own words a few lines above.
+
+Now each login mints a `sid` stored in the `Session` table and carried in the
+token. `signOut` deletes that one row; other devices are untouched. A password
+change still purges every row, because that is the one action that *should*
+revoke everywhere.
+
+### The failure mode that made the first version unshippable
+
+```ts
+const sid = randomUUID();
+(token as any).sid = sid;                                    // before
+await prisma.session?.create({ … }).catch(() => null);
+```
+
+The `sid` was stamped **before** the row was confirmed written, and the
+`.catch` swallowed the failure. The refresh branch then ran — on the sign-in
+call too, because `isSuperAdmin === undefined` on a fresh token — found no row,
+and returned `{}`.
+
+So a single transient DB write failure turned a correct password into *nothing
+happened*: bounced to the login page, no error anywhere. That is the exact
+symptom CLAUDE.md records as this site's worst outage, arriving through a new
+door.
+
+Fixed by stamping only what was actually written:
+
+```ts
+const row = await prisma.session?.create({ … }).catch(() => null);
+if (row) (token as any).sid = sid;                           // after
+```
+
+No `sid` falls back to `passwordChangedAt`-only revocation — weaker, but signed
+in. Verified by driving the real `jwt` callback with a `prisma.session` mock
+that can be made to throw:
+
+| scenario | before | after |
+|---|---|---|
+| `session.create` throws at login | `signIn()` returned `{}` | signed in, no orphan sid |
+| legacy token, backfill write throws | signed out next refresh | stays signed in |
+| expired session row | accepted — `expires` was never read | rejected |
+| phone logout vs laptop | laptop alive | laptop alive |
+
+### Also in this pass
+
+- **`expires` is read and enforced** (`expires: { gt: new Date() }`), and expired
+  rows are swept next to each create — the 30-day expiry means something now and
+  the table stops growing forever.
+- **Rate limits recalibrated** for CGNAT: `login` 5/min per account (tighter),
+  `password` back to 10/min/IP, `otpEmail` 3/10min, `loginIp` 20/min. An earlier
+  revision had these 120× tighter, which would have locked out two people per
+  hour behind a shared Jio/Airtel IP.
+- **`sanitizeDbError`** — Prisma connection errors embed the full `DATABASE_URL`
+  *including the password*, and those go straight to Vercel logs. Now redacted.
+- **`traceId` on 500s**, so a member can quote something in a support message.
+- **OTP issuance is atomic** (`$transaction` for delete+create), scoped to the
+  indexed `(email, purpose)`; bulk expiry moved to its own
+  `purgeExpiredVerificationCodes()` with `@@index([expiresAt])` behind it.
+
+### One OTP file instead of two
+
+`src/modules/auth/lib/otp.ts` sat beside the live `src/core/email/otp.ts` as an
+unreferenced copy — pre-existing on `main`, not from this work. **It was not
+harmless, and this PR is the proof:** the first revision's OTP `$transaction`
+fix was written against the dead copy, so it changed nothing at all while
+looking entirely correct in the diff.
+
+The two had also **diverged**: the live file carries the atomic
+attempt-claiming fix (so N parallel guesses cannot all read the same stale
+`attempts` count) and the dead one never got it.
+
+Deleted, with a test in `otp.test.ts` asserting it stays deleted, that
+`src/lib/otp.ts` still re-exports the live module, and that the atomic claim is
+still there — verified to fail when the duplicate is put back.
+
+### Verified before landing
+
+Checked out at `d4b3c7e`: typecheck clean, lint 0 errors, 1003 tests. Trial-merged
+onto `main` — no conflicts, no file touched by both sides — and re-ran the gate on
+the merged result: **1010 tests, build green**. Prisma is 5.22, so the
+`findUnique` + `expires` filter is supported at runtime; the `Session` table has
+existed since `0_init`.
+
+---
+
 ## 2026-09-15 (91) — What a mouse can do, a finger can do
 
 Follow-on to (90). That pass made every phone agree about *animation*; this one
