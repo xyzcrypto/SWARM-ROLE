@@ -22,6 +22,35 @@ export type PointValueScenario = {
   allocationScenarios?: { label: string; pct: number }[];
 };
 
+/**
+ * The state of the POINTS PROGRAMME, which is not the same thing as the state
+ * of the venue. A live exchange can have a programme that has not opened yet,
+ * has closed, or has already paid out - and "is it still worth farming" is the
+ * first question anyone has.
+ *
+ * It lives here as structured data rather than inside `notes` prose because the
+ * page has to sort and filter on it. Every field past `phase` is optional: a
+ * programme nobody has announced dates for is the normal case, and inventing a
+ * date to fill the shape would be worse than showing nothing.
+ */
+export type PointsProgramMeta = {
+  phase: "live" | "upcoming" | "ended" | "distributed";
+  /** e.g. "Season 2". Omit when the programme does not run in seasons. */
+  season?: string;
+  /**
+   * Whether the numbers in `pointValueScenario` come from the protocol or from
+   * the community guessing. This drives a visible badge - a reader deserves to
+   * know which of the two they are looking at, and almost no airdrop site says.
+   */
+  confirmed: boolean;
+  /** Human summary of how points accrue, e.g. "1 point per $1,000 of volume". */
+  earnRate?: string;
+  /** ISO dates. `snapshotAt` is the one farmers actually plan around. */
+  startedAt?: string;
+  snapshotAt?: string;
+  tgeAt?: string;
+};
+
 export type DexPlatform = {
   id: string;
   name: string;
@@ -41,6 +70,8 @@ export type DexPlatform = {
   hasLiveFunding?: boolean;
   /** Present when a points/airdrop-value calculator scenario applies to this platform. */
   pointValueScenario?: PointValueScenario;
+  /** Present when this platform runs a points programme worth tracking. */
+  pointsProgram?: PointsProgramMeta;
   /** Explicit logo override (site-root-relative path, e.g. "/risex-logo.png") for
    * platforms where a real domain-favicon isn't a reliable source of the actual
    * brand mark - a committed static asset here, checked before falling back to
@@ -62,6 +93,11 @@ export const DEX_REGISTRY: DexPlatform[] = [
     maxLeverage: "See official docs",
     notes: "The scenario numbers below are planning assumptions only, not official figures - edit them freely in the calculator.",
     links: { website: "https://www.variational.io" },
+    pointsProgram: {
+      phase: "live",
+      confirmed: false,
+      earnRate: "Earned from trading volume and protocol activity - see official docs for the current rate.",
+    },
     pointValueScenario: {
       totalSupply: 1_000_000_000,
       totalPoints: 9_400_000,
@@ -82,6 +118,11 @@ export const DEX_REGISTRY: DexPlatform[] = [
     maxLeverage: "See official docs",
     notes: "SOSO already trades live, so the price below is real (not a speculative FDV assumption) - edit freely. Use the pool-distribution buttons below to compare the 100%/50%/30% scenarios.",
     links: { website: "https://sodex.com" },
+    pointsProgram: {
+      phase: "live",
+      confirmed: true,
+      earnRate: "SoPoints from spot + perp volume, liquidity provision and ecosystem activity.",
+    },
     pointValueScenario: {
       // Real total SOSO supply is 1B; at the real $0.29 price that's a
       // $290M FDV (via priceFromFdv below). The 150M-token SoPoints airdrop
@@ -112,6 +153,11 @@ export const DEX_REGISTRY: DexPlatform[] = [
     notes: "The scenario numbers below are planning assumptions only, not official figures - edit them freely. Use the allocation buttons below to compare the 20%/25%/30% supply-allocation scenarios.",
     links: {},
     logo: "/risex-logo.png",
+    pointsProgram: {
+      phase: "live",
+      confirmed: false,
+      earnRate: "Not confirmed - see official docs.",
+    },
     pointValueScenario: {
       totalSupply: 1_000_000_000,
       totalPoints: 12_000_000,

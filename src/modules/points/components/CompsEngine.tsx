@@ -29,6 +29,8 @@ export function CompsEngine({
   state,
   fetchedAt,
   linked,
+  locked,
+  programName,
   onRefresh,
   onTarget,
   onMetric,
@@ -42,6 +44,9 @@ export function CompsEngine({
   state: "loading" | "live" | "down";
   fetchedAt: number | null;
   linked: boolean;
+  /** True when the selected programme has a market row and drives the target. */
+  locked: boolean;
+  programName: string | null;
   onRefresh: () => void;
   onTarget: (slug: string) => void;
   onMetric: (m: CompMetric) => void;
@@ -126,36 +131,49 @@ export function CompsEngine({
         <>
           {/* Target picker. A <select> rather than chips: this list is forty
               venues deep and a chip row that wraps to six lines is not a
-              control, it is a wall. */}
+              control, it is a wall.
+
+              When a programme drives the target this becomes a read-only
+              statement instead. Leaving an interactive select that the
+              programme silently overrides is a dead control, and a dead control
+              is the first thing a reader reaches for. */}
           <div className="mt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
-                Venue you are farming
+                {locked ? "Market data for" : "Compare against"}
               </span>
-              <select
-                value={target?.slug ?? ""}
-                onChange={(e) => onTarget(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
-              >
-                {unlisted.length > 0 && (
-                  <optgroup label="No token yet — the case this is for">
-                    {unlisted.map((v) => (
-                      <option key={v.slug} value={v.slug}>
-                        {v.name}
-                      </option>
-                    ))}
+              {locked ? (
+                <p className="flex items-center gap-2 rounded-xl border border-mint-500/25 bg-mint-500/[0.06] px-4 py-3 text-sm text-mint-100">
+                  <span className="font-medium">{target?.name}</span>
+                  <span className="text-xs text-mint-300/70">follows the programme above</span>
+                </p>
+              ) : (
+                <select
+                  value={target?.slug ?? ""}
+                  onChange={(e) => onTarget(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+                >
+                  <option value="">Pick a venue to compare against…</option>
+                  {unlisted.length > 0 && (
+                    <optgroup label="No token yet">
+                      {unlisted.map((v) => (
+                        <option key={v.slug} value={v.slug}>
+                          {v.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <optgroup label="Already listed — for sanity-checking the method">
+                    {venues
+                      .filter((v) => v.fdv !== null)
+                      .map((v) => (
+                        <option key={v.slug} value={v.slug}>
+                          {v.name}
+                        </option>
+                      ))}
                   </optgroup>
-                )}
-                <optgroup label="Already listed — for sanity-checking the method">
-                  {venues
-                    .filter((v) => v.fdv !== null)
-                    .map((v) => (
-                      <option key={v.slug} value={v.slug}>
-                        {v.name}
-                      </option>
-                    ))}
-                </optgroup>
-              </select>
+                </select>
+              )}
             </label>
             <div>
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">
@@ -181,9 +199,28 @@ export function CompsEngine({
             </p>
           )}
 
-          {range.count > 0 ? (
+          {!locked && !target && (
+            <p className="mt-4 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-3 text-sm leading-relaxed text-zinc-400">
+              {programName ? (
+                <>
+                  <span className="text-zinc-200">{programName}</span> has no row in any market-data feed, which is
+                  normal for a programme this early — there is nothing to compare its volume against. The FDV below
+                  comes from its own scenario instead. You can pick a venue above to compare against as a proxy, but
+                  that is your judgement call, not a measurement.
+                </>
+              ) : (
+                "Pick a venue above to build a comparable set."
+              )}
+            </p>
+          )}
+
+          {range.count > 0 && (
             <RangeBar range={range} metric={metric} linked={linked} onUseMedian={onUseMedian} />
-          ) : (
+          )}
+          {/* Only a real target with no usable peers is a "try another window"
+              situation. With no target at all the note above already explains
+              why, and showing both reads as two different failures. */}
+          {target && range.count === 0 && (
             <p className="mt-6 rounded-xl border border-white/10 bg-ink-900/60 px-4 py-3 text-sm text-zinc-400">
               No peer with both a token and {COMP_METRIC_LABEL[metric]} data to compare against. Try another
               window.

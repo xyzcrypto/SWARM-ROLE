@@ -5,6 +5,78 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (94) — The programmes are back, and the page stops guessing quietly
+
+Follow-on to (93). Two problems, one of them mine.
+
+### (93) silently dropped two of the three tracked programmes
+
+`/points` was built on the live comparables feed, and DefiLlama has **no row
+for Sodex or RiseX** — they are too small to track, which is the normal state
+of a programme worth farming early. So when the calculator moved off `/tools`,
+two of the three programmes this site actually maintains became unreachable.
+Nothing failed. They were just gone, and nothing reported it.
+
+The curated registry is now the **spine** of the page and live market data
+decorates it, rather than the other way round. `buildPrograms()` joins the two
+by normalised name; a programme with no market row is a complete, usable
+programme, not a broken card.
+
+**Adding a programme is still adding one object** to `DEX_REGISTRY` — no
+schema, no migration.
+
+### Programme state is data now, not prose
+
+`PointsProgramMeta` carries `phase` (live / upcoming / ended / distributed),
+`confirmed`, `earnRate` and optional dates. Two things fall out of it:
+
+- The page can sort on "can I still farm this?", which is the first question
+  anyone has. Live first, then ties broken on whether the numbers are trustworthy.
+- Each card says **"Numbers confirmed by the protocol"** or **"Numbers are
+  community assumptions"**. Almost no airdrop site distinguishes those, and the
+  difference is the difference between a plan and a daydream. Sodex is the only
+  confirmed one here, which is why it sorts first.
+
+### The FDV anchor now has two sources, and says which
+
+While linked, the FDV follows the best anchor available: **live peer
+comparables** when the programme's venue is tracked, otherwise the
+**programme's own scenario ladder**. The field names which — "from
+comparables" vs "from programme" — because those deserve very different
+amounts of trust and a bare "linked" badge has no referent.
+
+`scenarioFdv()` opens on the **middle** of a registry ladder rather than the
+first or last entry: authors write them low to high, so opening on either end
+is editorialising.
+
+### Two things caught in the browser, both wrong in the same direction
+
+1. **The venue picker was a dead control.** The selected programme overrode
+   `targetSlug` entirely, so changing the select did nothing for any programme
+   with a market row — and a dead control is the first thing a reader reaches
+   for. It is now a read-only statement ("follows the programme above") when
+   the programme drives it, and a real picker only when it does not.
+2. **Selecting Sodex showed Variational's numbers.** The fallback picked the
+   largest unlisted venue when a programme had no market row, so choosing Sodex
+   produced Variational's peers, Variational's implied FDV, and no indication
+   that any of it was unrelated to Sodex. Measured by driving the real page:
+   Variational anchored at `$2.92B` from comparables, and Sodex — after the fix
+   — at `$290M` from its own scenario, with an explicit note that it has no
+   market row and an **opt-in** proxy picker. The page will not choose a proxy
+   on a reader's behalf.
+
+That second one is the same failure as the CoinGecko-id question in (93):
+a number that is confidently wrong beats no number, right up until someone
+trades on it.
+
+**Files:** `src/modules/points/lib/programs.ts` (new, 16 tests),
+`src/modules/points/components/ProgramPanel.tsx` (new),
+`src/modules/markets/lib/dex-registry.ts` (`PointsProgramMeta` + blocks for
+Variational / Sodex / RiseX), `PointsClient.tsx`, `CompsEngine.tsx`,
+`ValuePanel.tsx`. No new routes, no schema change.
+
+---
+
 ## 2026-09-17 (93) — Points moves out of Tools, and stops asking you to guess
 
 Points/airdrop value was one tab among eight in `/tools`. It is now `/points`,
