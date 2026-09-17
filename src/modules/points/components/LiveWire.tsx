@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronDown, ExternalLink, Loader2, Pin, Plus, Radio, RefreshCw, Sparkles } from "lucide-react";
+import { ChevronDown, ExternalLink, Loader2, Pin, Radio, RefreshCw, Sparkles, X } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 import { useRealtime } from "@/lib/useRealtime";
@@ -81,6 +81,28 @@ function hostOf(url: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Where a row should take the reader.
+ *
+ * ⚠️ A press item links to `/news/read`, NOT to the outlet. The site already has
+ * a reader that renders the story with its own briefing, and sending someone off
+ * to coingape.com mid-session is losing them to answer a question this site can
+ * answer better. The outlet is still named and still one tap away from there.
+ *
+ * A DESK link is different and stays external: the desk chose that URL - usually
+ * a tweet or a Telegram post - and there is nothing to render on-site for it.
+ */
+function readHref(item: WireItem): string | null {
+  if (!item.url) return null;
+  if (item.lane === "desk") return item.url;
+  return `/news/read?u=${encodeURIComponent(item.url)}`;
+}
+
+/** Whether following this row leaves the site. */
+function leavesSite(item: WireItem): boolean {
+  return item.lane === "desk" && Boolean(item.url);
 }
 
 /** X links are worth naming as X rather than as a hostname. */
@@ -330,15 +352,10 @@ export function LiveWire() {
               <span className="hidden sm:inline">{brief.text ? "Re-brief" : "AI brief"}</span>
               <span className="sm:hidden">Brief</span>
             </button>
-            {canManage && (
-              <a
-                href="#points-desk"
-                className="btn-ghost inline-flex min-h-8 shrink-0 items-center gap-1.5 text-[11px]"
-              >
-                <Plus className="h-3.5 w-3.5" strokeWidth={1.7} />
-                Post
-              </a>
-            )}
+            {/* ⚠️ No "Post" button here. It only jumped to the composer further
+                down the same page, which is a control that looks like an action
+                and is actually a scroll. The composer is where posting belongs
+                and it is already reachable. */}
             <button
               type="button"
               onClick={() => {
@@ -366,10 +383,23 @@ export function LiveWire() {
         {/* ── the AI briefing, when asked for ───────────────────────────── */}
         {(brief.loading || brief.text || brief.err) && (
           <div className="border-b border-hairline bg-surface-2 px-4 py-4 sm:px-5">
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gold-200">
-              <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
-              XYZ AI briefing
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gold-200">
+                <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
+                XYZ AI briefing
+              </p>
+              {/* A briefing is long. Once it is read it is in the way, and
+                  scrolling past it every time is not a substitute for closing
+                  it. */}
+              <button
+                type="button"
+                onClick={() => setBrief({ loading: false, text: null, err: null })}
+                aria-label="Close the briefing"
+                className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-lg text-content-subtle transition-colors hover:text-content"
+              >
+                <X className="h-4 w-4" strokeWidth={1.7} />
+              </button>
+            </div>
             {brief.loading && (
               <p className="mt-2 text-xs text-content-muted">
                 Reading {Math.min(shownItems.length, 8)} headlines and writing the breakdown…
@@ -391,7 +421,7 @@ export function LiveWire() {
 
         {/* ── the hot item, as a banner ─────────────────────────────────── */}
         {hot ? (
-          <WireHero item={hot} />
+          <WireEntry item={hot} hero />
         ) : (
           <p className="px-4 py-4 text-xs text-content-muted sm:px-5">
             {deskState === "loading" || pressState === "loading"
@@ -434,7 +464,7 @@ export function LiveWire() {
                 <ul className="divide-y divide-hairline border-t border-hairline">
                   {rest.slice(0, 12).map((i) => (
                     <li key={i.id}>
-                      <WireRow item={i} />
+                      <WireEntry item={i} />
                     </li>
                   ))}
                 </ul>
@@ -447,90 +477,100 @@ export function LiveWire() {
   );
 }
 
-/** The promoted item. Bigger type, the claim, and where it came from. */
-function WireHero({ item }: { item: WireItem }) {
+/**
+ * A row that opens in place.
+ *
+ * ⚠️ Clicking a headline used to LEAVE - straight out to the outlet. On a page
+ * whose whole argument is "check the number before you act", throwing the reader
+ * off-site at the first tap is the opposite of the job. So a tap expands the
+ * item here: the full summary, who is claiming it, and then an explicit link
+ * that opens the story on THIS site's reader, which renders it with its own
+ * briefing.
+ *
+ * Expanding is a `<button>` and reading is an `<a>`, never one element doing
+ * both. A link that sometimes navigates and sometimes does not is the control
+ * readers learn to distrust first.
+ */
+function WireEntry({ item, hero = false }: { item: WireItem; hero?: boolean }) {
+  const [open, setOpen] = useState(false);
   const host = prettyHost(hostOf(item.url));
-  const Wrapper = item.url ? "a" : "div";
+  const href = readHref(item);
+  const external = leavesSite(item);
+
   return (
-    <Wrapper
-      {...(item.url ? { href: item.url, target: "_blank", rel: "noopener noreferrer" } : {})}
-      className={cn(
-        "block px-4 py-4 sm:px-5",
-        item.url && "group transition-colors hover:bg-white/[0.02]"
-      )}
-    >
-      <div className="flex flex-wrap items-center gap-2 text-[10px]">
-        <LaneBadge item={item} />
-        {item.pinned && (
-          <span className="inline-flex items-center gap-1 font-medium text-gold-200">
-            <Pin className="h-3 w-3" strokeWidth={1.7} /> Pinned
-          </span>
-        )}
-        {item.venues.slice(0, 2).map((v) => (
+    <div className={cn(hero && "border-b border-hairline")}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full flex-col gap-1.5 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.02] sm:px-5"
+      >
+        <span className="flex flex-wrap items-center gap-2 text-[10px]">
+          <LaneBadge item={item} />
+          {item.pinned && (
+            <span className="inline-flex items-center gap-1 font-medium text-gold-200">
+              <Pin className="h-3 w-3" strokeWidth={1.7} /> Pinned
+            </span>
+          )}
+          {item.venues.slice(0, 2).map((v) => (
+            <span
+              key={v}
+              className="rounded-full border border-gold-500/30 bg-gold-500/10 px-2 py-0.5 font-medium text-gold-200"
+            >
+              {v}
+            </span>
+          ))}
+          <span className="ml-auto text-content-subtle">{formatDateTime(new Date(item.at))}</span>
+        </span>
+
+        <span className="flex items-start gap-2">
           <span
-            key={v}
-            className="rounded-full border border-gold-500/30 bg-gold-500/10 px-2 py-0.5 font-medium text-gold-200"
+            className={cn(
+              "flex-1 font-semibold leading-snug tracking-tight text-content",
+              hero ? "font-display text-base sm:text-lg" : "text-xs"
+            )}
           >
-            {v}
+            {item.title}
           </span>
-        ))}
-        <span className="ml-auto text-content-subtle">{formatDateTime(new Date(item.at))}</span>
+          <ChevronDown
+            className={cn(
+              "mt-0.5 h-4 w-4 shrink-0 text-content-subtle transition-transform",
+              open && "rotate-180"
+            )}
+            strokeWidth={1.7}
+          />
+        </span>
+
+        {!open && item.body && (
+          <span className="line-clamp-2 text-xs leading-relaxed text-content-muted">{item.body}</span>
+        )}
+      </button>
+
+      {/* grid-rows 0fr -> 1fr animates a height nobody has to measure. */}
+      <div className={cn("grid transition-all duration-300", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
+        <div className="min-h-0 overflow-hidden">
+          <div className="px-4 pb-4 sm:px-5">
+            {item.body && (
+              <p className="whitespace-pre-line text-xs leading-relaxed text-content-muted">{item.body}</p>
+            )}
+            <p className="mt-2.5 text-[11px] text-content-subtle">
+              {item.lane === "desk" ? "Posted by the XYZ desk" : `Reported by ${item.source}`}
+              {host && ` · ${host}`}
+            </p>
+            {href && (
+              <a
+                href={href}
+                {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className="mt-2.5 inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline px-3 text-[11px] font-medium text-gold-200 transition-colors hover:border-gold-500/30 hover:text-gold-100"
+              >
+                {external ? `Open on ${host ?? "the source"}` : "Read the full story here"}
+                {external && <ExternalLink className="h-3 w-3" strokeWidth={1.7} />}
+              </a>
+            )}
+          </div>
+        </div>
       </div>
-
-      <h2
-        className={cn(
-          "mt-2 font-display text-base font-semibold leading-snug tracking-tight text-content sm:text-lg",
-          item.url && "transition-colors group-hover:text-gold-100"
-        )}
-      >
-        {item.title}
-      </h2>
-      {item.body && (
-        <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-content-muted">{item.body}</p>
-      )}
-      <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-content-subtle">
-        {item.lane === "desk" ? "Posted by the XYZ desk" : `Reported by ${item.source}`}
-        {host && ` · ${host}`}
-        {item.url && <ExternalLink className="h-3 w-3" strokeWidth={1.7} />}
-      </span>
-    </Wrapper>
-  );
-}
-
-/** A folded row. One line of claim, one line of provenance. */
-function WireRow({ item }: { item: WireItem }) {
-  const host = prettyHost(hostOf(item.url));
-  const Wrapper = item.url ? "a" : "div";
-  return (
-    <Wrapper
-      {...(item.url ? { href: item.url, target: "_blank", rel: "noopener noreferrer" } : {})}
-      className={cn(
-        "flex min-h-11 flex-col gap-1 px-4 py-3 sm:px-5",
-        item.url && "group transition-colors hover:bg-white/[0.02]"
-      )}
-    >
-      <span className="flex flex-wrap items-center gap-2 text-[10px]">
-        <LaneBadge item={item} />
-        {item.venues.slice(0, 2).map((v) => (
-          <span key={v} className="rounded-full border border-hairline px-2 py-0.5 font-medium text-content-muted">
-            {v}
-          </span>
-        ))}
-        <span className="ml-auto text-content-subtle">{formatDateTime(new Date(item.at))}</span>
-      </span>
-      <span
-        className={cn(
-          "text-xs font-medium leading-snug text-content",
-          item.url && "transition-colors group-hover:text-gold-100"
-        )}
-      >
-        {item.title}
-      </span>
-      <span className="text-[10px] text-content-subtle">
-        {item.lane === "desk" ? "XYZ desk" : item.source}
-        {host && ` · ${host}`}
-      </span>
-    </Wrapper>
+    </div>
   );
 }
 

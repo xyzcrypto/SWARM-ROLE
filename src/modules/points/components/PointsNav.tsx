@@ -91,7 +91,7 @@ export function PointsNav({ sections }: { sections: NavSection[] }) {
     let frame = 0;
     let downAccum = 0;
     let upAccum = 0;
-    const HIDE_AFTER = 140;
+    const HIDE_AFTER = 260;
     const SHOW_AFTER = 24;
     const TOP_ZONE = 240;
     const onScroll = () => {
@@ -129,18 +129,26 @@ export function PointsNav({ sections }: { sections: NavSection[] }) {
     };
   }, []);
 
+  // ⚠️ The hidden state must take NO VERTICAL SPACE.
+  //
+  // Fading the bar out left its box exactly where it was - a `sticky` element
+  // stays in normal flow - so scrolling down produced a ~56px hole between the
+  // band above and the first panel below. The bar had not got out of the way; it
+  // had just become invisible furniture, which is what "gap dikhta hai" was.
+  //
+  // So the outer element animates its ROW HEIGHT (`grid-rows-[1fr]` -> `[0fr]`)
+  // alongside the fade. The inner `min-h-0 overflow-hidden` child is required
+  // for that trick: without it the content sets the row height and nothing
+  // collapses.
   return (
     <nav
       aria-label="Sections"
       className={cn(
-        // 220ms out, but the reveal is what a reader feels - it rides the same
-        // transition, and anything slower reads as the bar lagging the scroll.
-        "sticky top-16 z-30 -mx-1 px-1 py-2 transition-all duration-200 ease-out sm:top-20",
-        // `invisible` rather than `hidden` so the anchors stay in the a11y tree
-        // for a screen reader and the transition has something to animate.
-        shown ? "translate-y-0 opacity-100" : "pointer-events-none -translate-y-3 opacity-0"
+        "sticky top-16 z-30 -mx-1 grid px-1 transition-all duration-200 ease-out sm:top-20",
+        shown ? "grid-rows-[1fr] py-2 opacity-100" : "pointer-events-none grid-rows-[0fr] py-0 opacity-0"
       )}
     >
+      <div className="min-h-0 overflow-hidden">
       {/* ⚠️ `bg-base`, an OPAQUE token, not `.glass`. See the note above: a
           translucent bar over dense cards renders their text through the labels.
           The blur is decoration on top of an opaque ground, not a substitute
@@ -184,6 +192,7 @@ export function PointsNav({ sections }: { sections: NavSection[] }) {
               {s.label}
             </a>
           ))}
+        </div>
         </div>
       </div>
     </nav>

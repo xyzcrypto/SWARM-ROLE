@@ -5,6 +5,69 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (104) — Read it here, and a bar that actually gets out of the way
+
+### The briefing works
+
+Confirmed from production: entry 103's timeout fix landed. The band now renders a
+full TL;DR → What happened → Key numbers → Jargon buster, in the style the news
+reader uses.
+
+### Latest updates reads like news now
+
+- **A headline expands IN PLACE.** Tapping one used to leave - straight out to
+  the outlet. On a page whose whole argument is "check the number before you
+  act", throwing the reader off-site at the first tap is the opposite of the job.
+- **The story opens on THIS site.** A press row links to `/news/read?u=…`, which
+  renders it here with its own briefing, instead of `coingape.com`. The outlet is
+  still named and still one tap further. A **desk** link stays external, because
+  the desk chose that URL - usually a tweet - and there is nothing to render
+  on-site for it.
+- **The briefing can be closed.** A briefing is long; once read it is in the way,
+  and scrolling past it forever is not a substitute for a close button.
+- **The "Post" button is gone.** It only jumped to the composer further down the
+  same page: a control that looked like an action and was actually a scroll.
+
+Expanding is a `<button>` and reading is an `<a>`, never one element doing both -
+a link that sometimes navigates and sometimes does not is the control readers
+learn to distrust first.
+
+### The nav gap
+
+⚠️ Fading the bar out left its box exactly where it was. A `sticky` element stays
+in **normal flow**, so hiding it produced a ~56px hole between the band and the
+first panel - the bar had not got out of the way, it had become invisible
+furniture. That is what "gap dikhta hai" was.
+
+It animates its row height to zero alongside the fade now. Measured: **62px →
+0px**. The hide threshold also moves 140px → 260px, so it takes a deliberate
+scroll rather than a nudge.
+
+### Publish from /research
+
+`QuickPublish` - title, summary, body, category, premium, draft or publish -
+inline on the page, for anyone with `post:publish`. Posting a short note meant
+leaving for the dashboard, finding the editor, and navigating back: five steps
+for something that is often one paragraph and a link.
+
+It is **not** a replacement for the dashboard editor, which keeps the rich
+editor, covers, tags and scheduling. This is the short-form door, and what it
+omits is deliberate. The client-side permission check hides a control that would
+403; `/api/research` enforces the same permission independently, because a
+client gate is never the boundary.
+
+### Verification
+
+typecheck / 1177 tests / lint / build green. Browser probe at 1440px and 393px,
+**100 behaviours**, both themes AA.
+
+⚠️ Two probe assertions were themselves wrong and were fixed, not the code: the
+nav-opacity check selected `nav > div`, which after the height-collapse wrapper
+was added pointed at a deliberately transparent box; and the nav-nudge check
+started from an already-hidden bar.
+
+---
+
 ## 2026-09-18 (103) — The Refresh buttons never refreshed, and the AI briefing never had time
 
 ### Every Refresh button on this site was decoration
