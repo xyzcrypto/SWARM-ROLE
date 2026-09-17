@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { OVERVIEW_TTL } from "@modules/markets/lib/llama";
+import { buildComparables, pickMetricFor, type CompVenue } from "@modules/points/lib/points";
 
 // `/api/points/comps` reads `llamaOverview("derivatives")`, an `unstable_cache`
 // shared with /api/markets/{perp,dex} and sitemap.ts. Next takes the MINIMUM
@@ -103,8 +104,11 @@ describe("an unverified upstream field may add capability, never gate it", () =>
   // months, so it is the one known to exist. Longer windows are enrichment.
   it("filters and sorts on the field that is known to exist", () => {
     expect(src).toMatch(/const MIN_VOLUME_24H = /);
-    expect(src).toMatch(/\.filter\(\(p: any\) => \(Number\(p\.total24h\) \|\| 0\) >= MIN_VOLUME_24H\)/);
-    expect(src).toMatch(/\.sort\(\(a: any, b: any\) => \(Number\(b\.total24h\)/);
+    // Untyped on the `p: any` spelling: the rows are `OverviewRow` now that
+    // both paths run through `reduceOverview`. What matters is which FIELD
+    // decides inclusion and order, not how the parameter is annotated.
+    expect(src).toMatch(/\.filter\(\(p\)? *:? *(any)?\)? *=> \(Number\(p\.total24h\) \|\| 0\) >= MIN_VOLUME_24H\)/);
+    expect(src).toMatch(/\.sort\(\(a(: any)?, b(: any)?\) => \(Number\(b\.total24h\)/);
   });
 
   it("no longer lets a longer window decide who is included", () => {
@@ -127,7 +131,10 @@ describe("an unverified upstream field may add capability, never gate it", () =>
     for (const k of ["volume24h", "volume7d", "volume30d", "openInterest"]) {
       expect(src, `windows is missing ${k}`).toMatch(new RegExp(`${k}: venues\\.some`));
     }
-    expect(src).toMatch(/\{ venues, live, pricedCount, windows, ts: Date\.now\(\) \}/);
+    // `diag` joined the payload after this route shipped a failure the page
+    // could only describe as "Data unavailable". Pin the fields, not the exact
+    // object literal, so adding an honest one is not a test failure.
+    expect(src).toMatch(/NextResponse\.json\(\s*\{ venues, live, pricedCount, windows, diag, ts: Date\.now\(\) \}/);
   });
 });
 
@@ -185,5 +192,100 @@ describe("each programme is its own calculation", () => {
     expect(section).toMatch(/id=\{`programme-\$\{program\.id\}`\}/);
     const panel = readFileSync("src/modules/points/components/ProgramPanel.tsx", "utf8");
     expect(panel).toMatch(/href=\{`#programme-\$\{p\.id\}`\}/);
+  });
+});
+
+describe("a venue is measured on a window IT has, not one the response has", () => {
+  // ⚠️ This is the bug that made the comparables panel show nothing, and it
+  // survived two rounds of guessing at the route because it was never in the
+  // route.
+  //
+  // `buildComparables` correctly returns [] when the TARGET's own metric is 0 -
+  // a ratio against zero says nothing. The explorer's entire purpose is valuing
+  // an UNLISTED venue, so it auto-selects the first venue with no FDV: the
+  // newest one on the page. The default window was 30-day volume. **A venue new
+  // enough to be unlisted has no 30 days of history.** So the panel picked the
+  // one venue guaranteed to score zero on the window it then measured, every
+  // single time, and rendered "Data unavailable" with live data in hand.
+  //
+  // The route-level `windows` map could not catch it: it answers "did ANY venue
+  // populate this window", not "did THIS one".
+  const listed = (name: string, v24: number, v30: number, fdv: number): CompVenue => ({
+    slug: name.toLowerCase(),
+    name,
+    logo: null,
+    volume24h: v24,
+    volume7d: v24 * 7,
+    volume30d: v30,
+    openInterest: 0,
+    fdv,
+    coingeckoId: null,
+  });
+  /** Launched this week: real volume, no history, no token. */
+  const fresh: CompVenue = {
+    slug: "fresh-venue",
+    name: "Fresh Venue",
+    logo: null,
+    volume24h: 40_000_000,
+    volume7d: 0,
+    volume30d: 0,
+    openInterest: 0,
+    fdv: null,
+    coingeckoId: null,
+  };
+  const peers = [fresh, listed("Hyperliquid", 8e9, 240e9, 40e9), listed("dYdX", 1e9, 30e9, 2e9)];
+
+  it("reproduces the empty set the old behaviour produced", () => {
+    // Guard on the premise: if this ever stops being empty the test below is
+    // no longer testing anything.
+    expect(buildComparables(fresh, peers, "volume30d")).toHaveLength(0);
+  });
+
+  it("widens to the widest window the target can actually answer on", () => {
+    const m = pickMetricFor(fresh, "volume30d");
+    expect(m).toBe("volume24h");
+    expect(buildComparables(fresh, peers, m).length).toBeGreaterThan(0);
+  });
+
+  it("leaves an explicit choice alone while it still works", () => {
+    // Silently overriding a window the reader picked, and which the data can
+    // answer, would be its own bug.
+    expect(pickMetricFor(peers[1], "volume30d")).toBe("volume30d");
+    expect(pickMetricFor(peers[1], "volume24h")).toBe("volume24h");
+  });
+
+  it("falls back to the preferred window when the venue has no data at all", () => {
+    const empty: CompVenue = { ...fresh, volume24h: 0 };
+    expect(pickMetricFor(empty, "volume7d")).toBe("volume7d");
+    expect(pickMetricFor(null, "volume7d")).toBe("volume7d");
+  });
+
+  it("is what the client actually calls, for the explorer AND each programme", () => {
+    const client = readFileSync("src/modules/points/components/PointsClient.tsx", "utf8");
+    expect(client).toMatch(/pickMetricFor\(explorerTarget, metric\)/);
+    expect(client).toMatch(/buildComparables\(p\.venue, venues, pickMetricFor\(p\.venue, metric\)\)/);
+  });
+
+  it("tells the reader when the window was widened", () => {
+    // A number quietly computed on a different window than the one highlighted
+    // is how a correct figure becomes untrustworthy.
+    const comps = readFileSync("src/modules/points/components/CompsEngine.tsx", "utf8");
+    expect(comps).toMatch(/requestedMetric !== metric/);
+  });
+});
+
+describe("the route's fallback path behaves like the path it replaces", () => {
+  it("normalises the direct fetch through the same reducer", () => {
+    // The fallback returned RAW upstream rows while the cached path returned
+    // reduced ones. Raw spells open interest `openInterestAtEnd` (so it read 0)
+    // and does not guarantee `name` is a string, so the alias lookup could
+    // throw - turning a partial outage into a 500, which the client shows as
+    // "Data unavailable", indistinguishable from the upstream being down.
+    expect(src).toMatch(/reduceOverview\(await res\.json\(\)\)/);
+    expect(src).toMatch(/Promise<\{ protocols: OverviewRow\[\]; error: string \| null \}>/);
+  });
+
+  it("cannot throw on a missing name", () => {
+    expect(src).toMatch(/NAME_ALIASES\[String\(p\.name \?\? ""\)\.toLowerCase\(\)\]/);
   });
 });

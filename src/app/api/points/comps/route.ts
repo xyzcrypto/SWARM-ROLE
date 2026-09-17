@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { llamaOverview } from "@modules/markets/lib/llama";
+import { llamaOverview, reduceOverview, type OverviewRow } from "@modules/markets/lib/llama";
 import { protocolSlug } from "@/lib/markets";
 import type { CompVenue } from "@modules/points/lib/points";
 
@@ -94,16 +94,26 @@ type Priced = { name: string; fdv: number; id: string };
  * by market cap is too illiquid for its multiple to mean anything, so paging
  * further would add cost and noise in equal measure.
  */
-async function pricedTokens(): Promise<Priced[]> {
+async function pricedTokens(): Promise<{ rows: Priced[]; error: string | null }> {
   try {
     const res = await fetch(
       "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=false",
-      { next: { revalidate }, headers: { accept: "application/json" } }
+      {
+        next: { revalidate },
+        headers: { accept: "application/json" },
+        // ⚠️ This fetch had NO timeout. `llama.ts` has had one for months
+        // precisely because "upstream can be slow; a card must never hang on
+        // it" - and CoinGecko rate-limits shared cloud IPs hard. A hang here
+        // does not degrade the page, it kills the whole route: both fetches sit
+        // in one Promise.all, so the function runs to its platform timeout and
+        // the client sees nothing at all.
+        signal: AbortSignal.timeout(8000),
+      }
     );
-    if (!res.ok) return [];
+    if (!res.ok) return { rows: [], error: `coingecko ${res.status}` };
     const j: any[] = await res.json();
-    if (!Array.isArray(j)) return [];
-    return j
+    if (!Array.isArray(j)) return { rows: [], error: "coingecko shape" };
+    const rows = j
       .map((c) => ({
         name: String(c?.name ?? ""),
         id: String(c?.id ?? ""),
@@ -113,31 +123,71 @@ async function pricedTokens(): Promise<Priced[]> {
         fdv: Number(c?.fully_diluted_valuation ?? c?.market_cap) || 0,
       }))
       .filter((c) => c.name && c.fdv > 0);
-  } catch {
-    return [];
+    return { rows, error: null };
+  } catch (err) {
+    return { rows: [], error: `coingecko ${(err as Error)?.name ?? "failed"}` };
+  }
+}
+
+/**
+ * The shared `llamaOverview` cache, with a direct retry when it yields nothing.
+ *
+ * ⚠️ An empty protocol list is not a valid answer for this route - it is the
+ * difference between a working page and "Data unavailable" - so it is worth one
+ * uncached attempt before giving up. The shared loader is used by four other
+ * surfaces and cannot be made to retry on their behalf.
+ */
+async function derivatives(): Promise<{ protocols: OverviewRow[]; error: string | null }> {
+  try {
+    const { protocols } = await llamaOverview("derivatives");
+    if (protocols.length) return { protocols, error: null };
+  } catch (err) {
+    // Fall through to the direct attempt rather than returning here: a cached
+    // failure and a live endpoint are indistinguishable from the caller's side.
+    void err;
+  }
+  try {
+    const res = await fetch(
+      "https://api.llama.fi/overview/derivatives?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true",
+      {
+        cache: "no-store",
+        headers: { accept: "application/json", "user-agent": "xyzcrypto-points/1.0" },
+        signal: AbortSignal.timeout(8000),
+      }
+    );
+    if (!res.ok) return { protocols: [], error: `llama ${res.status}` };
+    // ⚠️ Through `reduceOverview`, the SAME normaliser the cached path uses.
+    // Returning the raw rows here meant the two paths handed the caller
+    // different shapes: raw spells open interest `openInterestAtEnd` (so it read
+    // 0), and `name` is not guaranteed to be a string, so `p.name.toLowerCase()`
+    // below could throw and turn a partial outage into a 500 - which the client
+    // renders as "Data unavailable", indistinguishable from the upstream being
+    // down. A fallback that behaves differently from the path it replaces is not
+    // a fallback.
+    const { protocols } = reduceOverview(await res.json());
+    return { protocols, error: protocols.length ? null : "llama returned 0 protocols" };
+  } catch (err) {
+    return { protocols: [], error: `llama ${(err as Error)?.name ?? "failed"}` };
   }
 }
 
 export async function GET() {
-  const [overview, priced] = await Promise.all([
-    llamaOverview("derivatives").catch(() => ({ total24h: 0, protocols: [] as any[] })),
-    pricedTokens(),
-  ]);
+  const [deriv, priced] = await Promise.all([derivatives(), pricedTokens()]);
 
   const byName = new Map<string, Priced>();
-  for (const p of priced) {
+  for (const p of priced.rows) {
     const k = normalise(p.name);
     // First writer wins: the list arrives in market-cap order, so a collision
     // resolves to the larger, better-known token rather than the last one seen.
     if (k && !byName.has(k)) byName.set(k, p);
   }
 
-  const venues: CompVenue[] = overview.protocols
-    .filter((p: any) => (Number(p.total24h) || 0) >= MIN_VOLUME_24H)
-    .sort((a: any, b: any) => (Number(b.total24h) || 0) - (Number(a.total24h) || 0))
+  const venues: CompVenue[] = deriv.protocols
+    .filter((p) => (Number(p.total24h) || 0) >= MIN_VOLUME_24H)
+    .sort((a, b) => (Number(b.total24h) || 0) - (Number(a.total24h) || 0))
     .slice(0, MAX_VENUES)
-    .map((p: any) => {
-      const alias = NAME_ALIASES[p.name.toLowerCase()];
+    .map((p) => {
+      const alias = NAME_ALIASES[String(p.name ?? "").toLowerCase()];
       const match = byName.get(normalise(alias ?? p.name));
       return {
         slug: protocolSlug(p.slug ?? undefined, p.name),
@@ -166,8 +216,23 @@ export async function GET() {
     openInterest: venues.some((v) => v.openInterest > 0),
   };
 
+  // ⚠️ Diagnosis, not decoration. This route failed in production with the page
+  // saying only "Data unavailable", and there was no way from the outside to
+  // tell whether the upstream was down, the response was a different shape, or
+  // the filter had dropped everything. One wrong guess about the cause already
+  // shipped. Counts at each stage make the next answer a fact.
+  //
+  // Nothing here is sensitive: list sizes and a short upstream status.
+  const diag = {
+    protocols: deriv.protocols.length,
+    afterFilter: venues.length,
+    pricedTokens: priced.rows.length,
+    matched: pricedCount,
+    upstream: [deriv.error, priced.error].filter(Boolean).join("; ") || null,
+  };
+
   return NextResponse.json(
-    { venues, live, pricedCount, windows, ts: Date.now() },
+    { venues, live, pricedCount, windows, diag, ts: Date.now() },
     {
       headers: {
         "Cache-Control": live

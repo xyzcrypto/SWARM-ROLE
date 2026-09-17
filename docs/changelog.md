@@ -5,6 +5,92 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (99) — The comparables bug was never in the route, and the grid is a control now
+
+### "Data unavailable": found, and it was two panels away from where I looked
+
+Entry 98 fixed a real gating bug in `/api/points/comps` and the panel still
+showed nothing. The cause was never in the route at all:
+
+`buildComparables` returns an empty set when the **target's own** metric is 0 —
+correctly, since a ratio against zero is meaningless. The explorer exists to
+value an **unlisted** venue, so it auto-selects the first venue with no FDV:
+the newest one on the page. The default window was 30-day volume. **A venue new
+enough to be unlisted has no 30 days of history.** So the panel selected the one
+venue guaranteed to score zero on the window it then measured, every single
+time, with live data in hand.
+
+Entry 98's `windows` fallback could not catch it, because it answers a different
+question: *did **any** venue populate this window*, not *did **this** one*.
+
+`pickMetricFor(target, preferred)` asks the per-target question and widens to
+the widest window that venue can actually answer on — and the panel **says so**
+("Sodex has no 30d volume history yet — it is too new"), because a number
+quietly computed on a different window than the one highlighted is how a correct
+figure becomes untrustworthy.
+
+Measured end to end against a fixture shaped like the failure (new venue, 24h
+volume only): before, an empty set; after, "Implied FDV from 4 peers on 24h
+volume" plus the peer table.
+
+### A fallback that behaved differently from the path it replaced
+
+`derivatives()`'s direct retry returned **raw** upstream rows while the cached
+path returned reduced ones. Raw spells open interest `openInterestAtEnd` (so it
+read 0) and does not guarantee `name` is a string, so the alias lookup could
+throw — turning a partial outage into a 500, which the client renders as "Data
+unavailable", indistinguishable from the upstream being down. Both paths now go
+through `reduceOverview`.
+
+### Every outcome: from a table you read to a control you steer
+
+- **Every cell is a button.** Clicking one adopts that FDV and allocation.
+- **The ladder is visibly live.** It has always re-centred on the peer median
+  when the route refreshes; now the panel says what it is anchored to and when
+  that arrived, marks the rung nearest the live level separately from the gold
+  outline on *your* assumption — the distance between the two marks being the
+  most informative thing on the table — and offers "Follow live again" after a
+  click breaks the link.
+- **The break-even contour is drawn**, as a mint edge at the leftmost profitable
+  rung in each row plus the row's break-even FDV in its header
+  (`breakEvenLadder`). The boundary is a line on the table, not something you
+  locate cell by cell.
+
+### Less scrolling: a nav, and sections that collapse
+
+- **`PointsNav`** — a sticky scroll-spy index (`IntersectionObserver`, top
+  -weighted). Plain `<a href="#id">` on purpose: Lenis owns page scroll and
+  cancels any programmatic `scrollTo` it did not initiate.
+- **Programme sections collapse**, one open at a time. The header is a button
+  carrying the headline value and TGE figure, so a **closed** row is still
+  comparable against an open one — collapsing must not cost the comparison.
+  Measured: 5320px → 4346px desktop, 8180px → 6389px mobile.
+
+### Verification
+
+Full gate green (typecheck / 1138 tests / lint / build). A browser probe at
+1440px and 393px checks all 46 behaviours above — comparables resolving, the
+widened-window disclosure, nav scroll, one-open accordion, collapsed-row value,
+cell adoption changing the outlined cell, relink — plus a WCAG AA sweep in both
+themes.
+
+⚠️ **The contrast audit itself had a bug worth recording.** It stopped at the
+first non-transparent background *value*, but this page is built from 6%-alpha
+brand tints, so it measured text against full-strength amber rather than
+amber-at-6%-over-near-black and reported ~18 failures at 1.7:1 on a page that
+was fine. It composites the alpha stack now, and self-tests by injecting one
+illegible run and requiring it to be caught (1.39:1) — an audit that reports
+zero is only meaningful if it can report something.
+
+### Files
+
+`src/modules/points/lib/points.ts` (`pickMetricFor`, `breakEvenLadder`) ·
+`src/modules/points/components/{SensitivityGrid,PointsClient,CompsEngine,ProgramSection}.tsx` ·
+`src/modules/points/components/PointsNav.tsx` (new) ·
+`src/app/api/points/comps/route.ts` · `src/lib/__tests__/points-comps-window.test.ts`
+
+---
+
 ## 2026-09-17 (98) — Three programmes, three calculations, and comparables that actually load
 
 ### "Data unavailable" — an unverified field was gating the whole route

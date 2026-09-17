@@ -92,6 +92,37 @@ export function buildComparables(
     .sort((a, b) => a.impliedFdv - b.impliedFdv);
 }
 
+/** Widest window first: more history is a better anchor when it exists. */
+const METRIC_LADDER: CompMetric[] = ["volume30d", "volume7d", "volume24h", "openInterest"];
+
+/**
+ * The widest window THIS target can actually be measured on.
+ *
+ * ⚠️ This is the fix for a bug that made the comparables engine show "Data
+ * unavailable" permanently, and the mechanism is worth stating because it beat
+ * two rounds of guessing.
+ *
+ * `buildComparables` returns an empty set when the TARGET's own metric is 0 -
+ * correctly, since a ratio against zero is meaningless. The explorer's whole
+ * purpose is to value an UNLISTED venue, so it defaults to the first venue with
+ * no FDV: the newest one. The default metric was 30-day volume. **A venue new
+ * enough to be unlisted has no 30 days of history**, so the panel selected the
+ * one venue guaranteed to score zero on the window it then measured, and did it
+ * every single time.
+ *
+ * The route-level `windows` check could not catch this: it reports whether ANY
+ * venue populated a window, not whether this one did. Per-target is the only
+ * question that decides whether a comparison can be built.
+ *
+ * Returns `preferred` unchanged when the target can answer on it, so a reader's
+ * explicit choice is never silently overridden while it still works.
+ */
+export function pickMetricFor(target: CompVenue | null, preferred: CompMetric): CompMetric {
+  if (!target) return preferred;
+  if (metricOf(target, preferred) > 0) return preferred;
+  return METRIC_LADDER.find((m) => metricOf(target, m) > 0) ?? preferred;
+}
+
 /** Scale a windowed volume to a yearly run-rate, so multiples are comparable. */
 export function annualise(value: number, metric: CompMetric): number {
   switch (metric) {
@@ -257,6 +288,24 @@ export function breakEven(value: ValueInputs, cost: CostResult): BreakEven {
     netUsd: net,
     unreachable: false,
   };
+}
+
+/**
+ * The break-even FDV for each allocation, i.e. the contour through the grid.
+ *
+ * The grid answers "what do I get at this corner"; this answers the question a
+ * reader actually arrives with - "how far away is the line". One inversion per
+ * row, not a search, for the same reason `breakEven` does not search.
+ */
+export function breakEvenLadder(
+  base: ValueInputs,
+  allocationPcts: number[],
+  cost: CostResult
+): number[] {
+  return allocationPcts.map((allocationPctOfSupply) => {
+    const be = breakEven({ ...base, allocationPctOfSupply }, cost);
+    return be.unreachable ? 0 : be.fdvUsd;
+  });
 }
 
 /** Per-point economics - the number that makes two farms comparable. */

@@ -5,10 +5,12 @@ import { Reveal } from "@/components/Reveal";
 import { wakeIsDue } from "@/lib/useLiveData";
 import {
   breakEven,
+  breakEvenLadder,
   buildComparables,
   compRange,
   efficiency,
   fdvLadder,
+  pickMetricFor,
   projectCost,
   projectValue,
   sensitivityGrid,
@@ -16,6 +18,7 @@ import {
   type CompVenue,
 } from "@modules/points/lib/points";
 import { buildPrograms, scenarioFdv, sortPrograms, type ProgramView } from "@modules/points/lib/programs";
+import { PointsNav, type NavSection } from "./PointsNav";
 import { ProgramPanel } from "./ProgramPanel";
 import { ProgramSection } from "./ProgramSection";
 import { UpdatesFeed } from "./UpdatesFeed";
@@ -53,6 +56,10 @@ type Form = {
   targetSlug: string;
   /** Which programme the cost / outcome panels below are analysing. */
   analyseId: string;
+  /** Which programme section is expanded. One at a time, deliberately: the
+   *  complaint this answers is "bahut scroll karna padta hai", and an accordion
+   *  that can open everything is the same page again. */
+  openId: string;
   volumeUsd: string;
   feeRatePct: string;
   gasUsd: string;
@@ -66,6 +73,7 @@ const DEFAULTS: Form = {
   metric: "volume30d",
   targetSlug: "",
   analyseId: "",
+  openId: "",
   volumeUsd: "5000000",
   feeRatePct: "0.04",
   gasUsd: "120",
@@ -109,6 +117,7 @@ export function PointsClient() {
   const [form, setForm] = useState<Form>(DEFAULTS);
   const [venues, setVenues] = useState<CompVenue[]>([]);
   const [windows, setWindows] = useState<Record<string, boolean>>({});
+  const [diag, setDiag] = useState<any>(null);
   const [state, setState] = useState<"loading" | "live" | "down">("loading");
   const [fetchedAt, setFetchedAt] = useState<number | null>(null);
   const fetchedAtRef = useRef(0);
@@ -146,6 +155,9 @@ export function PointsClient() {
     try {
       const res = await fetch("/api/points/comps", { cache: "no-store" });
       const j = await res.json();
+      // Kept whatever the outcome: the diagnosis matters most when the list is
+      // empty, which is exactly when the success branch does not run.
+      setDiag(j?.diag ?? null);
       if (res.ok && Array.isArray(j.venues) && j.venues.length) {
         setVenues(j.venues);
         setWindows(j.windows ?? {});
@@ -204,9 +216,14 @@ export function PointsClient() {
     return venues.find((v) => v.fdv === null) ?? venues[0] ?? null;
   }, [venues, form.targetSlug]);
 
+  // ⚠️ Per TARGET, not per response. `metric` above only knows whether ANY
+  // venue populated a window; this knows whether THIS venue did, which is the
+  // question `buildComparables` actually asks before returning an empty set.
+  const explorerMetric = useMemo(() => pickMetricFor(explorerTarget, metric), [explorerTarget, metric]);
+
   const explorerComps = useMemo(
-    () => (explorerTarget ? buildComparables(explorerTarget, venues, metric) : []),
-    [explorerTarget, venues, metric]
+    () => (explorerTarget ? buildComparables(explorerTarget, venues, explorerMetric) : []),
+    [explorerTarget, venues, explorerMetric]
   );
   const explorerRange = useMemo(() => compRange(explorerComps), [explorerComps]);
 
@@ -215,7 +232,10 @@ export function PointsClient() {
     () =>
       programs.map((p) => {
         const st = progStateOf(form, p);
-        const comps = p.venue ? buildComparables(p.venue, venues, metric) : [];
+        // Same per-target rule as the explorer: a tracked programme's venue is
+        // usually the youngest one on the page, so it is the most likely to be
+        // missing the widest window.
+        const comps = p.venue ? buildComparables(p.venue, venues, pickMetricFor(p.venue, metric)) : [];
         const range = compRange(comps);
         const scenario = scenarioFdv(p);
         const anchor: "comps" | "program" | "none" =
@@ -233,6 +253,22 @@ export function PointsClient() {
         return { program: p, st: { ...st, fdv }, anchor, anchorFdv, inputs, value: projectValue(inputs) };
       }),
     [programs, form, venues, metric]
+  );
+
+  // Default to the first programme rather than nothing: a page of entirely
+  // collapsed rows gives a reader no idea what opening one would show.
+  const openId = form.openId || views[0]?.program.id || "";
+
+  const navSections: NavSection[] = useMemo(
+    () => [
+      { id: "points-desk", label: "Desk" },
+      { id: "points-tracked", label: "Tracked" },
+      { id: "points-comparables", label: "Comparables" },
+      ...views.map((v) => ({ id: `programme-${v.program.id}`, label: v.program.name })),
+      { id: "points-cost", label: "Cost" },
+      { id: "points-outcomes", label: "Outcomes" },
+    ],
+    [views]
   );
 
   // ── the deep dive, on one chosen programme ────────────────────────────────
@@ -271,31 +307,50 @@ export function PointsClient() {
     () => (analysed ? sensitivityGrid(analysed.inputs, fdvs, allocs, cost.totalCostUsd) : []),
     [analysed, fdvs, allocs, cost.totalCostUsd]
   );
+  // The contour, not just the corners: what FDV each allocation needs to have
+  // been worth doing. Recomputed with the live anchor, like everything else.
+  const beLadder = useMemo(
+    () => (analysed ? breakEvenLadder(analysed.inputs, allocs, cost) : []),
+    [analysed, allocs, cost]
+  );
 
   return (
     <div className="space-y-6 sm:space-y-8">
+      <PointsNav sections={navSections} />
+
       <Reveal>
-        <UpdatesFeed />
+        <div id="points-desk" className="scroll-mt-32">
+          <UpdatesFeed />
+        </div>
       </Reveal>
 
       <Reveal delay={0.05}>
-        <ProgramPanel programs={programs} />
+        <div id="points-tracked" className="scroll-mt-32">
+          <ProgramPanel programs={programs} />
+        </div>
       </Reveal>
 
       <Reveal delay={0.1}>
+        <div id="points-comparables" className="scroll-mt-32">
         <CompsEngine
           venues={venues}
           target={explorerTarget}
-          metric={metric}
+          metric={explorerMetric}
+          // What the reader asked for, so the panel can say when it had to
+          // widen out - a silently different window is how a number becomes
+          // untrustworthy without ever looking wrong.
+          requestedMetric={form.metric}
           comps={explorerComps}
           range={explorerRange}
           state={state}
           fetchedAt={fetchedAt}
           windows={windows}
+          diag={diag}
           onRefresh={load}
           onTarget={(slug) => set("targetSlug", slug)}
           onMetric={(m) => set("metric", m)}
         />
+        </div>
       </Reveal>
 
       {/* One section per programme, each a complete calculation of its own. */}
@@ -309,6 +364,10 @@ export function PointsClient() {
             anchor={v.anchor}
             anchorFdv={v.anchorFdv}
             target={v.program.venue}
+            open={openId === v.program.id}
+            // Toggling closed leaves nothing open, which is a legitimate state:
+            // a reader who has finished with all three wants the short page.
+            onToggle={() => set("openId", openId === v.program.id ? "__none__" : v.program.id)}
           />
         </Reveal>
       ))}
@@ -316,6 +375,7 @@ export function PointsClient() {
       {analysed && be && (
         <>
           <Reveal>
+            <div id="points-cost" className="scroll-mt-32">
             <CostPanel
               form={form}
               set={set}
@@ -327,9 +387,11 @@ export function PointsClient() {
               analyseId={analysed.program.id}
               onAnalyse={(id) => set("analyseId", id)}
             />
+            </div>
           </Reveal>
 
           <Reveal delay={0.05}>
+            <div id="points-outcomes" className="scroll-mt-32">
             <SensitivityGrid
               grid={grid}
               fdvs={fdvs}
@@ -338,7 +400,25 @@ export function PointsClient() {
               currentAlloc={analysed.inputs.allocationPctOfSupply}
               totalCostUsd={cost.totalCostUsd}
               programName={analysed.program.name}
+              // What the grid is anchored to, and how fresh that is. `anchor`
+              // is "comps" only when live comparables actually produced a
+              // median, so an empty upstream shows no live marks at all rather
+              // than dressing a fallback up as live.
+              liveFdv={analysed.anchorFdv}
+              liveLabel={analysed.anchor === "comps" ? "live peer median" : "published scenario"}
+              fetchedAt={analysed.anchor === "comps" ? fetchedAt : null}
+              breakEvenFdvs={beLadder}
+              linked={Boolean(analysed.st.fdvLinked)}
+              onRelink={() => setProg(analysed.program.id, "fdvLinked", true)}
+              onPick={(fdv, alloc) => {
+                // Clicking a cell adopts that scenario: the grid stops being a
+                // table you read and becomes a control you steer with.
+                setProg(analysed.program.id, "fdvLinked", false);
+                setProg(analysed.program.id, "fdv", String(Math.round(fdv)));
+                setProg(analysed.program.id, "allocPct", String(alloc));
+              }}
             />
+            </div>
           </Reveal>
         </>
       )}

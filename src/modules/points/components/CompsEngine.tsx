@@ -24,24 +24,33 @@ export function CompsEngine({
   venues,
   target,
   metric,
+  requestedMetric,
   comps,
   range,
   state,
   fetchedAt,
   windows,
+  diag,
   onRefresh,
   onTarget,
   onMetric,
 }: {
   venues: CompVenue[];
   target: CompVenue | null;
+  /** The window actually used, which may be wider than the one asked for when
+   *  this target has no history on that one. */
   metric: CompMetric;
+  /** The window the reader selected. Equal to `metric` unless it was widened. */
+  requestedMetric?: CompMetric;
   comps: Comparable[];
   range: CompRange;
   state: "loading" | "live" | "down";
   fetchedAt: number | null;
   /** Which comparison windows the upstream actually returned this time. */
   windows: Record<string, boolean>;
+  /** Stage counts from the route, shown only when there is nothing to show.
+   *  A failure a reader can describe is a failure someone can fix. */
+  diag: { protocols: number; afterFilter: number; pricedTokens: number; matched: number; upstream: string | null } | null;
   onRefresh: () => void;
   onTarget: (slug: string) => void;
   onMetric: (m: CompMetric) => void;
@@ -119,10 +128,19 @@ export function CompsEngine({
       </div>
 
       {state === "down" && (
-        <p className="mt-5 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content-muted">
-          Comparables need live market data and it is not reachable right now. The calculators below still work —
-          enter an FDV by hand.
-        </p>
+        <div className="mt-5 rounded-xl border border-hairline bg-surface-2 px-4 py-3">
+          <p className="text-sm text-content-muted">
+            Comparables need live market data and it is not reachable right now. The calculators below still work —
+            enter an FDV by hand.
+          </p>
+          {diag && (
+            <p className="mono mt-2 text-[11px] leading-relaxed text-content-subtle">
+              venues from upstream: {diag.protocols} · past the volume filter: {diag.afterFilter} · priced tokens:{" "}
+              {diag.pricedTokens} · matched: {diag.matched}
+              {diag.upstream ? ` · ${diag.upstream}` : ""}
+            </p>
+          )}
+        </div>
       )}
 
       {venues.length > 0 && (
@@ -193,6 +211,19 @@ export function CompsEngine({
           {!target && (
             <p className="mt-4 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm leading-relaxed text-content-muted">
               Pick a venue above to build a comparable set.
+            </p>
+          )}
+
+          {/* ⚠️ Say it out loud when the window was widened. This panel exists to
+              value venues that are NEW, and a new venue has no 30-day history -
+              so the honest window is often not the one selected. Silently
+              swapping it would make the number depend on something invisible,
+              which is how the whole section came to show nothing at all. */}
+          {target && requestedMetric && requestedMetric !== metric && (
+            <p className="mt-4 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-xs leading-relaxed text-amber-200">
+              {target.name} has no {COMP_METRIC_LABEL[requestedMetric]} history yet — it is too new. Comparing on{" "}
+              <span className="font-semibold">{COMP_METRIC_LABEL[metric]}</span> instead, which is the widest window
+              it can actually answer on.
             </p>
           )}
 

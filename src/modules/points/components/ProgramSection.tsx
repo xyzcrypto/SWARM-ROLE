@@ -1,6 +1,6 @@
 "use client";
 
-import { BadgeCheck, CircleHelp, ExternalLink, Gauge, Layers, Percent } from "lucide-react";
+import { BadgeCheck, ChevronDown, CircleHelp, ExternalLink, Gauge, Layers, Percent } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { platformLogo } from "@/lib/dex-registry";
 import { usdCompact, type CompVenue, type ValueResult } from "@modules/points/lib/points";
@@ -35,6 +35,8 @@ export function ProgramSection({
   anchor,
   anchorFdv,
   target,
+  open,
+  onToggle,
 }: {
   program: ProgramView;
   form: any;
@@ -43,12 +45,22 @@ export function ProgramSection({
   anchor: "comps" | "program" | "none";
   anchorFdv: number;
   target: CompVenue | null;
+  /** Collapsed by default so the page is a list you scan, not a document you
+   *  scroll. The summary row still carries the headline number, so comparing
+   *  two programmes never requires opening either. */
+  open: boolean;
+  onToggle: () => void;
 }) {
   const logo = platformLogo({ links: program.links, logo: program.logo ?? undefined });
 
   return (
     <section id={`programme-${program.id}`} className="surface scroll-mt-28 rounded-3xl p-5 sm:p-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={open}
+        className="flex w-full flex-wrap items-start justify-between gap-4 text-left"
+      >
         <div className="flex min-w-0 items-start gap-3">
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -98,18 +110,26 @@ export function ProgramSection({
             </div>
           </div>
         </div>
-        {program.links.website && (
-          <a
-            href={program.links.website}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex shrink-0 items-center gap-1 text-xs text-content-muted transition-colors hover:text-gold-200"
-          >
-            Official site <ExternalLink className="h-3 w-3" strokeWidth={1.7} />
-          </a>
-        )}
-      </header>
+        <div className="flex shrink-0 items-center gap-3">
+          {/* The headline number, always visible. This is what makes a closed
+              section still worth reading. */}
+          <span className="text-right">
+            <span className="mono block text-lg font-semibold text-gold-gradient sm:text-xl">
+              {usdCompact(value.grossUsd)}
+            </span>
+            <span className="block text-[10px] text-content-subtle">
+              {usdCompact(value.liquidAtTgeUsd)} at TGE
+            </span>
+          </span>
+          <ChevronDown
+            className={cn("h-5 w-5 shrink-0 text-content-subtle transition-transform", open && "rotate-180")}
+            strokeWidth={1.7}
+          />
+        </div>
+      </button>
 
+      {open && (
+        <>
       {/* The programme's own caveat, in its own words. It says which of these
           numbers are real and which are planning assumptions, and it is the
           thing a reader should see before the figures, not after. */}
@@ -147,6 +167,18 @@ export function ProgramSection({
           bare
         />
       </div>
+      {program.links.website && (
+        <a
+          href={program.links.website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 inline-flex items-center gap-1 text-xs text-content-muted transition-colors hover:text-gold-200"
+        >
+          Official site <ExternalLink className="h-3 w-3" strokeWidth={1.7} />
+        </a>
+      )}
+        </>
+      )}
     </section>
   );
 }
