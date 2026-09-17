@@ -14,6 +14,8 @@ import {
   type CompMetric,
   type CompVenue,
 } from "@modules/points/lib/points";
+import { buildPrograms, hasLiveComps, scenarioFdv, sortPrograms, type ProgramView } from "@modules/points/lib/programs";
+import { ProgramPanel } from "./ProgramPanel";
 import { CompsEngine } from "./CompsEngine";
 import { ValuePanel } from "./ValuePanel";
 import { CostPanel } from "./CostPanel";
@@ -23,6 +25,7 @@ const STORE_KEY = "xyz.points.v1";
 
 /** Form state, all strings so a half-typed field is never coerced to 0 mid-edit. */
 type Form = {
+  programId: string;
   targetSlug: string;
   metric: CompMetric;
   fdv: string;
@@ -41,6 +44,7 @@ type Form = {
 };
 
 const DEFAULTS: Form = {
+  programId: "variational",
   targetSlug: "",
   metric: "volume30d",
   fdv: "1500000000",
@@ -128,11 +132,27 @@ export function PointsClient() {
   // intermediate render to see, and no second source of truth to fall out of
   // sync with.
 
-  // Default to the largest venue with NO token, because that is the only case
-  // this engine can say anything useful about. Falls back to the largest venue
-  // overall so the page is never empty.
-  const targetSlug =
-    form.targetSlug || (venues.find((v) => v.fdv === null) ?? venues[0])?.slug || "";
+  // The curated programmes are always present, with or without live data -
+  // see programs.ts for why that ordering matters.
+  const programs = useMemo(() => sortPrograms(buildPrograms(venues)), [venues]);
+  const program = useMemo(
+    () => programs.find((p) => p.id === form.programId) ?? programs[0] ?? null,
+    [programs, form.programId]
+  );
+
+  // A selected programme drives the comparables target when the market has a
+  // row for it, and the venue picker is then read-only: two controls for one
+  // value is a control that does nothing, and the one that does nothing is
+  // always the one a reader tries first.
+  //
+  // ⚠️ When the programme has NO market row - Sodex and RiseX have none - this
+  // deliberately resolves to NOTHING rather than to the largest unlisted venue.
+  // An earlier version fell back that way and it was quietly wrong: choosing
+  // Sodex showed Variational's peers, Variational's implied FDV, and no
+  // indication that the numbers had nothing to do with Sodex. A reader can opt
+  // into a proxy venue explicitly; the page will not pick one for them.
+  const targetLocked = Boolean(program && hasLiveComps(program));
+  const targetSlug = targetLocked ? program!.venue!.slug : form.targetSlug;
 
   const target = useMemo(
     () => venues.find((v) => v.slug === targetSlug) ?? null,
@@ -145,10 +165,21 @@ export function PointsClient() {
   );
   const range = useMemo(() => compRange(comps), [comps]);
 
-  // The link that makes this one tool instead of four. While linked, the FDV
-  // every panel below IS the comparable median - change the metric and the
-  // whole page moves. Typing in the FDV field breaks the link, visibly.
-  const fdv = form.fdvLinked && range.median > 0 ? String(Math.round(range.median)) : form.fdv;
+  // The link that makes this one tool instead of five. While linked, the FDV
+  // every panel below follows the best anchor available:
+  //
+  //   1. live peer comparables, when the programme's venue is tracked
+  //   2. otherwise the programme's own scenario ladder
+  //
+  // Two anchors rather than one because most programmes worth farming are not
+  // tracked by any market-data feed, and a "linked" toggle that silently does
+  // nothing for two of the three programmes on this page would be worse than
+  // no toggle. Typing in the FDV field breaks the link, visibly.
+  const programFdv = program ? scenarioFdv(program) : 0;
+  const anchor: "comps" | "program" | "none" =
+    range.median > 0 ? "comps" : programFdv > 0 ? "program" : "none";
+  const anchorFdv = anchor === "comps" ? range.median : anchor === "program" ? programFdv : 0;
+  const fdv = form.fdvLinked && anchorFdv > 0 ? String(Math.round(anchorFdv)) : form.fdv;
 
   const valueInputs = useMemo(
     () => ({
@@ -196,6 +227,30 @@ export function PointsClient() {
   return (
     <div className="space-y-6 sm:space-y-8">
       <Reveal>
+        <ProgramPanel
+          programs={programs}
+          selectedId={program?.id ?? ""}
+          onSelect={(p: ProgramView) => {
+            // A click, not an effect: applying a preset is a user action, so
+            // setting state here cannot cascade the way a derived-state effect
+            // would. The scenario overwrites the supply-side fields only -
+            // points, cost and volume are the reader's own and are never
+            // clobbered by switching programmes.
+            setForm((f) => ({
+              ...f,
+              programId: p.id,
+              targetSlug: "",
+              fdvLinked: true,
+              totalPoints: String(p.scenario.totalPoints),
+              supply: String(p.scenario.totalSupply),
+              allocPct: String(p.scenario.allocationPctOfSupply),
+              tgeUnlock: p.scenario.tgeUnlockPcts.length ? String(p.scenario.tgeUnlockPcts[0]) : f.tgeUnlock,
+            }));
+          }}
+        />
+      </Reveal>
+
+      <Reveal delay={0.05}>
         <CompsEngine
           venues={venues}
           target={target}
@@ -206,28 +261,32 @@ export function PointsClient() {
           fetchedAt={fetchedAt}
           linked={form.fdvLinked}
           onRefresh={load}
+          locked={targetLocked}
+          programName={program?.name ?? null}
           onTarget={(slug) => set("targetSlug", slug)}
           onMetric={(m) => set("metric", m)}
           onUseMedian={() => set("fdvLinked", true)}
         />
       </Reveal>
 
-      <Reveal delay={0.05}>
+      <Reveal delay={0.1}>
         <ValuePanel
           form={{ ...form, fdv }}
           set={set}
           value={value}
           target={target}
           linked={form.fdvLinked}
-          medianFdv={range.median}
+          anchor={anchor}
+          anchorFdv={anchorFdv}
+          programName={program?.name ?? null}
         />
       </Reveal>
 
-      <Reveal delay={0.1}>
+      <Reveal delay={0.15}>
         <CostPanel form={form} set={set} cost={cost} be={be} eff={eff} value={value} />
       </Reveal>
 
-      <Reveal delay={0.15}>
+      <Reveal delay={0.2}>
         {/* `fdv`, not `form.fdv`. While the comparables link is on, `form.fdv`
             still holds whatever was typed before linking - so passing it here
             outlined a cell one column away from the one every other panel was

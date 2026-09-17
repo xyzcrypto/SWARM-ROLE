@@ -12,15 +12,25 @@ export function ValuePanel({
   value,
   target,
   linked,
-  medianFdv,
+  anchor,
+  anchorFdv,
+  programName,
 }: {
   form: any;
   set: (k: any, v: any) => void;
   value: ValueResult;
   target: CompVenue | null;
   linked: boolean;
-  medianFdv: number;
+  /** Which source the linked FDV is following, so the field can name it. */
+  anchor: "comps" | "program" | "none";
+  anchorFdv: number;
+  programName: string | null;
 }) {
+  // Naming the anchor matters more than it looks. "Linked" on its own is a
+  // toggle with no referent: a reader cannot tell whether the number came from
+  // live peers or from a hand-maintained scenario, and those deserve very
+  // different amounts of trust.
+  const anchorLabel = anchor === "comps" ? "from comparables" : "from programme";
   return (
     <section className="surface rounded-3xl p-5 sm:p-8">
       <h2 className="font-display text-xl font-semibold tracking-tight text-zinc-50 sm:text-2xl">
@@ -55,7 +65,7 @@ export function ValuePanel({
         <div>
           <div className="mb-1.5 flex items-center justify-between gap-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-zinc-400">FDV</span>
-            {medianFdv > 0 && (
+            {anchorFdv > 0 && (
               <button
                 type="button"
                 onClick={() => set("fdvLinked", !linked)}
@@ -67,7 +77,7 @@ export function ValuePanel({
                 )}
               >
                 {linked ? <Link2 className="h-3 w-3" /> : <Unlink className="h-3 w-3" />}
-                {linked ? "from comparables" : "manual"}
+                {linked ? anchorLabel : "manual"}
               </button>
             )}
           </div>
@@ -94,7 +104,8 @@ export function ValuePanel({
           </div>
           <span className="mt-1 block text-[11px] text-zinc-600">
             Implied price: ${value.priceUsd.toLocaleString("en-US", { maximumFractionDigits: 6 })}
-            {target ? ` · ${target.name}` : ""}
+            {linked && anchor === "comps" && target ? ` · peers of ${target.name}` : ""}
+            {linked && anchor === "program" && programName ? ` · ${programName} scenario` : ""}
           </span>
         </div>
       </div>
@@ -122,7 +133,9 @@ export function ValuePanel({
       <div className="mt-5">
         <ShareResultButton
           payload={() => ({
-            platform: target?.name ?? "Perp DEX",
+            // The programme is the identity a reader shared - "Variational",
+            // not whichever venue the comparables happened to anchor on.
+            platform: programName ?? target?.name ?? "Perp DEX",
             domain: "",
             sharePct: value.sharePct,
             tokens: value.tokens,
