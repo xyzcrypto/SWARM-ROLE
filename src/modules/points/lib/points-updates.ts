@@ -52,6 +52,8 @@ export type PointsUpdateDto = {
   kind: UpdateKind;
   program: string | null;
   url: string | null;
+  /** Cover image URL, or null. Uploaded via /api/upload. */
+  image: string | null;
   pinned: boolean;
   published: boolean;
   createdAt: string; // ISO - serialised on the server, never a Date over the wire

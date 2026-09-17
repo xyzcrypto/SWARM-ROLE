@@ -5,6 +5,68 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (105) — One composer toolkit, two surfaces
+
+### What the inline composers were missing
+
+`/research` and `/points` both gained inline composers, and both shipped as bare
+textareas: no cover image, no formatting, no preview. The dashboard had all of
+it, which is exactly the trip the inline composer existed to avoid.
+
+`ComposerKit` now carries the shared pieces - `MarkdownToolbar` (bold, italic,
+heading, bullets, quote, link, code), `CoverPicker` (upload, thumbnail, remove)
+and `CharCount` - and both surfaces use it. Two toolbars would be one toolbar and
+a divergence waiting to happen.
+
+Research also gains a **Write / Preview** toggle rendering through `MarkdownLite`,
+the same renderer the article page uses, plus tags and an avatar-led opener.
+
+### Markdown, not a rich-text editor — deliberately
+
+⚠️ The dashboard's Tiptap is **the single heaviest thing this site ships**:
+`/dashboard` measures roughly twice every other route's bundle, and that is
+Tiptap loading for every tab. Putting it on two **public** pages to save typing
+two asterisks would move that weight onto readers who never compose anything.
+
+So the buttons write markdown into a plain `<textarea>`. Both destinations
+already render markdown, and the output is a string a human can read and fix.
+
+⚠️ **Colour and font controls are absent on purpose**, not missing.
+`MarkdownLite` emits the design system's own type and colour tokens by design -
+which is what keeps a post looking like the site rather than like whoever typed
+it. A colour picker would be a control that silently does nothing.
+
+### A points update can carry an image
+
+New nullable `PointsUpdate.image` (migration `38_points_update_image`,
+`ADD COLUMN IF NOT EXISTS`, no backfill). Rendered in the desk card and in the
+expanded row of the band.
+
+⚠️ Two cost decisions, both against the obvious choice:
+
+- **A plain `<img>`, never `next/image`.** The file is served straight from
+  Supabase Storage, so the browser fetches it directly at **zero Vercel
+  transfer**; routing it through the optimiser would spend both Fast Origin
+  Transfer and optimisation quota. The lint rule's "best practice" is the
+  expensive option here (trap 3). Lazy-loaded, so a feed does not fetch every
+  cover up front.
+- **A URL, never inline base64.** A `data:` image in the DB is serialised into
+  every response that reads the table, which blew FOT on this project once
+  already (trap 4).
+
+The image passes through `safeUrl` like every other link - http(s) only - rather
+than being trusted because an upload wrote it, since the column can also be
+written by a future path that does not.
+
+### Verification
+
+typecheck / 1186 tests / lint / build green. A new browser probe drives the
+research composer at 1440px and 393px: 7/7 toolbar controls, cover picker, tags,
+**bold wrapping a live selection** (`hello **world**`), and the preview rendering
+it as `<strong>`. The points probe still passes 100/100.
+
+---
+
 ## 2026-09-18 (104) — Read it here, and a bar that actually gets out of the way
 
 ### The briefing works

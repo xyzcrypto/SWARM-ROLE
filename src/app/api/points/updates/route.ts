@@ -38,6 +38,7 @@ function toDto(r: {
   kind: string;
   program: string | null;
   url: string | null;
+  image?: string | null;
   pinned: boolean;
   published: boolean;
   createdAt: Date;
@@ -51,6 +52,11 @@ function toDto(r: {
     kind: isUpdateKind(r.kind) ? r.kind : "update",
     program: r.program,
     url: safeUrl(r.url),
+    // ⚠️ Through `safeUrl` like every other URL here. An image src is a URL the
+    // browser fetches, so it goes through the same http(s)-only gate rather
+    // than being trusted because it came from an upload - the column can also
+    // be written by a future path that does not.
+    image: safeUrl(r.image ?? null),
     pinned: r.pinned,
     published: r.published,
     createdAt: r.createdAt.toISOString(),
@@ -98,6 +104,7 @@ const createSchema = z.object({
   kind: z.enum(UPDATE_KINDS as unknown as [string, ...string[]]),
   program: z.string().trim().max(60).optional().nullable(),
   url: z.string().trim().max(500).optional().nullable(),
+  image: z.string().trim().max(500).optional().nullable(),
   pinned: z.boolean().optional(),
   published: z.boolean().optional(),
 });

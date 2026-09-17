@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Radio, ExternalLink, Pin, Plus, Trash2, Loader2 } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
+import { CharCount, CoverPicker, MarkdownToolbar } from "@/components/ComposerKit";
 import { hasPermission } from "@/lib/permissions";
 import { useRealtime } from "@/lib/useRealtime";
 import { CH_POINTS } from "@/lib/realtime-channels";
@@ -212,6 +213,22 @@ function UpdateCard({
         <span className="ml-auto text-[10px] text-content-subtle">{formatDateTime(u.createdAt)}</span>
       </div>
 
+      {/* ⚠️ A plain <img>, not next/image, and deliberately: the file is served
+          straight from Supabase Storage, so the browser fetches it directly at
+          zero Vercel transfer. Routing it through the optimiser would spend both
+          Fast Origin Transfer and image-optimisation quota (cost-check, trap 3).
+          Lazy so a feed of updates does not fetch every cover up front. */}
+      {u.image && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={u.image}
+          alt=""
+          loading="lazy"
+          className="mt-3 block max-h-64 w-full rounded-xl border border-hairline object-cover"
+          onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+        />
+      )}
+
       <h3 className="mt-2.5 font-display text-base font-semibold text-content">{u.title}</h3>
       <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-content-muted">{u.body}</p>
 
@@ -249,6 +266,8 @@ function Composer({ onPosted }: { onPosted: () => void }) {
   const [program, setProgram] = useState("");
   const [url, setUrl] = useState("");
   const [pinned, setPinned] = useState(false);
+  const [image, setImage] = useState("");
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -260,7 +279,15 @@ function Composer({ onPosted }: { onPosted: () => void }) {
       const res = await fetch("/api/points/updates", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body, kind, program: program || null, url: url || null, pinned }),
+        body: JSON.stringify({
+          title,
+          body,
+          kind,
+          program: program || null,
+          url: url || null,
+          image: image || null,
+          pinned,
+        }),
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -275,6 +302,7 @@ function Composer({ onPosted }: { onPosted: () => void }) {
       setProgram("");
       setUrl("");
       setPinned(false);
+      setImage("");
       onPosted();
     } catch {
       setError("Could not post that.");
@@ -312,12 +340,28 @@ function Composer({ onPosted }: { onPosted: () => void }) {
         onChange={(e) => setTitle(e.target.value)}
       />
       <textarea
+        ref={bodyRef}
         className={cn(input, "mt-3 min-h-[92px] resize-y")}
         placeholder="What changed, and what a farmer should do about it."
         value={body}
         maxLength={UPDATE_LIMITS.body}
         onChange={(e) => setBody(e.target.value)}
       />
+
+      {/* The same toolkit /research uses, so formatting behaves identically on
+          both surfaces and there is one place to fix it. Markdown rather than a
+          rich editor: `MarkdownLite` renders these updates, and the dashboard's
+          Tiptap is the heaviest bundle on the site - see ComposerKit. */}
+      <MarkdownToolbar
+        textareaRef={bodyRef}
+        value={body}
+        onChange={setBody}
+        className="mt-2 rounded-xl border border-hairline bg-surface-2 px-1.5 py-1"
+      >
+        <span className="mx-1 h-5 w-px bg-hairline" aria-hidden />
+        <CoverPicker url={image} onChange={setImage} label="Add an image" />
+        <CharCount value={body} max={UPDATE_LIMITS.body} />
+      </MarkdownToolbar>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <input
           className={input}

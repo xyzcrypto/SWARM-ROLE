@@ -543,6 +543,11 @@ model PointsUpdate {
   // TypeScript array, not a DB table).
   program   String?
   url       String?
+  // Optional cover, uploaded through /api/upload to Supabase Storage. A URL,
+  // never inline base64: a `data:` image stored in the DB is serialised into
+  // every response that reads this table, which blew Fast Origin Transfer on
+  // this project once already (cost-check, trap 4).
+  image     String?
   pinned    Boolean @default(false)
   published Boolean @default(true)
 

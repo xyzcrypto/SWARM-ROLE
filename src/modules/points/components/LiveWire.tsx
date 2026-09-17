@@ -71,6 +71,8 @@ type WireItem = {
   tone: string | null;
   pinned: boolean;
   venues: string[];
+  /** Cover image, desk lane only. */
+  image: string | null;
 };
 
 /** Host of a URL, for badging a desk link with where it points. */
@@ -226,6 +228,7 @@ export function LiveWire() {
       tone: KIND_TONE[u.kind] ?? null,
       pinned: Boolean(u.pinned),
       venues: u.program ? [u.program] : [],
+      image: u.image ?? null,
     }));
     const p: WireItem[] = press.map((i) => ({
       id: `press-${i.id}`,
@@ -240,6 +243,7 @@ export function LiveWire() {
       tone: null,
       pinned: false,
       venues: i.venues,
+      image: null,
     }));
     // A pinned desk post outranks everything: pinning is the desk saying "this
     // is the thing". After that it is simply newest first, and the desk wins a
@@ -550,6 +554,19 @@ function WireEntry({ item, hero = false }: { item: WireItem; hero?: boolean }) {
       <div className={cn("grid transition-all duration-300", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
         <div className="min-h-0 overflow-hidden">
           <div className="px-4 pb-4 sm:px-5">
+            {/* Plain <img>: served direct from Supabase Storage at zero Vercel
+                transfer, and lazy so an expanded row is the only one that
+                fetches (cost-check, trap 3). */}
+            {item.image && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={item.image}
+                alt=""
+                loading="lazy"
+                className="mb-3 block max-h-56 w-full rounded-xl border border-hairline object-cover"
+                onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+              />
+            )}
             {item.body && (
               <p className="whitespace-pre-line text-xs leading-relaxed text-content-muted">{item.body}</p>
             )}
