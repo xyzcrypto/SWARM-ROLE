@@ -39,10 +39,16 @@ describe("the points UI themes instead of assuming a dark ground", () => {
     // numbers rather than text-mint-*/text-red-* so new UI is readable in both
     // themes". The grid did the opposite and scored 1.01:1.
     const grid = sources["SensitivityGrid.tsx"];
-    expect(grid).toMatch(/text-data-up/);
-    expect(grid).toMatch(/text-data-down/);
+    // ⚠️ Scoped classes, not the raw tokens - and that distinction was measured.
+    // `--data-down` is documented at 4.54:1, but that is against PURE WHITE.
+    // These cells sit on `.surface` under a tint of their own hue, where every
+    // losing cell scored **4.27:1**. Lowering the tint did not help (re-measured
+    // at 0.28 alpha: still 4.27) because the foreground was what was short.
+    expect(grid).toMatch(/grid-net-up/);
+    expect(grid).toMatch(/grid-net-down/);
     expect(grid).not.toMatch(/text-mint-100/);
     expect(grid).not.toMatch(/text-rose-200/);
+    expect(css).toMatch(/html:not\(\.dark\) \.grid-net-down \{ color: #b91c1c; \}/);
   });
 
   it("does not paint grid cells with a hard-coded brand rgba", () => {

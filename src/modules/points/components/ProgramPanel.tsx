@@ -14,16 +14,14 @@ const PHASE_TONE: Record<ProgramView["phase"], string> = {
   ended: "border-hairline bg-white/[0.03] text-content-subtle",
 };
 
-export function ProgramPanel({
-  programs,
-  selectedId,
-  onSelect,
-}: {
-  programs: ProgramView[];
-  selectedId: string;
-  onSelect: (p: ProgramView) => void;
-}) {
-  const selected = programs.find((p) => p.id === selectedId) ?? null;
+/**
+ * The overview strip: what is tracked, and a way to jump to each one.
+ *
+ * It used to be a picker that drove a single shared calculator. Now every
+ * programme has its own section below, so this is a map rather than a control -
+ * the cards scroll you to the section instead of swapping its contents.
+ */
+export function ProgramPanel({ programs }: { programs: ProgramView[] }) {
 
   return (
     <section className="surface rounded-3xl p-5 sm:p-8">
@@ -44,20 +42,12 @@ export function ProgramPanel({
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {programs.map((p) => {
-          const active = p.id === selectedId;
           const logo = platformLogo({ links: p.links, logo: p.logo ?? undefined });
           return (
-            <button
+            <a
               key={p.id}
-              type="button"
-              onClick={() => onSelect(p)}
-              aria-pressed={active}
-              className={cn(
-                "group rounded-2xl border p-4 text-left transition-colors",
-                active
-                  ? "border-gold-500/40 bg-gold-500/[0.07]"
-                  : "border-hairline bg-surface-2 hover:border-gold-500/25 active:border-gold-500/25"
-              )}
+              href={`#programme-${p.id}`}
+              className="group rounded-2xl border border-hairline bg-surface-2 p-4 text-left transition-colors hover:border-gold-500/25 active:border-gold-500/25"
             >
               <div className="flex items-start justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2">
@@ -125,57 +115,10 @@ export function ProgramPanel({
                   )}
                 </dd>
               </dl>
-            </button>
+            </a>
           );
         })}
       </div>
-
-      {selected && (
-        <div className="mt-6 rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-display text-base font-semibold text-content">{selected.name}</h3>
-            {selected.links.website && (
-              <a
-                href={selected.links.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs text-content-muted transition-colors hover:text-gold-200"
-              >
-                Official site <ExternalLink className="h-3 w-3" strokeWidth={1.7} />
-              </a>
-            )}
-          </div>
-          {/* The venue facts. Every one of these was already in the registry
-              and simply never rendered - "which markets, what leverage, what
-              fees" is the first thing anyone asks before farming somewhere. */}
-          <div className="mt-4 grid gap-3 sm:grid-cols-3">
-            <Fact icon={Layers} label="Markets" value={selected.supportedMarkets} />
-            <Fact icon={Gauge} label="Max leverage" value={selected.maxLeverage} />
-            <Fact icon={Percent} label="Fees" value={selected.fees} />
-          </div>
-
-          <dl className="mt-5 space-y-3 text-sm">
-            {selected.earnRate && (
-              <div>
-                <dt className="text-xs font-semibold uppercase tracking-wide text-content-subtle">
-                  How points accrue
-                </dt>
-                <dd className="mt-1 leading-relaxed text-content-muted">{selected.earnRate}</dd>
-              </div>
-            )}
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-content-subtle">
-                What they convert to
-              </dt>
-              <dd className="mt-1 leading-relaxed text-content-muted">{selected.rewardLogic}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-semibold uppercase tracking-wide text-content-subtle">Worth knowing</dt>
-              <dd className="mt-1 leading-relaxed text-content-muted">{selected.notes}</dd>
-            </div>
-          </dl>
-        </div>
-      )}
 
       {/* The curated list above is the three programmes with full scenario
           numbers. The running list of everything else worth farming right now

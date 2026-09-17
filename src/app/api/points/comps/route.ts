@@ -31,8 +31,25 @@ import type { CompVenue } from "@modules/points/lib/points";
  */
 export const revalidate = 320; // must equal OVERVIEW_TTL - pinned by a test
 
-/** Perp DEXs worth comparing against. Below this, volume is too thin to anchor on. */
-const MIN_VOLUME_30D = 50_000_000;
+/**
+ * Perp DEXs worth comparing against. Below this, volume is too thin to anchor on.
+ *
+ * ⚠️ Keyed on 24h volume, NOT 30d, and that is the whole point of this comment.
+ *
+ * The first version filtered and sorted on `total30d` - a field added to
+ * `OverviewRow` speculatively, from an API this environment cannot reach to
+ * verify. When the upstream does not return it, every row reads 0, EVERY VENUE
+ * IS FILTERED OUT, and the page says "Data unavailable" with nothing anywhere
+ * explaining why. That is exactly what shipped.
+ *
+ * `total24h` is the field `/api/markets/perp` has been using in production for
+ * months, so it is the one field here that is known to exist. Longer windows
+ * are treated as OPTIONAL ENRICHMENT: present, they unlock the 7d/30d metrics;
+ * absent, the engine still works on 24h.
+ *
+ * The rule this encodes: an unverified field may add capability, never gate it.
+ */
+const MIN_VOLUME_24H = 2_000_000;
 const MAX_VENUES = 40;
 
 /**
@@ -116,8 +133,8 @@ export async function GET() {
   }
 
   const venues: CompVenue[] = overview.protocols
-    .filter((p: any) => (Number(p.total30d) || 0) >= MIN_VOLUME_30D)
-    .sort((a: any, b: any) => (Number(b.total30d) || 0) - (Number(a.total30d) || 0))
+    .filter((p: any) => (Number(p.total24h) || 0) >= MIN_VOLUME_24H)
+    .sort((a: any, b: any) => (Number(b.total24h) || 0) - (Number(a.total24h) || 0))
     .slice(0, MAX_VENUES)
     .map((p: any) => {
       const alias = NAME_ALIASES[p.name.toLowerCase()];
@@ -139,9 +156,18 @@ export async function GET() {
   // CoinGecko outage) and the page still has something true to show.
   const live = venues.length > 0;
   const pricedCount = venues.filter((v) => v.fdv !== null).length;
+  // Which comparison windows the upstream actually populated this time. The
+  // client offers only these, so a metric can never render an empty table and
+  // look broken when the truth is "nobody publishes that".
+  const windows = {
+    volume24h: venues.some((v) => v.volume24h > 0),
+    volume7d: venues.some((v) => v.volume7d > 0),
+    volume30d: venues.some((v) => v.volume30d > 0),
+    openInterest: venues.some((v) => v.openInterest > 0),
+  };
 
   return NextResponse.json(
-    { venues, live, pricedCount, ts: Date.now() },
+    { venues, live, pricedCount, windows, ts: Date.now() },
     {
       headers: {
         "Cache-Control": live

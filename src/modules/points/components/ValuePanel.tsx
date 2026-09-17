@@ -15,6 +15,9 @@ export function ValuePanel({
   anchor,
   anchorFdv,
   programName,
+  allocationScenarios,
+  fdvScenarios,
+  bare = false,
 }: {
   form: any;
   set: (k: any, v: any) => void;
@@ -25,27 +28,42 @@ export function ValuePanel({
   anchor: "comps" | "program" | "none";
   anchorFdv: number;
   programName: string | null;
+  /** Quick-picks from the registry, shown under the field each one sets.
+   *  These existed in the /tools calculator and were lost in the move - they
+   *  are the difference between "type a number" and "compare the scenarios the
+   *  programme actually published". */
+  allocationScenarios?: { label: string; pct: number }[];
+  fdvScenarios?: number[];
+  /** Rendered inside a ProgramSection, which already supplies the card and the
+   *  heading. Without this the page would show a card inside a card and repeat
+   *  the programme's name twice. */
+  bare?: boolean;
 }) {
   // Naming the anchor matters more than it looks. "Linked" on its own is a
   // toggle with no referent: a reader cannot tell whether the number came from
   // live peers or from a hand-maintained scenario, and those deserve very
   // different amounts of trust.
   const anchorLabel = anchor === "comps" ? "from comparables" : "from programme";
+  const Wrapper = bare ? "div" : "section";
   return (
-    <section className="surface rounded-3xl p-5 sm:p-8">
-      <h2 className="font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
-        Your <span className="text-shine">share</span>, in dollars
-      </h2>
-      <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
-        Points to share of the pool, pool to tokens, tokens to a price. Every input is yours to change.
-      </p>
+    <Wrapper className={bare ? "" : "surface rounded-3xl p-5 sm:p-8"}>
+      {!bare && (
+        <>
+          <h2 className="font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
+            Your <span className="text-shine">share</span>, in dollars
+          </h2>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
+            Points to share of the pool, pool to tokens, tokens to a price. Every input is yours to change.
+          </p>
+        </>
+      )}
 
       {/* The share card leads with this, so it is the first field rather than
           an afterthought buried next to the button. Empty means "use the
           programme's name", which is why the placeholder shows it rather than
           pre-filling the input - a pre-filled value someone has to clear before
           typing their own is a worse default than an empty box. */}
-      <label className="mt-6 block">
+      <label className={cn(bare ? "block" : "mt-6 block")}>
         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-content-muted">
           Name this calculation
         </span>
@@ -70,12 +88,27 @@ export function ValuePanel({
           onChange={(v) => set("totalPoints", v)}
           hint={`Your share: ${value.sharePct.toFixed(4)}%`}
         />
-        <CalcField
-          label="Allocation to points"
-          value={form.allocPct}
-          onChange={(v) => set("allocPct", v)}
-          suffix="% of supply"
-        />
+        <div>
+          <CalcField
+            label="Allocation to points"
+            value={form.allocPct}
+            onChange={(v) => set("allocPct", v)}
+            suffix="% of supply"
+          />
+          {allocationScenarios && allocationScenarios.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {allocationScenarios.map((sc) => (
+                <ScenarioChip
+                  key={sc.label}
+                  active={Number(form.allocPct) === sc.pct}
+                  onClick={() => set("allocPct", String(sc.pct))}
+                >
+                  {sc.label}
+                </ScenarioChip>
+              ))}
+            </div>
+          )}
+        </div>
         <CalcField label="Total token supply" value={form.supply} onChange={(v) => set("supply", v)} />
         <CalcField
           label="Unlocked at TGE"
@@ -124,6 +157,25 @@ export function ValuePanel({
               USD
             </span>
           </div>
+          {fdvScenarios && fdvScenarios.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {fdvScenarios.map((v) => (
+                <ScenarioChip
+                  key={v}
+                  active={Math.abs(Number(form.fdv) - v) < 1}
+                  onClick={() => {
+                    // A scenario is a manual choice, so it breaks the live
+                    // anchor - otherwise the next render would silently undo
+                    // the click and the button would look broken.
+                    if (linked) set("fdvLinked", false);
+                    set("fdv", String(v));
+                  }}
+                >
+                  {usdCompact(v)} FDV
+                </ScenarioChip>
+              ))}
+            </div>
+          )}
           <span className="mt-1 block text-[11px] text-content-subtle">
             Implied price: ${value.priceUsd.toLocaleString("en-US", { maximumFractionDigits: 6 })}
             {linked && anchor === "comps" && target ? ` · peers of ${target.name}` : ""}
@@ -171,6 +223,33 @@ export function ValuePanel({
           })}
         />
       </div>
-    </section>
+    </Wrapper>
+  );
+}
+
+/** The quick-pick pill used by both scenario rows. */
+function ScenarioChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
+        active
+          ? "border-gold-500/40 bg-gold-500/15 text-gold-200"
+          : "border-hairline text-content-subtle hover:border-gold-500/30 hover:text-content-muted active:border-gold-500/30"
+      )}
+    >
+      {children}
+    </button>
   );
 }
