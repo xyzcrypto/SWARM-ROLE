@@ -54,62 +54,54 @@ export function ProgramSection({
   const logo = platformLogo({ links: program.links, logo: program.logo ?? undefined });
 
   return (
-    <section id={`programme-${program.id}`} className="surface scroll-mt-28 rounded-3xl p-5 sm:p-8">
+    <section id={`programme-${program.id}`} className="surface scroll-mt-28 rounded-3xl p-5 sm:p-7 lg:p-8">
+      {/* ⚠️ The logo does NOT lead this row, and that is an alignment fix rather
+          than a taste one. It used to sit first, which pushed the programme name
+          40px right of every other panel title on the page - measured at x=177
+          against x=125 everywhere else. Six panels lining up and three not is
+          exactly what reads as "not aligned", and no amount of polish elsewhere
+          survives a ragged left edge.
+
+          So the left column is the same grammar every other panel uses (eyebrow,
+          then title, both flush to the card's padding), and the brand mark moves
+          to the right where it sits with the number it belongs to. */}
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={open}
-        className="flex w-full flex-wrap items-start justify-between gap-4 text-left"
+        className="flex w-full flex-wrap items-start justify-between gap-x-6 gap-y-4 text-left"
       >
-        <div className="flex min-w-0 items-start gap-3">
-          {logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logo}
-              alt=""
-              width={40}
-              height={40}
-              className="h-10 w-10 shrink-0 rounded-xl"
-              onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
-            />
-          ) : (
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/5 text-xs font-semibold text-content-muted">
-              {program.name.slice(0, 2).toUpperCase()}
-            </span>
-          )}
-          <div className="min-w-0">
-            <h2 className="font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
-              {program.name}
-            </h2>
-            <div className="mt-1.5 flex flex-wrap items-center gap-2">
-              <span
-                className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium", PHASE_TONE[program.phase])}
-              >
-                {PHASE_LABEL[program.phase]}
-              </span>
-              {/* Whose numbers these are. The single most important thing on a
-                  card full of confident-looking figures. */}
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 text-[11px] font-medium",
-                  program.confirmed ? "text-mint-300" : "text-content-subtle"
-                )}
-              >
-                {program.confirmed ? (
-                  <BadgeCheck className="h-3.5 w-3.5" strokeWidth={1.7} />
-                ) : (
-                  <CircleHelp className="h-3.5 w-3.5" strokeWidth={1.7} />
-                )}
-                {program.confirmed ? "Confirmed by the protocol" : "Community assumptions"}
-              </span>
-              {hasLiveComps(program) && (
-                <span className="mono text-[11px] text-mint-300">
-                  {usdCompact(program.venue!.volume24h)} 24h
-                </span>
+        <div className="min-w-0 flex-1">
+          <span className={cn("eyebrow-glass inline-flex items-center gap-1.5 text-[11px]", PHASE_TONE[program.phase])}>
+            {PHASE_LABEL[program.phase]}
+          </span>
+          <h2 className="mt-3 font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
+            {program.name}
+          </h2>
+          <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            {/* Whose numbers these are. The single most important thing on a
+                card full of confident-looking figures. */}
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 text-[11px] font-medium",
+                program.confirmed ? "text-mint-300" : "text-content-subtle"
               )}
-            </div>
+            >
+              {program.confirmed ? (
+                <BadgeCheck className="h-3.5 w-3.5" strokeWidth={1.7} />
+              ) : (
+                <CircleHelp className="h-3.5 w-3.5" strokeWidth={1.7} />
+              )}
+              {program.confirmed ? "Confirmed by the protocol" : "Community assumptions"}
+            </span>
+            {hasLiveComps(program) && (
+              <span className="mono text-[11px] text-mint-300">
+                {usdCompact(program.venue!.volume24h)} 24h
+              </span>
+            )}
           </div>
         </div>
+
         <div className="flex shrink-0 items-center gap-3">
           {/* The headline number, always visible. This is what makes a closed
               section still worth reading. */}
@@ -121,6 +113,21 @@ export function ProgramSection({
               {usdCompact(value.liquidAtTgeUsd)} at TGE
             </span>
           </span>
+          {logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logo}
+              alt=""
+              width={36}
+              height={36}
+              className="h-9 w-9 shrink-0 rounded-xl"
+              onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
+            />
+          ) : (
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/5 text-[11px] font-semibold text-content-muted">
+              {program.name.slice(0, 2).toUpperCase()}
+            </span>
+          )}
           <ChevronDown
             className={cn("h-5 w-5 shrink-0 text-content-subtle transition-transform", open && "rotate-180")}
             strokeWidth={1.7}

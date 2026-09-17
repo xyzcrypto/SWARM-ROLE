@@ -7,6 +7,7 @@ import { cn, formatDateTime } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 import { useRealtime } from "@/lib/useRealtime";
 import { CH_POINTS } from "@/lib/realtime-channels";
+import { LiveChip, PointsPanel } from "./PointsPanel";
 import {
   KIND_LABEL,
   KIND_TONE,
@@ -61,34 +62,72 @@ export function UpdatesFeed() {
   // itself, and the site has already been bitten by getting it wrong.
   useRealtime({ channel: CH_POINTS, event: "points_update", onMessage: () => void load() });
 
-  return (
-    <section className="surface rounded-3xl p-5 sm:p-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow-glass inline-flex items-center gap-1.5 text-[11px]">
-            <Radio className="h-3.5 w-3.5" strokeWidth={1.7} />
-            Airdrop desk
-          </p>
-          <h2 className="mt-3 font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
-            What is <span className="text-shine">happening now</span>
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
-            Points going live, snapshots landing, TGE dates. Posted here and updated on your screen without a
-            reload.
-          </p>
-        </div>
-        {canManage && (
-          <button
-            type="button"
-            onClick={() => setComposing((v) => !v)}
-            className="btn-secondary inline-flex shrink-0 items-center gap-1.5 text-xs"
-          >
-            <Plus className={cn("h-3.5 w-3.5 transition-transform", composing && "rotate-45")} strokeWidth={1.7} />
-            {composing ? "Close" : "Post an update"}
-          </button>
-        )}
-      </header>
+  const compose = canManage ? (
+    <button
+      type="button"
+      onClick={() => setComposing((v) => !v)}
+      className="btn-secondary inline-flex shrink-0 items-center gap-1.5 text-xs"
+    >
+      <Plus className={cn("h-3.5 w-3.5 transition-transform", composing && "rotate-45")} strokeWidth={1.7} />
+      {composing ? "Close" : "Post an update"}
+    </button>
+  ) : null;
 
+  /**
+   * An empty desk does not deserve the top of the page.
+   *
+   * This panel sits first because when there IS news, news is the most important
+   * thing here. When there is not, the full treatment - eyebrow, display
+   * heading, description, and a bordered box announcing that nothing has
+   * happened - was the largest element on the page and it said nothing. A reader
+   * arriving at a calculator met an empty noticeboard first.
+   *
+   * So it collapses to one quiet line that still proves the desk is connected,
+   * and expands into the real panel the moment a post exists. Staff keep the
+   * composer either way, because the way it stops being empty is someone posting
+   * from here.
+   *
+   * ⚠️ Only for `ready` + empty. An unreachable feed keeps its own visible
+   * amber note below: "nothing posted" and "we could not reach the feed" are
+   * different statements, and collapsing an outage into a quiet desk is a lie
+   * in the reader's favour.
+   */
+  if (state === "ready" && updates.length === 0 && !composing) {
+    return (
+      <section id="points-desk" className="scroll-mt-28">
+        <div className="glass flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl border border-hairline px-4 py-2.5">
+          <LiveChip state="live">Airdrop desk</LiveChip>
+          <span className="text-xs text-content-muted">
+            Quiet right now. Snapshots, TGE dates and new programmes land here live.
+          </span>
+          {compose && <span className="ml-auto">{compose}</span>}
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <PointsPanel
+      id="points-desk"
+      eyebrow="Airdrop desk"
+      icon={Radio}
+      title="What is"
+      accent="happening now"
+      description="Points going live, snapshots landing, TGE dates. Posted here and updated on your screen without a reload."
+      actions={compose}
+      meta={
+        <>
+          <LiveChip state={state === "down" ? "down" : state === "loading" ? "loading" : "live"}>
+            {state === "down" ? "Feed unreachable" : state === "loading" ? "Loading" : "Live"}
+          </LiveChip>
+          {state === "ready" && updates.length > 0 && (
+            <span className="text-content-subtle">
+              {updates.length} update{updates.length === 1 ? "" : "s"}
+            </span>
+          )}
+        </>
+      }
+    >
       {canManage && composing && <Composer onPosted={() => { setComposing(false); void load(); }} />}
 
       <div className="mt-6 space-y-3">
@@ -114,7 +153,7 @@ export function UpdatesFeed() {
           <UpdateCard key={u.id} update={u} canManage={canManage} onChanged={load} />
         ))}
       </div>
-    </section>
+    </PointsPanel>
   );
 }
 

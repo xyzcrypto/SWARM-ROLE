@@ -5,6 +5,109 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (100) — One header grammar, a desk that stays quiet, and a tape that is always live
+
+### The alignment complaint, measured
+
+"Aligned karo" is not a taste note, and it turned out to be measurable. At
+1440px the page drew **eight panels, of which five carried an eyebrow and three
+did not**, and the panel titles started at **two different x positions: 125px
+and 177px**.
+
+The 52px came from the programme sections leading their header row with a 40px
+logo, which pushed the programme name right of every other title on the page.
+Six panels lining up and three not is exactly what reads as unaligned, and no
+amount of colour or spacing polish survives a ragged left edge.
+
+- **`PointsPanel`** now owns the eyebrow, title, description, action slot, meta
+  row and padding. Six panels had each grown their own; a panel supplies content
+  and does not get to invent spacing.
+- The programme logo moved to the right, beside the number it belongs to.
+- `LiveChip` replaces three hand-drawn status lights (three dot sizes, two
+  greens). A reader reads a status light as one thing or as noise.
+- The page uses the **system container** (1200 → 1320) instead of a one-off
+  `max-w-5xl`, so its cards stop sitting narrower than the rest of the site.
+- The accent is a **separate `accent` prop**, not markup passed inside `title`.
+  `background-clip: text` does not paint through to nested children, so a caller
+  wrapping a whole title renders its other words invisible. The component's shape
+  makes that unrepresentable rather than something to remember.
+
+Measured after: **one eyebrow x, one title x, one padding value**, at 1440px and
+393px. Pinned by `points-layout.test.ts`.
+
+### The airdrop desk earns the top of the page
+
+It sits first because when there IS news, news is the most important thing here.
+When there is not, the full treatment (eyebrow, display heading, description, and
+a bordered box announcing that nothing had happened) was the **largest element on
+the page and said nothing** - a reader arriving at a calculator met an empty
+noticeboard first.
+
+It now collapses to one quiet line that still proves the desk is connected, and
+expands into the real panel the moment a post exists. Measured: **56px empty,
+396px with one post**. Staff keep the composer either way, since posting from
+there is how it stops being empty.
+
+⚠️ Only for the `ready`-and-empty state. An unreachable feed keeps its own
+visible note: "nothing posted" and "we could not reach the feed" are different
+statements, and collapsing an outage into a quiet desk is a lie in the reader's
+favour.
+
+### Live comparables: actually live, and never blank
+
+- **It refreshes itself**, every 300s, hidden tabs skipped. "Live" previously
+  meant "live as of page load", which for a page people leave open beside a
+  terminal is not live.
+- **The live tape**: the top venues by 24h volume, rendered **independently of
+  whether any peer can be matched to a token**. Everything else in that panel
+  needs a peer with both volume and an FDV; when none matched, all of it
+  collapsed and the panel went blank while holding forty venues of live volume
+  data. Live that disappears whenever the derived number cannot be computed is
+  not live, it is a calculator with a status light.
+- When valuations are missing but volumes are not, it **says which half is
+  missing** rather than leaving a column of dashes to be read as zero.
+
+### Every outcome: the verdict in words
+
+The grid showed the whole space but never stated the one thing a reader arrives
+for. It now leads with it: *"At 10% of supply you break even at $722.26M FDV. The
+live market implies $73.50M, which is 9.83x short of it."* Columns are
+`table-fixed`, so they stop changing width per value.
+
+### Cost and caching
+
+⚠️ Two findings from `markets-poll-alignment.test.ts`, both correct, both caught
+before merge:
+
+1. The 300s poll needed a `TARGETS` entry. The route header had asked for exactly
+   this in advance ("NOT POLLED ... if a poll is ever added, add it there, that
+   test is the only thing standing between a poll and an ISR-write bill"), and
+   that header now says the opposite and names the poll.
+2. Entry 99's `derivatives()` fallback fetched `api.llama.fi/overview/derivatives`
+   **directly**. That body is one of the four moved behind `unstable_cache` for
+   being over Next's ~2 MB data-cache ceiling, so an uncached fetch re-parses
+   megabytes on a request path (Fluid Active CPU, trap 2). It was also a guess:
+   the empty panel was never caused by an empty protocol list. **Removed.**
+
+Also: `Cache-Control` is now a **literal** rather than `s-maxage=${revalidate}`.
+A template literal is invisible to the alignment test's regex, so the one number
+that actually governs the CDN (trap 0) was the one number nothing verified.
+
+**Route table:** one line changed, in the cheap direction.
+`/api/points/comps` went **ƒ (dynamic) → ○ (prerendered, ≈5m)** once the uncached
+fetch was removed, so it is served from cache instead of running per request.
+Totals 143 routes, static 26 → 27, dynamic 116 → 115, ISR 10 → 11.
+
+### Files
+
+`src/modules/points/components/PointsPanel.tsx` (new) ·
+`{UpdatesFeed,CompsEngine,SensitivityGrid,ProgramSection,ProgramPanel,CostPanel,PointsClient}.tsx` ·
+`src/app/points/page.tsx` · `src/app/api/points/comps/route.ts` ·
+`src/lib/__tests__/points-layout.test.ts` (new) ·
+`src/lib/__tests__/{markets-poll-alignment,points-comps-window}.test.ts`
+
+---
+
 ## 2026-09-17 (99) — The comparables bug was never in the route, and the grid is a control now
 
 ### "Data unavailable": found, and it was two panels away from where I looked

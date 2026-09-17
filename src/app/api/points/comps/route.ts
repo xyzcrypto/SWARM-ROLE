@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { llamaOverview, reduceOverview, type OverviewRow } from "@modules/markets/lib/llama";
+import { llamaOverview, type OverviewRow } from "@modules/markets/lib/llama";
 import { protocolSlug } from "@/lib/markets";
 import type { CompVenue } from "@modules/points/lib/points";
 
@@ -24,10 +24,14 @@ import type { CompVenue } from "@modules/points/lib/points";
  * two numbers can now drift silently, which is exactly the shape of trap 1b;
  * `points-comps-window.test.ts` fails if they stop matching.
  *
- * ⚠️ NOT POLLED. The client fetches once on mount plus an explicit refresh
- * button, so this is deliberately absent from `TARGETS` in
- * markets-poll-alignment.test.ts. **If a poll is ever added, add it there** -
- * that test is the only thing standing between a poll and an ISR-write bill.
+ * ⚠️ POLLED, at 300s (`COMPS_POLL_MS` in PointsClient.tsx), and registered in
+ * `TARGETS` in markets-poll-alignment.test.ts. This header used to say the
+ * opposite - "NOT POLLED ... if a poll is ever added, add it there, that test is
+ * the only thing standing between a poll and an ISR-write bill" - and that
+ * instruction was followed when the poll landed. The margin is 300 against 320:
+ * polling faster than the window regenerates the route on every tick of every
+ * open tab, and equal lets jitter decide. Change one number and that test names
+ * the others.
  */
 export const revalidate = 320; // must equal OVERVIEW_TTL - pinned by a test
 
@@ -130,41 +134,29 @@ async function pricedTokens(): Promise<{ rows: Priced[]; error: string | null }>
 }
 
 /**
- * The shared `llamaOverview` cache, with a direct retry when it yields nothing.
+ * Perp DEX activity, via the shared reduced cache.
  *
- * ⚠️ An empty protocol list is not a valid answer for this route - it is the
- * difference between a working page and "Data unavailable" - so it is worth one
- * uncached attempt before giving up. The shared loader is used by four other
- * surfaces and cannot be made to retry on their behalf.
+ * ⚠️ `llamaOverview` and nothing else. An earlier version of this function added
+ * a DIRECT `api.llama.fi/overview/derivatives` fetch as a retry for when the
+ * shared cache yielded an empty list, on the theory that an empty list is not a
+ * valid answer for this route. Two things were wrong with it:
+ *
+ * - That body is one of the four this project moved behind `unstable_cache`
+ *   precisely because it is over Next's ~2 MB data-cache ceiling. Fetching it
+ *   `cache: "no-store"` re-downloads and re-parses megabytes on a request path,
+ *   which is Fluid Active CPU on a plan where that is rationed (cost-check trap
+ *   2). `markets-poll-alignment.test.ts` refuses it by name, and it was right to.
+ * - It was a guess. The empty comparables panel was never caused by an empty
+ *   protocol list; it was `pickMetricFor` measuring a brand-new venue on a
+ *   30-day window. Adding an unverifiable upstream path to fix a bug that was
+ *   somewhere else is how the first two attempts at this went wrong.
+ *
+ * A cache miss surfaces through `diag` instead, where it is visible and costs
+ * nothing.
  */
 async function derivatives(): Promise<{ protocols: OverviewRow[]; error: string | null }> {
   try {
     const { protocols } = await llamaOverview("derivatives");
-    if (protocols.length) return { protocols, error: null };
-  } catch (err) {
-    // Fall through to the direct attempt rather than returning here: a cached
-    // failure and a live endpoint are indistinguishable from the caller's side.
-    void err;
-  }
-  try {
-    const res = await fetch(
-      "https://api.llama.fi/overview/derivatives?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true",
-      {
-        cache: "no-store",
-        headers: { accept: "application/json", "user-agent": "xyzcrypto-points/1.0" },
-        signal: AbortSignal.timeout(8000),
-      }
-    );
-    if (!res.ok) return { protocols: [], error: `llama ${res.status}` };
-    // ⚠️ Through `reduceOverview`, the SAME normaliser the cached path uses.
-    // Returning the raw rows here meant the two paths handed the caller
-    // different shapes: raw spells open interest `openInterestAtEnd` (so it read
-    // 0), and `name` is not guaranteed to be a string, so `p.name.toLowerCase()`
-    // below could throw and turn a partial outage into a 500 - which the client
-    // renders as "Data unavailable", indistinguishable from the upstream being
-    // down. A fallback that behaves differently from the path it replaces is not
-    // a fallback.
-    const { protocols } = reduceOverview(await res.json());
     return { protocols, error: protocols.length ? null : "llama returned 0 protocols" };
   } catch (err) {
     return { protocols: [], error: `llama ${(err as Error)?.name ?? "failed"}` };
@@ -235,8 +227,18 @@ export async function GET() {
     { venues, live, pricedCount, windows, diag, ts: Date.now() },
     {
       headers: {
+        // ⚠️ Literals, not `s-maxage=${revalidate}`. The edge honours THIS
+        // header rather than `export const revalidate` (cost-check trap 0), and
+        // `markets-poll-alignment.test.ts` has to be able to read the success
+        // path's number to check it against the 300s client poll. A template
+        // literal is invisible to that check, so the one number that actually
+        // governs the CDN would have been the one number nothing verified.
+        //
+        // 320 here must equal the `revalidate` above and stay above the poll.
+        // The failure path stays short on purpose: a recovered upstream should
+        // appear in half a minute, not after five more.
         "Cache-Control": live
-          ? `public, s-maxage=${revalidate}, stale-while-revalidate=${revalidate + 100}`
+          ? "public, s-maxage=320, stale-while-revalidate=420"
           : "public, s-maxage=30",
       },
     }

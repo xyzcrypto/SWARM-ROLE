@@ -3,6 +3,7 @@
 import { RefreshCw, Link2, TrendingUp } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
 import { CalcSegmented } from "@modules/tools/components/CalcField";
+import { LiveChip, PointsPanel } from "./PointsPanel";
 import {
   COMP_METRIC_LABEL,
   metricOf,
@@ -65,22 +66,18 @@ export function CompsEngine({
   const usable = METRICS.filter((m) => windows[m.value] ?? venues.some((v) => metricOf(v, m.value) > 0));
   const unlisted = venues.filter((v) => v.fdv === null);
 
+  /** Live market rows, independent of whether any peer can be matched to a token. */
+  const byVolume = [...venues].sort((a, b) => b.volume24h - a.volume24h).slice(0, 8);
+  const priced = venues.filter((v) => v.fdv !== null).length;
+
   return (
-    <section className="surface rounded-3xl p-5 sm:p-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="eyebrow-glass inline-flex items-center gap-1.5 text-[11px]">
-            <TrendingUp className="h-3.5 w-3.5" strokeWidth={1.7} />
-            Live comparables
-          </p>
-          <h2 className="mt-3 font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
-            What is an <span className="text-shine">unlisted venue</span> worth?
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
-            Every points calculator asks you to type an FDV, and that guess decides the answer. This derives it
-            instead: peers that already have a token, priced against the volume they actually do.
-          </p>
-        </div>
+    <PointsPanel
+      eyebrow="Live comparables"
+      icon={TrendingUp}
+      title="What is an"
+      accent="unlisted venue worth?"
+      description="Every points calculator asks you to type an FDV, and that guess decides the answer. This derives it instead: peers that already have a token, priced against the volume they actually do."
+      actions={
         <button
           type="button"
           onClick={onRefresh}
@@ -90,43 +87,31 @@ export function CompsEngine({
           <RefreshCw className={cn("h-3.5 w-3.5", state === "loading" && "animate-spin")} strokeWidth={1.7} />
           Refresh
         </button>
-      </header>
-
-      <div className="mt-5 flex flex-wrap items-center gap-2 text-[11px]">
-        <span
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium",
-            state === "live"
-              ? "border-mint-500/30 bg-mint-500/10 text-mint-200"
-              : state === "loading"
-                ? "border-hairline text-content-subtle"
-                : "border-rose-500/30 bg-rose-500/10 text-rose-300"
+      }
+      meta={
+        <>
+          <LiveChip state={state}>
+            {state === "live" ? `${venues.length} venues` : state === "loading" ? "Loading" : "Data unavailable"}
+          </LiveChip>
+          {state === "live" && (
+            <span className="text-content-subtle">
+              {priced} with a listed token
+              {venues.length - priced > 0 && ` · ${venues.length - priced} unlisted`}
+            </span>
           )}
-        >
-          <span
-            className={cn(
-              "h-1.5 w-1.5 rounded-full",
-              state === "live" ? "bg-mint-400" : state === "loading" ? "bg-zinc-600" : "bg-rose-400"
-            )}
-          />
-          {state === "live" ? `${venues.length} venues` : state === "loading" ? "Loading" : "Data unavailable"}
-        </span>
-        {state === "live" && (
-          <span className="text-content-subtle">
-            {venues.filter((v) => v.fdv !== null).length} with a listed token
-            {unlisted.length > 0 && ` · ${unlisted.length} unlisted`}
-          </span>
-        )}
-        {/* `fetchedAt` is null until the client has actually fetched, so this
-            renders nothing on the server and cannot disagree at hydration.
-            The formatter pins UTC - Vercel runs UTC and readers do not, and an
-            unpinned timestamp near midnight renders a different day on each
-            side of hydration (React #418, documented in CLAUDE.md). */}
-        {fetchedAt !== null && (
-          <span className="text-content-subtle">updated {formatDateTime(new Date(fetchedAt))}</span>
-        )}
-      </div>
-
+          {/* `fetchedAt` is null until the client has actually fetched, so this
+              renders nothing on the server and cannot disagree at hydration.
+              The formatter pins UTC - Vercel runs UTC and readers do not, and an
+              unpinned timestamp near midnight renders a different day on each
+              side of hydration (React #418, documented in CLAUDE.md). */}
+          {fetchedAt !== null && (
+            <span className="text-content-subtle">
+              updated {formatDateTime(new Date(fetchedAt))} · refreshes every 5 min
+            </span>
+          )}
+        </>
+      }
+    >
       {state === "down" && (
         <div className="mt-5 rounded-xl border border-hairline bg-surface-2 px-4 py-3">
           <p className="text-sm text-content-muted">
@@ -241,7 +226,110 @@ export function CompsEngine({
           {comps.length > 0 && <CompsTable comps={comps} target={target} metric={metric} />}
         </>
       )}
-    </section>
+
+      {/* ⚠️ The live market, shown whether or not a single peer could be matched
+          to a token.
+
+          Everything above depends on a peer having BOTH volume and an FDV. When
+          CoinGecko returns nothing that matches, all of it collapses and the
+          panel went blank while holding forty venues of live, real volume data.
+          "Live" that disappears whenever the derived number cannot be computed
+          is not live; it is a calculator with a status light.
+
+          This is the floor: what is trading right now, refreshed on the same
+          cycle, useful on its own. */}
+      {byVolume.length > 0 && <VenueTape venues={byVolume} priced={priced} diag={diag} />}
+    </PointsPanel>
+  );
+}
+
+/**
+ * The live tape: who is doing volume right now, and what the market pays for it.
+ *
+ * Sorted by 24h volume rather than by anything derived, so it says something
+ * true even when every valuation is missing.
+ */
+function VenueTape({
+  venues,
+  priced,
+  diag,
+}: {
+  venues: CompVenue[];
+  priced: number;
+  diag: { protocols: number; afterFilter: number; pricedTokens: number; matched: number; upstream: string | null } | null;
+}) {
+  return (
+    <div className="mt-8 border-t border-hairline pt-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-content-subtle">The live tape</p>
+        <p className="text-[11px] text-content-subtle">Top venues by 24h volume</p>
+      </div>
+
+      {/* Peer valuations can be entirely absent while volumes are perfect. Say
+          which of the two is missing, here, rather than leaving a column of
+          dashes to be read as zero. */}
+      {priced === 0 && (
+        <p className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-4 py-3 text-xs leading-relaxed text-amber-200">
+          Volumes are live, but no peer could be matched to a listed token this cycle, so there is nothing to
+          derive an FDV from. The venue activity below is still current.
+          {diag && (
+            <span className="mono mt-1.5 block text-[11px] opacity-80">
+              venues {diag.protocols} · past filter {diag.afterFilter} · priced tokens {diag.pricedTokens} ·
+              matched {diag.matched}
+              {diag.upstream ? ` · ${diag.upstream}` : ""}
+            </span>
+          )}
+        </p>
+      )}
+
+      <div className="-mx-1 mt-4 overflow-x-auto px-1">
+        <table className="w-full text-sm md:min-w-[560px]">
+          <thead>
+            <tr className="border-b border-hairline text-left text-[11px] uppercase tracking-wide text-content-subtle">
+              <th className="py-2 pr-3 font-medium">Venue</th>
+              <th className="py-2 pr-3 text-right font-medium">24h volume</th>
+              <th className="hidden py-2 pr-3 text-right font-medium sm:table-cell">Open interest</th>
+              <th className="py-2 text-right font-medium">FDV</th>
+            </tr>
+          </thead>
+          <tbody>
+            {venues.map((v) => (
+              <tr key={v.slug} className="border-b border-hairline last:border-0">
+                <td className="py-2.5 pr-3">
+                  <span className="flex items-center gap-2">
+                    {v.logo && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={v.logo}
+                        alt=""
+                        width={18}
+                        height={18}
+                        className="h-[18px] w-[18px] shrink-0 rounded-full"
+                        onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
+                      />
+                    )}
+                    <span className="truncate text-content">{v.name}</span>
+                  </span>
+                </td>
+                <td className="mono py-2.5 pr-3 text-right tabular-nums text-content-muted">
+                  {usdCompact(v.volume24h)}
+                </td>
+                <td className="mono hidden py-2.5 pr-3 text-right tabular-nums text-content-subtle sm:table-cell">
+                  {v.openInterest > 0 ? usdCompact(v.openInterest) : "not reported"}
+                </td>
+                <td className="mono py-2.5 text-right tabular-nums">
+                  {v.fdv !== null ? (
+                    <span className="text-content-muted">{usdCompact(v.fdv)}</span>
+                  ) : (
+                    <span className="text-[11px] text-gold-200">no token yet</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }
 

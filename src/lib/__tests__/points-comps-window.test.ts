@@ -50,20 +50,36 @@ describe("the comparables route stays aligned with the cache it reads", () => {
     ).toBe(OVERVIEW_TTL);
   });
 
-  it("sets an edge Cache-Control derived from the same number", () => {
+  it("sets an edge Cache-Control that AGREES with the revalidate export", () => {
     // Trap 0: `s-maxage` is what the Vercel edge honours, not `revalidate`.
-    // Building the header from the const means they cannot disagree.
-    expect(src).toMatch(/s-maxage=\$\{revalidate\}/);
-    expect(src).toMatch(/stale-while-revalidate=\$\{revalidate \+ \d+\}/);
+    //
+    // ⚠️ This asserted the TEMPLATE form, `s-maxage=${revalidate}`, on the
+    // reasoning that building the header from the const means they cannot
+    // disagree. True, and still the wrong call: a template literal is invisible
+    // to `markets-poll-alignment.test.ts`, which greps the success-path
+    // `s-maxage` to check it against the client poll. So the one number that
+    // actually governs the CDN became the one number nothing could verify.
+    //
+    // Literal in the route, and this test compares the two values instead - it
+    // fails just as loudly if they drift, and the alignment check can read it.
+    const win = Number(src.match(/^export const revalidate = (\d+);/m)?.[1]);
+    const edge = Number(src.match(/"public, s-maxage=(\d+), stale-while-revalidate=(\d+)"/)?.[1]);
+    const swr = Number(src.match(/"public, s-maxage=(\d+), stale-while-revalidate=(\d+)"/)?.[2]);
+    expect(win).toBe(320);
+    expect(edge, "s-maxage must equal the revalidate export").toBe(win);
+    expect(swr).toBeGreaterThan(edge);
   });
 
-  it("is honest about not being polled", () => {
-    // If a poll is ever added it needs a TARGETS entry in
-    // markets-poll-alignment.test.ts. This keeps the note that says so.
+  it("is honest about BEING polled, and points at the test that guards it", () => {
+    // This asserted /NOT POLLED/ while the route genuinely was not. It is now,
+    // so the note has to say the opposite and name the poll, or the next reader
+    // adds a second one on the strength of a stale comment.
     //
-    // `raw`, not `src`: this is the one assertion here that is ABOUT a comment,
-    // so it is the one that must not have comments stripped first.
-    expect(raw).toMatch(/NOT POLLED/);
+    // `raw`, not `src`: the one assertion here that is ABOUT a comment, so it is
+    // the one that must not have comments stripped first.
+    expect(raw).toMatch(/POLLED, at 300s/);
+    expect(raw).toMatch(/markets-poll-alignment\.test\.ts/);
+    expect(raw).not.toMatch(/⚠️ NOT POLLED/);
   });
 
   it("never serves a stale-forever response when the data is missing", () => {
@@ -274,18 +290,30 @@ describe("a venue is measured on a window IT has, not one the response has", () 
   });
 });
 
-describe("the route's fallback path behaves like the path it replaces", () => {
-  it("normalises the direct fetch through the same reducer", () => {
-    // The fallback returned RAW upstream rows while the cached path returned
-    // reduced ones. Raw spells open interest `openInterestAtEnd` (so it read 0)
-    // and does not guarantee `name` is a string, so the alias lookup could
-    // throw - turning a partial outage into a 500, which the client shows as
-    // "Data unavailable", indistinguishable from the upstream being down.
-    expect(src).toMatch(/reduceOverview\(await res\.json\(\)\)/);
-    expect(src).toMatch(/Promise<\{ protocols: OverviewRow\[\]; error: string \| null \}>/);
+describe("the route reads its heavy upstream only through the shared cache", () => {
+  it("has no direct llama fetch of its own", () => {
+    // A direct `api.llama.fi/overview/derivatives` fetch was added here as a
+    // retry for an empty cached list. It was wrong twice over: that body is one
+    // of the four moved behind `unstable_cache` for being over Next's ~2 MB
+    // data-cache ceiling, so an uncached fetch re-parses megabytes on a request
+    // path (Fluid Active CPU, cost-check trap 2) - and the empty comparables
+    // panel it was meant to fix was never caused by an empty protocol list.
+    //
+    // `markets-poll-alignment.test.ts` refuses it by name too. This states the
+    // same rule where the route's own reader will see it.
+    expect(src).not.toMatch(/fetch\(\s*["'`]https:\/\/api\.llama\.fi/);
+    expect(src).toMatch(/await llamaOverview\("derivatives"\)/);
   });
 
   it("cannot throw on a missing name", () => {
     expect(src).toMatch(/NAME_ALIASES\[String\(p\.name \?\? ""\)\.toLowerCase\(\)\]/);
+  });
+
+  it("states the success-path s-maxage as a literal the edge check can read", () => {
+    // ⚠️ The edge honours this header, NOT `export const revalidate`
+    // (cost-check trap 0). It was written as `s-maxage=${revalidate}`, which is
+    // invisible to the alignment test's regex - so the one number that actually
+    // governs the CDN would have been the one number nothing verified.
+    expect(src).toMatch(/"public, s-maxage=320, stale-while-revalidate=420"/);
   });
 });

@@ -1,7 +1,8 @@
 "use client";
 
-import { Radio, RotateCcw } from "lucide-react";
+import { LayoutGrid, RotateCcw } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
+import { LiveChip, PointsPanel } from "./PointsPanel";
 import { usdCompact, type GridCell } from "@modules/points/lib/points";
 
 /**
@@ -129,64 +130,80 @@ export function SensitivityGrid({
     return { alpha: 0.05 + mag * (MAX_TINT - 0.05), up };
   };
 
-  return (
-    <section className="surface rounded-3xl p-5 sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
-            Every outcome{programName ? ` for ${programName}` : ""},{" "}
-            <span className="text-shine">not just one</span>
-          </h2>
-          <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
-            {hasCost ? (
-              <>
-                Return on your true cost, across FDV and allocation. <strong className="text-content">1.0x is
-                break-even</strong> — below it the farm lost money. The outlined cell is where your assumptions sit.
-              </>
-            ) : (
-              <>
-                Gross value across FDV and allocation. Enter your costs above and this becomes a return on cost,
-                with a break-even line.
-              </>
-            )}
-          </p>
-        </div>
-        <Legend hasCost={hasCost} />
-      </div>
+  // The single most useful sentence on the panel: where the line is for YOUR
+  // allocation, and where the market currently sits relative to it. Both numbers
+  // already exist; nothing here made a reader do the comparison.
+  const beHere = hasCost ? breakEvenFdvs?.[row] ?? 0 : 0;
+  const clearsIt = beHere > 0 && liveFdv > 0 ? liveFdv >= beHere : null;
 
-      {liveFdv > 0 && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-hairline bg-surface-2 px-3 py-2 text-[11px]">
-          <span className="inline-flex items-center gap-1.5 font-medium text-mint-300">
-            <Radio className="h-3.5 w-3.5" strokeWidth={1.7} />
-            Live
-          </span>
-          <span className="text-content-muted">
-            Ladder centred on the {liveLabel ?? "live anchor"}{" "}
-            <span className="mono text-content">{usdCompact(liveFdv)}</span>
-            {/* `fetchedAt` is null until the first fetch resolves, so this whole
-                clause is absent from the server render and appears with the
-                data. Nothing here is derived from a clock during render. */}
-            {fetchedAt ? (
-              <span className="text-content-subtle"> · updated {formatDateTime(new Date(fetchedAt))}</span>
+  return (
+    <PointsPanel
+      eyebrow="Every outcome"
+      icon={LayoutGrid}
+      title={`Not one number${programName ? `, for ${programName}` : ""}`}
+      accent="but the whole range"
+      description={
+        hasCost
+          ? "Return on your true cost, across FDV and allocation. 1.0x is break-even, below it the farm lost money. Tap any cell to load that scenario above."
+          : "Gross value across FDV and allocation. Enter your costs above and this becomes a return on cost, with a break-even line."
+      }
+      actions={<Legend hasCost={hasCost} />}
+      meta={
+        liveFdv > 0 ? (
+          <>
+            <LiveChip state="live">Live anchor</LiveChip>
+            <span className="text-content-muted">
+              Ladder centred on the {liveLabel ?? "live anchor"}{" "}
+              <span className="mono text-content">{usdCompact(liveFdv)}</span>
+              {/* `fetchedAt` is null until the first fetch resolves, so this
+                  clause is absent from the server render and appears with the
+                  data. Nothing here is derived from a clock during render. */}
+              {fetchedAt ? (
+                <span className="text-content-subtle"> · updated {formatDateTime(new Date(fetchedAt))}</span>
+              ) : null}
+            </span>
+            {linked ? (
+              <span className="text-content-subtle">Your assumption follows it.</span>
+            ) : onRelink ? (
+              <button
+                type="button"
+                onClick={onRelink}
+                className="inline-flex items-center gap-1 rounded-lg border border-hairline px-2 py-1 font-medium text-content-muted transition-colors hover:text-gold-200"
+              >
+                <RotateCcw className="h-3 w-3" strokeWidth={1.7} />
+                Follow live again
+              </button>
             ) : null}
-          </span>
-          {linked ? (
-            <span className="text-content-subtle">Your assumption follows it.</span>
-          ) : onRelink ? (
-            <button
-              type="button"
-              onClick={onRelink}
-              className="inline-flex items-center gap-1 rounded-lg border border-hairline px-2 py-1 font-medium text-content-muted transition-colors hover:text-gold-200"
-            >
-              <RotateCcw className="h-3 w-3" strokeWidth={1.7} />
-              Follow live again
-            </button>
-          ) : null}
-        </div>
+          </>
+        ) : null
+      }
+    >
+      {/* The verdict, stated. A grid shows you everything; this says the one
+          thing you came to find out. */}
+      {beHere > 0 && (
+        <p className="mt-5 rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm leading-relaxed text-content-muted">
+          At <span className="mono font-semibold text-content">{allocs[row]}%</span> of supply you break even at{" "}
+          <span className="mono font-semibold text-content">{usdCompact(beHere)}</span> FDV.
+          {clearsIt === null ? null : clearsIt ? (
+            <>
+              {" "}
+              The live market implies{" "}
+              <span className="mono font-semibold grid-net-up">{usdCompact(liveFdv)}</span>, which clears it by{" "}
+              <span className="mono font-semibold grid-net-up">{(liveFdv / beHere).toFixed(2)}x</span>.
+            </>
+          ) : (
+            <>
+              {" "}
+              The live market implies{" "}
+              <span className="mono font-semibold grid-net-down">{usdCompact(liveFdv)}</span>, which is{" "}
+              <span className="mono font-semibold grid-net-down">{(beHere / liveFdv).toFixed(2)}x</span> short of it.
+            </>
+          )}
+        </p>
       )}
 
       <div className="-mx-1 mt-6 overflow-x-auto px-1">
-        <table className="w-full border-separate border-spacing-1 text-xs md:min-w-[620px]">
+        <table className="w-full table-fixed border-separate border-spacing-1 text-xs md:min-w-[620px]">
           <caption className="sr-only">
             {hasCost ? "Return on cost" : "Gross value"} for each combination of fully diluted valuation and
             points allocation.
@@ -325,7 +342,7 @@ export function SensitivityGrid({
         does by comparison. That asymmetry is the point: FDV is the axis nobody controls, and it is the one that
         moves the answer.
       </p>
-    </section>
+    </PointsPanel>
   );
 }
 

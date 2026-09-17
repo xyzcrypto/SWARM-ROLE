@@ -29,7 +29,11 @@ export default function PointsPage() {
       <Navbar />
       <main className="relative min-h-screen pt-28">
         <PageBackground />
-        <div className="relative mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
+        {/* The system container, not a narrower one-off. This page was `max-w-5xl`
+            (1024px) while every other page runs 1200 -> 1320 -> 1480, so its cards
+            sat visibly narrower than the site around them and its data tables had
+            to scroll sideways at widths where they did not need to. */}
+        <div className="relative mx-auto max-w-[1200px] px-5 pb-24 sm:px-6 lg:px-8 xl:max-w-[1320px]">
           <PageHeader
             eyebrow="Airdrop Farming"
             title={
@@ -54,8 +58,8 @@ export default function PointsPage() {
 
           <div className="surface surface-hover lift mt-8 flex flex-col items-center gap-3 rounded-3xl p-7 text-center sm:flex-row sm:justify-between sm:text-left">
             <div>
-              <h3 className="font-display text-lg font-semibold text-zinc-50">Trading, not farming?</h3>
-              <p className="mt-1 text-sm text-zinc-400">
+              <h3 className="font-display text-lg font-semibold text-content">Trading, not farming?</h3>
+              <p className="mt-1 text-sm text-content-muted">
                 Funding fees, liquidation price, position sizing and PnL live in Trading Tools.
               </p>
             </div>

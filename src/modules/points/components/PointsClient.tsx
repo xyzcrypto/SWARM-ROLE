@@ -86,6 +86,23 @@ const DEFAULTS: Form = {
  *  can only ever return the same cached body. */
 const COMPS_WINDOW_MS = 320_000;
 
+/**
+ * How often the comparables refresh on their own.
+ *
+ * ⚠️ 300s against the route's 320s window, and both numbers are load-bearing.
+ * Polling FASTER than the window means the window expires before each poll and
+ * every tick from every open tab regenerates the route - ISR Writes and Fluid
+ * Active CPU, trap 1 in the cost-check skill, which has already produced a real
+ * incident on this project twice (`/news` at 560 writes against 166 reads).
+ * Equal is not safe either: the window expires exactly as the poll lands and
+ * jitter decides. 300/320 is the same margin `/api/markets/{dex,yields}` run.
+ *
+ * ⚠️ The route file used to say "NOT POLLED - if a poll is ever added, add it to
+ * TARGETS in markets-poll-alignment.test.ts". This is that poll, and it is
+ * registered there. Change this number and that test tells you what else moves.
+ */
+export const COMPS_POLL_MS = 300_000;
+
 const num = (s: string) => {
   const n = Number(s);
   return Number.isFinite(n) ? n : 0;
@@ -174,6 +191,20 @@ export function PointsClient() {
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // The panel refreshes itself while you are reading it. Without this "live"
+  // meant "live as of whenever the page loaded", which for a page people leave
+  // open next to a terminal is not live at all.
+  //
+  // Hidden tabs are skipped: a backgrounded tab refreshing on a timer is pure
+  // cost for something nobody is looking at, and the wake handler below covers
+  // the moment it comes back.
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.visibilityState === "visible") void load();
+    }, COMPS_POLL_MS);
+    return () => clearInterval(t);
   }, [load]);
 
   // A reader coming back to the tab after an hour should not be looking at an
