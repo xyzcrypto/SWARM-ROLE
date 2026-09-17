@@ -5,6 +5,118 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-17 (93) — Points moves out of Tools, and stops asking you to guess
+
+Points/airdrop value was one tab among eight in `/tools`. It is now `/points`,
+in the nav, and it does something none of those calculators did.
+
+### The input that decided the answer was a guess
+
+Every points calculator on the internet — including the one this replaces —
+asks you to type an FDV and then does arithmetic on it. The arithmetic is
+trivial and the FDV is the whole answer, so what they really do is format
+your own guess back at you.
+
+`/api/points/comps` derives it instead. It joins DefiLlama's derivatives
+overview (volume, open interest) with CoinGecko valuations, so an unlisted
+venue's FDV comes from peers that already have a token:
+
+```
+implied FDV = peer FDV x (your venue's volume / the peer's volume)
+```
+
+Deliberately the plain napkin ratio, not a regression. A model nobody can
+check in their head is worse than arithmetic they can argue with.
+
+**It reports a range, never a number.** Median rather than mean, because one
+peer at a euphoric multiple moves a mean enough to change the conclusion and
+that happens constantly in this sector. The spread is drawn, because the width
+of the disagreement is usually the finding.
+
+A thing worth knowing that fell out of the test data: **anchoring on the
+market leader is the most conservative estimate, not the most generous one.**
+Hyperliquid is the largest venue and trades at the lowest multiple of its own
+volume, so it lands at the bottom of every comparable set.
+
+### Picking a listed venue grades the method
+
+Choose a venue that already has a token and the page says how far the estimate
+is from the real price. That is the only honest way to present a method like
+this: show what it gets wrong where the answer is known, before asking anyone
+to trust it where it is not.
+
+### Cost basis, which nobody models
+
+Farmers track points obsessively and their cost basis not at all. A program
+paying 0.02% of volume farmed with 0.04% taker fees is a guaranteed loss, and
+that is invisible from the points total.
+
+So fees are asked for as **volume x rate** rather than a round "spent" figure,
+capital parked carries an opportunity cost, and the output is a **break-even
+FDV** — inverted exactly rather than searched, because value is linear in FDV.
+Plus cost per point and value per point, which are what make two farms
+comparable at all.
+
+### The whole outcome space, not one number
+
+A single estimate is an anchor and people plan around anchors. The sensitivity
+grid shows net-of-cost across FDV x allocation, with the live assumption
+outlined. Reading it makes the point immediately: value moves 4x across the FDV
+axis and 3x across allocation, and FDV is the one nobody controls.
+
+### Three things the browser caught that the source did not
+
+1. **The grid outlined the wrong cell.** It was passed `form.fdv` (stored)
+   while every other panel used the derived linked value, so the highlight sat
+   one column away from the assumption in force. Two sources of truth, in the
+   file whose own comment warns against exactly that.
+2. **The heat map was a blank table.** Linear intensity over a geometric FDV
+   ladder meant the corner cells differed by 125x — measured intensities ran
+   0.004 to 0.42, so every cell but the last two painted as plain background.
+   Now a square-root scale: 0.04 to 0.45, readable across the whole grid.
+3. **The ninth nav link overflowed the rail**, exactly as the code comment
+   predicted. At 1024px the rail needed **1071px against 998px available**,
+   hanging 60px past the viewport, and the previous fix had already spent the
+   padding headroom. The rail now appears from `xl` (1280) instead of `lg`;
+   1024-1279 uses the mobile menu, which already carries every link. This is
+   the second time this has moved for the same reason, so it now has a test
+   that fails on a tenth link rather than a comment nobody reads.
+
+### Cost
+
+**+2 routes, both static, 0 new dynamic** (145/26/113 → 147/28/113 against
+`main`). No page moved from cached to per-request, which is the expensive
+regression class on this project.
+
+`/points` is a static shell with no `revalidate` — the same reasoning that
+removed the window from `/markets` and `/tools`. `/api/points/comps` is pinned
+to `OVERVIEW_TTL` because it reads the shared `llamaOverview` cache and Next
+takes the minimum across a segment (trap 1b). It has to carry a **literal**,
+since Next rejects `export const revalidate = OVERVIEW_TTL` as an invalid
+segment config, so a test fails if the two numbers ever drift apart. **It is
+not polled** — one fetch on mount plus a refresh button — which is why it is
+absent from `TARGETS`; the route comment says so, in case that changes.
+
+### An FDV is never guessed at
+
+Peers are matched by **name**, never by a hand-written CoinGecko id. An id is
+unverifiable by reading it — `aster` and `aster-2` look equally plausible — and
+a wrong one silently attaches another project's multi-billion valuation to a
+venue. A name mismatch produces no FDV, which is visible and honest. Unmatched
+venues carry `null`, not `0`, so they cannot drag the median down while looking
+like a datapoint.
+
+**Files:** `src/modules/points/` (new: `lib/points.ts` + five components),
+`src/app/points/page.tsx`, `src/app/api/points/comps/route.ts`,
+`src/modules/markets/lib/llama.ts` (7d/30d/OI added to `OverviewRow`),
+`src/shared/utils/site.ts`, `src/shared/components/Navbar.tsx`,
+`src/modules/tools/components/ToolsClient.tsx` (points tab replaced by a
+permanent signpost to `/points`). 50 new tests. The share-card flow is
+unchanged and existing shared links still render — the payload shape is a wire
+format, and the code says so.
+
+---
+
 ## 2026-09-17 (92) — Per-device session revocation, and one OTP file instead of two
 
 Auth hardening **authored by @deepakpss** (PR #330). Landed from this branch
