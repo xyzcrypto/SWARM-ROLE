@@ -10,7 +10,7 @@ import { env, realtimeEnabled } from "@/lib/env";
 // `@/lib/env` (now `server-only`) and therefore cannot be reached from a
 // `"use client"` component. Client components must import from
 // `@/lib/realtime-channels` directly — see the note in that file.
-export { CH_SITE, CH_MEMBERS, CH_NOTIFY, userChannel } from "@/lib/realtime-channels";
+export { CH_SITE, CH_MEMBERS, CH_NOTIFY, CH_POINTS, userChannel } from "@/lib/realtime-channels";
 
 // Warn once per process rather than on every call - this fires from ~20 sites.
 let warnedDisabled = false;

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -18,6 +19,11 @@ export const dynamic = "force-dynamic";
 // query without it (defaulting views to 0) so the dashboard never 500s.
 async function getDashboardPosts() {
   const base = {
+    // ⚠️ The dashboard list is the LIVE list. Trashed posts are deliberately
+    // absent here and live in their own view, so "delete" visibly removes
+    // something from the place an admin is looking rather than leaving it in a
+    // list with a different badge.
+    where: NOT_TRASHED,
     orderBy: { createdAt: "desc" },
     take: 200, // bounded; client-side search/filter handles the rest
   } as const;

@@ -9,6 +9,15 @@ import { buildCoinBriefPrompt } from "@/lib/ai-summary";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * ⚠️ Declared, not defaulted. An AI call routinely runs longer than Vercel's
+ * default function duration, and when the platform kills a function the caller
+ * gets an opaque 504 instead of the graceful error this route is written to
+ * return. The gateway's own budget is capped below this on purpose, so that when
+ * something fails it is OUR message that reaches the reader.
+ */
+export const maxDuration = 60;
+
 const bodySchema = z.object({
   name: z.string().trim().min(1).max(80),
   symbol: z.string().trim().min(1).max(20),

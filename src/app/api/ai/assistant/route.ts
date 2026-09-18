@@ -13,6 +13,15 @@ import { formatLiveContext, type LiveSnapshot } from "@/lib/ai-live";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/**
+ * ⚠️ Declared, not defaulted. An AI call routinely runs longer than Vercel's
+ * default function duration, and when the platform kills a function the caller
+ * gets an opaque 504 instead of the graceful error this route is written to
+ * return. The gateway's own budget is capped below this on purpose, so that when
+ * something fails it is OUR message that reaches the reader.
+ */
+export const maxDuration = 60;
+
 // Keep the request bounded: only the tail of the conversation is sent to the
 // model (older turns rarely matter for a research Q&A and only cost tokens).
 const MAX_TURNS = 12;

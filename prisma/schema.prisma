@@ -273,6 +273,14 @@ model Post {
   premium   Boolean  @default(false) // Premium Content — body gated to Premium users
   summary   String? // AI-generated TL;DR (XYZ AI) — shown atop the article
   views     Int      @default(0) // total opens (incremented on the article page)
+  // Soft delete. Non-null means "in the trash": hidden from every read path,
+  // restorable, and purged only by an explicit second action.
+  //
+  // ⚠️ This exists because DELETE /api/research/[id] called prisma.post.delete
+  // and a published article was gone from Postgres with no way back short of a
+  // database backup. One misclick, one article.
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -524,6 +532,39 @@ model WhatsNewEntry {
 
   @@index([published, date]) // public feed ordering
   @@index([tag, date]) // tab filtering
+}
+
+// Perp DEX / airdrop updates, posted by staff and shown live on /points.
+//
+// Separate from WhatsNewEntry on purpose: that feed is about THIS SITE
+// shipping things, this one is about the outside world - a programme opening,
+// a snapshot landing, a TGE date. Mixing them would make both unreadable, and
+// the audiences are different people.
+model PointsUpdate {
+  id        String  @id @default(cuid())
+  title     String
+  body      String
+  // live | soon | snapshot | tge | ended | alert | update - see points-updates.ts
+  kind      String  @default("update")
+  // Optional DEX_REGISTRY id, so an update can be attributed to a programme
+  // without a foreign key to a table that does not exist (the registry is a
+  // TypeScript array, not a DB table).
+  program   String?
+  url       String?
+  // Optional cover, uploaded through /api/upload to Supabase Storage. A URL,
+  // never inline base64: a `data:` image stored in the DB is serialised into
+  // every response that reads this table, which blew Fast Origin Transfer on
+  // this project once already (cost-check, trap 4).
+  image     String?
+  pinned    Boolean @default(false)
+  published Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // The public feed's exact ordering: published first, pinned to the top,
+  // newest after that.
+  @@index([published, pinned, createdAt])
 }
 
 // Web Push subscriptions (news alerts). One row per browser endpoint; tied to a

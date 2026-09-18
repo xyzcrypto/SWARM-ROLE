@@ -92,7 +92,7 @@ This document records the security vulnerability mitigations, defensive hardenin
 
 ## 4. Atomic OTP Verification & Index Hygiene
 
-* **Files:** `src/modules/auth/lib/otp.ts`, `src/core/email/otp.ts`, `prisma/schema.prisma`
+* **Files:** `src/core/email/otp.ts`, `prisma/schema.prisma`
 
 ### 4.1 Atomic Issuance Scoped to User
 * **Implementation:**

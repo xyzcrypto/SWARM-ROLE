@@ -116,3 +116,32 @@ describe("purgeExpiredVerificationCodes", () => {
   });
 });
 
+describe("there is exactly one OTP implementation", () => {
+  // `src/modules/auth/lib/otp.ts` sat beside the live `src/core/email/otp.ts`
+  // as an unreferenced copy, and the two had DIVERGED: the live one had the
+  // atomic attempt-claiming fix (so N parallel guesses cannot all read the same
+  // stale `attempts` count) and the dead one did not.
+  //
+  // It was not harmless. A security PR's OTP transaction fix was written
+  // against the dead copy and therefore did nothing at all - the bug it was
+  // meant to fix was still live after the change shipped. Nobody could see
+  // that from the diff, because the diff looked correct.
+  //
+  // `src/lib/otp.ts` is the import everyone uses and re-exports @core/email/otp.
+  const { existsSync, readFileSync } = require("node:fs") as typeof import("node:fs");
+
+  it("the dead duplicate has not come back", () => {
+    expect(existsSync("src/modules/auth/lib/otp.ts"), "a second OTP implementation exists again").toBe(false);
+  });
+
+  it("the shim still points at the live one", () => {
+    expect(readFileSync("src/lib/otp.ts", "utf8")).toMatch(/export \* from "@core\/email\/otp"/);
+  });
+
+  it("the live one still claims an attempt before comparing", () => {
+    // The fix that was missing from the dead copy. If this ever moves, the two
+    // files diverging again is how it would happen.
+    const src = readFileSync("src/core/email/otp.ts", "utf8");
+    expect(src).toMatch(/attempts: \{ increment: 1 \}/);
+  });
+});

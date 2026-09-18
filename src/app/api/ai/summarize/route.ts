@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
@@ -8,6 +9,15 @@ import { summarize } from "@/lib/ai-tasks";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+/**
+ * ⚠️ Declared, not defaulted. An AI call routinely runs longer than Vercel's
+ * default function duration, and when the platform kills a function the caller
+ * gets an opaque 504 instead of the graceful error this route is written to
+ * return. The gateway's own budget is capped below this on purpose, so that when
+ * something fails it is OUR message that reaches the reader.
+ */
+export const maxDuration = 60;
 
 const bodySchema = z.object({ postId: z.string() });
 
@@ -25,8 +35,8 @@ export async function POST(req: Request) {
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success || !isCuid(parsed.data.postId)) return fail("Invalid input.", 400);
 
-    const post = await prisma.post.findUnique({
-      where: { id: parsed.data.postId },
+    const post = await prisma.post.findFirst({
+      where: { id: parsed.data.postId, ...NOT_TRASHED },
       select: { id: true, slug: true, title: true, content: true, premium: true },
     });
     if (!post) return fail("Post not found.", 404);

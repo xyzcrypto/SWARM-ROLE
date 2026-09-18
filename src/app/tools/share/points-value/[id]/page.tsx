@@ -1,11 +1,35 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 import Link from "next/link";
+import { DEX_REGISTRY } from "@modules/markets/lib/dex-registry";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
 import { SITE_URL } from "@/lib/seo";
 import { PointsShareActions } from "@/components/tools/PointsShareActions";
+
+/**
+ * Where "try the calculator" should actually go.
+ *
+ * ⚠️ This pointed at `/tools`, which has not held the points calculator since it
+ * moved to `/points`. A reader who followed a Sodex card landed on a page of
+ * trading tools with no mention of Sodex and no calculator in sight - the single
+ * worst link on a page whose whole job is bringing someone in from a share.
+ *
+ * Resolved against the registry by NAME rather than by a lookup table, so a
+ * programme added tomorrow deep-links correctly with no second edit. An unknown
+ * name degrades to the page itself, never to a broken anchor.
+ */
+function calculatorHref(platform: string): string {
+  const key = platform.toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (!key) return "/points";
+  const hit = DEX_REGISTRY.find((p) => p.name.toLowerCase().replace(/[^a-z0-9]/g, "") === key);
+  // ⚠️ The SHORT address, not the anchor. `/points/Variational` is what a person
+  // can read aloud, paste into a chat and recognise; `/points#programme-variational`
+  // is what a developer writes. The short one redirects to the anchor, so both
+  // land in the same place and only one of them has to be shareable.
+  return hit ? `/points/${hit.name}` : "/points";
+}
 
 type CardData = { platform?: string; domain?: string; sharePct?: number; tokens?: number; usd?: number; fdv?: number };
 
@@ -103,7 +127,7 @@ export default async function PointsValueSharePage(props: { params: Promise<{ id
               <PointsShareActions imageUrl={image} platform={platform} usd={usd} />
               <p className="text-xs text-zinc-600">
                 Assumption-based estimate, not official data.{" "}
-                <Link href="/tools" className="text-gold-300 hover:underline">
+                <Link href={calculatorHref(platform)} className="text-gold-300 hover:underline">
                   Try the calculator yourself
                 </Link>
                 .

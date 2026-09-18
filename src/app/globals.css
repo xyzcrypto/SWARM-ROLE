@@ -1426,6 +1426,34 @@ html:not(.dark) .text-mint-200 { color: var(--data-up); }
    positive-direction colour on a crypto site, unreadable on its own ground.
    --data-up is mint-700, 5.31:1. Text only - bg-/border-mint are untouched. */
 html:not(.dark) .text-mint-300 { color: var(--data-up); }
+/* Tinted callouts: foregrounds that only ever worked on a dark ground.
+   `text-amber-200`, `text-sky-200`, `text-mint-100` and `text-rose-200` sit on
+   translucent tints of their own hue. Over near-black that reads fine; over the
+   light theme's near-white the tint stays pale and the text stays pale with it.
+
+   Measured on /points in the light theme before this block: the assumption
+   banner scored **1.1:1**, the locked-venue box **1.01:1**, and every cell of
+   the sensitivity grid **1.01:1** - the whole grid was invisible, not merely
+   low-contrast. Text only; the `bg-`/`border-` tints are untouched, so the
+   callouts keep their colour identity in both themes. */
+/* Sensitivity-grid cells.
+   `--data-down` is #dc2626, documented above as 4.54:1 - and that is measured
+   against PURE WHITE. These cells sit on `.surface`, which is slightly darker,
+   and under a tint of their own hue on top of that. Measured: **4.27:1**, under
+   AA, on every losing cell.
+   Lowering the tint did not fix it (re-measured at 0.28 alpha: still 4.27), because
+   the foreground is what is short, not the ground. red-700 clears it with room.
+   Scoped to the grid so the markets tables keep the shared token. */
+.grid-net-up { color: var(--data-up); }
+.grid-net-down { color: var(--data-down); }
+html:not(.dark) .grid-net-down { color: #b91c1c; }
+
+html:not(.dark) .text-amber-200 { color: #8a4b09; }  /* 5.9:1 on the amber tint */
+html:not(.dark) .text-sky-200 { color: #075985; }    /* sky-800, 6.9:1 */
+html:not(.dark) .text-mint-100 { color: var(--data-up); }
+html:not(.dark) .text-rose-200 { color: var(--data-down); }
+html:not(.dark) .text-mint-300\/70 { color: color-mix(in srgb, var(--data-up) 75%, transparent); }
+
 html:not(.dark) .hover\:text-gold-100:hover { color: #7a4a0d; }
 html:not(.dark) .hover\:text-gold-200:hover { color: #8a5810; }
 html:not(.dark) .hover\:text-mint-200:hover { color: #057653; }

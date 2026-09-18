@@ -52,6 +52,10 @@ const NEWS_CLIENT = "src/modules/news/components/NewsClient.tsx";
 const CHAT_CLIENT = "src/modules/community/components/ChatClient.tsx";
 // The shared cache for the >2 MB llama.fi upstreams (see the test at the bottom).
 const LLAMA = "src/modules/markets/lib/llama.ts";
+// A fifth distinct place, and the route it serves said so in advance.
+const POINTS_CLIENT = "src/modules/points/components/PointsClient.tsx";
+// A sixth distinct place. The rule holds: any route a client polls belongs here.
+const LIVE_WIRE = "src/modules/points/components/LiveWire.tsx";
 
 type Target = {
   /** Human label used in failure messages. */
@@ -202,7 +206,59 @@ function chatTarget(): Target {
   };
 }
 
-const TARGETS: Target[] = [...marketsTargets(), ...detailTargets(), tickerTarget(), newsTarget(), chatTarget()];
+/**
+ * `/api/points/comps` - the points page's live comparables.
+ *
+ * This one is here because the route asked for it. Its header carried, for two
+ * releases, the line: "NOT POLLED. The client fetches once on mount plus an
+ * explicit refresh button, so this is deliberately absent from TARGETS. **If a
+ * poll is ever added, add it there** - that test is the only thing standing
+ * between a poll and an ISR-write bill."
+ *
+ * A poll was then added, so it is here. 300s against a 320s window and a 320s
+ * `s-maxage`: the same margin `/api/markets/{dex,yields}` run, and the reason
+ * neither equal nor shorter is acceptable is written on `COMPS_POLL_MS` itself.
+ */
+function pointsCompsTarget(): Target {
+  const m = read(POINTS_CLIENT).match(/^export const COMPS_POLL_MS = ([\d_]+);/m);
+  if (!m) throw new Error(`could not parse COMPS_POLL_MS out of ${POINTS_CLIENT}`);
+  return {
+    label: "points/comps",
+    routeFile: "src/app/api/points/comps/route.ts",
+    pollMs: Number(m[1]!.replace(/_/g, "")),
+    pollSource: POINTS_CLIENT,
+  };
+}
+
+/**
+ * `/api/points/radar` - the press lane of the points band.
+ *
+ * ⚠️ Its window is NOT its own choice: the route reads `getNewsPage`, whose
+ * `unstable_cache` TTL is `NEWS_REVALIDATE` (120s), and Next takes the minimum
+ * across a segment. So 90s against 120s - the same margin `/api/news` has run
+ * since #236, and deliberately not equal, because equal lets jitter decide
+ * whether every poll regenerates the route.
+ */
+function pointsRadarTarget(): Target {
+  const m = read(LIVE_WIRE).match(/^export const RADAR_POLL_MS = ([\d_]+);/m);
+  if (!m) throw new Error(`could not parse RADAR_POLL_MS out of ${LIVE_WIRE}`);
+  return {
+    label: "points/radar",
+    routeFile: "src/app/api/points/radar/route.ts",
+    pollMs: Number(m[1]!.replace(/_/g, "")),
+    pollSource: LIVE_WIRE,
+  };
+}
+
+const TARGETS: Target[] = [
+  ...marketsTargets(),
+  ...detailTargets(),
+  tickerTarget(),
+  newsTarget(),
+  chatTarget(),
+  pointsCompsTarget(),
+  pointsRadarTarget(),
+];
 
 describe("polled API routes keep their ISR + edge windows aligned with client polling", () => {
   it("finds every polled route (guards against a silently empty parse)", () => {

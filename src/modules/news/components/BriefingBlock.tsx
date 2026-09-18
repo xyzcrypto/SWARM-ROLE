@@ -10,10 +10,30 @@ import { cn } from "@/lib/utils";
 // Shared AI-briefing block: renders the markdown briefing plus a "Listen" (free
 // browser text-to-speech) control and an EN / Hinglish toggle (AI-translated on
 // demand). Used by both the News reader and the shared-story page.
+export type BriefingMeta = {
+  provider?: string;
+  model?: string;
+  finishReason?: string;
+  outputTokens?: number;
+  cached?: boolean;
+  continued?: boolean;
+  /** The answer ran out of room even after a continuation pass. */
+  truncated?: boolean;
+};
+
 export function BriefingBlock({
-  englishText, loading, err, title, summary, loggedIn, onGenerate, className,
+  englishText, loading, err, title, summary, loggedIn, onGenerate, className, meta,
 }: {
   englishText: string | null;
+  /**
+   * What the generation actually did.
+   *
+   * ⚠️ This is here because a half-finished briefing was "fixed" three times
+   * without anyone being able to see WHY it was short. A truncated answer and a
+   * brief one read identically; only the stop reason separates them. Showing it
+   * turns the next report into a fact instead of a fourth guess.
+   */
+  meta?: BriefingMeta;
   loading: boolean;
   err: string | null;
   title: string;
@@ -204,7 +224,27 @@ export function BriefingBlock({
         </button>
       )}
       {controls}
-      <p className="mt-2 text-[10px] text-zinc-600">AI-generated from the headline &amp; excerpt. Not financial advice.</p>
+      {/* ⚠️ Says so when the answer is short BECAUSE it was cut off. A reader
+          who is handed a fragment presented as a finished briefing has no way to
+          tell, and will reasonably conclude the feature is broken - which is
+          exactly what happened, three times. */}
+      {meta?.truncated && (
+        <p className="mt-2 text-[11px] leading-relaxed text-amber-200">
+          This briefing ran out of room before it finished. Generating it again usually completes it.
+        </p>
+      )}
+      <p className="mt-2 text-[10px] text-zinc-600">
+        AI-generated from the headline &amp; excerpt. Not financial advice.
+        {/* Provenance in the smallest honest form: which model wrote it, and
+            whether it came from cache. A short answer can now be described. */}
+        {meta?.model && (
+          <span className="mono ml-1 opacity-70">
+            · {meta.cached ? "cached" : meta.model}
+            {meta.outputTokens ? ` · ${meta.outputTokens} tok` : ""}
+            {meta.continued ? " · continued" : ""}
+          </span>
+        )}
+      </p>
     </div>
   );
 }

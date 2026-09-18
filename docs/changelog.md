@@ -5,6 +5,1504 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (110) — One editor, and pictures on the press lane
+
+### Both composers now mount the dashboard's editor, not a lookalike
+
+The inline composers on `/research` and `/points` were a markdown toolbar over a
+textarea. That worked, and it was still a **second editor**: every capability the
+dashboard gained - drag-and-drop covers with progress, the WYSIWYG body, tags,
+the preview - either had to be built twice or quietly did not exist here. "Same
+to same" is the requirement, and the only way to keep two things the same is to
+make them one thing.
+
+- `/research` mounts `PostEditor` whole. It already posts to `/api/research`, so
+  there is no duplicated submit path either.
+- `/points` mounts `PostContentEditor` (the body only), because a desk post also
+  carries a kind, a programme and a pin that a research post does not. The shared
+  `CoverPicker` and `CharCount` stay.
+
+**The cost objection was real and is handled rather than waived.** Tiptap is the
+single heaviest thing this site ships, and these are PUBLIC pages. Both imports
+go through `next/dynamic` with `ssr: false`, so the chunk is requested only when
+someone who can publish opens the composer.
+
+**Measured, not assumed:** the Tiptap chunk is **382 KiB**, and the built HTML for
+`/points` and `/research` references it **zero** times against `/dashboard`'s one.
+A reader's first load is unchanged. `composer-kit.test.ts` now asserts the import
+SHAPE (dynamic, `ssr: false`, never static) rather than the editor's absence - a
+static import would otherwise pass every other check and silently undo this.
+
+⚠️ **A cap disappeared with the textarea, and that is the part worth
+remembering.** The body was a `<textarea maxLength={UPDATE_LIMITS.body}>`; the
+browser refused the 2001st character and the author never met the limit. A
+rich-text editor has no `maxLength`, so the swap alone would have let someone
+write a long post and learn only at the end, when zod refused the POST. The
+composer now compares `body.length` to the shared limit and **disables Post**,
+saying by how much it is over. `points-updates.test.ts` pins both halves.
+
+### The press lane could never show a picture
+
+`RadarItem` had no `image` field, and `LiveWire` had `image: null` hard-coded to
+match - an agreement between two files that made a missing feature look
+intentional. The desk lane had covers; the press lane next to it was bare text.
+
+`/api/points/radar` now carries the story's own image (http(s) only - the value
+goes straight to an `<img src>`, and a renderer should not be the first place a
+scheme is checked). Plain `<img>`, lazy, never `next/image`: these are publisher
+CDN URLs fetched browser-to-origin at zero Vercel transfer (cost-check, trap 3).
+
+Two things the browser probe caught that reading the source would not have:
+
+- **The picture was only in the expanded panel.** An image a reader must open a
+  row to discover does not do the job an image does. It is now in the collapsed
+  row too - a thumbnail that hides itself when the row opens and the full-width
+  image takes over.
+- **The panel `<img>` was in the DOM whether or not the row was open** - a second
+  node per row in a zero-height container, which a browser is entitled to fetch.
+  The count gave it away: 18 image nodes across 17 rows. Now gated on `open`, and
+  the probe asserts nodes ≤ rows.
+- **A row with a picture stood 10px taller than one without** (100 vs 90), so the
+  list stepped unevenly down the page depending on which feeds shipped an
+  enclosure. A `min-h` matched to the thumbnail flattens it to 94-100.
+
+### Verification
+
+typecheck · **1214 tests** · lint (0 errors) · build green · 36/36 browser checks
+on desktop and mobile.
+
+---
+
+## 2026-09-18 (109) — Links that are links, somewhere to read what you saved
+
+### `MarkdownLite` had no anchors at all
+
+⚠️ Neither `[text](url)` nor a bare URL rendered as a link. A desk post
+containing a referral link showed it as **dead text** a reader had to select and
+copy by hand, which on a phone is most of the way to not bothering.
+
+Nothing was unsafe - the renderer already refused raw HTML - it simply had no
+anchor. It has one now, and it only ever emits http(s): a `javascript:` href is
+script execution dressed as a link, and this text comes from AI output and from
+posts an admin types. Trailing punctuation stays with the sentence, so
+"see https://x.io." does not link the full stop.
+
+Both the desk card and the band's expanded row now RENDER the body through it
+instead of printing it, so the same post gains a tappable link, real bold and
+real bullets with no change to the composer.
+
+### The save button had no destination
+
+Saving worked. There was nowhere to read from. **A bookmark you cannot find
+later is a button that files things into a drawer with no handle**, and the
+reader only discovers that after relying on it.
+
+`/saved` lists research and news together - they already share the `SavedStory`
+store, keyed `(userId, url)`, which was the point of reusing it. An internal url
+opens in-app, an external one opens through the site's own reader, and
+`isInternal` decides by comparing against the **current origin** so a preview
+deployment does not treat its own links as foreign.
+
+Registered in `navLinks` (it lands in "More", not the six-link rail, which is
+already eight pixels from overflowing), because a page absent from that list is a
+page that cannot be reached from anywhere.
+
+### `/points/Variational`
+
+A short, shareable address. It **redirects** rather than rendering its own page:
+the programme already has a section on `/points` with its live comparables, cost
+panel and outcome grid, and a second page would be a second thing to keep
+correct while showing less.
+
+Case- and punctuation-insensitive, because a URL typed by a human respects
+neither. An unknown venue lands on `/points` rather than a 404 - these links are
+shared, they outlive the registry entry they were made from, and an error page is
+a worse answer than the page they were trying to reach. Eight prerendered
+redirects, so a share click costs no function invocation.
+
+### The briefing was being asked the wrong question
+
+⚠️ The points band fed **a list of eight headlines** into
+`buildNewsBriefingPrompt` - a prompt written for ONE story, asking for "What
+happened", "Key players", "Background", and a TL;DR that "captures the whole
+story". Handed unrelated items as an "excerpt", a model either picks one and
+ignores the rest or writes something short and hedged.
+
+That is what "briefing not working" has been on this surface. And the payload was
+sliced at **1200 characters**, cutting the list off mid-item, so it was briefed
+on half a sentence.
+
+New `roundup` mode with a prompt shaped like its input: what changed, what it
+means for farmers, dates to watch, what is still unknown - and an explicit
+instruction not to invent a connection between unrelated stories. The cap is
+3800 characters, and the band shows the same truncation notice and model name the
+news briefing does.
+
+### Verification
+
+typecheck / 1211 tests / lint / build green. Routes 146 → 153: `/saved` plus
+eight prerendered venue redirects. Static 28 and ISR 12 unchanged.
+
+---
+
+## 2026-09-18 (108) — Half the band was live and half was as old as the page
+
+### The press lane had no live path at all
+
+The desk lane broadcasts on write, so it was genuinely realtime. The press lane
+fetched on mount and on wake and that was all - so a band called **"Latest
+updates"** was half live and half as old as the page, with nothing saying which.
+
+`RADAR_POLL_MS` is 90s against the route's 120s window: the same margin
+`/api/news` has run since #236, and deliberately not equal, because equal lets
+jitter decide whether every poll regenerates the route. Registered in `TARGETS`,
+and the route header now says it is polled rather than arguing it should not be.
+
+Hidden tabs are skipped - a backgrounded tab polling is pure cost for something
+nobody is looking at.
+
+### "Everything important" now means everything
+
+The radar returned 12 items and the list showed 12. A reader asking for the rest
+got a truncation nobody mentioned. The route returns 30 and a **Show all N**
+control reveals them, with the count stated so nothing is hidden behind a
+euphemism.
+
+### New items are announced, not spliced in
+
+⚠️ A live feed that reflows under someone mid-sentence is worse than a stale one:
+they lose their place and learn not to trust the list. An arrival raises a
+**"N new updates"** pill; the reader decides when the list moves, and each new row
+is marked until they do.
+
+**That pill was wrong twice before it was right, and both versions looked
+correct:**
+
+1. Seeding the "already seen" set on first render recorded an **empty** set - the
+   effect runs before either fetch resolves - so the entire first feed counted as
+   arrivals.
+2. Seeding on the first non-empty list was no better: the two lanes resolve
+   **separately**. The desk lane landed first with one post, that became the
+   baseline, and all seventeen press items then read as new.
+
+Both produced the same measured symptom: a freshly opened page announcing
+**"18 new updates"** before the reader had seen anything at all. "The reader has
+seen the initial feed" means both lanes have settled, so that is what the
+condition says now.
+
+⚠️ The browser check only caught this after being tightened from "a pill
+appeared" to "the pill says exactly 1". The loose version passed while the
+feature was visibly wrong.
+
+### One more silent-CSS trap, caught before it shipped
+
+The stagger was first written as `animate-in fade-in slide-in-from-bottom-1`.
+Those belong to **`tailwindcss-animate`, which this repo does not install**
+(`plugins: []`), so they parse, emit **nothing**, and fail silently - the same
+family as `bg-base/95` (no rule emitted) and `text-content0` (class does not
+exist). It uses `animate-fade-up`, this project's own keyframe, and
+`points-light-theme.test.ts` now fails on any utility from that missing plugin.
+
+Verified in the browser: `animation-name: fade-up`.
+
+### Verification
+
+typecheck / 1211 tests / lint / build green, plus a browser probe at 1440px and
+393px - 24 checks covering the fold, Show all, the real keyframe, and the pill
+announcing exactly what arrived.
+
+---
+
+## 2026-09-18 (107) — Why three fixes to the briefing all looked like nothing
+
+### The question nobody could answer
+
+The briefing has now been "fixed" three times. Each fix was a real bug - a flat
+15s timeout, a missing `maxDuration`, the wrong model tier - and each time it
+came back short.
+
+⚠️ **The reason is that nothing on the path could say why the answer stopped.** A
+truncated answer and a genuinely brief one are identical in the text. Only the
+provider's stop reason separates them - and **both providers were discarding
+it**: Groq returns `choices[0].finish_reason`, Gemini returns
+`candidates[0].finishReason`, and neither reached the caller. Every diagnosis
+was therefore a guess, including all three of mine.
+
+Both are now carried through `CompleteResult.finishReason`, normalised to
+`stop` / `length` / `other`. Gemini spells truncation `MAX_TOKENS`; reading only
+Groq's spelling would have left the primary provider silent.
+
+### The mechanism that made the fixes look ineffective
+
+⚠️ **The response cache stores a briefing for 24 hours, and `setCached` accepted
+anything non-empty.** One half-finished briefing was then served to every
+identical request for a day - *across deploys*. The fix would ship, and the
+reader would be handed the same cached fragment that predated it.
+
+A cut-off answer is not a cheaper answer; it is a wrong one, and caching a wrong
+one is how a bug outlives its fix. `runComplete` now refuses to cache anything
+that stopped on `length`.
+
+### A briefing that hits the ceiling gets finished
+
+Rather than serving half of one, the route asks the model to carry on from where
+it stopped - **exactly once**. Two would be a loop with a bill attached, and if
+one more pass is not enough the honest thing is to say it was cut short.
+
+Only for `briefing`: a "why this matters" is two sentences by design, and
+stopping at its ceiling means something else is wrong.
+
+### And the reader can see it
+
+The answer travels with `meta` - model, provider, output tokens, whether it was
+cached, whether it was continued. The block says **"This briefing ran out of room
+before it finished"** when even the continuation ran out, and names the model
+underneath.
+
+A fragment presented as a finished briefing leaves a reader to conclude the
+feature is broken. That is precisely what happened, three times over.
+
+### Verification
+
+typecheck / 1210 tests / lint / build green. `ai-briefing-truncation.test.ts`
+pins all of it: both spellings of the stop reason, the conditional cache write,
+exactly one continuation, and the truncation notice.
+
+---
+
+## 2026-09-18 (106) — The briefing was asking the wrong model, and delete meant gone
+
+### The briefing was routed as bulk work
+
+It arrived late and stopped after the TL;DR. Entry 103 fixed the timeout, which
+was real, but not the whole story.
+
+⚠️ **`/api/ai/why-matters` passed `task: "digest"` for a briefing.** `routeTier`
+sends everything except the assistant to the **fast** model, with the comment
+"bulk deterministic tasks are cheap + high-volume". A digest is two or three
+sentences. A **briefing is a nine-section, 650-900 word explainer** - neither
+cheap nor bulk. The fast model wrote a couple of sentences and stopped, which is
+precisely what was reported.
+
+`briefing` is now its own `AiTask` and routes to the **quality** model for
+everyone, regardless of plan. A briefing that stops after the TL;DR is not a
+cheaper briefing; it is a feature that does not work, generated and paid for
+anyway.
+
+⚠️ It also joins `USER_TASKS`, so it counts against the daily cap. Leaving it out
+would have been the expensive kind of omission: the longest generation a member
+can trigger, on the quality model, uncounted.
+
+The points band's briefing now carries **`RobotIcon`** - the same mark the
+assistant and the news briefing use. One face for XYZ AI everywhere it speaks.
+
+### Delete meant gone
+
+⚠️ `DELETE /api/research/[id]` called `prisma.post.delete`. A published article
+was gone from Postgres with no way back short of a database backup - and a
+backup is not a feature, it is a thing you find out you do not have on the day
+you need it. **One misclick, one article.**
+
+Now:
+
+- `Post.deletedAt` (migration `39_post_soft_delete`, `ADD COLUMN IF NOT EXISTS`,
+  nullable, no backfill, partial index on the live rows).
+- **DELETE sets `deletedAt`.** `?purge=1` still destroys a row, but refuses
+  anything not already in the trash - so permanent deletion takes two deliberate
+  actions, and the second is taken while looking at the trash.
+- `GET /api/research/trash` and `POST /api/research/[id]/restore`. Without a
+  restore path, `deletedAt` is just a slower way of losing something.
+- Restore returns a post to the `published` state it had. A draft that was
+  deleted comes back a draft: restoring undoes a deletion, it does not make a
+  publishing decision for the owner.
+- Restore busts **both** `/research` and the article path, or the post is back in
+  the database and still missing from the site.
+
+⚠️ **The dangerous half of a soft delete is the READ side.** Sixteen places query
+`Post`; miss one and a deleted article is still reachable by URL, still in a
+count, still in a sitemap - and nothing errors. So there is one predicate,
+`NOT_TRASHED`, spread at every site, and `post-soft-delete.test.ts` walks every
+source file and fails on a `prisma.post` read without it. Verified to fail when a
+single filter is removed.
+
+That check found a real one the first time it ran: the **PATCH** lookup was
+unguarded, so a trashed post could still be edited.
+
+### Save a read
+
+A `SaveButton` on the article page. ⚠️ Reuses the news `SavedStory` store rather
+than adding a table: it is keyed `(userId, url)` and already holds title,
+summary, source, image and category. A second store would mean a second
+migration, a second API and - the part that matters - **a second place a reader
+has to look for the thing they saved**. One saved list, with the source naming
+the lane.
+
+### Verification
+
+typecheck / 1196 tests / lint / build green. Two new routes, both `ƒ` and
+`private, no-store` - an admin-only list of non-public titles must never reach a
+shared cache.
+
+---
+
+## 2026-09-18 (105) — One composer toolkit, two surfaces
+
+### What the inline composers were missing
+
+`/research` and `/points` both gained inline composers, and both shipped as bare
+textareas: no cover image, no formatting, no preview. The dashboard had all of
+it, which is exactly the trip the inline composer existed to avoid.
+
+`ComposerKit` now carries the shared pieces - `MarkdownToolbar` (bold, italic,
+heading, bullets, quote, link, code), `CoverPicker` (upload, thumbnail, remove)
+and `CharCount` - and both surfaces use it. Two toolbars would be one toolbar and
+a divergence waiting to happen.
+
+Research also gains a **Write / Preview** toggle rendering through `MarkdownLite`,
+the same renderer the article page uses, plus tags and an avatar-led opener.
+
+### Markdown, not a rich-text editor — deliberately
+
+⚠️ The dashboard's Tiptap is **the single heaviest thing this site ships**:
+`/dashboard` measures roughly twice every other route's bundle, and that is
+Tiptap loading for every tab. Putting it on two **public** pages to save typing
+two asterisks would move that weight onto readers who never compose anything.
+
+So the buttons write markdown into a plain `<textarea>`. Both destinations
+already render markdown, and the output is a string a human can read and fix.
+
+⚠️ **Colour and font controls are absent on purpose**, not missing.
+`MarkdownLite` emits the design system's own type and colour tokens by design -
+which is what keeps a post looking like the site rather than like whoever typed
+it. A colour picker would be a control that silently does nothing.
+
+### A points update can carry an image
+
+New nullable `PointsUpdate.image` (migration `38_points_update_image`,
+`ADD COLUMN IF NOT EXISTS`, no backfill). Rendered in the desk card and in the
+expanded row of the band.
+
+⚠️ Two cost decisions, both against the obvious choice:
+
+- **A plain `<img>`, never `next/image`.** The file is served straight from
+  Supabase Storage, so the browser fetches it directly at **zero Vercel
+  transfer**; routing it through the optimiser would spend both Fast Origin
+  Transfer and optimisation quota. The lint rule's "best practice" is the
+  expensive option here (trap 3). Lazy-loaded, so a feed does not fetch every
+  cover up front.
+- **A URL, never inline base64.** A `data:` image in the DB is serialised into
+  every response that reads the table, which blew FOT on this project once
+  already (trap 4).
+
+The image passes through `safeUrl` like every other link - http(s) only - rather
+than being trusted because an upload wrote it, since the column can also be
+written by a future path that does not.
+
+### Verification
+
+typecheck / 1186 tests / lint / build green. A new browser probe drives the
+research composer at 1440px and 393px: 7/7 toolbar controls, cover picker, tags,
+**bold wrapping a live selection** (`hello **world**`), and the preview rendering
+it as `<strong>`. The points probe still passes 100/100.
+
+---
+
+## 2026-09-18 (104) — Read it here, and a bar that actually gets out of the way
+
+### The briefing works
+
+Confirmed from production: entry 103's timeout fix landed. The band now renders a
+full TL;DR → What happened → Key numbers → Jargon buster, in the style the news
+reader uses.
+
+### Latest updates reads like news now
+
+- **A headline expands IN PLACE.** Tapping one used to leave - straight out to
+  the outlet. On a page whose whole argument is "check the number before you
+  act", throwing the reader off-site at the first tap is the opposite of the job.
+- **The story opens on THIS site.** A press row links to `/news/read?u=…`, which
+  renders it here with its own briefing, instead of `coingape.com`. The outlet is
+  still named and still one tap further. A **desk** link stays external, because
+  the desk chose that URL - usually a tweet - and there is nothing to render
+  on-site for it.
+- **The briefing can be closed.** A briefing is long; once read it is in the way,
+  and scrolling past it forever is not a substitute for a close button.
+- **The "Post" button is gone.** It only jumped to the composer further down the
+  same page: a control that looked like an action and was actually a scroll.
+
+Expanding is a `<button>` and reading is an `<a>`, never one element doing both -
+a link that sometimes navigates and sometimes does not is the control readers
+learn to distrust first.
+
+### The nav gap
+
+⚠️ Fading the bar out left its box exactly where it was. A `sticky` element stays
+in **normal flow**, so hiding it produced a ~56px hole between the band and the
+first panel - the bar had not got out of the way, it had become invisible
+furniture. That is what "gap dikhta hai" was.
+
+It animates its row height to zero alongside the fade now. Measured: **62px →
+0px**. The hide threshold also moves 140px → 260px, so it takes a deliberate
+scroll rather than a nudge.
+
+### Publish from /research
+
+`QuickPublish` - title, summary, body, category, premium, draft or publish -
+inline on the page, for anyone with `post:publish`. Posting a short note meant
+leaving for the dashboard, finding the editor, and navigating back: five steps
+for something that is often one paragraph and a link.
+
+It is **not** a replacement for the dashboard editor, which keeps the rich
+editor, covers, tags and scheduling. This is the short-form door, and what it
+omits is deliberate. The client-side permission check hides a control that would
+403; `/api/research` enforces the same permission independently, because a
+client gate is never the boundary.
+
+### Verification
+
+typecheck / 1177 tests / lint / build green. Browser probe at 1440px and 393px,
+**100 behaviours**, both themes AA.
+
+⚠️ Two probe assertions were themselves wrong and were fixed, not the code: the
+nav-opacity check selected `nav > div`, which after the height-collapse wrapper
+was added pointed at a deliberately transparent box; and the nav-nudge check
+started from an already-hidden bar.
+
+---
+
+## 2026-09-18 (103) — The Refresh buttons never refreshed, and the AI briefing never had time
+
+### Every Refresh button on this site was decoration
+
+They all fetched with `cache: "no-store"`, which looks exactly right and is not.
+`no-store` tells the **browser** not to use its own HTTP cache. It says nothing
+to the Vercel edge, which kept serving the same body for the rest of its
+`s-maxage` window - 320s for comparables, 120s for the press feed.
+
+So pressing Refresh re-rendered identical numbers behind a spinner. Worse than
+no button: a reader who presses it concludes the data really has not changed.
+
+`src/lib/refetch.ts` mints a distinct URL - a distinct edge key - but only for a
+**button press**, and at most once per 10s per route. Polls and wake refetches
+keep the shared cached URL, because those happen without anyone asking and are
+exactly the paths that must stay cheap.
+
+### The news briefing never worked, and took a minute not to
+
+`COMPLETE_TIMEOUT_MS` was a flat **15 seconds for every completion**.
+`/api/ai/why-matters` asks for **2000 tokens** in `briefing` mode. No model emits
+two thousand tokens in fifteen seconds, so it timed out every time - and a
+timeout classifies as a transient "retry", so the gateway then burned
+`MAX_RETRIES` more attempts against the same provider with backoff, then the next
+provider, before raising `AiCapacityError`.
+
+Three things, all of them wrong:
+
+1. **The budget is now proportional to the requested length** (~45ms/token),
+   with the 15s as a floor.
+2. **A timeout on a long generation is no longer retried** against the same
+   provider. It had not failed transiently - it was still working, and asking
+   the identical question again takes at least as long. Short requests keep the
+   retry, where a blip is plausible.
+3. ⚠️ **No AI route declared `maxDuration`.** Vercel kills a function at its
+   duration limit, so the platform was killing the request mid-generation and
+   the caller got an opaque 504 rather than the graceful 502 the route is
+   written to return. All five AI routes declare 60s now, and the gateway's own
+   cap sits at 55s **below** it, so when something fails it is our message that
+   reaches the reader.
+
+`maxTokens` for a briefing drops 2000 → 1400: the prompt asks for 650-900 words
+(~900-1250 tokens), so 2000 was never the length of the answer, only the size of
+the window it could take.
+
+### Points
+
+- **"Live wire" → "Latest updates".** A wire service is a newsroom term; nobody
+  outside one reads it as "the latest updates", which is all it is.
+- **A "From X" lens**, offered only when there is something to filter to. X is
+  still not a source - no free API - but desk posts linking a tweet are badged
+  and can now be isolated.
+- **An AI briefing on the band**, built from the headlines the reader can
+  actually see. A briefing summarising something other than what is on screen
+  invites trusting it over the sources, and the sources have names attached. On
+  demand only.
+- **The nav stops flickering.** It hid after **8px** of downward scroll, less
+  than one wheel notch. Now 140px of accumulated downward intent to hide, 24px up
+  to reveal, accumulator resets on direction change, and it stays put in the
+  first 240px. Deliberately asymmetric: hiding wrongly steals a control, showing
+  wrongly costs 44px for a moment.
+- **The tracked programmes are comparable at last.** Variational, Sodex, RiseX
+  and Pacifica appear in **no** market feed - too new - and the engine needs the
+  target's own volume to form a ratio, so the venues this page exists for were
+  the ones it could never price. There is no honest way to invent that number, so
+  it is asked for, and labelled as the reader's figure wherever it appears.
+- **The share card's "Try the calculator" pointed at `/tools`**, which has not
+  held the points calculator since it moved. It deep-links to
+  `/points#programme-<id>`, resolved against the registry by name so a new
+  programme works with no second edit.
+
+### Verification
+
+typecheck / 1177 tests / lint / build green. Browser probe at 1440px and 393px,
+**92 behaviours**, both themes AA. New: `ai-timeout-budget.test.ts` pins the
+budget against the routes' declared `maxDuration`.
+
+---
+
+## 2026-09-18 (102) — Two normalisers were one normaliser and a bug
+
+### The wrong numbers had a name: `futures`
+
+A reader's screenshot showed the comparables panel live and confidently wrong:
+**"12 venues · 2 with a listed token · 10 unlisted"**, target *Hyperliquid
+(Futures)*, **"Implied FDV from 2 peers"**.
+
+Two things in one picture. First, the **fallback was working** - "(Futures)" is
+CoinGecko's derivatives naming and only 24h/OI windows were offered, which is
+exactly what entry 101's fallback provides. Second, the route carried **its own
+copy** of the name normaliser, and that copy did not strip `futures`.
+
+So `"Hyperliquid (Futures)"` reduced to `hyperliquidfutures`, matched nothing in
+a token list keyed on `hyperliquid`, came back `fdv: null`, and **the largest
+perp DEX in existence was served as an unlisted venue** - which the explorer
+then auto-selected as its target, deriving a valuation for it from the two peers
+that happened to survive.
+
+One normaliser now, imported by both, and it strips anything parenthesised
+because a registry's qualifier is never part of a project's name.
+
+### The gap in three screenshots had one cause
+
+`PointsPanel`'s header was one row with `flex-wrap`. ⚠️ **`flex-wrap` does not
+solve this**: it moves a child to the next line only when it cannot fit *at its
+minimum*, and a heading's minimum is one word. So the actions kept the
+right-hand side and the title took whatever remained - measured at 393px, "What
+the desk is reading" wrapped **one word per line** with half the card empty.
+
+`flex-col` below `sm`, `sm:flex-row` above. `ProgramSection` had the identical
+squeeze (its header is a `<button>`, so it cannot nest in the panel) and its
+titles measured **42-46% of the card**; same fix. Pinned by a probe assertion
+that no panel title may fall under 80% of its card's inner width.
+
+### "Live anchor" on a number that was not live
+
+The outcome panel drew a green **Live anchor** chip directly above "Ladder
+centred on the **published scenario** $290.00M". A published scenario is a
+hand-entered registry figure. Labelling it live is the exact dishonesty this
+page argues against, so the chip is now driven by whether the anchor actually
+came from comparables.
+
+### The wire
+
+The desk's posts sat at the top and the press feed at the bottom, a full screen
+apart, both full-height panels, both answering "what changed today". They are
+one band now, **above the nav**: one promoted item as a banner, the rest folded
+behind a count.
+
+Both lanes stay labelled - "Posted by the XYZ desk" versus "Reported by
+&lt;outlet&gt;" - because those are different claims and a farmer acts
+differently on each. A pinned desk post outranks everything.
+
+⚠️ **X still is not a source.** No free API exists. It appears the honest way:
+when the desk posts a link to a tweet, the row is badged `X`.
+
+### Also
+
+- **Share cards had `domain: ""` hard-coded**, which is why no card has ever
+  carried a venue logo. Derived from the registry's own `links.website` now, so
+  a programme added tomorrow gets its logo with no second place to edit.
+- **The hero warning** occupied roughly a quarter of the first phone screen. It
+  is a `<details>` one-liner - native, no JS, no hydration risk, still the first
+  thing under the headline.
+- **Peers are selectable.** A comparable set is a judgement, not a fact: tap a
+  peer to drop it from the median. Excluded peers stay visible so the control is
+  not a one-way door. Measured: 4 peers → 3.
+- A `text-amber-200/90` in the new disclosure measured **1.05:1 in light** - the
+  light override targets `.text-amber-200`, and the opacity modifier makes a
+  *different class name* the override never matches.
+
+### Verification
+
+typecheck / 1170 tests / lint / build green. Browser probe at 1440px and 393px,
+**90 behaviours**, both themes AA.
+
+---
+
+## 2026-09-17 (101) — Aggregate, because one refusing upstream was blanking the page
+
+### The diagnosis, at last
+
+Three releases of "Data unavailable", two wrong theories. The stage diagnostics
+added for exactly this printed it from production:
+
+```
+venues from upstream: 0 · past the volume filter: 0 ·
+priced tokens: 249 · matched: 0 · llama Error
+```
+
+**CoinGecko was fine - 249 tokens priced. DefiLlama was refusing.** `llama.ts`
+throws `new Error("<url> <status>")` on a non-OK response, so `err.name` is the
+generic "Error" and the reporting threw the status away, which is why every
+earlier report said only "llama Error". It reports `err.message` now, so the
+next one carries the code.
+
+**One upstream being able to blank a page is the actual defect**, and no amount
+of retrying a refusing host fixes it. `/api/points/comps` now falls back to
+CoinGecko's derivatives exchange list - the host production proved reachable in
+the very same request - converting BTC-denominated volumes with a spot price
+fetched alongside, and dropping the whole source if that price is missing rather
+than emitting numbers five orders of magnitude wrong.
+
+⚠️ **The fallback may only ADD venues it can name.** Its list mixes centralised
+exchanges in with perp DEXs, so it filters through an explicit allowlist and
+fails **closed**: an unrecognised venue is dropped. Quietly pricing a points
+programme against Binance's volume would be the "wrong number presented as
+right" failure this codebase keeps meeting. Tested against eight CEX names.
+
+⚠️ The fallback's fetches are **cached, not `no-store`**. A single `no-store`
+anywhere in a segment makes the whole route dynamic, and it did:
+`/api/points/comps` dropped from prerendered back to per-request until this was
+caught in the route-table diff. That response is ~100 rows, far under the 2 MB
+data-cache ceiling, so it caches fine.
+
+### A second lane for the desk: trusted sources
+
+`/api/points/radar` plus `AirdropRadar`, at the bottom of the page. Airdrop,
+points and perp DEX stories, each credited and linked.
+
+⚠️ **No new upstream.** It is a FILTER over `getNewsPage`, the site's existing
+RSS pipeline - already fetched, parsed, deduped and cached for /news, and its
+taxonomy already ships "Airdrops", "Perp DEX" and "Token Launches" categories.
+A second fetch of the same twenty feeds would have doubled a cost the site
+already pays, and a second parser would have been a second thing to keep correct.
+
+⚠️ **X/Twitter is deliberately not a source.** There is no free API for it, and
+claiming to read X while actually reading an outlet that quotes X would be a
+false claim about sourcing. A specific tweet belongs in the desk's own posts,
+with its link.
+
+Collapsible, and the choice is remembered. Venue chips filter it.
+
+### The nav: opaque, and it gets out of the way
+
+Two bugs, both visible in the reported screenshot:
+
+1. **It was see-through.** `.glass` over dense cards let their text read through
+   the labels, so mid-scroll it rendered as superimposed strings
+   ("RiseFarmingVariational") and looked like a rendering fault.
+2. **It was always there**, sitting on the first card and costing ~44px of a
+   phone viewport permanently. It now hides on scroll down and returns on scroll
+   up.
+
+⚠️ **And the fix reintroduced the first bug.** `bg-base/95` reads perfectly and
+emits **nothing at all**: these semantic tokens are declared as plain
+`var(--bg)`, not in the `rgb(... / <alpha-value>)` form an opacity modifier
+requires, so Tailwind produces no background rule. Measured at **alpha 0**. Same
+family as the `text-content0` incident - a class that parses, means nothing, and
+fails silently. Now `bg-base`, and `points-light-theme.test.ts` fails on any
+opacity modifier applied to a var-based token.
+
+### Every outcome: bear / base / bull
+
+Three scenarios computed from the **live peer spread** - cheapest peer, median,
+dearest - each showing value and ROI, each clickable to adopt. Requires three
+peers: a "range" from two is one peer either side of nothing, and dressing that
+as a band would be inventing precision.
+
+### Mobile
+
+Measured at 393px: five controls came out **32px tall**, under the 36px floor a
+thumb needs - the segmented metric buttons, both selects and the radar chips.
+All raised. The dense outcome grid is exempt and verified to scroll inside its
+own box rather than the page.
+
+### Also
+
+- `docs/guides/perp-quiz-structure.md` - a full build plan for the quiz/score
+  game: schema, routes, the "client never receives the answer" rule, live
+  question generators with their ambiguity guards, scoring, build order.
+  **Not built.** The document is the deliverable.
+
+**Route table:** 143 → 144 routes, static 27 → 28, ISR 11 → 12, dynamic
+unchanged at 115. The one addition is `/api/points/radar` at 2m, matching
+`NEWS_REVALIDATE` because the shared cache imposes it (trap 1b).
+
+### Files
+
+`src/modules/points/lib/{perp-sources,airdrop-radar}.ts` (new) ·
+`src/app/api/points/radar/route.ts` (new) ·
+`src/modules/points/components/AirdropRadar.tsx` (new) ·
+`src/app/api/points/comps/route.ts` · `PointsNav/SensitivityGrid/CompsEngine/CostPanel/PointsClient.tsx` ·
+`src/modules/tools/components/CalcField.tsx` ·
+`src/lib/__tests__/points-sources.test.ts` (new) · `points-light-theme.test.ts` ·
+`docs/guides/perp-quiz-structure.md` (new)
+
+---
+
+## 2026-09-17 (100) — One header grammar, a desk that stays quiet, and a tape that is always live
+
+### The alignment complaint, measured
+
+"Aligned karo" is not a taste note, and it turned out to be measurable. At
+1440px the page drew **eight panels, of which five carried an eyebrow and three
+did not**, and the panel titles started at **two different x positions: 125px
+and 177px**.
+
+The 52px came from the programme sections leading their header row with a 40px
+logo, which pushed the programme name right of every other title on the page.
+Six panels lining up and three not is exactly what reads as unaligned, and no
+amount of colour or spacing polish survives a ragged left edge.
+
+- **`PointsPanel`** now owns the eyebrow, title, description, action slot, meta
+  row and padding. Six panels had each grown their own; a panel supplies content
+  and does not get to invent spacing.
+- The programme logo moved to the right, beside the number it belongs to.
+- `LiveChip` replaces three hand-drawn status lights (three dot sizes, two
+  greens). A reader reads a status light as one thing or as noise.
+- The page uses the **system container** (1200 → 1320) instead of a one-off
+  `max-w-5xl`, so its cards stop sitting narrower than the rest of the site.
+- The accent is a **separate `accent` prop**, not markup passed inside `title`.
+  `background-clip: text` does not paint through to nested children, so a caller
+  wrapping a whole title renders its other words invisible. The component's shape
+  makes that unrepresentable rather than something to remember.
+
+Measured after: **one eyebrow x, one title x, one padding value**, at 1440px and
+393px. Pinned by `points-layout.test.ts`.
+
+### The airdrop desk earns the top of the page
+
+It sits first because when there IS news, news is the most important thing here.
+When there is not, the full treatment (eyebrow, display heading, description, and
+a bordered box announcing that nothing had happened) was the **largest element on
+the page and said nothing** - a reader arriving at a calculator met an empty
+noticeboard first.
+
+It now collapses to one quiet line that still proves the desk is connected, and
+expands into the real panel the moment a post exists. Measured: **56px empty,
+396px with one post**. Staff keep the composer either way, since posting from
+there is how it stops being empty.
+
+⚠️ Only for the `ready`-and-empty state. An unreachable feed keeps its own
+visible note: "nothing posted" and "we could not reach the feed" are different
+statements, and collapsing an outage into a quiet desk is a lie in the reader's
+favour.
+
+### Live comparables: actually live, and never blank
+
+- **It refreshes itself**, every 300s, hidden tabs skipped. "Live" previously
+  meant "live as of page load", which for a page people leave open beside a
+  terminal is not live.
+- **The live tape**: the top venues by 24h volume, rendered **independently of
+  whether any peer can be matched to a token**. Everything else in that panel
+  needs a peer with both volume and an FDV; when none matched, all of it
+  collapsed and the panel went blank while holding forty venues of live volume
+  data. Live that disappears whenever the derived number cannot be computed is
+  not live, it is a calculator with a status light.
+- When valuations are missing but volumes are not, it **says which half is
+  missing** rather than leaving a column of dashes to be read as zero.
+
+### Every outcome: the verdict in words
+
+The grid showed the whole space but never stated the one thing a reader arrives
+for. It now leads with it: *"At 10% of supply you break even at $722.26M FDV. The
+live market implies $73.50M, which is 9.83x short of it."* Columns are
+`table-fixed`, so they stop changing width per value.
+
+### Cost and caching
+
+⚠️ Two findings from `markets-poll-alignment.test.ts`, both correct, both caught
+before merge:
+
+1. The 300s poll needed a `TARGETS` entry. The route header had asked for exactly
+   this in advance ("NOT POLLED ... if a poll is ever added, add it there, that
+   test is the only thing standing between a poll and an ISR-write bill"), and
+   that header now says the opposite and names the poll.
+2. Entry 99's `derivatives()` fallback fetched `api.llama.fi/overview/derivatives`
+   **directly**. That body is one of the four moved behind `unstable_cache` for
+   being over Next's ~2 MB data-cache ceiling, so an uncached fetch re-parses
+   megabytes on a request path (Fluid Active CPU, trap 2). It was also a guess:
+   the empty panel was never caused by an empty protocol list. **Removed.**
+
+Also: `Cache-Control` is now a **literal** rather than `s-maxage=${revalidate}`.
+A template literal is invisible to the alignment test's regex, so the one number
+that actually governs the CDN (trap 0) was the one number nothing verified.
+
+**Route table:** no change against `main`. ⚠️ **This entry originally claimed
+`/api/points/comps` went ƒ (dynamic) → ○ (prerendered, ≈5m), with totals moving
+static 26 → 27 and dynamic 116 → 115. That was wrong**, and the way it was wrong
+is worth keeping: the comparison was produced with `git stash` → build →
+`git stash pop` → build, and **`git stash` reverts to HEAD, which on a feature
+branch is the branch's own previous commit, not `main`.** So the two sides were
+entry 99 and entry 100, both mid-branch.
+
+Re-measured properly (`git checkout origin/main` → build → checkout back), the
+route is **`○ ≈5m` on both sides**. The ƒ → ○ transition was real but internal:
+entry 99 had introduced the dynamic render with its `cache: "no-store"` fallback
+fetch, and entry 100 removed it. Relative to `main`, nothing moved.
+
+The lesson is the one this project keeps relearning: a baseline you did not
+explicitly check out is not a baseline.
+
+### Files
+
+`src/modules/points/components/PointsPanel.tsx` (new) ·
+`{UpdatesFeed,CompsEngine,SensitivityGrid,ProgramSection,ProgramPanel,CostPanel,PointsClient}.tsx` ·
+`src/app/points/page.tsx` · `src/app/api/points/comps/route.ts` ·
+`src/lib/__tests__/points-layout.test.ts` (new) ·
+`src/lib/__tests__/{markets-poll-alignment,points-comps-window}.test.ts`
+
+---
+
+## 2026-09-17 (99) — The comparables bug was never in the route, and the grid is a control now
+
+### "Data unavailable": found, and it was two panels away from where I looked
+
+Entry 98 fixed a real gating bug in `/api/points/comps` and the panel still
+showed nothing. The cause was never in the route at all:
+
+`buildComparables` returns an empty set when the **target's own** metric is 0 —
+correctly, since a ratio against zero is meaningless. The explorer exists to
+value an **unlisted** venue, so it auto-selects the first venue with no FDV:
+the newest one on the page. The default window was 30-day volume. **A venue new
+enough to be unlisted has no 30 days of history.** So the panel selected the one
+venue guaranteed to score zero on the window it then measured, every single
+time, with live data in hand.
+
+Entry 98's `windows` fallback could not catch it, because it answers a different
+question: *did **any** venue populate this window*, not *did **this** one*.
+
+`pickMetricFor(target, preferred)` asks the per-target question and widens to
+the widest window that venue can actually answer on — and the panel **says so**
+("Sodex has no 30d volume history yet — it is too new"), because a number
+quietly computed on a different window than the one highlighted is how a correct
+figure becomes untrustworthy.
+
+Measured end to end against a fixture shaped like the failure (new venue, 24h
+volume only): before, an empty set; after, "Implied FDV from 4 peers on 24h
+volume" plus the peer table.
+
+### A fallback that behaved differently from the path it replaced
+
+`derivatives()`'s direct retry returned **raw** upstream rows while the cached
+path returned reduced ones. Raw spells open interest `openInterestAtEnd` (so it
+read 0) and does not guarantee `name` is a string, so the alias lookup could
+throw — turning a partial outage into a 500, which the client renders as "Data
+unavailable", indistinguishable from the upstream being down. Both paths now go
+through `reduceOverview`.
+
+### Every outcome: from a table you read to a control you steer
+
+- **Every cell is a button.** Clicking one adopts that FDV and allocation.
+- **The ladder is visibly live.** It has always re-centred on the peer median
+  when the route refreshes; now the panel says what it is anchored to and when
+  that arrived, marks the rung nearest the live level separately from the gold
+  outline on *your* assumption — the distance between the two marks being the
+  most informative thing on the table — and offers "Follow live again" after a
+  click breaks the link.
+- **The break-even contour is drawn**, as a mint edge at the leftmost profitable
+  rung in each row plus the row's break-even FDV in its header
+  (`breakEvenLadder`). The boundary is a line on the table, not something you
+  locate cell by cell.
+
+### Less scrolling: a nav, and sections that collapse
+
+- **`PointsNav`** — a sticky scroll-spy index (`IntersectionObserver`, top
+  -weighted). Plain `<a href="#id">` on purpose: Lenis owns page scroll and
+  cancels any programmatic `scrollTo` it did not initiate.
+- **Programme sections collapse**, one open at a time. The header is a button
+  carrying the headline value and TGE figure, so a **closed** row is still
+  comparable against an open one — collapsing must not cost the comparison.
+  Measured: 5320px → 4346px desktop, 8180px → 6389px mobile.
+
+### Verification
+
+Full gate green (typecheck / 1138 tests / lint / build). A browser probe at
+1440px and 393px checks all 46 behaviours above — comparables resolving, the
+widened-window disclosure, nav scroll, one-open accordion, collapsed-row value,
+cell adoption changing the outlined cell, relink — plus a WCAG AA sweep in both
+themes.
+
+⚠️ **The contrast audit itself had a bug worth recording.** It stopped at the
+first non-transparent background *value*, but this page is built from 6%-alpha
+brand tints, so it measured text against full-strength amber rather than
+amber-at-6%-over-near-black and reported ~18 failures at 1.7:1 on a page that
+was fine. It composites the alpha stack now, and self-tests by injecting one
+illegible run and requiring it to be caught (1.39:1) — an audit that reports
+zero is only meaningful if it can report something.
+
+### Files
+
+`src/modules/points/lib/points.ts` (`pickMetricFor`, `breakEvenLadder`) ·
+`src/modules/points/components/{SensitivityGrid,PointsClient,CompsEngine,ProgramSection}.tsx` ·
+`src/modules/points/components/PointsNav.tsx` (new) ·
+`src/app/api/points/comps/route.ts` · `src/lib/__tests__/points-comps-window.test.ts`
+
+---
+
+## 2026-09-17 (98) — Three programmes, three calculations, and comparables that actually load
+
+### "Data unavailable" — an unverified field was gating the whole route
+
+`/api/points/comps` filtered AND sorted its entire venue list on `total30d`, a
+field added to `OverviewRow` from an API this environment cannot reach to
+verify. When the upstream does not return it, every row reads 0, **every venue
+is filtered out**, `live` is false, and the page says "Data unavailable" on a
+response that contained forty perfectly good venues.
+
+`total24h` is the field `/api/markets/perp` has used in production for months,
+so it is the one known to exist. It filters and sorts now; the longer windows
+are **enrichment**: present, they unlock the 7d/30d metrics; absent, the engine
+works on 24h.
+
+The rule this encodes: **an unverified field may add capability, never gate it.**
+
+Two more layers of the same failure, fixed with it:
+
+- The client's default metric was hard-coded `volume30d`, so a response without
+  30d produced an empty comparable set on a page full of venues. It now falls
+  back to the widest window actually present.
+- The route reports which `windows` it populated, and the metric selector offers
+  only those — a selector that renders an empty table reads as broken when the
+  truth is "nobody publishes that".
+
+Verified by rendering against the exact payload shape that failed (venues with
+`total7d`/`total30d` absent): comparables compute, `Data unavailable` gone.
+
+### One section per programme, each a complete calculation
+
+Sodex, RiseX and Variational each get their own section with their own inputs,
+their own scenario quick-picks and their own result — rather than one calculator
+you switch between.
+
+Switching was worse than it looked: a single shared set of inputs meant moving
+from Sodex to RiseX silently reinterpreted your Sodex points against RiseX's
+pool, and the two could never be seen at once, which is the comparison anyone
+farming both actually wants.
+
+**The scenario quick-picks are back.** `fdvScenariosUsd` and
+`allocationScenarios` were in the registry all along and had been rendered by
+the `/tools` calculator; the move to `/points` dropped them. They sit under the
+field each one sets, exactly as before. Rendered per programme from the
+registry: Sodex 1 FDV + 3 allocation pills, RiseX 4 + 3, Variational 5 + 0.
+
+Clicking a scenario breaks the live FDV anchor, deliberately — while linked the
+value is derived every render, so setting it without clearing the link would be
+reverted on the next render and the pill would look broken.
+
+The comparables engine above is now a **market explorer** rather than a
+position: pick any venue, see what its peers imply. Each section carries its own
+anchor separately, so the two never fight over one target. The overview strip
+became a map — its cards scroll to a section instead of swapping its contents.
+
+### A contrast failure the first audit could not have caught
+
+The grid's losing cells scored **4.27:1** in the light theme. `--data-down` is
+documented at 4.54:1 — against **pure white**; these cells sit on `.surface`
+under a tint of their own hue.
+
+Lowering the tint did not fix it. Re-measured at 0.28 alpha: still 4.27, because
+the foreground was what was short, not the ground. A scoped `.grid-net-down`
+with red-700 in light clears it, and the markets tables keep the shared token.
+
+⚠️ The earlier audit passed because that fixture happened to have **no losing
+cells** — the whole grid was green, where the foreground has far more headroom.
+Measuring the right page with the wrong data is not measuring.
+
+**After: 0 AA failures in light and dark**, 1440px and 393px, no overflow.
+
+**Files:** `src/app/api/points/comps/route.ts`, `PointsClient.tsx` (per-programme
+state), `ProgramSection.tsx` (new), `ValuePanel.tsx` (scenario pills, bare mode),
+`CompsEngine.tsx`, `ProgramPanel.tsx`, `CostPanel.tsx`, `SensitivityGrid.tsx`,
+`globals.css`. 11 new tests.
+
+---
+
+## 2026-09-17 (97) — The airdrop desk: post an update, everyone sees it
+
+`/points` now opens with a live feed of what is happening - a programme going
+live, a snapshot landing, a TGE date - posted by staff and updated on open
+pages without a reload.
+
+### Its own model, not the What's New feed
+
+`WhatsNewEntry` is about **this site** shipping things. `PointsUpdate` is about
+**the outside world**: someone else's programme opening or closing. Mixing them
+would make both unreadable, and the audiences are different people.
+
+Kinds are a closed vocabulary - `live · soon · snapshot · tge · ended · alert ·
+update` - because the feed's job is answering "can I still farm this, and do I
+need to do something today?" fast, and free text cannot be sorted, filtered or
+coloured. Every kind is a distinct ACTION for the reader; two kinds that would
+produce the same action should be one kind.
+
+### The composer is inline, on the page
+
+Not in the dashboard. "Sodex snapshot is tomorrow" is a thirty-second thought,
+and making it a trip to an admin screen is how a live feed quietly stops being
+live. Staff with `points:manage` get a composer at the top of the desk; nobody
+else sees it exists.
+
+### Live through the shared primitive, not a hand-rolled channel
+
+Writes broadcast on a new `CH_POINTS` topic and open pages refetch. It goes
+through `useRealtime`, which already carries the retry with backoff, the armed
+fallback poll and the wake refetch that seven other surfaces needed - and that
+this one would otherwise have got wrong on its own, the same way they did.
+
+`CH_POINTS` rather than `CH_NOTIFY` because that one is a signed-in bell and
+this feed is public: anonymous readers have to get the ping too.
+
+Edits and deletes broadcast as well, not just creates. Fixing a wrong date or
+unpinning something is exactly the kind of change a reader with the page open
+needs to see, and a deleted update that stays on screen is worse than one that
+was never posted.
+
+### Things that had to be got right
+
+- **A link cannot carry script.** `safeUrl` accepts only `http(s)` and rejects
+  what it cannot parse rather than sanitising into something plausible. Applied
+  **on the way in**, not at render: a bad URL filtered only at render time is
+  one careless consumer away from being rendered.
+- **Drafts are never edge-cached.** A response containing unpublished rows is
+  `private, no-store`. The whole point of a draft is that nobody has seen it.
+- **A draft does not broadcast.** It would make every open page refetch and
+  find nothing new.
+- **"Nothing posted yet" and "we could not reach the feed" are different
+  statements.** Collapsing them is a lie in the reader's favour - an outage
+  would read as a quiet desk. Caught while testing against a local environment
+  with no database.
+- **The table not existing is survivable.** `db push` runs on production
+  deploys only, so the code ships before the table does; an empty feed is the
+  truth in that window and a 503 is not.
+- **The edge window (30s) sits under the fallback poll (60s)**, so a poll
+  during a channel outage can never land on a fresh cache entry and spin the
+  origin.
+
+### Cost
+
+`/api/points/updates` and `/api/points/updates/[id]` are both **dynamic**, and
+deliberately: every write broadcasts, so a cached feed would be handing readers
+a stale list seconds after the entire point of the feature is that it is not
+stale. Neither is polled on an interval, so neither belongs in `TARGETS` - the
+route comments say so, in case that changes.
+
+One additive migration (`37_points_updates`), `CREATE TABLE IF NOT EXISTS` plus
+one index matching the feed's exact ORDER BY. Drops nothing, safe to re-run.
+
+⚠️ **The table appears on the next production deploy.** Until then the feed
+renders empty rather than erroring. Check the build log for `in sync with your
+Prisma schema` per the CLAUDE.md gotcha.
+
+**Files:** `prisma/schema.prisma` + `prisma/migrations/37_points_updates/`,
+`src/modules/points/lib/points-updates.ts`,
+`src/modules/points/components/UpdatesFeed.tsx`,
+`src/app/api/points/updates/{route.ts,[id]/route.ts}`,
+`src/core/realtime/realtime-channels.ts`, `permissions.ts`. 23 new tests.
+
+---
+
+## 2026-09-17 (96) — /points in the light theme, a grid that says something, and a name on the card
+
+### The light theme was not dim, it was invisible
+
+Measured on `/points` with the light theme active: **21 distinct text runs below
+WCAG AA**, and not marginally.
+
+| what | contrast | needed |
+|---|---|---|
+| assumption banner | **1.1:1** | 4.5 |
+| locked-venue box | **1.01:1** | 4.5 |
+| every cell of the sensitivity grid | **1.01:1** | 4.5 |
+
+One cause for all of it: dark-theme foregrounds - `text-mint-100`,
+`text-amber-200`, `text-sky-200`, `text-rose-200` - painted on translucent
+tints of their own hue. Over near-black they read fine. Over near-white the
+tint stays pale and the text stays pale with it, so the grid was not
+low-contrast, it was **gone**.
+
+The design system says this in as many words - use `data-up` / `data-down`
+"for up/down numbers rather than `text-mint-*`/`text-red-*` so new UI is
+readable in both themes" - and the grid did the opposite. It now uses the
+semantic tokens, and the cell tints are `color-mix` over `var(--data-up)` /
+`var(--data-down)` instead of a hard-coded `rgba(34, 214, 146, a)` pinned to
+the dark palette. The four callout foregrounds gained light overrides in
+globals.css, following the pattern already there for `text-mint-200`. The whole
+points UI moved off the zinc ramp onto `text-content` / `-muted` / `-subtle`,
+`border-hairline` and `bg-surface-2`.
+
+**After: 0 AA failures in light AND 0 in dark, at 1440px and 393px**, with no
+overflow and nothing invisible in either.
+
+### The grid showed dollars, which told you nothing
+
+Net dollars across a geometric FDV ladder is dominated by the top-right corner,
+and when the farm is profitable at every cell - the common case - the result is
+a uniformly green table where no cell means anything relative to any other. A
+grid nobody can read is worse than no grid, because it looks like information.
+
+It now shows **return on cost**, which is scale-free, with the pivot everyone
+already understands: **1.0x is break-even**. The colour scale is built around
+that boundary rather than around the largest number present, log-scaled on each
+side so 2x-to-4x looks like 4x-to-8x. There is a legend, the cells carry the
+dollar figures in a title and a small secondary label, and with no cost entered
+it falls back to gross dollars rather than dividing by zero.
+
+### A name that reaches the share card
+
+"Name this calculation" sits at the top of the value panel, because that is
+what the share card leads with. Empty means "use the programme's name", so the
+placeholder shows it rather than pre-filling - a value someone has to clear
+before typing their own is a worse default than an empty box.
+
+⚠️ It is **truncated to 40 characters**, because the share API's zod schema
+caps `platform` there and rejects anything longer. Without that, a long name
+failed with "Couldn't create the share link" and nothing pointing at the name
+as the cause. The input carries the same `maxLength`, so the counter never lies.
+
+### What you are farming, with the facts that decide it
+
+The selected programme now shows **markets, max leverage and fees** - all three
+already in the registry and simply never rendered, and all three the first thing
+anyone asks before committing capital somewhere.
+
+Added below the cards: **Ongoing perp DEX airdrops**, linking to the running
+list in the Telegram channel. The three tracked programmes are the ones with
+full scenario numbers; the live list of everything else worth farming changes
+far too often to hard-code, so linking it is honest where copying it would be
+stale within a week. The URL lives in `site.ts` beside the other channel links,
+not inline in a component.
+
+**Files:** `SensitivityGrid.tsx` (rewritten), `ProgramPanel.tsx`,
+`ValuePanel.tsx`, `CompsEngine.tsx`, `CostPanel.tsx`, `PointsClient.tsx`,
+`src/modules/points/lib/{points,programs}.ts`, `src/app/globals.css`,
+`src/shared/utils/site.ts`. 11 new tests.
+
+---
+
+## 2026-09-17 (95) — Nav: six links and a More menu, Research on the bottom bar
+
+### Desktop
+
+Points, Tools and Contact move out of the rail into a **More** dropdown beside
+it. The rail keeps the six destinations people actually navigate between: Home,
+Markets, News, Research, Community, Premium.
+
+`railLinks` and `moreLinks` are **derived** from `navLinks`, never written out
+by hand, and that is deliberate. Two hand-maintained arrays drift, and the
+failure mode is a page that quietly cannot be reached from anywhere - which is
+exactly what happened to Sodex and RiseX in (93). A partition makes that
+impossible: a new link joins `navLinks` and lands in More rather than nowhere.
+Pinned by a test that the two lists reconstruct `navLinks` exactly.
+
+The footer and the mobile drawer still render the **complete** list, so nothing
+moved out of reach - only out of the rail.
+
+**⚠️ The breakpoint did NOT move back to `lg`.** The shorter rail needs 684px
+(down from 1071), and simulating the `lg` layout at 1024 the nav's children
+summed to **990px against 998px available - it fits by eight pixels**, measured
+while signed out, and a signed-in header is wider still. Eight pixels is what
+"it fits" looked like both previous times this overflowed. It stays at xl.
+
+### Mobile
+
+The bottom bar swaps **Tools for Research**. It is four links, not five, and
+that is load-bearing: four plus the raised Profile button is five cells, so
+Profile sits dead centre. Measured after the change on a 393px viewport -
+Profile's centre at 196px against a viewport centre of 197px, one pixel of
+rounding. A fifth link makes it cell 3 of 6, visibly left of centre, so this
+list only ever changes by swapping.
+
+Tools is a set of one-off calculators you reach for knowing you need one;
+Research is the thing people come back to. Tools stays in the drawer.
+
+**Files:** `src/shared/utils/site.ts` (the partition),
+`src/shared/components/Navbar.tsx` (More dropdown, same outside-click/Escape
+contract as the account menu), `src/shared/components/BottomNav.tsx`,
+`src/lib/__tests__/nav-rail-width.test.ts`.
+
+---
+
+## 2026-09-17 (94) — The programmes are back, and the page stops guessing quietly
+
+Follow-on to (93). Two problems, one of them mine.
+
+### (93) silently dropped two of the three tracked programmes
+
+`/points` was built on the live comparables feed, and DefiLlama has **no row
+for Sodex or RiseX** — they are too small to track, which is the normal state
+of a programme worth farming early. So when the calculator moved off `/tools`,
+two of the three programmes this site actually maintains became unreachable.
+Nothing failed. They were just gone, and nothing reported it.
+
+The curated registry is now the **spine** of the page and live market data
+decorates it, rather than the other way round. `buildPrograms()` joins the two
+by normalised name; a programme with no market row is a complete, usable
+programme, not a broken card.
+
+**Adding a programme is still adding one object** to `DEX_REGISTRY` — no
+schema, no migration.
+
+### Programme state is data now, not prose
+
+`PointsProgramMeta` carries `phase` (live / upcoming / ended / distributed),
+`confirmed`, `earnRate` and optional dates. Two things fall out of it:
+
+- The page can sort on "can I still farm this?", which is the first question
+  anyone has. Live first, then ties broken on whether the numbers are trustworthy.
+- Each card says **"Numbers confirmed by the protocol"** or **"Numbers are
+  community assumptions"**. Almost no airdrop site distinguishes those, and the
+  difference is the difference between a plan and a daydream. Sodex is the only
+  confirmed one here, which is why it sorts first.
+
+### The FDV anchor now has two sources, and says which
+
+While linked, the FDV follows the best anchor available: **live peer
+comparables** when the programme's venue is tracked, otherwise the
+**programme's own scenario ladder**. The field names which — "from
+comparables" vs "from programme" — because those deserve very different
+amounts of trust and a bare "linked" badge has no referent.
+
+`scenarioFdv()` opens on the **middle** of a registry ladder rather than the
+first or last entry: authors write them low to high, so opening on either end
+is editorialising.
+
+### Two things caught in the browser, both wrong in the same direction
+
+1. **The venue picker was a dead control.** The selected programme overrode
+   `targetSlug` entirely, so changing the select did nothing for any programme
+   with a market row — and a dead control is the first thing a reader reaches
+   for. It is now a read-only statement ("follows the programme above") when
+   the programme drives it, and a real picker only when it does not.
+2. **Selecting Sodex showed Variational's numbers.** The fallback picked the
+   largest unlisted venue when a programme had no market row, so choosing Sodex
+   produced Variational's peers, Variational's implied FDV, and no indication
+   that any of it was unrelated to Sodex. Measured by driving the real page:
+   Variational anchored at `$2.92B` from comparables, and Sodex — after the fix
+   — at `$290M` from its own scenario, with an explicit note that it has no
+   market row and an **opt-in** proxy picker. The page will not choose a proxy
+   on a reader's behalf.
+
+That second one is the same failure as the CoinGecko-id question in (93):
+a number that is confidently wrong beats no number, right up until someone
+trades on it.
+
+**Files:** `src/modules/points/lib/programs.ts` (new, 16 tests),
+`src/modules/points/components/ProgramPanel.tsx` (new),
+`src/modules/markets/lib/dex-registry.ts` (`PointsProgramMeta` + blocks for
+Variational / Sodex / RiseX), `PointsClient.tsx`, `CompsEngine.tsx`,
+`ValuePanel.tsx`. No new routes, no schema change.
+
+---
+
+## 2026-09-17 (93) — Points moves out of Tools, and stops asking you to guess
+
+Points/airdrop value was one tab among eight in `/tools`. It is now `/points`,
+in the nav, and it does something none of those calculators did.
+
+### The input that decided the answer was a guess
+
+Every points calculator on the internet — including the one this replaces —
+asks you to type an FDV and then does arithmetic on it. The arithmetic is
+trivial and the FDV is the whole answer, so what they really do is format
+your own guess back at you.
+
+`/api/points/comps` derives it instead. It joins DefiLlama's derivatives
+overview (volume, open interest) with CoinGecko valuations, so an unlisted
+venue's FDV comes from peers that already have a token:
+
+```
+implied FDV = peer FDV x (your venue's volume / the peer's volume)
+```
+
+Deliberately the plain napkin ratio, not a regression. A model nobody can
+check in their head is worse than arithmetic they can argue with.
+
+**It reports a range, never a number.** Median rather than mean, because one
+peer at a euphoric multiple moves a mean enough to change the conclusion and
+that happens constantly in this sector. The spread is drawn, because the width
+of the disagreement is usually the finding.
+
+A thing worth knowing that fell out of the test data: **anchoring on the
+market leader is the most conservative estimate, not the most generous one.**
+Hyperliquid is the largest venue and trades at the lowest multiple of its own
+volume, so it lands at the bottom of every comparable set.
+
+### Picking a listed venue grades the method
+
+Choose a venue that already has a token and the page says how far the estimate
+is from the real price. That is the only honest way to present a method like
+this: show what it gets wrong where the answer is known, before asking anyone
+to trust it where it is not.
+
+### Cost basis, which nobody models
+
+Farmers track points obsessively and their cost basis not at all. A program
+paying 0.02% of volume farmed with 0.04% taker fees is a guaranteed loss, and
+that is invisible from the points total.
+
+So fees are asked for as **volume x rate** rather than a round "spent" figure,
+capital parked carries an opportunity cost, and the output is a **break-even
+FDV** — inverted exactly rather than searched, because value is linear in FDV.
+Plus cost per point and value per point, which are what make two farms
+comparable at all.
+
+### The whole outcome space, not one number
+
+A single estimate is an anchor and people plan around anchors. The sensitivity
+grid shows net-of-cost across FDV x allocation, with the live assumption
+outlined. Reading it makes the point immediately: value moves 4x across the FDV
+axis and 3x across allocation, and FDV is the one nobody controls.
+
+### Three things the browser caught that the source did not
+
+1. **The grid outlined the wrong cell.** It was passed `form.fdv` (stored)
+   while every other panel used the derived linked value, so the highlight sat
+   one column away from the assumption in force. Two sources of truth, in the
+   file whose own comment warns against exactly that.
+2. **The heat map was a blank table.** Linear intensity over a geometric FDV
+   ladder meant the corner cells differed by 125x — measured intensities ran
+   0.004 to 0.42, so every cell but the last two painted as plain background.
+   Now a square-root scale: 0.04 to 0.45, readable across the whole grid.
+3. **The ninth nav link overflowed the rail**, exactly as the code comment
+   predicted. At 1024px the rail needed **1071px against 998px available**,
+   hanging 60px past the viewport, and the previous fix had already spent the
+   padding headroom. The rail now appears from `xl` (1280) instead of `lg`;
+   1024-1279 uses the mobile menu, which already carries every link. This is
+   the second time this has moved for the same reason, so it now has a test
+   that fails on a tenth link rather than a comment nobody reads.
+
+### Cost
+
+**+2 routes, both static, 0 new dynamic** (145/26/113 → 147/28/113 against
+`main`). No page moved from cached to per-request, which is the expensive
+regression class on this project.
+
+`/points` is a static shell with no `revalidate` — the same reasoning that
+removed the window from `/markets` and `/tools`. `/api/points/comps` is pinned
+to `OVERVIEW_TTL` because it reads the shared `llamaOverview` cache and Next
+takes the minimum across a segment (trap 1b). It has to carry a **literal**,
+since Next rejects `export const revalidate = OVERVIEW_TTL` as an invalid
+segment config, so a test fails if the two numbers ever drift apart. **It is
+not polled** — one fetch on mount plus a refresh button — which is why it is
+absent from `TARGETS`; the route comment says so, in case that changes.
+
+### An FDV is never guessed at
+
+Peers are matched by **name**, never by a hand-written CoinGecko id. An id is
+unverifiable by reading it — `aster` and `aster-2` look equally plausible — and
+a wrong one silently attaches another project's multi-billion valuation to a
+venue. A name mismatch produces no FDV, which is visible and honest. Unmatched
+venues carry `null`, not `0`, so they cannot drag the median down while looking
+like a datapoint.
+
+**Files:** `src/modules/points/` (new: `lib/points.ts` + five components),
+`src/app/points/page.tsx`, `src/app/api/points/comps/route.ts`,
+`src/modules/markets/lib/llama.ts` (7d/30d/OI added to `OverviewRow`),
+`src/shared/utils/site.ts`, `src/shared/components/Navbar.tsx`,
+`src/modules/tools/components/ToolsClient.tsx` (points tab replaced by a
+permanent signpost to `/points`). 50 new tests. The share-card flow is
+unchanged and existing shared links still render — the payload shape is a wire
+format, and the code says so.
+
+---
+
+## 2026-09-17 (92) — Per-device session revocation, and one OTP file instead of two
+
+Auth hardening **authored by @deepakpss** (PR #330). Landed from this branch
+rather than merged from his, because this repo only merges the owner's PRs —
+his three commits are cherry-picked with authorship intact. Reviewed over two
+rounds; the review history is on #330.
+
+### Logging out no longer means logging out everywhere
+
+A stateless JWT cannot be revoked server-side, and the first attempt at this
+solved it by bumping `User.passwordChangedAt` on `signOut` — which meant
+logging out on your phone silently signed out your laptop, and broke the
+invariant `auth.ts` states in its own words a few lines above.
+
+Now each login mints a `sid` stored in the `Session` table and carried in the
+token. `signOut` deletes that one row; other devices are untouched. A password
+change still purges every row, because that is the one action that *should*
+revoke everywhere.
+
+### The failure mode that made the first version unshippable
+
+```ts
+const sid = randomUUID();
+(token as any).sid = sid;                                    // before
+await prisma.session?.create({ … }).catch(() => null);
+```
+
+The `sid` was stamped **before** the row was confirmed written, and the
+`.catch` swallowed the failure. The refresh branch then ran — on the sign-in
+call too, because `isSuperAdmin === undefined` on a fresh token — found no row,
+and returned `{}`.
+
+So a single transient DB write failure turned a correct password into *nothing
+happened*: bounced to the login page, no error anywhere. That is the exact
+symptom CLAUDE.md records as this site's worst outage, arriving through a new
+door.
+
+Fixed by stamping only what was actually written:
+
+```ts
+const row = await prisma.session?.create({ … }).catch(() => null);
+if (row) (token as any).sid = sid;                           // after
+```
+
+No `sid` falls back to `passwordChangedAt`-only revocation — weaker, but signed
+in. Verified by driving the real `jwt` callback with a `prisma.session` mock
+that can be made to throw:
+
+| scenario | before | after |
+|---|---|---|
+| `session.create` throws at login | `signIn()` returned `{}` | signed in, no orphan sid |
+| legacy token, backfill write throws | signed out next refresh | stays signed in |
+| expired session row | accepted — `expires` was never read | rejected |
+| phone logout vs laptop | laptop alive | laptop alive |
+
+### Also in this pass
+
+- **`expires` is read and enforced** (`expires: { gt: new Date() }`), and expired
+  rows are swept next to each create — the 30-day expiry means something now and
+  the table stops growing forever.
+- **Rate limits recalibrated** for CGNAT: `login` 5/min per account (tighter),
+  `password` back to 10/min/IP, `otpEmail` 3/10min, `loginIp` 20/min. An earlier
+  revision had these 120× tighter, which would have locked out two people per
+  hour behind a shared Jio/Airtel IP.
+- **`sanitizeDbError`** — Prisma connection errors embed the full `DATABASE_URL`
+  *including the password*, and those go straight to Vercel logs. Now redacted.
+- **`traceId` on 500s**, so a member can quote something in a support message.
+- **OTP issuance is atomic** (`$transaction` for delete+create), scoped to the
+  indexed `(email, purpose)`; bulk expiry moved to its own
+  `purgeExpiredVerificationCodes()` with `@@index([expiresAt])` behind it.
+
+### One OTP file instead of two
+
+`src/modules/auth/lib/otp.ts` sat beside the live `src/core/email/otp.ts` as an
+unreferenced copy — pre-existing on `main`, not from this work. **It was not
+harmless, and this PR is the proof:** the first revision's OTP `$transaction`
+fix was written against the dead copy, so it changed nothing at all while
+looking entirely correct in the diff.
+
+The two had also **diverged**: the live file carries the atomic
+attempt-claiming fix (so N parallel guesses cannot all read the same stale
+`attempts` count) and the dead one never got it.
+
+Deleted, with a test in `otp.test.ts` asserting it stays deleted, that
+`src/lib/otp.ts` still re-exports the live module, and that the atomic claim is
+still there — verified to fail when the duplicate is put back.
+
+### Verified before landing
+
+Checked out at `d4b3c7e`: typecheck clean, lint 0 errors, 1003 tests. Trial-merged
+onto `main` — no conflicts, no file touched by both sides — and re-ran the gate on
+the merged result: **1010 tests, build green**. Prisma is 5.22, so the
+`findUnique` + `expires` filter is supported at runtime; the `Session` table has
+existed since `0_init`.
+
+---
+
 ## 2026-09-15 (91) — What a mouse can do, a finger can do
 
 Follow-on to (90). That pass made every phone agree about *animation*; this one

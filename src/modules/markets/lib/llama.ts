@@ -105,6 +105,16 @@ export type OverviewRow = {
   module: string | null;
   name: string;
   total24h: number;
+  /** Longer windows, added for the points comparables engine. A single day of
+   *  perp volume is noisy enough that a valuation multiple built on it says
+   *  more about yesterday than about the venue. Absent on some upstream rows,
+   *  in which case they read 0 and the caller must treat that as "no data"
+   *  rather than "no volume". */
+  total7d: number;
+  total30d: number;
+  /** Open interest where the upstream reports it, else 0. A level, not a flow -
+   *  never annualise it. */
+  openInterest: number;
   change1d: number;
   logo: string | null;
 };
@@ -135,6 +145,16 @@ export function reduceOverview(j: any): Overview {
     module: typeof p?.module === "string" ? p.module : null,
     name: String(p?.name ?? "-"),
     total24h: Number(p?.total24h) || 0,
+    // Three more numbers per row against the ~2 MB data-cache ceiling this
+    // module exists to stay under. The existing note measured the six surviving
+    // fields at a couple of hundred KB for a couple of thousand protocols, so
+    // three numeric fields is noise - but it is the kind of addition that
+    // stops being noise if it is made repeatedly without anyone checking.
+    total7d: Number(p?.total7d) || 0,
+    total30d: Number(p?.total30d) || 0,
+    // Upstream spells this differently across endpoints and omits it entirely
+    // for most. 0 means "not reported"; callers must not read it as "zero OI".
+    openInterest: Number(p?.openInterestAtEnd ?? p?.openInterest) || 0,
     change1d: Number(p?.change_1d) || 0,
     logo: typeof p?.logo === "string" ? p.logo : null,
   }));

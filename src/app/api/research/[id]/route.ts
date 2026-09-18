@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -66,8 +67,11 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     }
     const data = parsed.data;
 
-    const existing = await prisma.post.findUnique({
-      where: { id: params.id },
+    // ⚠️ A trashed post is not editable. Restore it first - otherwise an edit
+    // would quietly resurrect content the owner removed, or write changes into
+    // something nobody can see.
+    const existing = await prisma.post.findFirst({
+      where: { id: params.id, ...NOT_TRASHED },
       select: { slug: true, title: true, published: true },
     });
     if (!existing) return fail("Post not found.", 404);
@@ -150,13 +154,30 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
 
     const existing = await prisma.post.findUnique({
       where: { id: params.id },
-      select: { id: true, slug: true },
+      select: { id: true, slug: true, deletedAt: true },
     });
     if (!existing) return fail("Post not found.", 404);
 
-    await prisma.post.delete({ where: { id: params.id } });
+    // ⚠️ SOFT by default. This called `prisma.post.delete` and a published
+    // article was gone from Postgres with no way back short of a database
+    // backup. One misclick, one article.
+    //
+    // `?purge=1` still destroys the row, but only for something ALREADY in the
+    // trash - so permanent deletion takes two deliberate actions rather than
+    // one, and the second one is taken while looking at the trash.
+    const purge = new URL(req.url).searchParams.get("purge") === "1";
+    if (purge) {
+      if (!existing.deletedAt) {
+        return fail("Move it to the trash first, then delete it permanently.", 409);
+      }
+      await prisma.post.delete({ where: { id: params.id } });
+      revalidateContent(existing.slug);
+      return ok({ ok: true, purged: true });
+    }
+
+    await prisma.post.update({ where: { id: params.id }, data: { deletedAt: new Date() } });
     revalidateContent(existing.slug);
-    return ok({ ok: true });
+    return ok({ ok: true, trashed: true });
   } catch (err) {
     return handleError(err, "research:delete");
   }

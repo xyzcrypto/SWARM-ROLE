@@ -60,7 +60,11 @@ export function CalcSegmented<T extends string>({
           type="button"
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
+            // ⚠️ `min-h-9` (36px), not padding alone. Measured on a 393px
+            // viewport these segmented buttons came out 32px tall, under the
+            // 36px floor a thumb needs, and they are the primary control on
+            // several calculators. Padding stays for the horizontal rhythm.
+            "inline-flex min-h-9 items-center justify-center rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
             value === o.value
               ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/30"
               : "text-zinc-400 hover:text-zinc-100"
