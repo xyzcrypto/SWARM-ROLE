@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
-import { PageHeader } from "@/components/PageHeader";
 import { PageBackground } from "@/components/PageBackground";
 import { ChevronDown } from "lucide-react";
 import { PointsClient } from "@modules/points/components/PointsClient";
@@ -34,15 +33,7 @@ export default function PointsPage() {
             sat visibly narrower than the site around them and its data tables had
             to scroll sideways at widths where they did not need to. */}
         <div className="relative mx-auto max-w-[1200px] px-5 pb-24 sm:px-6 lg:px-8 xl:max-w-[1320px]">
-          <PageHeader
-            eyebrow="Airdrop Farming"
-            title={
-              <>
-                Points <span className="text-shine">Intelligence</span>
-              </>
-            }
-            subtitle="Most points calculators ask you to guess an FDV and then do arithmetic on your guess. This one derives it from venues that already have a token, shows the range rather than a number, and prices what the farm has cost you."
-          />
+          {/* Points Intelligence Hero & Main Suite */}
 
           {/* ⚠️ A one-line disclosure, not a four-line block.
               Measured on a 393px phone, the full banner occupied roughly a

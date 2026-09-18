@@ -175,43 +175,43 @@ export function CompsEngine({
                 Compare against
               </span>
               <select
-                  value={target?.slug ?? ""}
-                  onChange={(e) => onTarget(e.target.value)}
-                  className="min-h-11 w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
-                >
-                  <option value="">Pick a venue to compare against…</option>
-                  {unlisted.filter((v) => v.volume24h <= 0).length > 0 && (
-                    <optgroup label="Tracked here — no feed data, enter volume">
-                      {unlisted
-                        .filter((v) => v.volume24h <= 0)
-                        .map((v) => (
-                          <option key={v.slug} value={v.slug}>
-                            {v.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  )}
-                  {unlisted.filter((v) => v.volume24h > 0).length > 0 && (
-                    <optgroup label="No token yet">
-                      {unlisted
-                        .filter((v) => v.volume24h > 0)
-                        .map((v) => (
-                          <option key={v.slug} value={v.slug}>
-                            {v.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  )}
-                  <optgroup label="Already listed — for sanity-checking the method">
-                    {venues
-                      .filter((v) => v.fdv !== null)
+                value={target?.slug ?? ""}
+                onChange={(e) => onTarget(e.target.value)}
+                className="min-h-11 w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+              >
+                <option value="">Pick a venue to compare against…</option>
+                {unlisted.filter((v) => v.volume24h <= 0).length > 0 && (
+                  <optgroup label="Tracked here — no feed data, enter volume">
+                    {unlisted
+                      .filter((v) => v.volume24h <= 0)
                       .map((v) => (
                         <option key={v.slug} value={v.slug}>
                           {v.name}
                         </option>
                       ))}
                   </optgroup>
-                </select>
+                )}
+                {unlisted.filter((v) => v.volume24h > 0).length > 0 && (
+                  <optgroup label="No token yet">
+                    {unlisted
+                      .filter((v) => v.volume24h > 0)
+                      .map((v) => (
+                        <option key={v.slug} value={v.slug}>
+                          {v.name}
+                        </option>
+                      ))}
+                  </optgroup>
+                )}
+                <optgroup label="Already listed — for sanity-checking the method">
+                  {venues
+                    .filter((v) => v.fdv !== null)
+                    .map((v) => (
+                      <option key={v.slug} value={v.slug}>
+                        {v.name}
+                      </option>
+                    ))}
+                </optgroup>
+              </select>
             </label>
             <div>
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-content-muted">
