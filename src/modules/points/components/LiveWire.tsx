@@ -398,7 +398,27 @@ export function LiveWire() {
                 understand in the half second before they decide to keep reading. */}
             Latest updates
           </span>
-          <span className="text-[11px] text-content-subtle">Perp DEX &amp; airdrops</span>
+
+          {/* ⚠️ Freshness lives HERE, in the header, and always.
+              It used to sit inside the "N more" button - which does not render
+              when the list is short - so a band with nothing new gave zero
+              evidence it was running. "Working but quiet" and "broken" looked
+              identical, and a reader watching a feed that never visibly changes
+              reasonably concludes the second.
+
+              A narrow filter is the point of this band: it tracks airdrop, points
+              and perp DEX stories only, and on a slow day there genuinely is
+              nothing new for hours. That is a fine answer - but it has to be a
+              stated one. */}
+          <span className="text-[11px] text-content-subtle">
+            {fetchedAt !== null ? (
+              <>
+                {items.length} tracked · checked {formatDateTime(new Date(fetchedAt))}
+              </>
+            ) : (
+              "Perp DEX & airdrops"
+            )}
+          </span>
 
           {/* ⚠️ Only offered when there is something to filter TO. A dead "X"
               chip that always yields an empty list teaches a reader the control
@@ -544,9 +564,6 @@ export function LiveWire() {
               className="flex min-h-11 w-full items-center gap-2 border-t border-hairline px-4 text-[11px] font-medium text-content-muted transition-colors hover:text-content sm:px-5"
             >
               {open ? "Hide" : `${rest.length} more`} related update{rest.length === 1 ? "" : "s"}
-              {fetchedAt !== null && (
-                <span className="text-content-subtle">· updated {formatDateTime(new Date(fetchedAt))}</span>
-              )}
               <ChevronDown
                 className={cn("ml-auto h-4 w-4 shrink-0 transition-transform", open && "rotate-180")}
                 strokeWidth={1.7}
