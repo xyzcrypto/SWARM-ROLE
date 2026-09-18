@@ -2,7 +2,7 @@ import "server-only";
 // Groq provider - the OpenAI-compatible Llama models. Server-only.
 import Groq from "groq-sdk";
 import { env, groqEnabled } from "@/lib/env";
-import type { AiProvider, CompleteRequest, CompleteResult, StreamHandle, StreamRequest, TokenUsage } from "./types";
+import type { AiProvider, CompleteRequest, CompleteResult, FinishReason, StreamHandle, StreamRequest, TokenUsage } from "./types";
 
 // openai/gpt-oss-120b is the available model on this Groq account.
 // Gemini (gemini-3.6-flash) is primary; Groq is fallback only.
@@ -37,7 +37,16 @@ export const groqProvider: AiProvider = {
       },
       { signal: req.signal }
     );
-    return { text: res.choices[0]?.message?.content?.trim() ?? "", usage: usageOf(res.usage) };
+    // ⚠️ `finish_reason` is carried, not dropped. "length" means the answer was
+    // cut off at the token ceiling - the difference between "the model was brief"
+    // and "we truncated it", which is not recoverable from the text alone.
+    const raw = res.choices[0]?.finish_reason;
+    const finishReason: FinishReason = raw === "length" ? "length" : raw === "stop" ? "stop" : "other";
+    return {
+      text: res.choices[0]?.message?.content?.trim() ?? "",
+      usage: usageOf(res.usage),
+      finishReason,
+    };
   },
 
   async streamChat(req: StreamRequest): Promise<StreamHandle> {

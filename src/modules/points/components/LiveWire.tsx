@@ -15,6 +15,22 @@ import { KIND_LABEL, KIND_TONE, sortUpdates, type PointsUpdateDto } from "@modul
 import type { RadarItem } from "@modules/points/lib/airdrop-radar";
 
 const RADAR_WINDOW_MS = 120_000;
+
+/**
+ * How often the press lane refreshes on its own.
+ *
+ * ⚠️ 90s against the route's 120s window, which is the SAME margin `/api/news`
+ * has run in production since #236. Polling faster than the window means the
+ * window expires before every poll and each tick from each open tab regenerates
+ * the route - trap 1 in the cost-check skill, and the shape that produced this
+ * project's worst write ratio (`/news` at 560 writes against 166 reads) when it
+ * was briefly set equal.
+ *
+ * ⚠️ Registered in `TARGETS` in markets-poll-alignment.test.ts. The desk lane
+ * needs no poll: it broadcasts on write and `useRealtime` already carries a
+ * fallback. This is the lane that had no live path at all.
+ */
+export const RADAR_POLL_MS = 90_000;
 const STORE_KEY = "xyz.points.wire.open";
 
 /**
@@ -128,6 +144,18 @@ export function LiveWire() {
   const [fetchedAt, setFetchedAt] = useState<number | null>(null);
   /** "all" | "x" - narrow the band to items that link to X/Twitter. */
   const [lens, setLens] = useState<"all" | "x">("all");
+  /** Show every item rather than the first dozen. */
+  const [showAll, setShowAll] = useState(false);
+  /**
+   * Items that arrived since the reader last looked.
+   *
+   * ⚠️ New rows are NOT spliced in silently. A live feed that reflows under
+   * someone mid-sentence is worse than a stale one: they lose their place and
+   * learn not to trust the list. So an arrival raises a count, and the reader
+   * decides when the list moves.
+   */
+  const [pendingIds, setPendingIds] = useState<string[]>([]);
+  const seenRef = useRef<Set<string> | null>(null);
   const [brief, setBrief] = useState<{ loading: boolean; text: string | null; err: string | null }>({
     loading: false,
     text: null,
@@ -196,10 +224,22 @@ export function LiveWire() {
   // would otherwise get wrong the same way they did.
   useRealtime({ channel: CH_POINTS, event: "points_update", onMessage: () => void loadDesk() });
 
-  // The press lane is a cached news read, so wake is where staleness matters -
-  // you come back to the tab and want today. No interval: its route inherits a
-  // 120s window from the shared news cache and a poll under that is expensive
-  // for a news column.
+  // ⚠️ The press lane had NO live path - mount and wake only. The desk lane
+  // broadcast on write, so half the band was live and half was as old as the
+  // page, with nothing saying which. A band called "Latest updates" has to be.
+  //
+  // Hidden tabs are skipped: a backgrounded tab polling on a timer is pure cost
+  // for something nobody is looking at, and the wake handler below covers the
+  // moment it comes back.
+  useEffect(() => {
+    const t = setInterval(() => {
+      if (document.visibilityState === "visible") void loadPress();
+    }, RADAR_POLL_MS);
+    return () => clearInterval(t);
+  }, [loadPress]);
+
+  // Wake still matters on top of the interval: a tab left for an hour should not
+  // wait up to 90s for the first tick.
   useEffect(() => {
     const onWake = () => {
       if (document.visibilityState === "hidden") return;
@@ -261,7 +301,44 @@ export function LiveWire() {
   const xCount = items.filter(isX).length;
   const shownItems = lens === "x" ? items.filter(isX) : items;
 
+  // Arrivals, computed from ids rather than length: a feed can gain one and
+  // lose one in the same refresh and still be the same length.
+  useEffect(() => {
+    // ⚠️ Seed only once BOTH lanes have finished their first load.
+    //
+    // Two earlier attempts at this were wrong, and each looked right:
+    //
+    // 1. Seeding on first render recorded an EMPTY set (the effect runs before
+    //    either fetch resolves), so the whole first feed counted as arrivals.
+    // 2. Seeding on the first non-empty list was no better: the lanes resolve
+    //    SEPARATELY. The desk lane landed first with one post, that became the
+    //    baseline, and all seventeen press items then read as new.
+    //
+    // Both measured the same way - a freshly opened page announcing
+    // "18 new updates" before the reader had seen anything at all, which is the
+    // exact opposite of what the pill is for.
+    //
+    // "The reader has seen the initial feed" means both lanes have settled, so
+    // that is what the condition says.
+    const settled = deskState !== "loading" && pressState !== "loading";
+    if (!settled) return;
+
+    const ids = items.map((i) => i.id);
+    if (seenRef.current === null) {
+      seenRef.current = new Set(ids);
+      return;
+    }
+    const fresh = ids.filter((id) => !seenRef.current!.has(id));
+    if (fresh.length) setPendingIds((p) => [...new Set([...p, ...fresh])]);
+  }, [items, deskState, pressState]);
+
+  const acceptNew = useCallback(() => {
+    seenRef.current = new Set(items.map((i) => i.id));
+    setPendingIds([]);
+  }, [items]);
+
   const [hot, ...rest] = shownItems;
+  const visibleRest = showAll ? rest : rest.slice(0, 12);
   const live = deskState !== "down" || pressState !== "down";
 
   /**
@@ -385,6 +462,24 @@ export function LiveWire() {
           </div>
         </div>
 
+        {/* ⚠️ New rows are announced, not spliced in. A live feed that reflows
+            under someone mid-sentence is worse than a stale one - they lose
+            their place and learn not to trust the list. The count is the
+            invitation; the reader decides when it moves. */}
+        {pendingIds.length > 0 && (
+          <button
+            type="button"
+            onClick={acceptNew}
+            className="flex min-h-11 w-full items-center justify-center gap-1.5 border-b border-mint-500/25 bg-mint-500/[0.06] text-[11px] font-semibold text-mint-200 transition-colors hover:bg-mint-500/[0.1]"
+          >
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-75" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
+            </span>
+            {pendingIds.length} new update{pendingIds.length === 1 ? "" : "s"} — tap to mark as read
+          </button>
+        )}
+
         {/* ── the AI briefing, when asked for ───────────────────────────── */}
         {(brief.loading || brief.text || brief.err) && (
           <div className="border-b border-hairline bg-surface-2 px-4 py-4 sm:px-5">
@@ -470,12 +565,41 @@ export function LiveWire() {
             >
               <div className="min-h-0 overflow-hidden">
                 <ul className="divide-y divide-hairline border-t border-hairline">
-                  {rest.slice(0, 12).map((i) => (
-                    <li key={i.id}>
-                      <WireEntry item={i} />
+                  {visibleRest.map((i, n) => (
+                    // A short, staggered rise so a long list arrives in order
+                    // rather than all at once. Capped at ten steps: past that
+                    // the last rows would visibly lag the scroll.
+                    //
+                    // ⚠️ `animate-fade-up` is THIS project's keyframe, already in
+                    // tailwind.config.ts. The obvious spelling here would have
+                    // been `animate-in fade-in slide-in-from-bottom-1`, which
+                    // belongs to `tailwindcss-animate` - a plugin this repo does
+                    // not install. Those classes parse, generate nothing, and
+                    // fail silently: the same family as the `bg-base/95` and
+                    // `text-content0` incidents.
+                    <li
+                      key={i.id}
+                      className="animate-fade-up"
+                      style={{ animationDelay: `${Math.min(n, 10) * 25}ms` }}
+                    >
+                      <WireEntry item={i} isNew={pendingIds.includes(i.id)} />
                     </li>
                   ))}
                 </ul>
+
+                {rest.length > 12 && (
+                  <button
+                    type="button"
+                    onClick={() => setShowAll((v) => !v)}
+                    className="flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-hairline text-[11px] font-medium text-content-muted transition-colors hover:text-content"
+                  >
+                    {showAll ? "Show fewer" : `Show all ${rest.length}`}
+                    <ChevronDown
+                      className={cn("h-3.5 w-3.5 transition-transform", showAll && "rotate-180")}
+                      strokeWidth={1.7}
+                    />
+                  </button>
+                )}
               </div>
             </div>
           </>
@@ -499,14 +623,23 @@ export function LiveWire() {
  * both. A link that sometimes navigates and sometimes does not is the control
  * readers learn to distrust first.
  */
-function WireEntry({ item, hero = false }: { item: WireItem; hero?: boolean }) {
+function WireEntry({
+  item,
+  hero = false,
+  isNew = false,
+}: {
+  item: WireItem;
+  hero?: boolean;
+  /** Arrived since the reader last caught up. Marked, not animated in place. */
+  isNew?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const host = prettyHost(hostOf(item.url));
   const href = readHref(item);
   const external = leavesSite(item);
 
   return (
-    <div className={cn(hero && "border-b border-hairline")}>
+    <div className={cn(hero && "border-b border-hairline", isNew && "bg-mint-500/[0.04]")}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -515,6 +648,11 @@ function WireEntry({ item, hero = false }: { item: WireItem; hero?: boolean }) {
       >
         <span className="flex flex-wrap items-center gap-2 text-[10px]">
           <LaneBadge item={item} />
+          {isNew && (
+            <span className="rounded-full border border-mint-500/30 bg-mint-500/10 px-2 py-0.5 font-medium text-mint-200">
+              New
+            </span>
+          )}
           {item.pinned && (
             <span className="inline-flex items-center gap-1 font-medium text-gold-200">
               <Pin className="h-3 w-3" strokeWidth={1.7} /> Pinned

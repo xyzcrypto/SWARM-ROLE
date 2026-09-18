@@ -13,7 +13,7 @@ import { RobotIcon } from "@/components/RobotIcon";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
 import type { NewsPage } from "@/lib/news-fetch";
 import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
-import { BriefingBlock } from "@/components/BriefingBlock";
+import { BriefingBlock, type BriefingMeta } from "@/components/BriefingBlock";
 import { NewsSocial } from "@/components/NewsSocial";
 import { AwardXpOnView } from "@/components/AwardXpOnView";
 import { useHydrated } from "@/lib/useClientFlag";
@@ -796,7 +796,7 @@ const NewsCard = memo(function NewsCard({
   const reduce = useReducedMotionSafe();
   const open = () => onOpen(item.id);
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
-  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
+  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null; meta?: BriefingMeta }>({ loading: false, text: null, err: null });
   const [heroFailed, setHeroFailed] = useState(false);
 
   const share = () => shareStory(item);
@@ -988,7 +988,7 @@ function NewsReader({
   /** True while `onNext` is fetching the next page - the reader says so. */
   loadingNext: boolean;
 }) {
-  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
+  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null; meta?: BriefingMeta }>({ loading: false, text: null, err: null });
   const [progress, setProgress] = useState(0); // reading scroll progress (0-1)
   const bodyRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -1158,7 +1158,7 @@ function NewsReader({
         const j = await res.json().catch(() => ({}));
         if (digestItemId.current !== forItemId) return;
         if (!res.ok) setDigest({ loading: false, text: null, err: j.error || "Couldn't generate a summary." });
-        else setDigest({ loading: false, text: j.text, err: null });
+        else setDigest({ loading: false, text: j.text, err: null, meta: j.meta });
       })
       .catch(() => {
         if (digestItemId.current === forItemId) setDigest({ loading: false, text: null, err: "Network error." });
@@ -1275,6 +1275,7 @@ function NewsReader({
             {/* Advanced AI briefing - the full story on-site, with Listen + Hinglish */}
             <BriefingBlock
               englishText={digest.text}
+              meta={digest.meta}
               loading={digest.loading}
               err={digest.err}
               title={item.title}

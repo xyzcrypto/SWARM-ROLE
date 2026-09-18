@@ -113,9 +113,14 @@ describe("the radar is a filter over the news pipeline, not a new upstream", () 
     expect(src).toMatch(/"public, s-maxage=30"/);
   });
 
-  it("says it is unpolled, and where to register a poll if one is added", () => {
-    expect(src).toMatch(/NOT POLLED/);
+  it("is honest about BEING polled, and names the guard", () => {
+    // This asserted /NOT POLLED/ while the route genuinely was not. It is now -
+    // the press lane had no live path at all while the desk lane broadcast on
+    // write - so the note has to say the opposite and name the poll, or the next
+    // reader adds a second one on the strength of a stale comment.
+    expect(src).toMatch(/POLLED, at 90s/);
     expect(src).toMatch(/markets-poll-alignment\.test\.ts/);
+    expect(src).not.toMatch(/⚠️ NOT POLLED/);
   });
 });
 

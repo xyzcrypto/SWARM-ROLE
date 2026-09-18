@@ -5,6 +5,131 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (108) — Half the band was live and half was as old as the page
+
+### The press lane had no live path at all
+
+The desk lane broadcasts on write, so it was genuinely realtime. The press lane
+fetched on mount and on wake and that was all - so a band called **"Latest
+updates"** was half live and half as old as the page, with nothing saying which.
+
+`RADAR_POLL_MS` is 90s against the route's 120s window: the same margin
+`/api/news` has run since #236, and deliberately not equal, because equal lets
+jitter decide whether every poll regenerates the route. Registered in `TARGETS`,
+and the route header now says it is polled rather than arguing it should not be.
+
+Hidden tabs are skipped - a backgrounded tab polling is pure cost for something
+nobody is looking at.
+
+### "Everything important" now means everything
+
+The radar returned 12 items and the list showed 12. A reader asking for the rest
+got a truncation nobody mentioned. The route returns 30 and a **Show all N**
+control reveals them, with the count stated so nothing is hidden behind a
+euphemism.
+
+### New items are announced, not spliced in
+
+⚠️ A live feed that reflows under someone mid-sentence is worse than a stale one:
+they lose their place and learn not to trust the list. An arrival raises a
+**"N new updates"** pill; the reader decides when the list moves, and each new row
+is marked until they do.
+
+**That pill was wrong twice before it was right, and both versions looked
+correct:**
+
+1. Seeding the "already seen" set on first render recorded an **empty** set - the
+   effect runs before either fetch resolves - so the entire first feed counted as
+   arrivals.
+2. Seeding on the first non-empty list was no better: the two lanes resolve
+   **separately**. The desk lane landed first with one post, that became the
+   baseline, and all seventeen press items then read as new.
+
+Both produced the same measured symptom: a freshly opened page announcing
+**"18 new updates"** before the reader had seen anything at all. "The reader has
+seen the initial feed" means both lanes have settled, so that is what the
+condition says now.
+
+⚠️ The browser check only caught this after being tightened from "a pill
+appeared" to "the pill says exactly 1". The loose version passed while the
+feature was visibly wrong.
+
+### One more silent-CSS trap, caught before it shipped
+
+The stagger was first written as `animate-in fade-in slide-in-from-bottom-1`.
+Those belong to **`tailwindcss-animate`, which this repo does not install**
+(`plugins: []`), so they parse, emit **nothing**, and fail silently - the same
+family as `bg-base/95` (no rule emitted) and `text-content0` (class does not
+exist). It uses `animate-fade-up`, this project's own keyframe, and
+`points-light-theme.test.ts` now fails on any utility from that missing plugin.
+
+Verified in the browser: `animation-name: fade-up`.
+
+### Verification
+
+typecheck / 1211 tests / lint / build green, plus a browser probe at 1440px and
+393px - 24 checks covering the fold, Show all, the real keyframe, and the pill
+announcing exactly what arrived.
+
+---
+
+## 2026-09-18 (107) — Why three fixes to the briefing all looked like nothing
+
+### The question nobody could answer
+
+The briefing has now been "fixed" three times. Each fix was a real bug - a flat
+15s timeout, a missing `maxDuration`, the wrong model tier - and each time it
+came back short.
+
+⚠️ **The reason is that nothing on the path could say why the answer stopped.** A
+truncated answer and a genuinely brief one are identical in the text. Only the
+provider's stop reason separates them - and **both providers were discarding
+it**: Groq returns `choices[0].finish_reason`, Gemini returns
+`candidates[0].finishReason`, and neither reached the caller. Every diagnosis
+was therefore a guess, including all three of mine.
+
+Both are now carried through `CompleteResult.finishReason`, normalised to
+`stop` / `length` / `other`. Gemini spells truncation `MAX_TOKENS`; reading only
+Groq's spelling would have left the primary provider silent.
+
+### The mechanism that made the fixes look ineffective
+
+⚠️ **The response cache stores a briefing for 24 hours, and `setCached` accepted
+anything non-empty.** One half-finished briefing was then served to every
+identical request for a day - *across deploys*. The fix would ship, and the
+reader would be handed the same cached fragment that predated it.
+
+A cut-off answer is not a cheaper answer; it is a wrong one, and caching a wrong
+one is how a bug outlives its fix. `runComplete` now refuses to cache anything
+that stopped on `length`.
+
+### A briefing that hits the ceiling gets finished
+
+Rather than serving half of one, the route asks the model to carry on from where
+it stopped - **exactly once**. Two would be a loop with a bill attached, and if
+one more pass is not enough the honest thing is to say it was cut short.
+
+Only for `briefing`: a "why this matters" is two sentences by design, and
+stopping at its ceiling means something else is wrong.
+
+### And the reader can see it
+
+The answer travels with `meta` - model, provider, output tokens, whether it was
+cached, whether it was continued. The block says **"This briefing ran out of room
+before it finished"** when even the continuation ran out, and names the model
+underneath.
+
+A fragment presented as a finished briefing leaves a reader to conclude the
+feature is broken. That is precisely what happened, three times over.
+
+### Verification
+
+typecheck / 1210 tests / lint / build green. `ai-briefing-truncation.test.ts`
+pins all of it: both spellings of the stop reason, the conditional cache write,
+exactly one continuation, and the truncation notice.
+
+---
+
 ## 2026-09-18 (106) — The briefing was asking the wrong model, and delete meant gone
 
 ### The briefing was routed as bulk work

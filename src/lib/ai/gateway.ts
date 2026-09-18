@@ -177,7 +177,16 @@ export async function runComplete(
         const res = await withTimeout(completeTimeoutMs(req.maxTokens), (signal) =>
           provider.complete({ ...req, model, signal })
         );
-        if (key && res.text) void setCached(key, res.text);
+        // ⚠️ NEVER cache a truncated answer. The cache holds a response for
+        // TWENTY-FOUR HOURS, and it stored anything non-empty - so one
+        // half-finished briefing was then served to every identical request for
+        // a day, across deploys. Three separate fixes to the briefing looked
+        // like they had done nothing, because the reader kept being handed the
+        // same cached fragment that predated them.
+        //
+        // A cut-off answer is not a cheaper answer; it is a wrong one, and
+        // caching a wrong one is how a bug outlives its fix.
+        if (key && res.text && res.finishReason !== "length") void setCached(key, res.text);
         const usage: TokenUsage = res.usage ?? { inputTokens: inputEst, outputTokens: estimateTokens(res.text) };
         await recordAiUsage({
           userId: ctx.userId ?? null,

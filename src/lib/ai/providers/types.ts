@@ -31,7 +31,22 @@ export type CompleteRequest = {
   maxTokens: number;
   signal?: AbortSignal;
 };
-export type CompleteResult = { text: string; usage?: TokenUsage };
+/**
+ * Why generation stopped.
+ *
+ * ⚠️ Both providers return this and BOTH were discarding it - Groq as
+ * `choices[0].finish_reason`, Gemini as `candidates[0].finishReason`. Without it
+ * a short answer is unexplainable: nobody can tell whether the model was cut off
+ * at the token ceiling or simply decided it was done. Three separate attempts to
+ * fix a half-finished briefing were made without this fact.
+ *
+ * - `stop`   - the model finished on its own.
+ * - `length` - it hit `maxTokens`. The answer is TRUNCATED.
+ * - `other`  - filtered, blocked, or a reason we do not model.
+ */
+export type FinishReason = "stop" | "length" | "other";
+
+export type CompleteResult = { text: string; usage?: TokenUsage; finishReason?: FinishReason };
 
 export type StreamRequest = {
   model: string;
