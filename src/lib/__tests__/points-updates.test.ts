@@ -17,6 +17,7 @@ const u = (over: Partial<PointsUpdateDto> & { id: string }): PointsUpdateDto => 
   kind: "update",
   program: null,
   url: null,
+  image: null,
   pinned: false,
   published: true,
   createdAt: "2026-09-17T10:00:00.000Z",

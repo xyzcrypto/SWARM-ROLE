@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2, Plus, X } from "lucide-react";
+import { Eye, Loader2, Pencil, Plus, X } from "lucide-react";
+import { CharCount, CoverPicker, MarkdownToolbar } from "@/components/ComposerKit";
+import { MarkdownLite } from "@/components/MarkdownLite";
 import { cn } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 
@@ -39,12 +41,16 @@ export function QuickPublish() {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [preview, setPreview] = useState(false);
+  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const [form, setForm] = useState({
     title: "",
     excerpt: "",
     content: "",
     category: "Research" as "Research" | "Article" | "Post",
     premium: false,
+    cover: "",
+    tags: "",
   });
 
   if (!canPublish) return null;
@@ -68,7 +74,8 @@ export function QuickPublish() {
       });
       const j = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(j?.error || "Could not publish that.");
-      setForm({ title: "", excerpt: "", content: "", category: "Research", premium: false });
+      setForm({ title: "", excerpt: "", content: "", category: "Research", premium: false, cover: "", tags: "" });
+      setPreview(false);
       setOpen(false);
       // The list is server-rendered, so a refresh is what makes the new post
       // appear. `router.refresh()` re-fetches it without a full reload.
@@ -85,11 +92,18 @@ export function QuickPublish() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="surface surface-hover flex min-h-14 w-full items-center gap-3 rounded-2xl px-4 text-left transition-colors"
+        className="surface surface-hover flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 text-left transition-colors"
       >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-gold-500/15 text-gold-200">
-          <Plus className="h-4 w-4" strokeWidth={2} />
-        </span>
+        {/* The author's own avatar, the way every modern composer opens - it
+            says "you are about to write as yourself" before a single field. */}
+        {session?.user?.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={session.user.image} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+        ) : (
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold-500/15 text-gold-200">
+            <Plus className="h-4 w-4" strokeWidth={2} />
+          </span>
+        )}
         <span className="text-sm text-content-muted">Publish something to Research…</span>
       </button>
     );
@@ -124,12 +138,62 @@ export function QuickPublish() {
           maxLength={320}
           className="min-h-11 w-full rounded-xl border border-hairline bg-surface-2 px-4 py-2.5 text-sm text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
         />
-        <textarea
+        {/* Write / Preview, because markdown you cannot see is markdown you
+            find out about after publishing. Same renderer the article page
+            uses, so what is shown here is what ships. */}
+        {preview ? (
+          <div className="min-h-[9rem] rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm leading-relaxed text-content-muted">
+            {form.content.trim() ? (
+              <MarkdownLite text={form.content} />
+            ) : (
+              <p className="text-content-subtle">Nothing to preview yet.</p>
+            )}
+          </div>
+        ) : (
+          <textarea
+            ref={bodyRef}
+            value={form.content}
+            onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
+            placeholder="Write it. Markdown works, and the toolbar below writes it for you."
+            rows={7}
+            className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm leading-relaxed text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+          />
+        )}
+
+        <MarkdownToolbar
+          textareaRef={bodyRef}
           value={form.content}
-          onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
-          placeholder="Write it. Markdown works."
-          rows={6}
-          className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm leading-relaxed text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
+          onChange={(content: string) => setForm((f) => ({ ...f, content }))}
+          className="rounded-xl border border-hairline bg-surface-2 px-1.5 py-1"
+        >
+          <span className="mx-1 h-5 w-px bg-hairline" aria-hidden />
+          <CoverPicker url={form.cover} onChange={(cover: string) => setForm((f) => ({ ...f, cover }))} />
+          <button
+            type="button"
+            onClick={() => setPreview((v) => !v)}
+            title={preview ? "Back to writing" : "Preview"}
+            aria-label={preview ? "Back to writing" : "Preview"}
+            aria-pressed={preview}
+            className={cn(
+              "inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-white/[0.05]",
+              preview ? "text-gold-200" : "text-content-subtle hover:text-content"
+            )}
+          >
+            {preview ? <Pencil className="h-4 w-4" strokeWidth={1.7} /> : <Eye className="h-4 w-4" strokeWidth={1.7} />}
+          </button>
+          <CharCount value={form.content} max={100_000} />
+        </MarkdownToolbar>
+
+        {/* The cover preview renders inside CoverPicker, directly under the
+            toolbar, so the image sits where it was added rather than in a
+            separate panel the writer has to go looking for. */}
+
+        <input
+          value={form.tags}
+          onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
+          placeholder="Tags, comma separated (optional)"
+          maxLength={200}
+          className="min-h-11 w-full rounded-xl border border-hairline bg-surface-2 px-4 py-2.5 text-xs text-content outline-none transition-colors focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
         />
       </div>
 
