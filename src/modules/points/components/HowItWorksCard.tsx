@@ -97,7 +97,7 @@ export function HowItWorksCard() {
           {subscribed ? (
             <div className="flex items-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-300">
               <Check className="h-4 w-4" />
-              <span>You're in! Check your inbox for the latest intelligence briefs.</span>
+              <span>You&apos;re in! Check your inbox for the latest intelligence briefs.</span>
             </div>
           ) : (
             <form onSubmit={handleSubscribe} className="flex flex-col gap-2 sm:flex-row">

@@ -99,7 +99,7 @@ export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
               {/* Floating Quote */}
               <div className="absolute top-3 left-3 text-right">
                 <span className="font-serif italic text-xs tracking-wide text-gold-200/90 drop-shadow-md">
-                  "More than points. A bigger tomorrow."
+                  &ldquo;More than points. A bigger tomorrow.&rdquo;
                 </span>
               </div>
 
