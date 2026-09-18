@@ -58,7 +58,9 @@ export async function POST(req: Request) {
       : mode === "digest" ? buildNewsDigestPrompt(title, summary)
       : buildWhyMattersPrompt(title, summary);
     const text = await completeText({
-      task: mode === "why" ? "why" : "digest",
+      // A briefing is its own task so it can be ROUTED as one - see routing.ts.
+      // Sharing `digest` sent a 900-word explainer to the fast model.
+      task: mode === "briefing" || mode === "hinglish" ? "briefing" : mode === "why" ? "why" : "digest",
       prompt,
       // ⚠️ 1400, not 2000. The briefing prompt asks for 650-900 words, which is
       // roughly 900-1250 tokens - so 2000 was never the length of the answer,

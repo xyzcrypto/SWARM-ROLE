@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/Navbar";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { Hero } from "@/components/Hero";
 import { MarketTicker } from "@/components/MarketTicker";
 import { OrbitalSection } from "@/components/OrbitalSection";
@@ -86,7 +87,7 @@ export default async function HomePage() {
         select: { createdAt: true },
       })
       .catch(() => null),
-    prisma.post.count({ where: { published: true, category: "Research" } }).catch(() => 0),
+    prisma.post.count({ where: { published: true, category: "Research", ...NOT_TRASHED } }).catch(() => 0),
   ]);
 
   const research = {

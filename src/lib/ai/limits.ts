@@ -11,7 +11,16 @@ export const DEFAULT_DAILY_LIMITS: Record<AiPlan, number> = { Free: 25, Premium:
 
 // Only user-initiated tasks count against the cap; system tasks (auto-moderation,
 // article auto-summaries) are not the member's quota.
-const USER_TASKS: ReadonlySet<AiTask> = new Set<AiTask>(["assistant", "why", "digest"]);
+// ⚠️ `briefing` belongs here, and leaving it out would have been the expensive
+// kind of omission: a briefing is the LONGEST generation a member can trigger
+// and now runs on the quality model, so an uncounted one is the single most
+// costly way to slip past a daily cap.
+//
+// The two lists below must stay in step. They are separate because one is a
+// membership test and the other is a Prisma filter, and Prisma cannot take a Set.
+const USER_TASKS: ReadonlySet<AiTask> = new Set<AiTask>(["assistant", "why", "digest", "briefing"]);
+/** The same set, as an array, for the `in` filter. Pinned equal by a test. */
+export const USER_TASK_LIST = [...USER_TASKS] as AiTask[];
 export function isUserTask(task: AiTask): boolean {
   return USER_TASKS.has(task);
 }
@@ -65,7 +74,7 @@ export async function checkDailyLimit(userId: string, plan: AiPlan, now = Date.n
   let used = 0;
   try {
     used = await prisma.aiUsage.count({
-      where: { userId, task: { in: ["assistant", "why", "digest"] }, createdAt: { gte: new Date(utcDayStart(now)) } },
+      where: { userId, task: { in: USER_TASK_LIST }, createdAt: { gte: new Date(utcDayStart(now)) } },
     });
   } catch {
     used = 0; // analytics table not migrated → don't block

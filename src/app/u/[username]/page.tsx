@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import type { ComponentType } from "react";
 import { cache } from "react";
 import Link from "next/link";
@@ -90,7 +91,7 @@ export default async function ProfilePage(props: Props) {
   // `extra` reads the migration-20 social columns through a guarded query so an
   // un-migrated DB doesn't break the page (returns nulls until applied).
   const [postCount, recentComments, extra, followersCount, followingCount, journalActivity] = await Promise.all([
-    prisma.post.count({ where: { authorId: user.id, published: true } }).catch(() => 0),
+    prisma.post.count({ where: { authorId: user.id, published: true, ...NOT_TRASHED } }).catch(() => 0),
     prisma.comment
       .findMany({
         where: { userId: user.id, status: "visible" },

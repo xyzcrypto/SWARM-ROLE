@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { ResearchGrid } from "@/components/ResearchGrid";
@@ -40,7 +41,7 @@ export default async function ResearchPage() {
         take: PAGE_SIZE,
       })
       .catch(() => []),
-    prisma.post.count({ where: { published: true } }).catch(() => 0),
+    prisma.post.count({ where: { published: true, ...NOT_TRASHED } }).catch(() => 0),
   ]);
   // Never ship article bodies in the list payload (premium must never leak;
   // free bodies just bloat the RSC payload). Cards get a precomputed read time.

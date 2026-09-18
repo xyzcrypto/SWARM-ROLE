@@ -5,6 +5,81 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (106) — The briefing was asking the wrong model, and delete meant gone
+
+### The briefing was routed as bulk work
+
+It arrived late and stopped after the TL;DR. Entry 103 fixed the timeout, which
+was real, but not the whole story.
+
+⚠️ **`/api/ai/why-matters` passed `task: "digest"` for a briefing.** `routeTier`
+sends everything except the assistant to the **fast** model, with the comment
+"bulk deterministic tasks are cheap + high-volume". A digest is two or three
+sentences. A **briefing is a nine-section, 650-900 word explainer** - neither
+cheap nor bulk. The fast model wrote a couple of sentences and stopped, which is
+precisely what was reported.
+
+`briefing` is now its own `AiTask` and routes to the **quality** model for
+everyone, regardless of plan. A briefing that stops after the TL;DR is not a
+cheaper briefing; it is a feature that does not work, generated and paid for
+anyway.
+
+⚠️ It also joins `USER_TASKS`, so it counts against the daily cap. Leaving it out
+would have been the expensive kind of omission: the longest generation a member
+can trigger, on the quality model, uncounted.
+
+The points band's briefing now carries **`RobotIcon`** - the same mark the
+assistant and the news briefing use. One face for XYZ AI everywhere it speaks.
+
+### Delete meant gone
+
+⚠️ `DELETE /api/research/[id]` called `prisma.post.delete`. A published article
+was gone from Postgres with no way back short of a database backup - and a
+backup is not a feature, it is a thing you find out you do not have on the day
+you need it. **One misclick, one article.**
+
+Now:
+
+- `Post.deletedAt` (migration `39_post_soft_delete`, `ADD COLUMN IF NOT EXISTS`,
+  nullable, no backfill, partial index on the live rows).
+- **DELETE sets `deletedAt`.** `?purge=1` still destroys a row, but refuses
+  anything not already in the trash - so permanent deletion takes two deliberate
+  actions, and the second is taken while looking at the trash.
+- `GET /api/research/trash` and `POST /api/research/[id]/restore`. Without a
+  restore path, `deletedAt` is just a slower way of losing something.
+- Restore returns a post to the `published` state it had. A draft that was
+  deleted comes back a draft: restoring undoes a deletion, it does not make a
+  publishing decision for the owner.
+- Restore busts **both** `/research` and the article path, or the post is back in
+  the database and still missing from the site.
+
+⚠️ **The dangerous half of a soft delete is the READ side.** Sixteen places query
+`Post`; miss one and a deleted article is still reachable by URL, still in a
+count, still in a sitemap - and nothing errors. So there is one predicate,
+`NOT_TRASHED`, spread at every site, and `post-soft-delete.test.ts` walks every
+source file and fails on a `prisma.post` read without it. Verified to fail when a
+single filter is removed.
+
+That check found a real one the first time it ran: the **PATCH** lookup was
+unguarded, so a trashed post could still be edited.
+
+### Save a read
+
+A `SaveButton` on the article page. ⚠️ Reuses the news `SavedStory` store rather
+than adding a table: it is keyed `(userId, url)` and already holds title,
+summary, source, image and category. A second store would mean a second
+migration, a second API and - the part that matters - **a second place a reader
+has to look for the thing they saved**. One saved list, with the source naming
+the lane.
+
+### Verification
+
+typecheck / 1196 tests / lint / build green. Two new routes, both `ƒ` and
+`private, no-store` - an admin-only list of non-public titles must never reach a
+shared cache.
+
+---
+
 ## 2026-09-18 (105) — One composer toolkit, two surfaces
 
 ### What the inline composers were missing

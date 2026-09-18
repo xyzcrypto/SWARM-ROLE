@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { SaveButton } from "@modules/research/components/SaveButton";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -51,7 +53,7 @@ function withSafeAuthorImage<T extends { author: { id: string; image: string | n
 const getPost = cache(async (slug: string) => {
   try {
     const post = await prisma.post.findFirst({
-      where: { slug, published: true },
+      where: { slug, published: true, ...NOT_TRASHED },
       include: { author: { select: { id: true, name: true, username: true, image: true, membership: true } } },
     });
     return post ? withSafeAuthorImage(post) : null;
@@ -61,7 +63,7 @@ const getPost = cache(async (slug: string) => {
     if (err?.code === "P2022") {
       const post = await prisma.post
         .findFirst({
-          where: { slug, published: true },
+          where: { slug, published: true, ...NOT_TRASHED },
           select: {
             id: true, slug: true, title: true, excerpt: true, content: true,
             cover: true, category: true, tags: true, premium: true,
@@ -189,6 +191,9 @@ export default async function PostPage(
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
         <article className="relative mx-auto max-w-3xl px-4 pb-24 sm:px-6">
+          {/* Back and Save on one row: the two things a reader reaches for
+              around an article, in the same place every time. */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
             href="/research"
             className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-gold-200"
@@ -198,6 +203,14 @@ export default async function PostPage(
             </svg>
             All research
           </Link>
+          <SaveButton
+            slug={post.slug}
+            title={post.title}
+            excerpt={post.excerpt}
+            cover={post.cover}
+            category={post.category}
+          />
+          </div>
 
           <div className="mt-6">
             <span className="rounded-full bg-gold-500/10 px-3 py-1 text-xs font-semibold text-gold-200 ring-1 ring-gold-500/30">

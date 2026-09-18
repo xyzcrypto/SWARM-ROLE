@@ -3,7 +3,17 @@
 // the rest of the codebase never imports a vendor SDK directly.
 
 /** The kind of work a call represents (drives model routing + usage analytics). */
-export type AiTask = "assistant" | "summary" | "moderation" | "why" | "digest";
+/**
+ * ⚠️ `briefing` is separate from `digest` on purpose, and the distinction is
+ * load-bearing rather than cosmetic.
+ *
+ * A digest is two or three sentences. A BRIEFING is a nine-section, 650-900 word
+ * explainer. They were the same task, so the briefing inherited the routing
+ * written for "cheap + high-volume" work and was answered by the **fast** model -
+ * which produced a couple of sentences and stopped. The reported symptom was
+ * exactly that: "half se bhi kam".
+ */
+export type AiTask = "assistant" | "summary" | "moderation" | "why" | "digest" | "briefing";
 
 /** A user's effective plan for AI purposes. */
 export type AiPlan = "Free" | "Premium" | "Admin";
