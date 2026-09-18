@@ -74,10 +74,12 @@ describe("a briefing that hits the ceiling is finished, not served half", () => 
     expect(route).not.toMatch(/while \(|for \(let attempt/);
   });
 
-  it("only does this for a briefing", () => {
+  it("only does this for the LONG modes", () => {
     // A "why this matters" is two sentences by design; stopping at its ceiling
-    // means something else is wrong and continuing would paper over it.
-    expect(route).toMatch(/mode === "briefing" && meta\.finishReason === "length"/);
+    // means something else is wrong and continuing would paper over it. The
+    // roundup is long-form like the briefing, so it earns the same treatment.
+    expect(route).toMatch(/\(mode === "briefing" \|\| mode === "roundup"\) && meta\.finishReason === "length"/);
+    expect(route).not.toMatch(/mode === "why".*finishReason === "length"/);
   });
 
   it("still reports truncation when even the continuation ran out", () => {

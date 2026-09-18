@@ -24,7 +24,11 @@ function calculatorHref(platform: string): string {
   const key = platform.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (!key) return "/points";
   const hit = DEX_REGISTRY.find((p) => p.name.toLowerCase().replace(/[^a-z0-9]/g, "") === key);
-  return hit ? `/points#programme-${hit.id}` : "/points";
+  // ⚠️ The SHORT address, not the anchor. `/points/Variational` is what a person
+  // can read aloud, paste into a chat and recognise; `/points#programme-variational`
+  // is what a developer writes. The short one redirects to the anchor, so both
+  // land in the same place and only one of them has to be shareable.
+  return hit ? `/points/${hit.name}` : "/points";
 }
 
 type CardData = { platform?: string; domain?: string; sharePct?: number; tokens?: number; usd?: number; fdv?: number };

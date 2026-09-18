@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { Radio, ExternalLink, Pin, Plus, Trash2, Loader2 } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
 import { CharCount, CoverPicker, MarkdownToolbar } from "@/components/ComposerKit";
+import { MarkdownLite } from "@/components/MarkdownLite";
 import { hasPermission } from "@/lib/permissions";
 import { useRealtime } from "@/lib/useRealtime";
 import { CH_POINTS } from "@/lib/realtime-channels";
@@ -230,7 +231,15 @@ function UpdateCard({
       )}
 
       <h3 className="mt-2.5 font-display text-base font-semibold text-content">{u.title}</h3>
-      <p className="mt-1.5 whitespace-pre-line text-sm leading-relaxed text-content-muted">{u.body}</p>
+      {/* ⚠️ Rendered, not printed. This was `whitespace-pre-line` on the raw
+          string, so a desk post's referral link showed as dead text a reader had
+          to select and copy by hand - on a phone, most of the way to not
+          bothering. `MarkdownLite` now renders links (and refuses anything that
+          is not http(s)), so the same body gains a tappable link, real bold and
+          real bullets without the composer changing at all. */}
+      <div className="mt-1.5 text-sm leading-relaxed text-content-muted">
+        <MarkdownLite text={u.body} />
+      </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         {u.url && (

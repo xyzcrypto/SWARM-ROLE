@@ -139,6 +139,17 @@ export function SaveButton({
         )}
         {label && (saved ? "Saved" : "Save")}
       </button>
+      {/* ⚠️ Once something IS saved, the reader needs to know where it went.
+          A bookmark with no visible destination is a button that files things
+          into a drawer with no handle - and they only find that out later. */}
+      {saved && (
+        <a
+          href="/saved"
+          className="mt-1 text-[11px] text-content-subtle underline underline-offset-2 transition-colors hover:text-gold-200"
+        >
+          See your saved reads
+        </a>
+      )}
       {note && <span className="mt-1 text-[11px] text-content-subtle">{note}</span>}
     </span>
   );

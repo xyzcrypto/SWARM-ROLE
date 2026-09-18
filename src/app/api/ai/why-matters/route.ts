@@ -4,7 +4,7 @@ import { rateLimit } from "@/lib/ratelimit";
 import { aiEnabled, completeTextWithMeta, aiErrorMessage } from "@/lib/ai";
 import { aiPlanFor, AiCapacityError } from "@/lib/ai/gateway";
 import { checkDailyLimit, dailyLimitMessage } from "@/lib/ai/limits";
-import { buildWhyMattersPrompt, buildNewsDigestPrompt, buildNewsBriefingPrompt, buildHinglishPrompt } from "@/lib/ai-summary";
+import { buildWhyMattersPrompt, buildNewsDigestPrompt, buildNewsBriefingPrompt, buildHinglishPrompt, buildPointsRoundupPrompt } from "@/lib/ai-summary";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,10 +23,15 @@ export const maxDuration = 60;
 
 const bodySchema = z.object({
   title: z.string().trim().min(4).max(300),
-  summary: z.string().trim().max(1200).optional().default(""),
+  // ⚠️ 4000, not 1200. A roundup sends several headlines with their summaries,
+  // and 1200 truncated that list MID-ITEM - the model was being asked to brief
+  // on a half-sentence. A single-story excerpt never approaches this.
+  summary: z.string().trim().max(4000).optional().default(""),
   // "why" = a 2-sentence take; "digest" = a fuller paragraph; "briefing" = a full
   // article-length on-site read; "hinglish" = translate a supplied briefing to Hinglish.
-  mode: z.enum(["why", "digest", "briefing", "hinglish"]).optional().default("why"),
+  // "roundup" = several headlines at once, which is a different shape of answer
+  // from a single-story briefing and needs its own prompt.
+  mode: z.enum(["why", "digest", "briefing", "hinglish", "roundup"]).optional().default("why"),
   // For mode "hinglish": the already-generated English briefing to translate.
   text: z.string().trim().max(6000).optional().default(""),
 });
@@ -53,21 +58,28 @@ export async function POST(req: Request) {
     const { title, summary, mode } = parsed.data;
     if (mode === "hinglish" && !parsed.data.text) return fail("Nothing to translate.", 400);
     const prompt =
-      mode === "hinglish" ? buildHinglishPrompt(parsed.data.text)
+      mode === "roundup" ? buildPointsRoundupPrompt(summary)
+      : mode === "hinglish" ? buildHinglishPrompt(parsed.data.text)
       : mode === "briefing" ? buildNewsBriefingPrompt(title, summary)
       : mode === "digest" ? buildNewsDigestPrompt(title, summary)
       : buildWhyMattersPrompt(title, summary);
     const first = await completeTextWithMeta({
       // A briefing is its own task so it can be ROUTED as one - see routing.ts.
       // Sharing `digest` sent a 900-word explainer to the fast model.
-      task: mode === "briefing" || mode === "hinglish" ? "briefing" : mode === "why" ? "why" : "digest",
+      task:
+        mode === "briefing" || mode === "hinglish" || mode === "roundup"
+          ? "briefing"
+          : mode === "why"
+            ? "why"
+            : "digest",
       prompt,
       // ⚠️ 1400, not 2000. The briefing prompt asks for 650-900 words, which is
       // roughly 900-1250 tokens - so 2000 was never the length of the answer,
       // only the size of the window it was allowed to take. Lowering the ceiling
       // removes nothing from the output and brings the worst case inside both
       // the gateway budget and the function's 60s duration.
-      maxTokens: mode === "briefing" ? 1400 : mode === "hinglish" ? 1500 : mode === "digest" ? 320 : 160,
+      maxTokens:
+        mode === "briefing" ? 1400 : mode === "hinglish" ? 1500 : mode === "roundup" ? 1100 : mode === "digest" ? 320 : 160,
       ctx: { userId: me.id, plan },
     });
     if (!first) return fail("Couldn't generate that right now. Please try again.", 502);
@@ -91,7 +103,7 @@ export async function POST(req: Request) {
      * Only for `briefing` - a "why this matters" is two sentences by design and
      * stopping at its ceiling means something else is wrong.
      */
-    if (mode === "briefing" && meta.finishReason === "length") {
+    if ((mode === "briefing" || mode === "roundup") && meta.finishReason === "length") {
       const tail = text.slice(-600);
       const more = await completeTextWithMeta({
         task: "briefing",

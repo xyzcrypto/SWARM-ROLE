@@ -4,10 +4,70 @@
 import { Fragment, type ReactNode } from "react";
 export { stripMarkdown } from "@/lib/strip-markdown";
 
+/**
+ * Only ever http(s), and never `javascript:`.
+ *
+ * ⚠️ This renderer's whole promise is "no raw HTML", and an anchor is the one
+ * place that promise can be broken: a `javascript:` or `data:` href is script
+ * execution dressed as a link. The text comes from AI output and from posts an
+ * admin types, and neither is a reason to skip the check - `safeUrl` exists on
+ * the points side for exactly this and the rule is the same here.
+ */
+function safeHref(url: string): string | null {
+  try {
+    const u = new URL(url);
+    return u.protocol === "http:" || u.protocol === "https:" ? u.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function link(href: string, label: string, key: string): ReactNode {
+  const safe = safeHref(href);
+  if (!safe) return <Fragment key={key}>{label}</Fragment>;
+  return (
+    <a
+      key={key}
+      href={safe}
+      target="_blank"
+      rel="noopener noreferrer"
+      // `break-all` because a referral URL is one long unbreakable token and
+      // will otherwise push a card wider than the phone it is being read on.
+      className="break-all font-medium text-gold-200 underline decoration-gold-500/40 underline-offset-2 transition-colors hover:text-gold-100"
+    >
+      {label}
+    </a>
+  );
+}
+
+/**
+ * ⚠️ Links were MISSING entirely - neither `[text](url)` nor a bare URL rendered
+ * as one. A desk post containing a referral link showed it as dead text that a
+ * reader had to select and copy by hand, which on a phone is most of the way to
+ * not bothering. The renderer already refused raw HTML, so nothing was unsafe;
+ * it simply had no anchor at all.
+ */
 function inline(text: string, keyBase: string): ReactNode[] {
-  // Split on **bold** and *italic* while keeping the delimiters' content.
-  const parts = text.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).filter(Boolean);
+  // One split, so emphasis and links cannot fight over the same characters.
+  // Markdown links come first: their label may itself contain asterisks.
+  const parts = text
+    .split(/(\[[^\]]+\]\([^)\s]+\)|https?:\/\/[^\s<>"')\]]+|\*\*[^*]+\*\*|\*[^*]+\*)/g)
+    .filter(Boolean);
   return parts.map((p, i) => {
+    const md = /^\[([^\]]+)\]\(([^)\s]+)\)$/.exec(p);
+    if (md) return link(md[2], md[1], `${keyBase}-l${i}`);
+    if (/^https?:\/\//.test(p)) {
+      // Trailing punctuation belongs to the sentence, not the URL: "see
+      // https://x.io." should not link the full stop.
+      const trail = /[.,;:!?]+$/.exec(p)?.[0] ?? "";
+      const bare = trail ? p.slice(0, -trail.length) : p;
+      return (
+        <Fragment key={`${keyBase}-u${i}`}>
+          {link(bare, bare, `${keyBase}-u${i}-a`)}
+          {trail}
+        </Fragment>
+      );
+    }
     if (p.startsWith("**") && p.endsWith("**"))
       return <strong key={`${keyBase}-b${i}`} className="font-semibold text-zinc-100">{p.slice(2, -2)}</strong>;
     if (p.startsWith("*") && p.endsWith("*") && p.length > 2)
