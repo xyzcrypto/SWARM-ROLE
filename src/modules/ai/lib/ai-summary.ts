@@ -89,6 +89,40 @@ export function buildNewsBriefingPrompt(title: string, summary: string): string 
 }
 
 /**
+ * A briefing over SEVERAL headlines, not one story.
+ *
+ * ⚠️ This exists because the points band was feeding a list of headlines into
+ * `buildNewsBriefingPrompt`, which is written for ONE story: it asks for "What
+ * happened", "Key players", "Background" and a TL;DR that "captures the whole
+ * story". Handed eight unrelated items as an "excerpt", a model either picks one
+ * and ignores the rest or writes something short and hedged - which is exactly
+ * what a reader reported, repeatedly, as the briefing "not working".
+ *
+ * The shape of the answer has to match the shape of the input. A roundup's job
+ * is to find the THREAD across items, not to pretend they are one event.
+ */
+export function buildPointsRoundupPrompt(headlines: string): string {
+  return (
+    "You are XYZ AI, briefing an experienced perp DEX points farmer on today's news. " +
+    "You are given SEVERAL separate stories, not one. Do not treat them as a single event, and do not " +
+    "invent a connection that is not there - if they are unrelated, say so and cover them separately. " +
+    "Aim for 400-600 words. Use light markdown EXACTLY in this shape:\n\n" +
+    "**TL;DR:** one or two sentences on what actually matters across all of it.\n\n" +
+    "## What changed\n- One bullet per story that matters, each naming the venue or protocol and the " +
+    "concrete change. Skip anything that is noise; a shorter honest list beats a padded one.\n\n" +
+    "## What it means for farmers\nOne short paragraph: who should do something differently, and what. " +
+    "If the honest answer is 'nothing yet', say that.\n\n" +
+    "## Dates to watch\n- Any snapshot, TGE, season end or deadline named in the stories, with the venue. " +
+    "If none are given, write 'None stated in these stories' rather than guessing one.\n\n" +
+    "## What is still unknown\n- Two or three bullets on what these stories do NOT tell you and would " +
+    "change the picture.\n\n" +
+    "Rules: base it ONLY on the items below; NEVER invent figures, dates, names or quotes you were not " +
+    "given; plain English, no hype; NO buy/sell or price predictions; explicitly not financial advice.\n\n" +
+    `Stories:\n${headlines}\n`
+  );
+}
+
+/**
  * Translate a finished English briefing into natural Hinglish (Hindi written in
  * Roman/Latin script, mixed with common English crypto terms) - the way a bilingual
  * Indian creator would explain it. Preserves the markdown structure + headings.

@@ -5,6 +5,78 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (109) — Links that are links, somewhere to read what you saved
+
+### `MarkdownLite` had no anchors at all
+
+⚠️ Neither `[text](url)` nor a bare URL rendered as a link. A desk post
+containing a referral link showed it as **dead text** a reader had to select and
+copy by hand, which on a phone is most of the way to not bothering.
+
+Nothing was unsafe - the renderer already refused raw HTML - it simply had no
+anchor. It has one now, and it only ever emits http(s): a `javascript:` href is
+script execution dressed as a link, and this text comes from AI output and from
+posts an admin types. Trailing punctuation stays with the sentence, so
+"see https://x.io." does not link the full stop.
+
+Both the desk card and the band's expanded row now RENDER the body through it
+instead of printing it, so the same post gains a tappable link, real bold and
+real bullets with no change to the composer.
+
+### The save button had no destination
+
+Saving worked. There was nowhere to read from. **A bookmark you cannot find
+later is a button that files things into a drawer with no handle**, and the
+reader only discovers that after relying on it.
+
+`/saved` lists research and news together - they already share the `SavedStory`
+store, keyed `(userId, url)`, which was the point of reusing it. An internal url
+opens in-app, an external one opens through the site's own reader, and
+`isInternal` decides by comparing against the **current origin** so a preview
+deployment does not treat its own links as foreign.
+
+Registered in `navLinks` (it lands in "More", not the six-link rail, which is
+already eight pixels from overflowing), because a page absent from that list is a
+page that cannot be reached from anywhere.
+
+### `/points/Variational`
+
+A short, shareable address. It **redirects** rather than rendering its own page:
+the programme already has a section on `/points` with its live comparables, cost
+panel and outcome grid, and a second page would be a second thing to keep
+correct while showing less.
+
+Case- and punctuation-insensitive, because a URL typed by a human respects
+neither. An unknown venue lands on `/points` rather than a 404 - these links are
+shared, they outlive the registry entry they were made from, and an error page is
+a worse answer than the page they were trying to reach. Eight prerendered
+redirects, so a share click costs no function invocation.
+
+### The briefing was being asked the wrong question
+
+⚠️ The points band fed **a list of eight headlines** into
+`buildNewsBriefingPrompt` - a prompt written for ONE story, asking for "What
+happened", "Key players", "Background", and a TL;DR that "captures the whole
+story". Handed unrelated items as an "excerpt", a model either picks one and
+ignores the rest or writes something short and hedged.
+
+That is what "briefing not working" has been on this surface. And the payload was
+sliced at **1200 characters**, cutting the list off mid-item, so it was briefed
+on half a sentence.
+
+New `roundup` mode with a prompt shaped like its input: what changed, what it
+means for farmers, dates to watch, what is still unknown - and an explicit
+instruction not to invent a connection between unrelated stories. The cap is
+3800 characters, and the band shows the same truncation notice and model name the
+news briefing does.
+
+### Verification
+
+typecheck / 1211 tests / lint / build green. Routes 146 → 153: `/saved` plus
+eight prerendered venue redirects. Static 28 and ISR 12 unchanged.
+
+---
+
 ## 2026-09-18 (108) — Half the band was live and half was as old as the page
 
 ### The press lane had no live path at all

@@ -156,7 +156,12 @@ export function LiveWire() {
    */
   const [pendingIds, setPendingIds] = useState<string[]>([]);
   const seenRef = useRef<Set<string> | null>(null);
-  const [brief, setBrief] = useState<{ loading: boolean; text: string | null; err: string | null }>({
+  const [brief, setBrief] = useState<{
+    loading: boolean;
+    text: string | null;
+    err: string | null;
+    meta?: { model?: string; cached?: boolean; continued?: boolean; truncated?: boolean } | null;
+  }>({
     loading: false,
     text: null,
     err: null,
@@ -361,14 +366,30 @@ export function LiveWire() {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          title: "Perp DEX and airdrop briefing",
-          summary: top.map((i) => `${i.source}: ${i.title}. ${i.body}`).join("\n").slice(0, 1200),
-          mode: "briefing",
+          title: "Perp DEX and airdrop roundup",
+          // ⚠️ One numbered block per story, and a generous cap. This used to be
+          // a single blob sliced at 1200 characters, which cut the list off
+          // mid-item - so the model was briefed on half a sentence and then
+          // asked, by the single-story prompt, to describe "the story".
+          summary: top
+            .map((i, n) => `${n + 1}. [${i.source}] ${i.title}${i.body ? ` — ${i.body}` : ""}`)
+            .join("\n")
+            .slice(0, 3800),
+          // ⚠️ `roundup`, not `briefing`. Several unrelated items need an answer
+          // shaped like a roundup; the briefing prompt asks for "What happened"
+          // and "Key players" about ONE event, and handed a list a model either
+          // picks one story or hedges. That is what "briefing not working" was.
+          mode: "roundup",
         }),
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error || "Could not generate the briefing.");
-      setBrief({ loading: false, text: j?.data?.text ?? j?.text ?? null, err: null });
+      setBrief({
+        loading: false,
+        text: j?.text ?? null,
+        err: null,
+        meta: j?.meta ?? null,
+      });
     } catch (e) {
       setBrief({ loading: false, text: null, err: (e as Error).message });
     }
@@ -536,8 +557,23 @@ export function LiveWire() {
                 <MarkdownLite text={brief.text} />
               </div>
             )}
+            {/* ⚠️ Says when the answer was cut short, and names the model. A
+                fragment shown as a finished briefing leaves a reader to conclude
+                the feature is broken - which is exactly what happened on the
+                news side, four times over, before the same line was added there. */}
+            {brief.meta?.truncated && (
+              <p className="mt-2 text-[11px] leading-relaxed text-amber-200">
+                This ran out of room before it finished. Generating it again usually completes it.
+              </p>
+            )}
             <p className="mt-2.5 text-[10px] text-content-subtle">
               Generated from the headlines above. Not financial advice, and no substitute for the sources.
+              {brief.meta?.model && (
+                <span className="mono ml-1 opacity-70">
+                  · {brief.meta.cached ? "cached" : brief.meta.model}
+                  {brief.meta.continued ? " · continued" : ""}
+                </span>
+              )}
             </p>
           </div>
         )}
@@ -727,7 +763,11 @@ function WireEntry({
               />
             )}
             {item.body && (
-              <p className="whitespace-pre-line text-xs leading-relaxed text-content-muted">{item.body}</p>
+              // Same renderer as the desk card, so a link is tappable in both
+              // places and formatting cannot diverge between them.
+              <div className="text-xs leading-relaxed text-content-muted">
+                <MarkdownLite text={item.body} />
+              </div>
             )}
             <p className="mt-2.5 text-[11px] text-content-subtle">
               {item.lane === "desk" ? "Posted by the XYZ desk" : `Reported by ${item.source}`}
