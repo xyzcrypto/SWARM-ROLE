@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { prisma } from "@/lib/prisma";
 import { site } from "@/lib/site";
 
@@ -15,8 +16,8 @@ export default async function Image({ params }: { params: Promise<{ slug: string
   let title = "Web3 Research & Market Intelligence";
   let category = "Research";
   try {
-    const post = await prisma.post.findUnique({
-      where: { slug },
+    const post = await prisma.post.findFirst({
+      where: { slug, ...NOT_TRASHED },
       select: { title: true, category: true },
     });
     if (post) {

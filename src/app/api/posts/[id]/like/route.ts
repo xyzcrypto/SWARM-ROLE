@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { broadcastEvent } from "@/lib/realtime";
@@ -43,8 +44,8 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     // below is unchanged: a like is still only written after the post check
     // passes, so fetching `existing` early cannot leak or write anything.
     const [post, existing] = await Promise.all([
-      prisma.post.findUnique({
-        where: { id: params.id },
+      prisma.post.findFirst({
+        where: { id: params.id, ...NOT_TRASHED },
         select: { id: true, published: true },
       }),
       prisma.postLike.findUnique({

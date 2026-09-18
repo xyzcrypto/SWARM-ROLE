@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { ok, fail, handleError, requirePermission, isCuid } from "@/lib/api";
@@ -34,8 +35,8 @@ export async function POST(req: Request) {
     const parsed = bodySchema.safeParse(await req.json());
     if (!parsed.success || !isCuid(parsed.data.postId)) return fail("Invalid input.", 400);
 
-    const post = await prisma.post.findUnique({
-      where: { id: parsed.data.postId },
+    const post = await prisma.post.findFirst({
+      where: { id: parsed.data.postId, ...NOT_TRASHED },
       select: { id: true, slug: true, title: true, content: true, premium: true },
     });
     if (!post) return fail("Post not found.", 404);

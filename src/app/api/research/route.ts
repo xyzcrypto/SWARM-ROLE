@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -63,6 +64,9 @@ export async function GET(req: Request) {
 
     const where = {
       published: true,
+      // The public list never shows a trashed post. One predicate, spread
+      // everywhere, so this cannot drift from the other fifteen read sites.
+      ...NOT_TRASHED,
       ...(premiumOnly ? { premium: true } : {}),
       ...(category && category !== "All" ? { category } : {}),
       ...(q

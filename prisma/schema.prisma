@@ -273,6 +273,14 @@ model Post {
   premium   Boolean  @default(false) // Premium Content — body gated to Premium users
   summary   String? // AI-generated TL;DR (XYZ AI) — shown atop the article
   views     Int      @default(0) // total opens (incremented on the article page)
+  // Soft delete. Non-null means "in the trash": hidden from every read path,
+  // restorable, and purged only by an explicit second action.
+  //
+  // ⚠️ This exists because DELETE /api/research/[id] called prisma.post.delete
+  // and a published article was gone from Postgres with no way back short of a
+  // database backup. One misclick, one article.
+  deletedAt DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

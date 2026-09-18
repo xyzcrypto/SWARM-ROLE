@@ -10,6 +10,14 @@ import type { AiTask, AiTier, AiPlan } from "./providers/types";
  *    plan-based routing - "the best model available for that user's plan".
  */
 export function routeTier(task: AiTask, plan: AiPlan = "Free"): AiTier {
+  // ⚠️ A full briefing is NOT bulk deterministic work. It is a nine-section,
+  // 650-900 word explainer, and it used to share the `digest` task - so it was
+  // answered by the fast model, which wrote a couple of sentences and stopped.
+  //
+  // It gets the quality model for everyone, regardless of plan, because a
+  // briefing that stops after the TL;DR is not a cheaper briefing: it is a
+  // feature that does not work, generated and paid for anyway.
+  if (task === "briefing") return "quality";
   if (task !== "assistant") return "fast";
   return plan === "Free" ? "fast" : "quality";
 }

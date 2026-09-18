@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronDown, ExternalLink, Loader2, Pin, Radio, RefreshCw, Sparkles, X } from "lucide-react";
+import { ChevronDown, ExternalLink, Loader2, Pin, Radio, RefreshCw, X } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
 import { hasPermission } from "@/lib/permissions";
 import { useRealtime } from "@/lib/useRealtime";
@@ -10,6 +10,7 @@ import { CH_POINTS } from "@/lib/realtime-channels";
 import { wakeIsDue } from "@/lib/useLiveData";
 import { refreshUrl } from "@/lib/refetch";
 import { MarkdownLite } from "@/components/MarkdownLite";
+import { RobotIcon } from "@/components/RobotIcon";
 import { KIND_LABEL, KIND_TONE, sortUpdates, type PointsUpdateDto } from "@modules/points/lib/points-updates";
 import type { RadarItem } from "@modules/points/lib/airdrop-radar";
 
@@ -351,7 +352,7 @@ export function LiveWire() {
               {brief.loading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.7} />
               ) : (
-                <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
+                <RobotIcon className="h-4 w-4" />
               )}
               <span className="hidden sm:inline">{brief.text ? "Re-brief" : "AI brief"}</span>
               <span className="sm:hidden">Brief</span>
@@ -388,8 +389,11 @@ export function LiveWire() {
         {(brief.loading || brief.text || brief.err) && (
           <div className="border-b border-hairline bg-surface-2 px-4 py-4 sm:px-5">
             <div className="flex items-center gap-2">
+              {/* The same mark the assistant and the news briefing use. One
+                  face for XYZ AI everywhere it speaks: a reader should be able
+                  to tell at a glance which words on a page are the model's. */}
               <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gold-200">
-                <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
+                <RobotIcon className="h-4 w-4" />
                 XYZ AI briefing
               </p>
               {/* A briefing is long. Once it is read it is in the way, and
