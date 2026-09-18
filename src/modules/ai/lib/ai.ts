@@ -88,11 +88,55 @@ export async function completeText(opts: {
   maxTokens?: number;
   ctx?: GatewayCtx;
 }): Promise<string | null> {
+  const res = await completeTextWithMeta(opts);
+  return res?.text ?? null;
+}
+
+/** What the generation actually did. Small, and none of it is sensitive. */
+export type CompleteMeta = {
+  provider: string;
+  model: string;
+  /** "length" means the answer was CUT OFF at the token ceiling. */
+  finishReason: "stop" | "length" | "other" | "unknown";
+  outputTokens: number;
+  /** Served from the 24h response cache rather than generated. */
+  cached: boolean;
+};
+
+/**
+ * `completeText`, but it also says what happened.
+ *
+ * ⚠️ This exists because a half-finished briefing was "fixed" three times
+ * without anyone being able to see why it was short. A truncated answer and a
+ * brief one are identical in the text; only `finishReason` separates them, and
+ * both providers were discarding it.
+ *
+ * Nothing here is sensitive - a provider name, a model name, a token count and
+ * a stop reason - so it can be handed to the caller and shown to an admin.
+ */
+export async function completeTextWithMeta(opts: {
+  task?: AiTask;
+  system?: string;
+  prompt: string;
+  maxTokens?: number;
+  ctx?: GatewayCtx;
+}): Promise<{ text: string; meta: CompleteMeta } | null> {
   if (!aiEnabled) return null;
   const res = await runComplete(
     opts.task ?? "summary",
     { system: opts.system, prompt: opts.prompt, maxTokens: opts.maxTokens ?? 300 },
     opts.ctx ?? {}
   );
-  return res.text?.trim() || null;
+  const text = res.text?.trim() || "";
+  if (!text) return null;
+  return {
+    text,
+    meta: {
+      provider: res.provider,
+      model: res.model,
+      finishReason: res.finishReason ?? "unknown",
+      outputTokens: res.usage?.outputTokens ?? 0,
+      cached: res.provider === "cache",
+    },
+  };
 }

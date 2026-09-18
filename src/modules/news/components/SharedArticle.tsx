@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowLeft, ExternalLink, Share2, Check } from "lucide-react";
-import { BriefingBlock } from "@/components/BriefingBlock";
+import { BriefingBlock, type BriefingMeta } from "@/components/BriefingBlock";
 import { timeAgo } from "@/lib/news";
 import type { SharedStory } from "@/lib/news-share";
 
@@ -14,7 +14,7 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
   const { data: session } = useSession();
   const loggedIn = Boolean(session?.user);
   const [now, setNow] = useState(0);
-  const [brief, setBrief] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
+  const [brief, setBrief] = useState<{ loading: boolean; text: string | null; err: string | null; meta?: BriefingMeta }>({ loading: false, text: null, err: null });
   const [copied, setCopied] = useState(false);
   // Guards a manually-triggered fetch against setting state after unmount
   // (generateBrief is a click handler now, not an effect, so it has no
@@ -37,7 +37,7 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
         const j = await res.json().catch(() => ({}));
         if (!mounted.current) return;
         if (!res.ok) setBrief({ loading: false, text: null, err: j.error || "Couldn't generate the briefing." });
-        else setBrief({ loading: false, text: j.text, err: null });
+        else setBrief({ loading: false, text: j.text, err: null, meta: j.meta });
       })
       .catch(() => {
         if (mounted.current) setBrief({ loading: false, text: null, err: "Network error." });
@@ -84,6 +84,7 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
       {/* Advanced AI briefing - with Listen + Hinglish */}
       <BriefingBlock
         englishText={brief.text}
+        meta={brief.meta}
         loading={brief.loading}
         err={brief.err}
         title={story.t}

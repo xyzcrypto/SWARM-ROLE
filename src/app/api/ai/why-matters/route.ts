@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
-import { aiEnabled, completeText, aiErrorMessage } from "@/lib/ai";
+import { aiEnabled, completeTextWithMeta, aiErrorMessage } from "@/lib/ai";
 import { aiPlanFor, AiCapacityError } from "@/lib/ai/gateway";
 import { checkDailyLimit, dailyLimitMessage } from "@/lib/ai/limits";
 import { buildWhyMattersPrompt, buildNewsDigestPrompt, buildNewsBriefingPrompt, buildHinglishPrompt } from "@/lib/ai-summary";
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
       : mode === "briefing" ? buildNewsBriefingPrompt(title, summary)
       : mode === "digest" ? buildNewsDigestPrompt(title, summary)
       : buildWhyMattersPrompt(title, summary);
-    const text = await completeText({
+    const first = await completeTextWithMeta({
       // A briefing is its own task so it can be ROUTED as one - see routing.ts.
       // Sharing `digest` sent a 900-word explainer to the fast model.
       task: mode === "briefing" || mode === "hinglish" ? "briefing" : mode === "why" ? "why" : "digest",
@@ -70,8 +70,60 @@ export async function POST(req: Request) {
       maxTokens: mode === "briefing" ? 1400 : mode === "hinglish" ? 1500 : mode === "digest" ? 320 : 160,
       ctx: { userId: me.id, plan },
     });
-    if (!text) return fail("Couldn't generate that right now. Please try again.", 502);
-    return ok({ text });
+    if (!first) return fail("Couldn't generate that right now. Please try again.", 502);
+
+    let { text } = first;
+    const meta = first.meta;
+    let continued = false;
+
+    /**
+     * ⚠️ A briefing that stopped at the ceiling gets FINISHED, not served half.
+     *
+     * The reader was shown a TL;DR that ended mid-sentence and nothing said why.
+     * A model asked for nine sections will sometimes run past its budget; the
+     * right answer is to ask it to carry on from where it stopped, not to hand
+     * over a fragment and call it a briefing.
+     *
+     * Exactly ONE continuation. Two would be a loop with a bill attached, and if
+     * one more pass is not enough the honest thing is to say it was cut short
+     * rather than keep spending.
+     *
+     * Only for `briefing` - a "why this matters" is two sentences by design and
+     * stopping at its ceiling means something else is wrong.
+     */
+    if (mode === "briefing" && meta.finishReason === "length") {
+      const tail = text.slice(-600);
+      const more = await completeTextWithMeta({
+        task: "briefing",
+        prompt:
+          "Continue this briefing from exactly where it stops. Do not repeat anything already written, " +
+          "do not re-introduce the story, and do not add a preamble - carry straight on, keeping the same " +
+          "markdown headings and tone, and finish the remaining sections.\n\n" +
+          `Headline: ${title}\n\nWritten so far (last part):\n${tail}`,
+        maxTokens: 900,
+        ctx: { userId: me.id, plan },
+      });
+      if (more?.text) {
+        // A newline join rather than a bare concatenation: the model resumes at
+        // a heading or a bullet far more often than mid-word.
+        text = `${text}\n\n${more.text}`;
+        continued = true;
+      }
+    }
+
+    // ⚠️ `meta` travels with the answer. A short briefing and a truncated one
+    // look identical in the text, and three attempts were made to fix this one
+    // without that distinction being visible anywhere. `truncated` stays true
+    // when even the continuation ran out, so the UI can say so instead of
+    // presenting a fragment as finished.
+    return ok({
+      text,
+      meta: {
+        ...meta,
+        continued,
+        truncated: meta.finishReason === "length" && !continued,
+      },
+    });
   } catch (err) {
     if (err instanceof AiCapacityError) return fail(aiErrorMessage(err), 503);
     return handleError(err, "ai:why-matters");

@@ -3,7 +3,7 @@ import "server-only";
 // so there's no extra dependency and it works through the outbound proxy).
 // Only `enabled` when GEMINI_API_KEY is configured. Server-only.
 import { env, geminiEnabled } from "@/lib/env";
-import type { AiProvider, ChatMessage, CompleteRequest, CompleteResult, StreamHandle, StreamRequest, TokenUsage } from "./types";
+import type { AiProvider, ChatMessage, CompleteRequest, CompleteResult, FinishReason, StreamHandle, StreamRequest, TokenUsage } from "./types";
 
 // gemini-3.6-flash is the current recommended model (2.0-flash was deprecated).
 const MODELS = { fast: "gemini-3.6-flash", quality: "gemini-3.6-flash" } as const;
@@ -16,7 +16,7 @@ function usageOf(md: UsageMeta | undefined): TokenUsage | undefined {
 }
 
 type Part = { text?: string };
-type Candidate = { content?: { parts?: Part[] } };
+type Candidate = { content?: { parts?: Part[] }; finishReason?: string };
 type GenResponse = { candidates?: Candidate[]; usageMetadata?: UsageMeta };
 
 function textOf(j: GenResponse): string {
@@ -46,7 +46,13 @@ export const geminiProvider: AiProvider = {
     });
     if (!res.ok) throw new Error(`gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
     const j = (await res.json()) as GenResponse;
-    return { text: textOf(j).trim(), usage: usageOf(j.usageMetadata) };
+    // ⚠️ Carried, not dropped. Gemini spells it MAX_TOKENS; that means the
+    // answer was cut off at the ceiling rather than the model being brief, and
+    // the text alone cannot tell you which.
+    const raw = j?.candidates?.[0]?.finishReason;
+    const finishReason: FinishReason =
+      raw === "MAX_TOKENS" ? "length" : raw === "STOP" ? "stop" : "other";
+    return { text: textOf(j).trim(), usage: usageOf(j.usageMetadata), finishReason };
   },
 
   async streamChat(req: StreamRequest): Promise<StreamHandle> {
