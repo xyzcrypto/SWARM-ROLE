@@ -102,12 +102,18 @@ export function isRadarWorthy(item: Pick<NewsItem, "title" | "summary" | "catego
 /**
  * Filter and shape the site's news items into radar items.
  *
+ * ⚠️ The limit is 30, not 12. Twelve was enough for a promoted item plus a
+ * folded list, but it silently decided what "everything important" meant - a
+ * reader asking to see the rest got a truncation nobody mentioned. Thirty is
+ * still bounded (the payload stays a few KB) and covers a full day of a feed
+ * this narrow.
+ *
  * Sorted newest first rather than by the news ranker: on a feed this narrow,
  * "what happened most recently" is the question, and an impact score computed
  * for general crypto news would bury a snapshot announcement under a funding
  * round.
  */
-export function toRadar(items: NewsItem[], limit = 12): RadarItem[] {
+export function toRadar(items: NewsItem[], limit = 30): RadarItem[] {
   return items
     .filter(isRadarWorthy)
     .sort((a, b) => b.publishedAt - a.publishedAt)

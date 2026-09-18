@@ -132,6 +132,26 @@ describe("every semantic colour class actually exists", () => {
     ).toEqual([]);
   });
 
+  it("uses no animation utility from a plugin this repo does not install", () => {
+    // ⚠️ `animate-in`, `fade-in`, `slide-in-from-*`, `zoom-in` belong to
+    // `tailwindcss-animate`. `tailwind.config.ts` has `plugins: []`, so those
+    // classes parse, generate NOTHING, and fail silently - the same family as
+    // `bg-base/95` (no rule emitted) and `text-content0` (class does not exist).
+    //
+    // This project has its own keyframes in the config: `animate-fade-up`,
+    // `animate-float`, `animate-shine`, `animate-pulse-dot`, `animate-spin-slow`.
+    const bad: string[] = [];
+    for (const [file, src] of Object.entries(sources)) {
+      for (const m of src.matchAll(/\banimate-(in|out)\b|\bslide-in-from-[a-z]+-\d+\b|\bzoom-in\b|\bfill-mode-\w+\b/g)) {
+        bad.push(`${file}: ${m[0]}`);
+      }
+    }
+    expect(
+      bad,
+      `these need tailwindcss-animate, which is not installed - they emit no CSS:\n  ${bad.join("\n  ")}`
+    ).toEqual([]);
+  });
+
   it("uses no semantic class Tailwind will not generate", () => {
     const bad: string[] = [];
     for (const [file, src] of Object.entries(sources)) {

@@ -13,13 +13,17 @@ import { toRadar } from "@modules/points/lib/airdrop-radar";
  * this project twice. The literal below is checked against `NEWS_REVALIDATE` by
  * `points-radar.test.ts`.
  *
- * ⚠️ NOT POLLED. The client fetches on mount, on wake, and on an explicit
- * refresh - deliberately absent from `TARGETS` in
- * markets-poll-alignment.test.ts. **If a poll is ever added, add it there**, and
- * note that a 120s window needs a poll comfortably under 120s, which is an
- * expensive shape. Prefer leaving it unpolled: `getNewsPage` is shared with
- * /news, so this route adds no upstream traffic at all - it re-reads a cache
- * that page already pays for.
+ * ⚠️ POLLED, at 90s (`RADAR_POLL_MS` in LiveWire.tsx), and registered in
+ * `TARGETS` in markets-poll-alignment.test.ts. This header used to say the
+ * opposite and to argue for leaving it unpolled - but half the band was live
+ * (the desk lane broadcasts on write) and half was as old as the page, with
+ * nothing telling a reader which. A band called "Latest updates" has to be one.
+ *
+ * 90 against 120 is the same margin `/api/news` has run since #236, and
+ * deliberately not equal: equal lets jitter decide whether every poll
+ * regenerates the route. The cost is small because `getNewsPage` is shared with
+ * /news - this route adds no upstream traffic, it re-reads a cache that page
+ * already pays for.
  */
 export const revalidate = 120; // must equal NEWS_REVALIDATE - pinned by a test
 
