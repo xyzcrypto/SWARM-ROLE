@@ -5,6 +5,74 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-18 (110) — One editor, and pictures on the press lane
+
+### Both composers now mount the dashboard's editor, not a lookalike
+
+The inline composers on `/research` and `/points` were a markdown toolbar over a
+textarea. That worked, and it was still a **second editor**: every capability the
+dashboard gained - drag-and-drop covers with progress, the WYSIWYG body, tags,
+the preview - either had to be built twice or quietly did not exist here. "Same
+to same" is the requirement, and the only way to keep two things the same is to
+make them one thing.
+
+- `/research` mounts `PostEditor` whole. It already posts to `/api/research`, so
+  there is no duplicated submit path either.
+- `/points` mounts `PostContentEditor` (the body only), because a desk post also
+  carries a kind, a programme and a pin that a research post does not. The shared
+  `CoverPicker` and `CharCount` stay.
+
+**The cost objection was real and is handled rather than waived.** Tiptap is the
+single heaviest thing this site ships, and these are PUBLIC pages. Both imports
+go through `next/dynamic` with `ssr: false`, so the chunk is requested only when
+someone who can publish opens the composer.
+
+**Measured, not assumed:** the Tiptap chunk is **382 KiB**, and the built HTML for
+`/points` and `/research` references it **zero** times against `/dashboard`'s one.
+A reader's first load is unchanged. `composer-kit.test.ts` now asserts the import
+SHAPE (dynamic, `ssr: false`, never static) rather than the editor's absence - a
+static import would otherwise pass every other check and silently undo this.
+
+⚠️ **A cap disappeared with the textarea, and that is the part worth
+remembering.** The body was a `<textarea maxLength={UPDATE_LIMITS.body}>`; the
+browser refused the 2001st character and the author never met the limit. A
+rich-text editor has no `maxLength`, so the swap alone would have let someone
+write a long post and learn only at the end, when zod refused the POST. The
+composer now compares `body.length` to the shared limit and **disables Post**,
+saying by how much it is over. `points-updates.test.ts` pins both halves.
+
+### The press lane could never show a picture
+
+`RadarItem` had no `image` field, and `LiveWire` had `image: null` hard-coded to
+match - an agreement between two files that made a missing feature look
+intentional. The desk lane had covers; the press lane next to it was bare text.
+
+`/api/points/radar` now carries the story's own image (http(s) only - the value
+goes straight to an `<img src>`, and a renderer should not be the first place a
+scheme is checked). Plain `<img>`, lazy, never `next/image`: these are publisher
+CDN URLs fetched browser-to-origin at zero Vercel transfer (cost-check, trap 3).
+
+Two things the browser probe caught that reading the source would not have:
+
+- **The picture was only in the expanded panel.** An image a reader must open a
+  row to discover does not do the job an image does. It is now in the collapsed
+  row too - a thumbnail that hides itself when the row opens and the full-width
+  image takes over.
+- **The panel `<img>` was in the DOM whether or not the row was open** - a second
+  node per row in a zero-height container, which a browser is entitled to fetch.
+  The count gave it away: 18 image nodes across 17 rows. Now gated on `open`, and
+  the probe asserts nodes ≤ rows.
+- **A row with a picture stood 10px taller than one without** (100 vs 90), so the
+  list stepped unevenly down the page depending on which feeds shipped an
+  enclosure. A `min-h` matched to the thumbnail flattens it to 94-100.
+
+### Verification
+
+typecheck · **1214 tests** · lint (0 errors) · build green · 36/36 browser checks
+on desktop and mobile.
+
+---
+
 ## 2026-09-18 (109) — Links that are links, somewhere to read what you saved
 
 ### `MarkdownLite` had no anchors at all

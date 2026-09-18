@@ -208,9 +208,20 @@ describe("the feed is live without being expensive", () => {
 describe("limits are shared, not retyped", () => {
   it("the composer caps what the schema caps", () => {
     const feed = readFileSync("src/modules/points/components/UpdatesFeed.tsx", "utf8");
+    // The headline is still a plain input, so the browser enforces it.
     expect(feed).toMatch(/maxLength=\{UPDATE_LIMITS\.title\}/);
-    expect(feed).toMatch(/maxLength=\{UPDATE_LIMITS\.body\}/);
     expect(UPDATE_LIMITS.title).toBe(120);
+
+    // ⚠️ The body no longer can be. It used to be a `<textarea maxLength=…>`;
+    // it is now the dashboard's rich-text editor, which has no such attribute.
+    // Losing the attribute WITHOUT replacing the guard would mean an author
+    // writes past the limit and only learns at the end, when zod refuses the
+    // POST. So the cap has to be checked in the component instead - and the
+    // check has to disable the submit, not merely colour a counter.
+    expect(feed, "the body length must still be compared to the shared limit").toMatch(
+      /body\.length\s*-\s*UPDATE_LIMITS\.body/
+    );
+    expect(feed, "being over the limit must disable Post").toMatch(/disabled=\{[^}]*overBy > 0/);
   });
 
   it("the feed query is bounded", () => {

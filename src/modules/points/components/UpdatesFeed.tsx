@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Radio, ExternalLink, Pin, Plus, Trash2, Loader2 } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
-import { CharCount, CoverPicker, MarkdownToolbar } from "@/components/ComposerKit";
+import dynamic from "next/dynamic";
+import { CharCount, CoverPicker } from "@/components/ComposerKit";
 import { MarkdownLite } from "@/components/MarkdownLite";
 import { hasPermission } from "@/lib/permissions";
 import { useRealtime } from "@/lib/useRealtime";
@@ -19,6 +20,30 @@ import {
   type PointsUpdateDto,
   type UpdateKind,
 } from "@modules/points/lib/points-updates";
+
+/**
+ * The SAME body editor the dashboard uses, so a desk post is written the way a
+ * research post is - bold, headings, lists, links - instead of into a bare
+ * textarea with a markdown cheat-sheet beside it.
+ *
+ * ⚠️ `next/dynamic` with `ssr: false`, and that is load-bearing rather than
+ * incidental. `PostContentEditor` pulls in Tiptap - the heaviest dependency on
+ * this site - and `/points` is a PUBLIC page. Importing it normally would put
+ * that weight on every visitor, almost none of whom can post. Behind a dynamic
+ * import the chunk is only fetched when someone with `points:manage` actually
+ * opens the composer, so a reader's first load is unchanged.
+ */
+const PostContentEditor = dynamic(
+  () => import("@/components/PostContentEditor").then((m) => ({ default: m.PostContentEditor })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="mt-3 flex min-h-[92px] items-center justify-center rounded-xl border border-hairline bg-surface-2">
+        <Loader2 className="h-4 w-4 animate-spin text-content-subtle" strokeWidth={1.7} />
+      </div>
+    ),
+  }
+);
 
 /**
  * The airdrop desk: staff post what is happening, readers see it live.
@@ -276,9 +301,23 @@ function Composer({ onPosted }: { onPosted: () => void }) {
   const [url, setUrl] = useState("");
   const [pinned, setPinned] = useState(false);
   const [image, setImage] = useState("");
-  const bodyRef = useRef<HTMLTextAreaElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /**
+   * ⚠️ The cap has to be enforced HERE now, and that is not a detail.
+   *
+   * The old body field was a `<textarea maxLength={UPDATE_LIMITS.body}>` - the
+   * browser refused the 2001st character and the author never met the limit.
+   * A rich-text editor has no `maxLength`, so with the swap alone an author
+   * could write a long post, press Post, and have the server's zod schema
+   * reject it - losing nothing, but only finding out at the end.
+   *
+   * So the button goes dead past the limit and says why. `CharCount` already
+   * turns red once it goes negative; this is the half that stops the author
+   * walking into a refusal.
+   */
+  const overBy = body.length - UPDATE_LIMITS.body;
 
   async function post() {
     if (busy) return;
@@ -348,29 +387,20 @@ function Composer({ onPosted }: { onPosted: () => void }) {
         maxLength={UPDATE_LIMITS.title}
         onChange={(e) => setTitle(e.target.value)}
       />
-      <textarea
-        ref={bodyRef}
-        className={cn(input, "mt-3 min-h-[92px] resize-y")}
-        placeholder="What changed, and what a farmer should do about it."
-        value={body}
-        maxLength={UPDATE_LIMITS.body}
-        onChange={(e) => setBody(e.target.value)}
-      />
+      {/* ⚠️ The dashboard's own body editor, not a second one.
+          A markdown toolbar over a textarea worked, and it was still a SECOND
+          editor - every capability the dashboard gained either had to be built
+          twice or quietly did not exist here. The only way to keep two things
+          the same is to make them one thing. It emits markdown, which is what
+          `MarkdownLite` renders in the card below. */}
+      <div className="mt-3">
+        <PostContentEditor value={body} onChange={setBody} />
+      </div>
 
-      {/* The same toolkit /research uses, so formatting behaves identically on
-          both surfaces and there is one place to fix it. Markdown rather than a
-          rich editor: `MarkdownLite` renders these updates, and the dashboard's
-          Tiptap is the heaviest bundle on the site - see ComposerKit. */}
-      <MarkdownToolbar
-        textareaRef={bodyRef}
-        value={body}
-        onChange={setBody}
-        className="mt-2 rounded-xl border border-hairline bg-surface-2 px-1.5 py-1"
-      >
-        <span className="mx-1 h-5 w-px bg-hairline" aria-hidden />
+      <div className="mt-2 flex flex-wrap items-center gap-0.5 rounded-xl border border-hairline bg-surface-2 px-1.5 py-1">
         <CoverPicker url={image} onChange={setImage} label="Add an image" />
         <CharCount value={body} max={UPDATE_LIMITS.body} />
-      </MarkdownToolbar>
+      </div>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <input
           className={input}
@@ -399,13 +429,19 @@ function Composer({ onPosted }: { onPosted: () => void }) {
         <button
           type="button"
           onClick={post}
-          disabled={busy || title.trim().length < 3 || body.trim().length < 3}
+          disabled={busy || title.trim().length < 3 || body.trim().length < 3 || overBy > 0}
           className="btn-gold inline-flex items-center gap-1.5 text-xs disabled:opacity-50"
         >
           {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
           {busy ? "Posting…" : "Post update"}
         </button>
       </div>
+      {overBy > 0 && (
+        <p className="mt-2 text-xs text-data-down">
+          {overBy.toLocaleString("en-US")} characters over the {UPDATE_LIMITS.body.toLocaleString("en-US")}
+          -character limit. Trim it and the button comes back.
+        </p>
+      )}
       {error && <p className="mt-2 text-xs text-data-down">{error}</p>}
     </div>
   );

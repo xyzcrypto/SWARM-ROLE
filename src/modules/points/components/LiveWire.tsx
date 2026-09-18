@@ -289,7 +289,11 @@ export function LiveWire() {
       tone: null,
       pinned: false,
       venues: i.venues,
-      image: null,
+      // ⚠️ Was hard-coded null: the radar route carried no image, so a press
+      // row could never show one and half the band was pictureless next to the
+      // desk lane. The route ships it now, and this is the line that was
+      // silently discarding it either way.
+      image: i.image ?? null,
     }));
     // A pinned desk post outranks everything: pinning is the desk saying "this
     // is the thing". After that it is simply newest first, and the desk wins a
@@ -722,15 +726,65 @@ function WireEntry({
           <span className="ml-auto text-content-subtle">{formatDateTime(new Date(item.at))}</span>
         </span>
 
-        <span className="flex items-start gap-2">
-          <span
-            className={cn(
-              "flex-1 font-semibold leading-snug tracking-tight text-content",
-              hero ? "font-display text-base sm:text-lg" : "text-xs"
+        <span className="flex items-start gap-3">
+          {/* ⚠️ The picture belongs in the COLLAPSED row, not only the expanded
+              one. An image a reader has to open a row to discover does not do
+              the job an image does - it is what makes a list scannable, and a
+              band of pure text reads as an archive rather than a feed.
+
+              Plain <img>, never `next/image`: these are publisher CDN URLs (and
+              Supabase Storage for a desk post), fetched browser-to-origin at
+              ZERO Vercel transfer. Routing them through the optimiser would
+              spend Fast Origin Transfer and optimisation quota on someone
+              else's file (cost-check, trap 3). `loading="lazy"` so a folded
+              dozen does not fetch a dozen covers, and an `onError` that hides
+              it - a dead enclosure URL is common enough that a broken-image
+              icon would be a regular sight. */}
+          {item.image && !open && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.image}
+              alt=""
+              loading="lazy"
+              className={cn(
+                "shrink-0 rounded-lg border border-hairline object-cover",
+                hero ? "h-16 w-24 sm:h-20 sm:w-32" : "h-11 w-16"
+              )}
+              onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+            />
+          )}
+
+          {/* ⚠️ `min-h` matched to the thumbnail, and measured rather than
+              guessed: without it a row WITH a picture stood 10px taller than
+              one without (100px vs 90px), so the list stepped unevenly down the
+              page depending on which feeds happened to ship an enclosure. The
+              floor makes every folded row the same height whether or not there
+              is an image, which is the whole difference between a feed that
+              looks composed and one that looks assembled. */}
+          <span className={cn("min-w-0 flex-1", !hero && "flex min-h-11 flex-col justify-center")}>
+            <span
+              className={cn(
+                "block font-semibold leading-snug tracking-tight text-content",
+                hero ? "font-display text-base sm:text-lg" : "text-xs"
+              )}
+            >
+              {item.title}
+            </span>
+
+            {!open && item.body && (
+              <span
+                className={cn(
+                  "mt-1 block text-xs leading-relaxed text-content-muted",
+                  // The hero has room for a second line; a folded row does not,
+                  // and letting it take one makes the list scan unevenly.
+                  hero ? "line-clamp-2" : "line-clamp-1"
+                )}
+              >
+                {item.body}
+              </span>
             )}
-          >
-            {item.title}
           </span>
+
           <ChevronDown
             className={cn(
               "mt-0.5 h-4 w-4 shrink-0 text-content-subtle transition-transform",
@@ -739,20 +793,23 @@ function WireEntry({
             strokeWidth={1.7}
           />
         </span>
-
-        {!open && item.body && (
-          <span className="line-clamp-2 text-xs leading-relaxed text-content-muted">{item.body}</span>
-        )}
       </button>
 
       {/* grid-rows 0fr -> 1fr animates a height nobody has to measure. */}
       <div className={cn("grid transition-all duration-300", open ? "grid-rows-[1fr]" : "grid-rows-[0fr]")}>
         <div className="min-h-0 overflow-hidden">
           <div className="px-4 pb-4 sm:px-5">
-            {/* Plain <img>: served direct from Supabase Storage at zero Vercel
-                transfer, and lazy so an expanded row is the only one that
-                fetches (cost-check, trap 3). */}
-            {item.image && (
+            {/* The same picture, full width, once the row is open - the
+                thumbnail above hides itself when that happens, so the image
+                grows into place rather than appearing twice. Same plain <img>
+                for the same reason (cost-check, trap 3).
+
+                ⚠️ Gated on `open`, not merely hidden by the collapsing grid.
+                Rendered unconditionally it is a SECOND <img> per row sitting in
+                a zero-height overflow container - a browser is entitled to
+                fetch that, and a probe counted 18 image nodes across 17 rows
+                before this gate existed. */}
+            {item.image && open && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={item.image}

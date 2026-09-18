@@ -169,6 +169,24 @@ describe("the radar keeps the page's subject", () => {
     expect(venuesNamed("an asterisk in the docs")).toEqual([]);
   });
 
+  it("carries the story's picture through", () => {
+    // ⚠️ This shape used to drop `image` on the floor, so the press lane could
+    // never show one however good the feed was - and the band's own renderer
+    // had `image: null` hard-coded to match, which is the kind of agreement
+    // between two files that makes a missing feature look intentional.
+    const withPic = { ...item("Aster season 3", ["Airdrops"]), image: "https://cdn.example.com/a.jpg" };
+    expect(toRadar([withPic])[0].image).toBe("https://cdn.example.com/a.jpg");
+  });
+
+  it("refuses an image url that is not http(s)", () => {
+    // This value is handed straight to an <img src>. A renderer should not be
+    // the first place a scheme is checked, and a `data:` URL here would also be
+    // serialised into the response thirty times over (cost-check, trap 4).
+    for (const bad of ["javascript:alert(1)", "data:image/png;base64,AAAA", "//evil.example/x.png"]) {
+      expect(toRadar([{ ...item("Sodex snapshot", ["Airdrops"]), image: bad }])[0].image).toBeNull();
+    }
+  });
+
   it("orders by recency rather than by a general news impact score", () => {
     const old = { ...item("Old airdrop news", ["Airdrops"]), publishedAt: 1_000 };
     const fresh = { ...item("New airdrop news", ["Airdrops"]), publishedAt: 9_000 };
