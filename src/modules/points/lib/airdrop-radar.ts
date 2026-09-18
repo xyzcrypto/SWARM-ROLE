@@ -55,6 +55,16 @@ export type RadarItem = {
   sourceIcon: string | null;
   publishedAt: number;
   category: string;
+  /**
+   * The story's own lead image, when its feed carried one.
+   *
+   * Nullable and frequently null - plenty of feeds ship no enclosure - so every
+   * consumer has to render without it rather than reserving a gap. It is a URL
+   * on the publisher's own CDN, never inlined: a `data:` image here would be
+   * serialised into this response thirty times over and is exactly what blew
+   * Fast Origin Transfer on this project once already (cost-check, trap 4).
+   */
+  image: string | null;
   /** Venues this story names, for the per-programme filter chips. */
   venues: string[];
 };
@@ -127,6 +137,10 @@ export function toRadar(items: NewsItem[], limit = 30): RadarItem[] {
       sourceIcon: n.sourceIcon,
       publishedAt: n.publishedAt,
       category: n.category,
+      // Only http(s). The pipeline already normalises these, but this shape is
+      // handed straight to an <img src>, and a renderer should not be the first
+      // place a scheme is checked.
+      image: n.image && /^https?:\/\//i.test(n.image) ? n.image : null,
       venues: venuesNamed(`${n.title} ${n.summary}`),
     }));
 }

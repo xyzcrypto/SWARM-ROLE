@@ -15,27 +15,56 @@ const kit = strip(readFileSync(KIT, "utf8"));
 const research = strip(readFileSync(RESEARCH, "utf8"));
 const points = strip(readFileSync(POINTS, "utf8"));
 
-describe("both inline composers share one toolkit", () => {
-  it("neither hand-rolls its own formatting controls", () => {
-    // Two toolbars is one toolbar and a divergence waiting to happen: the first
-    // time a button is fixed in one and not the other, the surfaces stop
-    // behaving alike and nobody notices until someone uses both.
+describe("both inline composers mount the dashboard's editor, not a lookalike", () => {
+  // ⚠️ This suite USED to assert the opposite - that neither page imported a
+  // rich-text editor - and it was right about the cost and wrong about the
+  // requirement. A markdown toolbar over a textarea was a SECOND editor: every
+  // capability the dashboard gained either had to be built twice or quietly did
+  // not exist here. The only way to keep two things the same is to make them one
+  // thing, so both pages now mount the dashboard's own components.
+  //
+  // The cost the old assertion was protecting is real and has NOT been waived -
+  // it is enforced below, by the shape of the import rather than its absence.
+
+  it("uses the dashboard's own component on each page", () => {
+    // `/research` takes the whole `PostEditor` (it posts to `/api/research`
+    // itself, so there is no second submit path); `/points` takes the body
+    // editor only, because a desk post also carries a kind, a programme and a
+    // pin that a research post does not.
+    expect(research, "research should mount the dashboard PostEditor").toMatch(
+      /import\("@\/components\/PostEditor"\)/
+    );
+    expect(points, "points should mount the dashboard body editor").toMatch(
+      /import\("@\/components\/PostContentEditor"\)/
+    );
+  });
+
+  it("keeps Tiptap off both public pages until someone opens the composer", () => {
+    // ⚠️ THE load-bearing assertion. Tiptap is the single heaviest thing this
+    // site ships - `/dashboard` measures roughly twice every other route's
+    // bundle because of it - and `/research` and `/points` are PUBLIC. A plain
+    // `import` would move that weight onto every reader, almost none of whom
+    // compose anything.
+    //
+    // `next/dynamic` with `ssr: false` is what makes the swap safe: the chunk
+    // is requested only when the composer opens. A static import would pass the
+    // test above and silently undo the reason this is acceptable at all.
     for (const [name, src] of [["research", research], ["points", points]] as const) {
-      expect(src, `${name} should use the shared MarkdownToolbar`).toMatch(/<MarkdownToolbar/);
-      expect(src, `${name} should use the shared CoverPicker`).toMatch(/<CoverPicker/);
+      expect(src, `${name} must import the editor dynamically`).toMatch(/dynamic\(\s*\(\)\s*=>/);
+      expect(src, `${name} must not server-render the editor`).toMatch(/ssr:\s*false/);
+      expect(src, `${name} must not import the editor statically`).not.toMatch(
+        /^import\s+\{[^}]*Post(Content)?Editor[^}]*\}\s+from/m
+      );
     }
   });
 
-  it("writes markdown rather than pulling in a rich-text editor", () => {
-    // ⚠️ The dashboard's Tiptap is the single heaviest thing this site ships -
-    // `/dashboard` measures roughly twice every other route's bundle. Putting it
-    // on two PUBLIC pages to save typing two asterisks would move that weight
-    // onto readers who never compose anything.
-    expect(kit).not.toMatch(/@tiptap|slate|quill|draft-js/i);
-    expect(kit).toMatch(/surround\(el, "\*\*", "\*\*"/);
+  it("still shares one cover picker rather than two", () => {
+    // `PostEditor` carries its own; the points composer keeps the shared one,
+    // so the upload path, its 501 handling and its cost note stay in one place.
+    expect(points).toMatch(/<CoverPicker/);
   });
 
-  it("does not offer colours or fonts the renderer would discard", () => {
+  it("the toolkit it still uses does not offer colours or fonts the renderer would discard", () => {
     // `MarkdownLite` emits the design system's own type and colour tokens, which
     // is what keeps a post looking like the site rather than like whoever typed
     // it. A colour picker here would be a control that silently does nothing.
