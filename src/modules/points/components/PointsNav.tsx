@@ -162,7 +162,7 @@ export function PointsNav({ sections }: { sections: NavSection[] }) {
           bug this comment block was written to fix, reintroduced by the fix.
           Same family as the `text-content0` incident: a class that parses, means
           nothing, and fails silently. */}
-      <div className="relative overflow-hidden rounded-2xl border border-hairline bg-base shadow-card backdrop-blur-xl">
+      <div className="relative overflow-hidden rounded-2xl border border-hairline bg-base shadow-elevate backdrop-blur-xl">
         {/* Edge fades tell you the row scrolls, which on a phone is the
             difference between eight sections and the three that happen to fit.
             Pointer-events-none so they never eat a tap on the first chip. */}

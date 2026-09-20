@@ -120,7 +120,7 @@ export function PointsCalculatorCard({
   }, [yourPoints]);
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
+    <div className="flex h-full flex-col justify-between rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-4 border-b border-hairline">
         <div>
@@ -171,7 +171,7 @@ export function PointsCalculatorCard({
           </div>
 
           {/* Confirmed Data Badge */}
-          <div className="inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300">
+          <div className="inline-flex items-center gap-1.5 rounded-xl border border-mint-500/30 bg-mint-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-mint-300">
             <CheckCircle2 className="h-3 w-3" />
             <span>Confirmed Data</span>
           </div>

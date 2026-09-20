@@ -5,6 +5,120 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-20 (111) — Six additions on top of the Points redesign
+
+Built on Deepak's `/points` redesign (#352), on the preview branch.
+
+### What the redesign had dropped
+
+⚠️ Worth recording, because it was not obvious from the diff: the redesign
+stopped rendering **`LiveWire`**, **`UpdatesFeed`**, **`ProgramPanel`** and
+**`ProgramSection`**. Only `Composer` survived, imported into the new hero. Three
+of the six items below are those surfaces coming back rather than new work.
+
+### 1. The AI briefing has a foreground of its own
+
+It rendered as a strip inside the news card capped at `max-h-36` with its own
+scrollbar - about six lines. The model is asked for what changed, what it means
+for farmers, dates to watch and what is still unknown; four sections do not fit
+in six lines, so a complete answer met a scroll region nested inside a card
+inside the hero.
+
+`AirdropBriefModal` takes the foreground instead, in the page's own type ramp,
+and lists the stories it was built from underneath - "which headlines produced
+this" being the first question anyone asks of an AI summary.
+
+⚠️ **It renders through `createPortal`, and that is not optional.** The hero sets
+`overflow-hidden`, and a `position: fixed` child of an `overflow-hidden` ancestor
+is still clipped by it in every engine - in place, the dialog would be cropped to
+the hero's rounded corner. The probe asserts the escape (`x=0 y=0 w=1440`), not
+merely that a dialog exists.
+
+It also **opens before the fetch resolves**. The briefing runs on the quality
+model and takes several seconds; opening on arrival left a button that appeared
+to do nothing, which is how the previous version got reported as broken when it
+was only slow. A one-line trace bar reopens a finished briefing without paying
+for it twice.
+
+### 2. Header controls are icons
+
+Three labelled pills plus the freshness line did not fit the card header at
+393px - "N tracked · checked …" was truncating to nothing to make room for
+chrome. `aria-label` and `title` on each, so only the printed word is gone.
+
+### 3. Ongoing perp DEX airdrops, restored
+
+The tracked list and the link to the running channel list came back as
+`OngoingAirdropsSection`. **Not `ProgramPanel` re-mounted**: its cards are
+anchors to `#programme-<id>`, and those sections are not rendered either, so
+re-mounting it would restore a grid of links that scroll nowhere. The cards keep
+its visual language and are wired to the interaction this layout has - selecting
+a programme loads it into the calculator.
+
+### 4. The portfolio card says what it is
+
+⚠️ `MyAirdropsCard` was showing **hard-coded** figures - "Sodex · 2.4M points ·
+$2,100 · +162% ROI" - under a heading reading "My Airdrops", identical for every
+visitor including one who has never farmed anything. Nothing fetched them and no
+wallet was connected. Presented sharp and unlabelled, that is a reader being
+shown a portfolio they do not have.
+
+Blurred behind a **Coming soon** overlay: the shape of the feature stays legible,
+the figures stop being readable, `aria-hidden` and `select-none` keep them out of
+screen readers and copy-paste.
+
+### 5. Cards end level
+
+`items-stretch` plus `h-full` on all three links in the chain. A grid item
+stretches by default, but `Reveal` inserts a `motion.div` between the column and
+the card, and that wrapper sized to its content - so Farming Economics stopped
+roughly 80px short of the calculator beside it. Measured at **0px** difference
+now. Same for FDV Simulator ↔ Scenario Analysis and the lower pair.
+
+### 6. Motion, and a stagger that was doing nothing
+
+⚠️ **`Reveal`'s `delay` is an index, multiplied by 0.07s.** The redesign passed
+`0.05` / `0.1` / `0.15` as if they were seconds, which computed to **3.5ms, 7ms
+and 10.5ms** - no stagger at all, on a page whose cards arrive in pairs. Integers
+now.
+
+New keyframes: `rise-in` (travel *and* scale, so a card grows into place rather
+than sliding), `pop-in`, `sweep-x` (one pass, not a loop), `glow-breathe`.
+Strength is bought with **movement and timing, not light** - the design system's
+standing warning is that this palette drifts from restrained to cheap through
+stacked glow orbs, and none of these adds a light source.
+
+Colour: the redesign's raw `gray-*` / `#0f1012` / `emerald-*` values became
+semantic tokens, so the card themes light/dark instead of being pinned dark.
+
+### Four silent-CSS failures found, and a test that ends the family
+
+This class of bug has now shipped here four times - `text-content0`,
+`bg-base/95`, `animate-in`, and now shades past the end of a ramp. All of them
+**parse**; Tailwind emits no rule and nothing reports a problem.
+
+`design-tokens-exist.test.ts` fails the build on any `gold-*`/`mint-*`/`ink-*`
+shade that is not defined, on `shadow-card`/`shadow-card-hover`/`shadow-btn`
+(named by the handbook, defined nowhere), and on `tailwindcss-animate` classes.
+It strips comments first - this codebase documents past failures *by name*, and a
+raw scan reports its own warnings.
+
+It immediately found two **pre-existing** bugs unrelated to this work:
+
+- **`text-gold-950`** in `MessagesClient.tsx` - the gold ramp stops at 800, so a
+  reader's own chat bubble had no text colour in light mode.
+- **`shadow-card`** on `PointsNav` - undefined, so the nav had no shadow.
+
+Both fixed. A fifth was caught in-flight: a find-and-replace turned
+`emerald-950` into `mint-950`, and mint stops at 800.
+
+### Verification
+
+typecheck · **1219 tests** · lint (0 errors) · build green · **36/36 browser
+checks** on desktop and mobile.
+
+---
+
 ## 2026-09-18 (110) — One editor, and pictures on the press lane
 
 ### Both composers now mount the dashboard's editor, not a lookalike
