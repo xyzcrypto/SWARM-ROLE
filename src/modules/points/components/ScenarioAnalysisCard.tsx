@@ -95,7 +95,13 @@ export function ScenarioAnalysisCard({
     } else if (ratio < 0.75) {
       return "bg-gold-500/20 text-gold-300 border-gold-500/30";
     } else {
-      return "bg-emerald-950/50 text-emerald-300 border-emerald-500/40";
+      // ⚠️ `mint-800`, not `mint-950`. This project's mint ramp stops at 800 -
+      // there is no 950 - and an undefined Tailwind shade compiles to NO rule
+      // at all rather than to an error, so the best cell in the heatmap would
+      // have rendered with no background while every other tier had one. The
+      // rose and amber tiers above are Tailwind's own full palettes, which do
+      // reach 950; mint is this site's brand ramp and does not.
+      return "bg-mint-800/50 text-mint-300 border-mint-500/40";
     }
   };
 
@@ -113,7 +119,7 @@ export function ScenarioAnalysisCard({
   };
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
+    <div className="flex h-full flex-col justify-between rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
       {/* Header */}
       <div className="flex items-center justify-between pb-4 border-b border-hairline">
         <div>
@@ -207,7 +213,7 @@ export function ScenarioAnalysisCard({
           <span>Good</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          <span className="h-2 w-2 rounded-full bg-mint-400" />
           <span>High</span>
         </div>
       </div>
