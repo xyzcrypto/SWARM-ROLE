@@ -69,21 +69,21 @@ export function PointsCalculatorCard({
   }, [officialAlloc]);
 
   // Exactly 3 compact scenario pills so they always stay on 1 single row
-  const fdvScenarios = useMemo(() => {
-    const primary = anchorFdv > 0 ? Math.round(anchorFdv) : (program.scenario?.fdvScenariosUsd?.[0] ?? 1_000_000_000);
-    const benchmarks = [1_000_000_000, 3_000_000_000, 10_000_000_000];
-    const unique = Array.from(new Set([primary, ...benchmarks])).sort((a, b) => a - b);
-    return unique.slice(0, 3);
-  }, [program, anchorFdv]);
+  const scenarioFdvs = program.scenario?.fdvScenariosUsd;
+  const primaryFdv = anchorFdv > 0 ? Math.round(anchorFdv) : (scenarioFdvs?.[0] ?? 1_000_000_000);
+  const fdvScenarios = Array.from(
+    new Set([primaryFdv, 1_000_000_000, 3_000_000_000, 10_000_000_000])
+  ).sort((a, b) => a - b).slice(0, 3);
 
-  const domain = useMemo(() => {
-    if (!program.links?.website) return "";
+  const website = program.links?.website;
+  let domain = "";
+  if (website) {
     try {
-      return new URL(program.links.website).hostname.replace(/^www\./, "");
+      domain = new URL(website).hostname.replace(/^www\./, "");
     } catch {
-      return "";
+      domain = "";
     }
-  }, [program.links?.website]);
+  }
 
   // Estimated range: either from peer comps range (if available) or conservative/optimistic band
   const estRange = useMemo(() => {
