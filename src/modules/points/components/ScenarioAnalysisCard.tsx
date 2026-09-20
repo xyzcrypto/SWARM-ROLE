@@ -32,23 +32,54 @@ export function ScenarioAnalysisCard({
   onSelectScenario,
   programName,
 }: ScenarioAnalysisCardProps) {
-  // 5x5 Matrix Calculations
+  // Build dynamic FDV columns — always include currentFdv
+  const fdvCols = useMemo(() => {
+    const presets = [
+      { label: "$100M", value: 100_000_000 },
+      { label: "$300M", value: 300_000_000 },
+      { label: "$500M", value: 500_000_000 },
+      { label: "$1B",   value: 1_000_000_000 },
+      { label: "$3B",   value: 3_000_000_000 },
+    ];
+    const rounded = Math.round(currentFdv / 1_000_000) * 1_000_000;
+    const alreadyIn = presets.some((p) => Math.abs(p.value - rounded) < 50_000_000);
+    if (alreadyIn || !currentFdv) return presets;
+    // Insert currentFdv in sorted order, replace furthest preset
+    const label =
+      rounded >= 1e12 ? `$${(rounded / 1e12).toFixed(1)}T`
+      : rounded >= 1e9  ? `$${(rounded / 1e9).toFixed(1)}B`
+      : `$${(rounded / 1e6).toFixed(0)}M`;
+    const custom = { label: `${label} ★`, value: rounded, isCurrent: true };
+    const all = [...presets, custom].sort((a, b) => a.value - b.value);
+    // Keep only 5 columns — drop the one furthest from currentFdv
+    if (all.length > 5) {
+      const distances = all.map((c) => ({ ...c, dist: Math.abs(c.value - rounded) }));
+      const nonCurrent = distances.filter((c) => !('isCurrent' in c) || !c.isCurrent);
+      nonCurrent.sort((a, b) => b.dist - a.dist);
+      const drop = nonCurrent[0];
+      return all.filter((c) => c.value !== drop.value);
+    }
+    return all;
+  }, [currentFdv]);
+
+  // 5×5 Matrix Calculations
   const matrix = useMemo(() => {
     const totalPool = totalPoints || 1;
     const share = yourPoints / totalPool;
 
     return ALLOC_ROWS.map((alloc) => {
-      const rowCells = FDV_COLS.map((col) => {
+      const rowCells = fdvCols.map((col) => {
         const gross = share * (alloc / 100) * col.value;
         return {
           fdv: col.value,
           alloc,
           gross: Math.round(gross),
+          isCurrentFdv: 'isCurrent' in col && (col as any).isCurrent,
         };
       });
       return { alloc, cells: rowCells };
     });
-  }, [yourPoints, totalPoints]);
+  }, [yourPoints, totalPoints, fdvCols]);
 
   // Find min and max for heatmap scaling
   const allValues = matrix.flatMap((r) => r.cells.map((c) => c.gross));
@@ -69,7 +100,7 @@ export function ScenarioAnalysisCard({
   };
 
   const exportCsv = () => {
-    const headers = ["Allocation %", ...FDV_COLS.map((c) => c.label)].join(",");
+    const headers = ["Allocation %", ...fdvCols.map((c) => c.label)].join(",");
     const rows = matrix.map((r) => [r.alloc + "%", ...r.cells.map((c) => c.gross)].join(","));
     const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
     const encodedUri = encodeURI(csvContent);
@@ -113,10 +144,15 @@ export function ScenarioAnalysisCard({
               <th className="py-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-content-subtle text-left">
                 Alloc. \ FDV
               </th>
-              {FDV_COLS.map((col) => (
+              {fdvCols.map((col) => (
                 <th
                   key={col.label}
-                  className="py-2 px-2 text-xs font-bold text-content-muted mono"
+                  className={cn(
+                    "py-2 px-2 text-xs font-bold mono",
+                    'isCurrent' in col && (col as any).isCurrent
+                      ? "text-gold-300"
+                      : "text-content-muted"
+                  )}
                 >
                   {col.label}
                 </th>

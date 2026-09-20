@@ -29,7 +29,6 @@ import { ScenarioAnalysisCard } from "./ScenarioAnalysisCard";
 import { MyAirdropsCard } from "./MyAirdropsCard";
 import { HowItWorksCard } from "./HowItWorksCard";
 import { CompsEngine } from "./CompsEngine";
-import { LiveWire } from "./LiveWire";
 import { ChevronDown, ChevronUp, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +40,7 @@ type ProgState = {
   totalPoints: string;
   supply: string;
   allocPct: string;
+  allocLinked?: boolean;
   tgeUnlock: string;
   fdv: string;
   fdvLinked: boolean;
@@ -88,12 +88,14 @@ const num = (s: string) => {
 
 function progStateOf(form: Form, p: ProgramView): ProgState {
   const saved = form.progs[p.id] ?? {};
+
   return {
     label: saved.label ?? "",
-    yourPoints: saved.yourPoints ?? "250000",
+    yourPoints: saved.yourPoints ?? "",
     totalPoints: saved.totalPoints ?? String(p.scenario.totalPoints),
     supply: saved.supply ?? String(p.scenario.totalSupply),
     allocPct: saved.allocPct ?? String(p.scenario.allocationPctOfSupply),
+    allocLinked: saved.allocLinked ?? (saved.allocPct ? saved.allocPct === String(p.scenario.allocationPctOfSupply) : true),
     tgeUnlock: saved.tgeUnlock ?? String(p.scenario.tgeUnlockPcts[0] ?? 25),
     fdv: saved.fdv ?? String(scenarioFdv(p) || 500_000_000),
     fdvLinked: saved.fdvLinked ?? true,
@@ -121,7 +123,17 @@ export function PointsClient() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORE_KEY);
-      if (raw) setForm((f) => ({ ...f, ...(JSON.parse(raw) as Partial<Form>) }));
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<Form>;
+        if (parsed.progs) {
+          for (const pid of Object.keys(parsed.progs)) {
+            if (parsed.progs[pid]?.yourPoints === "250000") {
+              parsed.progs[pid].yourPoints = "";
+            }
+          }
+        }
+        setForm((f) => ({ ...f, ...parsed }));
+      }
     } catch {
       // safe fallback
     }
@@ -346,10 +358,25 @@ export function PointsClient() {
                 onTotalPointsChange={(v) => setProg(analysed.program.id, "totalPoints", v)}
                 allocPct={analysed.st.allocPct}
                 onAllocPctChange={(v) => setProg(analysed.program.id, "allocPct", v)}
+                allocLinked={analysed.st.allocLinked}
+                onToggleAllocLink={(isLinked) => {
+                  setProg(analysed.program.id, "allocLinked", isLinked);
+                  if (isLinked) {
+                    setProg(analysed.program.id, "allocPct", String(analysed.program.scenario.allocationPctOfSupply));
+                  }
+                }}
                 fdv={analysed.st.fdv}
                 onFdvChange={(v) => {
-                  setProg(analysed.program.id, "fdvLinked", false);
                   setProg(analysed.program.id, "fdv", v);
+                }}
+                linked={analysed.st.fdvLinked}
+                anchor={analysed.anchor}
+                anchorFdv={analysed.anchorFdv}
+                onToggleLink={(isLinked) => {
+                  setProg(analysed.program.id, "fdvLinked", isLinked);
+                  if (isLinked && analysed.anchorFdv > 0) {
+                    setProg(analysed.program.id, "fdv", String(Math.round(analysed.anchorFdv)));
+                  }
                 }}
                 value={analysed.value}
                 range={analysed.range}
@@ -404,6 +431,7 @@ export function PointsClient() {
                 onSelectScenario={(fdvVal, allocVal) => {
                   setProg(analysed.program.id, "fdvLinked", false);
                   setProg(analysed.program.id, "fdv", String(fdvVal));
+                  setProg(analysed.program.id, "allocLinked", false);
                   setProg(analysed.program.id, "allocPct", String(allocVal));
                 }}
                 programName={analysed.program.name}
@@ -447,10 +475,10 @@ export function PointsClient() {
             </span>
             <div>
               <div className="font-display text-sm font-bold text-content">
-                Live Comparables Terminal & News Radar
+                Live Comparables Terminal
               </div>
               <div className="text-xs text-content-subtle">
-                Real-time peer tape, 24h volume benchmarks and desk updates
+                Real-time peer tape, 24h volume benchmarks and market valuations
               </div>
             </div>
           </div>
@@ -462,8 +490,6 @@ export function PointsClient() {
 
         {showAdvanced && (
           <div className="mt-6 space-y-8">
-            <LiveWire />
-
             <div id="points-comparables" className="scroll-mt-32">
               <CompsEngine
                 venues={targetable}

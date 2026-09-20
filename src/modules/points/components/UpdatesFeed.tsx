@@ -293,7 +293,7 @@ function UpdateCard({
   );
 }
 
-function Composer({ onPosted }: { onPosted: () => void }) {
+export function Composer({ onPosted }: { onPosted: () => void }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [kind, setKind] = useState<UpdateKind>("live");

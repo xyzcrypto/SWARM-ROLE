@@ -47,7 +47,7 @@
 //
 // Bump this ONLY when a precached URL's CONTENT changes underneath it, or when
 // an entry leaves this list and should be reclaimed.
-const CACHE = "xyz-pwa-v10";
+const CACHE = "xyz-pwa-v11";
 const OFFLINE_URL = "/offline.html";
 // Measured on the homepage: `/logo.png` was **338 KB of the 2.68 MB** a first
 // visit downloads, and it was here, not on any page - `install` runs on the
@@ -86,6 +86,11 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // leave cross-origin (CDNs/APIs) alone
+
+  // In local development, never cache static assets or chunks:
+  if (url.hostname === "localhost" || url.hostname === "127.0.0.1") {
+    return;
+  }
 
   // Never cache APIs, data, or the worker itself - always live.
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/_next/data/") || url.pathname === "/sw.js") {

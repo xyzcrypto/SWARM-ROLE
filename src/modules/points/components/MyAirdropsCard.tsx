@@ -1,5 +1,7 @@
 "use client";
 
+import { useMemo } from "react";
+import Link from "next/link";
 import { ArrowRight, Coins, DollarSign, Layers, TrendingUp, Wallet } from "lucide-react";
 import { platformLogo } from "@/lib/dex-registry";
 import { cn } from "@/lib/utils";
@@ -49,27 +51,19 @@ const PORTFOLIO_DATA: PortfolioRow[] = [
     roi: "+258%",
     status: "Farming",
   },
-  {
-    id: "hyperliquid",
-    name: "Hyperliquid",
-    points: "3.1M",
-    estValue: "$2,800",
-    cost: "$600",
-    roi: "+367%",
-    status: "Farming",
-  },
-  {
-    id: "lighter",
-    name: "Lighter",
-    points: "0.9M",
-    estValue: "$820",
-    cost: "$300",
-    roi: "+173%",
-    status: "Farming",
-  },
 ];
 
 export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardProps) {
+  const summary = useMemo(() => {
+    return {
+      totalVal: "$7,850",
+      growth: "+14.2%",
+      totalPts: "8.4M",
+      activeFarms: PORTFOLIO_DATA.length,
+      farmingCost: "$2,600",
+    };
+  }, []);
+
   return (
     <div id="my-airdrops" className="scroll-mt-32 flex flex-col justify-between rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
       {/* Header */}
@@ -83,17 +77,13 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            const el = document.getElementById("featured-programs");
-            if (el) el.scrollIntoView({ behavior: "smooth" });
-          }}
+        <Link
+          href="/portfolio"
           className="group flex items-center gap-1.5 text-xs font-semibold text-gold-400 hover:text-gold-300 transition-colors"
         >
           View Portfolio
           <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
-        </button>
+        </Link>
       </div>
 
       {/* 4 Mini Metric Cards */}
@@ -105,8 +95,8 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
             <span className="text-[10px] uppercase font-medium">Total Portfolio Value</span>
           </div>
           <div className="mt-1 flex items-baseline gap-1.5">
-            <span className="mono text-base font-bold text-content">$8,420</span>
-            <span className="text-[10px] font-semibold text-emerald-400">+12.4%</span>
+            <span className="mono text-[15px] font-bold text-content">{summary.totalVal}</span>
+            <span className="text-[10px] font-semibold text-emerald-400">{summary.growth}</span>
           </div>
         </div>
 
@@ -117,7 +107,7 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
             <span className="text-[10px] uppercase font-medium">Total Points</span>
           </div>
           <div className="mt-1">
-            <span className="mono text-base font-bold text-content">12.4M</span>
+            <span className="mono text-[15px] font-bold text-content">{summary.totalPts}</span>
           </div>
         </div>
 
@@ -128,7 +118,7 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
             <span className="text-[10px] uppercase font-medium">Active Farms</span>
           </div>
           <div className="mt-1">
-            <span className="font-display text-base font-bold text-content">7</span>
+            <span className="font-display text-[15px] font-bold text-content">{summary.activeFarms}</span>
           </div>
         </div>
 
@@ -139,7 +129,7 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
             <span className="text-[10px] uppercase font-medium">Farming Cost</span>
           </div>
           <div className="mt-1">
-            <span className="mono text-base font-bold text-content">$3,240</span>
+            <span className="mono text-[15px] font-bold text-content">{summary.farmingCost}</span>
           </div>
         </div>
       </div>

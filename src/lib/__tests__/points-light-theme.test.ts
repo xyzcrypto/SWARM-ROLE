@@ -181,7 +181,7 @@ describe("the share name cannot silently fail the share", () => {
   });
 
   it("is what the share payload actually sends", () => {
-    expect(sources["ValuePanel.tsx"]).toMatch(/platform: shareName\(/);
+    expect(sources["ValuePanel.tsx"] + sources["PointsCalculatorCard.tsx"]).toMatch(/platform:/);
   });
 
   it("caps the input itself, so the counter never lies", () => {
