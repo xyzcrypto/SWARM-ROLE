@@ -11,6 +11,7 @@ import { RobotIcon } from "@/components/RobotIcon";
 import type { RadarItem } from "@modules/points/lib/airdrop-radar";
 import { Composer } from "./UpdatesFeed";
 import { AirdropBriefModal } from "./AirdropBriefModal";
+import { LogoMedallion } from "@/components/LogoMedallion";
 
 const RADAR_WINDOW_MS = 120_000;
 
@@ -659,14 +660,35 @@ export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
 
   return (
     <div className="relative overflow-hidden rounded-3xl border border-hairline bg-gradient-to-b from-surface-2 via-surface-2 to-base p-6 sm:p-8 lg:p-10">
-      {/* Background ambient radial glows */}
+      {/* Background ambient radial glows. ⚠️ Two, not a stack - the design
+          system's warning is that this palette drifts from restrained to cheap
+          through piled-up blur orbs, so the depth below comes from the
+          medallion and the motion rather than more light. */}
       <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-gold-500/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-24 right-1/4 h-80 w-80 rounded-full bg-gold-400/5 blur-3xl" />
 
-      <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-8">
-        {/* Left Column: Headline & Action */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Tag badge */}
+      <div className="relative grid grid-cols-1 items-center gap-8 lg:grid-cols-12 lg:gap-10">
+        {/* Left Column: Headline & Action.
+            ⚠️ `space-y-5`, down from 6. Six steps of 24px between eyebrow,
+            heading, copy, buttons and the stat rail added up to more vertical
+            air than the content, which is the "gap" that made this look
+            unfinished on a 393px screen. */}
+        <div className="lg:col-span-7 space-y-5">
+          {/* ── Eyebrow rail + the 3D mark ────────────────────────────────
+              ⚠️ The medallion lives HERE, on the eyebrow's row, and that is
+              the gap fix rather than a decoration bolted on.
+
+              At 393px this row held one short badge and roughly 240px of empty
+              gradient to its right - the single largest piece of dead space in
+              the hero, and what made the block read as loose rather than
+              composed. An absolutely-positioned mark in the corner would have
+              filled it too, but it would have sat UNDER the headline's second
+              line at some widths, and a decoration that collides with the
+              title is worse than the gap.
+
+              On the row, it is laid out: nothing overlaps, nothing reflows
+              unexpectedly, and the row now has weight at both ends. */}
+          <div className="flex items-center justify-between gap-4">
           <span className="eyebrow eyebrow-glass inline-flex items-center gap-2">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
@@ -677,6 +699,9 @@ export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
               <span className="text-shine">Farming</span>
             </span>
           </span>
+
+            <LogoMedallion className="w-16 shrink-0 sm:w-20" />
+          </div>
 
           {/* Heading */}
           <div className="space-y-2">
@@ -719,7 +744,7 @@ export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
               items rather than one summary. Each one now has a surface, the
               numbers keep the mono ramp they should have had, and they land in
               sequence so the row assembles rather than appearing. */}
-          <div className="grid grid-cols-2 gap-2.5 border-t border-hairline pt-5 sm:grid-cols-4 sm:gap-3">
+          <div className="grid grid-cols-2 gap-2.5 border-t border-hairline pt-4 sm:grid-cols-4 sm:gap-3">
             {[
               { v: String(stats.trackedProtocols), l: "Tracked Protocols", mono: false, dot: false },
               { v: formatPointsAnalyzed(stats.pointsAnalyzed), l: "Points Analyzed", mono: true, dot: false },
