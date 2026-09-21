@@ -307,6 +307,13 @@ export function PointsClient() {
     [analysed, allocs, cost]
   );
 
+  /**
+   * The live "points analyzed" total. Lifted to here because the calculator
+   * produces it and the hero displays it, and they are siblings - a DOM event
+   * or a store would be indirection for a single number travelling one level.
+   */
+  const [analyzedTotal, setAnalyzedTotal] = useState<number | null>(null);
+
   const handleSelectProgram = (id: string) => {
     set("analyseId", id);
     set("openId", id);
@@ -319,6 +326,7 @@ export function PointsClient() {
       {/* ── 1. Hero Section ── */}
       <Reveal>
         <PointsHero
+          analyzedTotal={analyzedTotal}
           onExplore={() => {
             const el = document.getElementById("featured-programs");
             if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -368,6 +376,7 @@ export function PointsClient() {
                 program={analysed.program}
                 programs={programs}
                 onSelectProgram={handleSelectProgram}
+                onAnalyzed={setAnalyzedTotal}
                 yourPoints={analysed.st.yourPoints}
                 onYourPointsChange={(v) => setProg(analysed.program.id, "yourPoints", v)}
                 totalPoints={analysed.st.totalPoints}

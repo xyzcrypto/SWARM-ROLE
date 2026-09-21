@@ -13,6 +13,11 @@ const patchSchema = z.object({
   kind: z.enum(UPDATE_KINDS as unknown as [string, ...string[]]).optional(),
   program: z.string().trim().max(60).nullable().optional(),
   url: z.string().trim().max(500).nullable().optional(),
+  // ⚠️ `image` was missing, so an edit could change every field EXCEPT the
+  // cover - silently, because zod strips unknown keys rather than refusing
+  // them. The author would remove an image, see the composer close, and find
+  // it still there.
+  image: z.string().trim().max(500).nullable().optional(),
   pinned: z.boolean().optional(),
   published: z.boolean().optional(),
 });
@@ -40,6 +45,10 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       data.url = url;
     }
     if ("program" in parsed.data) data.program = parsed.data.program?.trim() || null;
+    // Same gate the POST uses: an image src is a URL the browser fetches, and
+    // it goes through `safeUrl` rather than being trusted because it came from
+    // an authenticated editor.
+    if ("image" in parsed.data) data.image = safeUrl(parsed.data.image ?? null);
 
     const row = await prisma.pointsUpdate.update({ where: { id }, data });
     // Broadcast on any edit to a published row, not only on create: fixing a

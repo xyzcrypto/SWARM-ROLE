@@ -6,8 +6,26 @@ import { rateLimit, clientIp } from "@/lib/ratelimit";
 
 export const dynamic = "force-dynamic";
 
-// In-memory fallback accumulator if Redis is not configured
-let inMemoryPointsAnalyzed = 12_400_000;
+/**
+ * ⚠️ Starts at ZERO, and the key is versioned.
+ *
+ * This was seeded at `12_400_000` - and worse, the GET wrote that seed INTO
+ * Redis the first time it ran. So "$12.4M+ Points Analyzed" was a number
+ * nobody had analysed, presented beside three real ones (tracked protocols,
+ * active users) in a way that made it read as measured. A fabricated statistic
+ * next to genuine ones is the kind of thing that costs trust in all four.
+ *
+ * `:v2` because the old key is already sitting in production Redis holding the
+ * seed plus whatever has accumulated on top of it. Zeroing this constant alone
+ * would not have cleaned that up; a new key starts honest without anyone
+ * having to run a command by hand.
+ */
+const ANALYZED_KEY = "points:analyzed:v2";
+
+// In-memory fallback when Redis is not configured. ⚠️ Per-instance and
+// therefore near-useless on serverless - each lambda has its own copy. It
+// exists so local development shows something, not as a real store.
+let inMemoryPointsAnalyzed = 0;
 
 export async function GET() {
   try {
@@ -29,12 +47,10 @@ export async function GET() {
     try {
       const redis = kv();
       if (redis) {
-        const val = await redis.get<number>("points:analyzed:total");
-        if (typeof val === "number" && val > 0) {
-          pointsAnalyzed = val;
-        } else {
-          await redis.set("points:analyzed:total", inMemoryPointsAnalyzed);
-        }
+        const val = await redis.get<number>(ANALYZED_KEY);
+        // Read only. The old version SEEDED the store on a miss, which is how
+        // an invented number became the stored truth.
+        if (typeof val === "number" && val > 0) pointsAnalyzed = val;
       }
     } catch {
       // fallback inMemory
@@ -69,7 +85,7 @@ export async function POST(req: Request) {
       try {
         const redis = kv();
         if (redis) {
-          const current = await redis.incrby("points:analyzed:total", increment);
+          const current = await redis.incrby(ANALYZED_KEY, increment);
           return ok({ success: true, pointsAnalyzed: current });
         }
       } catch {

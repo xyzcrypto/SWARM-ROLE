@@ -5,6 +5,67 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-21 (115) — A post with nowhere to appear, and a statistic nobody measured
+
+### The `+` composer worked; nothing rendered what it wrote
+
+⚠️ The composer POSTs to `/api/points/updates` and the row saved every time.
+The hero card only ever fetched `/api/points/radar` - the **press** lane. The
+**desk** lane had no renderer at all, because the redesign dropped
+`UpdatesFeed`, which was the only thing that displayed it. So a post was
+written, stored and broadcast, and had nowhere on the page to land.
+
+The card reads both lanes now, merged: a pinned desk post outranks everything,
+then newest first, desk winning a tie because it is the reviewed lane. Desk rows
+carry a **Desk** badge - the desk's own word and an outlet's report are
+different claims and a reader acts on them differently. `useRealtime` on
+`CH_POINTS` means a new post appears without a reload.
+
+**Edit and delete sit on the row**, not in a separate admin screen: the moment
+you notice a typo is while looking at the post. The edit form is the SAME
+`Composer` with an `edit` prop, not a second one - an edit screen that is a copy
+of the create screen is two things to keep in step.
+
+⚠️ And PATCH's schema had **no `image` field**. Zod strips unknown keys rather
+than refusing them, so removing a cover appeared to work and silently did
+nothing. Added, through the same `safeUrl` gate the POST uses.
+
+### "$12.4M+ Points Analyzed" was invented
+
+⚠️ Seeded at `12_400_000` - and the GET **wrote that seed into Redis** on first
+read, so a made-up number became the stored truth. It sat beside two genuine
+statistics (tracked protocols, active users), which is what made all three read
+as measured.
+
+Starts at zero now, the read no longer seeds, and the key is versioned
+(`points:analyzed:v2`) because the old one is already holding the seed in
+production and zeroing a constant would not have cleaned it up.
+
+It also **moves as you calculate**: the POST already returned the new total and
+nobody read it, while the hero fetched once on mount and never again - so a
+reader could watch their own calculation change nothing.
+
+And it no longer prints a `$`. It counts POINTS. "$12.4M+" under a label reading
+"Points Analyzed" is a wrong number even when the digits are right.
+
+### The programme picker could not be used on a phone
+
+`absolute right-0` at every width, on a 176px panel whose trigger sits near the
+card's left edge - so the list hung off the left of the viewport with the names
+cut in half ("dex", "seX", "riational"). `left-0` on mobile, `right-0` from
+`sm`. Measured: the panel now sits at `left=42 right=217` inside a 393px
+viewport.
+
+### The hero medallion is gone
+
+Removed on request, one release after it was added.
+
+### Verification
+
+typecheck · **1245 tests** · lint (0 errors) · build green · 15/15 browser checks.
+
+---
+
 ## 2026-09-21 (114) — A 3D mark on the points hero, and the gap it fills
 
 ### The gap was one row, not the whole block

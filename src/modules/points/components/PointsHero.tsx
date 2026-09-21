@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowRight, ArrowUpRight, BarChart2, Loader2, Plus, Radio, RefreshCw, X } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BarChart2, Loader2, Pencil, Plus, Radio, RefreshCw, Trash2, X } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import { cn, formatDateTime } from "@/lib/utils";
 import { refreshUrl } from "@/lib/refetch";
@@ -10,8 +10,10 @@ import { wakeIsDue } from "@/lib/useLiveData";
 import { RobotIcon } from "@/components/RobotIcon";
 import type { RadarItem } from "@modules/points/lib/airdrop-radar";
 import { Composer } from "./UpdatesFeed";
+import { useRealtime } from "@/lib/useRealtime";
+import { CH_POINTS } from "@/lib/realtime-channels";
+import { sortUpdates, type PointsUpdateDto } from "@modules/points/lib/points-updates";
 import { AirdropBriefModal } from "./AirdropBriefModal";
-import { LogoMedallion } from "@/components/LogoMedallion";
 
 const RADAR_WINDOW_MS = 120_000;
 
@@ -28,9 +30,58 @@ const STORY_ROTATE_MS = 7_000;
 /** Stories in the rotation. The rest live behind "View All Updates". */
 const MAX_STORIES = 5;
 
+/**
+ * One row of the card, from either lane.
+ *
+ * ⚠️ The desk lane was not here at all, and that is the whole "+ post karta hu
+ * lekin card pe show nahi karta" bug. The composer writes to `PointsUpdate` via
+ * `/api/points/updates`; this card only ever fetched `/api/points/radar`, the
+ * PRESS lane. So a post saved correctly, broadcast correctly, and had nowhere
+ * on the page to appear - the redesign had dropped `UpdatesFeed`, which was the
+ * only thing that rendered it.
+ *
+ * `lane` is kept explicit because the two carry different authority: the desk's
+ * own word versus an outlet's report. A reader acts on them differently, so it
+ * is never left to be inferred from the wording of a headline.
+ */
+type CardItem = RadarItem & {
+  lane: "desk" | "press";
+  /** Present on desk rows, so a manager can edit or delete this exact post. */
+  post?: PointsUpdateDto;
+  pinned?: boolean;
+};
+
+/** Desk post -> card row. */
+function deskToCard(u: PointsUpdateDto): CardItem {
+  return {
+    id: `desk-${u.id}`,
+    title: u.title,
+    url: u.url ?? "",
+    summary: u.body,
+    source: "XYZ Desk",
+    sourceIcon: null,
+    publishedAt: new Date(u.createdAt).getTime(),
+    category: u.kind,
+    image: u.image ?? null,
+    venues: u.program ? [u.program] : [],
+    lane: "desk",
+    post: u,
+    pinned: Boolean(u.pinned),
+  };
+}
+
 interface PointsHeroProps {
   onExplore?: () => void;
   onPortfolio?: () => void;
+  /**
+   * The live "points analyzed" total, pushed up from the calculator.
+   *
+   * ⚠️ The hero fetched this once on mount and then never again, so a reader
+   * could run calculation after calculation and watch the number sit still -
+   * which is most of why it read as invented rather than measured. When this
+   * is set it wins, because it is newer than the mount-time fetch.
+   */
+  analyzedTotal?: number | null;
 }
 
 /** Standalone hero news card — matches the right-side of the mockup exactly. */
@@ -55,7 +106,22 @@ function HeroNewsCard() {
     err: string | null;
     at: number | null;
   }>({ loading: false, streaming: false, text: null, err: null, at: null });
+  const [desk, setDesk] = useState<PointsUpdateDto[]>([]);
+  const [editing, setEditing] = useState<PointsUpdateDto | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const fetchedAtRef = useRef(0);
+
+  /** The desk lane. Staff also ask for drafts; the route ignores the flag
+   *  without the permission rather than 403-ing. */
+  const loadDesk = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/points/updates${canManage ? "?all=1" : ""}`, { cache: "no-store" });
+      const j = await res.json();
+      if (res.ok && Array.isArray(j.updates)) setDesk(sortUpdates(j.updates));
+    } catch {
+      // The press lane still renders; a desk outage is not the card's outage.
+    }
+  }, [canManage]);
 
   const load = useCallback(async (force = false) => {
     try {
@@ -90,6 +156,19 @@ function HeroNewsCard() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
   }, [load]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadDesk();
+  }, [loadDesk]);
+
+  /**
+   * A new post appears without a reload. The POST broadcasts on `CH_POINTS`;
+   * `useRealtime` subscribes, falls back to a 60s poll only while the channel
+   * is DOWN, retries with backoff and refetches on wake - all of which this
+   * surface would otherwise have to get right itself.
+   */
+  useRealtime({ channel: CH_POINTS, event: "points_update", onMessage: () => void loadDesk() });
 
   /**
    * ⚠️ THE POLL. Its absence is the other half of "stuck".
@@ -134,7 +213,7 @@ function HeroNewsCard() {
    * between polls. Paused while the briefing or a modal is open, and while
    * there is nothing to rotate.
    */
-  const carouselLength = Math.min(items.length, MAX_STORIES);
+  const carouselLength = Math.min(desk.length + items.length, MAX_STORIES);
   useEffect(() => {
     if (carouselLength < 2) return;
     const id = setInterval(() => {
@@ -221,9 +300,39 @@ function HeroNewsCard() {
    * before the fetch resolved, or whenever it failed, met an invented story that
    * never changed. An empty feed now says it is empty.
    */
-  const carousel = useMemo(() => items.slice(0, 5), [items]);
+  /**
+   * Both lanes, in one list. A pinned desk post outranks everything - pinning
+   * is the desk saying "this is the thing" - then it is simply newest first,
+   * and the desk wins a tie because it is the reviewed lane.
+   */
+  const merged = useMemo<CardItem[]>(() => {
+    const d = desk.map(deskToCard);
+    const p: CardItem[] = items.map((i) => ({ ...i, lane: "press" }));
+    return [...d, ...p].sort((a, b) => {
+      if (Boolean(a.pinned) !== Boolean(b.pinned)) return a.pinned ? -1 : 1;
+      if (b.publishedAt !== a.publishedAt) return b.publishedAt - a.publishedAt;
+      return a.lane === "desk" ? -1 : 1;
+    });
+  }, [desk, items]);
+
+  const carousel = useMemo(() => merged.slice(0, MAX_STORIES), [merged]);
   const active = carousel[activeIdx % Math.max(carousel.length, 1)] ?? null;
-  const rest = items.slice(1);
+  const rest = merged.slice(1);
+
+  /** Remove a desk post. Confirmed, because it cannot be undone. */
+  const removePost = useCallback(async (id: string) => {
+    if (busyId) return;
+    if (!window.confirm("Delete this update? This cannot be undone.")) return;
+    setBusyId(id);
+    try {
+      const res = await fetch(`/api/points/updates/${id}`, { method: "DELETE" });
+      if (res.ok) await loadDesk();
+    } catch {
+      // Left in place; the next poll or broadcast reconciles.
+    } finally {
+      setBusyId(null);
+    }
+  }, [busyId, loadDesk]);
   const isLive = state === "ready";
 
   return (
@@ -247,7 +356,7 @@ function HeroNewsCard() {
               thing a live feed can do, and it is most of why this looked stuck.
               It now says what is true, including "checking…". */}
           <span className="truncate text-[11px] text-content-subtle">
-            {items.length} tracked · {fetchedAt ? `checked ${formatDateTime(new Date(fetchedAt))}` : "checking…"}
+            {desk.length + items.length} tracked · {fetchedAt ? `checked ${formatDateTime(new Date(fetchedAt))}` : "checking…"}
           </span>
         </div>
 
@@ -396,6 +505,14 @@ function HeroNewsCard() {
               {active.source}
             </span>
             {/* Venue pill */}
+            {/* ⚠️ The lane is always visible. The desk's own word and an
+                outlet's report are different claims and a reader acts on them
+                differently, so it is never left to be inferred. */}
+            {active.lane === "desk" && (
+              <span className="shrink-0 rounded-full border border-mint-500/40 bg-mint-500/10 px-2 py-0.5 text-[10px] font-semibold text-mint-200">
+                Desk
+              </span>
+            )}
             <span className="shrink-0 rounded-full border border-gold-500/40 bg-gold-500/10 px-2 py-0.5 text-[10px] font-semibold text-gold-200">
               {active.venues[0] ?? active.category}
             </span>
@@ -480,6 +597,36 @@ function HeroNewsCard() {
               />
             ))}
           </div>
+
+          {/* ⚠️ Edit and delete live on the row itself, not in a separate admin
+              screen. The ask was "post karne ke baad edit or delete kar saku" -
+              after posting - and the moment you notice a typo is while you are
+              looking at the post, not after navigating somewhere else. */}
+          {canManage && active.lane === "desk" && active.post && (
+            <span className="flex shrink-0 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setEditing(active.post!)}
+                aria-label="Edit this update"
+                title="Edit"
+                className="grid h-7 w-7 place-items-center rounded-lg border border-hairline text-content-subtle transition-all hover:scale-110 hover:border-gold-500/30 hover:text-content active:scale-110"
+              >
+                <Pencil className="h-3 w-3" strokeWidth={2} />
+              </button>
+              <button
+                type="button"
+                onClick={() => void removePost(active.post!.id)}
+                disabled={busyId === active.post.id}
+                aria-label="Delete this update"
+                title="Delete"
+                className="grid h-7 w-7 place-items-center rounded-lg border border-hairline text-content-subtle transition-all hover:scale-110 hover:border-data-down hover:text-data-down active:scale-110 disabled:opacity-50"
+              >
+                {busyId === active.post.id
+                  ? <Loader2 className="h-3 w-3 animate-spin" strokeWidth={2} />
+                  : <Trash2 className="h-3 w-3" strokeWidth={2} />}
+              </button>
+            </span>
+          )}
 
           {/* View All Updates */}
           <button
@@ -574,21 +721,34 @@ function HeroNewsCard() {
       />
 
       {/* ── Admin Composer modal ────────────────────────────────────────── */}
-      {canManage && composing && (
+      {canManage && (composing || editing) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
           <div className="animate-rise-in glass max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-gold-500/20 shadow-elevate">
             <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5">
-              <h3 className="font-display text-base font-bold text-content">Post to the <span className="text-shine">desk wire</span></h3>
+              <h3 className="font-display text-base font-bold text-content">
+                {editing ? "Edit this " : "Post to the "}<span className="text-shine">desk wire</span>
+              </h3>
               <button
                 type="button"
-                onClick={() => setComposing(false)}
+                onClick={() => { setComposing(false); setEditing(null); }}
                 className="grid h-9 w-9 place-items-center rounded-xl border border-hairline text-content-subtle transition-all hover:scale-105 hover:border-gold-500/30 hover:text-content active:scale-105"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-5">
-              <Composer onPosted={() => { setComposing(false); void load(true); }} />
+              <Composer
+                // `key` forces a fresh form per post: the fields are seeded
+                // once on mount, so without it, editing a second post would
+                // keep the first one's text.
+                key={editing?.id ?? "new"}
+                edit={editing ?? undefined}
+                onPosted={() => {
+                  setComposing(false);
+                  setEditing(null);
+                  void loadDesk();
+                }}
+              />
             </div>
           </div>
         </div>
@@ -597,7 +757,7 @@ function HeroNewsCard() {
   );
 }
 
-export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
+export function PointsHero({ onExplore, onPortfolio, analyzedTotal }: PointsHeroProps) {
   const [isDark, setIsDark] = useState(false);
   const [stats, setStats] = useState<{
     trackedProtocols: number;
@@ -640,11 +800,23 @@ export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
     };
   }, []);
 
+  /**
+   * ⚠️ No `$`. This counts POINTS, not dollars - the label right under it says
+   * "Points Analyzed" - and it was rendering "$12.4M+", which reads as a sum of
+   * money and sat beside "Active Users" and "Tracked Protocols" as though all
+   * three were the same kind of measurement. A currency symbol on a unit that
+   * is not currency is a wrong number even when the digits are right.
+   *
+   * `+` only once there is enough to round, because "0+" is nonsense, and a
+   * fresh counter legitimately starts at zero now that the fabricated seed is
+   * gone. `en-US` is pinned: `en-IN` groups digits differently from 10,000 up,
+   * and an unpinned locale is a hydration mismatch waiting to happen.
+   */
   const formatPointsAnalyzed = (num: number) => {
-    if (num >= 1e9) return `$${(num / 1e9).toFixed(2)}B+`;
-    if (num >= 1e6) return `$${(num / 1e6).toFixed(1)}M+`;
-    if (num >= 1e3) return `$${(num / 1e3).toFixed(1)}k+`;
-    return `$${num.toLocaleString("en-US")}`;
+    if (num >= 1e9) return `${(num / 1e9).toFixed(2)}B+`;
+    if (num >= 1e6) return `${(num / 1e6).toFixed(1)}M+`;
+    if (num >= 1e3) return `${(num / 1e3).toFixed(1)}k+`;
+    return num.toLocaleString("en-US");
   };
 
   const formatUsers = (num: number) => {
@@ -700,7 +872,6 @@ export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
             </span>
           </span>
 
-            <LogoMedallion className="w-16 shrink-0 sm:w-20" />
           </div>
 
           {/* Heading */}
@@ -747,7 +918,7 @@ export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
           <div className="grid grid-cols-2 gap-2.5 border-t border-hairline pt-4 sm:grid-cols-4 sm:gap-3">
             {[
               { v: String(stats.trackedProtocols), l: "Tracked Protocols", mono: false, dot: false },
-              { v: formatPointsAnalyzed(stats.pointsAnalyzed), l: "Points Analyzed", mono: true, dot: false },
+              { v: formatPointsAnalyzed(analyzedTotal ?? stats.pointsAnalyzed), l: "Points Analyzed", mono: true, dot: false },
               { v: formatUsers(stats.activeUsers), l: "Active Users", mono: true, dot: false },
               { v: "Real-time", l: "Data Updates", mono: false, dot: true },
             ].map((s, n) => (
