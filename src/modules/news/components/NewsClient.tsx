@@ -796,7 +796,7 @@ const NewsCard = memo(function NewsCard({
   const reduce = useReducedMotionSafe();
   const open = () => onOpen(item.id);
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
-  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null; meta?: BriefingMeta }>({ loading: false, text: null, err: null });
+  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null; meta?: BriefingMeta; /** Deltas still arriving; `loading` ends at the first word, this at the last. */ streaming?: boolean }>({ loading: false, text: null, err: null });
   const [heroFailed, setHeroFailed] = useState(false);
 
   const share = () => shareStory(item);
@@ -988,7 +988,7 @@ function NewsReader({
   /** True while `onNext` is fetching the next page - the reader says so. */
   loadingNext: boolean;
 }) {
-  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null; meta?: BriefingMeta }>({ loading: false, text: null, err: null });
+  const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null; meta?: BriefingMeta; /** Deltas still arriving; `loading` ends at the first word, this at the last. */ streaming?: boolean }>({ loading: false, text: null, err: null });
   const [progress, setProgress] = useState(0); // reading scroll progress (0-1)
   const bodyRef = useRef<HTMLDivElement>(null);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -1146,23 +1146,64 @@ function NewsReader({
     setDigest({ loading: false, text: null, err: null });
   }, [item.id]);
 
-  const generateDigest = useCallback(() => {
+  /**
+   * The briefing, streamed - same path the points band uses.
+   *
+   * ⚠️ One-shot generation is what made this feel broken. A full briefing is
+   * 650-900 words from the quality model: as one response that is a 20-40
+   * second silence ending in either a wall of text or a timeout, and the
+   * ceiling that makes it finish is the same ceiling that makes it slow. Four
+   * rounds were spent trading those against each other.
+   *
+   * Streamed, the first words land in about a second and the rest arrives as it
+   * is written, so "fast" and "complete" stop competing.
+   *
+   * `digestItemId` still guards every write: the reader can page to the next
+   * story mid-stream, and a delta arriving after that must not be appended to
+   * a different article's briefing.
+   */
+  const generateDigest = useCallback(async () => {
     if (!loggedIn) return;
     const forItemId = item.id;
     setDigest({ loading: true, text: null, err: null });
-    fetch("/api/ai/why-matters", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: item.title, summary: item.summary, mode: "briefing" }),
-    })
-      .then(async (res) => {
-        const j = await res.json().catch(() => ({}));
-        if (digestItemId.current !== forItemId) return;
-        if (!res.ok) setDigest({ loading: false, text: null, err: j.error || "Couldn't generate a summary." });
-        else setDigest({ loading: false, text: j.text, err: null, meta: j.meta });
-      })
-      .catch(() => {
-        if (digestItemId.current === forItemId) setDigest({ loading: false, text: null, err: "Network error." });
+    try {
+      const res = await fetch("/api/ai/why-matters", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: item.title, summary: item.summary, mode: "briefing", stream: true }),
       });
+
+      // An error is refused before the stream starts, so it is still JSON. The
+      // content type says which shape arrived - reading an error body as a
+      // stream would render the error object as the briefing.
+      if (!res.ok || !res.body || res.headers.get("content-type")?.includes("application/json")) {
+        const j = await res.json().catch(() => ({}));
+        if (digestItemId.current === forItemId) {
+          setDigest({ loading: false, text: null, err: j.error || "Couldn't generate a summary." });
+        }
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (digestItemId.current !== forItemId) return; // reader moved on
+        acc += decoder.decode(value, { stream: true });
+        setDigest({ loading: false, text: acc, err: null, streaming: true });
+      }
+      acc += decoder.decode();
+      if (digestItemId.current !== forItemId) return;
+      if (!acc.trim()) {
+        setDigest({ loading: false, text: null, err: "The briefing came back empty. Please try again." });
+        return;
+      }
+      setDigest({ loading: false, text: acc, err: null, streaming: false });
+    } catch {
+      if (digestItemId.current === forItemId) setDigest({ loading: false, text: null, err: "Network error." });
+    }
   }, [item.id, item.title, item.summary, loggedIn]);
 
   const share = () => shareStory(item);

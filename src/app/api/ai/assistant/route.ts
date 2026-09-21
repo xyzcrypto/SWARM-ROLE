@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { fail, handleError, getSessionUser } from "@/lib/api";
@@ -151,7 +152,9 @@ export async function POST(req: Request) {
     const [rows, live] = await Promise.all([
       prisma.post
         .findMany({
-          where: { published: true },
+          // A deleted article must leave the assistant's corpus too, or it
+          // keeps answering from something the site no longer publishes.
+          where: { published: true, ...NOT_TRASHED },
           orderBy: { createdAt: "desc" },
           take: 30,
           select: { title: true, slug: true, excerpt: true, content: true, premium: true },

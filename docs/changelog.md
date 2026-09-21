@@ -5,6 +5,70 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-21 (113) — "0 tracked" was a silent clamp; a deleted post was still everywhere
+
+### The band said "0 tracked" against a perfectly healthy feed
+
+⚠️ `/api/points/radar` called `getNewsPage({ pageSize: 200 })`. **`getNewsPage`
+clamps** - `Math.min(30, Math.max(6, opts.pageSize || 15))` - so 200 silently
+became **30**, with no error and nothing to indicate anything had been dropped.
+Worse, `getNewsPage` RANKS before paging, by general news impact, so those 30
+are the day's biggest crypto stories. Filtering them for perp DEX and airdrop
+news is a narrow filter over a sample selected for something else entirely, and
+on a day led by ETF and macro headlines it legitimately matches **nothing**.
+
+`findNewsByUrl` in the same file was written for the identical clamp and carries
+a warning about it. The radar walked into it anyway.
+
+Now reads `getClassifiedPool()` - the whole classified set, the same
+`unstable_cache` entry `/news` already pays for, so it costs nothing extra.
+
+The route also returns `diag: { pool, matched }`, and the card shows it. "Nothing
+matched out of 0 stories" is an outage; "out of 340" is a quiet hour. The last
+two bugs on this page were both "a number is wrong and nothing says why", and
+both were only solved once production could state its own case.
+
+The client also stopped rendering `live: false` as "ready": an upstream outage
+was reaching the reader as a quiet window, because the route said which it was
+and the client discarded it.
+
+### A deleted research post was still on six surfaces
+
+The report was "delete a post and it still shows premium". It did - and worse.
+
+⚠️ `src/app/research/page.tsx` ran `findMany({ where: { published: true } })`
+with **no trash filter**, beside a `count` that had one. The list rendered
+trashed posts while the total excluded them, so a deleted premium article kept
+its locked card on the index. Five more reads had the same hole: **search**, the
+**sitemap** (an active instruction to keep indexing a deleted page), **Related
+research**, the homepage **preview**, and the **assistant's grounding corpus**.
+
+**`post-soft-delete.test.ts` existed to prevent exactly this, and reported
+green.** It scanned a fixed **420-character window** after each call - and in
+`research/page.tsx` the correctly-guarded `count` sat inside the unguarded
+`findMany`'s window, so its `NOT_TRASHED` was read as the findMany's own. The
+window now matches real parentheses, and each site answers for itself. Tightening
+it is what surfaced the other five.
+
+### The briefing streams on the news side too
+
+`/news` was still on the one-shot path. Same change as the points band: streamed,
+quality model, `digestItemId` still guarding every write so paging to the next
+story mid-stream cannot append deltas to the wrong article.
+
+### Layout
+
+The hero stat row was four bare numbers on a 2x2 grid, floating over the
+gradient with nothing holding them together - at 393px the eye read four
+unrelated items rather than one summary. They are cards on a divided rail now,
+mono where they are numbers, landing in sequence.
+
+### Verification
+
+typecheck · **1235 tests** · lint (0 errors) · build green · 11/11 browser checks.
+
+---
+
 ## 2026-09-21 (112) — The band was stuck on invented data; the briefing streams
 
 ### "Stuck, and not perp DEX" was three pieces of hard-coded content

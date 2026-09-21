@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { ArrowRight, ArrowUpRight, BarChart2, Loader2, Plus, Radio, RefreshCw, X } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { refreshUrl } from "@/lib/refetch";
 import { wakeIsDue } from "@/lib/useLiveData";
 import { RobotIcon } from "@/components/RobotIcon";
@@ -40,6 +40,8 @@ function HeroNewsCard() {
   const [items, setItems] = useState<RadarItem[]>([]);
   const [state, setState] = useState<"loading" | "ready" | "down">("loading");
   const [fetchedAt, setFetchedAt] = useState<number | null>(null);
+  /** What the route saw upstream, so an empty band can say WHY it is empty. */
+  const [diag, setDiag] = useState<{ pool: number; matched: number } | null>(null);
   const [activeIdx, setActiveIdx] = useState(0);
   const [composing, setComposing] = useState(false);
   const [viewAll, setViewAll] = useState(false);
@@ -60,7 +62,18 @@ function HeroNewsCard() {
       const j = await res.json();
       if (res.ok && Array.isArray(j.items)) {
         setItems(j.items);
-        setState("ready");
+        /**
+         * ⚠️ `live` and `diag` decide the state, not just the array.
+         *
+         * This used to set "ready" on ANY well-formed response, so an upstream
+         * outage - which the route reports as `live: false` with an empty
+         * array - rendered identically to a genuinely quiet window. "Nothing
+         * happened" and "we could not find out" are different statements, and
+         * collapsing them is a lie in the reader's favour. The route already
+         * said which it was; this line was throwing that away.
+         */
+        setDiag(j.diag ?? null);
+        setState(j.live === false && !j.items.length ? "down" : "ready");
         const now = Date.now();
         fetchedAtRef.current = now;
         setFetchedAt(now);
@@ -343,6 +356,16 @@ function HeroNewsCard() {
               <p className="mt-1 text-[11px] text-content-subtle">
                 Snapshots, TGE dates and new programmes land here the moment they are reported.
               </p>
+              {/* ⚠️ Says what it looked at. "Nothing matched out of 0 stories"
+                  is an outage; "nothing matched out of 340" is a quiet hour.
+                  Those needed telling apart from the page itself, because the
+                  last two bugs here were both diagnosed only once production
+                  could state its own case. */}
+              {diag && (
+                <p className="mono mt-2 text-[10px] text-content-subtle">
+                  checked {diag.pool.toLocaleString("en-US")} stories
+                </p>
+              )}
             </>
           )}
         </div>
@@ -688,33 +711,43 @@ export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
             </button>
           </div>
 
-          {/* 4 Stats in a clean horizontal row */}
-          <div className="grid grid-cols-2 gap-4 pt-4 sm:grid-cols-4 sm:gap-6 border-t border-hairline">
-            <div>
-              <div className="font-display text-2xl font-bold tracking-tight text-content">
-                {stats.trackedProtocols}
+          {/* ── The stat row ──────────────────────────────────────────────
+              ⚠️ Rebuilt as CARDS on a divided rail rather than four bare
+              numbers on a 2x2 grid. At 393px the old version left a column of
+              loose figures floating over the hero's gradient with nothing
+              holding them together, and the eye read them as four unrelated
+              items rather than one summary. Each one now has a surface, the
+              numbers keep the mono ramp they should have had, and they land in
+              sequence so the row assembles rather than appearing. */}
+          <div className="grid grid-cols-2 gap-2.5 border-t border-hairline pt-5 sm:grid-cols-4 sm:gap-3">
+            {[
+              { v: String(stats.trackedProtocols), l: "Tracked Protocols", mono: false, dot: false },
+              { v: formatPointsAnalyzed(stats.pointsAnalyzed), l: "Points Analyzed", mono: true, dot: false },
+              { v: formatUsers(stats.activeUsers), l: "Active Users", mono: true, dot: false },
+              { v: "Real-time", l: "Data Updates", mono: false, dot: true },
+            ].map((s, n) => (
+              <div
+                key={s.l}
+                style={{ animationDelay: `${n * 70}ms` }}
+                className="animate-rise-in rounded-xl border border-hairline bg-base px-3 py-2.5 transition-colors hover:border-gold-500/25"
+              >
+                <div
+                  className={cn(
+                    "flex items-center gap-1.5 text-xl font-bold tracking-tight text-content sm:text-2xl",
+                    s.mono ? "mono" : "font-display"
+                  )}
+                >
+                  {s.dot && (
+                    <span className="relative flex h-2 w-2 shrink-0">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/70" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-mint-400" />
+                    </span>
+                  )}
+                  <span className="truncate">{s.v}</span>
+                </div>
+                <div className="mt-0.5 text-[11px] text-content-subtle">{s.l}</div>
               </div>
-              <div className="text-[11px] text-content-subtle">Tracked Protocols</div>
-            </div>
-            <div>
-              <div className="mono text-2xl font-bold tracking-tight text-content">
-                {formatPointsAnalyzed(stats.pointsAnalyzed)}
-              </div>
-              <div className="text-[11px] text-content-subtle">Points Analyzed</div>
-            </div>
-            <div>
-              <div className="font-display text-2xl font-bold tracking-tight text-content">
-                {formatUsers(stats.activeUsers)}
-              </div>
-              <div className="text-[11px] text-content-subtle">Active Users</div>
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5 font-display text-2xl font-bold tracking-tight text-content">
-                <span className="h-2 w-2 rounded-full bg-mint-400 animate-pulse" />
-                Real-time
-              </div>
-              <div className="text-[11px] text-content-subtle">Data Updates</div>
-            </div>
+            ))}
           </div>
         </div>
 

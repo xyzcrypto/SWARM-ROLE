@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { llamaOverview } from "@modules/markets/lib/llama";
 import { SITE_URL } from "@/lib/seo";
 import { prisma } from "@/lib/prisma";
@@ -51,7 +52,9 @@ async function getJson(url: string, revalidate: number): Promise<any | null> {
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const posts = await prisma.post
     .findMany({
-      where: { published: true },
+      // ⚠️ A trashed post in the sitemap is an active instruction to search
+      // engines to keep indexing a page that no longer exists.
+      where: { published: true, ...NOT_TRASHED },
       select: { slug: true, updatedAt: true },
       orderBy: { updatedAt: "desc" },
     })

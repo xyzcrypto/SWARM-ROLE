@@ -35,7 +35,22 @@ export default async function ResearchPage() {
   const [rawPosts, total] = await Promise.all([
     prisma.post
       .findMany({
-        where: { published: true },
+        /**
+         * ⚠️ `NOT_TRASHED` belongs on BOTH queries, and its absence here was a
+         * live bug: a deleted post stayed on this page.
+         *
+         * The `count` below already filtered it and this one did not, so the
+         * two disagreed - the list rendered trashed posts while the total
+         * excluded them. For a premium post that meant deleting it left a
+         * locked card sitting on the index, which reads as "delete did not
+         * work" and is indistinguishable from it.
+         *
+         * Every other read of this table - the detail page, the OG image, the
+         * API - already had the filter. This one query was the hole, which is
+         * exactly why it survived: the feature looked correct everywhere a test
+         * or a reviewer would think to look.
+         */
+        where: { published: true, ...NOT_TRASHED },
         orderBy: { createdAt: "desc" },
         select: POST_CARD_SELECT,
         take: PAGE_SIZE,

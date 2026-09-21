@@ -117,3 +117,58 @@ describe("the briefing streams, which is what makes it fast and complete", () =>
     expect(routing).toMatch(/task === "briefing"\) return "quality"/);
   });
 });
+
+describe("the radar reads the whole pool, not a page of it", () => {
+  const route = strip(readFileSync("src/app/api/points/radar/route.ts", "utf8"));
+  const fetchLib = strip(readFileSync("src/modules/news/lib/news-fetch.ts", "utf8"));
+
+  it("does not go through getNewsPage, whose pageSize is clamped", () => {
+    // ⚠️ THE "0 tracked" BUG. The route asked for `{ pageSize: 200 }`, and
+    // `getNewsPage` clamps with `Math.min(30, ...)` - so it silently received
+    // 30, RANKED by general news impact. Filtering the day's 30 biggest crypto
+    // stories for perp DEX and airdrop news legitimately matches nothing on a
+    // day led by ETF and macro headlines. No error; just an empty radar.
+    expect(route).not.toMatch(/getNewsPage\(/);
+    expect(route).toMatch(/getClassifiedPool\(\)/);
+  });
+
+  it("the clamp that caused it is still there, so this stays necessary", () => {
+    // If the clamp is ever lifted, this test should be revisited rather than
+    // silently continuing to assert a workaround for a problem that is gone.
+    expect(fetchLib).toMatch(/Math\.min\(30, Math\.max\(6, opts\.pageSize \|\| 15\)\)/);
+  });
+
+  it("reports what it looked at, so an empty radar can say why", () => {
+    // "Nothing matched out of 0" is an outage; "out of 340" is a quiet hour.
+    expect(route).toMatch(/diag: \{ pool: pool\.items\.length, matched: items\.length \}/);
+  });
+});
+
+describe("a deleted research post leaves every surface", () => {
+  const files = [
+    "src/app/research/page.tsx",
+    "src/app/page.tsx",
+    "src/app/sitemap.ts",
+    "src/app/api/search/posts/route.ts",
+    "src/modules/research/components/RelatedResearch.tsx",
+    "src/modules/research/components/ResearchPreview.tsx",
+    "src/app/api/ai/assistant/route.ts",
+  ];
+
+  it("guards the index, the homepage, search, the sitemap, related and the AI corpus", () => {
+    // ⚠️ Every one of these read `Post` without the trash filter, so deleting a
+    // post left it on the research index (with its premium lock still on), in
+    // search, in the sitemap - an active instruction to keep indexing a page
+    // that no longer exists - in Related, in the homepage preview, and in the
+    // assistant's grounding corpus.
+    //
+    // `post-soft-delete.test.ts` existed to prevent exactly this and reported
+    // green, because it scanned a FIXED 420-character window after each call:
+    // in `research/page.tsx` a correctly-guarded `count` sat inside the
+    // unguarded `findMany`'s window, so its `NOT_TRASHED` was read as the
+    // findMany's own. That window now matches real parentheses.
+    for (const f of files) {
+      expect(readFileSync(f, "utf8"), `${f} must filter the trash`).toMatch(/NOT_TRASHED|LIVE_POST/);
+    }
+  });
+});

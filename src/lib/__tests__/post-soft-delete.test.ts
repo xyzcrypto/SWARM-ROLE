@@ -33,10 +33,37 @@ const strip = (s: string) =>
   s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 
 /** Read sites, with enough following text to see the `where` clause. */
+/**
+ * The text of ONE call - its own argument list and nothing else.
+ *
+ * ⚠️ This used to be `src.slice(index, index + 420)`, a fixed window, and that
+ * window LEAKED. In `src/app/research/page.tsx` a `findMany` and a `count` sit
+ * in the same `Promise.all`, a few lines apart. The `count` was correctly
+ * guarded; the `findMany` was not - and because the guarded one fell inside the
+ * unguarded one's 420 characters, the scan saw `NOT_TRASHED` and passed.
+ *
+ * So a deleted post stayed on the research index, showing its premium lock,
+ * while the test whose entire job was to prevent that reported green. Matching
+ * the real parentheses is what makes each site answer for itself.
+ */
 function readSites(src: string): string[] {
   const out: string[] = [];
-  for (const m of src.matchAll(/prisma\.post\.(findMany|findUnique|findFirst|count)\b/g)) {
-    out.push(src.slice(m.index!, m.index! + 420));
+  for (const m of src.matchAll(/prisma\.post\s*\.\s*(findMany|findUnique|findFirst|count)\s*\(/g)) {
+    const open = m.index! + m[0].length - 1;
+    let depth = 0;
+    let end = open;
+    for (let i = open; i < src.length; i++) {
+      const c = src[i];
+      if (c === "(") depth++;
+      else if (c === ")") {
+        depth--;
+        if (depth === 0) {
+          end = i + 1;
+          break;
+        }
+      }
+    }
+    out.push(src.slice(m.index!, end));
   }
   return out;
 }
