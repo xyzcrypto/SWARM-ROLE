@@ -5,6 +5,77 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-21 (112) — The band was stuck on invented data; the briefing streams
+
+### "Stuck, and not perp DEX" was three pieces of hard-coded content
+
+Nothing errored. The fetch worked. The card was showing made-up data.
+
+⚠️ **A fabricated placeholder story.** When the feed was empty the card rendered
+a fixed item titled *"Crypto ETF flows: Ether loses $141M as Solana gains $61M"* —
+general crypto news on a card that promises perp DEX and airdrops — carrying
+`category: "Airdrops"` and `venues: ["Hyperliquid"]` so it would pass for one,
+and a **fixed `publishedAt`**, so it always read the same date. Fed through the
+real filter that story is correctly rejected; it could only ever appear by being
+hard-coded. Gone, replaced by honest loading / empty / unreachable states.
+
+⚠️ **A hard-coded timestamp.** `fetchedAt ? … : "Sep 19, 9:20 AM"` — a card that
+had never successfully fetched anything still claimed to have checked at a
+specific time. That is the most misleading thing a live feed can do.
+
+⚠️ **No poll.** It fetched on mount and on wake, nothing else. A tab left open —
+which is exactly what someone watching a live feed does — never updated while it
+stayed focused. Now 90s against the route's 120s window, shorter and never equal
+(cost-check, trap 1), skipped entirely while the tab is hidden. The carousel also
+advances on its own, which is what makes the card *look* live between polls.
+
+Also: the dots were hard-coded `[0,1,2,3,4]`, so two stories drew five dots and
+three of them did nothing. One dot per story now.
+
+### The briefing streams — "fast" and "complete" were never two problems
+
+Four previous rounds moved along the same trade-off. One-shot generation forces
+it: a token ceiling high enough to finish is a wait long enough to feel broken,
+and one low enough to be quick is an answer that stops mid-section. Raising it,
+lowering it, changing the model tier and adding a continuation pass were all
+moves along that curve.
+
+**Streaming removes the curve.** First words in about a second, a generous
+ceiling because the wait no longer scales with it, and no large idle response for
+the platform to cut at `maxDuration` — bytes flow the whole time.
+
+- `streamBriefing()` in `ai.ts`, routed on the **`briefing`** task so it takes the
+  quality model for everyone. A briefing answered by the fast model writes two
+  sentences and stops; that bug was fixed once and a new code path must not
+  reintroduce it.
+- `stream: true` on `/api/ai/why-matters` — **opt-in**, so every existing caller
+  keeps the JSON contract and its `meta` (including `truncated`).
+- Plain text, not SSE, matching `/api/ai/assistant`, so there is one streaming
+  shape on this site rather than two.
+- A mid-stream failure **says so** rather than closing quietly — closing quietly
+  is indistinguishable from a briefing that finished early, which is the exact
+  ambiguity that made the one-shot version so hard to diagnose.
+- The panel shows a caret while text is arriving, so "still writing" and
+  "finished" are visibly different states.
+
+### A test that was guarding dead code
+
+⚠️ `markets-poll-alignment.test.ts` read `RADAR_POLL_MS` from **`LiveWire.tsx`**,
+which #352 stopped rendering. The constant is still exported there, so the check
+kept passing — while the poll that actually runs was unguarded. It now reads
+`PointsHero.tsx`. This is the "a check passes while verifying nothing" failure
+this repo already documents, arriving through a file move rather than a shim.
+
+### Verification
+
+typecheck · **1231 tests** · lint (0 errors) · build green · 11/11 browser checks.
+
+⚠️ Honest limit: Playwright's `route.fulfill` delivers a body in one piece, so
+the probe verifies the stream is **consumed and complete**, not that words appear
+progressively on screen. The reader path is covered by unit test instead.
+
+---
+
 ## 2026-09-20 (111) — Six additions on top of the Points redesign
 
 Built on Deepak's `/points` redesign (#352), on the preview branch.

@@ -55,7 +55,13 @@ const LLAMA = "src/modules/markets/lib/llama.ts";
 // A fifth distinct place, and the route it serves said so in advance.
 const POINTS_CLIENT = "src/modules/points/components/PointsClient.tsx";
 // A sixth distinct place. The rule holds: any route a client polls belongs here.
-const LIVE_WIRE = "src/modules/points/components/LiveWire.tsx";
+// ⚠️ `PointsHero`, not `LiveWire`. The points redesign (#352) stopped rendering
+// `LiveWire` entirely and rebuilt the band inside `PointsHero` - but this file
+// kept reading `LiveWire`, which still EXPORTS the constant. So the check went
+// on passing while guarding a number in a component nobody mounts, and the poll
+// that actually runs was unguarded. That is the "a check passes while verifying
+// nothing" failure this repo has hit before, arriving through a file move.
+const POINTS_BAND = "src/modules/points/components/PointsHero.tsx";
 
 type Target = {
   /** Human label used in failure messages. */
@@ -240,13 +246,13 @@ function pointsCompsTarget(): Target {
  * whether every poll regenerates the route.
  */
 function pointsRadarTarget(): Target {
-  const m = read(LIVE_WIRE).match(/^export const RADAR_POLL_MS = ([\d_]+);/m);
-  if (!m) throw new Error(`could not parse RADAR_POLL_MS out of ${LIVE_WIRE}`);
+  const m = read(POINTS_BAND).match(/^export const RADAR_POLL_MS = ([\d_]+);/m);
+  if (!m) throw new Error(`could not parse RADAR_POLL_MS out of ${POINTS_BAND}`);
   return {
     label: "points/radar",
     routeFile: "src/app/api/points/radar/route.ts",
     pollMs: Number(m[1]!.replace(/_/g, "")),
-    pollSource: LIVE_WIRE,
+    pollSource: POINTS_BAND,
   };
 }
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
-import { aiEnabled, completeTextWithMeta, aiErrorMessage } from "@/lib/ai";
+import { aiEnabled, completeTextWithMeta, streamBriefing, aiErrorMessage } from "@/lib/ai";
 import { aiPlanFor, AiCapacityError } from "@/lib/ai/gateway";
 import { checkDailyLimit, dailyLimitMessage } from "@/lib/ai/limits";
 import { buildWhyMattersPrompt, buildNewsDigestPrompt, buildNewsBriefingPrompt, buildHinglishPrompt, buildPointsRoundupPrompt } from "@/lib/ai-summary";
@@ -34,6 +34,13 @@ const bodySchema = z.object({
   mode: z.enum(["why", "digest", "briefing", "hinglish", "roundup"]).optional().default("why"),
   // For mode "hinglish": the already-generated English briefing to translate.
   text: z.string().trim().max(6000).optional().default(""),
+  /**
+   * Stream the answer back as plain text instead of one JSON blob.
+   *
+   * ⚠️ Opt-in, so every existing caller keeps the JSON contract (and its
+   * `meta`) unchanged. Only the surfaces that render progressively ask for it.
+   */
+  stream: z.boolean().optional().default(false),
 });
 
 // POST /api/ai/why-matters - an AI take on a news story: a short "why this
@@ -63,6 +70,61 @@ export async function POST(req: Request) {
       : mode === "briefing" ? buildNewsBriefingPrompt(title, summary)
       : mode === "digest" ? buildNewsDigestPrompt(title, summary)
       : buildWhyMattersPrompt(title, summary);
+    /**
+     * ── The streamed path ────────────────────────────────────────────────
+     *
+     * ⚠️ This is the fix for "the briefing is slow AND incomplete", which were
+     * never two problems. One-shot generation forces a trade: a ceiling high
+     * enough to finish is a wait long enough to feel broken, and a ceiling low
+     * enough to be quick is an answer that stops mid-section. Four rounds were
+     * spent moving along that curve.
+     *
+     * Streaming removes the trade. First words in about a second, a generous
+     * ceiling because the wait no longer scales with it, and no large idle
+     * response for the platform to cut at `maxDuration` - bytes are flowing the
+     * whole time.
+     *
+     * Plain text, not SSE: the client appends deltas straight into the panel,
+     * exactly as `/api/ai/assistant` already does, so there is one streaming
+     * shape on this site rather than two.
+     */
+    if (parsed.data.stream) {
+      const stream = streamBriefing({
+        prompt,
+        maxTokens: mode === "roundup" ? 1600 : mode === "briefing" ? 1800 : 600,
+        ctx: { userId: me.id, plan },
+      });
+      if (!stream) return fail("XYZ AI is not configured yet.", 503);
+
+      const encoder = new TextEncoder();
+      const readable = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          try {
+            for await (const delta of stream) {
+              if (delta) controller.enqueue(encoder.encode(delta));
+            }
+          } catch (err) {
+            // ⚠️ A mid-stream failure must SAY so. Closing the stream quietly
+            // is indistinguishable from a finished briefing that happens to
+            // end early - which is precisely the ambiguity that made the
+            // earlier versions so hard to diagnose.
+            console.error("[ai:why-matters] stream error", err);
+            controller.enqueue(encoder.encode(`\n\n_${aiErrorMessage(err)}_`));
+          } finally {
+            controller.close();
+          }
+        },
+      });
+
+      return new Response(readable, {
+        headers: {
+          "Content-Type": "text/plain; charset=utf-8",
+          "Cache-Control": "no-store",
+          "X-Accel-Buffering": "no", // proxies must not buffer, or it is not a stream
+        },
+      });
+    }
+
     const first = await completeTextWithMeta({
       // A briefing is its own task so it can be ROUTED as one - see routing.ts.
       // Sharing `digest` sent a 900-word explainer to the fast model.
