@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Share2, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
  * Paint a branded "building your card" screen into a just-opened blank tab.
@@ -87,7 +88,7 @@ export type SharePayload = {
  * card render rows that were written months ago. Renaming a field here breaks
  * every card already shared on Twitter, silently and permanently.
  */
-export function ShareResultButton({ payload }: { payload: () => SharePayload }) {
+export function ShareResultButton({ payload, className }: { payload: () => SharePayload; className?: string }) {
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -139,7 +140,7 @@ export function ShareResultButton({ payload }: { payload: () => SharePayload }) 
   }
 
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className={cn("flex flex-col items-end gap-1.5", className)}>
       <button
         type="button"
         onClick={share}

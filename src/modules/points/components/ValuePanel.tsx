@@ -4,7 +4,6 @@ import { Unlink, Link2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CalcField, ResultTile } from "@modules/tools/components/CalcField";
 import { SHARE_NAME_MAX, shareName, usdCompact, type CompVenue, type ValueResult } from "@modules/points/lib/points";
-import { ShareResultButton } from "./ShareResultButton";
 
 export function ValuePanel({
   form,
@@ -208,32 +207,7 @@ export function ValuePanel({
         />
       </div>
 
-      <div className="mt-5">
-        <ShareResultButton
-          payload={() => ({
-            // The name the reader gave it, else the programme - "Variational",
-            // not whichever venue the comparables happened to anchor on.
-            //
-            // ⚠️ Trimmed to SHARE_NAME_MAX because the share API's zod schema
-            // caps `platform` at 40 characters and REJECTS anything longer. A
-            // long name would have failed with "Couldn't create the share
-            // link" and no indication that the name was the reason.
-            platform: shareName(form.label, programName, target?.name),
-            // ⚠️ This was hard-coded `""`, which is why no share card has ever
-            // carried a venue logo. The card builds its image from
-            // `favicon(domain)` and renders nothing when the domain is blank.
-            //
-            // Derived from the registry's own `links.website` rather than a
-            // lookup table keyed by name, so a programme added tomorrow gets its
-            // logo with no second place to remember to edit.
-            domain: shareDomain ?? "",
-            sharePct: value.sharePct,
-            tokens: value.tokens,
-            usd: value.grossUsd,
-            fdv: Number(form.fdv) || 0,
-          })}
-        />
-      </div>
+
     </Wrapper>
   );
 }

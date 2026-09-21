@@ -116,7 +116,6 @@ describe("purgeExpiredVerificationCodes", () => {
   });
 });
 
-
 describe("there is exactly one OTP implementation", () => {
   // `src/modules/auth/lib/otp.ts` sat beside the live `src/core/email/otp.ts`
   // as an unreferenced copy, and the two had DIVERGED: the live one had the

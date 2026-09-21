@@ -25,7 +25,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     prisma.user.groupBy({ by: ["provider", "membership"], _count: { _all: true } }),
     prisma.user.count({ where: { createdAt: { gte: new Date(Date.now() - 7 * 864e5) } } }),
     prisma.subscriber.count(),
-    prisma.post.count({ where: NOT_TRASHED }),
+    prisma.post.count({ where: NOT_TRASHED as any }),
     prisma.pageView.count().catch(() => 0),
     prisma.pageView.count({ where: { createdAt: { gte: startOfToday } } }).catch(() => 0),
     prisma.post.aggregate({ _sum: { views: true } }).catch(() => ({ _sum: { views: 0 } })),
