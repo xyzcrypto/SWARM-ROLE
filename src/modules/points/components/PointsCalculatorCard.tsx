@@ -28,6 +28,8 @@ interface PointsCalculatorCardProps {
   anchor?: "comps" | "program" | "none";
   anchorFdv?: number;
   onToggleLink?: (linked: boolean) => void;
+  /** The new site-wide "points analyzed" total, after this calculation counted. */
+  onAnalyzed?: (total: number) => void;
 }
 
 export const ALLOC_PILLS = ["10", "20", "30", "50", "100"];
@@ -52,6 +54,7 @@ export function PointsCalculatorCard({
   anchor = "none",
   anchorFdv = 0,
   onToggleLink,
+  onAnalyzed,
 }: PointsCalculatorCardProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const logo = platformLogo({ links: program.links, logo: program.logo ?? undefined });
@@ -109,15 +112,26 @@ export function PointsCalculatorCard({
     if (pts > 0 && Math.abs(pts - lastReportedPoints.current) >= 1000) {
       const timer = setTimeout(() => {
         lastReportedPoints.current = pts;
+        // ⚠️ The response carries the NEW total, and it is handed upward so
+        // the hero's counter moves as you calculate. Without this the number
+        // was fetched once on mount and then sat there - so a reader could
+        // watch their own calculation change nothing, which is precisely what
+        // made it look invented.
         fetch("/api/points/stats", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ points: pts }),
-        }).catch(() => {});
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((j) => {
+            const total = Number(j?.pointsAnalyzed);
+            if (Number.isFinite(total) && total > 0) onAnalyzed?.(total);
+          })
+          .catch(() => {});
       }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [yourPoints]);
+  }, [yourPoints, onAnalyzed]);
 
   return (
     <div className="flex h-full flex-col justify-between rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
@@ -146,8 +160,15 @@ export function PointsCalculatorCard({
               <ChevronDown className="h-3.5 w-3.5 text-content-subtle" />
             </button>
 
+            {/* ⚠️ `left-0` on mobile, `right-0` only from `sm`. Anchored
+                `right-0` at every width, this 176px panel hung off the LEFT of
+                its trigger - and on a phone the trigger starts near the card's
+                left edge, so the list was clipped by the viewport with the
+                programme names cut in half ("dex", "seX", "riational").
+                Picking a programme is the first thing anyone does on this
+                card, and it could not be done. */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-1 z-30 w-44 rounded-xl border border-hairline bg-surface-2 p-1 shadow-2xl backdrop-blur-xl">
+              <div className="absolute left-0 right-auto mt-1 z-30 w-44 rounded-xl border border-hairline bg-surface-2 p-1 shadow-elevate sm:left-auto sm:right-0">
                 {programs.map((p) => (
                   <button
                     key={p.id}

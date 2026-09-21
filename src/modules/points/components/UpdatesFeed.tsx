@@ -293,14 +293,32 @@ function UpdateCard({
   );
 }
 
-export function Composer({ onPosted }: { onPosted: () => void }) {
-  const [title, setTitle] = useState("");
-  const [body, setBody] = useState("");
-  const [kind, setKind] = useState<UpdateKind>("live");
-  const [program, setProgram] = useState("");
-  const [url, setUrl] = useState("");
-  const [pinned, setPinned] = useState(false);
-  const [image, setImage] = useState("");
+/**
+ * The desk composer, for writing a post and for editing one.
+ *
+ * ⚠️ `edit` makes this the SAME form in both directions rather than a second
+ * one. An edit screen that is a copy of the create screen is two things to keep
+ * in step, and the first capability added to one and not the other is a bug
+ * nobody sees until someone uses both.
+ */
+export function Composer({
+  onPosted,
+  edit,
+}: {
+  onPosted: () => void;
+  /** When present, the form PATCHes this post instead of creating a new one. */
+  edit?: PointsUpdateDto;
+}) {
+  // Seeded once, from the post being edited. Never re-derived from `edit`
+  // afterwards: the form owns its own fields once mounted, and re-feeding them
+  // would fight the author's typing.
+  const [title, setTitle] = useState(edit?.title ?? "");
+  const [body, setBody] = useState(edit?.body ?? "");
+  const [kind, setKind] = useState<UpdateKind>((edit?.kind as UpdateKind) ?? "live");
+  const [program, setProgram] = useState(edit?.program ?? "");
+  const [url, setUrl] = useState(edit?.url ?? "");
+  const [pinned, setPinned] = useState(Boolean(edit?.pinned));
+  const [image, setImage] = useState(edit?.image ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -324,8 +342,8 @@ export function Composer({ onPosted }: { onPosted: () => void }) {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/points/updates", {
-        method: "POST",
+      const res = await fetch(edit ? `/api/points/updates/${edit.id}` : "/api/points/updates", {
+        method: edit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
@@ -345,12 +363,16 @@ export function Composer({ onPosted }: { onPosted: () => void }) {
         setError(j?.error ?? "Could not post that.");
         return;
       }
-      setTitle("");
-      setBody("");
-      setProgram("");
-      setUrl("");
-      setPinned(false);
-      setImage("");
+      // Only a CREATE clears the form. Blanking it after an edit would make a
+      // successful save look like the post had been wiped.
+      if (!edit) {
+        setTitle("");
+        setBody("");
+        setProgram("");
+        setUrl("");
+        setPinned(false);
+        setImage("");
+      }
       onPosted();
     } catch {
       setError("Could not post that.");
@@ -433,7 +455,7 @@ export function Composer({ onPosted }: { onPosted: () => void }) {
           className="btn-gold inline-flex items-center gap-1.5 text-xs disabled:opacity-50"
         >
           {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-          {busy ? "Posting…" : "Post update"}
+          {busy ? (edit ? "Saving…" : "Posting…") : edit ? "Save changes" : "Post update"}
         </button>
       </div>
       {overBy > 0 && (

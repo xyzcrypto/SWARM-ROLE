@@ -172,3 +172,79 @@ describe("a deleted research post leaves every surface", () => {
     }
   });
 });
+
+describe("the desk lane reaches the card", () => {
+  const hero = strip(readFileSync("src/modules/points/components/PointsHero.tsx", "utf8"));
+
+  it("fetches the desk lane at all", () => {
+    // ⚠️ THE "+ post karta hu lekin card pe show nahi karta" BUG. The composer
+    // writes to `PointsUpdate` via `/api/points/updates`; this card only ever
+    // fetched `/api/points/radar`, the PRESS lane. A post saved correctly,
+    // broadcast correctly, and had nowhere on the page to appear - the
+    // redesign had dropped `UpdatesFeed`, the only thing that rendered it.
+    expect(hero).toMatch(/\/api\/points\/updates/);
+    expect(hero).toMatch(/useRealtime\(/);
+    expect(hero).toMatch(/CH_POINTS/);
+  });
+
+  it("merges both lanes and lets a pinned desk post lead", () => {
+    expect(hero).toMatch(/lane: "desk"/);
+    expect(hero).toMatch(/a\.pinned \? -1 : 1/);
+  });
+
+  it("offers edit and delete on a desk row", () => {
+    // "post karne ke baad edit or delete kar saku" - and on the row, because
+    // the moment you notice a typo is while looking at the post.
+    expect(hero).toMatch(/setEditing\(/);
+    expect(hero).toMatch(/method: "DELETE"/);
+    expect(hero).toMatch(/edit=\{editing \?\? undefined\}/);
+  });
+
+  it("the edit form is the SAME composer, not a second one", () => {
+    const feed = strip(readFileSync("src/modules/points/components/UpdatesFeed.tsx", "utf8"));
+    expect(feed).toMatch(/edit\?: PointsUpdateDto/);
+    expect(feed).toMatch(/method: edit \? "PATCH" : "POST"/);
+  });
+
+  it("an edit can change the cover image", () => {
+    // ⚠️ PATCH's schema had no `image`, and zod STRIPS unknown keys rather
+    // than refusing them - so removing a cover appeared to work and silently
+    // did nothing.
+    const route = strip(readFileSync("src/app/api/points/updates/[id]/route.ts", "utf8"));
+    expect(route).toMatch(/image: z\.string\(\)/);
+    expect(route).toMatch(/data\.image = safeUrl\(/);
+  });
+});
+
+describe("the points-analyzed counter is a measurement, not a decoration", () => {
+  const route = strip(readFileSync("src/app/api/points/stats/route.ts", "utf8"));
+  const hero = strip(readFileSync("src/modules/points/components/PointsHero.tsx", "utf8"));
+
+  it("is not seeded with a fabricated total", () => {
+    // ⚠️ It started at 12_400_000 AND the GET wrote that seed into Redis, so an
+    // invented number became the stored truth - displayed as "$12.4M+" beside
+    // two genuine statistics.
+    expect(route).not.toMatch(/12_400_000|12400000/);
+    expect(route).toMatch(/let inMemoryPointsAnalyzed = 0;/);
+  });
+
+  it("does not seed the store on a read", () => {
+    expect(route).not.toMatch(/redis\.set\(ANALYZED_KEY/);
+  });
+
+  it("uses a fresh key, because the old one already holds the seed", () => {
+    expect(route).toMatch(/const ANALYZED_KEY = "points:analyzed:v2"/);
+  });
+
+  it("moves as the reader calculates", () => {
+    const calc = strip(readFileSync("src/modules/points/components/PointsCalculatorCard.tsx", "utf8"));
+    expect(calc).toMatch(/onAnalyzed\?\.\(total\)/);
+    expect(hero).toMatch(/analyzedTotal \?\? stats\.pointsAnalyzed/);
+  });
+
+  it("does not label a count of points as currency", () => {
+    // "$12.4M+ Points Analyzed" reads as a sum of money. Points are not money.
+    expect(hero).not.toMatch(/\$\$\{\(num \/ 1e9\)/);
+    expect(hero).toMatch(/return `\$\{\(num \/ 1e6\)\.toFixed\(1\)\}M\+`/);
+  });
+});
