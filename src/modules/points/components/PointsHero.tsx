@@ -14,6 +14,19 @@ import { AirdropBriefModal } from "./AirdropBriefModal";
 
 const RADAR_WINDOW_MS = 120_000;
 
+/**
+ * 90s against the route's 120s edge window - shorter, never equal, so jitter
+ * cannot decide whether a poll regenerates the route (cost-check, trap 1).
+ * Registered in `TARGETS` in `markets-poll-alignment.test.ts`.
+ */
+export const RADAR_POLL_MS = 90_000;
+
+/** How long each story holds the card before the next one slides in. */
+const STORY_ROTATE_MS = 7_000;
+
+/** Stories in the rotation. The rest live behind "View All Updates". */
+const MAX_STORIES = 5;
+
 interface PointsHeroProps {
   onExplore?: () => void;
   onPortfolio?: () => void;
@@ -33,10 +46,12 @@ function HeroNewsCard() {
   const [briefOpen, setBriefOpen] = useState(false);
   const [brief, setBrief] = useState<{
     loading: boolean;
+    /** Still receiving deltas. Distinct from `loading`, which ends at the first word. */
+    streaming: boolean;
     text: string | null;
     err: string | null;
     at: number | null;
-  }>({ loading: false, text: null, err: null, at: null });
+  }>({ loading: false, streaming: false, text: null, err: null, at: null });
   const fetchedAtRef = useRef(0);
 
   const load = useCallback(async (force = false) => {
@@ -62,6 +77,30 @@ function HeroNewsCard() {
     void load();
   }, [load]);
 
+  /**
+   * ⚠️ THE POLL. Its absence is the other half of "stuck".
+   *
+   * This card fetched once on mount and then only on wake. A reader who left the
+   * tab open - which is exactly what someone watching a live feed does - saw the
+   * same five stories for as long as the tab stayed focused, however much moved
+   * upstream. Nothing was broken; nothing was asking.
+   *
+   * 90s against the route's 120s edge window, and deliberately NOT equal: equal
+   * lets jitter decide whether a poll regenerates the route (cost-check, trap 1).
+   * It is the same margin `/api/news` has run since #236, and it costs no
+   * upstream traffic - the radar re-reads a cache `/news` already pays for.
+   *
+   * `document.hidden` short-circuits, so a background tab polls nothing.
+   */
+  useEffect(() => {
+    const tick = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      void load();
+    };
+    const id = setInterval(tick, RADAR_POLL_MS);
+    return () => clearInterval(id);
+  }, [load]);
+
   // Wake refetch when tab comes back into focus
   useEffect(() => {
     const onWake = () => {
@@ -76,6 +115,21 @@ function HeroNewsCard() {
     };
   }, [load]);
 
+  /**
+   * The carousel advances on its own, which is what makes the card LOOK live
+   * between polls. Paused while the briefing or a modal is open, and while
+   * there is nothing to rotate.
+   */
+  const carouselLength = Math.min(items.length, MAX_STORIES);
+  useEffect(() => {
+    if (carouselLength < 2) return;
+    const id = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      setActiveIdx((i) => (i + 1) % carouselLength);
+    }, STORY_ROTATE_MS);
+    return () => clearInterval(id);
+  }, [carouselLength]);
+
   const generateBrief = useCallback(async () => {
     const top = items.slice(0, 8);
     if (!top.length || brief.loading) return;
@@ -84,7 +138,7 @@ function HeroNewsCard() {
     // a button that appears to do nothing, which is how the earlier version got
     // reported as broken when it was merely slow.
     setBriefOpen(true);
-    setBrief({ loading: true, text: null, err: null, at: null });
+    setBrief({ loading: true, streaming: true, text: null, err: null, at: null });
     try {
       const res = await fetch("/api/ai/why-matters", {
         method: "POST",
@@ -93,38 +147,70 @@ function HeroNewsCard() {
           title: "Airdrop & perp DEX roundup",
           summary: top.map((i, n) => `${n + 1}. [${i.source}] ${i.title}${i.summary ? ` — ${i.summary}` : ""}`).join("\n").slice(0, 3800),
           mode: "roundup",
+          // ⚠️ Streamed. See the route - "slow" and "incomplete" were one
+          // problem, and this is the change that separates them.
+          stream: true,
         }),
       });
-      const j = await res.json();
-      if (!res.ok) throw new Error(j?.error || "Could not generate the briefing.");
-      setBrief({ loading: false, text: j?.text ?? null, err: null, at: Date.now() });
+
+      // An error still comes back as JSON (the route fails before it streams),
+      // so the content type is what says which shape arrived. Guessing from the
+      // status alone would try to read an error body as a stream.
+      if (!res.ok || !res.body || res.headers.get("content-type")?.includes("application/json")) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j?.error || "Could not generate the briefing.");
+      }
+
+      /**
+       * Append deltas as they arrive. The panel is readable from the first
+       * chunk, which is the whole point - a reader is reading while the rest is
+       * still being written, instead of watching a spinner for half a minute.
+       *
+       * `loading` flips false on the FIRST chunk, not at the end: the spinner's
+       * job is over once there are words on screen.
+       */
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        setBrief({ loading: false, streaming: true, text: acc, err: null, at: Date.now() });
+      }
+      acc += decoder.decode();
+
+      // An empty stream is a failure that would otherwise render as a blank
+      // panel with no explanation.
+      if (!acc.trim()) throw new Error("The briefing came back empty. Please try again.");
+      setBrief({ loading: false, streaming: false, text: acc, err: null, at: Date.now() });
     } catch (e) {
-      setBrief({ loading: false, text: null, err: (e as Error).message, at: null });
+      setBrief({ loading: false, streaming: false, text: null, err: (e as Error).message, at: null });
     }
   }, [items, brief.loading]);
 
-  // Carousel: up to 5 items; fallback placeholder when feed hasn't loaded yet
-  const fallback: RadarItem = useMemo(() => ({
-    id: "fallback-0",
-    title: "Crypto ETF flows: Ether loses $141M as Solana gains $61M",
-    summary: "U.S. spot crypto exchange-traded products recorded about $70.7 million in combined net outflows during the Sep. 14–18 trading week, as withdrawals from Ether funds outweighed demand for Bitcoin, Solana, and Hyperliquid products. According to data from Farside",
-    url: "",
-    source: "crypto.news",
-    sourceIcon: null,
-    publishedAt: 1789820000000,
-    category: "Airdrops",
-    image: "/images/crypto-banner.png",
-    venues: ["Hyperliquid"],
-  }), []);
-
-  const carousel = useMemo(() => {
-    const base = items.length > 0 ? items.slice(0, 5) : [fallback];
-    return base;
-  }, [items, fallback]);
-
-  const active = carousel[activeIdx % carousel.length] ?? fallback;
+  /**
+   * ⚠️ There is no placeholder story any more, and removing it was the fix.
+   *
+   * This card used to fall back to a HARD-CODED item titled "Crypto ETF flows:
+   * Ether loses $141M as Solana gains $61M" whenever the feed was empty. Three
+   * things were wrong with it at once:
+   *
+   *  - **It was not a perp DEX or airdrop story.** ETF flows are general crypto
+   *    news, on a card that promises neither.
+   *  - **It carried false metadata to get past the filter**: `category:
+   *    "Airdrops"` and `venues: ["Hyperliquid"]` on a story about neither.
+   *  - **It was frozen.** `publishedAt` was a fixed epoch, so it always read the
+   *    same date no matter when you looked.
+   *
+   * That is the whole "stuck, and not perp DEX" report: a reader who arrived
+   * before the fetch resolved, or whenever it failed, met an invented story that
+   * never changed. An empty feed now says it is empty.
+   */
+  const carousel = useMemo(() => items.slice(0, 5), [items]);
+  const active = carousel[activeIdx % Math.max(carousel.length, 1)] ?? null;
   const rest = items.slice(1);
-  const isLive = state !== "down";
+  const isLive = state === "ready";
 
   return (
     <div className="overflow-hidden rounded-2xl border border-hairline bg-surface-2 shadow-elevate">
@@ -139,9 +225,15 @@ function HeroNewsCard() {
           <span className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-mint-400">
             LATEST UPDATES
           </span>
+          {/* ⚠️ Both halves were lying. `items.length || 1` printed "1 tracked"
+              when the feed was EMPTY, and the timestamp fell back to the string
+              "Sep 19, 9:20 AM" - a date hard-coded into the markup, so a card
+              that had never successfully fetched anything still claimed to have
+              checked at a specific time. That is the single most misleading
+              thing a live feed can do, and it is most of why this looked stuck.
+              It now says what is true, including "checking…". */}
           <span className="truncate text-[11px] text-content-subtle">
-            {items.length || 1} tracked · checked{" "}
-            {fetchedAt ? formatDateTime(new Date(fetchedAt)) : "Sep 19, 9:20 AM"}
+            {items.length} tracked · {fetchedAt ? `checked ${formatDateTime(new Date(fetchedAt))}` : "checking…"}
           </span>
         </div>
 
@@ -218,7 +310,46 @@ function HeroNewsCard() {
         </button>
       )}
 
+      {/* ── Nothing to show ─────────────────────────────────────────────
+          An honest state, which is what replaced the invented story. Loading
+          and empty and unreachable are three different things and each says so
+          - collapsing them is what let a broken feed look like a quiet one. */}
+      {!active && (
+        <div className="px-4 py-10 text-center">
+          {state === "loading" ? (
+            <>
+              <Loader2 className="mx-auto h-5 w-5 animate-spin text-content-subtle" strokeWidth={1.7} />
+              <p className="mt-2.5 text-xs text-content-muted">Checking the perp DEX and airdrop feeds…</p>
+            </>
+          ) : state === "down" ? (
+            <>
+              <p className="text-xs leading-relaxed text-amber-200">
+                Could not reach the updates feed just now.
+              </p>
+              <button
+                type="button"
+                onClick={() => void load(true)}
+                className="btn-secondary mt-3 inline-flex min-h-9 items-center text-xs"
+              >
+                Try again
+              </button>
+            </>
+          ) : (
+            <>
+              <Radio className="mx-auto h-5 w-5 text-content-subtle" strokeWidth={1.7} />
+              <p className="mt-2.5 text-xs text-content-muted">
+                No perp DEX or airdrop news in the last window.
+              </p>
+              <p className="mt-1 text-[11px] text-content-subtle">
+                Snapshots, TGE dates and new programmes land here the moment they are reported.
+              </p>
+            </>
+          )}
+        </div>
+      )}
+
       {/* ── Story card body ─────────────────────────────────────────────── */}
+      {active && (
       <div className="p-4">
         {/* Source row */}
         <div className="flex items-center justify-between gap-2">
@@ -310,9 +441,11 @@ function HeroNewsCard() {
             </span>
           )}
 
-          {/* 5 carousel dots — clearly visible as in mockup */}
+          {/* ⚠️ One dot per story, not a fixed five. Hard-coded [0..4] drew
+              five dots over two stories, and clicking a dot with no story
+              behind it moved nothing - a control that visibly does nothing. */}
           <div className="flex items-center gap-1.5">
-            {[0, 1, 2, 3, 4].map((i) => (
+            {Array.from({ length: carouselLength }, (_, i) => i).map((i) => (
               <button
                 key={i}
                 type="button"
@@ -336,6 +469,7 @@ function HeroNewsCard() {
         </div>
 
       </div>
+      )}
 
       {/* ── View All modal ──────────────────────────────────────────────── */}
       {viewAll && (
@@ -407,6 +541,7 @@ function HeroNewsCard() {
         open={briefOpen}
         onClose={() => setBriefOpen(false)}
         loading={brief.loading}
+        streaming={brief.streaming}
         text={brief.text}
         error={brief.err}
         sources={items.slice(0, 8)}

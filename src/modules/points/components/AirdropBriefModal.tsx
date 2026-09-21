@@ -43,6 +43,7 @@ export function AirdropBriefModal({
   open,
   onClose,
   loading,
+  streaming = false,
   text,
   error,
   sources,
@@ -52,6 +53,8 @@ export function AirdropBriefModal({
   open: boolean;
   onClose: () => void;
   loading: boolean;
+  /** Text is still arriving. `loading` ends at the first word; this ends at the last. */
+  streaming?: boolean;
   text: string | null;
   error: string | null;
   /** The headlines the briefing was built from, in the order they were sent. */
@@ -154,10 +157,9 @@ export function AirdropBriefModal({
           {loading && (
             <div className="flex flex-col items-center gap-3 py-12 text-center">
               <Loader2 className="h-7 w-7 animate-spin text-mint-300" strokeWidth={1.7} />
-              <p className="text-sm text-content-muted">Reading the headlines and writing it up…</p>
+              <p className="text-sm text-content-muted">Reading the headlines…</p>
               <p className="max-w-sm text-xs leading-relaxed text-content-subtle">
-                This one runs on the quality model rather than the fast one, so it takes a few
-                seconds longer and says considerably more.
+                It starts writing in a second or two, and you can read it as it goes.
               </p>
             </div>
           )}
@@ -180,11 +182,18 @@ export function AirdropBriefModal({
             // A briefing is the longest text on this page and was the smallest.
             <div className="text-sm leading-[1.75] text-content-muted [&_strong]:text-content">
               <MarkdownLite text={text} />
+              {/* ⚠️ The stream has to be VISIBLE as a stream. Without this, a
+                  briefing still being written is indistinguishable from one
+                  that finished early - which is the exact ambiguity that made
+                  the one-shot version so hard to diagnose. */}
+              {streaming && (
+                <span className="ml-0.5 inline-block h-4 w-[2px] translate-y-0.5 animate-pulse bg-mint-400 align-middle" />
+              )}
             </div>
           )}
 
           {/* ── What it read ──────────────────────────────────────────── */}
-          {shown.length > 0 && !loading && (
+          {shown.length > 0 && !loading && !streaming && (
             <div className="mt-7 border-t border-hairline pt-5">
               <h3 className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
                 Built from these stories

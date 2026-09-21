@@ -76,6 +76,59 @@ export function streamAssistant(opts: {
 }
 
 /**
+ * A briefing, streamed.
+ *
+ * ⚠️ This exists because "fast" and "complete" were being traded against each
+ * other, and streaming is the one change that stops them competing.
+ *
+ * Generated in one shot, a briefing is a single 20-40 second silence ending in
+ * either a wall of text or a timeout. Every previous attempt to fix it moved
+ * along that trade-off - raise `maxTokens` and it takes longer and risks the
+ * function's duration cap; lower it and the answer is cut off. Four rounds of
+ * that, and the reader's experience was the same each time: press a button,
+ * wait, get something short or nothing at all.
+ *
+ * Streamed, the first words land in about a second and the rest arrives as it
+ * is written. Nothing is waiting on a single large response, so:
+ *
+ *  - **Fast**, because time-to-first-word replaces time-to-whole-answer.
+ *  - **Complete**, because the token ceiling can be generous without the wait
+ *    getting worse, and because a connection that is continuously sending bytes
+ *    is not an idle request the platform will cut at `maxDuration`.
+ *
+ * Routed on the `briefing` task, so it takes the QUALITY model for everyone
+ * regardless of plan - see `routeTier`. A briefing answered by the fast model
+ * writes two sentences and stops, which is the bug this project already fixed
+ * once and must not reintroduce through a new code path.
+ */
+export function streamBriefing(opts: {
+  prompt: string;
+  system?: string;
+  maxTokens?: number;
+  ctx?: GatewayCtx;
+}): AsyncIterable<string> | null {
+  if (!aiEnabled) return null;
+  async function* run() {
+    const handle = await runStream(
+      "briefing",
+      {
+        system:
+          opts.system ??
+          "You are a crypto markets desk writer. Write in clear, plain English. " +
+            "Use markdown headings and short paragraphs. Never invent facts.",
+        messages: [{ role: "user", content: opts.prompt }],
+        // Generous on purpose: with streaming, a higher ceiling costs nothing in
+        // perceived latency - it only removes the reason an answer stops early.
+        maxTokens: opts.maxTokens ?? 1600,
+      },
+      opts.ctx ?? {}
+    );
+    yield* handle.stream;
+  }
+  return run();
+}
+
+/**
  * One-shot text completion for bulk/cheap tasks (summaries, moderation, news
  * digests). Returns the response text, or null on disable/empty. Throws on a
  * genuine failure (all providers down) so the caller can swallow it (best-effort)
