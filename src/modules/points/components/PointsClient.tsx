@@ -28,6 +28,7 @@ import { FdvSimulatorCard } from "./FdvSimulatorCard";
 import { ScenarioAnalysisCard } from "./ScenarioAnalysisCard";
 import { MyAirdropsCard } from "./MyAirdropsCard";
 import { HowItWorksCard } from "./HowItWorksCard";
+import { OngoingAirdropsSection } from "./OngoingAirdropsSection";
 import { CompsEngine } from "./CompsEngine";
 import { ChevronDown, ChevronUp, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -330,7 +331,12 @@ export function PointsClient() {
       </Reveal>
 
       {/* ── 2. Featured Programs Bar ── */}
-      <Reveal delay={0.05}>
+      {/* ⚠️ `delay` is an INDEX, not seconds. `Reveal` computes its delay as
+          `delay * 0.07`, so the `0.05` / `0.1` / `0.15` values this file used
+          throughout worked out to 3.5ms, 7ms and 10.5ms - a stagger nobody
+          could see, on a page whose cards arrive in pairs. Integers give the
+          ladder that was intended. */}
+      <Reveal delay={1}>
         <FeaturedProgramsBar
           programs={programs}
           activeId={activeId}
@@ -343,11 +349,21 @@ export function PointsClient() {
       </Reveal>
 
       {/* ── 3. Main Section: Points Calculator & Farming Economics ── */}
-      <div id="calculator-section" className="scroll-mt-32 grid grid-cols-1 gap-6 lg:grid-cols-12">
+      {/* ⚠️ `items-stretch` plus `h-full` all the way down, and all three links
+          in that chain are needed. A grid item stretches by default, but
+          `Reveal` inserts a `motion.div` between the column and the card, and
+          that wrapper was sizing to its content - so the card inside it ended
+          at its own natural height and the two columns finished at different
+          places. Farming Economics stopped roughly 80px short of the
+          calculator beside it, which is the ragged bottom edge this fixes. */}
+      <div
+        id="calculator-section"
+        className="scroll-mt-32 grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12"
+      >
         {/* Left: Points Calculator (7 cols) */}
         {analysed && (
           <div className="lg:col-span-7">
-            <Reveal delay={0.1}>
+            <Reveal delay={2} variant="pop" className="h-full">
               <PointsCalculatorCard
                 program={analysed.program}
                 programs={programs}
@@ -388,7 +404,7 @@ export function PointsClient() {
         {/* Right: Farming Economics (5 cols) */}
         {analysed && (
           <div className="lg:col-span-5">
-            <Reveal delay={0.15}>
+            <Reveal delay={3} variant="pop" className="h-full">
               <FarmingEconomicsCard
                 cost={cost}
                 value={analysed.value}
@@ -401,10 +417,10 @@ export function PointsClient() {
 
       {/* ── 4. Middle Section: FDV Simulator & Scenario Analysis ── */}
       {analysed && (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
           {/* Left: FDV Simulator (6 cols) */}
           <div className="lg:col-span-6">
-            <Reveal delay={0.1}>
+            <Reveal delay={2} variant="pop" className="h-full">
               <FdvSimulatorCard
                 currentFdv={analysed.inputs.fdvUsd}
                 onFdvChange={(val) => {
@@ -422,7 +438,7 @@ export function PointsClient() {
 
           {/* Right: Scenario Analysis (6 cols) */}
           <div className="lg:col-span-6">
-            <Reveal delay={0.15}>
+            <Reveal delay={3} variant="pop" className="h-full">
               <ScenarioAnalysisCard
                 yourPoints={analysed.inputs.yourPoints}
                 totalPoints={analysed.inputs.totalPoolPoints}
@@ -441,11 +457,25 @@ export function PointsClient() {
         </div>
       )}
 
-      {/* ── 5. Lower Section: My Airdrops Portfolio & How It Works ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      {/* ── 5. Ongoing perp DEX airdrops ──
+          The tracked list, restored. It lived in `ProgramPanel`, which this
+          redesign stopped rendering - along with the link to the running
+          channel list, which is this page's only pointer to the programmes
+          that are NOT hand-tracked here. That link is the answer to "what
+          should I farm right now", which is the question the page exists for. */}
+      <Reveal delay={2} variant="up">
+        <OngoingAirdropsSection
+          programs={programs}
+          activeId={activeId}
+          onSelect={handleSelectProgram}
+        />
+      </Reveal>
+
+      {/* ── 6. Lower Section: My Airdrops Portfolio & How It Works ── */}
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
         {/* Left: My Airdrops (6 cols) */}
         <div className="lg:col-span-6">
-          <Reveal delay={0.1}>
+          <Reveal delay={2} variant="pop" className="h-full">
             <MyAirdropsCard
               programs={programs}
               activeId={activeId}
@@ -456,7 +486,7 @@ export function PointsClient() {
 
         {/* Right: How It Works & Newsletter (6 cols) */}
         <div className="lg:col-span-6">
-          <Reveal delay={0.15}>
+          <Reveal delay={3} variant="pop" className="h-full">
             <HowItWorksCard />
           </Reveal>
         </div>

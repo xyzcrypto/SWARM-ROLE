@@ -152,7 +152,7 @@ export function FeaturedProgramsBar({
 
                   {/* Farming Status Pill */}
                   <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-content-muted">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="h-1.5 w-1.5 rounded-full bg-mint-400 animate-pulse" />
                     <span>Farming Now</span>
                   </div>
 

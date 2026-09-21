@@ -39,7 +39,7 @@ export function FarmingEconomicsCard({ cost, value, be }: FarmingEconomicsCardPr
   const isProfitable = economics.netProfit >= 0;
 
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
+    <div className="flex h-full flex-col justify-between rounded-2xl border border-hairline bg-surface-2 p-5 sm:p-6">
       {/* Header */}
       <div className="pb-4 border-b border-hairline">
         <h2 className="font-display text-lg font-bold tracking-tight text-content sm:text-xl">
@@ -83,7 +83,7 @@ export function FarmingEconomicsCard({ cost, value, be }: FarmingEconomicsCardPr
           <div className="flex items-center gap-2 text-content-subtle">
             <span
               className={`grid h-5 w-5 place-items-center rounded ${
-                isProfitable ? "bg-emerald-500/10 text-emerald-300" : "bg-red-500/10 text-red-300"
+                isProfitable ? "bg-mint-500/10 text-mint-300" : "bg-red-500/10 text-red-300"
               }`}
             >
               {isProfitable ? (

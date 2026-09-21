@@ -8,9 +8,9 @@ import { formatDateTime } from "@/lib/utils";
 import { refreshUrl } from "@/lib/refetch";
 import { wakeIsDue } from "@/lib/useLiveData";
 import { RobotIcon } from "@/components/RobotIcon";
-import { MarkdownLite } from "@/components/MarkdownLite";
 import type { RadarItem } from "@modules/points/lib/airdrop-radar";
 import { Composer } from "./UpdatesFeed";
+import { AirdropBriefModal } from "./AirdropBriefModal";
 
 const RADAR_WINDOW_MS = 120_000;
 
@@ -30,11 +30,13 @@ function HeroNewsCard() {
   const [activeIdx, setActiveIdx] = useState(0);
   const [composing, setComposing] = useState(false);
   const [viewAll, setViewAll] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
   const [brief, setBrief] = useState<{
     loading: boolean;
     text: string | null;
     err: string | null;
-  }>({ loading: false, text: null, err: null });
+    at: number | null;
+  }>({ loading: false, text: null, err: null, at: null });
   const fetchedAtRef = useRef(0);
 
   const load = useCallback(async (force = false) => {
@@ -77,7 +79,12 @@ function HeroNewsCard() {
   const generateBrief = useCallback(async () => {
     const top = items.slice(0, 8);
     if (!top.length || brief.loading) return;
-    setBrief({ loading: true, text: null, err: null });
+    // Open FIRST, then fetch. The briefing runs on the quality model and can
+    // take several seconds; opening on arrival would leave the reader pressing
+    // a button that appears to do nothing, which is how the earlier version got
+    // reported as broken when it was merely slow.
+    setBriefOpen(true);
+    setBrief({ loading: true, text: null, err: null, at: null });
     try {
       const res = await fetch("/api/ai/why-matters", {
         method: "POST",
@@ -90,9 +97,9 @@ function HeroNewsCard() {
       });
       const j = await res.json();
       if (!res.ok) throw new Error(j?.error || "Could not generate the briefing.");
-      setBrief({ loading: false, text: j?.text ?? null, err: null });
+      setBrief({ loading: false, text: j?.text ?? null, err: null, at: Date.now() });
     } catch (e) {
-      setBrief({ loading: false, text: null, err: (e as Error).message });
+      setBrief({ loading: false, text: null, err: (e as Error).message, at: null });
     }
   }, [items, brief.loading]);
 
@@ -120,89 +127,95 @@ function HeroNewsCard() {
   const isLive = state !== "down";
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-transparent shadow-2xl">
+    <div className="overflow-hidden rounded-2xl border border-hairline bg-surface-2 shadow-elevate">
       {/* ── Header row ─────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/[0.07] px-4 py-2.5">
+      <div className="flex items-center gap-2 border-b border-hairline px-4 py-2.5">
         {/* Left: label + freshness */}
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Radio
-            className={`h-3.5 w-3.5 shrink-0 ${isLive ? "text-emerald-400" : "text-rose-400"}`}
+            className={`h-3.5 w-3.5 shrink-0 ${isLive ? "text-mint-400" : "text-data-down"}`}
             strokeWidth={2.5}
           />
-          <span className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+          <span className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-mint-400">
             LATEST UPDATES
           </span>
-          <span className="truncate text-[11px] text-gray-500 dark:text-gray-500">
+          <span className="truncate text-[11px] text-content-subtle">
             {items.length || 1} tracked · checked{" "}
             {fetchedAt ? formatDateTime(new Date(fetchedAt)) : "Sep 19, 9:20 AM"}
           </span>
         </div>
 
-        {/* Right: action buttons */}
-        <div className="flex shrink-0 items-center gap-1.5">
+        {/* Right: action buttons.
+            ⚠️ Icon-only, and that is a space decision rather than a style one.
+            Three labelled pills ("Post", "AI brief", "Refresh") plus the
+            freshness line did not fit this card's header at 393px - the
+            "N tracked · checked …" text was being truncated to nothing to make
+            room for chrome. Each button keeps `aria-label` and `title`, so the
+            name is still there for a screen reader and on hover; only the
+            printed word is gone. */}
+        <div className="flex shrink-0 items-center gap-1">
           {canManage && (
             <button
               type="button"
               onClick={() => setComposing(true)}
-              className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-300 transition-colors hover:bg-amber-500/20"
+              aria-label="Post an update to the desk"
+              title="Post an update"
+              className="grid h-7 w-7 place-items-center rounded-lg border border-gold-500/30 bg-gold-500/10 text-gold-300 transition-all duration-200 hover:scale-110 hover:bg-gold-500/20 active:scale-110"
             >
-              <Plus className="h-3 w-3" />
-              Post
+              <Plus className="h-3.5 w-3.5" strokeWidth={2.2} />
             </button>
           )}
           <button
             type="button"
             onClick={() => void generateBrief()}
             disabled={brief.loading || items.length === 0}
-            className="inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-white/[0.08] bg-gray-100 dark:bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-gray-800 dark:text-white transition-colors hover:bg-gray-200 dark:hover:bg-white/[0.08] disabled:opacity-40"
+            aria-label="Generate an AI briefing of these updates"
+            title="AI brief"
+            className="grid h-7 w-7 place-items-center rounded-lg border border-hairline bg-surface-2 text-content transition-all duration-200 hover:scale-110 hover:border-mint-500/30 active:scale-110 disabled:opacity-40 disabled:hover:scale-100"
           >
             {brief.loading ? (
-              <Loader2 className="h-3 w-3 animate-spin text-emerald-400" />
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-mint-300" />
             ) : (
-              <RobotIcon className="h-3.5 w-3.5 text-emerald-400" />
+              <RobotIcon className="h-4 w-4 text-mint-300" />
             )}
-            AI brief
           </button>
           <button
             type="button"
             onClick={() => { void load(true); }}
-            className="inline-flex items-center gap-1 rounded-full border border-gray-200 dark:border-white/[0.08] bg-gray-100 dark:bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-gray-800 dark:text-white transition-colors hover:bg-gray-200 dark:hover:bg-white/[0.08]"
-            aria-label="Refresh updates"
+            aria-label="Refresh the latest updates"
+            title="Refresh"
+            className="grid h-7 w-7 place-items-center rounded-lg border border-hairline bg-surface-2 text-content transition-all duration-200 hover:scale-110 hover:border-gold-500/30 active:scale-110"
           >
             <RefreshCw
-              className={`h-3 w-3 ${state === "loading" ? "animate-spin" : ""}`}
+              className={`h-3.5 w-3.5 ${state === "loading" ? "animate-spin" : ""}`}
+              strokeWidth={2}
             />
-            Refresh
           </button>
         </div>
       </div>
 
-      {/* ── AI Brief panel ──────────────────────────────────────────────── */}
-      {(brief.loading || brief.text || brief.err) && (
-        <div className="border-b border-gray-100 dark:border-white/[0.07] bg-gray-50 dark:bg-[#13151a] px-4 py-3">
-          <div className="flex items-center justify-between gap-2">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-200">
-              <RobotIcon className="h-3.5 w-3.5 text-emerald-400" />
-              AI Summary
-            </span>
-            <button
-              type="button"
-              onClick={() => setBrief({ loading: false, text: null, err: null })}
-              className="text-gray-500 hover:text-gray-900 dark:hover:text-white"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-          {brief.loading && (
-            <p className="mt-1.5 text-xs text-gray-400">Summarizing latest headlines…</p>
-          )}
-          {brief.err && <p className="mt-1.5 text-xs text-amber-300">{brief.err}</p>}
-          {brief.text && (
-            <div className="mt-1.5 max-h-36 overflow-y-auto text-xs leading-relaxed text-gray-300">
-              <MarkdownLite text={brief.text} />
-            </div>
-          )}
-        </div>
+      {/* ⚠️ The briefing used to render HERE, as a strip capped at `max-h-36`
+          with its own scrollbar - about six lines. The model is asked for what
+          changed, what it means for farmers, dates to watch and what is still
+          unknown; four sections do not fit in six lines, so a complete answer
+          met a scroll region nested inside a card inside the hero. It now takes
+          the foreground instead. See `AirdropBriefModal`.
+
+          A one-line trace stays behind so the card still shows that a briefing
+          exists once it has been generated - reopening it should not mean
+          paying for it twice. */}
+      {(brief.text || brief.err) && !briefOpen && (
+        <button
+          type="button"
+          onClick={() => setBriefOpen(true)}
+          className="flex w-full items-center gap-2 border-b border-hairline bg-mint-500/[0.05] px-4 py-2 text-left transition-colors hover:bg-mint-500/[0.09]"
+        >
+          <RobotIcon className="h-3.5 w-3.5 shrink-0 text-mint-300" />
+          <span className="truncate text-[11px] font-medium text-content">
+            {brief.err ? "The briefing did not finish" : "Your AI briefing is ready"}
+          </span>
+          <span className="ml-auto shrink-0 text-[11px] font-semibold text-gold-300">Open</span>
+        </button>
       )}
 
       {/* ── Story card body ─────────────────────────────────────────────── */}
@@ -224,28 +237,28 @@ function HeroNewsCard() {
                 C
               </span>
             )}
-            <span className="truncate text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <span className="truncate text-xs font-semibold text-content-muted">
               {active.source}
             </span>
             {/* Venue pill */}
-            <span className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300">
+            <span className="shrink-0 rounded-full border border-gold-500/40 bg-gold-500/10 px-2 py-0.5 text-[10px] font-semibold text-gold-200">
               {active.venues[0] ?? active.category}
             </span>
           </div>
-          <span className="shrink-0 text-[11px] text-gray-500 dark:text-gray-500">
+          <span className="shrink-0 text-[11px] text-content-subtle">
             {formatDateTime(new Date(active.publishedAt))}
           </span>
         </div>
 
         {/* Title */}
-        <h3 className="mt-1.5 line-clamp-2 text-sm font-bold leading-snug text-gray-900 dark:text-white sm:text-[15px]">
+        <h3 className="mt-1.5 line-clamp-2 text-sm font-bold leading-snug text-content sm:text-[15px]">
           {active.title}
         </h3>
 
         {/* Banner image — 110px fixed height, arrow on the right */}
         {/* Parent is position:relative with fixed height; img is absolute-inset so it can never push the parent taller */}
         <div
-          className="relative mt-2.5 w-full overflow-hidden rounded-xl border border-white/10 bg-black/40"
+          className="group/img relative mt-2.5 w-full overflow-hidden rounded-xl border border-hairline bg-ink-950/40"
           style={{ height: 110 }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -270,12 +283,12 @@ function HeroNewsCard() {
         </div>
 
         {/* Body snippet */}
-        <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+        <p className="mt-2.5 line-clamp-2 text-xs leading-relaxed text-content-muted">
           {active.summary}
         </p>
 
         {/* Attribution */}
-        <p className="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
+        <p className="mt-1 text-[11px] text-content-subtle">
           Reported by {active.source} · {active.source}
         </p>
 
@@ -305,7 +318,7 @@ function HeroNewsCard() {
                 type="button"
                 onClick={() => setActiveIdx(i)}
                 aria-label={`Story ${i + 1}`}
-                className={`h-2 rounded-full transition-all duration-300 ${activeIdx === i ? "w-4 bg-amber-400" : "w-2 bg-zinc-600 hover:bg-zinc-400"
+                className={`h-2 rounded-full transition-all duration-300 ${activeIdx === i ? "w-5 bg-gold-400" : "w-2 bg-ink-500 hover:bg-ink-600"
                   }`}
               />
             ))}
@@ -327,28 +340,28 @@ function HeroNewsCard() {
       {/* ── View All modal ──────────────────────────────────────────────── */}
       {viewAll && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0f1012] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-3.5">
+          <div className="animate-rise-in glass flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-gold-500/20 shadow-elevate">
+            <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5">
               <div>
-                <h3 className="text-base font-bold text-white">All Updates &amp; Signals</h3>
+                <h3 className="font-display text-base font-bold text-content">All updates &amp; <span className="text-shine">signals</span></h3>
                 {rest.length > 0 && (
-                  <p className="mt-0.5 text-xs text-gray-500">{rest.length} more updates</p>
+                  <p className="mt-0.5 text-xs text-content-subtle">{rest.length} more updates</p>
                 )}
               </div>
               <button
                 type="button"
                 onClick={() => setViewAll(false)}
-                className="rounded-lg p-1.5 text-gray-500 hover:bg-white/10 hover:text-white"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-hairline text-content-subtle transition-all hover:scale-105 hover:border-gold-500/30 hover:text-content active:scale-105"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="flex-1 divide-y divide-white/[0.05] overflow-y-auto">
+            <div className="flex-1 divide-y divide-hairline overflow-y-auto">
               {items.map((item) => (
                 <a
                   key={item.id}
                   href={`/news/read?u=${encodeURIComponent(item.url)}`}
-                  className="flex gap-3 p-4 transition-colors hover:bg-white/[0.03]"
+                  className="flex gap-3 p-4 transition-colors hover:bg-white/[0.04]"
                 >
                   {item.image && (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -361,26 +374,26 @@ function HeroNewsCard() {
                     />
                   )}
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs font-semibold leading-snug text-white line-clamp-2">
+                    <p className="line-clamp-2 text-xs font-semibold leading-snug text-content">
                       {item.title}
                     </p>
-                    <p className="mt-1 text-[11px] text-gray-500">
+                    <p className="mt-1 text-[11px] text-content-subtle">
                       {item.source} · {formatDateTime(new Date(item.publishedAt))}
                     </p>
                   </div>
                 </a>
               ))}
               {items.length === 0 && (
-                <p className="p-6 text-center text-sm text-gray-500">
+                <p className="p-6 text-center text-sm text-content-subtle">
                   {state === "loading" ? "Loading…" : "No updates right now."}
                 </p>
               )}
             </div>
-            <div className="flex justify-end border-t border-white/[0.07] px-5 py-3">
+            <div className="flex justify-end border-t border-hairline px-5 py-3">
               <button
                 type="button"
                 onClick={() => setViewAll(false)}
-                className="rounded-lg bg-white/[0.08] px-4 py-2 text-xs font-semibold text-white hover:bg-white/[0.14]"
+                className="btn-secondary inline-flex min-h-9 items-center text-xs"
               >
                 Close
               </button>
@@ -389,16 +402,28 @@ function HeroNewsCard() {
         </div>
       )}
 
+      {/* ── AI briefing, full foreground ────────────────────────────────── */}
+      <AirdropBriefModal
+        open={briefOpen}
+        onClose={() => setBriefOpen(false)}
+        loading={brief.loading}
+        text={brief.text}
+        error={brief.err}
+        sources={items.slice(0, 8)}
+        generatedAt={brief.at}
+        onRetry={() => void generateBrief()}
+      />
+
       {/* ── Admin Composer modal ────────────────────────────────────────── */}
       {canManage && composing && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl border border-white/10 bg-[#0f1012] shadow-2xl">
-            <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-3.5">
-              <h3 className="text-base font-bold text-white">Post to Desk Wire</h3>
+          <div className="animate-rise-in glass max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl border border-gold-500/20 shadow-elevate">
+            <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5">
+              <h3 className="font-display text-base font-bold text-content">Post to the <span className="text-shine">desk wire</span></h3>
               <button
                 type="button"
                 onClick={() => setComposing(false)}
-                className="rounded-lg p-1.5 text-gray-500 hover:bg-white/10 hover:text-white"
+                className="grid h-9 w-9 place-items-center rounded-xl border border-hairline text-content-subtle transition-all hover:scale-105 hover:border-gold-500/30 hover:text-content active:scale-105"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -550,7 +575,7 @@ export function PointsHero({ onExplore, onPortfolio }: PointsHeroProps) {
             </div>
             <div>
               <div className="flex items-center gap-1.5 font-display text-2xl font-bold tracking-tight text-content">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="h-2 w-2 rounded-full bg-mint-400 animate-pulse" />
                 Real-time
               </div>
               <div className="text-[11px] text-content-subtle">Data Updates</div>

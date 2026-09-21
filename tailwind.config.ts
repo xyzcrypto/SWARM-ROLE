@@ -196,6 +196,41 @@ const config: Config = {
         "fade-up": { from: { opacity: "0", transform: "translateY(16px)" }, to: { opacity: "1", transform: "translateY(0)" } },
         "border-beam": { "100%": { "offset-distance": "100%" } },
         "pulse-dot": { "0%,100%": { opacity: "1" }, "50%": { opacity: "0.35" } },
+
+        /**
+         * The strong set - deliberately further than `fade-up`.
+         *
+         * `fade-up` is 16px and a fade, which reads as "the page settled". The
+         * brief asked for motion a reader actually FEELS, so `rise-in` carries a
+         * scale as well as a longer travel: the card grows into place instead of
+         * sliding. Scale is what makes an entrance feel physical, and it is also
+         * why this is not simply `fade-up` with a bigger number.
+         *
+         * ⚠️ Motion, not glow. The design system's warning is that this palette
+         * drifts from restrained to cheap through stacked `blur-3xl` orbs, so
+         * the strength here is bought with movement and timing - none of these
+         * add a light source.
+         */
+        "rise-in": {
+          from: { opacity: "0", transform: "translateY(28px) scale(0.97)" },
+          to: { opacity: "1", transform: "translateY(0) scale(1)" },
+        },
+        /** For a number or badge that should land rather than appear. */
+        "pop-in": {
+          "0%": { opacity: "0", transform: "scale(0.82)" },
+          "60%": { opacity: "1", transform: "scale(1.04)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        /** A single sheen crossing a surface - one pass, on demand, not a loop. */
+        "sweep-x": {
+          from: { transform: "translateX(-120%)" },
+          to: { transform: "translateX(220%)" },
+        },
+        /** A breathing ring for anything genuinely live. */
+        "glow-breathe": {
+          "0%,100%": { opacity: "0.45", transform: "scale(1)" },
+          "50%": { opacity: "1", transform: "scale(1.08)" },
+        },
       },
       animation: {
         "spin-slow": "spin-slow 28s linear infinite",
@@ -204,6 +239,10 @@ const config: Config = {
         shine: "shine 5s linear infinite",
         "fade-up": "fade-up 0.7s cubic-bezier(0.22,1,0.36,1) both",
         "pulse-dot": "pulse-dot 2s ease-in-out infinite",
+        "rise-in": "rise-in 0.62s cubic-bezier(0.16,1,0.3,1) both",
+        "pop-in": "pop-in 0.42s cubic-bezier(0.34,1.56,0.64,1) both",
+        "sweep-x": "sweep-x 1.1s cubic-bezier(0.22,1,0.36,1)",
+        "glow-breathe": "glow-breathe 2.4s ease-in-out infinite",
       },
     },
   },
