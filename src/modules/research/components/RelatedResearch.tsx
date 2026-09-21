@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { rankPosts } from "@/lib/ai-ground";
@@ -22,7 +23,7 @@ import { rankPosts } from "@/lib/ai-ground";
 const allPublished = cache(async () => {
   return prisma.post
     .findMany({
-      where: { published: true },
+      where: { published: true, ...NOT_TRASHED },
       select: { title: true, slug: true, excerpt: true, category: true },
       orderBy: { createdAt: "desc" },
       take: 60,

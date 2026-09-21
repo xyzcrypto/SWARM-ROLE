@@ -82,7 +82,12 @@ export default async function HomePage() {
     prisma.user.count().catch(() => 0),
     prisma.post
       .findFirst({
-        where: { published: true, category: "Research" },
+        // ⚠️ Same hole as the research index had: without this, deleting the
+        // newest research post left the homepage still dating itself from it -
+        // "newest research: 2 hours ago" pointing at something that no longer
+        // exists. The `count` on the next line already filtered the trash, so
+        // the two disagreed.
+        where: { published: true, category: "Research", ...NOT_TRASHED },
         orderBy: { createdAt: "desc" },
         select: { createdAt: true },
       })

@@ -89,6 +89,31 @@ const getClassifiedItems = unstable_cache(
 );
 
 /**
+ * The WHOLE classified pool, for callers that filter rather than paginate.
+ *
+ * ⚠️ `getNewsPage` is the wrong door for these, and quietly so. Its `pageSize`
+ * is clamped - `Math.min(30, ...)` - so a caller asking for 200 gets **30**,
+ * with no error and no sign anything was dropped. It also RANKS first, by
+ * general news impact, so those 30 are the day's biggest crypto stories rather
+ * than a cross-section.
+ *
+ * That is how `/api/points/radar` came to report "0 tracked" on a working feed:
+ * it asked for 200, received the top 30 breaking/high-impact stories, and
+ * filtered them for perp DEX and airdrop news - a narrow filter over a set
+ * selected for something else entirely, which legitimately matches nothing.
+ *
+ * `findNewsByUrl` above was written for the same reason and is a warning this
+ * file already carried. Anything that needs to FILTER the pool should start
+ * here, not at a page of it.
+ *
+ * Costs nothing extra: it is the same `unstable_cache` entry the feed is served
+ * from, so this is a read of something already warm.
+ */
+export async function getClassifiedPool(): Promise<{ items: NewsItem[]; live: boolean }> {
+  return getClassifiedItems();
+}
+
+/**
  * Find one story by its source URL, across the WHOLE classified pool.
  *
  * `getNewsPage` cannot do this: its `pageSize` is clamped to 30, so the share

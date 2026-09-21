@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { ok, handleError } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
 
@@ -19,6 +20,8 @@ export async function GET(req: Request) {
       .findMany({
         where: {
           published: true,
+          // A deleted post must leave search with it.
+          ...NOT_TRASHED,
           OR: [
             { title: { contains: q, mode: "insensitive" } },
             { excerpt: { contains: q, mode: "insensitive" } },

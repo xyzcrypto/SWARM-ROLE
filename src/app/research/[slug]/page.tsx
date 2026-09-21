@@ -146,7 +146,7 @@ export default async function PostPage(
   const [relatedRaw, likeCount, myLike] = await Promise.all([
     prisma.post
       .findMany({
-        where: { published: true, category: post.category, slug: { not: post.slug } },
+        where: { published: true, category: post.category, slug: { not: post.slug }, ...NOT_TRASHED },
         orderBy: { createdAt: "desc" },
         take: 3,
         select: POST_CARD_SELECT,

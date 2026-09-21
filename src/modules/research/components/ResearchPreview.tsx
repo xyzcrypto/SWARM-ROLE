@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { readingTime } from "@/lib/utils";
@@ -11,7 +12,7 @@ import { Container, Section, Eyebrow } from "@/components/ui/primitives";
 export async function ResearchPreview() {
   const rawPosts = await prisma.post
     .findMany({
-      where: { published: true },
+      where: { published: true, ...NOT_TRASHED },
       orderBy: { createdAt: "desc" },
       take: 3,
       select: POST_CARD_SELECT,
