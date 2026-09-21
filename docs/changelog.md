@@ -5,6 +5,49 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-21 (114) — A 3D mark on the points hero, and the gap it fills
+
+### The gap was one row, not the whole block
+
+At 393px the hero's eyebrow row held a single short badge and roughly **240px of
+empty gradient** to its right - the largest piece of dead space on the page, and
+what made the block read as loose rather than composed.
+
+`LogoMedallion` goes THERE, on that row. An absolutely-positioned mark in the
+corner would have filled the same space, but it sat under the headline's second
+line at some widths, and a decoration that collides with the title is worse than
+the gap it replaced. On the row it is laid out: nothing overlaps, nothing
+reflows. The probe asserts **0px² overlap with the `h1`** at both widths.
+
+The stack rhythm also went from `space-y-6` plus a `pt-5` rail to a single
+20px step. Measured: gaps are now `20, 20, 20` on mobile and desktop alike.
+
+### The mark itself
+
+Three concentric rings around a floating, glowing logo - the homepage
+medallion's motif, not its machinery. `Hero.tsx` has pointer tilt springs,
+orbiting badges, a lite-tier blur swap and an entrance tuned to be the
+homepage's LCP; lifting that out to share would mean re-tuning the element most
+likely to regress that page, in order to decorate another one. This is built
+from keyframes that already exist, so it adds no CSS and no dependency.
+
+⚠️ **Measured, and it caught a real flaw.** All three rings ran `spin-slow`, and
+two of them at an identical 28s `normal` - so the outer and inner turned in
+perfect lockstep and the medallion read as one rigid object, which is exactly
+what its own comment said not to do. Three distinct speeds now: **28s / 40s
+reverse / 17s**. The comment and the code agree.
+
+Not gated on `prefers-reduced-motion`, per the project policy: only heavy
+full-screen ambient loops are, and gating bounded elements like this is what
+made the site read as static.
+
+### Verification
+
+typecheck · **1235 tests** · lint (0 errors) · build green · **15/15 hero checks**
+across mobile and desktop.
+
+---
+
 ## 2026-09-21 (113) — "0 tracked" was a silent clamp; a deleted post was still everywhere
 
 ### The band said "0 tracked" against a perfectly healthy feed
