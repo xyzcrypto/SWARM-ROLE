@@ -5,6 +5,64 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-22 (116) — Points onto the rail, and a photo that fits whatever shape it is
+
+### Points takes Premium's place on the desktop rail
+
+⚠️ A **swap**, not an addition, and given this file's history that distinction
+is the whole safety argument. The rail has overflowed its breakpoint twice, both
+times because a link was added and nobody re-measured - the second time was
+Points arriving as a ninth link. It stays at six, and "Points" is a character
+shorter than "Premium", so the measured width goes down rather than up.
+
+Premium moves into "More" and stays in `navLinks`, so the footer and the mobile
+drawer - which both render the complete list - are unchanged. Measured: the rail
+is one row of six.
+
+### A cover image could not be uploaded by the people allowed to post
+
+⚠️ `/api/upload` required `role === "ADMIN"`. Posting a desk update requires the
+`points:manage` **permission**. Those are different things, so an editor trusted
+to publish a post could not upload its cover: the upload 401'd, the composer
+showed the error, and the post saved without a photo.
+
+A permission whose own description is "Post perp DEX & airdrop updates" has to
+cover the image that goes with the post. Now ADMIN **or** `points:manage`.
+
+This is a deliberate widening of an auth gate and everything else is untouched -
+same rate limit, same image-type allow-list, same 5 MB ceiling, same bucket. It
+grants uploading to a role already trusted to publish on a public page.
+
+### The banner cropped every photo it was given
+
+A fixed **110px** band with `object-fit: cover` centre-crops everything to 3:1.
+A portrait shot lost its top and bottom, a screenshot lost most of itself, and
+nothing in the composer let an author choose the crop.
+
+Two changes make any photo land well with no decision from the author:
+
+1. **A 16:9 frame** instead of a fixed height - it scales with the card, and
+   16:9 is the ratio most article and social images are already cut to.
+2. **`object-contain` over a blurred copy of the same image.** The whole photo
+   is visible, and the bars a non-16:9 image leaves are filled by a scaled,
+   blurred version of itself rather than an empty rectangle. A wide image fills
+   the frame edge to edge and the backdrop never shows. Same `src`, so the
+   backdrop costs no second request.
+
+Measured with a 400x1000 portrait: rendered whole in a 269x151 frame (1.78),
+blurred fill present, and the card did not grow.
+
+### Verification
+
+typecheck · **1250 tests** · lint (0 errors) · build green · 9/9 browser checks.
+
+⚠️ Two probe faults were corrected during that run, both the same shape: it
+measured HIDDEN elements. Counting every `<a>` in `<header>` included the mobile
+drawer's copy of `navLinks`, and measuring after opening the "More" menu counted
+its four items - each reported "5 rows" on a rail that had not wrapped.
+
+---
+
 ## 2026-09-21 (115) — A post with nowhere to appear, and a statistic nobody measured
 
 ### The `+` composer worked; nothing rendered what it wrote

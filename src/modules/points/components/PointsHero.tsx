@@ -527,17 +527,45 @@ function HeroNewsCard() {
           {active.title}
         </h3>
 
-        {/* Banner image — 110px fixed height, arrow on the right */}
-        {/* Parent is position:relative with fixed height; img is absolute-inset so it can never push the parent taller */}
-        <div
-          className="group/img relative mt-2.5 w-full overflow-hidden rounded-xl border border-hairline bg-ink-950/40"
-          style={{ height: 110 }}
-        >
+        {/* ── Banner ────────────────────────────────────────────────────────
+            ⚠️ The fit is the point. This was a fixed 110px box with
+            `object-fit: cover`, which means EVERY uploaded photo was
+            centre-cropped to a 3:1 letterbox - a portrait shot lost its top and
+            bottom, a screenshot lost most of itself, and there was nothing an
+            author could do about it from the composer.
+
+            Two changes make any photo land well without anyone choosing a
+            crop:
+
+            1. **A 16:9 frame instead of a fixed height.** It scales with the
+               card instead of squeezing to a band, and 16:9 is the ratio most
+               article and social images are already cut to.
+            2. **`object-contain` over a blurred copy of the same image.** The
+               whole photo is visible - nothing is cropped away - and the bars
+               a non-16:9 image leaves are filled by a scaled, blurred version
+               of itself rather than an empty rectangle. A wide image fills the
+               frame edge to edge and the backdrop never shows.
+
+            The backdrop is `aria-hidden` and the same `src`, so it costs no
+            second request - the browser serves it from cache. */}
+        <div className="group/img relative mt-2.5 aspect-[16/9] w-full overflow-hidden rounded-xl border border-hairline bg-ink-950">
+          {/* The fill layer. Blurred and over-scaled so its own edges never
+              appear inside the frame. */}
+          {active.image && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={active.image}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full scale-125 object-cover opacity-45 blur-xl"
+              onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+            />
+          )}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={active.image ?? "/images/crypto-banner.png"}
             alt={active.title}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            className="absolute inset-0 h-full w-full object-contain"
             onError={(e) => {
               (e.currentTarget as HTMLImageElement).src = "/images/crypto-banner.png";
             }}

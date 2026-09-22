@@ -248,3 +248,35 @@ describe("the points-analyzed counter is a measurement, not a decoration", () =>
     expect(hero).toMatch(/return `\$\{\(num \/ 1e6\)\.toFixed\(1\)\}M\+`/);
   });
 });
+
+describe("a posted photo lands in the banner whatever shape it is", () => {
+  const hero = strip(readFileSync("src/modules/points/components/PointsHero.tsx", "utf8"));
+  const upload = strip(readFileSync("src/app/api/upload/route.ts", "utf8"));
+
+  it("whoever may post may also upload the cover", () => {
+    // ⚠️ `/api/upload` was `role === "ADMIN"` only, while posting a desk update
+    // needs the `points:manage` PERMISSION. So an editor trusted to publish a
+    // post could not upload its image: the upload 401'd and the post saved
+    // without one. A permission described as "Post perp DEX & airdrop updates"
+    // has to cover the image that goes with the post.
+    expect(upload).toMatch(/requirePermission\("points:manage"\)/);
+    // The rest of the gate is unchanged - this widened WHO, not what.
+    expect(upload).toMatch(/isAllowedImageType/);
+    expect(upload).toMatch(/MAX_UPLOAD_BYTES/);
+    expect(upload).toMatch(/rateLimit\("admin"/);
+  });
+
+  it("shows the whole photo instead of centre-cropping it", () => {
+    // A fixed 110px band with `object-cover` cropped every upload to 3:1 - a
+    // portrait shot lost its top and bottom and the author had no say.
+    expect(hero).toMatch(/aspect-\[16\/9\]/);
+    expect(hero).toMatch(/object-contain/);
+    expect(hero).not.toMatch(/style=\{\{ height: 110 \}\}/);
+  });
+
+  it("fills the bars with a blurred copy rather than an empty rectangle", () => {
+    expect(hero).toMatch(/scale-125 object-cover opacity-45 blur-xl/);
+    // Same `src`, so the backdrop costs no second request.
+    expect(hero).toMatch(/aria-hidden="true"\s*\n\s*className="absolute inset-0 h-full w-full scale-125/);
+  });
+});
