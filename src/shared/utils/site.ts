@@ -65,7 +65,13 @@ export const navLinks = [
  * quietly cannot be reached from anywhere - which is exactly what happened to
  * Sodex and RiseX on /points.
  */
-const RAIL_HREFS = new Set(["/", "/markets", "/news", "/research", "/community", "/premium"]);
+// ⚠️ `/points` takes `/premium`'s place on the rail rather than being added
+// alongside it. The rail is SIX links wide at its breakpoint and was already
+// measured as eight pixels from overflowing - a seventh would wrap, which is
+// how a nav stops looking designed. Premium moves into "More", where it is
+// still reachable from the rail, the footer and the mobile drawer, because it
+// stays in `navLinks`.
+const RAIL_HREFS = new Set(["/", "/markets", "/news", "/research", "/community", "/points"]);
 
 export const railLinks = navLinks.filter((l) => RAIL_HREFS.has(l.href));
 export const moreLinks = navLinks.filter((l) => !RAIL_HREFS.has(l.href));

@@ -60,7 +60,7 @@ describe("the desktop rail fits the links it has", () => {
     // per-member and belongs here rather than in the six-link rail, which is
     // already eight pixels from overflowing at its breakpoint.
     const more = moreLinks.map((l) => l.href).sort();
-    expect(more).toEqual(["/contact", "/points", "/saved", "/tools"]);
+    expect(more).toEqual(["/contact", "/premium", "/saved", "/tools"]);
   });
 
   it("still appears only from xl, for the eight-pixel reason above", () => {
@@ -108,15 +108,37 @@ describe("the bottom bar stays four links, so Profile stays centred", () => {
   });
 });
 
-describe("Points is still reachable", () => {
-  it("is in the full list exactly once", () => {
-    const hits = navLinks.filter((l) => l.href === "/points");
-    expect(hits).toHaveLength(1);
-    expect(hits[0].label).toBe("Points");
+describe("Points took Premium's place on the rail", () => {
+  it("both are in the full list exactly once", () => {
+    for (const href of ["/points", "/premium"]) {
+      expect(navLinks.filter((l) => l.href === href), href).toHaveLength(1);
+    }
+    expect(navLinks.find((l) => l.href === "/points")?.label).toBe("Points");
   });
 
-  it("is in More, not the rail", () => {
-    expect(moreLinks.some((l) => l.href === "/points")).toBe(true);
-    expect(railLinks.some((l) => l.href === "/points")).toBe(false);
+  it("Points is on the rail, Premium is in More", () => {
+    expect(railLinks.some((l) => l.href === "/points")).toBe(true);
+    expect(moreLinks.some((l) => l.href === "/points")).toBe(false);
+    expect(moreLinks.some((l) => l.href === "/premium")).toBe(true);
+    expect(railLinks.some((l) => l.href === "/premium")).toBe(false);
+  });
+
+  it("was a SWAP, so the eight-pixel margin above is not spent", () => {
+    // ⚠️ This is the assertion that matters, given the history at the top of
+    // this file: the rail has overflowed twice, both times because a link was
+    // ADDED. Points did not join the rail, it replaced Premium - the count is
+    // unchanged at six, and "Points" is a character SHORTER than "Premium", so
+    // the measured width goes down rather than up. An addition here would need
+    // re-measuring; this does not.
+    expect(railLinks).toHaveLength(6);
+    const rail = railLinks.map((l) => l.label).join("");
+    expect(rail).not.toMatch(/Premium/);
+    expect(rail.length).toBeLessThanOrEqual("HomeMarketsNewsResearchCommunityPremium".length);
+  });
+
+  it("Premium is still reachable from everywhere it was", () => {
+    // It stays in `navLinks`, so the footer and the mobile drawer - which both
+    // map the complete list - are unaffected. Only the desktop rail changed.
+    expect(navLinks.some((l) => l.href === "/premium")).toBe(true);
   });
 });
