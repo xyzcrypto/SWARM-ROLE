@@ -280,3 +280,43 @@ describe("a posted photo lands in the banner whatever shape it is", () => {
     expect(hero).toMatch(/aria-hidden="true"\s*\n\s*className="absolute inset-0 h-full w-full scale-125/);
   });
 });
+
+describe("the calculator answers the way the Tools one did", () => {
+  const card = strip(readFileSync("src/modules/points/components/PointsCalculatorCard.tsx", "utf8"));
+
+  it("asks for total token supply", () => {
+    // ⚠️ This input existed in the Tools calculator and was dropped when Points
+    // moved off that page. Every figure depends on it - token price is
+    // `FDV / supply` - so with it hidden, changing FDV moved the answer for a
+    // reason the reader could not see and the implied price came from nowhere.
+    // It was always in the form state; only the field was missing.
+    expect(card).toMatch(/Total Token Supply/);
+    expect(card).toMatch(/onSupplyChange/);
+  });
+
+  it("shows one value, not three competing ones", () => {
+    // The box showed a "$6.00 - $17.00" range on top, then "Gross Value" and
+    // "Liquid at TGE" side by side: three money figures for one calculation,
+    // and the range was a 0.6x-1.6x fallback spread unrelated to the inputs.
+    expect(card).not.toMatch(/Gross Value/);
+    expect(card).not.toMatch(/>Liquid at TGE</);
+    expect(card).toMatch(/Your share/);
+    expect(card).toMatch(/Estimated tokens/);
+  });
+
+  it("keeps the TGE figure as an explained sentence", () => {
+    // Deleting it would lose something genuinely useful; the problem was that
+    // it competed for the headline, not that it existed.
+    expect(card).toMatch(/sellable at TGE/);
+  });
+
+  it("prints exact dollars, with the locale pinned", () => {
+    // `usdCompact` rounds "$10.64" to "$11", and a small holding producing a
+    // small SPECIFIC number is the whole point. `en-US` is pinned because
+    // `en-IN` groups digits differently from 10,000 up - an unpinned locale is
+    // the React #418 hydration mismatch this project has already shipped.
+    expect(card).toMatch(/function usdExact/);
+    expect(card).toMatch(/toLocaleString\("en-US", \{ minimumFractionDigits: 2/);
+    expect(card).not.toMatch(/toLocaleString\(undefined/);
+  });
+});

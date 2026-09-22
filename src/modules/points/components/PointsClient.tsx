@@ -381,6 +381,8 @@ export function PointsClient() {
                 onYourPointsChange={(v) => setProg(analysed.program.id, "yourPoints", v)}
                 totalPoints={analysed.st.totalPoints}
                 onTotalPointsChange={(v) => setProg(analysed.program.id, "totalPoints", v)}
+                supply={analysed.st.supply}
+                onSupplyChange={(v) => setProg(analysed.program.id, "supply", v)}
                 allocPct={analysed.st.allocPct}
                 onAllocPctChange={(v) => setProg(analysed.program.id, "allocPct", v)}
                 allocLinked={analysed.st.allocLinked}
