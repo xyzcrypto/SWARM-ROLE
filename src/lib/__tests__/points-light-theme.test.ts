@@ -206,3 +206,49 @@ describe("the grid earns its space", () => {
     expect(sources["SensitivityGrid.tsx"]).toMatch(/function Legend/);
   });
 });
+
+describe("hover and press tints are visible in BOTH themes", () => {
+  const css = readFileSync("src/app/globals.css", "utf8");
+
+  it("flips white hover tints to dark ones under light", () => {
+    // ⚠️ 90 hover states across the app paint rgba(255,255,255,0.02-0.10).
+    // On a #eef1f6 page that is white-on-white: no visible change at all, on
+    // every card, row, menu item and icon button. The base classes were
+    // already overridden; the hover VARIANTS were deliberately skipped on the
+    // reasoning that "a hover tint should stay a tint" - which is right, and
+    // the conclusion was wrong. They stay tints, in the direction the theme
+    // needs.
+    expect(css).toMatch(/html:not\(\.dark\) \.hover\\:bg-white\\\/5:hover/);
+    expect(css).toMatch(/html:not\(\.dark\) \.hover\\:bg-white\\\/10:hover/);
+    expect(css).toMatch(/html:not\(\.dark\) \.hover\\:bg-white\\\/\\\[0\\\.03\\\]:hover/);
+  });
+
+  it("does the same for press, so a tap on a phone shows something", () => {
+    expect(css).toMatch(/html:not\(\.dark\) \.active\\:bg-white\\\/5:active/);
+  });
+
+  it("leaves the strong white overlays alone", () => {
+    // /20 and /70 sit ON IMAGERY, where white is correct in both themes.
+    expect(css).not.toMatch(/html:not\(\.dark\) \.hover\\:bg-white\\\/70:hover/);
+  });
+});
+
+describe("the advanced terminal opens rather than appearing", () => {
+  const client = readFileSync("src/modules/points/components/PointsClient.tsx", "utf8");
+
+  it("animates its height instead of mounting and unmounting", () => {
+    // It was `{showAdvanced && (...)}` - the panel appeared and vanished
+    // between two frames, which reads as the page glitching. grid-rows 0fr to
+    // 1fr animates a height nobody has to measure, and is already the pattern
+    // the band's expanding rows use.
+    expect(client).toMatch(/grid-rows-\[1fr\]/);
+    expect(client).toMatch(/grid-rows-\[0fr\]/);
+    expect(client).toMatch(/min-h-0 overflow-hidden/);
+  });
+
+  it("tells assistive tech what it controls", () => {
+    expect(client).toMatch(/aria-expanded=\{showAdvanced\}/);
+    expect(client).toMatch(/aria-controls="points-advanced"/);
+    expect(client).toMatch(/id="points-advanced"/);
+  });
+});
