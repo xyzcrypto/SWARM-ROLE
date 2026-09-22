@@ -18,6 +18,18 @@ interface PointsCalculatorCardProps {
   onTotalPointsChange: (v: string) => void;
   allocPct: string;
   onAllocPctChange: (v: string) => void;
+  /**
+   * Total token supply.
+   *
+   * ⚠️ This input EXISTED in the Tools calculator this page replaced, and
+   * dropping it is most of why the result stopped making sense. Every number
+   * in the box depends on it - the token price is `FDV / supply`, so with the
+   * supply hidden, changing FDV moved the answer for a reason the reader could
+   * not see, and the implied price appeared out of nowhere. It was always in
+   * the form state; only the field was missing.
+   */
+  supply: string;
+  onSupplyChange: (v: string) => void;
   allocLinked?: boolean;
   onToggleAllocLink?: (linked: boolean) => void;
   fdv: string;
@@ -34,6 +46,31 @@ interface PointsCalculatorCardProps {
 
 export const ALLOC_PILLS = ["10", "20", "30", "50", "100"];
 
+/** The supplies almost every token actually launches with. */
+const SUPPLY_PRESETS = [
+  { label: "100M", v: "100000000" },
+  { label: "1B", v: "1000000000" },
+  { label: "10B", v: "10000000000" },
+] as const;
+
+/**
+ * Exact dollars, to the cent.
+ *
+ * ⚠️ `usdCompact` rounds to "$11" and the whole point of this calculator is
+ * that a small holding produces a small, specific number - "$10.64" is the
+ * answer, "$11" is a shrug. The original Tools calculator printed the exact
+ * figure and that is part of what made it trustworthy.
+ *
+ * `en-US` is pinned deliberately: an unpinned locale groups digits differently
+ * from 10,000 up under `en-IN`, which is a server/client mismatch and this
+ * project has already shipped React #418 that way. The recovered code used
+ * `toLocaleString(undefined, …)`, which is exactly the unpinned form.
+ */
+function usdExact(n: number): string {
+  if (!Number.isFinite(n)) return "$0.00";
+  return `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function PointsCalculatorCard({
   program,
   programs,
@@ -44,6 +81,8 @@ export function PointsCalculatorCard({
   onTotalPointsChange,
   allocPct,
   onAllocPctChange,
+  supply,
+  onSupplyChange,
   allocLinked = true,
   onToggleAllocLink,
   fdv,
@@ -57,6 +96,13 @@ export function PointsCalculatorCard({
   onAnalyzed,
 }: PointsCalculatorCardProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  /** The FDV the headline is quoting, so the label cannot drift from the number. */
+  const inputsFdv = Number(fdv.replace(/[^0-9.]/g, "")) || 0;
+  /** `FDV / supply` - the one number that ties the two fields together. */
+  const impliedPrice = (() => {
+    const sup = Number(supply.replace(/[^0-9.]/g, "")) || 0;
+    return sup > 0 ? inputsFdv / sup : 0;
+  })();
   const logo = platformLogo({ links: program.links, logo: program.logo ?? undefined });
 
   const anchorLabel = anchor === "comps" ? "from comparables" : "from programme";
@@ -229,6 +275,43 @@ export function PointsCalculatorCard({
               placeholder="e.g. 72,000,000"
               className="w-full rounded-xl border border-hairline bg-base px-3.5 py-2 text-sm font-semibold text-content outline-none focus:border-gold-500/60 transition-colors"
             />
+          </div>
+
+          {/* Total Token Supply - restored. See the prop's note. */}
+          <div>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <label className="text-xs font-semibold text-content-muted">Total Token Supply</label>
+              <span className="mono text-[10px] text-content-subtle">
+                implied price {impliedPrice > 0 ? usdExact(impliedPrice) : "—"}
+              </span>
+            </div>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={supply}
+              onChange={(e) => onSupplyChange(e.target.value.replace(/[^0-9]/g, ""))}
+              placeholder="e.g. 1,000,000,000"
+              className="w-full rounded-xl border border-hairline bg-base px-3.5 py-2 text-sm font-semibold text-content outline-none transition-colors focus:border-gold-500/60"
+            />
+            {/* The same preset pattern the FDV and allocation rows already use,
+                so this reads as part of the form rather than a new idea. */}
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {SUPPLY_PRESETS.map((s2) => (
+                <button
+                  key={s2.v}
+                  type="button"
+                  onClick={() => onSupplyChange(s2.v)}
+                  className={cn(
+                    "rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all duration-200 active:scale-95",
+                    supply === s2.v
+                      ? "border-gold-500/50 bg-gold-500/10 text-gold-200"
+                      : "border-hairline text-content-subtle hover:border-gold-500/30 hover:text-content"
+                  )}
+                >
+                  {s2.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Allocation % Field */}
@@ -418,46 +501,63 @@ export function PointsCalculatorCard({
               <Info className="h-3.5 w-3.5" />
             </div>
 
-            {/* Big Hero Estimated Range */}
+            {/* ── The headline ──────────────────────────────────────────
+                ⚠️ ONE value, not a range and not two competing ones.
+
+                This box showed a "$6.00 – $17.00" range on top, then "Gross
+                Value $10.64" and "Liquid at TGE $2.66" side by side. Three
+                different money figures for one calculation, none of them
+                labelled well enough to say which was the answer - and the
+                range was a fallback spread (0.6x to 1.6x) that had nothing to
+                do with the inputs.
+
+                The Tools calculator this page replaced showed exactly three
+                things - Your share, Estimated tokens, Estimated value - and it
+                was legible. That model is restored here. The TGE figure is not
+                deleted, because it is genuinely useful; it moves to one
+                explained sentence underneath instead of competing for the
+                headline. */}
             <div className="mt-1.5 text-center sm:text-left">
-              <div className="font-display text-2xl font-bold tracking-tight text-gold-200">
-                {usdCompact(estRange.low)} – {usdCompact(estRange.high)}
+              <div className="mono font-display text-3xl font-bold tracking-tight text-gold-200">
+                {usdExact(value.grossUsd)}
               </div>
-              <div className="text-[10.5px] text-content-subtle mt-0.5">
-                Estimated value range
+              <div className="mt-0.5 text-[10.5px] text-content-subtle">
+                Estimated value at {usdCompact(inputsFdv)} FDV
               </div>
             </div>
 
-            {/* 2x2 Grid */}
+            {/* Two tiles, not four. Share and tokens are the working, and they
+                are what change when you edit an input. */}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-lg border border-hairline bg-surface-2 p-2">
-                <div className="text-[10.5px] text-content-subtle">Gross Value</div>
-                <div className="mono mt-0.5 font-display text-sm sm:text-[15px] font-bold text-content">
-                  {usdCompact(value.grossUsd)}
+                <div className="text-[10.5px] text-content-subtle">Your share</div>
+                <div className="mono mt-0.5 font-display text-sm font-bold text-gold-300 sm:text-[15px]">
+                  {value.sharePct === 0
+                    ? "0.0000%"
+                    : value.sharePct < 0.0001
+                      ? "<0.0001%"
+                      : `${value.sharePct.toFixed(4)}%`}
                 </div>
               </div>
 
               <div className="rounded-lg border border-hairline bg-surface-2 p-2">
-                <div className="text-[10.5px] text-content-subtle">Liquid at TGE</div>
-                <div className="mono mt-0.5 font-display text-sm sm:text-[15px] font-bold text-mint-400">
-                  {usdCompact(value.liquidAtTgeUsd)}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-hairline bg-surface-2 p-2">
-                <div className="text-[10.5px] text-content-subtle">Estimated Tokens</div>
-                <div className="mono mt-0.5 font-display text-sm sm:text-[15px] font-bold text-content">
-                  {Math.round(value.tokens).toLocaleString("en-US")}
-                </div>
-              </div>
-
-              <div className="rounded-lg border border-hairline bg-surface-2 p-2">
-                <div className="text-[10.5px] text-content-subtle">Your Share of Pool</div>
-                <div className="mono mt-0.5 font-display text-sm sm:text-[15px] font-bold text-gold-300">
-                  {value.sharePct === 0 ? "0.00%" : value.sharePct < 0.01 ? "<0.01%" : `${value.sharePct.toFixed(2)}%`}
+                <div className="text-[10.5px] text-content-subtle">Estimated tokens</div>
+                <div className="mono mt-0.5 font-display text-sm font-bold text-content sm:text-[15px]">
+                  {value.tokens.toLocaleString("en-US", { maximumFractionDigits: 2 })}
                 </div>
               </div>
             </div>
+
+            {/* ⚠️ The TGE number, in a sentence. As a bare tile beside "Gross
+                Value" it read as a second, contradictory answer; as a sentence
+                that names the unlock it explains itself. */}
+            {value.liquidAtTgeUsd > 0 && value.liquidAtTgeUsd < value.grossUsd && (
+              <p className="mt-2.5 text-[11px] leading-relaxed text-content-muted">
+                About{" "}
+                <span className="mono font-semibold text-mint-300">{usdExact(value.liquidAtTgeUsd)}</span>{" "}
+                of that is sellable at TGE — the rest unlocks later.
+              </p>
+            )}
           </div>
 
           {/* Bottom Action Footer: Disclaimer + Share Result Button */}

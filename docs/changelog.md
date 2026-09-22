@@ -5,6 +5,64 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-22 (117) — The calculator answers the way the Tools one did
+
+### Three money figures for one calculation
+
+The result box showed a **"$6.00 – $17.00"** range on top, then **"Gross Value
+$10.64"** and **"Liquid at TGE $2.66"** side by side. Three different amounts
+for a single calculation, none labelled well enough to say which was *the*
+answer - and the range was a fallback spread (0.6x to 1.6x of gross) with no
+relationship to the inputs at all.
+
+The Tools calculator this page replaced showed exactly three things - **Your
+share · Estimated tokens · Estimated value** - and it was legible. That model is
+restored. Recovered from `2d5afad^`, where it was deleted.
+
+The TGE figure is **not** deleted; it was useful, it just should not have been
+competing for the headline. It is now one explained sentence: *"About $2.66 of
+that is sellable at TGE — the rest unlocks later."*
+
+### ⚠️ Total Token Supply was missing, and it is load-bearing
+
+The input existed in the Tools version and was dropped in the move. Every figure
+in the box depends on it - token price is `FDV / supply` - so with the supply
+**hidden**, changing FDV moved the answer for a reason the reader could not see,
+and the "implied price" line appeared from nowhere. It was in the form state the
+whole time; only the field was missing.
+
+Restored, with 100M / 1B / 10B presets in the same pattern the FDV and
+allocation rows already use, and the implied price shown beside it so the two
+fields visibly tie together.
+
+### Exact dollars
+
+`usdCompact` rounds `$10.64` to `$11`. A small holding producing a small,
+*specific* number is the point of this tool, so the headline prints to the cent.
+
+⚠️ `en-US` is pinned. The recovered code used `toLocaleString(undefined, …)`,
+and `en-IN` groups digits differently from 10,000 up - an unpinned locale here
+is the React #418 hydration mismatch this project has already shipped once.
+
+### Verified against the screenshot, not against the labels
+
+Same inputs as the Tools calculator - 940 points, 9,400,000 pool, 30%
+allocation, 1,000,000,000 supply, $1.5B FDV - read back off the headline
+element itself:
+
+    $45,000.00  ·  Your share 0.0100%  ·  Estimated tokens 30,000
+
+Identical. ⚠️ A first pass "passed" while its evidence string showed `$1.50` -
+the regex had matched the implied price, the first `$x.xx` on the page. The
+assertion was sound and the detail was misleading, which is the shape of a check
+that would have hidden a wrong answer later.
+
+### Verification
+
+typecheck · **1254 tests** · lint (0 errors) · build green · 12/12 browser checks.
+
+---
+
 ## 2026-09-22 (116) — Points onto the rail, and a photo that fits whatever shape it is
 
 ### Points takes Premium's place on the desktop rail
