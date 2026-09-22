@@ -5,6 +5,55 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-22 (118) — 90 invisible hovers in light mode, and a disclosure that popped
+
+### ⚠️ The light theme's hover language did nothing
+
+Measured across the app: **90 hover states** paint
+`rgba(255, 255, 255, 0.02-0.10)`. On a `#eef1f6` page that is white on white -
+**no visible change at all**, on every card, row, menu item and icon button.
+
+The base classes (`bg-white/5` and friends) already had light overrides. The
+hover VARIANTS were deliberately skipped, on the reasoning that *"a hover tint
+should stay a tint"*. That reasoning is right and the conclusion was wrong: a
+tint has to be darker than the page to be a tint. They stay tints, flipped to
+the direction the theme needs, with the alpha ladder preserved so relative
+weights still read (a `/10` press is heavier than a `/5` hover).
+
+The **press** variants had the same blind spot, which meant a tap on a phone in
+light mode had no feedback whatsoever.
+
+Left alone on purpose: `/20` and `/70`, which sit **on imagery**, where white is
+correct in both themes.
+
+Measured after: light resolves to `rgba(16, 18, 27, 0.086)`; dark is untouched.
+
+### The Live Comparables Terminal appeared rather than opening
+
+It was `{showAdvanced && (...)}` - the panel existed in one frame and not the
+next, which reads as the page glitching rather than as something opening. A
+disclosure is the one place a reader has explicitly asked "show me more", so it
+is worth animating properly.
+
+`grid-rows: 0fr -> 1fr` animates a height nobody has to measure, and it is
+already the pattern the updates band's expanding rows use - so this is the
+site's existing motion language rather than a new one. The icon rotates and
+lifts, the chevron flips, and the whole thing now carries `aria-expanded` and
+`aria-controls`, which it did not before.
+
+Measured: collapsed height 0px, transition 500ms, opens to 991px, `aria-expanded`
+flips.
+
+### Verification
+
+typecheck · **1259 tests** · lint (0 errors) · build green · **16/16 browser
+checks**, run twice - once per theme.
+
+⚠️ `touch-parity.test.ts` caught one of my own additions: a `group-hover:scale-110`
+with no press twin, which is dead on a phone. Fixed before it shipped.
+
+---
+
 ## 2026-09-22 (117) — The calculator answers the way the Tools one did
 
 ### Three money figures for one calculation

@@ -1520,6 +1520,44 @@ html:not(.dark) .bg-white\/\[0\.04\] {
 /* The faintest step stays a tint: at 2% it is a wash behind content (table
    stripes, inset wells), not a card, so lifting it would be wrong. */
 html:not(.dark) .bg-white\/\[0\.02\] { background-color: rgba(16, 18, 27, 0.025); }
+
+/* ----------------------------------------------------------------
+   Hover tints, flipped for light
+   ----------------------------------------------------------------
+   ⚠️ The note above says hover variants are deliberately not caught because
+   "a hover tint should stay a tint". That reasoning is right and the
+   conclusion was wrong: a WHITE tint on a LIGHT page is invisible. Measured
+   across the app, **90 hover states** paint `rgba(255,255,255,0.02-0.10)` over
+   a #eef1f6 background and produce no visible change at all - every card,
+   row, menu item and icon button in the points UI among them.
+
+   So they stay tints, in the direction the theme needs: a dark wash on light,
+   exactly as the base classes above already do. The alpha ladder is preserved
+   so the relative weights still read (a /10 press is heavier than a /5 hover).
+
+   Kept out on purpose: `/20` and `/70` are strong white overlays used ON TOP
+   OF IMAGERY, where white is correct in both themes. */
+html:not(.dark) .hover\:bg-white\/\[0\.02\]:hover,
+html:not(.dark) .group:hover .group-hover\:bg-white\/\[0\.02\] { background-color: rgba(16, 18, 27, 0.028); }
+html:not(.dark) .hover\:bg-white\/\[0\.03\]:hover,
+html:not(.dark) .hover\:bg-white\/\[0\.035\]:hover,
+html:not(.dark) .group:hover .group-hover\:bg-white\/\[0\.03\] { background-color: rgba(16, 18, 27, 0.04); }
+html:not(.dark) .hover\:bg-white\/\[0\.04\]:hover,
+html:not(.dark) .hover\:bg-white\/\[0\.05\]:hover,
+html:not(.dark) .hover\:bg-white\/5:hover,
+html:not(.dark) .group:hover .group-hover\:bg-white\/5,
+html:not(.dark) .group:hover .group-hover\:bg-white\/\[0\.04\] { background-color: rgba(16, 18, 27, 0.055); }
+html:not(.dark) .hover\:bg-white\/\[0\.06\]:hover,
+html:not(.dark) .hover\:bg-white\/\[0\.07\]:hover,
+html:not(.dark) .hover\:bg-white\/\[0\.08\]:hover { background-color: rgba(16, 18, 27, 0.07); }
+html:not(.dark) .hover\:bg-white\/10:hover,
+html:not(.dark) .group:hover .group-hover\:bg-white\/10 { background-color: rgba(16, 18, 27, 0.085); }
+
+/* The same blind spot on the ACTIVE (press) variants - a tap on a phone in
+   light mode had no feedback at all for the same reason. */
+html:not(.dark) .active\:bg-white\/5:active,
+html:not(.dark) .active\:bg-white\/\[0\.04\]:active { background-color: rgba(16, 18, 27, 0.07); }
+html:not(.dark) .active\:bg-white\/10:active { background-color: rgba(16, 18, 27, 0.1); }
 /* /10 is the heavier step - inputs, pressed states, dividers. Keep it a tint so
    it still reads as inset, just neutral rather than muddy. */
 html:not(.dark) .bg-white\/10 { background-color: rgba(16, 18, 27, 0.055); }

@@ -505,13 +505,33 @@ export function PointsClient() {
 
       {/* ── 6. Advanced Market Intelligence Terminal (Collapsible) ── */}
       <div className="pt-4 border-t border-hairline">
+        {/* ⚠️ The disclosure had NO transition: the panel appeared and vanished
+            between two frames, which reads as the page glitching rather than
+            as something opening. A disclosure is the one place a reader is
+            explicitly asking "show me more", so it is worth animating well.
+
+            The grid-rows 0fr -> 1fr trick animates a height nobody has to
+            measure, and it is already the pattern used by the band's expanding
+            rows - so this is the site's existing motion language rather than a
+            new one. */}
         <button
           type="button"
           onClick={() => setShowAdvanced(!showAdvanced)}
-          className="flex w-full items-center justify-between rounded-2xl border border-hairline bg-surface-2 p-4 text-left transition-colors hover:border-gold-500/30"
+          aria-expanded={showAdvanced}
+          aria-controls="points-advanced"
+          className={cn(
+            "group flex w-full items-center justify-between rounded-2xl border bg-surface-2 p-4 text-left",
+            "transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevate active:-translate-y-0.5",
+            showAdvanced ? "border-gold-500/40" : "border-hairline hover:border-gold-500/30"
+          )}
         >
           <div className="flex items-center gap-2.5">
-            <span className="grid h-7 w-7 place-items-center rounded-lg bg-gold-500/10 text-gold-300">
+            <span
+              className={cn(
+                "grid h-7 w-7 place-items-center rounded-lg text-gold-300 transition-all duration-300",
+                showAdvanced ? "rotate-6 scale-110 bg-gold-500/20" : "bg-gold-500/10 group-hover:scale-110 group-active:scale-110"
+              )}
+            >
               <Terminal className="h-4 w-4" />
             </span>
             <div>
@@ -524,12 +544,23 @@ export function PointsClient() {
             </div>
           </div>
           <div className="flex items-center gap-2 text-xs font-semibold text-gold-400">
-            <span>{showAdvanced ? "Hide Terminal" : "Open Terminal"}</span>
-            {showAdvanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            <span className="hidden sm:inline">{showAdvanced ? "Hide Terminal" : "Open Terminal"}</span>
+            <ChevronDown
+              className={cn("h-4 w-4 transition-transform duration-300", showAdvanced && "rotate-180")}
+            />
           </div>
         </button>
 
-        {showAdvanced && (
+        {/* Height animates from 0fr to 1fr; `min-h-0` on the inner element is
+            what lets an overflow-hidden grid child actually collapse. */}
+        <div
+          id="points-advanced"
+          className={cn(
+            "grid transition-all duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]",
+            showAdvanced ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"
+          )}
+        >
+          <div className="min-h-0 overflow-hidden">
           <div className="mt-6 space-y-8">
             <div id="points-comparables" className="scroll-mt-32">
               <CompsEngine
@@ -563,7 +594,8 @@ export function PointsClient() {
               />
             </div>
           </div>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   );
