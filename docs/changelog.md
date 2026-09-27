@@ -5,6 +5,56 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-27 (125) — Chat + DMs: voice messages, link previews, "typing…"
+
+Verified in a real browser with Chrome's fake microphone: a real recording is
+captured, uploaded, sent and rendered as a player. That covers mobile and
+desktop, 23/23 checks. New unit tests: `chat-features-v3.test.ts`, 17.
+
+- **Voice messages.** In the "+" tray. They're available to everyone in DMs,
+  and to staff in the room, which is the same rule as photos.
+  - The recorder bar has a live level meter and a timer, and stops by itself
+    at 60s. Discard throws the recording away and releases the mic.
+  - The player has a waveform, supports seeking (click, or the arrow keys),
+    and only one note plays at a time. It uses `preload="none"`, so nothing
+    downloads until someone presses play.
+  - `POST /api/media/voice`:
+    - rate-limited on two keys;
+    - rejects an oversized body before reading it;
+    - checks the file's **bytes**, not its declared type (WebM, Ogg or M4A;
+      an AVIF image fails the brand check).
+  - **Stored in Supabase Storage only, never inline.** A base64 note in a
+    message row would ride every thread response (cost-check trap 4). Without
+    Storage the feature says so and stores nothing.
+  - The length rides in the URL fragment (`#d=12.3`), because Chrome writes
+    WebM without a duration.
+  - Inbox, push notification and quote all read "🎤 Voice message"
+    (`mediaLabel`).
+- **Link previews.** A card under any message with a link: site, title and
+  description.
+  - **Text only.** A third-party image would make every reader's browser fetch
+    it, leaking the room's IPs, the same reason `chatMediaUrl` exists.
+  - `GET /api/link-preview` is signed-in only and has its own `linkPreview`
+    bucket (30/min, per user and per IP). Successes are cached at the edge for
+    24h, and the reduced value is cached with `unstable_cache`.
+  - Cards only fetch once a message is on screen, with one fetch per URL per
+    page.
+  - **SSRF-safe fetch** (`core/net/safe-fetch.ts`):
+    - http(s) on the default ports only;
+    - every resolved address is checked **at connect time** through the
+      socket's own `lookup`, so DNS rebinding can't swap in 127.0.0.1;
+    - redirects are followed by hand and re-checked at every hop;
+    - 4s timeout, 256 KB cap, HTML only.
+- **"typing…" in DMs.** Shown in the thread header and as a bubble.
+  - Sent browser-to-browser on a per-conversation topic (`dmChannel`), with no
+    server round trip and nothing on the wire but a user id.
+  - One ping per 2.5s burst; clears itself after 4s, or when their message
+    arrives.
+  - Absent when realtime isn't configured.
+
+Route table: `+ƒ /api/link-preview`, `+ƒ /api/media/voice`. No page changed.
+0 data-cache failures.
+
 ## 2026-09-27 (124) — Chat + DMs: full-screen, modern, and the two DM bugs fixed
 
 Owner request, in three parts, all verified in a real browser against the real

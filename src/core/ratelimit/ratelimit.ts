@@ -61,6 +61,10 @@ const limiters = {
   // room can never throttle the composer.
   chatPresence: make(30, 60, "chat_presence"), // 30/min per user - heartbeat only
   dm: make(20, 60, "dm"), // 20 direct messages/min per user
+  // Link previews (api/link-preview). Only an edge-cache MISS reaches the
+  // limiter, but opening a room full of links can fire a burst of those, and
+  // `comment` (8/min) would silently drop most of them.
+  linkPreview: make(30, 60, "link_preview"), // 30/min per user and per IP
   notifications: make(60, 60, "notifications"), // 60/min per user - bell polling + mark-read
   contact: make(5, 60, "contact"), // 5/min/IP - contact form (own bucket so /track bursts can't 429 it)
   ai: make(15, 60, "ai"), // 15/min per user - XYZ AI assistant turns (keyed by user id)

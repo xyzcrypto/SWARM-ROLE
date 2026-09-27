@@ -13,7 +13,11 @@ import { GifPicker } from "@/components/GifPicker";
 import { timeAgo } from "@/lib/news";
 import { useRealtime } from "@/lib/useRealtime";
 import { useOnlineSet } from "@/lib/useUserOnline";
-import { chatMediaUrl } from "@/lib/chat-media";
+import { chatAudioUrl, chatMediaUrl, mediaLabel } from "@modules/community/lib/chat-media";
+import { VoiceNote, VoiceRecorder, uploadVoice, VoiceIcon } from "@modules/community/components/Voice";
+import { LinkPreviewCard } from "@modules/community/components/LinkPreviewCard";
+import { joinSharedChannel, type SharedChannel } from "@/lib/sharedChannel";
+import { dmChannel } from "@/lib/realtime-channels";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
 import { clockTime, dayLabel, isReadBy, newestRead } from "@/lib/chat-time";
@@ -99,7 +103,7 @@ function ReadTicks({ read, pending }: { read: boolean; pending?: boolean }) {
  */
 function inboxPreview(lastBody: string): string {
   if (!lastBody) return "New conversation";
-  return chatMediaUrl(lastBody) ? "\u{1F4F7} Photo" : lastBody;
+  return mediaLabel(lastBody) ?? lastBody;
 }
 
 /**
@@ -174,7 +178,10 @@ function DmComposer({
   invalid,
   draftKey,
   focusTick,
+  onTyping,
 }: {
+  /** Tells the other side "typing..." - throttled by the caller. */
+  onTyping?: () => void;
   onSend: (body: string) => Promise<boolean>;
   sending: boolean;
   touchUi: boolean;
@@ -246,7 +253,7 @@ function DmComposer({
         <textarea
           ref={composerRef}
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => { setDraft(e.target.value); if (e.target.value) onTyping?.(); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !touchUi) { e.preventDefault(); void send(draft); } }}
           placeholder={touchUi ? "Write a message…" : "Write a message… (Enter to send)"}
           aria-label="Write a message"
@@ -526,6 +533,17 @@ function ConfirmDialog({
       </div>
     </div>,
     document.body
+  );
+}
+
+/** Three dots that pulse in turn - the universal "typing" signal. */
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <span key={i} className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-mint-400" style={{ animationDelay: `${i * 160}ms` }} />
+      ))}
+    </span>
   );
 }
 
@@ -978,6 +996,44 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     return () => document.removeEventListener("keydown", onKey);
   }, [threadMenu]);
   const [focusTick, setFocusTick] = useState(0);
+  const [recording, setRecording] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+
+  // "typing..." - the two browsers tell each other directly on a
+  // per-conversation topic (dmChannel). No server round trip, no database
+  // write, nothing on the wire but a user id: typing is ephemeral, so it has
+  // no business costing a function invocation per keystroke burst. Without
+  // realtime configured it is simply absent.
+  const [theyTyping, setTheyTyping] = useState(false);
+  const typingCh = useRef<SharedChannel | null>(null);
+  const lastTypingSent = useRef(0);
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) return;
+    const ch = joinSharedChannel(url, key, dmChannel(id));
+    typingCh.current = ch;
+    let clear = 0;
+    const off = ch.onBroadcast("typing", (p) => {
+      const from = (p as { userId?: unknown } | null)?.userId;
+      if (typeof from !== "string" || from === meId) return;
+      setTheyTyping(true);
+      window.clearTimeout(clear);
+      clear = window.setTimeout(() => setTheyTyping(false), 4000);
+    });
+    return () => {
+      off();
+      ch.release();
+      typingCh.current = null;
+      window.clearTimeout(clear);
+    };
+  }, [id, meId]);
+  const sendTyping = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTypingSent.current < 2500) return; // one ping per burst, not per key
+    lastTypingSent.current = now;
+    typingCh.current?.send("typing", { userId: meId });
+  }, [meId]);
   const [gifOpen, setGifOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -1111,6 +1167,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     setPrevLen(messages.length);
     const last = messages[messages.length - 1];
     // Your own message always wins - sending is an explicit "take me there".
+    // Their message arriving IS the end of their typing.
+    if (grew && last && !last.mine) setTheyTyping(false);
     if (grew && last?.mine) setStick(true);
     else if (grew && !stick) setHasNew(true);
   }
@@ -1398,7 +1456,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
   // "3 of 7" from the newest end, which is where people start looking.
   const query = searchQ.trim().toLowerCase();
   const matches = query
-    ? messages.filter((m) => !m.deleted && !chatMediaUrl(m.body) && m.body.toLowerCase().includes(query)).map((m) => m.id)
+    ? messages.filter((m) => !m.deleted && !mediaLabel(m.body) && m.body.toLowerCase().includes(query)).map((m) => m.id)
     : [];
   const matchSet = new Set(matches);
   const goToMatch = (dir: -1 | 1) => {
@@ -1453,7 +1511,10 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
   });
 
   const renderMessage = (m: Msg, i: number, firstOfDay: boolean) => {
-    const media = chatMediaUrl(m.body);
+    const voice = chatAudioUrl(m.body);
+    // "media" gates Copy / Forward / Translate / Edit: none of them mean
+    // anything for a photo or a voice note.
+    const media = chatMediaUrl(m.body) ?? voice?.src ?? null;
     // Consecutive messages from the same side breathe less, so a burst reads
     // as one turn rather than a stack of separate cards.
     const grouped = !firstOfDay && i > 0 && messages[i - 1]!.mine === m.mine;
@@ -1589,6 +1650,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                       <button type="button" onClick={() => void saveEdit(m.id)} className="font-semibold text-gold-200 hover:text-gold-100">Save</button>
                     </div>
                   </div>
+                ) : voice ? (
+                  <VoiceNote src={voice.src} duration={voice.duration} mine={m.mine} />
                 ) : media ? (
                   // Tap to open full-screen - see the note in ChatClient.
                   <ImageLightbox src={media} alt="shared media" className="inline-block">
@@ -1598,7 +1661,10 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                 ) : (
                   // Same renderer as the community room, so the two cannot
                   // drift: mentions link, links are links.
-                  <MessageText text={m.body} className="whitespace-pre-wrap break-words" />
+                  <>
+                    <MessageText text={m.body} className="whitespace-pre-wrap break-words" />
+                    <LinkPreviewCard text={m.body} />
+                  </>
                 )}
                 {/* The translation sits under the original rather than
                     replacing it - you almost always want to compare. */}
@@ -1689,7 +1755,12 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           )}
           {/* Online now, else when they were last here, else just the handle.
               `now` ticks every 30s, so "last seen 3 min ago" ages by itself. */}
-          {otherOnline ? (
+          {theyTyping ? (
+            <p className="flex items-center gap-1 text-[12px] font-medium text-mint-500 dark:text-mint-300" aria-live="polite">
+              typing
+              <TypingDots />
+            </p>
+          ) : otherOnline ? (
             <p className="flex items-center gap-1 text-[12px] font-medium text-mint-500 dark:text-mint-300">
               <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-mint-500 dark:bg-mint-400" /> online
             </p>
@@ -1811,7 +1882,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
         >
           <Pin className="h-3.5 w-3.5 shrink-0 text-gold-300" aria-hidden />
           <span className="mono shrink-0 text-[10px] uppercase tracking-wider text-gold-300/80">Pinned</span>
-          <span className="truncate text-[12px] text-zinc-300">{chatMediaUrl(pinned.body) ? "\u{1F4F7} Photo" : pinned.body}</span>
+          <span className="truncate text-[12px] text-zinc-300">{mediaLabel(pinned.body) ?? pinned.body}</span>
           <span
             role="button"
             tabIndex={0}
@@ -1863,6 +1934,13 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
               {d.items.map(({ m, i }, k) => renderMessage(m, i, k === 0))}
             </section>
           ))
+        )}
+        {theyTyping && loaded && (
+          <div className="app-fade-in mt-3 flex justify-start" aria-hidden>
+            <span className="inline-flex items-center gap-1 rounded-[20px] rounded-bl-md bg-white/[0.06] px-4 py-3 ring-1 ring-white/10">
+              <TypingDots />
+            </span>
+          </div>
         )}
       </div>
 
@@ -1965,17 +2043,34 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
             </button>
           </div>
         )}
-        <div className="flex items-end gap-2">
+        {recording && (
+          <div className="flex items-end gap-2">
+            <VoiceRecorder
+              onCancel={() => setRecording(false)}
+              onSend={async (blob, secs) => {
+                setRecording(false);
+                setVoiceBusy(true);
+                const r = await uploadVoice(blob, secs);
+                setVoiceBusy(false);
+                if (r.body) await postMessage(r.body);
+                else setErr(r.error ?? "Couldn't send the voice message.");
+              }}
+            />
+          </div>
+        )}
+        {/* Hidden, not unmounted, while recording: the composer keeps its draft. */}
+        <div className={cn("flex items-end gap-2", recording && "hidden")}>
           <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }} />
           <AttachTray
             items={[
               { key: "photo", label: "Photo", icon: ImagePlus, busy: photoUploading, onSelect: () => photoInputRef.current?.click() },
               ...(gifEnabled ? [{ key: "gif", label: "GIF", icon: Sticker, onSelect: () => setGifOpen(true) }] : []),
+              { key: "voice", label: "Voice message", icon: VoiceIcon, busy: voiceBusy, onSelect: () => setRecording(true) },
             ]}
           >
             <AnimatePresence>{gifOpen && <GifPicker onPick={sendGif} onClose={() => setGifOpen(false)} />}</AnimatePresence>
           </AttachTray>
-          <DmComposer onSend={postMessage} sending={sending} touchUi={touchUi} invalid={!!err} draftKey={id} focusTick={focusTick} />
+          <DmComposer onSend={postMessage} sending={sending} touchUi={touchUi} invalid={!!err} draftKey={id} focusTick={focusTick} onTyping={sendTyping} />
         </div>
       </div>
       </>
