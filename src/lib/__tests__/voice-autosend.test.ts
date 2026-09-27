@@ -33,7 +33,7 @@ describe("MicButton forwards the end-of-dictation signal", () => {
 
 describe("the DM composer sends what you dictated", () => {
   it("sends on end", () => {
-    expect(dm).toMatch(/onEnd=\{\(\) => \{\s*const text = draftRef\.current\.trim\(\);\s*if \(text && !sending\) void postMessage\(text, true\);/);
+    expect(dm).toMatch(/onEnd=\{\(\) => \{\s*const text = draftRef\.current\.trim\(\);\s*if \(text && !sending\) void send\(text\);/);
   });
 
   it("reads the draft from a ref, not from state", () => {

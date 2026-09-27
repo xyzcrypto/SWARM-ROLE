@@ -5,6 +5,62 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-27 (123) — PR 3: typing no longer freezes chat and DMs; less layout work site-wide
+
+Every fix was measured before and after in a real browser (production build;
+the real `ChatClient` / `MessagesClient` with 150 messages from fixtures).
+"4× throttle" is Chrome's CPU throttling, roughly a mid-range phone.
+
+| | Before | After |
+|---|---|---|
+| DM, main-thread work per keystroke | 100ms (≈400ms at 4×) | **13ms** (≈56ms) |
+| Community room, per keystroke | 58ms (230ms at 4×) | **22ms** (~8ms of it typing, the rest the page's ambient animation) |
+| Homepage, layouts forced by 150 DOM inserts | 188 | **47** |
+
+- **Date formatting built a new `Intl.DateTimeFormat` on every call.**
+  `clockTime`/`dayLabel` (`shared/utils/chat-time.ts`) and
+  `formatDate`/`formatDateWithDay`/`formatDateTime` (`shared/utils/utils.ts`)
+  called `toLocale*String`, which constructs a formatter each time. At about
+  4 per message per render, that was **58ms of a 100ms DM keystroke**. They
+  now reuse formatters built once.
+  - The reader's timezone is applied by shifting the instant by its own
+    `getTimezoneOffset()`, not by caching a local-zone formatter. A cached one
+    would freeze the zone it was built in; `dm-receipts.test.ts` caught exactly
+    that in the first version.
+  - An invalid date still reads "Invalid Date". `Intl#format` throws where
+    `toLocale*String` did not.
+  - `chat-time-format.test.ts` compares every output against the old
+    implementation over 3,000 random dates. It passes in UTC, IST, Los Angeles,
+    Chatham (+12:45) and Lord Howe (half-hour DST).
+- **Typing re-rendered the whole conversation.** The draft lived in the
+  component that renders every message, so each key re-rendered all rows.
+  It now lives in `RoomComposer` (room) and `DmComposer` (DM). Behaviour is
+  unchanged: the draft is cleared optimistically and given back on failure
+  unless you've started typing again, and media sends never touch it. The
+  senders now return whether they succeeded. Browser probes: room 77/77,
+  DM 29/29.
+- **`PauseOffscreenAnimations` forced a layout on every DOM change.** It
+  re-ran `querySelectorAll` plus an `offsetHeight` read on each mutation
+  anywhere in the body, and never released removed sections. Now:
+  - mutations are coalesced into at most one scan per 250ms;
+  - elements already watched are skipped;
+  - detached elements are unobserved.
+  Verified that a section added after load is still paused, and un-pauses when
+  scrolled to.
+- **`/profile` and `/saved` got a `loading.tsx`.** Both are force-dynamic and
+  had no loading boundary, so a tap showed nothing until the server answered.
+  `perf-pr3.test.ts` now requires one on the path of every force-dynamic page.
+
+**Measured and deliberately not changed:**
+- The page idles at about 13–15% main thread (headless, software raster),
+  nearly all of it the always-on brand animations.
+- Individually, the navbar robot's SVG blink/antenna (the only thing forcing a
+  **layout every frame**, ~1.5 points), the navbar AI pulse (~1 point) and the
+  launcher glow (~1 point) are each small, and all three are recorded **owner
+  decisions**. Left alone.
+- Lenis smooth scroll: no measurable difference on or off. Left alone.
+- `.surface` backdrop blur: removing it changed nothing. Left alone.
+
 ## 2026-09-27 (122) — DMs: the composer and appearance control are the room's
 
 PR 2, follow-up. `MessagesClient.tsx` only.

@@ -35,6 +35,8 @@ import { useEffect } from "react";
 
 /** Un-pause this far outside the viewport, so nothing is ever seen frozen. */
 const MARGIN = "100% 0px";
+/** At most one rescan per this window, however many mutations land in it. */
+const SCAN_MS = 250;
 
 export function PauseOffscreenAnimations() {
   useEffect(() => {
@@ -49,22 +51,50 @@ export function PauseOffscreenAnimations() {
 
     // Observe the page's own top-level blocks. `section` covers the marketing
     // pages; the direct children of `main` cover app pages that do not use it.
-    const observe = () => {
-      const targets = new Set<Element>();
+    //
+    // ⚠️ PR 3: this used to run on EVERY DOM mutation anywhere in the body -
+    // a fresh `querySelectorAll` plus an `offsetHeight` read on every match,
+    // which forces a synchronous layout, on every React commit that added or
+    // removed a node (a chat message, a streamed AI token's wrapper, a menu
+    // opening). It also never let go of a section once it left the page, so a
+    // long session grew the observer's list with detached nodes.
+    //
+    // Now: mutations are coalesced into one scan at most every SCAN_MS, an
+    // element already watched is skipped (so its height is not re-read), and
+    // detached ones are released. Pausing a section that appeared 250ms ago is
+    // no different to the reader - `MARGIN` already keeps it running a full
+    // viewport before it can be seen.
+    const watched = new Set<Element>();
+    const scan = () => {
+      timer = 0;
+      for (const el of watched) {
+        if (!el.isConnected) {
+          io.unobserve(el);
+          watched.delete(el);
+        }
+      }
       document.querySelectorAll("main > *, section").forEach((el) => {
+        if (watched.has(el)) return;
         // Skip anything tiny - the bookkeeping would cost more than it saves.
-        if ((el as HTMLElement).offsetHeight > 120) targets.add(el);
+        // Re-checked on later scans, so a block that grows gets picked up.
+        if ((el as HTMLElement).offsetHeight > 120) {
+          watched.add(el);
+          io.observe(el);
+        }
       });
-      targets.forEach((t) => io.observe(t));
     };
-    observe();
+    let timer = 0;
+    scan();
 
     // Client-rendered sections arrive after mount (feeds, lists, lazy blocks),
     // so pick those up too rather than only what existed on the first frame.
-    const mo = new MutationObserver(() => observe());
+    const mo = new MutationObserver(() => {
+      if (!timer) timer = window.setTimeout(scan, SCAN_MS);
+    });
     mo.observe(document.body, { childList: true, subtree: true });
 
     return () => {
+      window.clearTimeout(timer);
       io.disconnect();
       mo.disconnect();
     };
