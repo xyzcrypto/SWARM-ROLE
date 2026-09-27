@@ -138,6 +138,117 @@ const MENU_WIDTH = 176;
  *   does not exist on a touch device, which is where most of these messages are
  *   read. `group-hover` raises the opacity on a mouse; a finger just taps it.
  */
+/**
+ * The DM composer, as its own component - PR 3.
+ *
+ * ⚠️ The draft lives HERE, not in `Thread`, and that is the whole point. While
+ * it lived in `Thread`, every keystroke re-rendered every message in the
+ * conversation: measured at 100ms of main-thread work per key in a
+ * 150-message thread on desktop, 400ms+ with the CPU throttled to a mid-range
+ * phone. Typing now re-renders only this component.
+ *
+ * `onSend` resolves whether the server accepted the message. The draft is
+ * cleared optimistically and given back on failure - unless the member has
+ * already started typing something new, which is never overwritten.
+ */
+function DmComposer({
+  onSend,
+  sending,
+  touchUi,
+  invalid,
+}: {
+  onSend: (body: string) => Promise<boolean>;
+  sending: boolean;
+  touchUi: boolean;
+  invalid: boolean;
+}) {
+  const [draft, setDraft] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  useAutoGrow(composerRef, DM_COMPOSER_MAX_H, [draft, touchUi]);
+  // Mirror of `draft` for the dictation auto-send path - see the MicButton
+  // below for why an effect alone is not enough. This effect covers every
+  // other way the composer changes; the mic handler writes it synchronously.
+  const draftRef = useRef("");
+  useEffect(() => { draftRef.current = draft; }, [draft]);
+
+  const send = async (raw: string) => {
+    const body = raw.trim();
+    if (!body || sending) return;
+    setDraft("");
+    draftRef.current = "";
+    const ok = await onSend(body);
+    if (!ok) setDraft((d) => (d.trim() ? d : body));
+  };
+
+  return (
+    <>
+      <div className="relative flex-1">
+        <textarea
+          ref={composerRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !touchUi) { e.preventDefault(); void send(draft); } }}
+          placeholder={touchUi ? "Write a message…" : "Write a message… (Enter to send)"}
+          aria-label="Write a message"
+          aria-invalid={invalid || undefined}
+          rows={1}
+          maxLength={2000}
+          // Identical to the room's composer. `text-base` below `sm` is
+          // load-bearing: iOS zooms the page into any input under 16px.
+          className="block min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
+        />
+        <button type="button" onClick={() => setPickerOpen((v) => !v)} className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 transition-colors hover:text-gold-200" aria-label="Emoji">
+          <Smile className="h-5 w-5" />
+        </button>
+        {/* Dictation now sends when you stop talking.
+            `draftRef` is not optional here. `onEnd` fires from a recognizer
+            callback that can run in the SAME task as the last `onresult`,
+            before React has committed - so reading `draft` there would send
+            the composer's contents from before the transcript landed, i.e.
+            an empty string on a single-utterance dictation. The ref is
+            written synchronously below and re-synced by an effect for every
+            other path into the composer (typing, emoji, a cleared draft).
+            Same reasoning, same shape as the XYZ AI panel.
+
+            Tapping the mic again mid-sentence still just stops and leaves
+            the text to edit: `toggle()` calls `stop()`, which finalises,
+            and `onEnd` then sends what was finalised. Discarding is
+            `cancel()`, which suppresses `onEnd` entirely. */}
+        <MicButton
+          continuous
+          size="sm"
+          className="absolute bottom-1.5 right-10 !ring-0"
+          onText={(t) => {
+            const next = (draftRef.current ? `${draftRef.current} ${t}` : t).slice(0, 2000);
+            draftRef.current = next;
+            setDraft(next);
+          }}
+          onEnd={() => {
+            const text = draftRef.current.trim();
+            if (text && !sending) void send(text);
+          }}
+        />
+        <AnimatePresence>{pickerOpen && <EmojiPicker onPick={(e) => setDraft((b) => (b + e).slice(0, 2000))} onClose={() => setPickerOpen(false)} />}</AnimatePresence>
+      </div>
+      {/* The room's send button, including the press. `whileTap` is a
+          constant, not derived from a client-only signal, so it renders
+          the same attributes on the server and the client. */}
+      <motion.button
+        type="button"
+        onClick={() => void send(draft)}
+        disabled={!draft.trim() || sending}
+        whileTap={{ scale: 0.9 }}
+        aria-label="Send message"
+        className="btn-primary inline-flex h-11 shrink-0 items-center gap-1 !rounded-2xl !px-2.5 disabled:opacity-50"
+      >
+        {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
+        <span className="relative z-10 hidden text-[13px] font-semibold !text-white sm:inline">Send</span>
+      </motion.button>
+    </>
+  );
+}
+
 function MessageActions({
   open,
   onToggle,
@@ -572,8 +683,6 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
   // Day separators and clock times must read in the viewer's timezone, but only
   // once hydrated - see chat-time.
   const hydrated = useHydrated();
-  const [draft, setDraft] = useState("");
-  const composerRef = useRef<HTMLTextAreaElement | null>(null);
   /**
    * A phone keyboard has no Shift key. With Enter always sending - which is
    * what this composer did - a member on a phone could not type a line break
@@ -583,7 +692,6 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
    * hydration mismatch.
    */
   const touchUi = useMediaQuery("(hover: none)");
-  useAutoGrow(composerRef, DM_COMPOSER_MAX_H, [draft, touchUi]);
 
   /**
    * The same appearance as the Community room - one stored choice, so a member
@@ -604,13 +712,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     obs.observe(html, { attributes: true, attributeFilter: ["class"] });
     return () => obs.disconnect();
   }, []);
-  // Mirror of `draft` for the dictation auto-send path - see the MicButton
-  // below for why an effect alone is not enough. This effect covers every
-  // other way the composer changes; the mic handler writes it synchronously.
-  const draftRef = useRef("");
-  useEffect(() => { draftRef.current = draft; }, [draft]);
   const [sending, setSending] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -785,10 +887,12 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     }
   };
 
-  // Send any body (text, or a media URL). Optimistic + reconcile.
-  const postMessage = async (raw: string, fromDraft = false, opts?: { forwarded?: boolean }) => {
+  // Send any body (text, or a media URL). Optimistic + reconcile. Resolves
+  // `true` once the server has it, so the composer - which owns the draft -
+  // knows whether to give the text back.
+  const postMessage = async (raw: string, opts?: { forwarded?: boolean }): Promise<boolean> => {
     const body = raw.trim();
-    if (!body || sending) return;
+    if (!body || sending) return false;
     setSending(true);
     setErr(null);
     // Captured before the optimistic row so a reply cleared mid-flight cannot
@@ -806,7 +910,6 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
         replyTo: parent ? { id: parent.id, body: parent.body, deleted: !!parent.deleted, mine: parent.mine } : null,
       },
     ]);
-    if (fromDraft) setDraft("");
     setReplyTo(null);
     try {
       const r = await fetch(`/api/dm/${id}`, {
@@ -818,20 +921,21 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
       if (r.ok && j?.message) {
         setMessages((m) => { const without = m.filter((x) => x.id !== tempId); return without.some((x) => x.id === j.message.id) ? without : [...without, j.message]; });
         onSent();
+        return true;
       } else {
         setMessages((m) => m.filter((x) => x.id !== tempId));
-        if (fromDraft) setDraft((d) => (d.trim() ? d : body));
         // The rollback was already correct; the silence was not. A send can fail
         // because the recipient blocked you, because their DM privacy changed
         // since the thread was opened, or because you hit the rate limit - and
         // all three looked identical: the message vanishes, the draft comes
         // back, nothing said why. The server has words for each of them.
         setErr(j?.error ?? "Couldn't send that message.");
+        return false;
       }
     } catch {
       setMessages((m) => m.filter((x) => x.id !== tempId));
-      if (fromDraft) setDraft((d) => (d.trim() ? d : body));
       setErr("Couldn't send that message. Check your connection.");
+      return false;
     } finally { setSending(false); }
   };
 
@@ -1375,68 +1479,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           <button type="button" onClick={() => photoInputRef.current?.click()} disabled={photoUploading} className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] text-zinc-400 hover:border-gold-500/40 hover:text-gold-200 disabled:opacity-50 dark:border-white/10 dark:bg-ink-800/60" aria-label="Share a photo">
             {photoUploading ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ImagePlus className="h-[18px] w-[18px]" />}
           </button>
-          <div className="relative flex-1">
-            <textarea
-              ref={composerRef}
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !touchUi) { e.preventDefault(); void postMessage(draft, true); } }}
-              placeholder={touchUi ? "Write a message…" : "Write a message… (Enter to send)"}
-              aria-label="Write a message"
-              aria-invalid={err ? true : undefined}
-              rows={1}
-              maxLength={2000}
-              // Identical to the room's composer. `text-base` below `sm` is
-              // load-bearing: iOS zooms the page into any input under 16px.
-              className="block min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
-            />
-            <button type="button" onClick={() => setPickerOpen((v) => !v)} className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 transition-colors hover:text-gold-200" aria-label="Emoji">
-              <Smile className="h-5 w-5" />
-            </button>
-            {/* Dictation now sends when you stop talking.
-                `draftRef` is not optional here. `onEnd` fires from a recognizer
-                callback that can run in the SAME task as the last `onresult`,
-                before React has committed - so reading `draft` there would send
-                the composer's contents from before the transcript landed, i.e.
-                an empty string on a single-utterance dictation. The ref is
-                written synchronously below and re-synced by an effect for every
-                other path into the composer (typing, emoji, a cleared draft).
-                Same reasoning, same shape as the XYZ AI panel.
-
-                Tapping the mic again mid-sentence still just stops and leaves
-                the text to edit: `toggle()` calls `stop()`, which finalises,
-                and `onEnd` then sends what was finalised. Discarding is
-                `cancel()`, which suppresses `onEnd` entirely. */}
-            <MicButton
-              continuous
-              size="sm"
-              className="absolute bottom-1.5 right-10 !ring-0"
-              onText={(t) => {
-                const next = (draftRef.current ? `${draftRef.current} ${t}` : t).slice(0, 2000);
-                draftRef.current = next;
-                setDraft(next);
-              }}
-              onEnd={() => {
-                const text = draftRef.current.trim();
-                if (text && !sending) void postMessage(text, true);
-              }}
-            />
-            <AnimatePresence>{pickerOpen && <EmojiPicker onPick={(e) => setDraft((b) => (b + e).slice(0, 2000))} onClose={() => setPickerOpen(false)} />}</AnimatePresence>
-          </div>
-          {/* The room's send button, including the press. `whileTap` is a
-              constant, not derived from a client-only signal, so it renders
-              the same attributes on the server and the client. */}
-          <motion.button
-            type="button"
-            onClick={() => void postMessage(draft, true)}
-            disabled={!draft.trim() || sending}
-            whileTap={{ scale: 0.9 }}
-            aria-label="Send message"
-            className="btn-primary inline-flex h-11 shrink-0 items-center gap-1 !rounded-2xl !px-2.5 disabled:opacity-50"
-          >
-            {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
-            <span className="relative z-10 hidden text-[13px] font-semibold !text-white sm:inline">Send</span>
-          </motion.button>
+          <DmComposer onSend={postMessage} sending={sending} touchUi={touchUi} invalid={!!err} />
         </div>
       </div>
       </>

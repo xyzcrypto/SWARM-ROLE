@@ -29,34 +29,31 @@ export function readingTime(text: string): number {
 // means "the viewer's day" - the chat's Today/Yesterday separators - the local
 // timezone is correct and the fix is to format it after hydration instead.
 // (`DashboardClient` already pinned UTC for exactly this reason.)
+// Built once: `toLocaleDateString` constructs a new Intl.DateTimeFormat per
+// call, which is the expensive part, and these run once per row in lists.
+// Same strings - see chat-time-format.test.ts.
+const DATE_FMT = new Intl.DateTimeFormat("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+const DATE_DAY_FMT = new Intl.DateTimeFormat("en-US", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+const DATE_TIME_FMT = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "UTC" });
+// ⚠️ `toLocale*String` returns "Invalid Date" for a bad date; `format` THROWS.
+// One malformed timestamp must not take a whole list down with it.
+function formatWith(f: Intl.DateTimeFormat, date: Date | string | number): string {
+  const d = new Date(date);
+  return Number.isNaN(d.getTime()) ? "Invalid Date" : f.format(d);
+}
+
 export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
+  return formatWith(DATE_FMT, date);
 }
 
 /** "Mon, Jul 14" - date with weekday, for trade logs where the day matters. */
 export function formatDateWithDay(date: Date | string): string {
-  return new Date(date).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
+  return formatWith(DATE_DAY_FMT, date);
 }
 
 export function formatDateTime(date: Date | string | null): string {
   if (!date) return "Never";
-  return new Date(date).toLocaleString("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "UTC",
-  });
+  return formatWith(DATE_TIME_FMT, date);
 }
 
 /**

@@ -181,7 +181,6 @@ export function ChatClient({
   );
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [loadingOlder, setLoadingOlder] = useState(false);
-  const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
   const [live, setLive] = useState(false);
@@ -206,7 +205,6 @@ export function ChatClient({
   const [unread, setUnread] = useState(0);
   const [replyTarget, setReplyTarget] = useState<ReplyRef | null>(null);
   const [reactOpenId, setReactOpenId] = useState<string | null>(null);
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   // Per-message translation (English <-> Hinglish); toggled from the action bar.
   const [translations, setTranslations] = useState<Record<string, { text?: string; loading?: boolean; shown?: boolean; error?: string }>>({});
@@ -937,15 +935,10 @@ export function ChatClient({
     }
   }
 
-  function send(e: { preventDefault: () => void }) {
-    e.preventDefault();
-    void doSend();
-  }
-
   // Send a picked GIF as its own message (body = GIF url -> rendered inline).
   async function sendGif(url: string) {
     setGifOpen(false);
-    await doSend(url);
+    await doSend(url, true);
   }
 
   // Admin-only: upload a photo to storage, then send its URL as a message.
@@ -968,7 +961,7 @@ export function ChatClient({
         setError("Photo sharing needs a public Supabase Storage bucket named 'post-covers'. Create it in Supabase → Storage, then try again.");
         return;
       }
-      await doSend(String(j.url));
+      await doSend(String(j.url), true);
     } catch {
       setError("Photo upload failed. Please try again.");
     } finally {
@@ -976,19 +969,18 @@ export function ChatClient({
     }
   }
 
-  // overrideText is used to send media (a GIF/photo URL) without touching the
-  // text the user may be composing; normal text sends read the composer body.
-  async function doSend(overrideText?: string) {
-    const isMedia = overrideText != null;
-    const text = (overrideText ?? body).trim();
-    if (!text || sending || !me) return;
+  // `isMedia` sends a GIF/photo URL without touching the text the member may be
+  // composing. Text comes from `RoomComposer`, which owns the draft; resolving
+  // `false` tells it to give the text back.
+  async function doSend(raw: string, isMedia = false): Promise<boolean> {
+    const text = raw.trim();
+    if (!text || sending || !me) return false;
     hapticTap(); // message committed
     // Sending is a user gesture - unlock audio here too so incoming-message
     // blips work even if the toggle was already on at page load.
     if (soundOnRef.current) ensureAudio();
     setError("");
     setSending(true);
-    if (!isMedia) setBody("");
     const reply = isMedia ? null : replyTarget;
     if (!isMedia) setReplyTarget(null);
 
@@ -1021,13 +1013,10 @@ export function ChatClient({
 
     const rollback = () => {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      // Restore the failed text/reply only if the user hasn't started composing
-      // a new message in the meantime - never clobber fresh input. (Media sends
-      // never touch the composer, so nothing to restore.)
-      if (!isMedia) {
-        setBody((b) => (b.trim() ? b : text));
-        setReplyTarget((r) => r ?? reply);
-      }
+      // Restore the failed reply only if the member hasn't picked another one
+      // in the meantime. The TEXT is restored by RoomComposer, on `false`.
+      // (Media sends never touch the composer, so nothing to restore.)
+      if (!isMedia) setReplyTarget((r) => r ?? reply);
     };
 
     try {
@@ -1040,7 +1029,7 @@ export function ChatClient({
       if (!res.ok) {
         rollback();
         setError(data.error || "Could not send. Try again.");
-        return;
+        return false;
       }
       const server = data.message as Message;
       // Swap the temp message for the server copy; if the realtime echo already
@@ -1051,9 +1040,11 @@ export function ChatClient({
         return [...without, { ...server, reactions: normalizeReactions(server.reactions) }];
       });
       jumpToLatest();
+      return true;
     } catch {
       rollback();
       setError("Network error. Please try again.");
+      return false;
     } finally {
       setSending(false);
     }
@@ -1253,99 +1244,6 @@ export function ChatClient({
           : `${typingNames.length} people are typing…`;
 
   let lastDay = "";
-
-  // @mention autocomplete: when the composer ends in `@partial`, suggest online
-  // members (with a public handle) to insert. Selecting replaces the token.
-  const mentionMatch = body.match(/@([a-zA-Z0-9_]*)$/);
-  const mentionQuery = mentionMatch ? mentionMatch[1].toLowerCase() : null;
-  const mentionSuggestions =
-    mentionQuery !== null
-      ? members
-          .filter(
-            (u) =>
-              u.username &&
-              u.id !== me?.id &&
-              (u.username.toLowerCase().includes(mentionQuery) || u.name.toLowerCase().includes(mentionQuery))
-          )
-          .slice(0, 6)
-      : [];
-  const composerRef = useRef<HTMLTextAreaElement>(null);
-
-  /**
-   * The composer grows with what you type.
-   *
-   * ⚠️ It did not. The textarea was `rows={1}` with `resize-none` and a
-   * `min-h-[44px]`, and NOTHING anywhere adjusted its height - so a long
-   * message scrolled inside a single 44px line. `max-h-28` was there, but a box
-   * that never grows never reaches its maximum. That is the whole "long-message
-   * experience is uncomfortable" report: you could type a paragraph and see one
-   * line of it.
-   *
-   * The measurement has to happen with the height released first (`auto`),
-   * because `scrollHeight` of an element with a fixed height is that height -
-   * measuring without resetting reads back what you already set and the box
-   * never grows a second time.
-   *
-   * Capped at `COMPOSER_MAX_H`: past that it scrolls internally, so a very long
-   * message can never eat the message list. The cap is applied here rather than
-   * in CSS so `overflowY` can be toggled with it - a `max-h` alone leaves the
-   * scrollbar present at every size on some engines.
-   */
-  const measureComposer = useCallback(() => {
-    const el = composerRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    const next = Math.min(el.scrollHeight, COMPOSER_MAX_H);
-    el.style.height = `${next}px`;
-    el.style.overflowY = el.scrollHeight > COMPOSER_MAX_H ? "auto" : "hidden";
-  }, []);
-
-  /**
-   * ⚠️ Not only when `body` changes. A browser probe caught the EMPTY composer
-   * on a phone at 76px - two lines tall - because it was measured once at
-   * hydration against the server-snapshot placeholder, which is the longer
-   * desktop one ("Say something… (Enter to send)") and wraps on a narrow
-   * screen. `touchUi` then swapped in the short placeholder, and nothing
-   * measured again until the member typed. `scrollHeight` of an empty
-   * textarea includes its placeholder, so the placeholder IS a measurement
-   * input and has to be a dependency.
-   */
-  useEffect(() => {
-    measureComposer();
-  }, [body, touchUi, measureComposer]);
-
-  // Width changes re-wrap the text (rotation, window resize), so they change
-  // the height the text needs. Guarded on WIDTH only: setting the height
-  // changes the element's size too, and reacting to that would loop.
-  useEffect(() => {
-    const el = composerRef.current;
-    if (!el || typeof ResizeObserver === "undefined") return;
-    let lastWidth = el.clientWidth;
-    const ro = new ResizeObserver(() => {
-      if (el.clientWidth !== lastWidth) {
-        lastWidth = el.clientWidth;
-        measureComposer();
-      }
-    });
-    ro.observe(el);
-    // Web fonts change line metrics once they arrive.
-    void document.fonts?.ready.then(measureComposer);
-    return () => ro.disconnect();
-  }, [measureComposer]);
-  const insertMention = (username: string) => {
-    setBody((b) => b.replace(/@[a-zA-Z0-9_]*$/, `@${username} `).slice(0, MAX_LENGTH));
-    // Focus goes back to the composer, caret at the end. Without this the
-    // focus stayed on the suggestion button - so on a phone the keyboard
-    // closed the moment you picked someone, and the next thing you typed had
-    // nowhere to go. In a rAF because the value has to be committed first, or
-    // the caret lands at the old length.
-    requestAnimationFrame(() => {
-      const el = composerRef.current;
-      if (!el) return;
-      el.focus();
-      el.setSelectionRange(el.value.length, el.value.length);
-    });
-  };
 
   // dvh (where supported) tracks the *visible* viewport, so the composer
   // stays above the mobile keyboard instead of being pushed off-screen.
@@ -1963,147 +1861,69 @@ export function ChatClient({
                 </button>
               </div>
             )}
-            <form onSubmit={send} className="flex items-end gap-1.5">
-              {/* attach row: poll, GIF (everyone, if configured), photo (admin) */}
-              <button
-                type="button"
-                onClick={() => setPollOpen(true)}
-                className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
-                aria-label="Create a poll"
-                title="Create a poll"
-              >
-                <BarChart3 className="h-[18px] w-[18px]" />
-              </button>
-              {gifEnabled && (
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setGifOpen((v) => !v)}
-                    className={cn(
-                      "grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-[10px] font-bold transition-colors hover:border-gold-500/40 hover:text-gold-200",
-                      gifOpen ? "text-gold-200" : "text-zinc-400"
-                    )}
-                    aria-label="Send a GIF"
-                    title="Send a GIF"
-                  >
-                    GIF
-                  </button>
-                  <AnimatePresence>
-                    {gifOpen && <GifPicker onPick={(url) => void sendGif(url)} onClose={() => setGifOpen(false)} />}
-                  </AnimatePresence>
-                </div>
-              )}
-              {me.isAdmin && (
+            <RoomComposer
+              members={members}
+              meId={me.id}
+              sending={sending}
+              touchUi={touchUi}
+              error={error}
+              onSend={(text) => doSend(text)}
+              onTyping={sendTyping}
+              leading={
                 <>
-                  <input
-                    ref={photoInputRef}
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => photoInputRef.current?.click()}
-                    disabled={photoUploading}
-                    className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200 disabled:opacity-50"
-                    aria-label="Share a photo"
-                    title="Share a photo (admin)"
-                  >
-                    {photoUploading ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ImagePlus className="h-[18px] w-[18px]" />}
-                  </button>
-                </>
-              )}
-              <div className="relative flex-1">
-                <textarea
-                  ref={composerRef}
-                  value={body}
-                  onChange={(e) => {
-                    setBody(e.target.value.slice(0, MAX_LENGTH));
-                    sendTyping();
-                  }}
-                  onKeyDown={(e) => {
-                    // Touch keyboards have no Shift: Enter inserts a newline
-                    // there and the send button submits. Desktop keeps
-                    // Enter-to-send / Shift+Enter for newline.
-                    if (e.key === "Enter" && !e.shiftKey && !touchUi) {
-                      e.preventDefault();
-                      send(e);
-                    }
-                  }}
-                  rows={1}
-                  placeholder={touchUi ? "Say something…" : "Say something… (Enter to send)"}
-                  aria-label="Write a message"
-                  aria-invalid={error ? true : undefined}
-                  // ⚠️ No `max-h-*` here any more: the height is driven by the
-                  // effect above, and a CSS max-height fighting an inline
-                  // height is how this kind of control ends up stuck. The
-                  // `min-h` stays as the one-line floor.
-                  className="block min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
-                />
+                {/* attach row: poll, GIF (everyone, if configured), photo (admin) */}
                 <button
                   type="button"
-                  onClick={() => setPickerOpen((v) => !v)}
-                  className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 transition-colors hover:text-gold-200"
-                  aria-label="Emoji"
+                  onClick={() => setPollOpen(true)}
+                  className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
+                  aria-label="Create a poll"
+                  title="Create a poll"
                 >
-                  <Smile className="h-5 w-5" />
+                  <BarChart3 className="h-[18px] w-[18px]" />
                 </button>
-                <MicButton
-                  continuous
-                  size="sm"
-                  className="absolute bottom-1.5 right-10 !ring-0"
-                  onText={(t) => setBody((b) => (b ? `${b} ${t}` : t).slice(0, MAX_LENGTH))}
-                />
-                <AnimatePresence>
-                  {pickerOpen && (
-                    <EmojiPicker
-                      onPick={(emoji) => setBody((b) => (b + emoji).slice(0, MAX_LENGTH))}
-                      onClose={() => setPickerOpen(false)}
-                    />
-                  )}
-                </AnimatePresence>
-                {mentionSuggestions.length > 0 && (
-                  <div className="absolute bottom-full left-0 z-30 mb-2 w-60 max-w-[80vw] overflow-hidden rounded-xl border border-line bg-ink-900/95 p-1 shadow-elevate backdrop-blur-xl">
-                    <p className="px-2 py-1 mono text-[10px] uppercase tracking-wider text-zinc-600">Mention</p>
-                    {mentionSuggestions.map((u) => (
-                      <button
-                        key={u.id}
-                        type="button"
-                        onMouseDown={(e) => {
-                          e.preventDefault();
-                          if (u.username) insertMention(u.username);
-                        }}
-                        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/10"
-                      >
-                        <Avatar name={u.name} image={u.image} size="sm" className="h-6 w-6" />
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm text-zinc-100">{u.name}</span>
-                          <span className="mono text-[10px] text-zinc-500">@{u.username}</span>
-                        </span>
-                      </button>
-                    ))}
+                {gifEnabled && (
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setGifOpen((v) => !v)}
+                      className={cn(
+                        "grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-[10px] font-bold transition-colors hover:border-gold-500/40 hover:text-gold-200",
+                        gifOpen ? "text-gold-200" : "text-zinc-400"
+                      )}
+                      aria-label="Send a GIF"
+                      title="Send a GIF"
+                    >
+                      GIF
+                    </button>
+                    <AnimatePresence>
+                      {gifOpen && <GifPicker onPick={(url) => void sendGif(url)} onClose={() => setGifOpen(false)} />}
+                    </AnimatePresence>
                   </div>
                 )}
-              </div>
-              <motion.button
-                type="submit"
-                disabled={sending || !body.trim()}
-                whileTap={{ scale: 0.9 }}
-                className="btn-primary inline-flex h-11 shrink-0 items-center gap-1 !rounded-2xl !px-2.5 disabled:opacity-50"
-                aria-label="Send message"
-              >
-                {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
-                <span className="relative z-10 hidden text-[13px] font-semibold !text-white sm:inline">Send</span>
-              </motion.button>
-            </form>
-            {/* error + character count - aligned below the row, full width */}
-            <div className="mt-1.5 flex min-h-[16px] items-center justify-between px-1 text-[11px]">
-              <span className="text-red-300">{error}</span>
-              <span className={cn("mono text-zinc-600", body.length > MAX_LENGTH - 50 && "text-amber-300")}>
-                {body.length}/{MAX_LENGTH}
-              </span>
-            </div>
+                {me.isAdmin && (
+                  <>
+                    <input
+                      ref={photoInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => photoInputRef.current?.click()}
+                      disabled={photoUploading}
+                      className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200 disabled:opacity-50"
+                      aria-label="Share a photo"
+                      title="Share a photo (admin)"
+                    >
+                      {photoUploading ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ImagePlus className="h-[18px] w-[18px]" />}
+                    </button>
+                  </>
+                )}
+                </>
+              }
+            />
           </>
         ) : (
           <div className="flex flex-col items-center justify-between gap-2 py-1 sm:flex-row">
@@ -2135,6 +1955,245 @@ export function ChatClient({
 }
 
 /* ----------------------------- Poll UI ----------------------------- */
+
+/**
+ * The room's composer, as its own component - PR 3.
+ *
+ * ⚠️ The draft lives HERE, not in `ChatClient`, and that is the whole point.
+ * While `body` lived in the 2,000-line room component, every keystroke
+ * re-rendered every message in the room - measured at 58ms of main-thread work
+ * per key with 150 messages on desktop, 230ms with the CPU throttled to a
+ * mid-range phone. Typing now re-renders only this component.
+ *
+ * `onSend` resolves whether the server accepted the message. The draft is
+ * cleared optimistically and given back on failure - unless the member has
+ * already started typing something new, which is never clobbered.
+ */
+function RoomComposer({
+  members,
+  meId,
+  sending,
+  touchUi,
+  error,
+  onSend,
+  onTyping,
+  leading,
+}: {
+  members: PresenceMember[];
+  meId: string;
+  sending: boolean;
+  touchUi: boolean;
+  error: string;
+  onSend: (text: string) => Promise<boolean>;
+  onTyping: () => void;
+  leading: React.ReactNode;
+}) {
+  const [body, setBody] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+
+  async function submit() {
+    const text = body.trim();
+    if (!text || sending) return;
+    setBody("");
+    const ok = await onSend(text);
+    if (!ok) setBody((b) => (b.trim() ? b : text));
+  }
+
+  function send(e: { preventDefault: () => void }) {
+    e.preventDefault();
+    void submit();
+  }
+
+  // @mention autocomplete: when the composer ends in `@partial`, suggest online
+  // members (with a public handle) to insert. Selecting replaces the token.
+  const mentionMatch = body.match(/@([a-zA-Z0-9_]*)$/);
+  const mentionQuery = mentionMatch ? mentionMatch[1].toLowerCase() : null;
+  const mentionSuggestions =
+    mentionQuery !== null
+      ? members
+          .filter(
+            (u) =>
+              u.username &&
+              u.id !== meId &&
+              (u.username.toLowerCase().includes(mentionQuery) || u.name.toLowerCase().includes(mentionQuery))
+          )
+          .slice(0, 6)
+      : [];
+  const composerRef = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * The composer grows with what you type.
+   *
+   * ⚠️ It did not. The textarea was `rows={1}` with `resize-none` and a
+   * `min-h-[44px]`, and NOTHING anywhere adjusted its height - so a long
+   * message scrolled inside a single 44px line. `max-h-28` was there, but a box
+   * that never grows never reaches its maximum. That is the whole "long-message
+   * experience is uncomfortable" report: you could type a paragraph and see one
+   * line of it.
+   *
+   * The measurement has to happen with the height released first (`auto`),
+   * because `scrollHeight` of an element with a fixed height is that height -
+   * measuring without resetting reads back what you already set and the box
+   * never grows a second time.
+   *
+   * Capped at `COMPOSER_MAX_H`: past that it scrolls internally, so a very long
+   * message can never eat the message list. The cap is applied here rather than
+   * in CSS so `overflowY` can be toggled with it - a `max-h` alone leaves the
+   * scrollbar present at every size on some engines.
+   */
+  const measureComposer = useCallback(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const next = Math.min(el.scrollHeight, COMPOSER_MAX_H);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > COMPOSER_MAX_H ? "auto" : "hidden";
+  }, []);
+
+  /**
+   * ⚠️ Not only when `body` changes. A browser probe caught the EMPTY composer
+   * on a phone at 76px - two lines tall - because it was measured once at
+   * hydration against the server-snapshot placeholder, which is the longer
+   * desktop one ("Say something… (Enter to send)") and wraps on a narrow
+   * screen. `touchUi` then swapped in the short placeholder, and nothing
+   * measured again until the member typed. `scrollHeight` of an empty
+   * textarea includes its placeholder, so the placeholder IS a measurement
+   * input and has to be a dependency.
+   */
+  useEffect(() => {
+    measureComposer();
+  }, [body, touchUi, measureComposer]);
+
+  // Width changes re-wrap the text (rotation, window resize), so they change
+  // the height the text needs. Guarded on WIDTH only: setting the height
+  // changes the element's size too, and reacting to that would loop.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let lastWidth = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth !== lastWidth) {
+        lastWidth = el.clientWidth;
+        measureComposer();
+      }
+    });
+    ro.observe(el);
+    // Web fonts change line metrics once they arrive.
+    void document.fonts?.ready.then(measureComposer);
+    return () => ro.disconnect();
+  }, [measureComposer]);
+  const insertMention = (username: string) => {
+    setBody((b) => b.replace(/@[a-zA-Z0-9_]*$/, `@${username} `).slice(0, MAX_LENGTH));
+    // Focus goes back to the composer, caret at the end. Without this the
+    // focus stayed on the suggestion button - so on a phone the keyboard
+    // closed the moment you picked someone, and the next thing you typed had
+    // nowhere to go. In a rAF because the value has to be committed first, or
+    // the caret lands at the old length.
+    requestAnimationFrame(() => {
+      const el = composerRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(el.value.length, el.value.length);
+    });
+  };
+
+  return (
+    <>
+      <form onSubmit={send} className="flex items-end gap-1.5">
+        {leading}
+      <div className="relative flex-1">
+        <textarea
+          ref={composerRef}
+          value={body}
+          onChange={(e) => {
+            setBody(e.target.value.slice(0, MAX_LENGTH));
+            onTyping();
+          }}
+          onKeyDown={(e) => {
+            // Touch keyboards have no Shift: Enter inserts a newline
+            // there and the send button submits. Desktop keeps
+            // Enter-to-send / Shift+Enter for newline.
+            if (e.key === "Enter" && !e.shiftKey && !touchUi) {
+              e.preventDefault();
+              send(e);
+            }
+          }}
+          rows={1}
+          placeholder={touchUi ? "Say something…" : "Say something… (Enter to send)"}
+          aria-label="Write a message"
+          aria-invalid={error ? true : undefined}
+          // ⚠️ No `max-h-*` here any more: the height is driven by the
+          // effect above, and a CSS max-height fighting an inline
+          // height is how this kind of control ends up stuck. The
+          // `min-h` stays as the one-line floor.
+          className="block min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
+        />
+        <button
+          type="button"
+          onClick={() => setPickerOpen((v) => !v)}
+          className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 transition-colors hover:text-gold-200"
+          aria-label="Emoji"
+        >
+          <Smile className="h-5 w-5" />
+        </button>
+        <MicButton
+          continuous
+          size="sm"
+          className="absolute bottom-1.5 right-10 !ring-0"
+          onText={(t) => setBody((b) => (b ? `${b} ${t}` : t).slice(0, MAX_LENGTH))}
+        />
+        <AnimatePresence>
+          {pickerOpen && (
+            <EmojiPicker
+              onPick={(emoji) => setBody((b) => (b + emoji).slice(0, MAX_LENGTH))}
+              onClose={() => setPickerOpen(false)}
+            />
+          )}
+        </AnimatePresence>
+        {mentionSuggestions.length > 0 && (
+          <div className="absolute bottom-full left-0 z-30 mb-2 w-60 max-w-[80vw] overflow-hidden rounded-xl border border-line bg-ink-900/95 p-1 shadow-elevate backdrop-blur-xl">
+            <p className="px-2 py-1 mono text-[10px] uppercase tracking-wider text-zinc-600">Mention</p>
+            {mentionSuggestions.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  if (u.username) insertMention(u.username);
+                }}
+                className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-white/10"
+              >
+                <Avatar name={u.name} image={u.image} size="sm" className="h-6 w-6" />
+                <span className="min-w-0">
+                  <span className="block truncate text-sm text-zinc-100">{u.name}</span>
+                  <span className="mono text-[10px] text-zinc-500">@{u.username}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      <motion.button
+        type="submit"
+        disabled={sending || !body.trim()}
+        whileTap={{ scale: 0.9 }}
+        className="btn-primary inline-flex h-11 shrink-0 items-center gap-1 !rounded-2xl !px-2.5 disabled:opacity-50"
+        aria-label="Send message"
+      >
+        {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
+        <span className="relative z-10 hidden text-[13px] font-semibold !text-white sm:inline">Send</span>
+      </motion.button>
+    </form>
+    {/* error + character count - aligned below the row, full width */}
+    <div className="mt-1.5 flex min-h-[16px] items-center justify-between px-1 text-[11px]">
+      <span className="text-red-300">{error}</span>
+      <span className={cn("mono text-zinc-600", body.length > MAX_LENGTH - 50 && "text-amber-300")}>
+        {body.length}/{MAX_LENGTH}
+      </span>
+    </div>
+    </>
+  );
+}
 
 function PollBlock({
   poll,

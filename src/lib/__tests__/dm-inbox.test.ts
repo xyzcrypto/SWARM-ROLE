@@ -106,6 +106,8 @@ describe("sending says why it failed too", () => {
 
   it("keeps the rollback that was already right", () => {
     expect(C).toMatch(/setMessages\(\(m\) => m\.filter\(\(x\) => x\.id !== tempId\)\)/);
-    expect(C).toMatch(/if \(fromDraft\) setDraft\(\(d\) => \(d\.trim\(\) \? d : body\)\)/);
+    // PR 3: the draft moved into DmComposer, so the give-back lives there,
+    // keyed on whether the send succeeded.
+    expect(C).toMatch(/if \(!ok\) setDraft\(\(d\) => \(d\.trim\(\) \? d : body\)\)/);
   });
 });
