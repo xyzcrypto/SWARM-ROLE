@@ -5,6 +5,29 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-27 (121) — DMs: the composer grows, phones can type a line break
+
+PR 2. DMs only.
+
+- **The composer never grew** - the same `rows={1}` bug the room had. The
+  auto-grow is now one shared hook, `useAutoGrow`, carrying all three lessons
+  from the room (release height before measuring, placeholder is an input,
+  re-measure on width).
+- **Enter always sent, even on phones** - which have no Shift key, so a mobile
+  user could not type a line break at all. Touch: Enter is a newline. Same for
+  the edit box.
+- **The message-actions trigger was 28px** on touch - the only way in to Reply.
+  44px now, via a media query rather than a hook.
+- **"Latest ↓"** appears whenever you scroll away, not only when a message
+  arrives.
+- **Chat appearance in DMs** - the room's own components and stored choice, so
+  a background or photo picked in one place shows in both.
+
+typecheck · 1314 tests · lint 0 errors · build green · 21/21 browser checks on
+the real `MessagesClient` (mobile + desktop).
+
+---
+
 ## 2026-09-27 (120) — Chat appearance: your own photo, richer designs, and a real browser test
 
 Same PR as (119), still Community Chat only.

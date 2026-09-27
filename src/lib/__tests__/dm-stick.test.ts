@@ -37,8 +37,10 @@ describe("the thread follows the conversation only when the reader is", () => {
     // Not yanking the reader is only half of it: without this, a message that
     // lands while they read history is completely invisible.
     expect(M).toMatch(/else if \(grew && !stick\) setHasNew\(true\)/);
-    expect(M).toMatch(/\{hasNew && \(/);
-    expect(M).toMatch(/New messages ↓/);
+    // The pill now also shows when the reader has simply scrolled away, but a
+    // NEW arrival must still say so specifically.
+    expect(M).toMatch(/\{\(hasNew \|\| !stick\) && loaded/);
+    expect(M).toMatch(/hasNew \? "New messages ↓" : "Latest ↓"/);
   });
 
   it("clears the pill whenever the thread is back at the bottom", () => {

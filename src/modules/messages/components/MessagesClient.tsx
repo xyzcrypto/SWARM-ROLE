@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createPortal } from "react-dom";
 import { AnimatePresence } from "framer-motion";
-import { ArrowLeft, Ban, Check, CheckCheck, Copy, CornerUpLeft as Reply, Flag, Forward, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Pin, PinOff, Search, ShieldOff, Trash2, X, ImagePlus, Smile } from "lucide-react";
+import { ArrowLeft, Ban, Check, CheckCheck, Copy, CornerUpLeft as Reply, Flag, Forward, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Palette, Pin, PinOff, Search, ShieldOff, Trash2, X, ImagePlus, Smile } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { SendGlyph } from "@/components/SendGlyph";
 import { EmojiPicker } from "@/components/EmojiPicker";
@@ -19,7 +19,11 @@ import { NewsAlertsToggle } from "@/components/NewsAlertsToggle";
 import { clockTime, dayLabel, isReadBy, newestRead } from "@/lib/chat-time";
 import { canEditMessage } from "@/lib/chat-view";
 import { lastSeenLabel } from "@/lib/last-seen";
-import { useHydrated } from "@/lib/useClientFlag";
+import { useHydrated, useMediaQuery } from "@/lib/useClientFlag";
+import { useAutoGrow } from "@shared/hooks/useAutoGrow";
+import { useChatAppearance } from "@modules/community/components/useChatAppearance";
+import { ChatWallpaper } from "@modules/community/components/ChatWallpaper";
+import { ChatAppearanceSheet } from "@modules/community/components/ChatAppearanceSheet";
 import { compressImage } from "@/lib/image";
 import { cn } from "@/lib/utils";
 import { MicButton } from "@/shared/components/MicButton";
@@ -63,6 +67,9 @@ const THREAD_POLL_MS = 5000;
  * mint for positive, and read is the positive outcome. A new colour would be
  * the one thing the design system asks not to add.
  */
+/** ~6 lines, then the composer scrolls inside itself. Same as the room. */
+const DM_COMPOSER_MAX_H = 148;
+
 function ReadTicks({ read, pending }: { read: boolean; pending?: boolean }) {
   const label = pending ? "Sending" : read ? "Read" : "Sent";
   const Icon = read ? CheckCheck : Check;
@@ -184,7 +191,11 @@ function MessageActions({
           // `opacity-40` is a hover affordance and there is no hover on a phone,
           // so touch gets the trigger at full strength - it is the only way in
           // to Reply, and a 40%-opacity dot does not read as a button.
-          "grid h-7 w-7 shrink-0 place-items-center rounded-full text-zinc-500 transition-opacity hover:bg-white/5 hover:text-zinc-200",
+          // 44px on touch - it is the only way in to Reply, Forward and Delete,
+          // and a 28px target next to a message bubble is a mis-tap waiting
+          // to happen. Expressed as a media query, not a hook: nothing to
+          // hydrate, nothing to mismatch.
+          "grid h-7 w-7 shrink-0 place-items-center rounded-full text-zinc-500 transition-opacity hover:bg-white/5 hover:text-zinc-200 [@media(hover:none)]:h-11 [@media(hover:none)]:w-11",
           open ? "opacity-100" : "opacity-100 sm:opacity-40 sm:group-hover:opacity-100"
         )}
       >
@@ -562,6 +573,37 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
   // once hydrated - see chat-time.
   const hydrated = useHydrated();
   const [draft, setDraft] = useState("");
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+  /**
+   * A phone keyboard has no Shift key. With Enter always sending - which is
+   * what this composer did - a member on a phone could not type a line break
+   * at all. Touch: Enter is a newline and the send button sends. Desktop keeps
+   * Enter-to-send / Shift+Enter, the convention the Community room already
+   * uses. `useMediaQuery` carries a server snapshot, so this cannot cause a
+   * hydration mismatch.
+   */
+  const touchUi = useMediaQuery("(hover: none)");
+  useAutoGrow(composerRef, DM_COMPOSER_MAX_H, [draft, touchUi]);
+
+  /**
+   * The same appearance as the Community room - one stored choice, so a member
+   * who picked a background or their own photo sees it in both places. The
+   * wallpaper and the sheet are the room's own components, not copies.
+   */
+  const appearance = useChatAppearance();
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
+  // The sheet shows theme-specific numbers (the dim floor, the contrast), so
+  // it needs to know the theme. The wallpaper itself does not - it is chosen by
+  // CSS. Read in an effect: the `dark` class is invisible to the server render.
+  const [themeIsDark, setThemeIsDark] = useState(true);
+  useEffect(() => {
+    const html = document.documentElement;
+    const read = () => setThemeIsDark(html.classList.contains("dark"));
+    read();
+    const obs = new MutationObserver(read);
+    obs.observe(html, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
   // Mirror of `draft` for the dictation auto-send path - see the MicButton
   // below for why an effect alone is not enough. This effect covers every
   // other way the composer changes; the mic handler writes it synchronously.
@@ -947,7 +989,22 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     /* `relative` so the "New messages ↓" pill below can anchor to the thread
        pane rather than to whatever ancestor happens to be positioned. */
     <div className="relative flex min-h-0 flex-1 flex-col">
-      <header className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+      <ChatWallpaper
+        choice={appearance.choice}
+        photo={appearance.photo}
+        settings={appearance.settings}
+        className="absolute inset-0"
+      />
+      {/* Portalled, and outside the blocked/unblocked branch below, so the
+          button works in every state of the thread. */}
+      {appearanceOpen && (
+        <ChatAppearanceSheet
+          appearance={appearance}
+          theme={themeIsDark ? "dark" : "light"}
+          onClose={() => setAppearanceOpen(false)}
+        />
+      )}
+      <header className="relative z-[1] flex items-center gap-3 border-b border-white/10 px-4 py-3">
         <button onClick={onBack} aria-label="Back" className="grid h-8 w-8 place-items-center rounded-full text-zinc-400 hover:bg-white/5 hover:text-zinc-100 md:hidden">
           <ArrowLeft className="h-4 w-4" />
         </button>
@@ -976,7 +1033,17 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
 
         {/* Safety lives in the header, not buried per message: blocking and
             reporting are about the person, not about one thing they said. */}
-        <div className="relative ml-auto shrink-0">
+        <button
+          type="button"
+          onClick={() => setAppearanceOpen(true)}
+          aria-label="Chat appearance"
+          aria-haspopup="dialog"
+          title="Chat appearance"
+          className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-full text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
+        >
+          <Palette className="h-4 w-4" strokeWidth={1.8} />
+        </button>
+        <div className="relative shrink-0">
           <button
             type="button"
             onClick={() => setThreadMenu((v) => !v)}
@@ -1043,16 +1110,20 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           this, a message that arrives while they are reading history is
           completely silent. Sits above the composer, clears itself the moment
           the thread is back at the bottom by any means. */}
-      {hasNew && (
+      {/* ⚠️ Shown whenever the reader is away from the bottom, not only when a
+          message arrives. Scrolled up into a long history with nothing new,
+          there was no way back but to fling the list by hand. */}
+      {(hasNew || !stick) && loaded && messages.length > 0 && (
         <button
           onClick={scrollToEnd}
+          aria-label={hasNew ? "Jump to new messages" : "Jump to latest"}
           className="pointer-events-auto absolute inset-x-0 bottom-20 z-20 mx-auto w-fit rounded-full border border-gold-500/40 bg-gold-500/15 px-3.5 py-1.5 text-[12px] font-semibold text-gold-100 shadow-lg shadow-black/30 backdrop-blur transition-colors hover:bg-gold-500/25"
         >
-          New messages ↓
+          {hasNew ? "New messages ↓" : "Latest ↓"}
         </button>
       )}
 
-      <div ref={scrollRef} onScroll={onScroll} className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+      <div ref={scrollRef} onScroll={onScroll} className="relative z-[1] min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {!loaded ? (
           <p className="py-10 text-center text-sm text-zinc-500"><Loader2 className="mr-1 inline h-4 w-4 animate-spin" /> Loading…</p>
         ) : messages.length === 0 ? (
@@ -1135,7 +1206,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
                           onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void saveEdit(m.id); }
+                            if (e.key === "Enter" && !e.shiftKey && !touchUi) { e.preventDefault(); void saveEdit(m.id); }
                             if (e.key === "Escape") setEditingId(null);
                           }}
                           rows={2}
@@ -1267,7 +1338,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           </div>
         </div>
       )}
-      <div className="border-t border-white/10 p-3">
+      <div className="relative z-[1] border-t border-white/10 p-3">
         {err && <p className="mb-1.5 px-1 text-[11px] text-amber-500">{err}</p>}
         {replyTo && (
           // Sits above the composer so what you are replying to stays visible
@@ -1305,13 +1376,15 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           </button>
           <div className="relative flex-1">
             <textarea
+              ref={composerRef}
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void postMessage(draft, true); } }}
-              placeholder="Write a message…"
+              onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !touchUi) { e.preventDefault(); void postMessage(draft, true); } }}
+              placeholder={touchUi ? "Write a message…" : "Write a message… (Enter to send)"}
+              aria-label="Write a message"
               rows={1}
               maxLength={2000}
-              className="block max-h-32 min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/60 px-4 py-3 pr-20 text-[14px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
+              className="block min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/60 px-4 py-3 pr-20 text-[14px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
             />
             <button type="button" onClick={() => setPickerOpen((v) => !v)} className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 hover:text-gold-200" aria-label="Emoji">
               <Smile className="h-5 w-5" />
