@@ -44,3 +44,32 @@ describe("the rest of the thread", () => {
     expect(dm).toMatch(/<ChatAppearanceSheet/);
   });
 });
+
+describe("the DM composer IS the room's composer, visually", () => {
+  // Asked for directly: "message send wala bhi same as chat section". Pinned
+  // against the room's source rather than a copied string, so if the room's
+  // composer changes, this fails until DMs follow.
+  const room = readFileSync("src/modules/community/components/ChatClient.tsx", "utf8");
+  const cls = (src: string, anchor: RegExp) => {
+    const at = src.search(anchor);
+    expect(at, String(anchor)).toBeGreaterThan(-1);
+    return src.slice(at).match(/className="([^"]+)"/)![1];
+  };
+
+  it("same textarea classes, including the 16px floor that stops iOS zooming", () => {
+    const a = cls(room, /aria-label="Write a message"/);
+    const b = cls(raw, /aria-label="Write a message"/);
+    expect(b).toBe(a);
+    expect(b).toMatch(/text-base/);
+  });
+
+  it("same send button", () => {
+    expect(cls(raw, /aria-label="Send message"/)).toBe(cls(room, /whileTap=\{\{ scale: 0\.9 \}\}/));
+  });
+
+  it("same appearance button", () => {
+    const a = cls(room, /aria-label="Chat appearance"/);
+    const b = cls(raw, /aria-label="Chat appearance"/);
+    expect(b.replace(/^ml-auto /, "").replace(" shrink-0", "")).toBe(a);
+  });
+});

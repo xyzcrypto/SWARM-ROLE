@@ -5,6 +5,27 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-27 (122) — DMs: the composer and appearance control are the room's
+
+PR 2, follow-up. `MessagesClient.tsx` only.
+
+- **Composer textarea now uses the room's exact classes.** The visible fix is
+  `text-base sm:text-sm` in place of `text-[14px]`. **iOS zooms the page into
+  any input under 16px**, so on an iPhone every tap on the DM composer zoomed
+  the thread. The mint focus ring (`ring-2`), `leading-relaxed` and
+  `aria-invalid` on error also match the room now.
+- **Send button** is the room's `motion.button` with the same press
+  (`whileTap` 0.9) and `!rounded-2xl`. The old DM button was plain
+  `rounded-2xl`, which `btn-primary` overrode.
+- **"Chat appearance" button** is the room's 36px bordered square, not a
+  32px round ghost. The background, including your own photo, was already the
+  same code (`useChatAppearance` / `ChatWallpaper` / `ChatAppearanceSheet`),
+  and the choice is shared between the room and DMs.
+- `dm-premium-ux.test.ts` compares the DM classes against **ChatClient's
+  source**, not a copied string, so any change to the room's composer fails
+  the test until DMs follow. Browser probe: 29/29 checks (16px composer on
+  mobile, mint ring, 36px control, 16px radius, no page errors).
+
 ## 2026-09-27 (121) — DMs: the composer grows, phones can type a line break
 
 PR 2. DMs only.

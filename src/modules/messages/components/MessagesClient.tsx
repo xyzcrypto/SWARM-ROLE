@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createPortal } from "react-dom";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, Ban, Check, CheckCheck, Copy, CornerUpLeft as Reply, Flag, Forward, Languages, Loader2, MessageSquare, MoreVertical, Pencil, Palette, Pin, PinOff, Search, ShieldOff, Trash2, X, ImagePlus, Smile } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { SendGlyph } from "@/components/SendGlyph";
@@ -1039,7 +1039,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           aria-label="Chat appearance"
           aria-haspopup="dialog"
           title="Chat appearance"
-          className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-full text-zinc-400 hover:bg-white/5 hover:text-zinc-100"
+          // Same control as the room's header, so the two read as one feature.
+          className="ml-auto grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-hairline text-content-subtle transition-all duration-200 hover:scale-105 hover:border-gold-500/30 hover:text-content active:scale-105"
         >
           <Palette className="h-4 w-4" strokeWidth={1.8} />
         </button>
@@ -1382,11 +1383,14 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !touchUi) { e.preventDefault(); void postMessage(draft, true); } }}
               placeholder={touchUi ? "Write a message…" : "Write a message… (Enter to send)"}
               aria-label="Write a message"
+              aria-invalid={err ? true : undefined}
               rows={1}
               maxLength={2000}
-              className="block min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/60 px-4 py-3 pr-20 text-[14px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
+              // Identical to the room's composer. `text-base` below `sm` is
+              // load-bearing: iOS zooms the page into any input under 16px.
+              className="block min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
             />
-            <button type="button" onClick={() => setPickerOpen((v) => !v)} className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 hover:text-gold-200" aria-label="Emoji">
+            <button type="button" onClick={() => setPickerOpen((v) => !v)} className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 transition-colors hover:text-gold-200" aria-label="Emoji">
               <Smile className="h-5 w-5" />
             </button>
             {/* Dictation now sends when you stop talking.
@@ -1419,10 +1423,20 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
             />
             <AnimatePresence>{pickerOpen && <EmojiPicker onPick={(e) => setDraft((b) => (b + e).slice(0, 2000))} onClose={() => setPickerOpen(false)} />}</AnimatePresence>
           </div>
-          <button onClick={() => void postMessage(draft, true)} disabled={!draft.trim() || sending} aria-label="Send message" className="btn-primary relative inline-flex h-11 shrink-0 items-center gap-1 rounded-2xl !px-2.5 disabled:opacity-50">
-            {sending ? <Loader2 className="relative z-10 h-4 w-4 animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
+          {/* The room's send button, including the press. `whileTap` is a
+              constant, not derived from a client-only signal, so it renders
+              the same attributes on the server and the client. */}
+          <motion.button
+            type="button"
+            onClick={() => void postMessage(draft, true)}
+            disabled={!draft.trim() || sending}
+            whileTap={{ scale: 0.9 }}
+            aria-label="Send message"
+            className="btn-primary inline-flex h-11 shrink-0 items-center gap-1 !rounded-2xl !px-2.5 disabled:opacity-50"
+          >
+            {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
             <span className="relative z-10 hidden text-[13px] font-semibold !text-white sm:inline">Send</span>
-          </button>
+          </motion.button>
         </div>
       </div>
       </>
