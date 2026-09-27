@@ -8,6 +8,7 @@ import { notifyMentions } from "@modules/notifications/lib/notifications";
 import { sendPush, pushEnabled } from "@/lib/push";
 import { chatMediaUrl } from "@/lib/chat-media";
 import { canSendInThread, isBlockedEitherWay } from "@/lib/dm-gate";
+import { toDmReactions, type DmReactions } from "@modules/messages/lib/dm-reactions";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -98,6 +99,26 @@ export async function GET(_req: Request, props: Ctx) {
       });
     }
 
+    // Reactions in their OWN query, and allowed to fail. Preview deploys share
+    // the production database but never push the schema (scripts/db-push.mjs
+    // is production-only), so until the next production deploy these columns
+    // do not exist - and selecting them in the query above would take every
+    // DM thread down with a P2022, not just the reactions. Missing columns
+    // mean "no reactions yet", which is exactly what they are.
+    const reactionsById = new Map<string, DmReactions>();
+    if (rows.length) {
+      const reacted = await prisma.directMessage
+        .findMany({
+          where: {
+            id: { in: rows.map((r) => r.id) },
+            OR: [{ reactionA: { not: null } }, { reactionB: { not: null } }],
+          },
+          select: { id: true, reactionA: true, reactionB: true },
+        })
+        .catch(() => []);
+      for (const r of reacted) reactionsById.set(r.id, toDmReactions(r, iAmUserA));
+    }
+
     const { other } = otherOf(conv, me.id);
     const messages = rows.map((m) => ({
       id: m.id,
@@ -111,6 +132,7 @@ export async function GET(_req: Request, props: Ctx) {
       editedAt: m.editedAt,
       pinned: !!m.pinnedAt,
       forwarded: m.forwarded,
+      reactions: m.status === "deleted" ? null : reactionsById.get(m.id) ?? null,
       // The quote line. A deleted parent still resolves, with its body stripped
       // for the same reason the message itself is - so the preview can say
       // "message deleted" rather than silently disappearing and making the
@@ -215,7 +237,10 @@ export async function POST(req: Request, props: Ctx) {
         replyToId,
         forwarded: parsed.data.forwarded === true,
       },
-      select: { id: true, body: true, createdAt: true },
+      select: {
+        id: true, body: true, createdAt: true, forwarded: true,
+        replyTo: { select: { id: true, body: true, senderId: true, status: true } },
+      },
     });
 
     // Bump the conversation for inbox ordering + preview, and mark it read for
@@ -274,7 +299,31 @@ export async function POST(req: Request, props: Ctx) {
       })();
     }
 
-    return ok({ message: { id: created.id, body: created.body, createdAt: created.createdAt, mine: true } }, 201);
+    // ⚠️ The reply quote and the forwarded flag go back too. They used to be
+    // left out, and the client swaps its optimistic row for exactly this
+    // object - so a reply lost its quote the moment the server answered and
+    // only got it back on the next full reload. That was the "tag karne pe
+    // direct tag nahi ho raha, page refresh ke baad hota hai" report.
+    return ok(
+      {
+        message: {
+          id: created.id,
+          body: created.body,
+          createdAt: created.createdAt,
+          mine: true,
+          forwarded: created.forwarded,
+          replyTo: created.replyTo
+            ? {
+                id: created.replyTo.id,
+                body: created.replyTo.status === "deleted" ? "" : created.replyTo.body,
+                deleted: created.replyTo.status === "deleted",
+                mine: created.replyTo.senderId === me.id,
+              }
+            : null,
+        },
+      },
+      201
+    );
   } catch (err) {
     return handleError(err, "dm:send");
   }

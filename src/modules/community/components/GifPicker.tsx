@@ -48,7 +48,7 @@ export function GifPicker({ onPick, onClose }: { onPick: (url: string) => void; 
       <button className="fixed inset-0 z-30 cursor-default" aria-label="Close" onClick={onClose} />
       <div
         ref={boxRef}
-        className="absolute bottom-full left-0 z-40 mb-2 w-[min(92vw,360px)] overflow-hidden rounded-2xl border border-white/10 bg-ink-900/98 shadow-elevate backdrop-blur-xl"
+        className="absolute bottom-full left-0 z-40 mb-2 w-[min(92vw,360px)] overflow-hidden rounded-2xl border border-white/10 bg-ink-900 shadow-elevate"
       >
         <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
           <Search className="h-4 w-4 shrink-0 text-zinc-500" />

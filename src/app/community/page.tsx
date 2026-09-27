@@ -130,55 +130,41 @@ export default async function CommunityPage() {
   }
 
   return (
-    <>
-      <Navbar />
-      {/* App-style chat: the whole screen is one fixed frame - the page itself
-          never scrolls, only the message list inside ChatClient does. */}
-      <main className="relative flex h-[100svh] flex-col overflow-hidden pt-[4.75rem] sm:pt-20">
-        <div className="mesh" />
-        <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-2 pb-2 pt-2 sm:px-6 sm:pb-4 sm:pt-3 lg:px-8">
-          {/* Screen-reader-only here, visible in the anonymous view above. A
-              member already in the room does not need a title taking vertical
-              space out of a full-height chat, but the page still needs exactly
-              one h1 for assistive tech. */}
-          <h1 className="sr-only">XYZ Crypto Community</h1>
-          <div className="mb-2 flex shrink-0 items-center justify-center gap-2 sm:mb-3">
-            <span className="eyebrow eyebrow-glass text-gold-200">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
-              </span>
-              <span className="mono text-[11px] uppercase tracking-[0.18em] text-zinc-400">
-                Markets · Alpha · Airdrops — live
-              </span>
-            </span>
-          </div>
-
-          <div className="min-h-0 flex-1">
-            <ChatClient
-              initialMessages={initialMessages}
-              initialHasMore={hasMore}
-              initialPinned={initialPinned}
-              me={{
-                id: me.id as string,
-                isAdmin: me.role === "ADMIN",
-                name: (me.name as string | null) ?? "Member",
-                image: (me.image as string | null) ?? null,
-                username: (me.username as string | null) ?? null,
-                // Needed so an optimistic message can carry the sender's real
-                // badge. Without it the client had to guess, and it guessed
-                // "Free" - see the note in ChatClient's `doSend`.
-                membership: (me.membership as string | null) ?? "Free",
-              }}
-              realtime={{
-                url: env.NEXT_PUBLIC_SUPABASE_URL,
-                anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-              }}
-              gifEnabled={gifEnabled}
-            />
-          </div>
+    // Immersive for members: no site header and no page eyebrow - the room
+    // gets the full height. Navigation is behind the menu button in the room's
+    // own header (AppMenu). The signed-out preview above keeps the normal site
+    // chrome: it is a landing page, not a place to sit and talk.
+    <main className="relative flex h-[100dvh] flex-col overflow-hidden pt-[env(safe-area-inset-top)]">
+      <div className="mesh hidden sm:block" />
+      <div className="relative mx-auto flex min-h-0 w-full max-w-[1100px] flex-1 flex-col sm:p-4 lg:p-5">
+        {/* Screen-reader-only: a member in a full-height chat does not need a
+            title taking vertical space, but the page still needs exactly one
+            h1 for assistive tech. */}
+        <h1 className="sr-only">XYZ Crypto Community</h1>
+        <div className="min-h-0 flex-1">
+          <ChatClient
+            initialMessages={initialMessages}
+            initialHasMore={hasMore}
+            initialPinned={initialPinned}
+            me={{
+              id: me.id as string,
+              isAdmin: me.role === "ADMIN",
+              name: (me.name as string | null) ?? "Member",
+              image: (me.image as string | null) ?? null,
+              username: (me.username as string | null) ?? null,
+              // Needed so an optimistic message can carry the sender's real
+              // badge. Without it the client had to guess, and it guessed
+              // "Free" - see the note in ChatClient's `doSend`.
+              membership: (me.membership as string | null) ?? "Free",
+            }}
+            realtime={{
+              url: env.NEXT_PUBLIC_SUPABASE_URL,
+              anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+            }}
+            gifEnabled={gifEnabled}
+          />
         </div>
-      </main>
-    </>
+      </div>
+    </main>
   );
 }
