@@ -67,9 +67,14 @@ describe("the DM composer IS the room's composer, visually", () => {
     expect(cls(raw, /aria-label="Send message"/)).toBe(cls(room, /whileTap=\{\{ scale: 0\.9 \}\}/));
   });
 
-  it("same appearance button", () => {
-    const a = cls(room, /aria-label="Chat appearance"/);
-    const b = cls(raw, /aria-label="Chat appearance"/);
-    expect(b.replace(/^ml-auto /, "").replace(" shrink-0", "")).toBe(a);
+  it("same header controls - one shared class, not two copies", () => {
+    // ⚠️ This used to compare the next `className="..."` literal after the
+    // anchor. Once both buttons moved to the shared CHAT_ICON_BTN constant
+    // there was no literal left to find, and the check quietly compared two
+    // unrelated strings further down the file. Now it asserts the constant.
+    for (const [name, src] of [["room", room], ["dm", raw]] as const) {
+      expect(src, name).toMatch(/aria-label="Chat appearance"[\s\S]{0,160}className=\{CHAT_ICON_BTN\}/);
+      expect(src, name).toMatch(/import \{ CHAT_BAR, CHAT_ICON_BTN \} from "[^"]*chat-ui"/);
+    }
   });
 });

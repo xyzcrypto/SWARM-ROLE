@@ -5,6 +5,91 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-27 (124) — Chat + DMs: full-screen, modern, and the two DM bugs fixed
+
+Owner request, in three parts, all verified in a real browser against the real
+`ChatClient` / `MessagesClient` (DM 51/51, new room checks 21/21, and the original
+room probe 77/77), on a 390px phone and a 1440px desktop, with the screenshots reviewed.
+
+**DM bugs the owner reported**
+- **A reply lost its quote until refresh** ("tag karne pe direct tag nahi ho raha").
+  `POST /api/dm/[id]` returned the message without `replyTo`, and the client
+  swaps its optimistic row for that response. It now returns `replyTo` and
+  `forwarded`.
+- **Tapping a quote did nothing** ("click karne pe redirect nahi hota"). The quote
+  was a plain `<div>`. It is now a button that scrolls the list, not the page,
+  to the original message and flashes it. The pinned banner and the "Replying
+  to" bar use the same path.
+- **The Block / Report menu was hidden behind the messages.** The header and the
+  message list were both `z-[1]`, and the list comes later in the document. The
+  header is now `z-20`. A probe hit-tests every menu item.
+- **Block asks first**, the blocked state is a clear card with Unblock, and
+  Escape closes the menu.
+
+**DMs: new**
+- **Reactions.** Six emoji, one per person per message, like WhatsApp and
+  iMessage.
+  - Double-tap a bubble for ❤️, or pick from the top of the actions menu.
+  - New route `POST /api/dm/[id]/message/[messageId]/react`: allowlisted emoji,
+    block-gated, authorised from the message's own conversation, and
+    rate-limited per user and per IP.
+  - Migration `41_dm_reactions` adds two nullable columns and is idempotent.
+  - The thread GET reads reactions in a **separate query that may fail**.
+    Preview deploys share the production database but never push the schema,
+    and selecting the columns in the main query would have taken every DM
+    thread down on the preview.
+- **Gestures:** swipe right to reply, long-press for actions.
+- **Search in the conversation** with "3 of 7" and up/down navigation.
+- **Drafts** are kept per conversation on the device, and the inbox shows
+  "Draft:".
+- **Inbox:** All / Unread / Pinned tabs, an unread count, and a new-message
+  button.
+- **Thread:** sticky day labels, a "Seen" line under the last message they read,
+  and redesigned bubbles and header.
+
+**Community room**
+- The "XYZ Lounge" title, the "LIVE" label and the page eyebrow are gone.
+  - The header now reads: menu, who is online, then search, appearance, alerts
+    and sound. All five controls share one 40px style.
+  - The connection state is still there. It is the dot on the online pill,
+    with the full detail in its tooltip, and "Stale" still prints in amber.
+- **Search** over the loaded messages.
+- Swipe to reply, double-tap for ❤️, and message highlighting.
+
+**Composer, both surfaces**
+- Poll, GIF and Photo moved behind **one "+" button**. Three buttons had left
+  the text box so narrow that its placeholder wrapped and the empty box grew to
+  two lines. That was the owner's third screenshot.
+- An empty composer is now **one line by rule**, in `useAutoGrow` and in the
+  room, whatever the placeholder does.
+- The room's `0/500` counter only appears in the last 100 characters.
+- Pill text box and a round send button.
+
+**Immersive screens**
+- `/messages`, and `/community` for members, drop the site header entirely.
+  - Phones get the full screen edge to edge; desktop gets a large framed app.
+  - Navigation lives in a new side drawer, `AppMenu`, which carries the
+    complete `navLinks` list plus search, theme, XYZ AI and account links.
+  - The floating XYZ AI button is hidden there, because it would sit on the
+    composer. It opens from the drawer.
+  - The signed-out `/community` preview keeps the normal site chrome.
+- The member view keeps its screen-reader-only `h1`. I removed it by accident
+  and the SEO test caught it.
+
+**Found along the way**
+- `bg-ink-900/98` generates **no CSS**, because Tailwind's opacity scale moves
+  in steps of 5. So the GIF picker, and at first the new menus, had no
+  background at all. A screenshot caught it; now fixed.
+- `chat-dm-v2.test.ts` rejects any off-scale opacity in the chat files.
+- Pre-existing `/12` modifiers elsewhere (dashboard, primitives, footer and
+  others, 21 uses) are **not** fixed here. Fixing them would add tints that
+  have never rendered on those pages, which is a design change for the owner
+  to decide.
+- The swipe gesture first read its distance from React state, so a fast swipe
+  did nothing. A probe caught it; it now uses a ref.
+- The inbox rows' menu buttons now have their own accessible names. They all
+  used to share the thread header's name, "Conversation options".
+
 ## 2026-09-27 (123) — PR 3: typing no longer freezes chat and DMs; less layout work site-wide
 
 Every fix was measured before and after in a real browser (production build;

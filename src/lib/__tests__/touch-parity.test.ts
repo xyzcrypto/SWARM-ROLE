@@ -118,7 +118,7 @@ describe("a hover cannot hide a feature from a phone", () => {
     // The whole class run, so the assertion cannot pass on some other button:
     // visible by default, hidden and hover-revealed only from `sm` up.
     expect(src).toMatch(
-      /grid h-7 w-7 place-items-center rounded-full text-zinc-600 opacity-100 transition-opacity[^"]*sm:opacity-0 sm:group-hover:opacity-100/
+      /grid h-9 w-9 place-items-center rounded-full text-zinc-500 opacity-100 transition-opacity[^"]*sm:opacity-0 sm:group-hover:opacity-100/
     );
     // And the old shape must be gone, not merely outnumbered.
     expect(src).not.toMatch(/text-zinc-600 opacity-0 transition-opacity[^"]*group-hover:opacity-100/);

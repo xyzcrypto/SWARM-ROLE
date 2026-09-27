@@ -220,6 +220,6 @@ describe("touch targets and the room's existing behaviour", () => {
   });
 
   it("keeps the composer clear of the home indicator", () => {
-    expect(chat).toMatch(/pb-\[max\(0\.75rem,env\(safe-area-inset-bottom\)\)\]/);
+    expect(chat).toMatch(/pb-\[max\(0\.5rem,env\(safe-area-inset-bottom\)\)\]/);
   });
 });

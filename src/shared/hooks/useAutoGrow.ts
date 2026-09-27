@@ -33,6 +33,17 @@ export function useAutoGrow(
   const measure = useCallback(() => {
     const el = ref.current;
     if (!el) return;
+    // ⚠️ Empty means ONE line, full stop. `scrollHeight` of an empty textarea
+    // includes its placeholder, so a placeholder that wraps on a narrow phone
+    // grew the empty composer to two lines and it stopped lining up with the
+    // buttons beside it - the room's composer in the owner's screenshot. The
+    // placeholder is a hint, not content; it does not get to size the box.
+    // (Point 2 above still stands for a NON-empty box.)
+    if (!el.value) {
+      el.style.height = "";
+      el.style.overflowY = "hidden";
+      return;
+    }
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, max)}px`;
     el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";

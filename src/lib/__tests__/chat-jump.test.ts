@@ -27,7 +27,8 @@ describe("jumping to a message stays inside the message list", () => {
   it("still highlights it", () => {
     // The jump is only half the affordance; without the ring you cannot tell
     // which message you were sent to.
-    expect(C).toMatch(/el\.classList\.add\("ring-1", "ring-gold-500\/50"\)/);
+    // Now a one-shot gold wash (`.msg-flash` in globals.css), shared with DMs.
+    expect(C).toMatch(/el\.classList\.add\("msg-flash"\)/);
   });
 });
 

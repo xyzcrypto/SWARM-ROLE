@@ -113,15 +113,16 @@ describe("the inbox preview follows the newest message", () => {
 describe("the menu offers what the server will accept", () => {
   it("offers only 'for me' on their message", () => {
     // Offering "for everyone" there would be a button that only ever 403s.
-    const theirs = /\{!m\.mine && !m\.deleted && \([\s\S]*?<\/MessageActions>/.exec(C)?.[0] ?? "";
-    expect(theirs).not.toBe("");
-    expect(theirs).toContain('deleteMessage(m.id, "me")');
-    expect(theirs).not.toContain('deleteMessage(m.id, "everyone")');
+    // One menu now serves both sides; "for everyone" is gated on `m.mine`.
+    expect(C).toMatch(/\{m\.mine && <ActionItem icon=\{Trash2\} label="Delete for everyone"[^}]*deleteMessage\(m\.id, "everyone"\)/);
+    expect(C).toMatch(/<ActionItem icon=\{Trash2\} label="Delete for me" destructive onClick=\{\(\) => void deleteMessage\(m\.id, "me"\)\} \/>/);
   });
 
   it("offers both on mine", () => {
     expect(C).toContain('label="Delete for everyone"');
-    expect(C.match(/label="Delete for me"/g) ?? []).toHaveLength(2);
+    // Once each, in the one shared menu.
+    expect(C.match(/label="Delete for me"/g) ?? []).toHaveLength(1);
+    expect(C.match(/label="Delete for everyone"/g) ?? []).toHaveLength(1);
   });
 
   it("removes rather than tombstones when the scope is me", () => {

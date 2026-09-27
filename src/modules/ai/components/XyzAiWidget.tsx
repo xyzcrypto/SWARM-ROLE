@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   SendHorizonal, X, Loader2, Trash2, BarChart3, Search, Compass, BookOpen, Coins,
@@ -72,9 +72,13 @@ export function XyzAiWidget() {
   // is open on /messages - hidden in both cases on small screens only;
   // desktop (composer sits in a much wider frame) keeps it either way.
   const pathname = usePathname();
-  const searchParams = useSearchParams();
-  const dmThreadOpen = pathname === "/messages" && Boolean(searchParams?.get("c"));
-  const hideOnMobile = (pathname?.startsWith("/community") ?? false) || dmThreadOpen;
+  // The chat and DM screens are immersive now - no site header, the whole
+  // height is the conversation - so the floating launcher would sit on the
+  // composer at EVERY width, not only on phones. It is hidden there, and XYZ AI
+  // is one tap away in the side menu (AppMenu), which dispatches the same open
+  // event. The PANEL is never hidden: if someone opened it, they want it.
+  const immersive =
+    (pathname?.startsWith("/community") ?? false) || (pathname?.startsWith("/messages") ?? false);
 
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -388,8 +392,7 @@ export function XyzAiWidget() {
       // No spring while the pointer is down, or the panel lags behind the cursor.
       transition={drag.dragging ? { duration: 0 } : { type: "spring", stiffness: 240, damping: 24 }}
       className={cn(
-        "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-[20px] sm:right-6",
-        hideOnMobile && "max-md:hidden"
+        "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-[20px] sm:right-6"
       )}
       ref={(el) => {
         drag.ref.current = el;
@@ -733,7 +736,7 @@ export function XyzAiWidget() {
         transition={fabDrag.dragging ? { duration: 0 } : undefined}
         className={cn(
           "ai-fab fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] right-4 z-[60] inline-flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-mint-400 to-mint-600 text-ink shadow-lg shadow-mint-500/30 ring-1 ring-mint-300/50 sm:right-6 md:bottom-5",
-          hideOnMobile && "max-md:hidden"
+          immersive && "hidden"
         )}
       >
         <AnimatePresence mode="wait" initial={false}>

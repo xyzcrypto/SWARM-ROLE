@@ -8,7 +8,7 @@ import { clockTime, dayLabel } from "@/lib/chat-time";
 import {
   Flag,
   Palette,
-  ArrowDown, BarChart3, Check, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
+  ArrowDown, BarChart3, Check, ChevronDown, ChevronUp, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Search, Smile, Sticker, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { compressImage } from "@/lib/image";
@@ -33,6 +33,10 @@ import { ReportDialog } from "./ReportDialog";
 import { useChatAppearance } from "./useChatAppearance";
 import { ChatWallpaper } from "./ChatWallpaper";
 import { ChatAppearanceSheet } from "./ChatAppearanceSheet";
+import { AttachTray } from "./AttachTray";
+import { SwipeBubble } from "./SwipeBubble";
+import { CHAT_BAR, CHAT_ICON_BTN } from "../lib/chat-ui";
+import { AppMenu } from "@shared/components/AppMenu";
 
 const MAX_LENGTH = 500;
 const CHANNEL = "community";
@@ -251,6 +255,13 @@ export function ChatClient({
   const [photoUploading, setPhotoUploading] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [membersOpen, setMembersOpen] = useState(false);
+  // Search over the messages already loaded in the room. Matches are ids,
+  // oldest first; navigation starts from the newest, where people look first.
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQ, setSearchQ] = useState("");
+  const [matchIdx, setMatchIdx] = useState(-1);
+  // Bumped to put the caret in the composer (swipe-to-reply, Reply).
+  const [composerFocus, setComposerFocus] = useState(0);
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
   const firstUnreadRef = useRef<string | null>(null);
   const soundOnRef = useRef(false);
@@ -1179,8 +1190,11 @@ export function ChatClient({
           const top = el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
           list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
         }
-        el.classList.add("ring-1", "ring-gold-500/50");
-        setTimeout(() => el.classList.remove("ring-1", "ring-gold-500/50"), 1200);
+        // A brief gold wash so the eye lands on it (globals.css `.msg-flash`).
+        el.classList.remove("msg-flash");
+        void el.offsetWidth; // restart the animation if it is already running
+        el.classList.add("msg-flash");
+        setTimeout(() => el.classList.remove("msg-flash"), 1700);
         return;
       }
       const added = await loadOlder();
@@ -1247,8 +1261,33 @@ export function ChatClient({
 
   // dvh (where supported) tracks the *visible* viewport, so the composer
   // stays above the mobile keyboard instead of being pushed off-screen.
+  // Search over what is loaded. Polls and photos have no searchable text.
+  const searchQuery = searchQ.trim().toLowerCase();
+  const searchMatches = searchQuery
+    ? messages
+        .filter((m) => !m.hidden && m.kind !== "poll" && !chatMediaUrl(m.body) && m.body.toLowerCase().includes(searchQuery))
+        .map((m) => m.id)
+    : [];
+  const searchMatchSet = new Set(searchMatches);
+  const goToMatch = (dir: -1 | 1) => {
+    if (!searchMatches.length) return;
+    const cur = matchIdx < 0 || matchIdx >= searchMatches.length ? searchMatches.length : matchIdx;
+    const next = (cur + dir + searchMatches.length) % searchMatches.length;
+    setMatchIdx(next);
+    void scrollToMessage(searchMatches[next]!);
+  };
+  const closeSearch = () => { setSearchOpen(false); setSearchQ(""); setMatchIdx(-1); };
+
+  /** Reply to a message and put the caret in the composer. */
+  const replyTo = (m: Message) => {
+    setActionOpenId(null);
+    setReplyTarget({ id: m.id, body: chatMediaUrl(m.body) ? "📷 media" : m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
+    setComposerFocus((t) => t + 1);
+  };
+
   return (
-    <div className="glass relative flex h-full min-h-[420px] flex-col overflow-hidden rounded-3xl">
+    // Edge to edge on a phone - the page is the app - and a framed room from `sm` up.
+    <div className="glass relative flex h-full min-h-[420px] flex-col overflow-hidden max-sm:rounded-none max-sm:border-0 sm:rounded-3xl">
       {/* Ambient futuristic glow behind the room. */}
       <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[130%] -translate-x-1/2 rounded-full bg-mint-500/10 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-28 right-0 h-56 w-72 rounded-full bg-gold-500/10 blur-3xl" />
@@ -1266,81 +1305,25 @@ export function ChatClient({
         className="absolute inset-0"
       />
 
-      {/* Header: room identity + live "who's online" presence strip */}
-      <div className="relative flex items-center justify-between gap-3 border-b border-white/10 bg-ink-900 px-4 py-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className={cn("absolute inline-flex h-full w-full rounded-full", live ? "animate-pulse-dot bg-mint-400" : "bg-zinc-600")} />
-              <span className={cn("relative inline-flex h-2 w-2 rounded-full", live ? "bg-mint-400" : "bg-zinc-600")} />
-            </span>
-            <span className="font-display text-sm font-semibold text-zinc-100">XYZ Lounge</span>
-            {/* Honest connection state: live socket, reconnecting, or the
-                polling fallback (never a forever-"Connecting…"). */}
-            <span
-              // The reason rides along as a tooltip. Same label, same colours,
-              // same layout - but a hover (or a long-press) now answers "why?"
-              // instead of leaving "Reconnecting..." as a dead end.
-              title={
-                pollError
-                  ? `The server is not returning messages (${pollError}). What you see is frozen at the last successful load - new messages are NOT arriving. Retrying every 10s.`
-                  : live
-                    ? "Live via Supabase Realtime"
-                    : realtimeConfigured
-                      ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages arrive on the 10s poll and the online count comes from the server heartbeat every 15s.${presenceError ? ` PRESENCE PROBLEM: ${presenceError}` : ""}`
-                      : "Realtime is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). Messages refresh by polling."
-              }
-              className={cn(
-                "mono text-[10px] uppercase tracking-wider",
-                pollError ? "text-amber-300/90" : live ? "text-mint-300/80" : "text-zinc-400"
-              )}
-            >
-              {/* "Reconnecting…" in alarming amber was overstating the problem.
-                  When the websocket is down the room is still working: messages
-                  arrive on the 10s poll and the online count comes from the
-                  server heartbeat - the screenshot that prompted this showed
-                  "RECONNECTING" and "2 online" side by side, which reads as
-                  broken while being perfectly functional. "Synced" in a calm
-                  neutral is the honest description of the fallback, and the
-                  tooltip still carries the detail (and the underlying error)
-                  for anyone debugging it. */}
-              {/* "Stale" is the one state that must never be dressed up. The
-                  amber is not overstating anything here: the poll IS failing
-                  and the messages on screen are frozen. The two calm states
-                  below stay calm - a working fallback is not a problem. */}
-              {pollError ? "Stale" : live ? "Live" : "Synced"}
-            </span>
-          </div>
-          <p className="mt-0.5 hidden mono text-[11px] text-zinc-500 sm:block">#general · markets, alpha &amp; Web3</p>
-        </div>
+      {/* ── Header ─────────────────────────────────────────────────────────
+          The room's name and a "LIVE" label used to lead this row. Neither
+          told a member anything - they know which room they are in - and on a
+          phone the title wrapped onto two lines and the label ran into the
+          next button (the owner's screenshot). The row now leads with the
+          site menu (this page has no site header any more) and who is here,
+          and every tool is the same 40px control (CHAT_ICON_BTN) instead of
+          three different button styles side by side.
 
-        <div className="flex shrink-0 items-center gap-2.5">
-          {/* Enable phone push alerts for the lounge (reuses the Web Push infra). */}
-          {/* A per-device display preference, so there is nothing to gate:
-              any member in the room can use it. (Signed-out visitors see
-              `CommunityPreview`, a different component, and never reach this.) */}
-          <button
-            type="button"
-            onClick={() => setAppearanceOpen(true)}
-            aria-label="Chat appearance"
-            aria-haspopup="dialog"
-            title="Chat appearance"
-            className="grid h-9 w-9 place-items-center rounded-xl border border-hairline text-content-subtle transition-all duration-200 hover:scale-105 hover:border-gold-500/30 hover:text-content active:scale-105"
-          >
-            <Palette className="h-4 w-4" strokeWidth={1.8} />
-          </button>
-          {me && <NewsAlertsToggle loggedIn compact title="Get a phone notification when the lounge is active" />}
-          <button
-            type="button"
-            onClick={toggleSound}
-            aria-label={soundOn ? "Mute message sounds" : "Enable message sounds"}
-            title={soundOn ? "Sounds on" : "Sounds off"}
-            className={cn("rounded-lg p-1.5 transition-colors", soundOn ? "text-mint-300 hover:text-mint-200" : "text-zinc-500 hover:text-zinc-300")}
-          >
-            {soundOn ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
-          </button>
+          Connection state is not gone, it moved: it is the dot on the
+          presence pill, with the full explanation in its tooltip, and the one
+          state that must never be dressed up - "Stale", when the poll is
+          failing and the messages on screen are frozen - still prints in
+          amber words. */}
+      <div className={cn("relative z-20 flex items-center gap-1.5 border-b border-hairline px-2 py-2 sm:gap-2 sm:px-3", CHAT_BAR)}>
+        <AppMenu />
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           {members.length > 0 && (
-            <div className="flex -space-x-2">
+            <div className="hidden -space-x-2 sm:flex">
               {members.slice(0, 3).map((m) =>
                 m.username ? (
                   <Link
@@ -1368,19 +1351,35 @@ export function ChatClient({
               )}
             </div>
           )}
-          <div className="relative">
+          <div className="relative min-w-0">
             <button
               onClick={() => members.length && setMembersOpen((v) => !v)}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-mint-500/10 px-2.5 py-1 text-[11px] font-medium text-mint-200 ring-1 ring-mint-500/25 transition-colors hover:bg-mint-500/20 disabled:cursor-default"
+              aria-expanded={membersOpen}
               disabled={!members.length}
+              // The reason rides along as a tooltip - a hover (or a
+              // long-press) answers "why?" instead of a dead-end label.
+              title={
+                pollError
+                  ? `The server is not returning messages (${pollError}). What you see is frozen at the last successful load - new messages are NOT arriving. Retrying every 10s.`
+                  : live
+                    ? "Live via Supabase Realtime"
+                    : realtimeConfigured
+                      ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages arrive on the 10s poll and the online count comes from the server heartbeat every 15s.${presenceError ? ` PRESENCE PROBLEM: ${presenceError}` : ""}`
+                      : "Realtime is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). Messages refresh by polling."
+              }
+              className="inline-flex h-9 max-w-full items-center gap-2 rounded-full bg-mint-500/10 px-3 text-[13px] font-semibold text-mint-200 ring-1 ring-mint-500/25 transition-colors hover:bg-mint-500/20 disabled:cursor-default"
             >
-              <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-mint-400" />
-              {online} online
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className={cn("absolute inline-flex h-full w-full rounded-full", pollError ? "bg-amber-400" : live ? "animate-pulse-dot bg-mint-400" : "bg-zinc-500")} />
+                <span className={cn("relative inline-flex h-2 w-2 rounded-full", pollError ? "bg-amber-400" : live ? "bg-mint-400" : "bg-zinc-500")} />
+              </span>
+              <span className="truncate">{online} online</span>
+              <span className="sr-only">{pollError ? "Stale" : live ? "Live" : "Synced"}</span>
             </button>
             {membersOpen && members.length > 0 && (
               <>
                 <button className="fixed inset-0 z-40 cursor-default" aria-label="Close" onClick={() => setMembersOpen(false)} />
-                <div className="absolute right-0 top-full z-50 mt-2 max-h-72 w-60 overflow-y-auto rounded-xl border border-white/10 bg-ink-900 p-2 shadow-elevate">
+                <div className="app-fade-in absolute left-0 top-full z-50 mt-2 max-h-80 w-64 overflow-y-auto rounded-2xl border border-white/10 bg-ink-900 p-2 shadow-elevate">
                   <p className="px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Online now · {members.length}</p>
                   {members.map((m) => {
                     const inner = (
@@ -1391,19 +1390,89 @@ export function ChatClient({
                       </>
                     );
                     return m.username ? (
-                      <Link key={m.id} href={`/u/${m.username}`} onClick={() => setMembersOpen(false)} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors hover:bg-white/5">
+                      <Link key={m.id} href={`/u/${m.username}`} onClick={() => setMembersOpen(false)} className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition-colors hover:bg-white/5">
                         {inner}
                       </Link>
                     ) : (
-                      <div key={m.id} className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">{inner}</div>
+                      <div key={m.id} className="flex items-center gap-2.5 rounded-xl px-2 py-1.5">{inner}</div>
                     );
                   })}
                 </div>
               </>
             )}
           </div>
+          {pollError && <span className="mono shrink-0 text-[10px] uppercase tracking-wider text-amber-300/90">Stale</span>}
         </div>
+
+        <button
+          type="button"
+          onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+          aria-label="Search messages"
+          aria-expanded={searchOpen}
+          title="Search messages"
+          className={CHAT_ICON_BTN}
+        >
+          <Search className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
+        {/* A per-device display preference, so there is nothing to gate:
+            any member in the room can use it. */}
+        <button
+          type="button"
+          onClick={() => setAppearanceOpen(true)}
+          aria-label="Chat appearance"
+          aria-haspopup="dialog"
+          title="Chat appearance"
+          className={CHAT_ICON_BTN}
+        >
+          <Palette className="h-[18px] w-[18px]" strokeWidth={1.8} />
+        </button>
+        {/* Phone push alerts for the lounge (reuses the Web Push infra). */}
+        {me && <NewsAlertsToggle loggedIn compact title="Get a phone notification when the lounge is active" />}
+        <button
+          type="button"
+          onClick={toggleSound}
+          aria-label={soundOn ? "Mute message sounds" : "Enable message sounds"}
+          aria-pressed={soundOn}
+          title={soundOn ? "Sounds on" : "Sounds off"}
+          className={cn(CHAT_ICON_BTN, "max-[359px]:hidden")}
+        >
+          {soundOn ? <Volume2 className="h-[18px] w-[18px]" /> : <VolumeX className="h-[18px] w-[18px]" />}
+        </button>
       </div>
+
+      {searchOpen && (
+        <div className={cn("relative z-10 flex items-center gap-1.5 border-b border-hairline px-2 py-1.5 sm:px-3", CHAT_BAR)}>
+          <div className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border border-white/10 bg-ink-950/60 px-3">
+            <Search className="h-4 w-4 shrink-0 text-zinc-500" />
+            <input
+              autoFocus
+              value={searchQ}
+              onChange={(e) => { setSearchQ(e.target.value); setMatchIdx(-1); }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); goToMatch(e.shiftKey ? 1 : -1); }
+                if (e.key === "Escape") closeSearch();
+              }}
+              placeholder="Search loaded messages"
+              aria-label="Search loaded messages"
+              className="h-10 min-w-0 flex-1 bg-transparent text-base text-zinc-100 outline-none placeholder:text-zinc-600 sm:text-sm"
+            />
+            {searchQuery && (
+              <span className="mono shrink-0 text-[11px] text-zinc-500" aria-live="polite">
+                {searchMatches.length === 0 ? "No matches" : `${matchIdx < 0 ? searchMatches.length : matchIdx + 1} of ${searchMatches.length}`}
+              </span>
+            )}
+          </div>
+          <button type="button" onClick={() => goToMatch(-1)} disabled={!searchMatches.length} aria-label="Older match" className={cn(CHAT_ICON_BTN, "disabled:opacity-30")}>
+            <ChevronUp className="h-5 w-5" />
+          </button>
+          <button type="button" onClick={() => goToMatch(1)} disabled={!searchMatches.length} aria-label="Newer match" className={cn(CHAT_ICON_BTN, "disabled:opacity-30")}>
+            <ChevronDown className="h-5 w-5" />
+          </button>
+          <button type="button" onClick={closeSearch} aria-label="Close search" className={CHAT_ICON_BTN}>
+            <X className="h-5 w-5" />
+          </button>
+        </div>
+      )}
 
       {/* Pinned message banner (latest pin; tap to jump) */}
       {pinned && !pinned.hidden && (
@@ -1480,10 +1549,10 @@ export function ChatClient({
             return (
               <div key={m.id}>
                 {showDay && (
-                  <div className="my-4 flex items-center gap-3 text-[11px] text-zinc-600">
-                    <span className="h-px flex-1 bg-white/5" />
-                    {day}
-                    <span className="h-px flex-1 bg-white/5" />
+                  <div className="my-4 flex justify-center">
+                    <span className="mono rounded-full bg-ink-900/95 px-3 py-1 text-[10px] uppercase tracking-wider text-zinc-400 shadow-md shadow-black/30 ring-1 ring-white/10">
+                      {day}
+                    </span>
                   </div>
                 )}
                 {firstUnreadId === m.id && (
@@ -1493,6 +1562,14 @@ export function ChatClient({
                     <span className="h-px flex-1 bg-gold-500/30" />
                   </div>
                 )}
+                {/* Swipe right to reply and double-tap for ❤️, on touch - the
+                    gestures every messenger has taught people. Desktop keeps
+                    double-click for ❤️ and the hover bar; both have buttons. */}
+                <SwipeBubble
+                  disabled={!me || m.pending || editingId === m.id}
+                  onReply={() => replyTo(m)}
+                  onDoubleTap={touchUi ? () => toggleReaction(m.id, "❤️") : undefined}
+                >
                 <motion.div
                   id={`msg-${m.id}`}
                   initial={{ opacity: 0, y: 10 }}
@@ -1511,7 +1588,8 @@ export function ChatClient({
                     "group relative flex items-start gap-3 rounded-xl px-2.5 transition-colors hover:bg-white/[0.035]",
                     grouped ? "py-0.5" : "py-2",
                     m.userId === me?.id && "bg-mint-500/[0.06] ring-1 ring-inset ring-mint-500/15 hover:bg-mint-500/[0.09]",
-                    m.pending && "opacity-85"
+                    m.pending && "opacity-85",
+                    searchMatchSet.has(m.id) && "ring-2 ring-inset ring-gold-400/60"
                   )}
                 >
                   <div className="w-9 shrink-0">
@@ -1681,7 +1759,7 @@ export function ChatClient({
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 6, scale: 0.9 }}
                               transition={{ duration: 0.14 }}
-                              className="absolute bottom-full right-0 z-20 mb-1 flex max-w-[88vw] flex-wrap gap-0.5 rounded-2xl border border-line bg-ink-900/95 px-1.5 py-1 shadow-elevate backdrop-blur-xl"
+                              className="absolute bottom-full right-0 z-20 mb-1 flex max-w-[88vw] flex-wrap gap-0.5 rounded-2xl border border-line bg-ink-900 px-1.5 py-1 shadow-elevate"
                             >
                               {REACTIONS.map((e) => (
                                 <button key={e} onClick={() => toggleReaction(m.id, e)}
@@ -1706,10 +1784,7 @@ export function ChatClient({
                         </button>
                       )}
                       <button
-                        onClick={() => {
-                          setActionOpenId(null);
-                          setReplyTarget({ id: m.id, body: chatMediaUrl(m.body) ? "📷 media" : m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
-                        }}
+                        onClick={() => replyTo(m)}
                         className={cn("rounded text-zinc-400 transition-colors hover:bg-white/10 hover:text-gold-200", touchUi ? "grid h-11 w-11 place-items-center" : "p-1.5")}
                         aria-label="Reply"
                       >
@@ -1791,6 +1866,7 @@ export function ChatClient({
                     </div>
                   )}
                 </motion.div>
+                </SwipeBubble>
               </div>
             );
           })}
@@ -1848,16 +1924,18 @@ export function ChatClient({
 
       {/* composer */}
       {/* pb: keep the composer clear of the iPhone home indicator. */}
-      <div className="relative z-[1] border-t border-white/10 bg-ink-900/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4">
+      <div className={cn("relative z-[2] border-t border-hairline px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:px-3", CHAT_BAR)}>
         {me ? (
           <>
             {replyTarget && (
-              <div className="mb-2 flex items-center justify-between gap-2 rounded-lg border-l-2 border-gold-500/40 bg-white/[0.03] px-3 py-1.5">
-                <span className="truncate text-[12px] text-zinc-400">
-                  Replying to <span className="text-gold-200">{replyTarget.authorName}</span> · {replyTarget.body}
-                </span>
-                <button onClick={() => setReplyTarget(null)} className="shrink-0 text-zinc-500 hover:text-zinc-200" aria-label="Cancel reply">
-                  <X className="h-3.5 w-3.5" />
+              <div className="app-fade-in mb-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-1.5">
+                <Reply className="h-4 w-4 shrink-0 text-gold-300" aria-hidden />
+                <button type="button" onClick={() => void scrollToMessage(replyTarget.id)} className="min-w-0 flex-1 border-l-2 border-gold-500/50 pl-2 text-left">
+                  <p className="text-[12px] font-semibold text-gold-200">Replying to {replyTarget.authorName}</p>
+                  <p className="truncate text-[12px] text-zinc-400">{replyTarget.body}</p>
+                </button>
+                <button onClick={() => setReplyTarget(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-zinc-500 hover:bg-white/10 hover:text-zinc-200" aria-label="Cancel reply">
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             )}
@@ -1869,39 +1947,13 @@ export function ChatClient({
               error={error}
               onSend={(text) => doSend(text)}
               onTyping={sendTyping}
+              focusTick={composerFocus}
               leading={
                 <>
-                {/* attach row: poll, GIF (everyone, if configured), photo (admin) */}
-                <button
-                  type="button"
-                  onClick={() => setPollOpen(true)}
-                  className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200"
-                  aria-label="Create a poll"
-                  title="Create a poll"
-                >
-                  <BarChart3 className="h-[18px] w-[18px]" />
-                </button>
-                {gifEnabled && (
-                  <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => setGifOpen((v) => !v)}
-                      className={cn(
-                        "grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-[10px] font-bold transition-colors hover:border-gold-500/40 hover:text-gold-200",
-                        gifOpen ? "text-gold-200" : "text-zinc-400"
-                      )}
-                      aria-label="Send a GIF"
-                      title="Send a GIF"
-                    >
-                      GIF
-                    </button>
-                    <AnimatePresence>
-                      {gifOpen && <GifPicker onPick={(url) => void sendGif(url)} onClose={() => setGifOpen(false)} />}
-                    </AnimatePresence>
-                  </div>
-                )}
-                {me.isAdmin && (
-                  <>
+                  {/* One "+" for everything you can attach (see AttachTray for
+                      why a row of three buttons had to go). Photo stays
+                      admin-only; GIF only when a provider is configured. */}
+                  {me.isAdmin && (
                     <input
                       ref={photoInputRef}
                       type="file"
@@ -1909,18 +1961,18 @@ export function ChatClient({
                       className="hidden"
                       onChange={(e) => { void onPickPhoto(e.target.files?.[0]); e.target.value = ""; }}
                     />
-                    <button
-                      type="button"
-                      onClick={() => photoInputRef.current?.click()}
-                      disabled={photoUploading}
-                      className="grid h-11 w-9 shrink-0 place-items-center rounded-2xl border border-black/10 bg-black/[0.04] dark:border-white/10 dark:bg-ink-800/60 text-zinc-400 transition-colors hover:border-gold-500/40 hover:text-gold-200 disabled:opacity-50"
-                      aria-label="Share a photo"
-                      title="Share a photo (admin)"
-                    >
-                      {photoUploading ? <Loader2 className="h-[18px] w-[18px] animate-spin" /> : <ImagePlus className="h-[18px] w-[18px]" />}
-                    </button>
-                  </>
-                )}
+                  )}
+                  <AttachTray
+                    items={[
+                      { key: "poll", label: "Poll", icon: BarChart3, onSelect: () => setPollOpen(true) },
+                      ...(gifEnabled ? [{ key: "gif", label: "GIF", icon: Sticker, onSelect: () => setGifOpen(true) }] : []),
+                      ...(me.isAdmin ? [{ key: "photo", label: "Photo", icon: ImagePlus, busy: photoUploading, onSelect: () => photoInputRef.current?.click() }] : []),
+                    ]}
+                  >
+                    <AnimatePresence>
+                      {gifOpen && <GifPicker onPick={(url) => void sendGif(url)} onClose={() => setGifOpen(false)} />}
+                    </AnimatePresence>
+                  </AttachTray>
                 </>
               }
             />
@@ -1978,6 +2030,7 @@ function RoomComposer({
   onSend,
   onTyping,
   leading,
+  focusTick,
 }: {
   members: PresenceMember[];
   meId: string;
@@ -1987,6 +2040,8 @@ function RoomComposer({
   onSend: (text: string) => Promise<boolean>;
   onTyping: () => void;
   leading: React.ReactNode;
+  /** Bumped by the room to put the caret here (swipe-to-reply, Reply). */
+  focusTick: number;
 }) {
   const [body, setBody] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -2044,6 +2099,15 @@ function RoomComposer({
   const measureComposer = useCallback(() => {
     const el = composerRef.current;
     if (!el) return;
+    // ⚠️ Empty means ONE line. An empty textarea's scrollHeight includes its
+    // placeholder, and on a phone the placeholder wrapped - so the empty
+    // composer grew to two lines and stopped lining up with the buttons
+    // beside it (the owner's screenshot). Same rule as useAutoGrow.
+    if (!el.value) {
+      el.style.height = "";
+      el.style.overflowY = "hidden";
+      return;
+    }
     el.style.height = "auto";
     const next = Math.min(el.scrollHeight, COMPOSER_MAX_H);
     el.style.height = `${next}px`;
@@ -2082,6 +2146,14 @@ function RoomComposer({
     void document.fonts?.ready.then(measureComposer);
     return () => ro.disconnect();
   }, [measureComposer]);
+  useEffect(() => {
+    if (!focusTick) return;
+    const el = composerRef.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
+  }, [focusTick]);
+
   const insertMention = (username: string) => {
     setBody((b) => b.replace(/@[a-zA-Z0-9_]*$/, `@${username} `).slice(0, MAX_LENGTH));
     // Focus goes back to the composer, caret at the end. Without this the
@@ -2099,7 +2171,7 @@ function RoomComposer({
 
   return (
     <>
-      <form onSubmit={send} className="flex items-end gap-1.5">
+      <form onSubmit={send} className="flex items-end gap-2">
         {leading}
       <div className="relative flex-1">
         <textarea
@@ -2126,7 +2198,7 @@ function RoomComposer({
           // effect above, and a CSS max-height fighting an inline
           // height is how this kind of control ends up stuck. The
           // `min-h` stays as the one-line floor.
-          className="block min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
+          className="block min-h-[44px] w-full resize-none rounded-[22px] border border-white/10 bg-ink-950/60 px-4 py-2.5 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
         />
         <button
           type="button"
@@ -2151,7 +2223,7 @@ function RoomComposer({
           )}
         </AnimatePresence>
         {mentionSuggestions.length > 0 && (
-          <div className="absolute bottom-full left-0 z-30 mb-2 w-60 max-w-[80vw] overflow-hidden rounded-xl border border-line bg-ink-900/95 p-1 shadow-elevate backdrop-blur-xl">
+          <div className="absolute bottom-full left-0 z-30 mb-2 w-60 max-w-[80vw] overflow-hidden rounded-xl border border-line bg-ink-900 p-1 shadow-elevate">
             <p className="px-2 py-1 mono text-[10px] uppercase tracking-wider text-zinc-600">Mention</p>
             {mentionSuggestions.map((u) => (
               <button
@@ -2177,20 +2249,27 @@ function RoomComposer({
         type="submit"
         disabled={sending || !body.trim()}
         whileTap={{ scale: 0.9 }}
-        className="btn-primary inline-flex h-11 shrink-0 items-center gap-1 !rounded-2xl !px-2.5 disabled:opacity-50"
+        className="btn-primary grid h-11 w-11 shrink-0 place-items-center !rounded-full !p-0 disabled:opacity-50"
         aria-label="Send message"
       >
         {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
-        <span className="relative z-10 hidden text-[13px] font-semibold !text-white sm:inline">Send</span>
+        
       </motion.button>
     </form>
-    {/* error + character count - aligned below the row, full width */}
-    <div className="mt-1.5 flex min-h-[16px] items-center justify-between px-1 text-[11px]">
-      <span className="text-red-300">{error}</span>
-      <span className={cn("mono text-zinc-600", body.length > MAX_LENGTH - 50 && "text-amber-300")}>
-        {body.length}/{MAX_LENGTH}
-      </span>
-    </div>
+    {/* Error and character count, only when there is something to say.
+        A permanent "0/500" row under the composer was a second line of
+        chrome on every screen for a limit almost nobody reaches - it now
+        appears in the last 100 characters, which is when it is useful. */}
+    {(error || body.length > MAX_LENGTH - 100) && (
+      <div className="mt-1.5 flex items-center justify-between gap-2 px-1 text-[11px]">
+        <span className="text-red-300">{error}</span>
+        {body.length > MAX_LENGTH - 100 && (
+          <span className={cn("mono text-zinc-500", body.length > MAX_LENGTH - 50 && "text-amber-300")}>
+            {body.length}/{MAX_LENGTH}
+          </span>
+        )}
+      </div>
+    )}
     </>
   );
 }

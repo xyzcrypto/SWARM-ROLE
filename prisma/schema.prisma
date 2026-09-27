@@ -446,6 +446,14 @@ model DirectMessage {
   // for the same reason.
   forwarded Boolean @default(false)
 
+  // One reaction per participant, the WhatsApp / iMessage model: each side can
+  // put at most one emoji on a message, and tapping it again takes it off. Two
+  // nullable columns rather than a table, for the same reason as hiddenByA/B -
+  // a DM has exactly two participants and A/B are already fixed by the
+  // conversation. Validated against a fixed set server-side (dm-reactions.ts).
+  reactionA String? // user A's reaction on this message
+  reactionB String? // user B's reaction on this message
+
   @@index([conversationId, createdAt])
   // The pinned banner is "the newest pinned message in this conversation".
   @@index([conversationId, pinnedAt])
