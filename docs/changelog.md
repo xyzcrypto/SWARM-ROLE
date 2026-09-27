@@ -5,6 +5,75 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-27 (119) — Community Chat: a composer that grows, reporting, backgrounds
+
+Scoped to Community Chat. No other page, API, table or product area is touched.
+
+### ⚠️ The composer never grew
+
+The textarea was `rows={1}` with `resize-none` and `min-h-[44px]`, and **nothing
+anywhere adjusted its height**. `max-h-28` was present, but a box that never
+grows never reaches its maximum - so a long message scrolled inside a single
+44px line. That is the entire "long-message experience is uncomfortable" report.
+
+It grows now, capped at 148px (~6 lines) and scrolling internally past that, so
+it can never push the message list off a small screen.
+
+The load-bearing detail: the height is released (`auto`) **before** reading
+`scrollHeight`. The scrollHeight of an element with a fixed height IS that
+height, so measuring without resetting reads back what you already set and the
+box never grows a second time.
+
+### Reporting
+
+New `ChatReport` table (additive, idempotent migration `40_chat_reports`), a
+`POST /api/chat/messages/<id>/report` route, and an accessible dialog.
+
+⚠️ **The reporter is told nothing about moderation.** Not whether the message
+was already reported, not by how many people, not what happened next, not who
+reviews it. A duplicate returns the **same success** as a first report - saying
+"you already reported this" would confirm prior state, and gains the reporter
+nothing. De-duplication is a unique index, not a read-then-write.
+
+⚠️ **Reporting hides nothing.** A self-service hide would let any member silence
+any other. Hiding stays with `post:manage` in the existing moderate route,
+untouched.
+
+Gates: authenticated · rate-limited on **two** keys (per user and per IP) ·
+cuid-shape checked · the message must be **visible** (which is also what stops
+the route enumerating hidden ids) · not your own.
+
+### Backgrounds
+
+Seven presets, all pure CSS gradients - no asset, no fetch, no canvas, no
+animation. They sit behind a scrolling list, so anything that repaints is the
+wrong answer. Persisted in `localStorage`, the same way the theme already is: a
+wallpaper is a per-device display preference, and a `User` column for it would
+mean a schema change, an endpoint and a round trip before the room can paint.
+
+⚠️ A test caps every preset at alpha 0.2 and **caught `midnight` at 0.65** -
+four times heavier than the rest, enough to darken the room and drag the message
+text with it.
+
+### Touch targets
+
+Message actions were `p-1.5` around a 14px icon: a ~26px target, next to Delete
+on some rows. 44px on touch.
+
+### Verification, and its honest limit
+
+typecheck · **1280 tests** (21 new) · lint (0 errors, 44 warnings = baseline) ·
+production build green.
+
+⚠️ **The chat could not be exercised in a browser here.** `/community` needs
+Postgres and a session - signed out it renders a different component entirely -
+and this environment has neither `DATABASE_URL` nor `NEXTAUTH_SECRET`. A probe
+against it loads an empty shell, so every assertion in one passes while
+measuring nothing. The new tests are therefore source-level, and the
+browser-only behaviour is listed as manual steps in the PR.
+
+---
+
 ## 2026-09-22 (118) — 90 invisible hovers in light mode, and a disclosure that popped
 
 ### ⚠️ The light theme's hover language did nothing

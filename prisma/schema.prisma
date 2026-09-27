@@ -82,6 +82,7 @@ model User {
   likes             PostLike[]
   chatMessages      ChatMessage[]
   chatReactions     ChatReaction[]
+  chatReports       ChatReport[]
   chatPollVotes     ChatPollVote[]
   notifications     Notification[]
   adminAudits       AdminAudit[]           @relation("AdminAuditActor")
@@ -197,6 +198,7 @@ model ChatMessage {
 
   reactions ChatReaction[]
   poll      ChatPoll?
+  reports   ChatReport[]
 
   @@index([status, createdAt]) // history queries: visible, newest-first
 }
@@ -258,6 +260,31 @@ model ChatReaction {
 
   @@unique([messageId, userId, emoji])
   @@index([messageId])
+}
+
+// A user-submitted report on a chat message.
+//
+// Additive and deliberately small: moderation already exists
+// (`ChatMessage.status` + `hiddenBy`), so this stores WHO flagged WHAT and WHY,
+// and nothing else. It does not duplicate moderation state and it does not
+// touch any existing table.
+model ChatReport {
+  id        String   @id @default(cuid())
+  reason    String // harassment | spam | scam | illegal | threat | other
+  details   String? // optional free text, length-capped server-side
+  status    String   @default("open") // open | reviewed | dismissed - STAFF ONLY
+  createdAt DateTime @default(now())
+
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  messageId String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+
+  // ⚠️ One report per person per message, enforced by the DB rather than by a
+  // client-side check. A duplicate attempt returns the same success the first
+  // did, so it cannot be used to probe whether a report already exists.
+  @@unique([messageId, userId])
+  @@index([status, createdAt])
 }
 
 model Post {
