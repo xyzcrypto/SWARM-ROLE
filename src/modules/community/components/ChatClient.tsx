@@ -6,6 +6,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useMediaQuery, useHydrated } from "@/lib/useClientFlag";
 import { clockTime, dayLabel } from "@/lib/chat-time";
 import {
+  Flag,
+  Palette,
   ArrowDown, BarChart3, Check, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
@@ -27,9 +29,23 @@ import { safeHref, cleanBareUrl } from "@/lib/links";
 import { MicButton } from "@/shared/components/MicButton";
 import { hapticToggle } from "@shared/utils/haptics";
 import { hapticTap } from "@shared/utils/haptics";
+import { ReportDialog } from "./ReportDialog";
+import { useChatAppearance } from "./useChatAppearance";
+import { ChatWallpaper } from "./ChatWallpaper";
+import { ChatAppearanceSheet } from "./ChatAppearanceSheet";
 
 const MAX_LENGTH = 500;
 const CHANNEL = "community";
+
+/**
+ * How tall the composer may grow before it scrolls internally.
+ *
+ * ~6 lines at the composer's line-height. Tall enough that a real paragraph is
+ * visible while writing it, short enough that the message list is never pushed
+ * off screen on a small phone - which is the other half of the brief: the
+ * composer must not cover the latest messages.
+ */
+const COMPOSER_MAX_H = 148;
 const REACTIONS = ["👍", "❤️", "😂", "🔥", "🚀", "🎉", "👀", "💯"];
 const GROUP_WINDOW_MS = 5 * 60 * 1000;
 
@@ -200,6 +216,33 @@ export function ChatClient({
   // Coarse-pointer devices get the tap-friendly chat UI. Tracked (not read once
   // on mount) so attaching a mouse or rotating a tablet updates it live.
   const touchUi = useMediaQuery("(hover: none)");
+  /** Which message the report dialog is open for, and its excerpt. */
+  const [reporting, setReporting] = useState<{ id: string; preview: string } | null>(null);
+  const appearance = useChatAppearance();
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
+  /**
+   * Which theme the room is painted in, for the background preview.
+   *
+   * ⚠️ Read from the `dark` CLASS, in an effect, and never during render. This
+   * site sets the theme by toggling a class on `<html>` (there is a no-FOUC
+   * inline script in the layout), which the server render cannot see - so
+   * deriving anything that reaches the DOM from it during render is the
+   * client-only-signal mismatch that once threw React #418 on every page here.
+   *
+   * The starting value matches the server's assumption (dark is this site's
+   * default), and the observer - not a media query - is what keeps it current:
+   * the reader's OS preference is irrelevant once they have picked a theme.
+   */
+  const [themeIsDark, setThemeIsDark] = useState(true);
+  useEffect(() => {
+    const html = document.documentElement;
+    const read = () => setThemeIsDark(html.classList.contains("dark"));
+    read();
+    const obs = new MutationObserver(read);
+    obs.observe(html, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+
   const [actionOpenId, setActionOpenId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -1227,6 +1270,68 @@ export function ChatClient({
           .slice(0, 6)
       : [];
   const composerRef = useRef<HTMLTextAreaElement>(null);
+
+  /**
+   * The composer grows with what you type.
+   *
+   * ⚠️ It did not. The textarea was `rows={1}` with `resize-none` and a
+   * `min-h-[44px]`, and NOTHING anywhere adjusted its height - so a long
+   * message scrolled inside a single 44px line. `max-h-28` was there, but a box
+   * that never grows never reaches its maximum. That is the whole "long-message
+   * experience is uncomfortable" report: you could type a paragraph and see one
+   * line of it.
+   *
+   * The measurement has to happen with the height released first (`auto`),
+   * because `scrollHeight` of an element with a fixed height is that height -
+   * measuring without resetting reads back what you already set and the box
+   * never grows a second time.
+   *
+   * Capped at `COMPOSER_MAX_H`: past that it scrolls internally, so a very long
+   * message can never eat the message list. The cap is applied here rather than
+   * in CSS so `overflowY` can be toggled with it - a `max-h` alone leaves the
+   * scrollbar present at every size on some engines.
+   */
+  const measureComposer = useCallback(() => {
+    const el = composerRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    const next = Math.min(el.scrollHeight, COMPOSER_MAX_H);
+    el.style.height = `${next}px`;
+    el.style.overflowY = el.scrollHeight > COMPOSER_MAX_H ? "auto" : "hidden";
+  }, []);
+
+  /**
+   * ⚠️ Not only when `body` changes. A browser probe caught the EMPTY composer
+   * on a phone at 76px - two lines tall - because it was measured once at
+   * hydration against the server-snapshot placeholder, which is the longer
+   * desktop one ("Say something… (Enter to send)") and wraps on a narrow
+   * screen. `touchUi` then swapped in the short placeholder, and nothing
+   * measured again until the member typed. `scrollHeight` of an empty
+   * textarea includes its placeholder, so the placeholder IS a measurement
+   * input and has to be a dependency.
+   */
+  useEffect(() => {
+    measureComposer();
+  }, [body, touchUi, measureComposer]);
+
+  // Width changes re-wrap the text (rotation, window resize), so they change
+  // the height the text needs. Guarded on WIDTH only: setting the height
+  // changes the element's size too, and reacting to that would loop.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let lastWidth = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth !== lastWidth) {
+        lastWidth = el.clientWidth;
+        measureComposer();
+      }
+    });
+    ro.observe(el);
+    // Web fonts change line metrics once they arrive.
+    void document.fonts?.ready.then(measureComposer);
+    return () => ro.disconnect();
+  }, [measureComposer]);
   const insertMention = (username: string) => {
     setBody((b) => b.replace(/@[a-zA-Z0-9_]*$/, `@${username} `).slice(0, MAX_LENGTH));
     // Focus goes back to the composer, caret at the end. Without this the
@@ -1249,6 +1354,19 @@ export function ChatClient({
       {/* Ambient futuristic glow behind the room. */}
       <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[130%] -translate-x-1/2 rounded-full bg-mint-500/10 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-28 right-0 h-56 w-72 rounded-full bg-gold-500/10 blur-3xl" />
+
+      {/* ── The chosen background ──────────────────────────────────────────
+          A preset, or the member's own photo under a COMPUTED scrim - see
+          `ChatWallpaper` and `chat-wallpaper.ts`. Static: it sits behind a
+          scrolling list, and anything animated here would repaint on every
+          frame of every scroll. The same component draws the live preview in
+          the appearance sheet, so the two can never disagree. */}
+      <ChatWallpaper
+        choice={appearance.choice}
+        photo={appearance.photo}
+        settings={appearance.settings}
+        className="absolute inset-0"
+      />
 
       {/* Header: room identity + live "who's online" presence strip */}
       <div className="relative flex items-center justify-between gap-3 border-b border-white/10 bg-ink-900 px-4 py-3">
@@ -1300,6 +1418,19 @@ export function ChatClient({
 
         <div className="flex shrink-0 items-center gap-2.5">
           {/* Enable phone push alerts for the lounge (reuses the Web Push infra). */}
+          {/* A per-device display preference, so there is nothing to gate:
+              any member in the room can use it. (Signed-out visitors see
+              `CommunityPreview`, a different component, and never reach this.) */}
+          <button
+            type="button"
+            onClick={() => setAppearanceOpen(true)}
+            aria-label="Chat appearance"
+            aria-haspopup="dialog"
+            title="Chat appearance"
+            className="grid h-9 w-9 place-items-center rounded-xl border border-hairline text-content-subtle transition-all duration-200 hover:scale-105 hover:border-gold-500/30 hover:text-content active:scale-105"
+          >
+            <Palette className="h-4 w-4" strokeWidth={1.8} />
+          </button>
           {me && <NewsAlertsToggle loggedIn compact title="Get a phone notification when the lounge is active" />}
           <button
             type="button"
@@ -1640,7 +1771,7 @@ export function ChatClient({
                       <div className="relative" data-react-ui>
                         <button
                           onClick={() => setReactOpenId((id) => (id === m.id ? null : m.id))}
-                          className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200"
+                          className={cn("rounded text-zinc-400 transition-colors hover:bg-white/10 hover:text-gold-200", touchUi ? "grid h-11 w-11 place-items-center" : "p-1.5")}
                           aria-label="React"
                         >
                           <Smile className="h-3.5 w-3.5" />
@@ -1670,7 +1801,7 @@ export function ChatClient({
                             setActionOpenId(null);
                             toggleReaction(m.id, "❤️");
                           }}
-                          className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-red-300"
+                          className={cn("rounded text-zinc-400 transition-colors hover:bg-white/10 hover:text-red-300", touchUi ? "grid h-11 w-11 place-items-center" : "p-1.5")}
                           aria-label="Love"
                         >
                           <Heart className="h-3.5 w-3.5" />
@@ -1681,7 +1812,7 @@ export function ChatClient({
                           setActionOpenId(null);
                           setReplyTarget({ id: m.id, body: chatMediaUrl(m.body) ? "📷 media" : m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
                         }}
-                        className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200"
+                        className={cn("rounded text-zinc-400 transition-colors hover:bg-white/10 hover:text-gold-200", touchUi ? "grid h-11 w-11 place-items-center" : "p-1.5")}
                         aria-label="Reply"
                       >
                         <Reply className="h-3.5 w-3.5" />
@@ -1689,10 +1820,40 @@ export function ChatClient({
                       {m.author.username && m.userId !== me?.id && (
                         <MessageButton username={m.author.username} compact className="rounded text-zinc-400 hover:bg-white/10 hover:text-gold-200" />
                       )}
+                      {/* ⚠️ Report is shown only to a signed-in member, and
+                          never on your own message - the server enforces both
+                          independently, this only hides a control that would
+                          be refused. It is NOT destructive and does not hide
+                          anything: a self-service hide would let any member
+                          silence any other. */}
+                      {me && m.userId !== me.id && !m.pending && (
+                        <button
+                          onClick={() => {
+                            setActionOpenId(null);
+                            setReporting({
+                              id: m.id,
+                              preview: chatMediaUrl(m.body) ? "📷 media" : m.body.slice(0, 120),
+                            });
+                          }}
+                          className={cn(
+                            "rounded text-zinc-400 transition-colors hover:bg-white/10 hover:text-amber-300",
+                            // ⚠️ 44px on touch. The whole action row was
+                            // `p-1.5` around a 14px icon - a ~26px target,
+                            // well under the 44px minimum, sitting next to
+                            // Delete on some rows. On a phone that is a
+                            // mis-tap waiting to happen.
+                            touchUi ? "grid h-11 w-11 place-items-center" : "p-1.5"
+                          )}
+                          aria-label="Report this message"
+                          title="Report"
+                        >
+                          <Flag className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       {canEdit && (
                         <button
                           onClick={() => startEdit(m)}
-                          className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200"
+                          className={cn("rounded text-zinc-400 transition-colors hover:bg-white/10 hover:text-gold-200", touchUi ? "grid h-11 w-11 place-items-center" : "p-1.5")}
                           aria-label="Edit"
                         >
                           <Edit3 className="h-3.5 w-3.5" />
@@ -1770,6 +1931,22 @@ export function ChatClient({
           </motion.button>
         )}
       </AnimatePresence>
+
+      {appearanceOpen && (
+        <ChatAppearanceSheet
+          appearance={appearance}
+          theme={themeIsDark ? "dark" : "light"}
+          onClose={() => setAppearanceOpen(false)}
+        />
+      )}
+
+      {reporting && (
+        <ReportDialog
+          messageId={reporting.id}
+          preview={reporting.preview}
+          onClose={() => setReporting(null)}
+        />
+      )}
 
       {/* composer */}
       {/* pb: keep the composer clear of the iPhone home indicator. */}
@@ -1856,7 +2033,13 @@ export function ChatClient({
                   }}
                   rows={1}
                   placeholder={touchUi ? "Say something…" : "Say something… (Enter to send)"}
-                  className="block max-h-28 min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-20 text-base leading-tight text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
+                  aria-label="Write a message"
+                  aria-invalid={error ? true : undefined}
+                  // ⚠️ No `max-h-*` here any more: the height is driven by the
+                  // effect above, and a CSS max-height fighting an inline
+                  // height is how this kind of control ends up stuck. The
+                  // `min-h` stays as the one-line floor.
+                  className="block min-h-[44px] w-full resize-none rounded-2xl border border-white/10 bg-ink-950/50 px-4 py-3 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
                 />
                 <button
                   type="button"

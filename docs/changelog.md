@@ -5,6 +5,130 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-27 (120) — Chat appearance: your own photo, richer designs, and a real browser test
+
+Same PR as (119), still Community Chat only.
+
+### Your own photo as the chat background
+
+⚠️ In this room other people's messages have **no bubble** - their text sits
+directly on the background. A bright personal photo would make them unreadable,
+so the scrim over a photo is **computed, not guessed**: on upload the photo's
+brightest and darkest regions are measured (64x64 grid, ~one text line per cell
+at `object-cover` scale), and `minScrimAlpha` finds the least dim that keeps body
+text at WCAG AA (4.5:1) over the worst region for the current theme. The dim
+slider cannot go below that floor. A property test checks it over 10,000 random
+colours. Floors are proportionate: a white photo needs 62% in dark mode, a
+forest photo 0%.
+
+The photo **never leaves the device** - WebP in IndexedDB. Uploading would mean
+opening the storage bucket to every member and a public URL per personal photo.
+GIFs are flattened to one frame; undecodable, oversized and non-image files are
+refused with a plain message rather than stored raw.
+
+### Richer designs
+
+Eleven presets in two families - **Colour** (washes) and **Pattern** (grid,
+dots, diagonal, crosshatch, isometric) - still CSS-only and under the 0.2 alpha
+readability cap.
+
+### Chat appearance sheet
+
+Replaces the popover: a live preview drawn by the **same** `ChatWallpaper`
+component as the room, the photo's actual text contrast shown ("7.2:1 · AAA"),
+dim slider, blur toggle, remove with a second tap. Bottom sheet on phones.
+
+### What the browser caught
+
+The real `ChatClient` was driven in a browser for the first time (fixture
+harness in a throwaway copy with no `.git`) - **77 checks**, mobile and desktop.
+It found three real problems:
+
+- **The report route exported a constant**, which webpack's route validation
+  rejects. Moved to `chat-report.ts`; `route-exports.test.ts` now fails the build
+  for any route exporting a non-Next name.
+- **The empty composer was 76px on phones** - measured once against the server's
+  longer placeholder and never again. Now re-measures on placeholder and width.
+- **The wallpaper followed the theme a render late** via a MutationObserver. The
+  theme is now chosen by CSS (`.chat-wp` / `.chat-wp-scrim`), so it flips in the
+  same frame as the page.
+
+### Verification
+
+typecheck · **1308 tests** · lint 0 errors (44 = baseline) · build green · 77/77
+browser checks.
+
+---
+
+## 2026-09-27 (119) — Community Chat: a composer that grows, reporting, backgrounds
+
+Scoped to Community Chat. No other page, API, table or product area is touched.
+
+### ⚠️ The composer never grew
+
+The textarea was `rows={1}` with `resize-none` and `min-h-[44px]`, and **nothing
+anywhere adjusted its height**. `max-h-28` was present, but a box that never
+grows never reaches its maximum - so a long message scrolled inside a single
+44px line. That is the entire "long-message experience is uncomfortable" report.
+
+It grows now, capped at 148px (~6 lines) and scrolling internally past that, so
+it can never push the message list off a small screen.
+
+The load-bearing detail: the height is released (`auto`) **before** reading
+`scrollHeight`. The scrollHeight of an element with a fixed height IS that
+height, so measuring without resetting reads back what you already set and the
+box never grows a second time.
+
+### Reporting
+
+New `ChatReport` table (additive, idempotent migration `40_chat_reports`), a
+`POST /api/chat/messages/<id>/report` route, and an accessible dialog.
+
+⚠️ **The reporter is told nothing about moderation.** Not whether the message
+was already reported, not by how many people, not what happened next, not who
+reviews it. A duplicate returns the **same success** as a first report - saying
+"you already reported this" would confirm prior state, and gains the reporter
+nothing. De-duplication is a unique index, not a read-then-write.
+
+⚠️ **Reporting hides nothing.** A self-service hide would let any member silence
+any other. Hiding stays with `post:manage` in the existing moderate route,
+untouched.
+
+Gates: authenticated · rate-limited on **two** keys (per user and per IP) ·
+cuid-shape checked · the message must be **visible** (which is also what stops
+the route enumerating hidden ids) · not your own.
+
+### Backgrounds
+
+Seven presets, all pure CSS gradients - no asset, no fetch, no canvas, no
+animation. They sit behind a scrolling list, so anything that repaints is the
+wrong answer. Persisted in `localStorage`, the same way the theme already is: a
+wallpaper is a per-device display preference, and a `User` column for it would
+mean a schema change, an endpoint and a round trip before the room can paint.
+
+⚠️ A test caps every preset at alpha 0.2 and **caught `midnight` at 0.65** -
+four times heavier than the rest, enough to darken the room and drag the message
+text with it.
+
+### Touch targets
+
+Message actions were `p-1.5` around a 14px icon: a ~26px target, next to Delete
+on some rows. 44px on touch.
+
+### Verification, and its honest limit
+
+typecheck · **1280 tests** (21 new) · lint (0 errors, 44 warnings = baseline) ·
+production build green.
+
+⚠️ **The chat could not be exercised in a browser here.** `/community` needs
+Postgres and a session - signed out it renders a different component entirely -
+and this environment has neither `DATABASE_URL` nor `NEXTAUTH_SECRET`. A probe
+against it loads an empty shell, so every assertion in one passes while
+measuring nothing. The new tests are therefore source-level, and the
+browser-only behaviour is listed as manual steps in the PR.
+
+---
+
 ## 2026-09-22 (118) — 90 invisible hovers in light mode, and a disclosure that popped
 
 ### ⚠️ The light theme's hover language did nothing

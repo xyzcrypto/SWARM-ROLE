@@ -727,6 +727,37 @@ html.lenis body {
   background-color: #181411; /* 6% #e2a72f over #0b0b0f */
 }
 
+/* ----------------------------------------------------------------
+   Community chat wallpaper
+   ----------------------------------------------------------------
+   ⚠️ The theme is chosen HERE, by CSS, and not by React state.
+
+   The first version read the theme into state through a MutationObserver on
+   `<html class>`. That lands one render after the class changes - and under
+   load, a browser probe caught the wallpaper still showing the DARK scrim
+   400ms after the page had gone light. The renderer now emits both variants as
+   custom properties and this rule picks one, so the wallpaper switches in the
+   same frame as everything else and there is no observer to lag or miss a
+   mutation. It is the project's standing rule applied: prefer CSS over a hook
+   whenever the effect can be expressed in CSS.
+
+   The two dims differ because the readability floor differs per theme (a
+   bright photo needs dimming in dark mode, a dark one in light mode), so each
+   theme gets the dim that was computed for it. */
+.chat-wp {
+  background-image: var(--wp-dark, none);
+}
+html:not(.dark) .chat-wp {
+  background-image: var(--wp-light, none);
+}
+.chat-wp-scrim {
+  background-color: rgba(8, 8, 10, var(--dim-dark, 0));
+  transition: background-color 300ms ease;
+}
+html:not(.dark) .chat-wp-scrim {
+  background-color: rgba(238, 241, 246, var(--dim-light, 0));
+}
+
 .surface-hover {
   /* On the motion scale (`--dur-med`) with the shared decelerating curve, so a
      card hover matches a button hover instead of running 60ms longer on a
