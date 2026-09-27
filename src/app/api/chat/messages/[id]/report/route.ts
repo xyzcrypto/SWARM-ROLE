@@ -2,18 +2,12 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
+import { REPORT_REASONS } from "@modules/community/lib/chat-report";
 
 export const dynamic = "force-dynamic";
 
-/**
- * The reasons a member may report a message.
- *
- * A fixed list, validated server-side. Free-text-only reporting produces a
- * queue nobody can triage; an open enum would let a client invent categories
- * that the moderation view has no meaning for.
- */
-export const REPORT_REASONS = ["harassment", "spam", "scam", "illegal", "threat", "other"] as const;
-
+// The reason list is shared with the dialog - see `chat-report.ts` for why it
+// cannot live in this file.
 const bodySchema = z.object({
   reason: z.enum(REPORT_REASONS),
   // Optional, and capped. This is free text from an unauthenticated-adjacent

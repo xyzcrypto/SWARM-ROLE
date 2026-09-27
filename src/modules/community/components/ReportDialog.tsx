@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { AlertTriangle, Check, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHydrated } from "@/lib/useClientFlag";
+import type { ReportReason } from "@modules/community/lib/chat-report";
 
 /**
  * The reasons, and how they are worded.
@@ -14,16 +15,16 @@ import { useHydrated } from "@/lib/useClientFlag";
  * as categories ("Pretending to be someone else" beats "Impersonation"),
  * because a reporter picking in a hurry matches on the sentence.
  */
-const REASONS = [
+const REASONS: readonly { id: ReportReason; label: string; hint?: string }[] = [
   { id: "harassment", label: "Harassment or abuse", hint: "Targeted insults, bullying" },
   { id: "spam", label: "Spam", hint: "Repetitive or unsolicited posting" },
   { id: "scam", label: "Scam or phishing", hint: "Fake links, drainers, impersonation" },
   { id: "threat", label: "Threats or violence" },
   { id: "illegal", label: "Illegal content" },
   { id: "other", label: "Something else" },
-] as const;
+];
 
-type Reason = (typeof REASONS)[number]["id"];
+type Reason = ReportReason;
 
 /**
  * Report a chat message.
@@ -193,7 +194,7 @@ export function ReportDialog({
                       </span>
                       <span className="min-w-0">
                         <span className="block text-sm font-medium text-content">{r.label}</span>
-                        {"hint" in r && r.hint && (
+                        {r.hint && (
                           <span className="mt-0.5 block text-[11px] text-content-subtle">{r.hint}</span>
                         )}
                       </span>

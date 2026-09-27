@@ -5,6 +5,61 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-27 (120) — Chat appearance: your own photo, richer designs, and a real browser test
+
+Same PR as (119), still Community Chat only.
+
+### Your own photo as the chat background
+
+⚠️ In this room other people's messages have **no bubble** - their text sits
+directly on the background. A bright personal photo would make them unreadable,
+so the scrim over a photo is **computed, not guessed**: on upload the photo's
+brightest and darkest regions are measured (64x64 grid, ~one text line per cell
+at `object-cover` scale), and `minScrimAlpha` finds the least dim that keeps body
+text at WCAG AA (4.5:1) over the worst region for the current theme. The dim
+slider cannot go below that floor. A property test checks it over 10,000 random
+colours. Floors are proportionate: a white photo needs 62% in dark mode, a
+forest photo 0%.
+
+The photo **never leaves the device** - WebP in IndexedDB. Uploading would mean
+opening the storage bucket to every member and a public URL per personal photo.
+GIFs are flattened to one frame; undecodable, oversized and non-image files are
+refused with a plain message rather than stored raw.
+
+### Richer designs
+
+Eleven presets in two families - **Colour** (washes) and **Pattern** (grid,
+dots, diagonal, crosshatch, isometric) - still CSS-only and under the 0.2 alpha
+readability cap.
+
+### Chat appearance sheet
+
+Replaces the popover: a live preview drawn by the **same** `ChatWallpaper`
+component as the room, the photo's actual text contrast shown ("7.2:1 · AAA"),
+dim slider, blur toggle, remove with a second tap. Bottom sheet on phones.
+
+### What the browser caught
+
+The real `ChatClient` was driven in a browser for the first time (fixture
+harness in a throwaway copy with no `.git`) - **77 checks**, mobile and desktop.
+It found three real problems:
+
+- **The report route exported a constant**, which webpack's route validation
+  rejects. Moved to `chat-report.ts`; `route-exports.test.ts` now fails the build
+  for any route exporting a non-Next name.
+- **The empty composer was 76px on phones** - measured once against the server's
+  longer placeholder and never again. Now re-measures on placeholder and width.
+- **The wallpaper followed the theme a render late** via a MutationObserver. The
+  theme is now chosen by CSS (`.chat-wp` / `.chat-wp-scrim`), so it flips in the
+  same frame as the page.
+
+### Verification
+
+typecheck · **1308 tests** · lint 0 errors (44 = baseline) · build green · 77/77
+browser checks.
+
+---
+
 ## 2026-09-27 (119) — Community Chat: a composer that grows, reporting, backgrounds
 
 Scoped to Community Chat. No other page, API, table or product area is touched.

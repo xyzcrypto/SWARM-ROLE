@@ -61,6 +61,15 @@ describe("the composer grows with what you type", () => {
     expect(chat).not.toMatch(/max-h-28[^"]*w-full resize-none/);
   });
 
+  it("re-measures when the placeholder or the width changes, not only on typing", () => {
+    // ⚠️ A probe caught the EMPTY composer at 76px on a phone: measured once
+    // against the server snapshot's longer desktop placeholder, never again
+    // until the member typed. The placeholder feeds scrollHeight.
+    expect(chat).toMatch(/\[body, touchUi, measureComposer\]/);
+    expect(chat).toMatch(/new ResizeObserver\(/);
+    expect(chat).toMatch(/el\.clientWidth !== lastWidth/);
+  });
+
   it("keeps the existing Enter / Shift+Enter convention", () => {
     // Not a place to innovate: touch keyboards have no Shift, so Enter inserts
     // a newline there and the send button submits. Desktop keeps Enter-to-send.
@@ -125,9 +134,16 @@ describe("reporting a message tells the reporter nothing about moderation", () =
 });
 
 describe("chat backgrounds are cheap and readable", () => {
-  it("offers a small curated set", () => {
-    expect(CHAT_BACKGROUNDS).toHaveLength(7);
+  it("offers a curated set in two families", () => {
+    // Curated, not endless: eleven is enough to find one you like and few
+    // enough to scan on a phone. Two families so the grid reads as a choice
+    // between kinds of thing, not a wall of swatches.
+    expect(CHAT_BACKGROUNDS).toHaveLength(11);
     expect(CHAT_BACKGROUNDS[0]!.id).toBe("default");
+    const cats = new Set(CHAT_BACKGROUNDS.map((b) => b.category));
+    expect([...cats].sort()).toEqual(["colour", "pattern"]);
+    // Every id is unique, or a stored choice could resolve to the wrong one.
+    expect(new Set(CHAT_BACKGROUNDS.map((b) => b.id)).size).toBe(CHAT_BACKGROUNDS.length);
   });
 
   it("is CSS only - no asset, no fetch, no canvas", () => {

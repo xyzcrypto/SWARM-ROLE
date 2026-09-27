@@ -7,6 +7,7 @@ import { useMediaQuery, useHydrated } from "@/lib/useClientFlag";
 import { clockTime, dayLabel } from "@/lib/chat-time";
 import {
   Flag,
+  Palette,
   ArrowDown, BarChart3, Check, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Smile, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
@@ -29,8 +30,9 @@ import { MicButton } from "@/shared/components/MicButton";
 import { hapticToggle } from "@shared/utils/haptics";
 import { hapticTap } from "@shared/utils/haptics";
 import { ReportDialog } from "./ReportDialog";
-import { ChatBackgroundPicker, useChatBackground } from "./ChatBackgroundPicker";
-import { chatBackgroundById } from "@modules/community/lib/chat-backgrounds";
+import { useChatAppearance } from "./useChatAppearance";
+import { ChatWallpaper } from "./ChatWallpaper";
+import { ChatAppearanceSheet } from "./ChatAppearanceSheet";
 
 const MAX_LENGTH = 500;
 const CHANNEL = "community";
@@ -216,7 +218,8 @@ export function ChatClient({
   const touchUi = useMediaQuery("(hover: none)");
   /** Which message the report dialog is open for, and its excerpt. */
   const [reporting, setReporting] = useState<{ id: string; preview: string } | null>(null);
-  const { id: bgId, choose: chooseBg } = useChatBackground();
+  const appearance = useChatAppearance();
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   /**
    * Which theme the room is painted in, for the background preview.
    *
@@ -239,7 +242,7 @@ export function ChatClient({
     obs.observe(html, { attributes: true, attributeFilter: ["class"] });
     return () => obs.disconnect();
   }, []);
-  const bg = chatBackgroundById(bgId);
+
   const [actionOpenId, setActionOpenId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editText, setEditText] = useState("");
@@ -1288,14 +1291,47 @@ export function ChatClient({
    * in CSS so `overflowY` can be toggled with it - a `max-h` alone leaves the
    * scrollbar present at every size on some engines.
    */
-  useEffect(() => {
+  const measureComposer = useCallback(() => {
     const el = composerRef.current;
     if (!el) return;
     el.style.height = "auto";
     const next = Math.min(el.scrollHeight, COMPOSER_MAX_H);
     el.style.height = `${next}px`;
     el.style.overflowY = el.scrollHeight > COMPOSER_MAX_H ? "auto" : "hidden";
-  }, [body]);
+  }, []);
+
+  /**
+   * ⚠️ Not only when `body` changes. A browser probe caught the EMPTY composer
+   * on a phone at 76px - two lines tall - because it was measured once at
+   * hydration against the server-snapshot placeholder, which is the longer
+   * desktop one ("Say something… (Enter to send)") and wraps on a narrow
+   * screen. `touchUi` then swapped in the short placeholder, and nothing
+   * measured again until the member typed. `scrollHeight` of an empty
+   * textarea includes its placeholder, so the placeholder IS a measurement
+   * input and has to be a dependency.
+   */
+  useEffect(() => {
+    measureComposer();
+  }, [body, touchUi, measureComposer]);
+
+  // Width changes re-wrap the text (rotation, window resize), so they change
+  // the height the text needs. Guarded on WIDTH only: setting the height
+  // changes the element's size too, and reacting to that would loop.
+  useEffect(() => {
+    const el = composerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    let lastWidth = el.clientWidth;
+    const ro = new ResizeObserver(() => {
+      if (el.clientWidth !== lastWidth) {
+        lastWidth = el.clientWidth;
+        measureComposer();
+      }
+    });
+    ro.observe(el);
+    // Web fonts change line metrics once they arrive.
+    void document.fonts?.ready.then(measureComposer);
+    return () => ro.disconnect();
+  }, [measureComposer]);
   const insertMention = (username: string) => {
     setBody((b) => b.replace(/@[a-zA-Z0-9_]*$/, `@${username} `).slice(0, MAX_LENGTH));
     // Focus goes back to the composer, caret at the end. Without this the
@@ -1320,17 +1356,16 @@ export function ChatClient({
       <div aria-hidden className="pointer-events-none absolute -bottom-28 right-0 h-56 w-72 rounded-full bg-gold-500/10 blur-3xl" />
 
       {/* ── The chosen background ──────────────────────────────────────────
-          A single absolutely-positioned layer under everything, with nothing
-          animated: this sits behind a scrolling list, and an animated
-          background repaints on every frame of every scroll.
-
-          `opacity` is the only transition, so switching presets cross-fades
-          instead of snapping - and it is also what hides the one-commit delay
-          before the stored choice is read (see `useChatBackground`). */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 transition-opacity duration-500"
-        style={{ backgroundImage: (themeIsDark ? bg.dark : bg.light) || undefined }}
+          A preset, or the member's own photo under a COMPUTED scrim - see
+          `ChatWallpaper` and `chat-wallpaper.ts`. Static: it sits behind a
+          scrolling list, and anything animated here would repaint on every
+          frame of every scroll. The same component draws the live preview in
+          the appearance sheet, so the two can never disagree. */}
+      <ChatWallpaper
+        choice={appearance.choice}
+        photo={appearance.photo}
+        settings={appearance.settings}
+        className="absolute inset-0"
       />
 
       {/* Header: room identity + live "who's online" presence strip */}
@@ -1383,9 +1418,19 @@ export function ChatClient({
 
         <div className="flex shrink-0 items-center gap-2.5">
           {/* Enable phone push alerts for the lounge (reuses the Web Push infra). */}
-          {/* Available to everyone, signed in or not: it is a display
-              preference stored per device, so there is nothing to gate. */}
-          <ChatBackgroundPicker value={bgId} onChange={chooseBg} isDark={themeIsDark} />
+          {/* A per-device display preference, so there is nothing to gate:
+              any member in the room can use it. (Signed-out visitors see
+              `CommunityPreview`, a different component, and never reach this.) */}
+          <button
+            type="button"
+            onClick={() => setAppearanceOpen(true)}
+            aria-label="Chat appearance"
+            aria-haspopup="dialog"
+            title="Chat appearance"
+            className="grid h-9 w-9 place-items-center rounded-xl border border-hairline text-content-subtle transition-all duration-200 hover:scale-105 hover:border-gold-500/30 hover:text-content active:scale-105"
+          >
+            <Palette className="h-4 w-4" strokeWidth={1.8} />
+          </button>
           {me && <NewsAlertsToggle loggedIn compact title="Get a phone notification when the lounge is active" />}
           <button
             type="button"
@@ -1886,6 +1931,14 @@ export function ChatClient({
           </motion.button>
         )}
       </AnimatePresence>
+
+      {appearanceOpen && (
+        <ChatAppearanceSheet
+          appearance={appearance}
+          theme={themeIsDark ? "dark" : "light"}
+          onClose={() => setAppearanceOpen(false)}
+        />
+      )}
 
       {reporting && (
         <ReportDialog
