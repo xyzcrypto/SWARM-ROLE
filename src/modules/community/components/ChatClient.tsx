@@ -39,6 +39,7 @@ import { AttachTray } from "./AttachTray";
 import { SwipeBubble } from "./SwipeBubble";
 import { CHAT_BAR, CHAT_ICON_BTN } from "../lib/chat-ui";
 import { AppMenu } from "@shared/components/AppMenu";
+import { centredScrollTop } from "@shared/utils/scroll-into-list";
 
 const MAX_LENGTH = 500;
 const CHANNEL = "community";
@@ -1200,10 +1201,7 @@ export function ChatClient({
         // Scrolling the list directly cannot move anything outside it. The
         // maths centres the message in the list the way `center` intended.
         const list = listRef.current;
-        if (list) {
-          const top = el.offsetTop - list.clientHeight / 2 + el.clientHeight / 2;
-          list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-        }
+        if (list) list.scrollTo({ top: centredScrollTop(list, el), behavior: "smooth" });
         // A brief gold wash so the eye lands on it (globals.css `.msg-flash`).
         el.classList.remove("msg-flash");
         void el.offsetWidth; // restart the animation if it is already running

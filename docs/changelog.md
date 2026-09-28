@@ -5,6 +5,40 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-28 (127) — Three chat bugs: quote jump, voice playback, dictation doubling
+
+Each bug was **reproduced in a real browser on the old code**, then shown fixed
+on the new code, on mobile and desktop. That is 10/10 checks, plus 2 for desktop
+dictation. Every earlier probe still passes: DM 51, room 21 + 77, voice/link 23.
+
+- **The room's reply quote jumped to the wrong message.**
+  - Measured: it landed **1963px** away, off screen. Now **0px**, centred.
+  - Cause: `scrollToMessage` centred with `el.offsetTop`. That value is
+    relative to the nearest *positioned* ancestor, and #365's swipe-to-reply
+    wrapper (`relative`) became that ancestor, making every row's offsetTop ≈ 0.
+  - Fix: `centredScrollTop()` measures with bounding rects, relative to the
+    list whatever sits in between. DM `jumpTo` uses it too.
+- **Voice messages rendered but never played.**
+  - Measured: CSP violation `media-src … /voice/…webm`, the file was never
+    requested, and the player showed media error 4.
+  - Cause: the CSP had `media-src 'self' blob:`, so an `<audio>` element could
+    not load from Supabase Storage.
+  - Fix: `media-src 'self' blob: https://*.supabase.co`, the same host
+    `connect-src` already allowed. Measured afterwards: 1.72s of real WebM/Opus
+    audio played.
+  - The player now says "This voice message can't play here." on any failure
+    (for example, an older iPhone and WebM) instead of doing nothing.
+- **Dictation doubled words and dropped others.**
+  - Measured with Android Chrome's real event shapes: "bitcoin is bitcoin is
+    pumping". Now "bitcoin is pumping today bro".
+  - Cause: the hook counted result **positions**. Android Chrome repeats the
+    phrase so far as a new result (so words doubled) and restarts its list at
+    index 0 (so a cursor past 0 dropped the next phrase).
+  - Fix: `speech-merge.ts` decides what is new by **text**. It is unit-tested
+    against scripted desktop and Android sessions, 9 cases.
+  - Android now uses one utterance per session. Its continuous mode is the
+    engine's least accurate. Desktop keeps continuous mode.
+
 ## 2026-09-28 (126) — Build warning "Parsing CSS source code failed" fixed at the source
 
 Every build from #363 onwards printed:

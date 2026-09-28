@@ -18,7 +18,13 @@ const csp = [
   // existed only for LiveKit's audio workers and WebRTC playback; Voice Rooms
   // were removed in the 2026-07-19 cost pass, so both are dropped.
   "worker-src 'self'",
-  "media-src 'self' blob:",
+  // https://*.supabase.co: voice messages are stored in Supabase Storage and
+  // played by an <audio> element, which media-src governs. Without it the
+  // browser refused every voice note before a byte was requested - the player
+  // rendered, but play() rejected with nothing audible ("voice sunayi nahi
+  // deta"). Same host allowance connect-src already carries; images reach
+  // Storage through img-src's https: already.
+  "media-src 'self' blob: https://*.supabase.co",
   // Supabase Realtime (community chat live presence + broadcasts) opens a
   // WebSocket to wss://<ref>.supabase.co; the https origin covers the initial
   // handshake / REST broadcast fallback. Without these the browser silently

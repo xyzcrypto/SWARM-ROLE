@@ -30,6 +30,7 @@ import { AttachTray } from "@modules/community/components/AttachTray";
 import { SwipeBubble } from "@modules/community/components/SwipeBubble";
 import { CHAT_BAR, CHAT_ICON_BTN } from "@modules/community/lib/chat-ui";
 import { AppMenu } from "@shared/components/AppMenu";
+import { centredScrollTop } from "@shared/utils/scroll-into-list";
 import { hapticTap, hapticToggle } from "@shared/utils/haptics";
 import { useChatAppearance } from "@modules/community/components/useChatAppearance";
 import { ChatWallpaper } from "@modules/community/components/ChatWallpaper";
@@ -1415,10 +1416,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     // itself (see scrollToMessage in ChatClient). The row's offsetParent is the
     // list, which is `relative`.
     const list = scrollRef.current;
-    if (list) {
-      const top = row.offsetTop - list.clientHeight / 2 + row.clientHeight / 2;
-      list.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-    }
+    if (list) list.scrollTo({ top: centredScrollTop(list, row), behavior: "smooth" });
     const bubble = row.querySelector<HTMLElement>("[data-bubble]") ?? row;
     bubble.classList.remove("msg-flash");
     void bubble.offsetWidth; // restart the animation if it is already running

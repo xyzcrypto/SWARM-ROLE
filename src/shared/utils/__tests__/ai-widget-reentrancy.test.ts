@@ -128,7 +128,7 @@ describe("dictation sends itself", () => {
   });
 
   it("arms a fresh session before it starts", () => {
-    expect(S).toMatch(/deliveredRef\.current = 0;\s*\n\s*discardedRef\.current = false;/);
+    expect(S).toMatch(/deliveredRef\.current = "";\s*\n\s*discardedRef\.current = false;/);
   });
 
   it("reads the transcript from a ref, not from state", () => {
@@ -149,7 +149,9 @@ describe("dictation sends itself", () => {
   it("does not break the dictation de-dupe guard", () => {
     // The cumulative-results trap that doubled dictated words. Pinned here as
     // well as in speech-dedupe.test.ts because this PR edits the same handlers.
-    expect(S).toMatch(/for \(let i = deliveredRef\.current; i < results\.length; i\+\+\)/);
+    // Now text-based (speech-merge.ts), which also covers Android's repeated
+    // and restarted result lists that an index cursor doubled or dropped.
+    expect(S).toMatch(/newWords\(deliveredRef\.current, collapseFinals\(finals\)\)/);
     expect(S).not.toMatch(/for \(let i = e\.resultIndex/);
   });
 });

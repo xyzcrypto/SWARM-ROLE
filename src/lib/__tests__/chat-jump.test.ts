@@ -16,12 +16,16 @@ describe("jumping to a message stays inside the message list", () => {
     // `h-[100svh] overflow-hidden` and only this list scrolls - but
     // "overflow-hidden ancestors" is not the same as "nothing above can move".
     expect(C).toMatch(/const list = listRef\.current;/);
-    expect(C).toMatch(/list\.scrollTo\(\{ top: Math\.max\(0, top\), behavior: "smooth" \}\)/);
+    expect(C).toMatch(/list\.scrollTo\(\{ top: centredScrollTop\(list, el\), behavior: "smooth" \}\)/);
     expect(C).not.toMatch(/el\.scrollIntoView\(\{ behavior: "smooth", block: "center" \}\)/);
   });
 
   it("still centres the message, which is what `center` was for", () => {
-    expect(C).toMatch(/el\.offsetTop - list\.clientHeight \/ 2 \+ el\.clientHeight \/ 2/);
+    // By bounding rects now (centredScrollTop). `el.offsetTop` was relative
+    // to the nearest positioned ancestor, and once the swipe-to-reply wrapper
+    // became that ancestor every quote jumped ~2000px to the wrong message.
+    expect(C).toMatch(/import \{ centredScrollTop \} from "@shared\/utils\/scroll-into-list"/);
+    expect(C).not.toMatch(/el\.offsetTop/);
   });
 
   it("still highlights it", () => {
