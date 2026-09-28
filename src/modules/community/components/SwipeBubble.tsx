@@ -13,6 +13,15 @@ const LONG_PRESS_MS = 450;
 const DOUBLE_TAP_MS = 300;
 
 /**
+ * Controls inside a message (play, speed, Text/Translate, links, a poll
+ * option). A press that starts on one of these is THAT control's - it must
+ * never also count toward the message's double-tap (❤️) or long-press. A probe
+ * caught tapping the speed chip twice (1x -> 1.5x -> 2x) hearting the message.
+ */
+export const INTERACTIVE = 'button, a[href], input, textarea, select, audio, [role="button"], [role="slider"], [role="menuitem"], [contenteditable="true"]';
+export const fromControl = (t: EventTarget | null) => !!(t as Element | null)?.closest?.(INTERACTIVE);
+
+/**
  * The three gestures every messenger has taught people, on one message row:
  *
  * - **swipe right to reply** (touch/pen only - a mouse drag selects text)
@@ -49,7 +58,7 @@ export function SwipeBubble({
   // still read 0 after a full swipe, and the reply silently did not happen.
   // A browser probe caught exactly that. `dx` state is for painting only.
   const drag = useRef(0);
-  const start = useRef<{ x: number; y: number; touch: boolean } | null>(null);
+  const start = useRef<{ x: number; y: number; touch: boolean; control: boolean } | null>(null);
   const moved = useRef(false);
   const armed = useRef(false);
   const press = useRef<number>(0);
@@ -65,9 +74,11 @@ export function SwipeBubble({
         if (disabled) return;
         if (e.pointerType === "mouse" && e.button !== 0) return;
         const touch = e.pointerType !== "mouse";
-        start.current = { x: e.clientX, y: e.clientY, touch };
+        const control = fromControl(e.target);
+        start.current = { x: e.clientX, y: e.clientY, touch, control };
         moved.current = false;
-        if (touch && onLongPress) {
+        if (control) lastTap.current = 0; // a control press breaks a double-tap sequence
+        if (touch && onLongPress && !control) {
           press.current = window.setTimeout(() => {
             press.current = 0;
             moved.current = true; // a long-press is not also a tap
@@ -96,7 +107,7 @@ export function SwipeBubble({
         clearPress();
         const replied = armed.current && drag.current >= REPLY_AT;
         if (replied) onReply?.();
-        if (!moved.current && onDoubleTap) {
+        if (!moved.current && onDoubleTap && !start.current?.control) {
           const now = Date.now();
           if (now - lastTap.current < DOUBLE_TAP_MS) { lastTap.current = 0; onDoubleTap(); }
           else lastTap.current = now;

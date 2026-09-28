@@ -98,7 +98,35 @@ export function chatAudioUrl(text: string): { src: string; duration: number | nu
 
 /** What a list preview or a quote says a message is. */
 export function mediaLabel(text: string): string | null {
-  if (chatAudioUrl(text)) return "\u{1F3A4} Voice message";
-  if (chatMediaUrl(text)) return "\u{1F4F7} Photo";
-  return null;
+  const lead = splitLeadingMedia(text);
+  if (!lead) return null;
+  const kind = lead.audio ? "\u{1F3A4} Voice message" : GIF_HOSTS.test(lead.url) ? "GIF" : "\u{1F4F7} Photo";
+  return lead.caption ? `${kind} · ${lead.caption}` : kind;
+}
+
+/**
+ * A message that STARTS with one of our media URLs, with any text after it.
+ *
+ * ⚠️ Exists because of a real corruption. Editing used to be allowed on a
+ * voice message: the edit box loaded its URL, the member typed below it, and
+ * the saved body became "<voice url>\n\nAap sabhi ka swagat h" - which no
+ * longer matched "a lone media URL", so the room rendered the whole thing as a
+ * raw link. Editing media is now refused (client and server), and rows already
+ * saved that way render as the media with the text as a caption.
+ */
+export function splitLeadingMedia(text: string): { url: string; audio: { src: string; duration: number | null } | null; image: string | null; caption: string } | null {
+  const t = text.trim();
+  const m = /^(\S+)([\s\S]*)$/.exec(t);
+  if (!m) return null;
+  const first = m[1]!;
+  const caption = m[2]!.trim();
+  const audio = chatAudioUrl(first);
+  const image = audio ? null : chatMediaUrl(first);
+  if (!audio && !image) return null;
+  return { url: first, audio, image, caption };
+}
+
+/** Photos, GIFs and voice notes cannot be edited - there is no text to fix. */
+export function isMediaBody(text: string): boolean {
+  return splitLeadingMedia(text) !== null;
 }

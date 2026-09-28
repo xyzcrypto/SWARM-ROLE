@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Loader2, Mic, Pause, Play, Send, Trash2 } from "lucide-react";
+import { Languages, Loader2, Mic, Pause, Play, Send, Trash2, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hapticTap, hapticToggle } from "@shared/utils/haptics";
 import { playSfx } from "@shared/utils/sfx";
@@ -9,6 +9,30 @@ import { playSfx } from "@shared/utils/sfx";
 /** Hard ceiling on a recording. Long enough to say something, short enough to listen to. */
 export const VOICE_MAX_SECONDS = 60;
 const PLAY_EVENT = "xyz-voice-play";
+const SPEEDS = [1, 1.5, 2] as const;
+// The listener's last speed, for the rest of the visit - someone who plays one
+// note at 2x almost always wants the next one at 2x too.
+let lastSpeed: number = 1;
+
+/** Transcripts, per voice URL, for this page load. A failure is forgotten so a later tap retries. */
+const transcripts = new Map<string, Promise<{ text?: string; error?: string }>>();
+function fetchTranscript(src: string): Promise<{ text?: string; error?: string }> {
+  let p = transcripts.get(src);
+  if (!p) {
+    p = fetch("/api/media/voice/transcribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url: src }) })
+      .then(async (r) => {
+        const j = await r.json().catch(() => null);
+        if (r.ok && typeof j?.text === "string") return { text: j.text as string };
+        transcripts.delete(src);
+        return { error: (j?.error as string) ?? "Couldn't transcribe this voice message." };
+      })
+      .catch(() => { transcripts.delete(src); return { error: "Couldn't reach the server." }; });
+    transcripts.set(src, p);
+  }
+  return p;
+}
+
+type TextState = { loading?: boolean; transcript?: string; translation?: string; error?: string; show?: "transcript" | "translation" };
 
 const fmt = (s: number) => {
   if (!Number.isFinite(s) || s < 0) s = 0;
@@ -43,6 +67,36 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
   // Why a note will not play, in words. A silent failure is what made this
   // look like "the button does nothing".
   const [failed, setFailed] = useState<string | null>(null);
+  const [speed, setSpeed] = useState<number>(1);
+  const [text, setText] = useState<TextState | null>(null);
+
+  const cycleSpeed = () => {
+    const next = SPEEDS[(SPEEDS.indexOf(speed as (typeof SPEEDS)[number]) + 1) % SPEEDS.length] ?? 1;
+    lastSpeed = next;
+    setSpeed(next);
+    if (audio.current) audio.current.playbackRate = next;
+  };
+
+  /** Show (or hide) the transcript, or its translation. Each is fetched once. */
+  const showText = async (want: "transcript" | "translation") => {
+    if (text?.show === want && !text.loading) { setText({ ...text, show: undefined }); return; }
+    if (want === "translation" && text?.translation) { setText({ ...text, show: want }); return; }
+    if (want === "transcript" && text?.transcript) { setText({ ...text, show: want }); return; }
+    setText((t) => ({ ...(t ?? {}), loading: true, error: undefined, show: want }));
+    const r = await fetchTranscript(src);
+    if (r.error || r.text === undefined) { setText((t) => ({ ...(t ?? {}), loading: false, error: r.error })); return; }
+    if (!r.text) { setText((t) => ({ ...(t ?? {}), loading: false, error: "No words detected in this voice message." })); return; }
+    const transcript = r.text;
+    if (want === "transcript") { setText((t) => ({ ...(t ?? {}), loading: false, transcript })); return; }
+    try {
+      const tr = await fetch("/api/chat/translate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: transcript.slice(0, 500) }) });
+      const j = await tr.json().catch(() => null);
+      if (tr.ok && j?.text) setText((t) => ({ ...(t ?? {}), loading: false, transcript, translation: j.text as string }));
+      else setText((t) => ({ ...(t ?? {}), loading: false, transcript, error: (j?.error as string) ?? "Couldn't translate that." }));
+    } catch {
+      setText((t) => ({ ...(t ?? {}), loading: false, transcript, error: "Couldn't translate that." }));
+    }
+  };
   const shape = bars(src);
 
   useEffect(() => {
@@ -60,6 +114,9 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
     if (a.paused) {
       window.dispatchEvent(new CustomEvent(PLAY_EVENT, { detail: a }));
       setFailed(null);
+      // Carry the listener's speed over from the last note they played.
+      if (speed !== lastSpeed) setSpeed(lastSpeed);
+      a.playbackRate = lastSpeed;
       setLoading(true);
       // iOS/Safari keeps a paused, never-loaded element at networkState 0;
       // load() first so the tap that starts playback is the one that fetches.
@@ -79,8 +136,11 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
   const total = len ?? 0;
   const progress = total > 0 ? Math.min(1, pos / total) : 0;
 
+  const panel = text?.show === "translation" ? text.translation : text?.show === "transcript" ? text.transcript : undefined;
+  const chip = "inline-flex min-h-7 items-center gap-1 rounded-full px-2 text-[10px] font-semibold ring-1 transition-colors";
   return (
-    <div className="flex w-[min(260px,62vw)] items-center gap-2.5 py-0.5">
+    <div className="w-[min(280px,66vw)]">
+    <div className="flex items-center gap-2.5 py-0.5">
       <button
         type="button"
         onClick={toggle}
@@ -150,6 +210,33 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
         }}
       />
     </div>
+    {/* Speed, transcript, translation: small text-first chips under the note. */}
+    <div className="mt-1 flex flex-wrap items-center gap-1 pl-[3.1rem]">
+      <button type="button" onClick={cycleSpeed} aria-label={`Playback speed ${speed}x`} className={cn(chip, "mono", speed !== 1 ? "bg-gold-500/15 text-gold-200 ring-gold-500/40" : "text-zinc-400 ring-white/10 hover:text-zinc-200")}>
+        {speed}x
+      </button>
+      <button type="button" onClick={() => void showText("transcript")} aria-pressed={text?.show === "transcript"} aria-label="Show transcript" className={cn(chip, text?.show === "transcript" ? "bg-white/[0.08] text-zinc-100 ring-white/20" : "text-zinc-400 ring-white/10 hover:text-zinc-200")}>
+        <Type className="h-3 w-3" /> Text
+      </button>
+      <button type="button" onClick={() => void showText("translation")} aria-pressed={text?.show === "translation"} aria-label="Translate voice message" className={cn(chip, text?.show === "translation" ? "bg-mint-500/15 text-mint-200 ring-mint-500/40" : "text-zinc-400 ring-white/10 hover:text-zinc-200")}>
+        <Languages className="h-3 w-3" /> Translate
+      </button>
+    </div>
+    {text?.show && (
+      <div className="mt-1.5 rounded-xl bg-black/[0.08] px-3 py-2 text-[13px] leading-relaxed dark:bg-white/[0.05]" aria-live="polite">
+        {text.loading ? (
+          <span className="inline-flex items-center gap-1.5 text-zinc-400"><Loader2 className="h-3 w-3 animate-spin" /> {text.show === "translation" ? "Translating…" : "Transcribing…"}</span>
+        ) : panel ? (
+          <>
+            <span className="mono mr-1.5 text-[9px] uppercase tracking-wider text-zinc-500">{text.show === "translation" ? "Translation" : "Transcript"}</span>
+            <span className="text-zinc-200">{panel}</span>
+          </>
+        ) : (
+          <span className="text-amber-400">{text.error ?? "Nothing to show."}</span>
+        )}
+      </div>
+    )}
+    </div>
   );
 }
 
@@ -208,11 +295,18 @@ export function VoiceRecorder({ onSend, onCancel }: { onSend: (blob: Blob, secon
     let alive = true;
     (async () => {
       try {
-        const s = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
+        // Voice-tuned capture: mono, with the browser's echo cancellation,
+        // noise suppression AND automatic gain - AGC is what brings a quiet or
+        // distant voice up to a comfortable level.
+        const s = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
+        });
         if (!alive) { s.getTracks().forEach((t) => t.stop()); return; }
         stream.current = s;
         const mime = pickMime();
-        const r = new MediaRecorder(s, mime ? { mimeType: mime, audioBitsPerSecond: 32000 } : undefined);
+        // 64 kbps Opus: audibly fuller than the old 32 kbps, and 60s is still
+        // only ~480 KB, well under the 2 MB cap.
+        const r = new MediaRecorder(s, mime ? { mimeType: mime, audioBitsPerSecond: 64000 } : { audioBitsPerSecond: 64000 });
         rec.current = r;
         r.ondataavailable = (e) => { if (e.data.size) chunks.current.push(e.data); };
         r.onstop = () => {

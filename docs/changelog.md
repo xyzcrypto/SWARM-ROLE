@@ -5,6 +5,63 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-28 (129) — Voice: no more edit corruption, speed + transcript + translate, better quality
+
+Owner request, with a screenshot. Everything was verified in a real browser on
+mobile and desktop: **36/36**. Every earlier probe still passes: feel 28,
+fixes 12, DM 51, room 21 + **77**, voice/link 24.
+
+**Bugs**
+- **Editing a voice message corrupted it.** The screenshot showed the URL as a
+  raw link with the typed text under it.
+  - Cause: the room offered Edit on media, and **neither server checked**. The
+    edit box loaded the URL, text was typed below it, and the body stopped
+    being "a lone media URL".
+  - Fix: both `PATCH` routes (room and DM) now refuse to edit
+    photos, GIFs and voice notes, and the room no longer offers Edit on them.
+  - Rows already saved that way now render as the voice note (or photo) with
+    the text as a caption (`splitLeadingMedia`).
+- **A reply to a GIF showed the giphy URL.** The quote now says "GIF"
+  (`mediaLabel`).
+- **Tapping a control inside a message also triggered the message's
+  gesture.** A probe caught two taps on the speed chip hearting the message.
+  - Double-tap, long-press, the room's desktop double-click and its tap-to-open
+    actions now all ignore presses that start on a control (`fromControl`).
+  - Tapping a link no longer *also* opens the action bar.
+
+**Voice**
+- **Quality:** recording is now 64 kbps Opus (was 32), mono, with automatic
+  gain control. A 60s note is about 480 KB, still under the 2 MB cap.
+- **Speed:** a 1x → 1.5x → 2x chip. The last speed you used carries over to the
+  next note.
+- **Text / Translate:** transcribed with Groq Whisper, via a new route,
+  `/api/media/voice/transcribe`.
+  - It only accepts our own `voice/` Storage URLs, so it can't be pointed
+    anywhere else.
+  - Signed-in only, with two AI rate-limit keys.
+  - The transcript text is cached for a day, but a **failure is never
+    cached**.
+  - Translate then uses the existing English ⇄ Hinglish translator. Each
+    transcript is fetched once and reused.
+  - If Whisper isn't on the Groq account, the button says "not available". It
+    can't be verified here without the key.
+
+**Chat features**
+- @mentions of you are highlighted in the room.
+- Copy link to a message. `/community?m=<id>` opens the room scrolled to that
+  message.
+- ↑ in an empty composer edits your last message; Esc cancels a reply.
+- The full date shows on hover of a timestamp.
+
+**Profile and settings**
+- Every control on the profile page and in Settings now gives the same
+  haptic/click feedback. The profile page uses a `display: contents` client
+  leaf, so its route class is unchanged.
+- Settings has a new "Haptics & sound" tab.
+
+Gate: **1426 tests**, lint 0 errors, build clean. Route table: `+ƒ
+/api/media/voice/transcribe` only.
+
 ## 2026-09-28 (128) — Chat + DMs: haptics everywhere, sounds, colours, text size, spacing
 
 Owner request: more haptics, more sound, a stronger UX, a better look and more
