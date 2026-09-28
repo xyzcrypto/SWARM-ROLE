@@ -39,6 +39,9 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
   const [loading, setLoading] = useState(false);
   const [pos, setPos] = useState(0);
   const [len, setLen] = useState<number | null>(duration);
+  // Why a note will not play, in words. A silent failure is what made this
+  // look like "the button does nothing".
+  const [failed, setFailed] = useState<string | null>(null);
   const shape = bars(src);
 
   useEffect(() => {
@@ -55,8 +58,18 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
     hapticTap();
     if (a.paused) {
       window.dispatchEvent(new CustomEvent(PLAY_EVENT, { detail: a }));
+      setFailed(null);
       setLoading(true);
-      void a.play().catch(() => setLoading(false));
+      // iOS/Safari keeps a paused, never-loaded element at networkState 0;
+      // load() first so the tap that starts playback is the one that fetches.
+      if (a.networkState === HTMLMediaElement.NETWORK_EMPTY) a.load();
+      void a.play().catch((err: unknown) => {
+        setLoading(false);
+        const name = (err as { name?: string } | null)?.name;
+        // NotAllowedError = autoplay policy (should not happen on a tap);
+        // NotSupportedError = the format or the source was refused.
+        setFailed(name === "NotAllowedError" ? "Tap again to play." : "This voice message can't play here.");
+      });
     } else {
       a.pause();
     }
@@ -111,7 +124,11 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
             />
           ))}
         </div>
-        <span className="mono text-[10px] text-zinc-500">{fmt(playing || pos > 0 ? pos : total)}</span>
+        {failed ? (
+          <span className="block text-[11px] text-amber-400" role="status">{failed}</span>
+        ) : (
+          <span className="mono text-[10px] text-zinc-500">{fmt(playing || pos > 0 ? pos : total)}</span>
+        )}
       </div>
       <audio
         ref={audio}
@@ -120,6 +137,11 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
         onPlaying={() => { setPlaying(true); setLoading(false); }}
         onPause={() => setPlaying(false)}
         onEnded={() => { setPlaying(false); setPos(0); }}
+        onError={() => {
+          setPlaying(false);
+          setLoading(false);
+          setFailed("This voice message can't play here.");
+        }}
         onTimeUpdate={(e) => setPos(e.currentTarget.currentTime)}
         onLoadedMetadata={(e) => {
           const d = e.currentTarget.duration;

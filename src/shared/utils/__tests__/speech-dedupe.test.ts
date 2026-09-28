@@ -1,37 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-// Dictation delivered the same words twice. With `continuous: true` the
-// SpeechRecognition `results` list is CUMULATIVE - every event carries the
-// whole session - and `resultIndex` is only a hint about where the change
-// began. Chrome fires events whose `resultIndex` still covers an
-// already-final result, so looping from `resultIndex` and emitting every final
-// it saw delivered the same text again.
-//
-// There is no DOM (and no SpeechRecognition) in this project's vitest setup, so
-// the guard is pinned structurally. Stated plainly: this proves the cursor
-// exists and is used, not that a live utterance arrives once.
+// Dictation delivered the same words twice (desktop Chrome re-sends already
+// final results), and - after an index cursor fixed that - doubled or DROPPED
+// words on Android Chrome, which repeats the phrase so far and restarts its
+// result list. The hook now decides what is new by TEXT; the behaviour itself
+// is replayed against scripted engine sessions in speech-merge.test.ts. This
+// file pins that the hook actually uses that merge.
 const src = readFileSync("src/shared/hooks/useSpeechInput.ts", "utf8");
 
-describe("dictation must deliver each result exactly once", () => {
-  it("keeps a delivered-so-far cursor", () => {
-    expect(src).toMatch(/deliveredRef = useRef\(0\)/);
+describe("dictation delivers each word exactly once", () => {
+  it("tracks delivered TEXT, not a result index", () => {
+    expect(src).toMatch(/const deliveredRef = useRef\(""\)/);
+    expect(src).not.toMatch(/deliveredRef\.current = i \+ 1/);
   });
 
-  it("iterates from that cursor, never from resultIndex", () => {
-    expect(src).toMatch(/for \(let i = deliveredRef\.current; i < results\.length; i\+\+\)/);
-    // The old loop bound is what caused the duplication - it must be gone.
+  it("reads the whole result list and lets the merge decide what is new", () => {
+    expect(src).toMatch(/for \(let i = 0; i < results\.length; i\+\+\)/);
+    expect(src).toMatch(/newWords\(deliveredRef\.current, collapseFinals\(finals\)\)/);
     expect(src).not.toMatch(/for \(let i = e\.resultIndex/);
   });
 
-  it("advances the cursor the moment a result finalises", () => {
-    expect(src).toMatch(/deliveredRef\.current = i \+ 1/);
+  it("resets on start and on teardown, so a new session starts clean", () => {
+    const resets = src.match(/deliveredRef\.current = ""/g) ?? [];
+    expect(resets.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("resets the cursor on start and on teardown, so a new session cannot skip", () => {
-    // Left un-reset, a second dictation would start past the whole first one
-    // and deliver nothing at all - the opposite failure.
-    const resets = src.match(/deliveredRef\.current = 0/g) ?? [];
-    expect(resets.length).toBeGreaterThanOrEqual(2);
+  it("uses one utterance per session on Android, where continuous mode is unreliable", () => {
+    expect(src).toMatch(/rec\.continuous = \(opts\?\.continuous \?\? false\) && !android/);
   });
 });

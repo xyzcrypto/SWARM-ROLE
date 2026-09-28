@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useClientFlag } from "@/lib/useClientFlag";
+import { appendWords, collapseFinals, newWords } from "@shared/utils/speech-merge";
 
 // Browser-native speech-to-text, shared by every composer and search box.
 //
@@ -106,16 +107,15 @@ export function useSpeechInput(
   const ref = useRef<RecognitionLike | null>(null);
   /** Set when a session is being discarded, so `onend` knows not to submit. */
   const discardedRef = useRef(false);
-  // How many results from `e.results` have already been handed to the caller.
+  // The TEXT already handed to the caller this session.
   //
-  // ⚠️ This is what stops dictation doubling. With `continuous: true`,
-  // `e.results` is CUMULATIVE - every event carries the whole session, not just
-  // what changed - and `e.resultIndex` is only a hint about where the change
-  // started. Chrome routinely fires a second event whose `resultIndex` still
-  // covers a result that was already final, so looping from `resultIndex` and
-  // emitting every final it sees delivered the same words twice. Counting what
-  // has actually been delivered is the only reliable boundary.
-  const deliveredRef = useRef(0);
+  // ⚠️ Text, not a result index. An index cursor fixed desktop Chrome (whose
+  // `results` is a cumulative list and which re-sends already-final entries)
+  // but broke on Android Chrome, which repeats the phrase so far as a NEW
+  // final result ("hello", "hello world" -> "hello hello world") and restarts
+  // the list at index 0 (a cursor past 0 then DROPPED the next phrase). The
+  // merge in `speech-merge.ts` handles all three shapes; its tests replay them.
+  const deliveredRef = useRef("");
 
   // Keep the latest callback without re-creating the recognizer. Written in an
   // effect, not during render - a ref write during render is a side effect
@@ -132,7 +132,7 @@ export function useSpeechInput(
 
   const teardown = useCallback(() => {
     ref.current = null;
-    deliveredRef.current = 0;
+    deliveredRef.current = "";
     setListening(false);
     setInterim("");
     // NOTE: `discardedRef` is deliberately NOT reset here. `onend` reads it
@@ -164,7 +164,13 @@ export function useSpeechInput(
 
     const rec = new Ctor();
     rec.lang = (typeof navigator !== "undefined" && navigator.language) || "en-US";
-    rec.continuous = opts?.continuous ?? false;
+    // Continuous recognition on Android Chrome is the engine's weakest mode:
+    // it restarts itself between phrases, re-sends what it already heard and
+    // mis-hears more. One utterance per session is what Android's own voice
+    // typing does, and it is markedly more accurate. Decided here, in an event
+    // handler, never during render (the user agent is a client-only signal).
+    const android = typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent);
+    rec.continuous = (opts?.continuous ?? false) && !android;
     rec.interimResults = true;
     rec.maxAlternatives = 1;
 
@@ -172,26 +178,22 @@ export function useSpeechInput(
 
     rec.onresult = (e: any) => {
       const results = e.results;
-      let finalText = "";
+      const finals: string[] = [];
       let partial = "";
-
-      // Start from what we have already delivered, NOT from `e.resultIndex`.
-      // Anything before this point has been emitted once and must never be
-      // emitted again.
-      for (let i = deliveredRef.current; i < results.length; i++) {
+      // Read the WHOLE list every time - never from `e.resultIndex`, never from
+      // a position cursor. Which entries are "new" is decided by text below.
+      for (let i = 0; i < results.length; i++) {
         const r = results[i];
         const t = r?.[0]?.transcript ?? "";
-        if (r?.isFinal) {
-          finalText += t;
-          // Consume it the moment it is final, so the next event skips it.
-          deliveredRef.current = i + 1;
-        } else {
-          partial += t;
-        }
+        if (r?.isFinal) finals.push(t);
+        else partial += t;
       }
 
-      const done = finalText.trim();
-      if (done) cb.current(done);
+      const fresh = newWords(deliveredRef.current, collapseFinals(finals));
+      if (fresh) {
+        deliveredRef.current = appendWords(deliveredRef.current, fresh);
+        cb.current(fresh);
+      }
       // Interim is whatever is still un-finalised; once a chunk finalises its
       // partial text is gone, so this clears itself without a special case.
       setInterim(partial.trim());
@@ -217,7 +219,7 @@ export function useSpeechInput(
     };
 
     ref.current = rec;
-    deliveredRef.current = 0;
+    deliveredRef.current = "";
     discardedRef.current = false;
     try {
       rec.start();
