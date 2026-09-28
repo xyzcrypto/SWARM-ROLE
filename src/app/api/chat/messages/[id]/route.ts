@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { isMediaBody } from "@modules/community/lib/chat-media";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
@@ -33,10 +34,13 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
 
     const msg = await prisma.chatMessage.findUnique({
       where: { id: params.id },
-      select: { id: true, userId: true, status: true, createdAt: true },
+      select: { id: true, userId: true, status: true, createdAt: true, body: true },
     });
     if (!msg || msg.status !== "visible") return fail("Message not found.", 404);
     if (msg.userId !== me.id) return fail("You can only edit your own messages.", 403);
+    // A photo, GIF or voice note has no text to correct. Allowing it is how a
+    // voice message became "<url> + typed text" and rendered as a raw link.
+    if (isMediaBody(msg.body)) return fail("Photos, GIFs and voice messages can't be edited.", 400);
     if (!canEditMessage(msg.createdAt)) {
       return fail("Messages can only be edited within 15 minutes of sending.", 403);
     }

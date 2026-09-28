@@ -13,7 +13,7 @@ import { GifPicker } from "@/components/GifPicker";
 import { timeAgo } from "@/lib/news";
 import { useRealtime } from "@/lib/useRealtime";
 import { useOnlineSet } from "@/lib/useUserOnline";
-import { chatAudioUrl, chatMediaUrl, mediaLabel } from "@modules/community/lib/chat-media";
+import { isMediaBody, mediaLabel, splitLeadingMedia } from "@modules/community/lib/chat-media";
 import { VoiceNote, VoiceRecorder, uploadVoice, VoiceIcon } from "@modules/community/components/Voice";
 import { LinkPreviewCard } from "@modules/community/components/LinkPreviewCard";
 import { joinSharedChannel, type SharedChannel } from "@/lib/sharedChannel";
@@ -183,7 +183,13 @@ function DmComposer({
   draftKey,
   focusTick,
   onTyping,
+  onEditLast,
+  onCancelReply,
 }: {
+  /** ↑ in an empty composer: edit my newest editable message. */
+  onEditLast?: () => void;
+  /** Esc in the composer: drop the reply being composed. */
+  onCancelReply?: () => void;
   /** Tells the other side "typing..." - throttled by the caller. */
   onTyping?: () => void;
   onSend: (body: string) => Promise<boolean>;
@@ -258,7 +264,13 @@ function DmComposer({
           ref={composerRef}
           value={draft}
           onChange={(e) => { setDraft(e.target.value); if (e.target.value) onTyping?.(); }}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey && !touchUi) { e.preventDefault(); void send(draft); } }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && !touchUi) { e.preventDefault(); void send(draft); }
+            // Desktop shortcuts: ↑ in an empty box edits your last message,
+            // Esc drops a reply you started.
+            if (e.key === "ArrowUp" && !draft && onEditLast) { e.preventDefault(); onEditLast(); }
+            if (e.key === "Escape" && onCancelReply) onCancelReply();
+          }}
           placeholder={touchUi ? "Write a message…" : "Write a message… (Enter to send)"}
           aria-label="Write a message"
           aria-invalid={invalid || undefined}
@@ -1541,10 +1553,14 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
   });
 
   const renderMessage = (m: Msg, i: number, firstOfDay: boolean) => {
-    const voice = chatAudioUrl(m.body);
+    // A row that starts with media and has text after it was saved before
+    // editing media was refused: render the media plus the text as a caption.
+    const lead = splitLeadingMedia(m.body);
+    const voice = lead?.audio ?? null;
+    const caption = lead?.caption ?? "";
     // "media" gates Copy / Forward / Translate / Edit: none of them mean
     // anything for a photo or a voice note.
-    const media = chatMediaUrl(m.body) ?? voice?.src ?? null;
+    const media = lead ? (lead.image ?? lead.audio?.src ?? null) : null;
     // Consecutive messages from the same side breathe less, so a burst reads
     // as one turn rather than a stack of separate cards.
     const grouped = !firstOfDay && i > 0 && messages[i - 1]!.mine === m.mine;
@@ -1681,13 +1697,19 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                     </div>
                   </div>
                 ) : voice ? (
-                  <VoiceNote src={voice.src} duration={voice.duration} mine={m.mine} />
+                  <>
+                    <VoiceNote src={voice.src} duration={voice.duration} mine={m.mine} />
+                    {caption && <MessageText text={caption} className="mt-1 whitespace-pre-wrap break-words" />}
+                  </>
                 ) : media ? (
                   // Tap to open full-screen - see the note in ChatClient.
-                  <ImageLightbox src={media} alt="shared media" className="inline-block">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={media} alt="shared media" loading="lazy" className="max-h-72 w-auto max-w-full cursor-zoom-in rounded-2xl" />
-                  </ImageLightbox>
+                  <>
+                    <ImageLightbox src={media} alt="shared media" className="inline-block">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={media} alt="shared media" loading="lazy" className="max-h-72 w-auto max-w-full cursor-zoom-in rounded-2xl" />
+                    </ImageLightbox>
+                    {caption && <MessageText text={caption} className="mt-1 whitespace-pre-wrap break-words px-2" />}
+                  </>
                 ) : (
                   // Same renderer as the community room, so the two cannot
                   // drift: mentions link, links are links.
@@ -1713,7 +1735,10 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                     <span className={cn("mono text-[10px] italic", m.mine ? "text-gold-700/60 dark:text-gold-200/45" : "text-zinc-600")}>edited</span>
                   )}
                   {m.pinned && !m.deleted && <Pin className="h-3 w-3 shrink-0 text-gold-300/80" aria-label="Pinned" />}
-                  <span className={cn("mono text-[10px]", m.mine ? "text-gold-700/70 dark:text-gold-200/60" : "text-zinc-500")}>
+                  <span
+                    className={cn("mono text-[10px]", m.mine ? "text-gold-700/70 dark:text-gold-200/60" : "text-zinc-500")}
+                    title={hydrated ? new Date(m.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : undefined}
+                  >
                     {clockTime(m.createdAt, hydrated)}
                   </span>
                   {m.mine && !m.deleted && <ReadTicks read={read} pending={m.id.startsWith("temp-")} />}
@@ -2100,7 +2125,20 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           >
             <AnimatePresence>{gifOpen && <GifPicker onPick={sendGif} onClose={() => setGifOpen(false)} />}</AnimatePresence>
           </AttachTray>
-          <DmComposer onSend={postMessage} sending={sending} touchUi={touchUi} invalid={!!err} draftKey={id} focusTick={focusTick} onTyping={sendTyping} />
+          <DmComposer
+            onSend={postMessage}
+            sending={sending}
+            touchUi={touchUi}
+            invalid={!!err}
+            draftKey={id}
+            focusTick={focusTick}
+            onTyping={sendTyping}
+            onEditLast={() => {
+              const mine = [...messages].reverse().find((x) => x.mine && !x.deleted && !x.id.startsWith("temp-") && !isMediaBody(x.body) && canEditMessage(x.createdAt));
+              if (mine) { setEditingId(mine.id); setEditText(mine.body); }
+            }}
+            onCancelReply={replyTo ? () => setReplyTo(null) : undefined}
+          />
         </div>
       </div>
       </>

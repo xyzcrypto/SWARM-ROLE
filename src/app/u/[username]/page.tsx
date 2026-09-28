@@ -21,6 +21,7 @@ import { JournalActivityFeed } from "@/components/JournalActivityFeed";
 import { EditProfileButton } from "@/components/EditProfileButton";
 import { ProfileBannerImage } from "@/components/ProfileBannerImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
+import { PressFeedback } from "@shared/components/PressFeedback";
 import { cn, formatDate, formatDateTime, publicImageUrl } from "@/lib/utils";
 import { schemaOrThrow } from "@/lib/db-error";
 import { normalizeUsername } from "@/lib/profile";
@@ -154,6 +155,10 @@ export default async function ProfilePage(props: Props) {
         </>
       )}
       <Navbar />
+      {/* Press feedback (haptics / click) on every control on the profile, per
+          the member's Haptics & sound settings. A client leaf with
+          `display: contents` - no layout change, and the page stays ISR. */}
+      <PressFeedback>
       <main className="relative min-h-screen pt-28">
         <div className="mesh" />
         <div className="relative mx-auto max-w-4xl px-4 pb-24 sm:px-6 lg:px-8">
@@ -345,6 +350,7 @@ export default async function ProfilePage(props: Props) {
           </Reveal>
         </div>
       </main>
+      </PressFeedback>
     </>
   );
 }

@@ -5,6 +5,7 @@ import { rateLimit } from "@/lib/ratelimit";
 import { DM_MAX_LEN, snippet } from "@/lib/dm";
 import { canEditMessage } from "@/lib/chat-view";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
+import { isMediaBody } from "@modules/community/lib/chat-media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -66,6 +67,8 @@ export async function PATCH(req: Request, props: Ctx) {
     const msg = await loadMine(params.id, params.messageId, me.id);
     if (!msg || msg.status !== "visible") return fail("Message not found.", 404);
     if (msg.senderId !== me.id) return fail("You can only edit your own messages.", 403);
+    // Same rule as the room: media has no text to correct.
+    if (isMediaBody(msg.body)) return fail("Photos, GIFs and voice messages can't be edited.", 400);
     if (!canEditMessage(msg.createdAt)) {
       return fail("Messages can only be edited within 15 minutes of sending.", 403);
     }

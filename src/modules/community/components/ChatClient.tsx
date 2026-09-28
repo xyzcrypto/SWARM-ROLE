@@ -8,11 +8,11 @@ import { clockTime, dayLabel } from "@/lib/chat-time";
 import {
   Flag,
   Palette,
-  ArrowDown, BarChart3, Check, ChevronDown, ChevronUp, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Search, Smile, Sticker, Trash2, X, Volume2, VolumeX,
+  ArrowDown, BarChart3, Check, Link2, ChevronDown, ChevronUp, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Search, Smile, Sticker, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { compressImage } from "@/lib/image";
-import { chatAudioUrl, chatMediaUrl, mediaLabel } from "@modules/community/lib/chat-media";
+import { chatAudioUrl, chatMediaUrl, isMediaBody, mediaLabel, splitLeadingMedia } from "@modules/community/lib/chat-media";
 import { VoiceNote, VoiceRecorder, uploadVoice, VoiceIcon } from "./Voice";
 import { LinkPreviewCard } from "./LinkPreviewCard";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -36,7 +36,7 @@ import { useChatAppearance } from "./useChatAppearance";
 import { ChatWallpaper } from "./ChatWallpaper";
 import { ChatAppearanceSheet } from "./ChatAppearanceSheet";
 import { AttachTray } from "./AttachTray";
-import { SwipeBubble } from "./SwipeBubble";
+import { SwipeBubble, fromControl } from "./SwipeBubble";
 import { CHAT_BAR, CHAT_ICON_BTN } from "../lib/chat-ui";
 import { AppMenu } from "@shared/components/AppMenu";
 import { feelAttrs, setFeel, useChatFeel } from "@shared/utils/chat-feel";
@@ -104,6 +104,17 @@ const normalizeReactions = (rs: { emoji: string; userIds: string[] }[]): Reactio
 function MessageBody({ text }: { text: string }) {
   const voice = chatAudioUrl(text);
   if (voice) return <div className="mt-0.5"><VoiceNote src={voice.src} duration={voice.duration} /></div>;
+  // Media followed by text: a row saved before editing media was refused.
+  // Show the media, then the text as a caption - never the raw URL.
+  const lead = splitLeadingMedia(text);
+  if (lead?.caption) {
+    return (
+      <>
+        <MessageBody text={lead.url} />
+        <MessageText text={lead.caption} className="mt-1 whitespace-pre-wrap break-words text-[length:var(--chat-fs)] leading-relaxed text-zinc-200" />
+      </>
+    );
+  }
   const media = chatMediaUrl(text);
   if (media) {
     // Tapping a shared photo opens it full-screen, the same wrapper the profile
@@ -259,6 +270,17 @@ export function ChatClient({
   const [matchIdx, setMatchIdx] = useState(-1);
   // Bumped to put the caret in the composer (swipe-to-reply, Reply).
   const [composerFocus, setComposerFocus] = useState(0);
+  const scrollToMessageRef = useRef<((id: string) => Promise<void>) | null>(null);
+
+  // A shared message link (/community?m=<id>) opens the room scrolled to that
+  // message - loading older pages if it is further back. Runs once, after the
+  // first paint; the id is validated before it is used.
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("m");
+    if (!id || !/^[a-z0-9]{10,40}$/i.test(id)) return;
+    const t = window.setTimeout(() => void scrollToMessageRef.current?.(id), 400);
+    return () => window.clearTimeout(t);
+  }, []);
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
   const firstUnreadRef = useRef<string | null>(null);
 
@@ -1130,6 +1152,11 @@ export function ChatClient({
 
   // Jump to a message; if it isn't loaded (reply to an older message), page
   // backwards a bounded number of times until it appears, then highlight.
+  // Ref so the one-shot deep-link effect can call the latest version. Written
+  // in an effect - a ref write during render is a side effect React may drop.
+  useEffect(() => {
+    scrollToMessageRef.current = (id: string) => scrollToMessage(id);
+  });
   async function scrollToMessage(id: string) {
     for (let attempt = 0; attempt < 6; attempt++) {
       const el = document.getElementById(`msg-${id}`);
@@ -1158,6 +1185,17 @@ export function ChatClient({
       const added = await loadOlder();
       if (!added) return; // history exhausted or request failed
       await new Promise((r) => requestAnimationFrame(() => r(null))); // let rows render
+    }
+  }
+
+  /** A link that opens the room scrolled to this message (see the `?m=` effect). */
+  async function copyMessageLink(id: string) {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/community?m=${id}`);
+      setCopiedId(`link-${id}`);
+      setTimeout(() => setCopiedId((c) => (c === `link-${id}` ? null : c)), 1200);
+    } catch {
+      /* clipboard blocked */
     }
   }
 
@@ -1219,6 +1257,11 @@ export function ChatClient({
 
   // dvh (where supported) tracks the *visible* viewport, so the composer
   // stays above the mobile keyboard instead of being pushed off-screen.
+  // Messages that @mention me stand out in a busy room.
+  const myHandle = me?.username?.toLowerCase() ?? "";
+  const mentionsMe = (body: string) =>
+    !!myHandle && new RegExp(`(^|[^\\w])@${myHandle.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\w])`, "i").test(body);
+
   // Search over what is loaded. Polls and photos have no searchable text.
   const searchQuery = searchQ.trim().toLowerCase();
   const searchMatches = searchQuery
@@ -1496,7 +1539,7 @@ export function ChatClient({
             const isTeam = m.author.role === "ADMIN";
             const canDelete = !!me && (me.isAdmin || me.id === m.userId);
             const canEdit =
-              !!me && me.id === m.userId && !m.pending && !m.hidden && m.kind !== "poll" && canEditMessage(m.createdAt);
+              !!me && me.id === m.userId && !m.pending && !m.hidden && m.kind !== "poll" && !isMediaBody(m.body) && canEditMessage(m.createdAt);
             const actionsOpen = actionOpenId === m.id;
 
             // Session-local tombstone for a removed message (keeps context).
@@ -1539,18 +1582,26 @@ export function ChatClient({
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.18 }}
-                  onDoubleClick={() => {
+                  onDoubleClick={(e) => {
                     // Desktop-only shortcut: on touch, dblclick fights the
                     // browser's double-tap zoom - ❤️ lives in the tap menu there.
+                    // Never from a control inside the message (play, speed,
+                    // a link): double-clicking THAT is not a reaction.
+                    if (fromControl(e.target)) return;
                     if (!touchUi && me && !m.pending) toggleReaction(m.id, "❤️");
                   }}
-                  onClick={() => {
+                  onClick={(e) => {
+                    // A tap on a control inside the message (play, speed, a
+                    // link, a poll option) is that control's, not "open the
+                    // actions" - it used to do both.
+                    if (fromControl(e.target)) return;
                     if (touchUi && me && !m.pending) setActionOpenId((id) => (id === m.id ? null : m.id));
                   }}
                   className={cn(
                     "group relative flex items-start gap-3 rounded-xl px-2.5 transition-colors hover:bg-white/[0.035]",
                     grouped ? "py-[var(--chat-row-tight)]" : "py-[var(--chat-row)]",
                     m.userId === me?.id && "chat-own",
+                    m.userId !== me?.id && mentionsMe(m.body) && "chat-mention",
                     m.pending && "opacity-85",
                     searchMatchSet.has(m.id) && "ring-2 ring-inset ring-gold-400/60"
                   )}
@@ -1592,7 +1643,12 @@ export function ChatClient({
                         )}
                         {isTeam && <Badge tone="mint" className="!px-1.5 !py-0">Team</Badge>}
                         {isPremium && !isTeam && <Badge tone="gold" className="!px-1.5 !py-0">★</Badge>}
-                        <span className="text-[11px] text-zinc-600">
+                        <span
+                          className="text-[11px] text-zinc-600"
+                          // The full date on hover / long-press. Only after
+                          // hydration: the reader's zone is client-only.
+                          title={hydrated && !m.pending ? new Date(m.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : undefined}
+                        >
                           {m.pending
                             ? "sending…"
                             : clockTime(m.createdAt, hydrated)}
@@ -1608,7 +1664,7 @@ export function ChatClient({
                       >
                         <Reply className="h-3 w-3 shrink-0 text-gold-400" />
                         <span className="truncate text-[11px] text-zinc-500">
-                          <span className="text-gold-200">{m.replyTo.authorName}</span> · {m.replyTo.body}
+                          <span className="text-gold-200">{m.replyTo.authorName}</span> · {mediaLabel(m.replyTo.body) ?? m.replyTo.body}
                         </span>
                       </button>
                     )}
@@ -1823,6 +1879,11 @@ export function ChatClient({
                       <button onClick={() => copyMessage(m.id, m.body)} className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200" aria-label="Copy">
                         {copiedId === m.id ? <Check className="h-3.5 w-3.5 text-mint-300" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
+                      {!m.pending && (
+                        <button onClick={() => void copyMessageLink(m.id)} className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200" aria-label="Copy link to message" title="Copy link to message">
+                          {copiedId === `link-${m.id}` ? <Check className="h-3.5 w-3.5 text-mint-300" /> : <Link2 className="h-3.5 w-3.5" />}
+                        </button>
+                      )}
                       {canDelete && (
                         <button onClick={() => remove(m.id)} className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-red-300" aria-label="Delete">
                           <Trash2 className="h-3.5 w-3.5" />
@@ -1929,6 +1990,13 @@ export function ChatClient({
               onSend={(text) => doSend(text)}
               onTyping={sendTyping}
               focusTick={composerFocus}
+              onEditLast={() => {
+                const mine = [...messages].reverse().find(
+                  (x) => x.userId === me.id && !x.pending && !x.hidden && x.kind !== "poll" && !isMediaBody(x.body) && canEditMessage(x.createdAt)
+                );
+                if (mine) startEdit(mine);
+              }}
+              onCancelReply={replyTarget ? () => setReplyTarget(null) : undefined}
               leading={
                 <>
                   {/* One "+" for everything you can attach (see AttachTray for
@@ -2014,7 +2082,13 @@ function RoomComposer({
   onTyping,
   leading,
   focusTick,
+  onEditLast,
+  onCancelReply,
 }: {
+  /** ↑ in an empty composer: edit my newest editable message. */
+  onEditLast?: () => void;
+  /** Esc in the composer: drop the reply being composed. */
+  onCancelReply?: () => void;
   members: PresenceMember[];
   meId: string;
   sending: boolean;
@@ -2172,6 +2246,13 @@ function RoomComposer({
               e.preventDefault();
               send(e);
             }
+            // Desktop shortcuts, the ones every chat app has: ↑ in an empty
+            // box edits your last message, Esc drops a reply you started.
+            if (e.key === "ArrowUp" && !body && onEditLast) {
+              e.preventDefault();
+              onEditLast();
+            }
+            if (e.key === "Escape" && onCancelReply) onCancelReply();
           }}
           rows={1}
           placeholder={touchUi ? "Say something…" : "Say something… (Enter to send)"}

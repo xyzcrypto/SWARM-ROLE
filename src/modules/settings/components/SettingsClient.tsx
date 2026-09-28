@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { chatPressFeedback } from "@shared/utils/chat-feedback";
+import { ChatFeelSections } from "@modules/community/components/ChatFeelSections";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -41,7 +43,7 @@ type SettingsUser = {
   createdAt: string;
 };
 
-type Tab = "profile" | "account" | "security";
+type Tab = "profile" | "account" | "security" | "feel";
 
 export function SettingsClient({ user }: { user: SettingsUser }) {
   const [tab, setTab] = useState<Tab>("profile");
@@ -50,13 +52,15 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
     { id: "profile", label: "Profile" },
     { id: "account", label: "Account" },
     { id: "security", label: "Security" },
+    { id: "feel", label: "Haptics & sound" },
   ];
 
   const isPremium = user.membership === "Premium";
   const isAdmin = user.role === "ADMIN";
 
   return (
-    <div>
+    // Every control here gets the member's haptic / sound press feedback.
+    <div onPointerDownCapture={chatPressFeedback}>
       <div className="mb-6">
         <p className="text-sm font-semibold uppercase tracking-[0.2em] text-mint-400">Your dashboard</p>
         <h1 className="mt-2 font-display text-3xl font-bold text-zinc-50 sm:text-4xl">
@@ -121,6 +125,13 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
           {tab === "profile" && <ProfilePanel user={user} />}
           {tab === "account" && <AccountPanel user={user} />}
           {tab === "security" && <SecurityPanel user={user} />}
+          {tab === "feel" && (
+            <div className="glass rounded-3xl p-5 sm:p-6">
+              <p className="font-display text-lg font-semibold text-zinc-50">Haptics, sounds &amp; chat style</p>
+              <p className="mt-1 text-[13px] text-zinc-500">Saved on this device. Also in any chat under 🎨 Chat appearance.</p>
+              <ChatFeelSections />
+            </div>
+          )}
         </motion.div>
       </AnimatePresence>
     </div>

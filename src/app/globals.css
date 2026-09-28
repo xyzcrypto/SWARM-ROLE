@@ -2746,3 +2746,6 @@ html:not(.dark) .chat-mine { color: rgb(var(--acc-ink-light)); background-image:
 .chat-own { background-color: rgb(var(--acc) / 0.06); box-shadow: inset 0 0 0 1px rgb(var(--acc) / 0.16); }
 @media (hover: hover) { .chat-own:hover { background-color: rgb(var(--acc) / 0.09); } }
 .chat-accent-text { color: rgb(var(--acc)); }
+/* A room message that @mentions me: a gold edge and a faint wash, so it can
+   be found at a glance in a busy room. */
+.chat-mention { box-shadow: inset 3px 0 0 rgb(226 167 47 / 0.8); background-color: rgb(226 167 47 / 0.06); }
