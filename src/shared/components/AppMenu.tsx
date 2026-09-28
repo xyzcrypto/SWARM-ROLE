@@ -8,8 +8,9 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   Bookmark, BookOpen, Coins, Crown, Home, LayoutDashboard, LineChart, LogOut, Mail, Menu,
-  MessageCircle, Newspaper, NotebookPen, Search, Settings, User, Users, Wrench, X,
+  MessageCircle, Newspaper, NotebookPen, Search, Settings, SlidersHorizontal, User, Users, Wrench, X,
 } from "lucide-react";
+import { openCustomize } from "@shared/utils/site-prefs";
 import { navLinks } from "@/lib/site";
 import { XYZ_CMDK_EVENT } from "@/lib/command-search";
 import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
@@ -180,6 +181,14 @@ export function AppMenu({ className }: { className?: string }) {
             </div>
 
             <div className="space-y-2 border-t border-hairline px-4 py-3">
+              <button
+                type="button"
+                onClick={() => { close(); openCustomize(); }}
+                className="flex w-full items-center gap-2.5 rounded-xl bg-gold-500/10 px-3 py-2.5 text-left text-[13px] font-semibold text-gold-100 ring-1 ring-gold-500/25 transition-colors hover:bg-gold-500/15"
+              >
+                <SlidersHorizontal className="h-4 w-4 text-gold-300" />
+                Customize website
+              </button>
               <div className="flex items-center justify-between rounded-xl bg-white/[0.03] px-3 py-2">
                 <span className="text-[13px] font-medium text-zinc-300">Theme</span>
                 <ThemeToggle />

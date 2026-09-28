@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown, Search, MessageCircle, NotebookPen } from "lucide-react";
+import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown, Search, MessageCircle, NotebookPen, SlidersHorizontal } from "lucide-react";
+import { openCustomize } from "@shared/utils/site-prefs";
 import { navLinks, railLinks, moreLinks } from "@/lib/site";
 import { XYZ_CMDK_EVENT } from "@/lib/command-search";
 import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
@@ -275,6 +276,15 @@ export function Navbar() {
           >
             <Search className="h-4 w-4" />
           </button>
+          <button
+            type="button"
+            onClick={openCustomize}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-line bg-white/5 text-zinc-400 transition-colors hover:border-gold-500/30 hover:text-zinc-200"
+            aria-label="Customize website"
+            title="Customize website"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </button>
           <ThemeToggle />
           {session ? (
             <div className="relative" ref={menuRef}>
@@ -424,6 +434,15 @@ export function Navbar() {
                 <span className="text-sm font-medium text-zinc-300">Theme</span>
                 <ThemeToggle />
               </div>
+              <button
+                type="button"
+                onClick={() => { setOpen(false); openCustomize(); }}
+                className="flex items-center gap-2.5 rounded-lg bg-gold-500/10 px-3 py-2.5 text-left text-sm font-semibold text-gold-100 ring-1 ring-gold-500/25"
+              >
+                <SlidersHorizontal className="h-4 w-4 text-gold-300" />
+                Customize website
+                <span className="ml-auto text-[11px] font-normal text-zinc-500">animations, text, haptics…</span>
+              </button>
               {session ? (
                 <>
                   <div className="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2">

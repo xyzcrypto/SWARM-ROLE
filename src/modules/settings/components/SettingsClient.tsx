@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { chatPressFeedback } from "@shared/utils/chat-feedback";
-import { ChatFeelSections } from "@modules/community/components/ChatFeelSections";
+import { CustomizePanel } from "@shared/components/CustomizePanel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -52,7 +52,7 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
     { id: "profile", label: "Profile" },
     { id: "account", label: "Account" },
     { id: "security", label: "Security" },
-    { id: "feel", label: "Haptics & sound" },
+    { id: "feel", label: "Customize" },
   ];
 
   const isPremium = user.membership === "Premium";
@@ -127,9 +127,9 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
           {tab === "security" && <SecurityPanel user={user} />}
           {tab === "feel" && (
             <div className="glass rounded-3xl p-5 sm:p-6">
-              <p className="font-display text-lg font-semibold text-zinc-50">Haptics, sounds &amp; chat style</p>
-              <p className="mt-1 text-[13px] text-zinc-500">Saved on this device. Also in any chat under 🎨 Chat appearance.</p>
-              <ChatFeelSections />
+              <p className="font-display text-lg font-semibold text-zinc-50">Customize website</p>
+              <p className="mt-1 mb-5 text-[13px] text-zinc-500">Theme, text size, animations, performance, haptics and sounds. Saved on this device; applies instantly.</p>
+              <CustomizePanel />
             </div>
           )}
         </motion.div>

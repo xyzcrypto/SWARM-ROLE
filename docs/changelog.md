@@ -5,6 +5,53 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-28 (130) — Bookmarks, profile Library, voice for all, Customize website
+
+Owner request. Verified in a real browser on mobile and desktop: **42/42** for
+this work. Every earlier probe still passes: 36 + 28 + 12 + 51 + 21 + **77** +
+24, so **291** browser checks in total. **1443 tests.**
+
+- **Bookmark community messages.**
+  - A bookmark button sits in each message's action bar, and a small gold
+    marker shows on bookmarked messages. The toggle is optimistic, with a
+    haptic and a sound.
+  - Bookmarks show on the member's **public profile**, as the owner asked.
+    Only messages that are still visible are listed, so a hidden message drops
+    off every profile at once.
+  - Migration `42_chat_bookmarks` is idempotent. The new routes:
+    - `POST /DELETE /api/chat/messages/[id]/bookmark`: two rate-limit keys, and
+      only a visible message can be bookmarked.
+    - `GET /api/chat/bookmarks`: private and no-store.
+  - Every read tolerates the table not existing yet, so previews show an empty
+    list instead of an error.
+- **Profile Library.** A new section with two tabs:
+  - **Bookmarks**, public, with each card linking to `/community?m=<id>`.
+  - **Saved**, your research and news. It stays **private** and only appears
+    for the profile's owner, as it always was.
+- **Voice notes for every member** in the room. Photos stay staff-only.
+- **Customize website**, from the navbar, the mobile menu, the chat side menu
+  and Settings (the tab is now "Customize"):
+  - Theme; text size (90 / 100 / 110 / 125%).
+  - Animations: Auto / Full / Lite / Off. Off also switches framer-motion off
+    via `MotionConfig` (context only) and turns off smooth scroll.
+  - Background effects and glass blur, each on or off, plus a one-tap
+    **Performance mode**.
+  - Haptics, sounds and chat style; Reset to default.
+  - Everything is a class on `<html>`, applied **before paint** by the
+    existing no-flash script and live by `applySitePrefs`. A test runs the real
+    script and checks it agrees with the live apply.
+- **Every screen size.** An audit of 12 pages at 9 widths (320–1920px) found no
+  horizontal overflow, with every entrance animation settled. Large text also
+  keeps pages overflow-free.
+- **Found and fixed:**
+  - The on/off switch knob sat outside its track. It was absolutely positioned
+    with no `left`, measured at 46px in a 48px track. This affected the new
+    panel and the existing "Soften" switch.
+  - The earlier "Haptics & sound" test was updated for the tab's new name.
+
+Route table: `+ƒ /api/chat/bookmarks`, `+ƒ /api/chat/messages/[id]/bookmark`.
+No page changed.
+
 ## 2026-09-28 (129) — Voice: no more edit corruption, speed + transcript + translate, better quality
 
 Owner request, with a screenshot. Everything was verified in a real browser on

@@ -75,9 +75,9 @@ describe("profile + settings get the same press feedback", () => {
     expect(pg).not.toMatch(/^"use client"/m);
     expect(read("src/shared/components/PressFeedback.tsx")).toMatch(/className="contents" onPointerDownCapture=\{chatPressFeedback\}/);
   });
-  it("settings has the Haptics & sound tab", () => {
+  it("settings has the Customize tab (was 'Haptics & sound', now the full panel)", () => {
     const s = read("src/modules/settings/components/SettingsClient.tsx");
-    expect(s).toMatch(/\{ id: "feel", label: "Haptics & sound" \}/);
+    expect(s).toMatch(/\{ id: "feel", label: "Customize" \}/);
     expect(s).toMatch(/<div onPointerDownCapture=\{chatPressFeedback\}>/);
   });
 });

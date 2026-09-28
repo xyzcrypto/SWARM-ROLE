@@ -15,6 +15,7 @@ import { PwaSetup } from "@/components/PwaSetup";
 import { PauseOffscreenAnimations } from "@/components/PauseOffscreenAnimations";
 import { CommandPaletteMount } from "@/components/CommandPaletteMount";
 import { BottomNavMount } from "@/components/BottomNavMount";
+import { CustomizeSheetMount } from "@shared/components/CustomizeSheetMount";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
 import { SITE_URL, GSC_VERIFICATION } from "@/lib/seo";
 import { env } from "@/lib/env";
@@ -197,11 +198,20 @@ export default function RootLayout({
             on rotation (`Math.min` of the screen's two sides), and leaves
             tablets and desktops - where the frame-rate problem was never
             measured - on the full tier. A genuinely weak machine of any shape is
-            still caught by the `<= 2` cores clause. */}
+            still caught by the `<= 2` cores clause.
+
+            ## Customize website (site-prefs.ts)
+
+            The same script applies the reader's own choices from the
+            Customize panel before paint, so none of them flashes in:
+            `motion: 'off'` (lite tier + `motion-off`), and from `xyz.ui` the
+            text size (`text-scale-*`), background effects (`no-effects`) and
+            glass blur (`no-blur`). `applySitePrefs` mirrors this exactly for
+            live changes. */}
         <script
           dangerouslySetInnerHTML={{
             __html:
-              "(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}try{var m=localStorage.getItem('motion');var n=navigator,c=n.connection||{},coarse=false;try{coarse=matchMedia('(pointer: coarse)').matches;}catch(e){}var s=window.screen||{},w=s.width||window.innerWidth||0,h=s.height||window.innerHeight||0,phone=coarse&&Math.min(w,h)>0&&Math.min(w,h)<600;var lite;if(m==='lite'){lite=true;}else if(m==='full'){lite=false;}else{lite=c.saveData===true||(n.hardwareConcurrency||8)<=2||phone;}if(lite){d.classList.add('lite-motion');}if(m==='full'){d.classList.add('motion-full');}}catch(e){}})();",
+              "(function(){var d=document.documentElement;try{var t=localStorage.getItem('theme');if(t==='light'){d.classList.remove('dark');}else{d.classList.add('dark');}}catch(e){}try{var m=localStorage.getItem('motion');var n=navigator,c=n.connection||{},coarse=false;try{coarse=matchMedia('(pointer: coarse)').matches;}catch(e){}var s=window.screen||{},w=s.width||window.innerWidth||0,h=s.height||window.innerHeight||0,phone=coarse&&Math.min(w,h)>0&&Math.min(w,h)<600;var lite;if(m==='lite'||m==='off'){lite=true;}else if(m==='full'){lite=false;}else{lite=c.saveData===true||(n.hardwareConcurrency||8)<=2||phone;}if(lite){d.classList.add('lite-motion');}if(m==='full'){d.classList.add('motion-full');}if(m==='off'){d.classList.add('motion-off');}}catch(e){}try{var u=JSON.parse(localStorage.getItem('xyz.ui')||'{}');if(u.scale===90||u.scale===110||u.scale===125){d.classList.add('text-scale-'+u.scale);}if(u.effects===false){d.classList.add('no-effects');}if(u.blur===false){d.classList.add('no-blur');}}catch(e){}})();",
           }}
         />
         <JsonLd data={organizationJsonLd()} />
@@ -225,6 +235,7 @@ export default function RootLayout({
           <PauseOffscreenAnimations />
           <CommandPaletteMount />
           <BottomNavMount />
+          <CustomizeSheetMount />
         </Providers>
         <Analytics />
       </body>
