@@ -26,3 +26,8 @@ export const CH_NOTIFY = "notifications"; // global "new notification" ping → 
 // public: anonymous readers must get the ping too.
 export const CH_POINTS = "points-updates";
 export const userChannel = (userId: string) => `user:${userId}`; // per-user events
+// Per-conversation DM topic, joined by both participants while the thread is
+// open. Carries only ephemeral, content-free signals (the typing indicator) that
+// the two browsers send to each other directly - nothing a server writes. Like
+// every topic here it is public, so nothing but a user id ever goes on it.
+export const dmChannel = (conversationId: string) => `dm:${conversationId}`;

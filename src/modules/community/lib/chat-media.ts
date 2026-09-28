@@ -71,3 +71,34 @@ export function chatMediaUrl(text: string): string | null {
   if (isOwnStorageUrl(t)) return t;
   return null;
 }
+
+/**
+ * A voice note: a message whose whole body is one of OUR Storage audio URLs,
+ * under `voice/`, optionally carrying its length as `#d=<seconds>`.
+ *
+ * The length rides in the fragment because Chrome's MediaRecorder writes WebM
+ * with no duration in the header, so the player would otherwise show "0:00"
+ * or "Infinity" until the whole file had been played once. A fragment is never
+ * sent to the server, so the stored object is untouched by it.
+ *
+ * Same origin rule as images: anything not from our own Storage stays text.
+ */
+export function chatAudioUrl(text: string): { src: string; duration: number | null } | null {
+  const t = text.trim();
+  if (/\s/.test(t) || !/^https?:\/\//.test(t)) return null;
+  const [base, frag = ""] = t.split("#", 2) as [string, string?];
+  if (!isOwnStorageUrl(base)) return null;
+  let path: string;
+  try { path = new URL(base).pathname; } catch { return null; }
+  if (!/\/voice\/[a-z0-9-]+\.(webm|ogg|m4a)$/i.test(path)) return null;
+  const d = /(?:^|&)d=(\d{1,3}(?:\.\d{1,2})?)(?:&|$)/.exec(frag)?.[1];
+  const duration = d ? Number(d) : null;
+  return { src: base, duration: duration && duration > 0 && duration <= 600 ? duration : null };
+}
+
+/** What a list preview or a quote says a message is. */
+export function mediaLabel(text: string): string | null {
+  if (chatAudioUrl(text)) return "\u{1F3A4} Voice message";
+  if (chatMediaUrl(text)) return "\u{1F4F7} Photo";
+  return null;
+}

@@ -175,3 +175,83 @@ async function isPubliclyReadable(url: string): Promise<boolean> {
     return false;
   }
 }
+
+
+// ── Voice messages ─────────────────────────────────────────────────────────
+
+/** Audio a voice note may be stored as - whatever MediaRecorder produces. */
+const AUDIO_EXT = new Map<string, string>([
+  ["audio/webm", "webm"], // Chrome, Firefox, Android
+  ["audio/ogg", "ogg"], // Firefox (some builds)
+  ["audio/mp4", "m4a"], // Safari / iOS
+]);
+
+/** ~60s of Opus at recorder bitrates is well under this; it is a ceiling, not a target. */
+export const MAX_VOICE_BYTES = 2 * 1024 * 1024;
+
+/**
+ * The real container, from the magic bytes - never the declared type. Same
+ * rule as `sniffImageType`: a renamed file with an audio Content-Type is
+ * rejected here.
+ */
+export function sniffAudioType(bytes: ArrayBuffer): string | null {
+  const b = new Uint8Array(bytes);
+  if (b.length < 12) return null;
+  // WebM / Matroska: EBML header 1A 45 DF A3
+  if (b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3) return "audio/webm";
+  // Ogg: "OggS"
+  if (b[0] === 0x4f && b[1] === 0x67 && b[2] === 0x67 && b[3] === 0x53) return "audio/ogg";
+  // MP4 / M4A: "ftyp" at offset 4. AVIF is also ftyp, so the brand has to be
+  // an audio/video one, never an image brand.
+  if (b[4] === 0x66 && b[5] === 0x74 && b[6] === 0x79 && b[7] === 0x70) {
+    const brand = String.fromCharCode(b[8], b[9], b[10], b[11]);
+    if (["M4A ", "isom", "iso2", "iso5", "iso6", "mp41", "mp42", "dash"].includes(brand)) return "audio/mp4";
+  }
+  return null;
+}
+
+/**
+ * Store a voice note in Supabase Storage and return its public URL.
+ *
+ * ⚠️ Deliberately NO inline `data:` fallback, unlike `uploadImage`. A voice
+ * note stored as base64 in the message row would be serialised into every
+ * thread response that reads it - the exact Fast Origin Transfer trap the
+ * cost-check skill records for inline avatars. A URL in Storage is fetched
+ * browser-to-Supabase and costs Vercel nothing. So without Storage, voice
+ * notes are simply unavailable, and the error says why.
+ */
+export async function uploadAudio(bytes: ArrayBuffer): Promise<UploadResult> {
+  const mime = sniffAudioType(bytes);
+  if (!mime) return { ok: false, error: "That doesn't look like a voice recording.", status: 400 };
+  if (bytes.byteLength > MAX_VOICE_BYTES) return { ok: false, error: "Voice message is too long.", status: 413 };
+  if (!storageEnabled) {
+    return { ok: false, error: "Voice messages need file storage, which isn't set up yet.", status: 501 };
+  }
+  const bucket = env.SUPABASE_STORAGE_BUCKET;
+  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const path = `voice/${id}.${AUDIO_EXT.get(mime)}`;
+  try {
+    const res = await fetch(`${env.SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": mime,
+        "x-upsert": "false",
+        "cache-control": "31536000",
+      },
+      body: bytes,
+    });
+    if (!res.ok) {
+      console.error("[storage] voice upload failed", res.status, await res.text().catch(() => ""));
+      return { ok: false, error: "Couldn't save the voice message. Try again.", status: 502 };
+    }
+    const publicUrl = `${env.SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
+    if (!(await isPubliclyReadable(publicUrl))) {
+      return { ok: false, error: "Voice messages need a public storage bucket.", status: 501 };
+    }
+    return { ok: true, url: publicUrl };
+  } catch (err) {
+    console.error("[storage] voice upload error", err);
+    return { ok: false, error: "Couldn't save the voice message. Try again.", status: 502 };
+  }
+}

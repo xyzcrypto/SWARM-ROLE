@@ -12,7 +12,9 @@ import {
 } from "lucide-react";
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { compressImage } from "@/lib/image";
-import { chatMediaUrl } from "@/lib/chat-media";
+import { chatAudioUrl, chatMediaUrl, mediaLabel } from "@modules/community/lib/chat-media";
+import { VoiceNote, VoiceRecorder, uploadVoice, VoiceIcon } from "./Voice";
+import { LinkPreviewCard } from "./LinkPreviewCard";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { joinSharedChannel } from "@/lib/sharedChannel";
 import { SendGlyph } from "@/components/SendGlyph";
@@ -96,6 +98,8 @@ const normalizeReactions = (rs: { emoji: string; userIds: string[] }[]): Reactio
 /* Plain-text body with safe linkified URLs + @mention highlights (no HTML).
    A lone trusted media URL renders as an inline image/GIF instead. */
 function MessageBody({ text }: { text: string }) {
+  const voice = chatAudioUrl(text);
+  if (voice) return <div className="mt-0.5"><VoiceNote src={voice.src} duration={voice.duration} /></div>;
   const media = chatMediaUrl(text);
   if (media) {
     // Tapping a shared photo opens it full-screen, the same wrapper the profile
@@ -117,7 +121,12 @@ function MessageBody({ text }: { text: string }) {
   // The link/mention rendering is shared with DM (see MessageText). It used to
   // live here with its own regex literals, which is how DM ended up with none
   // at all and the two rooms rendered the same message differently.
-  return <MessageText text={text} className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-zinc-200" />;
+  return (
+    <>
+      <MessageText text={text} className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-zinc-200" />
+      <LinkPreviewCard text={text} />
+    </>
+  );
 }
 
 /**
@@ -253,6 +262,11 @@ export function ChatClient({
   const [pollOpen, setPollOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
+  // Voice notes: staff only in the room, the same rule as photos (moderating
+  // audio in a public room is harder than moderating text). Everyone has them
+  // in DMs.
+  const [recording, setRecording] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [membersOpen, setMembersOpen] = useState(false);
   // Search over the messages already loaded in the room. Matches are ids,
@@ -1265,7 +1279,7 @@ export function ChatClient({
   const searchQuery = searchQ.trim().toLowerCase();
   const searchMatches = searchQuery
     ? messages
-        .filter((m) => !m.hidden && m.kind !== "poll" && !chatMediaUrl(m.body) && m.body.toLowerCase().includes(searchQuery))
+        .filter((m) => !m.hidden && m.kind !== "poll" && !mediaLabel(m.body) && m.body.toLowerCase().includes(searchQuery))
         .map((m) => m.id)
     : [];
   const searchMatchSet = new Set(searchMatches);
@@ -1281,7 +1295,7 @@ export function ChatClient({
   /** Reply to a message and put the caret in the composer. */
   const replyTo = (m: Message) => {
     setActionOpenId(null);
-    setReplyTarget({ id: m.id, body: chatMediaUrl(m.body) ? "📷 media" : m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
+    setReplyTarget({ id: m.id, body: mediaLabel(m.body) ?? m.body.slice(0, 80), authorName: m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member") });
     setComposerFocus((t) => t + 1);
   };
 
@@ -1805,7 +1819,7 @@ export function ChatClient({
                             setActionOpenId(null);
                             setReporting({
                               id: m.id,
-                              preview: chatMediaUrl(m.body) ? "📷 media" : m.body.slice(0, 120),
+                              preview: mediaLabel(m.body) ?? m.body.slice(0, 120),
                             });
                           }}
                           className={cn(
@@ -1842,7 +1856,7 @@ export function ChatClient({
                           {m.pinnedAt ? <PinOff className="h-3.5 w-3.5" /> : <Pin className="h-3.5 w-3.5" />}
                         </button>
                       )}
-                      {!m.pending && !chatMediaUrl(m.body) && (
+                      {!m.pending && !mediaLabel(m.body) && (
                         <button
                           onClick={() => translateMessage(m.id, m.body)}
                           className={cn(
@@ -1939,6 +1953,22 @@ export function ChatClient({
                 </button>
               </div>
             )}
+            {recording && (
+              <div className="flex items-end gap-2">
+                <VoiceRecorder
+                  onCancel={() => setRecording(false)}
+                  onSend={async (blob, secs) => {
+                    setRecording(false);
+                    setVoiceBusy(true);
+                    const r = await uploadVoice(blob, secs);
+                    setVoiceBusy(false);
+                    if (r.body) await doSend(r.body, true);
+                    else setError(r.error ?? "Couldn't send the voice message.");
+                  }}
+                />
+              </div>
+            )}
+            <div className={cn(recording && "hidden")}>
             <RoomComposer
               members={members}
               meId={me.id}
@@ -1967,6 +1997,7 @@ export function ChatClient({
                       { key: "poll", label: "Poll", icon: BarChart3, onSelect: () => setPollOpen(true) },
                       ...(gifEnabled ? [{ key: "gif", label: "GIF", icon: Sticker, onSelect: () => setGifOpen(true) }] : []),
                       ...(me.isAdmin ? [{ key: "photo", label: "Photo", icon: ImagePlus, busy: photoUploading, onSelect: () => photoInputRef.current?.click() }] : []),
+                      ...(me.isAdmin ? [{ key: "voice", label: "Voice message", icon: VoiceIcon, busy: voiceBusy, onSelect: () => setRecording(true) }] : []),
                     ]}
                   >
                     <AnimatePresence>
@@ -1976,6 +2007,7 @@ export function ChatClient({
                 </>
               }
             />
+            </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-between gap-2 py-1 sm:flex-row">

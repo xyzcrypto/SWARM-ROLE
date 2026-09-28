@@ -6,7 +6,7 @@ import { otherOf, snippet, DM_MAX_LEN, DM_USER_SELECT } from "@/lib/dm";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
 import { notifyMentions } from "@modules/notifications/lib/notifications";
 import { sendPush, pushEnabled } from "@/lib/push";
-import { chatMediaUrl } from "@/lib/chat-media";
+import { mediaLabel } from "@modules/community/lib/chat-media";
 import { canSendInThread, isBlockedEitherWay } from "@/lib/dm-gate";
 import { toDmReactions, type DmReactions } from "@modules/messages/lib/dm-reactions";
 
@@ -288,7 +288,7 @@ export async function POST(req: Request, props: Ctx) {
     // Fire-and-forget external push to the recipient's devices (private DM alert).
     if (pushEnabled) {
       const meName = (me as { name?: string | null }).name || "New message";
-      const preview = chatMediaUrl(body) ? "📷 Photo" : snippet(body);
+      const preview = mediaLabel(body) ?? snippet(body);
       void (async () => {
         const subs = await prisma.pushSubscription.findMany({ where: { userId: recipientId }, select: { endpoint: true, p256dh: true, auth: true } }).catch(() => []);
         if (!subs.length) return;
