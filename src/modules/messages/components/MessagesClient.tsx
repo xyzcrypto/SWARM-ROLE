@@ -31,7 +31,10 @@ import { SwipeBubble } from "@modules/community/components/SwipeBubble";
 import { CHAT_BAR, CHAT_ICON_BTN } from "@modules/community/lib/chat-ui";
 import { AppMenu } from "@shared/components/AppMenu";
 import { centredScrollTop } from "@shared/utils/scroll-into-list";
-import { hapticTap, hapticToggle } from "@shared/utils/haptics";
+import { hapticError, hapticSelect, hapticSent, hapticTap, hapticToggle } from "@shared/utils/haptics";
+import { feelAttrs, useChatFeel } from "@shared/utils/chat-feel";
+import { chatPressFeedback } from "@shared/utils/chat-feedback";
+import { playSfx } from "@shared/utils/sfx";
 import { useChatAppearance } from "@modules/community/components/useChatAppearance";
 import { ChatWallpaper } from "@modules/community/components/ChatWallpaper";
 import { ChatAppearanceSheet } from "@modules/community/components/ChatAppearanceSheet";
@@ -706,6 +709,7 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
     await fetch(`/api/dm/${convId}/hide`, { method: "DELETE" }).catch(() => null);
   };
 
+  const feel = useChatFeel();
   const unreadCount = conversations.filter((c) => c.unread).length;
   const pinnedCount = conversations.filter((c) => c.pinned).length;
   const shown = [...conversations]
@@ -715,7 +719,14 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
   return (
     // Edge to edge on a phone (the page is the app); a framed two-pane app from
     // `sm` up. The inbox pane widens on large screens so names do not truncate.
-    <div className="glass grid min-h-0 flex-1 grid-cols-1 overflow-hidden max-sm:rounded-none max-sm:border-0 sm:rounded-3xl md:grid-cols-[minmax(0,340px)_1fr] xl:grid-cols-[380px_1fr]">
+    // `data-chat-surface` + the feel attributes carry the member's accent,
+    // text size and density to CSS; the capture listener gives every control
+    // a haptic tick (chat-feedback.ts).
+    <div
+      data-chat-surface="dm"
+      {...feelAttrs(feel)}
+      onPointerDownCapture={chatPressFeedback}
+      className="glass grid min-h-0 flex-1 grid-cols-1 overflow-hidden max-sm:rounded-none max-sm:border-0 sm:rounded-3xl md:grid-cols-[minmax(0,340px)_1fr] xl:grid-cols-[380px_1fr]">
       {/* Inbox */}
       <aside className={cn("min-h-0 flex-col border-hairline md:border-r", activeId ? "hidden md:flex" : "flex")}>
         <header className={cn("flex items-center gap-2 border-b border-hairline px-2 py-2 sm:px-3", CHAT_BAR)}>
@@ -1173,6 +1184,20 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     if (grew && last?.mine) setStick(true);
     else if (grew && !stick) setHasNew(true);
   }
+  // A message from them landing: a sound and a light tick. In an effect, not
+  // in the render-time block above - render must stay free of side effects.
+  // Never for the initial load (lastCount starts at 0) or my own messages.
+  const lastCount = useRef(0);
+  useEffect(() => {
+    const n = messages.length;
+    const last = messages[n - 1];
+    if (loaded && lastCount.current > 0 && n > lastCount.current && last && !last.mine && !document.hidden) {
+      playSfx("receive");
+      hapticSelect();
+    }
+    if (loaded) lastCount.current = n;
+  }, [messages, loaded]);
+
   // `stick` is in the deps on purpose: scrolling back down to the bottom
   // re-attaches the thread to the conversation, which is what every chat app
   // does. When it is already at the bottom this call is a no-op.
@@ -1244,6 +1269,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
       const j = await r.json().catch(() => null);
       if (r.ok && j?.message) {
         setMessages((m) => { const without = m.filter((x) => x.id !== tempId); return without.some((x) => x.id === j.message.id) ? without : [...without, j.message]; });
+        hapticSent();
+        playSfx("send");
         onSent();
         return true;
       } else {
@@ -1254,11 +1281,15 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
         // all three looked identical: the message vanishes, the draft comes
         // back, nothing said why. The server has words for each of them.
         setErr(j?.error ?? "Couldn't send that message.");
+        hapticError();
+        playSfx("error");
         return false;
       }
     } catch {
       setMessages((m) => m.filter((x) => x.id !== tempId));
       setErr("Couldn't send that message. Check your connection.");
+      hapticError();
+      playSfx("error");
       return false;
     } finally { setSending(false); }
   };
@@ -1430,6 +1461,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     if (m.deleted || m.id.startsWith("temp-")) return;
     const before = m.reactions ?? null;
     hapticToggle();
+    if (emoji) playSfx("reaction");
     setMessages((list) => list.map((x) => (x.id === m.id ? { ...x, reactions: { mine: emoji, theirs: before?.theirs ?? null } } : x)));
     const r = await fetch(`${messageUrl(m.id)}/react`, {
       method: "POST",
@@ -1572,7 +1604,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
     );
 
     return (
-      <div key={m.id} id={`dm-${m.id}`} className={cn(grouped ? "mt-0.5" : "mt-3")}>
+      <div key={m.id} id={`dm-${m.id}`} className={cn(grouped ? "mt-[var(--chat-gap-tight)]" : "mt-[var(--chat-gap)]")}>
         <SwipeBubble
           disabled={m.deleted || editingId === m.id}
           onReply={() => replyToMessage(m)}
@@ -1589,12 +1621,12 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
               <div
                 data-bubble
                 className={cn(
-                  "relative max-w-full rounded-[20px] text-[15px] leading-relaxed shadow-sm shadow-black/20 sm:text-[14px]",
+                  "relative max-w-full rounded-[20px] text-[length:var(--chat-fs)] leading-relaxed shadow-sm shadow-black/20",
                   media ? "overflow-hidden p-1" : "px-3.5 py-2",
                   m.deleted
                     ? "bg-black/[0.03] text-zinc-500 ring-1 ring-black/5 dark:bg-white/[0.03] dark:text-zinc-500 dark:ring-white/5"
                     : m.mine
-                      ? cn("bg-gradient-to-br from-gold-500/25 to-gold-600/15 text-gold-800 ring-1 ring-gold-500/30 dark:text-gold-50", !grouped && "rounded-br-md")
+                      ? cn("chat-mine", !grouped && "rounded-br-md")
                       : cn("bg-black/[0.05] text-zinc-800 ring-1 ring-black/10 dark:bg-white/[0.06] dark:text-zinc-100 dark:ring-white/10", !grouped && "rounded-bl-md"),
                   hit && "ring-2 ring-gold-400/70"
                 )}

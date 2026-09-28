@@ -39,6 +39,9 @@ import { AttachTray } from "./AttachTray";
 import { SwipeBubble } from "./SwipeBubble";
 import { CHAT_BAR, CHAT_ICON_BTN } from "../lib/chat-ui";
 import { AppMenu } from "@shared/components/AppMenu";
+import { feelAttrs, setFeel, useChatFeel } from "@shared/utils/chat-feel";
+import { chatPressFeedback } from "@shared/utils/chat-feedback";
+import { playSfx, unlockAudio } from "@shared/utils/sfx";
 import { centredScrollTop } from "@shared/utils/scroll-into-list";
 
 const MAX_LENGTH = 500;
@@ -124,7 +127,7 @@ function MessageBody({ text }: { text: string }) {
   // at all and the two rooms rendered the same message differently.
   return (
     <>
-      <MessageText text={text} className="whitespace-pre-wrap break-words text-[14px] leading-relaxed text-zinc-200" />
+      <MessageText text={text} className="whitespace-pre-wrap break-words text-[length:var(--chat-fs)] leading-relaxed text-zinc-200" />
       <LinkPreviewCard text={text} />
     </>
   );
@@ -147,30 +150,6 @@ function MessageBody({ text }: { text: string }) {
  * finally both knowable and correct. The two only ever disagree for messages
  * within the timezone offset of midnight.
  */
-// Soft, asset-free "blip" for incoming messages (Web Audio). Best-effort.
-// Reuses a single shared AudioContext that must be unlocked inside a user
-// gesture (see ensureAudio): a context created/resumed outside a gesture stays
-// "suspended" under browser autoplay policy and would play nothing.
-function playBlip(ctx: AudioContext | null) {
-  try {
-    if (!ctx || ctx.state !== "running") return;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.value = 680;
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    const t = ctx.currentTime;
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.05, t + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-    osc.start(t);
-    osc.stop(t + 0.24);
-  } catch {
-    /* audio not available / blocked */
-  }
-}
-
 export function ChatClient({
   initialMessages,
   initialHasMore,
@@ -222,7 +201,10 @@ export function ChatClient({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   // Per-message translation (English <-> Hinglish); toggled from the action bar.
   const [translations, setTranslations] = useState<Record<string, { text?: string; loading?: boolean; shown?: boolean; error?: string }>>({});
-  const [soundOn, setSoundOn] = useState(false);
+  // Sounds and haptics follow the member's chat feel settings (chat-feel.ts),
+  // shared with DMs. The header speaker toggles sounds off / back on.
+  const feel = useChatFeel();
+  const soundOn = feel.sound !== "off";
   // Touch UI (no hover): actions open on tap instead of hover, Enter makes a
   // newline instead of sending. Detected client-side to stay hydration-safe.
   // Coarse-pointer devices get the tap-friendly chat UI. Tracked (not read once
@@ -279,55 +261,20 @@ export function ChatClient({
   const [composerFocus, setComposerFocus] = useState(0);
   const [firstUnreadId, setFirstUnreadId] = useState<string | null>(null);
   const firstUnreadRef = useRef<string | null>(null);
-  const soundOnRef = useRef(false);
-  const audioCtxRef = useRef<AudioContext | null>(null);
 
 
   const realtimeConfigured = Boolean(realtime.url && realtime.anonKey);
 
-  // Lazily create + resume a single AudioContext. MUST be called from inside a
-  // user gesture (click/keypress) - browsers keep a context "suspended" unless
-  // it's unlocked by a gesture, so without this the blip is silent.
-  const ensureAudio = useCallback(() => {
-    try {
-      if (!audioCtxRef.current) {
-        const Ctx =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-        if (!Ctx) return;
-        audioCtxRef.current = new Ctx();
-      }
-      if (audioCtxRef.current.state === "suspended") void audioCtxRef.current.resume();
-    } catch {
-      /* audio not available / blocked */
+  // Toggling sounds on is a user gesture, so it also unlocks audio - and the
+  // confirming note proves it works.
+  const toggleSound = () => {
+    const next = soundOn ? "off" : "messages";
+    setFeel({ sound: next });
+    if (next !== "off") {
+      unlockAudio();
+      playSfx("receive", { force: true });
     }
-  }, []);
-
-  // Sound preference: opt-in, persisted per device. A subtle blip plays on
-  // incoming messages (never your own) when enabled.
-  useEffect(() => {
-    setSoundOn(localStorage.getItem("xyz:chatSound") === "1");
-    return () => {
-      // Release the audio device across mount/unmount cycles (client-side nav).
-      audioCtxRef.current?.close().catch(() => {});
-      audioCtxRef.current = null;
-    };
-  }, []);
-  useEffect(() => {
-    soundOnRef.current = soundOn;
-  }, [soundOn]);
-  const toggleSound = () =>
-    setSoundOn((v) => {
-      const next = !v;
-      localStorage.setItem("xyz:chatSound", next ? "1" : "0");
-      // Unlock audio on the enabling click (a user gesture) so the very next
-      // incoming message can play, and give immediate feedback that it works.
-      if (next) {
-        ensureAudio();
-        playBlip(audioCtxRef.current);
-      }
-      return next;
-    });
+  };
 
   const listRef = useRef<HTMLDivElement>(null);
   const scrollRaf = useRef(0);
@@ -505,7 +452,7 @@ export function ChatClient({
       offs.push(channel.onBroadcast("new_message", (payload) => {
         const msg = payload as Message;
         appendMessage(msg);
-        if (soundOnRef.current && msg.userId !== me?.id) playBlip(audioCtxRef.current);
+        if (msg.userId !== me?.id) playSfx("receive");
       }));
       offs.push(channel.onBroadcast("message_hidden", (payload) => hideMessage((payload as { id: string }).id)));
       // A bulk restore carries no messages - it means "history changed under
@@ -528,7 +475,7 @@ export function ChatClient({
         const p = payload as { messageId: string; emoji: string; userId: string; op: "add" | "remove" };
         applyReaction(p.messageId, p.emoji, p.userId, p.op);
         // Blip when ANOTHER member reacts - same opt-in rule as new messages.
-        if (soundOnRef.current && p.op === "add" && p.userId !== me?.id) playBlip(audioCtxRef.current);
+        if (p.op === "add" && p.userId !== me?.id) playSfx("reaction");
       }));
       offs.push(channel.onBroadcast("typing", (payload) => {
         const p = payload as { userId: string; name: string };
@@ -664,9 +611,7 @@ export function ChatClient({
           }
         }
         // Blip for messages from others, same as the realtime path.
-        if (soundOnRef.current && incoming.some((m) => m.userId !== meRef.current?.id)) {
-          playBlip(audioCtxRef.current);
-        }
+        if (incoming.some((m) => m.userId !== meRef.current?.id)) playSfx("receive");
 
         setMessages((prev) => {
           // Pure reconcile (unit-tested in chat-view): refresh edits/reactions
@@ -1003,8 +948,8 @@ export function ChatClient({
     if (!text || sending || !me) return false;
     hapticTap(); // message committed
     // Sending is a user gesture - unlock audio here too so incoming-message
-    // blips work even if the toggle was already on at page load.
-    if (soundOnRef.current) ensureAudio();
+    // sounds work from the first send.
+    unlockAudio();
     setError("");
     setSending(true);
     const reply = isMedia ? null : replyTarget;
@@ -1113,6 +1058,7 @@ export function ChatClient({
   async function toggleReaction(messageId: string, emoji: string) {
     if (!me) return;
     hapticToggle(); // reaction lands optimistically; the buzz goes with the visual flip
+    playSfx("reaction");
     setReactOpenId(null);
     const msg = messages.find((m) => m.id === messageId);
     const mine = msg?.reactions.find((r) => r.emoji === emoji)?.userIds.includes(me.id) ?? false;
@@ -1299,7 +1245,12 @@ export function ChatClient({
 
   return (
     // Edge to edge on a phone - the page is the app - and a framed room from `sm` up.
-    <div className="glass relative flex h-full min-h-[420px] flex-col overflow-hidden max-sm:rounded-none max-sm:border-0 sm:rounded-3xl">
+    <div
+      data-chat-surface="room"
+      {...feelAttrs(feel)}
+      onPointerDownCapture={chatPressFeedback}
+      className="glass relative flex h-full min-h-[420px] flex-col overflow-hidden max-sm:rounded-none max-sm:border-0 sm:rounded-3xl"
+    >
       {/* Ambient futuristic glow behind the room. */}
       <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[130%] -translate-x-1/2 rounded-full bg-mint-500/10 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-28 right-0 h-56 w-72 rounded-full bg-gold-500/10 blur-3xl" />
@@ -1598,8 +1549,8 @@ export function ChatClient({
                   }}
                   className={cn(
                     "group relative flex items-start gap-3 rounded-xl px-2.5 transition-colors hover:bg-white/[0.035]",
-                    grouped ? "py-0.5" : "py-2",
-                    m.userId === me?.id && "bg-mint-500/[0.06] ring-1 ring-inset ring-mint-500/15 hover:bg-mint-500/[0.09]",
+                    grouped ? "py-[var(--chat-row-tight)]" : "py-[var(--chat-row)]",
+                    m.userId === me?.id && "chat-own",
                     m.pending && "opacity-85",
                     searchMatchSet.has(m.id) && "ring-2 ring-inset ring-gold-400/60"
                   )}
@@ -1627,7 +1578,9 @@ export function ChatClient({
                     )}
                   </div>
 
-                  <div className="min-w-0 flex-1">
+                  {/* Capped at a reading measure: on a wide desktop a message used
+                      to run ~1000px across, far past a comfortable line length. */}
+                  <div className="min-w-0 max-w-[46rem] flex-1">
                     {!grouped && (
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         {m.author.username ? (
