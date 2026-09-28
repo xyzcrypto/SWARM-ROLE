@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Mic, Pause, Play, Send, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hapticTap, hapticToggle } from "@shared/utils/haptics";
+import { playSfx } from "@shared/utils/sfx";
 
 /** Hard ceiling on a recording. Long enough to say something, short enough to listen to. */
 export const VOICE_MAX_SECONDS = 60;
@@ -224,6 +225,7 @@ export function VoiceRecorder({ onSend, onCancel }: { onSend: (blob: Blob, secon
         r.start(250);
         startedAt.current = performance.now();
         hapticToggle();
+        playSfx("recordStart");
         timer = window.setInterval(() => {
           const t = (performance.now() - startedAt.current) / 1000;
           setSecs(t);
@@ -262,6 +264,7 @@ export function VoiceRecorder({ onSend, onCancel }: { onSend: (blob: Blob, secon
   const stop = (how: "send" | "cancel") => {
     intent.current = how;
     hapticTap();
+    playSfx(how === "send" ? "recordStop" : "error");
     const r = rec.current;
     if (r && r.state !== "inactive") r.stop();
     if (how === "cancel" || !r) cbs.current.onCancel();

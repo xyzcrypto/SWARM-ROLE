@@ -5,6 +5,54 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-28 (128) — Chat + DMs: haptics everywhere, sounds, colours, text size, spacing
+
+Owner request: more haptics, more sound, a stronger UX, a better look and more
+ways to customise. All of it is per member and per device, and **the defaults
+look exactly as before**. Every accent defaults to "Classic": gold bubbles in
+DMs, mint rows in the room.
+
+- **Haptics on every control** (`chat-feedback.ts`).
+  - One capture-phase `pointerdown` listener per chat surface ticks on any
+    button, link, tab, menu item or slider. That includes portalled menus and
+    sheets, because React events bubble through portals.
+  - Specific actions keep their own pattern: a **double tick when a message
+    sends**, a toggle for reactions, and a double pulse for errors.
+  - Levels are Off / Standard / Strong. Strong doubles the vibration, not the
+    pauses.
+  - An explicit choice now **overrides reduced-motion**. Android enables
+    reduced-motion under battery saver, which silently switched haptics off,
+    and that is a large part of why they were barely felt. With no choice,
+    reduced-motion is still respected.
+- **Sounds** (`sfx.ts`): synthesised with Web Audio, so there is nothing to
+  download and nothing for the CSP to block.
+  - Sounds for send, receive, reaction, error, and voice record start/stop.
+  - "Everything" also adds a soft click on every control.
+  - Levels are Off / Messages / Everything, plus a volume slider.
+  - The room's speaker toggle now drives the same setting, and the old
+    `xyz:chatSound` choice is migrated.
+  - DMs now make a sound when a message arrives.
+- **Customise** (Chat appearance → "Style & feel"):
+  - Accent colour: Classic, Gold, Mint, Sky, Violet, Rose or Mono. It applies
+    to your DM bubbles and your room rows.
+  - Text size: Small / Default / Large.
+  - Spacing: Comfortable / Compact.
+  - Haptics and Sounds, each with a Test button.
+  - The live preview reflects accent, text size and spacing.
+  - Stored in `xyz.chat.feel` and read through `useSyncExternalStore` with a
+    fixed server snapshot, so it can't cause a hydration mismatch.
+- **Layout**: room messages are capped at a reading width on wide desktops,
+  where a line used to run about 1000px.
+
+Verified in a real browser, recording every `navigator.vibrate` call and every
+synthesised note: **28/28** on mobile and desktop. That covers the tick on
+press, the sent pattern and sound, Strong scaling, the accent, text size and
+spacing applied, persistence after reload, the accent shared with the room,
+and reduced-motion respected by default and overridden by choice.
+
+All earlier probes still pass: fixes 12, DM 51, room 21 + 77, voice/link 24.
+**1415 tests**, build clean, route table identical.
+
 ## 2026-09-28 (127) — Three chat bugs: quote jump, voice playback, dictation doubling
 
 Each bug was **reproduced in a real browser on the old code**, then shown fixed

@@ -10,6 +10,8 @@ import { presetsIn, type ChatBackground } from "@modules/community/lib/chat-back
 import { DIM_MAX, photoReadability, type WallpaperTheme } from "@modules/community/lib/chat-wallpaper";
 import { ChatWallpaper, swatchStyle } from "./ChatWallpaper";
 import type { ChatAppearance } from "./useChatAppearance";
+import { ChatFeelSections } from "./ChatFeelSections";
+import { feelAttrs, useChatFeel } from "@shared/utils/chat-feel";
 
 /**
  * Chat appearance: presets, your own photo, and a live preview of both.
@@ -44,6 +46,7 @@ export function ChatAppearanceSheet({
   onClose: () => void;
 }) {
   const hydrated = useHydrated();
+  const feel = useChatFeel();
   const { choice, photo, settings, busy, error } = appearance;
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
@@ -115,7 +118,7 @@ export function ChatAppearanceSheet({
             <h2 id="appearance-title" className="font-display text-lg font-bold tracking-tight text-content">
               Chat appearance
             </h2>
-            <p className="mt-0.5 text-xs text-content-subtle">Only changes how the room looks for you.</p>
+            <p className="mt-0.5 text-xs text-content-subtle">Background, colours, text, haptics and sounds - just for you, on this device.</p>
           </div>
           <button
             ref={closeRef}
@@ -131,6 +134,10 @@ export function ChatAppearanceSheet({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5">
           {/* ── Live preview ────────────────────────────────────── */}
           <div
+            // A chat surface of its own, so the preview shows the chosen
+            // accent, text size and spacing live.
+            data-chat-surface="room"
+            {...feelAttrs(feel)}
             className="relative isolate h-48 overflow-hidden rounded-2xl border border-hairline bg-base"
             aria-label="Preview of the chat with this background"
             role="img"
@@ -333,6 +340,11 @@ export function ChatAppearanceSheet({
 
           <PresetSection title="Colour" items={presetsIn("colour")} appearance={appearance} />
           <PresetSection title="Pattern" items={presetsIn("pattern")} appearance={appearance} />
+
+          <div className="mt-7 border-t border-hairline pt-1">
+            <p className="mt-4 font-display text-[15px] font-bold tracking-tight text-content">Style &amp; feel</p>
+          </div>
+          <ChatFeelSections />
         </div>
 
         {/* ── Footer ───────────────────────────────────────────── */}
@@ -411,7 +423,7 @@ function PreviewRow({ name, time, text, mine = false }: { name: string; time: st
     <div
       className={cn(
         "flex items-start gap-2.5 rounded-xl px-2.5 py-1.5",
-        mine && "bg-mint-500/[0.06] ring-1 ring-inset ring-mint-500/15"
+        mine && "chat-own"
       )}
     >
       <Avatar name={name} image={null} size="sm" />
@@ -420,7 +432,7 @@ function PreviewRow({ name, time, text, mine = false }: { name: string; time: st
           <span className="text-[13px] font-semibold text-zinc-100">{name}</span>
           <span className="text-[11px] text-zinc-600">{time}</span>
         </div>
-        <p className="truncate text-[14px] leading-relaxed text-zinc-200">{text}</p>
+        <p className="truncate text-[length:var(--chat-fs)] leading-relaxed text-zinc-200">{text}</p>
       </div>
     </div>
   );
