@@ -5,28 +5,33 @@ import { hapticSelect } from "./haptics";
 import { playSfx, unlockAudio } from "./sfx";
 
 /** Anything a member presses. */
-const PRESSABLE = 'button, a[href], [role="button"], [role="menuitem"], [role="tab"], [role="radio"], [role="slider"], [role="switch"], summary, input[type="range"], input[type="checkbox"]';
+const PRESSABLE = 'button, a[href], [role="button"], [role="menuitem"], [role="tab"], [role="radio"], [role="slider"], [role="switch"], [role="option"], summary, label, select, input[type="range"], input[type="checkbox"], input[type="radio"]';
+
+type Marked = Event & { __xyzPress?: boolean };
 
 /**
- * One listener per chat surface gives EVERY control in it a haptic tick (and,
- * at the "all" sound level, a soft click) - "har chij pe haptic". Delegated on
- * pointer-down in the capture phase, so:
+ * Press feedback for one native pointer-down: a haptic tick (and, at the
+ * "Everything" sound level, a soft click) on any control. Also the gesture
+ * that unlocks audio, so incoming-message sounds work from the first tap.
  *
- *  - a control added later (a menu, a sheet, a reaction row) is covered without
- *    remembering to wire it; React events bubble through portals, so portalled
- *    menus and sheets rendered by the surface count too;
- *  - it fires on press, which is when a physical button clicks, not on release;
- *  - a control's own stronger pattern (sent, toggle, error) simply replaces
- *    this one, because a new `vibrate()` cancels the previous.
- *
- * It is also the gesture that unlocks audio, so incoming-message sounds work
- * from the first interaction on.
+ * Each event is handled ONCE: the site-wide listener (GlobalPressFeedback,
+ * on `document`, capture phase) runs first and marks the event, so the
+ * older per-surface listeners below it see the mark and step aside - no
+ * double buzz, no double click.
  */
-export function chatPressFeedback(e: ReactPointerEvent<HTMLElement>): void {
-  if (e.pointerType === "mouse" && e.button !== 0) return;
-  const el = (e.target as Element | null)?.closest?.(PRESSABLE) as (HTMLElement & { disabled?: boolean }) | null;
+export function pressFeedback(ev: PointerEvent): void {
+  const e = ev as Marked;
+  if (e.__xyzPress) return;
+  e.__xyzPress = true;
+  if (ev.pointerType === "mouse" && ev.button !== 0) return;
   unlockAudio();
+  const el = (ev.target as Element | null)?.closest?.(PRESSABLE) as (HTMLElement & { disabled?: boolean }) | null;
   if (!el || el.disabled || el.getAttribute("aria-disabled") === "true") return;
   hapticSelect();
   playSfx("tick");
+}
+
+/** React-handler form, for a surface's `onPointerDownCapture`. */
+export function chatPressFeedback(e: ReactPointerEvent<HTMLElement>): void {
+  pressFeedback(e.nativeEvent);
 }

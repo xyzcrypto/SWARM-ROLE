@@ -205,7 +205,9 @@ export function FeaturedProgramsBar({
                 <div className="absolute inset-0 flex flex-col items-center justify-center rounded-2xl">
                   <div className="flex flex-col items-center gap-2">
                     <span className="text-xl">🔒</span>
-                    <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
+                    {/* `text-[#fff]`, not `text-white`: the light theme remaps text-white to
+                        dark text site-wide, which put dark text on this dark pill. */}
+                    <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-[11px] font-semibold text-[#fff] backdrop-blur-sm">
                       Coming Soon
                     </span>
                   </div>

@@ -221,7 +221,7 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
         {/* The overlay. Deliberately the loudest thing in the card: the point is
             that a reader should feel something substantial is coming, not
             squint at a disclaimer. */}
-        <div className="absolute inset-0 grid place-items-center rounded-xl bg-gradient-to-b from-ink-950/40 via-ink-950/75 to-ink-950/95 px-4 text-center">
+        <div className="soon-veil absolute inset-0 grid place-items-center rounded-xl px-4 text-center">
           <div className="animate-rise-in">
             <span className="relative inline-flex">
               {/* The breathing ring is the one live-feeling element, and it is

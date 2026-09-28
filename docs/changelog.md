@@ -5,6 +5,51 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-28 (131) — Remove bookmarks, site-wide haptics, light-theme visibility, alignment
+
+Owner request. No new routes, no schema change (migration `42_chat_bookmarks`
+from #130 was sent to the owner to run by hand). Verified in a real browser:
+**19/19** new checks, and every earlier probe still passes, so **310** browser
+checks in total. Layout audit is clean at every width, theme and text size.
+**1456 tests.**
+
+- **Remove a bookmark from your profile.** In the Library's Bookmarks tab the
+  owner sees a remove button on each card (`aria-label="Remove bookmark"`).
+  It is optimistic and puts the card back, with an error haptic and message,
+  if the `DELETE` fails. Visitors see the plain bookmark icon, with no button.
+- **Haptics across the whole site.** One capture-phase `pointerdown` listener
+  on `document` (`GlobalPressFeedback`, mounted in the root layout) gives every
+  button, link, tab, switch, slider, checkbox and select the selection tick and
+  sound. Plain text never buzzes, disabled controls never buzz, and the reader's
+  Haptics / Sounds settings apply as before. The chat's own handlers go through
+  the same `pressFeedback()`, which marks the event, so a press is felt
+  **once**, never twice.
+- **Light theme: everything readable.** Measured with a contrast scanner on 17
+  pages, then fixed:
+  - Legal-page links: 3.37:1 → the readable green used for "up" figures.
+  - The Points disclaimer's amber text (`/80`, `/90` variants were missed).
+  - The cream "AIRDROP / PORTFOLIO" eyebrow word (1.1:1 on white).
+  - The dark "Coming soon" veil over My Airdrops is now a light veil in light
+    theme (`.soon-veil`).
+  - The grey slab behind empty states is now a normal surface.
+  - The "Coming soon" pill had dark text on its dark pill.
+- **Homepage orbit badges** faded down to 25% opacity (both themes): they
+  reused `floatY`, which animates opacity. New `floatNode` keyframes move them
+  without fading.
+- **Fix from #130:** "Background effects: off" hid the orbit links (they carry
+  `.motion-decor`). The rule now excludes `.orbit-node`.
+- **Alignment.** Layout audit of 12 pages × 9 widths (320 → 1920), both
+  themes, at text sizes 90 / 100 / 110 / 125%:
+  - At **125%** the page overflowed at 320–360px and the desktop header's
+    Sign-up button was cut off at 1280px. The layout is rem-based and the
+    breakpoints are px, so the biggest size is now capped only where it cannot
+    fit: 110% below 380px, 118.75% from 1280–1439px. Everywhere else the
+    reader gets exactly 125%.
+  - The homepage Communities grid had no explicit column, so its single track
+    sized to the long handle text and overflowed at 320px. It is now
+    `grid-cols-1` with the handle truncated.
+- Tests: `visibility-haptics.test.ts` (13).
+
 ## 2026-09-28 (130) — Bookmarks, profile Library, voice for all, Customize website
 
 Owner request. Verified in a real browser on mobile and desktop: **42/42** for

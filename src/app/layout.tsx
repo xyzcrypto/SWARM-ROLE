@@ -16,6 +16,7 @@ import { PauseOffscreenAnimations } from "@/components/PauseOffscreenAnimations"
 import { CommandPaletteMount } from "@/components/CommandPaletteMount";
 import { BottomNavMount } from "@/components/BottomNavMount";
 import { CustomizeSheetMount } from "@shared/components/CustomizeSheetMount";
+import { GlobalPressFeedback } from "@shared/components/GlobalPressFeedback";
 import { JsonLd, organizationJsonLd, websiteJsonLd } from "@/lib/jsonld";
 import { SITE_URL, GSC_VERIFICATION } from "@/lib/seo";
 import { env } from "@/lib/env";
@@ -236,6 +237,7 @@ export default function RootLayout({
           <CommandPaletteMount />
           <BottomNavMount />
           <CustomizeSheetMount />
+          <GlobalPressFeedback />
         </Providers>
         <Analytics />
       </body>

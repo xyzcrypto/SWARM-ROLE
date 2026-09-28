@@ -53,7 +53,7 @@ export function Ecosystem() {
           subtitle="Two thriving communities under the XYZ Crypto umbrella, one to learn, one to trade. Join the conversation on Telegram."
         />
 
-        <div className="mt-10 grid gap-5 sm:mt-12 md:grid-cols-2">
+        <div className="mt-10 grid grid-cols-1 gap-5 sm:mt-12 md:grid-cols-2">
           {brands.map((b, i) => (
             <Reveal key={b.name} delay={i} variant="pop">
               <TiltCard max={5}>
@@ -71,7 +71,7 @@ export function Ecosystem() {
                       <h3 className="font-display text-lg font-semibold text-zinc-50 sm:text-2xl">{b.name}</h3>
                       <Badge tone="gold"><span className="mono text-[10px] uppercase">{b.tag}</span></Badge>
                     </div>
-                    <p className="mt-1 mono text-xs text-zinc-500">{b.handle}</p>
+                    <p className="mt-1 mono truncate text-xs text-zinc-500">{b.handle}</p>
                   </div>
                   <ArrowUpRight className="h-5 w-5 shrink-0 text-zinc-600 transition-all group-hover:-translate-y-0.5 group-active:-translate-y-0.5 group-hover:translate-x-0.5 group-active:translate-x-0.5 group-hover:text-gold-200" />
                 </div>
