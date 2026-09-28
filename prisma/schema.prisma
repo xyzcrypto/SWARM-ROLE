@@ -83,6 +83,7 @@ model User {
   chatMessages      ChatMessage[]
   chatReactions     ChatReaction[]
   chatReports       ChatReport[]
+  chatBookmarks     ChatBookmark[]
   chatPollVotes     ChatPollVote[]
   notifications     Notification[]
   adminAudits       AdminAudit[]           @relation("AdminAuditActor")
@@ -199,6 +200,7 @@ model ChatMessage {
   reactions ChatReaction[]
   poll      ChatPoll?
   reports   ChatReport[]
+  bookmarks ChatBookmark[]
 
   @@index([status, createdAt]) // history queries: visible, newest-first
 }
@@ -1000,4 +1002,19 @@ model ChatPresence {
   // The read is "distinct members in this room seen since T", so room+seenAt is
   // the only access path that matters.
   @@index([room, seenAt])
+}
+
+// A community message a member bookmarked. Shown on their public profile, so
+// only visible messages are ever listed (the read filters on the message's own
+// status, so a message hidden later drops off every profile at once).
+model ChatBookmark {
+  id        String      @id @default(cuid())
+  createdAt DateTime    @default(now())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messageId String
+  message   ChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, messageId]) // one bookmark per member per message
+  @@index([userId, createdAt]) // a profile's bookmarks, newest first
 }

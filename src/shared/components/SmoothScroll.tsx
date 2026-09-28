@@ -20,6 +20,8 @@ export function SmoothScroll() {
     if (!window.location.hash) window.scrollTo(0, 0);
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // "Animations: Off" in Customize website means native scrolling too.
+    if (document.documentElement.classList.contains("motion-off")) return;
     if (window.matchMedia("(pointer: coarse)").matches) return;
 
     const lenis = new Lenis({

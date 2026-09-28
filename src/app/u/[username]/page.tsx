@@ -22,6 +22,7 @@ import { EditProfileButton } from "@/components/EditProfileButton";
 import { ProfileBannerImage } from "@/components/ProfileBannerImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
 import { PressFeedback } from "@shared/components/PressFeedback";
+import { ProfileLibrary, type ProfileBookmark } from "@modules/profile/components/ProfileLibrary";
 import { cn, formatDate, formatDateTime, publicImageUrl } from "@/lib/utils";
 import { schemaOrThrow } from "@/lib/db-error";
 import { normalizeUsername } from "@/lib/profile";
@@ -91,7 +92,7 @@ export default async function ProfilePage(props: Props) {
   // Published posts authored by this user (most are non-authors → usually 0).
   // `extra` reads the migration-20 social columns through a guarded query so an
   // un-migrated DB doesn't break the page (returns nulls until applied).
-  const [postCount, recentComments, extra, followersCount, followingCount, journalActivity] = await Promise.all([
+  const [postCount, recentComments, extra, followersCount, followingCount, journalActivity, bookmarkRows] = await Promise.all([
     prisma.post.count({ where: { authorId: user.id, published: true, ...NOT_TRASHED } }).catch(() => 0),
     prisma.comment
       .findMany({
@@ -113,7 +114,36 @@ export default async function ProfilePage(props: Props) {
     prisma.journalActivity
       .findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, type: true, title: true, win: true, createdAt: true } })
       .catch(() => []),
+    // Community messages this member bookmarked - public, per the owner.
+    // Only VISIBLE messages: one hidden by moderation drops off every profile
+    // at once. Guarded like the rest: before migration 42 is pushed (e.g. on a
+    // preview deploy) the table does not exist and the Library is just empty.
+    prisma.chatBookmark
+      .findMany({
+        where: { userId: user.id, message: { status: "visible" } },
+        orderBy: { createdAt: "desc" },
+        take: 24,
+        select: {
+          id: true,
+          createdAt: true,
+          message: { select: { id: true, body: true, createdAt: true, kind: true, user: { select: { id: true, name: true, username: true, image: true } } } },
+        },
+      })
+      .catch(() => []),
   ]);
+  const bookmarks: ProfileBookmark[] = bookmarkRows.map((b) => ({
+    id: b.id,
+    savedAt: b.createdAt.toISOString(),
+    message: {
+      id: b.message.id,
+      body: b.message.body,
+      createdAt: b.message.createdAt.toISOString(),
+      kind: b.message.kind,
+      author: { name: b.message.user.name, username: b.message.user.username, image: publicImageUrl(b.message.user.image, b.message.user.id) },
+    },
+  }));
+  // Dates formatted HERE, pinned to UTC, so server and client print the same.
+  const bookmarkWhen = Object.fromEntries(bookmarkRows.map((b) => [b.id, formatDateTime(b.message.createdAt)]));
 
   const isPremium = user.membership === "Premium";
   const isAdmin = user.role === "ADMIN";
@@ -313,6 +343,13 @@ export default async function ProfilePage(props: Props) {
                 userId={user.id}
                 initialItems={journalActivity.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() }))}
               />
+            </Reveal>
+          )}
+
+          {/* Library: bookmarked community messages (public) + Saved (owner only). */}
+          {user.username && (
+            <Reveal variant="up" className="mt-8 block">
+              <ProfileLibrary owner={user.username} bookmarks={bookmarks} when={bookmarkWhen} />
             </Reveal>
           )}
 

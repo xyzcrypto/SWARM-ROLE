@@ -8,7 +8,7 @@ import { clockTime, dayLabel } from "@/lib/chat-time";
 import {
   Flag,
   Palette,
-  ArrowDown, BarChart3, Check, Link2, ChevronDown, ChevronUp, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Search, Smile, Sticker, Trash2, X, Volume2, VolumeX,
+  ArrowDown, BarChart3, Bookmark, Check, Link2, ChevronDown, ChevronUp, Copy, Edit3, Heart, ImagePlus, Languages, Loader2, Pin, PinOff, Plus, Reply, Search, Smile, Sticker, Trash2, X, Volume2, VolumeX,
 } from "lucide-react";
 import { applyPollVote, canEditMessage, pollShares, reconcilePoll } from "@/lib/chat-view";
 import { compressImage } from "@/lib/image";
@@ -256,9 +256,8 @@ export function ChatClient({
   const [pollOpen, setPollOpen] = useState(false);
   const [gifOpen, setGifOpen] = useState(false);
   const [photoUploading, setPhotoUploading] = useState(false);
-  // Voice notes: staff only in the room, the same rule as photos (moderating
-  // audio in a public room is harder than moderating text). Everyone has them
-  // in DMs.
+  // Voice notes: every member, in the room and in DMs (owner decision,
+  // 2026-09-28). Photos stay staff-only in the room.
   const [recording, setRecording] = useState(false);
   const [voiceBusy, setVoiceBusy] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -271,6 +270,19 @@ export function ChatClient({
   // Bumped to put the caret in the composer (swipe-to-reply, Reply).
   const [composerFocus, setComposerFocus] = useState(0);
   const scrollToMessageRef = useRef<((id: string) => Promise<void>) | null>(null);
+
+  // Bookmarks: messages I saved; they show on my public profile. Loaded after
+  // mount (personal data, never part of the server render).
+  const [bookmarked, setBookmarked] = useState<Set<string>>(() => new Set());
+  useEffect(() => {
+    if (!me) return;
+    let live = true;
+    fetch("/api/chat/bookmarks", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (live && Array.isArray(j?.ids)) setBookmarked(new Set(j.ids as string[])); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [me]);
 
   // A shared message link (/community?m=<id>) opens the room scrolled to that
   // message - loading older pages if it is further back. Runs once, after the
@@ -1188,6 +1200,21 @@ export function ChatClient({
     }
   }
 
+  /** Bookmark / un-bookmark. Optimistic, rolled back if the server says no. */
+  async function toggleBookmark(id: string) {
+    const on = !bookmarked.has(id);
+    const flip = (v: boolean) => setBookmarked((prev) => { const n = new Set(prev); if (v) n.add(id); else n.delete(id); return n; });
+    flip(on);
+    hapticToggle();
+    if (on) playSfx("success");
+    const r = await fetch(`/api/chat/messages/${id}/bookmark`, { method: on ? "POST" : "DELETE" }).catch(() => null);
+    if (!r?.ok) {
+      flip(!on);
+      const j = r ? await r.json().catch(() => null) : null;
+      setError(j?.error ?? "Couldn't update the bookmark.");
+    }
+  }
+
   /** A link that opens the room scrolled to this message (see the `?m=` effect). */
   async function copyMessageLink(id: string) {
     try {
@@ -1653,6 +1680,7 @@ export function ChatClient({
                             ? "sending…"
                             : clockTime(m.createdAt, hydrated)}
                         </span>
+                        {bookmarked.has(m.id) && <Bookmark className="h-3 w-3 fill-current text-gold-300" aria-label="Bookmarked" />}
                       </div>
                     )}
 
@@ -1880,6 +1908,17 @@ export function ChatClient({
                         {copiedId === m.id ? <Check className="h-3.5 w-3.5 text-mint-300" /> : <Copy className="h-3.5 w-3.5" />}
                       </button>
                       {!m.pending && (
+                        <button
+                          onClick={() => void toggleBookmark(m.id)}
+                          aria-pressed={bookmarked.has(m.id)}
+                          aria-label={bookmarked.has(m.id) ? "Remove bookmark" : "Bookmark message"}
+                          title={bookmarked.has(m.id) ? "Bookmarked - shows on your profile" : "Bookmark (shows on your profile)"}
+                          className={cn("rounded transition-colors hover:bg-white/10", touchUi ? "grid h-11 w-11 place-items-center" : "p-1.5", bookmarked.has(m.id) ? "text-gold-300" : "text-zinc-400 hover:text-gold-200")}
+                        >
+                          <Bookmark className={cn("h-3.5 w-3.5", bookmarked.has(m.id) && "fill-current")} />
+                        </button>
+                      )}
+                      {!m.pending && (
                         <button onClick={() => void copyMessageLink(m.id)} className="rounded p-1.5 text-zinc-400 hover:bg-white/10 hover:text-gold-200" aria-label="Copy link to message" title="Copy link to message">
                           {copiedId === `link-${m.id}` ? <Check className="h-3.5 w-3.5 text-mint-300" /> : <Link2 className="h-3.5 w-3.5" />}
                         </button>
@@ -2016,7 +2055,8 @@ export function ChatClient({
                       { key: "poll", label: "Poll", icon: BarChart3, onSelect: () => setPollOpen(true) },
                       ...(gifEnabled ? [{ key: "gif", label: "GIF", icon: Sticker, onSelect: () => setGifOpen(true) }] : []),
                       ...(me.isAdmin ? [{ key: "photo", label: "Photo", icon: ImagePlus, busy: photoUploading, onSelect: () => photoInputRef.current?.click() }] : []),
-                      ...(me.isAdmin ? [{ key: "voice", label: "Voice message", icon: VoiceIcon, busy: voiceBusy, onSelect: () => setRecording(true) }] : []),
+                      // Voice notes for every member (owner decision, 2026-09-28).
+                      { key: "voice", label: "Voice message", icon: VoiceIcon, busy: voiceBusy, onSelect: () => setRecording(true) },
                     ]}
                   >
                     <AnimatePresence>

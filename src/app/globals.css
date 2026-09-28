@@ -2749,3 +2749,34 @@ html:not(.dark) .chat-mine { color: rgb(var(--acc-ink-light)); background-image:
 /* A room message that @mentions me: a gold edge and a faint wash, so it can
    be found at a glance in a busy room. */
 .chat-mention { box-shadow: inset 3px 0 0 rgb(226 167 47 / 0.8); background-color: rgb(226 167 47 / 0.06); }
+
+/* ── Customize website (site-prefs.ts) ──────────────────────────────────────
+   Classes on <html>, set before paint. Each is an explicit request from the
+   reader, so each simply wins. */
+html.text-scale-90  { font-size: 90%; }
+html.text-scale-110 { font-size: 110%; }
+html.text-scale-125 { font-size: 125%; }
+
+/* Animations off: every CSS animation and transition finishes instantly (it
+   still lands on its final frame, so nothing is left invisible mid-fade).
+   framer-motion is switched off separately (MotionConfig in providers). */
+html.motion-off *, html.motion-off *::before, html.motion-off *::after {
+  animation-duration: 0.001ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
+/* Background effects off: the ambient full-screen layers - the lightest the
+   site can be on a slow phone. Pure decoration; no content lives in them. */
+html.no-effects .mesh, html.no-effects .aurora, html.no-effects .particle,
+html.no-effects .starfield, html.no-effects .starfield-neb, html.no-effects .saturn,
+html.no-effects .moon, html.no-effects .hero-glow, html.no-effects .motion-decor { display: none !important; }
+
+/* Glass blur off: backdrop-filter is the costliest paint on low-end GPUs.
+   Glass surfaces get a near-opaque fill instead, so text stays readable. */
+html.no-blur *, html.no-blur *::before, html.no-blur *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+html.no-blur.dark .glass, html.no-blur.dark .surface { background: rgb(24 24 29 / 0.96); }
+html.no-blur:not(.dark) .glass, html.no-blur:not(.dark) .surface { background: rgb(255 255 255 / 0.97); }
