@@ -314,6 +314,12 @@ html.lenis body {
   0%, 100% { transform: translateY(0) translateX(0); opacity: 0.25; }
   50% { transform: translateY(-26px) translateX(8px); opacity: 0.7; }
 }
+/* floatY's movement without its fade - for things people must be able to read
+   (the orbit's labelled links), not dust. */
+@keyframes floatNode {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  50% { transform: translateY(-26px) translateX(8px); }
+}
 
 /* Starfield (orbital "deep space" backdrop) - each star twinkles from its own
    base opacity (--o).
@@ -1760,7 +1766,9 @@ html:not(.dark) .prose-xyz h2,
 html:not(.dark) .prose-xyz h3,
 html:not(.dark) .prose-xyz h4 { color: #16161b; }
 html:not(.dark) .prose-xyz strong { color: #0a0a0f; }
-html:not(.dark) .prose-xyz a { color: #039567; text-decoration-color: rgba(3, 149, 103, 0.4); }
+/* Was #039567 (mint-600): 3.37:1 on white, under AA - every link on About,
+   Terms, Privacy and the Disclaimer. --data-up (mint-700) is 5.3:1. */
+html:not(.dark) .prose-xyz a { color: var(--data-up); text-decoration-color: rgba(5, 118, 83, 0.45); }
 html:not(.dark) .prose-xyz a:hover { color: #057653; }
 html:not(.dark) .prose-xyz code { background: #eef0f3; color: #824f0e; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06); }
 html:not(.dark) .prose-xyz pre { background: #f3f4f6; border-color: rgba(0, 0, 0, 0.08); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04); }
@@ -2756,6 +2764,13 @@ html:not(.dark) .chat-mine { color: rgb(var(--acc-ink-light)); background-image:
 html.text-scale-90  { font-size: 90%; }
 html.text-scale-110 { font-size: 110%; }
 html.text-scale-125 { font-size: 125%; }
+/* Largest size, capped only where it cannot fit. Breakpoints are in px but
+   the layout is in rem, so 125% on a 320px phone lays out like a 256px one
+   (header and cards pushed off-screen), and the full desktop header row that
+   appears at xl (1280px) needs ~20px more than 1280 at 125%. Measured with
+   the layout audit: these are the largest values with zero overflow. */
+@media (max-width: 379px) { html.text-scale-125 { font-size: 110%; } }
+@media (min-width: 1280px) and (max-width: 1439px) { html.text-scale-125 { font-size: 118.75%; } }
 
 /* Animations off: every CSS animation and transition finishes instantly (it
    still lands on its final frame, so nothing is left invisible mid-fade).
@@ -2773,10 +2788,34 @@ html.motion-off *, html.motion-off *::before, html.motion-off *::after {
    site can be on a slow phone. Pure decoration; no content lives in them. */
 html.no-effects .mesh, html.no-effects .aurora, html.no-effects .particle,
 html.no-effects .starfield, html.no-effects .starfield-neb, html.no-effects .saturn,
-html.no-effects .moon, html.no-effects .hero-glow, html.no-effects .motion-decor { display: none !important; }
+html.no-effects .moon, html.no-effects .hero-glow, html.no-effects .motion-decor:not(.orbit-node) { display: none !important; }
 
 /* Glass blur off: backdrop-filter is the costliest paint on low-end GPUs.
    Glass surfaces get a near-opaque fill instead, so text stays readable. */
 html.no-blur *, html.no-blur *::before, html.no-blur *::after { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
 html.no-blur.dark .glass, html.no-blur.dark .surface { background: rgb(24 24 29 / 0.96); }
 html.no-blur:not(.dark) .glass, html.no-blur:not(.dark) .surface { background: rgb(255 255 255 / 0.97); }
+
+
+/* ── Light-theme visibility fixes (2026-09-28 contrast audit) ────────────────
+   Found by measuring every text element against its real background on each
+   page in the light theme (WCAG AA: 4.5:1, 3:1 for large text). Light-only
+   overrides: the dark theme is untouched. */
+
+/* Cream accent words in page eyebrows ("AIRDROP Farming", "PORTFOLIO
+   Intelligence"): #fdf7e7 on a light pill was 1.1:1 - the word was gone. */
+html:not(.dark) .text-\[\#fdf7e7\] { color: #26262c; }
+
+/* The amber "Nothing here is a forecast" disclosure on Points. `text-amber-200`
+   already had a light override, but these opacity variants are different class
+   names and slipped past it (1.1:1). */
+html:not(.dark) .text-amber-200\/90, html:not(.dark) .text-amber-200\/80 { color: #8a4b09; }
+
+/* Dashed "Nothing here yet" panels and the editor surface: ink-700 at 40% over
+   white is a flat grey slab with 2.8:1 text. Same token /60 already maps to. */
+html:not(.dark) .bg-ink-700\/40 { background-color: var(--surface-2); }
+
+/* The "coming soon" veil over the Points portfolio mockup: a dark gradient on
+   the light theme left its dark heading and copy at 1.4-1.7:1. */
+.soon-veil { background-image: linear-gradient(to bottom, rgb(5 5 7 / 0.4), rgb(5 5 7 / 0.75), rgb(5 5 7 / 0.95)); }
+html:not(.dark) .soon-veil { background-image: linear-gradient(to bottom, rgb(248 249 251 / 0.5), rgb(248 249 251 / 0.86), rgb(248 249 251 / 0.97)); }

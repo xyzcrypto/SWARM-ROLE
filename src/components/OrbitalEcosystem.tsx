@@ -206,7 +206,13 @@ export function OrbitalEcosystem() {
             className="group absolute z-10 -translate-x-1/2 -translate-y-1/2"
             style={{ left: `${n.left}%`, top: `${n.top}%` }}
           >
-            <div className="motion-decor" style={{ animation: `floatY ${5 + (i % 4)}s ease-in-out ${i * 0.3}s infinite` }}>
+            {/* `floatNode`, not `floatY`: floatY also fades between 25% and 70%
+                opacity - right for the dust particles it was written for, wrong
+                for a labelled link, which spent most of each cycle barely
+                visible (measured at 0.25 opacity, in both themes). Same float,
+                no fade. `orbit-node` keeps it visible when Background effects
+                is switched off - it is navigation, not decoration. */}
+            <div className="motion-decor orbit-node" style={{ animation: `floatNode ${5 + (i % 4)}s ease-in-out ${i * 0.3}s infinite` }}>
               <span
                 className={`flex items-center gap-1.5 rounded-full border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-[10px] font-semibold tracking-wide ring-1 backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-active:scale-110 sm:text-[11px] ${toneRing[n.tone]}`}
               >
