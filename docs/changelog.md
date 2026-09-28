@@ -5,6 +5,36 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-09-28 (126) — Build warning "Parsing CSS source code failed" fixed at the source
+
+Every build from #363 onwards printed:
+`Warning: Parsing CSS source code failed … Unknown at rule: @media(hover` at a
+`globals.css` line that does not exist in the source file. It was a warning:
+builds still passed and deploys went out. It is now gone.
+
+**Cause.** Tailwind's `content` glob (`./src/**/*.{js,ts,…}`) included **test
+files**. Tailwind reads every file as plain text and compiles anything
+class-shaped. In `dm-premium-ux.test.ts`, the regex
+`/\[@media\(hover:none\)\]:h-11/` looked like the class
+`[@media\(hover:none\)\]:h-11`, and Tailwind compiled it into the invalid
+`@media\(hover:none\)\undefined { … }`. The real component class,
+`[@media(hover:none)]:h-11`, was always fine.
+
+**Fix.** One change to `tailwind.config.ts`: it excludes `**/__tests__/**` and
+`*.test.*` from `content`. No CSS, component or design change.
+
+**Proof.** I diffed every generated selector before and after: 2339 → 2332.
+- The 7 removed are the broken `@media` rule plus 6 classes that appeared
+  **only** in test files: `-translate-y-0.5`, `group-active:translate-x-0`,
+  `max-h-32`, `scale-105`, `shadow-black` and `translate-x-full`. A search shows
+  no page uses any of them unprefixed.
+- The prefixed forms pages do use (`hover:scale-105`, `-translate-x-full`) are
+  still generated.
+- 0 selectors added.
+- The route table is identical, and the build has no warnings.
+
+`tailwind-content-scope.test.ts` pins the exclusion.
+
 ## 2026-09-27 (125) — Chat + DMs: voice messages, link previews, "typing…"
 
 Verified in a real browser with Chrome's fake microphone: a real recording is

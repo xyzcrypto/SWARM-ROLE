@@ -15,7 +15,20 @@ const config: Config = {
   // Nothing failed: typecheck, lint, tests, build and the route table were all
   // green, because none of them look at generated CSS. Enumerating directories
   // here means any future move re-breaks this the same silent way, so don't.
-  content: ["./src/**/*.{js,ts,jsx,tsx,mdx}"],
+  //
+  // ⚠️ Test files are EXCLUDED, and must stay excluded. Tailwind's scanner
+  // reads every file here as plain text and turns anything that looks like a
+  // class into CSS - including regex literals in tests. A test asserting
+  // `/\[@media\(hover:none\)\]:h-11/` produced the "class"
+  // `[@media\(hover:none\)\]:h-11`, which Tailwind compiled into the invalid
+  // at-rule `@media\(hover:none\)\undefined { ... }`. That printed
+  // "Parsing CSS source code failed" on every build from #363 onward. Tests are
+  // never rendered, so nothing a page uses can live only in one.
+  content: [
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "!./src/**/__tests__/**",
+    "!./src/**/*.test.{js,ts,jsx,tsx}",
+  ],
   future: {
     // Wraps every `hover:` utility in `@media (hover: hover)`, so hover styles
     // apply only where a pointer can actually hover.
