@@ -9,7 +9,7 @@ import { estimateTokens, estimateCostUsdMicros } from "./pricing";
 import { recordAiUsage, errorKindOf } from "./usage";
 import { cacheKey, isCacheable, getCached, setCached } from "./cache";
 
-const STREAM_CONNECT_TIMEOUT_MS = 20_000; // time-to-first-response for streams
+const STREAM_CONNECT_TIMEOUT_MS = 20_000; // time to the first piece of TEXT (a thinking model reasons first)
 /**
  * Floor for a one-shot completion. The real budget SCALES with the requested
  * length - see `completeTimeoutMs`.
@@ -177,6 +177,12 @@ export async function runComplete(
         const res = await withTimeout(completeTimeoutMs(req.maxTokens), (signal) =>
           provider.complete({ ...req, model, signal })
         );
+        // ⚠️ An EMPTY answer is a failure, not a result. A thinking model that
+        // spends its whole budget reasoning returns "" with a clean 200, and this
+        // used to hand that blank straight to the reader as success - no retry,
+        // no fallback. Thrown here, it is classified like any other provider
+        // failure and the next provider gets the question.
+        if (!res.text?.trim()) throw new Error(`empty response from ${provider.id} (finish=${res.finishReason ?? "unknown"})`);
         // ⚠️ NEVER cache a truncated answer. The cache holds a response for
         // TWENTY-FOUR HOURS, and it stored anything non-empty - so one
         // half-finished briefing was then served to every identical request for
@@ -266,15 +272,29 @@ export async function runStream(
     const model = provider.models[tier];
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const handle = await withTimeout(STREAM_CONNECT_TIMEOUT_MS, (signal) => provider.streamChat({ ...req, model, signal }));
+        // ⚠️ Wait for the first real text before committing to this provider.
+        // Failover is only possible before a byte reaches the reader, and a
+        // thinking model can open the stream, think, and close it having written
+        // nothing - which used to arrive as an empty answer bubble. Pulling the
+        // first non-empty delta here keeps that case on the failover path.
+        const { handle, it, first } = await withTimeout(STREAM_CONNECT_TIMEOUT_MS, async (signal) => {
+          const h = await provider.streamChat({ ...req, model, signal });
+          const iter = h.stream[Symbol.asyncIterator]();
+          let next = await iter.next();
+          while (!next.done && !next.value) next = await iter.next();
+          if (next.done) throw new Error(`empty response from ${provider.id} (stream ended without text)`);
+          return { handle: h, it: iter, first: next.value };
+        });
         // Wrap the stream so we record one usage row once it's fully consumed
         // (output tokens known then) or if it errors mid-generation.
         let outChars = 0;
         const wrapped = (async function* () {
           try {
-            for await (const delta of handle.stream) {
-              outChars += delta.length;
-              yield delta;
+            outChars += first.length;
+            yield first;
+            for (let n = await it.next(); !n.done; n = await it.next()) {
+              outChars += n.value.length;
+              yield n.value;
             }
             const u = handle.getUsage() ?? { inputTokens: inputEst, outputTokens: Math.ceil(outChars / 4) };
             await recordAiUsage({

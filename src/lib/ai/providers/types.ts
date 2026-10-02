@@ -46,7 +46,12 @@ export type CompleteRequest = {
  */
 export type FinishReason = "stop" | "length" | "other";
 
-export type CompleteResult = { text: string; usage?: TokenUsage; finishReason?: FinishReason };
+/**
+ * `servedModel` is set only when the provider answered with a DIFFERENT model than
+ * the one requested (e.g. Gemini falling back from a retired model id), so the
+ * health check and usage rows can say what actually ran.
+ */
+export type CompleteResult = { text: string; usage?: TokenUsage; finishReason?: FinishReason; servedModel?: string };
 
 export type StreamRequest = {
   model: string;

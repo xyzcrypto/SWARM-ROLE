@@ -23,24 +23,39 @@ export async function GET() {
     providerOrder: chain.map((p) => p.id),
   };
 
+  // ⚠️ A realistic probe, not "reply OK in 10 tokens". A thinking model spends
+  // a budget that small reasoning and answers with nothing, so the old probe could
+  // not tell a working provider from a broken one. `finishReason` and
+  // `servedModel` are reported because they are the two facts that explain a bad
+  // answer: cut off at the ceiling, or a retired model id quietly replaced.
   for (const provider of chain) {
     const model = provider.models.fast;
+    const started = Date.now();
     try {
       const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 10_000);
+      const timer = setTimeout(() => ctrl.abort(), 20_000);
       const res = await provider.complete({
         model,
-        prompt: "Reply with just the word OK.",
-        maxTokens: 10,
+        prompt: "In one short sentence, what is Bitcoin?",
+        maxTokens: 80,
         signal: ctrl.signal,
       });
       clearTimeout(timer);
-      results[provider.id] = { status: "ok", model, text: res.text?.trim() };
+      results[provider.id] = {
+        status: res.text?.trim() ? "ok" : "empty",
+        model,
+        servedModel: res.servedModel ?? model,
+        finishReason: res.finishReason ?? "unknown",
+        ms: Date.now() - started,
+        text: res.text?.trim().slice(0, 200),
+      };
     } catch (err) {
       results[provider.id] = {
         status: "error",
         model,
-        error: err instanceof Error ? err.message : String(err),
+        ms: Date.now() - started,
+        // Gemini takes its key as a query parameter, so an error can carry it.
+        error: (err instanceof Error ? err.message : String(err)).replace(/([?&]key=)[^&\s]+/gi, "$1***").slice(0, 300),
       };
     }
   }

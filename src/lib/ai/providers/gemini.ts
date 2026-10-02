@@ -4,9 +4,19 @@ import "server-only";
 // Only `enabled` when GEMINI_API_KEY is configured. Server-only.
 import { env, geminiEnabled } from "@/lib/env";
 import type { AiProvider, ChatMessage, CompleteRequest, CompleteResult, FinishReason, StreamHandle, StreamRequest, TokenUsage } from "./types";
+import { isGeminiThinkingModel, outputCeiling, thinkingBudgetFor } from "./reasoning";
 
-// gemini-3.6-flash is the current recommended model (2.0-flash was deprecated).
-const MODELS = { fast: "gemini-3.6-flash", quality: "gemini-3.6-flash" } as const;
+/**
+ * The model, overridable from the dashboard (`GEMINI_MODEL`) without a deploy.
+ *
+ * ⚠️ Model ids get retired. If the configured one is not found, the provider walks
+ * `FALLBACK_MODELS` instead of failing every request - `gemini-flash-latest` is
+ * Google's rolling alias for the current Flash model, so it survives renames.
+ */
+export const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
+const CONFIGURED = env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+export const FALLBACK_MODELS = ["gemini-flash-latest", "gemini-2.5-flash"];
+const MODELS = { fast: CONFIGURED, quality: CONFIGURED } as const;
 const BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 
 type UsageMeta = { promptTokenCount?: number; candidatesTokenCount?: number };
@@ -15,16 +25,68 @@ function usageOf(md: UsageMeta | undefined): TokenUsage | undefined {
   return { inputTokens: Number(md.promptTokenCount) || 0, outputTokens: Number(md.candidatesTokenCount) || 0 };
 }
 
-type Part = { text?: string };
+type Part = { text?: string; thought?: boolean };
 type Candidate = { content?: { parts?: Part[] }; finishReason?: string };
 type GenResponse = { candidates?: Candidate[]; usageMetadata?: UsageMeta };
 
-function textOf(j: GenResponse): string {
-  return (j?.candidates?.[0]?.content?.parts ?? []).map((p) => p?.text ?? "").join("");
+/** The visible answer only - a `thought` part (if the API ever returns one) is never shown to a reader. */
+export function textOf(j: GenResponse): string {
+  return (j?.candidates?.[0]?.content?.parts ?? []).filter((p) => !p?.thought).map((p) => p?.text ?? "").join("");
 }
 function toContents(messages: ChatMessage[]) {
   // Gemini uses "model" for the assistant role.
   return messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }));
+}
+
+/**
+ * generationConfig for a request whose ANSWER may be `answerTokens` long.
+ * For a thinking model: thinking is capped, and the ceiling grows by the
+ * headroom so the cap can never come out of the answer (see reasoning.ts).
+ */
+export function generationConfig(model: string, answerTokens: number, withThinkingCap = true) {
+  const thinks = isGeminiThinkingModel(model);
+  return {
+    maxOutputTokens: outputCeiling(answerTokens, thinks),
+    ...(thinks && withThinkingCap ? { thinkingConfig: { thinkingBudget: thinkingBudgetFor(answerTokens) } } : {}),
+  };
+}
+
+// Which model actually answers for a configured id, once a fallback was needed.
+const resolved = new Map<string, string>();
+const candidatesFor = (model: string) => [...new Set([resolved.get(model) ?? model, model, ...FALLBACK_MODELS])];
+
+/**
+ * POST to Gemini with the two recoveries that keep a misconfiguration from
+ * looking like "AI is broken":
+ *  - 404 (model not found / retired) → next candidate model, remembered.
+ *  - 400 about the thinking config (a model that rejects the field) → the same
+ *    model again without it; the extra headroom still protects the answer.
+ */
+async function post(model: string, method: string, build: (m: string, cap: boolean) => unknown, signal?: AbortSignal): Promise<{ res: Response; served: string }> {
+  let last: Response | null = null;
+  for (const m of candidatesFor(model)) {
+    for (const cap of [true, false]) {
+      const res = await fetch(`${BASE}/${m}:${method}${method.includes("?") ? "&" : "?"}key=${env.GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(build(m, cap)),
+        signal,
+      });
+      if (res.ok) {
+        if (m !== model) resolved.set(model, m);
+        return { res, served: m };
+      }
+      last = res;
+      if (res.status === 400 && cap) {
+        const body = await res.clone().text();
+        if (/thinking/i.test(body)) continue; // retry this model without the cap
+      }
+      break; // not a thinking-config problem: decide below whether to try another model
+    }
+    if (last && last.status !== 404) break; // only a missing model is worth another id
+  }
+  const r = last!;
+  throw new Error(`gemini ${r.status}: ${(await r.text()).slice(0, 200)}`);
 }
 
 export const geminiProvider: AiProvider = {
@@ -33,18 +95,16 @@ export const geminiProvider: AiProvider = {
   models: MODELS,
 
   async complete(req: CompleteRequest): Promise<CompleteResult> {
-    const body = {
-      ...(req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {}),
-      contents: [{ role: "user", parts: [{ text: req.prompt }] }],
-      generationConfig: { maxOutputTokens: req.maxTokens },
-    };
-    const res = await fetch(`${BASE}/${req.model}:generateContent?key=${env.GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal: req.signal,
-    });
-    if (!res.ok) throw new Error(`gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const { res, served } = await post(
+      req.model,
+      "generateContent",
+      (m, cap) => ({
+        ...(req.system ? { systemInstruction: { parts: [{ text: req.system }] } } : {}),
+        contents: [{ role: "user", parts: [{ text: req.prompt }] }],
+        generationConfig: generationConfig(m, req.maxTokens, cap),
+      }),
+      req.signal
+    );
     const j = (await res.json()) as GenResponse;
     // ⚠️ Carried, not dropped. Gemini spells it MAX_TOKENS; that means the
     // answer was cut off at the ceiling rather than the model being brief, and
@@ -52,24 +112,21 @@ export const geminiProvider: AiProvider = {
     const raw = j?.candidates?.[0]?.finishReason;
     const finishReason: FinishReason =
       raw === "MAX_TOKENS" ? "length" : raw === "STOP" ? "stop" : "other";
-    return { text: textOf(j).trim(), usage: usageOf(j.usageMetadata), finishReason };
+    return { text: textOf(j).trim(), usage: usageOf(j.usageMetadata), finishReason, ...(served !== req.model ? { servedModel: served } : {}) };
   },
 
   async streamChat(req: StreamRequest): Promise<StreamHandle> {
-    const body = {
-      systemInstruction: { parts: [{ text: req.system }] },
-      contents: toContents(req.messages),
-      generationConfig: { maxOutputTokens: req.maxTokens },
-    };
-    const res = await fetch(`${BASE}/${req.model}:streamGenerateContent?alt=sse&key=${env.GEMINI_API_KEY}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-      signal: req.signal,
-    });
-    if (!res.ok || !res.body) {
-      throw new Error(`gemini ${res.status}: ${res.ok ? "no stream body" : (await res.text()).slice(0, 200)}`);
-    }
+    const { res } = await post(
+      req.model,
+      "streamGenerateContent?alt=sse",
+      (m, cap) => ({
+        systemInstruction: { parts: [{ text: req.system }] },
+        contents: toContents(req.messages),
+        generationConfig: generationConfig(m, req.maxTokens, cap),
+      }),
+      req.signal
+    );
+    if (!res.body) throw new Error("gemini 200: no stream body");
     let usage: TokenUsage | undefined;
     const reader = res.body.getReader();
     async function* run() {
