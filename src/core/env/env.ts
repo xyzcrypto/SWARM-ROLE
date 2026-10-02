@@ -39,6 +39,8 @@ const schema = z.object({
   GROQ_API_KEY: z.string().optional(),
   GEMINI_API_KEY: z.string().optional(),
   AI_PROVIDER_ORDER: z.string().optional(),
+  GEMINI_MODEL: z.string().optional(),
+  GROQ_MODEL: z.string().optional(),
   AI_DAILY_LIMIT_FREE: z.string().optional(),
   AI_DAILY_LIMIT_PREMIUM: z.string().optional(),
   AI_DAILY_LIMIT_ADMIN: z.string().optional(),
@@ -96,6 +98,10 @@ export const env = {
   GROQ_API_KEY: raw.GROQ_API_KEY ?? "",
   GEMINI_API_KEY: raw.GEMINI_API_KEY ?? "",
   AI_PROVIDER_ORDER: raw.AI_PROVIDER_ORDER ?? "",
+  // Optional model overrides, so a retired or renamed model can be swapped from
+  // the Vercel dashboard without a deploy. Empty = the provider's built-in default.
+  GEMINI_MODEL: raw.GEMINI_MODEL ?? "",
+  GROQ_MODEL: raw.GROQ_MODEL ?? "",
   // Per-plan daily AI request caps (optional overrides of the built-in defaults).
   AI_DAILY_LIMIT_FREE: raw.AI_DAILY_LIMIT_FREE ?? "",
   AI_DAILY_LIMIT_PREMIUM: raw.AI_DAILY_LIMIT_PREMIUM ?? "",

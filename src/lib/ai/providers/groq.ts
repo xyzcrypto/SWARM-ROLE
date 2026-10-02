@@ -3,10 +3,27 @@ import "server-only";
 import Groq from "groq-sdk";
 import { env, groqEnabled } from "@/lib/env";
 import type { AiProvider, CompleteRequest, CompleteResult, FinishReason, StreamHandle, StreamRequest, TokenUsage } from "./types";
+import { isGroqReasoningModel, outputCeiling } from "./reasoning";
 
-// openai/gpt-oss-120b is the available model on this Groq account.
-// Gemini (gemini-3.6-flash) is primary; Groq is fallback only.
-const MODELS = { fast: "openai/gpt-oss-120b", quality: "openai/gpt-oss-120b" } as const;
+// openai/gpt-oss-120b is the available model on this Groq account (overridable
+// with GROQ_MODEL). Gemini is primary; Groq is the fallback.
+export const DEFAULT_GROQ_MODEL = "openai/gpt-oss-120b";
+const CONFIGURED = env.GROQ_MODEL || DEFAULT_GROQ_MODEL;
+const MODELS = { fast: CONFIGURED, quality: CONFIGURED } as const;
+
+/**
+ * Token + reasoning parameters for a request whose ANSWER may be `answerTokens`.
+ *
+ * ⚠️ gpt-oss reasons before it answers and those tokens come out of `max_tokens`,
+ * so a 160-token "why this matters" could think its way to an empty reply. A
+ * reasoning model gets low effort (these are summaries, not proofs) and headroom
+ * on top of the answer. A non-reasoning model gets neither: Llama rejects
+ * `reasoning_effort` outright.
+ */
+export function groqParams(model: string, answerTokens: number) {
+  const reasons = isGroqReasoningModel(model);
+  return { max_tokens: outputCeiling(answerTokens, reasons), ...(reasons ? { reasoning_effort: "low" as const } : {}) };
+}
 
 // One lazily-constructed client per server instance.
 let _client: Groq | null = null;
@@ -29,7 +46,7 @@ export const groqProvider: AiProvider = {
     const res = await client().chat.completions.create(
       {
         model: req.model,
-        max_tokens: req.maxTokens,
+        ...groqParams(req.model, req.maxTokens),
         messages: [
           ...(req.system ? [{ role: "system" as const, content: req.system }] : []),
           { role: "user" as const, content: req.prompt },
@@ -55,7 +72,7 @@ export const groqProvider: AiProvider = {
     const stream = await client().chat.completions.create(
       {
         model: req.model,
-        max_tokens: req.maxTokens,
+        ...groqParams(req.model, req.maxTokens),
         stream: true,
         messages: [
           { role: "system", content: req.system },

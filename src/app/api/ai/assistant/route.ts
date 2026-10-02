@@ -58,9 +58,15 @@ async function fetchLiveSnapshot(origin: string): Promise<LiveSnapshot> {
     get("/api/markets/coins"),
     get("/api/news?pageSize=6"),
   ]);
+  // ⚠️ Only LIVE numbers reach the model. When the upstream feed is down, the
+  // markets routes answer 200 with built-in fallback figures and `live: false`
+  // (a $2.35T market cap, 54% BTC dominance) so the page has something to draw.
+  // The global block was passed through regardless, so the assistant could quote
+  // those placeholders to a member as today's market. No live block is better
+  // than a confidently wrong one.
   return {
-    global: global ?? null,
-    coins: Array.isArray(coins?.list)
+    global: global?.live ? global : null,
+    coins: coins?.live && Array.isArray(coins?.list)
       ? coins.list.slice(0, 8).map((c: { symbol?: string; price?: number; change24h?: number }) => ({
           symbol: String(c.symbol ?? ""),
           price: Number(c.price) || 0,

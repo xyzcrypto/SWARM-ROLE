@@ -5,6 +5,42 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-02 (132) — AI: thinking models were eating the answer's budget
+
+Owner report: XYZ AI "not working well" in the assistant, News and Points
+Intelligence. No new routes, no schema change. **1470 tests.**
+
+- **Root cause.** On 2026-08-20 both providers moved to models that think before
+  they answer (Gemini `gemini-3.6-flash`, Groq `openai/gpt-oss-120b`). Their
+  thinking is spent from the same output budget as the answer, and every
+  `maxTokens` here was sized for the answer alone. So:
+  - short tasks could come back **empty**: "why this matters" (160), the coin
+    and protocol briefs (260), moderation (8);
+  - long ones stopped early (`finishReason: length`). That is the "briefing is
+    slow and cut off" that four earlier fixes treated as a timeout, ceiling or
+    continuation problem.
+- **Fix, in the providers, so every AI feature gets it** (`providers/reasoning.ts`):
+  - **Gemini:** thinking is capped (512, or 0 for answers of 64 tokens or fewer),
+    and the output ceiling is the answer budget **plus 2048 headroom**.
+  - **Groq:** reasoning models get `reasoning_effort: "low"` and the same
+    headroom. This is never sent to Llama, which rejects it.
+  - Unused headroom costs nothing; billing is per token generated.
+- **An empty answer is now a failure.** The gateway used to hand a blank 200 to
+  the reader as success. It now fails over to the next provider, and that
+  includes a stream that ends with no text, caught before any byte is sent.
+- **Retired model ids recover on their own.** On a 404, Gemini tries
+  `gemini-flash-latest`, then `gemini-2.5-flash`, and remembers which one
+  worked. If the API rejects the thinking field, it retries without it.
+  `GEMINI_MODEL` and `GROQ_MODEL` (optional) swap models without a deploy.
+- **The assistant no longer quotes placeholder market numbers.** When the
+  markets feed is down, `/api/markets/global` answers with built-in fallback
+  figures and `live: false`. The assistant passed those through as today's
+  market. It now uses market stats and coin prices only when `live` is true.
+- **`/api/ai/health` can see the problem.** It used to probe with "reply OK in
+  10 tokens", which a thinking model cannot answer. It now uses a realistic
+  prompt and reports `finishReason`, `servedModel` and latency.
+- Tests: `reasoning-budget.test.ts` (15).
+
 ## 2026-09-28 (131) — Remove bookmarks, site-wide haptics, light-theme visibility, alignment
 
 Owner request. No new routes, no schema change (migration `42_chat_bookmarks`
