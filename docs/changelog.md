@@ -13,6 +13,11 @@ on the homepage. No new routes; `/` is still ISR 15m; route table identical.
 
 - **Section** `ExplainerVideo` (server) + `ExplainerPlayer` (client). It sits
   directly after the hero and its ticker.
+- **Fits on one screen** (owner follow-up). The frame is sized by the screen's
+  HEIGHT, `min(cap, (100svh - navbar - heading) x aspect)`, so the heading and
+  the whole frame show together on one screen. Measured on 7 screens, from
+  360x740 to 1920x1080: all fit, with equal left and right margins. On a phone
+  the duration chip shortens to "1:05 · CC" so the bar stays on one line.
 - **The film, 1:05.**
   - It reuses the AneQue story: 3 AM, the chaos, discovery, the tour, 50K+
     across YouTube / X / Telegram, then dawn.

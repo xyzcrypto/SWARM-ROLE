@@ -48,8 +48,13 @@ export function ExplainerPlayer() {
     <div
       className={cn(
         "relative mx-auto overflow-hidden rounded-3xl bg-ink-950 ring-1 ring-gold-500/25 shadow-gold",
-        // Phone: the vertical cut, sized like a phone screen. md+: the 16:9 cut.
-        "aspect-[9/16] w-full max-w-[400px] md:aspect-video md:max-w-none md:rounded-4xl"
+        // Sized by the screen's HEIGHT, not its width, so the heading and the whole
+        // frame fit on one screen together (owner request). The subtracted amount
+        // is the fixed navbar plus the section heading above the frame; the frame's
+        // width then follows from its aspect ratio. Phone: the 9:16 cut, never wider
+        // than 400px. md+: the 16:9 cut, never wider than 1100px. Centred by mx-auto.
+        "aspect-[9/16] w-full max-w-[min(400px,calc((100svh_-_330px)*9/16))]",
+        "md:aspect-video md:max-w-[min(1100px,calc((100svh_-_340px)*16/9))] md:rounded-4xl"
       )}
     >
       {src ? (
@@ -91,13 +96,16 @@ export function ExplainerPlayer() {
               <Play className="ml-1 h-8 w-8 sm:h-10 sm:w-10" strokeWidth={1.7} fill="currentColor" />
             </span>
           </span>
-          <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-3 p-4 sm:p-6">
+          <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 p-3 sm:gap-3 sm:p-6">
             {/* Literal colours on purpose: the light theme remaps text-white / text-zinc-* to dark, which would vanish on this dark poster.
                 ⚠️ And sm:text-[16px], never sm:text-base: this config has a colour named `base`, so `text-base`
                 also emits `color: var(--bg)` and painted this label the page background at sm and up. */}
-            <span className="text-sm font-semibold text-[#fff] sm:text-[16px]">Watch the story</span>
-            <span className="mono rounded-full bg-black/55 px-3 py-1 text-xs text-[#f4f4f5] ring-1 ring-white/15">
-              {EXPLAINER.durationLabel} · sound + captions
+            <span className="whitespace-nowrap text-sm font-semibold text-[#fff] sm:text-[16px]">Watch the story</span>
+            {/* The frame is narrow on a phone (it is sized to fit the screen's height), so the chip is short there. */}
+            <span className="mono whitespace-nowrap rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-[#f4f4f5] ring-1 ring-white/15 sm:px-3 sm:text-xs">
+              {EXPLAINER.durationLabel}
+              <span className="sm:hidden"> · CC</span>
+              <span className="hidden sm:inline"> · sound + captions</span>
             </span>
           </span>
         </button>

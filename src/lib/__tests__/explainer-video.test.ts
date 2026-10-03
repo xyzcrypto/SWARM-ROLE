@@ -23,7 +23,13 @@ describe("the explainer costs nothing until someone presses play", () => {
   it("picks the cut inside the click handler, from the same breakpoint as the CSS (no hydration mismatch)", () => {
     expect(player).toMatch(/const start = \(\) => \{\s*const desktop = typeof window !== "undefined" && window\.matchMedia\(EXPLAINER\.desktopQuery\)\.matches;/);
     expect(player).toMatch(/desktopQuery: "\(min-width: 768px\)"/); // Tailwind `md`
-    expect(player).toMatch(/aspect-\[9\/16\][^"]*md:aspect-video/);
+    expect(player).toMatch(/"aspect-\[9\/16\] /);
+    expect(player).toMatch(/"md:aspect-video /);
+  });
+  it("is sized by the screen's height so the heading and the whole frame fit on one screen", () => {
+    // Measured in a real browser on 7 screens, 360x740 to 1920x1080 (changelog 133).
+    expect(player).toContain("max-w-[min(400px,calc((100svh_-_330px)*9/16))]");
+    expect(player).toContain("md:max-w-[min(1100px,calc((100svh_-_340px)*16/9))]");
   });
   it("keeps every file within its budget", () => {
     for (const p of Object.values(PATHS)) expect(existsSync(pub(p)), p).toBe(true);

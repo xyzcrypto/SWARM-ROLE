@@ -18,7 +18,7 @@ export function ExplainerVideo() {
           }
           subtitle="Research, live markets, airdrop intelligence, an AI assistant and a 50K+ community. See how it all fits together."
         />
-        <Reveal delay={2} className="mt-10 block sm:mt-12">
+        <Reveal delay={2} className="mt-8 block sm:mt-10">
           <ExplainerPlayer />
         </Reveal>
       </Container>
