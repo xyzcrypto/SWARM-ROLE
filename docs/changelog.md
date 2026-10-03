@@ -5,6 +5,44 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-03 (133) — "What is XYZ Crypto?" explainer film below the hero
+
+Owner request: a one-minute film for new visitors, in a desktop and a phone cut,
+on the homepage. No new routes; `/` is still ISR 15m; route table identical.
+**1479 tests.** Real-browser checks: **27/27** (desktop, phone, phone light theme).
+
+- **Section** `ExplainerVideo` (server) + `ExplainerPlayer` (client). It sits
+  directly after the hero and its ticker.
+- **The film, 1:05.**
+  - It reuses the AneQue story: 3 AM, the chaos, discovery, the tour, 50K+
+    across YouTube / X / Telegram, then dawn.
+  - Markets is marked **Preview** (the redesign is not built); Portfolio and
+    Derivatives are marked **Coming soon**.
+  - Desktop is 16:9 (1920x1080, 9.7 MB); phone is 9:16 (1080x1920, 8.6 MB).
+    Both are H.264 with faststart.
+  - Captions are a WebVTT track, on by default, instead of burned-in subtitles.
+- **Costs nothing until play.**
+  - Before the click the section is a **22 KB / 15 KB** WebP poster and a button.
+  - The `<video>` element does not exist yet, so nothing is requested; verified
+    in the browser, with 0 media requests before the click.
+  - The cut (desktop or phone) is chosen in the click handler from the same
+    768px breakpoint the CSS uses, so there is no hydration mismatch.
+  - `/media/explainer/*` is served with `public, max-age=31536000, immutable`.
+    The file names carry the version (`-v1-`), so a new cut is a new URL.
+  - The service worker does not intercept `.mp4` / `.vtt`, so range requests
+    and seeking work natively (206 verified).
+- **Trap found: `text-base` sets a colour on this site.** The theme has a colour
+  token named `base`, so `text-base` emits both a 16px font size and
+  `color: var(--bg)`, the page background. On its own it makes text invisible.
+  It painted the player's label background-black at `sm` and up; fixed with
+  `sm:text-[16px]`. 51 other uses exist; the sampled ones pair it with a
+  `text-zinc-*` that wins, so nothing visible today. Worth a sweep.
+- Tests: `explainer-video.test.ts` (10). They cover:
+  - no `<video>` before the click, and the breakpoint match;
+  - file budgets and the cache header;
+  - the service worker leaving media alone;
+  - captions, placement, and the theme-safe label colours.
+
 ## 2026-10-02 (132) — AI: thinking models were eating the answer's budget
 
 Owner report: XYZ AI "not working well" in the assistant, News and Points

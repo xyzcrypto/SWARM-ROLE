@@ -93,7 +93,13 @@ const nextConfig = {
     ],
   },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // The explainer film. Files are versioned in their names (…-v1-…), so a
+      // new cut is a new URL and these can be cached for a year without a
+      // revalidation round trip on every visit.
+      { source: "/media/explainer/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+    ];
   },
 };
 

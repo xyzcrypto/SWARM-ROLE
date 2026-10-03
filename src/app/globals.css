@@ -2819,3 +2819,9 @@ html:not(.dark) .bg-ink-700\/40 { background-color: var(--surface-2); }
    the light theme left its dark heading and copy at 1.4-1.7:1. */
 .soon-veil { background-image: linear-gradient(to bottom, rgb(5 5 7 / 0.4), rgb(5 5 7 / 0.75), rgb(5 5 7 / 0.95)); }
 html:not(.dark) .soon-veil { background-image: linear-gradient(to bottom, rgb(248 249 251 / 0.5), rgb(248 249 251 / 0.86), rgb(248 249 251 / 0.97)); }
+
+/* Explainer play button: a slow outward pulse that says "press me" without
+   moving the button itself. Small and local, so it stays on under
+   prefers-reduced-motion like the rest of the brand accents (design-system). */
+@keyframes explainerPing { 0% { transform: scale(1); opacity: 0.7; } 80%, 100% { transform: scale(1.55); opacity: 0; } }
+.explainer-ping { animation: explainerPing 2.2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
