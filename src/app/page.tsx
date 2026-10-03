@@ -2,6 +2,7 @@ import { Navbar } from "@/components/Navbar";
 import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
 import { Hero } from "@/components/Hero";
 import { MarketTicker } from "@/components/MarketTicker";
+import { ExplainerVideo } from "@/components/ExplainerVideo";
 import { OrbitalSection } from "@/components/OrbitalSection";
 import { ProofStrip } from "@/components/ProofStrip";
 import { About } from "@/components/About";
@@ -106,6 +107,8 @@ export default async function HomePage() {
       <main>
         <Hero memberCount={memberCount} research={research} />
         <MarketTicker />
+        {/* "What is XYZ Crypto?" - a one-minute film for first-time visitors. Click to play; nothing downloads before that. */}
+        <ExplainerVideo />
         {/* Orbital ecosystem - the signature centerpiece showcase. */}
         <OrbitalSection />
         <ProofStrip />
