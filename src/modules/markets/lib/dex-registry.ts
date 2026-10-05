@@ -100,7 +100,7 @@ export const DEX_REGISTRY: DexPlatform[] = [
     },
     pointValueScenario: {
       totalSupply: 1_000_000_000,
-      totalPoints: 9_400_000,
+      totalPoints: 11_200_000, // owner-set (2026-10-05); the Featured card shows "11.2M Points"
       tgeUnlockPcts: [25, 30, 34],
       fdvScenariosUsd: [700_000_000, 1_500_000_000, 3_000_000_000, 10_000_000_000, 30_000_000_000],
       // 32%, owner-set (2026-10-05). The Featured Programs card shows the same
@@ -220,7 +220,9 @@ export const DEX_REGISTRY: DexPlatform[] = [
       totalPoints: 9_750_000,
       tgeUnlockPcts: [],
       fdvScenariosUsd: [250_000_000, 500_000_000, 1_000_000_000, 2_000_000_000, 3_000_000_000],
-      allocationPctOfSupply: 10,
+      // 25%, owner-set (2026-10-05) to match the Featured Programs card. Still a scenario:
+      // Arcus has published no token or airdrop size.
+      allocationPctOfSupply: 25,
       allocationScenarios: [
         { label: "5% airdrop", pct: 5 },
         { label: "10% airdrop", pct: 10 },
