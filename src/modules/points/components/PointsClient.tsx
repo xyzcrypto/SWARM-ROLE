@@ -20,6 +20,7 @@ import {
   type CompVenue,
 } from "@modules/points/lib/points";
 import { buildPrograms, scenarioFdv, sortPrograms, type ProgramView } from "@modules/points/lib/programs";
+import { DEX_REGISTRY } from "@/lib/dex-registry";
 import { PointsHero } from "./PointsHero";
 import { FeaturedProgramsBar } from "./FeaturedProgramsBar";
 import { PointsCalculatorCard } from "./PointsCalculatorCard";
@@ -139,6 +140,34 @@ export function PointsClient() {
       // safe fallback
     }
   }, []);
+
+  /**
+   * Shared programme links: `/points/<id>` redirects to `/points#programme-<id>`.
+   *
+   * ⚠️ That anchor used to be a `<section id="programme-<id>">` per programme.
+   * The redesign stopped rendering those sections, so every shared link -
+   * `/points/variational`, `/points/sodex`, ... - matched nothing and left the
+   * reader on the default (Sodex) calculator, looking at the wrong programme's
+   * numbers. Now the hash SELECTS the programme and scrolls to the calculator.
+   *
+   * Declared AFTER the restore effect above on purpose: effects run in order,
+   * so a link wins over whatever programme was saved from the last visit.
+   * Reads `location` only inside an effect, so render stays hydration-safe.
+   */
+  useEffect(() => {
+    const selectFromHash = () => {
+      const m = /^#programme-([a-z0-9-]+)$/i.exec(window.location.hash);
+      if (!m) return;
+      const id = m[1].toLowerCase();
+      if (!DEX_REGISTRY.some((p) => p.id === id && p.pointValueScenario)) return;
+      set("analyseId", id);
+      set("openId", id);
+      requestAnimationFrame(() => document.getElementById("calculator-section")?.scrollIntoView({ block: "start" }));
+    };
+    selectFromHash();
+    window.addEventListener("hashchange", selectFromHash);
+    return () => window.removeEventListener("hashchange", selectFromHash);
+  }, [set]);
 
   useEffect(() => {
     try {

@@ -103,7 +103,10 @@ export const DEX_REGISTRY: DexPlatform[] = [
       totalPoints: 9_400_000,
       tgeUnlockPcts: [25, 30, 34],
       fdvScenariosUsd: [700_000_000, 1_500_000_000, 3_000_000_000, 10_000_000_000, 30_000_000_000],
-      allocationPctOfSupply: 30,
+      // 32%, owner-set (2026-10-05). The Featured Programs card shows the same
+      // figure as a hard-coded label; points-programs.test.ts fails if the two
+      // drift apart again (they did: card 12%, calculator 30%).
+      allocationPctOfSupply: 32,
     },
   },
   {
@@ -168,6 +171,62 @@ export const DEX_REGISTRY: DexPlatform[] = [
         { label: "20% of supply", pct: 20 },
         { label: "25% of supply", pct: 25 },
         { label: "30% of supply", pct: 30 },
+      ],
+    },
+  },
+  {
+    // ⚠️ Arcus has NO token: no ticker, supply, airdrop size or FDV is published,
+    // and its terms (Annex C) say points are a participation metric only - not
+    // redeemable, no ownership, no guaranteed token or airdrop. So the ONLY
+    // official inputs are the Season 1 schedule; every dollar figure is a
+    // scenario. The supply is a placeholder: in projectValue() it cancels out,
+    // leaving value per point = FDV x airdrop % / total points exactly.
+    //
+    // Season 1 maximum, derived (pinned in points-programs.test.ts): 250,000
+    // points every Wednesday 3 PM ET, from Season 1's start on Thu 1 Oct 2026 to
+    // no later than Wed 30 Jun 2027 = 39 drops (7 Oct 2026 ... 30 Jun 2027)
+    // = 9,750,000 points. Ending early only shrinks this.
+    //
+    // Not the unrelated "Arcus Network" token - a different project.
+    id: "arcus",
+    name: "Arcus",
+    status: "live",
+    chain: "Not confirmed - see official docs",
+    fees: "See official docs for the current schedule.",
+    pointsRules:
+      "Season 1 distributes a fixed 250,000 points every week (Wednesdays, 3:00 PM ET), shared across all participants - the total does not grow with volume or users. Points come from trading, market making, retained deposits and referrals, with boosts for stock tokens and other RWAs and for off-hours RWA perps.",
+    rewardLogic:
+      "Arcus's terms say points are a participation metric only: not redeemable for cash, no ownership, and no guaranteed token or airdrop. This calculator ASSUMES points convert pro rata into an airdrop share - a scenario, not an Arcus mechanic.",
+    supportedMarkets: "Perpetuals, stock tokens and other RWAs (incl. off-hours RWA perps)",
+    maxLeverage: "See official docs",
+    notes:
+      "Arcus has no token yet, so every dollar figure here is a scenario. Total points defaults to the Season 1 maximum: 39 weekly drops x 250,000 = 9.75M if the season runs to 30 Jun 2027 (it can end earlier, which means fewer points). Season 0 (1 Jul - 30 Sep 2026) points are already allocated but unpublished - add your estimate to Total points to include that dilution. Not the unrelated Arcus Network token.",
+    links: {
+      website: "https://arcus.xyz",
+      docs: "https://arcus.xyz/blog/introducing-arcus-points",
+      twitter: "https://x.com/arcus_xyz",
+    },
+    pointsProgram: {
+      phase: "live",
+      season: "Season 1",
+      // The schedule is official; the token economics are not - so the badge
+      // reads Community, as it does for every guessed scenario on this page.
+      confirmed: false,
+      earnRate: "250,000 points per week (fixed), every Wednesday 3:00 PM ET, until no later than 30 Jun 2027.",
+      startedAt: "2026-10-01",
+    },
+    pointValueScenario: {
+      totalSupply: 1_000_000_000, // placeholder - cancels out of value per point
+      totalPoints: 9_750_000,
+      tgeUnlockPcts: [],
+      fdvScenariosUsd: [250_000_000, 500_000_000, 1_000_000_000, 2_000_000_000, 3_000_000_000],
+      allocationPctOfSupply: 10,
+      allocationScenarios: [
+        { label: "5% airdrop", pct: 5 },
+        { label: "10% airdrop", pct: 10 },
+        { label: "15% airdrop", pct: 15 },
+        { label: "25% airdrop", pct: 25 },
+        { label: "30% airdrop", pct: 30 },
       ],
     },
   },

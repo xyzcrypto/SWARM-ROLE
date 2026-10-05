@@ -46,6 +46,9 @@ interface PointsCalculatorCardProps {
 
 export const ALLOC_PILLS = ["10", "20", "30", "50", "100"];
 
+/** Literal class names (Tailwind cannot see a computed `grid-cols-${n}`), so a row of n pills is n columns. */
+const PILL_COLS: Record<number, string> = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" };
+
 /** The supplies almost every token actually launches with. */
 const SUPPLY_PRESETS = [
   { label: "100M", v: "100000000" },
@@ -108,21 +111,42 @@ export function PointsCalculatorCard({
   const anchorLabel = anchor === "comps" ? "from comparables" : "from programme";
 
   const officialAlloc = program.scenario?.allocationPctOfSupply ?? 10;
+  /**
+   * ⚠️ A programme's OWN presets win over the generic ones.
+   *
+   * The registry already carries per-programme scenario lists
+   * (`allocationScenarios`, `fdvScenariosUsd`) - Sodex's 100/50/30% pool,
+   * RiseX's 20/25/30%, Arcus's 5-30% airdrop and $250M-$3B FDV ladder - but
+   * this card ignored them and offered the same generic 10/20/30/50/100% and
+   * $1B/$3B/$10B to every programme. So the scenarios a programme was set up
+   * with were reachable only in a deeper panel, and Arcus showed "$10B" and
+   * "100%" but not the $2B / 25% its numbers were written around.
+   */
+  const ownAllocs = useMemo(() => program.scenario?.allocationScenarios ?? [], [program.scenario?.allocationScenarios]);
   const allocPills = useMemo(() => {
+    if (ownAllocs.length >= 2) {
+      return Array.from(new Set(ownAllocs.map((a) => a.pct))).sort((a, b) => a - b).slice(0, 5).map(String);
+    }
     const set = new Set<number>([officialAlloc, 10, 20, 50]);
     if (set.size < 5) set.add(30);
     if (set.size < 5) set.add(100);
     if (set.size < 5) set.add(25);
     if (set.size < 5) set.add(15);
     return Array.from(set).sort((a, b) => a - b).slice(0, 5).map(String);
-  }, [officialAlloc]);
+  }, [officialAlloc, ownAllocs]);
+  const allocLabelOf = (pct: string) => ownAllocs.find((a) => Math.abs(a.pct - Number(pct)) < 0.01)?.label;
 
-  // Exactly 3 compact scenario pills so they always stay on 1 single row
+  // A programme with its own FDV ladder (3+ steps) gets that ladder, up to 5
+  // pills; otherwise 3 generic pills around the anchor. Either way one row.
   const scenarioFdvs = program.scenario?.fdvScenariosUsd;
   const primaryFdv = anchorFdv > 0 ? Math.round(anchorFdv) : (scenarioFdvs?.[0] ?? 1_000_000_000);
-  const fdvScenarios = Array.from(
-    new Set([primaryFdv, 1_000_000_000, 3_000_000_000, 10_000_000_000])
-  ).sort((a, b) => a - b).slice(0, 3);
+  const fdvScenarios =
+    scenarioFdvs && scenarioFdvs.length >= 3
+      ? Array.from(new Set(scenarioFdvs)).sort((a, b) => a - b).slice(0, 5)
+      : Array.from(new Set([primaryFdv, 1_000_000_000, 3_000_000_000, 10_000_000_000])).sort((a, b) => a - b).slice(0, 3);
+  /** Short enough for five pills on a phone: $250M, $1B, $1.5B. */
+  const fdvShort = (v: number) =>
+    v >= 1_000_000_000 ? `$${Number((v / 1_000_000_000).toFixed(2))}B` : `$${Math.round(v / 1_000_000)}M`;
 
   const website = program.links?.website;
   let domain = "";
@@ -237,11 +261,25 @@ export function PointsCalculatorCard({
             )}
           </div>
 
-          {/* Confirmed Data Badge */}
-          <div className="inline-flex items-center gap-1.5 rounded-xl border border-mint-500/30 bg-mint-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-mint-300">
-            <CheckCircle2 className="h-3 w-3" />
-            <span>Confirmed Data</span>
-          </div>
+          {/* Data badge. ⚠️ This used to say "Confirmed Data" for EVERY programme,
+              including the ones the registry marks `confirmed: false` - so a
+              community guess (or Arcus, which has no token at all) wore the same
+              green "confirmed" badge as Sodex's real, trading token. The badge
+              now follows the registry's own flag. */}
+          {program.confirmed ? (
+            <div className="inline-flex items-center gap-1.5 rounded-xl border border-mint-500/30 bg-mint-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-mint-300">
+              <CheckCircle2 className="h-3 w-3" />
+              <span>Confirmed data</span>
+            </div>
+          ) : (
+            <div
+              title="Token supply, airdrop size and FDV are not published for this programme - these are scenario inputs you can edit."
+              className="inline-flex items-center gap-1.5 rounded-xl border border-gold-500/30 bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-gold-200"
+            >
+              <Info className="h-3 w-3" />
+              <span>Scenario data</span>
+            </div>
+          )}
         </div>
       </div>
 
@@ -365,7 +403,7 @@ export function PointsCalculatorCard({
             </div>
 
             {/* Quick Scenario Pills */}
-            <div className="mt-1.5 grid grid-cols-5 gap-1.5">
+            <div className={cn("mt-1.5 grid gap-1.5", PILL_COLS[allocPills.length] ?? "grid-cols-5")}>
               {allocPills.map((pill) => {
                 const isActive = Math.abs(Number(allocPct) - Number(pill)) < 0.01;
                 return (
@@ -378,6 +416,8 @@ export function PointsCalculatorCard({
                       onAllocPctChange(pill);
                     }}
                     aria-pressed={isActive}
+                    aria-label={allocLabelOf(pill) ?? `${pill}%`}
+                    title={allocLabelOf(pill)}
                     className={cn(
                       "rounded-lg border py-1 text-center text-[11px] font-medium transition-colors truncate",
                       isActive
@@ -451,7 +491,7 @@ export function PointsCalculatorCard({
 
             {/* Quick Scenario Pills (1 clean row on 3-cols grid) */}
             {fdvScenarios && fdvScenarios.length > 0 && (
-              <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+              <div className={cn("mt-1.5 grid gap-1.5", PILL_COLS[fdvScenarios.length] ?? "grid-cols-3")}>
                 {fdvScenarios.map((v) => {
                   const isActive = Math.abs(Number(fdv) - v) < 1;
                   return (
@@ -474,7 +514,7 @@ export function PointsCalculatorCard({
                           : "border-hairline text-content-subtle hover:border-gold-500/30 hover:text-content-muted active:border-gold-500/30"
                       )}
                     >
-                      {usdCompact(v)} FDV
+                      {fdvScenarios.length > 3 ? fdvShort(v) : `${usdCompact(v)} FDV`}
                     </button>
                   );
                 })}

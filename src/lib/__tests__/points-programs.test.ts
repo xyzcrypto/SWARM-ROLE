@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { projectValue } from "@modules/points/lib/points";
 import { DEX_REGISTRY } from "@modules/markets/lib/dex-registry";
 import {
   buildPrograms,
@@ -137,4 +139,92 @@ describe("every tracked programme is presentable", () => {
       expect(["live", "upcoming", "ended", "distributed"]).toContain(p.phase);
     });
   }
+});
+
+describe("Arcus (Season 1) - official schedule, everything else a scenario", () => {
+  const arcus = DEX_REGISTRY.find((p) => p.id === "arcus")!;
+  const sc = arcus.pointValueScenario!;
+
+  it("totals the Season 1 maximum from the official schedule, not a guess", () => {
+    // 250,000 points every Wednesday, Season 1 starts Thu 1 Oct 2026, ends no later than Wed 30 Jun 2027.
+    const drops: string[] = [];
+    for (let d = new Date(Date.UTC(2026, 9, 1)); d <= new Date(Date.UTC(2027, 5, 30)); d.setUTCDate(d.getUTCDate() + 1)) {
+      if (d.getUTCDay() === 3) drops.push(d.toISOString().slice(0, 10));
+    }
+    expect(drops.length).toBe(39);
+    expect(drops[0]).toBe("2026-10-07");
+    expect(drops.at(-1)).toBe("2027-06-30");
+    expect(sc.totalPoints).toBe(39 * 250_000);
+  });
+
+  it("values a point as FDV x airdrop % / total points (the placeholder supply cancels out)", () => {
+    const perPoint = (fdvUsd: number, pct: number, totalSupply = sc.totalSupply) =>
+      projectValue({ yourPoints: 1, totalPoolPoints: sc.totalPoints, allocationPctOfSupply: pct, totalSupply, fdvUsd, tgeUnlockPct: 100 }).grossUsd;
+    expect(perPoint(500_000_000, 10)).toBeCloseTo(5.128, 3); // the worked example: $500M, 10% -> $5.13
+    expect(perPoint(500_000_000, 10, 7_000_000_000)).toBeCloseTo(perPoint(500_000_000, 10), 9); // supply is irrelevant
+    expect(perPoint(3_000_000_000, 30)).toBeCloseTo(92.31, 2);
+    expect(perPoint(250_000_000, 5)).toBeCloseTo(1.28, 2);
+  });
+
+  it("offers the FDV and airdrop ranges asked for, including 25-30% and $2B / $3B", () => {
+    expect(sc.fdvScenariosUsd).toEqual([250_000_000, 500_000_000, 1_000_000_000, 2_000_000_000, 3_000_000_000]);
+    expect(sc.allocationScenarios!.map((a) => a.pct)).toEqual([5, 10, 15, 25, 30]);
+    expect(sc.allocationScenarios!.map((a) => a.pct)).toContain(sc.allocationPctOfSupply);
+  });
+
+  it("never presents its numbers as official, and says what is missing", () => {
+    expect(arcus.pointsProgram).toMatchObject({ phase: "live", season: "Season 1", confirmed: false, startedAt: "2026-10-01" });
+    expect(arcus.notes).toMatch(/no token yet/i);
+    expect(arcus.notes).toMatch(/Season 0/);
+    expect(arcus.notes).toMatch(/Arcus Network/);
+    expect(arcus.rewardLogic).toMatch(/not redeemable/i);
+  });
+});
+
+describe("Featured Programs card agrees with the calculator", () => {
+  it("Variational shows 32% on the card and uses 32% in the calculator", () => {
+    const card = readFileSync("src/modules/points/components/FeaturedProgramsBar.tsx", "utf8");
+    const v = DEX_REGISTRY.find((p) => p.id === "variational")!;
+    expect(v.pointValueScenario!.allocationPctOfSupply).toBe(32);
+    expect(card).toMatch(/id: "variational",[\s\S]*?allocLabel: "32% Allocation"/);
+  });
+});
+
+describe("a shared /points/<id> link opens that programme's calculator", () => {
+  const client = readFileSync("src/modules/points/components/PointsClient.tsx", "utf8");
+  const venuePage = readFileSync("src/app/points/[venue]/page.tsx", "utf8");
+  it("the link page redirects to /points#programme-<id>", () => {
+    expect(venuePage).toMatch(/redirect\(`\/points#programme-\$\{hit\.id\}`\)/);
+  });
+  it("the page reads that hash and selects the programme (after restoring saved state)", () => {
+    const restore = client.indexOf("localStorage.getItem(STORE_KEY)");
+    const hash = client.indexOf("#programme-([a-z0-9-]+)");
+    expect(restore).toBeGreaterThan(-1);
+    expect(hash).toBeGreaterThan(restore); // declared after, so the link wins over the saved choice
+    expect(client).toMatch(/set\("analyseId", id\);\s*set\("openId", id\);/);
+    expect(client).toMatch(/addEventListener\("hashchange", selectFromHash\)/);
+  });
+  it("covers every programme, including Arcus", () => {
+    expect(DEX_REGISTRY.filter((p) => p.pointValueScenario).map((p) => p.id)).toEqual(expect.arrayContaining(["arcus", "variational", "sodex", "risex"]));
+  });
+});
+
+describe("the calculator offers each programme's own presets", () => {
+  const card = readFileSync("src/modules/points/components/PointsCalculatorCard.tsx", "utf8");
+  it("uses allocationScenarios and fdvScenariosUsd when the programme defines them", () => {
+    expect(card).toMatch(/if \(ownAllocs\.length >= 2\) \{\s*return Array\.from\(new Set\(ownAllocs\.map\(\(a\) => a\.pct\)\)\)/);
+    expect(card).toMatch(/scenarioFdvs && scenarioFdvs\.length >= 3\s*\? Array\.from\(new Set\(scenarioFdvs\)\)/);
+  });
+  it("sizes the pill row to the number of pills with literal grid classes", () => {
+    expect(card).toMatch(/PILL_COLS: Record<number, string> = \{ 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3", 4: "grid-cols-4", 5: "grid-cols-5" \}/);
+  });
+});
+
+describe("the calculator's data badge tells the truth", () => {
+  it("says Confirmed only for programmes the registry marks confirmed", () => {
+    const card = readFileSync("src/modules/points/components/PointsCalculatorCard.tsx", "utf8");
+    expect(card).toMatch(/\{program\.confirmed \? \(/);
+    expect(card).toContain("<span>Scenario data</span>");
+    expect(DEX_REGISTRY.find((p) => p.id === "arcus")!.pointsProgram!.confirmed).toBe(false);
+  });
 });
