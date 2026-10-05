@@ -5,6 +5,55 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-05 (134) — Arcus points calculator; Variational 32%; shared links and the data badge
+
+Owner request. Route table unchanged apart from one more prebuilt `/points/[venue]`
+link page (`/points/arcus`). **1492 tests.** Real-browser checks: **12/12** plus
+badges on three programmes.
+
+- **Arcus, Season 1** is a new `DEX_REGISTRY` entry, so it gets the calculator, the
+  programme list and a `/points/arcus` link.
+  - **Official:** 250,000 points every Wednesday 3 PM ET, from 1 Oct 2026 until no
+    later than 30 Jun 2027.
+  - **Derived and pinned by a test:** 39 drops (7 Oct 2026 to 30 Jun 2027), so at
+    most **9,750,000** Season 1 points.
+  - **Everything else is a scenario:**
+    - Arcus has no token, supply, airdrop size or FDV.
+    - Its terms say points are a participation metric only.
+    - It is marked unconfirmed, and its notes say so.
+    - Season 0 points are unpublished; the notes say how to add an estimate.
+    - It is not the unrelated "Arcus Network" token.
+  - Presets: FDV $250M / $500M / **$1B** / $2B / $3B; airdrop 5 / **10** / 15 / 25 /
+    30%.
+  - The supply is a placeholder: `projectValue` cancels it, so value per point is
+    exactly FDV x % / total points. That is $5.13 at $500M and 10%, $92.31 at $3B
+    and 30%.
+- **Variational allocation: 32%** on the Featured Programs card *and* in the
+  calculator. They had disagreed before (card 12%, calculator 30%); a test now pins
+  them together.
+- **Fix: shared programme links opened the wrong calculator.**
+  - `/points/<id>` redirects to `/points#programme-<id>`, but the redesign stopped
+    rendering those sections.
+  - So every shared link (Variational, Sodex, ...) left the reader on Sodex's
+    numbers.
+  - The page now reads the hash, selects that programme and scrolls to the
+    calculator. It runs after saved state is restored, so the link wins.
+- **Fix: the calculator ignored each programme's own presets.**
+  - It showed generic chips (10/20/30/50/100%, $1B/$3B/$10B) to every programme,
+    so Sodex's pool scenarios, RiseX's 20/25/30% and Arcus's ladder were missing
+    from it.
+  - It now uses a programme's own presets when it defines them, up to five; short
+    labels keep five on one row on a phone.
+- **Fix: "Confirmed Data" was hard-coded on every programme**, including
+  unconfirmed ones. The badge now follows the registry's `confirmed` flag:
+  "Confirmed data" (Sodex) or "Scenario data" (Arcus, Variational, RiseX).
+- **Still open:** RiseX's Featured card says 10% while its calculator uses 25%. Left
+  as is; not part of this request.
+- Tests: `points-programs.test.ts` (+12). They cover:
+  - the 39-drop maths and value per point;
+  - the presets, the Variational card/calculator match, and the shared-link hash;
+  - preset chips and the honest badge.
+
 ## 2026-10-03 (133) — "What is XYZ Crypto?" explainer film below the hero
 
 Owner request: a one-minute film for new visitors, in a desktop and a phone cut,

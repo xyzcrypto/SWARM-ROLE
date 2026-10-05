@@ -43,7 +43,7 @@ const FEATURED_ITEMS: FeaturedItem[] = [
     name: "Variational",
     badge: "Official",
     pointsLabel: "9.4M Points",
-    allocLabel: "12% Allocation",
+    allocLabel: "32% Allocation",
     tags: ["Options", "Perps", "Spot"],
   },
   {
