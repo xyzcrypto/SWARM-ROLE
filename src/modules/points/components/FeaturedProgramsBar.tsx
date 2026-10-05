@@ -42,9 +42,18 @@ const FEATURED_ITEMS: FeaturedItem[] = [
     id: "variational",
     name: "Variational",
     badge: "Official",
-    pointsLabel: "9.4M Points",
+    pointsLabel: "11.2M Points",
     allocLabel: "32% Allocation",
     tags: ["Options", "Perps", "Spot"],
+  },
+  {
+    id: "arcus",
+    name: "Arcus",
+    badge: "Official",
+    // 39 weekly drops x 250,000 = the Season 1 maximum (registry totalPoints)
+    pointsLabel: "9.75M Points",
+    allocLabel: "25% Allocation",
+    tags: ["Perps", "RWA", "Spot"],
   },
   {
     id: "hyperliquid",
@@ -97,8 +106,8 @@ export function FeaturedProgramsBar({
         )}
       </div>
 
-      {/* 5 Cards Grid */}
-      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-5">
+      {/* 6 cards: 3 + 3 on laptops, one row from xl up */}
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         {FEATURED_ITEMS.map((item) => {
           const prog = programs.find((p) => p.id === item.id);
           const isSelected = activeId === item.id;

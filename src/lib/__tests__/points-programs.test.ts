@@ -188,6 +188,27 @@ describe("Featured Programs card agrees with the calculator", () => {
     expect(v.pointValueScenario!.allocationPctOfSupply).toBe(32);
     expect(card).toMatch(/id: "variational",[\s\S]*?allocLabel: "32% Allocation"/);
   });
+
+  // The labels are hard-coded, so pin each live card to the registry it advertises.
+  const card = readFileSync("src/modules/points/components/FeaturedProgramsBar.tsx", "utf8");
+  const label = (id: string, key: "pointsLabel" | "allocLabel") =>
+    card.match(new RegExp(`id: "${id}",[\\s\\S]*?${key}: "([^"]+)"`))?.[1];
+  const millions = (n: number) => `${+(n / 1_000_000).toFixed(2)}M Points`;
+
+  it("Variational shows 11.2M points, the calculator's pool", () => {
+    const sc = DEX_REGISTRY.find((p) => p.id === "variational")!.pointValueScenario!;
+    expect(sc.totalPoints).toBe(11_200_000);
+    expect(label("variational", "pointsLabel")).toBe(millions(sc.totalPoints));
+  });
+
+  it("Arcus has a live card: 9.75M points and 25%, same as its calculator", () => {
+    const sc = DEX_REGISTRY.find((p) => p.id === "arcus")!.pointValueScenario!;
+    expect(label("arcus", "pointsLabel")).toBe("9.75M Points");
+    expect(label("arcus", "pointsLabel")).toBe(millions(sc.totalPoints));
+    expect(label("arcus", "allocLabel")).toBe(`${sc.allocationPctOfSupply}% Allocation`);
+    expect(sc.allocationPctOfSupply).toBe(25);
+    expect(card).toMatch(/LOCKED_IDS = new Set\(\["hyperliquid", "lighter"\]\)/);
+  });
 });
 
 describe("a shared /points/<id> link opens that programme's calculator", () => {

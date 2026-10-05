@@ -5,6 +5,27 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-05 (135) — Arcus Featured card (9.75M, 25%); Variational 11.2M points
+
+Owner request. Data and layout only; the route table is unchanged. **1494 tests.**
+
+- **Arcus card in Featured Programs**, next to Variational. It is live, not locked,
+  with the "Official" badge (Arcus runs an official points programme), Farming Now,
+  **9.75M Points** (the Season 1 maximum: 39 x 250,000), **25% Allocation**,
+  Perps / RWA / Spot, and Calculate.
+- **Arcus calculator default is now 25%** (was 10%), so the card and calculator
+  agree. It is still a scenario: Arcus has published no token or airdrop size.
+- **Variational: 11.2M points** on the card and as the calculator's total pool
+  (was 9.4M).
+- **Grid for six cards:** one column on phones, two from `sm`, 3 + 3 from `lg`,
+  and one row of six from `xl`. Checked at 390, 1024 and 1440 px with no
+  horizontal scroll.
+- **Tests:** the Arcus and Variational card labels are pinned to the registry
+  numbers the calculator uses, and Hyperliquid and Lighter stay locked.
+- Files: `FeaturedProgramsBar.tsx`, `dex-registry.ts`, `points-programs.test.ts`.
+
+---
+
 ## 2026-10-05 (134) — Arcus points calculator; Variational 32%; shared links and the data badge
 
 Owner request. Route table unchanged apart from one more prebuilt `/points/[venue]`
