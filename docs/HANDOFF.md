@@ -700,6 +700,61 @@ again (#201) after the version-update PRs turned out not to be wanted yet.
 
 ## 8. Open items / natural next steps
 
+### 📌 Start here — pending as of 2026-10-06
+
+The owner paused paid Claude until after Devcon. Everything up to #376 is merged to `main`,
+and nothing is half-done on any branch. This list is the single place to pick up from. It
+holds no secrets: variable **names** only, and values stay in Vercel, Supabase and GitHub.
+
+**A. Owner-only, no code and no Claude needed** (dashboards and a terminal)
+1. **Sentry DSN.** Add the DSN variables in Vercel, then redeploy (`NEXT_PUBLIC_*` is
+   inlined at build time). Until then no error from the browser, server or edge is reported.
+   Details: the Sentry entry further down this section.
+2. **XYZ Sentinel (`/api/watchdog`).** Run
+   `curl -s -o /dev/null -w "%{http_code}\n" https://xyzcrypto.io/api/watchdog`.
+   **503** means the variable is absent from the deployment, so redeploy. **403** means it is
+   present and the earlier token was wrong. Then add its secrets under **GitHub Actions**
+   (not Vercel) and uncomment `schedule:` in `.github/workflows/watchdog.yml`. A green run
+   without secrets only means it skipped.
+3. **Check three shipped fixes on the live site** (Claude's sandbox cannot reach the site):
+   - **Login (#285):** a member who reset or changed their password lands signed in.
+   - **Avatar (#283):** profiles show a photo, not the member's name as text.
+   - **DM quote (#283):** a reply to a photo shows **📷 Photo**, not a storage URL.
+4. **Supabase.** Confirm the "exceeded its quota" warning (item 7 of the parked list below)
+   is gone. If projects are restricted, the site's data calls fail.
+5. **SEO.** Set `NEXT_PUBLIC_GSC_VERIFICATION` and `NEXT_PUBLIC_GA_ID` in Vercel, then
+   redeploy.
+6. **Dependabot PRs: #377, #334, #333 (Next 16.3.4), #332, #331, #299.** These are authored
+   by a bot, not the owner, so Claude does not merge them. The owner can squash-merge each
+   one from GitHub once its CI is green. Merge them one at a time: each merge can put the
+   others into conflict.
+7. **Promo videos.** The Arcus, Variational and RiseX promos were delivered in chat as
+   files, not stored in the repo. Post them from wherever they were saved.
+
+**B. Needs an owner decision, then a small code change**
+1. **RiseX allocation mismatch.** The Featured card (`FeaturedProgramsBar.tsx`) says
+   **10%**, but the calculator and the airdrop list use **20 / 25 / 30%** (registry default
+   25%). Pick one number. If it is 10%, also add 10% to RiseX's `allocationScenarios`. Add a
+   card-equals-registry test like the Arcus and Variational ones in
+   `points-programs.test.ts`.
+2. **Arcus "sellable at TGE" line.** Arcus has published no unlock data
+   (`tgeUnlockPcts: []`), but the calculator still shows a sellable-at-TGE figure from its
+   general default. Decide: hide the line when a programme has no unlock data, or keep it.
+
+**C. Code work for the next Claude session**
+1. **Em dash in site copy.** The calculator's "sellable at TGE — the rest unlocks later" uses
+   an em dash, which the site's copy rule forbids. One-line fix plus a test.
+2. **`next/font/google` can fail a production build** (item 2 of the parked list below).
+   Commit the font files and move to `next/font/local`. The output must be byte-identical:
+   the hero is approved UI.
+3. **Journal share cards under `/api/`** (item 6 of the parked list below). `robots.ts`
+   blocks `/api/`, which hid the points card's preview on X until it moved out. The same
+   probably applies here.
+
+**Already resolved, do not redo:** PR #284 (parked item 1 below) was **closed without
+merging on 2026-09-05**. The `readMinutes` backfill and the review notes only matter if that
+work is reopened.
+
 ### ⏸️ Parked 2026-08-11 — picked up in this order when work resumes
 
 Owner asked to park these. Newest context first; nothing here is started.
