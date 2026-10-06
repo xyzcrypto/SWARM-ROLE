@@ -5,6 +5,16 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-06 (136) — Handoff: pending work in one place
+
+Docs only. `docs/HANDOFF.md §8` now opens with **"📌 Start here — pending as of
+2026-10-06"**. It groups the work into owner-only dashboard tasks, two owner decisions
+(RiseX card 10% vs calculator 25%, Arcus TGE line), and code work for the next session. It
+also records that PR #284 was closed unmerged, so its parked backfill no longer applies. It
+holds no secrets: variable names only.
+
+---
+
 ## 2026-10-05 (135) — Arcus Featured card (9.75M, 25%); Variational 11.2M points
 
 Owner request. Data and layout only; the route table is unchanged. **1494 tests.**
