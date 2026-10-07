@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 import { env, storageEnabled, realtimeEnabled, emailEnabled, googleEnabled, githubEnabled, twitterEnabled, aiEnabled } from "@/lib/env";
 import { Navbar } from "@/components/Navbar";
 import { DashboardClient } from "@/components/DashboardClient";
-import { isStaff } from "@/lib/permissions";
+import { isStaff, hasPermission } from "@/lib/permissions";
 import { publicImageUrl } from "@/lib/utils";
 import { todayKey } from "@/lib/xp";
 import { memberCheckins } from "@/lib/member-checkins";
@@ -57,6 +57,14 @@ export default async function DashboardPage() {
     isSuperAdmin: Boolean(me.isSuperAdmin) || me.role === "ADMIN",
   };
 
+  // Member rows carry full emails and last-login times, so they are loaded only
+  // for a viewer who holds the matching capability. Hiding the tab client-side
+  // was not enough: the rows were still serialized into the page payload for any
+  // staff member at all (e.g. someone granted only `whatsnew:manage`).
+  // dashboard-member-pii.test.ts pins this.
+  const canSeeMembers = hasPermission(me, "users:manage");
+  const canSeePremium = hasPermission(me, "premium:manage");
+
   const startOfToday = new Date();
   startOfToday.setHours(0, 0, 0, 0);
 
@@ -86,8 +94,10 @@ export default async function DashboardPage() {
       // eslint-disable-next-line react-hooks/purity
       prisma.user.count({ where: { createdAt: { gte: new Date(Date.now() - 7 * 864e5) } } }),
       prisma.subscriber.count(),
-      prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: userSelect }),
-      prisma.user.findMany({ where: { membership: "Premium" }, orderBy: { createdAt: "desc" }, take: 100, select: userSelect }),
+      canSeeMembers ? prisma.user.findMany({ orderBy: { createdAt: "desc" }, take: 50, select: userSelect }) : Promise.resolve([]),
+      canSeePremium
+        ? prisma.user.findMany({ where: { membership: "Premium" }, orderBy: { createdAt: "desc" }, take: 100, select: userSelect })
+        : Promise.resolve([]),
       getDashboardPosts(),
       prisma.pageView.count().catch(() => 0),
       prisma.pageView.count({ where: { createdAt: { gte: startOfToday } } }).catch(() => 0),

@@ -751,6 +751,17 @@ holds no secrets: variable **names** only, and values stay in Vercel, Supabase a
    blocks `/api/`, which hid the points card's preview on X until it moved out. The same
    probably applies here.
 
+**D. Full audit, 2026-10-07: `docs/AUDIT-2026-10-07.md`.** Security, bugs, speed and SEO,
+ranked P0/P1/P2 with ratings, file:line evidence and a status column. #379 fixed S1 (Next
+16.3.8) and S3 (dashboard emails). **Next up from it:**
+1. S2: forged chat messages.
+2. SEO1 + SEO3: Google can't see the markets and points data; `/points` is missing from the
+   sitemap.
+3. The Journal bugs B1–B5.
+4. The speed items.
+
+When an item is fixed, update its status in that file.
+
 **Already resolved, do not redo:** PR #284 (parked item 1 below) was **closed without
 merging on 2026-09-05**. The `readMinutes` backfill and the review notes only matter if that
 work is reopened.

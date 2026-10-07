@@ -53,7 +53,9 @@ describe("cached formatters say exactly what toLocale*String said", () => {
           expect(dayLabel(iso, local, now), `${iso} @ ${now}`).toBe(old.day(iso, local, now));
         }
       }
-    });
+      // The toLocale*String reference is slow (it builds a formatter per call), and
+      // under the full parallel run this took 5.2-6.1s, failing on the 5s default.
+    }, 30_000);
   }
 
   it("formatDate / formatDateWithDay / formatDateTime", () => {
