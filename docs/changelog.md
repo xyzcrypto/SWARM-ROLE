@@ -5,6 +5,28 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-07 (137) — Security: Next 16.3.8, dashboard member emails gated; full audit filed
+
+From the 2026-10-07 audit (`docs/AUDIT-2026-10-07.md`, linked from `HANDOFF.md §8`).
+
+- **`next` 16.3.0 → 16.3.8.** This clears the critical advisories, including RCE in
+  `next/og` `ImageResponse`, which the 5 share-card routes use, and in Image Optimization
+  with AVIF.
+  - `npm audit --omit=dev` now shows 0 critical.
+  - The lockfile only moves `next`, `@next/*`, `sharp` (0.35.5) and `@swc/helpers`.
+  - Dependabot #333 (16.3.4) and #332 (sharp) are superseded.
+- **`/dashboard` no longer ships member emails to every staff member.**
+  - Before: anyone with any single capability (say `whatsnew:manage`) received up to 150
+    members' full emails and last-login times in the page payload, with only the tab
+    hidden.
+  - Now: recent members load only with `users:manage`, and Premium members only with
+    `premium:manage`.
+  - Pinned by `dashboard-member-pii.test.ts`.
+- **Audit filed:** security 7, bugs 7, speed 6.5, SEO 5.5 out of 10, with P0/P1/P2 lists
+  and a status column.
+
+---
+
 ## 2026-10-06 (136) — Handoff: pending work in one place
 
 Docs only. `docs/HANDOFF.md §8` now opens with **"📌 Start here — pending as of
