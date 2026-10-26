@@ -567,42 +567,56 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     goToFeed();
   }, [goToFeed]);
 
-  return (
-    <div className="space-y-8">
-      {/* Hero: intro on the left, the featured story on the right. */}
-      <section className="relative overflow-hidden rounded-[28px] border border-hairline bg-surface/40 px-5 py-6 sm:px-8 sm:py-8">
-        <HeroNetwork />
-        <div aria-hidden className="pointer-events-none absolute -left-32 -top-40 h-80 w-80 rounded-full bg-gold-500/10 blur-3xl" />
-        <div className="relative grid items-center gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-10">
-          <NewsHeroIntro onExplore={goToFeed} />
-          {featured.length > 0 ? (
-            <FeaturedStory items={featured} now={now} onOpen={openReader} isSaved={isSaved} onBookmark={toggleSave} />
-          ) : loading ? (
-            <div className="shimmer aspect-[4/3] rounded-3xl bg-surface-2" aria-hidden />
-          ) : (
-            <div className="grid aspect-[4/3] place-items-center rounded-3xl border border-dashed border-hairline p-8 text-center">
-              <p className="text-sm text-content-muted">The featured story appears here as soon as the feed refreshes.</p>
-            </div>
-          )}
-        </div>
-      </section>
+  const tabs: { k: "latest" | "top" | "saved"; label: string }[] = [
+    { k: "latest", label: "Latest" },
+    { k: "top", label: "Top" },
+    { k: "saved", label: saved.length ? `Saved (${saved.length})` : "Saved" },
+  ];
+  const activeTab = savedOnly ? "saved" : sort;
+  const pickTab = (k: "latest" | "top" | "saved") => {
+    if (k === "saved") { setSavedOnly(true); return; }
+    setSavedOnly(false);
+    setSort(k);
+  };
 
-      {/* Discovery toolbar */}
-      <div id="news-feed" className="scroll-mt-28 space-y-3">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
-          <div className="relative min-w-0 flex-1">
+  return (
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="min-w-0 space-y-6">
+        {/* Hero: one compact strip - title on the left, the top story on the right. */}
+        <section className="relative grid overflow-hidden rounded-3xl border border-hairline bg-surface lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+          <div className="relative">
+            <HeroNetwork />
+            <div aria-hidden className="pointer-events-none absolute -left-24 -top-28 h-64 w-64 rounded-full bg-gold-500/10 blur-3xl" />
+            <NewsHeroIntro onExplore={goToFeed} live={live} />
+          </div>
+          <div className="relative min-w-0 border-t border-hairline lg:border-l lg:border-t-0">
+            {featured.length > 0 ? (
+              <FeaturedStory items={featured} now={now} onOpen={openReader} isSaved={isSaved} onBookmark={toggleSave} />
+            ) : loading ? (
+              <div className="shimmer h-full min-h-[300px] bg-surface-2" aria-hidden />
+            ) : (
+              <div className="grid h-full min-h-[300px] place-items-center p-8 text-center">
+                <p className="text-sm text-content-muted">The top story appears here as soon as the feed refreshes.</p>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Discovery bar: search and topics in one aligned row. */}
+        <div id="news-feed" className="scroll-mt-28 flex flex-col gap-2.5 rounded-2xl border border-hairline bg-surface p-2 lg:flex-row lg:items-center">
+          <div className="relative min-w-0 lg:w-72 lg:shrink-0">
             <label htmlFor="news-search" className="sr-only">Search news</label>
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-subtle" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-subtle" />
             <input
               id="news-search"
               value={rawQuery}
               onChange={(e) => setRawQuery(e.target.value)}
-              placeholder="Search headlines, projects, tokens and sources"
-              className="w-full rounded-2xl border border-hairline bg-surface py-3 pl-10 pr-16 text-sm text-content placeholder:text-content-subtle focus:border-gold-500/50 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
+              placeholder="Search news, projects, tokens"
+              className="h-9 w-full rounded-xl border border-hairline bg-surface-2 pl-9 pr-16 text-[13px] text-content placeholder:text-content-subtle focus:border-gold-500/50 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
             />
             <MicButton
               size="sm"
-              className="absolute right-9 top-1/2 -translate-y-1/2 !rounded-lg !ring-0"
+              className="absolute right-8 top-1/2 -translate-y-1/2 !rounded-lg !ring-0"
               onText={(t) => setRawQuery((v) => (v ? `${v} ${t}` : t))}
             />
             {rawQuery && (
@@ -611,240 +625,220 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               </button>
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Sort. A segmented control, not more pills, so the toolbar keeps a
-                clear hierarchy: topics below, ordering here. */}
-            <div role="radiogroup" aria-label="Sort stories" className="inline-flex rounded-xl border border-hairline bg-surface p-1">
-              {(["top", "latest"] as const).map((k) => (
+          <div className="flex min-w-0 flex-1 items-center gap-1.5">
+            <div className="flex min-w-0 flex-1 snap-x items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {loggedIn && (
                 <button
-                  key={k}
-                  role="radio"
-                  aria-checked={sort === k}
-                  onClick={() => setSort(k)}
-                  className={cn("rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors", sort === k ? "bg-gold-500/15 text-gold-300" : "text-content-muted hover:text-content")}
+                  onClick={() => setCategory("For You")}
+                  aria-pressed={category === "For You"}
+                  className={cn(
+                    "inline-flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium leading-none transition-colors active:scale-95",
+                    category === "For You" ? "bg-gold-400 text-ink" : "text-content-muted hover:bg-surface-2 hover:text-content"
+                  )}
                 >
-                  {k === "top" ? "Top" : "Latest"}
+                  <Star className="h-3.5 w-3.5" /> For You
+                </button>
+              )}
+              {["All", ...PRIMARY_TOPICS, ...(extraCategory ? [category] : [])].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategory(cat)}
+                  aria-pressed={category === cat}
+                  className={cn(
+                    "inline-flex h-9 shrink-0 snap-start items-center rounded-xl px-3 text-[13px] font-medium leading-none transition-colors active:scale-95",
+                    category === cat ? "bg-gold-400 text-ink" : "text-content-muted hover:bg-surface-2 hover:text-content"
+                  )}
+                >
+                  {cat === "All" ? "All news" : cat}
                 </button>
               ))}
             </div>
-            <button
-              onClick={() => setSavedOnly((v) => !v)}
-              aria-pressed={savedOnly}
-              className={cn(
-                "inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-[13px] font-medium transition-colors",
-                savedOnly ? "border-gold-500/40 bg-gold-500/15 text-gold-200" : "border-hairline bg-surface text-content-muted hover:text-content"
-              )}
-            >
-              <Bookmark className="h-4 w-4" /> Saved{saved.length ? ` (${saved.length})` : ""}
-            </button>
-            <NewsAlertsToggle loggedIn={loggedIn} showPrefs />
-            <span className="hidden items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-content-subtle sm:flex">
-              <span className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse bg-mint-400" : "bg-amber-400")} />
-              {live ? "Live" : "Cached"}
-            </span>
-          </div>
-        </div>
-
-        {/* Topic chips. The ten most-read topics stay visible; the rest of the
-            taxonomy sits behind "More topics" so the row does not become a
-            wall of pills. */}
-        <div className="flex items-center gap-2">
-          <div className="-mx-1 flex flex-1 snap-x items-center gap-2 overflow-x-auto scroll-smooth px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {loggedIn && (
-              <button
-                onClick={() => setCategory("For You")}
-                aria-pressed={category === "For You"}
-                className={cn(
-                  "inline-flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-xl px-3.5 text-[13px] font-medium leading-none transition-all active:scale-95",
-                  category === "For You" ? "bg-gold-400 text-ink" : "border border-hairline bg-surface text-content-muted hover:text-content"
-                )}
+            <label className="relative shrink-0">
+              <span className="sr-only">More topics</span>
+              <select
+                value=""
+                onChange={(e) => { if (e.target.value) setCategory(e.target.value); }}
+                className="h-9 w-[88px] appearance-none rounded-xl border border-hairline bg-surface-2 pl-3 pr-7 text-[13px] font-medium text-content-muted transition-colors hover:text-content focus:border-gold-500/50 focus:outline-none"
               >
-                <Star className="h-3.5 w-3.5" /> For You
+                <option value="">More</option>
+                {CATEGORIES.filter((c) => !PRIMARY_TOPICS.includes(c as (typeof PRIMARY_TOPICS)[number])).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+              <ChevronDown aria-hidden className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-subtle" />
+            </label>
+            {loggedIn && (
+              <button onClick={() => setCustomizing(true)} aria-label="Customize feed" className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-hairline bg-surface-2 text-content-muted transition-colors hover:text-content">
+                <SlidersHorizontal className="h-4 w-4" />
               </button>
             )}
-            {["All", ...PRIMARY_TOPICS, ...(extraCategory ? [category] : [])].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setCategory(cat)}
-                aria-pressed={category === cat}
-                className={cn(
-                  "inline-flex h-9 shrink-0 snap-start items-center rounded-xl px-3.5 text-[13px] font-medium leading-none transition-all active:scale-95",
-                  category === cat ? "bg-gold-400 text-ink" : "border border-hairline bg-surface text-content-muted hover:border-gold-500/30 hover:text-content"
-                )}
-              >
-                {cat === "All" ? "All news" : cat}
-              </button>
-            ))}
           </div>
-          <label className="relative shrink-0">
-            <span className="sr-only">More topics</span>
-            <select
-              value=""
-              onChange={(e) => { if (e.target.value) setCategory(e.target.value); }}
-              className="h-9 appearance-none rounded-xl border border-hairline bg-surface pl-3.5 pr-8 text-[13px] font-medium text-content-muted transition-colors hover:text-content focus:border-gold-500/50 focus:outline-none"
-            >
-              <option value="">More topics</option>
-              {CATEGORIES.filter((c) => !PRIMARY_TOPICS.includes(c as (typeof PRIMARY_TOPICS)[number])).map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-            <ChevronDown aria-hidden className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-content-subtle" />
-          </label>
-          {loggedIn && (
-            <button onClick={() => setCustomizing(true)} aria-label="Customize feed" className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl border border-hairline bg-surface px-3 text-[13px] font-medium leading-none text-content-muted transition-colors hover:text-content">
-              <SlidersHorizontal className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Customize</span>
-            </button>
-          )}
         </div>
-      </div>
 
-      {/* Why a save or a topic change did not stick. The server has a specific
-          answer for each - "Please log in to save stories.", "Too many
-          requests. Please slow down." - and every one of them used to be
-          discarded, leaving a bookmark that looked saved and was not. */}
-      {saveErr && (
-        <p role="status" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-[12px] text-amber-200">
-          {saveErr}
-        </p>
-      )}
-
-      {/* Empty "For You" hint */}
-      {category === "For You" && !interests.length && (
-        <div className="rounded-2xl border border-dashed border-gold-500/25 bg-gold-500/[0.04] py-8 text-center">
-          <p className="text-sm font-semibold text-content">Build your personalized feed</p>
-          <p className="mt-1 text-sm text-content-muted">Pick the topics you care about to see only what matters to you.</p>
-          <button onClick={() => setCustomizing(true)} className="btn-gold mt-4 px-4 py-2 text-sm">Choose topics</button>
-        </div>
-      )}
-
-      {/* "N new stories" pill (Twitter-style) */}
-      <AnimatePresence>
-        {!savedOnly && pending.length > 0 && (
-          <motion.div
-            key="new-pill"
-            initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-            className="sticky top-20 z-20 flex justify-center"
-          >
-            <button onClick={revealPending} className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/40 bg-gold-500/15 px-4 py-1.5 text-[13px] font-semibold text-gold-100 shadow-lg shadow-black/30 backdrop-blur transition-colors hover:bg-gold-500/25">
-              <ArrowUp className="h-3.5 w-3.5" /> {pending.length} new stor{pending.length === 1 ? "y" : "ies"}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="min-w-0 space-y-10">
-          {loading ? (
-            <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4" aria-busy="true" aria-label="Loading stories">
-              {Array.from({ length: 4 }).map((_, i) => <div key={i} className="shimmer h-72 rounded-2xl bg-surface-2" />)}
-            </div>
-          ) : visible.length ? (
-            <>
-              {topStories.length > 0 && (
-                <section aria-labelledby="news-top">
-                  <SectionHead
-                    id="news-top"
-                    title={query ? `Results for “${query}”` : category === "All" ? (sort === "latest" ? "Latest stories" : "Top stories") : category}
-                  />
-                  <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-                    {topStories.map((item, i) => (
-                      <NewsCard
-                        key={item.id}
-                        variant="grid"
-                        item={item}
-                        index={i}
-                        now={now}
-                        bookmarked={savedUrls.has(item.id)}
-                        onBookmark={toggleSave}
-                        onOpen={openReader}
-                        onToken={searchToken}
-                        onSource={searchToken}
-                        loggedIn={loggedIn}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {isDefaultView && (
-                <>
-                  <FeaturedResearch />
-                  <XyzAiBand />
-                </>
-              )}
-
-              {restStories.length > 0 && (
-                <section aria-labelledby="news-latest">
-                  <SectionHead id="news-latest" title={savedOnly ? "Saved stories" : "Latest news"} />
-                  <div className="surface rounded-3xl px-4 pt-5 sm:px-6">
-                    {restStories.map((item, i) => (
-                      <NewsCard
-                        key={item.id}
-                        item={item}
-                        index={i}
-                        now={now}
-                        bookmarked={savedUrls.has(item.id)}
-                        onBookmark={toggleSave}
-                        onOpen={openReader}
-                        onToken={searchToken}
-                        onSource={searchToken}
-                        loggedIn={loggedIn}
-                      />
-                    ))}
-                  </div>
-                </section>
-              )}
-            </>
-          ) : (
-            <div className="rounded-3xl border border-dashed border-hairline py-16 text-center">
-              <p className="font-display text-lg font-semibold text-content">{savedOnly ? "No saved stories yet" : "No stories match"}</p>
-              <p className="mt-1 text-sm text-content-muted">{savedOnly ? "Bookmark stories to read later." : "Try another topic, clear the search, or check back shortly."}</p>
-            </div>
-          )}
-
-          {/* Infinite-scroll sentinel */}
-          {!savedOnly && hasMore && (
-            <div ref={sentinel} className="flex justify-center py-6">
-              {loadingMore && <Loader2 className="h-5 w-5 animate-spin text-content-subtle" />}
-            </div>
-          )}
-
-          <p className="text-center text-[12px] text-content-subtle">
-            Aggregated from CoinDesk, Cointelegraph, Decrypt and more. Not financial advice.
+        {/* Why a save or a topic change did not stick. The server has a specific
+            answer for each - "Please log in to save stories.", "Too many
+            requests. Please slow down." - and every one of them used to be
+            discarded, leaving a bookmark that looked saved and was not. */}
+        {saveErr && (
+          <p role="status" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-[12px] text-amber-200">
+            {saveErr}
           </p>
+        )}
+
+        {/* Empty "For You" hint */}
+        {category === "For You" && !interests.length && (
+          <div className="rounded-2xl border border-dashed border-gold-500/25 bg-gold-500/[0.04] py-8 text-center">
+            <p className="text-sm font-semibold text-content">Build your personalized feed</p>
+            <p className="mt-1 text-sm text-content-muted">Pick the topics you care about to see only what matters to you.</p>
+            <button onClick={() => setCustomizing(true)} className="btn-gold mt-4 px-4 py-2 text-sm">Choose topics</button>
+          </div>
+        )}
+
+        {/* "N new stories" pill (Twitter-style) */}
+        <AnimatePresence>
+          {!savedOnly && pending.length > 0 && (
+            <motion.div
+              key="new-pill"
+              initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
+              className="sticky top-20 z-20 flex justify-center"
+            >
+              <button onClick={revealPending} className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/40 bg-gold-500/15 px-4 py-1.5 text-[13px] font-semibold text-gold-100 shadow-lg shadow-black/30 backdrop-blur transition-colors hover:bg-gold-500/25">
+                <ArrowUp className="h-3.5 w-3.5" /> {pending.length} new stor{pending.length === 1 ? "y" : "ies"}
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {loading ? (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-busy="true" aria-label="Loading stories">
+            {Array.from({ length: 4 }).map((_, i) => <div key={i} className="shimmer h-72 rounded-2xl bg-surface-2" />)}
+          </div>
+        ) : (
+          topStories.length > 0 && (
+            <section aria-labelledby="news-top">
+              <h2 id="news-top" className="sr-only">{query ? `Results for ${query}` : "Top stories"}</h2>
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {topStories.map((item, i) => (
+                  <NewsCard
+                    key={item.id}
+                    variant="grid"
+                    item={item}
+                    index={i}
+                    now={now}
+                    bookmarked={savedUrls.has(item.id)}
+                    onBookmark={toggleSave}
+                    onOpen={openReader}
+                    onToken={searchToken}
+                    onSource={searchToken}
+                    loggedIn={loggedIn}
+                  />
+                ))}
+              </div>
+            </section>
+          )
+        )}
+
+        {/* Latest list beside Featured research, like a newspaper's second fold. */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
+          <section aria-labelledby="news-latest" className="surface min-w-0 rounded-3xl">
+            <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 sm:px-5">
+              <h2 id="news-latest" className="sr-only">Latest news</h2>
+              <div role="tablist" aria-label="News list" className="flex min-w-0 gap-4 overflow-x-auto [scrollbar-width:none]">
+                {tabs.map((t) => (
+                  <button
+                    key={t.k}
+                    role="tab"
+                    aria-selected={activeTab === t.k}
+                    onClick={() => pickTab(t.k)}
+                    className={cn(
+                      "relative h-12 shrink-0 text-[14px] font-semibold transition-colors",
+                      activeTab === t.k ? "text-gold-300" : "text-content-muted hover:text-content"
+                    )}
+                  >
+                    {t.label}
+                    {activeTab === t.k && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gold-400" />}
+                  </button>
+                ))}
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <NewsAlertsToggle loggedIn={loggedIn} showPrefs />
+              </div>
+            </div>
+            <div className="px-4 pt-4 sm:px-5">
+              {loading ? (
+                <div className="space-y-4 pb-5">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="shimmer h-20 rounded-xl bg-surface-2" />)}</div>
+              ) : restStories.length ? (
+                restStories.map((item, i) => (
+                  <NewsCard
+                    key={item.id}
+                    item={item}
+                    index={i}
+                    now={now}
+                    bookmarked={savedUrls.has(item.id)}
+                    onBookmark={toggleSave}
+                    onOpen={openReader}
+                    onToken={searchToken}
+                    onSource={searchToken}
+                    loggedIn={loggedIn}
+                  />
+                ))
+              ) : (
+                <div className="py-12 text-center">
+                  <p className="font-display text-base font-semibold text-content">{savedOnly ? "No saved stories yet" : visible.length ? "That's everything for now" : "No stories match"}</p>
+                  <p className="mt-1 text-sm text-content-muted">{savedOnly ? "Bookmark stories to read later." : "Try another topic, clear the search, or check back shortly."}</p>
+                </div>
+              )}
+              {/* Infinite-scroll sentinel */}
+              {!savedOnly && hasMore && (
+                <div ref={sentinel} className="flex justify-center py-6">
+                  {loadingMore && <Loader2 className="h-5 w-5 animate-spin text-content-subtle" />}
+                </div>
+              )}
+            </div>
+          </section>
+
+          <div className="min-w-0 space-y-6">
+            {isDefaultView && <FeaturedResearch />}
+          </div>
         </div>
 
-        {/* Discovery sidebar. Below the feed on smaller screens. */}
-        <aside className="min-w-0 space-y-5 xl:sticky xl:top-24 xl:self-start" aria-label="Discover">
-          <TrendingTopics items={items} active={category} onPick={pickTopic} />
-          {topImpact.length > 0 && (
-            <section className="surface rounded-3xl p-5" aria-labelledby="news-impact">
-              <SectionHead id="news-impact" icon={<Star className="h-4 w-4" />} title="High-impact stories" />
-              <ul className="grid gap-3">
-                {topImpact.map((item) => (
-                  <li key={item.id} className="group flex gap-3">
-                    <button onClick={() => openReader(item.id)} className="relative h-16 w-20 shrink-0 overflow-hidden rounded-xl bg-surface-2" aria-label={`Read: ${item.title}`}>
-                      <SafeImg src={item.image} loading="lazy" className="h-full w-full object-cover" />
-                    </button>
-                    <div className="min-w-0 flex-1">
-                      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-gold-400">{item.category}</span>
-                      <button onClick={() => openReader(item.id)} className="block text-left">
-                        <span className="line-clamp-2 text-[13.5px] font-semibold leading-snug text-content group-hover:text-gold-200">{item.title}</span>
-                      </button>
-                      <span className="mt-0.5 block truncate text-[11.5px] text-content-subtle">{item.source}{now ? ` · ${timeAgo(item.publishedAt, now)}` : ""}</span>
-                    </div>
-                    <button onClick={() => toggleSave(item)} aria-label={savedUrls.has(item.id) ? "Remove bookmark" : "Bookmark"} aria-pressed={savedUrls.has(item.id)} className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface-2", savedUrls.has(item.id) ? "text-gold-400" : "text-content-subtle hover:text-content")}>
-                      {savedUrls.has(item.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-          <NewsletterPanel />
-          <CommunityPanel />
-        </aside>
+        {isDefaultView && <XyzAiBand />}
+
+        <p className="text-center text-[12px] text-content-subtle">
+          Aggregated from CoinDesk, Cointelegraph, Decrypt and more. Not financial advice.
+        </p>
       </div>
+
+      {/* Discovery sidebar: alongside everything on desktop, below the feed on smaller screens. */}
+      <aside className="min-w-0 space-y-5 xl:sticky xl:top-24 xl:self-start" aria-label="Discover">
+        <TrendingTopics items={items} active={category} onPick={pickTopic} />
+        {topImpact.length > 0 && (
+          <section className="surface rounded-3xl p-5" aria-labelledby="news-impact">
+            <SectionHead id="news-impact" icon={<Star className="h-4 w-4" />} title="High-impact stories" />
+            <ul className="grid gap-3">
+              {topImpact.map((item) => (
+                <li key={item.id} className="group flex gap-3">
+                  <button onClick={() => openReader(item.id)} className="relative h-14 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-2" aria-label={`Read: ${item.title}`}>
+                    <SafeImg src={item.image} loading="lazy" className="h-full w-full object-cover" />
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-gold-400">{item.category}</span>
+                    <button onClick={() => openReader(item.id)} className="block text-left">
+                      <span className="line-clamp-2 text-[13px] font-semibold leading-snug text-content group-hover:text-gold-200">{item.title}</span>
+                    </button>
+                    <span className="mt-0.5 block truncate text-[11.5px] text-content-subtle">{item.source}{now ? ` · ${timeAgo(item.publishedAt, now)}` : ""}</span>
+                  </div>
+                  <button onClick={() => toggleSave(item)} aria-label={savedUrls.has(item.id) ? "Remove bookmark" : "Bookmark"} aria-pressed={savedUrls.has(item.id)} className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface-2", savedUrls.has(item.id) ? "text-gold-400" : "text-content-subtle hover:text-content")}>
+                    {savedUrls.has(item.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+        <NewsletterPanel />
+        <CommunityPanel />
+      </aside>
 
       {customizing && (
         <CustomizeModal
@@ -1005,7 +999,6 @@ const NewsCard = memo(function NewsCard({
     item.sentiment === "bullish" ? { cls: "bg-mint-500/15 text-mint-300", icon: <TrendingUp className="h-3 w-3" />, label: "Bullish" }
     : item.sentiment === "bearish" ? { cls: "bg-red-500/15 text-red-300", icon: <TrendingDown className="h-3 w-3" />, label: "Bearish" }
     : { cls: "bg-white/5 text-zinc-400", icon: <Minus className="h-3 w-3" />, label: "Neutral" };
-  const impactCls = item.impact === "High" ? "text-red-300 ring-red-500/30" : item.impact === "Medium" ? "text-amber-300 ring-amber-500/30" : "text-zinc-400 ring-white/10";
 
   // Source, time and bookmark: the same line on both variants, so a story's
   // attribution reads identically wherever it appears.
@@ -1070,7 +1063,7 @@ const NewsCard = memo(function NewsCard({
         className="hero-rise surface surface-hover group/card relative flex h-full flex-col overflow-hidden rounded-2xl"
       >
         <div className="relative">
-          {media("aspect-[16/9] w-full")}
+          {media("aspect-[16/10] w-full")}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent" />
           <span className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-black/60 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] !text-gold-200 backdrop-blur-sm">
             {item.category}
@@ -1081,7 +1074,7 @@ const NewsCard = memo(function NewsCard({
         </div>
         <div className="flex flex-1 flex-col gap-2 p-4">
           <button onClick={open} className="text-left">
-            <h3 className="line-clamp-3 min-h-[3.9rem] font-display text-[16px] font-semibold leading-[1.3] tracking-[-0.01em] text-content transition-colors group-hover/card:text-gold-200">{item.title}</h3>
+            <h3 className="line-clamp-3 min-h-[3.6rem] font-display text-[15px] font-semibold leading-[1.3] tracking-[-0.01em] text-content transition-colors group-hover/card:text-gold-200">{item.title}</h3>
           </button>
           {item.summary && <p className="line-clamp-2 text-[13px] leading-relaxed text-content-muted">{item.summary}</p>}
           <div className="mt-auto pt-2">{metaRow}</div>
@@ -1093,21 +1086,26 @@ const NewsCard = memo(function NewsCard({
   return (
     <article
       data-index={index}
-      className="group/card cv-auto relative flex gap-4 border-b border-hairline py-5 first:pt-0 last:border-b-0"
+      className="group/card cv-auto relative flex gap-4 border-b border-hairline py-4 first:pt-0 last:border-b-0"
     >
-      {media("aspect-[4/3] w-24 rounded-xl sm:aspect-[16/10] sm:w-44")}
+      {media("aspect-[4/3] w-24 self-start rounded-lg sm:w-32")}
       <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2">
-          <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.12em] text-gold-400">{item.category}</span>
+        <div className="mb-1 flex items-center gap-2 text-[11px]">
+          <span className="font-mono font-semibold uppercase tracking-[0.12em] text-gold-400">{item.category}</span>
           {item.impact === "High" && <span className="rounded bg-red-500/15 px-1.5 py-px font-mono text-[10px] font-semibold uppercase tracking-wider text-red-300">Breaking</span>}
+          {item.sentiment !== "neutral" && (
+            <span className={cn("inline-flex items-center gap-0.5 font-medium", item.sentiment === "bullish" ? "text-mint-400" : "text-red-400")}>
+              {sentBadge.icon}{sentBadge.label}
+            </span>
+          )}
         </div>
         <button onClick={open} className="text-left">
-          <h3 className="line-clamp-2 font-display text-[16px] font-semibold leading-snug text-content transition-colors group-hover/card:text-gold-200">{item.title}</h3>
+          <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-content transition-colors group-hover/card:text-gold-200">{item.title}</h3>
         </button>
-        {item.summary && <p className="mt-1 line-clamp-2 hidden text-[13.5px] leading-relaxed text-content-muted sm:block">{item.summary}</p>}
+        {item.summary && <div className="mt-1 hidden sm:block"><p className="line-clamp-1 text-[13px] leading-relaxed text-content-muted">{item.summary}</p></div>}
 
         {/* badges */}
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
           {/* Every category the story matched, not just the primary one.
               `categories` has always been computed and shipped - it drives the
               "For You" filter and push targeting - but only `category` was ever
@@ -1122,8 +1120,6 @@ const NewsCard = memo(function NewsCard({
                 {c}
               </span>
             ))}
-          <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", sentBadge.cls)}>{sentBadge.icon}{sentBadge.label}</span>
-          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium ring-1", impactCls)}>{item.impact} impact</span>
           {/* Tokens were inert <span>s. Tapping one searches the feed for it.
               `stopPropagation` because the whole card opens the reader, and a
               tap on a chip means the chip. */}
@@ -1156,23 +1152,43 @@ const NewsCard = memo(function NewsCard({
         )}
         {digest.err && <p className="mt-2 text-[11px] text-amber-300">{digest.err}</p>}
 
-        <div className="mt-2.5">{metaRow}</div>
-
-        {/* actions */}
-        <div className="-ml-2 mt-1 flex flex-wrap items-center gap-x-1 gap-y-1 text-content-subtle">
-          <button onClick={readSummary} disabled={digest.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-gold-300 transition-colors hover:bg-gold-500/10 disabled:opacity-50">
-            {digest.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookOpen className="h-3.5 w-3.5" />} AI Summary
+        {/* One footer line: attribution on the left, actions on the right. */}
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-content-subtle">
+          <SafeImg src={item.sourceIcon} width={14} height={14} loading="lazy" className="h-3.5 w-3.5 shrink-0 rounded" />
+          <button
+            onClick={(e) => { e.stopPropagation(); onSource(item.source); }}
+            className="min-w-0 truncate font-medium text-content-muted transition-colors hover:text-gold-300"
+          >
+            {item.source}
           </button>
-          <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-gold-300 transition-colors hover:bg-gold-500/10 disabled:opacity-50">
-            {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RobotIcon className="h-3.5 w-3.5" />} Why this matters
-          </button>
-          <button onClick={open} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-surface-2 hover:text-content">
-            <BookOpen className="h-3.5 w-3.5" /> Read
-          </button>
-          <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Original source" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-surface-2 hover:text-content">
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-          <button onClick={share} aria-label="Share" className="rounded-lg p-1.5 transition-colors hover:bg-surface-2 hover:text-content"><Share2 className="h-3.5 w-3.5" /></button>
+          <span aria-hidden>·</span>
+          <time
+            className="mono shrink-0"
+            dateTime={item.publishedAt ? new Date(item.publishedAt).toISOString() : undefined}
+            title={item.publishedAt ? new Date(item.publishedAt).toUTCString() : undefined}
+          >
+            {now ? timeAgo(item.publishedAt, now) : ""}
+          </time>
+          <div className="ml-auto flex items-center gap-0.5">
+            <button onClick={readSummary} disabled={digest.loading} className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 font-medium text-gold-300 transition-colors hover:bg-gold-500/10 disabled:opacity-50">
+              {digest.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookOpen className="h-3.5 w-3.5" />}<span className="hidden sm:inline">AI Summary</span>
+            </button>
+            <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 font-medium text-gold-300 transition-colors hover:bg-gold-500/10 disabled:opacity-50">
+              {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RobotIcon className="h-3.5 w-3.5" />}<span className="hidden sm:inline">Why it matters</span>
+            </button>
+            <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Original source" className="grid h-7 w-7 place-items-center rounded-lg transition-colors hover:bg-surface-2 hover:text-content">
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            <button onClick={share} aria-label="Share" className="grid h-7 w-7 place-items-center rounded-lg transition-colors hover:bg-surface-2 hover:text-content"><Share2 className="h-3.5 w-3.5" /></button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onBookmark(item); }}
+              aria-label={bookmarked ? "Remove bookmark" : "Bookmark"}
+              aria-pressed={bookmarked}
+              className={cn("grid h-7 w-7 place-items-center rounded-lg transition-colors hover:bg-surface-2", bookmarked ? "text-gold-400" : "hover:text-content")}
+            >
+              {bookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+            </button>
+          </div>
         </div>
       </div>
     </article>
@@ -1621,7 +1637,7 @@ function FeaturedStory({
 
   return (
     <article
-      className="group relative flex min-w-0 flex-col overflow-hidden rounded-3xl border border-hairline bg-surface shadow-[0_30px_80px_-40px_rgba(0,0,0,0.7)]"
+      className="group relative isolate flex h-full min-h-[250px] min-w-0 flex-col justify-end overflow-hidden sm:min-h-[300px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -1629,59 +1645,56 @@ function FeaturedStory({
       aria-roledescription="carousel"
       aria-label="Featured stories"
     >
-      <button type="button" onClick={() => onOpen(active.id)} className="relative block aspect-[16/9] w-full overflow-hidden bg-surface-2" aria-label={`Read: ${active.title}`}>
-        <AnimatePresence mode="popLayout" initial={false}>
-          <motion.div
-            key={active.id}
-            initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reduce ? 0.2 : 0.8, ease: "easeOut" }}
-            className="absolute inset-0"
-          >
-            {/* The gradient is the fallback, so a failed image must fall THROUGH
-                to it rather than leave a black rectangle. `key` resets the
-                failure state per story. */}
-            <BreakingImage key={active.id} src={active.image} />
-          </motion.div>
-        </AnimatePresence>
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/10" />
-        <div className="absolute left-4 top-4 flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-br from-gold-200 to-gold-500 px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-[0.14em] !text-ink shadow-gold-sm">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.div
+          key={active.id}
+          initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 1.04 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduce ? 0.2 : 0.8, ease: "easeOut" }}
+          className="absolute inset-0 -z-10"
+        >
+          {/* The gradient is the fallback, so a failed image must fall THROUGH
+              to it rather than leave a black rectangle. `key` resets the
+              failure state per story. */}
+          <BreakingImage key={active.id} src={active.image} />
+        </motion.div>
+      </AnimatePresence>
+      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-black via-black/70 to-black/10" />
+
+      <div className="flex flex-col gap-2 p-4 sm:gap-2.5 sm:p-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-md bg-gradient-to-br from-gold-200 to-gold-500 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] !text-ink">
             {active.impact === "High" ? "Top story" : "Featured"}
           </span>
-          <span className="rounded-full bg-black/55 px-2.5 py-1 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] !text-gold-200 backdrop-blur-sm">{active.category}</span>
+          <span className="rounded-md border border-white/20 bg-black/40 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] !text-gold-200">{active.category}</span>
         </div>
-      </button>
-
-      <div className="flex flex-1 flex-col gap-3 p-5 sm:p-6">
-        <button type="button" onClick={() => onOpen(active.id)} className="text-left">
-          <h2 className="line-clamp-3 font-display text-[22px] font-bold leading-[1.18] tracking-[-0.02em] text-content transition-colors group-hover:text-gold-200 sm:text-[26px]">
+        <button type="button" onClick={() => onOpen(active.id)} className="text-left" aria-label={`Read: ${active.title}`}>
+          <h2 className="line-clamp-2 font-display text-[19px] font-bold leading-[1.2] tracking-[-0.015em] !text-white decoration-gold-400 decoration-2 underline-offset-4 group-hover:underline sm:text-[24px]">
             {active.title}
           </h2>
         </button>
-        {active.summary && <p className="line-clamp-3 text-[14.5px] leading-relaxed text-content-muted">{active.summary}</p>}
-
-        <div className="mt-auto flex items-center gap-2 border-t border-hairline pt-4 text-[12.5px] text-content-subtle">
-          <SafeImg src={active.sourceIcon} width={18} height={18} className="h-[18px] w-[18px] shrink-0 rounded" />
-          <span className="min-w-0 truncate font-medium text-content-muted">{active.source}</span>
+        {active.summary && <p className="line-clamp-2 hidden max-w-xl text-[13.5px] leading-relaxed !text-zinc-300 sm:block">{active.summary}</p>}
+        <div className="mt-1 flex items-center gap-2 text-[12px] !text-zinc-300">
+          <SafeImg src={active.sourceIcon} width={16} height={16} className="h-4 w-4 shrink-0 rounded" />
+          <span className="min-w-0 truncate font-medium !text-zinc-200">{active.source}</span>
           <span aria-hidden>·</span>
           <time className="mono shrink-0" dateTime={active.publishedAt ? new Date(active.publishedAt).toISOString() : undefined}>
             {now ? timeAgo(active.publishedAt, now) : ""}
           </time>
-          <div className="ml-auto flex items-center gap-1">
-            <button type="button" onClick={() => onBookmark(active)} aria-label={saved ? "Remove bookmark" : "Bookmark"} aria-pressed={saved} className={cn("grid h-9 w-9 place-items-center rounded-full border border-hairline transition-colors hover:border-gold-500/40", saved ? "text-gold-400" : "hover:text-content")}>
-              {saved ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+          <div className="ml-auto flex items-center gap-1.5">
+            <button type="button" onClick={() => onBookmark(active)} aria-label={saved ? "Remove bookmark" : "Bookmark"} aria-pressed={saved} className={cn("grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 transition-colors hover:border-gold-400/60", saved ? "!text-gold-300" : "!text-white")}>
+              {saved ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
             </button>
-            <button type="button" onClick={() => shareStory(active)} aria-label="Share" className="grid h-9 w-9 place-items-center rounded-full border border-hairline transition-colors hover:border-gold-500/40 hover:text-content">
-              <Share2 className="h-4 w-4" />
+            <button type="button" onClick={() => shareStory(active)} aria-label="Share" className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 !text-white transition-colors hover:border-gold-400/60">
+              <Share2 className="h-3.5 w-3.5" />
             </button>
             {items.length > 1 && (
               <>
-                <button type="button" onClick={() => go(-1)} aria-label="Previous featured story" className="grid h-9 w-9 place-items-center rounded-full border border-hairline transition-colors hover:border-gold-500/40 hover:text-content active:scale-90">
+                <button type="button" onClick={() => go(-1)} aria-label="Previous featured story" className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 !text-white transition-colors hover:border-gold-400/60 active:scale-90">
                   <ChevronLeft className="h-4 w-4" />
                 </button>
-                <button type="button" onClick={() => go(1)} aria-label="Next featured story" className="grid h-9 w-9 place-items-center rounded-full border border-hairline transition-colors hover:border-gold-500/40 hover:text-content active:scale-90">
+                <button type="button" onClick={() => go(1)} aria-label="Next featured story" className="grid h-8 w-8 place-items-center rounded-full border border-white/20 bg-black/40 !text-white transition-colors hover:border-gold-400/60 active:scale-90">
                   <ChevronRight className="h-4 w-4" />
                 </button>
               </>
@@ -1698,7 +1711,7 @@ function FeaturedStory({
                 aria-selected={i === idx % items.length}
                 onClick={() => setIdx(i)}
                 aria-label={`Featured story ${i + 1}`}
-                className={cn("h-1 rounded-full transition-all", i === idx % items.length ? "w-8 bg-gold-400" : "w-3 bg-hairline hover:bg-gold-500/40")}
+                className={cn("h-1 rounded-full transition-all", i === idx % items.length ? "w-7 bg-gold-400" : "w-3 bg-white/30 hover:bg-white/60")}
               />
             ))}
           </div>

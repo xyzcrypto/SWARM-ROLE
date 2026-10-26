@@ -31,7 +31,7 @@ describe("news redesign: real data only", () => {
   });
 
   it("states the source count from NEWS_SOURCES rather than a hard-coded number", () => {
-    expect(layout).toMatch(/String\(NEWS_SOURCES\.length\)/);
+    expect(layout).toMatch(/\{NEWS_SOURCES\.length\}/);
   });
 
   it("counts trending topics from the loaded stories", () => {
@@ -44,7 +44,7 @@ describe("news redesign: real data only", () => {
   });
 
   it("loads research on the client, never from the DB during the ISR build", () => {
-    expect(layout).toMatch(/fetch\("\/api\/research\?pageSize=3"\)/);
+    expect(layout).toMatch(/fetch\("\/api\/research\?pageSize=4"\)/);
     expect(page).not.toMatch(/prisma/);
   });
 

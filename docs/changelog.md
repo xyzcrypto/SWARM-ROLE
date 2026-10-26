@@ -41,6 +41,16 @@ data only. **Not merged; for review.**
     loaded", so the page showed nothing until the 90s poll.
   - Story cards were also shipped at opacity 0 behind `whileInView`; they now use the
     CSS `hero-rise` entrance.
+- **Revision 2 (owner feedback: simpler, smaller hero, aligned like the reference).**
+  - The sidebar runs from the top.
+  - The hero is one compact strip: title on the left, top story as an image overlay on
+    the right.
+  - Search and topic chips sit in one bar.
+  - Four equal cards in a row.
+  - The Latest list has Latest / Top / Saved tabs and sits beside Featured research.
+  - List rows keep one footer line: source and time, then the actions.
+  - Sentiment and impact pills folded into the row header.
+  - On mobile, the hero, top story and search fit the first screen.
 - **Unchanged.** Polling, save rollback, For You, the reader and swipe, infinite scroll.
   `/news` is still ISR at 2m and the route table is identical (158 routes).
 - **Tests.** New `news-redesign.test.ts` (12 checks: real-data rules, topic chips are

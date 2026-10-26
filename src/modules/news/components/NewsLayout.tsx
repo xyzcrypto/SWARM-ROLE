@@ -50,45 +50,33 @@ export function SectionHead({ icon, title, action, id }: { icon?: React.ReactNod
  * old `PageHeader` shipped its <h1> at opacity 0 until framer-motion hydrated
  * (audit SEO6). The entrance here is the CSS `hero-rise` pattern instead.
  */
-export function NewsHeroIntro({ onExplore }: { onExplore: () => void }) {
-  const facts = [
-    { k: String(NEWS_SOURCES.length), v: "Trusted sources" },
-    { k: "2 min", v: "Feed refresh" },
-    { k: "AI", v: "Summaries on every story" },
-  ];
+export function NewsHeroIntro({ onExplore, live }: { onExplore: () => void; live: boolean }) {
   return (
-    <div className="relative flex min-w-0 flex-col justify-center gap-5 py-2 lg:py-6">
-      <span className="hero-rise inline-flex w-fit items-center gap-2 rounded-full border border-gold-500/25 bg-gold-500/[0.07] px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-gold-300">
-        <span className="relative flex h-1.5 w-1.5">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-gold-400/70" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-gold-400" />
-        </span>
+    <div className="relative flex min-w-0 flex-col justify-center gap-3 p-5 sm:gap-4 sm:p-8">
+      <span className="hero-rise inline-flex w-fit items-center gap-2 rounded-full border border-gold-500/25 bg-gold-500/[0.07] px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-gold-300">
+        <span className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse bg-mint-400" : "bg-gold-400")} />
         Live Web3 intelligence
       </span>
-      <h1 className="hero-rise font-display text-[44px] font-bold leading-[0.98] tracking-[-0.04em] text-content sm:text-6xl xl:text-[68px]">
+      <h1 className="hero-rise font-display text-[34px] font-bold leading-none tracking-[-0.035em] text-content sm:text-[52px]">
         <span>Web3 </span>
         <span className="text-shine">News</span>
       </h1>
-      <p className="hero-rise max-w-[34rem] text-[16px] leading-relaxed text-content-muted sm:text-[17px]">
+      <p className="hero-rise max-w-md text-[14px] leading-relaxed text-content-muted sm:text-[15px]">
         The signal behind the noise. Real-time crypto news, research, and insights that move Web3 forward.
       </p>
-      <div className="hero-rise flex flex-wrap gap-3">
-        <button type="button" onClick={onExplore} className="btn-gold px-5 py-2.5 text-sm">
+      <div className="hero-rise flex flex-nowrap gap-2.5">
+        <button type="button" onClick={onExplore} className="btn-gold whitespace-nowrap px-4 py-2 text-[13px] sm:text-[13.5px]">
           Explore News <ArrowRight className="h-4 w-4" />
         </button>
-        <button type="button" onClick={openXyzAi} className="btn-ghost px-5 py-2.5 text-sm">
+        <button type="button" onClick={openXyzAi} className="btn-ghost whitespace-nowrap px-4 py-2 text-[13px] sm:text-[13.5px]">
           <RobotIcon className="h-4 w-4" /> Open XYZ AI
         </button>
       </div>
-      <dl className="hero-rise mt-1 grid max-w-[34rem] grid-cols-3 gap-2 border-t border-hairline pt-5">
-        {facts.map((f) => (
-          <div key={f.v} className="min-w-0">
-            <dt className="sr-only">{f.v}</dt>
-            <dd className="font-mono text-lg font-semibold tabular-nums text-content">{f.k}</dd>
-            <dd className="text-[12px] leading-snug text-content-subtle">{f.v}</dd>
-          </div>
-        ))}
-      </dl>
+      <p className="hero-rise flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-content-subtle sm:text-[12px]">
+        <span><b className="font-mono font-semibold text-content">{NEWS_SOURCES.length}</b> trusted sources</span>
+        <span><b className="font-mono font-semibold text-content">2 min</b> refresh</span>
+        <span><b className="font-semibold text-content">AI</b> summaries</span>
+      </p>
     </div>
   );
 }
@@ -127,26 +115,25 @@ export function TrendingTopics({ items, active, onPick }: { items: NewsItem[]; a
   return (
     <section className="surface rounded-3xl p-5" aria-labelledby="news-trending">
       <SectionHead id="news-trending" icon={<Flame className="h-4 w-4" />} title="Trending topics" />
-      <ol className="grid gap-1">
-        {top.map(([c, n], i) => (
-          <li key={c}>
+      <ul className="grid grid-cols-2 gap-2">
+        {top.map(([c, n]) => (
+          <li key={c} className="min-w-0">
             <button
               type="button"
               onClick={() => onPick(c)}
               aria-pressed={active === c}
               className={cn(
-                "flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-surface-2",
-                active === c && "bg-gold-500/10"
+                "flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-[13px] font-medium transition-colors",
+                active === c ? "border-gold-500/50 bg-gold-500/10 text-gold-300" : "border-hairline bg-surface-2 text-content hover:border-gold-500/30"
               )}
             >
-              <span className="w-5 font-mono text-[12px] tabular-nums text-content-subtle">{i + 1}</span>
-              <span className={cn("min-w-0 flex-1 truncate text-sm font-medium", active === c ? "text-gold-300" : "text-content")}>{c}</span>
-              <span className="font-mono text-[12px] tabular-nums text-content-subtle">{n}</span>
+              <span className="truncate">{c}</span>
+              <span className="font-mono text-[11px] tabular-nums text-content-subtle">{n}</span>
             </button>
           </li>
         ))}
-      </ol>
-      <p className="mt-3 text-[12px] text-content-subtle">Story counts across the {items.length} stories loaded right now.</p>
+      </ul>
+      <p className="mt-3 text-[11.5px] text-content-subtle">Story counts in the {items.length} stories loaded now.</p>
     </section>
   );
 }
@@ -163,7 +150,7 @@ export function FeaturedResearch() {
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let alive = true;
-    fetch("/api/research?pageSize=3")
+    fetch("/api/research?pageSize=4")
       .then((r) => (r.ok ? r.json() : Promise.reject()))
       .then((j) => { if (alive) setPosts(Array.isArray(j?.posts) ? j.posts : []); })
       .catch(() => { if (alive) setFailed(true); });
@@ -178,10 +165,12 @@ export function FeaturedResearch() {
         title="Featured research"
         action={<Link href="/research" className="inline-flex items-center gap-1 text-[13px] font-semibold text-gold-300 hover:text-gold-200">All research <ArrowRight className="h-3.5 w-3.5" /></Link>}
       />
-      <div className="grid gap-4 sm:grid-cols-3">
-        {(posts ?? Array.from({ length: 3 }, () => null)).map((p, i) =>
-          p ? (
-            <Link key={p.id} href={`/research/${p.slug}`} className="surface surface-hover group flex flex-col overflow-hidden rounded-2xl">
+      {!posts ? (
+        <div className="shimmer h-80 rounded-2xl bg-surface-2" />
+      ) : (
+        <div className="surface overflow-hidden rounded-3xl">
+          {posts.slice(0, 1).map((p) => (
+            <Link key={p.id} href={`/research/${p.slug}`} className="group block">
               <div className="relative aspect-[16/9] overflow-hidden bg-surface-2">
                 {p.cover ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -190,23 +179,35 @@ export function FeaturedResearch() {
                   <div className="h-full w-full bg-gradient-to-br from-gold-500/25 via-ink-900 to-ink-950" />
                 )}
                 {p.premium && (
-                  <span className="absolute left-3 top-3 rounded-full bg-gradient-to-br from-gold-200 to-gold-500 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink">Premium</span>
+                  <span className="absolute left-3 top-3 rounded-md bg-gradient-to-br from-gold-200 to-gold-500 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink">Premium</span>
                 )}
               </div>
-              <div className="flex flex-1 flex-col gap-1.5 p-4">
+              <div className="p-4">
                 <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-400">{p.category}</span>
-                <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-content group-hover:text-gold-200">{p.title}</h3>
-                <p className="line-clamp-2 text-[13px] leading-relaxed text-content-muted">{p.excerpt}</p>
-                <span className="mt-auto inline-flex items-center gap-1 pt-2 text-[12px] font-semibold text-gold-300">
-                  Read report{p.readMinutes ? <span className="font-normal text-content-subtle">· {p.readMinutes} min</span> : null}
+                <h3 className="mt-1 line-clamp-2 font-display text-[16px] font-semibold leading-snug text-content group-hover:text-gold-200">{p.title}</h3>
+                <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-content-muted">{p.excerpt}</p>
+                <span className="btn-gold mt-3 inline-flex px-3.5 py-1.5 text-[12.5px]">
+                  Read report{p.readMinutes ? ` · ${p.readMinutes} min` : ""} <ArrowRight className="h-3.5 w-3.5" />
                 </span>
               </div>
             </Link>
-          ) : (
-            <div key={i} className="shimmer h-64 rounded-2xl bg-surface-2" />
-          )
-        )}
-      </div>
+          ))}
+          {posts.length > 1 && (
+            <ul className="border-t border-hairline">
+              {posts.slice(1).map((p) => (
+                <li key={p.id}>
+                  <Link href={`/research/${p.slug}`} className="group flex items-center gap-3 border-b border-hairline px-4 py-3 last:border-b-0 hover:bg-surface-2">
+                    <BookOpen className="h-4 w-4 shrink-0 text-gold-400" />
+                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-content group-hover:text-gold-200">{p.title}</span>
+                    {p.premium && <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-gold-400">Premium</span>}
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-content-subtle" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </section>
   );
 }
