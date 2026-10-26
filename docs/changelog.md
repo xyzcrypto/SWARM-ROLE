@@ -82,6 +82,15 @@ data only. **Not merged; for review.**
     - Source and time move under the headline, so each row's actions stay on one line.
     - Rows reserve their real height (128px instead of `.cv-auto`'s 340px), so the
       list no longer jumps.
+- **Revision 4 (owner, from the live preview).**
+  - **The sidebar is no longer sticky.** It is taller than the screen, so a sticky
+    column could never show its bottom; High impact was cut off.
+  - **Trending and High impact switch** in the sidebar, so each shows in full. Each
+    has "See all", which opens a sheet: bottom sheet on phones, centred panel on
+    desktop, with Esc, backdrop close and scroll lock.
+  - **Stories with no feed image** now get a branded banner instead of an empty box:
+    a gold-family wash chosen per category, a faint grid, the publisher's logo (or
+    initials) and the source name.
 - **Unchanged.** Polling, save rollback, For You, the reader and swipe, infinite scroll.
   `/news` is still ISR at 2m and the route table is identical (158 routes).
 - **Tests.** New `news-redesign.test.ts` (12 checks: real-data rules, topic chips are

@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
-  ChevronLeft, ChevronRight, ChevronDown, ArrowUp,
+  ChevronLeft, ChevronRight, ChevronDown, ArrowUp, Flame,
 } from "lucide-react";
 import { RobotIcon } from "@/components/RobotIcon";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
@@ -25,6 +25,7 @@ import { hapticToggle } from "@shared/utils/haptics";
 import { wakeIsDue } from "@shared/hooks/useLiveData";
 import {
   NewsHeroIntro, HeroNetwork, TrendingTopics, HighImpactPanel, XyzAiBand, NewsletterPanel, CommunityPanel,
+  NewsSheet, DiscoverSwitch, ImpactIcon,
 } from "./NewsLayout";
 
 /**
@@ -117,6 +118,9 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // in localStorage and costs no request.
   const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
   const [lastVisit, setLastVisit] = useState(0);
+  // Sidebar: which discovery panel is showing, and whether its "See all" sheet is open.
+  const [side, setSide] = useState<"trending" | "impact">("trending");
+  const [sheet, setSheet] = useState<"trending" | "impact" | null>(null);
   const [items, setItems] = useState<NewsItem[]>(initial?.items ?? []);
   const [pending, setPending] = useState<NewsItem[]>([]); // fresh stories buffered for the "N new" pill
   const [page, setPage] = useState(1);
@@ -615,6 +619,10 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     const shown = new Set([...topStories.map((i) => i.id), ...featured.map((i) => i.id)]);
     return visible.filter((i) => i.impact !== "Low" && !shown.has(i.id));
   }, [visible, topStories, featured]);
+  const followTopic = useCallback(
+    (c: string) => saveInterests(interests.includes(c) ? interests.filter((x) => x !== c) : [...interests, c]),
+    [interests, saveInterests]
+  );
   const isNew = useCallback((i: NewsItem) => lastVisit > 0 && i.publishedAt > lastVisit, [lastVisit]);
   const newCount = useMemo(() => restStories.filter(isNew).length, [restStories, isNew]);
   const isDefaultView = !savedOnly && !query && (category === "All" || category === "For You");
@@ -897,28 +905,67 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       </div>
 
       {/* Discovery sidebar: alongside everything on desktop, below the feed on smaller screens. */}
-      <aside className="min-w-0 space-y-5 xl:sticky xl:top-24 xl:self-start" aria-label="Discover">
-        <TrendingTopics
-          items={items}
-          now={now}
-          active={category}
-          onPick={pickTopic}
-          onClear={() => setCategory("All")}
-          followed={loggedIn ? interests : null}
-          onFollow={(c) => saveInterests(interests.includes(c) ? interests.filter((x) => x !== c) : [...interests, c])}
-        />
-        <HighImpactPanel
-          items={topImpact}
-          now={now}
-          readIds={readIds}
-          isSaved={isSaved}
-          onOpen={openReader}
-          onBookmark={toggleSave}
-          onShare={shareStory}
-        />
+      {/* Not sticky: the sidebar is taller than the viewport, and a sticky
+          column that tall can never show its own bottom (High impact was cut off). */}
+      <aside className="min-w-0 space-y-5" aria-label="Discover">
+        <DiscoverSwitch value={side} onChange={setSide} />
+        {side === "trending" ? (
+          <TrendingTopics
+            items={items}
+            now={now}
+            active={category}
+            onPick={pickTopic}
+            onClear={() => setCategory("All")}
+            followed={loggedIn ? interests : null}
+            onFollow={followTopic}
+            onSeeAll={() => setSheet("trending")}
+          />
+        ) : (
+          <HighImpactPanel
+            items={topImpact}
+            now={now}
+            readIds={readIds}
+            isSaved={isSaved}
+            onOpen={openReader}
+            onBookmark={toggleSave}
+            onShare={shareStory}
+            onSeeAll={() => setSheet("impact")}
+          />
+        )}
         <NewsletterPanel />
         <CommunityPanel />
       </aside>
+
+      {sheet === "trending" && (
+        <NewsSheet title="All trending topics" icon={<Flame className="h-4 w-4" />} onClose={() => setSheet(null)}>
+          <TrendingTopics
+            bare
+            limit={40}
+            items={items}
+            now={now}
+            active={category}
+            onPick={(c) => { setSheet(null); pickTopic(c); }}
+            onClear={() => { setSheet(null); setCategory("All"); }}
+            followed={loggedIn ? interests : null}
+            onFollow={followTopic}
+          />
+        </NewsSheet>
+      )}
+      {sheet === "impact" && (
+        <NewsSheet title="All high-impact stories" icon={<ImpactIcon className="h-4 w-4" />} onClose={() => setSheet(null)}>
+          <HighImpactPanel
+            bare
+            limit={30}
+            items={visible}
+            now={now}
+            readIds={readIds}
+            isSaved={isSaved}
+            onOpen={(id) => { setSheet(null); openReader(id); }}
+            onBookmark={toggleSave}
+            onShare={shareStory}
+          />
+        </NewsSheet>
+      )}
 
       {customizing && (
         <CustomizeModal
@@ -1026,6 +1073,40 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
   );
 }
 
+// Three gold-family washes, picked per category so neighbouring cards without
+// images do not look identical. Brand colours only.
+const BANNER_TONES = [
+  "radial-gradient(120% 90% at 85% 0%, rgba(226,167,47,.38), transparent 60%), linear-gradient(160deg, #1d1a12, #0b0b0e)",
+  "radial-gradient(120% 90% at 10% 0%, rgba(243,212,136,.30), transparent 60%), linear-gradient(200deg, #18160f, #08080a)",
+  "radial-gradient(110% 80% at 50% 110%, rgba(209,143,27,.35), transparent 60%), linear-gradient(180deg, #121215, #0b0b0e)",
+];
+const toneFor = (s: string) => BANNER_TONES[[...s].reduce((n, ch) => n + ch.charCodeAt(0), 0) % BANNER_TONES.length];
+const initials = (s: string) => s.replace(/[^A-Za-z0-9 ]/g, "").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "XYZ";
+
+/**
+ * The banner for a story whose feed has no image (or whose image failed): a
+ * branded wash with the publisher's mark, so the grid stays even and the card
+ * still says who published it. Not a stock photo standing in for the story.
+ */
+function StoryBanner({ item, compact = false }: { item: NewsItem; compact?: boolean }) {
+  const [iconFailed, setIconFailed] = useState(false);
+  const mark = item.sourceIcon && !iconFailed ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={item.sourceIcon} alt="" width={28} height={28} className="h-full w-full object-contain" onError={() => setIconFailed(true)} />
+  ) : (
+    <span className="font-mono text-[13px] font-bold tracking-tight !text-gold-200">{initials(item.source)}</span>
+  );
+  return (
+    <span className="relative grid h-full w-full place-items-center overflow-hidden" style={{ backgroundImage: toneFor(item.category) }}>
+      <span aria-hidden className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:22px_22px]" />
+      <span className={cn("relative grid place-items-center rounded-xl border border-white/15 bg-white/10 p-2 shadow-lg backdrop-blur-sm", compact ? "h-9 w-9" : "h-14 w-14")}>{mark}</span>
+      {!compact && (
+        <span className="absolute bottom-3 right-3 max-w-[60%] truncate font-mono text-[10px] font-semibold uppercase tracking-[0.14em] !text-zinc-300/80">{item.source}</span>
+      )}
+    </span>
+  );
+}
+
 const NewsCard = memo(function NewsCard({
   item, index, now, bookmarked, onBookmark, onOpen, onToken, onSource, loggedIn, variant = "row", isNew = false, read = false,
 }: {
@@ -1129,11 +1210,7 @@ const NewsCard = memo(function NewsCard({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={item.image} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-[1.04] group-active/card:scale-[1.04]" onError={() => setHeroFailed(true)} />
       )}
-      {(!item.image || heroFailed) && (
-        <span className="grid h-full w-full place-items-center bg-gradient-to-br from-gold-500/20 via-ink-900 to-ink-950">
-          <SafeImg src={item.sourceIcon} width={28} height={28} className="h-7 w-7 rounded-md opacity-80" />
-        </span>
-      )}
+      {(!item.image || heroFailed) && <StoryBanner item={item} compact={variant === "row"} />}
     </button>
   );
 

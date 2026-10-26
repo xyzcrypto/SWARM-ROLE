@@ -81,4 +81,18 @@ describe("news redesign: real data only", () => {
     expect(cardCode).not.toMatch(/whileInView|motion\.article/);
     expect(card).toMatch(/className="hero-rise surface/);
   });
+
+  it("sidebar is not sticky (a sticky column taller than the screen hides its bottom)", () => {
+    expect(client).not.toMatch(/<aside className="[^"]*xl:sticky/);
+  });
+
+  it("Trending and High impact switch in the sidebar and each opens a See-all sheet", () => {
+    expect(client).toMatch(/<DiscoverSwitch value=\{side\} onChange=\{setSide\} \/>/);
+    expect(client).toMatch(/sheet === "trending" && \(/);
+    expect(client).toMatch(/sheet === "impact" && \(/);
+  });
+
+  it("a story with no image gets the branded banner, not an empty box", () => {
+    expect(client).toMatch(/\{\(!item\.image \|\| heroFailed\) && <StoryBanner item=\{item\}/);
+  });
 });

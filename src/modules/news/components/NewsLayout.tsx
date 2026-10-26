@@ -18,9 +18,10 @@
  * upcoming. `news-redesign.test.ts` pins both absences.
  */
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Bookmark, BookmarkCheck, Check, Flame, Loader2, Mail, Share2, Sparkles, Star, Users, Zap } from "lucide-react";
+import { ArrowRight, Bookmark, BookmarkCheck, Check, Flame, Loader2, Mail, Share2, Sparkles, Star, Users, X, Zap } from "lucide-react";
+import { useScrollLock } from "@shared/hooks/useScrollLock";
 import { hapticError, hapticSent, hapticToggle } from "@shared/utils/haptics";
 import { timeAgo } from "@/lib/news";
 import { TelegramIcon, XIcon, YouTubeIcon, LinkedInIcon } from "@/components/BrandIcons";
@@ -128,11 +129,15 @@ type TopicStat = { name: string; count: number; recent: number; bull: number; be
  * six hours (momentum), and the bullish / bearish mix. Nothing is estimated.
  */
 export function TrendingTopics({
-  items, now, active, onPick, onClear, followed, onFollow,
+  items, now, active, onPick, onClear, followed, onFollow, limit = 7, onSeeAll, bare = false,
 }: {
   items: NewsItem[]; now: number; active: string; onPick: (c: string) => void; onClear: () => void;
   /** Topics the member follows for "For You"; null when logged out (no follow control). */
   followed: string[] | null; onFollow: (c: string) => void;
+  /** How many topics to rank. The sidebar shows 7; "See all" shows the lot. */
+  limit?: number; onSeeAll?: () => void;
+  /** Inside a sheet: no card chrome of its own. */
+  bare?: boolean;
 }) {
   const [range, setRange] = useState<"all" | "6h">("all");
   const stats = useMemo(() => {
@@ -151,14 +156,14 @@ export function TrendingTopics({
     }
     const all = [...m.values()];
     const key = (t: TopicStat) => (range === "6h" ? t.recent : t.count);
-    return all.filter((t) => key(t) > 0).sort((a, b) => key(b) - key(a) || b.latest - a.latest).slice(0, 7);
-  }, [items, now, range]);
+    return all.filter((t) => key(t) > 0).sort((a, b) => key(b) - key(a) || b.latest - a.latest).slice(0, limit);
+  }, [items, now, range, limit]);
   const max = Math.max(1, ...stats.map((t) => (range === "6h" ? t.recent : t.count)));
 
   return (
-    <section className="surface rounded-3xl p-5" aria-labelledby="news-trending">
+    <section className={cn(!bare && "surface rounded-3xl p-5")} aria-labelledby={bare ? undefined : "news-trending"}>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 id="news-trending" className="flex items-center gap-2 font-display text-[17px] font-semibold tracking-tight text-content">
+        <h2 id={bare ? undefined : "news-trending"} className={cn("flex items-center gap-2 font-display text-[17px] font-semibold tracking-tight text-content", bare && "sr-only")}>
           <Flame className="h-4 w-4 text-gold-400" /> Trending topics
         </h2>
         <div role="radiogroup" aria-label="Trending window" className="inline-flex rounded-lg border border-hairline bg-surface-2 p-0.5">
@@ -243,6 +248,11 @@ export function TrendingTopics({
         </span>
         <span>From {items.length} loaded stories</span>
       </div>
+      {onSeeAll && (
+        <button type="button" onClick={onSeeAll} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-hairline py-2 text-[12.5px] font-semibold text-gold-300 transition-colors hover:border-gold-500/40">
+          See all topics <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      )}
       {active !== "All" && active !== "For You" && (
         <button type="button" onClick={onClear} className="mt-3 w-full rounded-xl border border-hairline py-2 text-[12.5px] font-medium text-content-muted transition-colors hover:text-content">
           Clear topic filter
@@ -260,10 +270,11 @@ const TWO_H = 2 * 3600e3;
  * points at what is left to read.
  */
 export function HighImpactPanel({
-  items, now, readIds, isSaved, onOpen, onBookmark, onShare,
+  items, now, readIds, isSaved, onOpen, onBookmark, onShare, limit = 5, onSeeAll, bare = false,
 }: {
   items: NewsItem[]; now: number; readIds: Set<string>; isSaved: (id: string) => boolean;
   onOpen: (id: string) => void; onBookmark: (i: NewsItem) => void; onShare: (i: NewsItem) => void;
+  limit?: number; onSeeAll?: () => void; bare?: boolean;
 }) {
   const [onlyHigh, setOnlyHigh] = useState(false);
   const list = useMemo(() => {
@@ -271,15 +282,15 @@ export function HighImpactPanel({
     return items
       .filter((i) => (onlyHigh ? i.impact === "High" : i.impact !== "Low"))
       .sort((a, b) => rank(b) - rank(a) || b.publishedAt - a.publishedAt)
-      .slice(0, 5);
-  }, [items, onlyHigh]);
+      .slice(0, limit);
+  }, [items, onlyHigh, limit]);
   const unread = list.filter((i) => !readIds.has(i.id)).length;
 
   return (
-    <section className="surface rounded-3xl p-5" aria-labelledby="news-impact">
+    <section className={cn(!bare && "surface rounded-3xl p-5")} aria-labelledby={bare ? undefined : "news-impact"}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 id="news-impact" className="flex items-center gap-2 whitespace-nowrap font-display text-[17px] font-semibold tracking-tight text-content">
+          <h2 id={bare ? undefined : "news-impact"} className={cn("flex items-center gap-2 whitespace-nowrap font-display text-[17px] font-semibold tracking-tight text-content", bare && "sr-only")}>
             <Zap className="h-4 w-4 text-gold-400" /> High impact
           </h2>
           <p className="mt-0.5 text-[11.5px] text-content-subtle">{unread > 0 ? `${unread} unread · ranked by impact` : "All caught up"}</p>
@@ -343,7 +354,70 @@ export function HighImpactPanel({
           })}
         </ol>
       )}
+      {onSeeAll && list.length > 0 && (
+        <button type="button" onClick={onSeeAll} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-hairline py-2 text-[12.5px] font-semibold text-gold-300 transition-colors hover:border-gold-500/40">
+          See all high-impact stories <ArrowRight className="h-3.5 w-3.5" />
+        </button>
+      )}
     </section>
+  );
+}
+
+/**
+ * A full-height sheet for "See all". Bottom sheet on phones, centred panel on
+ * desktop; Esc and the backdrop close it, and the page behind stops scrolling.
+ */
+export function NewsSheet({ title, icon, onClose, children }: { title: string; icon: React.ReactNode; onClose: () => void; children: React.ReactNode }) {
+  useScrollLock();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-6" onClick={onClose} role="presentation">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+        className="hero-rise flex max-h-[88svh] w-full flex-col overflow-hidden rounded-t-3xl border border-hairline bg-surface shadow-2xl sm:max-w-lg sm:rounded-3xl"
+        style={{ ["--rise-y" as string]: "24px", ["--rise-dur" as string]: "0.35s" }}
+      >
+        <div className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-4">
+          <p className="flex items-center gap-2 font-display text-[17px] font-semibold text-content"><span className="text-gold-400">{icon}</span>{title}</p>
+          <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-xl text-content-muted transition-colors hover:bg-surface-2 hover:text-content">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div data-lenis-prevent className="overflow-y-auto overscroll-contain p-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+/** The high-impact mark, shared so the sheet header matches the panel. */
+export const ImpactIcon = Zap;
+
+/** Sidebar switcher: one of Trending / High impact at a time, so each shows in full. */
+export function DiscoverSwitch({ value, onChange }: { value: "trending" | "impact"; onChange: (v: "trending" | "impact") => void }) {
+  return (
+    <div role="tablist" aria-label="Discover" className="grid grid-cols-2 gap-1 rounded-2xl border border-hairline bg-surface p-1">
+      {([["trending", "Trending", <Flame key="f" className="h-4 w-4" />], ["impact", "High impact", <Zap key="z" className="h-4 w-4" />]] as const).map(([k, label, icon]) => (
+        <button
+          key={k}
+          role="tab"
+          aria-selected={value === k}
+          onClick={() => onChange(k)}
+          className={cn(
+            "inline-flex h-10 items-center justify-center gap-2 rounded-xl text-[13.5px] font-semibold transition-all active:scale-[0.98]",
+            value === k ? "bg-gold-400 text-ink shadow-gold-sm" : "text-content-muted hover:text-content"
+          )}
+        >
+          {icon}{label}
+        </button>
+      ))}
+    </div>
   );
 }
 
