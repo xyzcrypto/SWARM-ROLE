@@ -22,6 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Bookmark, BookmarkCheck, Check, Flame, Loader2, Mail, Share2, Sparkles, Star, Users, X, Zap } from "lucide-react";
 import { useScrollLock } from "@shared/hooks/useScrollLock";
+import { MagicStar } from "iconsax-react";
 import { hapticError, hapticSent, hapticToggle } from "@shared/utils/haptics";
 import { timeAgo } from "@/lib/news";
 import { TelegramIcon, XIcon, YouTubeIcon, LinkedInIcon } from "@/components/BrandIcons";
@@ -55,10 +56,15 @@ export function SectionHead({ icon, title, action, id }: { icon?: React.ReactNod
 export function NewsHeroIntro({ onExplore, live }: { onExplore: () => void; live: boolean }) {
   return (
     <div className="relative flex min-w-0 flex-col justify-center gap-3 p-5 sm:gap-4 sm:p-8">
-      <span className="hero-rise inline-flex w-fit items-center gap-2 rounded-full border border-gold-500/25 bg-gold-500/[0.07] px-2.5 py-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-gold-300">
-        <span className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse bg-mint-400" : "bg-gold-400")} />
-        Live Web3 intelligence
-      </span>
+      {/* The homepage's "The Home Of Next Gen Web3" pill: same glass, same
+          gold shine sweep (`.eyebrow-glass`), so the two heroes read as one brand. */}
+      <div className="hero-rise" style={{ "--rise-y": "12px", "--rise-dur": "0.5s" } as React.CSSProperties}>
+        <span className="eyebrow eyebrow-glass text-zinc-200">
+          <MagicStar size={14} variant="Bold" color="#e2a72f" />
+          <span className="mono text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">Live Web3 Intelligence</span>
+          <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse bg-mint-400" : "bg-gold-400")} />
+        </span>
+      </div>
       <h1 className="hero-rise font-display text-[34px] font-bold leading-none tracking-[-0.035em] text-content sm:text-[52px]">
         <span>Web3 </span>
         <span className="text-shine">News</span>
