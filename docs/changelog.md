@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-26 (139) — /news eyebrow matches the homepage
+
+"Live Web3 Intelligence" on `/news` now uses the homepage's "The Home Of Next Gen Web3"
+pill: the same `.eyebrow-glass`, its gold shine sweep (`btn-shine`, 4.2s loop) and the
+MagicStar mark. The live-status dot is kept at the end. Checked in Chromium: the sweep is
+running on desktop, mobile and light theme. Pinned by `news-redesign.test.ts`.
+
+---
+
 ## 2026-10-26 (138) — /news redesign (PR, awaiting owner review)
 
 Owner request: a premium Web3 intelligence layout for `/news`, gold-led and built on real

@@ -95,4 +95,8 @@ describe("news redesign: real data only", () => {
   it("a story with no image gets the branded banner, not an empty box", () => {
     expect(client).toMatch(/\{\(!item\.image \|\| heroFailed\) && <StoryBanner item=\{item\}/);
   });
+
+  it("the Live Web3 Intelligence pill uses the homepage eyebrow and its shine sweep", () => {
+    expect(layout).toMatch(/<span className="eyebrow eyebrow-glass text-zinc-200">[\s\S]{0,200}Live Web3 Intelligence/);
+  });
 });
