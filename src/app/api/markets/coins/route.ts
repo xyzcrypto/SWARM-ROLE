@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { dedupeTrending } from "@modules/markets/lib/markets";
 import type { TrendingCoin, MoverCoin, CoinRow } from "@/lib/markets";
 
 // Coins snapshot (CoinGecko, keyless): a top-250 market table (price, 1h/24h/7d
@@ -30,7 +31,7 @@ async function trending(list: CoinRow[] = []): Promise<TrendingCoin[]> {
     });
     if (!res.ok) return [];
     const j = await res.json();
-    return (j?.coins ?? []).slice(0, 8).map((c: any) => {
+    const rows: TrendingCoin[] = (j?.coins ?? []).slice(0, 10).map((c: any) => {
       const id = String(c?.item?.id ?? "");
       const symbol = String(c?.item?.symbol ?? "").toUpperCase();
       // Match on the CoinGecko id only. Matching on symbol let any trending token
@@ -64,6 +65,8 @@ async function trending(list: CoinRow[] = []): Promise<TrendingCoin[]> {
             : null,
       };
     });
+
+    return dedupeTrending(rows, list).slice(0, 8);
   } catch {
     return [];
   }

@@ -213,7 +213,7 @@ export const llamaProtocols = unstable_cache(
   { revalidate: PROTOCOLS_TTL, tags: ["llama-protocols"] }
 );
 
-export type PoolRow = { project: string; symbol: string; chain: string; apy: number; tvl: number; logo?: string | null };
+export type PoolRow = { project: string; symbol: string; chain: string; apy: number; tvl: number; logo?: string | null; pool?: string | null };
 
 /**
  * `yields.llama.fi/pools` — 14.3 MB, of which `/api/markets/yields` keeps ten
@@ -234,12 +234,15 @@ export const llamaYieldPools = unstable_cache(
           chain: String(p?.chain ?? "-"),
           apy: Number(p?.apy) || 0,
           tvl: Number(p?.tvlUsd) || 0,
+          // DefiLlama's pool id, for its per-pool APY history (`/chart/<pool>`).
+          pool: typeof p?.pool === "string" ? p.pool : null,
           logo: project !== "-" ? `https://icons.llamao.fi/icons/protocols/${encodeURIComponent(project.toLowerCase())}` : null,
         };
       })
       .sort((a, b) => b.apy - a.apy)
       .slice(0, 40);
   },
-  ["llama", "yield-pools"],
+  // v2: rows now carry `pool`; a new key so an old cached entry without it is not served.
+  ["llama", "yield-pools", "v2"],
   { revalidate: YIELDS_TTL, tags: ["llama-yields"] }
 );

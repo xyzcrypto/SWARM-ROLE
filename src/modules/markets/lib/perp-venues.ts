@@ -116,20 +116,75 @@ export async function coingeckoDerivativeRows(revalidate: number): Promise<CgDer
 
 export type LlamaRow = { slug: string | null; name: string; total24h: number; openInterest: number; change1d: number; logo: string | null };
 
+export type NativeTotals = { volume24h: number; openInterest: number };
+
+/**
+ * TXFlow's own public Info API (Hyperliquid-compatible, the one app.txflow.com
+ * uses). DefiLlama reads TXFlow from Dune and CoinGecko does not list it, so
+ * this is the only source production can reach.
+ *
+ * - `perpMeta` → `universe[]`: `{ index, name, delisted? }` per perp.
+ * - `webData2` → `assetCtxs[]`: one ctx per instrument, keyed by `instrumentId`
+ *   (NOT array position), with `dayNtlVlm` (24h notional, USD) and, as on
+ *   Hyperliquid, `openInterest` in base units and `markPx`.
+ *
+ * 24h volume is the sum of `dayNtlVlm` over listed perps (spot ids are not in
+ * `perpMeta`). If any listed perp has no ctx, the whole figure is dropped
+ * rather than reported short. Open interest is summed only where both fields
+ * parse, and dropped to 0 (not reported) if any perp lacks them.
+ */
+export async function txflowTotals(revalidate: number): Promise<NativeTotals | null> {
+  const post = (body: object) =>
+    fetch("https://api.txflow.com/info", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json" },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(8000),
+      next: { revalidate },
+    }).then((r) => (r.ok ? r.json() : null));
+  try {
+    const [meta, wd] = await Promise.all([post({ type: "perpMeta", dex: "" }), post({ type: "webData2" })]);
+    const universe: any[] = Array.isArray(meta?.universe) ? meta.universe : [];
+    const ctxs: any[] = Array.isArray(wd?.assetCtxs) ? wd.assetCtxs : [];
+    const listed = universe.filter((u) => u && u.name && u.delisted !== true && u.index != null);
+    if (!listed.length || !ctxs.length) return null;
+
+    const byId = new Map<unknown, any>();
+    for (const c of ctxs) if (c && c.instrumentId != null && !byId.has(c.instrumentId)) byId.set(c.instrumentId, c);
+
+    let volume24h = 0;
+    let openInterest = 0;
+    let oiComplete = true;
+    for (const u of listed) {
+      const c = byId.get(u.index);
+      if (!c) return null;
+      const v = Number(c.dayNtlVlm);
+      if (!Number.isFinite(v)) return null;
+      volume24h += v;
+      const oi = Number(c.openInterest) * Number(c.markPx);
+      if (Number.isFinite(oi)) openInterest += oi;
+      else oiComplete = false;
+    }
+    return volume24h > 0 ? { volume24h, openInterest: oiComplete ? openInterest : 0 } : null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Assemble the board. Each figure comes from a live source or is null - a venue
  * no source reports shows a dash, never an estimate.
  *
  * Precedence per field:
- * - volume: Hyperliquid's own API for Hyperliquid, else DefiLlama, else CoinGecko
- * - open interest: Hyperliquid's own API, else CoinGecko, else DefiLlama
+ * - volume: the venue's own API (Hyperliquid, TXFlow), else DefiLlama, else CoinGecko
+ * - open interest: the venue's own API, else CoinGecko, else DefiLlama
  * - change: DefiLlama only
  * - logo: CoinGecko, else DefiLlama, else a committed asset
  */
 export function buildPerpVenues(
   llama: LlamaRow[],
   cg: CgDerivRow[],
-  hl: { volume24h: number; openInterest: number }
+  native: Partial<Record<string, NativeTotals>>
 ): PerpVenue[] {
   return FEATURED_PERP_VENUES.map((v) => {
     const keys = new Set<string>(v.names);
@@ -140,11 +195,11 @@ export function buildPerpVenues(
     const cgHit = cg
       .filter((r) => (v.cg as readonly string[]).includes(r.id) || keys.has(r.key))
       .sort((a, b) => b.volume24h - a.volume24h)[0];
-    const isHl = v.key === "hyperliquid";
+    const own = native[v.key];
 
-    const volume24h = (isHl && hl.volume24h > 0 ? hl.volume24h : null) ?? (ll && ll.total24h > 0 ? ll.total24h : null) ?? cgHit?.volume24h ?? null;
+    const volume24h = (own && own.volume24h > 0 ? own.volume24h : null) ?? (ll && ll.total24h > 0 ? ll.total24h : null) ?? cgHit?.volume24h ?? null;
     const openInterest =
-      (isHl && hl.openInterest > 0 ? hl.openInterest : null) ??
+      (own && own.openInterest > 0 ? own.openInterest : null) ??
       (cgHit && cgHit.openInterest > 0 ? cgHit.openInterest : null) ??
       (ll && ll.openInterest > 0 ? ll.openInterest : null);
 

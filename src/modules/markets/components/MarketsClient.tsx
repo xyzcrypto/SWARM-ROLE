@@ -1225,7 +1225,7 @@ function YieldMoversList({ pools }: { pools: YieldPool[] }) {
                 {apy.toFixed(1)}%
               </div>
               <div className="w-8 flex items-center justify-end shrink-0">
-                <MoverMiniSparkline data={spark} up={true} width={32} />
+                <MoverMiniSparkline data={spark} up={!spark || spark.length < 2 || spark[spark.length - 1] >= spark[0]} width={32} />
               </div>
             </div>
           );

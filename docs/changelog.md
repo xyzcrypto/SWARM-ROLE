@@ -36,6 +36,25 @@ changed, components changed, design improvements, performance improvements.
 - **Volume:** CoinGecko sends `total_volume` as a formatted string ("$1,234,567"),
   which used to parse as 0. It is now parsed correctly.
 
+**Follow-up after the owner's review (same PR):**
+- **TXFlow had no data.**
+  - DefiLlama reads TXFlow from Dune, and CoinGecko does not list it.
+  - It now comes from TXFlow's own public Info API (`api.txflow.com/info`,
+    Hyperliquid-compatible): `perpMeta` lists the perps, and `webData2` gives
+    `dayNtlVlm` and OI keyed by `instrumentId`.
+  - If any listed perp has no data, the figure is dropped rather than reported
+    short.
+- **Trending Now showed BTC twice.**
+  - CoinGecko's trending list can hold Bitcoin and an unrelated token whose ticker is
+    also "BTC".
+  - `dedupeTrending` drops repeated ids. It labels a token that borrows another
+    coin's ticker by its full name instead.
+- **Top Yields had no chart.**
+  - Each pool now carries its real 30-day APY history from DefiLlama's per-pool
+    `yields.llama.fi/chart/<pool>`. That host is reachable from production.
+  - About 100 KB each, cached at the route's 320s window. The cache key is bumped to
+    `yield-pools v2` because rows now carry `pool`.
+
 **Tests:** pinned by `perp-venues.test.ts`, covering:
 - the seven venues;
 - no CEX leaking in;

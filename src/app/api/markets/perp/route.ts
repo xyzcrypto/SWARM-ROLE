@@ -7,6 +7,7 @@ import {
   buildPerpVenues,
   coingeckoDerivativeRows,
   llamaSummary,
+  txflowTotals,
   type LlamaRow,
 } from "@modules/markets/lib/perp-venues";
 
@@ -99,10 +100,11 @@ async function hyperliquid(): Promise<{ markets: PerpMarket[]; totalVolume24h: n
 
 export async function GET() {
   // Independent sources so one flaky upstream can't blank the board.
-  const [dexRes, hl, cg] = await Promise.all([
+  const [dexRes, hl, cg, txflow] = await Promise.all([
     perpDexs().catch(() => ({ dexs: [] as PerpDex[], totalVolume24h: 0, rows: [] as OverviewRow[] })),
     hyperliquid().catch(() => ({ markets: [] as PerpMarket[], totalVolume24h: 0, totalOi: 0 })),
     coingeckoDerivativeRows(revalidate).catch(() => []),
+    txflowTotals(revalidate).catch(() => null),
   ]);
 
   // The Perp DEX tab's list: DefiLlama's cross-venue ranking when it answers.
@@ -122,8 +124,12 @@ export async function GET() {
   // The leaderboard's seven venues. Any venue still without volume gets one
   // small DefiLlama summary call (TXFlow is listed on DefiLlama only).
   let llamaRows: LlamaRow[] = dexRes.rows;
-  const hlTotals = { volume24h: hl.totalVolume24h, openInterest: hl.totalOi };
-  let venues = buildPerpVenues(llamaRows, cg, hlTotals);
+  // Venues whose own public API this route reads directly.
+  const native = {
+    hyperliquid: { volume24h: hl.totalVolume24h, openInterest: hl.totalOi },
+    ...(txflow ? { txflow } : {}),
+  };
+  let venues = buildPerpVenues(llamaRows, cg, native);
   const missing = FEATURED_PERP_VENUES.filter((v) => v.llamaSlug && venues.find((x) => x.key === v.key)?.volume24h == null);
   if (missing.length) {
     const extra = (await Promise.all(missing.map((v) => llamaSummary(v.llamaSlug as string, revalidate)))).filter(
@@ -131,7 +137,7 @@ export async function GET() {
     );
     if (extra.length) {
       llamaRows = [...llamaRows, ...extra];
-      venues = buildPerpVenues(llamaRows, cg, hlTotals);
+      venues = buildPerpVenues(llamaRows, cg, native);
     }
   }
 
