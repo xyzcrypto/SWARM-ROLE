@@ -14,7 +14,7 @@ type TickerState = { coins: TickerCoin[] | null; live: boolean; loading: boolean
 // always expired ~90s before each poll arrived: every single poll missed and
 // regenerated, which made this the top driver of the ISR Writes overage. If you
 // change this number, change that one too.
-const POLL_MS = 150_000;
+const POLL_MS = 5_000;
 
 let state: TickerState = { coins: null, live: false, loading: true };
 const listeners = new Set<() => void>();

@@ -5,6 +5,63 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-26 (140) — Markets redesign (Deepak's work, markets only) + live data only
+
+Deepak's Markets redesign from PR #389, taken **without** its News, Research, Points and
+Portfolio changes (those come later, per the owner). Built fresh on `main`: only
+`src/modules/markets`, `src/app/markets` and `src/app/api/markets`, plus the `neu-*`
+tokens/classes in `globals.css` and `tailwind.config.ts` they need. `dex-registry.ts`
+keeps `main`'s version (with Arcus).
+
+### Live data only
+The page shipped built around sample data: hard-coded KPI values, changes and
+sparklines; a sine-wave chart whenever an upstream failed; fixed "+8.42%" volume change;
+sample sector, gainer, loser, trending, yield and watchlist rows; a fixed "Solana
+ecosystem heating up" headline. Every one of those now comes from a live feed or shows
+"-" or a loading skeleton:
+- **Chart (`/api/markets/chart`):**
+  - Market cap is CoinGecko's total, drawn along the BTC/USDT curve and labelled as such.
+  - Volume bars are BTC/USDT spot volume.
+  - BTC dominance shows its live value only.
+  - DeFi TVL and stablecoins use DefiLlama's daily series.
+  - An upstream failure returns an empty series, never a synthesized one.
+- **Sectors:** CoinGecko categories only; no drawn sparklines and no sample sectors.
+- **INR:** waits for a live rate (USD is shown until then); no 95.0 / 86.85 seed rate.
+- **Trending Now:**
+  - Matched to the markets list by CoinGecko id, not by symbol. Symbol matching let
+    another "BTC" token borrow Bitcoin's price and logo.
+  - Uses the canonical logo.
+  - A missing price or volume shows "-" (it used to invent 27.8 / $920M).
+- **AI Market Intelligence:** a sentence built from live numbers, labelled "From live
+  market feeds", not "Live AI synthesis".
+- **Removed:** the unused `OnChainSnapshotCard` and `MarketGlobeGraphic`, which held
+  sample data.
+
+### Perpetual DEX Leaderboard
+- **Ranking:** venues are ranked by live DefiLlama 24h volume. dYdX and Jupiter are
+  removed.
+- **Pinned venues:** Arcus, TXFlow and RiseX are always on the board.
+  - A pinned venue uses DefiLlama's live numbers when listed there.
+  - Otherwise it shows "Not listed" with a dash, not an invented volume.
+- **Columns:**
+  - The OI and funding columns showed the same hard-coded numbers for every venue, so
+    they are gone.
+  - Each row now has a bar for its share of the leader's volume.
+
+### Performance and UX (from the earlier pass on #389)
+- **Polling:** follows the CDN windows (180s/300s, chart 90s, INR 150s; hidden tabs
+  skip).
+- **Dead Binance sockets removed:** the CSP blocked them, so they only ever reconnected
+  every 4-5s.
+- **Hero image:** a 126 KB WebP replacing a 2 MB PNG.
+- **Watchlist:**
+  - One shared store, so a star anywhere saves and shows everywhere.
+  - "My Watchlist" opens the tab.
+- **Haptics and alignment:** haptics on star, watchlist, currency and tabs; row 3 cards
+  are equal height.
+
+---
+
 ## 2026-10-26 (139) — /news eyebrow matches the homepage
 
 "Live Web3 Intelligence" on `/news` now uses the homepage's "The Home Of Next Gen Web3"

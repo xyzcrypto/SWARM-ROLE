@@ -90,27 +90,27 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
       : "$-";
 
   return (
-    <div className="rounded-2xl border border-line bg-ink-950/60 p-3">
+    <div className="neu-card rounded-2xl border border-white/60 dark:border-white/[0.06] shadow-neu p-3">
       {/* header */}
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="relative flex h-2 w-2">
-            {live && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />}
+            {live && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-70" />}
             <span
               className={`relative inline-flex h-2 w-2 rounded-full ${
-                live ? "bg-mint-400" : failed ? "bg-amber-400" : "animate-pulse bg-zinc-500"
+                live ? "bg-emerald-400" : failed ? "bg-amber-400" : "animate-pulse bg-zinc-500"
               }`}
             />
           </span>
-          <span className="mono text-[11px] font-semibold text-zinc-200">{coin.symbol}</span>
-          <span className="mono text-[11px] text-zinc-400">{priceLabel}</span>
+          <span className="mono text-[11px] font-semibold text-zinc-900 dark:text-zinc-200">{coin.symbol}</span>
+          <span className="mono text-[11px] text-zinc-600 dark:text-zinc-400">{priceLabel}</span>
           {data && (
-            <span className={`mono text-[10px] ${up ? "text-mint-300" : "text-red-300"}`}>
+            <span className={`mono text-[10px] ${up ? "text-emerald-600 dark:text-mint-300" : "text-rose-600 dark:text-red-300"}`}>
               {up ? "+" : ""}{change.toFixed(2)}%
             </span>
           )}
         </div>
-        <div className="flex items-center gap-0.5 rounded-lg border border-line bg-ink-900/60 p-0.5">
+        <div className="neu-inset-sm flex items-center gap-0.5 rounded-xl border border-white/60 dark:border-white/[0.04] p-0.5 shadow-neu-inset-sm">
           {TIMEFRAMES.map((tf) => (
             <button
               key={tf.d}
@@ -123,7 +123,7 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
               // expanding sideways would make neighbouring hit areas overlap
               // and steal each other's taps.
               className={`tap-target-y rounded-md px-1.5 py-0.5 mono text-[9px] font-semibold transition-colors ${
-                days === tf.d ? "bg-gold-500/20 text-gold-200" : "text-zinc-500 hover:text-zinc-300"
+                days === tf.d ? "neu-inset bg-amber-400/25 text-amber-800 dark:text-amber-200 border border-amber-400/50 shadow-neu-inset-sm" : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
               }`}
             >
               {tf.label}
