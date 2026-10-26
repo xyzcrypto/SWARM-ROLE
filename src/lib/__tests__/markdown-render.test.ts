@@ -193,3 +193,34 @@ describe("Markdown tables", () => {
     expect(blocks[1].type).toBe("p");
   });
 });
+
+describe("Markdown lists and ranked sections", () => {
+  it("renders unicode bullet points (•) as an unordered list <ul>", () => {
+    const blocks = blocksOf("• Zero trading fees\n• Best-in-class execution");
+    expect(blocks[0].type).toBe("ul");
+    const items = blocks[0].props.children;
+    expect(items).toHaveLength(2);
+  });
+
+  it("renders numbered lines (1. 2.) as an ordered list <ol>", () => {
+    const blocks = blocksOf("1. First step\n2. Second step");
+    expect(blocks[0].type).toBe("ol");
+    const items = blocks[0].props.children;
+    expect(items).toHaveLength(2);
+  });
+
+  it("renders ranked emojis (🥇 Lighter) as styled ranked sections", () => {
+    const blocks = blocksOf("🥇 Lighter Protocol");
+    expect(blocks[0].type).toBe("div");
+    expect(blocks[0].props.id).toBe("lighter-protocol");
+  });
+
+  it("renders standalone URL as an interactive action protocol card", () => {
+    const blocks = blocksOf("https://robinhoodchain.lighter.xyz/?referral=XYZCRYPTO");
+    expect(blocks[0].type).toBe("div");
+    expect(blocks[0].props.className).toContain("not-prose");
+    const link = blocks[0].props.children[1];
+    expect(link.type).toBe("a");
+    expect(link.props.href).toBe("https://robinhoodchain.lighter.xyz/?referral=XYZCRYPTO");
+  });
+});

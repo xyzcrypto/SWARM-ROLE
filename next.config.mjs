@@ -7,9 +7,10 @@ import { withSentryConfig } from "@sentry/nextjs";
 // style is an ACCEPTED RISK until a nonce pipeline exists (SECURITY-AUDIT
 // F-015). 'unsafe-eval' was dropped 2026-07-03 — production Next.js does not
 // eval; only dev tooling does, and this header only matters in production.
+const isDev = process.env.NODE_ENV !== "production";
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+  `script-src 'self' 'unsafe-inline' ${isDev ? "'unsafe-eval' " : ""}https://www.googletagmanager.com https://www.google-analytics.com`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' https://fonts.gstatic.com data:",
@@ -60,6 +61,14 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  allowedDevOrigins: [
+    "localhost",
+    "127.0.0.1",
+    "*.trycloudflare.com",
+    "**.trycloudflare.com",
+    "departure-satisfaction-authentication-football.trycloudflare.com",
+    "discussion-str-independently-entries.trycloudflare.com",
+  ],
   // Strip console.* from production bundles (keep error/warn) - smaller, faster JS.
   compiler: {
     removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,

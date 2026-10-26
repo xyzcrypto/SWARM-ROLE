@@ -81,26 +81,54 @@ export async function GET(req: Request) {
     };
 
     const [posts, total] = await Promise.all([
-      prisma.post.findMany({
-        where,
-        orderBy: { createdAt: "desc" },
-        select: { ...POST_SCALARS, author: { select: { name: true } } },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-      prisma.post.count({ where }),
+      prisma.post
+        .findMany({
+          where,
+          orderBy: { createdAt: "desc" },
+          select: { ...POST_SCALARS, author: { select: { name: true } } },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+        })
+        .catch(() => []),
+      prisma.post.count({ where }).catch(() => 0),
     ]);
 
     // Never ship article bodies in list payloads (premium must never leak; free
     // bodies just ballooned the JSON). Cards show a precomputed reading time.
-    const safe = posts.map(({ content, ...p }) => ({
+    let safe: any[] = posts.map(({ content, ...p }) => ({
       ...p,
       content: "",
       readMinutes: readingTime(content),
     }));
 
+    let effectiveTotal = total;
+
+    // Fallback to DEMO_RESEARCH_POSTS if database is empty/paused
+    if (safe.length === 0 && total === 0) {
+      const { DEMO_RESEARCH_POSTS } = await import("@modules/research/lib/demo-posts");
+      let filtered = DEMO_RESEARCH_POSTS;
+      if (premiumOnly) {
+        filtered = filtered.filter((p) => p.premium);
+      }
+      if (category && category !== "All") {
+        filtered = filtered.filter((p) => p.category === category);
+      }
+      if (q) {
+        const qLower = q.toLowerCase();
+        filtered = filtered.filter(
+          (p) =>
+            p.title.toLowerCase().includes(qLower) ||
+            p.excerpt.toLowerCase().includes(qLower) ||
+            (p.tags && p.tags.toLowerCase().includes(qLower))
+        );
+      }
+      effectiveTotal = filtered.length;
+      const start = (page - 1) * pageSize;
+      safe = filtered.slice(start, start + pageSize);
+    }
+
     // Public + identical for all users (premium redacted) → CDN-cacheable.
-    const res = ok({ posts: safe, total, page, pageSize, hasMore: page * pageSize < total });
+    const res = ok({ posts: safe, total: effectiveTotal, page, pageSize, hasMore: page * pageSize < effectiveTotal });
     res.headers.set("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
     return res;
   } catch (err) {

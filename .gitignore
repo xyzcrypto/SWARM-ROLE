@@ -83,3 +83,20 @@ id_ed25519
 
 # vercel
 .vercel
+
+# Temporary UI review screenshots and comparison renders
+markets_snap*.png
+public/*_check*.png
+public/*_render*.png
+public/*_test*.png
+public/clean_banner.png
+public/compare_target_hero.png
+public/current_render.png
+public/final_markets_hero.png
+public/full_markets_check.png
+public/hero_test_new.png
+public/markets_perfect_check.png
+public/render_target_*.png
+public/shifted_bg_test.png
+public/user_image_render.png
+public/ChatGPT Image*.png

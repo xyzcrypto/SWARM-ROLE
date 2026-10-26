@@ -35,7 +35,7 @@ const ITEMS: Item[] = [
 // a 430px phone each get a proportionate size, and the outer terms stop it
 // becoming unreadable or oversized. Nothing here is device-specific.
 const CELL_CLS =
-  "flex min-h-[clamp(48px,13vw,56px)] flex-col items-center justify-center gap-0.5 py-1.5 transition-colors";
+  "flex min-w-0 min-h-[clamp(48px,13vw,56px)] flex-col items-center justify-center gap-0.5 py-1.5 transition-colors";
 // Labels shrink on narrow phones instead of wrapping or clipping. `truncate`
 // plus `w-full` is the guard: a longer label degrades to an ellipsis rather
 // than pushing the six columns out of the viewport.
@@ -67,7 +67,7 @@ export function BottomNav() {
           the bar is actually shown - immersive routes above return null). */}
       <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] lg:hidden" />
       <nav
-        className="nav-shell fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-ink-950/95 lg:hidden"
+        className="nav-shell fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-ink-950/95 lg:hidden select-none"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         aria-label="Primary"
       >
@@ -77,7 +77,7 @@ export function BottomNav() {
           the bar is lg:hidden, so that only applies below 1024px.
           grid-cols-5 must match ITEMS.length + 1; they are what centres the
           Profile cell. */}
-      <div className="mx-auto grid w-full max-w-lg grid-cols-5">
+      <div className="mx-auto grid w-full max-w-lg grid-cols-5 min-w-0">
         {left.map((it) => (
           <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />
         ))}
@@ -85,7 +85,7 @@ export function BottomNav() {
           href={profileHref}
           prefetch={false}
           aria-current={profileActive ? "page" : undefined}
-          className="flex flex-col items-center justify-center gap-0.5 py-1"
+          className="flex min-w-0 flex-col items-center justify-center gap-0.5 py-1"
         >
           <span
             className={cn(

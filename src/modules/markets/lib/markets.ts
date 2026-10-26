@@ -26,15 +26,31 @@ export type DefiMarket = {
   stableMcap: number;
 };
 
-/** Compact USD: $1.23T / $45.6B / $12.3M / $999. Returns "-" for bad input. */
-export function compactUsd(n: number | null | undefined): string {
+/** Compact Currency (USD / INR): $1.23T or ₹116.8T. Returns "-" for bad input. */
+export function compactUsd(n: number | null | undefined, customCurrency?: string, customRate?: number): string {
   if (n == null || !Number.isFinite(n)) return "-";
-  const abs = Math.abs(n);
-  if (abs >= 1e12) return `$${(n / 1e12).toFixed(2)}T`;
-  if (abs >= 1e9) return `$${(n / 1e9).toFixed(2)}B`;
-  if (abs >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  if (abs >= 1e3) return `$${(n / 1e3).toFixed(1)}K`;
-  return `$${Math.round(n).toLocaleString("en-US")}`;
+
+  let currency = customCurrency;
+  let rate = customRate ?? 1;
+  if (!currency && typeof window !== "undefined") {
+    try {
+      currency = (window as any).__XYZ_CURRENCY__ || localStorage.getItem("xyz_currency") || "USD";
+      rate = (window as any).__XYZ_INR_RATE__ || 95.0;
+    } catch {
+      currency = "USD";
+    }
+  }
+
+  const val = currency === "INR" ? n * rate : n;
+  const abs = Math.abs(val);
+  const sym = currency === "INR" ? "₹" : "$";
+  const locale = currency === "INR" ? "en-IN" : "en-US";
+
+  if (abs >= 1e12) return `${sym}${(val / 1e12).toFixed(2)}T`;
+  if (abs >= 1e9) return `${sym}${(val / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `${sym}${(val / 1e6).toFixed(2)}M`;
+  if (abs >= 1e3) return `${sym}${(val / 1e3).toFixed(1)}K`;
+  return `${sym}${Math.round(val).toLocaleString(locale)}`;
 }
 
 /** Signed percent, e.g. "+2.34%" / "-1.10%". "-" for bad input. */
@@ -90,9 +106,9 @@ export type PerpDex = { slug: string; name: string; volume24h: number; change1d:
 export type PerpMarket = { coin: string; price: number; funding: number; openInterest: number };
 export type DexProtocol = { slug: string; name: string; volume24h: number; change1d: number; logo: string | null };
 export type FeeProtocol = { slug: string; name: string; fees24h: number; logo: string | null };
-export type YieldPool = { project: string; symbol: string; chain: string; apy: number; tvl: number };
-export type TrendingCoin = { id: string; name: string; symbol: string; thumb: string | null; change24h: number };
-export type MoverCoin = { id: string; name: string; symbol: string; image: string | null; price: number; change24h: number };
+export type YieldPool = { project: string; symbol: string; chain: string; apy: number; tvl: number; logo?: string | null; sparkline?: number[] };
+export type TrendingCoin = { id: string; name: string; symbol: string; thumb: string | null; change24h: number; price?: number; volume?: number; sparkline?: number[] };
+export type MoverCoin = { id: string; name: string; symbol: string; image: string | null; price: number; change24h: number; volume?: number; sparkline?: number[] };
 export type CoinRow = {
   id: string; // CoinGecko id - links each row to its coin detail page
   rank: number;
@@ -111,13 +127,36 @@ export type CoinRow = {
   sparkline: number[];
 };
 
-/** Price with sensible precision for a coin table (more decimals for sub-$1). */
-export function coinPrice(n: number | null | undefined): string {
+/** Price with sensible precision for a coin table (USD or INR). */
+export function coinPrice(n: number | null | undefined, customCurrency?: string, customRate?: number): string {
   if (n == null || !Number.isFinite(n)) return "-";
-  if (n >= 1000) return `$${n.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-  if (n >= 1) return `$${n.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
-  if (n >= 0.01) return `$${n.toFixed(4)}`;
-  return `$${n.toPrecision(2)}`;
+
+  let currency = customCurrency;
+  let rate = customRate ?? 1;
+  if (!currency && typeof window !== "undefined") {
+    try {
+      currency = (window as any).__XYZ_CURRENCY__ || localStorage.getItem("xyz_currency") || "USD";
+      rate = (window as any).__XYZ_INR_RATE__ || 95.0;
+    } catch {
+      currency = "USD";
+    }
+  }
+
+  const val = currency === "INR" ? n * rate : n;
+  const sym = currency === "INR" ? "₹" : "$";
+  const locale = currency === "INR" ? "en-IN" : "en-US";
+
+  if (currency === "INR") {
+    if (val >= 100_000) return `${sym}${val.toLocaleString(locale, { maximumFractionDigits: 0 })}`;
+    if (val >= 1) return `${sym}${val.toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (val >= 0.01) return `${sym}${val.toFixed(4)}`;
+    return `${sym}${val.toPrecision(2)}`;
+  } else {
+    if (val >= 1000) return `${sym}${val.toLocaleString(locale, { maximumFractionDigits: 0 })}`;
+    if (val >= 1) return `${sym}${val.toLocaleString(locale, { maximumFractionDigits: 2 })}`;
+    if (val >= 0.01) return `${sym}${val.toFixed(4)}`;
+    return `${sym}${val.toPrecision(2)}`;
+  }
 }
 
 /* ---------------- Coins table sorting (pure, for the Markets Coins panel) ---------------- */

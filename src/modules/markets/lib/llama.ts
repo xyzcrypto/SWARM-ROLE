@@ -213,7 +213,7 @@ export const llamaProtocols = unstable_cache(
   { revalidate: PROTOCOLS_TTL, tags: ["llama-protocols"] }
 );
 
-export type PoolRow = { project: string; symbol: string; chain: string; apy: number; tvl: number };
+export type PoolRow = { project: string; symbol: string; chain: string; apy: number; tvl: number; logo?: string | null };
 
 /**
  * `yields.llama.fi/pools` — 14.3 MB, of which `/api/markets/yields` keeps ten
@@ -226,13 +226,17 @@ export const llamaYieldPools = unstable_cache(
     const raw: any[] = Array.isArray(j?.data) ? j.data : [];
     return raw
       .filter((p) => (Number(p?.tvlUsd) || 0) >= 1_000_000 && (Number(p?.apy) || 0) < 1000)
-      .map((p) => ({
-        project: String(p?.project ?? "-"),
-        symbol: String(p?.symbol ?? "-"),
-        chain: String(p?.chain ?? "-"),
-        apy: Number(p?.apy) || 0,
-        tvl: Number(p?.tvlUsd) || 0,
-      }))
+      .map((p) => {
+        const project = String(p?.project ?? "-");
+        return {
+          project,
+          symbol: String(p?.symbol ?? "-"),
+          chain: String(p?.chain ?? "-"),
+          apy: Number(p?.apy) || 0,
+          tvl: Number(p?.tvlUsd) || 0,
+          logo: project !== "-" ? `https://icons.llamao.fi/icons/protocols/${encodeURIComponent(project.toLowerCase())}` : null,
+        };
+      })
       .sort((a, b) => b.apy - a.apy)
       .slice(0, 40);
   },

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -84,6 +85,25 @@
        six-checks (lightness band, chroma, CVD separation, contrast). */
     --chart-mint: #0bbb7c;
     --chart-gold: #d18f1b;
+    /* Neumorphism (Soft UI) tokens - LIGHT */
+    --neu-base: #e9edf4;
+    --neu-surface: #ebf0f7;
+    --neu-surface-raised: #f0f4fa;
+    --neu-surface-inset: #e2e7f0;
+    --neu-convex: linear-gradient(145deg, #f7fbff, #dfe4ec);
+    --neu-concave: linear-gradient(145deg, #dfe4ec, #f7fbff);
+    --neu-shadow-raised: -6px -6px 14px rgba(255, 255, 255, 0.95), 6px 6px 16px rgba(160, 175, 195, 0.55);
+    --neu-shadow-raised-sm: -3px -3px 8px rgba(255, 255, 255, 0.9), 3px 3px 9px rgba(160, 175, 195, 0.5);
+    --neu-shadow-raised-lg: -10px -10px 24px rgba(255, 255, 255, 0.95), 10px 10px 26px rgba(160, 175, 195, 0.6);
+    --neu-shadow-inset: inset 3px 3px 6px rgba(160, 175, 195, 0.55), inset -3px -3px 6px rgba(255, 255, 255, 0.9);
+    --neu-shadow-inset-sm: inset 2px 2px 4px rgba(160, 175, 195, 0.5), inset -2px -2px 4px rgba(255, 255, 255, 0.85);
+    --neu-shadow-inset-deep: inset 5px 5px 12px rgba(160, 175, 195, 0.6), inset -4px -4px 10px rgba(255, 255, 255, 0.9);
+    --neu-shadow-pressed: inset 3px 3px 6px rgba(160, 175, 195, 0.55), inset -3px -3px 6px rgba(255, 255, 255, 0.9);
+    --neu-shadow-glow-gold: -6px -6px 14px rgba(255, 255, 255, 0.9), 6px 6px 16px rgba(160, 175, 195, 0.5), 0 0 20px rgba(217, 143, 27, 0.25);
+    --neu-shadow-glow-mint: -6px -6px 14px rgba(255, 255, 255, 0.9), 6px 6px 16px rgba(160, 175, 195, 0.5), 0 0 20px rgba(11, 187, 124, 0.25);
+    --neu-rim: rgba(255, 255, 255, 0.85);
+    --neu-rim-dark: rgba(160, 175, 195, 0.35);
+    --neu-groove: rgba(160, 175, 195, 0.4);
     color-scheme: light;
   }
   /* Semantic theme tokens - DARK (default). Values match the current design
@@ -123,6 +143,25 @@
     --ring-focus: #e2a72f;
     --chart-mint: #039567;
     --chart-gold: #ad6f10;
+    /* Neumorphism (Soft UI) tokens - DARK */
+    --neu-base: #0c0e14;
+    --neu-surface: #13161f;
+    --neu-surface-raised: #161923;
+    --neu-surface-inset: #0e1017;
+    --neu-convex: linear-gradient(145deg, #181c27, #10121a);
+    --neu-concave: linear-gradient(145deg, #0e1017, #181b26);
+    --neu-shadow-raised: -6px -6px 14px rgba(255, 255, 255, 0.05), 6px 6px 18px rgba(0, 0, 0, 0.72);
+    --neu-shadow-raised-sm: -3px -3px 8px rgba(255, 255, 255, 0.04), 3px 3px 10px rgba(0, 0, 0, 0.65);
+    --neu-shadow-raised-lg: -10px -10px 24px rgba(255, 255, 255, 0.05), 10px 10px 26px rgba(0, 0, 0, 0.8);
+    --neu-shadow-inset: inset 3px 3px 6px rgba(0, 0, 0, 0.8), inset -3px -3px 6px rgba(255, 255, 255, 0.04);
+    --neu-shadow-inset-sm: inset 2px 2px 4px rgba(0, 0, 0, 0.7), inset -2px -2px 4px rgba(255, 255, 255, 0.03);
+    --neu-shadow-inset-deep: inset 5px 5px 12px rgba(0, 0, 0, 0.85), inset -4px -4px 10px rgba(255, 255, 255, 0.04);
+    --neu-shadow-pressed: inset 3px 3px 6px rgba(0, 0, 0, 0.8), inset -3px -3px 6px rgba(255, 255, 255, 0.04);
+    --neu-shadow-glow-gold: -6px -6px 16px rgba(255, 255, 255, 0.05), 6px 6px 18px rgba(0, 0, 0, 0.72), 0 0 24px rgba(226, 167, 47, 0.22);
+    --neu-shadow-glow-mint: -6px -6px 16px rgba(255, 255, 255, 0.05), 6px 6px 18px rgba(0, 0, 0, 0.72), 0 0 24px rgba(11, 187, 124, 0.22);
+    --neu-rim: rgba(255, 255, 255, 0.05);
+    --neu-rim-dark: rgba(0, 0, 0, 0.5);
+    --neu-groove: rgba(0, 0, 0, 0.55);
     color-scheme: dark;
   }
   * {
@@ -1967,7 +2006,11 @@ html:not(.dark) ::-webkit-scrollbar-track { background: #e9eaee; }
    the body a scroll container and silently break every `position: sticky` on
    the site (the markets table header, the news filter pills). `clip` clips
    without creating one. Vertical scrolling is untouched. */
-body { overflow-x: clip; }
+html,
+body {
+  overflow-x: clip;
+  max-width: 100%;
+}
 
 /* ----------------------------------------------------------------
    Hero fit — the hero has to fit a SHORT laptop, not just a wide one
@@ -2617,3 +2660,115 @@ html.lite-motion .news-swipe-arrow-r,
 html.lite-motion .news-swipe-hint {
   animation: none !important;
 }
+
+/* ── Neumorphism (Soft UI) Primitives & Components ────────────────────────── */
+.neu-flat {
+  background-color: var(--neu-surface);
+  box-shadow: var(--neu-shadow-raised);
+  border: 1px solid var(--neu-rim);
+  color: var(--content);
+}
+
+.neu-convex {
+  background-image: var(--neu-convex);
+  box-shadow: var(--neu-shadow-raised);
+  border: 1px solid var(--neu-rim);
+  color: var(--content);
+}
+
+.neu-concave {
+  background-image: var(--neu-concave);
+  box-shadow: var(--neu-shadow-raised);
+  border: 1px solid var(--neu-rim);
+  color: var(--content);
+}
+
+.neu-raised-sm {
+  background-color: var(--neu-surface);
+  box-shadow: var(--neu-shadow-raised-sm);
+  border: 1px solid var(--neu-rim);
+  color: var(--content);
+}
+
+.neu-raised-lg {
+  background-image: var(--neu-convex);
+  box-shadow: var(--neu-shadow-raised-lg);
+  border: 1px solid var(--neu-rim);
+  color: var(--content);
+}
+
+.neu-inset {
+  background-color: var(--neu-surface-inset);
+  box-shadow: var(--neu-shadow-inset);
+  border: 1px solid var(--neu-rim-dark);
+  color: var(--content);
+}
+
+.neu-inset-sm {
+  background-color: var(--neu-surface-inset);
+  box-shadow: var(--neu-shadow-inset-sm);
+  border: 1px solid var(--neu-rim-dark);
+  color: var(--content);
+}
+
+.neu-inset-deep {
+  background-color: var(--neu-surface-inset);
+  box-shadow: var(--neu-shadow-inset-deep);
+  border: 1px solid var(--neu-rim-dark);
+  color: var(--content);
+}
+
+.neu-card {
+  background-image: var(--neu-convex);
+  box-shadow: var(--neu-shadow-raised);
+  border: 1px solid var(--neu-rim);
+  color: var(--content);
+  transition: transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out);
+}
+.neu-card:hover {
+  box-shadow: var(--neu-shadow-raised-lg);
+  transform: translateY(-2px);
+}
+.neu-card:active {
+  box-shadow: var(--neu-shadow-raised-sm);
+  transform: translateY(0) scale(0.99);
+}
+
+.neu-btn {
+  background-image: var(--neu-convex);
+  box-shadow: var(--neu-shadow-raised-sm);
+  border: 1px solid var(--neu-rim);
+  color: var(--content);
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.neu-btn:hover {
+  box-shadow: var(--neu-shadow-raised);
+}
+.neu-btn:active {
+  background-image: var(--neu-concave);
+  box-shadow: var(--neu-shadow-inset);
+  transform: scale(0.98);
+}
+
+.neu-btn-gold {
+  background: linear-gradient(135deg, #f3d488 0%, #d18f1b 60%, #ad6f10 100%);
+  box-shadow: var(--neu-shadow-glow-gold);
+  border: 1px solid rgba(253, 247, 231, 0.3);
+  color: #08080a;
+  transition: all var(--dur-fast) var(--ease-out);
+}
+.neu-btn-gold:hover {
+  box-shadow: var(--neu-shadow-raised-lg), 0 0 28px rgba(226, 167, 47, 0.45);
+  filter: brightness(1.05);
+}
+.neu-btn-gold:active {
+  box-shadow: inset 2px 2px 6px rgba(0, 0, 0, 0.5), inset -2px -2px 6px rgba(255, 255, 255, 0.2);
+  transform: scale(0.98);
+}
+
+.neu-frame {
+  box-shadow: var(--neu-shadow-inset);
+  border: 1px solid var(--neu-rim-dark);
+}
+
+

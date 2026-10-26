@@ -68,19 +68,19 @@ export function QuickPublish() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="surface surface-hover flex min-h-16 w-full items-center gap-3 rounded-2xl px-4 text-left transition-colors"
+        className="neu-inset flex min-h-16 w-full items-center gap-3.5 rounded-3xl px-5 text-left transition-all duration-200 border border-zinc-200/50 dark:border-white/[0.04] shadow-neu-inset hover:border-gold-500/30 active:scale-[0.99]"
       >
         {/* The author's own avatar, the way every modern composer opens - it
             says "you are about to write as yourself" before a single field. */}
         {session?.user?.image ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={session.user.image} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
+          <img src={session.user.image} alt="" className="neu-convex h-10 w-10 shrink-0 rounded-full object-cover p-0.5 shadow-neu-sm" />
         ) : (
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold-500/15 text-gold-200">
-            <Plus className="h-4 w-4" strokeWidth={2} />
+          <span className="neu-convex grid h-10 w-10 shrink-0 place-items-center rounded-full text-amber-700 dark:text-gold-300 shadow-neu-sm border border-gold-500/30">
+            <Plus className="h-4 w-4" strokeWidth={2.5} />
           </span>
         )}
-        <span className="text-sm text-content-muted">Publish something to Research…</span>
+        <span className="text-sm font-medium text-zinc-500 dark:text-zinc-400">Publish something to Research…</span>
       </button>
     );
   }

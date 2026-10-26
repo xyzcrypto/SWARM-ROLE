@@ -54,7 +54,7 @@ export async function RelatedResearch({
 
   return (
     <section className="mt-12">
-      <h2 className="font-display text-lg font-semibold text-zinc-100">{heading}</h2>
+      <h2 className="font-display text-lg font-semibold text-zinc-900 dark:text-zinc-100">{heading}</h2>
       <ul className="mt-4 space-y-2">
         {ranked.map((p) => {
           const category = posts.find((x) => x.slug === p.slug)?.category;
@@ -62,12 +62,12 @@ export async function RelatedResearch({
             <li key={p.slug}>
               <Link
                 href={`/research/${p.slug}`}
-                className="group block rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 transition-colors hover:border-gold-500/30 hover:bg-white/[0.06]"
+                className="neu-card group block rounded-2xl p-4 shadow-neu-sm hover:shadow-neu transition-all active:scale-[0.99] border border-zinc-200/50 dark:border-white/[0.04]"
               >
-                <span className="block text-[14px] font-medium text-zinc-100 group-hover:text-gold-100">
+                <span className="block text-[14px] font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-amber-600 dark:group-hover:text-gold-200">
                   {p.title}
                 </span>
-                <span className="mt-0.5 block truncate text-[12px] text-zinc-500">
+                <span className="mt-1 block truncate text-[12px] text-zinc-600 dark:text-zinc-400">
                   {category ? `${category} · ` : ""}
                   {p.excerpt}
                 </span>
@@ -78,7 +78,7 @@ export async function RelatedResearch({
       </ul>
       <Link
         href="/research"
-        className="mono mt-3 inline-block text-[11px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-gold-200"
+        className="mono mt-3 inline-block text-[11px] uppercase tracking-[0.14em] text-zinc-600 dark:text-zinc-500 transition-colors hover:text-amber-600 dark:hover:text-gold-200"
       >
         All research →
       </Link>

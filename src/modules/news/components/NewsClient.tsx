@@ -7,7 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
-  ChevronLeft, ChevronRight, ArrowUp,
+  ChevronLeft, ChevronRight, ArrowUp, Flame, Filter,
 } from "lucide-react";
 import { RobotIcon } from "@/components/RobotIcon";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
@@ -23,6 +23,8 @@ import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import { MicButton } from "@/shared/components/MicButton";
 import { hapticToggle } from "@shared/utils/haptics";
 import { wakeIsDue } from "@shared/hooks/useLiveData";
+import { NewsPulseStrip } from "./NewsPulseStrip";
+import { ExecutiveAIBrief } from "./ExecutiveAIBrief";
 
 // Share a SHORT on-site link (`/news/read?u=<source-url>`) - opens the story on
 // our domain but stays tiny (just the source url), so it's easy to paste into a
@@ -88,6 +90,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const [rawQuery, setRawQuery] = useState("");
   const [query, setQuery] = useState("");
   const [savedOnly, setSavedOnly] = useState(false);
+  const [highImpactOnly, setHighImpactOnly] = useState(false);
+  const [sentimentFilter, setSentimentFilter] = useState<"all" | "bullish" | "bearish">("all");
   const [items, setItems] = useState<NewsItem[]>(initial?.items ?? []);
   const [pending, setPending] = useState<NewsItem[]>([]); // fresh stories buffered for the "N new" pill
   const [page, setPage] = useState(1);
@@ -449,18 +453,27 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // Shared with the reader, which has to know whether a story it just loaded
   // will actually be on screen before it navigates to it.
   const inFeed = useCallback(
-    (i: NewsItem) => category !== "For You" || !interests.length || i.categories.some((c) => interests.includes(c)),
-    [category, interests]
+    (i: NewsItem) => {
+      if (highImpactOnly && i.impact !== "High") return false;
+      if (sentimentFilter === "bullish" && i.sentiment !== "bullish") return false;
+      if (sentimentFilter === "bearish" && i.sentiment !== "bearish") return false;
+      return category !== "For You" || !interests.length || i.categories.some((c) => interests.includes(c));
+    },
+    [category, interests, highImpactOnly, sentimentFilter]
   );
 
   const visible = useMemo(() => {
     // Saved view renders the stored stories directly (survives feed aging out).
     if (savedOnly) {
       const q = query.toLowerCase();
-      return q ? saved.filter((i) => (i.title + " " + i.summary).toLowerCase().includes(q)) : saved;
+      let res = saved;
+      if (highImpactOnly) res = res.filter((i) => i.impact === "High");
+      if (sentimentFilter === "bullish") res = res.filter((i) => i.sentiment === "bullish");
+      if (sentimentFilter === "bearish") res = res.filter((i) => i.sentiment === "bearish");
+      return q ? res.filter((i) => (i.title + " " + i.summary).toLowerCase().includes(q)) : res;
     }
     return items.filter(inFeed);
-  }, [items, savedOnly, saved, query, inFeed]);
+  }, [items, savedOnly, saved, query, inFeed, highImpactOnly, sentimentFilter]);
 
   // The open story, resolved from the CURRENT list. Position is derived rather
   // than stored, so a feed that grew or was refiltered underneath the reader
@@ -525,21 +538,42 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
 
 
   return (
-    <div className="space-y-5">
-      {/* Breaking hero - image-rich, auto-rotating, opens the reader */}
+    <div className="space-y-6">
+      {/* 1. Real-time Neumorphic Intelligence Radar */}
+      {!savedOnly && (
+        <NewsPulseStrip
+          items={items}
+          onSelectToken={searchToken}
+          selectedToken={rawQuery}
+          onSelectCategory={(cat) => setCategory(cat)}
+          selectedCategory={category}
+        />
+      )}
+
+      {/* 2. Executive AI Market Intelligence & Actionable Briefing */}
+      {!savedOnly && items.length > 0 && (
+        <ExecutiveAIBrief
+          items={items}
+          onOpenStory={openReader}
+          onFilterHighImpact={() => setHighImpactOnly((v) => !v)}
+          isHighImpactOnly={highImpactOnly}
+        />
+      )}
+
+      {/* 3. Breaking hero - image-rich, auto-rotating, opens the reader */}
       {!savedOnly && breakingList.length > 0 && (
         <BreakingHero items={breakingList} now={now} onOpen={openReader} />
       )}
 
-      {/* Search + saved toggle */}
+      {/* 4. Search + saved toggle with tactile Neumorphic styling */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500 dark:text-zinc-400" />
           <input
             value={rawQuery}
             onChange={(e) => setRawQuery(e.target.value)}
-            placeholder="Search news…"
-            className="w-full rounded-xl border border-white/10 bg-ink-950/60 py-2.5 pl-9 pr-16 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-gold-500/40 focus:outline-none focus:ring-1 focus:ring-gold-500/30"
+            placeholder="Search news, tokens, publishers or narratives…"
+            className="neu-inset w-full rounded-2xl border border-white/40 dark:border-white/[0.08] bg-black/[0.03] dark:bg-black/30 py-3 pl-10 pr-16 text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500 shadow-neu-inset-sm focus:border-amber-500/50 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all"
           />
           <MicButton
             size="sm"
@@ -547,7 +581,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             onText={(t) => setRawQuery((v) => (v ? `${v} ${t}` : t))}
           />
           {rawQuery && (
-            <button onClick={() => setRawQuery("")} aria-label="Clear" className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
+            <button onClick={() => setRawQuery("")} aria-label="Clear" className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300">
               <X className="h-4 w-4" />
             </button>
           )}
@@ -555,17 +589,78 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
         <button
           onClick={() => setSavedOnly((v) => !v)}
           className={cn(
-            "inline-flex items-center justify-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
-            savedOnly ? "border-gold-500/40 bg-gold-500/15 text-gold-100" : "border-white/10 text-zinc-400 hover:text-zinc-100"
+            "neu-btn inline-flex items-center justify-center gap-1.5 rounded-2xl border px-4 py-3 text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]",
+            savedOnly
+              ? "neu-inset bg-amber-400 text-black border border-amber-500/40 shadow-neu-inset-sm font-black"
+              : "border-white/40 dark:border-white/[0.08] text-zinc-700 dark:text-zinc-300 shadow-neu-sm hover:text-black dark:hover:text-white"
           )}
         >
           <Bookmark className="h-4 w-4" /> Saved{saved.length ? ` (${saved.length})` : ""}
         </button>
         <NewsAlertsToggle loggedIn={loggedIn} showPrefs />
-        <span className="hidden items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] text-zinc-500 sm:flex">
-          <span className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse bg-mint-400" : "bg-amber-400")} />
-          {live ? "Live" : "Cached"}
+        <span className="neu-inset-sm hidden sm:inline-flex items-center gap-1.5 rounded-2xl px-3.5 py-3 text-[11px] font-bold uppercase tracking-wider text-zinc-600 dark:text-zinc-400 border border-white/30 dark:border-white/[0.05]">
+          <span className={cn("h-2 w-2 rounded-full", live ? "animate-pulse bg-mint-500 shadow-[0_0_8px_#10b981]" : "bg-amber-400 shadow-[0_0_8px_#f59e0b]")} />
+          {live ? "Live Feed" : "Cached"}
         </span>
+      </div>
+
+      {/* Quick Signal & Noise Filter */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mr-1 flex items-center gap-1">
+          <Filter className="h-3 w-3 text-amber-500" />
+          Quick Signal:
+        </span>
+        <button
+          type="button"
+          onClick={() => { setHighImpactOnly(false); setSentimentFilter("all"); }}
+          className={cn(
+            "neu-btn inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98]",
+            !highImpactOnly && sentimentFilter === "all"
+              ? "neu-inset bg-amber-400 text-black border border-amber-500/40 shadow-neu-inset-sm font-black"
+              : "text-zinc-700 dark:text-zinc-300 border border-white/40 dark:border-white/[0.06] shadow-neu-sm hover:text-black dark:hover:text-white"
+          )}
+        >
+          All Signals
+        </button>
+        <button
+          type="button"
+          onClick={() => setHighImpactOnly((v) => !v)}
+          className={cn(
+            "neu-btn inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98]",
+            highImpactOnly
+              ? "neu-inset bg-amber-400 text-black border border-amber-500/40 shadow-neu-inset-sm font-black"
+              : "text-zinc-700 dark:text-zinc-300 border border-white/40 dark:border-white/[0.06] shadow-neu-sm hover:text-amber-500"
+          )}
+        >
+          <Flame className="h-3.5 w-3.5 text-amber-500" />
+          Market Shakers (High Impact)
+        </button>
+        <button
+          type="button"
+          onClick={() => setSentimentFilter((s) => (s === "bullish" ? "all" : "bullish"))}
+          className={cn(
+            "neu-btn inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98]",
+            sentimentFilter === "bullish"
+              ? "neu-inset bg-mint-500 text-black border border-mint-600/40 shadow-neu-inset-sm font-black"
+              : "text-zinc-700 dark:text-zinc-300 border border-white/40 dark:border-white/[0.06] shadow-neu-sm hover:text-mint-500"
+          )}
+        >
+          <TrendingUp className="h-3.5 w-3.5 text-mint-500" />
+          Bullish Catalysts
+        </button>
+        <button
+          type="button"
+          onClick={() => setSentimentFilter((s) => (s === "bearish" ? "all" : "bearish"))}
+          className={cn(
+            "neu-btn inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1 text-xs font-bold transition-all hover:scale-[1.02] active:scale-[0.98]",
+            sentimentFilter === "bearish"
+              ? "neu-inset bg-red-500 text-white border border-red-600/40 shadow-neu-inset-sm font-black"
+              : "text-zinc-700 dark:text-zinc-300 border border-white/40 dark:border-white/[0.06] shadow-neu-sm hover:text-red-500"
+          )}
+        >
+          <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+          Risk & Bearish Alerts
+        </button>
       </div>
 
       {/* Why a save or a topic change did not stick. The server has a specific
@@ -573,20 +668,22 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
           requests. Please slow down." - and every one of them used to be
           discarded, leaving a bookmark that looked saved and was not. */}
       {saveErr && (
-        <p role="status" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-[12px] text-amber-200">
+        <p role="status" className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.08] px-4 py-2.5 text-xs font-medium text-amber-800 dark:text-amber-200 shadow-neu-sm">
           {saveErr}
         </p>
       )}
 
-      {/* Category chips */}
+      {/* Category chips with Tactile Neumorphic Buttons */}
       <div className="flex items-center gap-2">
         <div className="-mx-1 flex flex-1 snap-x items-center gap-2 overflow-x-auto scroll-smooth px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {loggedIn && (
             <button
               onClick={() => setCategory("For You")}
               className={cn(
-                "inline-flex h-8 shrink-0 snap-start items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium leading-none transition-all active:scale-95",
-                category === "For You" ? "bg-mint-500/15 text-mint-200 ring-1 ring-mint-500/40" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+                "neu-btn inline-flex h-8.5 shrink-0 snap-start items-center gap-1.5 rounded-xl px-3.5 text-[12px] font-bold leading-none transition-all hover:scale-[1.02] active:scale-[0.98]",
+                category === "For You"
+                  ? "neu-inset bg-mint-500 text-black border border-mint-600/40 shadow-neu-inset-sm font-black"
+                  : "border-white/40 dark:border-white/[0.06] text-zinc-700 dark:text-zinc-300 shadow-neu-sm hover:text-black dark:hover:text-white"
               )}
             >
               <Star className="h-3.5 w-3.5" /> For You
@@ -597,8 +694,10 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               key={cat}
               onClick={() => setCategory(cat)}
               className={cn(
-                "inline-flex h-8 shrink-0 snap-start items-center rounded-full px-3.5 text-[13px] font-medium leading-none transition-all active:scale-95",
-                category === cat ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/40" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"
+                "neu-btn inline-flex h-8.5 shrink-0 snap-start items-center rounded-xl px-3.5 text-[12px] font-semibold leading-none transition-all hover:scale-[1.02] active:scale-[0.98]",
+                category === cat
+                  ? "neu-inset bg-amber-400 text-black border border-amber-500/40 shadow-neu-inset-sm font-black"
+                  : "border-white/40 dark:border-white/[0.06] text-zinc-700 dark:text-zinc-300 shadow-neu-sm hover:text-black dark:hover:text-white"
               )}
             >
               {cat}
@@ -606,7 +705,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
           ))}
         </div>
         {loggedIn && (
-          <button onClick={() => setCustomizing(true)} aria-label="Customize feed" className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/10 px-3.5 text-[13px] font-medium leading-none text-zinc-400 transition-colors hover:text-zinc-100">
+          <button onClick={() => setCustomizing(true)} aria-label="Customize feed" className="neu-btn inline-flex h-8.5 shrink-0 items-center gap-1.5 rounded-xl border border-white/40 dark:border-white/[0.06] px-3.5 text-[12px] font-semibold text-zinc-700 dark:text-zinc-300 shadow-neu-sm hover:text-black dark:hover:text-white hover:scale-[1.02] active:scale-[0.98]">
             <SlidersHorizontal className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Customize</span>
           </button>
         )}
@@ -614,10 +713,10 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
 
       {/* Empty "For You" hint */}
       {category === "For You" && !interests.length && (
-        <div className="rounded-2xl border border-dashed border-mint-500/25 bg-mint-500/[0.04] py-8 text-center">
-          <p className="text-sm font-semibold text-zinc-200">Build your personalized feed</p>
-          <p className="mt-1 text-sm text-zinc-500">Pick the topics you care about to see only what matters to you.</p>
-          <button onClick={() => setCustomizing(true)} className="btn-primary mt-4 px-4 py-2 text-sm">Choose topics</button>
+        <div className="neu-card rounded-3xl border border-dashed border-mint-500/30 bg-mint-500/[0.04] p-8 text-center shadow-neu">
+          <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">Build your personalized feed</p>
+          <p className="mt-1 text-xs text-zinc-600 dark:text-zinc-400">Pick the topics you care about to see only what matters to you.</p>
+          <button onClick={() => setCustomizing(true)} className="neu-btn-gold mt-4 inline-flex items-center gap-1.5 rounded-xl px-5 py-2 text-xs font-bold shadow-neu-sm hover:scale-[1.02] active:scale-[0.98]">Choose topics</button>
         </div>
       )}
 
@@ -629,7 +728,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
             className="sticky top-20 z-20 flex justify-center"
           >
-            <button onClick={revealPending} className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/40 bg-gold-500/15 px-4 py-1.5 text-[13px] font-semibold text-gold-100 shadow-lg shadow-black/30 backdrop-blur transition-colors hover:bg-gold-500/25">
+            <button onClick={revealPending} className="neu-btn inline-flex items-center gap-1.5 rounded-full border border-amber-400/50 bg-amber-400/20 px-4 py-1.5 text-[13px] font-bold text-amber-800 dark:text-gold-200 shadow-neu backdrop-blur-md transition-all hover:scale-[1.02] active:scale-[0.98]">
               <ArrowUp className="h-3.5 w-3.5" /> {pending.length} new stor{pending.length === 1 ? "y" : "ies"}
             </button>
           </motion.div>
@@ -638,11 +737,11 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
 
       {/* Feed */}
       {loading ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="shimmer h-44 rounded-2xl bg-white/[0.04]" />)}
+        <div className="grid gap-5 sm:grid-cols-2">
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="neu-card shimmer h-48 rounded-3xl bg-white/[0.04] border border-white/40 dark:border-white/[0.06] shadow-neu" />)}
         </div>
       ) : visible.length ? (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2">
           {visible.map((item, i) => (
             <NewsCard
               key={item.id}
@@ -849,33 +948,35 @@ const NewsCard = memo(function NewsCard({
       viewport={{ once: true, margin: "0px 0px -60px 0px" }}
       transition={{ duration: 0.4, delay: Math.min(index, 7) * 0.04, ease: [0.22, 1, 0.36, 1] }}
       whileHover={reduce ? undefined : { y: -3 }}
-      className="surface surface-hover group/card cv-auto relative flex flex-col overflow-hidden rounded-2xl p-4"
+      className="neu-card group/card cv-auto relative flex flex-col justify-between overflow-hidden rounded-3xl p-5 border border-white/60 dark:border-white/[0.08] shadow-neu hover:shadow-neu-hover transition-all duration-300"
     >
       {/* sentiment accent bar */}
-      <span aria-hidden className={cn("absolute inset-x-0 top-0 h-0.5 opacity-70",
+      <span aria-hidden className={cn("absolute inset-x-0 top-0 h-1 opacity-80",
         item.sentiment === "bullish" ? "bg-gradient-to-r from-mint-400/0 via-mint-400 to-mint-400/0"
         : item.sentiment === "bearish" ? "bg-gradient-to-r from-red-400/0 via-red-400 to-red-400/0"
-        : "bg-gradient-to-r from-gold-400/0 via-gold-400/60 to-gold-400/0")} />
+        : "bg-gradient-to-r from-amber-400/0 via-amber-400 to-amber-400/0")} />
       {/* hero image (when the feed provides one) - opens the on-site reader */}
       {/* The wrapper carries the negative margins that bleed the image to the
           card edge, so it has to go with the image - hiding it from the error
           handler is what the old code did, behind React's back. */}
       {item.image && !heroFailed && (
-        <button onClick={open} className="group -mx-4 -mt-4 mb-3 block overflow-hidden rounded-t-2xl" aria-label={`Read: ${item.title}`}>
+        <button onClick={open} className="group -mx-5 -mt-5 mb-3.5 block overflow-hidden rounded-t-3xl relative" aria-label={`Read: ${item.title}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.image} alt="" loading="lazy" className="h-36 w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" onError={() => setHeroFailed(true)} />
+          <img src={item.image} alt="" loading="lazy" className="h-40 w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" onError={() => setHeroFailed(true)} />
         </button>
       )}
       {/* meta row */}
-      <div className="mb-2 flex items-center gap-2 text-[11px] text-zinc-500">
-        <SafeImg src={item.sourceIcon} width={16} height={16} loading="lazy" className="h-4 w-4 rounded" />
+      <div className="mb-2 flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400">
+        <div className="neu-inset-sm flex h-6 w-6 shrink-0 items-center justify-center rounded-lg overflow-hidden border border-white/20 bg-black/5 dark:bg-white/5">
+          <SafeImg src={item.sourceIcon} width={16} height={16} loading="lazy" className="h-4 w-4 rounded" />
+        </div>
         {/* Tapping the source filters to it. 29 feeds and no way to say "more
             from this one" (or "not this one") was the gap. Same reasoning as
             the token chips: it drives the visible search box rather than a
             hidden filter dimension, so it can be seen and undone. */}
         <button
           onClick={(e) => { e.stopPropagation(); onSource(item.source); }}
-          className="font-medium text-zinc-400 transition-colors hover:text-gold-200"
+          className="font-bold text-zinc-700 dark:text-zinc-300 transition-colors hover:text-amber-500 dark:hover:text-gold-200"
         >
           {item.source}
         </button>
@@ -884,22 +985,35 @@ const NewsCard = memo(function NewsCard({
             `dateTime` is the machine-readable one; `title` gives the absolute
             timestamp on hover, which "3h ago" alone never could. */}
         <time
-          className="mono"
+          className="mono text-zinc-500"
           dateTime={item.publishedAt ? new Date(item.publishedAt).toISOString() : undefined}
           title={item.publishedAt ? new Date(item.publishedAt).toUTCString() : undefined}
         >
           {now ? timeAgo(item.publishedAt, now) : ""}
         </time>
-        <span className="ml-auto rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{item.category}</span>
+        <span className="neu-inset-sm ml-auto rounded-lg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-gold-300 border border-amber-500/20 bg-amber-500/10">{item.category}</span>
       </div>
 
-      <button onClick={open} className="group text-left">
-        <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-zinc-100 transition-colors group-hover:text-gold-100">{item.title}</h3>
+      <button onClick={open} className="group text-left mt-1">
+        <h3 className="line-clamp-2 font-display text-[15px] sm:text-base font-bold leading-snug text-zinc-900 dark:text-zinc-100 transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-300">{item.title}</h3>
       </button>
-      {item.summary && <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-zinc-500">{item.summary}</p>}
+      {item.summary && <p className="mt-1.5 line-clamp-2 text-[13px] leading-relaxed text-zinc-600 dark:text-zinc-400">{item.summary}</p>}
+
+      {/* Instant Actionable Insight / Catalyst Tag for High Impact Stories */}
+      {item.impact === "High" && (
+        <div className="neu-inset-sm mt-2.5 flex items-center justify-between rounded-xl px-2.5 py-1.5 border border-amber-500/20 bg-amber-500/[0.04]">
+          <span className="inline-flex items-center gap-1.5 text-[10.5px] font-bold text-amber-700 dark:text-amber-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-ping" />
+            Market Shaker
+          </span>
+          <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-mono">
+            {item.tokens.length ? `$${item.tokens.slice(0, 3).join(", $")} catalyst` : "Core macro impact"}
+          </span>
+        </div>
+      )}
 
       {/* badges */}
-      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+      <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
         {/* Every category the story matched, not just the primary one.
             `categories` has always been computed and shipped - it drives the
             "For You" filter and push targeting - but only `category` was ever
@@ -910,12 +1024,12 @@ const NewsCard = memo(function NewsCard({
           .filter((c) => c !== item.category)
           .slice(0, 2)
           .map((c) => (
-            <span key={c} className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-400">
+            <span key={c} className="neu-inset-sm rounded-lg px-2 py-0.5 text-[10px] font-medium text-zinc-600 dark:text-zinc-400 border border-white/30 dark:border-white/5">
               {c}
             </span>
           ))}
-        <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", sentBadge.cls)}>{sentBadge.icon}{sentBadge.label}</span>
-        <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium ring-1", impactCls)}>{item.impact} impact</span>
+        <span className={cn("inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider", sentBadge.cls)}>{sentBadge.icon}{sentBadge.label}</span>
+        <span className={cn("rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ring-1", impactCls)}>{item.impact} impact</span>
         {/* Tokens were inert <span>s. They are the most specific thing a story
             carries - "this is about ETH" - and on a site with a markets hub and
             a search box, being unable to act on that is the odd part. Tapping
@@ -927,7 +1041,7 @@ const NewsCard = memo(function NewsCard({
           <button
             key={t}
             onClick={(e) => { e.stopPropagation(); onToken(t); }}
-            className="mono rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-400 transition-colors hover:bg-gold-500/15 hover:text-gold-200"
+            className="mono neu-btn rounded-lg px-2 py-0.5 text-[10px] font-bold text-zinc-700 dark:text-zinc-300 transition-all hover:text-black dark:hover:text-white hover:scale-[1.03] active:scale-[0.97] border border-white/40 dark:border-white/[0.06]"
           >
             {t}
           </button>
@@ -936,38 +1050,38 @@ const NewsCard = memo(function NewsCard({
 
       {/* why-matters result */}
       {why.text && (
-        <div className="mt-3 rounded-xl border border-mint-500/20 bg-mint-500/[0.06] p-3">
-          <p className="mono text-[10px] font-semibold uppercase tracking-wide text-mint-300">Why this matters · XYZ AI</p>
-          <p className="mt-1 text-[13px] leading-relaxed text-zinc-300">{why.text}</p>
+        <div className="neu-inset mt-3.5 rounded-2xl border border-mint-500/30 bg-mint-500/[0.05] p-3.5 shadow-neu-inset-sm">
+          <p className="mono text-[10px] font-bold uppercase tracking-wider text-mint-600 dark:text-mint-300">Why this matters · XYZ AI</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-zinc-700 dark:text-zinc-300">{why.text}</p>
         </div>
       )}
-      {why.err && <p className="mt-2 text-[11px] text-amber-300">{why.err}</p>}
+      {why.err && <p className="mt-2 text-[11px] text-amber-500">{why.err}</p>}
 
       {/* AI digest - read the whole story on-site */}
       {digest.text && (
-        <div className="mt-3 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3">
-          <p className="mono text-[10px] font-semibold uppercase tracking-wide text-gold-200">AI Summary · XYZ AI</p>
-          <p className="mt-1 text-[13px] leading-relaxed text-zinc-200">{digest.text}</p>
+        <div className="neu-inset mt-3.5 rounded-2xl border border-gold-500/30 bg-gold-500/[0.05] p-3.5 shadow-neu-inset-sm">
+          <p className="mono text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-gold-200">AI Summary · XYZ AI</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-zinc-800 dark:text-zinc-200">{digest.text}</p>
         </div>
       )}
-      {digest.err && <p className="mt-2 text-[11px] text-amber-300">{digest.err}</p>}
+      {digest.err && <p className="mt-2 text-[11px] text-amber-500">{digest.err}</p>}
 
       {/* actions */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-1 gap-y-1.5 border-t border-white/5 pt-3 text-zinc-500">
-        <button onClick={readSummary} disabled={digest.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-gold-200 transition-colors hover:bg-gold-500/10 disabled:opacity-50">
+      <div className="mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-2 border-t border-black/[0.06] dark:border-white/[0.06] pt-3 text-zinc-600 dark:text-zinc-400">
+        <button onClick={readSummary} disabled={digest.loading} className="neu-btn inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-[11.5px] font-bold text-amber-700 dark:text-gold-300 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 border border-amber-500/20 shadow-neu-sm">
           {digest.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookOpen className="h-3.5 w-3.5" />} AI Summary
         </button>
-        <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-mint-300 transition-colors hover:bg-mint-500/10 disabled:opacity-50">
+        <button onClick={whyMatters} disabled={why.loading} className="neu-btn inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-[11.5px] font-bold text-mint-700 dark:text-mint-300 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 border border-mint-500/20 shadow-neu-sm">
           {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RobotIcon className="h-3.5 w-3.5" />} Why this matters
         </button>
-        <button onClick={open} className="ml-auto inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
+        <button onClick={open} className="neu-btn ml-auto inline-flex items-center gap-1 rounded-xl px-2.5 py-1 text-[11.5px] font-semibold text-zinc-700 dark:text-zinc-300 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-neu-sm border border-white/40 dark:border-white/[0.06]">
           <BookOpen className="h-3.5 w-3.5" /> Read
         </button>
-        <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Original source" className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] transition-colors hover:bg-white/5 hover:text-zinc-200">
+        <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Original source" className="neu-btn inline-flex items-center gap-1 rounded-xl p-1.5 text-zinc-700 dark:text-zinc-300 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-neu-sm border border-white/40 dark:border-white/[0.06]">
           <ExternalLink className="h-3.5 w-3.5" />
         </a>
-        <button onClick={share} aria-label="Share" className="rounded-lg p-1.5 transition-colors hover:bg-white/5 hover:text-zinc-200"><Share2 className="h-3.5 w-3.5" /></button>
-        <button onClick={() => onBookmark(item)} aria-label="Bookmark" className={cn("rounded-lg p-1.5 transition-colors hover:bg-white/5", bookmarked ? "text-gold-300" : "hover:text-zinc-200")}>
+        <button onClick={share} aria-label="Share" className="neu-btn rounded-xl p-1.5 text-zinc-700 dark:text-zinc-300 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-neu-sm border border-white/40 dark:border-white/[0.06]"><Share2 className="h-3.5 w-3.5" /></button>
+        <button onClick={() => onBookmark(item)} aria-label="Bookmark" className={cn("neu-btn rounded-xl p-1.5 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-neu-sm border border-white/40 dark:border-white/[0.06]", bookmarked ? "text-amber-500 dark:text-gold-300" : "text-zinc-700 dark:text-zinc-300")}>
           {bookmarked ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
         </button>
       </div>
@@ -1371,7 +1485,7 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
 
   return (
     <div
-      className="group relative h-56 cursor-pointer overflow-hidden rounded-2xl border border-white/10 sm:h-64"
+      className="neu-card group relative h-64 sm:h-72 cursor-pointer overflow-hidden rounded-3xl border border-white/60 dark:border-white/[0.08] shadow-neu-lg hover:shadow-neu-hover transition-all duration-300"
       onClick={() => onOpen(active.id)}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -1396,7 +1510,7 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
       </AnimatePresence>
 
       {/* legibility gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/45 to-black/25" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/50 to-black/30" />
 
       {/* left / right swap arrows - tap to change the breaking story */}
       {items.length > 1 && (
@@ -1404,14 +1518,14 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
           <button
             onClick={(e) => { e.stopPropagation(); go(-1); }}
             aria-label="Previous breaking story"
-            className="absolute left-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/40 !text-white backdrop-blur-sm transition-all hover:bg-black/60 active:scale-90 sm:h-10 sm:w-10"
+            className="neu-btn absolute left-3 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-2xl border border-white/40 dark:border-white/10 bg-black/40 !text-white backdrop-blur-md transition-all hover:scale-[1.05] active:scale-[0.95] shadow-neu-sm"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); go(1); }}
             aria-label="Next breaking story"
-            className="absolute right-2 top-1/2 z-10 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border border-white/20 bg-black/40 !text-white backdrop-blur-sm transition-all hover:bg-black/60 active:scale-90 sm:h-10 sm:w-10"
+            className="neu-btn absolute right-3 top-1/2 z-10 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-2xl border border-white/40 dark:border-white/10 bg-black/40 !text-white backdrop-blur-md transition-all hover:scale-[1.05] active:scale-[0.95] shadow-neu-sm"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -1419,42 +1533,42 @@ function BreakingHero({ items, now, onOpen }: { items: NewsItem[]; now: number; 
       )}
 
       {/* content */}
-      <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+      <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6 bg-gradient-to-t from-black/95 via-black/60 to-transparent">
         <div className="mb-2 flex items-center gap-2 text-[11px]">
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide !text-white shadow-lg shadow-red-500/20">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/90 px-3 py-1 text-[10.5px] font-extrabold uppercase tracking-wider !text-white shadow-lg shadow-red-500/30">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white/80" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
             </span>
             Breaking
           </span>
-          <span className="font-medium !text-zinc-200">{active.source}</span>
+          <span className="font-semibold !text-zinc-200">{active.source}</span>
           <span className="!text-zinc-400">·</span>
           <span className="mono !text-zinc-400">{now ? timeAgo(active.publishedAt, now) : ""}</span>
-          <span className={cn("ml-1 hidden font-medium sm:inline", sentTone)}>{active.sentiment === "neutral" ? "" : active.sentiment}</span>
+          <span className={cn("ml-1 hidden font-bold sm:inline uppercase text-[10px] tracking-wider", sentTone)}>{active.sentiment === "neutral" ? "" : active.sentiment}</span>
         </div>
-        <h2 className="max-w-3xl font-display text-lg font-bold leading-snug !text-white drop-shadow sm:text-2xl">
+        <h2 className="max-w-4xl font-display text-xl sm:text-2xl md:text-3xl font-extrabold leading-snug !text-white drop-shadow">
           <span className="bg-gradient-to-r from-white to-white bg-[length:0%_2px] bg-left-bottom bg-no-repeat transition-[background-size] duration-300 group-hover:bg-[length:100%_2px]">{active.title}</span>
         </h2>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
           {active.tokens.slice(0, 4).map((t) => (
-            <span key={t} className="mono rounded-full bg-white/15 px-1.5 py-0.5 text-[10px] !text-white backdrop-blur-sm">{t}</span>
+            <span key={t} className="mono rounded-xl bg-white/15 px-2 py-0.5 text-[11px] font-bold !text-white backdrop-blur-md border border-white/15 shadow-sm">{t}</span>
           ))}
-          <span className="ml-1 inline-flex items-center gap-1 text-[11px] font-medium text-gold-200 opacity-0 transition-opacity group-hover:opacity-100">
-            Read on XYZ <BookOpen className="h-3 w-3" />
+          <span className="ml-1 inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 opacity-90 transition-opacity group-hover:opacity-100">
+            Read on XYZ <BookOpen className="h-3.5 w-3.5" />
           </span>
         </div>
       </div>
 
       {/* progress dots */}
       {items.length > 1 && (
-        <div className="absolute right-3 top-3 flex gap-1.5">
+        <div className="absolute right-4 top-4 flex gap-1.5 z-10">
           {items.map((it, i) => (
             <button
               key={it.id}
               onClick={(e) => { e.stopPropagation(); setIdx(i); }}
               aria-label={`Story ${i + 1}`}
-              className={cn("h-1.5 rounded-full transition-all", i === idx % items.length ? "w-5 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70")}
+              className={cn("h-1.5 rounded-full transition-all", i === idx % items.length ? "w-6 bg-amber-400 shadow-[0_0_8px_#f59e0b]" : "w-2 bg-white/40 hover:bg-white/70")}
             />
           ))}
         </div>

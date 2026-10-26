@@ -103,45 +103,156 @@ const isTableSeparator = (s: string) => {
   return cells.length > 0 && cells.every((c) => /^:?-{2,}:?$/.test(c));
 };
 
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+export function extractHeadings(content: string): Array<{ id: string; text: string; level: number }> {
+  if (!content) return [];
+  const lines = content.replace(/\r\n/g, "\n").split("\n");
+  const headings: Array<{ id: string; text: string; level: number }> = [];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.startsWith("### ")) {
+      const text = trimmed.slice(4).trim();
+      headings.push({ id: slugify(text), text, level: 3 });
+    } else if (trimmed.startsWith("## ")) {
+      const text = trimmed.slice(3).trim();
+      headings.push({ id: slugify(text), text, level: 2 });
+    } else if (trimmed.startsWith("# ")) {
+      const text = trimmed.slice(2).trim();
+      headings.push({ id: slugify(text), text, level: 1 });
+    } else {
+      const rank = /^([🥇🥈🥉🏆🎖️])\s+(.+)$/.exec(trimmed);
+      if (rank) {
+        headings.push({ id: slugify(rank[2]), text: `${rank[1]} ${rank[2]}`, level: 2 });
+      }
+    }
+  }
+  return headings;
+}
+
 export function Markdown({ content }: { content: string }) {
   const lines = content.replace(/\r\n/g, "\n").split("\n");
   const blocks: ReactNode[] = [];
   let list: string[] = [];
+  let orderedList: string[] = [];
   let key = 0;
 
   const flushList = () => {
     if (list.length) {
       const items = [...list];
       blocks.push(
-        <ul key={`ul-${key++}`}>
+        <ul key={`ul-${key++}`} className="my-4 list-disc pl-6 space-y-2 marker:text-gold-400">
           {items.map((it, idx) => (
-            <li key={idx}>{inline(it, `li-${key}-${idx}`)}</li>
+            <li key={idx} className="leading-relaxed text-zinc-200">{inline(it, `li-${key}-${idx}`)}</li>
           ))}
         </ul>
       );
       list = [];
     }
+    if (orderedList.length) {
+      const items = [...orderedList];
+      blocks.push(
+        <ol key={`ol-${key++}`} className="my-4 list-decimal pl-6 space-y-2 marker:text-gold-400 marker:font-semibold">
+          {items.map((it, idx) => (
+            <li key={idx} className="leading-relaxed text-zinc-200">{inline(it, `oli-${key}-${idx}`)}</li>
+          ))}
+        </ol>
+      );
+      orderedList = [];
+    }
   };
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!.trimEnd();
-    if (/^\s*[-*]\s+/.test(line)) {
-      list.push(line.replace(/^\s*[-*]\s+/, ""));
+
+    // 1. Unordered bullet lines (-, *, •, ·, ▪, ▫, ⁃)
+    if (/^\s*[-*•·▪▫⁃]\s+/.test(line)) {
+      if (orderedList.length) flushList();
+      list.push(line.replace(/^\s*[-*•·▪▫⁃]\s+/, ""));
       continue;
     }
+
+    // 2. Numbered list lines (1. or 1))
+    if (/^\s*\d+[.)]\s+/.test(line)) {
+      if (list.length) flushList();
+      orderedList.push(line.replace(/^\s*\d+[.)]\s+/, ""));
+      continue;
+    }
+
     flushList();
     if (!line.trim()) continue;
 
-    // ⚠️ Tables. The XYZ AI system prompt asks the model for "tables when
-    // comparing", and globals.css has carried `.prose-xyz table/th/td` styling
-    // for both themes all along - but nothing here ever produced a <table>, so
-    // a comparison answer ("BTC vs ETH") fell through to the paragraph branch
-    // and rendered as a wall of literal `|` and `|---|---|` in the chat panel
-    // and in any research post that tried one.
-    //
-    // A table is a header row, a separator row of dashes, then body rows. The
-    // separator is what distinguishes it from a paragraph that merely contains
-    // a pipe, so it is required rather than optional.
+    // 3. Ranked headings (🥇 Lighter, 🥈 Txflow, 🥉 Variational)
+    const rankMatch = /^([\u{1F947}\u{1F948}\u{1F949}\u{1F3C6}\u{1F396}]|🥇|🥈|🥉|🏆|🎖️?)\s+(.+)$/u.exec(line.trim());
+    if (rankMatch) {
+      const rankEmoji = rankMatch[1];
+      const titleText = rankMatch[2];
+      const id = slugify(titleText);
+      blocks.push(
+        <div id={id} key={`rank-${key++}`} className="scroll-mt-28 my-6 flex items-center gap-3 border-b border-white/10 pb-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-500/15 text-2xl ring-1 ring-gold-500/30">
+            {rankEmoji}
+          </span>
+          <h3 className="!my-0 font-display text-xl sm:text-2xl font-bold tracking-tight text-zinc-50">
+            {inline(titleText, `rank-h3-${key}`)}
+          </h3>
+        </div>
+      );
+      continue;
+    }
+
+    // 4. Standalone bare URL lines -> Smart Protocol / Resource Card
+    if (/^https?:\/\/[^\s]+$/.test(line.trim())) {
+      const rawUrl = line.trim();
+      const url = cleanBareUrl(rawUrl);
+      const href = safeHref(url);
+      let domain = "Open Protocol";
+      try {
+        const u = new URL(url);
+        domain = u.hostname.replace(/^www\./, "");
+      } catch {}
+
+      blocks.push(
+        <div
+          key={`url-card-${key++}`}
+          className="not-prose my-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-gold-500/30 bg-ink-900/80 p-4 shadow-lg backdrop-blur-md transition-all hover:border-gold-500/60"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gold-500/15 text-gold-400 ring-1 ring-gold-500/30">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 2a14.5 14.5 0 0 0 0 20M12 2a14.5 14.5 0 0 1 0 20M2 12h20" />
+              </svg>
+            </div>
+            <div className="min-w-0">
+              <span className="block truncate text-sm font-semibold text-zinc-100">{domain}</span>
+              <span className="block truncate mono text-[11px] text-zinc-400">{url}</span>
+            </div>
+          </div>
+          {href && (
+            <a
+              href={href}
+              {...linkTarget(href)}
+              className="btn-primary inline-flex items-center justify-center gap-1.5 !px-4 !py-2 text-xs font-semibold shadow-gold-sm shrink-0"
+            >
+              Start Trading Now
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M7 17L17 7M7 7h10v10" />
+              </svg>
+            </a>
+          )}
+        </div>
+      );
+      continue;
+    }
+
+    // ⚠️ Tables
     if (isTableRow(line) && i + 1 < lines.length && isTableSeparator(lines[i + 1]!)) {
       const head = tableCells(line);
       const body: string[][] = [];
@@ -152,9 +263,6 @@ export function Markdown({ content }: { content: string }) {
       }
       const k = key++;
       blocks.push(
-        // Its own scroll container: the AI panel is narrow and a four-column
-        // comparison would otherwise push the whole page sideways, which
-        // CLAUDE.md calls out as never acceptable.
         <div key={`tw-${k}`} className="my-4 overflow-x-auto">
           <table>
             <thead>
@@ -163,8 +271,6 @@ export function Markdown({ content }: { content: string }) {
             <tbody>
               {body.map((row, ri) => (
                 <tr key={ri}>
-                  {/* Pad short rows to the header width so a ragged table from
-                      a model that dropped a cell still lines up. */}
                   {head.map((_, ci) => <td key={ci}>{inline(row[ci] ?? "", `td-${k}-${ri}-${ci}`)}</td>)}
                 </tr>
               ))}
@@ -175,11 +281,21 @@ export function Markdown({ content }: { content: string }) {
       i = j - 1;
       continue;
     }
-    if (line.startsWith("### ")) blocks.push(<h3 key={key++}>{inline(line.slice(4), `h3-${key}`)}</h3>);
-    else if (line.startsWith("## ")) blocks.push(<h2 key={key++}>{inline(line.slice(3), `h2-${key}`)}</h2>);
-    else if (line.startsWith("# ")) blocks.push(<h1 key={key++}>{inline(line.slice(2), `h1-${key}`)}</h1>);
-    else if (line.startsWith("> ")) blocks.push(<blockquote key={key++}>{inline(line.slice(2), `bq-${key}`)}</blockquote>);
-    else blocks.push(<p key={key++}>{inline(line, `p-${key}`)}</p>);
+
+    if (line.startsWith("### ")) {
+      const t = line.slice(4);
+      blocks.push(<h3 id={slugify(t)} className="scroll-mt-28" key={key++}>{inline(t, `h3-${key}`)}</h3>);
+    } else if (line.startsWith("## ")) {
+      const t = line.slice(3);
+      blocks.push(<h2 id={slugify(t)} className="scroll-mt-28" key={key++}>{inline(t, `h2-${key}`)}</h2>);
+    } else if (line.startsWith("# ")) {
+      const t = line.slice(2);
+      blocks.push(<h1 id={slugify(t)} className="scroll-mt-28" key={key++}>{inline(t, `h1-${key}`)}</h1>);
+    } else if (line.startsWith("> ")) {
+      blocks.push(<blockquote key={key++}>{inline(line.slice(2), `bq-${key}`)}</blockquote>);
+    } else {
+      blocks.push(<p key={key++}>{inline(line, `p-${key}`)}</p>);
+    }
   }
   flushList();
 

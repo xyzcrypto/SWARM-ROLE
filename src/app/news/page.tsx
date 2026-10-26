@@ -47,16 +47,19 @@ export default async function NewsPage() {
     <>
       <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "News", path: "/news" }])} />
       <Navbar />
-      <main className="relative min-h-screen pt-28">
+      <main className="relative min-h-screen pt-24 sm:pt-28 bg-[#e9edf4] dark:bg-[#0c0e14] text-zinc-900 dark:text-zinc-100 selection:bg-amber-500/25 overflow-x-clip">
         <PageBackground />
-        <div className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
+        {/* Soft Neumorphic Studio Lighting: Directional Top-Left Soft Ambience */}
+        <div aria-hidden className="pointer-events-none absolute -left-40 top-0 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-amber-400/[0.07] via-gold-500/[0.03] to-transparent blur-[140px]" />
+        <div aria-hidden className="pointer-events-none absolute right-0 top-1/4 h-[500px] w-[500px] rounded-full bg-gradient-to-bl from-indigo-500/[0.05] via-purple-500/[0.02] to-transparent blur-[140px]" />
+        <div className="relative mx-auto max-w-7xl px-4 pb-24 sm:px-6 lg:px-8">
           <PageHeader
             eyebrow="Live Intelligence"
             title={<>Web3 <span className="text-shine">News</span></>}
             subtitle="Everything happening across crypto, in real time, filtered by what matters to you, from reputable sources, with AI context."
           />
 
-          <div className="mt-12">
+          <div className="mt-8 sm:mt-10">
             <NewsClient initial={initial} />
           </div>
         </div>
