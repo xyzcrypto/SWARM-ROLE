@@ -5,6 +5,49 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-26 (138) — /news redesign (PR, awaiting owner review)
+
+Owner request: a premium Web3 intelligence layout for `/news`, gold-led and built on real
+data only. **Not merged; for review.**
+
+- **Hero.**
+  - Left: "Live Web3 intelligence" eyebrow, the `<h1>` "Web3 News", the brief's
+    subtitle, Explore News (gold) and Open XYZ AI.
+  - Facts row, all real: `NEWS_SOURCES.length` sources, the 2-minute feed cache, AI
+    summaries.
+  - Right: a featured-story panel (high-impact stories first) with category, source,
+    time, bookmark, share and previous/next.
+  - Server-rendered and visible without JavaScript. It replaces `PageHeader`, whose
+    `<h1>` shipped at opacity 0 (audit SEO6).
+- **Toolbar.**
+  - Search across headlines, tokens and sources.
+  - Top (the server ranking) / Latest sort.
+  - Saved, Alerts and Live controls.
+  - Ten topic chips plus "More topics" for the rest of the taxonomy.
+- **Feed.**
+  - A Top stories grid: 16:9 images, equal card heights, gold category label,
+    breaking badge.
+  - Featured research (from `/api/research`) and an XYZ AI band.
+  - A Latest news list that keeps every existing action: AI Summary, Why this matters,
+    tokens, sentiment and impact, source filter, share, bookmark.
+- **Sidebar.**
+  - Trending topics, counted from the loaded stories.
+  - High-impact stories.
+  - Newsletter (`/api/subscribe`; success shown only on a 2xx).
+  - Community links from `site.ts`.
+  - No market widget and no events list: /news has no events source.
+- **Bugs fixed on the way.**
+  - An empty server batch (feeds unreachable at render time) counted as "already
+    loaded", so the page showed nothing until the 90s poll.
+  - Story cards were also shipped at opacity 0 behind `whileInView`; they now use the
+    CSS `hero-rise` entrance.
+- **Unchanged.** Polling, save rollback, For You, the reader and swipe, infinite scroll.
+  `/news` is still ISR at 2m and the route table is identical (158 routes).
+- **Tests.** New `news-redesign.test.ts` (12 checks: real-data rules, topic chips are
+  real categories, no JS-gated cards, the empty-batch fix). 1509/1509 pass.
+
+---
+
 ## 2026-10-07 (137) — Security: Next 16.3.8, dashboard member emails gated; full audit filed
 
 From the 2026-10-07 audit (`docs/AUDIT-2026-10-07.md`, linked from `HANDOFF.md §8`).
