@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { NewsClient } from "@/components/NewsClient";
-import { PageHeader } from "@/components/PageHeader";
 import { PageBackground } from "@/components/PageBackground";
 import { getNewsPage } from "@/lib/news-fetch";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
@@ -10,7 +9,7 @@ import { pageSeo } from "@/lib/seo";
 export const metadata: Metadata = pageSeo({
   title: "Live Web3 News",
   description:
-    "Real-time Web3 news & intelligence - breaking news, market updates and everything across crypto, filterable by category, from reputable sources, with AI context.",
+    "The signal behind the noise. Real-time crypto news, research and insights from trusted sources, filterable by topic, with XYZ AI summaries.",
   path: "/news",
 });
 
@@ -47,18 +46,14 @@ export default async function NewsPage() {
     <>
       <JsonLd data={breadcrumbJsonLd([{ name: "Home", path: "/" }, { name: "News", path: "/news" }])} />
       <Navbar />
-      <main className="relative min-h-screen pt-28">
+      <main className="relative min-h-screen pt-24 sm:pt-28">
         <PageBackground />
-        <div className="relative mx-auto max-w-6xl px-4 pb-24 sm:px-6 lg:px-8">
-          <PageHeader
-            eyebrow="Live Intelligence"
-            title={<>Web3 <span className="text-shine">News</span></>}
-            subtitle="Everything happening across crypto, in real time, filtered by what matters to you, from reputable sources, with AI context."
-          />
-
-          <div className="mt-12">
-            <NewsClient initial={initial} />
-          </div>
+        {/* The hero (with the page's <h1>) lives in NewsClient, because its
+            featured-story panel is fed by the live feed. NewsClient is still
+            server-rendered with `initial`, so the heading and first stories
+            are in the HTML. */}
+        <div className="relative mx-auto max-w-[1320px] px-4 pb-24 sm:px-6 lg:px-8 2xl:max-w-[1480px]">
+          <NewsClient initial={initial} />
         </div>
       </main>
     </>

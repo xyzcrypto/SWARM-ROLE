@@ -5,6 +5,99 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-26 (138) — /news redesign (PR, awaiting owner review)
+
+Owner request: a premium Web3 intelligence layout for `/news`, gold-led and built on real
+data only. **Not merged; for review.**
+
+- **Hero.**
+  - Left: "Live Web3 intelligence" eyebrow, the `<h1>` "Web3 News", the brief's
+    subtitle, Explore News (gold) and Open XYZ AI.
+  - Facts row, all real: `NEWS_SOURCES.length` sources, the 2-minute feed cache, AI
+    summaries.
+  - Right: a featured-story panel (high-impact stories first) with category, source,
+    time, bookmark, share and previous/next.
+  - Server-rendered and visible without JavaScript. It replaces `PageHeader`, whose
+    `<h1>` shipped at opacity 0 (audit SEO6).
+- **Toolbar.**
+  - Search across headlines, tokens and sources.
+  - Top (the server ranking) / Latest sort.
+  - Saved, Alerts and Live controls.
+  - Ten topic chips plus "More topics" for the rest of the taxonomy.
+- **Feed.**
+  - A Top stories grid: 16:9 images, equal card heights, gold category label,
+    breaking badge.
+  - Featured research (from `/api/research`) and an XYZ AI band.
+  - A Latest news list that keeps every existing action: AI Summary, Why this matters,
+    tokens, sentiment and impact, source filter, share, bookmark.
+- **Sidebar.**
+  - Trending topics, counted from the loaded stories.
+  - High-impact stories.
+  - Newsletter (`/api/subscribe`; success shown only on a 2xx).
+  - Community links from `site.ts`.
+  - No market widget and no events list: /news has no events source.
+- **Bugs fixed on the way.**
+  - An empty server batch (feeds unreachable at render time) counted as "already
+    loaded", so the page showed nothing until the 90s poll.
+  - Story cards were also shipped at opacity 0 behind `whileInView`; they now use the
+    CSS `hero-rise` entrance.
+- **Revision 2 (owner feedback: simpler, smaller hero, aligned like the reference).**
+  - The sidebar runs from the top.
+  - The hero is one compact strip: title on the left, top story as an image overlay on
+    the right.
+  - Search and topic chips sit in one bar.
+  - Four equal cards in a row.
+  - The Latest list has Latest / Top / Saved tabs and sits beside Featured research.
+  - List rows keep one footer line: source and time, then the actions.
+  - Sentiment and impact pills folded into the row header.
+  - On mobile, the hero, top story and search fit the first screen.
+- **Revision 3 (owner feedback: polish, usefulness, haptics).**
+  - **Featured research removed.** Latest news now spans the main column under one
+    aligned header: equal-width Latest / Top / Saved tabs, a time window (Any, 24h,
+    1h) and Alerts.
+  - **New features, all real.**
+    - "New" badges on stories published since this device's last visit, plus a
+      "N new since your last visit" count.
+    - Read state: opened stories are dimmed and marked Read.
+    - The time window is applied in `inFeed`, so the list, the reader and the
+      sidebar agree.
+    - A Reset filters action and an "all caught up" state.
+    - `/` focuses search.
+  - **Trending topics, rebuilt.**
+    - Ranked rows with a share-of-feed bar and a bullish/bearish mix bar.
+    - A "Rising" tag when most of a topic's stories landed in the last 6 hours.
+    - Feed / 6h toggle, and clear filter.
+    - Members can star a topic to follow it in For You, saved through
+      `/api/news/interests`.
+  - **High impact, rebuilt.**
+    - Ranked 1 to 5 by the feed's impact field, then recency.
+    - All / High toggle, impact chip, and a "Live" marker for high-impact stories
+      under 2 hours old.
+    - Sentiment dot, unread count, and inline bookmark and share.
+  - **Haptics.** Every press already gets the site-wide tap. State changes get the
+    distinct toggle pattern (bookmark, topic follow); newsletter subscribe gets the
+    sent and error patterns.
+  - **Mobile.**
+    - Tabs span the full width; the time window and Alerts sit on the second row.
+    - Source and time move under the headline, so each row's actions stay on one line.
+    - Rows reserve their real height (128px instead of `.cv-auto`'s 340px), so the
+      list no longer jumps.
+- **Revision 4 (owner, from the live preview).**
+  - **The sidebar is no longer sticky.** It is taller than the screen, so a sticky
+    column could never show its bottom; High impact was cut off.
+  - **Trending and High impact switch** in the sidebar, so each shows in full. Each
+    has "See all", which opens a sheet: bottom sheet on phones, centred panel on
+    desktop, with Esc, backdrop close and scroll lock.
+  - **Stories with no feed image** now get a branded banner instead of an empty box:
+    a gold-family wash chosen per category, a faint grid, the publisher's logo (or
+    initials) and the source name.
+- **Unchanged.** Polling, save rollback, For You, the reader and swipe, infinite scroll.
+  `/news` is still ISR at 2m and the route table is identical (158 routes).
+- **Tests.** New `news-redesign.test.ts` (12 checks: real-data rules, topic chips are
+  real categories, no JS-gated cards, the empty-batch fix). 1509/1509 pass.
+
+---
+
 ## 2026-10-07 (137) — Security: Next 16.3.8, dashboard member emails gated; full audit filed
 
 From the 2026-10-07 audit (`docs/AUDIT-2026-10-07.md`, linked from `HANDOFF.md §8`).
