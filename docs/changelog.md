@@ -51,6 +51,37 @@ data only. **Not merged; for review.**
   - List rows keep one footer line: source and time, then the actions.
   - Sentiment and impact pills folded into the row header.
   - On mobile, the hero, top story and search fit the first screen.
+- **Revision 3 (owner feedback: polish, usefulness, haptics).**
+  - **Featured research removed.** Latest news now spans the main column under one
+    aligned header: equal-width Latest / Top / Saved tabs, a time window (Any, 24h,
+    1h) and Alerts.
+  - **New features, all real.**
+    - "New" badges on stories published since this device's last visit, plus a
+      "N new since your last visit" count.
+    - Read state: opened stories are dimmed and marked Read.
+    - The time window is applied in `inFeed`, so the list, the reader and the
+      sidebar agree.
+    - A Reset filters action and an "all caught up" state.
+    - `/` focuses search.
+  - **Trending topics, rebuilt.**
+    - Ranked rows with a share-of-feed bar and a bullish/bearish mix bar.
+    - A "Rising" tag when most of a topic's stories landed in the last 6 hours.
+    - Feed / 6h toggle, and clear filter.
+    - Members can star a topic to follow it in For You, saved through
+      `/api/news/interests`.
+  - **High impact, rebuilt.**
+    - Ranked 1 to 5 by the feed's impact field, then recency.
+    - All / High toggle, impact chip, and a "Live" marker for high-impact stories
+      under 2 hours old.
+    - Sentiment dot, unread count, and inline bookmark and share.
+  - **Haptics.** Every press already gets the site-wide tap. State changes get the
+    distinct toggle pattern (bookmark, topic follow); newsletter subscribe gets the
+    sent and error patterns.
+  - **Mobile.**
+    - Tabs span the full width; the time window and Alerts sit on the second row.
+    - Source and time move under the headline, so each row's actions stay on one line.
+    - Rows reserve their real height (128px instead of `.cv-auto`'s 340px), so the
+      list no longer jumps.
 - **Unchanged.** Polling, save rollback, For You, the reader and swipe, infinite scroll.
   `/news` is still ISR at 2m and the route table is identical (158 routes).
 - **Tests.** New `news-redesign.test.ts` (12 checks: real-data rules, topic chips are

@@ -35,7 +35,7 @@ describe("news redesign: real data only", () => {
   });
 
   it("counts trending topics from the loaded stories", () => {
-    expect(layout).toMatch(/for \(const i of items\) for \(const c of i\.categories\)/);
+    expect(layout).toMatch(/for \(const i of items\) \{[\s\S]{0,120}for \(const c of i\.categories\)/);
   });
 
   it("shows newsletter success only after a 2xx from /api/subscribe", () => {
@@ -43,9 +43,22 @@ describe("news redesign: real data only", () => {
     expect(layout).toMatch(/if \(!res\.ok\) \{ setState\("error"\)[\s\S]{0,120}return; \}\s*setState\("done"\)/);
   });
 
-  it("loads research on the client, never from the DB during the ISR build", () => {
-    expect(layout).toMatch(/fetch\("\/api\/research\?pageSize=4"\)/);
-    expect(page).not.toMatch(/prisma/);
+  it("has no featured-research block (owner removed it in revision 3)", () => {
+    expect(code).not.toMatch(/FeaturedResearch|\/api\/research/);
+  });
+
+  it("time window is part of inFeed, so the list, reader and sidebar agree", () => {
+    expect(client).toMatch(/\(since === "any" \|\| !now \|\| now - i\.publishedAt <= \(since === "1h" \? 3600e3 : 864e5\)\)/);
+  });
+
+  it("records read stories outside any state updater, and restores state after mount", () => {
+    expect(client).not.toMatch(/setReadIds\(\(prev\) =>/);
+    expect(client).toMatch(/const t = setTimeout\(\(\) => \{\s*try \{\s*const r = JSON\.parse\(localStorage\.getItem\(READ_KEY\)/);
+  });
+
+  it("trending momentum and sentiment come from the loaded stories", () => {
+    expect(layout).toMatch(/const fresh = now > 0 && now - i\.publishedAt <= SIX_H/);
+    expect(layout).toMatch(/if \(i\.sentiment === "bullish"\) t\.bull \+= 1/);
   });
 
   it("keeps the page heading out of JS-gated reveal wrappers (audit SEO6)", () => {

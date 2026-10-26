@@ -24,7 +24,7 @@ import { MicButton } from "@/shared/components/MicButton";
 import { hapticToggle } from "@shared/utils/haptics";
 import { wakeIsDue } from "@shared/hooks/useLiveData";
 import {
-  NewsHeroIntro, HeroNetwork, SectionHead, TrendingTopics, FeaturedResearch, XyzAiBand, NewsletterPanel, CommunityPanel,
+  NewsHeroIntro, HeroNetwork, TrendingTopics, HighImpactPanel, XyzAiBand, NewsletterPanel, CommunityPanel,
 } from "./NewsLayout";
 
 /**
@@ -93,6 +93,11 @@ export const NEWS_POLL_MS = 90_000;
 const SWIPE_COMMIT_PX = 60;
 /** Shown until the reader has actually swiped once. */
 const SWIPE_HINT_KEY = "xyz:news:swiped";
+/** Stories this device has opened, capped like the breaking-seen list. */
+const READ_KEY = "xyz:news:read";
+const READ_MAX = 300;
+/** When this device last left /news - drives the "New" badges. */
+const VISIT_KEY = "xyz:news:lastVisit";
 
 export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const { data: session } = useSession();
@@ -104,6 +109,14 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // "latest" is plain newest-first. Both are orderings of real stories - there
   // is no view-count data, so there is no "Most read".
   const [sort, setSort] = useState<"top" | "latest">("top");
+  // Time window over the loaded stories. Applied in `inFeed`, so the list, the
+  // reader's prev/next and the sidebar all agree on what is in view.
+  const [since, setSince] = useState<"any" | "24h" | "1h">("any");
+  // Per-device reading state: which stories this reader has opened, and when
+  // they last visited (for "New" badges). Presentation state only, so it lives
+  // in localStorage and costs no request.
+  const [readIds, setReadIds] = useState<Set<string>>(() => new Set());
+  const [lastVisit, setLastVisit] = useState(0);
   const [items, setItems] = useState<NewsItem[]>(initial?.items ?? []);
   const [pending, setPending] = useState<NewsItem[]>([]); // fresh stories buffered for the "N new" pill
   const [page, setPage] = useState(1);
@@ -172,6 +185,51 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // an index would need a ref to the current list to resolve it (and would be
   // wrong the moment the list grew, which is the bug fixed above).
   const openReader = useCallback((id: string) => setReaderId(id), []);
+
+  // Mark whatever the reader shows as read - from a card, the hero, the
+  // sidebar, or prev/next inside the reader. Deferred a tick so it is not a
+  // synchronous setState in the effect, and written outside any updater.
+  const readRef = useRef(readIds);
+  useEffect(() => { readRef.current = readIds; }, [readIds]);
+  useEffect(() => {
+    if (!readerId || readRef.current.has(readerId)) return;
+    const t = setTimeout(() => {
+      const next = new Set(readRef.current).add(readerId);
+      readRef.current = next;
+      setReadIds(next);
+      try { localStorage.setItem(READ_KEY, JSON.stringify([...next].slice(-READ_MAX))); } catch { /* private mode */ }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [readerId]);
+
+  // Restore reading state after mount (deferred, so the server render and the
+  // first client render match), and stamp this visit when the tab is left.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const r = JSON.parse(localStorage.getItem(READ_KEY) || "[]");
+        if (Array.isArray(r)) setReadIds(new Set(r));
+        setLastVisit(Number(localStorage.getItem(VISIT_KEY)) || 0);
+      } catch { /* ignore */ }
+    }, 0);
+    const stamp = () => { try { localStorage.setItem(VISIT_KEY, String(Date.now())); } catch { /* ignore */ } };
+    const onHide = () => { if (document.hidden) stamp(); };
+    window.addEventListener("pagehide", stamp);
+    document.addEventListener("visibilitychange", onHide);
+    return () => { clearTimeout(t); window.removeEventListener("pagehide", stamp); document.removeEventListener("visibilitychange", onHide); };
+  }, []);
+
+  // "/" jumps to search, the shortcut readers expect from news and docs sites.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || el?.closest("input, textarea, [contenteditable='true']")) return;
+      e.preventDefault();
+      document.getElementById("news-search")?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   // Tapping a token chip searches for it. Deliberately the existing search
   // rather than a new filter dimension: the search box already narrows the feed,
   // shows what it is narrowed by, and can be cleared - a hidden token filter
@@ -468,8 +526,10 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // Shared with the reader, which has to know whether a story it just loaded
   // will actually be on screen before it navigates to it.
   const inFeed = useCallback(
-    (i: NewsItem) => category !== "For You" || !interests.length || i.categories.some((c) => interests.includes(c)),
-    [category, interests]
+    (i: NewsItem) =>
+      (category !== "For You" || !interests.length || i.categories.some((c) => interests.includes(c))) &&
+      (since === "any" || !now || now - i.publishedAt <= (since === "1h" ? 3600e3 : 864e5)),
+    [category, interests, since, now]
   );
 
   const visible = useMemo(() => {
@@ -553,8 +613,10 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // Sidebar: the next most important stories that are not already on screen above.
   const topImpact = useMemo(() => {
     const shown = new Set([...topStories.map((i) => i.id), ...featured.map((i) => i.id)]);
-    return visible.filter((i) => i.impact !== "Low" && !shown.has(i.id)).slice(0, 4);
+    return visible.filter((i) => i.impact !== "Low" && !shown.has(i.id));
   }, [visible, topStories, featured]);
+  const isNew = useCallback((i: NewsItem) => lastVisit > 0 && i.publishedAt > lastVisit, [lastVisit]);
+  const newCount = useMemo(() => restStories.filter(isNew).length, [restStories, isNew]);
   const isDefaultView = !savedOnly && !query && (category === "All" || category === "For You");
   const extraCategory = !PRIMARY_TOPICS.includes(category as (typeof PRIMARY_TOPICS)[number]) && category !== "All" && category !== "For You";
   const goToFeed = useCallback(() => {
@@ -726,6 +788,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                     index={i}
                     now={now}
                     bookmarked={savedUrls.has(item.id)}
+                    isNew={isNew(item)}
+                    read={readIds.has(item.id)}
                     onBookmark={toggleSave}
                     onOpen={openReader}
                     onToken={searchToken}
@@ -738,104 +802,120 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
           )
         )}
 
-        {/* Latest list beside Featured research, like a newspaper's second fold. */}
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)]">
-          <section aria-labelledby="news-latest" className="surface min-w-0 rounded-3xl">
-            <div className="flex items-center justify-between gap-3 border-b border-hairline px-4 sm:px-5">
-              <h2 id="news-latest" className="sr-only">Latest news</h2>
-              <div role="tablist" aria-label="News list" className="flex min-w-0 gap-4 overflow-x-auto [scrollbar-width:none]">
-                {tabs.map((t) => (
+        {/* Latest news: one panel, one aligned header. */}
+        <section aria-labelledby="news-latest" className="surface min-w-0 overflow-hidden rounded-3xl">
+          <h2 id="news-latest" className="sr-only">Latest news</h2>
+          <div className="flex flex-wrap items-center gap-3 border-b border-hairline px-4 py-3 sm:px-5">
+            <div role="tablist" aria-label="News list" className="grid w-full grid-cols-3 gap-1 rounded-xl border border-hairline bg-surface-2 p-1 sm:w-auto">
+              {tabs.map((t) => (
+                <button
+                  key={t.k}
+                  role="tab"
+                  aria-selected={activeTab === t.k}
+                  onClick={() => pickTab(t.k)}
+                  className={cn(
+                    "h-8 rounded-lg px-4 text-[13px] font-semibold transition-all active:scale-[0.97] sm:min-w-[96px]",
+                    activeTab === t.k ? "bg-gold-400 text-ink shadow-gold-sm" : "text-content-muted hover:text-content"
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <div className="flex w-full items-center justify-between gap-2 sm:ml-auto sm:w-auto sm:justify-end">
+              <div role="radiogroup" aria-label="Time window" className="inline-flex rounded-xl border border-hairline bg-surface-2 p-1">
+                {(["any", "24h", "1h"] as const).map((w) => (
                   <button
-                    key={t.k}
-                    role="tab"
-                    aria-selected={activeTab === t.k}
-                    onClick={() => pickTab(t.k)}
-                    className={cn(
-                      "relative h-12 shrink-0 text-[14px] font-semibold transition-colors",
-                      activeTab === t.k ? "text-gold-300" : "text-content-muted hover:text-content"
-                    )}
+                    key={w}
+                    role="radio"
+                    aria-checked={since === w}
+                    onClick={() => setSince(w)}
+                    className={cn("h-7 rounded-lg px-2.5 font-mono text-[11px] font-semibold uppercase tracking-wider transition-colors", since === w ? "bg-surface text-gold-300 shadow-sm" : "text-content-subtle hover:text-content")}
                   >
-                    {t.label}
-                    {activeTab === t.k && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-gold-400" />}
+                    {w === "any" ? "Any" : w}
                   </button>
                 ))}
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <NewsAlertsToggle loggedIn={loggedIn} showPrefs />
-              </div>
+              <NewsAlertsToggle loggedIn={loggedIn} showPrefs />
             </div>
-            <div className="px-4 pt-4 sm:px-5">
-              {loading ? (
-                <div className="space-y-4 pb-5">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="shimmer h-20 rounded-xl bg-surface-2" />)}</div>
-              ) : restStories.length ? (
-                restStories.map((item, i) => (
-                  <NewsCard
-                    key={item.id}
-                    item={item}
-                    index={i}
-                    now={now}
-                    bookmarked={savedUrls.has(item.id)}
-                    onBookmark={toggleSave}
-                    onOpen={openReader}
-                    onToken={searchToken}
-                    onSource={searchToken}
-                    loggedIn={loggedIn}
-                  />
-                ))
-              ) : (
-                <div className="py-12 text-center">
-                  <p className="font-display text-base font-semibold text-content">{savedOnly ? "No saved stories yet" : visible.length ? "That's everything for now" : "No stories match"}</p>
-                  <p className="mt-1 text-sm text-content-muted">{savedOnly ? "Bookmark stories to read later." : "Try another topic, clear the search, or check back shortly."}</p>
-                </div>
-              )}
-              {/* Infinite-scroll sentinel */}
-              {!savedOnly && hasMore && (
-                <div ref={sentinel} className="flex justify-center py-6">
-                  {loadingMore && <Loader2 className="h-5 w-5 animate-spin text-content-subtle" />}
-                </div>
-              )}
-            </div>
-          </section>
-
-          <div className="min-w-0 space-y-6">
-            {isDefaultView && <FeaturedResearch />}
           </div>
-        </div>
+          {!loading && restStories.length > 0 && (
+            <div className="flex items-center justify-between gap-3 px-4 pt-3 text-[12px] text-content-subtle sm:px-5">
+              <span>{savedOnly ? `${restStories.length} saved` : `${restStories.length} more ${restStories.length === 1 ? "story" : "stories"}`}{since !== "any" ? ` · last ${since}` : ""}</span>
+              {newCount > 0 && !savedOnly && (
+                <span className="inline-flex items-center gap-1.5 font-medium text-gold-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-gold-400" /> {newCount} new since your last visit
+                </span>
+              )}
+            </div>
+          )}
+          <div className="px-4 pt-4 sm:px-5">
+            {loading ? (
+              <div className="space-y-4 pb-5">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="shimmer h-20 rounded-xl bg-surface-2" />)}</div>
+            ) : restStories.length ? (
+              restStories.map((item, i) => (
+                <NewsCard
+                  key={item.id}
+                  item={item}
+                  index={i}
+                  now={now}
+                  bookmarked={savedUrls.has(item.id)}
+                  isNew={isNew(item)}
+                  read={readIds.has(item.id)}
+                  onBookmark={toggleSave}
+                  onOpen={openReader}
+                  onToken={searchToken}
+                  onSource={searchToken}
+                  loggedIn={loggedIn}
+                />
+              ))
+            ) : (
+              <div className="py-14 text-center">
+                <p className="font-display text-base font-semibold text-content">{savedOnly ? "No saved stories yet" : visible.length ? "You're all caught up" : "No stories match"}</p>
+                <p className="mt-1 text-sm text-content-muted">
+                  {savedOnly ? "Tap the bookmark on any story to keep it here." : since !== "any" ? "Widen the time window or try another topic." : "Try another topic, clear the search, or check back shortly."}
+                </p>
+                {(since !== "any" || category !== "All" || query) && !savedOnly && (
+                  <button onClick={() => { setSince("any"); setCategory("All"); setRawQuery(""); }} className="btn-ghost mx-auto mt-4 px-4 py-2 text-[13px]">Reset filters</button>
+                )}
+              </div>
+            )}
+            {/* Infinite-scroll sentinel */}
+            {!savedOnly && hasMore && (
+              <div ref={sentinel} className="flex justify-center py-6">
+                {loadingMore && <Loader2 className="h-5 w-5 animate-spin text-content-subtle" />}
+              </div>
+            )}
+          </div>
+        </section>
 
         {isDefaultView && <XyzAiBand />}
 
         <p className="text-center text-[12px] text-content-subtle">
-          Aggregated from CoinDesk, Cointelegraph, Decrypt and more. Not financial advice.
+          Aggregated from CoinDesk, Cointelegraph, Decrypt and more. Not financial advice. Press <kbd className="rounded border border-hairline px-1 font-mono text-[11px]">/</kbd> to search.
         </p>
       </div>
 
       {/* Discovery sidebar: alongside everything on desktop, below the feed on smaller screens. */}
       <aside className="min-w-0 space-y-5 xl:sticky xl:top-24 xl:self-start" aria-label="Discover">
-        <TrendingTopics items={items} active={category} onPick={pickTopic} />
-        {topImpact.length > 0 && (
-          <section className="surface rounded-3xl p-5" aria-labelledby="news-impact">
-            <SectionHead id="news-impact" icon={<Star className="h-4 w-4" />} title="High-impact stories" />
-            <ul className="grid gap-3">
-              {topImpact.map((item) => (
-                <li key={item.id} className="group flex gap-3">
-                  <button onClick={() => openReader(item.id)} className="relative h-14 w-16 shrink-0 overflow-hidden rounded-lg bg-surface-2" aria-label={`Read: ${item.title}`}>
-                    <SafeImg src={item.image} loading="lazy" className="h-full w-full object-cover" />
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.12em] text-gold-400">{item.category}</span>
-                    <button onClick={() => openReader(item.id)} className="block text-left">
-                      <span className="line-clamp-2 text-[13px] font-semibold leading-snug text-content group-hover:text-gold-200">{item.title}</span>
-                    </button>
-                    <span className="mt-0.5 block truncate text-[11.5px] text-content-subtle">{item.source}{now ? ` · ${timeAgo(item.publishedAt, now)}` : ""}</span>
-                  </div>
-                  <button onClick={() => toggleSave(item)} aria-label={savedUrls.has(item.id) ? "Remove bookmark" : "Bookmark"} aria-pressed={savedUrls.has(item.id)} className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface-2", savedUrls.has(item.id) ? "text-gold-400" : "text-content-subtle hover:text-content")}>
-                    {savedUrls.has(item.id) ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
+        <TrendingTopics
+          items={items}
+          now={now}
+          active={category}
+          onPick={pickTopic}
+          onClear={() => setCategory("All")}
+          followed={loggedIn ? interests : null}
+          onFollow={(c) => saveInterests(interests.includes(c) ? interests.filter((x) => x !== c) : [...interests, c])}
+        />
+        <HighImpactPanel
+          items={topImpact}
+          now={now}
+          readIds={readIds}
+          isSaved={isSaved}
+          onOpen={openReader}
+          onBookmark={toggleSave}
+          onShare={shareStory}
+        />
         <NewsletterPanel />
         <CommunityPanel />
       </aside>
@@ -947,11 +1027,15 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
 }
 
 const NewsCard = memo(function NewsCard({
-  item, index, now, bookmarked, onBookmark, onOpen, onToken, onSource, loggedIn, variant = "row",
+  item, index, now, bookmarked, onBookmark, onOpen, onToken, onSource, loggedIn, variant = "row", isNew = false, read = false,
 }: {
   item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: (item: NewsItem) => void; onOpen: (id: string) => void; onToken: (t: string) => void; onSource: (s: string) => void; loggedIn: boolean;
   /** `grid`: the image-led Top stories card. `row`: the Latest feed row, with the AI actions. */
   variant?: "grid" | "row";
+  /** Published after this device's last visit. */
+  isNew?: boolean;
+  /** Already opened on this device - shown quieter, never hidden. */
+  read?: boolean;
 }) {
   const open = () => onOpen(item.id);
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
@@ -1068,9 +1152,13 @@ const NewsCard = memo(function NewsCard({
           <span className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-black/60 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] !text-gold-200 backdrop-blur-sm">
             {item.category}
           </span>
-          {item.impact === "High" && (
-            <span className="pointer-events-none absolute left-3 top-3 rounded-md bg-red-500/90 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] !text-white">Breaking</span>
-          )}
+          <div className="pointer-events-none absolute left-3 top-3 flex gap-1.5">
+            {item.impact === "High" && (
+              <span className="rounded-md bg-red-500/90 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] !text-white">Breaking</span>
+            )}
+            {isNew && !read && <span className="rounded-md bg-gold-400 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] !text-ink">New</span>}
+          </div>
+          {read && <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 text-[10.5px] font-medium !text-zinc-200 backdrop-blur-sm"><Check className="h-3 w-3" /> Read</span>}
         </div>
         <div className="flex flex-1 flex-col gap-2 p-4">
           <button onClick={open} className="text-left">
@@ -1084,15 +1172,20 @@ const NewsCard = memo(function NewsCard({
   }
 
   return (
+    // content-visibility, sized for THIS row: `.cv-auto` reserves 340px (the old
+    // tall card), which made the list jump and look empty until scrolled into.
     <article
       data-index={index}
-      className="group/card cv-auto relative flex gap-4 border-b border-hairline py-4 first:pt-0 last:border-b-0"
+      style={{ contentVisibility: "auto", containIntrinsicSize: "auto 128px" }}
+      className="group/card relative flex gap-4 border-b border-hairline py-4 first:pt-0 last:border-b-0"
     >
-      {media("aspect-[4/3] w-24 self-start rounded-lg sm:w-32")}
+      {media("aspect-[4/3] w-20 self-start rounded-lg sm:w-32")}
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center gap-2 text-[11px]">
           <span className="font-mono font-semibold uppercase tracking-[0.12em] text-gold-400">{item.category}</span>
           {item.impact === "High" && <span className="rounded bg-red-500/15 px-1.5 py-px font-mono text-[10px] font-semibold uppercase tracking-wider text-red-300">Breaking</span>}
+          {isNew && !read && <span className="rounded bg-gold-400 px-1.5 py-px font-mono text-[10px] font-bold uppercase tracking-wider text-ink">New</span>}
+          {read && <span className="inline-flex items-center gap-0.5 text-content-subtle"><Check className="h-3 w-3" /> Read</span>}
           {item.sentiment !== "neutral" && (
             <span className={cn("inline-flex items-center gap-0.5 font-medium", item.sentiment === "bullish" ? "text-mint-400" : "text-red-400")}>
               {sentBadge.icon}{sentBadge.label}
@@ -1100,8 +1193,11 @@ const NewsCard = memo(function NewsCard({
           )}
         </div>
         <button onClick={open} className="text-left">
-          <h3 className="line-clamp-2 font-display text-[15px] font-semibold leading-snug text-content transition-colors group-hover/card:text-gold-200">{item.title}</h3>
+          <h3 className={cn("line-clamp-2 font-display text-[15px] font-semibold leading-snug transition-colors group-hover/card:text-gold-200", read ? "text-content-muted" : "text-content")}>{item.title}</h3>
         </button>
+        <p className="mt-1 truncate text-[11.5px] text-content-subtle sm:hidden">
+          <span className="font-medium text-content-muted">{item.source}</span>{now ? ` · ${timeAgo(item.publishedAt, now)}` : ""}
+        </p>
         {item.summary && <div className="mt-1 hidden sm:block"><p className="line-clamp-1 text-[13px] leading-relaxed text-content-muted">{item.summary}</p></div>}
 
         {/* badges */}
@@ -1152,31 +1248,34 @@ const NewsCard = memo(function NewsCard({
         )}
         {digest.err && <p className="mt-2 text-[11px] text-amber-300">{digest.err}</p>}
 
-        {/* One footer line: attribution on the left, actions on the right. */}
-        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] text-content-subtle">
-          <SafeImg src={item.sourceIcon} width={14} height={14} loading="lazy" className="h-3.5 w-3.5 shrink-0 rounded" />
-          <button
-            onClick={(e) => { e.stopPropagation(); onSource(item.source); }}
-            className="min-w-0 truncate font-medium text-content-muted transition-colors hover:text-gold-300"
-          >
-            {item.source}
-          </button>
-          <span aria-hidden>·</span>
-          <time
-            className="mono shrink-0"
-            dateTime={item.publishedAt ? new Date(item.publishedAt).toISOString() : undefined}
-            title={item.publishedAt ? new Date(item.publishedAt).toUTCString() : undefined}
-          >
-            {now ? timeAgo(item.publishedAt, now) : ""}
-          </time>
-          <div className="ml-auto flex items-center gap-0.5">
+        {/* One footer line: attribution on the left, actions on the right. On
+            phones the attribution moves above, so the actions keep one row. */}
+        <div className="mt-2 flex items-center gap-x-2 text-[12px] text-content-subtle">
+          <span className="hidden min-w-0 items-center gap-x-2 sm:flex">
+            <SafeImg src={item.sourceIcon} width={14} height={14} loading="lazy" className="h-3.5 w-3.5 shrink-0 rounded" />
+            <button
+              onClick={(e) => { e.stopPropagation(); onSource(item.source); }}
+              className="min-w-0 truncate font-medium text-content-muted transition-colors hover:text-gold-300"
+            >
+              {item.source}
+            </button>
+            <span aria-hidden>·</span>
+            <time
+              className="mono shrink-0"
+              dateTime={item.publishedAt ? new Date(item.publishedAt).toISOString() : undefined}
+              title={item.publishedAt ? new Date(item.publishedAt).toUTCString() : undefined}
+            >
+              {now ? timeAgo(item.publishedAt, now) : ""}
+            </time>
+          </span>
+          <div className="ml-auto flex shrink-0 items-center gap-0.5">
             <button onClick={readSummary} disabled={digest.loading} className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 font-medium text-gold-300 transition-colors hover:bg-gold-500/10 disabled:opacity-50">
               {digest.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookOpen className="h-3.5 w-3.5" />}<span className="hidden sm:inline">AI Summary</span>
             </button>
             <button onClick={whyMatters} disabled={why.loading} className="inline-flex items-center gap-1 rounded-lg px-1.5 py-1 font-medium text-gold-300 transition-colors hover:bg-gold-500/10 disabled:opacity-50">
               {why.loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RobotIcon className="h-3.5 w-3.5" />}<span className="hidden sm:inline">Why it matters</span>
             </button>
-            <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Original source" className="grid h-7 w-7 place-items-center rounded-lg transition-colors hover:bg-surface-2 hover:text-content">
+            <a href={item.url} target="_blank" rel="noopener noreferrer" aria-label="Original source" className="hidden h-7 w-7 place-items-center rounded-lg transition-colors hover:bg-surface-2 hover:text-content sm:grid">
               <ExternalLink className="h-3.5 w-3.5" />
             </a>
             <button onClick={share} aria-label="Share" className="grid h-7 w-7 place-items-center rounded-lg transition-colors hover:bg-surface-2 hover:text-content"><Share2 className="h-3.5 w-3.5" /></button>

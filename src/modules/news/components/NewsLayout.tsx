@@ -10,7 +10,6 @@
  * - source count: `NEWS_SOURCES` (the feeds we actually aggregate)
  * - refresh cadence: `NEWS_REVALIDATE` (the real feed cache window)
  * - trending topics: counted from the stories currently loaded, never invented
- * - research: `/api/research` (public, CDN-cached, bodies already stripped)
  * - newsletter: `/api/subscribe`, success shown only on a 2xx
  * - community: the official links in `site.ts`
  *
@@ -19,9 +18,11 @@
  * upcoming. `news-redesign.test.ts` pins both absences.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Check, Flame, Loader2, Mail, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Bookmark, BookmarkCheck, Check, Flame, Loader2, Mail, Share2, Sparkles, Star, Users, Zap } from "lucide-react";
+import { hapticError, hapticSent, hapticToggle } from "@shared/utils/haptics";
+import { timeAgo } from "@/lib/news";
 import { TelegramIcon, XIcon, YouTubeIcon, LinkedInIcon } from "@/components/BrandIcons";
 import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
 import { RobotIcon } from "@/components/RobotIcon";
@@ -104,109 +105,243 @@ export function HeroNetwork() {
   );
 }
 
-/** Topics counted from the stories actually loaded. */
-export function TrendingTopics({ items, active, onPick }: { items: NewsItem[]; active: string; onPick: (c: string) => void }) {
-  const top = useMemo(() => {
-    const n = new Map<string, number>();
-    for (const i of items) for (const c of i.categories) n.set(c, (n.get(c) ?? 0) + 1);
-    return [...n.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  }, [items]);
-  if (!top.length) return null;
+/** A thumbnail that disappears cleanly when the image fails. */
+function Thumb({ src, className }: { src: string | null; className?: string }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className={cn("relative block overflow-hidden bg-gradient-to-br from-gold-500/20 via-ink-900 to-ink-950", className)}>
+      {src && !failed && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06] group-active:scale-[1.06]" />
+      )}
+    </span>
+  );
+}
+
+const SIX_H = 6 * 3600e3;
+
+type TopicStat = { name: string; count: number; recent: number; bull: number; bear: number; latest: number };
+
+/**
+ * Trending topics, computed entirely from the stories loaded right now:
+ * how many stories mention each topic, how many of those landed in the last
+ * six hours (momentum), and the bullish / bearish mix. Nothing is estimated.
+ */
+export function TrendingTopics({
+  items, now, active, onPick, onClear, followed, onFollow,
+}: {
+  items: NewsItem[]; now: number; active: string; onPick: (c: string) => void; onClear: () => void;
+  /** Topics the member follows for "For You"; null when logged out (no follow control). */
+  followed: string[] | null; onFollow: (c: string) => void;
+}) {
+  const [range, setRange] = useState<"all" | "6h">("all");
+  const stats = useMemo(() => {
+    const m = new Map<string, TopicStat>();
+    for (const i of items) {
+      const fresh = now > 0 && now - i.publishedAt <= SIX_H;
+      for (const c of i.categories) {
+        const t = m.get(c) ?? { name: c, count: 0, recent: 0, bull: 0, bear: 0, latest: 0 };
+        t.count += 1;
+        if (fresh) t.recent += 1;
+        if (i.sentiment === "bullish") t.bull += 1;
+        if (i.sentiment === "bearish") t.bear += 1;
+        t.latest = Math.max(t.latest, i.publishedAt);
+        m.set(c, t);
+      }
+    }
+    const all = [...m.values()];
+    const key = (t: TopicStat) => (range === "6h" ? t.recent : t.count);
+    return all.filter((t) => key(t) > 0).sort((a, b) => key(b) - key(a) || b.latest - a.latest).slice(0, 7);
+  }, [items, now, range]);
+  const max = Math.max(1, ...stats.map((t) => (range === "6h" ? t.recent : t.count)));
+
   return (
     <section className="surface rounded-3xl p-5" aria-labelledby="news-trending">
-      <SectionHead id="news-trending" icon={<Flame className="h-4 w-4" />} title="Trending topics" />
-      <ul className="grid grid-cols-2 gap-2">
-        {top.map(([c, n]) => (
-          <li key={c} className="min-w-0">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <h2 id="news-trending" className="flex items-center gap-2 font-display text-[17px] font-semibold tracking-tight text-content">
+          <Flame className="h-4 w-4 text-gold-400" /> Trending topics
+        </h2>
+        <div role="radiogroup" aria-label="Trending window" className="inline-flex rounded-lg border border-hairline bg-surface-2 p-0.5">
+          {(["all", "6h"] as const).map((r) => (
             <button
-              type="button"
-              onClick={() => onPick(c)}
-              aria-pressed={active === c}
-              className={cn(
-                "flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2 text-left text-[13px] font-medium transition-colors",
-                active === c ? "border-gold-500/50 bg-gold-500/10 text-gold-300" : "border-hairline bg-surface-2 text-content hover:border-gold-500/30"
-              )}
+              key={r}
+              role="radio"
+              aria-checked={range === r}
+              onClick={() => setRange(r)}
+              className={cn("rounded-md px-2 py-1 font-mono text-[10.5px] font-semibold uppercase tracking-wider transition-colors", range === r ? "bg-gold-400 text-ink" : "text-content-subtle hover:text-content")}
             >
-              <span className="truncate">{c}</span>
-              <span className="font-mono text-[11px] tabular-nums text-content-subtle">{n}</span>
+              {r === "all" ? "Feed" : "6h"}
             </button>
-          </li>
-        ))}
-      </ul>
-      <p className="mt-3 text-[11.5px] text-content-subtle">Story counts in the {items.length} stories loaded now.</p>
+          ))}
+        </div>
+      </div>
+
+      {stats.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-hairline px-3 py-6 text-center text-[13px] text-content-muted">
+          {range === "6h" ? "Nothing new in the last six hours." : "Topics appear once stories load."}
+        </p>
+      ) : (
+        <ol className="grid gap-1.5">
+          {stats.map((t, i) => {
+            const n = range === "6h" ? t.recent : t.count;
+            const on = active === t.name;
+            const rising = t.recent >= 2 && t.recent * 2 > t.count;
+            const isFollowed = followed?.includes(t.name) ?? false;
+            const bullPct = (t.bull / t.count) * 100, bearPct = (t.bear / t.count) * 100;
+            return (
+              <li key={t.name} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => (on ? onClear() : onPick(t.name))}
+                  aria-pressed={on}
+                  className={cn(
+                    "relative flex w-full items-center gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-left transition-all active:scale-[0.99]",
+                    on ? "border-gold-500/50 bg-gold-500/10" : "border-transparent hover:border-hairline hover:bg-surface-2",
+                    followed && "pr-11"
+                  )}
+                >
+                  {/* share-of-feed bar behind the row */}
+                  <span aria-hidden className="absolute inset-y-0 left-0 bg-gold-500/[0.05] transition-[width] duration-500" style={{ width: `${(n / max) * 100}%` }} />
+                  <span className="relative w-4 font-mono text-[11px] tabular-nums text-content-subtle">{i + 1}</span>
+                  <span className="relative min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5">
+                      <span className={cn("truncate text-[13.5px] font-semibold", on ? "text-gold-300" : "text-content")}>{t.name}</span>
+                      {rising && <span className="shrink-0 rounded bg-gold-400/15 px-1 py-px font-mono text-[9.5px] font-bold uppercase tracking-wider text-gold-300">Rising</span>}
+                    </span>
+                    {/* bullish / bearish mix */}
+                    <span className="mt-1.5 flex h-1 w-full overflow-hidden rounded-full bg-hairline" title={`${t.bull} bullish · ${t.bear} bearish · ${t.count - t.bull - t.bear} neutral`}>
+                      <span className="h-full bg-mint-400/80" style={{ width: `${bullPct}%` }} />
+                      <span className="h-full bg-red-400/80" style={{ width: `${bearPct}%` }} />
+                    </span>
+                  </span>
+                  <span className="relative text-right">
+                    <span className="block font-mono text-[13px] font-semibold tabular-nums text-content">{n}</span>
+                    <span className="block text-[10.5px] text-content-subtle">{n === 1 ? "story" : "stories"}</span>
+                  </span>
+                </button>
+                {followed && (
+                  <button
+                    type="button"
+                    onClick={() => { hapticToggle(); onFollow(t.name); }}
+                    aria-pressed={isFollowed}
+                    aria-label={isFollowed ? `Unfollow ${t.name}` : `Follow ${t.name} in For You`}
+                    title={isFollowed ? "Following in For You" : "Follow in For You"}
+                    className={cn("absolute right-2 top-1/2 grid h-7 w-7 -translate-y-1/2 place-items-center rounded-lg transition-colors hover:bg-surface", isFollowed ? "text-gold-400" : "text-content-subtle hover:text-content")}
+                  >
+                    <Star className={cn("h-3.5 w-3.5", isFollowed && "fill-current")} />
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-content-subtle">
+        <span className="inline-flex items-center gap-3">
+          <span className="inline-flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full bg-mint-400" /> Bullish</span>
+          <span className="inline-flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full bg-red-400" /> Bearish</span>
+        </span>
+        <span>From {items.length} loaded stories</span>
+      </div>
+      {active !== "All" && active !== "For You" && (
+        <button type="button" onClick={onClear} className="mt-3 w-full rounded-xl border border-hairline py-2 text-[12.5px] font-medium text-content-muted transition-colors hover:text-content">
+          Clear topic filter
+        </button>
+      )}
     </section>
   );
 }
 
-type Post = { id: string; slug: string; title: string; excerpt: string; cover: string | null; category: string; premium: boolean; readMinutes?: number };
+const TWO_H = 2 * 3600e3;
 
 /**
- * XYZ Crypto's own research, from the public list endpoint. Fetched on the
- * client because /news is ISR and must not read the DB at build time; the
- * endpoint is `public, s-maxage=60`, so this is a CDN hit for almost everyone.
+ * The most important stories not already on screen, ranked by the feed's own
+ * impact field, then recency. Read stories are dimmed so the panel always
+ * points at what is left to read.
  */
-export function FeaturedResearch() {
-  const [posts, setPosts] = useState<Post[] | null>(null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let alive = true;
-    fetch("/api/research?pageSize=4")
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((j) => { if (alive) setPosts(Array.isArray(j?.posts) ? j.posts : []); })
-      .catch(() => { if (alive) setFailed(true); });
-    return () => { alive = false; };
-  }, []);
-  if (failed || (posts && !posts.length)) return null;
+export function HighImpactPanel({
+  items, now, readIds, isSaved, onOpen, onBookmark, onShare,
+}: {
+  items: NewsItem[]; now: number; readIds: Set<string>; isSaved: (id: string) => boolean;
+  onOpen: (id: string) => void; onBookmark: (i: NewsItem) => void; onShare: (i: NewsItem) => void;
+}) {
+  const [onlyHigh, setOnlyHigh] = useState(false);
+  const list = useMemo(() => {
+    const rank = (i: NewsItem) => (i.impact === "High" ? 2 : i.impact === "Medium" ? 1 : 0);
+    return items
+      .filter((i) => (onlyHigh ? i.impact === "High" : i.impact !== "Low"))
+      .sort((a, b) => rank(b) - rank(a) || b.publishedAt - a.publishedAt)
+      .slice(0, 5);
+  }, [items, onlyHigh]);
+  const unread = list.filter((i) => !readIds.has(i.id)).length;
+
   return (
-    <section aria-labelledby="news-research">
-      <SectionHead
-        id="news-research"
-        icon={<BookOpen className="h-4 w-4" />}
-        title="Featured research"
-        action={<Link href="/research" className="inline-flex items-center gap-1 text-[13px] font-semibold text-gold-300 hover:text-gold-200">All research <ArrowRight className="h-3.5 w-3.5" /></Link>}
-      />
-      {!posts ? (
-        <div className="shimmer h-80 rounded-2xl bg-surface-2" />
-      ) : (
-        <div className="surface overflow-hidden rounded-3xl">
-          {posts.slice(0, 1).map((p) => (
-            <Link key={p.id} href={`/research/${p.slug}`} className="group block">
-              <div className="relative aspect-[16/9] overflow-hidden bg-surface-2">
-                {p.cover ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.cover} alt="" loading="lazy" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04] group-active:scale-[1.04]" />
-                ) : (
-                  <div className="h-full w-full bg-gradient-to-br from-gold-500/25 via-ink-900 to-ink-950" />
-                )}
-                {p.premium && (
-                  <span className="absolute left-3 top-3 rounded-md bg-gradient-to-br from-gold-200 to-gold-500 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-ink">Premium</span>
-                )}
-              </div>
-              <div className="p-4">
-                <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-gold-400">{p.category}</span>
-                <h3 className="mt-1 line-clamp-2 font-display text-[16px] font-semibold leading-snug text-content group-hover:text-gold-200">{p.title}</h3>
-                <p className="mt-1 line-clamp-2 text-[13px] leading-relaxed text-content-muted">{p.excerpt}</p>
-                <span className="btn-gold mt-3 inline-flex px-3.5 py-1.5 text-[12.5px]">
-                  Read report{p.readMinutes ? ` · ${p.readMinutes} min` : ""} <ArrowRight className="h-3.5 w-3.5" />
-                </span>
-              </div>
-            </Link>
-          ))}
-          {posts.length > 1 && (
-            <ul className="border-t border-hairline">
-              {posts.slice(1).map((p) => (
-                <li key={p.id}>
-                  <Link href={`/research/${p.slug}`} className="group flex items-center gap-3 border-b border-hairline px-4 py-3 last:border-b-0 hover:bg-surface-2">
-                    <BookOpen className="h-4 w-4 shrink-0 text-gold-400" />
-                    <span className="min-w-0 flex-1 truncate text-[13.5px] font-medium text-content group-hover:text-gold-200">{p.title}</span>
-                    {p.premium && <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-gold-400">Premium</span>}
-                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-content-subtle" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+    <section className="surface rounded-3xl p-5" aria-labelledby="news-impact">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h2 id="news-impact" className="flex items-center gap-2 whitespace-nowrap font-display text-[17px] font-semibold tracking-tight text-content">
+            <Zap className="h-4 w-4 text-gold-400" /> High impact
+          </h2>
+          <p className="mt-0.5 text-[11.5px] text-content-subtle">{unread > 0 ? `${unread} unread · ranked by impact` : "All caught up"}</p>
         </div>
+        <div role="radiogroup" aria-label="Impact level" className="inline-flex rounded-lg border border-hairline bg-surface-2 p-0.5">
+          {([false, true] as const).map((h) => (
+            <button
+              key={String(h)}
+              role="radio"
+              aria-checked={onlyHigh === h}
+              onClick={() => setOnlyHigh(h)}
+              className={cn("rounded-md px-2 py-1 font-mono text-[10.5px] font-semibold uppercase tracking-wider transition-colors", onlyHigh === h ? "bg-gold-400 text-ink" : "text-content-subtle hover:text-content")}
+            >
+              {h ? "High" : "All"}
+            </button>
+          ))}
+        </div>
+      </div>
+      {list.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-hairline px-3 py-6 text-center text-[13px] text-content-muted">No high-impact stories right now.</p>
+      ) : (
+        <ol className="grid gap-1">
+          {list.map((item, i) => {
+            const read = readIds.has(item.id);
+            const fresh = now > 0 && item.impact === "High" && now - item.publishedAt < TWO_H;
+            const saved = isSaved(item.id);
+            return (
+              <li key={item.id} className={cn("group relative flex gap-3 rounded-xl p-2 transition-colors hover:bg-surface-2", read && "opacity-60")}>
+                <button type="button" onClick={() => onOpen(item.id)} className="absolute inset-0 rounded-xl" aria-label={`Read: ${item.title}`} />
+                <div className="relative shrink-0">
+                  <Thumb src={item.image} className="h-14 w-16 rounded-lg" />
+                  <span className="absolute -left-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full border border-hairline bg-surface font-mono text-[10px] font-bold text-content">{i + 1}</span>
+                </div>
+                <div className="pointer-events-none relative min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className={cn("rounded px-1 py-px font-mono text-[9.5px] font-bold uppercase tracking-wider", item.impact === "High" ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-400")}>
+                      {item.impact}
+                    </span>
+                    {fresh && (
+                      <span className="inline-flex items-center gap-1 font-mono text-[9.5px] font-bold uppercase tracking-wider text-red-400">
+                        <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> Live
+                      </span>
+                    )}
+                    {read && <span className="inline-flex items-center gap-0.5 text-[10.5px] text-content-subtle"><Check className="h-3 w-3" /> Read</span>}
+                  </div>
+                  <p className="mt-1 line-clamp-2 text-[13px] font-semibold leading-snug text-content group-hover:text-gold-200">{item.title}</p>
+                  <p className="mt-0.5 truncate text-[11.5px] text-content-subtle">
+                    <span className={cn(item.sentiment === "bullish" ? "text-mint-400" : item.sentiment === "bearish" ? "text-red-400" : "")}>●</span> {item.source}{now ? ` · ${timeAgo(item.publishedAt, now)}` : ""}
+                  </p>
+                </div>
+                <div className="relative flex shrink-0 flex-col gap-0.5">
+                  <button type="button" onClick={() => onBookmark(item)} aria-pressed={saved} aria-label={saved ? "Remove bookmark" : "Bookmark"} className={cn("grid h-7 w-7 place-items-center rounded-lg transition-colors hover:bg-surface", saved ? "text-gold-400" : "text-content-subtle hover:text-content")}>
+                    {saved ? <BookmarkCheck className="h-3.5 w-3.5" /> : <Bookmark className="h-3.5 w-3.5" />}
+                  </button>
+                  <button type="button" onClick={() => onShare(item)} aria-label="Share" className="grid h-7 w-7 place-items-center rounded-lg text-content-subtle transition-colors hover:bg-surface hover:text-content">
+                    <Share2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
       )}
     </section>
   );
@@ -249,8 +384,9 @@ export function NewsletterPanel() {
     try {
       const res = await fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: email.trim(), source: "news" }) });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok) { setState("error"); setMsg(j?.error || "Could not subscribe. Please try again."); return; }
+      if (!res.ok) { setState("error"); setMsg(j?.error || "Could not subscribe. Please try again."); hapticError(); return; }
       setState("done");
+      hapticSent();
     } catch {
       setState("error"); setMsg("Network error. Please try again.");
     }
