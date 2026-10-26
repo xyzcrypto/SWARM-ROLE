@@ -107,7 +107,7 @@ export type PerpMarket = { coin: string; price: number; funding: number; openInt
 export type DexProtocol = { slug: string; name: string; volume24h: number; change1d: number; logo: string | null };
 export type FeeProtocol = { slug: string; name: string; fees24h: number; logo: string | null };
 export type YieldPool = { project: string; symbol: string; chain: string; apy: number; tvl: number; logo?: string | null; sparkline?: number[] };
-export type TrendingCoin = { id: string; name: string; symbol: string; thumb: string | null; change24h: number; price?: number; volume?: number; sparkline?: number[] };
+export type TrendingCoin = { id: string; name: string; symbol: string; thumb: string | null; change24h: number; price?: number; volume?: number; sparkline?: number[]; sparklineUrl?: string | null };
 export type MoverCoin = { id: string; name: string; symbol: string; image: string | null; price: number; change24h: number; volume?: number; sparkline?: number[] };
 export type CoinRow = {
   id: string; // CoinGecko id - links each row to its coin detail page
@@ -209,3 +209,31 @@ export const MARKET_CATEGORIES = [
   { id: "real-world-assets-rwa", label: "RWA" },
   { id: "stablecoins", label: "Stablecoins" },
 ] as const;
+
+/**
+ * One row per coin, and no two rows that read the same.
+ *
+ * CoinGecko's trending list can hold Bitcoin and an unrelated token whose
+ * ticker is also "BTC"; both rendered as "BTC" and looked like a duplicate (an
+ * owner report, 2026-10-27). A coin whose ticker belongs to a DIFFERENT coin -
+ * in the top-250 list, or earlier in the trending list - is labelled by its
+ * full name instead. Repeated ids are dropped.
+ */
+export function dedupeTrending(rows: TrendingCoin[], list: Pick<CoinRow, "id" | "symbol">[]): TrendingCoin[] {
+  const seenIds = new Set<string>();
+  const owner = new Map<string, string>(list.map((m) => [m.symbol.toUpperCase(), m.id]));
+  const out: TrendingCoin[] = [];
+  for (const r of rows) {
+    if (!r.id || seenIds.has(r.id)) continue;
+    seenIds.add(r.id);
+    const sym = r.symbol.toUpperCase();
+    const holder = owner.get(sym);
+    if (holder && holder !== r.id) {
+      out.push({ ...r, symbol: r.name });
+    } else {
+      if (!holder) owner.set(sym, r.id);
+      out.push(r);
+    }
+  }
+  return out;
+}

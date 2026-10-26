@@ -40,6 +40,7 @@ import { MarketHeatmap } from "./MarketHeatmap";
 import { AIMarketIntelligenceCard } from "./AIMarketIntelligenceCard";
 import { WatchlistWidget } from "./WatchlistWidget";
 import { PerpLeaderboardWidget } from "./PerpLeaderboardWidget";
+import type { PerpVenue } from "../lib/perp-venues";
 import { DonutPieChart, BarRankChart, ComparativeBarChart } from "./MarketVisualCharts";
 import { CurrencyProvider, useCurrency } from "../context/CurrencyContext";
 import {
@@ -100,7 +101,7 @@ function usePolledJson<T>(url: string, everyMs: number) {
 
 type GlobalResp = GlobalMarket & { live: boolean };
 type DefiResp = DefiMarket & { live: boolean };
-type PerpResp = { dexs: PerpDex[]; markets: PerpMarket[]; totalVolume24h: number; totalOi: number; live: boolean };
+type PerpResp = { dexs: PerpDex[]; venues?: PerpVenue[]; markets: PerpMarket[]; totalVolume24h: number; totalOi: number; live: boolean };
 type DexResp = { dexs: DexProtocol[]; fees: FeeProtocol[]; live: boolean };
 type YieldResp = { pools: YieldPool[]; live: boolean };
 type CoinsResp = { list: CoinRow[]; trending: TrendingCoin[]; gainers: MoverCoin[]; losers: MoverCoin[]; live: boolean; ts?: number };
@@ -421,7 +422,7 @@ function Overview({
           <CoinsPanel c={c} loading={loading} isEmbedded />
         </div>
         <div className="lg:col-span-3 xl:col-span-3 flex flex-col [&>*]:flex-1">
-          <PerpLeaderboardWidget dexs={p?.dexs} onViewAll={onNavigatePerp} />
+          <PerpLeaderboardWidget venues={p?.venues} onViewAll={onNavigatePerp} />
         </div>
         <div className="lg:col-span-3 xl:col-span-3 flex flex-col [&>*]:flex-1">
           <WatchlistWidget coins={c?.list} onViewAll={onNavigateWatchlist} />
@@ -1035,7 +1036,15 @@ function TrendingMoversList({ rows }: { rows: TrendingCoin[] }) {
                 {vol != null ? compactCleanUsd(vol) : "-"}
               </div>
               <div className="w-11 flex items-center justify-end shrink-0">
-                <MoverMiniSparkline data={spark} up={up} />
+{spark && spark.length >= 2 ? (
+                  <MoverMiniSparkline data={spark} up={up} />
+                ) : t.sparklineUrl ? (
+                  // CoinGecko's own 7-day chart image for coins outside the top-250 list.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={t.sparklineUrl} alt="" width={44} height={16} loading="lazy" referrerPolicy="no-referrer" className="h-4 w-11 object-contain" />
+                ) : (
+                  <MoverMiniSparkline data={spark} up={up} />
+                )}
               </div>
             </Link>
           );
@@ -1216,7 +1225,7 @@ function YieldMoversList({ pools }: { pools: YieldPool[] }) {
                 {apy.toFixed(1)}%
               </div>
               <div className="w-8 flex items-center justify-end shrink-0">
-                <MoverMiniSparkline data={spark} up={true} width={32} />
+                <MoverMiniSparkline data={spark} up={!spark || spark.length < 2 || spark[spark.length - 1] >= spark[0]} width={32} />
               </div>
             </div>
           );
@@ -1491,7 +1500,7 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
                             </div>
                           </div>
                         </td>
-                        <td className={cn("text-right mono font-semibold py-2.5", v.change1d >= 0 ? "text-mint-400" : "text-red-400")}>
+                        <td className={cn("text-right mono font-semibold py-2.5", v.change1d == null || !Number.isFinite(v.change1d) ? "text-zinc-500" : v.change1d >= 0 ? "text-mint-400" : "text-red-400")}>
                           {pct(v.change1d, 1)}
                         </td>
                       </tr>
