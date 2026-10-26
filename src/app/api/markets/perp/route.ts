@@ -20,7 +20,8 @@ async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number }> 
   // so both used to download it separately. The aggregate fallback (sum of the
   // full list, not the trimmed one) is computed there too.
   const { protocols, total24h } = await llamaOverview("derivatives");
-  const dexs = topBy(protocols, (p) => p.total24h, 30).map((p) => ({
+  // dYdX and Jupiter are left off the board at the owner's request (2026-10-26).
+  const dexs = topBy(protocols.filter((p) => !/^(dydx|jupiter)/i.test(p.slug ?? p.name)), (p) => p.total24h, 30).map((p) => ({
     slug: protocolSlug(p.slug ?? undefined, p.name),
     name: p.name,
     volume24h: p.total24h,
