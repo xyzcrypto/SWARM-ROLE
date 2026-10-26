@@ -66,8 +66,12 @@ const PERP_DEX_NAMES = [
   "extended",
   "pacifica",
   "variational",
+  // CoinGecko's name for the venue; normalises to "variationalomni".
+  "variational omni",
   "sodex",
   "risex",
+  "arcus",
+  "txflow",
   "kwenta",
   "polynomial",
   "bluefin",

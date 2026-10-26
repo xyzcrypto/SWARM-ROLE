@@ -5,6 +5,47 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-27 (141) — Perp DEX board: the owner's 7 venues, real data from sources that answer
+
+**Why the board showed only Hyperliquid at +0.0%.**
+- Production's `api.llama.fi/overview/derivatives` call fails. It is the same refusal
+  `perp-sources.ts` documented for `/api/points/comps`.
+- `/api/markets/perp` then fell back to a single Hyperliquid row with `change1d: 0`.
+
+**Now** (`src/modules/markets/lib/perp-venues.ts`):
+- **Venues:** Hyperliquid, Lighter, Variational, TXFlow, RiseX, Arcus and SoDEX, ranked
+  by live 24h volume.
+- **Columns:** 24h volume and open interest.
+  - Volume comes from Hyperliquid's own API for Hyperliquid, else DefiLlama, else
+    CoinGecko's derivatives list (converted from BTC with a live BTC price).
+  - Open interest comes from Hyperliquid's own API for Hyperliquid, else CoinGecko,
+    else DefiLlama.
+  - A 24h % column appears only when DefiLlama answers.
+- **Logos:** each venue's real logo from CoinGecko or DefiLlama.
+- **TXFlow:** listed on DefiLlama only, so it gets one small per-protocol summary
+  call. If that is refused too, it shows a dash, never an estimate.
+- **Perp DEX tab:** falls back to CoinGecko's derivatives list, filtered to known perp
+  DEXs and never CEXs, instead of one Hyperliquid row.
+- **Allowlist:** Arcus, TXFlow and "Variational Omni" are added to `PERP_DEX_NAMES`.
+- **Cost:** the CoinGecko calls are cached at the route's own 200s window. The route
+  stays ISR (≈3m in the route table).
+
+**Trending Now:**
+- **Chart:** coins outside the top-250 list now show CoinGecko's own 7-day sparkline
+  image instead of "-".
+- **Volume:** CoinGecko sends `total_volume` as a formatted string ("$1,234,567"),
+  which used to parse as 0. It is now parsed correctly.
+
+**Tests:** pinned by `perp-venues.test.ts`, covering:
+- the seven venues;
+- no CEX leaking in;
+- null rather than invented values;
+- the source precedence;
+- the BTC→USD conversion;
+- dropping the source when there is no BTC price.
+
+---
+
 ## 2026-10-26 (140) — Markets redesign (Deepak's work, markets only) + live data only
 
 Deepak's Markets redesign from PR #389, taken **without** its News, Research, Points and

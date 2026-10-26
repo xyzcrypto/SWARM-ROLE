@@ -13,6 +13,12 @@ import type { TrendingCoin, MoverCoin, CoinRow } from "@/lib/markets";
 // src/lib/__tests__/markets-poll-alignment.test.ts - change both together.
 export const revalidate = 200;
 
+/** A number from CoinGecko's trending payload, which mixes numbers and "$1,234.5" strings. */
+function num(v: unknown): number {
+  const n = typeof v === "number" ? v : Number(String(v ?? "").replace(/[^0-9.eE-]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
 async function trending(list: CoinRow[] = []): Promise<TrendingCoin[]> {
   try {
     const res = await fetch("https://api.coingecko.com/api/v3/search/trending", {
@@ -30,9 +36,10 @@ async function trending(list: CoinRow[] = []): Promise<TrendingCoin[]> {
       // Match on the CoinGecko id only. Matching on symbol let any trending token
       // that shares a ticker (there are several "BTC"s) borrow Bitcoin's price.
       const matched = list.find((m) => m.id === id);
-      const price = matched ? matched.price : Number(c?.item?.data?.price) || 0;
+      const price = matched ? matched.price : num(c?.item?.data?.price);
       const change24h = matched ? matched.change24h : Number(c?.item?.data?.price_change_percentage_24h?.usd) || 0;
-      const volume = matched ? matched.volume24h : (Number(c?.item?.data?.total_volume) || 0);
+      // `data.total_volume` arrives formatted ("$1,234,567"), so strip it to digits.
+      const volume = matched ? matched.volume24h : num(c?.item?.data?.total_volume);
       const sparkline = matched?.sparkline && matched.sparkline.length > 0
         ? matched.sparkline
         : Array.isArray(c?.item?.data?.sparkline)
@@ -49,6 +56,12 @@ async function trending(list: CoinRow[] = []): Promise<TrendingCoin[]> {
         price,
         volume,
         sparkline,
+        // CoinGecko's own 7-day sparkline image for this coin - real data, used
+        // when the coin is outside the top-250 list that carries a price series.
+        sparklineUrl:
+          typeof c?.item?.data?.sparkline === "string" && c.item.data.sparkline.startsWith("https://")
+            ? c.item.data.sparkline
+            : null,
       };
     });
   } catch {
