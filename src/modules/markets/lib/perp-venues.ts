@@ -17,7 +17,7 @@ export const FEATURED_PERP_VENUES = [
   { key: "hyperliquid", name: "Hyperliquid", names: ["hyperliquid"], llamaSlug: null, cg: [], fallbackLogo: null },
   { key: "lighter", name: "Lighter", names: ["lighter"], llamaSlug: null, cg: [], fallbackLogo: null },
   { key: "variational", name: "Variational", names: ["variational", "variationalomni"], llamaSlug: null, cg: [], fallbackLogo: null },
-  { key: "txflow", name: "TXFlow", names: ["txflow"], llamaSlug: "txflow-perps", cg: [], fallbackLogo: "https://icons.llamao.fi/icons/protocols/txflow-perps" },
+  { key: "txflow", name: "TXFlow", names: ["txflow"], llamaSlug: "txflow-perps", cg: [], fallbackLogo: "/txflow-logo.png" },
   { key: "risex", name: "RiseX", names: ["risex"], llamaSlug: "risex", cg: ["risex"], fallbackLogo: "/risex-logo.png" },
   { key: "arcus", name: "Arcus", names: ["arcus"], llamaSlug: "arcus-perps", cg: ["arcus-futures"], fallbackLogo: null },
   { key: "sodex", name: "SoDEX", names: ["sodex"], llamaSlug: "sodex-perps", cg: [], fallbackLogo: null },

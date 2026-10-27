@@ -5,6 +5,43 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-10-27 (142) — TxFlow on Points: Season 0 + Season 1 calculator
+
+The owner asked for a TxFlow calculator like Variational's, with Season 0 and Season 1
+combined, a 1B supply and 25% as the default allocation.
+
+- **Registry (`dex-registry.ts`).** The total is 47,345,544 points:
+  - **Season 0:** 10,769,544 points, already distributed (@TxFlow_L1, 27 Oct 2026).
+  - **Season 1 maximum (36,576,000):**
+    - Season 1 started 12 Oct 2026, with drops every Tuesday from 20 Oct to the end of
+      Q1 2027: 24 drops.
+    - Each drop is 1.25M trader points plus up to 152K referral points.
+    - On top, a 488K Growth Reserve each month for 6 months.
+  - **Scenario inputs:**
+    - Supply is 1B (a placeholder, since there is no token yet).
+    - Allocation defaults to 25%, with 10/15/20/30% options.
+    - FDV runs from $250M to $3B and opens at $1B.
+  - **Badges:** `confirmed: false`, so the calculator says "Scenario data". The notes
+    say the referral pool is a cap and the season can end early, so the real total can
+    only be lower.
+- **Featured Programs:**
+  - A live TxFlow card (47.35M Points · 25% Allocation) takes the Lighter "Coming
+    Soon" placeholder's slot, so the row stays six cards wide.
+  - Hyperliquid remains the one locked card.
+- **Real logo:** `public/txflow-logo.png`, from DefiLlama's icon set (the same mark as
+  @TxFlow_L1's avatar), snapped to its two flat brand colours. The Markets Perp DEX
+  board's TXFlow row now uses it too.
+- **Automatic:**
+  - The "Ongoing perp DEX airdrops" list now shows 5 farming.
+  - `/points/txflow` redirects to the calculator.
+- **Tests:** `points-programs.test.ts` pins:
+  - the 24 Tuesdays and the 36,576,000 / 47,345,544 totals;
+  - the 1B supply, 25% default and options;
+  - $5.28 per point at $1B and 25%;
+  - the card matching the calculator, and the logo.
+- **Checked in the browser:** 5,000 points shows $13,201 at $500M, $26,402 at $1B and
+  $79,205 at $3B.
+
 ## 2026-10-27 (141) — Perp DEX board: the owner's 7 venues, real data from sources that answer
 
 **Why the board showed only Hyperliquid at +0.0%.**
