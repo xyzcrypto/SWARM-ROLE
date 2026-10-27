@@ -207,7 +207,56 @@ describe("Featured Programs card agrees with the calculator", () => {
     expect(label("arcus", "pointsLabel")).toBe(millions(sc.totalPoints));
     expect(label("arcus", "allocLabel")).toBe(`${sc.allocationPctOfSupply}% Allocation`);
     expect(sc.allocationPctOfSupply).toBe(25);
-    expect(card).toMatch(/LOCKED_IDS = new Set\(\["hyperliquid", "lighter"\]\)/);
+    expect(card).toMatch(/LOCKED_IDS = new Set\(\["hyperliquid"\]\)/);
+  });
+});
+
+describe("TxFlow - Season 0 + Season 1, everything else a scenario", () => {
+  const tx = DEX_REGISTRY.find((p) => p.id === "txflow")!;
+  const sc = tx.pointValueScenario!;
+  const card = readFileSync("src/modules/points/components/FeaturedProgramsBar.tsx", "utf8");
+  const label = (key: "pointsLabel" | "allocLabel") => card.match(new RegExp(`id: "txflow",[\\s\\S]*?${key}: "([^"]+)"`))?.[1];
+
+  it("totals Season 0 plus the Season 1 maximum from the official schedule", () => {
+    // Season 0: 10,769,544 points, already distributed (@TxFlow_L1, 27 Oct 2026).
+    const season0 = 10_769_544;
+    // Season 1: drops every Tuesday from 20 Oct 2026 to no later than the end of Q1 2027.
+    const drops: string[] = [];
+    for (let d = new Date(Date.UTC(2026, 9, 20)); d <= new Date(Date.UTC(2027, 2, 31)); d.setUTCDate(d.getUTCDate() + 1)) {
+      if (d.getUTCDay() === 2) drops.push(d.toISOString().slice(0, 10));
+    }
+    expect(drops.length).toBe(24);
+    expect(drops[0]).toBe("2026-10-20");
+    expect(drops.at(-1)).toBe("2027-03-30");
+    const weekly = 1_250_000 + 152_000; // trader pool + referral cap
+    const growth = 488_000 * 6; // monthly Growth Reserve, Oct 2026 - Mar 2027
+    expect(drops.length * weekly + growth).toBe(36_576_000);
+    expect(sc.totalPoints).toBe(season0 + drops.length * weekly + growth);
+  });
+
+  it("uses a 1B supply and defaults to 25%, with other allocations to choose", () => {
+    expect(sc.totalSupply).toBe(1_000_000_000);
+    expect(sc.allocationPctOfSupply).toBe(25);
+    expect(sc.allocationScenarios!.map((a) => a.pct)).toEqual([10, 15, 20, 25, 30]);
+    expect(sc.fdvScenariosUsd).toEqual([250_000_000, 500_000_000, 1_000_000_000, 2_000_000_000, 3_000_000_000]);
+  });
+
+  it("values a point as FDV x allocation / total points", () => {
+    const perPoint = projectValue({ yourPoints: 1, totalPoolPoints: sc.totalPoints, allocationPctOfSupply: 25, totalSupply: sc.totalSupply, fdvUsd: 1_000_000_000, tgeUnlockPct: 100 }).grossUsd;
+    expect(perPoint).toBeCloseTo(5.28, 2); // $1B x 25% / 47.35M
+  });
+
+  it("has a live Featured card that matches its calculator, with the real logo", () => {
+    expect(label("pointsLabel")).toBe(`${+(sc.totalPoints / 1_000_000).toFixed(2)}M Points`);
+    expect(label("allocLabel")).toBe(`${sc.allocationPctOfSupply}% Allocation`);
+    expect(tx.logo).toBe("/txflow-logo.png");
+    expect(readFileSync("public/txflow-logo.png").subarray(1, 4).toString()).toBe("PNG");
+  });
+
+  it("never presents its numbers as official", () => {
+    expect(tx.pointsProgram).toMatchObject({ phase: "live", season: "Season 1", confirmed: false, startedAt: "2026-10-12" });
+    expect(tx.notes).toMatch(/no token yet/i);
+    expect(tx.notes).toMatch(/Season 0/);
   });
 });
 
@@ -226,7 +275,7 @@ describe("a shared /points/<id> link opens that programme's calculator", () => {
     expect(client).toMatch(/addEventListener\("hashchange", selectFromHash\)/);
   });
   it("covers every programme, including Arcus", () => {
-    expect(DEX_REGISTRY.filter((p) => p.pointValueScenario).map((p) => p.id)).toEqual(expect.arrayContaining(["arcus", "variational", "sodex", "risex"]));
+    expect(DEX_REGISTRY.filter((p) => p.pointValueScenario).map((p) => p.id)).toEqual(expect.arrayContaining(["arcus", "variational", "sodex", "risex", "txflow"]));
   });
 });
 

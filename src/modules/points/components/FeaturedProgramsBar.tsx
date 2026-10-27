@@ -56,6 +56,15 @@ const FEATURED_ITEMS: FeaturedItem[] = [
     tags: ["Perps", "RWA", "Spot"],
   },
   {
+    id: "txflow",
+    name: "TxFlow",
+    badge: "Official",
+    // Season 0 (10,769,544) + the Season 1 maximum (36,576,000) - registry totalPoints
+    pointsLabel: "47.35M Points",
+    allocLabel: "25% Allocation",
+    tags: ["Perps", "Spot", "Predictions"],
+  },
+  {
     id: "hyperliquid",
     name: "Hyperliquid",
     badge: "Official",
@@ -63,18 +72,11 @@ const FEATURED_ITEMS: FeaturedItem[] = [
     allocLabel: "20% Allocation",
     tags: ["Perps", "Spot"],
   },
-  {
-    id: "lighter",
-    name: "Lighter",
-    badge: "Community",
-    pointsLabel: "8.2M Points",
-    allocLabel: "10% Allocation",
-    tags: ["Perps", "Spot"],
-  },
 ];
 
-/** Cards that are not yet available — show blur + Coming Soon badge */
-const LOCKED_IDS = new Set(["hyperliquid", "lighter"]);
+/** Cards that are not yet available — show blur + Coming Soon badge. TxFlow
+ * took Lighter's slot (2026-10-27) so the row stays six cards wide. */
+const LOCKED_IDS = new Set(["hyperliquid"]);
 
 export function FeaturedProgramsBar({
   programs,

@@ -233,6 +233,61 @@ export const DEX_REGISTRY: DexPlatform[] = [
     },
   },
   {
+    // ⚠️ TxFlow has NO token: no ticker, supply, airdrop size or FDV is
+    // published, and its Points Program Terms say points "may be one of the
+    // factors considered" for any future distribution. So the only official
+    // inputs are the two seasons' point counts; every dollar figure is a scenario.
+    //
+    // Total points = Season 0 + the Season 1 maximum (pinned in
+    // points-programs.test.ts):
+    //   Season 0, already distributed (@TxFlow_L1, 27 Oct 2026):  10,769,544
+    //   Season 1, started 12 Oct 2026, weekly drops every Tuesday from
+    //   20 Oct 2026 to no later than the end of Q1 2027 = 24 drops:
+    //     24 x (1,250,000 trader + up to 152,000 referral)        33,648,000
+    //     Growth Reserve, 488,000 a month x 6 months (Oct-Mar)    2,928,000
+    //                                                          = 47,345,544
+    // The referral pool is a cap and the season can end early, so the real total
+    // can only be lower - which makes each point worth more, not less.
+    id: "txflow",
+    name: "TxFlow",
+    status: "live",
+    chain: "TxFlow L1",
+    fees: "Maker 0.015%, taker 0.045% of trade volume - see official docs for the current schedule.",
+    pointsRules:
+      "Season 1 shares fixed pools every week: 1,250,000 points for traders and up to 152,000 for referrals, plus a 488,000-point Growth Reserve each month. Only perpetual trades earn Season 1 points - spot and prediction markets do not. Weekly epochs run Monday to Monday (UTC) and are credited every Tuesday.",
+    rewardLogic:
+      "TxFlow's terms say points may be one factor in any future token distribution, with details to be announced - no token or airdrop is confirmed. This calculator ASSUMES points convert pro rata into an airdrop share - a scenario, not a TxFlow mechanic.",
+    supportedMarkets: "Perpetuals (Season 1 points), plus spot and prediction markets",
+    maxLeverage: "See official docs",
+    notes:
+      "TxFlow has no token yet, so every dollar figure here is a scenario. Total points = Season 0 (10,769,544, already distributed) + the Season 1 maximum: 24 weekly drops to the end of Q1 2027 x (1.25M trader + up to 152K referral) + 6 x 488K Growth Reserve = 36,576,000. Season 1 can end earlier and the referral pool is a cap, so the real total may be lower. The 1B supply is a placeholder.",
+    links: { website: "https://txflow.com", twitter: "https://x.com/TxFlow_L1" },
+    logo: "/txflow-logo.png",
+    pointsProgram: {
+      phase: "live",
+      season: "Season 1",
+      // The schedule is official; the token economics are not.
+      confirmed: false,
+      earnRate: "1,250,000 trader points + up to 152,000 referral points every week, plus 488,000 Growth Reserve points a month.",
+      startedAt: "2026-10-12",
+    },
+    pointValueScenario: {
+      totalSupply: 1_000_000_000,
+      totalPoints: 47_345_544,
+      tgeUnlockPcts: [],
+      fdvScenariosUsd: [250_000_000, 500_000_000, 1_000_000_000, 2_000_000_000, 3_000_000_000],
+      // 25%, owner-set (2026-10-27), with the other options alongside.
+      allocationPctOfSupply: 25,
+      allocationScenarios: [
+        { label: "10% airdrop", pct: 10 },
+        { label: "15% airdrop", pct: 15 },
+        { label: "20% airdrop", pct: 20 },
+        { label: "25% airdrop", pct: 25 },
+        { label: "30% airdrop", pct: 30 },
+      ],
+    },
+  },
+  {
     id: "hyperliquid",
     name: "Hyperliquid",
     status: "live",
