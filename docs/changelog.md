@@ -5,6 +5,35 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-18 (143) — Markets: chart survives a Binance block, Fear & Greed reads right
+
+Two Markets bugs found while capturing the product ad.
+
+- **Market cap / volume chart no longer depends on Binance alone.**
+  - Binance answers HTTP 451 from restricted regions, and the chart then showed
+    "Live history unavailable".
+  - `/api/markets/chart` now tries Binance first and falls back to CoinGecko's keyless
+    `coins/bitcoin/market_chart`.
+  - New `src/modules/markets/lib/chart-candles.ts` converts that history into the same
+    kline shape, thinned to each timeframe's point limit.
+  - CoinGecko's keyless API caps history at 365 days (`days=max` errors), so **ALL**
+    falls back to the last year rather than to nothing.
+  - The chart notes name the source actually used.
+- **Cost:** no window changed.
+  - The route stays at `revalidate = 60` and `s-maxage=60`.
+  - The fallback fetch hint is 120s, which is at least 60, so trap 1b does not apply.
+  - Payloads are 17–223 KB, well under the 2 MB data-cache limit.
+- **Fear & Greed colours (`MarketsClient.tsx`):**
+  - The label used to be mint whatever the value, so "Extreme Fear" showed as a green,
+    bullish label. It now follows `fngLabel().tone`: red for fear, amber for neutral,
+    mint for greed, in both themes.
+  - The compact gauge's gradient was inverted. It now runs from red at 0 to green at 100,
+    matching the full gauge.
+  - "Extreme Fear" and "Extreme Greed" ran into the compact arc's end caps. Long labels
+    now render at 7.5px with normal tracking.
+- **Tests:** `chart-candles.test.ts` has 5 cases (shape, window, thinning, volume
+  carry, bad input).
+
 ## 2026-10-27 (142) — TxFlow on Points: Season 0 + Season 1 calculator
 
 The owner asked for a TxFlow calculator like Variational's, with Season 0 and Season 1
