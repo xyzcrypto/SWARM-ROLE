@@ -14,7 +14,11 @@ type TickerState = { coins: TickerCoin[] | null; live: boolean; loading: boolean
 // always expired ~90s before each poll arrived: every single poll missed and
 // regenerated, which made this the top driver of the ISR Writes overage. If you
 // change this number, change that one too.
-const POLL_MS = 5_000;
+// ⚠️ It was set to 5_000 in #389. The route caches for 180s, so 35 of every 36
+// polls returned an identical response: no fresher prices, just ~36x the edge
+// requests from every open tab. The "too fast" test in
+// markets-poll-alignment.test.ts now fails on that.
+const POLL_MS = 150_000;
 
 let state: TickerState = { coins: null, live: false, loading: true };
 const listeners = new Set<() => void>();

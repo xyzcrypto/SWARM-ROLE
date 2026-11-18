@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import { topBy, protocolSlug, type PerpDex, type PerpMarket } from "@/lib/markets";
 import { llamaOverview, type OverviewRow } from "@modules/markets/lib/llama";
 import { isKnownPerpDex } from "@modules/points/lib/perp-sources";
+import { lastGood } from "@modules/markets/lib/last-good";
 import {
   FEATURED_PERP_VENUES,
   buildPerpVenues,
+  cgCoversFeatured,
+  llamaOpenInterest,
   coingeckoDerivativeRows,
   llamaSummary,
   txflowTotals,
@@ -23,6 +26,7 @@ import {
 export const revalidate = 200;
 
 const EXCLUDED = /^(dydx|jupiter)/i;
+const SIX_HOURS = 6 * 60 * 60_000;
 
 async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number; rows: OverviewRow[] }> {
   // Exclude the (huge) chart arrays so the payload is small + fast; some hosts
@@ -45,15 +49,19 @@ async function perpDexs(): Promise<{ dexs: PerpDex[]; totalVolume24h: number; ro
 // Hyperliquid live perp markets - funding + open interest + 24h volume per coin.
 // Returns the top markets plus venue totals (used as a reliable fallback for the
 // aggregate volume/OI numbers when the DefiLlama overview is unavailable).
-async function hyperliquid(): Promise<{ markets: PerpMarket[]; totalVolume24h: number; totalOi: number }> {
+type HlResult = { markets: PerpMarket[]; totalVolume24h: number; totalOi: number; btcUsd: number | null };
+const HL_EMPTY: HlResult = { markets: [], totalVolume24h: 0, totalOi: 0, btcUsd: null };
+
+async function hyperliquid(): Promise<HlResult> {
   try {
     const res = await fetch("https://api.hyperliquid.xyz/info", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ type: "metaAndAssetCtxs" }),
+      signal: AbortSignal.timeout(8000),
       next: { revalidate },
     });
-    if (!res.ok) return { markets: [], totalVolume24h: 0, totalOi: 0 };
+    if (!res.ok) return HL_EMPTY;
     const data = await res.json();
     const universe: any[] = data?.[0]?.universe ?? [];
     const ctxs: any[] = data?.[1] ?? [];
@@ -73,7 +81,7 @@ async function hyperliquid(): Promise<{ markets: PerpMarket[]; totalVolume24h: n
     // A length mismatch means the assumption has broken, so the honest answer
     // is no perp data rather than confidently mismatched perp data.
     if (universe.length !== ctxs.length) {
-      return { markets: [], totalVolume24h: 0, totalOi: 0 };
+      return HL_EMPTY;
     }
 
     const rows: PerpMarket[] = universe
@@ -92,19 +100,38 @@ async function hyperliquid(): Promise<{ markets: PerpMarket[]; totalVolume24h: n
       .filter((r) => r.price > 0 && r.coin !== "-");
     const totalVolume24h = ctxs.reduce((s, c) => s + (Number(c?.dayNtlVlm) || 0), 0);
     const totalOi = rows.reduce((s, r) => s + r.openInterest, 0);
-    return { markets: topBy(rows, (r) => r.openInterest, 20), totalVolume24h, totalOi };
+    // BTC's mark price, so the CoinGecko derivatives conversion (BTC -> USD)
+    // does not depend on a second CoinGecko call that can be rate-limited.
+    const btcUsd = rows.find((r) => r.coin === "BTC")?.price ?? null;
+    return { markets: topBy(rows, (r) => r.openInterest, 20), totalVolume24h, totalOi, btcUsd };
   } catch {
-    return { markets: [], totalVolume24h: 0, totalOi: 0 };
+    return HL_EMPTY;
   }
 }
 
 export async function GET() {
   // Independent sources so one flaky upstream can't blank the board.
-  const [dexRes, hl, cg, txflow] = await Promise.all([
-    perpDexs().catch(() => ({ dexs: [] as PerpDex[], totalVolume24h: 0, rows: [] as OverviewRow[] })),
-    hyperliquid().catch(() => ({ markets: [] as PerpMarket[], totalVolume24h: 0, totalOi: 0 })),
-    coingeckoDerivativeRows(revalidate).catch(() => []),
-    txflowTotals(revalidate).catch(() => null),
+  // Each source is remembered while good (see last-good.ts): CoinGecko and
+  // DefiLlama refuse Vercel's shared IPs now and then, and a single refusal
+  // used to blank five of the seven leaderboard rows for a whole cache window.
+  const hlP = lastGood("perp:hyperliquid", hyperliquid, { isGood: (v) => v.markets.length > 0, maxAgeMs: 30 * 60_000 }).catch(
+    () => HL_EMPTY
+  );
+  const [dexRes, hl, cg, txflow, oi] = await Promise.all([
+    lastGood("perp:dexs", perpDexs, { isGood: (v) => v.dexs.length > 0, maxAgeMs: SIX_HOURS }).catch(() => ({
+      dexs: [] as PerpDex[],
+      totalVolume24h: 0,
+      rows: [] as OverviewRow[],
+    })),
+    hlP,
+    lastGood("perp:cg-derivs", () => coingeckoDerivativeRows(revalidate, hlP.then((h) => h.btcUsd)), {
+      isGood: cgCoversFeatured,
+      maxAgeMs: SIX_HOURS,
+    }).catch(() => []),
+    lastGood("perp:txflow", () => txflowTotals(revalidate), { isGood: (v) => v != null, maxAgeMs: SIX_HOURS }).catch(() => null),
+    lastGood("perp:llama-oi", () => llamaOpenInterest(revalidate), { isGood: (v) => v.length > 0, maxAgeMs: SIX_HOURS }).catch(
+      () => []
+    ),
   ]);
 
   // The Perp DEX tab's list: DefiLlama's cross-venue ranking when it answers.
@@ -129,7 +156,7 @@ export async function GET() {
     hyperliquid: { volume24h: hl.totalVolume24h, openInterest: hl.totalOi },
     ...(txflow ? { txflow } : {}),
   };
-  let venues = buildPerpVenues(llamaRows, cg, native);
+  let venues = buildPerpVenues(llamaRows, cg, native, oi);
   const missing = FEATURED_PERP_VENUES.filter((v) => v.llamaSlug && venues.find((x) => x.key === v.key)?.volume24h == null);
   if (missing.length) {
     const extra = (await Promise.all(missing.map((v) => llamaSummary(v.llamaSlug as string, revalidate)))).filter(
@@ -137,7 +164,7 @@ export async function GET() {
     );
     if (extra.length) {
       llamaRows = [...llamaRows, ...extra];
-      venues = buildPerpVenues(llamaRows, cg, native);
+      venues = buildPerpVenues(llamaRows, cg, native, oi);
     }
   }
 

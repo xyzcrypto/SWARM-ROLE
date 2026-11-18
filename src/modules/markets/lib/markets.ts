@@ -23,7 +23,7 @@ export type DefiMarket = {
   tvlTrend: number[]; // recent daily TVL values (sparkline)
   topProtocols: DefiProtocol[];
   topChains: DefiChain[];
-  stableMcap: number;
+  stableMcap: number | null;
 };
 
 /** Compact Currency (USD / INR): $1.23T or ₹116.8T. Returns "-" for bad input. */
@@ -125,6 +125,8 @@ export type CoinRow = {
   ath: number;
   athChange: number;
   sparkline: number[];
+  /** Last 24 hourly points, full resolution: what the heatmap and watchlist tails read. */
+  spark24h?: number[];
 };
 
 /** Price with sensible precision for a coin table (USD or INR). */

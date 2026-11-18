@@ -25,7 +25,11 @@ export function SmoothScroll() {
     if (window.matchMedia("(pointer: coarse)").matches) return;
 
     const lenis = new Lenis({
-      duration: 1.15,
+      // Was 1.15s: every wheel tick kept gliding for over a second after the
+      // hand stopped, so on a heavy page the content trailed the input and the
+      // site read as laggy ("lag na ho", 2026-11-18). 0.75s keeps the eased,
+      // smooth feel with the same curve and lands far closer to the wheel.
+      duration: 0.75,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
       touchMultiplier: 1.6,

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { dedupeTrending } from "@modules/markets/lib/markets";
 import type { TrendingCoin, MoverCoin, CoinRow } from "@/lib/markets";
+import { lastGood } from "@modules/markets/lib/last-good";
+import { thinSparkline } from "@modules/markets/lib/timeseries";
 
 // Coins snapshot (CoinGecko, keyless): a top-250 market table (price, 1h/24h/7d
 // %, mcap, volume, 7d sparkline) + trending + 24h gainers/losers, all derived from
@@ -24,6 +26,7 @@ async function trending(list: CoinRow[] = []): Promise<TrendingCoin[]> {
   try {
     const res = await fetch("https://api.coingecko.com/api/v3/search/trending", {
       headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(8000),
       // Must not be SHORTER than the route's `revalidate` above: Next takes the
       // MINIMUM across the segment, so a low hint here silently governs the whole
       // route's ISR window regardless of the export.
@@ -75,7 +78,7 @@ async function trending(list: CoinRow[] = []): Promise<TrendingCoin[]> {
 async function markets(): Promise<CoinRow[]> {
   const res = await fetch(
     "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&price_change_percentage=1h,24h,7d&sparkline=true",
-    { headers: { accept: "application/json" }, next: { revalidate } }
+    { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000), next: { revalidate } }
   );
   if (!res.ok) throw new Error(`markets ${res.status}`);
   const data: any[] = await res.json();
@@ -97,14 +100,19 @@ async function markets(): Promise<CoinRow[]> {
     // the same two fields all along.
     ath: Number(d.ath) || 0,
     athChange: Number(d.ath_change_percentage) || 0,
-    sparkline: Array.isArray(d.sparkline_in_7d?.price) ? d.sparkline_in_7d.price.filter((x: any) => Number.isFinite(x)) : [],
+    sparkline: Array.isArray(d.sparkline_in_7d?.price) ? thinSparkline(d.sparkline_in_7d.price) : [],
+    spark24h: Array.isArray(d.sparkline_in_7d?.price)
+      ? d.sparkline_in_7d.price.filter((x: any) => Number.isFinite(x)).slice(-24).map((x: number) => Number(x.toPrecision(6)))
+      : [],
   }));
 }
 
 export async function GET() {
   try {
-    const list = await markets();
-    const trend = await trending(list);
+    // Remembered while good (last-good.ts) so a rate-limited CoinGecko call
+    // serves the previous table for up to 30 minutes instead of an empty one.
+    const list = await lastGood("coins:markets", markets, { isGood: (v) => v.length > 0, maxAgeMs: 30 * 60_000 });
+    const trend = await lastGood("coins:trending", () => trending(list), { isGood: (v) => v.length > 0, maxAgeMs: 2 * 60 * 60_000 });
     const byChange = [...list].filter((r) => Number.isFinite(r.change24h)).sort((a, b) => b.change24h - a.change24h);
     const toMover = (r: CoinRow): MoverCoin => ({
       id: r.id,

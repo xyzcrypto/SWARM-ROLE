@@ -22,6 +22,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Bookmark, BookmarkCheck, Check, Flame, Loader2, Mail, Share2, Sparkles, Star, Users, X, Zap } from "lucide-react";
 import { useScrollLock } from "@shared/hooks/useScrollLock";
+import { AnimatePresence, motion } from "framer-motion";
+import { isNewsletterSubscribed, markNewsletterSubscribed } from "@shared/hooks/useNewsletterSubscribed";
 import { MagicStar } from "iconsax-react";
 import { hapticError, hapticSent, hapticToggle } from "@shared/utils/haptics";
 import { timeAgo } from "@/lib/news";
@@ -452,11 +454,32 @@ export function XyzAiBand() {
   );
 }
 
-/** Newsletter capture. Success is shown only when `/api/subscribe` returns 2xx. */
+/**
+ * Newsletter capture. Success is shown only when `/api/subscribe` returns 2xx.
+ *
+ * Once this browser has subscribed the card stops asking: a fresh subscribe
+ * shows its confirmation briefly, then the card folds away, and later visits
+ * do not render it at all (decided in an effect after mount, so the server
+ * HTML and the hydration pass match).
+ */
+const NEWSLETTER_DONE_MS = 2200;
+
 export function NewsletterPanel() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [msg, setMsg] = useState("");
+  const [gone, setGone] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => { if (isNewsletterSubscribed()) setGone(true); }, 0);
+    return () => clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (state !== "done") return;
+    const t = setTimeout(() => setGone(true), NEWSLETTER_DONE_MS);
+    return () => clearTimeout(t);
+  }, [state]);
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) { setState("error"); setMsg("Enter a valid email address."); return; }
@@ -466,41 +489,60 @@ export function NewsletterPanel() {
       const j = await res.json().catch(() => ({}));
       if (!res.ok) { setState("error"); setMsg(j?.error || "Could not subscribe. Please try again."); hapticError(); return; }
       setState("done");
+      markNewsletterSubscribed();
       hapticSent();
     } catch {
       setState("error"); setMsg("Network error. Please try again.");
     }
   }
   return (
-    <section className="surface rounded-3xl p-5" aria-labelledby="news-letter">
-      <SectionHead id="news-letter" icon={<Mail className="h-4 w-4" />} title="Newsletter" />
-      <p className="-mt-2 mb-4 text-[13px] leading-relaxed text-content-muted">The day&apos;s top Web3 news and research, in your inbox.</p>
-      {state === "done" ? (
-        <p role="status" className="flex items-center gap-2 rounded-xl border border-gold-500/30 bg-gold-500/10 px-3 py-2.5 text-[13px] font-medium text-gold-200">
-          <Check className="h-4 w-4" strokeWidth={3} /> You&apos;re subscribed.
-        </p>
-      ) : (
-        <form onSubmit={submit} noValidate className="flex gap-2">
-          <label htmlFor="news-letter-email" className="sr-only">Email address</label>
-          <input
-            id="news-letter-email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => { setEmail(e.target.value); if (state === "error") setState("idle"); }}
-            placeholder="you@email.com"
-            aria-invalid={state === "error"}
-            aria-describedby={state === "error" ? "news-letter-err" : undefined}
-            className="min-w-0 flex-1 rounded-xl border border-hairline bg-surface-2 px-3 py-2.5 text-sm text-content placeholder:text-content-subtle focus:border-gold-500/50 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
-          />
-          <button type="submit" disabled={state === "loading"} aria-label="Subscribe" className="btn-gold shrink-0 px-3.5 py-2.5 text-sm disabled:opacity-60">
-            {state === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-          </button>
-        </form>
+    <AnimatePresence initial={false}>
+      {!gone && (
+        <motion.section
+          key="news-letter"
+          exit={{ opacity: 0, height: 0, marginTop: 0, scale: 0.97 }}
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className="surface overflow-hidden rounded-3xl p-5"
+          aria-labelledby="news-letter"
+        >
+          <SectionHead id="news-letter" icon={<Mail className="h-4 w-4" />} title="Newsletter" />
+          <p className="-mt-2 mb-4 text-[13px] leading-relaxed text-content-muted">The day&apos;s top Web3 news and research, in your inbox.</p>
+          {state === "done" ? (
+            <motion.p
+              role="status"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 rounded-xl border border-gold-500/30 bg-gold-500/10 px-3 py-2.5 text-[13px] font-medium text-gold-200"
+            >
+              <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 18 }}>
+                <Check className="h-4 w-4" strokeWidth={3} />
+              </motion.span>
+              You&apos;re subscribed. See you in your inbox.
+            </motion.p>
+          ) : (
+            <form onSubmit={submit} noValidate className="flex gap-2">
+              <label htmlFor="news-letter-email" className="sr-only">Email address</label>
+              <input
+                id="news-letter-email"
+                type="email"
+                inputMode="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); if (state === "error") setState("idle"); }}
+                placeholder="you@email.com"
+                aria-invalid={state === "error"}
+                aria-describedby={state === "error" ? "news-letter-err" : undefined}
+                className="min-w-0 flex-1 rounded-xl border border-hairline bg-surface-2 px-3 py-2.5 text-sm text-content placeholder:text-content-subtle focus:border-gold-500/50 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
+              />
+              <button type="submit" disabled={state === "loading"} aria-label="Subscribe" className="btn-gold shrink-0 px-3.5 py-2.5 text-sm disabled:opacity-60">
+                {state === "loading" ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+              </button>
+            </form>
+          )}
+          {state === "error" && <p id="news-letter-err" role="alert" className="mt-2 text-[12px] text-amber-300">{msg}</p>}
+        </motion.section>
       )}
-      {state === "error" && <p id="news-letter-err" role="alert" className="mt-2 text-[12px] text-amber-300">{msg}</p>}
-    </section>
+    </AnimatePresence>
   );
 }
 

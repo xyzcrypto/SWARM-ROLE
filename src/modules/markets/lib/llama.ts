@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { lastGood } from "./last-good";
 
 // Shared, cached access to the DefiLlama endpoints this site reads.
 //
@@ -72,6 +73,9 @@ export const YIELDS_TTL = 320;
 
 /** Upstream can be slow; a sitemap or a markets card must never hang on it. */
 const TIMEOUT_MS = 8000;
+
+/** A refused upstream serves the last good reduction for up to this long (last-good.ts). */
+const LKG_MAX_AGE = 6 * 60 * 60_000;
 
 async function getJson(url: string): Promise<any> {
   const ctrl = new AbortController();
@@ -172,11 +176,16 @@ const overviewLoaders: Record<OverviewKind, () => Promise<Overview>> = {
 
 function makeOverviewLoader(kind: OverviewKind) {
   return unstable_cache(
-    async () =>
-      reduceOverview(
-        await getJson(
-          `https://api.llama.fi/overview/${kind}?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true`
-        )
+    () =>
+      lastGood(
+        `llama:overview:${kind}`,
+        async () =>
+          reduceOverview(
+            await getJson(
+              `https://api.llama.fi/overview/${kind}?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true`
+            )
+          ),
+        { isGood: (v) => v.protocols.length > 0, maxAgeMs: LKG_MAX_AGE }
       ),
     ["llama", "overview", kind],
     { revalidate: OVERVIEW_TTL, tags: ["llama-overview"] }
@@ -196,7 +205,12 @@ export type ProtocolRow = { name: string; tvl: number; chain: string; change1d: 
  * future caller has headroom without another 11 MB round trip.
  */
 export const llamaProtocols = unstable_cache(
-  async (): Promise<ProtocolRow[]> => {
+  (): Promise<ProtocolRow[]> => lastGood("llama:protocols", loadProtocols, { isGood: (v) => v.length > 0, maxAgeMs: LKG_MAX_AGE }),
+  ["llama", "protocols"],
+  { revalidate: PROTOCOLS_TTL, tags: ["llama-protocols"] }
+);
+
+async function loadProtocols(): Promise<ProtocolRow[]> {
     const list: any[] = await getJson("https://api.llama.fi/protocols");
     return (Array.isArray(list) ? list : [])
       .map((p) => ({
@@ -208,10 +222,7 @@ export const llamaProtocols = unstable_cache(
       }))
       .sort((a, b) => b.tvl - a.tvl)
       .slice(0, 40);
-  },
-  ["llama", "protocols"],
-  { revalidate: PROTOCOLS_TTL, tags: ["llama-protocols"] }
-);
+}
 
 export type PoolRow = { project: string; symbol: string; chain: string; apy: number; tvl: number; logo?: string | null; pool?: string | null };
 
@@ -221,7 +232,13 @@ export type PoolRow = { project: string; symbol: string; chain: string; apy: num
  * same filter the route applied before.
  */
 export const llamaYieldPools = unstable_cache(
-  async (): Promise<PoolRow[]> => {
+  (): Promise<PoolRow[]> => lastGood("llama:yields", loadYieldPools, { isGood: (v) => v.length > 0, maxAgeMs: LKG_MAX_AGE }),
+  // v2: rows now carry `pool`; a new key so an old cached entry without it is not served.
+  ["llama", "yield-pools", "v2"],
+  { revalidate: YIELDS_TTL, tags: ["llama-yields"] }
+);
+
+async function loadYieldPools(): Promise<PoolRow[]> {
     const j = await getJson("https://yields.llama.fi/pools");
     const raw: any[] = Array.isArray(j?.data) ? j.data : [];
     return raw
@@ -241,8 +258,4 @@ export const llamaYieldPools = unstable_cache(
       })
       .sort((a, b) => b.apy - a.apy)
       .slice(0, 40);
-  },
-  // v2: rows now carry `pool`; a new key so an old cached entry without it is not served.
-  ["llama", "yield-pools", "v2"],
-  { revalidate: YIELDS_TTL, tags: ["llama-yields"] }
-);
+}

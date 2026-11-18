@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cmcEnabled, env } from "@/lib/env";
 import type { GlobalMarket } from "@/lib/markets";
+import { lastGood } from "@modules/markets/lib/last-good";
 
 // Server-side cached proxy: global crypto market snapshot. Aggregates keyless
 // sources (CoinGecko /global + Fear&Greed) and, when a CMC key is set, enriches
@@ -72,6 +73,7 @@ async function ethGas(): Promise<number | null> {
 async function coingeckoGlobal() {
   const res = await fetch("https://api.coingecko.com/api/v3/global", {
     headers: { accept: "application/json" },
+    signal: AbortSignal.timeout(8000),
     next: { revalidate },
   });
   if (!res.ok) throw new Error(`coingecko ${res.status}`);
@@ -89,6 +91,7 @@ async function fearGreed() {
   try {
     const res = await fetch("https://api.alternative.me/fng/?limit=1", {
       headers: { accept: "application/json" },
+      signal: AbortSignal.timeout(6000),
       next: { revalidate: 300 },
     });
     if (!res.ok) return null;
@@ -122,7 +125,15 @@ async function cmcMetrics() {
 
 export async function GET() {
   try {
-    const [core, fng, cmc, gas] = await Promise.all([coingeckoGlobal(), fearGreed(), cmcMetrics(), ethGas()]);
+    // CoinGecko and alternative.me are remembered while good (last-good.ts): a
+    // single refused call used to blank the whole KPI strip for a cache window.
+    // Market cap moves, so its fallback is short; the F&G index updates daily.
+    const [core, fng, cmc, gas] = await Promise.all([
+      lastGood("global:cg", coingeckoGlobal, { isGood: (v) => v.marketCap > 0, maxAgeMs: 30 * 60_000 }),
+      lastGood("global:fng", fearGreed, { isGood: (v) => v != null && v.value > 0, maxAgeMs: 12 * 60 * 60_000 }),
+      cmcMetrics(),
+      ethGas(),
+    ]);
     const payload: GlobalMarket = { ...core, fearGreed: fng, defiMcap: cmc.defiMcap, stableMcap: cmc.stableMcap, gasGwei: gas };
     return NextResponse.json(
       { ...payload, live: true, ts: Date.now() },

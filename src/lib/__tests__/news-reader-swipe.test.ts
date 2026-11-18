@@ -28,6 +28,7 @@ const news = readFileSync("src/modules/news/components/NewsClient.tsx", "utf8");
 const css = readFileSync("src/app/globals.css", "utf8");
 const strip = (s: string) => s.replace(/(^|[\s{])\/\*[\s\S]*?\*\//g, "$1 ").replace(/^\s*\/\/.*$/gm, " ");
 const N = strip(news);
+const X = strip(readFileSync("src/modules/news/components/NewsExtras.tsx", "utf8"));
 
 describe("the open story cannot change under the reader", () => {
   it("tracks the story by id, never by index", () => {
@@ -124,7 +125,10 @@ describe("the swipe follows your finger and says it exists", () => {
 
 describe("token chips do something", () => {
   it("are buttons that search, not inert spans", () => {
-    expect(N).toMatch(/onClick=\{\(e\) => \{ e\.stopPropagation\(\); onToken\(t\); \}\}/);
+    // The chip moved into NewsExtras' TokenChip (it now also shows the live
+    // 24h change); it must still stop the card's open and search the token.
+    expect(N).toMatch(/<TokenChip key=\{t\} symbol=\{t\}[^>]*onClick=\{onToken\}/);
+    expect(X).toMatch(/e\.stopPropagation\(\);\s*onClick\(symbol\);/);
     expect(N).toMatch(/const searchToken = useCallback\(\(t: string\) => \{[\s\S]{0,200}setRawQuery\(t\)/);
   });
 

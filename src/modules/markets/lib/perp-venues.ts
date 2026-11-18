@@ -75,7 +75,7 @@ export type CgDerivRow = { id: string; name: string; key: string; logo: string |
  * data-cache ceiling, so `next: { revalidate }` genuinely caches them.
  * `revalidate` is the caller's own window (cost-check trap 1b).
  */
-export async function coingeckoDerivativeRows(revalidate: number): Promise<CgDerivRow[]> {
+export async function coingeckoDerivativeRows(revalidate: number, btcUsdFallback?: Promise<number | null>): Promise<CgDerivRow[]> {
   const opts = { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000), next: { revalidate } };
   const pages = [1, 2, 3].map((page) =>
     fetch(`https://api.coingecko.com/api/v3/derivatives/exchanges?order=trade_volume_24h_btc_desc&per_page=100&page=${page}`, opts)
@@ -88,7 +88,9 @@ export async function coingeckoDerivativeRows(revalidate: number): Promise<CgDer
       .catch(() => null),
     ...pages,
   ]);
-  const btcUsd = Number(price?.bitcoin?.usd) || 0;
+  // CoinGecko's own spot price first; Hyperliquid's BTC mark when that call was
+  // refused, so one rate-limited request does not drop every venue.
+  const btcUsd = Number(price?.bitcoin?.usd) || Number(btcUsdFallback ? await btcUsdFallback.catch(() => null) : 0) || 0;
   if (!(btcUsd > 0)) return [];
 
   const rows: CgDerivRow[] = [];
@@ -112,6 +114,51 @@ export async function coingeckoDerivativeRows(revalidate: number): Promise<CgDer
     }
   }
   return rows;
+}
+
+/**
+ * True when the CoinGecko rows cover every featured venue CoinGecko lists. The
+ * list is three pages; one refused page drops the smaller venues (Arcus,
+ * RiseX), and a partial list must not replace a complete remembered one.
+ */
+export function cgCoversFeatured(rows: CgDerivRow[]): boolean {
+  const viaCg = FEATURED_PERP_VENUES.filter((v) => v.key !== "hyperliquid" && v.key !== "txflow");
+  return viaCg.every((v) => {
+    const keys = new Set<string>(v.names);
+    return rows.some((r) => (v.cg as readonly string[]).includes(r.id) || keys.has(r.key));
+  });
+}
+
+export type OiRow = { name: string; slug: string | null; openInterest: number };
+
+/**
+ * DefiLlama's open-interest overview (~180 KB, free). Its `total24h` is the
+ * venue's current open interest. Added because TXFlow's own Info API returns
+ * empty `openInterest`/`markPx` on every instrument, and CoinGecko does not
+ * list TXFlow, so its OI showed "-". The figures agree with CoinGecko's for the
+ * venues both report (Lighter $398M vs $400M when checked, 2026-11-18).
+ * Note DefiLlama's derivatives *volume* overview now answers 402 (paid); this
+ * open-interest one does not.
+ */
+export async function llamaOpenInterest(revalidate: number): Promise<OiRow[]> {
+  try {
+    const res = await fetch(
+      "https://api.llama.fi/overview/open-interest?excludeTotalDataChart=true&excludeTotalDataChartBreakdown=true",
+      { headers: { accept: "application/json" }, signal: AbortSignal.timeout(8000), next: { revalidate } }
+    );
+    if (!res.ok) return [];
+    const j = await res.json();
+    const list: any[] = Array.isArray(j?.protocols) ? j.protocols : [];
+    return list
+      .map((p) => ({
+        name: String(p?.name ?? ""),
+        slug: typeof p?.slug === "string" ? p.slug : null,
+        openInterest: Number(p?.total24h) || 0,
+      }))
+      .filter((r) => r.name && r.openInterest > 0);
+  } catch {
+    return [];
+  }
 }
 
 export type LlamaRow = { slug: string | null; name: string; total24h: number; openInterest: number; change1d: number; logo: string | null };
@@ -177,14 +224,16 @@ export async function txflowTotals(revalidate: number): Promise<NativeTotals | n
  *
  * Precedence per field:
  * - volume: the venue's own API (Hyperliquid, TXFlow), else DefiLlama, else CoinGecko
- * - open interest: the venue's own API, else CoinGecko, else DefiLlama
+ * - open interest: the venue's own API, else CoinGecko, else DefiLlama (volume
+ *   row, then its open-interest overview)
  * - change: DefiLlama only
  * - logo: CoinGecko, else DefiLlama, else a committed asset
  */
 export function buildPerpVenues(
   llama: LlamaRow[],
   cg: CgDerivRow[],
-  native: Partial<Record<string, NativeTotals>>
+  native: Partial<Record<string, NativeTotals>>,
+  oi: OiRow[] = []
 ): PerpVenue[] {
   return FEATURED_PERP_VENUES.map((v) => {
     const keys = new Set<string>(v.names);
@@ -196,12 +245,14 @@ export function buildPerpVenues(
       .filter((r) => (v.cg as readonly string[]).includes(r.id) || keys.has(r.key))
       .sort((a, b) => b.volume24h - a.volume24h)[0];
     const own = native[v.key];
+    const oiHit = oi.find((r) => keys.has(normaliseVenue(r.name)) || (v.llamaSlug != null && r.slug === v.llamaSlug));
 
     const volume24h = (own && own.volume24h > 0 ? own.volume24h : null) ?? (ll && ll.total24h > 0 ? ll.total24h : null) ?? cgHit?.volume24h ?? null;
     const openInterest =
       (own && own.openInterest > 0 ? own.openInterest : null) ??
       (cgHit && cgHit.openInterest > 0 ? cgHit.openInterest : null) ??
-      (ll && ll.openInterest > 0 ? ll.openInterest : null);
+      (ll && ll.openInterest > 0 ? ll.openInterest : null) ??
+      (oiHit ? oiHit.openInterest : null);
 
     return {
       key: v.key,

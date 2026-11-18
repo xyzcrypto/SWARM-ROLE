@@ -888,8 +888,9 @@ function useLiveMarketHeatmap(initialCoins?: CoinRow[]) {
         marketCap = coin.marketCap || base.marketCap;
         volume24h = coin.volume24h || base.volume24h;
         image = coin.image || base.image;
-        if (coin.sparkline && coin.sparkline.length > 1) {
-          sparkline = coin.sparkline.slice(-10);
+        const tail = coin.spark24h && coin.spark24h.length > 1 ? coin.spark24h : coin.sparkline;
+        if (tail && tail.length > 1) {
+          sparkline = tail.slice(-10);
         }
       }
 

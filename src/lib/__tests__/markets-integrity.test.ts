@@ -20,7 +20,7 @@ describe("a failed feed cannot blank the page", () => {
     // The poller checked only `res.ok`, which is true for exactly that
     // response, so one transient CoinGecko 429 replaced a populated 250-row
     // table with `{ list: [] }` and the Coins tab read "loading…" for 180s.
-    expect(H).toMatch(/if \(j\?\.live\) setData\(j\)/);
+    expect(H).toMatch(/if \(j\?\.live\) \{?\s*setData\(j\)/);
     expect(H).not.toMatch(/const j = await res\.json\(\);\s*if \(!active\) return;\s*setData\(j\);/);
   });
 });

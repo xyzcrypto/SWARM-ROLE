@@ -101,7 +101,7 @@ export function WatchlistWidget({ coins, onViewAll }: WatchlistWidgetProps) {
           price: liveCoin.price,
           change24h: liveCoin.change24h,
           image: liveCoin.image || undefined,
-          sparkline: liveCoin.sparkline && liveCoin.sparkline.length >= 2 ? liveCoin.sparkline.slice(-12) : [],
+          sparkline: (liveCoin.spark24h && liveCoin.spark24h.length >= 2 ? liveCoin.spark24h : liveCoin.sparkline ?? []).slice(-12),
         });
       } else {
         const known = KNOWN[sid];
