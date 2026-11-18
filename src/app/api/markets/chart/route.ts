@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { coingeckoToKlines, type Kline } from "@modules/markets/lib/chart-candles";
 
 export const revalidate = 60; // 1-minute server-side cache
 
@@ -56,20 +57,28 @@ function formatPointTime(ts: number, timeframe: string): { time: string; date: s
   };
 }
 
-// Fetch Binance Klines for real crypto market price & volume curves
-async function getBinanceKlines(timeframe: string): Promise<any[]> {
-  const tfConfig: Record<string, { interval: string; limit: number }> = {
-    "1H": { interval: "1m", limit: 60 },
-    "4H": { interval: "5m", limit: 48 },
-    "1D": { interval: "30m", limit: 48 },
-    "1W": { interval: "4h", limit: 42 },
-    "1M": { interval: "1d", limit: 30 },
-    "3M": { interval: "1d", limit: 90 },
-    "1Y": { interval: "1w", limit: 52 },
-    ALL: { interval: "1M", limit: 60 },
-  };
+// BTC candles that shape the market-cap and volume curves. Binance first; when it
+// fails, CoinGecko's BTC price history is converted to the same kline shape.
+//
+// ⚠️ Binance answers 451 to requests from restricted regions, and a serverless
+// region is not something this route controls. With no fallback the chart said
+// "Live history unavailable" for everyone served from such a region, even though
+// the headline total (from CoinGecko) was fine.
+type CandleSource = "binance" | "coingecko";
 
-  const { interval, limit } = tfConfig[timeframe] || tfConfig["1D"];
+const BINANCE_TF: Record<string, { interval: string; limit: number }> = {
+  "1H": { interval: "1m", limit: 60 },
+  "4H": { interval: "5m", limit: 48 },
+  "1D": { interval: "30m", limit: 48 },
+  "1W": { interval: "4h", limit: 42 },
+  "1M": { interval: "1d", limit: 30 },
+  "3M": { interval: "1d", limit: 90 },
+  "1Y": { interval: "1w", limit: 52 },
+  ALL: { interval: "1M", limit: 60 },
+};
+
+async function getBinanceKlines(timeframe: string): Promise<Kline[]> {
+  const { interval, limit } = BINANCE_TF[timeframe] || BINANCE_TF["1D"];
   const res = await fetch(
     `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${interval}&limit=${limit}`,
     {
@@ -79,6 +88,47 @@ async function getBinanceKlines(timeframe: string): Promise<any[]> {
   );
   if (!res.ok) throw new Error(`Binance klines ${res.status}`);
   return res.json();
+}
+
+// CoinGecko picks the granularity from `days` (5-minute up to 1 day, hourly up to
+// 90, daily beyond), so each timeframe asks for a span and keeps the newest
+// `window` milliseconds, thinned to about the same point count as Binance gives.
+const CG_TF: Record<string, { days: string; window: number }> = {
+  "1H": { days: "1", window: 3_600_000 },
+  "4H": { days: "1", window: 4 * 3_600_000 },
+  "1D": { days: "1", window: 24 * 3_600_000 },
+  "1W": { days: "7", window: 7 * 86_400_000 },
+  "1M": { days: "30", window: 30 * 86_400_000 },
+  "3M": { days: "90", window: 90 * 86_400_000 },
+  "1Y": { days: "365", window: 365 * 86_400_000 },
+  // The keyless API refuses days=max (history is capped at 365 days), so ALL
+  // falls back to the last year rather than to nothing.
+  ALL: { days: "365", window: Number.POSITIVE_INFINITY },
+};
+
+async function getCoinGeckoKlines(timeframe: string): Promise<Kline[]> {
+  const { days, window } = CG_TF[timeframe] || CG_TF["1D"];
+  const res = await fetch(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`, {
+    headers: { accept: "application/json" },
+    next: { revalidate: 120 },
+  });
+  if (!res.ok) throw new Error(`CoinGecko market_chart ${res.status}`);
+  const data = await res.json();
+  return coingeckoToKlines(data?.prices, data?.total_volumes, window, (BINANCE_TF[timeframe] || BINANCE_TF["1D"]).limit);
+}
+
+async function getBtcCandles(timeframe: string): Promise<{ klines: Kline[]; source: CandleSource }> {
+  try {
+    const klines = await getBinanceKlines(timeframe);
+    if (Array.isArray(klines) && klines.length) return { klines, source: "binance" };
+  } catch {
+    // fall through to CoinGecko
+  }
+  try {
+    return { klines: await getCoinGeckoKlines(timeframe), source: "coingecko" };
+  } catch {
+    return { klines: [], source: "coingecko" };
+  }
 }
 
 // Fetch CoinGecko global market data. Null on failure - never a sample figure.
@@ -207,15 +257,18 @@ export async function GET(request: Request) {
       return respond(metric, timeframe, [], globalData?.btcDominance || null, null, "Live value via CoinGecko. History needs a paid feed.");
     }
 
-    const klines = await getBinanceKlines(timeframe);
-    if (!Array.isArray(klines) || !klines.length) return respond(metric, timeframe, [], null, null);
+    const { klines, source } = await getBtcCandles(timeframe);
+    if (!klines.length) return respond(metric, timeframe, [], null, null);
 
     if (metric === "volume") {
       const points = klines.map((k) => {
         const v = parseFloat(k[7]) || 0;
         return { timestamp: k[0], ...formatPointTime(k[0], timeframe), value: v, volume: v, open: v, high: v, low: v, close: v };
       });
-      return respond(metric, timeframe, points, globalData?.volume24h || null, null, "Headline: total 24h volume (CoinGecko). Bars: BTC/USDT spot volume per candle (Binance).");
+      return respond(metric, timeframe, points, globalData?.volume24h || null, null,
+        source === "binance"
+          ? "Headline: total 24h volume (CoinGecko). Bars: BTC/USDT spot volume per candle (Binance)."
+          : "Headline: total 24h volume (CoinGecko). Bars: BTC rolling 24h volume (CoinGecko).");
     }
 
     // Market cap: the shape is BTC/USDT, scaled so the last candle equals the
@@ -228,7 +281,8 @@ export async function GET(request: Request) {
       const [o, h, l, c] = [k[1], k[2], k[3], k[4]].map((x: string) => (parseFloat(x) || latestClose) * scale);
       return { timestamp: k[0], ...formatPointTime(k[0], timeframe), value: c, volume: parseFloat(k[7]) || 0, open: o, high: h, low: l, close: c };
     });
-    return respond(metric, timeframe, points, globalData.marketCap, globalData.mcapChange24h, "Total from CoinGecko. Curve follows BTC/USDT (Binance), scaled to the total.");
+    return respond(metric, timeframe, points, globalData.marketCap, globalData.mcapChange24h,
+      `Total from CoinGecko. Curve follows ${source === "binance" ? "BTC/USDT (Binance)" : "BTC/USD (CoinGecko)"}, scaled to the total.`);
   } catch {
     return respond(metric, timeframe, [], null, null);
   }

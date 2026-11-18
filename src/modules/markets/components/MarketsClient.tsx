@@ -2704,6 +2704,11 @@ function CompactKpiCard({ label, value, sub, subTone, icon, iconBg, sparkline, c
   );
 }
 
+// Label colour follows the reading: fear reads red, neutral amber, greed mint. It
+// used to be mint whatever the value, so "Extreme Fear" showed as a green, bullish label.
+const FNG_FILL = { red: "fill-rose-600 dark:fill-red-400", amber: "fill-amber-600 dark:fill-amber-400", mint: "fill-mint-600 dark:fill-mint-400" } as const;
+const fngFill = (v: number | null) => (v == null ? "fill-zinc-500" : FNG_FILL[fngLabel(v).tone]);
+
 function CompactFearGreedCard({ fg, className }: { fg: { value: number; label: string } | null; className?: string }) {
   // No reading -> "-" and a centred needle, never a default score.
   const v = fg?.value ?? null;
@@ -2722,15 +2727,16 @@ function CompactFearGreedCard({ fg, className }: { fg: { value: number; label: s
         <svg viewBox="0 0 100 48" className="w-24 h-10 overflow-visible">
           <defs>
             <linearGradient id="fgGaugeCompact" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#00e599" />
+              <stop offset="0%" stopColor="#ef4444" />
               <stop offset="50%" stopColor="#eab308" />
-              <stop offset="100%" stopColor="#ef4444" />
+              <stop offset="100%" stopColor="#00e599" />
             </linearGradient>
           </defs>
           <path d="M 14 45 A 36 36 0 0 1 86 45" fill="none" stroke="rgba(160, 175, 195, 0.2)" strokeWidth="6" strokeLinecap="round" />
           <path d="M 14 45 A 36 36 0 0 1 86 45" fill="none" stroke="url(#fgGaugeCompact)" strokeWidth="6" strokeLinecap="round" />
           <text x="50" y="31" textAnchor="middle" className="mono text-[16px] font-black fill-zinc-900 dark:fill-zinc-50 leading-none">{v ?? "-"}</text>
-          <text x="50" y="44" textAnchor="middle" className="text-[9px] font-bold fill-mint-600 dark:fill-mint-400 tracking-wider uppercase">{fg?.label || label}</text>
+          {/* "Extreme Fear"/"Extreme Greed" are wider than the arc's opening at 9px with wide tracking, and ran into the gauge's end caps. */}
+          <text x="50" y="44" textAnchor="middle" className={cn("font-bold uppercase", (fg?.label || label).length > 8 ? "text-[7.5px] tracking-normal" : "text-[9px] tracking-wider", fngFill(v))}>{fg?.label || label}</text>
         </svg>
       </div>
     </div>
@@ -2840,7 +2846,7 @@ function FearGreedTile({ fg, loading }: { fg: { value: number; label: string } |
           <circle cx="50" cy="52" r="3" fill="#e2a72f" />
           <circle cx="50" cy="52" r="1.5" fill="#08080a" />
           <text x="50" y="34" textAnchor="middle" className="mono text-[16px] font-black fill-zinc-900 dark:fill-zinc-50">{v ?? "-"}</text>
-          <text x="50" y="46" textAnchor="middle" className="text-[9px] font-semibold fill-emerald-600 dark:fill-mint-400 tracking-wide">{fg?.label || label}</text>
+          <text x="50" y="46" textAnchor="middle" className={cn("text-[9px] font-semibold tracking-wide", fngFill(v))}>{fg?.label || label}</text>
         </svg>
       </div>
     </div>
