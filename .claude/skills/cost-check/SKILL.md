@@ -135,6 +135,10 @@ Writes and Fluid Active CPU.
 
 Rule: `revalidate` >= poll interval, with margin.
 
+And the other direction: a poll far FASTER than the window buys nothing. #389 set the
+ticker to 5s against a 180s `s-maxage` (~36x the edge requests, identical bytes).
+`markets-poll-alignment.test.ts` now fails on a poll under a third of its `s-maxage`.
+
 **Pinned by a test** — `src/lib/__tests__/markets-poll-alignment.test.ts` drives off an
 explicit `TARGETS` list of every polled cached route, reads each one's poll interval
 from the file it actually lives in, and fails if either the `revalidate` or the

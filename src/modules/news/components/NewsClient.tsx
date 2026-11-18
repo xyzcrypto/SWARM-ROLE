@@ -1,13 +1,13 @@
 "use client";
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Loader2,
   TrendingUp, TrendingDown, Minus, X, SlidersHorizontal, Check, Star, BookOpen,
-  ChevronLeft, ChevronRight, ChevronDown, ArrowUp, Flame,
+  ChevronLeft, ChevronRight, ChevronDown, ArrowUp, Flame, Keyboard, List, Rows3,
 } from "lucide-react";
 import { RobotIcon } from "@/components/RobotIcon";
 import { CATEGORIES, timeAgo, type NewsItem } from "@/lib/news";
@@ -23,6 +23,9 @@ import { useReducedMotionSafe } from "@/lib/useClientFlag";
 import { MicButton } from "@/shared/components/MicButton";
 import { hapticToggle } from "@shared/utils/haptics";
 import { wakeIsDue } from "@shared/hooks/useLiveData";
+import { useStickySidebar } from "@shared/hooks/useStickySidebar";
+import { BackToTop, MoodMeter, ShortcutsSheet, TokenChip, useTickerMap, type Mood } from "@modules/news/components/NewsExtras";
+import type { TickerCoin } from "@/lib/useTickerPoll";
 import {
   NewsHeroIntro, HeroNetwork, TrendingTopics, HighImpactPanel, XyzAiBand, NewsletterPanel, CommunityPanel,
   NewsSheet, DiscoverSwitch, ImpactIcon,
@@ -99,6 +102,8 @@ const READ_KEY = "xyz:news:read";
 const READ_MAX = 300;
 /** When this device last left /news - drives the "New" badges. */
 const VISIT_KEY = "xyz:news:lastVisit";
+/** Compact list density, per device. */
+const DENSITY_KEY = "xyz:news:density";
 
 export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const { data: session } = useSession();
@@ -144,6 +149,16 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // read `visible[readerIndex]`, saved the wrong story.
   const [readerId, setReaderId] = useState<string | null>(null);
   const loggedIn = Boolean(session?.user);
+  // Headline-mood filter (from the sidebar meter), "unread only", list density,
+  // and the shortcuts sheet. All presentation state; none of it costs a request.
+  const [mood, setMood] = useState<Mood>("all");
+  // "Unread only" hides what was read WHEN it was switched on, not what gets
+  // read afterwards - otherwise opening a story would pull it out from under
+  // the reader and the list would jump.
+  const [hideRead, setHideRead] = useState<Set<string> | null>(null);
+  const [compact, setCompact] = useState(false);
+  const [keysOpen, setKeysOpen] = useState(false);
+  const prices = useTickerMap();
 
   const sentinel = useRef<HTMLDivElement>(null);
   const firstRun = useRef(true);
@@ -221,6 +236,19 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     window.addEventListener("pagehide", stamp);
     document.addEventListener("visibilitychange", onHide);
     return () => { clearTimeout(t); window.removeEventListener("pagehide", stamp); document.removeEventListener("visibilitychange", onHide); };
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try { if (localStorage.getItem(DENSITY_KEY) === "compact") setCompact(true); } catch { /* ignore */ }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+  const toggleCompact = useCallback(() => {
+    setCompact((c) => {
+      try { localStorage.setItem(DENSITY_KEY, c ? "comfortable" : "compact"); } catch { /* ignore */ }
+      return !c;
+    });
   }, []);
 
   // "/" jumps to search, the shortcut readers expect from news and docs sites.
@@ -529,12 +557,17 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // The one rule that decides whether a story belongs in the current feed.
   // Shared with the reader, which has to know whether a story it just loaded
   // will actually be on screen before it navigates to it.
-  const inFeed = useCallback(
+  const inBaseFeed = useCallback(
     (i: NewsItem) =>
       (category !== "For You" || !interests.length || i.categories.some((c) => interests.includes(c))) &&
       (since === "any" || !now || now - i.publishedAt <= (since === "1h" ? 3600e3 : 864e5)),
     [category, interests, since, now]
   );
+  // The mood filter is part of the feed rule (so the reader's prev/next agree
+  // with the list), but the meter counts the feed WITHOUT it - otherwise picking
+  // "Bearish" would redraw the meter as 100% bearish.
+  const inFeed = useCallback((i: NewsItem) => inBaseFeed(i) && (mood === "all" || i.sentiment === mood), [inBaseFeed, mood]);
+  const moodItems = useMemo(() => items.filter(inBaseFeed), [items, inBaseFeed]);
 
   const visible = useMemo(() => {
     // Saved view renders the stored stories directly (survives feed aging out).
@@ -564,23 +597,42 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // Kept per-device in localStorage rather than server-side on purpose: it is
   // presentation state, and this project is over its Supabase egress quota, so
   // it must not cost a request.
-  // Read once, lazily, on the client only. A lazy initialiser runs during
-  // render - including the server render - so it has to be guarded; SSR simply
-  // starts empty and the first client render fills it in.
-  const [seenBreaking] = useState<string[]>(() => {
-    if (typeof window === "undefined") return [];
+  // ⚠️ Read AFTER hydration, never in a lazy useState initialiser.
+  //
+  // It used to be `useState(() => typeof window === "undefined" ? [] :
+  // localStorage…)`. That initialiser runs on the client's FIRST render too, so a
+  // returning reader's hydration pass picked a different hero story than the
+  // server sent - different image, different category - and React threw #418 on
+  // every return visit to /news and re-rendered the page client-side (measured
+  // 2026-11-18 in a dev build: `Hacks` vs `Market News`, two different image
+  // URLs). Same class as the template.tsx incident in CLAUDE.md.
+  //
+  // useLayoutEffect runs after hydration but before the browser paints, so the
+  // corrected hero is what the reader first sees: no mismatch and no flash.
+  // `null` = not read yet; the "mark as seen" effect below waits for it, or it
+  // would record the server's pick as seen before the real list arrived.
+  const [seenBreaking, setSeenBreaking] = useState<string[] | null>(null);
+  const seenRef = useRef<string[]>([]);
+  useLayoutEffect(() => {
+    let stored: string[] = [];
     try {
       const raw = window.localStorage.getItem(BREAKING_SEEN_KEY);
       const parsed = raw ? JSON.parse(raw) : null;
-      return Array.isArray(parsed) ? (parsed as string[]) : [];
+      if (Array.isArray(parsed)) stored = parsed as string[];
     } catch {
-      return []; // private mode / corrupt value
+      /* private mode / corrupt value */
     }
-  });
+    seenRef.current = stored;
+    // Deliberately synchronous: this must land before the first paint, or the
+    // reader sees the server's hero swap to the corrected one.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSeenBreaking(stored);
+  }, []);
 
   const breakingList = useMemo(() => {
+    const seen = seenBreaking ?? [];
     const high = visible.filter((i) => i.impact === "High");
-    const unseen = high.filter((i) => !seenBreaking.includes(i.id));
+    const unseen = high.filter((i) => !seen.includes(i.id));
     // Never leave the hero empty: if everything high-impact has had its turn,
     // fall back to showing them anyway. A stale hero beats a missing one.
     return (unseen.length ? unseen : high).slice(0, 5);
@@ -593,9 +645,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   // of `unseen`, and swap the hero out from under the reader mid-view - the
   // filter is meant to apply on the NEXT visit, not this one. Keeping it in a
   // ref also avoids a setState-in-effect cascade.
-  const seenRef = useRef<string[]>(seenBreaking);
   useEffect(() => {
-    if (!breakingList.length) return;
+    if (seenBreaking === null || !breakingList.length) return;
     const merged = [...new Set([...seenRef.current, ...breakingList.map((i) => i.id)])].slice(
       -BREAKING_SEEN_MAX
     );
@@ -605,7 +656,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     } catch {
       /* storage full or unavailable - the session still behaves correctly */
     }
-  }, [breakingList]);
+  }, [breakingList, seenBreaking]);
 
 
   // The hero panel: high-impact stories first; on a quiet day, the top of the
@@ -613,7 +664,18 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const featured = useMemo(() => (breakingList.length ? breakingList : items.filter(inFeed).slice(0, 3)), [breakingList, items, inFeed]);
   const isSaved = useCallback((id: string) => savedUrls.has(id), [savedUrls]);
   const topStories = useMemo(() => (savedOnly ? [] : visible.slice(0, 4)), [savedOnly, visible]);
-  const restStories = savedOnly ? visible : visible.slice(4);
+  const restStories = useMemo(() => {
+    const rest = savedOnly ? visible : visible.slice(4);
+    return hideRead ? rest.filter((i) => !hideRead.has(i.id)) : rest;
+  }, [savedOnly, visible, hideRead]);
+  const markAllRead = useCallback(() => {
+    const next = new Set(readRef.current);
+    for (const i of visible) next.add(i.id);
+    readRef.current = next;
+    setReadIds(next);
+    try { localStorage.setItem(READ_KEY, JSON.stringify([...next].slice(-READ_MAX))); } catch { /* private mode */ }
+  }, [visible]);
+  const unreadCount = useMemo(() => visible.filter((i) => !readIds.has(i.id)).length, [visible, readIds]);
   // Sidebar: the next most important stories that are not already on screen above.
   const topImpact = useMemo(() => {
     const shown = new Set([...topStories.map((i) => i.id), ...featured.map((i) => i.id)]);
@@ -637,6 +699,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     goToFeed();
   }, [goToFeed]);
 
+  const { ref: asideRef, style: asideStyle } = useStickySidebar(80);
+
   const tabs: { k: "latest" | "top" | "saved"; label: string }[] = [
     { k: "latest", label: "Latest" },
     { k: "top", label: "Top" },
@@ -648,6 +712,53 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
     setSavedOnly(false);
     setSort(k);
   };
+
+  // Keyboard reading: j/k walk the feed, o/Enter opens, s saves, 1-3 switch
+  // tabs, ? lists the keys. The highlight is a DOM attribute rather than React
+  // state, so moving it does not re-render a list of memoised cards. Off while
+  // the reader is open (it has its own ←/→/Esc) and while typing.
+  const kbd = useRef({ at: -1, list: [] as NewsItem[], readerOpen: false, toggleSave, pickTab });
+  useEffect(() => {
+    kbd.current.list = [...topStories, ...restStories];
+    kbd.current.readerOpen = Boolean(readerItem);
+    kbd.current.toggleSave = toggleSave;
+    kbd.current.pickTab = pickTab;
+  });
+  useEffect(() => {
+    const mark = (id: string) => {
+      document.querySelectorAll("[data-kbd]").forEach((el) => el.removeAttribute("data-kbd"));
+      const el = document.querySelector(`[data-news-id="${CSS.escape(id)}"]`);
+      if (!el) return;
+      el.setAttribute("data-kbd", "1");
+      // Centre it through the scroll helper - Lenis undoes a native scrollIntoView.
+      const r = el.getBoundingClientRect();
+      scrollPageToSmooth(r.top + window.scrollY - (window.innerHeight - r.height) / 2);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t?.closest("input, textarea, select, [contenteditable='true'], [role='dialog']")) return;
+      const k = kbd.current;
+      if (k.readerOpen) return;
+      if (e.key === "?") { e.preventDefault(); setKeysOpen(true); return; }
+      if (e.key === "1" || e.key === "2" || e.key === "3") { k.pickTab(e.key === "1" ? "latest" : e.key === "2" ? "top" : "saved"); return; }
+      const list = k.list;
+      if (!list.length) return;
+      if (e.key === "j" || e.key === "k") {
+        e.preventDefault();
+        k.at = e.key === "j" ? Math.min(k.at + 1, list.length - 1) : Math.max(k.at - 1, 0);
+        mark(list[k.at].id);
+        return;
+      }
+      const cur = k.at >= 0 ? list[k.at] : null;
+      if (!cur) return;
+      // Enter on a focused button or link means that control, not the story.
+      if ((e.key === "o" || (e.key === "Enter" && !t?.closest("button, a")))) { e.preventDefault(); setReaderId(cur.id); return; }
+      if (e.key === "s") { e.preventDefault(); k.toggleSave(cur); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
@@ -770,7 +881,10 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             <motion.div
               key="new-pill"
               initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}
-              className="sticky top-20 z-20 flex justify-center"
+              // On desktop the Latest/Top/Saved bar is sticky at top-20, so the pill
+              // floats just below it there; on phones (bar not sticky) it keeps its
+              // old place under the navbar.
+              className="sticky top-20 z-30 flex justify-center lg:top-[9.5rem]"
             >
               <button onClick={revealPending} className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/40 bg-gold-500/15 px-4 py-1.5 text-[13px] font-semibold text-gold-100 shadow-lg shadow-black/30 backdrop-blur transition-colors hover:bg-gold-500/25">
                 <ArrowUp className="h-3.5 w-3.5" /> {pending.length} new stor{pending.length === 1 ? "y" : "ies"}
@@ -794,6 +908,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                     variant="grid"
                     item={item}
                     index={i}
+                    prices={prices}
                     now={now}
                     bookmarked={savedUrls.has(item.id)}
                     isNew={isNew(item)}
@@ -811,9 +926,16 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
         )}
 
         {/* Latest news: one panel, one aligned header. */}
-        <section aria-labelledby="news-latest" className="surface min-w-0 overflow-hidden rounded-3xl">
+        {/* `overflow-clip`, not `overflow-hidden`: hidden makes the panel a scroll
+            container, and a sticky header inside one never sticks to the page. */}
+        <section aria-labelledby="news-latest" className="surface min-w-0 overflow-clip rounded-3xl">
           <h2 id="news-latest" className="sr-only">Latest news</h2>
-          <div className="flex flex-wrap items-center gap-3 border-b border-hairline px-4 py-3 sm:px-5">
+          {/* On desktop the tab bar stays under the navbar while the list scrolls,
+              so Latest / Top / Saved and the time window are always one tap away.
+              Not on phones: it wraps to two rows there and would eat the screen.
+              Opaque `bg-surface` (no opacity modifier: these tokens are plain
+              vars and an `/95` silently emits nothing - see PointsNav). */}
+          <div className="z-20 flex flex-wrap items-center gap-3 rounded-t-3xl border-b border-hairline bg-surface px-4 py-3 sm:px-5 lg:sticky lg:top-20">
             <div role="tablist" aria-label="News list" className="grid w-full grid-cols-3 gap-1 rounded-xl border border-hairline bg-surface-2 p-1 sm:w-auto">
               {tabs.map((t) => (
                 <button
@@ -822,11 +944,21 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                   aria-selected={activeTab === t.k}
                   onClick={() => pickTab(t.k)}
                   className={cn(
-                    "h-8 rounded-lg px-4 text-[13px] font-semibold transition-all active:scale-[0.97] sm:min-w-[96px]",
-                    activeTab === t.k ? "bg-gold-400 text-ink shadow-gold-sm" : "text-content-muted hover:text-content"
+                    "relative h-8 rounded-lg px-4 text-[13px] font-semibold transition-colors active:scale-[0.97] sm:min-w-[96px]",
+                    activeTab === t.k ? "text-ink" : "text-content-muted hover:text-content"
                   )}
                 >
-                  {t.label}
+                  {/* One pill that slides between tabs (shared layoutId) instead
+                      of three backgrounds swapping instantly. */}
+                  {activeTab === t.k && (
+                    <motion.span
+                      layoutId="news-tab-pill"
+                      aria-hidden
+                      className="absolute inset-0 rounded-lg bg-gold-400 shadow-gold-sm"
+                      transition={{ type: "spring", stiffness: 520, damping: 38 }}
+                    />
+                  )}
+                  <span className="relative">{t.label}</span>
                 </button>
               ))}
             </div>
@@ -838,23 +970,67 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                     role="radio"
                     aria-checked={since === w}
                     onClick={() => setSince(w)}
-                    className={cn("h-7 rounded-lg px-2.5 font-mono text-[11px] font-semibold uppercase tracking-wider transition-colors", since === w ? "bg-surface text-gold-300 shadow-sm" : "text-content-subtle hover:text-content")}
+                    className={cn("relative h-7 rounded-lg px-2.5 font-mono text-[11px] font-semibold uppercase tracking-wider transition-colors", since === w ? "text-gold-300" : "text-content-subtle hover:text-content")}
                   >
-                    {w === "any" ? "Any" : w}
+                    {since === w && (
+                      <motion.span
+                        layoutId="news-since-pill"
+                        aria-hidden
+                        className="absolute inset-0 rounded-lg bg-surface shadow-sm"
+                        transition={{ type: "spring", stiffness: 520, damping: 38 }}
+                      />
+                    )}
+                    <span className="relative">{w === "any" ? "Any" : w}</span>
                   </button>
                 ))}
               </div>
               <NewsAlertsToggle loggedIn={loggedIn} showPrefs />
             </div>
           </div>
-          {!loading && restStories.length > 0 && (
-            <div className="flex items-center justify-between gap-3 px-4 pt-3 text-[12px] text-content-subtle sm:px-5">
+          {!loading && (restStories.length > 0 || hideRead || mood !== "all") && (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 text-[12px] text-content-subtle sm:px-5">
               <span>{savedOnly ? `${restStories.length} saved` : `${restStories.length} more ${restStories.length === 1 ? "story" : "stories"}`}{since !== "any" ? ` · last ${since}` : ""}</span>
+              {mood !== "all" && (
+                <button
+                  onClick={() => setMood("all")}
+                  className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium", mood === "bullish" ? "bg-mint-500/15 text-mint-300" : "bg-red-500/15 text-red-300")}
+                >
+                  {mood === "bullish" ? "Bullish" : "Bearish"} only <X className="h-3 w-3" />
+                </button>
+              )}
               {newCount > 0 && !savedOnly && (
                 <span className="inline-flex items-center gap-1.5 font-medium text-gold-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-gold-400" /> {newCount} new since your last visit
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-400" /> {newCount} new since your last visit
                 </span>
               )}
+              <div className="ml-auto flex items-center gap-1">
+                {!savedOnly && (
+                  <button
+                    onClick={() => setHideRead((h) => (h ? null : new Set(readIds)))}
+                    aria-pressed={Boolean(hideRead)}
+                    className={cn("rounded-lg px-2 py-1 font-medium transition-colors", hideRead ? "bg-gold-500/15 text-gold-300" : "hover:bg-surface-2 hover:text-content")}
+                  >
+                    Unread only{unreadCount ? ` · ${unreadCount}` : ""}
+                  </button>
+                )}
+                {!savedOnly && unreadCount > 0 && (
+                  <button onClick={markAllRead} className="hidden rounded-lg px-2 py-1 font-medium transition-colors hover:bg-surface-2 hover:text-content sm:inline-block">
+                    Mark all read
+                  </button>
+                )}
+                <button
+                  onClick={toggleCompact}
+                  aria-pressed={compact}
+                  aria-label={compact ? "Comfortable view" : "Compact view"}
+                  title={compact ? "Comfortable view" : "Compact view"}
+                  className={cn("grid h-7 w-7 place-items-center rounded-lg transition-colors", compact ? "bg-gold-500/15 text-gold-300" : "hover:bg-surface-2 hover:text-content")}
+                >
+                  {compact ? <Rows3 className="h-3.5 w-3.5" /> : <List className="h-3.5 w-3.5" />}
+                </button>
+                <button onClick={() => setKeysOpen(true)} aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)" className="hidden h-7 w-7 place-items-center rounded-lg transition-colors hover:bg-surface-2 hover:text-content lg:grid">
+                  <Keyboard className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           )}
           <div className="px-4 pt-4 sm:px-5">
@@ -866,6 +1042,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                   key={item.id}
                   item={item}
                   index={i}
+                  compact={compact}
+                  prices={prices}
                   now={now}
                   bookmarked={savedUrls.has(item.id)}
                   isNew={isNew(item)}
@@ -883,8 +1061,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                 <p className="mt-1 text-sm text-content-muted">
                   {savedOnly ? "Tap the bookmark on any story to keep it here." : since !== "any" ? "Widen the time window or try another topic." : "Try another topic, clear the search, or check back shortly."}
                 </p>
-                {(since !== "any" || category !== "All" || query) && !savedOnly && (
-                  <button onClick={() => { setSince("any"); setCategory("All"); setRawQuery(""); }} className="btn-ghost mx-auto mt-4 px-4 py-2 text-[13px]">Reset filters</button>
+                {(since !== "any" || category !== "All" || query || mood !== "all" || hideRead) && !savedOnly && (
+                  <button onClick={() => { setSince("any"); setCategory("All"); setRawQuery(""); setMood("all"); setHideRead(null); }} className="btn-ghost mx-auto mt-4 px-4 py-2 text-[13px]">Reset filters</button>
                 )}
               </div>
             )}
@@ -905,9 +1083,11 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
       </div>
 
       {/* Discovery sidebar: alongside everything on desktop, below the feed on smaller screens. */}
-      {/* Not sticky: the sidebar is taller than the viewport, and a sticky
-          column that tall can never show its own bottom (High impact was cut off). */}
-      <aside className="min-w-0 space-y-5" aria-label="Discover">
+      {/* Sticky on desktop so the column never leaves an empty gap beside a long
+          feed. It is usually taller than the viewport, and a plain `top` would
+          hide its bottom (High impact was cut off once): useStickySidebar pins it
+          by its BOTTOM in that case, so every card is reachable by scrolling. */}
+      <aside ref={asideRef} style={asideStyle} className="min-w-0 space-y-5 xl:sticky xl:self-start" aria-label="Discover">
         <DiscoverSwitch value={side} onChange={setSide} />
         {side === "trending" ? (
           <TrendingTopics
@@ -932,9 +1112,13 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             onSeeAll={() => setSheet("impact")}
           />
         )}
+        <MoodMeter items={moodItems} active={mood} onPick={(m) => { setMood(m); if (m !== "all") goToFeed(); }} />
         <NewsletterPanel />
         <CommunityPanel />
       </aside>
+
+      <BackToTop />
+      <ShortcutsSheet open={keysOpen} onClose={() => setKeysOpen(false)} />
 
       {sheet === "trending" && (
         <NewsSheet title="All trending topics" icon={<Flame className="h-4 w-4" />} onClose={() => setSheet(null)}>
@@ -1109,6 +1293,7 @@ function StoryBanner({ item, compact = false }: { item: NewsItem; compact?: bool
 
 const NewsCard = memo(function NewsCard({
   item, index, now, bookmarked, onBookmark, onOpen, onToken, onSource, loggedIn, variant = "row", isNew = false, read = false,
+  compact = false, prices,
 }: {
   item: NewsItem; index: number; now: number; bookmarked: boolean; onBookmark: (item: NewsItem) => void; onOpen: (id: string) => void; onToken: (t: string) => void; onSource: (s: string) => void; loggedIn: boolean;
   /** `grid`: the image-led Top stories card. `row`: the Latest feed row, with the AI actions. */
@@ -1117,6 +1302,10 @@ const NewsCard = memo(function NewsCard({
   isNew?: boolean;
   /** Already opened on this device - shown quieter, never hidden. */
   read?: boolean;
+  /** Compact density: no thumbnail, summary or tag row. */
+  compact?: boolean;
+  /** Shared ticker, for live 24h change on the token chips. */
+  prices?: Map<string, TickerCoin>;
 }) {
   const open = () => onOpen(item.id);
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
@@ -1197,7 +1386,7 @@ const NewsCard = memo(function NewsCard({
         aria-pressed={bookmarked}
         className={cn("ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-lg transition-colors hover:bg-surface-2", bookmarked ? "text-gold-400" : "hover:text-content")}
       >
-        {bookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+        {bookmarked ? <BookmarkCheck className="h-4 w-4 animate-pop-in" /> : <Bookmark className="h-4 w-4" />}
       </button>
     </div>
   );
@@ -1221,6 +1410,7 @@ const NewsCard = memo(function NewsCard({
       // invisible to crawlers, full-page captures, and anyone whose JS failed.
       <article
         style={{ ["--rise-delay" as string]: `${Math.min(index, 7) * 0.06}s`, ["--rise-y" as string]: "12px" }}
+        data-news-id={item.id}
         className="hero-rise surface surface-hover group/card relative flex h-full flex-col overflow-hidden rounded-2xl"
       >
         <div className="relative">
@@ -1253,10 +1443,22 @@ const NewsCard = memo(function NewsCard({
     // tall card), which made the list jump and look empty until scrolled into.
     <article
       data-index={index}
-      style={{ contentVisibility: "auto", containIntrinsicSize: "auto 128px" }}
-      className="group/card relative flex gap-4 border-b border-hairline py-4 first:pt-0 last:border-b-0"
+      data-news-id={item.id}
+      // A one-shot CSS rise from paint (no JS needed to become visible), staggered
+      // for the first screenful only so a long list does not wait in line.
+      style={{
+        contentVisibility: "auto",
+        containIntrinsicSize: compact ? "auto 72px" : "auto 128px",
+        ["--rise-delay" as string]: `${Math.min(index, 8) * 0.045}s`,
+        ["--rise-y" as string]: "10px",
+        ["--rise-dur" as string]: "0.45s",
+      }}
+      className={cn(
+        "hero-rise group/card relative -mx-2 flex gap-4 rounded-xl border-b border-hairline px-2 transition-colors duration-200 last:border-b-0 hover:bg-surface-2",
+        compact ? "py-2.5" : "py-4"
+      )}
     >
-      {media("aspect-[4/3] w-20 self-start rounded-lg sm:w-32")}
+      {!compact && media("aspect-[4/3] w-20 self-start rounded-lg sm:w-32")}
       <div className="min-w-0 flex-1">
         <div className="mb-1 flex items-center gap-2 text-[11px]">
           <span className="font-mono font-semibold uppercase tracking-[0.12em] text-gold-400">{item.category}</span>
@@ -1275,10 +1477,10 @@ const NewsCard = memo(function NewsCard({
         <p className="mt-1 truncate text-[11.5px] text-content-subtle sm:hidden">
           <span className="font-medium text-content-muted">{item.source}</span>{now ? ` · ${timeAgo(item.publishedAt, now)}` : ""}
         </p>
-        {item.summary && <div className="mt-1 hidden sm:block"><p className="line-clamp-1 text-[13px] leading-relaxed text-content-muted">{item.summary}</p></div>}
+        {!compact && item.summary && <div className="mt-1 hidden sm:block"><p className="line-clamp-1 text-[13px] leading-relaxed text-content-muted">{item.summary}</p></div>}
 
         {/* badges */}
-        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 empty:hidden">
+        <div className={cn("mt-1.5 flex-wrap items-center gap-1.5 empty:hidden", compact ? "hidden" : "flex")}>
           {/* Every category the story matched, not just the primary one.
               `categories` has always been computed and shipped - it drives the
               "For You" filter and push targeting - but only `category` was ever
@@ -1296,14 +1498,10 @@ const NewsCard = memo(function NewsCard({
           {/* Tokens were inert <span>s. Tapping one searches the feed for it.
               `stopPropagation` because the whole card opens the reader, and a
               tap on a chip means the chip. */}
+          {/* Each chip also shows the token's live 24h change when the shared
+              ticker carries it - the market's reaction next to the headline. */}
           {item.tokens.map((t) => (
-            <button
-              key={t}
-              onClick={(e) => { e.stopPropagation(); onToken(t); }}
-              className="mono rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-content-muted transition-colors hover:bg-gold-500/15 hover:text-gold-300"
-            >
-              {t}
-            </button>
+            <TokenChip key={t} symbol={t} coin={prices?.get(t.toUpperCase())} onClick={onToken} />
           ))}
         </div>
 
@@ -1362,7 +1560,7 @@ const NewsCard = memo(function NewsCard({
               aria-pressed={bookmarked}
               className={cn("grid h-7 w-7 place-items-center rounded-lg transition-colors hover:bg-surface-2", bookmarked ? "text-gold-400" : "hover:text-content")}
             >
-              {bookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+              {bookmarked ? <BookmarkCheck className="h-4 w-4 animate-pop-in" /> : <Bookmark className="h-4 w-4" />}
             </button>
           </div>
         </div>

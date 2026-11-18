@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import type { DefiMarket } from "@/lib/markets";
 import { llamaProtocols } from "@modules/markets/lib/llama";
+import { lastGood } from "@modules/markets/lib/last-good";
 import { topByTvl } from "@/lib/markets";
+
+const SIX_HOURS = 6 * 60 * 60_000;
 
 // Server-side cached proxy: DeFi snapshot from DefiLlama (keyless, free) - total
 // TVL + trend, top protocols, top chains, stablecoin market cap. Always 200 with
@@ -17,7 +20,7 @@ const FALLBACK: DefiMarket = {
   tvlTrend: [],
   topProtocols: [],
   topChains: [],
-  stableMcap: 165_000_000_000,
+  stableMcap: null,
 };
 
 async function j(url: string, revalidateSec = revalidate) {
@@ -28,10 +31,16 @@ async function j(url: string, revalidateSec = revalidate) {
 
 async function totalTvlAndTrend() {
   // All-chains historical TVL: [{ date, tvl }] - last point is current total.
-  const rows: { date: number; tvl: number }[] = await j("https://api.llama.fi/v2/historicalChainTvl");
-  const trend = rows.slice(-30).map((r) => Number(r.tvl) || 0);
-  const totalTvl = trend.length ? trend[trend.length - 1] : 0;
-  return { totalTvl, tvlTrend: trend };
+  return lastGood(
+    "defi:tvl",
+    async () => {
+      const rows: { date: number; tvl: number }[] = await j("https://api.llama.fi/v2/historicalChainTvl");
+      const trend = rows.slice(-30).map((r) => Number(r.tvl) || 0);
+      const totalTvl = trend.length ? trend[trend.length - 1] : 0;
+      return { totalTvl, tvlTrend: trend };
+    },
+    { isGood: (v) => v.totalTvl > 0, maxAgeMs: SIX_HOURS }
+  );
 }
 
 async function topProtocols() {
@@ -42,18 +51,29 @@ async function topProtocols() {
 }
 
 async function topChains() {
-  const list: any[] = await j("https://api.llama.fi/v2/chains");
-  return topByTvl(list.map((c) => ({ name: String(c.name ?? "-"), tvl: Number(c.tvl) || 0 })), 8);
+  return lastGood(
+    "defi:chains",
+    async () => {
+      const list: any[] = await j("https://api.llama.fi/v2/chains");
+      return topByTvl(list.map((c) => ({ name: String(c.name ?? "-"), tvl: Number(c.tvl) || 0 })), 8);
+    },
+    { isGood: (v) => v.length > 0, maxAgeMs: SIX_HOURS }
+  );
 }
 
-async function stableMcap() {
-  try {
-    const data = await j("https://stablecoins.llama.fi/stablecoins?includePrices=false", 300);
-    const assets: any[] = data?.peggedAssets ?? [];
-    return assets.reduce((sum, a) => sum + (Number(a?.circulating?.peggedUSD) || 0), 0);
-  } catch {
-    return FALLBACK.stableMcap;
-  }
+// A failed read used to return FALLBACK.stableMcap (a 2024 figure) inside a
+// `live: true` payload, so a stale constant was shown as today's stablecoin
+// supply. It now returns the last real reading, or null ("-").
+async function stableMcap(): Promise<number | null> {
+  return lastGood(
+    "defi:stable",
+    async () => {
+      const data = await j("https://stablecoins.llama.fi/stablecoins?includePrices=false", 300);
+      const assets: any[] = data?.peggedAssets ?? [];
+      return assets.reduce((sum, a) => sum + (Number(a?.circulating?.peggedUSD) || 0), 0) as number;
+    },
+    { isGood: (v) => v > 0, maxAgeMs: SIX_HOURS }
+  ).catch(() => null);
 }
 
 export async function GET() {
@@ -64,7 +84,7 @@ export async function GET() {
     const [protocols, chains, stable] = await Promise.all([
       topProtocols().catch(() => [] as DefiMarket["topProtocols"]),
       topChains().catch(() => [] as DefiMarket["topChains"]),
-      stableMcap().catch(() => FALLBACK.stableMcap),
+      stableMcap(),
     ]);
     const payload: DefiMarket = {
       totalTvl: core.totalTvl,

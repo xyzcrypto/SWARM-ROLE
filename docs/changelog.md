@@ -5,6 +5,81 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-18 (144) — Markets data you can trust, News that keeps up, a smoother site
+
+The owner asked for faster, accurate Markets data with the bugs fixed for good, a News
+page that does not leave gaps and has more to it, and a site that does not lag.
+
+### Markets: data
+- **Last known good values (`last-good.ts`, new).** CoinGecko and DefiLlama refuse
+  Vercel's shared IPs now and then. One refusal used to blank a source for a whole cache
+  window: five of the seven Perp DEX rows showed "-" in production.
+  - Each upstream source is now remembered while it is good, in memory and in Upstash
+    when configured.
+  - A failed call serves the remembered value, but only while it is younger than a cap
+    (30 min for prices, 1-12 h for slower figures). Past that the page shows "-" rather
+    than old numbers presented as live.
+  - Applied to: global (CoinGecko, Fear & Greed), coins (markets, trending), perp
+    (Hyperliquid, CoinGecko derivatives, TXFlow, DefiLlama), DeFi (TVL, chains,
+    stablecoins), sectors, and the shared `llama.ts` loaders.
+- **CoinGecko derivatives no longer depend on a second CoinGecko call.** BTC→USD falls
+  back to Hyperliquid's BTC mark. A partial three-page result never replaces a complete
+  remembered one (`cgCoversFeatured`).
+- **TXFlow open interest.** TXFlow's own API returns empty OI fields, so the row showed
+  "-". It now comes from DefiLlama's free open-interest overview ($28.4M when checked;
+  Lighter's figure there matches CoinGecko's within 0.5%). DefiLlama's derivatives
+  *volume* endpoints now answer 402 (paid); that is noted in the code.
+- **Accuracy:**
+  - A failed stablecoin read used to put a hard-coded $165B into a `live: true` payload.
+    It now shows the last real figure, or "-".
+  - The DeFi TVL card's change is labelled "30d"; it read as a 24h drop.
+- **Speed:**
+  - `/api/markets/coins` went from 929 KB to 242 KB (before compression). The 7d
+    sparkline is thinned from 168 to 42 points at six significant digits; a 24-point
+    `spark24h` tail keeps the heatmap and watchlist charts identical.
+  - `/markets` paints the last live snapshot (under 15 min old, from this browser)
+    immediately after mount, then replaces it with the live fetch.
+- **Ticker poll restored to 150s.** #389 set it to 5s against a 180s cache: 35 of every
+  36 polls returned identical bytes. A new test fails on any poll under a third of its
+  route's `s-maxage`.
+- **A test that tested nothing, fixed.** The detail-page poll parser matched the 1s
+  "updated Ns ago" clock instead of the 150s/120s data poll, so its checks always passed.
+
+### News
+- **Newsletter:** after a successful subscribe the card confirms, then folds away. It
+  stays hidden on later visits, and the footer capture stops asking too.
+- **No gap on scroll (desktop):**
+  - The Latest / Top / Saved bar sticks under the navbar.
+  - The sidebar is sticky. When it is taller than the screen it pins by its bottom
+    (`useStickySidebar`), so every card stays reachable and the column never leaves an
+    empty space beside the feed.
+- **New, all from data already on the page (no new requests):**
+  - Headline mood meter, with a one-tap Bullish / Bearish filter.
+  - Live 24h change on token chips, from the shared ticker.
+  - Unread only, and Mark all read.
+  - A compact density view.
+  - Keyboard reading: j/k, o, s, 1/2/3, ? for the list of shortcuts.
+  - A back-to-top button with a reading-progress ring.
+- **Motion:** the tab pills slide between options, list rows rise in from paint (CSS,
+  first screenful staggered), rows highlight on hover, and the bookmark pops.
+- **Hydration bug fixed (#418 on every return visit).** The breaking hero read
+  localStorage in a lazy `useState` initialiser, so the browser picked a different story
+  than the server sent. It now reads in a `useLayoutEffect`: after hydration, before
+  paint.
+
+### Site smoothness
+- **Smooth scroll:** the Lenis wheel glide is shorter (1.15s → 0.75s, same curve), so
+  the page follows the wheel instead of trailing it.
+- **No new hydration errors:** `/`, `/markets`, `/news`, `/research`, `/community`,
+  `/points` and `/tools` were checked on a first load and on a reload.
+
+### Cost
+- The route table is identical to `main`, and no cache window changed.
+- New Upstash use is throttled to one write per key per instance per 5 minutes, with
+  reads only on an upstream failure.
+
+---
+
 ## 2026-11-18 (143) — Markets: chart survives a Binance block, Fear & Greed reads right
 
 Two Markets bugs found while capturing the product ad.

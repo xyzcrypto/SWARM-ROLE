@@ -75,10 +75,51 @@ import { useWatchlist, writeWatchlist, toggleWatchlist } from "../lib/watchlist"
  * Visibility-gated poller (same pattern as MarketTicker/PerpChart).
  * Keeps the last good payload so transient failures don't wipe the dashboard.
  */
+/**
+ * The last live payload per feed, kept in this browser so a return visit paints
+ * real numbers at once instead of skeletons while six requests are in flight.
+ * Read after mount (never during render, see CLAUDE.md on hydration), only when
+ * younger than SNAPSHOT_MAX_AGE_MS, and replaced as soon as the live fetch lands.
+ */
+const SNAPSHOT_MAX_AGE_MS = 15 * 60_000;
+const snapshotKey = (url: string) => `xyz:mkt:${url}`;
+
+function readSnapshot<T>(url: string): T | null {
+  try {
+    const raw = localStorage.getItem(snapshotKey(url));
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as { t?: number; j?: T };
+    if (typeof saved?.t !== "number" || Date.now() - saved.t > SNAPSHOT_MAX_AGE_MS || !saved.j) return null;
+    return saved.j;
+  } catch {
+    return null;
+  }
+}
+
+function writeSnapshot(url: string, j: unknown) {
+  try {
+    localStorage.setItem(snapshotKey(url), JSON.stringify({ t: Date.now(), j }));
+  } catch {
+    /* storage full or blocked: the snapshot is a convenience only */
+  }
+}
+
 function usePolledJson<T>(url: string, everyMs: number) {
   const [data, setData] = useState<T | null>(null);
   const [live, setLive] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Seed from the last snapshot after mount; the live fetch below replaces it.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const snap = readSnapshot<T>(url);
+      if (snap) {
+        setData((cur) => cur ?? snap);
+        setLoading(false);
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [url]);
 
   const load = useCallback(async () => {
     let ok = false;
@@ -86,7 +127,10 @@ function usePolledJson<T>(url: string, everyMs: number) {
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("bad status");
       const j = await res.json();
-      if (j?.live) setData(j);
+      if (j?.live) {
+        setData(j);
+        writeSnapshot(url, j);
+      }
       ok = Boolean(j?.live);
     } finally {
       setLive(ok);
@@ -216,7 +260,9 @@ function MarketsClientInner() {
                 <CompactKpiCard
                   label="DeFi TVL"
                   value={formatCompact(d.data?.totalTvl)}
-                  sub={tvlPct != null ? pct(tvlPct, 1) : "-"}
+                  // The trend is 30 DAILY points, so this is a 30-day change. It sat
+                  // unlabelled beside the 24h figures and read as "-18% today".
+                  sub={tvlPct != null ? `${pct(tvlPct, 1)} 30d` : "-"}
                   subTone={tvlPct == null ? "neutral" : isUp ? "up" : "down"}
                   icon={<Layers className="h-3 w-3" />}
                   iconBg="bg-purple-600/30 text-purple-400 ring-1 ring-purple-500/40"

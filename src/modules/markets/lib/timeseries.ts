@@ -32,3 +32,19 @@ export function fillDailySeries(
 export function seriesTotal(points: DailyPoint[]): number {
   return points.reduce((s, p) => s + p.count, 0);
 }
+
+/**
+ * CoinGecko's 7d sparkline is 168 hourly points per coin; for 250 coins that was
+ * ~820 KB of a ~910 KB response, polled every three minutes by every open tab.
+ * Every chart that draws it is a ~80px wide line, so 42 points (one per four
+ * hours, last point kept) at six significant digits draws the same shape.
+ */
+export const SPARK_POINTS = 42;
+export function thinSparkline(series: number[], points = SPARK_POINTS): number[] {
+  const clean = series.filter((x) => Number.isFinite(x));
+  if (clean.length <= points) return clean.map((x) => Number(x.toPrecision(6)));
+  const step = (clean.length - 1) / (points - 1);
+  const out: number[] = [];
+  for (let i = 0; i < points; i++) out.push(Number(clean[Math.round(i * step)].toPrecision(6)));
+  return out;
+}

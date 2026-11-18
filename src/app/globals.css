@@ -2978,3 +2978,12 @@ html:not(.dark) .soon-veil { background-image: linear-gradient(to bottom, rgb(24
 }
 
 
+
+/* News keyboard reading (j/k): the highlighted story. Set as a DOM attribute by
+   NewsClient so moving it never re-renders the memoised card list. */
+[data-kbd="1"] {
+  outline: 2px solid rgba(245, 165, 36, 0.55);
+  outline-offset: 3px;
+  border-radius: 14px;
+  transition: outline-color 0.2s ease;
+}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { lastGood } from "@modules/markets/lib/last-good";
 
 export const revalidate = 180; // 3-minute cache
 
@@ -33,17 +34,24 @@ const TARGET_CATEGORY_MAP: Record<
 
 export async function GET() {
   try {
-    const res = await fetch("https://api.coingecko.com/api/v3/coins/categories", {
-      headers: { accept: "application/json" },
-      next: { revalidate },
-    });
-
-    if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
-    const data: any[] = await res.json();
-
-    if (!Array.isArray(data) || !data.length) {
-      throw new Error("Empty categories response");
-    }
+    // Remembered while good (last-good.ts): a refused CoinGecko call serves the
+    // previous categories for up to an hour instead of an empty heatmap.
+    const data = await lastGood(
+      "sectors:categories",
+      async () => {
+        const res = await fetch("https://api.coingecko.com/api/v3/coins/categories", {
+          headers: { accept: "application/json" },
+          signal: AbortSignal.timeout(8000),
+          next: { revalidate },
+        });
+        if (!res.ok) throw new Error(`CoinGecko ${res.status}`);
+        const all: any[] = await res.json();
+        if (!Array.isArray(all) || !all.length) throw new Error("Empty categories response");
+        // Keep only the categories this route reads, so what is remembered stays small.
+        return all.filter((c) => c && c.id in TARGET_CATEGORY_MAP);
+      },
+      { isGood: (v) => v.length > 0, maxAgeMs: 60 * 60_000 }
+    );
 
     const categoriesById = new Map<string, any>();
     for (const c of data) {

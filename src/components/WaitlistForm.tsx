@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { markNewsletterSubscribed } from "@/shared/hooks/useNewsletterSubscribed";
 
 export function WaitlistForm({
   source = "website",
@@ -56,6 +57,7 @@ export function WaitlistForm({
         return;
       }
       setState("done");
+      markNewsletterSubscribed();
     } catch {
       setError("Network error. Please try again.");
       setState("error");

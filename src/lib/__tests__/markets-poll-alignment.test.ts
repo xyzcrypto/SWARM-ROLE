@@ -123,7 +123,14 @@ function detailTargets(): Target[] {
     },
   ];
   return specs.map(({ label, file, routeFile }) => {
-    const m = read(file).match(/setInterval\([^,]*,\s*([\d_]+)\s*\)/);
+    // ⚠️ Both clients moved their data poll into `useLiveData({ intervalMs })`
+    // and kept a 1s `setInterval` for the "updated Ns ago" clock. The old regex
+    // matched that clock, so every assertion here compared the route against a
+    // 1s "poll" and passed without testing anything (found 2026-11-18, when a
+    // too-fast check flagged it). The data poll is read first; the bare
+    // setInterval is only a fallback for a client that has no useLiveData.
+    const src = read(file);
+    const m = src.match(/useLiveData\(\{[^}]*intervalMs:\s*([\d_]+)/) ?? src.match(/setInterval\([^,]*,\s*([\d_]+)\s*\)/);
     if (!m) throw new Error(`could not parse a poll interval out of ${file}`);
     return { label, routeFile, pollMs: Number(m[1]!.replace(/_/g, "")), pollSource: file };
   });
@@ -313,6 +320,21 @@ describe("polled API routes keep their ISR + edge windows aligned with client po
       }
       for (const v of values) {
         if (v < pollSec) bad.push(`${t.label}: s-maxage ${v}s < poll ${pollSec}s — edge goes stale before each poll`);
+      }
+    }
+    expect(bad).toEqual([]);
+  });
+
+  it("does not poll far faster than the edge can change", () => {
+    // The opposite failure to the ones above. #389 set the ticker poll to 5s
+    // against a 180s s-maxage: every poll was a cache HIT returning the same
+    // bytes, so nothing got fresher while each open tab sent ~36x the requests.
+    // A poll under a third of the window is that shape.
+    const bad: string[] = [];
+    for (const t of TARGETS) {
+      const pollSec = t.pollMs / 1000;
+      for (const v of successSMaxAge(t.routeFile)) {
+        if (pollSec * 3 < v) bad.push(`${t.label}: poll ${pollSec}s vs s-maxage ${v}s (${t.pollSource}) — most polls cannot see new data`);
       }
     }
     expect(bad).toEqual([]);

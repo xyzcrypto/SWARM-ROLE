@@ -1,16 +1,26 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { isNewsletterSubscribed } from "@/shared/hooks/useNewsletterSubscribed";
 import { WaitlistForm } from "./WaitlistForm";
 
 /**
  * The footer "Get alpha in your inbox" capture. Hidden for signed-in members -
  * they already have an account, so the repeated waitlist/subscribe band on every
- * page is redundant (and was reported as a duplicate). Guests still see it.
+ * page is redundant (and was reported as a duplicate). Guests still see it,
+ * until this browser has subscribed (here or on /news): then it stops asking.
+ * Decided once on mount, so a fresh subscribe still shows its confirmation.
  */
 export function FooterNewsletter() {
   const { data: session, status } = useSession();
-  if (status === "loading" || session?.user) return null;
+  const [subscribed, setSubscribed] = useState(false);
+  useEffect(() => {
+    // Deferred a tick, the same as the other post-mount storage reads here.
+    const t = setTimeout(() => { if (isNewsletterSubscribed()) setSubscribed(true); }, 0);
+    return () => clearTimeout(t);
+  }, []);
+  if (status === "loading" || session?.user || subscribed) return null;
 
   return (
     <div className="py-12">
