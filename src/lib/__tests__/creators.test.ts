@@ -480,3 +480,15 @@ describe("creators: YouTube classification", () => {
     expect(topicsFor("Variational Omni airdrop guide", "")).toContain("variational");
   });
 });
+
+describe("creators: Arena audio settings", () => {
+  it("defaults to sound and music on, and survives bad storage", async () => {
+    const { parseAudioSettings, DEFAULT_AUDIO } = await import("@modules/creators/lib/arena-audio");
+    expect(DEFAULT_AUDIO).toEqual({ sound: true, music: true });
+    expect(parseAudioSettings(null)).toEqual({ sound: true, music: true });
+    expect(parseAudioSettings("not json")).toEqual({ sound: true, music: true });
+    expect(parseAudioSettings('{"sound":false}')).toEqual({ sound: false, music: true });
+    expect(parseAudioSettings('{"sound":true,"music":false}')).toEqual({ sound: true, music: false });
+    expect(parseAudioSettings('{"music":"no"}')).toEqual({ sound: true, music: true });
+  });
+});

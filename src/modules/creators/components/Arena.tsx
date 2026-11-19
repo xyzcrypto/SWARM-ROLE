@@ -1,13 +1,31 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CalendarCheck, Check, Copy, Crown, Flame, Heart, Loader2, Medal, Plus, RotateCcw, Share2, Swords, Target, Trophy, Users, X as Close, Zap } from "lucide-react";
+import { CalendarCheck, Check, Copy, Crown, Flame, Heart, Loader2, Medal, Music, Plus, RotateCcw, Share2, Swords, Target, Trophy, Users, Volume2, VolumeX, X as Close, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { mulberry32 } from "@shared/utils/rng";
 import type { BoardRow, Profile } from "@modules/creators/lib/x-index";
 import { rankYoutubeCreators, type YtCreator } from "@modules/creators/lib/scoring";
 import { hapticError, hapticTap } from "@shared/utils/haptics";
+import {
+  DEFAULT_AUDIO,
+  loadAudioSettings,
+  playSfx,
+  saveAudioSettings,
+  setMusicTempo,
+  startMusic,
+  stopMusic,
+  unlock,
+  type ArenaSfx,
+  type AudioSettings,
+} from "@modules/creators/lib/arena-audio";
+
+// Sound for every game, from one place. Games call sfx() on events and
+// music() when a round starts; the settings decide whether anything is heard.
+type ArenaAudio = { sfx: (k: ArenaSfx) => void; music: (fast?: boolean) => void };
+const AudioCtx = createContext<ArenaAudio>({ sfx: () => {}, music: () => {} });
+const useAudio = () => useContext(AudioCtx);
 import { compact, full, pct } from "@modules/creators/lib/game";
 import { validHandle } from "@modules/creators/lib/twitterapi";
 import { Avatar, Chip, CountUp, Empty, Panel, PanelTitle, useLocalList } from "./ui";
@@ -227,7 +245,11 @@ function Duel({ pair, metric, picked, onPick }: { pair: [ArenaEntry, ArenaEntry]
 // ------------------------------------------------------------------ Higher or Lower
 
 function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntry[] }) {
-  const [source, setSource] = useState<"x" | "yt">(xPool.length >= 2 ? "x" : "yt");
+  const audio = useAudio();
+  // Follow whichever board has data until the player picks one: deciding once
+  // at first render locked the game onto YouTube before the X board loaded.
+  const [sourcePick, setSource] = useState<"x" | "yt" | null>(null);
+  const source: "x" | "yt" = sourcePick ?? (xPool.length >= 2 || ytPool.length < 2 ? "x" : "yt");
   const [metricKey, setMetricKey] = useState<MetricKey>("points");
   const [pair, setPair] = useState<[ArenaEntry, ArenaEntry] | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
@@ -250,13 +272,15 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
       setTimeLeft((t) => {
         if (t <= 1) {
           setOver(true);
+          audio.sfx("over");
           return 0;
         }
+        if (t <= 11) audio.sfx("tick");
         return t - 1;
       });
     }, 1000);
     return () => clearInterval(id);
-  }, [running]);
+  }, [running, audio]);
 
   const pool = source === "x" ? xPool : ytPool;
   const metric = defOf(source, metricKey);
@@ -278,6 +302,8 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
 
   const start = () => {
     reset();
+    audio.music(rush);
+    audio.sfx("start");
     setPair(pickPair(pool, metricKey, Math.random));
   };
 
@@ -289,7 +315,11 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
     if (right) {
       hapticTap();
       setBurst((b) => b + 1);
-    } else hapticError();
+      audio.sfx((streak + 1) % 5 === 0 ? "combo" : "correct");
+    } else {
+      hapticError();
+      audio.sfx("wrong");
+    }
     setTimeout(() => {
       if (right) {
         const next = streak + 1;
@@ -314,6 +344,7 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
       } else {
         setLives(0);
         setOver(true);
+        audio.sfx("over");
       }
     }, rush ? 650 : 1300);
   };
@@ -471,6 +502,7 @@ function hash(s: string): number {
 }
 
 function Daily({ pool, source }: { pool: ArenaEntry[]; source: "x" | "yt" }) {
+  const audio = useAudio();
   const [day, setDay] = useState<string | null>(null);
   const [round, setRound] = useState(0);
   const [results, setResults] = useState<boolean[]>([]);
@@ -539,6 +571,8 @@ function Daily({ pool, source }: { pool: ArenaEntry[]; source: "x" | "yt" }) {
     if (picked) return;
     setPicked(id);
     const right = id === (pair[0].points > pair[1].points ? pair[0] : pair[1]).id;
+    if (round === 0) audio.music();
+    audio.sfx(right ? "correct" : "wrong");
     setTimeout(() => {
       const next = [...results, right];
       setResults(next);
@@ -595,6 +629,7 @@ function brackets(n: number): { label: string; lo: number; hi: number }[] {
 }
 
 function RankQuiz({ pool }: { pool: ArenaEntry[] }) {
+  const audio = useAudio();
   const [q, setQ] = useState<ArenaEntry[] | null>(null);
   const [i, setI] = useState(0);
   const [answer, setAnswer] = useState<number | null>(null);
@@ -619,6 +654,8 @@ function RankQuiz({ pool }: { pool: ArenaEntry[] }) {
       }
     }
     setQ(shuffle(picks));
+    audio.music();
+    audio.sfx("start");
     setI(0);
     setScore(0);
     setAnswer(null);
@@ -679,6 +716,7 @@ function RankQuiz({ pool }: { pool: ArenaEntry[] }) {
             onClick={() => {
               setAnswer(k);
               if (k === correct) setScore((s) => s + 1);
+              audio.sfx(k === correct ? "correct" : "wrong");
               setTimeout(() => {
                 setAnswer(null);
                 setI((x) => x + 1);
@@ -756,6 +794,7 @@ function CreatorPicker({
   tone: "gold" | "mint";
   onLookup?: (handle: string) => Promise<string | null>;
 }) {
+  const audio = useAudio();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
@@ -818,6 +857,7 @@ function CreatorPicker({
                 <button
                   type="button"
                   onClick={() => {
+                    audio.sfx("click");
                     onChange(p.id);
                     setOpen(false);
                     setQ("");
@@ -860,7 +900,8 @@ function HeadToHead({
   initial: string | null;
   onLookup: (handle: string) => Promise<string | null>;
 }) {
-  const [source, setSource] = useState<"x" | "yt">(xPool.length >= 2 || initial ? "x" : "yt");
+  const [sourcePick, setSource] = useState<"x" | "yt" | null>(initial ? "x" : null);
+  const source: "x" | "yt" = sourcePick ?? (xPool.length >= 2 || ytPool.length < 2 ? "x" : "yt");
   const pool = source === "x" ? xPool : ytPool;
   const metrics = source === "x" ? X_METRICS : YT_METRICS;
   const [a, setA] = useState<string>(initial && xPool.some((p) => p.id === initial) ? initial : (pool[0]?.id ?? ""));
@@ -981,6 +1022,7 @@ export function draftCost(rank: number): number {
 }
 
 function SquadBuilder({ pool, label }: { pool: ArenaEntry[]; label: string }) {
+  const audio = useAudio();
   const [squad, saveSquad] = useLocalList("xyz:creators:squad", SQUAD);
   const [q, setQ] = useState("");
   const [copied, setCopied] = useState(false);
@@ -1002,6 +1044,7 @@ function SquadBuilder({ pool, label }: { pool: ArenaEntry[]; label: string }) {
 
   const pick = (e: ArenaEntry) => {
     if (members.length >= SQUAD || draftCost(e.rank) > left) return;
+    audio.sfx(members.length === SQUAD - 1 ? "combo" : "click");
     saveSquad([...squad, e.id]);
   };
 
@@ -1232,6 +1275,60 @@ async function fetchProfile(handle: string): Promise<{ entry: ArenaEntry | null;
 
 export function Arena({ xPool, ytPool, label, compareWith }: { xPool: ArenaEntry[]; ytPool: ArenaEntry[]; label: string; compareWith: string | null }) {
   const [mode, setMode] = useState<Mode>(compareWith ? "h2h" : "hilo");
+
+  // ---- audio
+  const [audioSettings, setAudioSettings] = useState<AudioSettings>(DEFAULT_AUDIO);
+  const settingsRef = useRef<AudioSettings>(DEFAULT_AUDIO);
+  const wantMusic = useRef<{ on: boolean; fast: boolean }>({ on: false, fast: false });
+  useEffect(() => {
+    // Read after mount: storage is never a render input.
+    const t = setTimeout(() => {
+      const s = loadAudioSettings();
+      settingsRef.current = s;
+      setAudioSettings(s);
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
+  // Leaving the Arena (tab switch or page change) stops the music; hiding the
+  // browser tab pauses it and coming back resumes it.
+  useEffect(() => {
+    const onVis = () => {
+      if (document.visibilityState === "hidden") stopMusic();
+      else if (wantMusic.current.on) startMusic(settingsRef.current, wantMusic.current.fast);
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      stopMusic();
+    };
+  }, []);
+  const audio = useMemo<ArenaAudio>(
+    () => ({
+      sfx: (k) => {
+        unlock();
+        playSfx(k, settingsRef.current);
+      },
+      music: (fast = false) => {
+        unlock();
+        wantMusic.current = { on: true, fast };
+        setMusicTempo(fast);
+        startMusic(settingsRef.current, fast);
+      },
+    }),
+    []
+  );
+  const toggle = useCallback((k: keyof AudioSettings) => {
+    const next = { ...settingsRef.current, [k]: !settingsRef.current[k] };
+    settingsRef.current = next;
+    setAudioSettings(next);
+    saveAudioSettings(next);
+    unlock();
+    if (k === "music") {
+      if (!next.music) stopMusic();
+      else if (wantMusic.current.on) startMusic(next, wantMusic.current.fast);
+    }
+    if (k === "sound" && next.sound) playSfx("click", next);
+  }, []);
   const [customHandles, saveCustom] = useLocalList("xyz:creators:arena-custom", 8);
   const [custom, setCustom] = useState<ArenaEntry[]>([]);
   const [loadingCustom, setLoadingCustom] = useState(false);
@@ -1295,13 +1392,46 @@ export function Arena({ xPool, ytPool, label, compareWith }: { xPool: ArenaEntry
   };
 
   return (
+    <AudioCtx.Provider value={audio}>
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-content-muted">Games built on the live boards. Your scores stay on this device.</p>
+        <div className="flex items-center gap-1.5" role="group" aria-label="Arena audio">
+          <button
+            type="button"
+            onClick={() => toggle("sound")}
+            aria-pressed={audioSettings.sound}
+            title={audioSettings.sound ? "Sound effects on" : "Sound effects off"}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+              audioSettings.sound ? "border-gold-400/50 bg-gold-400/10 text-gold-200" : "border-hairline text-content-subtle"
+            )}
+          >
+            {audioSettings.sound ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />} Sound {audioSettings.sound ? "on" : "off"}
+          </button>
+          <button
+            type="button"
+            onClick={() => toggle("music")}
+            aria-pressed={audioSettings.music}
+            title={audioSettings.music ? "Background music on" : "Background music off"}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+              audioSettings.music ? "border-mint-400/50 bg-mint-400/10 text-mint-300" : "border-hairline text-content-subtle"
+            )}
+          >
+            <Music className={cn("h-3.5 w-3.5", !audioSettings.music && "opacity-50")} /> Music {audioSettings.music ? "on" : "off"}
+          </button>
+        </div>
+      </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {MODES.map(({ id, label: l, sub, Icon }) => (
           <motion.button
             key={id}
             type="button"
-            onClick={() => setMode(id)}
+            onClick={() => {
+              audio.sfx("click");
+              setMode(id);
+            }}
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
             aria-pressed={mode === id}
@@ -1333,5 +1463,6 @@ export function Arena({ xPool, ytPool, label, compareWith }: { xPool: ArenaEntry
         </motion.div>
       </Panel>
     </div>
+    </AudioCtx.Provider>
   );
 }

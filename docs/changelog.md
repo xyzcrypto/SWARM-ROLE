@@ -5,6 +5,47 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-19 (152) — Arena: sound effects, background music, and audio settings
+
+The owner asked for sound effects and background music in the Arena, with settings to turn
+each off.
+
+- **`arena-audio.ts`** (new): everything is synthesised with Web Audio, so there are no files,
+  no network and nothing for the CSP to block. It is separate from the chat sounds, which
+  follow chat settings.
+  - **Effects:**
+    - correct (rising major arpeggio)
+    - wrong (low falling buzz)
+    - combo (sparkle run on every 5-streak and on completing a squad)
+    - start
+    - game over (cadence)
+    - click (mode buttons, picker, squad picks)
+    - tick (the last 10 seconds of Rush)
+  - **Music:**
+    - A soft lo-fi loop, Am-F-C-G: bass, a low-passed pad, a quiet arpeggio and hats.
+    - A lookahead scheduler keeps it in time. It plays faster in 60s Rush.
+- **Behaviour:**
+  - Music starts when a round starts (Play, the first Daily pick, Start quiz), because
+    browsers only allow sound after a tap.
+  - It pauses when the browser tab is hidden, resumes when it comes back, and stops when you
+    leave the Arena.
+- **Settings:**
+  - Two toggles at the top of the Arena: **Sound on/off** and **Music on/off**.
+  - They are saved in this browser (`xyz:arena:audio`) and read after mount, never during
+    render. Both default to on. Turning music off fades it out immediately.
+- **Fix found while testing:**
+  - The bug: Higher or Lower and Head to Head chose X or YouTube once, at first render,
+    before the X board had loaded. So they locked onto YouTube and said "Not enough
+    creators".
+  - The fix: they now follow whichever board has data until the player picks one.
+- **Verified in Chromium**, desktop and iPhone, by counting started oscillators:
+  - Play started sound and music (12). Answering added more.
+  - With both toggles off there were 0 new sounds in 2 seconds.
+  - The settings survived a reload, and there was no horizontal overflow.
+- **Tests:** settings parsing (defaults, partial, corrupt and wrong-type values).
+
+---
+
 ## 2026-11-19 (151) — Creators: YouTube that keeps working and stays accurate, Arena profiles that actually join, Rush mode, share of voice
 
 The owner reported three problems:
