@@ -77,13 +77,24 @@ export function videoScore(v: Pick<YtVideo, "views" | "likes" | "comments">): nu
   return Math.round(v.views / 100 + (v.likes ?? 0) + 2 * (v.comments ?? 0));
 }
 
-export type WindowId = "7d" | "30d" | "90d";
-export const WINDOW_DAYS: Record<WindowId, number> = { "7d": 7, "30d": 30, "90d": 90 };
+export type WindowId = "7d" | "30d" | "90d" | "1y" | "all";
+export const WINDOW_DAYS: Record<WindowId, number | null> = { "7d": 7, "30d": 30, "90d": 90, "1y": 365, all: null };
 
 export function withinWindow(iso: string, win: WindowId, now: number): boolean {
   const t = Date.parse(iso);
   if (!Number.isFinite(t)) return false;
-  return now - t <= WINDOW_DAYS[win] * 86_400_000;
+  const days = WINDOW_DAYS[win];
+  return days == null || now - t <= days * 86_400_000;
+}
+
+/** Engagement per view: (likes + comments) / views. Null below 100 views (too noisy). */
+export function engagementRate(v: Pick<YtVideo, "views" | "likes" | "comments">): number | null {
+  if (v.views < 100) return null;
+  return ((v.likes ?? 0) + (v.comments ?? 0)) / v.views;
+}
+
+export function isShort(v: Pick<YtVideo, "durationSec">): boolean {
+  return v.durationSec > 0 && v.durationSec <= 180;
 }
 
 export type YtCreator = {
@@ -128,69 +139,6 @@ export function rankYoutubeCreators(videos: YtVideo[]): YtCreator[] {
     if (s > c.best.score) c.best = { id: v.id, title: v.title, score: s };
   }
   return [...by.values()].sort((a, b) => b.points - a.points || b.views - a.views);
-}
-
-// ---------------------------------------------------------------- X
-
-export type XPostRow = {
-  id: string;
-  tweetId: string;
-  url: string;
-  authorHandle: string;
-  authorName: string;
-  authorAvatar: string | null;
-  verified: boolean;
-  text: string;
-  tweetCreatedAt: string; // ISO
-  likes: number;
-  replies: number;
-  fetchedAt: string; // ISO
-};
-
-/** Post points = likes + 2 x replies. X does not publish view counts to embeds. */
-export function xPostPoints(p: Pick<XPostRow, "likes" | "replies">): number {
-  return Math.max(0, Math.round(p.likes + 2 * p.replies));
-}
-
-export type XCreator = {
-  handle: string;
-  name: string;
-  avatar: string | null;
-  verified: boolean;
-  posts: number;
-  likes: number;
-  replies: number;
-  points: number;
-  best: { tweetId: string; url: string; points: number };
-};
-
-export function rankXCreators(posts: XPostRow[]): XCreator[] {
-  const by = new Map<string, XCreator>();
-  for (const p of posts) {
-    const key = p.authorHandle.toLowerCase();
-    const pts = xPostPoints(p);
-    const c = by.get(key);
-    if (!c) {
-      by.set(key, {
-        handle: p.authorHandle,
-        name: p.authorName,
-        avatar: p.authorAvatar,
-        verified: p.verified,
-        posts: 1,
-        likes: p.likes,
-        replies: p.replies,
-        points: pts,
-        best: { tweetId: p.tweetId, url: p.url, points: pts },
-      });
-      continue;
-    }
-    c.posts += 1;
-    c.likes += p.likes;
-    c.replies += p.replies;
-    c.points += pts;
-    if (pts > c.best.points) c.best = { tweetId: p.tweetId, url: p.url, points: pts };
-  }
-  return [...by.values()].sort((a, b) => b.points - a.points || b.posts - a.posts);
 }
 
 /** Case-insensitive match against any of the given fields. Empty query matches all. */

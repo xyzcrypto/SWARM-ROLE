@@ -47,6 +47,8 @@ const schema = z.object({
   CMC_API_KEY: z.string().optional(),
   GIPHY_API_KEY: z.string().optional(), // community-chat GIF search (Giphy)
   YOUTUBE_API_KEY: z.string().optional(), // /creators leaderboard (YouTube Data API v3)
+  TWITTERAPI_IO_KEY: z.string().optional(), // /creators X board (twitterapi.io, paid per item)
+  TWITTERAPI_DAILY_ITEMS: z.string().optional(), // daily cap on billed twitterapi.io items
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().optional(),
@@ -114,6 +116,11 @@ export const env = {
   // YouTube Data API v3 (/creators leaderboard). Server-only; no key -> the
   // YouTube tab says "not configured" instead of showing anything made up.
   YOUTUBE_API_KEY: raw.YOUTUBE_API_KEY ?? "",
+  // twitterapi.io (/creators X board). Server-only and PAID per returned item,
+  // so x-index.ts spends it under TWITTERAPI_DAILY_ITEMS (default 6,000/day,
+  // about $0.90). No key -> the X tab says "not configured".
+  TWITTERAPI_IO_KEY: raw.TWITTERAPI_IO_KEY ?? "",
+  TWITTERAPI_DAILY_ITEMS: raw.TWITTERAPI_DAILY_ITEMS ?? "",
   // Web Push (news alerts). Public key is client-safe; private key + cron secret
   // are server-only.
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: raw.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",

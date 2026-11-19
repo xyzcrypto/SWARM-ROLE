@@ -1,11 +1,12 @@
 // YouTube Data API v3 client for the /creators leaderboard.
 //
 // Quota (free tier, 10,000 units/day per key):
-//   search.list   = 100 units per call  (2 per topic: by views + by date)
+//   search.list   = 100 units per call  (3 per topic: all-time most viewed,
+//                   most viewed in the last 90 days, newest in the last 90)
 //   videos.list   =   1 unit per 50 ids
 //   channels.list =   1 unit per 50 ids
-// So one topic refresh costs ~205 units and all seven ~1,435. The route caches
-// each topic for 12h, which caps a full day at under 3,000 units no matter how
+// So one topic refresh costs ~310 units and all seven ~2,170. The route caches
+// each topic for 12h, which caps a full day at about 4,400 units no matter how
 // much traffic the page gets - visitor count never reaches the quota.
 //
 // No env access here: the key is passed in, so tests can drive this with a
@@ -77,11 +78,13 @@ function bestThumb(t: any): string {
  */
 export async function fetchTopic(topic: Topic, apiKey: string, now: number, f: FetchLike = fetch): Promise<YtVideo[]> {
   const publishedAfter = new Date(now - LOOKBACK_DAYS * 86_400_000).toISOString();
-  const base = { part: "snippet", type: "video", maxResults: "50", q: topic.query, publishedAfter };
+  const base = { part: "snippet", type: "video", maxResults: "50", q: topic.query };
 
-  const searches = await Promise.all(
-    (["viewCount", "date"] as const).map((order) => call("search", { ...base, order }, apiKey, f))
-  );
+  const searches = await Promise.all([
+    call("search", { ...base, order: "viewCount" }, apiKey, f), // all time
+    call("search", { ...base, order: "viewCount", publishedAfter }, apiKey, f),
+    call("search", { ...base, order: "date", publishedAfter }, apiKey, f),
+  ]);
   const ids = [
     ...new Set(searches.flatMap((s) => (s?.items ?? []).map((it: any) => it?.id?.videoId).filter(Boolean) as string[])),
   ];
