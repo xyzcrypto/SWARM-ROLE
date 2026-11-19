@@ -1018,3 +1018,29 @@ model ChatBookmark {
   @@unique([userId, messageId]) // one bookmark per member per message
   @@index([userId, createdAt]) // a profile's bookmarks, newest first
 }
+
+// A public X post submitted to the /creators Variational leaderboard. Counts
+// come from X's public embed data and are refreshed lazily (see
+// api/creators/x). `status` lets an admin hide spam without deleting it, so a
+// hidden post cannot simply be re-submitted. `submittedById` is a plain id,
+// not a relation, so deleting an account never deletes the post it found.
+model CreatorPost {
+  id             String   @id @default(cuid())
+  createdAt      DateTime @default(now())
+  tweetId        String   @unique
+  url            String
+  authorHandle   String
+  authorName     String
+  authorAvatar   String?
+  verified       Boolean  @default(false)
+  text           String
+  tweetCreatedAt DateTime
+  likes          Int      @default(0)
+  replies        Int      @default(0)
+  status         String   @default("visible")
+  fetchedAt      DateTime @default(now())
+  submittedById  String?
+
+  @@index([status, fetchedAt])
+  @@index([authorHandle])
+}

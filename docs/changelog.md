@@ -5,6 +5,67 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-19 (145) — Creator Leaderboard (`/creators`)
+
+The owner asked for a search and leaderboard, in the spirit of proofofvar.fun, that ranks
+the best Variational and other perp DEX content: YouTube across perp DEXs, and on X only
+Variational, with creators ranked by points.
+
+### YouTube · Perp DEX tab
+- Topics: Variational, Hyperliquid, Lighter, Aster, edgeX, Paradex, generic "perp DEX", and
+  All. Window 7d / 30d / 90d, sort by score / views / newest, and search over title, channel
+  and description.
+- Data: YouTube Data API v3 (`src/modules/creators/lib/youtube.ts`). For each topic it makes
+  two `search.list` calls (most viewed and newest, last 90 days). Real counts then come from
+  `videos.list` and `channels.list`; search results carry no statistics, so none of their
+  numbers are used.
+- **Relevance gate** (`scoring.ts` `TOPICS[].must`): a video counts only if its title or
+  description is actually about the venue. Search is fuzzy: "lighter" returns cigarette
+  lighters and "variational" returns ML lectures.
+- Points: video score = views ÷ 100 + likes + 2 × comments; creator points = the sum
+  over the selected window. The formula is printed on the page. Hidden counts score 0.
+- **Needs `YOUTUBE_API_KEY` in Vercel** (new, optional, in `env.ts` and `.env.example`).
+  Without it the tab says "not switched on yet" and never shows invented numbers.
+- Cost: `unstable_cache` keeps each topic for 12h, and only that layer spends quota.
+  ~205 units per topic refresh, under 3,000/day for all topics, against the free
+  10,000. Visitor traffic cannot move that. The edge caches for `s-maxage=3600`. A
+  failed refresh backs off for 15 min per instance, so a quota error cannot cause a
+  retry storm. The route is not polled.
+
+### X · Variational tab
+- The free X API cannot read or search posts, so posts enter by **member submission**
+  (`POST /api/creators/x`). The flow:
+  - Log in.
+  - `creatorSubmit` rate limit: 10 per 10 min, keyed per IP and per member.
+  - Parse the link (x.com / twitter.com only).
+  - Read X's public embed data (`cdn.syndication.twimg.com`, as used by react-tweet).
+  - The post must itself mention Variational, tag a Variational account, or link
+    variational.io.
+- Points = likes + 2 × replies; creator points = the sum of their posts. The embed data
+  has no views, so views are not scored, and the page says so.
+- New model `CreatorPost` (applied by the production `db push`). Counts refresh lazily:
+  each GET refreshes at most 5 posts older than 6h, via `after()`, after the response is
+  sent. A post deleted on X drops off the board (`status: "gone"`).
+- Admins can hide a post (`DELETE`, `admin` rate limit). A hidden post cannot be
+  re-submitted.
+- `GET` is identical for everyone: `public, s-maxage=300, stale-while-revalidate=3600`.
+- Caveat: the embed endpoint is unofficial. If X closes it, new submissions fail with a
+  clear message and the board keeps its last stored counts.
+
+### Wiring
+- `/creators` is a static shell (`○`), like `/points`. Both APIs are `ƒ`.
+- Nav: "Creators" is in the "More" menu. The rail stays at six links, and the
+  `nav-rail-width.test.ts` pin was updated. Icon in `AppMenu`, entry in `sitemap.ts`.
+- Tests: `creators.test.ts` (17). Covers the relevance gate, scoring, windows, creator
+  aggregation, the YouTube client against a recorded-shape stub (the key goes in a header
+  and never in the URL, and irrelevant channels are never looked up), quota errors, X link
+  parsing (rejects lookalike hosts), embed normalisation and the Variational check.
+- Gotcha found while building: `text-base` is a **colour** token here (`base:
+  var(--bg)`), so `sm:text-base` turns text near-black instead of setting a font size. Use
+  `sm:text-[15px]`. `PointsHero.tsx:911` has the same class and was left untouched.
+
+---
+
 ## 2026-11-18 (144) — Markets data you can trust, News that keeps up, a smoother site
 
 The owner asked for faster, accurate Markets data with the bugs fixed for good, a News

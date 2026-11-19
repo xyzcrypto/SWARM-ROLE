@@ -45,6 +45,7 @@ export const navLinks = [
   { label: "Tools", href: "/tools" },
   { label: "News", href: "/news" },
   { label: "Research", href: "/research" },
+  { label: "Creators", href: "/creators" },
   // Per-member, so it lives in "More" rather than the rail - but it MUST be in
   // this list, because a page absent from `navLinks` is a page that cannot be
   // reached from anywhere (the footer and the mobile drawer both render it).
