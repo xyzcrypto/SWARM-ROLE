@@ -1102,3 +1102,15 @@ model CreatorSync {
   spent     Int      @default(0)
   updatedAt DateTime @updatedAt
 }
+
+// YouTube discovery results per /creators topic, kept in the DB so a deploy,
+// a cache-key change or a YouTube quota error never forces a re-search (100
+// quota units a call) or leaves the tab empty. `videos` holds every search
+// hit with stats and channel info, unfiltered: relevance is applied at read
+// time, so a tightened rule needs no new quota.
+model YtDiscovery {
+  topic     String   @id
+  videos    Json
+  fetchedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

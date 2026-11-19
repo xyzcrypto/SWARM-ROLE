@@ -13,7 +13,7 @@
 // No env access here: the key is passed in, so tests can drive this with a
 // recorded fixture and a stub fetch.
 
-import { isRelevant, type Topic, type YtVideo } from "./scoring";
+import { topicsFor, type Topic, type YtVideo } from "./scoring";
 
 const API = "https://www.googleapis.com/youtube/v3";
 export const LOOKBACK_DAYS = 90;
@@ -77,6 +77,14 @@ function bestThumb(t: any): string {
  * are not used - it has none - so every number shown comes from the
  * statistics endpoints.
  */
+/**
+ * Discovery for one topic: the search calls (most viewed of all time, two
+ * pages; most viewed and newest of the last 90 days; plus the topic's extra
+ * phrases), then the real statistics and channel info for every hit.
+ *
+ * Returns the hits UNFILTERED, with a long description, so relevance can be
+ * (re)applied at read time by topicsFor() without spending quota again.
+ */
 export async function fetchTopic(topic: Topic, apiKey: string, now: number, f: FetchLike = fetch): Promise<YtVideo[]> {
   const publishedAfter = new Date(now - LOOKBACK_DAYS * 86_400_000).toISOString();
   const base = { part: "snippet", type: "video", maxResults: "50", q: topic.query };
@@ -85,6 +93,7 @@ export async function fetchTopic(topic: Topic, apiKey: string, now: number, f: F
     call("search", { ...base, order: "viewCount" }, apiKey, f), // all time
     call("search", { ...base, order: "viewCount", publishedAfter }, apiKey, f),
     call("search", { ...base, order: "date", publishedAfter }, apiKey, f),
+    ...(topic.extraQueries ?? []).map((q) => call("search", { ...base, q, order: "viewCount" }, apiKey, f)),
   ]);
   // All-time coverage: a second page of the most viewed, so a venue's top 100
   // videos are in, not just its top 50 (+100 units per topic, once a day).
@@ -100,11 +109,11 @@ export async function fetchTopic(topic: Topic, apiKey: string, now: number, f: F
     const r = await call("videos", { part: "snippet,statistics,contentDetails", id: group.join(","), maxResults: "50" }, apiKey, f);
     videoItems.push(...(r?.items ?? []));
   }
+  // Channel info for every hit that is about ANY venue (1 unit per 50), so a
+  // video re-tagged into another venue at read time still has its channel.
+  const relevantNow = videoItems.filter((v) => topicsFor(v?.snippet?.title ?? "", v?.snippet?.description ?? "").length > 0);
 
-  const relevant = videoItems.filter((v) => isRelevant(topic, v?.snippet?.title ?? "", v?.snippet?.description ?? ""));
-  if (!relevant.length) return [];
-
-  const channelIds = [...new Set(relevant.map((v) => v.snippet?.channelId).filter(Boolean) as string[])];
+  const channelIds = [...new Set(relevantNow.map((v) => v.snippet?.channelId).filter(Boolean) as string[])];
   const channels = new Map<string, { avatar: string | null; subs: number | null }>();
   for (const group of chunks(channelIds, 50)) {
     const r = await call("channels", { part: "snippet,statistics", id: group.join(","), maxResults: "50" }, apiKey, f);
@@ -116,14 +125,14 @@ export async function fetchTopic(topic: Topic, apiKey: string, now: number, f: F
     }
   }
 
-  return relevant.map((v): YtVideo => {
+  return videoItems.map((v): YtVideo => {
     const ch = channels.get(v.snippet.channelId);
     return {
       id: v.id,
       title: v.snippet.title ?? "",
-      // Trimmed: the client only needs it for search, and full descriptions
-      // would multiply the cached payload for nothing.
-      description: String(v.snippet.description ?? "").slice(0, 240),
+      // Long enough for the relevance context check; trimmed again before it
+      // is sent to a browser.
+      description: String(v.snippet.description ?? "").slice(0, 1500),
       publishedAt: v.snippet.publishedAt,
       thumbnail: bestThumb(v.snippet.thumbnails),
       channelId: v.snippet.channelId,
@@ -134,9 +143,27 @@ export async function fetchTopic(topic: Topic, apiKey: string, now: number, f: F
       likes: num(v.statistics?.likeCount),
       comments: num(v.statistics?.commentCount),
       durationSec: parseDuration(v.contentDetails?.duration),
-      topics: [topic.id],
+      topics: [],
     };
   });
+}
+
+/**
+ * Tag every video with every topic it is really about (title-first rules),
+ * drop the ones about none, de-duplicate across topics' discovery sets and
+ * trim descriptions for the browser.
+ */
+export function classify(lists: YtVideo[][]): YtVideo[] {
+  const by = new Map<string, YtVideo>();
+  for (const list of lists) {
+    for (const v of list) {
+      if (by.has(v.id)) continue;
+      const topics = topicsFor(v.title, v.description);
+      if (!topics.length) continue;
+      by.set(v.id, { ...v, topics, description: v.description.slice(0, 240) });
+    }
+  }
+  return [...by.values()];
 }
 
 /** Union of several topics' results, one row per video with every topic it matched. */

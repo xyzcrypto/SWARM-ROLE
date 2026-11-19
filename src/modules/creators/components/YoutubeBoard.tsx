@@ -26,7 +26,7 @@ import { Avatar, Chip, CountUp, Empty, LevelChip, Panel, PanelTitle, RankMark, R
 
 export type YtState =
   | { status: "loading" }
-  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; statsAt: string | null; partial: boolean; loadedAt: number; refreshing: boolean }
+  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; statsAt: string | null; partial: boolean; loadedAt: number; refreshing: boolean; stale?: boolean }
   | { status: "unconfigured" }
   | { status: "error"; quota: boolean };
 
@@ -380,6 +380,12 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
             {state.fetchedAt && <span>· Video list: {formatDateTime(state.fetchedAt)} UTC</span>}
             <span>· Auto-refreshes</span>
           </div>
+          {state.stale && (
+            <p className="rounded-xl border border-gold-400/25 bg-gold-400/5 px-3 py-2 text-xs text-gold-200">
+              YouTube didn&apos;t answer the last refresh (usually its daily data limit), so this is the last good list. Views, likes and comments are
+              still real, just from the last successful read.
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Videos" value={<CountUp value={stats.videos} format={full} />} />
             <Stat label="Total views" value={<CountUp value={stats.views} format={compact} />} accent />
@@ -389,7 +395,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <Panel className="lg:col-span-3">
-              <PanelTitle title="Top creators" sub={`${full(creators.length)} channels · tap one for the full breakdown`} />
+              <PanelTitle title="Top creators" sub={`${full(creators.length)} channels · ranked by views, likes, comments, video length and number of videos`} />
               <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
                 {CSORTS.map(([k, l]) => (
                   <Chip key={k} active={csort === k} onClick={() => setCsort(k)}>

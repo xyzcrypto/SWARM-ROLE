@@ -337,10 +337,13 @@ async function deepScanStep(): Promise<void> {
 export type ScanResult = { status: "fresh" | "scanned" | "budget" | "not_found" | "unconfigured" | "error" };
 
 /** Read one handle's venue posts from X (at most once per SCAN_FRESH_MS). */
-export async function scanHandle(handle: string, background = false): Promise<ScanResult> {
+/** A person can ask for a re-read of an account this often ("Refresh from X"). */
+export const MANUAL_REFRESH_MS = 30 * 60_000;
+
+export async function scanHandle(handle: string, background = false, freshMs = SCAN_FRESH_MS): Promise<ScanResult> {
   if (!xConfigured()) return { status: "unconfigured" };
   const acct = await prisma.xAccount.findUnique({ where: { handleLower: handle.toLowerCase() } });
-  if (acct?.scannedAt && Date.now() - acct.scannedAt.getTime() < SCAN_FRESH_MS) return { status: "fresh" };
+  if (acct?.scannedAt && Date.now() - acct.scannedAt.getTime() < freshMs) return { status: "fresh" };
   try {
     if (!(await reserve(1, background))) return { status: "budget" };
     // An API failure must not read as "no such account": only a clean

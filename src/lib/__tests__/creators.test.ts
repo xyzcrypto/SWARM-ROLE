@@ -7,6 +7,7 @@ import {
   withinWindow,
   rankYoutubeCreators,
   creatorScore,
+  topicsFor,
   matchesQuery,
   compactCount,
   engagementRate,
@@ -14,7 +15,7 @@ import {
   viewsPerDay,
   type YtVideo,
 } from "@modules/creators/lib/scoring";
-import { fetchTopic, fetchStats, withStats, mergeTopics, parseDuration, YoutubeError } from "@modules/creators/lib/youtube";
+import { fetchTopic, fetchStats, withStats, mergeTopics, classify, parseDuration, YoutubeError } from "@modules/creators/lib/youtube";
 import {
   normalizeTweet,
   normalizeUser,
@@ -178,14 +179,21 @@ describe("creators: YouTube client", () => {
       throw new Error("unexpected " + url);
     };
 
-    const out = await fetchTopic(topicById("variational")!, "k-123", NOW, f as any);
+    const raw = await fetchTopic(topicById("variational")!, "k-123", NOW, f as any);
+    // Discovery keeps every hit (relevance is applied at read time)...
+    expect(raw.map((v) => v.id).sort()).toEqual(["good", "noise"]);
+    // ...and classify() drops the ML lecture and tags the real one.
+    const out = classify([raw]);
     expect(out).toHaveLength(1);
+    expect(out[0]!.topics).toEqual(["variational", "perp-dex"]); // its title names both
     expect(out[0]).toMatchObject({ id: "good", views: 12000, likes: 340, comments: 25, channelSubs: 4200, durationSec: 720, channelAvatar: "https://yt3/a.jpg" });
     expect(calls.every((c) => c.key === "k-123")).toBe(true);
     expect(calls.some((c) => c.url.includes("k-123"))).toBe(false);
     const searches = calls.filter((c) => c.url.includes("/search?")).map((c) => new URL(c.url).searchParams);
     // all-time most viewed + 90-day most viewed + 90-day newest
-    expect(searches.map((p) => `${p.get("order")}:${p.has("publishedAfter")}`).sort()).toEqual(["date:true", "viewCount:false", "viewCount:true"]);
+    expect(searches.map((p) => `${p.get("order")}:${p.has("publishedAfter")}`).sort()).toEqual(["date:true", "viewCount:false", "viewCount:false", "viewCount:false", "viewCount:true"]);
+    // Variational's extra phrases are searched too.
+    expect(searches.map((p) => p.get("q"))).toEqual(expect.arrayContaining(["Variational Omni", "Variational airdrop"]));
   });
 
   it("surfaces a quota error with its reason (so the route can say so)", async () => {
@@ -453,5 +461,34 @@ describe("creators: YouTube all-time coverage", () => {
     await fetchTopic(topicById("hyperliquid")!, "k", NOW, f as any);
     expect(searches).toHaveLength(4);
     expect(searches.filter((p) => p.get("pageToken") === "P2")).toHaveLength(1);
+  });
+});
+
+describe("creators: YouTube classification", () => {
+  it("tags a video with every venue named in its title, across discovery sets", () => {
+    const a = vid({ id: "x1", title: "Hyperliquid vs Lighter: best perp DEX?", description: "perp dex comparison" });
+    const b = vid({ id: "x1", title: "dup" });
+    const c = vid({ id: "x2", title: "My crypto week", description: "Trade on Hyperliquid with my referral code" });
+    const out = classify([[a], [b, c]]);
+    expect(out).toHaveLength(1); // x2 is a referral link only; x1 de-duplicated
+    expect(out[0]!.topics).toEqual(expect.arrayContaining(["hyperliquid", "lighter", "perp-dex"]));
+  });
+
+  it("keeps maths / physics out of Variational and Entropy", () => {
+    expect(topicsFor("Variational Quantum Eigensolver lecture", "crypto points")).not.toContain("variational");
+    expect(topicsFor("Entropy in thermodynamics explained", "hyperliquid perp")).not.toContain("entropy");
+    expect(topicsFor("Variational Omni airdrop guide", "")).toContain("variational");
+  });
+});
+
+describe("creators: Arena audio settings", () => {
+  it("defaults to sound and music on, and survives bad storage", async () => {
+    const { parseAudioSettings, DEFAULT_AUDIO } = await import("@modules/creators/lib/arena-audio");
+    expect(DEFAULT_AUDIO).toEqual({ sound: true, music: true });
+    expect(parseAudioSettings(null)).toEqual({ sound: true, music: true });
+    expect(parseAudioSettings("not json")).toEqual({ sound: true, music: true });
+    expect(parseAudioSettings('{"sound":false}')).toEqual({ sound: false, music: true });
+    expect(parseAudioSettings('{"sound":true,"music":false}')).toEqual({ sound: true, music: false });
+    expect(parseAudioSettings('{"music":"no"}')).toEqual({ sound: true, music: true });
   });
 });

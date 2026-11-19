@@ -139,7 +139,7 @@ export function CreatorsClient() {
         if (body?.configured === false) return setYt({ status: "unconfigured" });
         if (!r.ok || !Array.isArray(body?.videos)) return setYt((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error", quota: body?.error === "quota" }));
         // The window filter's "now" is captured here, never during render.
-        setYt({ status: "ready", videos: body.videos, fetchedAt: body.fetchedAt ?? null, statsAt: body.statsAt ?? null, partial: Boolean(body.partial), loadedAt: Date.now(), refreshing: false });
+        setYt({ status: "ready", videos: body.videos, fetchedAt: body.fetchedAt ?? null, statsAt: body.statsAt ?? null, partial: Boolean(body.partial), loadedAt: Date.now(), refreshing: false, stale: Boolean(body.stale) });
       })
       .catch(() => alive && setYt((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error", quota: false })));
     return () => {

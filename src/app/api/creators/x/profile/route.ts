@@ -3,7 +3,7 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { fail, handleError } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
-import { buildBoard, buildProfile, scanHandle, SCAN_FRESH_MS, xConfigured, type VenueFilter } from "@modules/creators/lib/x-index";
+import { buildBoard, buildProfile, scanHandle, MANUAL_REFRESH_MS, SCAN_FRESH_MS, xConfigured, type VenueFilter } from "@modules/creators/lib/x-index";
 import { validHandle, venueById } from "@modules/creators/lib/twitterapi";
 
 export const runtime = "nodejs";
@@ -38,13 +38,16 @@ export async function GET(req: Request) {
     if (acct?.hidden) return fail("This account isn't on the board.", 404);
 
     let scan: string = "fresh";
-    const stale = !acct?.scannedAt || Date.now() - acct.scannedAt.getTime() >= SCAN_FRESH_MS;
+    // `refresh=1` ("Refresh from X") re-reads an account older than 30 min
+    // instead of 6h - still rate-limited per IP and budget-capped.
+    const freshMs = sp.get("refresh") === "1" ? MANUAL_REFRESH_MS : SCAN_FRESH_MS;
+    const stale = !acct?.scannedAt || Date.now() - acct.scannedAt.getTime() >= freshMs;
     if (stale && xConfigured()) {
       const { success } = await rateLimit("creatorScan", clientIp(req));
       if (!success) {
         scan = "limited";
       } else {
-        scan = (await scanHandle(handle)).status;
+        scan = (await scanHandle(handle, false, freshMs)).status;
       }
     } else if (!xConfigured()) {
       scan = "unconfigured";

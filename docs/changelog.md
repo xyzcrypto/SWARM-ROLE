@@ -5,6 +5,118 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-19 (152) — Arena: sound effects, background music, and audio settings
+
+The owner asked for sound effects and background music in the Arena, with settings to turn
+each off.
+
+- **`arena-audio.ts`** (new): everything is synthesised with Web Audio, so there are no files,
+  no network and nothing for the CSP to block. It is separate from the chat sounds, which
+  follow chat settings.
+  - **Effects:**
+    - correct (rising major arpeggio)
+    - wrong (low falling buzz)
+    - combo (sparkle run on every 5-streak and on completing a squad)
+    - start
+    - game over (cadence)
+    - click (mode buttons, picker, squad picks)
+    - tick (the last 10 seconds of Rush)
+  - **Music:**
+    - A soft lo-fi loop, Am-F-C-G: bass, a low-passed pad, a quiet arpeggio and hats.
+    - A lookahead scheduler keeps it in time. It plays faster in 60s Rush.
+- **Behaviour:**
+  - Music starts when a round starts (Play, the first Daily pick, Start quiz), because
+    browsers only allow sound after a tap.
+  - It pauses when the browser tab is hidden, resumes when it comes back, and stops when you
+    leave the Arena.
+- **Settings:**
+  - Two toggles at the top of the Arena: **Sound on/off** and **Music on/off**.
+  - They are saved in this browser (`xyz:arena:audio`) and read after mount, never during
+    render. Both default to on. Turning music off fades it out immediately.
+- **Fix found while testing:**
+  - The bug: Higher or Lower and Head to Head chose X or YouTube once, at first render,
+    before the X board had loaded. So they locked onto YouTube and said "Not enough
+    creators".
+  - The fix: they now follow whichever board has data until the player picks one.
+- **Verified in Chromium**, desktop and iPhone, by counting started oscillators:
+  - Play started sound and music (12). Answering added more.
+  - With both toggles off there were 0 new sounds in 2 seconds.
+  - The settings survived a reload, and there was no horizontal overflow.
+- **Tests:** settings parsing (defaults, partial, corrupt and wrong-type values).
+
+---
+
+## 2026-11-19 (151) — Creators: YouTube that keeps working and stays accurate, Arena profiles that actually join, Rush mode, share of voice
+
+The owner reported three problems:
+- YouTube data "not working", and Variational's top creators wrong;
+- added X profiles never appearing in Arena games;
+- wanting a more fun Arena, and more accurate, more realtime X data with more features.
+
+### YouTube: why it broke, and the fix
+- **Likely cause:** quota exhaustion. Discovery lived only in `unstable_cache`, so each deploy
+  that changed its key re-ran every search (100 units a call). Two key bumps in one day, plus
+  10-minute live stats, can empty the free 10,000. When that happened the tab had nothing to
+  show.
+- **New `YtDiscovery` table.** Discovery results are stored. A row younger than 24h is reused,
+  so deploys cost no quota, and a YouTube error serves the last good row. The page says
+  "last good list" (`stale`) instead of going empty.
+- **Relevance is now applied at read time** (`classify` → `topicsFor`), title first.
+  - Discovery stores every hit unfiltered, so a rule change needs no new searches.
+  - Every video is tagged with **every** venue its title names, so a Hyperliquid video found
+    by the "perp dex" search counts for Hyperliquid.
+  - Each section now shows only videos about that venue; verified locally per topic.
+- **Maths / physics / ML titles are excluded** from Variational and Entropy (autoencoders,
+  quantum, thermodynamics, lectures…).
+- **Extra search phrases:** Variational adds "Variational Omni" and "Variational airdrop";
+  Entropy adds "Entropy pre-IPO perps".
+- **Live stats every 20 min** (was 10) and only for videos actually shown. That is about
+  ~2,900 + ~4,500 discovery units, inside the 10,000/day quota with room for a redeploy.
+- **Ranking** is unchanged and now spelled out on the panel: views (with a video-length
+  credit), likes, comments, plus 25 points per video.
+
+### Arena
+- **"Add any X profile" now works.** It used to fail for anyone whose posts are mostly
+  replies: under the originals-only rule they had 0 points, and the games silently dropped
+  0-point entries.
+  - Such a profile now falls back to counting replies, marked "replies counted".
+  - It appears **immediately**.
+  - It is kept for Head to Head and Squad even at 0 points.
+- **Head to Head picker:**
+  - The plain dropdowns are now a **searchable picker**: type to filter the board, or type
+    any @handle and "Look up on X and add" in place.
+  - The YouTube side searches every channel across all venues (the Arena loads its own
+    all-venue pool).
+- **Fun:**
+  - A correct answer triggers a burst, and every 5 in a row gives a bigger "On fire!"
+    burst.
+  - Phones get haptics (tap on a correct answer, error buzz on a miss).
+  - **New 60s Rush mode** for Higher or Lower: no lives, as many right as you can, with its
+    own best scores.
+
+### X
+- **"Refresh from X" on a profile:** re-reads an account whose stored read is over 30 min old
+  (rate-limited and budget-capped).
+- **Share of voice:** each top creator's share of all points in the window, plus "everyone
+  else".
+
+### Verified locally
+- **YouTube** (server with a failing YouTube key, DB rows seeded):
+  - Fresh rows are served with no API call.
+  - A 2-day-old row is served with `stale: true` when the API fails.
+  - The ML lecture and a referral-only vlog are excluded.
+  - Every returned video is tagged with the requested venue, and descriptions are 240
+    characters or less.
+- **Arena** (Playwright, desktop and iPhone):
+  - The reply-only profile is added and appears in Head to Head.
+  - The picker finds board creators and the added profile.
+  - The Rush timer runs.
+  - No horizontal overflow.
+- **Tests:** 35 in `creators.test.ts`, including classification across venues, the academic
+  exclusion and the extra search phrases. 1,593 total.
+
+---
+
 ## 2026-11-19 (150) — Creators: accurate Variational X board (backfill, seeds, deep scans), originals-only, YouTube coverage, hero polish
 
 The owner reported that the X board did not show the real top Variational creators (e.g.
