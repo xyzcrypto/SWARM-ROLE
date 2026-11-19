@@ -6,22 +6,34 @@ import {
   videoScore,
   withinWindow,
   rankYoutubeCreators,
-  rankXCreators,
-  xPostPoints,
   matchesQuery,
   compactCount,
+  engagementRate,
+  isShort,
   type YtVideo,
-  type XPostRow,
 } from "@modules/creators/lib/scoring";
 import { fetchTopic, mergeTopics, parseDuration, YoutubeError } from "@modules/creators/lib/youtube";
 import {
-  parseTweetUrl,
-  syndicationToken,
   normalizeTweet,
-  mentionsVariational,
-  fetchTweet,
-  canonicalTweetUrl,
-} from "@modules/creators/lib/x";
+  normalizeUser,
+  isVariationalPost,
+  isOfficialHandle,
+  validHandle,
+  handleQuery,
+  searchPage,
+  tweetsById,
+  TwitterApiError,
+} from "@modules/creators/lib/twitterapi";
+import {
+  postPoints,
+  levelFor,
+  levelProgress,
+  xyzScore,
+  weeklyStreak,
+  activeWeeksIn,
+  badgesFor,
+  LEVELS,
+} from "@modules/creators/lib/game";
 
 const NOW = Date.parse("2026-11-19T12:00:00Z");
 
@@ -41,24 +53,6 @@ function vid(over: Partial<YtVideo>): YtVideo {
     comments: 0,
     durationSec: 60,
     topics: ["variational"],
-    ...over,
-  };
-}
-
-function post(over: Partial<XPostRow>): XPostRow {
-  return {
-    id: "p1",
-    tweetId: "1",
-    url: "https://x.com/a/status/1",
-    authorHandle: "alice",
-    authorName: "Alice",
-    authorAvatar: null,
-    verified: false,
-    text: "Variational",
-    tweetCreatedAt: "2026-11-01T00:00:00Z",
-    likes: 0,
-    replies: 0,
-    fetchedAt: "2026-11-01T00:00:00Z",
     ...over,
   };
 }
@@ -94,6 +88,9 @@ describe("creators: scoring", () => {
     expect(withinWindow("2026-11-13T12:00:00Z", "7d", NOW)).toBe(true);
     expect(withinWindow("2026-11-11T12:00:00Z", "7d", NOW)).toBe(false);
     expect(withinWindow("not a date", "90d", NOW)).toBe(false);
+    expect(withinWindow("2009-01-01T00:00:00Z", "all", NOW)).toBe(true);
+    expect(withinWindow("2025-12-01T00:00:00Z", "1y", NOW)).toBe(true);
+    expect(withinWindow("2025-11-01T00:00:00Z", "1y", NOW)).toBe(false);
   });
 
   it("aggregates creators by channel and ranks by points", () => {
@@ -106,23 +103,17 @@ describe("creators: scoring", () => {
     expect(ranked[0]).toMatchObject({ videos: 2, views: 15_000, points: 160, best: { id: "a" } });
   });
 
-  it("X points = likes + 2 x replies, creators merge case-insensitively", () => {
-    expect(xPostPoints({ likes: 10, replies: 3 })).toBe(16);
-    const ranked = rankXCreators([
-      post({ id: "1", tweetId: "1", authorHandle: "Alice", likes: 10, replies: 1 }),
-      post({ id: "2", tweetId: "2", authorHandle: "alice", likes: 5, replies: 0 }),
-      post({ id: "3", tweetId: "3", authorHandle: "bob", likes: 13, replies: 0 }),
-    ]);
-    expect(ranked[0]).toMatchObject({ handle: "Alice", posts: 2, points: 17 });
-    expect(ranked[1]).toMatchObject({ handle: "bob", points: 13 });
-  });
-
   it("search and number formatting are deterministic", () => {
     expect(matchesQuery("", "x")).toBe(true);
     expect(matchesQuery("HYPE", "hyperliquid deep dive")).toBe(true);
     expect(matchesQuery("zzz", "a", null)).toBe(false);
     expect(compactCount(12_345)).toBe("12.3K");
     expect(compactCount(null)).toBe("-");
+    expect(engagementRate({ views: 1000, likes: 40, comments: 10 })).toBeCloseTo(0.05);
+    expect(engagementRate({ views: 50, likes: 40, comments: 10 })).toBeNull();
+    expect(isShort({ durationSec: 59 })).toBe(true);
+    expect(isShort({ durationSec: 600 })).toBe(false);
+    expect(isShort({ durationSec: 0 })).toBe(false);
   });
 });
 
@@ -178,7 +169,9 @@ describe("creators: YouTube client", () => {
     expect(out[0]).toMatchObject({ id: "good", views: 12000, likes: 340, comments: 25, channelSubs: 4200, durationSec: 720, channelAvatar: "https://yt3/a.jpg" });
     expect(calls.every((c) => c.key === "k-123")).toBe(true);
     expect(calls.some((c) => c.url.includes("k-123"))).toBe(false);
-    expect(calls.filter((c) => c.url.includes("/search?")).map((c) => new URL(c.url).searchParams.get("order")).sort()).toEqual(["date", "viewCount"]);
+    const searches = calls.filter((c) => c.url.includes("/search?")).map((c) => new URL(c.url).searchParams);
+    // all-time most viewed + 90-day most viewed + 90-day newest
+    expect(searches.map((p) => `${p.get("order")}:${p.has("publishedAfter")}`).sort()).toEqual(["date:true", "viewCount:false", "viewCount:true"]);
   });
 
   it("surfaces a quota error with its reason (so the route can say so)", async () => {
@@ -194,62 +187,131 @@ describe("creators: YouTube client", () => {
   });
 });
 
-// ---------------------------------------------------------------- X
+// ---------------------------------------------------------------- X (twitterapi.io)
 
-const RAW_TWEET = {
-  __typename: "Tweet",
-  id_str: "1850000000000000000",
-  text: "Just tried @variational_io Omni, RFQ fills are instant https://t.co/x",
-  created_at: "2026-11-02T10:00:00.000Z",
-  favorite_count: 420,
-  conversation_count: 37,
-  user: { screen_name: "perpqueen", name: "Perp Queen", profile_image_url_https: "https://pbs.twimg.com/a.jpg", is_blue_verified: true },
-  entities: { urls: [{ expanded_url: "https://omni.variational.io/" }], user_mentions: [{ screen_name: "variational_io" }] },
+const RAW = {
+  type: "tweet",
+  id: "1850000000000000000",
+  text: "Variational Omni RFQ fills are instant. @variational_io",
+  createdAt: "Sat Nov 02 10:00:00 +0000 2026",
+  viewCount: 12000,
+  likeCount: 420,
+  replyCount: 37,
+  retweetCount: 20,
+  quoteCount: 5,
+  bookmarkCount: 9,
+  isReply: false,
+  author: { userName: "perpqueen", name: "Perp Queen", profilePicture: "https://pbs.twimg.com/a_normal.jpg", isBlueVerified: true, followers: 15400, id: "77" },
 };
 
-describe("creators: X links and embed data", () => {
-  it("parses x.com and twitter.com status links, rejects everything else", () => {
-    expect(parseTweetUrl("https://x.com/perpqueen/status/1850000000000000000?s=20")).toEqual({ handle: "perpqueen", id: "1850000000000000000" });
-    expect(parseTweetUrl("https://twitter.com/a_b/status/123456789/photo/1")).toEqual({ handle: "a_b", id: "123456789" });
-    expect(parseTweetUrl("https://evil.com/a/status/123456789")).toBeNull();
-    expect(parseTweetUrl("https://x.com.evil.com/a/status/123456789")).toBeNull();
-    expect(parseTweetUrl("javascript:alert(1)")).toBeNull();
-    expect(parseTweetUrl("https://x.com/perpqueen")).toBeNull();
-    expect(canonicalTweetUrl("a", "1")).toBe("https://x.com/a/status/1");
+describe("creators: twitterapi.io parsing", () => {
+  it("normalizes a post with every count and a larger avatar", () => {
+    const t = normalizeTweet(RAW)!;
+    expect(t).toMatchObject({ id: "1850000000000000000", views: 12000, likes: 420, replies: 37, reposts: 20, quotes: 5, bookmarks: 9, isRetweet: false });
+    expect(t.createdAt).toBe("2026-11-02T10:00:00.000Z");
+    expect(t.url).toBe("https://x.com/perpqueen/status/1850000000000000000");
+    expect(t.author).toMatchObject({ handle: "perpqueen", followers: 15400, verified: true, avatar: "https://pbs.twimg.com/a_200x200.jpg" });
   });
 
-  it("derives a token without dots or zero runs", () => {
-    const t = syndicationToken("1850000000000000000");
-    expect(t).toMatch(/^[a-z1-9]+$/);
-    expect(t.length).toBeGreaterThan(4);
+  it("drops posts it cannot read cleanly instead of storing half of them", () => {
+    expect(normalizeTweet({ ...RAW, author: null })).toBeNull();
+    expect(normalizeTweet({ ...RAW, createdAt: "nope" })).toBeNull();
+    expect(normalizeTweet({ ...RAW, likeCount: -3 })!.likes).toBe(0);
+    expect(normalizeTweet({ ...RAW, text: "RT @x: Variational" })!.isRetweet).toBe(true);
+    expect(normalizeUser({ name: "no handle" })).toBeNull();
   });
 
-  it("normalizes the embed payload and prefers the long-post body", () => {
-    const t = normalizeTweet(RAW_TWEET)!;
-    expect(t).toMatchObject({ id: "1850000000000000000", likes: 420, replies: 37, handle: "perpqueen", verified: true });
-    expect(normalizeTweet({ ...RAW_TWEET, note_tweet: { note_tweet_results: { result: { text: "LONG BODY" } } } })!.text).toBe("LONG BODY");
-    expect(normalizeTweet({ __typename: "TweetTombstone" })).toBeNull();
-    expect(normalizeTweet({ ...RAW_TWEET, favorite_count: -5 })!.likes).toBe(0);
+  it("tells the exchange apart from the maths word", () => {
+    expect(isVariationalPost("Variational is cooking, farming points daily")).toBe(true);
+    expect(isVariationalPost("gm to everyone at @variational_io")).toBe(true);
+    expect(isVariationalPost("variational is the best perp venue")).toBe(true);
+    expect(isVariationalPost("Variational autoencoders explained")).toBe(false);
+    expect(isVariationalPost("A variational inference primer for Bayesian models")).toBe(false);
+    expect(isVariationalPost("hyperliquid szn")).toBe(false);
   });
 
-  it("only counts posts that are about Variational themselves", () => {
-    expect(mentionsVariational({ text: "variational is cooking", links: [], mentions: [] })).toBe(true);
-    expect(mentionsVariational({ text: "gm", links: [], mentions: ["variational_io"] })).toBe(true);
-    expect(mentionsVariational({ text: "gm", links: ["https://omni.variational.io/x"], mentions: [] })).toBe(true);
-    expect(mentionsVariational({ text: "gm", links: ["https://variational.io.evil.com"], mentions: [] })).toBe(false);
-    expect(mentionsVariational({ text: "hyperliquid szn", links: [], mentions: ["hyperliquidx"] })).toBe(false);
+  it("validates handles from @names and profile links", () => {
+    expect(validHandle("@perpqueen")).toBe("perpqueen");
+    expect(validHandle("https://x.com/Perp_Queen/status/1")).toBe("Perp_Queen");
+    expect(validHandle("bad handle!")).toBeNull();
+    expect(validHandle("a".repeat(16))).toBeNull();
+    expect(handleQuery("abc")).toContain("from:abc");
+    expect(isOfficialHandle("variational_io")).toBe(true);
+    expect(isOfficialHandle("perpqueen")).toBe(false);
   });
 
-  it("fetchTweet maps 404, tombstones and network failure honestly", async () => {
-    expect(await fetchTweet("1", (async () => new Response("", { status: 404 })) as any)).toEqual({ ok: false, reason: "not_found" });
-    expect(await fetchTweet("1", (async () => json({ __typename: "TweetTombstone" })) as any)).toEqual({ ok: false, reason: "not_found" });
-    expect(await fetchTweet("1", (async () => new Response("", { status: 500 })) as any)).toEqual({ ok: false, reason: "unavailable" });
-    expect(await fetchTweet("1", (async () => { throw new Error("down"); }) as any)).toEqual({ ok: false, reason: "unavailable" });
-    const okRes = await fetchTweet("1850000000000000000", (async (url: string) => {
-      expect(url).toContain("cdn.syndication.twimg.com/tweet-result");
-      expect(url).toContain("token=");
-      return json(RAW_TWEET);
-    }) as any);
-    expect(okRes.ok && okRes.tweet.likes).toBe(420);
+  it("searchPage sends the key as a header and follows the cursor contract", async () => {
+    let seen: { url: string; key: string | null } | null = null;
+    const f = async (url: string, init?: RequestInit) => {
+      seen = { url, key: new Headers(init?.headers).get("X-API-Key") };
+      return json({ tweets: [RAW, { junk: true }], has_next_page: true, next_cursor: "C2" });
+    };
+    const page = await searchPage("q", "Latest", "C1", "secret", f as any);
+    expect(page.tweets).toHaveLength(1);
+    expect(page.raw).toBe(2);
+    expect(page.nextCursor).toBe("C2");
+    expect(seen!.key).toBe("secret");
+    expect(seen!.url).not.toContain("secret");
+    expect(new URL(seen!.url).searchParams.get("cursor")).toBe("C1");
+    const last = await searchPage("q", "Latest", null, "k", (async () => json({ tweets: [], has_next_page: false })) as any);
+    expect(last.nextCursor).toBeNull();
+  });
+
+  it("surfaces API errors and skips the call for no ids", async () => {
+    await expect(searchPage("q", "Top", null, "k", (async () => json({ status: "error", msg: "bad key" }, 401)) as any)).rejects.toBeInstanceOf(TwitterApiError);
+    let called = false;
+    expect(await tweetsById([], "k", (async () => ((called = true), json({}))) as any)).toEqual([]);
+    expect(called).toBe(false);
+  });
+});
+
+describe("creators: game layer", () => {
+  const c = { views: 10_000, likes: 100, replies: 10, reposts: 5, quotes: 2, bookmarks: 4 };
+
+  it("points are linear, so summed counts give summed points", () => {
+    expect(postPoints(c)).toBe(1000 + 100 + 20 + 15 + 8 + 8);
+    const twice = Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v * 2])) as typeof c;
+    expect(postPoints(twice)).toBe(postPoints(c) * 2);
+  });
+
+  it("levels cover every value with no gaps", () => {
+    for (let i = 1; i < LEVELS.length; i++) expect(LEVELS[i]!.min).toBe(LEVELS[i - 1]!.max! + 1);
+    expect(levelFor(0).n).toBe(1);
+    expect(levelFor(24_999).n).toBe(7);
+    expect(levelFor(25_000).n).toBe(8);
+    const p = levelProgress(750);
+    expect(p.level.name).toBe("Scout");
+    expect(p.toNext).toBe(750);
+    expect(p.pct).toBeCloseTo(0.25);
+    expect(levelProgress(99_999)).toMatchObject({ next: null, pct: 1, toNext: 0 });
+  });
+
+  it("XYZ Score stays in 0-1000 and rewards each part", () => {
+    expect(xyzScore({ followers: 0, posts: 0, views: 0, engagements: 0, activeWeeks: 0 }).total).toBe(0);
+    const max = xyzScore({ followers: 5_000_000, posts: 10, views: 5_000_000, engagements: 500_000, activeWeeks: 12 });
+    expect(max.total).toBe(1000);
+    const mid = xyzScore({ followers: 1000, posts: 10, views: 20_000, engagements: 500, activeWeeks: 6 });
+    expect(mid.consistency).toBe(125);
+    expect(mid.resonance).toBe(125); // 2.5% of a 5% target
+    expect(mid.total).toBeGreaterThan(0);
+    expect(mid.total).toBeLessThan(1000);
+    // Under 100 views, resonance is too noisy to count.
+    expect(xyzScore({ followers: 10, posts: 1, views: 50, engagements: 50, activeWeeks: 1 }).resonance).toBe(0);
+  });
+
+  it("weekly streak tolerates a quiet current week but breaks on a gap", () => {
+    const now = Date.parse("2026-11-19T12:00:00Z"); // Thursday
+    const d = (s: string) => `${s}T12:00:00Z`;
+    expect(weeklyStreak([d("2026-11-17"), d("2026-11-10"), d("2026-11-03")], now)).toBe(3);
+    expect(weeklyStreak([d("2026-11-11"), d("2026-11-04")], now)).toBe(2); // nothing yet this week
+    expect(weeklyStreak([d("2026-11-17"), d("2026-10-27")], now)).toBe(1);
+    expect(weeklyStreak([], now)).toBe(0);
+    expect(activeWeeksIn([d("2026-11-17"), d("2026-11-18"), d("2026-11-03"), d("2025-01-01")], now)).toBe(2);
+  });
+
+  it("badges unlock from real thresholds", () => {
+    const b = badgesFor({ posts: 12, points: 0, views: 1_200_000, bestPostViews: 60_000, replies: 10, quotes: 0, streak: 4, rank: 7, score: 300 });
+    const earned = b.filter((x) => x.earned).map((x) => x.id);
+    expect(earned).toEqual(["first", "regular", "viral", "reach", "streak", "top10"]);
   });
 });

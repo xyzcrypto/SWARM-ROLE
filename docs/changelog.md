@@ -5,6 +5,102 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-19 (146) — Creators v2: Proof of Variational on X, the game layer, all-time YouTube
+
+The owner asked for a next-level UI and UX on /creators, a game system, all-time and
+more YouTube data, and an X side that works like proofofvar.fun: enter a username
+instead of a post link. The owner chose twitterapi.io (paid, pay-as-you-go) as the
+X data source and our own **XYZ Score** in place of Moni Score, which is Moni's
+private data.
+
+### X · Variational (rebuilt)
+- **Link submission is gone.** Anyone can type an @handle and hit **Scan**:
+  - `GET /api/creators/x/profile` reads that account's Variational posts from
+    twitterapi.io: `from:<handle> (variational OR @variational_io OR "variational.io")`
+    plus `user/info`, up to ~300 posts.
+  - The result is stored and shown as a profile.
+  - A handle is re-read from X at most once per 6h. A fresh handle is a pure DB read.
+- **Indexer (`x-index.ts runIndex`).** It runs through `after()` on board reads, at most
+  once per 30 min behind an atomic lock row (no cron; crons stay paused). Each run:
+  - Pulls up to 8 pages of the newest Variational posts and stops at the first page that
+    is already known.
+  - Re-reads the 40 stalest posts under 45 days old, so views keep moving. This is the
+    "older posts refresh in rotation" line.
+- **Spend cap.** `TWITTERAPI_DAILY_ITEMS` defaults to 6,000 items/day, about $0.90/day
+  at ~$0.15 per 1,000.
+  - It is enforced atomically in `CreatorSync` before every billed call. Over the cap,
+    reads keep serving stored data and say so.
+  - Scans are also limited by IP with `creatorScan` (6 per 10 min), counted only when a
+    scan actually calls X.
+- **Relevance.** Reposts are excluded. "Variational" in the maths/ML sense
+  (autoencoders, inference…) is filtered out unless the post also names the exchange.
+  Variational's own accounts are shown as official and not ranked.
+- **Leaderboard** (7d / 30d / all time):
+  - Built with one SQL aggregate per window and cached for 5 min (`unstable_cache`
+    plus `s-maxage=300`).
+  - Shows the eight level cards with account counts (tap one to filter), totals, and a
+    sync status line (last index, posts checked in 24h).
+  - Search, and sorting by points / XYZ Score / views / posts / followers.
+  - Admins can remove an account (`DELETE ?handle=`).
+- **Profile modal:**
+  - Rank of N, the XYZ Score ring and its four-part breakdown, the level progress bar,
+    and "N points to pass @next".
+  - Weekly streak, a 12-week points chart, eight stat tiles and ten badges.
+  - The post list, sortable by top / views / recent.
+  - A **shareable PNG card**, drawn with canvas in the browser so it costs the server
+    nothing.
+  - Copy link (`/creators?x=handle` deep-links straight to it) and Compare.
+
+### Game layer (`game.ts`, pure and fully tested)
+- Points = views × 0.1 + likes + replies × 2 + reposts × 3 + quotes × 4 + bookmarks × 2.
+  The formula is linear, so summed counts give summed points; the SQL relies on that.
+- 8 levels: Spark → Scout → Builder → Creator → Voice → Elite → Legend → Apex
+  (0 / 500 / 1.5K / 3K / 6K / 10K / 15K / 25K).
+- XYZ Score is 0-1000, made of four 250-point parts:
+  - **Reach**: followers, log scale.
+  - **Resonance**: engagement per view, with 5% as full marks. Ignored under 100 views.
+  - **Consistency**: weeks active out of the last 12.
+  - **Impact**: average views per post, log scale.
+- Monday-based UTC week streaks, and 10 badges.
+- **Arena** tab:
+  - **Higher or Lower**: guess which creator has more points. The streak counts, and the
+    best score is kept in localStorage as a per-viewer convenience.
+  - **Head to Head**: any two creators across six stats.
+
+### YouTube (more data, all time)
+- Each topic now makes 3 searches: all-time most viewed, plus the most viewed and the
+  newest of the last 90 days. That is ~310 units per topic refresh, about 4,400/day for
+  all topics, of the free 10,000.
+- Windows 7d / 30d / 90d / 1y / **All time**. Format filter long-form / Shorts
+  (≤3 min). Sort by score / views / likes / comments / engagement / newest.
+- Summary tiles, **Mindshare** (share of views by venue, tap to switch topic),
+  **upload cadence** (26 weeks), engagement rate and duration on every card, channel
+  levels, and a **channel drawer** with that channel's videos and averages.
+
+### Shell
+- An animated hero with live counters, a sticky tab bar with a spring indicator, and
+  short tab labels on phones.
+- Deep links `?x=` and `?tab=` are read after mount, so the static shell and the first
+  client render always match.
+
+### Plumbing
+- New env vars: `TWITTERAPI_IO_KEY` and `TWITTERAPI_DAILY_ITEMS`. Without the key, the X
+  tab says it isn't switched on and shows only stored data.
+- New models: `XAccount`, `XTweet` and `CreatorSync`.
+  - `CreatorPost` (v1) is **retired but kept** in the schema. The production `db push`
+    runs without `--accept-data-loss`, so dropping a table that has rows would fail the
+    deploy.
+- `src/modules/creators/lib/x.ts` (the syndication embed reader) was removed.
+- Tests: `creators.test.ts` now has 22. They cover twitterapi.io parsing (and drop
+  half-readable posts), the maths-vs-exchange filter, handle validation, the
+  key-in-header and cursor contract, points linearity, contiguous levels, XYZ Score
+  bounds and parts, streak edge cases, and badge thresholds.
+- `touch-parity` twins were added for the two new hover transforms.
+- Route table: `/api/creators/x/profile` is new (`ƒ`). Nothing else changed mode and
+  nothing polls.
+
+---
+
 ## 2026-11-19 (145) — Creator Leaderboard (`/creators`)
 
 The owner asked for a search and leaderboard, in the spirit of proofofvar.fun, that ranks

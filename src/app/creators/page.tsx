@@ -6,9 +6,9 @@ import { JsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 import { pageSeo } from "@/lib/seo";
 
 export const metadata: Metadata = pageSeo({
-  title: "Creator Leaderboard: Top Perp DEX YouTube Videos and Variational Posts",
+  title: "Creator Leaderboard: Proof of Variational on X and Top Perp DEX YouTube",
   description:
-    "Search and rank the best YouTube videos on Variational, Hyperliquid, Lighter, Aster, edgeX and Paradex, plus a community leaderboard of the top Variational creators on X. Real public views, likes and comments.",
+    "Scan any X handle for its Proof of Variational: points, levels, XYZ Score and badges from real views and engagement. Plus the top YouTube creators on Variational, Hyperliquid, Lighter, Aster, edgeX and Paradex, all time.",
   path: "/creators",
 });
 

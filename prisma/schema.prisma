@@ -290,18 +290,18 @@ model ChatReport {
 }
 
 model Post {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   title     String
-  slug      String   @unique
+  slug      String    @unique
   excerpt   String
   content   String // markdown / long text
   cover     String? // image URL
-  category  String   @default("Research") // Research | Article | Post
-  tags      String   @default("") // comma separated
-  published Boolean  @default(true)
-  premium   Boolean  @default(false) // Premium Content — body gated to Premium users
+  category  String    @default("Research") // Research | Article | Post
+  tags      String    @default("") // comma separated
+  published Boolean   @default(true)
+  premium   Boolean   @default(false) // Premium Content — body gated to Premium users
   summary   String? // AI-generated TL;DR (XYZ AI) — shown atop the article
-  views     Int      @default(0) // total opens (incremented on the article page)
+  views     Int       @default(0) // total opens (incremented on the article page)
   // Soft delete. Non-null means "in the trash": hidden from every read path,
   // restorable, and purged only by an explicit second action.
   //
@@ -1019,11 +1019,11 @@ model ChatBookmark {
   @@index([userId, createdAt]) // a profile's bookmarks, newest first
 }
 
-// A public X post submitted to the /creators Variational leaderboard. Counts
-// come from X's public embed data and are refreshed lazily (see
-// api/creators/x). `status` lets an admin hide spam without deleting it, so a
-// hidden post cannot simply be re-submitted. `submittedById` is a plain id,
-// not a relation, so deleting an account never deletes the post it found.
+// RETIRED (v1 of /creators, link submission). Nothing reads or writes it any
+// more - the board is built from XTweet now. It stays in the schema only
+// because the production build runs `prisma db push` WITHOUT
+// --accept-data-loss, so dropping a table that has rows would fail the deploy.
+// Drop it deliberately (and empty) in a later change if wanted.
 model CreatorPost {
   id             String   @id @default(cuid())
   createdAt      DateTime @default(now())
@@ -1043,4 +1043,57 @@ model CreatorPost {
 
   @@index([status, fetchedAt])
   @@index([authorHandle])
+}
+
+// An X account seen on the /creators Variational board (by indexing or by a
+// visitor scanning its handle). `handleLower` is the key: X handles are
+// case-insensitive.
+model XAccount {
+  id          String    @id @default(cuid())
+  handleLower String    @unique
+  handle      String
+  xId         String?
+  name        String
+  avatar      String?
+  followers   Int       @default(0)
+  verified    Boolean   @default(false)
+  bio         String    @default("")
+  hidden      Boolean   @default(false) // admin: removed from the board
+  scannedAt   DateTime? // last full handle scan
+  updatedAt   DateTime  @updatedAt
+  createdAt   DateTime  @default(now())
+}
+
+// One Variational post on X, with the counts as last read from twitterapi.io.
+model XTweet {
+  id             String   @id @default(cuid())
+  tweetId        String   @unique
+  authorLower    String
+  url            String
+  text           String
+  tweetCreatedAt DateTime
+  views          Int      @default(0)
+  likes          Int      @default(0)
+  replies        Int      @default(0)
+  reposts        Int      @default(0)
+  quotes         Int      @default(0)
+  bookmarks      Int      @default(0)
+  isReply        Boolean  @default(false)
+  fetchedAt      DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@index([authorLower, tweetCreatedAt])
+  @@index([tweetCreatedAt])
+  @@index([fetchedAt])
+}
+
+// Bookkeeping for the indexer: one row per job ("index"), plus the daily
+// twitterapi.io spend counter that caps cost.
+model CreatorSync {
+  key       String   @id
+  runAt     DateTime @default(now())
+  cursor    String?
+  day       String   @default("")
+  spent     Int      @default(0)
+  updatedAt DateTime @updatedAt
 }
