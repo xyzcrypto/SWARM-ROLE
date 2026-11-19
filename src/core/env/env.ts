@@ -46,6 +46,7 @@ const schema = z.object({
   AI_DAILY_LIMIT_ADMIN: z.string().optional(),
   CMC_API_KEY: z.string().optional(),
   GIPHY_API_KEY: z.string().optional(), // community-chat GIF search (Giphy)
+  YOUTUBE_API_KEY: z.string().optional(), // /creators leaderboard (YouTube Data API v3)
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_SUBJECT: z.string().optional(),
@@ -110,6 +111,9 @@ export const env = {
   CMC_API_KEY: raw.CMC_API_KEY ?? "",
   // Giphy (community-chat GIF search). Server-only; no key -> GIF picker hidden.
   GIPHY_API_KEY: raw.GIPHY_API_KEY ?? "",
+  // YouTube Data API v3 (/creators leaderboard). Server-only; no key -> the
+  // YouTube tab says "not configured" instead of showing anything made up.
+  YOUTUBE_API_KEY: raw.YOUTUBE_API_KEY ?? "",
   // Web Push (news alerts). Public key is client-safe; private key + cron secret
   // are server-only.
   NEXT_PUBLIC_VAPID_PUBLIC_KEY: raw.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "",

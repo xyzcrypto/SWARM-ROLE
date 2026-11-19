@@ -86,6 +86,9 @@ const limiters = {
   // CGNAT where thousands of users share a single public IP. 20/min avoids locking out legitimate users on
   // shared IPs while still bounding bcrypt CPU exhaustion.
   loginIp: make(20, 60, "login_ip"),
+  // /creators X submissions. Each one costs an outbound fetch to X's embed
+  // endpoint, so it is bounded per member AND per IP (two keys, per the house rule).
+  creatorSubmit: make(10, 600, "creator_submit"), // 10/10min
 };
 
 export type RateKey = keyof typeof limiters;

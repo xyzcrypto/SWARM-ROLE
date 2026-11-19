@@ -58,9 +58,10 @@ describe("the desktop rail fits the links it has", () => {
     // DERIVED from `navLinks`, so a new destination lands in "More" by default -
     // which is right, but it must be a decision someone saw. `/saved` is
     // per-member and belongs here rather than in the six-link rail, which is
-    // already eight pixels from overflowing at its breakpoint.
+    // already eight pixels from overflowing at its breakpoint. `/creators` (the
+    // creator leaderboard) joined "More" for the same reason.
     const more = moreLinks.map((l) => l.href).sort();
-    expect(more).toEqual(["/contact", "/premium", "/saved", "/tools"]);
+    expect(more).toEqual(["/contact", "/creators", "/premium", "/saved", "/tools"]);
   });
 
   it("still appears only from xl, for the eight-pixel reason above", () => {
