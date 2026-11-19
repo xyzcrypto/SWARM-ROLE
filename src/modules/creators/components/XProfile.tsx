@@ -7,7 +7,6 @@ import { ArrowUpRight, BadgeCheck, Check, Clock, Download, Flame, Link2, Loader2
 import { cn, formatDate } from "@/lib/utils";
 import { useScrollLock } from "@shared/hooks/useScrollLock";
 import type { Profile, ProfilePost, BoardRow, VenueFilter } from "@modules/creators/lib/x-index";
-import { VENUES } from "@modules/creators/lib/twitterapi";
 import { compact, full, pct, scoreTier, POINT_WEIGHTS } from "@modules/creators/lib/game";
 import { Avatar, Bar, HeatStrip, LevelChip, Refreshing, ScoreRing, Sparkbars, Stat } from "./ui";
 import { drawShareCard } from "./share-card";
@@ -27,7 +26,6 @@ const SCAN_NOTE: Record<string, string> = {
 };
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const VENUE_TABS: { id: VenueFilter; label: string }[] = [{ id: "all", label: "All venues" }, ...VENUES.map((v) => ({ id: v.id as VenueFilter, label: v.label }))];
 
 export function XProfile({
   handle,
@@ -49,7 +47,7 @@ export function XProfile({
   starred: boolean;
   onToggleStar: (h: string) => void;
 }) {
-  const [venue, setVenue] = useState<VenueFilter>(initialVenue);
+  const venue = initialVenue;
   const [state, setState] = useState<LoadState>({ s: "loading" });
   const [sort, setSort] = useState<Sort>("points");
   const [copied, setCopied] = useState(false);
@@ -212,27 +210,6 @@ export function XProfile({
                 <ScoreRing value={p.score.total} size={84} />
               </div>
 
-              {/* Venue tabs */}
-              <div className="flex flex-wrap items-center gap-1.5">
-                {VENUE_TABS.map((v) => {
-                  const split = v.id === "all" ? null : p.byVenue.find((b) => b.venue === v.id);
-                  return (
-                    <button
-                      key={v.id}
-                      type="button"
-                      onClick={() => setVenue(v.id)}
-                      aria-pressed={venue === v.id}
-                      className={cn(
-                        "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
-                        venue === v.id ? "border-gold-400/60 bg-gold-400/15 text-gold-200" : "border-hairline text-content-muted hover:text-content"
-                      )}
-                    >
-                      {v.label}
-                      {split ? <span className="ml-1 text-content-subtle">{full(split.posts)}</span> : null}
-                    </button>
-                  );
-                })}
-              </div>
               <Refreshing on={state.s === "ready" && state.refreshing} />
 
               {state.s === "ready" && SCAN_NOTE[state.scan] && (
@@ -276,18 +253,25 @@ export function XProfile({
               {/* Venue split + timing */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-hairline p-4">
-                  <div className="mb-3 text-sm font-semibold text-content">Points by venue</div>
+                  <div className="mb-3 text-sm font-semibold text-content">How people engage</div>
                   {(() => {
-                    const total = p.byVenue.reduce((s2, b) => s2 + b.points, 0) || 1;
-                    return p.byVenue.map((b) => (
-                      <div key={b.venue} className="mb-2.5 last:mb-0">
+                    const parts = [
+                      ["Likes", p.totals.likes],
+                      ["Replies", p.totals.replies],
+                      ["Reposts", p.totals.reposts],
+                      ["Quotes", p.totals.quotes],
+                      ["Bookmarks", p.totals.bookmarks],
+                    ] as const;
+                    const total = parts.reduce((s2, [, v]) => s2 + v, 0) || 1;
+                    return parts.map(([label, v]) => (
+                      <div key={label} className="mb-2.5 last:mb-0">
                         <div className="mb-1 flex justify-between text-xs">
-                          <span className="text-content-muted">{VENUES.find((v) => v.id === b.venue)?.label}</span>
+                          <span className="text-content-muted">{label}</span>
                           <span className="tabular-nums text-content">
-                            {full(b.points)} pts · {full(b.posts)} posts
+                            {compact(v)} · {pct(v / total, 0)}
                           </span>
                         </div>
-                        <Bar pct={b.points / total} className="h-1.5" />
+                        <Bar pct={v / total} className="h-1.5" />
                       </div>
                     ));
                   })()}

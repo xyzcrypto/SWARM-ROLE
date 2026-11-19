@@ -161,7 +161,7 @@ export type Venue = {
 
 // "Variational" is also a maths / ML word. Posts that are clearly about that,
 // with nothing tying them to the exchange, are not counted.
-const VAR_ACADEMIC = /\b(autoencoder|vae|inference|bayesian|elbo|quantum|calculus|variational (method|principle|bound|family|approximation|form|problem|formulation)|posterior|latent|eigen)/i;
+const VAR_ACADEMIC = /\b(autoencoders?|vaes?|inference|bayesian|elbo|quantum|vqe|calculus|variational (method|principle|bound|family|approximation|form|problem|formulation|circuit|algorithm|model)|posterior|latent|eigen|neural|diffusion|arxiv|preprint|theorem|physics|hamiltonian|monte carlo|gaussian)/i;
 const VAR_EXCHANGE = /(@variational|variational\.io|\$var\b|perp|dex|omni|rfq|airdrop|points|trading|arbitrum|tge|testnet|mainnet|leverage|funding|loss refund)/i;
 
 export function isVariationalPost(text: string): boolean {
@@ -184,6 +184,8 @@ export function isEntropyPost(text: string): boolean {
   return ENT_CONTEXT.test(text);
 }
 
+// The X board tracks Variational only (owner's call). Entropy stays a YouTube
+// topic; its X relevance test above is kept for if it ever returns here.
 export const VENUES: Venue[] = [
   {
     id: "variational",
@@ -194,16 +196,6 @@ export const VENUES: Venue[] = [
     match: '(variational OR @variational_io OR "variational.io")',
     relevant: isVariationalPost,
     official: (h) => /^variational/i.test(h),
-  },
-  {
-    id: "entropy",
-    label: "Entropy",
-    handle: "EntropyIO",
-    site: "entropy.io",
-    blurb: "HIP-3 venue on Hyperliquid for pre-IPO and equity perps.",
-    match: '(@EntropyIO OR "entropy.io" OR (entropy (hyperliquid OR hip3 OR "hip-3" OR "pre-ipo" OR perps OR anthropic)))',
-    relevant: isEntropyPost,
-    official: (h) => /^entropy(io|_io|xyz)?$/i.test(h),
   },
 ];
 

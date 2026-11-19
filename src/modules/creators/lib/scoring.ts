@@ -52,9 +52,18 @@ export function topicById(id: string): Topic | undefined {
   return TOPICS.find((t) => t.id === id);
 }
 
+/**
+ * The venue term (first group) must be in the TITLE. Descriptions are full of
+ * referral links and sponsor blurbs ("trade on Hyperliquid with my code"), so
+ * a description-only mention says nothing about what the video is about.
+ * The context groups may match title or description.
+ */
 export function isRelevant(topic: Topic, title: string, description: string): boolean {
-  const hay = `${title}\n${description}`.toLowerCase();
-  return topic.must.every((group) => group.some((term) => hay.includes(term)));
+  const t = title.toLowerCase();
+  const hay = `${t}\n${description.toLowerCase()}`;
+  const [venue, ...context] = topic.must;
+  if (venue && !venue.some((term) => t.includes(term))) return false;
+  return context.every((group) => group.some((term) => hay.includes(term)));
 }
 
 // ---------------------------------------------------------------- YouTube
@@ -77,14 +86,25 @@ export type YtVideo = {
 };
 
 /**
- * Video score = views / 100 + likes + 2 x comments.
- * Views are the cheapest signal, so they are scaled down; a comment costs a
- * viewer the most effort, so it counts double a like. Hidden counts score 0
- * rather than being guessed.
+ * Video points = views / 100 x (1 + depth) + likes + 2 x comments,
+ * where depth = min(1, minutes / 20).
+ * Views are the cheapest signal, so they are scaled down. Depth is a
+ * watch-time credit: a 20-minute deep dive earns up to double view credit,
+ * a 30-second Short almost none. A comment costs a viewer the most effort,
+ * so it counts double a like. Hidden counts score 0 rather than being guessed.
  */
-export function videoScore(v: Pick<YtVideo, "views" | "likes" | "comments">): number {
-  return Math.round(v.views / 100 + (v.likes ?? 0) + 2 * (v.comments ?? 0));
+export const DEPTH_FULL_SEC = 1200;
+
+export function depthOf(durationSec: number): number {
+  return Math.min(1, Math.max(0, durationSec) / DEPTH_FULL_SEC);
 }
+
+export function videoScore(v: Pick<YtVideo, "views" | "likes" | "comments" | "durationSec">): number {
+  return Math.round((v.views / 100) * (1 + depthOf(v.durationSec)) + (v.likes ?? 0) + 2 * (v.comments ?? 0));
+}
+
+/** Output bonus per video in the window, so consistent creators are not out-ranked by one lucky upload. */
+export const PER_VIDEO_BONUS = 25;
 
 export type WindowId = "7d" | "30d" | "90d" | "1y" | "all";
 export const WINDOW_DAYS: Record<WindowId, number | null> = { "7d": 7, "30d": 30, "90d": 90, "1y": 365, all: null };
@@ -116,20 +136,49 @@ export function viewsPerDay(v: Pick<YtVideo, "views" | "publishedAt">, now: numb
   return v.views / Math.max(1, (now - t) / 86_400_000);
 }
 
+export type CreatorScoreParts = { reach: number; output: number; approval: number; conversation: number; depth: number; total: number };
+
+/**
+ * Creator Score, 0-1000, from five measured parts:
+ *  - Reach (250):        total views, log scale (~3M = full)
+ *  - Output (150):       videos in the window (10 = full)
+ *  - Approval (200):     likes per view (5% = full)
+ *  - Conversation (150): comments per view (0.5% = full)
+ *  - Depth (250):        average video length (20 min = full)
+ * Rate parts need 100+ views, below that they are noise.
+ */
+export function creatorScore(c: { views: number; videos: number; likes: number; comments: number; durationSec: number }): CreatorScoreParts {
+  const k = (x: number) => Math.min(1, Math.max(0, x));
+  const enough = c.views >= 100;
+  const reach = k(Math.log10(c.views + 1) / 6.5) * 250;
+  const output = k(c.videos / 10) * 150;
+  const approval = (enough ? k(c.likes / c.views / 0.05) : 0) * 200;
+  const conversation = (enough ? k(c.comments / c.views / 0.005) : 0) * 150;
+  const depth = (c.videos ? k(c.durationSec / c.videos / DEPTH_FULL_SEC) : 0) * 250;
+  const r = Math.round;
+  return { reach: r(reach), output: r(output), approval: r(approval), conversation: r(conversation), depth: r(depth), total: r(reach + output + approval + conversation + depth) };
+}
+
 export type YtCreator = {
   channelId: string;
   channelTitle: string;
   channelAvatar: string | null;
   channelSubs: number | null;
   videos: number;
+  shorts: number;
   views: number;
   likes: number;
   comments: number;
+  /** Total runtime of their videos in the window, seconds. */
+  durationSec: number;
+  /** Sum of video points + PER_VIDEO_BONUS per video. */
   points: number;
+  score: CreatorScoreParts;
   best: { id: string; title: string; score: number };
+  latest: string; // ISO of newest video
 };
 
-/** Creator points = the sum of their videos' scores, inside the chosen window. */
+/** Creator points = sum of video points + an output bonus per video, inside the chosen window. */
 export function rankYoutubeCreators(videos: YtVideo[]): YtCreator[] {
   const by = new Map<string, YtCreator>();
   for (const v of videos) {
@@ -142,22 +191,31 @@ export function rankYoutubeCreators(videos: YtVideo[]): YtCreator[] {
         channelAvatar: v.channelAvatar,
         channelSubs: v.channelSubs,
         videos: 1,
+        shorts: isShort(v) ? 1 : 0,
         views: v.views,
         likes: v.likes ?? 0,
         comments: v.comments ?? 0,
-        points: s,
+        durationSec: v.durationSec,
+        points: s + PER_VIDEO_BONUS,
+        score: creatorScore({ views: 0, videos: 0, likes: 0, comments: 0, durationSec: 0 }),
         best: { id: v.id, title: v.title, score: s },
+        latest: v.publishedAt,
       });
       continue;
     }
     c.videos += 1;
+    c.shorts += isShort(v) ? 1 : 0;
     c.views += v.views;
     c.likes += v.likes ?? 0;
     c.comments += v.comments ?? 0;
-    c.points += s;
+    c.durationSec += v.durationSec;
+    c.points += s + PER_VIDEO_BONUS;
     if (s > c.best.score) c.best = { id: v.id, title: v.title, score: s };
+    if (v.publishedAt > c.latest) c.latest = v.publishedAt;
   }
-  return [...by.values()].sort((a, b) => b.points - a.points || b.views - a.views);
+  const list = [...by.values()];
+  for (const c of list) c.score = creatorScore(c);
+  return list.sort((a, b) => b.points - a.points || b.views - a.views || a.channelTitle.localeCompare(b.channelTitle));
 }
 
 /** Case-insensitive match against any of the given fields. Empty query matches all. */

@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 // handle scanned recently is a pure DB read and is not rate-limited.
 // Same function and key as the board route's cache, so a profile and the
 // all-time board for its venue share one entry instead of computing twice.
-const allTime = unstable_cache(async (venue: VenueFilter, win: "all") => buildBoard(venue, win), ["creators-x-board-v3"], {
+const allTime = unstable_cache(async (venue: VenueFilter, win: "all") => buildBoard(venue, win), ["creators-x-board-v4"], {
   revalidate: 300,
   tags: ["creators-x"],
 });

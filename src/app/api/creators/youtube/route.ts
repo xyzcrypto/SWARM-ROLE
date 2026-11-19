@@ -30,8 +30,9 @@ const STATS_TTL = 600;
 
 type TopicPayload = { videos: YtVideo[]; fetchedAt: string };
 
-// Same key as before the split, so production keeps its warm discovery
-// entries instead of re-spending search quota on deploy.
+// v2: the relevance rule changed (venue name must be in the title), so the
+// v1 entries - built with the looser rule - must not be served. One extra
+// discovery pass (~3,100 units) on deploy.
 const cachedTopic = unstable_cache(
   async (topicId: string): Promise<TopicPayload> => {
     const topic = topicById(topicId);
@@ -39,7 +40,7 @@ const cachedTopic = unstable_cache(
     const videos = await fetchTopic(topic, env.YOUTUBE_API_KEY, Date.now());
     return { videos, fetchedAt: new Date().toISOString() };
   },
-  ["creators-yt-topic-v1"],
+  ["creators-yt-topic-v2"],
   { revalidate: DISCOVERY_TTL, tags: ["creators-youtube"] }
 );
 
@@ -52,7 +53,7 @@ const cachedStats = unstable_cache(
     );
     return { stats, at: new Date().toISOString() };
   },
-  ["creators-yt-stats-v1"],
+  ["creators-yt-stats-v2"],
   { revalidate: STATS_TTL, tags: ["creators-youtube"] }
 );
 

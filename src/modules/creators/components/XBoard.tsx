@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, AtSign, BadgeCheck, ChevronRight, Download, EyeOff, Flame, Loader2, Radar, Star, TrendingUp, X as Close } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpRight, BadgeCheck, ChevronRight, Download, EyeOff, Flame, Loader2, Star, TrendingUp, X as Close } from "lucide-react";
 import { cn, formatDate, formatDateTime, csvCell } from "@/lib/utils";
 import type { Board, BoardRow, VenueFilter, XWindow } from "@modules/creators/lib/x-index";
 import { VENUES, type VenueId } from "@modules/creators/lib/twitterapi";
@@ -40,6 +40,18 @@ function ScoreChip({ v }: { v: number }) {
   );
 }
 
+/** Rank change against a week ago. */
+function Move({ m }: { m: number | null }) {
+  if (m == null) return <span className="hidden w-10 shrink-0 text-center text-[10px] font-bold uppercase tracking-wider text-sky-300 sm:inline">New</span>;
+  if (m === 0) return <span className="hidden w-10 shrink-0 text-center text-xs text-content-subtle sm:inline">-</span>;
+  return (
+    <span className={cn("inline-flex w-10 shrink-0 items-center justify-center gap-0.5 text-xs font-bold tabular-nums", m > 0 ? "text-mint-300" : "text-red-400")} title={`${m > 0 ? "Up" : "Down"} ${Math.abs(m)} since last week`}>
+      {m > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+      {Math.abs(m)}
+    </span>
+  );
+}
+
 export function venueLabel(v: VenueFilter): string {
   return v === "all" ? "All venues" : (VENUES.find((x) => x.id === v)?.label ?? v);
 }
@@ -60,7 +72,6 @@ function exportCsv(rows: BoardRow[], venue: VenueFilter, win: XWindow) {
 export function XBoard({
   state,
   venue,
-  setVenue,
   win,
   setWin,
   onOpen,
@@ -73,7 +84,6 @@ export function XBoard({
 }: {
   state: BoardState;
   venue: VenueFilter;
-  setVenue: (v: VenueFilter) => void;
   win: XWindow;
   setWin: (w: XWindow) => void;
   onOpen: (handle: string) => void;
@@ -84,8 +94,6 @@ export function XBoard({
   recents: string[];
   clearRecents: () => void;
 }) {
-  const [handle, setHandle] = useState("");
-  const [bad, setBad] = useState(false);
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<Sort>("points");
   const [level, setLevel] = useState<number | null>(null);
@@ -112,14 +120,16 @@ export function XBoard({
     return [...list].sort(by[sort]);
   }, [board, level, q, sort, onlyWatch, watchSet]);
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const h = handle.trim().replace(/^@/, "").replace(/^https?:\/\/(www\.)?(x|twitter)\.com\//i, "").split(/[/?#]/)[0] ?? "";
-    if (!/^[A-Za-z0-9_]{1,15}$/.test(h)) return setBad(true);
-    setBad(false);
-    setHandle("");
-    onOpen(h);
-  };
+  const spotlight = useMemo(() => {
+    const r = board?.rising[0];
+    if (!r) return null;
+    const h = r.handle.toLowerCase();
+    return {
+      r,
+      row: board?.rows.find((x) => x.handle.toLowerCase() === h) ?? null,
+      post: board?.topPosts.find((p) => p.handle.toLowerCase() === h) ?? board?.latest.find((p) => p.handle.toLowerCase() === h) ?? null,
+    };
+  }, [board]);
 
   const plain = sort === "points" && !level && !q && !onlyWatch;
   const avgEng = board && board.totals.views > 0 ? board.totals.engagements / board.totals.views : 0;
@@ -127,95 +137,35 @@ export function XBoard({
 
   return (
     <div className="space-y-6">
-      {/* Venue switcher */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {[...VENUES.map((v) => ({ id: v.id as VenueFilter, label: v.label, sub: v.blurb, handle: v.handle })), { id: "all" as VenueFilter, label: "All venues", sub: "Every tracked venue, one ranking.", handle: null }].map((v) => (
-          <motion.button
-            key={v.id}
-            type="button"
-            onClick={() => setVenue(v.id)}
-            whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.98 }}
-            aria-pressed={venue === v.id}
-            className={cn(
-              "relative overflow-hidden rounded-2xl border p-4 text-left transition-colors",
-              venue === v.id ? "border-gold-400/60 bg-gold-400/10" : "border-hairline bg-ink-900/40 hover:border-gold-400/30"
-            )}
-          >
-            {venue === v.id && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-gold-400/20 blur-2xl" />}
-            <div className="relative flex items-center justify-between gap-2">
-              <span className={cn("font-display text-base font-bold", venue === v.id ? "text-gold-100" : "text-content")}>{v.label}</span>
-              {v.handle && <span className="text-[11px] text-content-subtle">@{v.handle}</span>}
-            </div>
-            <p className="relative mt-1 text-xs leading-relaxed text-content-muted">{v.sub}</p>
-          </motion.button>
-        ))}
-      </div>
-
-      {/* Scan */}
-      <Panel className="relative overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gold-400/10 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-28 -left-16 h-56 w-56 rounded-full bg-mint-400/10 blur-3xl" />
-        <div className="relative">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-mint-300">Proof of {venue === "all" ? "Perp DEX" : venueLabel(venue)}</p>
-          <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-content sm:text-3xl">
-            How much has an account helped {venue === "all" ? "these venues" : venueLabel(venue)} grow on X?
-          </h2>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-content-muted">
-            Type any X handle and hit Scan, or tap anyone on the leaderboard. We read their posts about each venue, score them, and give you a
-            profile card to share.
-          </p>
-          <form onSubmit={submit} className="mt-5 flex flex-col gap-2 sm:flex-row">
-            <label className="relative flex-1">
-              <AtSign className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gold-300" />
-              <input
-                value={handle}
-                onChange={(e) => {
-                  setHandle(e.target.value);
-                  setBad(false);
-                }}
-                placeholder="your_x_handle"
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck={false}
-                aria-label="X handle"
-                className={cn(
-                  "w-full rounded-2xl border bg-ink-900/70 py-3 pl-10 pr-3 font-mono text-base text-content placeholder:text-content-subtle focus:outline-none",
-                  bad ? "border-red-400/60" : "border-hairline focus:border-gold-400/60"
-                )}
-              />
-            </label>
-            <button type="submit" className="btn-primary inline-flex items-center justify-center gap-2 px-6">
-              <Radar className="h-4 w-4" /> Scan
-            </button>
-          </form>
-          {bad && <p className="mt-2 text-xs text-red-300">That doesn&apos;t look like an X handle. Letters, numbers and _ only, up to 15.</p>}
-          {recents.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <span className="text-[11px] text-content-subtle">Recent:</span>
-              {recents.slice(0, 8).map((h) => (
-                <button key={h} type="button" onClick={() => onOpen(h)} className="rounded-full border border-hairline px-2.5 py-1 text-[11px] text-content-muted hover:border-gold-400/40 hover:text-content">
-                  @{h}
-                </button>
-              ))}
-              <button type="button" onClick={clearRecents} aria-label="Clear recent scans" className="rounded-full p-1 text-content-subtle hover:text-content">
-                <Close className="h-3 w-3" />
+      {/* Status: what the board is built from and how fresh it is */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {board ? (
+          <div className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-hairline bg-ink-900/60 px-3.5 py-1.5 font-mono text-[11px] text-content-subtle">
+            <span className="relative flex h-2 w-2">
+              <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-60", board.configured ? "animate-ping bg-mint-400" : "bg-content-subtle")} />
+              <span className={cn("relative inline-flex h-2 w-2 rounded-full", board.configured ? "bg-mint-400" : "bg-content-subtle")} />
+            </span>
+            <span>Indexed {board.sync.lastIndexAt ? `${formatDateTime(board.sync.lastIndexAt)} UTC` : "not yet"}</span>
+            <span>· {full(board.sync.checked24h)} posts re-read in 24h</span>
+            <span>· refreshes itself</span>
+          </div>
+        ) : (
+          <span />
+        )}
+        {recents.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[11px] text-content-subtle">Recent</span>
+            {recents.slice(0, 6).map((h) => (
+              <button key={h} type="button" onClick={() => onOpen(h)} className="rounded-full border border-hairline px-2.5 py-1 text-[11px] text-content-muted transition-colors hover:border-gold-400/40 hover:text-content">
+                @{h}
               </button>
-            </div>
-          )}
-          {board && (
-            <div className="mt-4 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-hairline bg-ink-900/60 px-3.5 py-1.5 font-mono text-[11px] text-content-subtle">
-              <span className="relative flex h-2 w-2">
-                <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-60", board.configured ? "animate-ping bg-mint-400" : "bg-content-subtle")} />
-                <span className={cn("relative inline-flex h-2 w-2 rounded-full", board.configured ? "bg-mint-400" : "bg-content-subtle")} />
-              </span>
-              <span>Last index: {board.sync.lastIndexAt ? `${formatDateTime(board.sync.lastIndexAt)} UTC` : "not yet"}</span>
-              <span>· Checked in 24h: {full(board.sync.checked24h)}</span>
-              <span>· Older posts refresh in rotation</span>
-            </div>
-          )}
-        </div>
-      </Panel>
+            ))}
+            <button type="button" onClick={clearRecents} aria-label="Clear recent scans" className="rounded-full p-1 text-content-subtle hover:text-content">
+              <Close className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+      </div>
 
       {state.status === "loading" && (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-content-muted">
@@ -234,16 +184,93 @@ export function XBoard({
 
           {/* Totals */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-            <Stat label="Creators ranked" value={<CountUp value={board.totals.accounts} format={full} />} />
             <Stat label="Posts indexed" value={<CountUp value={board.totals.posts} format={full} />} />
-            <Stat label="Total views" value={<CountUp value={board.totals.views} format={compact} />} />
+            <Stat label="Views per post" value={board.totals.posts ? compact(board.totals.views / board.totals.posts) : "-"} />
+            <Stat label="Active this week" value={<CountUp value={board.active7d ?? 0} format={full} />} sub="creators who posted" />
             <Stat label="Engagement" value={pct(avgEng, 2)} sub="per view, all posts" />
             <Stat label="Points earned" value={<CountUp value={board.totals.points} format={compact} />} accent />
           </div>
 
+          {/* Spotlight + conversation */}
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+            {spotlight ? (
+              <Panel className="flex flex-col lg:col-span-3">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-4">
+                    <Avatar src={spotlight.row?.avatar ?? spotlight.r.avatar} alt={spotlight.r.handle} size={64} ring="ring-1 ring-gold-400/50" />
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-400">Creator of the week</p>
+                      <button type="button" onClick={() => onOpen(spotlight.r.handle)} className="mt-0.5 block max-w-full truncate text-left font-display text-xl font-bold tracking-tight text-content hover:text-gold-200">
+                        {spotlight.r.name}
+                      </button>
+                      <p className="truncate text-xs text-content-subtle">@{spotlight.r.handle}</p>
+                    </div>
+                  </div>
+                  <div className="grid flex-1 grid-cols-3 gap-2 sm:ml-auto sm:max-w-sm">
+                    <div className="rounded-2xl bg-ink-800/60 px-3 py-2.5 text-center">
+                      <div className="font-display text-lg font-bold tabular-nums text-mint-300">+{compact(spotlight.r.points)}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-content-subtle">pts 7d</div>
+                    </div>
+                    <div className="rounded-2xl bg-ink-800/60 px-3 py-2.5 text-center">
+                      <div className="font-display text-lg font-bold tabular-nums text-content">{full(spotlight.r.posts)}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-content-subtle">posts 7d</div>
+                    </div>
+                    <div className="rounded-2xl bg-ink-800/60 px-3 py-2.5 text-center">
+                      <div className="font-display text-lg font-bold tabular-nums text-gold-300">{spotlight.row ? `#${spotlight.row.rank}` : "-"}</div>
+                      <div className="text-[10px] uppercase tracking-wider text-content-subtle">rank</div>
+                    </div>
+                  </div>
+                </div>
+                {spotlight.post && (
+                  <figure className="mt-5 flex-1 rounded-2xl border border-hairline bg-ink-900/40 p-4">
+                    <figcaption className="mb-2 flex items-center justify-between gap-2 text-[11px] text-content-subtle">
+                      <span>Their best post in this window</span>
+                      <span className="font-semibold tabular-nums text-gold-300">{compact(spotlight.post.points)} pts</span>
+                    </figcaption>
+                    <blockquote className="line-clamp-4 whitespace-pre-line break-words text-sm leading-relaxed text-content-muted">{spotlight.post.text}</blockquote>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-content-subtle">
+                      <span>{compact(spotlight.post.views)} views</span>
+                      <span>{compact(spotlight.post.likes)} likes</span>
+                      <span>{compact(spotlight.post.replies)} replies</span>
+                      <a href={spotlight.post.url} target="_blank" rel="noopener noreferrer" className="ml-auto inline-flex items-center gap-1 text-gold-300 hover:text-gold-200">
+                        Open on X <ArrowUpRight className="h-3 w-3" />
+                      </a>
+                    </div>
+                  </figure>
+                )}
+                <button type="button" onClick={() => onOpen(spotlight.r.handle)} className="btn-ghost mt-4 self-start">
+                  View full profile
+                </button>
+              </Panel>
+            ) : (
+              <div className="hidden lg:col-span-3 lg:block" />
+            )}
+            <Panel className="lg:col-span-2">
+              <PanelTitle title="What people talk about" sub="Posts mentioning each topic, last 30 days" />
+              {board.topics.every((t) => t.posts === 0) ? (
+                <p className="text-sm text-content-muted">Not enough posts yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {board.topics.slice(0, 6).map((t) => {
+                    const max = Math.max(1, board.topics[0]!.posts);
+                    return (
+                      <div key={t.term} className="grid grid-cols-[72px_minmax(0,1fr)_40px] items-center gap-2 text-xs">
+                        <span className="truncate font-semibold text-content-muted">{t.term}</span>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-ink-700">
+                          <motion.div className="h-full rounded-full bg-gold-400" initial={{ width: 0 }} animate={{ width: `${(t.posts / max) * 100}%` }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} />
+                        </div>
+                        <span className="text-right tabular-nums text-content-subtle">{full(t.posts)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </Panel>
+          </div>
+
           {/* Activity + rising */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-            <Panel className="lg:col-span-3">
+            <Panel className="flex flex-col lg:col-span-3">
               <PanelTitle
                 title="Activity"
                 sub={`Posts per day about ${venueLabel(venue)}, last 30 days (UTC)`}
@@ -252,11 +279,25 @@ export function XBoard({
               <Sparkbars
                 values={board.daily.map((d) => d.posts)}
                 titles={board.daily.map((d) => `${d.day}: ${full(d.posts)} posts, ${compact(d.views)} views, ${full(d.creators)} creators`)}
-                height={110}
+                height={190}
               />
               <div className="mt-2 flex justify-between text-[10px] text-content-subtle">
                 <span>{board.daily[0]?.day}</span>
                 <span>{board.daily[board.daily.length - 1]?.day}</span>
+              </div>
+              <div className="mt-auto grid grid-cols-3 gap-3 border-t border-hairline pt-4">
+                {(
+                  [
+                    ["Posts, 30d", full(board.daily.reduce((a, d) => a + d.posts, 0))],
+                    ["Views, 30d", compact(board.daily.reduce((a, d) => a + d.views, 0))],
+                    ["Busiest day", (() => { const d = [...board.daily].sort((x, y) => y.posts - x.posts)[0]; return d && d.posts ? `${d.day.slice(5)} · ${d.posts}` : "-"; })()],
+                  ] as const
+                ).map(([l, v]) => (
+                  <div key={l} className="min-w-0">
+                    <div className="truncate text-[11px] text-content-subtle">{l}</div>
+                    <div className="mt-0.5 truncate font-display text-base font-bold tabular-nums text-content">{v}</div>
+                  </div>
+                ))}
               </div>
             </Panel>
             <Panel className="lg:col-span-2">
@@ -265,7 +306,7 @@ export function XBoard({
                 <p className="text-sm text-content-muted">No posts in the last 7 days yet.</p>
               ) : (
                 <ol className="space-y-1">
-                  {board.rising.map((r, i) => (
+                  {board.rising.slice(0, 7).map((r, i) => (
                     <li key={r.handle}>
                       <button type="button" onClick={() => onOpen(r.handle)} className="flex w-full items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left hover:bg-ink-800/50">
                         <span className="w-4 text-xs font-bold tabular-nums text-content-subtle">{i + 1}</span>
@@ -397,7 +438,8 @@ export function XBoard({
                               {full(r.posts)} posts · {compact(r.views)} views · {pct(engRate(r))} eng · {compact(r.followers)} followers
                             </div>
                           </div>
-                          <div className="text-right">
+                          <Move m={r.move} />
+                          <div className="w-[72px] shrink-0 text-right sm:w-20">
                             <div className="font-display text-base font-bold tabular-nums text-gold-300">{full(r.points)}</div>
                             <div className="text-[10px] uppercase tracking-wider text-content-subtle">{plain ? "points" : `#${r.rank} · pts`}</div>
                           </div>
@@ -432,6 +474,40 @@ export function XBoard({
               </p>
             )}
           </Panel>
+
+          {/* Live feed */}
+          {board.latest.length > 0 && (
+            <Panel>
+              <PanelTitle title="Latest posts" sub="Newest Variational posts we have indexed" right={<span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-mint-300"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mint-400" />Live</span>} />
+              <ul className="divide-y divide-hairline">
+                {board.latest.slice(0, 8).map((p) => (
+                  <li key={p.tweetId} className="flex items-start gap-3 py-3">
+                    <button type="button" onClick={() => onOpen(p.handle)} className="shrink-0">
+                      <Avatar src={p.avatar} alt={p.handle} size={32} />
+                    </button>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 text-xs">
+                        <button type="button" onClick={() => onOpen(p.handle)} className="min-w-0 truncate font-semibold text-content hover:text-gold-200">
+                          @{p.handle}
+                        </button>
+                        <span className="shrink-0 text-content-subtle">{formatDateTime(p.createdAt)} UTC</span>
+                      </div>
+                      <p className="mt-0.5 line-clamp-2 break-words text-sm text-content-muted">{p.text}</p>
+                      <div className="mt-1 flex flex-wrap gap-x-3 text-[11px] tabular-nums text-content-subtle">
+                        <span>{compact(p.views)} views</span>
+                        <span>{compact(p.likes)} likes</span>
+                        <span>{compact(p.replies)} replies</span>
+                        <a href={p.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-0.5 text-gold-300 hover:text-gold-200">
+                          Open <ArrowUpRight className="h-3 w-3" />
+                        </a>
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-gold-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-gold-300">{compact(p.points)}</span>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
 
           {/* Top posts */}
           {board.topPosts.length > 0 && (

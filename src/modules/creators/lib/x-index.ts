@@ -34,7 +34,10 @@ import {
 //          budget.
 //  READ  - rank accounts from what is stored. Reads never call the paid API.
 
-export const INDEX_EVERY_MS = 30 * 60_000;
+// New posts every 15 min; the paid rotation of older posts stays at 30 min.
+// One venue at 15 min costs the same baseline as two did at 30.
+export const INDEX_EVERY_MS = 15 * 60_000;
+const ROTATE_EVERY_MS = 30 * 60_000;
 const MAX_LATEST_PAGES = 6; // per venue per run: up to ~120 new posts
 const ROTATE_PER_RUN = 40; // older posts re-read per run, so views stay current
 const ROTATE_MAX_AGE_DAYS = 45; // past this, counts barely move - not worth paying for
@@ -174,7 +177,7 @@ export async function runIndex(): Promise<{ ran: boolean; saved?: number; error?
       }
     }
 
-    if (await claim("rotate", INDEX_EVERY_MS)) {
+    if (await claim("rotate", ROTATE_EVERY_MS)) {
       ran = true;
       const now = Date.now();
       const stale = await prisma.xTweet.findMany({
@@ -243,6 +246,8 @@ const WINDOW_MS: Record<XWindow, number | null> = { "7d": 7 * 86_400_000, "30d":
 
 export type BoardRow = Counts & {
   rank: number;
+  /** Places gained (+) or lost (-) against the same board as it stood 7 days ago; null = new on the board. */
+  move: number | null;
   handle: string;
   name: string;
   avatar: string | null;
@@ -280,6 +285,12 @@ export type Board = {
   topPosts: TopPost[];
   /** Last 30 UTC days, oldest first. */
   daily: { day: string; posts: number; views: number; creators: number }[];
+  /** Newest stored posts, newest first. */
+  latest: TopPost[];
+  /** What the window's posts talk about: posts mentioning each term, last 30 days. */
+  topics: { term: string; posts: number }[];
+  /** Distinct creators who posted in the last 7 days. */
+  active7d: number;
   /** Biggest point earners of the last 7 days. */
   rising: { handle: string; name: string; avatar: string | null; points: number; posts: number }[];
   sync: { lastIndexAt: string | null; checked24h: number; budgetSpent: number; budgetCap: number };
@@ -305,7 +316,10 @@ function venueClause(venue: VenueFilter) {
   return venue === "all" ? Prisma.sql`TRUE` : Prisma.sql`${venue} = ANY(t.venues)`;
 }
 
-async function aggregate(venue: VenueFilter, since: Date): Promise<AggRow[]> {
+async function aggregate(venue: VenueFilter, since: Date, until?: Date): Promise<AggRow[]> {
+  // Optional upper bound, as a clause rather than a sentinel date: a far-future
+  // Date (year 275760) cannot be sent to Postgres at all.
+  const upper = until ? Prisma.sql`AND t."tweetCreatedAt" < ${until}` : Prisma.empty;
   const weeksSince = new Date(Date.now() - 84 * 86_400_000);
   const rows = await prisma.$queryRaw<AggRow[]>(Prisma.sql`
     SELECT t."authorLower" AS author,
@@ -316,7 +330,7 @@ async function aggregate(venue: VenueFilter, since: Date): Promise<AggRow[]> {
            max(t."tweetCreatedAt") AS last_post
     FROM "XTweet" t
     JOIN "XAccount" a ON a."handleLower" = t."authorLower"
-    WHERE t."tweetCreatedAt" >= ${since} AND a.hidden = false AND ${venueClause(venue)}
+    WHERE t."tweetCreatedAt" >= ${since} ${upper} AND a.hidden = false AND ${venueClause(venue)}
     GROUP BY t."authorLower"`);
   // Venue accounts are shown on their own profiles, never ranked against creators.
   return rows.filter((r) => !isOfficialHandle(r.author));
@@ -359,6 +373,7 @@ export async function buildBoard(venue: VenueFilter, win: XWindow): Promise<Boar
       return {
         ...c,
         rank: 0,
+        move: null as number | null,
         handle: acc?.handle ?? a.author,
         name: acc?.name ?? a.author,
         avatar: acc?.avatar ?? null,
@@ -375,9 +390,26 @@ export async function buildBoard(venue: VenueFilter, win: XWindow): Promise<Boar
     .sort((x, y) => y.points - x.points || y.views - x.views || x.handle.localeCompare(y.handle));
   rows.forEach((r, i) => (r.rank = i + 1));
 
+  // Movement: the same board computed as it stood a week ago (same window
+  // length, shifted back 7 days; all-time = everything before then).
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+  const prevSince = span ? new Date(since.getTime() - 7 * 86_400_000) : new Date(0);
+  const prevAgg = await aggregate(venue, prevSince, weekAgo);
+  const prevRank = new Map(
+    prevAgg
+      .map((a) => ({ a, p: postPoints(countsOf(a)) }))
+      .sort((x, y) => y.p - x.p || num(y.a.views) - num(x.a.views) || x.a.author.localeCompare(y.a.author))
+      .map(({ a }, i) => [a.author, i + 1] as const)
+  );
+  for (const r of rows) {
+    const pr = prevRank.get(r.handle.toLowerCase());
+    r.move = pr == null ? null : pr - r.rank;
+  }
+
   const thirty = new Date(Date.now() - 30 * 86_400_000);
   const seven = new Date(Date.now() - 7 * 86_400_000);
-  const [topRaw, dailyRaw, risingAgg, lastIndex, checked24h, budget] = await Promise.all([
+  const TERMS = ["Omni", "RFQ", "Points", "TGE", "Airdrop", "OLP", "Funding", "Leverage", "Arbitrum", "Fees"];
+  const [topRaw, dailyRaw, risingAgg, lastIndex, checked24h, budget, latestRaw, topicRaw] = await Promise.all([
     prisma.$queryRaw<any[]>(Prisma.sql`
       SELECT t."tweetId", t.url, t.text, t."tweetCreatedAt", t.views, t.likes, t.replies, t.reposts, t.quotes, t.bookmarks, t.venues,
              a.handle, a.name, a.avatar, a.verified
@@ -394,7 +426,38 @@ export async function buildBoard(venue: VenueFilter, win: XWindow): Promise<Boar
     prisma.creatorSync.findMany({ where: { key: { startsWith: "index" } }, select: { runAt: true } }).catch(() => []),
     prisma.xTweet.count({ where: { fetchedAt: { gte: new Date(Date.now() - 86_400_000) } } }).catch(() => 0),
     budgetState(),
+    prisma.$queryRaw<any[]>(Prisma.sql`
+      SELECT t."tweetId", t.url, t.text, t."tweetCreatedAt", t.views, t.likes, t.replies, t.reposts, t.quotes, t.bookmarks, t.venues,
+             a.handle, a.name, a.avatar, a.verified
+      FROM "XTweet" t JOIN "XAccount" a ON a."handleLower" = t."authorLower"
+      WHERE a.hidden = false AND ${venueClause(venue)}
+      ORDER BY t."tweetCreatedAt" DESC
+      LIMIT 20`),
+    prisma.$queryRaw<Record<string, number>[]>(Prisma.sql`
+      SELECT ${Prisma.join(TERMS.map((term) => Prisma.sql`count(*) FILTER (WHERE t.text ~* ${"\\m" + term})::int AS ${Prisma.raw(`"${term}"`)}`))}
+      FROM "XTweet" t JOIN "XAccount" a ON a."handleLower" = t."authorLower"
+      WHERE t."tweetCreatedAt" >= ${thirty} AND a.hidden = false AND ${venueClause(venue)}`),
   ]);
+
+  const toTop = (t: any): TopPost => {
+    const c: Counts = { views: num(t.views), likes: num(t.likes), replies: num(t.replies), reposts: num(t.reposts), quotes: num(t.quotes), bookmarks: num(t.bookmarks) };
+    return {
+      ...c,
+      tweetId: String(t.tweetId),
+      url: String(t.url),
+      text: String(t.text),
+      createdAt: new Date(t.tweetCreatedAt).toISOString(),
+      points: postPoints(c),
+      handle: String(t.handle),
+      name: String(t.name),
+      avatar: t.avatar ?? null,
+      verified: Boolean(t.verified),
+      venues: (t.venues ?? []) as VenueId[],
+    };
+  };
+  const latest = latestRaw.filter((t) => !isOfficialHandle(String(t.handle))).slice(0, 12).map(toTop);
+  const topicRow = topicRaw[0] ?? {};
+  const topics = TERMS.map((term) => ({ term, posts: Number(topicRow[term] ?? 0) })).sort((a, b) => b.posts - a.posts);
 
   const topPosts: TopPost[] = topRaw
     .filter((t) => !isOfficialHandle(String(t.handle)))
@@ -459,6 +522,9 @@ export async function buildBoard(venue: VenueFilter, win: XWindow): Promise<Boar
     },
     levels: LEVELS.map((l) => ({ ...l, accounts: rows.filter((r) => r.level === l.n).length })),
     topPosts,
+    latest,
+    topics,
+    active7d: risingSource.length,
     daily,
     rising,
     sync: {

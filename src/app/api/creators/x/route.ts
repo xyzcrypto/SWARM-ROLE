@@ -20,7 +20,10 @@ export const dynamic = "force-dynamic";
 // markets-poll-alignment.test.ts.
 const BOARD_TTL = 300;
 
-const cachedBoard = unstable_cache(async (venue: VenueFilter, win: XWindow) => buildBoard(venue, win), ["creators-x-board-v3"], {
+// The key carries a version. The data cache outlives deploys, so whenever the
+// Board shape changes the version MUST change too, or the new client gets the
+// old shape for up to BOARD_TTL after a deploy (v3 -> v4 added move/topics/latest).
+const cachedBoard = unstable_cache(async (venue: VenueFilter, win: XWindow) => buildBoard(venue, win), ["creators-x-board-v4"], {
   revalidate: BOARD_TTL,
   tags: ["creators-x"],
 });
