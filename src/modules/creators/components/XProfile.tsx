@@ -274,7 +274,7 @@ export function XProfile({
               </div>
 
               {/* Venue split + timing */}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-hairline p-4">
                   <div className="mb-3 text-sm font-semibold text-content">Points by venue</div>
                   {(() => {
@@ -313,7 +313,7 @@ export function XProfile({
               </div>
 
               {/* Score breakdown + weekly */}
-              <div className="grid gap-4 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="rounded-2xl border border-hairline p-4">
                   <div className="mb-3 flex items-center justify-between">
                     <span className="text-sm font-semibold text-content">XYZ Score breakdown</span>
@@ -367,7 +367,7 @@ export function XProfile({
                       )}
                     >
                       {b.earned ? <Check className="h-3.5 w-3.5 shrink-0 text-gold-300" /> : <Lock className="h-3.5 w-3.5 shrink-0" />}
-                      <span className="truncate">{b.label}</span>
+                      <span className="min-w-0 truncate">{b.label}</span>
                     </motion.div>
                   ))}
                 </div>

@@ -15,7 +15,9 @@ export const dynamic = "force-dynamic";
 // held for 5 min per window. The indexer (runIndex) is kicked AFTER the
 // response is sent; it claims a lock and does nothing unless 30 min have
 // passed, so traffic cannot multiply its cost - and every item it pays for is
-// counted against TWITTERAPI_DAILY_ITEMS. Not polled by the client.
+// counted against TWITTERAPI_DAILY_ITEMS. Polled by /creators every X_POLL_MS
+// (240s, visible tab only) against this 300s window - listed in TARGETS in
+// markets-poll-alignment.test.ts.
 const BOARD_TTL = 300;
 
 const cachedBoard = unstable_cache(async (venue: VenueFilter, win: XWindow) => buildBoard(venue, win), ["creators-x-board-v3"], {
@@ -33,7 +35,8 @@ export async function GET(req: Request) {
     const board = await cachedBoard(v as VenueFilter, w);
     after(runIndex);
     return NextResponse.json(board, {
-      headers: { "Cache-Control": `public, s-maxage=${BOARD_TTL}, stale-while-revalidate=3600` },
+      // Literal on purpose: markets-poll-alignment.test.ts reads it. Keep equal to BOARD_TTL.
+      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=3600" },
     });
   } catch (err) {
     return handleError(err, "creators:x:get");

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { Swords } from "lucide-react";
@@ -25,6 +25,40 @@ const TABS: { id: Tab; label: string; short: string; Icon: (p: { className?: str
 
 const VALID_VENUES = new Set(["variational", "entropy", "all"]);
 
+/**
+ * Live refresh. Each poll is SHORTER than its route's edge window (X 300s,
+ * YouTube 600s) and longer than a third of it, so a poll never forces a
+ * regeneration and never just re-reads identical bytes - see
+ * markets-poll-alignment.test.ts, where both are in TARGETS. Visible tab only.
+ */
+export const X_POLL_MS = 240_000;
+export const YT_POLL_MS = 540_000;
+
+function useVisibleTick(ms: number): number {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    let last = Date.now();
+    const id = setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      last = Date.now();
+      setTick((t) => t + 1);
+    }, ms);
+    // Coming back to a tab that missed a poll refreshes at once.
+    const onVis = () => {
+      if (document.visibilityState === "visible" && Date.now() - last >= ms) {
+        last = Date.now();
+        setTick((t) => t + 1);
+      }
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [ms]);
+  return tick;
+}
+
 export function CreatorsClient() {
   const { data: session } = useSession();
   const isAdmin = (session?.user as any)?.role === "ADMIN";
@@ -39,6 +73,10 @@ export function CreatorsClient() {
   const [compareWith, setCompareWith] = useState<string | null>(null);
   const [watch, saveWatch] = useLocalList("xyz:creators:watch", 200);
   const [recents, saveRecents] = useLocalList("xyz:creators:recent", 12);
+  const xTick = useVisibleTick(X_POLL_MS);
+  const ytTick = useVisibleTick(YT_POLL_MS);
+  const boardKey = useRef("");
+  const ytKey = useRef("");
 
   // Deep links (?x=handle opens a profile, ?tab=, ?venue=). Read after mount,
   // not during render, so the static shell and the first client render match -
@@ -60,7 +98,13 @@ export function CreatorsClient() {
   // filter change dims the board for a moment instead of blanking it.
   useEffect(() => {
     let alive = true;
-    const t = setTimeout(() => setBoard((s) => (s.status === "ready" ? { ...s, refreshing: true } : { status: "loading" })), 0);
+    // A poll of the same filter updates silently; only a filter change dims.
+    const key = `${venue}|${win}`;
+    const silent = boardKey.current === key;
+    boardKey.current = key;
+    const t = setTimeout(() => {
+      if (!silent) setBoard((s) => (s.status === "ready" ? { ...s, refreshing: true } : { status: "loading" }));
+    }, 0);
     fetch(`/api/creators/x?venue=${venue}&window=${win}`)
       .then(async (r) => {
         const body = await r.json().catch(() => null);
@@ -73,11 +117,15 @@ export function CreatorsClient() {
       alive = false;
       clearTimeout(t);
     };
-  }, [venue, win]);
+  }, [venue, win, xTick]);
 
   useEffect(() => {
     let alive = true;
-    const t = setTimeout(() => setYt((s) => (s.status === "ready" ? { ...s, refreshing: true } : { status: "loading" })), 0);
+    const silent = ytKey.current === topic;
+    ytKey.current = topic;
+    const t = setTimeout(() => {
+      if (!silent) setYt((s) => (s.status === "ready" ? { ...s, refreshing: true } : { status: "loading" }));
+    }, 0);
     fetch(`/api/creators/youtube?topic=${topic}`)
       .then(async (r) => {
         const body = await r.json().catch(() => null);
@@ -85,14 +133,14 @@ export function CreatorsClient() {
         if (body?.configured === false) return setYt({ status: "unconfigured" });
         if (!r.ok || !Array.isArray(body?.videos)) return setYt((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error", quota: body?.error === "quota" }));
         // The window filter's "now" is captured here, never during render.
-        setYt({ status: "ready", videos: body.videos, fetchedAt: body.fetchedAt ?? null, partial: Boolean(body.partial), loadedAt: Date.now(), refreshing: false });
+        setYt({ status: "ready", videos: body.videos, fetchedAt: body.fetchedAt ?? null, statsAt: body.statsAt ?? null, partial: Boolean(body.partial), loadedAt: Date.now(), refreshing: false });
       })
       .catch(() => alive && setYt((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error", quota: false })));
     return () => {
       alive = false;
       clearTimeout(t);
     };
-  }, [topic]);
+  }, [topic, ytTick]);
 
   const setUrl = (key: string, value: string | null) => {
     try {

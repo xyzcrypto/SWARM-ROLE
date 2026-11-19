@@ -3,25 +3,35 @@ import { unstable_cache } from "next/cache";
 import { env } from "@/lib/env";
 import { handleError, fail } from "@/lib/api";
 import { TOPICS, topicById, type YtVideo } from "@modules/creators/lib/scoring";
-import { fetchTopic, mergeTopics, YoutubeError } from "@modules/creators/lib/youtube";
+import { fetchStats, fetchTopic, mergeTopics, withStats, YoutubeError, type LiveStats } from "@modules/creators/lib/youtube";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 // GET /api/creators/youtube?topic=<id|all>
 //
-// Not polled: the /creators page fetches once per topic switch. Two cache
-// layers, and the quota depends on the inner one:
-//  - unstable_cache, 12h per topic: the ONLY thing that spends YouTube quota.
-//    ~310 units per topic refresh, 10 topics, 2 refreshes/day = about 6,200 of
-//    the free 10,000. Visitor traffic cannot move that number.
-//  - the edge, s-maxage 1h: keeps repeat visits off the function entirely.
-// The result is the reduced video list (tens of kB), well under the data
-// cache's 2 MB ceiling, so the cache entry is actually stored.
-const TOPIC_TTL = 43_200;
+// Polled by /creators every YT_POLL_MS (540s) while the tab is visible, and
+// listed in markets-poll-alignment.test.ts TARGETS. Three cache layers; the
+// quota depends only on the inner two:
+//  - DISCOVERY, unstable_cache 24h per topic: the search.list calls (100 units
+//    each) that find which videos exist. ~310 units per topic, 10 topics, once
+//    a day = ~3,100 units.
+//  - LIVE STATS, unstable_cache 10 min per topic: videos.list on the ids
+//    discovery found, 1 unit per 50 ids (~3 units a topic). At most 144
+//    refreshes a day per topic = ~4,300 units. Together ~7,400 of the free
+//    10,000, whatever the traffic. This is what makes views, likes and
+//    comments current to within about 10 minutes.
+//  - the edge, s-maxage 600 (>= the 540s poll, < 3x it): repeat visits never
+//    reach the function.
+// Both cached values are reduced (tens of kB), well under the 2 MB data cache
+// ceiling, so they are actually stored.
+const DISCOVERY_TTL = 86_400;
+const STATS_TTL = 600;
 
 type TopicPayload = { videos: YtVideo[]; fetchedAt: string };
 
+// Same key as before the split, so production keeps its warm discovery
+// entries instead of re-spending search quota on deploy.
 const cachedTopic = unstable_cache(
   async (topicId: string): Promise<TopicPayload> => {
     const topic = topicById(topicId);
@@ -30,7 +40,20 @@ const cachedTopic = unstable_cache(
     return { videos, fetchedAt: new Date().toISOString() };
   },
   ["creators-yt-topic-v1"],
-  { revalidate: TOPIC_TTL, tags: ["creators-youtube"] }
+  { revalidate: DISCOVERY_TTL, tags: ["creators-youtube"] }
+);
+
+const cachedStats = unstable_cache(
+  async (topicId: string): Promise<{ stats: LiveStats; at: string }> => {
+    const d = await cachedTopic(topicId);
+    const stats = await fetchStats(
+      d.videos.map((v) => v.id),
+      env.YOUTUBE_API_KEY
+    );
+    return { stats, at: new Date().toISOString() };
+  },
+  ["creators-yt-stats-v1"],
+  { revalidate: STATS_TTL, tags: ["creators-youtube"] }
 );
 
 // A failed refresh is not cached by unstable_cache (it throws), so without a
@@ -40,19 +63,24 @@ const cachedTopic = unstable_cache(
 const failedUntil = new Map<string, number>();
 const FAIL_BACKOFF_MS = 15 * 60_000;
 
-async function loadTopic(id: string): Promise<TopicPayload> {
+async function loadTopic(id: string): Promise<TopicPayload & { statsAt: string | null }> {
   const until = failedUntil.get(id) ?? 0;
   if (until > Date.now()) throw new YoutubeError("Backing off after a recent YouTube error", 503, "backoff");
+  let base: TopicPayload;
   try {
-    return await cachedTopic(id);
+    base = await cachedTopic(id);
   } catch (err) {
     failedUntil.set(id, Date.now() + FAIL_BACKOFF_MS);
     throw err;
   }
+  // Live counts are a bonus on top of discovery: if they fail, serve the
+  // snapshot (still real numbers, just older) rather than nothing.
+  const live = await cachedStats(id).catch(() => null);
+  return live ? { videos: withStats(base.videos, live.stats), fetchedAt: base.fetchedAt, statsAt: live.at } : { ...base, statsAt: null };
 }
 
-const OK_CACHE = "public, s-maxage=3600, stale-while-revalidate=43200";
-const ERR_CACHE = "public, s-maxage=300, stale-while-revalidate=600";
+const OK_CACHE = "public, s-maxage=600, stale-while-revalidate=3600";
+const ERR_CACHE = "public, s-maxage=600, stale-while-revalidate=1200";
 
 export async function GET(req: Request) {
   try {
@@ -82,8 +110,10 @@ export async function GET(req: Request) {
 
     const videos = mergeTopics(good.map((g) => g.videos));
     const fetchedAt = good.map((g) => g.fetchedAt).sort()[0] ?? null; // oldest = honest "as of"
+    // Oldest live-stats time across the topics; null if any topic is on its snapshot.
+    const statsAt = good.every((g) => g.statsAt) ? (good.map((g) => g.statsAt!).sort()[0] ?? null) : null;
     return NextResponse.json(
-      { configured: true, topic: topicParam, videos, fetchedAt, partial: good.length < ids.length },
+      { configured: true, topic: topicParam, videos, fetchedAt, statsAt, partial: good.length < ids.length },
       { headers: { "Cache-Control": good.length < ids.length ? ERR_CACHE : OK_CACHE } }
     );
   } catch (err) {

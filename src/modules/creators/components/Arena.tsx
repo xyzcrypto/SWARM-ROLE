@@ -596,7 +596,7 @@ function HeadToHead({ pool, initial }: { pool: ArenaEntry[]; initial: string | n
 
   return (
     <div>
-      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
         {select(a, setA, "border-gold-400/40")}
         <button type="button" onClick={() => (setA(b), setB(a))} aria-label="Swap" className="rounded-full p-1.5 text-gold-300 hover:bg-ink-700">
           <Swords className="h-5 w-5" />
@@ -605,7 +605,7 @@ function HeadToHead({ pool, initial }: { pool: ArenaEntry[]; initial: string | n
       </div>
       {A && B && (
         <div className="mt-5">
-          <div className="mb-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-center">
+          <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-center">
             <div className="flex flex-col items-center">
               <Avatar src={A.avatar} alt={A.name} size={56} ring={wins[0]! > wins[1]! ? "ring-2 ring-gold-400" : undefined} />
               <div className="mt-2 max-w-full truncate text-sm font-semibold text-gold-200">{A.name}</div>

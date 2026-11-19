@@ -146,3 +146,29 @@ export function mergeTopics(lists: YtVideo[][]): YtVideo[] {
   }
   return [...by.values()];
 }
+
+export type LiveStats = Record<string, { views: number; likes: number | null; comments: number | null }>;
+
+/**
+ * Current counts for known videos: videos.list only, 1 quota unit per 50 ids.
+ * This is what keeps the boards live - discovery (search, 100 units a call)
+ * stays slow, the numbers on the videos it found refresh often.
+ */
+export async function fetchStats(ids: string[], apiKey: string, f: FetchLike = fetch): Promise<LiveStats> {
+  const out: LiveStats = {};
+  for (const group of chunks(ids, 50)) {
+    const r = await call("videos", { part: "statistics", id: group.join(","), maxResults: "50" }, apiKey, f);
+    for (const v of r?.items ?? []) {
+      out[v.id] = { views: num(v.statistics?.viewCount) ?? 0, likes: num(v.statistics?.likeCount), comments: num(v.statistics?.commentCount) };
+    }
+  }
+  return out;
+}
+
+/** Apply live counts on top of the discovery snapshot. Videos missing from `stats` keep their snapshot. */
+export function withStats(videos: YtVideo[], stats: LiveStats): YtVideo[] {
+  return videos.map((v) => {
+    const s = stats[v.id];
+    return s ? { ...v, views: s.views, likes: s.likes, comments: s.comments } : v;
+  });
+}
