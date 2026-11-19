@@ -15,7 +15,7 @@ import {
   viewsPerDay,
   type YtVideo,
 } from "@modules/creators/lib/scoring";
-import { fetchTopic, fetchStats, withStats, mergeTopics, classify, parseDuration, YoutubeError } from "@modules/creators/lib/youtube";
+import { fetchTopic, fetchStats, withStats, mergeTopics, classify, parseDuration, YoutubeError, discoveryUnits, nextQuotaReset } from "@modules/creators/lib/youtube";
 import {
   normalizeTweet,
   normalizeUser,
@@ -191,7 +191,7 @@ describe("creators: YouTube client", () => {
     expect(calls.some((c) => c.url.includes("k-123"))).toBe(false);
     const searches = calls.filter((c) => c.url.includes("/search?")).map((c) => new URL(c.url).searchParams);
     // all-time most viewed + 90-day most viewed + 90-day newest
-    expect(searches.map((p) => `${p.get("order")}:${p.has("publishedAfter")}`).sort()).toEqual(["date:true", "viewCount:false", "viewCount:false", "viewCount:false", "viewCount:true"]);
+    expect(searches.map((p) => `${p.get("order")}:${p.has("publishedAfter")}`).sort()).toEqual(["date:true", "viewCount:false", "viewCount:false", "viewCount:false"]);
     // Variational's extra phrases are searched too.
     expect(searches.map((p) => p.get("q"))).toEqual(expect.arrayContaining(["Variational Omni", "Variational airdrop"]));
   });
@@ -446,21 +446,31 @@ describe("creators: YouTube accuracy and composite ranking", () => {
   });
 });
 
-describe("creators: YouTube all-time coverage", () => {
-  it("reads a second page of all-time most viewed when YouTube offers one", async () => {
+describe("creators: YouTube quota safety", () => {
+  it("makes only the two core searches for a plain venue (~205 units), and survives a failed extra phrase", async () => {
     const searches: URLSearchParams[] = [];
     const f = async (url: string) => {
       const u = new URL(url);
       if (u.pathname.endsWith("/search")) {
         searches.push(u.searchParams);
-        const first = u.searchParams.get("order") === "viewCount" && !u.searchParams.has("publishedAfter") && !u.searchParams.has("pageToken");
-        return json({ items: [], ...(first ? { nextPageToken: "P2" } : {}) });
+        if (u.searchParams.get("q") === "Variational airdrop") return json({ error: { errors: [{ reason: "backendError" }] } }, 500);
+        return json({ items: [] });
       }
       return json({ items: [] });
     };
     await fetchTopic(topicById("hyperliquid")!, "k", NOW, f as any);
+    expect(searches).toHaveLength(2);
+    expect(discoveryUnits(topicById("hyperliquid")!)).toBe(205);
+    searches.length = 0;
+    await expect(fetchTopic(topicById("variational")!, "k", NOW, f as any)).resolves.toEqual([]);
     expect(searches).toHaveLength(4);
-    expect(searches.filter((p) => p.get("pageToken") === "P2")).toHaveLength(1);
+  });
+
+  it("knows when the daily quota resets (midnight Pacific)", () => {
+    // 2026-11-19 12:00 UTC = 04:00 PST -> next reset 2026-11-20 00:00 PST = 08:00 UTC
+    expect(new Date(nextQuotaReset(Date.parse("2026-11-19T12:00:00Z"))).toISOString()).toBe("2026-11-20T08:00:00.000Z");
+    // Summer (PDT, UTC-7): 2026-07-01 06:59 UTC = 23:59 PDT -> reset at 07:00 UTC
+    expect(new Date(nextQuotaReset(Date.parse("2026-07-01T06:59:00Z"))).toISOString()).toBe("2026-07-01T07:00:00.000Z");
   });
 });
 

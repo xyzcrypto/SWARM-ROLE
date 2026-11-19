@@ -1,9 +1,8 @@
 // YouTube Data API v3 client for the /creators leaderboard.
 //
 // Quota (free tier, 10,000 units/day per key):
-//   search.list   = 100 units per call  (4 per topic: two pages of all-time
-//                   most viewed, most viewed in the last 90 days, newest in
-//                   the last 90)
+//   search.list   = 100 units per call  (2 per topic: all-time most viewed and
+//                   newest of the last 90 days, plus a venue's extra phrases)
 //   videos.list   =   1 unit per 50 ids
 //   channels.list =   1 unit per 50 ids
 // So one topic refresh costs ~310 units and all ten ~3,100. The route caches
@@ -89,16 +88,19 @@ export async function fetchTopic(topic: Topic, apiKey: string, now: number, f: F
   const publishedAfter = new Date(now - LOOKBACK_DAYS * 86_400_000).toISOString();
   const base = { part: "snippet", type: "video", maxResults: "50", q: topic.query };
 
-  const searches = await Promise.all([
-    call("search", { ...base, order: "viewCount" }, apiKey, f), // all time
-    call("search", { ...base, order: "viewCount", publishedAfter }, apiKey, f),
+  // Two core searches (100 units each): the all-time most viewed, and the
+  // newest of the last 90 days, so fresh videos are found even before they
+  // rack up views. A venue's extra phrases are best-effort: one failing does
+  // not throw away the rest. The live view counts come from videos.list (1
+  // unit per 50), so dropping the old 90-day "most viewed" search and the
+  // second all-time page costs no accuracy on numbers, only some long-tail
+  // discovery - and halves the quota (YouTube kept running out).
+  const core = await Promise.all([
+    call("search", { ...base, order: "viewCount" }, apiKey, f),
     call("search", { ...base, order: "date", publishedAfter }, apiKey, f),
-    ...(topic.extraQueries ?? []).map((q) => call("search", { ...base, q, order: "viewCount" }, apiKey, f)),
   ]);
-  // All-time coverage: a second page of the most viewed, so a venue's top 100
-  // videos are in, not just its top 50 (+100 units per topic, once a day).
-  const nextAllTime = searches[0]?.nextPageToken;
-  if (nextAllTime) searches.push(await call("search", { ...base, order: "viewCount", pageToken: nextAllTime }, apiKey, f));
+  const extra = await Promise.allSettled((topic.extraQueries ?? []).map((q) => call("search", { ...base, q, order: "viewCount" }, apiKey, f)));
+  const searches = [...core, ...extra.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []))];
   const ids = [
     ...new Set(searches.flatMap((s) => (s?.items ?? []).map((it: any) => it?.id?.videoId).filter(Boolean) as string[])),
   ];
@@ -203,4 +205,19 @@ export function withStats(videos: YtVideo[], stats: LiveStats): YtVideo[] {
     const s = stats[v.id];
     return s ? { ...v, views: s.views, likes: s.likes, comments: s.comments } : v;
   });
+}
+
+/** Quota cost of one discovery for a topic: 100 per search + ~5 for videos/channels lookups. */
+export function discoveryUnits(topic: Topic): number {
+  return 100 * (2 + (topic.extraQueries?.length ?? 0)) + 5;
+}
+
+/** The next midnight in America/Los_Angeles - when YouTube's daily quota resets. */
+export function nextQuotaReset(now: number): number {
+  const d = new Date(now);
+  const la = new Date(d.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+  const offset = d.getTime() - la.getTime();
+  const next = new Date(la);
+  next.setHours(24, 0, 0, 0);
+  return next.getTime() + offset;
 }

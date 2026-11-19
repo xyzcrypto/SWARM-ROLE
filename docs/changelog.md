@@ -5,6 +5,63 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (153) — Creators: YouTube that survives its quota, and the wrong-venue data bug
+
+The owner reported that YouTube data was not loading on /creators.
+
+### Diagnosis
+- **The YouTube Data API's free quota (10,000 units/day) was used up.**
+  - Every deploy on 2026-11-19 bumped the discovery cache key, and each bump re-ran the full
+    search for all 10 venues (~550 units a venue after #404/#405).
+  - Live stats ran every 20 min on top of that.
+- **The new `YtDiscovery` store (#405) had nothing to fall back on.** It only fills after a
+  successful search, so with the quota gone it stayed empty and the tab showed nothing.
+- **A second, real client bug:** switching venue when the request failed kept the previous
+  venue's videos on screen under the new venue's chip. That reads as "Variational shows the
+  wrong data". The X board had the same pattern.
+
+### Fixes
+- **Fewer units.**
+  - Discovery is now 2 core searches per venue (all-time most viewed, plus the newest of the
+    last 90 days), and extra phrases are best-effort.
+  - The cost is ~205 units a venue (Variational ~405, Entropy ~305), down from ~550; ~2,550
+    for all ten, once a day.
+  - Live stats run every 30 min (was 20).
+  - The old 90-day "most viewed" search and the second all-time page are gone. Live counts
+    still come from `videos.list`, so the numbers are unchanged.
+- **Quota guard.**
+  - On `quotaExceeded`, `CreatorSync("yt-quota")` records the reset time (midnight Pacific,
+    `nextQuotaReset`). No YouTube call is made until then; stored data is served.
+  - The page says when fresh numbers return: "in about 5 hours", or the UTC time when nothing
+    is stored yet.
+- **One discovery per venue at a time:** `CreatorSync("ytdisc:<topic>")` holds a 5-min lock,
+  so parallel instances cannot pay for the same search twice.
+- **Discovery is no longer in `unstable_cache`.** A stale fallback cached there would have
+  outlived the quota reset by up to a day. The DB is the cache, plus a 5-min in-memory copy.
+- **Visible reasons.** The API's own reason (e.g. `keyInvalid`, `accessNotConfigured`) comes
+  back in the response and is shown on the page, so a key problem shows up without logs.
+- **Wrong-venue fix (X and YouTube):** a failed background refresh keeps the data on screen,
+  but a failed change of filter shows the error instead of the previous filter's data.
+
+### Verified locally
+- **Guard active:**
+  - Variational served the last good list with `stale` and the reset time.
+  - GMX (nothing stored) returned `quota` with the reset time.
+  - 0 YouTube calls were attempted.
+- **Guard off, YouTube failing:** exactly 1 discovery attempt, then stored data on every later
+  request. The real API reason was logged.
+- **UI** (Playwright, desktop and iPhone):
+  - Correct messages for both cases.
+  - No Variational videos shown under GMX.
+  - No horizontal overflow.
+- **Tests** (37 in `creators.test.ts`): a plain venue makes 2 searches (205 units), a failed
+  extra phrase does not throw, and the reset time is right in both PST and PDT.
+
+Owner note: until the next reset the tab may show the quota message. For more headroom, a
+second YouTube API key from another Google Cloud project doubles the quota.
+
+---
+
 ## 2026-11-19 (152) — Arena: sound effects, background music, and audio settings
 
 The owner asked for sound effects and background music in the Arena, with settings to turn

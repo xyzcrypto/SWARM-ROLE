@@ -109,7 +109,10 @@ export function CreatorsClient() {
       .then(async (r) => {
         const body = await r.json().catch(() => null);
         if (!alive) return;
-        if (!r.ok || !Array.isArray(body?.rows)) return setBoard((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error" }));
+        // A failed background refresh keeps what is on screen; a failed CHANGE
+        // of filter must not leave the previous filter's data under the new
+        // filter's label.
+        if (!r.ok || !Array.isArray(body?.rows)) return setBoard((s) => (silent && s.status === "ready" ? { ...s, refreshing: false } : { status: "error" }));
         // Defaults for fields a cached older payload might lack, so a shape
         // change can never crash the page during a deploy window.
         setBoard({
@@ -118,7 +121,7 @@ export function CreatorsClient() {
           refreshing: false,
         });
       })
-      .catch(() => alive && setBoard((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error" })));
+      .catch(() => alive && setBoard((s) => (silent && s.status === "ready" ? { ...s, refreshing: false } : { status: "error" })));
     return () => {
       alive = false;
       clearTimeout(t);
@@ -137,11 +140,16 @@ export function CreatorsClient() {
         const body = await r.json().catch(() => null);
         if (!alive) return;
         if (body?.configured === false) return setYt({ status: "unconfigured" });
-        if (!r.ok || !Array.isArray(body?.videos)) return setYt((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error", quota: body?.error === "quota" }));
+        if (!r.ok || !Array.isArray(body?.videos))
+          return setYt((s) =>
+            silent && s.status === "ready"
+              ? { ...s, refreshing: false }
+              : { status: "error", quota: body?.error === "quota", resetAt: body?.quotaResetAt ?? null, reason: body?.error === "busy" ? "busy" : (body?.reason ?? null) }
+          );
         // The window filter's "now" is captured here, never during render.
-        setYt({ status: "ready", videos: body.videos, fetchedAt: body.fetchedAt ?? null, statsAt: body.statsAt ?? null, partial: Boolean(body.partial), loadedAt: Date.now(), refreshing: false, stale: Boolean(body.stale) });
+        setYt({ status: "ready", videos: body.videos, fetchedAt: body.fetchedAt ?? null, statsAt: body.statsAt ?? null, partial: Boolean(body.partial), loadedAt: Date.now(), refreshing: false, stale: Boolean(body.stale), resetAt: body.quotaResetAt ?? null });
       })
-      .catch(() => alive && setYt((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error", quota: false })));
+      .catch(() => alive && setYt((s) => (silent && s.status === "ready" ? { ...s, refreshing: false } : { status: "error", quota: false, resetAt: null, reason: null })));
     return () => {
       alive = false;
       clearTimeout(t);
