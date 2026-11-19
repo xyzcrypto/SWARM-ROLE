@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, BadgeCheck, Check, Clock, Download, Flame, Link2, Loader2, Lock, Star, Trophy, X as Close } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Check, Clock, Download, Flame, Link2, Loader2, Lock, RefreshCw, Star, Trophy, X as Close } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { useScrollLock } from "@shared/hooks/useScrollLock";
 import type { Profile, ProfilePost, BoardRow, VenueFilter } from "@modules/creators/lib/x-index";
@@ -55,12 +55,13 @@ export function XProfile({
   const [copied, setCopied] = useState(false);
   useScrollLock(true);
 
+  const [refreshTick, setRefreshTick] = useState(0);
   useEffect(() => {
     let alive = true;
     // Switching venue keeps the current profile on screen (dimmed) until the
     // new one lands, instead of flashing back to a spinner.
     const t = setTimeout(() => setState((s) => (s.s === "ready" ? { ...s, refreshing: true } : { s: "loading" })), 0);
-    fetch(`/api/creators/x/profile?handle=${encodeURIComponent(handle)}&venue=${venue}${replies ? "&replies=1" : ""}`)
+    fetch(`/api/creators/x/profile?handle=${encodeURIComponent(handle)}&venue=${venue}${replies ? "&replies=1" : ""}${refreshTick ? "&refresh=1" : ""}`)
       .then(async (r) => {
         const body = await r.json().catch(() => null);
         if (!alive) return;
@@ -79,7 +80,7 @@ export function XProfile({
       alive = false;
       clearTimeout(t);
     };
-  }, [handle, venue, replies]);
+  }, [handle, venue, replies, refreshTick]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -104,6 +105,16 @@ export function XProfile({
     const above = board.find((r) => r.rank === p.rank! - 1);
     return above ? { handle: above.handle, gap: Math.max(1, above.points - p.totals.points + 1) } : null;
   }, [p, board, boardVenue, venue]);
+
+  // "Refresh from X" is offered once the stored read is over 30 minutes old.
+  // Decided from the fetch time captured with the data, never Date.now() in render.
+  const [loadedAt, setLoadedAt] = useState(0);
+  useEffect(() => {
+    if (state.s !== "ready") return;
+    const t = setTimeout(() => setLoadedAt(Date.now()), 0);
+    return () => clearTimeout(t);
+  }, [state]);
+  const refreshable = !!p?.scannedAt && loadedAt > 0 && loadedAt - Date.parse(p.scannedAt) > 30 * 60_000;
 
   const best = useMemo(() => (p ? [...p.posts].sort((a, b) => b.points - a.points)[0] ?? null : null), [p]);
   const bestHour = useMemo(() => {
@@ -370,6 +381,11 @@ export function XProfile({
                 <button type="button" onClick={() => onCompare(p.handle)} className="btn-ghost">
                   Compare
                 </button>
+                {(!p.scannedAt || refreshable) && (
+                  <button type="button" onClick={() => setRefreshTick((t) => t + 1)} disabled={state.s === "ready" && state.refreshing} className="btn-ghost inline-flex items-center gap-2 disabled:opacity-60">
+                    <RefreshCw className={cn("h-4 w-4", state.s === "ready" && state.refreshing && "animate-spin")} /> Refresh from X
+                  </button>
+                )}
                 <button type="button" onClick={() => onToggleStar(p.handle)} className="btn-ghost inline-flex items-center gap-2" aria-pressed={starred}>
                   <Star className={cn("h-4 w-4", starred && "fill-current text-gold-300")} /> {starred ? "Watching" : "Watch"}
                 </button>

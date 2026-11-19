@@ -21,6 +21,10 @@ export type Topic = {
   label: string;
   /** What we send to YouTube search. */
   query: string;
+  /** Extra all-time searches for venues whose videos one phrase does not catch. */
+  extraQueries?: string[];
+  /** Exclude titles that read as academic (maths / physics / ML) - for venues named after a common word. */
+  academic?: boolean;
   /**
    * Relevance gate on title + description, lowercased. Every group must match
    * at least one of its terms. YouTube search is fuzzy ("lighter" returns
@@ -33,11 +37,11 @@ export type Topic = {
 const PERP_CONTEXT = ["perp", "dex", "airdrop", "points", "trading", "futures", "crypto", "defi", "testnet", "tge", "token"];
 
 export const TOPICS: Topic[] = [
-  { id: "variational", label: "Variational", query: "Variational perp dex", must: [["variational"], ["perp", "dex", "omni", "rfq", "airdrop", "points", "trading", "crypto", "arbitrum", "defi", "tge"]] },
+  { id: "variational", label: "Variational", query: "Variational perp dex", extraQueries: ["Variational Omni", "Variational airdrop"], academic: true, must: [["variational"], ["perp", "dex", "omni", "rfq", "airdrop", "points", "trading", "crypto", "arbitrum", "defi", "tge"]] },
   // Entropy (entropy.io): HIP-3 venue on Hyperliquid with pre-IPO / equity
   // perps. "Entropy" alone is physics and Pyth's RNG, so it needs Entropy's
   // own context next to it.
-  { id: "entropy", label: "Entropy", query: "Entropy Hyperliquid HIP-3 perps", must: [["entropy"], ["hyperliquid", "hip-3", "hip3", "pre-ipo", "pre ipo", "entropy.io", "perp"]] },
+  { id: "entropy", label: "Entropy", query: "Entropy Hyperliquid HIP-3 perps", extraQueries: ["Entropy pre-IPO perps"], academic: true, must: [["entropy"], ["hyperliquid", "hip-3", "hip3", "pre-ipo", "pre ipo", "entropy.io", "perp"]] },
   { id: "hyperliquid", label: "Hyperliquid", query: "Hyperliquid", must: [["hyperliquid"]] },
   { id: "lighter", label: "Lighter", query: "Lighter perp dex", must: [["lighter"], PERP_CONTEXT] },
   { id: "aster", label: "Aster", query: "Aster dex", must: [["aster"], PERP_CONTEXT] },
@@ -47,6 +51,11 @@ export const TOPICS: Topic[] = [
   { id: "dydx", label: "dYdX", query: "dYdX", must: [["dydx"]] },
   { id: "perp-dex", label: "Perp DEX", query: "perp dex", must: [["perp dex", "perpetual dex", "perps dex", "perp-dex", "perpetual exchange", "decentralized perpetual"]] },
 ];
+
+/** Every topic a video is genuinely about, judged by the rules above (title first). */
+export function topicsFor(title: string, description: string): Exclude<TopicId, "all">[] {
+  return TOPICS.filter((t) => isRelevant(t, title, description)).map((t) => t.id);
+}
 
 export function topicById(id: string): Topic | undefined {
   return TOPICS.find((t) => t.id === id);
@@ -58,8 +67,11 @@ export function topicById(id: string): Topic | undefined {
  * a description-only mention says nothing about what the video is about.
  * The context groups may match title or description.
  */
+const ACADEMIC = /(autoencoder|\bvae\b|inference|bayesian|quantum|calculus|thermodynamic|physics|lecture|neural net|machine learning|deep learning|eigen|hamiltonian|monte carlo|entropy (of|in) (a|the)|information theory|statistical mechanics)/i;
+
 export function isRelevant(topic: Topic, title: string, description: string): boolean {
   const t = title.toLowerCase();
+  if (topic.academic && ACADEMIC.test(title)) return false;
   const hay = `${t}\n${description.toLowerCase()}`;
   const [venue, ...context] = topic.must;
   if (venue && !venue.some((term) => t.includes(term))) return false;

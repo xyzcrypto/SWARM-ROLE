@@ -334,6 +334,50 @@ export function XBoard({
             </Panel>
           </div>
 
+          {/* Share of voice */}
+          {board.rows.length > 1 && board.totals.points > 0 && (
+            <Panel>
+              <PanelTitle title="Share of voice" sub="Each creator's share of all points earned in this window" />
+              {(() => {
+                const top = board.rows.slice(0, 8);
+                const others = Math.max(0, board.totals.points - top.reduce((a, r) => a + r.points, 0));
+                const segs = [...top.map((r) => ({ k: r.handle, v: r.points })), ...(others > 0 ? [{ k: "Everyone else", v: others }] : [])];
+                const tones = ["bg-gold-300", "bg-gold-400", "bg-gold-500", "bg-gold-600", "bg-mint-300", "bg-mint-400", "bg-mint-500", "bg-mint-600", "bg-ink-500"];
+                return (
+                  <>
+                    <div className="flex h-3 w-full overflow-hidden rounded-full bg-ink-700">
+                      {segs.map((sg, i) => (
+                        <motion.div
+                          key={sg.k}
+                          title={`${sg.k}: ${pct(sg.v / board.totals.points)}`}
+                          className={cn("h-full", sg.k === "Everyone else" ? tones[8] : tones[i])}
+                          initial={{ width: 0 }}
+                          animate={{ width: `${(sg.v / board.totals.points) * 100}%` }}
+                          transition={{ duration: 0.8, delay: i * 0.04, ease: [0.22, 1, 0.36, 1] }}
+                        />
+                      ))}
+                    </div>
+                    <ul className="mt-4 grid grid-cols-1 gap-x-6 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+                      {segs.map((sg, i) => (
+                        <li key={sg.k} className="flex min-w-0 items-center gap-2 text-xs">
+                          <span className={cn("h-2.5 w-2.5 shrink-0 rounded-sm", sg.k === "Everyone else" ? tones[8] : tones[i])} />
+                          {sg.k === "Everyone else" ? (
+                            <span className="min-w-0 flex-1 truncate text-content-muted">Everyone else</span>
+                          ) : (
+                            <button type="button" onClick={() => onOpen(sg.k)} className="min-w-0 flex-1 truncate text-left text-content hover:text-gold-200">
+                              @{sg.k}
+                            </button>
+                          )}
+                          <span className="shrink-0 tabular-nums text-content-subtle">{pct(sg.v / board.totals.points)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                );
+              })()}
+            </Panel>
+          )}
+
           {/* Levels */}
           <Panel>
             <PanelTitle title="Levels" sub="Tap a level to filter the leaderboard" right={level ? <Chip active onClick={() => setLevel(null)}>Clear filter</Chip> : null} />

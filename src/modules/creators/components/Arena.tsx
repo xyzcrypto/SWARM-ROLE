@@ -6,7 +6,8 @@ import { CalendarCheck, Check, Copy, Crown, Flame, Heart, Loader2, Medal, Plus, 
 import { cn } from "@/lib/utils";
 import { mulberry32 } from "@shared/utils/rng";
 import type { BoardRow, Profile } from "@modules/creators/lib/x-index";
-import type { YtCreator } from "@modules/creators/lib/scoring";
+import { rankYoutubeCreators, type YtCreator } from "@modules/creators/lib/scoring";
+import { hapticError, hapticTap } from "@shared/utils/haptics";
 import { compact, full, pct } from "@modules/creators/lib/game";
 import { validHandle } from "@modules/creators/lib/twitterapi";
 import { Avatar, Chip, CountUp, Empty, Panel, PanelTitle, useLocalList } from "./ui";
@@ -236,10 +237,30 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
   const [over, setOver] = useState(false);
   const [bests, saveBests] = useLocalList("xyz:creators:hilo-bests", 40);
   const [shared, setShared] = useState(false);
+  const [rush, setRush] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [correct, setCorrect] = useState(0);
+  const [burst, setBurst] = useState(0);
+
+  // Rush: a 60-second clock, no lives - as many right as you can.
+  const running = rush && pair != null && !over;
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          setOver(true);
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [running]);
 
   const pool = source === "x" ? xPool : ytPool;
   const metric = defOf(source, metricKey);
-  const key = `${source}:${metricKey}`;
+  const key = `${rush ? "rush" : "classic"}:${source}:${metricKey}`;
   const best = Number(bests.find((b) => b.startsWith(`${key}=`))?.split("=")[1] ?? 0);
   const metrics = source === "x" ? GAME_X : GAME_YT;
   const combo = Math.min(5, 1 + Math.floor(streak / 3));
@@ -251,6 +272,8 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
     setLives(3);
     setXp(0);
     setOver(false);
+    setTimeLeft(60);
+    setCorrect(0);
   };
 
   const start = () => {
@@ -263,13 +286,25 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
     setPicked(id);
     const winner = val(pair[0], metricKey) > val(pair[1], metricKey) ? pair[0] : pair[1];
     const right = id === winner.id;
+    if (right) {
+      hapticTap();
+      setBurst((b) => b + 1);
+    } else hapticError();
     setTimeout(() => {
       if (right) {
         const next = streak + 1;
+        const total = correct + 1;
         setStreak(next);
+        setCorrect(total);
         setXp((x) => x + 10 * combo);
-        if (next > best) saveBests([`${key}=${next}`, ...bests.filter((b) => !b.startsWith(`${key}=`))]);
+        // Classic keeps your best streak; Rush keeps your best total in 60s.
+        const score = rush ? total : next;
+        if (score > best) saveBests([`${key}=${score}`, ...bests.filter((b) => !b.startsWith(`${key}=`))]);
         setPair(pickPair(pool, metricKey, Math.random, winner));
+        setPicked(null);
+      } else if (rush) {
+        setStreak(0);
+        setPair(pickPair(pool, metricKey, Math.random));
         setPicked(null);
       } else if (lives > 1) {
         setLives((l) => l - 1);
@@ -280,7 +315,7 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
         setLives(0);
         setOver(true);
       }
-    }, 1300);
+    }, rush ? 650 : 1300);
   };
 
   if (xPool.length < 2 && ytPool.length < 2) return <Empty>The game unlocks once at least two creators are on a board.</Empty>;
@@ -295,6 +330,14 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
           YouTube
         </Chip>
         <span className="mx-1 hidden h-4 w-px bg-hairline sm:block" />
+        <Chip active={!rush} onClick={() => (setRush(false), reset())}>
+          Classic
+        </Chip>
+        <Chip active={rush} onClick={() => (setRush(true), reset())} title="60 seconds, no lives">
+          60s Rush
+        </Chip>
+      </div>
+      <div className="-mx-1 mb-4 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
         {metrics.map((m) => (
           <Chip key={m} active={metricKey === m} onClick={() => (setMetricKey(m), reset())}>
             {defOf(source, m).label}
@@ -319,19 +362,30 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
                 <Zap className="h-3.5 w-3.5" /> {full(xp)} XP
               </span>
             </div>
-            <div className="flex items-center gap-1" aria-label={`${lives} lives left`}>
-              {[0, 1, 2].map((i) => (
-                <motion.span key={i} animate={{ scale: i < lives ? 1 : 0.8, opacity: i < lives ? 1 : 0.25 }}>
-                  <Heart className={cn("h-4 w-4", i < lives ? "fill-red-400 text-red-400" : "text-content-subtle")} />
-                </motion.span>
-              ))}
-            </div>
+            {rush ? (
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs tabular-nums text-content-muted">{correct} right</span>
+                <span className={cn("rounded-full px-2.5 py-1 font-mono text-xs font-bold tabular-nums", timeLeft <= 10 ? "bg-red-400/15 text-red-300" : "bg-ink-700 text-content")}>
+                  0:{String(timeLeft).padStart(2, "0")}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1" aria-label={`${lives} lives left`}>
+                {[0, 1, 2].map((i) => (
+                  <motion.span key={i} animate={{ scale: i < lives ? 1 : 0.8, opacity: i < lives ? 1 : 0.25 }}>
+                    <Heart className={cn("h-4 w-4", i < lives ? "fill-red-400 text-red-400" : "text-content-subtle")} />
+                  </motion.span>
+                ))}
+              </div>
+            )}
           </div>
 
           {!pair ? (
             <div className="py-8 text-center">
               <p className="mx-auto max-w-md text-sm leading-relaxed text-content-muted">
-                Two creators. Who has more {metric.label.toLowerCase()}? Three lives, and every three in a row raises your combo.
+                {rush
+                  ? `Sixty seconds. Who has more ${metric.label.toLowerCase()}? Get as many right as you can.`
+                  : `Two creators. Who has more ${metric.label.toLowerCase()}? Three lives, and every three in a row raises your combo.`}
               </p>
               <button type="button" onClick={start} className="btn-primary mt-5 inline-flex items-center gap-2">
                 <Zap className="h-4 w-4" /> Play
@@ -340,8 +394,11 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
           ) : over ? (
             <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="py-6 text-center">
               <Trophy className="mx-auto h-10 w-10 text-gold-300" />
-              <div className="mt-3 font-display text-3xl font-bold text-content">{full(xp)} XP</div>
-              <p className="mt-1 text-sm text-content-muted">Best streak in this mode: {best}</p>
+              <div className="mt-3 font-display text-3xl font-bold text-content">{rush ? `${correct} right` : `${full(xp)} XP`}</div>
+              <p className="mt-1 text-sm text-content-muted">
+                {rush ? `Best in 60 seconds: ${best}` : `Best streak in this mode: ${best}`}
+                {(rush ? correct : streak) >= best && best > 0 ? " · new best!" : ""}
+              </p>
               <div className="mt-5 flex flex-wrap justify-center gap-2">
                 <button type="button" onClick={start} className="btn-primary inline-flex items-center gap-2">
                   <RotateCcw className="h-4 w-4" /> Play again
@@ -362,9 +419,42 @@ function HigherLower({ xPool, ytPool }: { xPool: ArenaEntry[]; ytPool: ArenaEntr
               </div>
             </motion.div>
           ) : (
-            <Duel pair={pair} metric={metric} picked={picked} onPick={choose} />
+            <div className="relative">
+              <Duel pair={pair} metric={metric} picked={picked} onPick={choose} />
+              <Burst key={burst} on={burst > 0} big={streak > 0 && (streak + 1) % 5 === 0} />
+            </div>
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+/** A short celebratory burst over the duel. Pure decoration, pointer-transparent. */
+function Burst({ on, big }: { on: boolean; big: boolean }) {
+  if (!on) return null;
+  const n = big ? 22 : 12;
+  const colors = ["#ebbd52", "#22d692", "#f3d488", "#54e8ad"];
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center overflow-visible">
+      {Array.from({ length: n }, (_, i) => {
+        const a = (i / n) * Math.PI * 2;
+        const r = big ? 150 : 90;
+        return (
+          <motion.span
+            key={i}
+            className="absolute h-2 w-2 rounded-full"
+            style={{ background: colors[i % colors.length] }}
+            initial={{ x: 0, y: 0, opacity: 1, scale: 1 }}
+            animate={{ x: Math.cos(a) * r, y: Math.sin(a) * r, opacity: 0, scale: 0.4 }}
+            transition={{ duration: big ? 0.9 : 0.6, ease: "easeOut" }}
+          />
+        );
+      })}
+      {big && (
+        <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1.15, opacity: [0, 1, 0] }} transition={{ duration: 1 }} className="absolute font-display text-2xl font-black text-gold-200">
+          On fire!
+        </motion.span>
       )}
     </div>
   );
@@ -649,7 +739,127 @@ function Radar({ a, b, pool, metrics }: { a: ArenaEntry; b: ArenaEntry; pool: Ar
   );
 }
 
-function HeadToHead({ xPool, ytPool, initial }: { xPool: ArenaEntry[]; ytPool: ArenaEntry[]; initial: string | null }) {
+/**
+ * Searchable creator picker. Types filter the pool by name; on the X side, a
+ * handle that is not in the pool can be looked up on X and added on the spot.
+ */
+function CreatorPicker({
+  pool,
+  value,
+  onChange,
+  tone,
+  onLookup,
+}: {
+  pool: ArenaEntry[];
+  value: ArenaEntry | undefined;
+  onChange: (id: string) => void;
+  tone: "gold" | "mint";
+  onLookup?: (handle: string) => Promise<string | null>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const needle = q.trim().replace(/^@/, "").toLowerCase();
+  const matches = useMemo(
+    () => (needle ? pool.filter((p) => p.name.toLowerCase().includes(needle) || p.sub.toLowerCase().includes(needle)) : pool).slice(0, 8),
+    [pool, needle]
+  );
+  const handle = validHandle(q);
+  const canLookup = !!onLookup && !!handle && !pool.some((p) => p.id === `x:${handle.toLowerCase()}`);
+
+  const lookup = async () => {
+    if (!onLookup || !handle) return;
+    setBusy(true);
+    setErr(null);
+    const e = await onLookup(handle);
+    setBusy(false);
+    if (e) return setErr(e);
+    onChange(`x:${handle.toLowerCase()}`);
+    setOpen(false);
+    setQ("");
+  };
+
+  return (
+    <div className="relative min-w-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className={cn(
+          "flex w-full min-w-0 items-center gap-2 rounded-xl border bg-ink-900/70 px-2.5 py-2 text-left text-sm",
+          tone === "gold" ? "border-gold-400/40" : "border-mint-400/40"
+        )}
+      >
+        {value ? <Avatar src={value.avatar} alt={value.name} size={24} /> : <span className="h-6 w-6 rounded-full bg-ink-700" />}
+        <span className="min-w-0 flex-1 truncate text-content">{value ? value.name : "Pick a creator"}</span>
+        <span className="text-[10px] text-content-subtle">{value?.rank ? `#${value.rank}` : value?.custom ? "added" : ""}</span>
+      </button>
+      {open && (
+        <div className="absolute left-0 right-0 top-full z-30 mt-1.5 min-w-[220px] rounded-2xl border border-hairline bg-ink-900 p-2 shadow-2xl">
+          <input
+            autoFocus
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setErr(null);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") setOpen(false);
+              if (e.key === "Enter" && canLookup && !matches.length) lookup();
+            }}
+            placeholder={onLookup ? "Search, or type any @handle" : "Search channels"}
+            aria-label="Search creators"
+            className="w-full rounded-xl border border-hairline bg-ink-800/70 px-3 py-2 text-sm text-content placeholder:text-content-subtle focus:border-gold-400/50 focus:outline-none"
+          />
+          <ul className="mt-1.5 max-h-64 overflow-y-auto">
+            {matches.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onChange(p.id);
+                    setOpen(false);
+                    setQ("");
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-ink-700/60"
+                >
+                  <Avatar src={p.avatar} alt={p.name} size={24} />
+                  <span className="min-w-0 flex-1 truncate text-content">{p.name}</span>
+                  <span className="shrink-0 text-[10px] tabular-nums text-content-subtle">{p.rank ? `#${p.rank}` : p.custom ? "added" : ""}</span>
+                </button>
+              </li>
+            ))}
+            {!matches.length && !canLookup && <li className="px-2 py-2 text-xs text-content-subtle">No match.</li>}
+          </ul>
+          {canLookup && (
+            <button
+              type="button"
+              onClick={lookup}
+              disabled={busy}
+              className="mt-1 flex w-full items-center gap-2 rounded-lg border border-dashed border-gold-400/40 px-2 py-2 text-left text-xs font-semibold text-gold-200 hover:bg-gold-400/5 disabled:opacity-60"
+            >
+              {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Look up @{handle} on X and add
+            </button>
+          )}
+          {err && <p className="mt-1 px-1 text-[11px] text-red-300">{err}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function HeadToHead({
+  xPool,
+  ytPool,
+  initial,
+  onLookup,
+}: {
+  xPool: ArenaEntry[];
+  ytPool: ArenaEntry[];
+  initial: string | null;
+  onLookup: (handle: string) => Promise<string | null>;
+}) {
   const [source, setSource] = useState<"x" | "yt">(xPool.length >= 2 || initial ? "x" : "yt");
   const pool = source === "x" ? xPool : ytPool;
   const metrics = source === "x" ? X_METRICS : YT_METRICS;
@@ -679,23 +889,6 @@ function HeadToHead({ xPool, ytPool, initial }: { xPool: ArenaEntry[]; ytPool: A
     setB(p[1]?.id ?? "");
   };
 
-  const select = (value: string, set: (v: string) => void, tone: string) => (
-    <select
-      value={value}
-      onChange={(e) => set(e.target.value)}
-      className={cn("w-full min-w-0 rounded-xl border bg-ink-900/70 px-3 py-2.5 text-sm text-content focus:outline-none", tone)}
-      aria-label="Pick a creator"
-    >
-      {pool.slice(0, 600).map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.rank ? `#${p.rank} ` : ""}
-          {p.name}
-          {p.custom ? " (added)" : ""}
-        </option>
-      ))}
-    </select>
-  );
-
   return (
     <div>
       <div className="mb-4 flex gap-1.5">
@@ -711,11 +904,11 @@ function HeadToHead({ xPool, ytPool, initial }: { xPool: ArenaEntry[]; ytPool: A
       ) : (
         <>
           <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 sm:gap-3">
-            {select(A?.id ?? "", setA, "border-gold-400/40")}
+            <CreatorPicker pool={pool} value={A} onChange={setA} tone="gold" onLookup={source === "x" ? onLookup : undefined} />
             <button type="button" onClick={() => (setA(B?.id ?? ""), setB(A?.id ?? ""))} aria-label="Swap" className="rounded-full p-1.5 text-gold-300 hover:bg-ink-700">
               <Swords className="h-5 w-5" />
             </button>
-            {select(B?.id ?? "", setB, "border-mint-400/40")}
+            <CreatorPicker pool={pool} value={B} onChange={setB} tone="mint" onLookup={source === "x" ? onLookup : undefined} />
           </div>
           {A && B && (
             <div className="mt-5">
@@ -1016,11 +1209,22 @@ const MODES: { id: Mode; label: string; sub: string; Icon: typeof Zap }[] = [
 ];
 
 async function fetchProfile(handle: string): Promise<{ entry: ArenaEntry | null; error: string | null }> {
-  try {
-    const r = await fetch(`/api/creators/x/profile?handle=${encodeURIComponent(handle)}&venue=variational`);
+  const get = async (replies: boolean) => {
+    const r = await fetch(`/api/creators/x/profile?handle=${encodeURIComponent(handle)}&venue=variational${replies ? "&replies=1" : ""}`);
     const body = await r.json().catch(() => null);
-    if (r.ok && body?.profile) return { entry: fromProfile(body.profile as Profile), error: null };
-    return { entry: null, error: body?.error || "No Variational posts found for that account yet." };
+    return { ok: r.ok && !!body?.profile, profile: body?.profile as Profile | undefined, error: body?.error as string | undefined };
+  };
+  try {
+    const first = await get(false);
+    if (first.ok && first.profile && first.profile.totals.posts > 0) return { entry: fromProfile(first.profile), error: null };
+    // Someone who mostly replies has no original posts: count their replies
+    // rather than refusing them, and say so in the entry.
+    const withReplies = await get(true);
+    if (withReplies.ok && withReplies.profile) {
+      const e = fromProfile(withReplies.profile);
+      return { entry: { ...e, sub: `${e.sub} · replies counted` }, error: null };
+    }
+    return { entry: null, error: first.error || withReplies.error || "No Variational posts found for that account yet." };
   } catch {
     return { entry: null, error: "Network error. Please try again." };
   }
@@ -1039,7 +1243,9 @@ export function Arena({ xPool, ytPool, label, compareWith }: { xPool: ArenaEntry
     const t = setTimeout(() => setLoadingCustom(true), 0);
     Promise.all(customHandles.map((h) => fetchProfile(h))).then((res) => {
       if (!alive) return;
-      setCustom(res.flatMap((r) => (r.entry ? [r.entry] : [])));
+      const fresh = res.flatMap((r) => (r.entry ? [r.entry] : []));
+      // Keep anything added this visit that a slow re-load has not returned yet.
+      setCustom((prev) => [...fresh, ...prev.filter((p) => !fresh.some((f) => f.id === p.id))]);
       setLoadingCustom(false);
     });
     return () => {
@@ -1048,19 +1254,42 @@ export function Arena({ xPool, ytPool, label, compareWith }: { xPool: ArenaEntry
     };
   }, [customHandles]);
 
-  const usableX = useMemo(() => {
-    const board = xPool.filter((p) => p.points > 0);
-    const ids = new Set(board.map((p) => p.id));
-    // A hand-added profile that is already on the board just uses the board row.
-    return [...board, ...custom.filter((c) => !ids.has(c.id) && c.points > 0)];
+  // The Arena's own YouTube pool covers every venue, not just the topic the
+  // YouTube tab happens to show (edge-cached, so this is cheap).
+  const [ytAll, setYtAll] = useState<ArenaEntry[] | null>(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/creators/youtube?topic=all")
+      .then((r) => r.json())
+      .then((b) => {
+        if (alive && Array.isArray(b?.videos)) setYtAll(fromYoutube(rankYoutubeCreators(b.videos)));
+      })
+      .catch(() => null);
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Everyone on the board plus everyone added by hand. Hand-added profiles
+  // are kept even at 0 points (they can still be compared and drafted);
+  // a profile already on the board just uses its board row.
+  const allX = useMemo(() => {
+    const ids = new Set(xPool.map((p) => p.id));
+    return [...xPool, ...custom.filter((c) => !ids.has(c.id))];
   }, [xPool, custom]);
-  const usableYt = useMemo(() => ytPool.filter((p) => p.points > 0), [ytPool]);
+  const usableX = useMemo(() => allX.filter((p) => p.points > 0), [allX]);
+  const allYt = ytAll && ytAll.length ? ytAll : ytPool;
+  const usableYt = useMemo(() => allYt.filter((p) => p.points > 0), [allYt]);
   const active = MODES.find((m) => m.id === mode)!;
 
-  const add = async (h: string) => {
-    if (customHandles.some((x) => x.toLowerCase() === h.toLowerCase())) return "Already added.";
+  const add = async (h: string): Promise<string | null> => {
+    if (customHandles.some((x) => x.toLowerCase() === h.toLowerCase()) || xPool.some((p) => p.id === `x:${h.toLowerCase()}`)) {
+      return null; // already in the games
+    }
     const r = await fetchProfile(h);
     if (!r.entry) return r.error;
+    // Show it at once; the saved list re-loads it with fresh numbers later.
+    setCustom((c) => [r.entry!, ...c.filter((x) => x.id !== r.entry!.id)]);
     saveCustom([h, ...customHandles]);
     return null;
   };
@@ -1097,8 +1326,10 @@ export function Arena({ xPool, ytPool, label, compareWith }: { xPool: ArenaEntry
           {mode === "hilo" && <HigherLower xPool={usableX} ytPool={usableYt} />}
           {mode === "daily" && <Daily pool={usableX.filter((p) => !p.custom).length >= 2 ? usableX.filter((p) => !p.custom) : usableYt} source={usableX.filter((p) => !p.custom).length >= 2 ? "x" : "yt"} />}
           {mode === "quiz" && <RankQuiz pool={usableX.filter((p) => p.rank > 0).length >= 8 ? usableX : usableYt} />}
-          {mode === "h2h" && <HeadToHead key={compareWith ?? "none"} xPool={usableX} ytPool={usableYt} initial={compareWith ? `x:${compareWith.toLowerCase()}` : null} />}
-          {mode === "squad" && <SquadBuilder pool={usableX.length >= 4 ? usableX : usableYt} label={usableX.length >= 4 ? label : "YouTube"} />}
+          {mode === "h2h" && (
+            <HeadToHead key={compareWith ?? "none"} xPool={allX} ytPool={allYt} initial={compareWith ? `x:${compareWith.toLowerCase()}` : null} onLookup={add} />
+          )}
+          {mode === "squad" && <SquadBuilder pool={allX.length >= 4 ? allX : allYt} label={allX.length >= 4 ? label : "YouTube"} />}
         </motion.div>
       </Panel>
     </div>
