@@ -26,9 +26,10 @@ import { Avatar, Chip, CountUp, Empty, LevelChip, Panel, PanelTitle, RankMark, R
 
 export type YtState =
   | { status: "loading" }
-  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; statsAt: string | null; partial: boolean; loadedAt: number; refreshing: boolean; stale?: boolean; resetAt?: string | null }
+  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; statsAt: string | null; partial: boolean; loadedAt: number; refreshing: boolean; stale?: boolean; resetAt?: string | null; pending?: boolean }
   | { status: "unconfigured" }
-  | { status: "error"; quota: boolean; resetAt: string | null; reason: string | null };
+  | { status: "warming" }
+  | { status: "error"; quota: boolean; resetAt: string | null; reason: string | null; detail?: string | null };
 
 type Sort = "score" | "trending" | "views" | "likes" | "comments" | "engagement" | "newest";
 type Format = "all" | "long" | "short";
@@ -84,13 +85,14 @@ function untilText(resetAt: string, from: number): string {
   return `in about ${Math.round(h)} hour${Math.round(h) === 1 ? "" : "s"} (midnight Pacific time)`;
 }
 
-function ytErrorText(s: { quota: boolean; resetAt: string | null; reason: string | null }): string {
+function ytErrorText(s: { quota: boolean; resetAt: string | null; reason: string | null; detail?: string | null }): string {
+  const code = s.reason ? ` (code: ${s.reason}${s.detail ? `, ${s.detail}` : ""})` : "";
   if (s.quota)
     return `YouTube's free daily data limit is used up and nothing is stored for this venue yet. Fresh data returns after the reset at midnight Pacific time${s.resetAt ? ` (${new Date(s.resetAt).toUTCString().slice(17, 22)} UTC)` : ""}.`;
   if (s.reason === "busy") return "This venue's videos are being fetched right now. Give it a minute and they will appear.";
-  if (s.reason && /key|access|forbidden|notConfigured|blocked/i.test(s.reason))
-    return `YouTube refused the request (${s.reason}). The site's YouTube API key needs checking: it must allow the YouTube Data API v3.`;
-  return "YouTube didn't respond just now. Please try again in a few minutes.";
+  if (s.reason && /key|access|forbidden|notConfigured|blocked|badRequest/i.test(s.reason + (s.detail ?? "")))
+    return `YouTube refused the request${code}. The site's YouTube API key needs checking: it must be valid and allow the YouTube Data API v3.`;
+  return `YouTube didn't respond just now. Please try again in a few minutes.${code}`;
 }
 
 function VideoCard({ v, i, now }: { v: YtVideo; i: number; now: number }) {
@@ -381,8 +383,19 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
       {state.status === "unconfigured" && (
         <Empty>The YouTube feed isn&apos;t switched on yet. It goes live as soon as the site&apos;s YouTube API key is added. Until then this tab shows nothing rather than made-up numbers.</Empty>
       )}
+      {state.status === "warming" && (
+        <div className="flex flex-col items-center justify-center gap-2 py-14 text-center text-sm text-content-muted">
+          <Loader2 className="h-5 w-5 animate-spin text-gold-300" />
+          Fetching YouTube data for this venue for the first time. It appears here in a few seconds.
+        </div>
+      )}
       {state.status === "error" && <Empty>{ytErrorText(state)}</Empty>}
 
+      {state.status === "ready" && state.pending && (
+        <p className="flex items-center gap-2 text-xs text-content-subtle">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" /> More venues are still loading in the background.
+        </p>
+      )}
       {state.status === "ready" && (
         <div className={cn("space-y-6 transition-opacity duration-300", state.refreshing && "opacity-70")}>
           <Refreshing on={state.refreshing} />

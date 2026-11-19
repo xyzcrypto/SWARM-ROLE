@@ -77,6 +77,9 @@ export function CreatorsClient() {
   const [recents, saveRecents] = useLocalList("xyz:creators:recent", 12);
   const xTick = useVisibleTick(X_POLL_MS);
   const ytTick = useVisibleTick(YT_POLL_MS);
+  // While YouTube data is being fetched for the first time (in the
+  // background), re-ask every 15s - a few times - instead of waiting 9 min.
+  const [ytRetry, setYtRetry] = useState(0);
   const boardKey = useRef("");
   const ytKey = useRef("");
 
@@ -140,21 +143,28 @@ export function CreatorsClient() {
         const body = await r.json().catch(() => null);
         if (!alive) return;
         if (body?.configured === false) return setYt({ status: "unconfigured" });
+        if (body?.pending && !(body?.videos?.length > 0)) {
+          setYt((s) => (silent && s.status === "ready" ? s : { status: "warming" }));
+          if (ytRetry < 8) setTimeout(() => alive && setYtRetry((n) => n + 1), 15_000);
+          return;
+        }
         if (!r.ok || !Array.isArray(body?.videos))
           return setYt((s) =>
             silent && s.status === "ready"
               ? { ...s, refreshing: false }
-              : { status: "error", quota: body?.error === "quota", resetAt: body?.quotaResetAt ?? null, reason: body?.error === "busy" ? "busy" : (body?.reason ?? null) }
+              : { status: "error", quota: body?.error === "quota", resetAt: body?.quotaResetAt ?? null, reason: body?.error === "busy" ? "busy" : (body?.reason ?? (r.ok ? null : `http ${r.status}`)), detail: body?.detail ?? null }
           );
         // The window filter's "now" is captured here, never during render.
-        setYt({ status: "ready", videos: body.videos, fetchedAt: body.fetchedAt ?? null, statsAt: body.statsAt ?? null, partial: Boolean(body.partial), loadedAt: Date.now(), refreshing: false, stale: Boolean(body.stale), resetAt: body.quotaResetAt ?? null });
+        setYt({ status: "ready", videos: body.videos, fetchedAt: body.fetchedAt ?? null, statsAt: body.statsAt ?? null, partial: Boolean(body.partial), loadedAt: Date.now(), refreshing: false, stale: Boolean(body.stale), resetAt: body.quotaResetAt ?? null, pending: Boolean(body.pending) });
+        // Some venues still filling in the background: look again soon.
+        if (body.pending && ytRetry < 8) setTimeout(() => alive && setYtRetry((n) => n + 1), 15_000);
       })
-      .catch(() => alive && setYt((s) => (silent && s.status === "ready" ? { ...s, refreshing: false } : { status: "error", quota: false, resetAt: null, reason: null })));
+      .catch(() => alive && setYt((s) => (silent && s.status === "ready" ? { ...s, refreshing: false } : { status: "error", quota: false, resetAt: null, reason: "network", detail: null })));
     return () => {
       alive = false;
       clearTimeout(t);
     };
-  }, [topic, ytTick]);
+  }, [topic, ytTick, ytRetry]);
 
   const setUrl = (key: string, value: string | null) => {
     try {
