@@ -26,9 +26,9 @@ import { Avatar, Chip, CountUp, Empty, LevelChip, Panel, PanelTitle, RankMark, R
 
 export type YtState =
   | { status: "loading" }
-  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; statsAt: string | null; partial: boolean; loadedAt: number; refreshing: boolean; stale?: boolean }
+  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; statsAt: string | null; partial: boolean; loadedAt: number; refreshing: boolean; stale?: boolean; resetAt?: string | null }
   | { status: "unconfigured" }
-  | { status: "error"; quota: boolean };
+  | { status: "error"; quota: boolean; resetAt: string | null; reason: string | null };
 
 type Sort = "score" | "trending" | "views" | "likes" | "comments" | "engagement" | "newest";
 type Format = "all" | "long" | "short";
@@ -74,6 +74,23 @@ function duration(sec: number): string {
   const m = Math.floor((sec % 3600) / 60);
   const s = sec % 60;
   return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
+}
+
+/** "in about 5 hours" - from the reset time and the time the data was fetched (never Date.now() in render). */
+function untilText(resetAt: string, from: number): string {
+  const h = Math.max(0, (Date.parse(resetAt) - from) / 3_600_000);
+  if (!from || !Number.isFinite(h)) return "after midnight Pacific time";
+  if (h < 1) return "within the hour";
+  return `in about ${Math.round(h)} hour${Math.round(h) === 1 ? "" : "s"} (midnight Pacific time)`;
+}
+
+function ytErrorText(s: { quota: boolean; resetAt: string | null; reason: string | null }): string {
+  if (s.quota)
+    return `YouTube's free daily data limit is used up and nothing is stored for this venue yet. Fresh data returns after the reset at midnight Pacific time${s.resetAt ? ` (${new Date(s.resetAt).toUTCString().slice(17, 22)} UTC)` : ""}.`;
+  if (s.reason === "busy") return "This venue's videos are being fetched right now. Give it a minute and they will appear.";
+  if (s.reason && /key|access|forbidden|notConfigured|blocked/i.test(s.reason))
+    return `YouTube refused the request (${s.reason}). The site's YouTube API key needs checking: it must allow the YouTube Data API v3.`;
+  return "YouTube didn't respond just now. Please try again in a few minutes.";
 }
 
 function VideoCard({ v, i, now }: { v: YtVideo; i: number; now: number }) {
@@ -364,9 +381,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
       {state.status === "unconfigured" && (
         <Empty>The YouTube feed isn&apos;t switched on yet. It goes live as soon as the site&apos;s YouTube API key is added. Until then this tab shows nothing rather than made-up numbers.</Empty>
       )}
-      {state.status === "error" && (
-        <Empty>{state.quota ? "YouTube's daily data limit was reached. Fresh numbers return after it resets." : "YouTube didn't respond just now. Please try again in a few minutes."}</Empty>
-      )}
+      {state.status === "error" && <Empty>{ytErrorText(state)}</Empty>}
 
       {state.status === "ready" && (
         <div className={cn("space-y-6 transition-opacity duration-300", state.refreshing && "opacity-70")}>
@@ -382,8 +397,10 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
           </div>
           {state.stale && (
             <p className="rounded-xl border border-gold-400/25 bg-gold-400/5 px-3 py-2 text-xs text-gold-200">
-              YouTube didn&apos;t answer the last refresh (usually its daily data limit), so this is the last good list. Views, likes and comments are
-              still real, just from the last successful read.
+              {state.resetAt
+                ? `YouTube's free daily data limit is used up, so this is the last good list. Fresh numbers return ${untilText(state.resetAt, state.loadedAt)}.`
+                : "YouTube didn't answer the last refresh, so this is the last good list."}{" "}
+              Views, likes and comments are still real, just from the last successful read.
             </p>
           )}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
