@@ -135,6 +135,18 @@ export function activeWeeksIn(postDates: string[], now: number, span = 12): numb
   return new Set(postDates.map(weekIndex).filter((w) => w > cur - span && w <= cur)).size;
 }
 
+/**
+ * Distinct Monday-based UTC weeks with a post among posts from the last
+ * `days` days, capped at 12. This is the exact rule the leaderboard SQL uses
+ * (count DISTINCT date_trunc('week') over the last 84 days, min 12), so a
+ * creator's XYZ Score is identical on the board, in Head to Head and on their
+ * profile. An earlier "last 12 calendar weeks" rule here made them differ.
+ */
+export function activeWeeksSince(postDates: string[], now: number, days = 84): number {
+  const since = now - days * 86_400_000;
+  return Math.min(12, new Set(postDates.filter((d) => Date.parse(d) >= since).map(weekIndex)).size);
+}
+
 // ------------------------------------------------------------------ badges
 
 export type Badge = { id: string; label: string; hint: string; earned: boolean };

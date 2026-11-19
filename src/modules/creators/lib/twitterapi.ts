@@ -139,29 +139,95 @@ export async function userInfo(handle: string, key: string, f: FetchLike = fetch
   return normalizeUser(body?.data ?? body);
 }
 
-// ------------------------------------------------------------ relevance
+// ------------------------------------------------------------ venues
 
-/** The board's search: Variational by name, handle or site; reposts excluded. */
-export const VARIATIONAL_QUERY = '(variational OR @variational_io OR "variational.io") -filter:retweets';
+// Every venue the X board tracks. Each has the X search that finds its posts
+// and a relevance test, because both names are ordinary words too:
+// "variational" is maths/ML, and "Entropy" is also physics and Pyth's
+// randomness product. A post counts for a venue only if it passes that test.
+export type VenueId = "variational" | "entropy";
 
-export function handleQuery(handle: string): string {
-  return `from:${handle} (variational OR @variational_io OR "variational.io") -filter:retweets`;
-}
+export type Venue = {
+  id: VenueId;
+  label: string;
+  handle: string; // official X account
+  site: string;
+  blurb: string;
+  /** X advanced-search clause that finds candidate posts (reposts excluded separately). */
+  match: string;
+  relevant: (text: string) => boolean;
+  official: (handle: string) => boolean;
+};
 
 // "Variational" is also a maths / ML word. Posts that are clearly about that,
 // with nothing tying them to the exchange, are not counted.
-const ACADEMIC = /\b(autoencoder|vae|inference|bayesian|elbo|quantum|calculus|variational (method|principle|bound|family|approximation|form|problem|formulation)|posterior|latent|eigen)/i;
-const EXCHANGE = /(@variational|variational\.io|\$var\b|perp|dex|omni|rfq|airdrop|points|trading|arbitrum|tge|testnet|mainnet|leverage|funding|loss refund)/i;
+const VAR_ACADEMIC = /\b(autoencoder|vae|inference|bayesian|elbo|quantum|calculus|variational (method|principle|bound|family|approximation|form|problem|formulation)|posterior|latent|eigen)/i;
+const VAR_EXCHANGE = /(@variational|variational\.io|\$var\b|perp|dex|omni|rfq|airdrop|points|trading|arbitrum|tge|testnet|mainnet|leverage|funding|loss refund)/i;
 
 export function isVariationalPost(text: string): boolean {
   if (!/variational/i.test(text)) return false;
-  if (EXCHANGE.test(text)) return true;
-  return !ACADEMIC.test(text);
+  if (VAR_EXCHANGE.test(text)) return true;
+  return !VAR_ACADEMIC.test(text);
 }
 
-/** Variational's own accounts are shown as official, not ranked against creators. */
+// Entropy (entropy.io, @EntropyIO): a HIP-3 perp venue on Hyperliquid with
+// pre-IPO and equity perps. A bare "entropy" is almost never about it, so it
+// needs the handle, the site, or the word next to its own context.
+const ENT_DIRECT = /(@entropyio\b|entropy\.io\b)/i;
+const ENT_CONTEXT = /(hyperliquid|hip-?3|\bperps?\b|pre-?ipo|anthropic|\$ant\b|equity perps?|sndk|funding rate|open interest)/i;
+const ENT_OTHER = /(pyth entropy|\brng\b|randomness|thermodynamic|second law|shannon|information theory|password entropy)/i;
+
+export function isEntropyPost(text: string): boolean {
+  if (ENT_DIRECT.test(text)) return true;
+  if (!/\bentropy\b/i.test(text)) return false;
+  if (ENT_OTHER.test(text)) return false;
+  return ENT_CONTEXT.test(text);
+}
+
+export const VENUES: Venue[] = [
+  {
+    id: "variational",
+    label: "Variational",
+    handle: "variational_io",
+    site: "variational.io",
+    blurb: "Peer-to-peer perps with RFQ fills, on Arbitrum.",
+    match: '(variational OR @variational_io OR "variational.io")',
+    relevant: isVariationalPost,
+    official: (h) => /^variational/i.test(h),
+  },
+  {
+    id: "entropy",
+    label: "Entropy",
+    handle: "EntropyIO",
+    site: "entropy.io",
+    blurb: "HIP-3 venue on Hyperliquid for pre-IPO and equity perps.",
+    match: '(@EntropyIO OR "entropy.io" OR (entropy (hyperliquid OR hip3 OR "hip-3" OR "pre-ipo" OR perps OR anthropic)))',
+    relevant: isEntropyPost,
+    official: (h) => /^entropy(io|_io|xyz)?$/i.test(h),
+  },
+];
+
+export function venueById(id: string): Venue | undefined {
+  return VENUES.find((v) => v.id === id);
+}
+
+/** Every venue a post is about (empty = about none of them). */
+export function venuesFor(text: string): VenueId[] {
+  return VENUES.filter((v) => v.relevant(text)).map((v) => v.id);
+}
+
+export function venueQuery(v: Venue): string {
+  return `${v.match} -filter:retweets`;
+}
+
+/** One search for a handle across every venue; posts are classified after. */
+export function handleQuery(handle: string): string {
+  return `from:${handle} (${VENUES.map((v) => v.match).join(" OR ")}) -filter:retweets`;
+}
+
+/** Official venue accounts are shown, not ranked against creators. */
 export function isOfficialHandle(handle: string): boolean {
-  return /^variational/i.test(handle);
+  return VENUES.some((v) => v.official(handle));
 }
 
 export function validHandle(input: string): string | null {

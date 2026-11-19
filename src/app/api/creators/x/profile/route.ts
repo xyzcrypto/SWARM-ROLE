@@ -3,27 +3,33 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { fail, handleError } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
-import { buildBoard, buildProfile, scanHandle, SCAN_FRESH_MS, xConfigured } from "@modules/creators/lib/x-index";
-import { validHandle } from "@modules/creators/lib/twitterapi";
+import { buildBoard, buildProfile, scanHandle, SCAN_FRESH_MS, xConfigured, type VenueFilter } from "@modules/creators/lib/x-index";
+import { validHandle, venueById } from "@modules/creators/lib/twitterapi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/creators/x/profile?handle=<handle>
+// GET /api/creators/x/profile?handle=<handle>&venue=variational|entropy|all
 //
 // "Scan" a handle: if we have not read this account from X in the last 6h,
 // pull its Variational posts from twitterapi.io (billed, budget-capped,
 // rate-limited per IP), then return its profile from the stored data. A
 // handle scanned recently is a pure DB read and is not rate-limited.
-const allTime = unstable_cache(async () => buildBoard("all"), ["creators-x-board-v2", "all"], {
+// Same function and key as the board route's cache, so a profile and the
+// all-time board for its venue share one entry instead of computing twice.
+const allTime = unstable_cache(async (venue: VenueFilter, win: "all") => buildBoard(venue, win), ["creators-x-board-v3"], {
   revalidate: 300,
   tags: ["creators-x"],
 });
 
 export async function GET(req: Request) {
   try {
-    const handle = validHandle(new URL(req.url).searchParams.get("handle") || "");
+    const sp = new URL(req.url).searchParams;
+    const handle = validHandle(sp.get("handle") || "");
     if (!handle) return fail("Enter a valid X handle.", 400);
+    const v = sp.get("venue") || "all";
+    if (v !== "all" && !venueById(v)) return fail("Unknown venue.", 400);
+    const venue = v as VenueFilter;
 
     const acct = await prisma.xAccount.findUnique({ where: { handleLower: handle.toLowerCase() }, select: { scannedAt: true, hidden: true } });
     if (acct?.hidden) return fail("This account isn't on the board.", 404);
@@ -42,7 +48,7 @@ export async function GET(req: Request) {
     }
 
     if (scan === "not_found") return fail("No X account with that handle.", 404);
-    const profile = await buildProfile(handle, await allTime().catch(() => null));
+    const profile = await buildProfile(handle, venue, await allTime(venue, "all").catch(() => null));
     if (!profile) {
       return NextResponse.json(
         { profile: null, scan },

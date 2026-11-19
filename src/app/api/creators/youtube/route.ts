@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 // Not polled: the /creators page fetches once per topic switch. Two cache
 // layers, and the quota depends on the inner one:
 //  - unstable_cache, 12h per topic: the ONLY thing that spends YouTube quota.
-//    ~205 units per topic refresh, 7 topics, 2 refreshes/day = under 3,000 of
+//    ~310 units per topic refresh, 10 topics, 2 refreshes/day = about 6,200 of
 //    the free 10,000. Visitor traffic cannot move that number.
 //  - the edge, s-maxage 1h: keeps repeat visits off the function entirely.
 // The result is the reduced video list (tens of kB), well under the data

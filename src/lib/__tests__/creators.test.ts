@@ -10,6 +10,7 @@ import {
   compactCount,
   engagementRate,
   isShort,
+  viewsPerDay,
   type YtVideo,
 } from "@modules/creators/lib/scoring";
 import { fetchTopic, mergeTopics, parseDuration, YoutubeError } from "@modules/creators/lib/youtube";
@@ -17,6 +18,9 @@ import {
   normalizeTweet,
   normalizeUser,
   isVariationalPost,
+  isEntropyPost,
+  venuesFor,
+  VENUES,
   isOfficialHandle,
   validHandle,
   handleQuery,
@@ -31,6 +35,7 @@ import {
   xyzScore,
   weeklyStreak,
   activeWeeksIn,
+  activeWeeksSince,
   badgesFor,
   LEVELS,
 } from "@modules/creators/lib/game";
@@ -313,5 +318,57 @@ describe("creators: game layer", () => {
     const b = badgesFor({ posts: 12, points: 0, views: 1_200_000, bestPostViews: 60_000, replies: 10, quotes: 0, streak: 4, rank: 7, score: 300 });
     const earned = b.filter((x) => x.earned).map((x) => x.id);
     expect(earned).toEqual(["first", "regular", "viral", "reach", "streak", "top10"]);
+  });
+});
+
+describe("creators: venues (Variational + Entropy)", () => {
+  it("recognises Entropy the venue, not the physics word or Pyth's RNG", () => {
+    expect(isEntropyPost("Trading Anthropic pre-IPO perps on @EntropyIO")).toBe(true);
+    expect(isEntropyPost("entropy.io just listed SNDK")).toBe(true);
+    expect(isEntropyPost("Entropy on Hyperliquid HIP-3 is doing real volume")).toBe(true);
+    expect(isEntropyPost("The entropy of a closed system never decreases")).toBe(false);
+    expect(isEntropyPost("Pyth Entropy gives you on-chain randomness for perps games")).toBe(false);
+    expect(isEntropyPost("password entropy matters")).toBe(false);
+  });
+
+  it("classifies a post into every venue it is about", () => {
+    expect(venuesFor("Variational RFQ vs @EntropyIO pre-IPO perps")).toEqual(["variational", "entropy"]);
+    expect(venuesFor("gm, farming Variational points")).toEqual(["variational"]);
+    expect(venuesFor("gm")).toEqual([]);
+  });
+
+  it("one handle scan searches every venue, and official accounts are not ranked", () => {
+    const q = handleQuery("perpqueen");
+    for (const v of VENUES) expect(q).toContain(v.match);
+    expect(q).toContain("-filter:retweets");
+    expect(isOfficialHandle("EntropyIO")).toBe(true);
+    expect(isOfficialHandle("entropy_maxi")).toBe(false);
+  });
+
+  it("YouTube Entropy topic needs Entropy's own context", () => {
+    const t = topicById("entropy")!;
+    expect(isRelevant(t, "Entropy on Hyperliquid: pre-IPO perps explained", "")).toBe(true);
+    expect(isRelevant(t, "Entropy explained in 5 minutes", "thermodynamics lecture")).toBe(false);
+    expect(topicById("gmx")).toBeTruthy();
+    expect(topicById("dydx")).toBeTruthy();
+  });
+
+  it("trending = views per day since upload, at least one day", () => {
+    const now = Date.parse("2026-11-19T00:00:00Z");
+    expect(viewsPerDay({ views: 1000, publishedAt: "2026-11-09T00:00:00Z" }, now)).toBe(100);
+    expect(viewsPerDay({ views: 500, publishedAt: "2026-11-18T23:00:00Z" }, now)).toBe(500);
+    expect(viewsPerDay({ views: 500, publishedAt: "bad" }, now)).toBe(0);
+  });
+});
+
+describe("creators: one XYZ Score everywhere", () => {
+  it("profile active weeks use the board's 84-day rule, capped at 12", () => {
+    const now = Date.parse("2026-11-19T12:00:00Z");
+    const d = (daysAgo: number) => new Date(now - daysAgo * 86_400_000).toISOString();
+    // 83 days ago counts on the board; it must count here too.
+    expect(activeWeeksSince([d(0), d(7), d(83)], now)).toBe(3);
+    expect(activeWeeksSince([d(85)], now)).toBe(0);
+    expect(activeWeeksSince(Array.from({ length: 30 }, (_, i) => d(i * 2.5)), now)).toBe(11);
+    expect(activeWeeksSince(Array.from({ length: 120 }, (_, i) => d(i * 0.7)), now)).toBeLessThanOrEqual(12);
   });
 });
