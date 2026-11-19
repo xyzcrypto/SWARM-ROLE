@@ -13,6 +13,7 @@ import {
   matchesQuery,
   rankYoutubeCreators,
   topicById,
+  viewsPerDay,
   videoScore,
   withinWindow,
   type TopicId,
@@ -21,19 +22,20 @@ import {
   type YtVideo,
 } from "@modules/creators/lib/scoring";
 import { compact, full, levelFor, pct } from "@modules/creators/lib/game";
-import { Avatar, Chip, CountUp, Empty, LevelChip, Panel, PanelTitle, RankMark, SearchBox, Sparkbars, Stat } from "./ui";
+import { Avatar, Chip, CountUp, Empty, LevelChip, Panel, PanelTitle, RankMark, Refreshing, SearchBox, Sparkbars, Stat } from "./ui";
 
 export type YtState =
   | { status: "loading" }
-  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; partial: boolean; loadedAt: number }
+  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; partial: boolean; loadedAt: number; refreshing: boolean }
   | { status: "unconfigured" }
   | { status: "error"; quota: boolean };
 
-type Sort = "score" | "views" | "likes" | "comments" | "engagement" | "newest";
+type Sort = "score" | "trending" | "views" | "likes" | "comments" | "engagement" | "newest";
 type Format = "all" | "long" | "short";
 
 const SORTS: [Sort, string][] = [
   ["score", "Top score"],
+  ["trending", "Trending"],
   ["views", "Views"],
   ["likes", "Likes"],
   ["comments", "Comments"],
@@ -57,8 +59,9 @@ function duration(sec: number): string {
   return h ? `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}` : `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function VideoCard({ v, i }: { v: YtVideo; i: number }) {
+function VideoCard({ v, i, now }: { v: YtVideo; i: number; now: number }) {
   const er = engagementRate(v);
+  const vpd = viewsPerDay(v, now);
   return (
     <motion.a
       href={`https://www.youtube.com/watch?v=${v.id}`}
@@ -87,7 +90,7 @@ function VideoCard({ v, i }: { v: YtVideo; i: number }) {
       <div className="flex flex-1 flex-col gap-2 p-4">
         <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-content group-hover:text-gold-200">{v.title}</h3>
         <div className="truncate text-xs text-content-subtle">
-          {v.channelTitle} · {formatDate(v.publishedAt)}
+          {v.channelTitle} · {formatDate(v.publishedAt)} · {compact(vpd)}/day
         </div>
         <div className="flex flex-wrap gap-1">
           {v.topics.map((t) => (
@@ -120,7 +123,7 @@ function VideoCard({ v, i }: { v: YtVideo; i: number }) {
   );
 }
 
-function ChannelDrawer({ c, videos, onClose }: { c: YtCreator; videos: YtVideo[]; onClose: () => void }) {
+function ChannelDrawer({ c, videos, onClose, now }: { c: YtCreator; videos: YtVideo[]; onClose: () => void; now: number }) {
   useScrollLock(true);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -165,7 +168,7 @@ function ChannelDrawer({ c, videos, onClose }: { c: YtCreator; videos: YtVideo[]
         </div>
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {mine.slice(0, 12).map((v, i) => (
-            <VideoCard key={v.id} v={v} i={i} />
+            <VideoCard key={v.id} v={v} i={i} now={now} />
           ))}
         </div>
       </motion.div>
@@ -181,6 +184,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(12);
   const [open, setOpen] = useState<YtCreator | null>(null);
+  const now = state.status === "ready" ? state.loadedAt : 0;
 
   const inWindow = useMemo(() => {
     if (state.status !== "ready") return [] as YtVideo[];
@@ -195,6 +199,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
   const videos = useMemo(() => {
     const by: Record<Sort, (a: YtVideo, b: YtVideo) => number> = {
       score: (a, b) => videoScore(b) - videoScore(a),
+      trending: (a, b) => viewsPerDay(b, now) - viewsPerDay(a, now),
       views: (a, b) => b.views - a.views,
       likes: (a, b) => (b.likes ?? 0) - (a.likes ?? 0),
       comments: (a, b) => (b.comments ?? 0) - (a.comments ?? 0),
@@ -202,7 +207,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
       newest: (a, b) => Date.parse(b.publishedAt) - Date.parse(a.publishedAt),
     };
     return [...inWindow].sort(by[sort]);
-  }, [inWindow, sort]);
+  }, [inWindow, sort, now]);
 
   const creators = useMemo(() => rankYoutubeCreators(inWindow), [inWindow]);
 
@@ -212,6 +217,20 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
     const comments = inWindow.reduce((s, v) => s + (v.comments ?? 0), 0);
     return { videos: inWindow.length, views, channels: creators.length, er: views ? (likes + comments) / views : 0 };
   }, [inWindow, creators]);
+
+  // Per-venue table: the whole picture side by side, inside the current filter.
+  const venues = useMemo(() => {
+    return TOPICS.filter((t) => t.id !== "perp-dex")
+      .map((t) => {
+        const list = inWindow.filter((v) => v.topics.includes(t.id));
+        const views = list.reduce((s, v) => s + v.views, 0);
+        const eng = list.reduce((s, v) => s + (v.likes ?? 0) + (v.comments ?? 0), 0);
+        const top = rankYoutubeCreators(list)[0] ?? null;
+        const fresh = list.filter((v) => now - Date.parse(v.publishedAt) <= 30 * 86_400_000).length;
+        return { id: t.id, label: t.label, videos: list.length, views, er: views ? eng / views : 0, top, fresh };
+      })
+      .sort((a, b) => b.views - a.views);
+  }, [inWindow, now]);
 
   // Mindshare: views per venue inside the current filter.
   const share = useMemo(() => {
@@ -280,7 +299,8 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
       )}
 
       {state.status === "ready" && (
-        <>
+        <div className={cn("space-y-6 transition-opacity duration-300", state.refreshing && "opacity-70")}>
+          <Refreshing on={state.refreshing} />
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Videos" value={<CountUp value={stats.videos} format={full} />} />
             <Stat label="Total views" value={<CountUp value={stats.views} format={compact} />} accent />
@@ -354,6 +374,37 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
             </div>
           </div>
 
+          <Panel>
+            <PanelTitle title="Venue comparison" sub="Every tracked perp DEX side by side, in this window and format" />
+            <div className="-mx-2 overflow-x-auto px-2">
+              <table className="w-full min-w-[640px] text-left text-sm">
+                <thead>
+                  <tr className="text-[10px] uppercase tracking-[0.14em] text-content-subtle">
+                    <th className="py-2 pr-3 font-semibold">Venue</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Videos</th>
+                    <th className="py-2 pr-3 text-right font-semibold">New 30d</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Views</th>
+                    <th className="py-2 pr-3 text-right font-semibold">Engagement</th>
+                    <th className="py-2 font-semibold">Top channel</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-hairline">
+                  {venues.map((v) => (
+                    <tr key={v.id} onClick={() => setTopic(v.id)} className={cn("cursor-pointer transition-colors hover:bg-ink-800/50", topic === v.id && "bg-gold-400/5")}>
+                      <td className={cn("py-2.5 pr-3 font-semibold", topic === v.id ? "text-gold-200" : "text-content")}>{v.label}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-content-muted">{full(v.videos)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-content-muted">{full(v.fresh)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-content">{compact(v.views)}</td>
+                      <td className="py-2.5 pr-3 text-right tabular-nums text-mint-300">{v.views ? pct(v.er) : "-"}</td>
+                      <td className="max-w-[200px] truncate py-2.5 text-content-muted">{v.top?.channelTitle ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {topic !== "all" && <p className="mt-2 text-[11px] text-content-subtle">Showing one venue&apos;s videos. Pick &quot;All perp DEX&quot; above to compare every venue.</p>}
+          </Panel>
+
           <section>
             <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
@@ -373,7 +424,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
             ) : (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {videos.slice(0, limit).map((v, i) => (
-                  <VideoCard key={v.id} v={v} i={i} />
+                  <VideoCard key={v.id} v={v} i={i} now={now} />
                 ))}
               </div>
             )}
@@ -391,11 +442,12 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
             {state.partial ? " (some topics are still loading)" : ""}. For each venue we read the all-time most viewed videos plus the most viewed and
             newest of the last 90 days, and keep only videos actually about that venue. Video points = views ÷ 100 + likes + 2 × comments. A
             channel&apos;s points are the sum of its videos in the selected window. Hidden like or comment counts score 0. Shorts = 3 minutes or less.
+            Trending = views per day since upload.
           </p>
-        </>
+        </div>
       )}
 
-      <AnimatePresence>{open && state.status === "ready" && <ChannelDrawer c={open} videos={inWindow} onClose={() => setOpen(null)} />}</AnimatePresence>
+      <AnimatePresence>{open && state.status === "ready" && <ChannelDrawer c={open} videos={inWindow} onClose={() => setOpen(null)} now={now} />}</AnimatePresence>
     </div>
   );
 }

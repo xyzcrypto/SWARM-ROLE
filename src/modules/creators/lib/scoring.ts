@@ -6,11 +6,14 @@
 export type TopicId =
   | "all"
   | "variational"
+  | "entropy"
   | "hyperliquid"
   | "lighter"
   | "aster"
   | "edgex"
   | "paradex"
+  | "gmx"
+  | "dydx"
   | "perp-dex";
 
 export type Topic = {
@@ -31,11 +34,17 @@ const PERP_CONTEXT = ["perp", "dex", "airdrop", "points", "trading", "futures", 
 
 export const TOPICS: Topic[] = [
   { id: "variational", label: "Variational", query: "Variational perp dex", must: [["variational"], ["perp", "dex", "omni", "rfq", "airdrop", "points", "trading", "crypto", "arbitrum", "defi", "tge"]] },
+  // Entropy (entropy.io): HIP-3 venue on Hyperliquid with pre-IPO / equity
+  // perps. "Entropy" alone is physics and Pyth's RNG, so it needs Entropy's
+  // own context next to it.
+  { id: "entropy", label: "Entropy", query: "Entropy Hyperliquid HIP-3 perps", must: [["entropy"], ["hyperliquid", "hip-3", "hip3", "pre-ipo", "pre ipo", "entropy.io", "perp"]] },
   { id: "hyperliquid", label: "Hyperliquid", query: "Hyperliquid", must: [["hyperliquid"]] },
   { id: "lighter", label: "Lighter", query: "Lighter perp dex", must: [["lighter"], PERP_CONTEXT] },
   { id: "aster", label: "Aster", query: "Aster dex", must: [["aster"], PERP_CONTEXT] },
   { id: "edgex", label: "edgeX", query: "edgeX exchange", must: [["edgex"]] },
   { id: "paradex", label: "Paradex", query: "Paradex", must: [["paradex"]] },
+  { id: "gmx", label: "GMX", query: "GMX perpetual exchange", must: [["gmx"], PERP_CONTEXT] },
+  { id: "dydx", label: "dYdX", query: "dYdX", must: [["dydx"]] },
   { id: "perp-dex", label: "Perp DEX", query: "perp dex", must: [["perp dex", "perpetual dex", "perps dex", "perp-dex", "perpetual exchange", "decentralized perpetual"]] },
 ];
 
@@ -95,6 +104,16 @@ export function engagementRate(v: Pick<YtVideo, "views" | "likes" | "comments">)
 
 export function isShort(v: Pick<YtVideo, "durationSec">): boolean {
   return v.durationSec > 0 && v.durationSec <= 180;
+}
+
+/**
+ * Views per day since upload - the "trending" signal, so a strong new video
+ * is not buried under years-old totals. Clamped to at least one day.
+ */
+export function viewsPerDay(v: Pick<YtVideo, "views" | "publishedAt">, now: number): number {
+  const t = Date.parse(v.publishedAt);
+  if (!Number.isFinite(t)) return 0;
+  return v.views / Math.max(1, (now - t) / 86_400_000);
 }
 
 export type YtCreator = {

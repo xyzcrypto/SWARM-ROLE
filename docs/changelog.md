@@ -5,6 +5,84 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-19 (147) — Creators v3: Entropy, 10x features, glitch fixes, Arena v2
+
+The owner asked for a better UI and UX, many more accurate features, no glitches,
+**Entropy** on both X and YouTube, and a more interactive Arena.
+
+### Entropy, plus a multi-venue X board
+- **What Entropy is:** entropy.io (@EntropyIO), a HIP-3 venue on Hyperliquid for pre-IPO
+  and equity perps. It is now a venue next to Variational.
+- **Venue config:** `VENUES` in `twitterapi.ts` holds, for each venue, an X search clause
+  plus a relevance test.
+  - "Entropy" is also physics, password strength and Pyth's RNG product. A post counts
+    only if it has @EntropyIO or entropy.io, or "entropy" next to Hyperliquid / HIP-3 /
+    perps / pre-IPO / Anthropic context.
+- **Per-post venues:**
+  - `XTweet.venues text[]` is new, defaulting to `{variational}` for existing rows. It is
+    a plain added column, so `db push` needs no data-loss flag.
+  - A post can count for several venues.
+- **Indexing and scans:**
+  - The indexer claims a lock per venue (`index:<venue>`), and rotation has its own lock.
+  - A handle scan is one search across all venues, and each post is classified after.
+- **API:** the board and profile APIs take `?venue=variational|entropy|all`.
+- **YouTube:** new topics Entropy, GMX and dYdX (10 venues). That is about 6,200 of the
+  10,000 daily quota units.
+
+### New features
+- **X board:**
+  - Venue switcher cards and a 30-day activity chart (posts, views and creators per day).
+  - "Rising this week" (top 7-day point earners) and a top-posts feed.
+  - An engagement column and sort.
+  - A **watchlist** with stars and filter, recent scans, and CSV export.
+  - "Showing top 500 of N" when there are more rows.
+- **Profile:**
+  - Venue tabs, "Top X%" percentile, originals vs replies, "creator since", best post and
+    points per post.
+  - Points-by-venue bars, and **"when their posts land best"** heat strips (UTC hour and
+    weekday).
+  - A Watch button.
+- **YouTube:**
+  - A **Trending** sort (views per day since upload, shown on every card).
+  - A **venue comparison table**: videos, new in the last 30 days, views, engagement and
+    top channel per venue. Tap a row to switch topic.
+- **Arena v2:** four modes.
+  - **Higher or Lower**:
+    - Play on X or YouTube, with points / views / XYZ Score / followers.
+    - Three lives, a combo XP multiplier, a best score per mode, and a share button.
+  - **Daily Challenge**:
+    - The same ten duels for everyone each UTC day. The pool is sorted by id and drawn
+      with a seeded mulberry32.
+    - One play per day, a Wordle-style result grid to copy, and your history average.
+  - **Rank Quiz**: guess a creator's rank bracket over five rounds.
+  - **Head to Head**: a **radar chart**, swap, and a share line.
+- **Rankings:**
+  - `ranking` (every handle in order) ships alongside the top 500 rows, so a profile
+    always has an exact rank.
+  - Rank ties now break on handle, so the order is stable.
+
+### Glitch fixes
+- **Tabs stopped switching.**
+  - The cause: after a venue change, the X · YouTube · Arena tab bar moved but the content
+    stayed. `AnimatePresence mode="wait"` waited on an exit that never finished, because
+    the exiting board held a shared-layout element.
+  - The fix: tabs and Arena modes are now enter-only, which cannot stall. The venue glow
+    no longer uses `layoutId`.
+- **Board, profile and YouTube no longer blank out on a filter change.** The old data
+  stays dimmed, with a thin refresh bar, until the new data lands.
+- **One XYZ Score everywhere.** The profile counted "active weeks" as the last 12
+  calendar weeks, while the board counted distinct weeks in the last 84 days. The same
+  creator could show 645 on their profile and 666 in Head to Head.
+  - Both now use `activeWeeksSince`.
+  - Verified locally on seeded data: all 98 profile/board pairs match on score, points,
+    rank and post count.
+
+Tests: 28 in `creators.test.ts`. New ones cover Entropy relevance against physics and Pyth
+RNG, multi-venue classification, the all-venue handle query, official accounts, the YouTube
+Entropy gate, trending maths and the shared active-weeks rule.
+
+---
+
 ## 2026-11-19 (146) — Creators v2: Proof of Variational on X, the game layer, all-time YouTube
 
 The owner asked for a next-level UI and UX on /creators, a game system, all-time and

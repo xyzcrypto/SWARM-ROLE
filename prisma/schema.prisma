@@ -1079,6 +1079,11 @@ model XTweet {
   quotes         Int      @default(0)
   bookmarks      Int      @default(0)
   isReply        Boolean  @default(false)
+  // Venues the post is about (see VENUES in twitterapi.ts). Added after the
+  // first release; the default covers rows written when the board tracked
+  // Variational only. A plain added column with a default, so `db push`
+  // applies it without --accept-data-loss.
+  venues         String[] @default(["variational"])
   fetchedAt      DateTime @default(now())
   createdAt      DateTime @default(now())
 

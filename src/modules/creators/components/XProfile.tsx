@@ -3,19 +3,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpRight, BadgeCheck, Check, Download, Flame, Link2, Loader2, Lock, X as Close } from "lucide-react";
+import { ArrowUpRight, BadgeCheck, Check, Clock, Download, Flame, Link2, Loader2, Lock, Star, Trophy, X as Close } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import { useScrollLock } from "@shared/hooks/useScrollLock";
-import type { Profile, ProfilePost, BoardRow } from "@modules/creators/lib/x-index";
+import type { Profile, ProfilePost, BoardRow, VenueFilter } from "@modules/creators/lib/x-index";
+import { VENUES } from "@modules/creators/lib/twitterapi";
 import { compact, full, pct, scoreTier, POINT_WEIGHTS } from "@modules/creators/lib/game";
-import { Avatar, Bar, LevelChip, ScoreRing, Sparkbars, Stat } from "./ui";
+import { Avatar, Bar, HeatStrip, LevelChip, Refreshing, ScoreRing, Sparkbars, Stat } from "./ui";
 import { drawShareCard } from "./share-card";
 
 type Sort = "points" | "views" | "recent";
 
 type LoadState =
   | { s: "loading" }
-  | { s: "ready"; profile: Profile; scan: string }
+  | { s: "ready"; profile: Profile; scan: string; refreshing: boolean }
   | { s: "error"; msg: string };
 
 const SCAN_NOTE: Record<string, string> = {
@@ -25,7 +26,30 @@ const SCAN_NOTE: Record<string, string> = {
   unconfigured: "X data isn't switched on yet, so this shows only what is stored.",
 };
 
-export function XProfile({ handle, board, onClose, onCompare }: { handle: string; board: BoardRow[]; onClose: () => void; onCompare: (h: string) => void }) {
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const VENUE_TABS: { id: VenueFilter; label: string }[] = [{ id: "all", label: "All venues" }, ...VENUES.map((v) => ({ id: v.id as VenueFilter, label: v.label }))];
+
+export function XProfile({
+  handle,
+  venue: initialVenue,
+  board,
+  boardVenue,
+  onClose,
+  onCompare,
+  starred,
+  onToggleStar,
+}: {
+  handle: string;
+  venue: VenueFilter;
+  board: BoardRow[];
+  /** Venue the passed all-time board ranks; the "points to pass" line only makes sense on it. */
+  boardVenue: VenueFilter | null;
+  onClose: () => void;
+  onCompare: (h: string) => void;
+  starred: boolean;
+  onToggleStar: (h: string) => void;
+}) {
+  const [venue, setVenue] = useState<VenueFilter>(initialVenue);
   const [state, setState] = useState<LoadState>({ s: "loading" });
   const [sort, setSort] = useState<Sort>("points");
   const [copied, setCopied] = useState(false);
@@ -33,25 +57,29 @@ export function XProfile({ handle, board, onClose, onCompare }: { handle: string
 
   useEffect(() => {
     let alive = true;
-    fetch(`/api/creators/x/profile?handle=${encodeURIComponent(handle)}`)
+    // Switching venue keeps the current profile on screen (dimmed) until the
+    // new one lands, instead of flashing back to a spinner.
+    const t = setTimeout(() => setState((s) => (s.s === "ready" ? { ...s, refreshing: true } : { s: "loading" })), 0);
+    fetch(`/api/creators/x/profile?handle=${encodeURIComponent(handle)}&venue=${venue}`)
       .then(async (r) => {
         const body = await r.json().catch(() => null);
         if (!alive) return;
-        if (r.ok && body?.profile) return setState({ s: "ready", profile: body.profile, scan: body.scan });
+        if (r.ok && body?.profile) return setState({ s: "ready", profile: body.profile, scan: body.scan, refreshing: false });
         const msg =
           body?.error ||
           (body?.scan === "unconfigured"
             ? "X data isn't switched on yet."
             : body?.scan === "budget"
               ? "Today's X data budget is used up. Try again tomorrow."
-              : "No Variational posts found for this account yet.");
+              : "No posts about these venues found for this account yet.");
         setState({ s: "error", msg });
       })
       .catch(() => alive && setState({ s: "error", msg: "Network error. Please try again." }));
     return () => {
       alive = false;
+      clearTimeout(t);
     };
-  }, [handle]);
+  }, [handle, venue]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -72,10 +100,24 @@ export function XProfile({ handle, board, onClose, onCompare }: { handle: string
 
   // The one place a reader can see exactly who is next above them.
   const chase = useMemo(() => {
-    if (!p?.rank || p.rank <= 1) return null;
+    if (!p?.rank || p.rank <= 1 || boardVenue !== venue) return null;
     const above = board.find((r) => r.rank === p.rank! - 1);
     return above ? { handle: above.handle, gap: Math.max(1, above.points - p.totals.points + 1) } : null;
-  }, [p, board]);
+  }, [p, board, boardVenue, venue]);
+
+  const best = useMemo(() => (p ? [...p.posts].sort((a, b) => b.points - a.points)[0] ?? null : null), [p]);
+  const bestHour = useMemo(() => {
+    if (!p) return null;
+    let h = -1;
+    let v = 0;
+    p.byHour.forEach((x, i) => {
+      if (x.posts >= 2 && x.avg > v) {
+        v = x.avg;
+        h = i;
+      }
+    });
+    return h >= 0 ? h : null;
+  }, [p]);
 
   const copyLink = async () => {
     try {
@@ -145,11 +187,18 @@ export function XProfile({ handle, board, onClose, onCompare }: { handle: string
                   </a>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
                     {p.official ? (
-                      <span className="rounded-full bg-mint-400/15 px-2.5 py-1 font-semibold text-mint-300">Official Variational account</span>
+                      <span className="rounded-full bg-mint-400/15 px-2.5 py-1 font-semibold text-mint-300">Official venue account</span>
                     ) : p.rank ? (
-                      <span className="rounded-full bg-gold-400/15 px-2.5 py-1 font-semibold text-gold-200">
-                        Rank #{p.rank} of {full(p.ofAccounts)}
-                      </span>
+                      <>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gold-400/15 px-2.5 py-1 font-semibold text-gold-200">
+                          <Trophy className="h-3.5 w-3.5" /> Rank #{p.rank} of {full(p.ofAccounts)}
+                        </span>
+                        {p.percentile != null && p.ofAccounts >= 10 && (
+                          <span className="rounded-full bg-mint-400/15 px-2.5 py-1 font-semibold text-mint-300">
+                            Top {Math.max(1, Math.round((1 - p.percentile) * 100))}%
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <span className="rounded-full bg-ink-700 px-2.5 py-1 text-content-muted">Not ranked yet</span>
                     )}
@@ -162,6 +211,29 @@ export function XProfile({ handle, board, onClose, onCompare }: { handle: string
                 </div>
                 <ScoreRing value={p.score.total} size={84} />
               </div>
+
+              {/* Venue tabs */}
+              <div className="flex flex-wrap items-center gap-1.5">
+                {VENUE_TABS.map((v) => {
+                  const split = v.id === "all" ? null : p.byVenue.find((b) => b.venue === v.id);
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      onClick={() => setVenue(v.id)}
+                      aria-pressed={venue === v.id}
+                      className={cn(
+                        "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+                        venue === v.id ? "border-gold-400/60 bg-gold-400/15 text-gold-200" : "border-hairline text-content-muted hover:text-content"
+                      )}
+                    >
+                      {v.label}
+                      {split ? <span className="ml-1 text-content-subtle">{full(split.posts)}</span> : null}
+                    </button>
+                  );
+                })}
+              </div>
+              <Refreshing on={state.s === "ready" && state.refreshing} />
 
               {state.s === "ready" && SCAN_NOTE[state.scan] && (
                 <p className="rounded-xl border border-gold-400/20 bg-gold-400/5 px-3 py-2 text-xs text-gold-200">{SCAN_NOTE[state.scan]}</p>
@@ -195,6 +267,49 @@ export function XProfile({ handle, board, onClose, onCompare }: { handle: string
                 <Stat label="Replies" value={compact(p.totals.replies)} />
                 <Stat label="Reposts" value={compact(p.totals.reposts)} />
                 <Stat label="Quotes · Saves" value={`${compact(p.totals.quotes)} · ${compact(p.totals.bookmarks)}`} />
+                <Stat label="Originals · Replies" value={`${full(p.totals.originals)} · ${full(p.totals.replyPosts)}`} />
+                <Stat label="Creator since" value={p.firstPost ? formatDate(p.firstPost) : "-"} sub="first stored post" />
+                <Stat label="Best post" value={best ? `${compact(best.points)} pts` : "-"} sub={best ? `${compact(best.views)} views` : undefined} />
+                <Stat label="Pts / post" value={p.totals.posts ? compact(p.totals.points / p.totals.posts) : "-"} />
+              </div>
+
+              {/* Venue split + timing */}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="rounded-2xl border border-hairline p-4">
+                  <div className="mb-3 text-sm font-semibold text-content">Points by venue</div>
+                  {(() => {
+                    const total = p.byVenue.reduce((s2, b) => s2 + b.points, 0) || 1;
+                    return p.byVenue.map((b) => (
+                      <div key={b.venue} className="mb-2.5 last:mb-0">
+                        <div className="mb-1 flex justify-between text-xs">
+                          <span className="text-content-muted">{VENUES.find((v) => v.id === b.venue)?.label}</span>
+                          <span className="tabular-nums text-content">
+                            {full(b.points)} pts · {full(b.posts)} posts
+                          </span>
+                        </div>
+                        <Bar pct={b.points / total} className="h-1.5" />
+                      </div>
+                    ));
+                  })()}
+                </div>
+                <div className="rounded-2xl border border-hairline p-4">
+                  <div className="mb-3 flex items-center justify-between text-sm font-semibold text-content">
+                    <span>When their posts land best</span>
+                    <Clock className="h-4 w-4 text-content-subtle" />
+                  </div>
+                  <HeatStrip
+                    values={p.byHour.map((h) => h.avg)}
+                    labels={["0h", "6h", "12h", "18h", "23h"]}
+                    title={(i) => `${String(i).padStart(2, "0")}:00 UTC: ${p.byHour[i]!.posts} posts, ${full(p.byHour[i]!.avg)} avg pts`}
+                  />
+                  <div className="mt-3">
+                    <HeatStrip values={p.byWeekday.map((d) => d.avg)} labels={WEEKDAYS} title={(i) => `${WEEKDAYS[i]}: ${p.byWeekday[i]!.posts} posts, ${full(p.byWeekday[i]!.avg)} avg pts`} />
+                  </div>
+                  <p className="mt-2 text-[11px] text-content-subtle">
+                    {bestHour != null ? `Strongest hour: ${String(bestHour).padStart(2, "0")}:00 UTC (average points per post). ` : "Needs a few more posts to spot a pattern. "}
+                    Times are UTC.
+                  </p>
+                </div>
               </div>
 
               {/* Score breakdown + weekly */}
@@ -269,12 +384,15 @@ export function XProfile({ handle, board, onClose, onCompare }: { handle: string
                 <button type="button" onClick={() => onCompare(p.handle)} className="btn-ghost">
                   Compare
                 </button>
+                <button type="button" onClick={() => onToggleStar(p.handle)} className="btn-ghost inline-flex items-center gap-2" aria-pressed={starred}>
+                  <Star className={cn("h-4 w-4", starred && "fill-current text-gold-300")} /> {starred ? "Watching" : "Watch"}
+                </button>
               </div>
 
               {/* Posts */}
               <div>
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-content">Variational posts</span>
+                  <span className="text-sm font-semibold text-content">Posts</span>
                   <div className="flex gap-1.5">
                     {(["points", "views", "recent"] as Sort[]).map((k) => (
                       <button

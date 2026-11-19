@@ -5,9 +5,9 @@
 //                   most viewed in the last 90 days, newest in the last 90)
 //   videos.list   =   1 unit per 50 ids
 //   channels.list =   1 unit per 50 ids
-// So one topic refresh costs ~310 units and all seven ~2,170. The route caches
-// each topic for 12h, which caps a full day at about 4,400 units no matter how
-// much traffic the page gets - visitor count never reaches the quota.
+// So one topic refresh costs ~310 units and all ten ~3,100. The route caches
+// each topic for 12h, which caps a full day at about 6,200 units of the free
+// 10,000 no matter how much traffic the page gets.
 //
 // No env access here: the key is passed in, so tests can drive this with a
 // recorded fixture and a stub fetch.

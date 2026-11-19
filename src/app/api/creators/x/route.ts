@@ -3,13 +3,13 @@ import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getAdminSession } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
-import { buildBoard, runIndex, type XWindow } from "@modules/creators/lib/x-index";
-import { validHandle } from "@modules/creators/lib/twitterapi";
+import { buildBoard, runIndex, type VenueFilter, type XWindow } from "@modules/creators/lib/x-index";
+import { validHandle, venueById } from "@modules/creators/lib/twitterapi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// GET /api/creators/x?window=7d|30d|all - the Variational X leaderboard.
+// GET /api/creators/x?venue=variational|entropy|all&window=7d|30d|all - the X leaderboard.
 //
 // Reads never call the paid API: the board is computed from stored posts and
 // held for 5 min per window. The indexer (runIndex) is kicked AFTER the
@@ -18,16 +18,19 @@ export const dynamic = "force-dynamic";
 // counted against TWITTERAPI_DAILY_ITEMS. Not polled by the client.
 const BOARD_TTL = 300;
 
-const cachedBoard = unstable_cache(async (win: XWindow) => buildBoard(win), ["creators-x-board-v2"], {
+const cachedBoard = unstable_cache(async (venue: VenueFilter, win: XWindow) => buildBoard(venue, win), ["creators-x-board-v3"], {
   revalidate: BOARD_TTL,
   tags: ["creators-x"],
 });
 
 export async function GET(req: Request) {
   try {
-    const w = new URL(req.url).searchParams.get("window") || "all";
+    const sp = new URL(req.url).searchParams;
+    const w = sp.get("window") || "all";
+    const v = sp.get("venue") || "variational";
     if (w !== "7d" && w !== "30d" && w !== "all") return fail("Unknown window.", 400);
-    const board = await cachedBoard(w);
+    if (v !== "all" && !venueById(v)) return fail("Unknown venue.", 400);
+    const board = await cachedBoard(v as VenueFilter, w);
     after(runIndex);
     return NextResponse.json(board, {
       headers: { "Cache-Control": `public, s-maxage=${BOARD_TTL}, stale-while-revalidate=3600` },

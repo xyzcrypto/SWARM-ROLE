@@ -230,3 +230,74 @@ export function RankMark({ rank }: { rank: number }) {
   }
   return <span className="w-7 shrink-0 text-center font-display text-sm font-bold tabular-nums text-content-subtle">{rank}</span>;
 }
+
+/**
+ * A small list kept in this browser only (watchlist, recent scans, game
+ * bests). Read after mount - never during render - so the server HTML and the
+ * first client render always match; storage being blocked just means an
+ * empty list.
+ */
+export function useLocalList(key: string, max = 50): [string[], (next: string[]) => void] {
+  const [list, setList] = useState<string[]>([]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try {
+        const v = JSON.parse(localStorage.getItem(key) || "[]");
+        if (Array.isArray(v)) setList(v.filter((x) => typeof x === "string").slice(0, max));
+      } catch {
+        /* blocked or corrupt: start empty */
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [key, max]);
+  const save = (next: string[]) => {
+    const trimmed = next.slice(0, max);
+    setList(trimmed);
+    try {
+      localStorage.setItem(key, JSON.stringify(trimmed));
+    } catch {
+      /* not remembered, still works for this visit */
+    }
+  };
+  return [list, save];
+}
+
+/** Thin refresh bar shown while new data replaces data already on screen. */
+export function Refreshing({ on }: { on: boolean }) {
+  return (
+    <div className="pointer-events-none h-0.5 w-full overflow-hidden rounded-full" aria-hidden>
+      {on && (
+        <motion.div
+          className="h-full w-1/3 rounded-full bg-gradient-to-r from-transparent via-gold-300 to-transparent"
+          initial={{ x: "-100%" }}
+          animate={{ x: "300%" }}
+          transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Hour or weekday heat strip. */
+export function HeatStrip({ values, labels, title }: { values: number[]; labels: string[]; title: (i: number) => string }) {
+  const max = Math.max(1, ...values);
+  return (
+    <div>
+      <div className="flex gap-0.5">
+        {values.map((v, i) => (
+          <div
+            key={i}
+            title={title(i)}
+            className="h-7 flex-1 rounded-[3px] bg-gold-400"
+            style={{ opacity: v > 0 ? 0.15 + 0.85 * (v / max) : 0.06 }}
+          />
+        ))}
+      </div>
+      <div className="mt-1 flex justify-between text-[9px] text-content-subtle">
+        {labels.map((l, i) => (
+          <span key={i}>{l}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
