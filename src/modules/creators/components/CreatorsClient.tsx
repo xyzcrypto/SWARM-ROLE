@@ -67,6 +67,7 @@ export function CreatorsClient() {
   // API contract (?venue=) stays explicit.
   const venue: VenueFilter = "variational";
   const [win, setWin] = useState<XWindow>("all");
+  const [replies, setReplies] = useState(false);
   const [board, setBoard] = useState<BoardState>({ status: "loading" });
   const [topic, setTopic] = useState<TopicId>("all");
   const [yt, setYt] = useState<YtState>({ status: "loading" });
@@ -98,13 +99,13 @@ export function CreatorsClient() {
   useEffect(() => {
     let alive = true;
     // A poll of the same filter updates silently; only a filter change dims.
-    const key = `${venue}|${win}`;
+    const key = `${venue}|${win}|${replies}`;
     const silent = boardKey.current === key;
     boardKey.current = key;
     const t = setTimeout(() => {
       if (!silent) setBoard((s) => (s.status === "ready" ? { ...s, refreshing: true } : { status: "loading" }));
     }, 0);
-    fetch(`/api/creators/x?venue=${venue}&window=${win}`)
+    fetch(`/api/creators/x?venue=${venue}&window=${win}${replies ? "&replies=1" : ""}`)
       .then(async (r) => {
         const body = await r.json().catch(() => null);
         if (!alive) return;
@@ -113,7 +114,7 @@ export function CreatorsClient() {
         // change can never crash the page during a deploy window.
         setBoard({
           status: "ready",
-          board: { latest: [], topics: [], rising: [], topPosts: [], daily: [], ranking: [], active7d: 0, ...body, rows: body.rows.map((r: any) => ({ move: null, ...r })) },
+          board: { latest: [], topics: [], rising: [], topPosts: [], daily: [], ranking: [], active7d: 0, replies: false, ...body, sync: { lastError: null, backfilledTo: null, ...body.sync }, rows: body.rows.map((r: any) => ({ move: null, ...r })) },
           refreshing: false,
         });
       })
@@ -122,7 +123,7 @@ export function CreatorsClient() {
       alive = false;
       clearTimeout(t);
     };
-  }, [venue, win, xTick]);
+  }, [venue, win, replies, xTick]);
 
   useEffect(() => {
     let alive = true;
@@ -246,6 +247,8 @@ export function CreatorsClient() {
               venue={venue}
               win={win}
               setWin={setWin}
+              replies={replies}
+              setReplies={setReplies}
               onOpen={openProfile}
               isAdmin={isAdmin}
               onHide={hide}
@@ -264,6 +267,7 @@ export function CreatorsClient() {
           key={profile}
           handle={profile}
           venue={venue}
+          replies={replies}
           // Profile ranks are all-time, so only an all-time board can say who is next above.
           board={win === "all" ? rows : []}
           boardVenue={win === "all" ? venue : null}

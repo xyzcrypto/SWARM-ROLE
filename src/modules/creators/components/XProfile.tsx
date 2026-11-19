@@ -30,6 +30,7 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export function XProfile({
   handle,
   venue: initialVenue,
+  replies = false,
   board,
   boardVenue,
   onClose,
@@ -39,6 +40,7 @@ export function XProfile({
 }: {
   handle: string;
   venue: VenueFilter;
+  replies?: boolean;
   board: BoardRow[];
   /** Venue the passed all-time board ranks; the "points to pass" line only makes sense on it. */
   boardVenue: VenueFilter | null;
@@ -58,7 +60,7 @@ export function XProfile({
     // Switching venue keeps the current profile on screen (dimmed) until the
     // new one lands, instead of flashing back to a spinner.
     const t = setTimeout(() => setState((s) => (s.s === "ready" ? { ...s, refreshing: true } : { s: "loading" })), 0);
-    fetch(`/api/creators/x/profile?handle=${encodeURIComponent(handle)}&venue=${venue}`)
+    fetch(`/api/creators/x/profile?handle=${encodeURIComponent(handle)}&venue=${venue}${replies ? "&replies=1" : ""}`)
       .then(async (r) => {
         const body = await r.json().catch(() => null);
         if (!alive) return;
@@ -77,7 +79,7 @@ export function XProfile({
       alive = false;
       clearTimeout(t);
     };
-  }, [handle, venue]);
+  }, [handle, venue, replies]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();

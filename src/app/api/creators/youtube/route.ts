@@ -14,11 +14,11 @@ export const dynamic = "force-dynamic";
 // listed in markets-poll-alignment.test.ts TARGETS. Three cache layers; the
 // quota depends only on the inner two:
 //  - DISCOVERY, unstable_cache 24h per topic: the search.list calls (100 units
-//    each) that find which videos exist. ~310 units per topic, 10 topics, once
-//    a day = ~3,100 units.
+//    each) that find which videos exist. ~410 units per topic, 10 topics, once
+//    a day = ~4,100 units.
 //  - LIVE STATS, unstable_cache 10 min per topic: videos.list on the ids
 //    discovery found, 1 unit per 50 ids (~3 units a topic). At most 144
-//    refreshes a day per topic = ~4,300 units. Together ~7,400 of the free
+//    refreshes a day per topic = ~4,300 units. Together ~8,400 of the free
 //    10,000, whatever the traffic. This is what makes views, likes and
 //    comments current to within about 10 minutes.
 //  - the edge, s-maxage 600 (>= the 540s poll, < 3x it): repeat visits never

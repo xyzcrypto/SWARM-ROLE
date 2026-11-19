@@ -437,3 +437,21 @@ describe("creators: YouTube accuracy and composite ranking", () => {
     expect(ranked[0]!.channelId).toBe("steady");
   });
 });
+
+describe("creators: YouTube all-time coverage", () => {
+  it("reads a second page of all-time most viewed when YouTube offers one", async () => {
+    const searches: URLSearchParams[] = [];
+    const f = async (url: string) => {
+      const u = new URL(url);
+      if (u.pathname.endsWith("/search")) {
+        searches.push(u.searchParams);
+        const first = u.searchParams.get("order") === "viewCount" && !u.searchParams.has("publishedAfter") && !u.searchParams.has("pageToken");
+        return json({ items: [], ...(first ? { nextPageToken: "P2" } : {}) });
+      }
+      return json({ items: [] });
+    };
+    await fetchTopic(topicById("hyperliquid")!, "k", NOW, f as any);
+    expect(searches).toHaveLength(4);
+    expect(searches.filter((p) => p.get("pageToken") === "P2")).toHaveLength(1);
+  });
+});

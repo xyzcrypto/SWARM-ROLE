@@ -8,6 +8,8 @@ import { validHandle, venueById } from "@modules/creators/lib/twitterapi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// The background indexer runs in after() on this request and needs the time.
+export const maxDuration = 60;
 
 // GET /api/creators/x?venue=variational|entropy|all&window=7d|30d|all - the X leaderboard.
 //
@@ -22,8 +24,8 @@ const BOARD_TTL = 300;
 
 // The key carries a version. The data cache outlives deploys, so whenever the
 // Board shape changes the version MUST change too, or the new client gets the
-// old shape for up to BOARD_TTL after a deploy (v3 -> v4 added move/topics/latest).
-const cachedBoard = unstable_cache(async (venue: VenueFilter, win: XWindow) => buildBoard(venue, win), ["creators-x-board-v4"], {
+// old shape for up to BOARD_TTL after a deploy (v4 added move/topics/latest, v5 replies + sync.lastError/backfilledTo).
+const cachedBoard = unstable_cache(async (venue: VenueFilter, win: XWindow, replies: boolean) => buildBoard(venue, win, replies), ["creators-x-board-v5"], {
   revalidate: BOARD_TTL,
   tags: ["creators-x"],
 });
@@ -35,7 +37,8 @@ export async function GET(req: Request) {
     const v = sp.get("venue") || "variational";
     if (w !== "7d" && w !== "30d" && w !== "all") return fail("Unknown window.", 400);
     if (v !== "all" && !venueById(v)) return fail("Unknown venue.", 400);
-    const board = await cachedBoard(v as VenueFilter, w);
+    const replies = sp.get("replies") === "1";
+    const board = await cachedBoard(v as VenueFilter, w, replies);
     after(runIndex);
     return NextResponse.json(board, {
       // Literal on purpose: markets-poll-alignment.test.ts reads it. Keep equal to BOARD_TTL.
