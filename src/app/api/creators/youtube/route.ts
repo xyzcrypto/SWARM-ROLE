@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { unstable_cache } from "next/cache";
 import { env } from "@/lib/env";
 import { handleError, fail } from "@/lib/api";
@@ -8,6 +8,8 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// First-time discovery of one venue runs inline; refreshes run in after().
+export const maxDuration = 60;
 
 // GET /api/creators/youtube?topic=<id|all>
 //
@@ -33,8 +35,6 @@ const DISCOVERY_TTL_MS = 86_400_000;
 const STATS_TTL = 1_800;
 const LOCK_MS = 5 * 60_000;
 
-type TopicPayload = { videos: YtVideo[]; fetchedAt: string; stale: boolean };
-
 async function quotaResetAt(): Promise<number | null> {
   const row = await prisma.creatorSync.findUnique({ where: { key: "yt-quota" } }).catch(() => null);
   return row && row.runAt.getTime() > Date.now() ? row.runAt.getTime() : null;
@@ -57,52 +57,63 @@ async function claim(topicId: string): Promise<boolean> {
   return r.count === 1;
 }
 
-const memo = new Map<string, { at: number; v: TopicPayload }>();
+const memo = new Map<string, { at: number; v: Stored }>();
+type Stored = { videos: YtVideo[]; fetchedAt: string; fresh: boolean };
 
-async function discover(topicId: string): Promise<TopicPayload> {
+/** What is stored for a topic (memo -> DB). Never calls YouTube. */
+async function readStored(topicId: string): Promise<Stored | null> {
   const m = memo.get(topicId);
   if (m && Date.now() - m.at < 5 * 60_000) return m.v;
-  const topic = topicById(topicId);
-  if (!topic) return { videos: [], fetchedAt: new Date().toISOString(), stale: false };
   const row = await prisma.ytDiscovery.findUnique({ where: { topic: topicId } }).catch(() => null);
-  const rowVideos = (row?.videos as unknown as YtVideo[] | undefined) ?? null;
-  const stored = rowVideos ? { videos: rowVideos, fetchedAt: row!.fetchedAt.toISOString() } : null;
-  const keep = (v: TopicPayload) => (memo.set(topicId, { at: Date.now(), v }), v);
-  if (stored && Date.now() - row!.fetchedAt.getTime() < DISCOVERY_TTL_MS) return keep({ ...stored, stale: false });
+  if (!row) return null;
+  const v = { videos: row.videos as unknown as YtVideo[], fetchedAt: row.fetchedAt.toISOString(), fresh: Date.now() - row.fetchedAt.getTime() < DISCOVERY_TTL_MS };
+  memo.set(topicId, { at: Date.now(), v });
+  return v;
+}
 
-  const reset = await quotaResetAt();
-  if (reset) {
-    if (stored) return keep({ ...stored, stale: true });
-    throw new YoutubeError("YouTube quota exhausted", 403, "quotaExceeded");
-  }
-  if (!(await claim(topicId))) {
-    // Someone else is fetching this topic right now: serve what we have.
-    if (stored) return { ...stored, stale: true };
-    throw new YoutubeError("Discovery in progress", 503, "busy");
-  }
+/**
+ * Run one topic's discovery against YouTube and store it. Guarded: skipped
+ * while the quota is out, and only one caller per topic at a time.
+ */
+async function refresh(topicId: string): Promise<Stored | null> {
+  const topic = topicById(topicId);
+  if (!topic) return null;
+  if (await quotaResetAt()) throw new YoutubeError("YouTube quota exhausted", 403, "quotaExceeded");
+  if (!(await claim(topicId))) throw new YoutubeError("Discovery in progress", 503, "busy");
   try {
     const videos = await fetchTopic(topic, env.YOUTUBE_API_KEY, Date.now());
     const now = new Date();
-    await prisma.ytDiscovery
-      .upsert({
-        where: { topic: topicId },
-        create: { topic: topicId, videos: videos as unknown as object, fetchedAt: now },
-        update: { videos: videos as unknown as object, fetchedAt: now },
-      })
-      .catch((e) => console.error("[creators:youtube] save", e instanceof Error ? e.message : e));
-    return keep({ videos, fetchedAt: now.toISOString(), stale: false });
+    await prisma.ytDiscovery.upsert({
+      where: { topic: topicId },
+      create: { topic: topicId, videos: videos as unknown as object, fetchedAt: now },
+      update: { videos: videos as unknown as object, fetchedAt: now },
+    });
+    const v = { videos, fetchedAt: now.toISOString(), fresh: true };
+    memo.set(topicId, { at: Date.now(), v });
+    return v;
   } catch (err) {
     await noteQuota(err);
     console.error("[creators:youtube] discovery", topicId, err instanceof YoutubeError ? err.reason : "", err instanceof Error ? err.message : err);
-    if (stored) return keep({ ...stored, stale: true });
     throw err;
+  }
+}
+
+/** Background refresh of up to `max` topics, missing ones first. Never throws. */
+async function refreshInBackground(topicIds: string[], max = 3) {
+  for (const id of topicIds.slice(0, max)) {
+    try {
+      await refresh(id);
+    } catch (err) {
+      if (err instanceof YoutubeError && err.reason === "quotaExceeded") return;
+    }
   }
 }
 
 const cachedStats = unstable_cache(
   async (topicId: string): Promise<{ stats: LiveStats; at: string }> => {
     if (await quotaResetAt()) throw new YoutubeError("YouTube quota exhausted", 403, "quotaExceeded");
-    const d = await discover(topicId);
+    const d = await readStored(topicId);
+    if (!d) throw new YoutubeError("Nothing stored yet", 503, "pending");
     // Only the videos that will actually be shown.
     const ids = classify([d.videos]).map((v) => v.id);
     try {
@@ -117,16 +128,10 @@ const cachedStats = unstable_cache(
   { revalidate: STATS_TTL, tags: ["creators-youtube"] }
 );
 
-async function loadTopic(id: string): Promise<TopicPayload & { statsAt: string | null }> {
-  const base = await discover(id);
-  // Live counts are a bonus on top of discovery: if they fail, serve the
-  // snapshot (still real numbers, just older) rather than nothing.
-  const live = await cachedStats(id).catch(() => null);
-  return live ? { ...base, videos: withStats(base.videos, live.stats), statsAt: live.at } : { ...base, statsAt: null };
-}
-
 const OK_CACHE = "public, s-maxage=600, stale-while-revalidate=3600";
-const ERR_CACHE = "public, s-maxage=600, stale-while-revalidate=1200";
+// Anything short of a complete answer is not edge-cached: a "still fetching"
+// or error response pinned for 10 minutes is exactly what kept the tab empty.
+const NO_STORE = "private, no-store";
 
 export async function GET(req: Request) {
   try {
@@ -134,44 +139,65 @@ export async function GET(req: Request) {
     if (topicParam !== "all" && !topicById(topicParam)) return fail("Unknown topic.", 400);
 
     if (!env.YOUTUBE_API_KEY) {
-      return NextResponse.json(
-        { configured: false, topic: topicParam, videos: [], fetchedAt: null },
-        { headers: { "Cache-Control": ERR_CACHE } }
-      );
+      return NextResponse.json({ configured: false, topic: topicParam, videos: [], fetchedAt: null }, { headers: { "Cache-Control": NO_STORE } });
     }
 
     const ids = topicParam === "all" ? TOPICS.map((t) => t.id) : [topicParam];
-    const settled = await Promise.allSettled(ids.map(loadTopic));
-    const good = settled.flatMap((s) => (s.status === "fulfilled" ? [s.value] : []));
-    const firstErr = settled.find((s): s is PromiseRejectedResult => s.status === "rejected")?.reason;
+    const stored = await Promise.all(ids.map(async (id) => [id, await readStored(id)] as const));
+    let firstErr: unknown = null;
 
-    if (!good.length) {
-      const reason = firstErr instanceof YoutubeError ? firstErr.reason : "unknown";
-      console.error("[creators:youtube]", reason, firstErr instanceof Error ? firstErr.message : firstErr);
-      const reset = await quotaResetAt();
+    // One venue with nothing stored: fetch it now (a few seconds, inside
+    // maxDuration). "All" never fetches inline - ten venues at once is what
+    // used to time the request out and burn quota without saving anything.
+    if (topicParam !== "all" && !stored[0]![1]) {
+      try {
+        stored[0] = [topicParam, await refresh(topicParam)];
+      } catch (err) {
+        firstErr = err;
+      }
+    }
+
+    // Old or missing venues are fetched after the response is sent.
+    const todo = [...stored.filter(([, v]) => !v).map(([id]) => id), ...stored.filter(([, v]) => v && !v.fresh).map(([id]) => id)];
+    if (todo.length && !(await quotaResetAt())) after(() => refreshInBackground(todo));
+
+    const have = stored.filter((x): x is readonly [string, Stored] => !!x[1]);
+    const pending = stored.filter(([, v]) => !v).map(([id]) => id);
+    const reset = await quotaResetAt();
+
+    if (!have.length) {
+      // With the daily-quota guard on, no background fetch was scheduled, so
+      // "pending" would make the page spin and retry for nothing.
+      const reason =
+        firstErr instanceof YoutubeError ? firstErr.reason : firstErr ? "unknown" : reset ? "quotaExceeded" : "pending";
+      if (firstErr) console.error("[creators:youtube]", reason, firstErr instanceof Error ? firstErr.message : firstErr);
       return NextResponse.json(
         {
           configured: true,
           topic: topicParam,
           videos: [],
           fetchedAt: null,
-          error: reset || reason === "quotaExceeded" ? "quota" : reason === "busy" ? "busy" : "upstream",
-          // Shown to visitors as "fresh data returns in N hours".
+          // "pending" = first fetch is running in the background; the page retries shortly.
+          pending: reason === "pending" || reason === "busy",
+          error: reset || reason === "quotaExceeded" ? "quota" : reason === "pending" || reason === "busy" ? "busy" : "upstream",
           quotaResetAt: reset ? new Date(reset).toISOString() : null,
-          // The API's own reason (e.g. keyInvalid, accessNotConfigured), so a
-          // setup problem is visible on the page instead of only in logs.
+          // The API's own reason (e.g. keyInvalid, accessNotConfigured), shown on the page.
           reason,
+          detail: firstErr instanceof Error ? firstErr.message.slice(0, 160) : null,
         },
-        { status: 503, headers: { "Cache-Control": ERR_CACHE } }
+        { status: reason === "pending" || reason === "busy" ? 202 : 503, headers: { "Cache-Control": NO_STORE } }
       );
     }
 
+    // Live counts on top of the stored lists (cached 30 min; skipped while the quota is out).
+    const live = reset ? [] : await Promise.all(have.map(([id]) => cachedStats(id).catch(() => null)));
+    const lists = have.map(([, v], i) => (live[i] ? withStats(v.videos, live[i]!.stats) : v.videos));
     // Tag every video with every venue it is about, then keep the ones about
     // the requested venue (or any venue, for "all").
-    const videos = classify(good.map((g) => g.videos)).filter((v) => topicParam === "all" || v.topics.includes(topicParam as never));
-    const fetchedAt = good.map((g) => g.fetchedAt).sort()[0] ?? null; // oldest = honest "as of"
-    // Oldest live-stats time across the topics; null if any topic is on its snapshot.
-    const statsAt = good.every((g) => g.statsAt) ? (good.map((g) => g.statsAt!).sort()[0] ?? null) : null;
+    const videos = classify(lists).filter((v) => topicParam === "all" || v.topics.includes(topicParam as never));
+    const fetchedAt = have.map(([, v]) => v.fetchedAt).sort()[0] ?? null; // oldest = honest "as of"
+    const statsAt = live.length === have.length && live.every(Boolean) ? (live.map((l) => l!.at).sort()[0] ?? null) : null;
+    const complete = !pending.length;
     return NextResponse.json(
       {
         configured: true,
@@ -179,11 +205,12 @@ export async function GET(req: Request) {
         videos,
         fetchedAt,
         statsAt,
-        partial: good.length < ids.length,
-        stale: good.some((g) => g.stale),
-        quotaResetAt: (await quotaResetAt().then((r) => (r ? new Date(r).toISOString() : null))) ?? null,
+        partial: !complete,
+        pending: !complete,
+        stale: have.some(([, v]) => !v.fresh),
+        quotaResetAt: reset ? new Date(reset).toISOString() : null,
       },
-      { headers: { "Cache-Control": good.length < ids.length ? ERR_CACHE : OK_CACHE } }
+      { headers: { "Cache-Control": complete ? OK_CACHE : NO_STORE } }
     );
   } catch (err) {
     return handleError(err, "creators:youtube");

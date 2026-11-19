@@ -5,6 +5,42 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (154) — Creators: YouTube loads in the background, and the page says why when it can't
+
+The owner reported the YouTube tab still showed "YouTube didn't respond just now" after #153.
+
+### Diagnosis
+- **The "All venues" request discovered every missing venue inline.** With an empty
+  `YtDiscovery` store, one request ran 2+ searches for each of 10 venues back to back. The
+  route had no `maxDuration`, so the function timed out before it could save anything.
+  The browser got an HTML error page instead of JSON, which showed the generic message.
+  Every retry spent quota again and stored nothing.
+
+### Fix (`src/app/api/creators/youtube/route.ts`)
+- **Discovery moved off the request path.** Stored venues are served at once. Missing or
+  old venues are refreshed after the response with `after()`, at most 3 per request, one
+  at a time, stopping on a quota error. Only a single-venue request with nothing stored
+  fetches inline. `maxDuration = 60`.
+- **Partial and pending responses are `private, no-store`.** Only a complete answer gets
+  the 600s edge cache, so a half-filled board is never cached for everyone.
+- **202 `pending` while the first fetch runs; 503 with the API's own `reason` otherwise.**
+  With the quota guard on, nothing is scheduled, so the answer is a 503 quota error, not a
+  spinner that retries for nothing.
+
+### UI (`CreatorsClient.tsx`, `YoutubeBoard.tsx`)
+- New "warming" state: a spinner while the first fetch for a venue runs, retrying every 15s
+  (up to 8 times). A small note shows when some venues are still loading.
+- Error text always ends with the code, e.g. `(code: quotaExceeded)` or `(code: keyInvalid)`,
+  so a screenshot tells us the cause.
+
+### Verified locally
+Against a fake YouTube API: "All venues" answered in ~20ms from the store and filled the
+other venues in the background over the next requests. In quota mode one venue returned
+503 `quotaExceeded`, the guard was set to midnight Pacific, and later requests made no
+calls. typecheck, lint (51 warnings, 0 errors), 1595 tests, build all green.
+
+---
+
 ## 2026-11-20 (153) — Creators: YouTube that survives its quota, and the wrong-venue data bug
 
 The owner reported that YouTube data was not loading on /creators.
