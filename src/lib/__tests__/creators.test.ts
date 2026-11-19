@@ -13,7 +13,7 @@ import {
   viewsPerDay,
   type YtVideo,
 } from "@modules/creators/lib/scoring";
-import { fetchTopic, mergeTopics, parseDuration, YoutubeError } from "@modules/creators/lib/youtube";
+import { fetchTopic, fetchStats, withStats, mergeTopics, parseDuration, YoutubeError } from "@modules/creators/lib/youtube";
 import {
   normalizeTweet,
   normalizeUser,
@@ -370,5 +370,25 @@ describe("creators: one XYZ Score everywhere", () => {
     expect(activeWeeksSince([d(85)], now)).toBe(0);
     expect(activeWeeksSince(Array.from({ length: 30 }, (_, i) => d(i * 2.5)), now)).toBe(11);
     expect(activeWeeksSince(Array.from({ length: 120 }, (_, i) => d(i * 0.7)), now)).toBeLessThanOrEqual(12);
+  });
+});
+
+describe("creators: YouTube live stats", () => {
+  it("reads only statistics, 50 ids per call, and overlays them on the snapshot", async () => {
+    const calls: URL[] = [];
+    const ids = Array.from({ length: 120 }, (_, i) => `v${i}`);
+    const f = async (url: string) => {
+      const u = new URL(url);
+      calls.push(u);
+      const items = (u.searchParams.get("id") ?? "").split(",").map((id) => ({ id, statistics: { viewCount: "999", likeCount: "9" } }));
+      return json({ items });
+    };
+    const stats = await fetchStats(ids, "k", f as any);
+    expect(calls).toHaveLength(3);
+    expect(calls.every((c) => c.searchParams.get("part") === "statistics")).toBe(true);
+    expect(stats.v0).toEqual({ views: 999, likes: 9, comments: null });
+    const merged = withStats([vid({ id: "v0", views: 1 }), vid({ id: "gone", views: 5 })], stats);
+    expect(merged[0]!.views).toBe(999);
+    expect(merged[1]!.views).toBe(5); // not returned -> keeps its snapshot
   });
 });

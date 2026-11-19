@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowUpRight, Clock, Eye, Heart, Loader2, MessageCircle, X as Close } from "lucide-react";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { useScrollLock } from "@shared/hooks/useScrollLock";
 import {
   TOPICS,
@@ -26,7 +26,7 @@ import { Avatar, Chip, CountUp, Empty, LevelChip, Panel, PanelTitle, RankMark, R
 
 export type YtState =
   | { status: "loading" }
-  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; partial: boolean; loadedAt: number; refreshing: boolean }
+  | { status: "ready"; videos: YtVideo[]; fetchedAt: string | null; statsAt: string | null; partial: boolean; loadedAt: number; refreshing: boolean }
   | { status: "unconfigured" }
   | { status: "error"; quota: boolean };
 
@@ -301,6 +301,15 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
       {state.status === "ready" && (
         <div className={cn("space-y-6 transition-opacity duration-300", state.refreshing && "opacity-70")}>
           <Refreshing on={state.refreshing} />
+          <div className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-hairline bg-ink-900/60 px-3.5 py-1.5 font-mono text-[11px] text-content-subtle">
+            <span className="relative flex h-2 w-2">
+              <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-60", state.statsAt ? "animate-ping bg-mint-400" : "bg-content-subtle")} />
+              <span className={cn("relative inline-flex h-2 w-2 rounded-full", state.statsAt ? "bg-mint-400" : "bg-content-subtle")} />
+            </span>
+            <span>{state.statsAt ? `Live stats: ${formatDateTime(state.statsAt)} UTC` : "Stats from the last discovery run"}</span>
+            {state.fetchedAt && <span>· Video list: {formatDateTime(state.fetchedAt)} UTC</span>}
+            <span>· Auto-refreshes</span>
+          </div>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Videos" value={<CountUp value={stats.videos} format={full} />} />
             <Stat label="Total views" value={<CountUp value={stats.views} format={compact} />} accent />
@@ -308,7 +317,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
             <Stat label="Engagement" value={pct(stats.er, 2)} sub="likes + comments per view" />
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <Panel className="lg:col-span-3">
               <PanelTitle title="Top creators" sub={`${full(creators.length)} channels · tap one for its videos`} />
               {creators.length === 0 ? (
@@ -322,7 +331,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
                         <Avatar src={c.channelAvatar} alt={c.channelTitle} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <span className="truncate text-sm font-semibold text-content group-hover:text-gold-200">{c.channelTitle}</span>
+                            <span className="min-w-0 truncate text-sm font-semibold text-content group-hover:text-gold-200">{c.channelTitle}</span>
                             <span className="hidden sm:inline">
                               <LevelChip n={levelFor(c.points).n} compact />
                             </span>
@@ -438,9 +447,9 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
           </section>
 
           <p className="text-xs leading-relaxed text-content-subtle">
-            Data from the YouTube Data API{state.fetchedAt ? `, refreshed ${formatDate(state.fetchedAt)}` : ""}
-            {state.partial ? " (some topics are still loading)" : ""}. For each venue we read the all-time most viewed videos plus the most viewed and
-            newest of the last 90 days, and keep only videos actually about that venue. Video points = views ÷ 100 + likes + 2 × comments. A
+            Data from the YouTube Data API{state.partial ? " (some topics are still loading)" : ""}. Once a day, for each venue, we find the all-time
+            most viewed videos plus the most viewed and newest of the last 90 days, and keep only videos actually about that venue. Their views, likes
+            and comments are re-read about every 10 minutes, and this page refreshes itself while open. Video points = views ÷ 100 + likes + 2 × comments. A
             channel&apos;s points are the sum of its videos in the selected window. Hidden like or comment counts score 0. Shorts = 3 minutes or less.
             Trending = views per day since upload.
           </p>

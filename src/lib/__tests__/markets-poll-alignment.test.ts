@@ -263,6 +263,23 @@ function pointsRadarTarget(): Target {
   };
 }
 
+/**
+ * `/creators` - the X board and the YouTube board, both polled from the page
+ * shell (a seventh place a poll interval lives). Both routes are
+ * force-dynamic with an edge header, so they are edge-only targets.
+ */
+const CREATORS_CLIENT = "src/modules/creators/components/CreatorsClient.tsx";
+function creatorsTargets(): Target[] {
+  const src = read(CREATORS_CLIENT);
+  const x = src.match(/^export const X_POLL_MS = ([\d_]+);/m);
+  const yt = src.match(/^export const YT_POLL_MS = ([\d_]+);/m);
+  if (!x || !yt) throw new Error(`could not parse X_POLL_MS / YT_POLL_MS out of ${CREATORS_CLIENT}`);
+  return [
+    { label: "creators/x", routeFile: "src/app/api/creators/x/route.ts", pollMs: Number(x[1]!.replace(/_/g, "")), pollSource: CREATORS_CLIENT, edgeOnly: true },
+    { label: "creators/youtube", routeFile: "src/app/api/creators/youtube/route.ts", pollMs: Number(yt[1]!.replace(/_/g, "")), pollSource: CREATORS_CLIENT, edgeOnly: true },
+  ];
+}
+
 const TARGETS: Target[] = [
   ...marketsTargets(),
   ...detailTargets(),
@@ -271,6 +288,7 @@ const TARGETS: Target[] = [
   chatTarget(),
   pointsCompsTarget(),
   pointsRadarTarget(),
+  ...creatorsTargets(),
 ];
 
 describe("polled API routes keep their ISR + edge windows aligned with client polling", () => {

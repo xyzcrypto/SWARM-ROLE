@@ -242,7 +242,7 @@ export function XBoard({
           </div>
 
           {/* Activity + rising */}
-          <div className="grid gap-6 lg:grid-cols-5">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <Panel className="lg:col-span-3">
               <PanelTitle
                 title="Activity"
@@ -386,7 +386,7 @@ export function XBoard({
                           <Avatar src={r.avatar} alt={r.handle} />
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
-                              <span className="truncate text-sm font-semibold text-content group-hover:text-gold-200">@{r.handle}</span>
+                              <span className="min-w-0 truncate text-sm font-semibold text-content group-hover:text-gold-200">@{r.handle}</span>
                               {r.verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-sky-400" aria-label="Verified" />}
                               <span className="hidden sm:inline">
                                 <LevelChip n={r.level} compact />
@@ -455,7 +455,7 @@ export function XBoard({
                       <Avatar src={p.avatar} alt={p.handle} size={32} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1 truncate text-sm font-semibold text-content">
-                          <span className="truncate">{p.name}</span>
+                          <span className="min-w-0 truncate">{p.name}</span>
                           {p.verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-sky-400" />}
                         </div>
                         <div className="truncate text-[11px] text-content-subtle">

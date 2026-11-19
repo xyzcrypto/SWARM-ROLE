@@ -5,6 +5,51 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-19 (148) — Creators: mobile alignment, live YouTube stats, auto-refresh
+
+The owner reported, with a screenshot from the live site (YouTube key now active), that the
+/creators layout was not aligned on mobile, and asked for accurate, realtime data.
+
+### Mobile alignment
+- **The bug:** the "Top creators" card ran off the right edge on phones, cutting off the
+  points column.
+- **Two causes:**
+  - Grids with no base column count. Tailwind's `grid` without `grid-cols-1` sizes its
+    implicit track to content, so a long channel name widened the whole column.
+  - `truncate` spans inside flex rows with no `min-w-0`. A flex item's default min-width is
+    its full text width, so it would not shrink.
+- **The fix:**
+  - Added `grid-cols-1` to the grids (X activity/rising, YouTube creators/mindshare, the
+    profile's two-up sections).
+  - Added `min-w-0` to every truncating span and to `Panel`.
+  - Head to Head uses `minmax(0,1fr)` columns.
+  - Panel padding is `p-4` on phones.
+- **Verified** at 320, 390 and 412 px wide: `scrollWidth == clientWidth` on all three tabs,
+  with a deliberately long Cyrillic channel and display name.
+
+### Live data
+- **YouTube is split into two caches:**
+  - **Discovery** (`search.list`, 100 units a call) runs once a day per venue.
+  - **Live stats** (`videos.list` on the found ids, 1 unit per 50) run every 10 min
+    (`fetchStats` / `withStats`).
+  - Views, likes and comments are now at most ~10 min old. Quota is ~3,100 + ~4,300, about
+    7,400 of 10,000 a day, whatever the traffic.
+  - The discovery cache key is unchanged, so production keeps its warm entries.
+  - If stats fail, the discovery snapshot is served (real, older numbers), not nothing.
+- **The page auto-refreshes** while the tab is visible: X board every 240s (edge 300s) and
+  YouTube every 540s (edge 600s, down from 3600). It catches up at once when you return to
+  the tab. Refreshes are silent; only a filter change dims the board.
+- **Status line on YouTube:** "Live stats: … UTC · Video list: … UTC · Auto-refreshes".
+- **X data** is still indexed every 30 min, budget-capped. Faster X indexing would cost
+  billed items for mostly-empty pages.
+
+### Cost guard
+- Both routes are now in `TARGETS` in `markets-poll-alignment.test.ts` (`creatorsTargets`).
+  Each poll is shorter than its edge window and over a third of it.
+- The X route's header is now a literal, so the test can read it.
+
+---
+
 ## 2026-11-19 (147) — Creators v3: Entropy, 10x features, glitch fixes, Arena v2
 
 The owner asked for a better UI and UX, many more accurate features, no glitches,
