@@ -66,9 +66,44 @@ function today(): string {
  * Reserve `n` billed items from today's budget. Atomic: the increment only
  * applies while the row still has room, so concurrent runs cannot overspend.
  */
-export async function reserve(n: number): Promise<boolean> {
+/**
+ * Known Variational creators to seed the board with (from the owner's
+ * reference leaderboard). Seeded accounts get a full history scan in the
+ * background, so the board starts from the real top of the scene instead of
+ * whoever happened to post in the last hour. Anyone else gets in by posting,
+ * by backfill, or by being looked up.
+ */
+export const SEED_HANDLES = [
+  "muarmemuar",
+  "onchainmonk",
+  "VictorTopDefiG",
+  "givenoxbt",
+  "linenmito",
+  "Ryuzaki_SEI",
+  "Muallimin_biri",
+  "corgil",
+  "me_cool_off",
+  "JoestarCrypto",
+  "Absoluto92",
+];
+
+/** Background jobs may use this share of the daily budget; the rest stays free for people's look-ups. */
+const BG_SHARE = 0.75;
+const BACKFILL_DAYS = 180;
+const BACKFILL_WINDOW_DAYS = 7;
+const BACKFILL_PAGES = 5; // Top posts per weekly window
+const DEEP_SCANS_PER_RUN = 1;
+/** Stop starting new background work after this much time in one run (the route's maxDuration is 60s). */
+const RUN_DEADLINE_MS = 40_000;
+
+/**
+ * Reserve `n` billed items from today's budget. Atomic: the increment only
+ * applies while the row still has room, so concurrent runs cannot overspend.
+ * `background` jobs stop at BG_SHARE of the cap.
+ */
+export async function reserve(n: number, background = false): Promise<boolean> {
   const day = today();
-  const cap = dailyBudget();
+  const cap = background ? Math.floor(dailyBudget() * BG_SHARE) : dailyBudget();
   await prisma.creatorSync.upsert({ where: { key: "budget" }, create: { key: "budget", day, spent: 0 }, update: {} });
   await prisma.creatorSync.updateMany({ where: { key: "budget", NOT: { day } }, data: { day, spent: 0 } });
   const r = await prisma.creatorSync.updateMany({
@@ -81,6 +116,13 @@ export async function reserve(n: number): Promise<boolean> {
 export async function budgetState(): Promise<{ spent: number; cap: number }> {
   const row = await prisma.creatorSync.findUnique({ where: { key: "budget" } }).catch(() => null);
   return { spent: row && row.day === today() ? row.spent : 0, cap: dailyBudget() };
+}
+
+/** Keep the last indexer error visible on the board (it is otherwise only in server logs). */
+async function noteError(msg: string | null) {
+  await prisma.creatorSync
+    .upsert({ where: { key: "error" }, create: { key: "error", cursor: msg, runAt: new Date() }, update: { cursor: msg, runAt: new Date() } })
+    .catch(() => null);
 }
 
 /** Claim a job lock row; true only for the one caller that gets it. */
@@ -161,13 +203,15 @@ export async function runIndex(): Promise<{ ran: boolean; saved?: number; error?
   if (!xConfigured()) return { ran: false };
   let ran = false;
   let saved = 0;
+  const started = Date.now();
+  const timeLeft = () => Date.now() - started < RUN_DEADLINE_MS;
   try {
     for (const v of VENUES) {
       if (!(await claim(`index:${v.id}`, INDEX_EVERY_MS))) continue;
       ran = true;
       let cursor: string | null = null;
       for (let page = 0; page < MAX_LATEST_PAGES; page++) {
-        if (!(await reserve(PAGE_COST))) break;
+        if (!(await reserve(PAGE_COST, true))) break;
         const res = await searchPage(venueQuery(v), "Latest", cursor, env.TWITTERAPI_IO_KEY);
         const r = await saveTweets(res.tweets);
         saved += r.saved;
@@ -186,7 +230,7 @@ export async function runIndex(): Promise<{ ran: boolean; saved?: number; error?
         take: ROTATE_PER_RUN,
         select: { tweetId: true, venues: true },
       });
-      if (stale.length && (await reserve(stale.length))) {
+      if (stale.length && (await reserve(stale.length, true))) {
         const fresh = await tweetsById(stale.map((s) => s.tweetId), env.TWITTERAPI_IO_KEY);
         for (const t of fresh) {
           const venues = venuesFor(t.text);
@@ -200,30 +244,114 @@ export async function runIndex(): Promise<{ ran: boolean; saved?: number; error?
         if (missing.length) await prisma.xTweet.updateMany({ where: { tweetId: { in: missing } }, data: { fetchedAt: new Date() } });
       }
     }
+    // Backfill: walk back through history a week at a time, taking each
+    // week's most-engaged posts (queryType Top). This is what puts the
+    // established creators on the board; "Latest" alone only ever sees the
+    // last few hours.
+    if (timeLeft() && (await claim("backfill", INDEX_EVERY_MS))) {
+      ran = true;
+      saved += await backfillStep();
+    }
+
+    // Deep scans: complete the history of seeded creators first, then of the
+    // highest-ranked accounts we only know from a few sampled posts.
+    if (timeLeft() && (await claim("deep", INDEX_EVERY_MS))) {
+      ran = true;
+      await deepScanStep();
+    }
+    await noteError(null);
     return { ran, saved };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[creators:x:index]", msg);
+    await noteError(msg.slice(0, 300));
     return { ran: true, saved, error: msg };
+  }
+}
+
+function ymd(d: Date): string {
+  return d.toISOString().slice(0, 10);
+}
+
+/** One backfill step; returns posts saved. Progress lives in CreatorSync("backfill-state"). */
+async function backfillStep(): Promise<number> {
+  const v = VENUES[0]!;
+  const row = await prisma.creatorSync.findUnique({ where: { key: "backfill-state" } });
+  let state: { until: string; cursor: string | null; done?: boolean } = { until: ymd(new Date(Date.now() + 86_400_000)), cursor: null };
+  try {
+    if (row?.cursor) state = JSON.parse(row.cursor);
+  } catch {
+    /* reset on a corrupt state */
+  }
+  if (state.done) return 0;
+  const until = new Date(`${state.until}T00:00:00Z`);
+  const since = new Date(until.getTime() - BACKFILL_WINDOW_DAYS * 86_400_000);
+  const query = `${venueQuery(v)} since:${ymd(since)} until:${ymd(until)}`;
+  let cursor = state.cursor;
+  let saved = 0;
+  let finishedWindow = false;
+  for (let page = 0; page < BACKFILL_PAGES; page++) {
+    if (!(await reserve(PAGE_COST, true))) break;
+    const res = await searchPage(query, "Top", cursor, env.TWITTERAPI_IO_KEY);
+    saved += (await saveTweets(res.tweets)).saved;
+    if (!res.nextCursor || res.raw === 0) {
+      finishedWindow = true;
+      break;
+    }
+    cursor = res.nextCursor;
+    if (page === BACKFILL_PAGES - 1) finishedWindow = true; // enough of this week's top posts
+  }
+  const next = finishedWindow ? { until: ymd(since), cursor: null } : { until: state.until, cursor };
+  const done = finishedWindow && since.getTime() <= Date.now() - BACKFILL_DAYS * 86_400_000;
+  await prisma.creatorSync.upsert({
+    where: { key: "backfill-state" },
+    create: { key: "backfill-state", cursor: JSON.stringify({ ...next, done }) },
+    update: { cursor: JSON.stringify({ ...next, done }) },
+  });
+  return saved;
+}
+
+/** Full-history scans in the background: seeds first, then top accounts never scanned. */
+async function deepScanStep(): Promise<void> {
+  const scanned = new Set(
+    (await prisma.xAccount.findMany({ where: { scannedAt: { not: null } }, select: { handleLower: true } })).map((a) => a.handleLower)
+  );
+  const queue: string[] = SEED_HANDLES.filter((h) => !scanned.has(h.toLowerCase()));
+  if (queue.length < DEEP_SCANS_PER_RUN) {
+    const top = await aggregate(VENUES[0]!.id, new Date(0));
+    queue.push(
+      ...top
+        .map((a) => ({ a, p: postPoints(countsOf(a)) }))
+        .sort((x, y) => y.p - x.p)
+        .map(({ a }) => a.author)
+        .filter((h) => !scanned.has(h))
+        .slice(0, DEEP_SCANS_PER_RUN)
+    );
+  }
+  for (const h of queue.slice(0, DEEP_SCANS_PER_RUN)) {
+    const r = await scanHandle(h, true);
+    if (r.status === "budget") break;
   }
 }
 
 export type ScanResult = { status: "fresh" | "scanned" | "budget" | "not_found" | "unconfigured" | "error" };
 
 /** Read one handle's venue posts from X (at most once per SCAN_FRESH_MS). */
-export async function scanHandle(handle: string): Promise<ScanResult> {
+export async function scanHandle(handle: string, background = false): Promise<ScanResult> {
   if (!xConfigured()) return { status: "unconfigured" };
   const acct = await prisma.xAccount.findUnique({ where: { handleLower: handle.toLowerCase() } });
   if (acct?.scannedAt && Date.now() - acct.scannedAt.getTime() < SCAN_FRESH_MS) return { status: "fresh" };
   try {
-    if (!(await reserve(1))) return { status: "budget" };
-    const user = await userInfo(handle, env.TWITTERAPI_IO_KEY).catch(() => null);
+    if (!(await reserve(1, background))) return { status: "budget" };
+    // An API failure must not read as "no such account": only a clean
+    // response without a user is not_found. Errors fall to the catch below.
+    const user = await userInfo(handle, env.TWITTERAPI_IO_KEY);
     if (!user) return { status: "not_found" };
     await saveAccount(user, { scannedAt: new Date() });
 
     let cursor: string | null = null;
     for (let page = 0; page < SCAN_MAX_PAGES; page++) {
-      if (!(await reserve(PAGE_COST))) return { status: "budget" };
+      if (!(await reserve(PAGE_COST, background))) return { status: "budget" };
       const res = await searchPage(handleQuery(user.handle), "Latest", cursor, env.TWITTERAPI_IO_KEY);
       await saveTweets(res.tweets);
       if (!res.nextCursor || res.raw === 0) break;
@@ -234,7 +362,9 @@ export async function scanHandle(handle: string): Promise<ScanResult> {
     await saveAccount(user, { scannedAt: new Date() });
     return { status: "scanned" };
   } catch (err) {
-    console.error("[creators:x:scan]", err instanceof Error ? err.message : err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[creators:x:scan]", msg);
+    await noteError(`scan @${handle}: ${msg}`.slice(0, 300));
     return { status: "error" };
   }
 }
@@ -276,6 +406,8 @@ export type TopPost = Counts & {
 
 export type Board = {
   venue: VenueFilter;
+  /** Whether replies are counted (default: original posts and quotes only). */
+  replies: boolean;
   window: XWindow;
   rows: BoardRow[];
   /** Every ranked handle (lowercase) in rank order - rows stop at 500, ranks don't. */
@@ -293,7 +425,16 @@ export type Board = {
   active7d: number;
   /** Biggest point earners of the last 7 days. */
   rising: { handle: string; name: string; avatar: string | null; points: number; posts: number }[];
-  sync: { lastIndexAt: string | null; checked24h: number; budgetSpent: number; budgetCap: number };
+  sync: {
+    lastIndexAt: string | null;
+    checked24h: number;
+    budgetSpent: number;
+    budgetCap: number;
+    /** Last indexer/scan error in the past 24h, so a broken key or API is visible, not silent. */
+    lastError: string | null;
+    /** How far back history has been filled, YYYY-MM-DD (null = not started). */
+    backfilledTo: string | null;
+  };
   configured: boolean;
 };
 
@@ -312,11 +453,20 @@ type AggRow = {
 
 const num = (v: bigint | number | null | undefined) => Number(v ?? 0);
 
+/**
+ * Replies are left out by default: "gm @variational_io" under someone else's
+ * post is not creating content, and reply-farming would otherwise outrank
+ * people who actually write about the venue.
+ */
+function replyClause(replies: boolean) {
+  return replies ? Prisma.empty : Prisma.sql`AND t."isReply" = false`;
+}
+
 function venueClause(venue: VenueFilter) {
   return venue === "all" ? Prisma.sql`TRUE` : Prisma.sql`${venue} = ANY(t.venues)`;
 }
 
-async function aggregate(venue: VenueFilter, since: Date, until?: Date): Promise<AggRow[]> {
+async function aggregate(venue: VenueFilter, since: Date, until?: Date, replies = false): Promise<AggRow[]> {
   // Optional upper bound, as a clause rather than a sentinel date: a far-future
   // Date (year 275760) cannot be sent to Postgres at all.
   const upper = until ? Prisma.sql`AND t."tweetCreatedAt" < ${until}` : Prisma.empty;
@@ -330,7 +480,7 @@ async function aggregate(venue: VenueFilter, since: Date, until?: Date): Promise
            max(t."tweetCreatedAt") AS last_post
     FROM "XTweet" t
     JOIN "XAccount" a ON a."handleLower" = t."authorLower"
-    WHERE t."tweetCreatedAt" >= ${since} ${upper} AND a.hidden = false AND ${venueClause(venue)}
+    WHERE t."tweetCreatedAt" >= ${since} ${upper} AND a.hidden = false AND ${venueClause(venue)} ${replyClause(replies)}
     GROUP BY t."authorLower"`);
   // Venue accounts are shown on their own profiles, never ranked against creators.
   return rows.filter((r) => !isOfficialHandle(r.author));
@@ -347,10 +497,10 @@ function countsOf(a: AggRow): Counts {
   };
 }
 
-export async function buildBoard(venue: VenueFilter, win: XWindow): Promise<Board> {
+export async function buildBoard(venue: VenueFilter, win: XWindow, replies = false): Promise<Board> {
   const span = WINDOW_MS[win];
   const since = span ? new Date(Date.now() - span) : new Date(0);
-  const agg = await aggregate(venue, since);
+  const agg = await aggregate(venue, since, undefined, replies);
 
   const accounts = await prisma.xAccount.findMany({
     where: { handleLower: { in: agg.map((a) => a.author) } },
@@ -394,7 +544,7 @@ export async function buildBoard(venue: VenueFilter, win: XWindow): Promise<Boar
   // length, shifted back 7 days; all-time = everything before then).
   const weekAgo = new Date(Date.now() - 7 * 86_400_000);
   const prevSince = span ? new Date(since.getTime() - 7 * 86_400_000) : new Date(0);
-  const prevAgg = await aggregate(venue, prevSince, weekAgo);
+  const prevAgg = await aggregate(venue, prevSince, weekAgo, replies);
   const prevRank = new Map(
     prevAgg
       .map((a) => ({ a, p: postPoints(countsOf(a)) }))
@@ -414,29 +564,29 @@ export async function buildBoard(venue: VenueFilter, win: XWindow): Promise<Boar
       SELECT t."tweetId", t.url, t.text, t."tweetCreatedAt", t.views, t.likes, t.replies, t.reposts, t.quotes, t.bookmarks, t.venues,
              a.handle, a.name, a.avatar, a.verified
       FROM "XTweet" t JOIN "XAccount" a ON a."handleLower" = t."authorLower"
-      WHERE t."tweetCreatedAt" >= ${since} AND a.hidden = false AND ${venueClause(venue)}
+      WHERE t."tweetCreatedAt" >= ${since} AND a.hidden = false AND ${venueClause(venue)} ${replyClause(replies)}
       ORDER BY (t.views * 0.1 + t.likes + t.replies * 2 + t.reposts * 3 + t.quotes * 4 + t.bookmarks * 2) DESC
       LIMIT 40`),
     prisma.$queryRaw<{ day: Date; posts: number; views: bigint | number; creators: number }[]>(Prisma.sql`
       SELECT date_trunc('day', t."tweetCreatedAt") AS day, count(*)::int AS posts, sum(t.views) AS views, count(DISTINCT t."authorLower")::int AS creators
       FROM "XTweet" t JOIN "XAccount" a ON a."handleLower" = t."authorLower"
-      WHERE t."tweetCreatedAt" >= ${thirty} AND a.hidden = false AND ${venueClause(venue)}
+      WHERE t."tweetCreatedAt" >= ${thirty} AND a.hidden = false AND ${venueClause(venue)} ${replyClause(replies)}
       GROUP BY 1`),
-    win === "7d" ? Promise.resolve(null) : aggregate(venue, seven),
-    prisma.creatorSync.findMany({ where: { key: { startsWith: "index" } }, select: { runAt: true } }).catch(() => []),
+    win === "7d" ? Promise.resolve(null) : aggregate(venue, seven, undefined, replies),
+    prisma.creatorSync.findMany({ where: { key: { in: ["index:variational", "error", "backfill-state"] } }, select: { key: true, runAt: true, cursor: true } }).catch(() => []),
     prisma.xTweet.count({ where: { fetchedAt: { gte: new Date(Date.now() - 86_400_000) } } }).catch(() => 0),
     budgetState(),
     prisma.$queryRaw<any[]>(Prisma.sql`
       SELECT t."tweetId", t.url, t.text, t."tweetCreatedAt", t.views, t.likes, t.replies, t.reposts, t.quotes, t.bookmarks, t.venues,
              a.handle, a.name, a.avatar, a.verified
       FROM "XTweet" t JOIN "XAccount" a ON a."handleLower" = t."authorLower"
-      WHERE a.hidden = false AND ${venueClause(venue)}
+      WHERE a.hidden = false AND ${venueClause(venue)} ${replyClause(replies)}
       ORDER BY t."tweetCreatedAt" DESC
       LIMIT 20`),
     prisma.$queryRaw<Record<string, number>[]>(Prisma.sql`
       SELECT ${Prisma.join(TERMS.map((term) => Prisma.sql`count(*) FILTER (WHERE t.text ~* ${"\\m" + term})::int AS ${Prisma.raw(`"${term}"`)}`))}
       FROM "XTweet" t JOIN "XAccount" a ON a."handleLower" = t."authorLower"
-      WHERE t."tweetCreatedAt" >= ${thirty} AND a.hidden = false AND ${venueClause(venue)}`),
+      WHERE t."tweetCreatedAt" >= ${thirty} AND a.hidden = false AND ${venueClause(venue)} ${replyClause(replies)}`),
   ]);
 
   const toTop = (t: any): TopPost => {
@@ -507,9 +657,19 @@ export async function buildBoard(venue: VenueFilter, win: XWindow): Promise<Boar
     }
   }
 
-  const lastRun = lastIndex.map((r) => r.runAt.getTime()).filter((t) => t > 0);
+  const lastRun = lastIndex.filter((r) => r.key.startsWith("index")).map((r) => r.runAt.getTime()).filter((t) => t > 0);
+  const errRow = lastIndex.find((r) => r.key === "error");
+  const lastError = errRow?.cursor && Date.now() - errRow.runAt.getTime() < 86_400_000 ? errRow.cursor : null;
+  let backfilledTo: string | null = null;
+  try {
+    const st = lastIndex.find((r) => r.key === "backfill-state")?.cursor;
+    if (st) backfilledTo = JSON.parse(st).until ?? null;
+  } catch {
+    /* ignore */
+  }
   return {
     venue,
+    replies,
     window: win,
     rows: rows.slice(0, 500),
     ranking: rows.map((r) => r.handle.toLowerCase()),
@@ -532,6 +692,8 @@ export async function buildBoard(venue: VenueFilter, win: XWindow): Promise<Boar
       checked24h,
       budgetSpent: budget.spent,
       budgetCap: budget.cap,
+      lastError,
+      backfilledTo,
     },
     configured: xConfigured(),
   };
@@ -578,7 +740,7 @@ export type Profile = {
   firstPost: string | null;
 };
 
-export async function buildProfile(handle: string, venue: VenueFilter, board: Board | null): Promise<Profile | null> {
+export async function buildProfile(handle: string, venue: VenueFilter, board: Board | null, replies = false): Promise<Profile | null> {
   const acc = await prisma.xAccount.findUnique({ where: { handleLower: handle.toLowerCase() } });
   if (!acc || acc.hidden) return null;
   const tweets = await prisma.xTweet.findMany({
@@ -591,7 +753,8 @@ export async function buildProfile(handle: string, venue: VenueFilter, board: Bo
     return { ...c, tweetId: t.tweetId, url: t.url, text: t.text, createdAt: t.tweetCreatedAt.toISOString(), points: postPoints(c), isReply: t.isReply, venues: t.venues as VenueId[] };
   };
   const allPosts = tweets.map(toPost);
-  const posts = venue === "all" ? allPosts : allPosts.filter((p) => p.venues.includes(venue));
+  // Same rule as the board, so a profile's totals, score and rank always agree with its row.
+  const posts = (venue === "all" ? allPosts : allPosts.filter((p) => p.venues.includes(venue))).filter((p) => replies || !p.isReply);
 
   const now = Date.now();
   const sum = (k: keyof Counts) => posts.reduce((s, p) => s + p[k], 0);

@@ -8,6 +8,8 @@ import { validHandle, venueById } from "@modules/creators/lib/twitterapi";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// The background indexer runs in after() on this request and needs the time.
+export const maxDuration = 60;
 
 // GET /api/creators/x/profile?handle=<handle>&venue=variational|entropy|all
 //
@@ -17,7 +19,7 @@ export const dynamic = "force-dynamic";
 // handle scanned recently is a pure DB read and is not rate-limited.
 // Same function and key as the board route's cache, so a profile and the
 // all-time board for its venue share one entry instead of computing twice.
-const allTime = unstable_cache(async (venue: VenueFilter, win: "all") => buildBoard(venue, win), ["creators-x-board-v4"], {
+const allTime = unstable_cache(async (venue: VenueFilter, win: "all", replies: boolean) => buildBoard(venue, win, replies), ["creators-x-board-v5"], {
   revalidate: 300,
   tags: ["creators-x"],
 });
@@ -30,6 +32,7 @@ export async function GET(req: Request) {
     const v = sp.get("venue") || "all";
     if (v !== "all" && !venueById(v)) return fail("Unknown venue.", 400);
     const venue = v as VenueFilter;
+    const replies = sp.get("replies") === "1";
 
     const acct = await prisma.xAccount.findUnique({ where: { handleLower: handle.toLowerCase() }, select: { scannedAt: true, hidden: true } });
     if (acct?.hidden) return fail("This account isn't on the board.", 404);
@@ -48,7 +51,7 @@ export async function GET(req: Request) {
     }
 
     if (scan === "not_found") return fail("No X account with that handle.", 404);
-    const profile = await buildProfile(handle, venue, await allTime(venue, "all").catch(() => null));
+    const profile = await buildProfile(handle, venue, await allTime(venue, "all", replies).catch(() => null), replies);
     if (!profile) {
       return NextResponse.json(
         { profile: null, scan },

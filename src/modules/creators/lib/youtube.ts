@@ -1,8 +1,9 @@
 // YouTube Data API v3 client for the /creators leaderboard.
 //
 // Quota (free tier, 10,000 units/day per key):
-//   search.list   = 100 units per call  (3 per topic: all-time most viewed,
-//                   most viewed in the last 90 days, newest in the last 90)
+//   search.list   = 100 units per call  (4 per topic: two pages of all-time
+//                   most viewed, most viewed in the last 90 days, newest in
+//                   the last 90)
 //   videos.list   =   1 unit per 50 ids
 //   channels.list =   1 unit per 50 ids
 // So one topic refresh costs ~310 units and all ten ~3,100. The route caches
@@ -85,6 +86,10 @@ export async function fetchTopic(topic: Topic, apiKey: string, now: number, f: F
     call("search", { ...base, order: "viewCount", publishedAfter }, apiKey, f),
     call("search", { ...base, order: "date", publishedAfter }, apiKey, f),
   ]);
+  // All-time coverage: a second page of the most viewed, so a venue's top 100
+  // videos are in, not just its top 50 (+100 units per topic, once a day).
+  const nextAllTime = searches[0]?.nextPageToken;
+  if (nextAllTime) searches.push(await call("search", { ...base, order: "viewCount", pageToken: nextAllTime }, apiKey, f));
   const ids = [
     ...new Set(searches.flatMap((s) => (s?.items ?? []).map((it: any) => it?.id?.videoId).filter(Boolean) as string[])),
   ];

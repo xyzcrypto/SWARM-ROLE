@@ -74,6 +74,8 @@ export function XBoard({
   venue,
   win,
   setWin,
+  replies,
+  setReplies,
   onOpen,
   isAdmin,
   onHide,
@@ -86,6 +88,8 @@ export function XBoard({
   venue: VenueFilter;
   win: XWindow;
   setWin: (w: XWindow) => void;
+  replies: boolean;
+  setReplies: (v: boolean) => void;
   onOpen: (handle: string) => void;
   isAdmin: boolean;
   onHide: (handle: string) => void;
@@ -147,6 +151,7 @@ export function XBoard({
             </span>
             <span>Indexed {board.sync.lastIndexAt ? `${formatDateTime(board.sync.lastIndexAt)} UTC` : "not yet"}</span>
             <span>· {full(board.sync.checked24h)} posts re-read in 24h</span>
+            {board.sync.backfilledTo && <span>· history back to {formatDate(board.sync.backfilledTo)}</span>}
             <span>· refreshes itself</span>
           </div>
         ) : (
@@ -166,6 +171,12 @@ export function XBoard({
           </div>
         )}
       </div>
+
+      {board?.sync.lastError && (
+        <p className="rounded-xl border border-red-400/30 bg-red-400/5 px-3 py-2 text-xs text-red-300">
+          The X data feed reported a problem, so numbers may be behind: <span className="font-mono">{board.sync.lastError}</span>
+        </p>
+      )}
 
       {state.status === "loading" && (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-content-muted">
@@ -378,6 +389,9 @@ export function XBoard({
             <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <SearchBox value={q} onChange={setQ} placeholder="Find a handle" />
               <div className="flex flex-wrap gap-1.5">
+                <Chip active={replies} onClick={() => setReplies(!replies)} title="Count replies too (off: original posts and quotes only)">
+                  {replies ? "Replies counted" : "Originals only"}
+                </Chip>
                 <Chip active={onlyWatch} onClick={() => setOnlyWatch((x) => !x)} title="Creators you starred">
                   <span className="inline-flex items-center gap-1">
                     <Star className={cn("h-3 w-3", onlyWatch && "fill-current")} /> Watchlist {watch.length ? `(${watch.length})` : ""}
@@ -571,7 +585,8 @@ export function XBoard({
 
           <p className="text-xs leading-relaxed text-content-subtle">
             Posts about {VENUES.map((v) => `${v.label} (@${v.handle}, ${v.site})`).join(" and ")} on X, read through twitterapi.io. A post counts for a
-            venue only if it is really about it (the bare words are filtered for their maths, physics and RNG meanings). Reposts don&apos;t count,
+            venue only if it is really about it (the bare words are filtered for their maths and ML meanings). Reposts don&apos;t count, replies only
+            count when you switch them on,
             and the venues&apos; own accounts aren&apos;t ranked. Points = views × {POINT_WEIGHTS.views} + likes + replies × {POINT_WEIGHTS.replies} +
             reposts × {POINT_WEIGHTS.reposts} + quotes × {POINT_WEIGHTS.quotes} + bookmarks × {POINT_WEIGHTS.bookmarks}. Levels:{" "}
             {LEVELS.map((l) => `L${l.n} ${l.name} ${full(l.min)}+`).join(", ")}. XYZ Score (0-1000) adds four equal parts: reach (followers),

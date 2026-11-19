@@ -5,6 +5,69 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-19 (150) — Creators: accurate Variational X board (backfill, seeds, deep scans), originals-only, YouTube coverage, hero polish
+
+The owner reported that the X board did not show the real top Variational creators (e.g.
+@onchainmonk), and asked for accurate, realtime data, accurate YouTube data, and a more
+modern, aligned UI.
+
+### Why the X board looked wrong
+- The indexer only ever read "Latest": a few pages per run, from the moment it was switched
+  on. Established creators whose Variational posts are older were never fetched unless
+  someone looked them up.
+- So the board ranked whoever had posted since launch, not the scene.
+
+### Fixes (`x-index.ts`)
+- **Backfill:**
+  - Each run walks back through history one week at a time, up to 180 days, taking that
+    week's 5 pages of **Top** posts (`since:/until:` windows).
+  - Progress is kept in `CreatorSync("backfill-state")`, and the status line shows "history
+    back to <date>".
+- **Seeds:**
+  - Known Variational creators from the owner's reference board get a full history scan
+    in the background: muarmemuar, onchainmonk, VictorTopDefiG, givenoxbt, linenmito,
+    Ryuzaki_SEI, Muallimin_biri, corgil, me_cool_off, JoestarCrypto and Absoluto92.
+  - After the seeds, the highest-ranked accounts never fully scanned get scanned too. Their
+    totals then come from their whole history, not from sampled posts.
+- **Originals only by default:**
+  - Replies are excluded from ranking, totals, top posts, activity, topics and the profile,
+    so "gm @variational_io" reply-farming cannot outrank real posts.
+  - A toggle ("Originals only" / "Replies counted") switches them back on; `?replies=1` on
+    both APIs.
+- **Budget split:**
+  - Background jobs (latest, rotation, backfill, deep scans) may use 75% of
+    `TWITTERAPI_DAILY_ITEMS`.
+  - The remaining 25% is always free for people's look-ups.
+- **Time:** both X routes declare `maxDuration = 60`, and the indexer stops starting new work
+  after 40s in a run.
+- **Visible failures:**
+  - The last indexer or scan error (24h) shows on the board.
+  - An API error during a scan no longer reads as "no such account".
+- **Board cache key `creators-x-board-v5`** (shape gained `replies`, `sync.lastError` and
+  `sync.backfilledTo`). The client fills defaults for any older payload.
+- **Verified locally** against a fake twitterapi.io (temporary test, not committed):
+  - Run 1 fetched Latest, then the `since:11-13 until:11-20` Top window (5 pages), then a
+    full scan of muarmemuar.
+  - Run 2 fetched Latest, the `since:11-06 until:11-13` window, then onchainmonk.
+  - The state advanced, the budget was counted, and both seeds were marked scanned.
+
+### YouTube
+- A second page of all-time most viewed per venue gives top 100 coverage. That is ~4,100
+  discovery units plus ~4,300 for live stats, about 8,400 of 10,000 a day.
+
+### UI
+- Hero:
+  - A pill eyebrow, balanced headline wrapping, a faint dot-grid texture (no glow) and mono
+    data labels.
+  - Medal-coloured ranks and a 14-day posts sparkline in the live card.
+  - Short stat labels, so nothing truncates at 320px.
+- Overflow re-verified 24/24 (4 sizes × 6 views).
+
+Owner action: during the first days, raise `TWITTERAPI_DAILY_ITEMS` (e.g. 20000, about $3/day)
+so backfill and seed scans finish quickly, then lower it again.
+
+---
+
 ## 2026-11-19 (149) — Creators v4: premium UI, live editorial hero, Variational-only X, composite YouTube ranking, Arena v3
 
 The owner asked for:
