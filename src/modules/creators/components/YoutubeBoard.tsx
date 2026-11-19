@@ -51,6 +51,23 @@ const WINDOWS: [WindowId, string][] = [
   ["all", "All time"],
 ];
 
+/** "3h 12m" / "14m" - total or average runtime. */
+function runtime(sec: number): string {
+  const m = Math.round(sec / 60);
+  if (m < 60) return `${m}m`;
+  return `${Math.floor(m / 60)}h ${m % 60}m`;
+}
+
+type CSort = "points" | "score" | "views" | "videos" | "likes" | "runtime";
+const CSORTS: [CSort, string][] = [
+  ["points", "Points"],
+  ["score", "Creator Score"],
+  ["views", "Views"],
+  ["videos", "Videos"],
+  ["likes", "Likes"],
+  ["runtime", "Runtime"],
+];
+
 function duration(sec: number): string {
   if (!sec) return "";
   const h = Math.floor(sec / 3600);
@@ -162,9 +179,39 @@ function ChannelDrawer({ c, videos, onClose, now }: { c: YtCreator; videos: YtVi
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
           <Stat label="Points" value={full(c.points)} accent />
-          <Stat label="Videos" value={full(c.videos)} />
+          <Stat label="Creator Score" value={`${c.score.total}`} sub="of 1000" />
+          <Stat label="Videos" value={full(c.videos)} sub={c.shorts ? `${c.shorts} Shorts` : undefined} />
           <Stat label="Views" value={compact(c.views)} sub={`${compact(c.views / Math.max(1, c.videos))} avg`} />
+          <Stat label="Likes" value={compact(c.likes)} />
+          <Stat label="Comments" value={compact(c.comments)} />
+          <Stat label="Runtime" value={runtime(c.durationSec)} sub={`${runtime(c.durationSec / Math.max(1, c.videos))} avg`} />
           <Stat label="Engagement" value={pct(avgEr)} sub="avg per view" />
+        </div>
+        <div className="mt-5 rounded-2xl border border-hairline p-4">
+          <div className="mb-3 text-sm font-semibold text-content">Creator Score breakdown</div>
+          <div className="grid grid-cols-1 gap-x-6 gap-y-2.5 sm:grid-cols-2">
+            {(
+              [
+                ["Reach", c.score.reach, 250, "Total views, log scale"],
+                ["Output", c.score.output, 150, "Videos in this window"],
+                ["Approval", c.score.approval, 200, "Likes per view"],
+                ["Conversation", c.score.conversation, 150, "Comments per view"],
+                ["Depth", c.score.depth, 250, "Average video length"],
+              ] as const
+            ).map(([label, v, max, hint]) => (
+              <div key={label} title={hint}>
+                <div className="mb-1 flex justify-between text-xs">
+                  <span className="text-content-muted">{label}</span>
+                  <span className="tabular-nums text-content">
+                    {v}/{max}
+                  </span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-ink-700">
+                  <motion.div className="h-full rounded-full bg-gradient-to-r from-gold-400 to-mint-400" initial={{ width: 0 }} animate={{ width: `${(v / max) * 100}%` }} transition={{ duration: 0.8 }} />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
         <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {mine.slice(0, 12).map((v, i) => (
@@ -184,6 +231,8 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
   const [q, setQ] = useState("");
   const [limit, setLimit] = useState(12);
   const [open, setOpen] = useState<YtCreator | null>(null);
+  const [csort, setCsort] = useState<CSort>("points");
+  const [cLimit, setCLimit] = useState(20);
   const now = state.status === "ready" ? state.loadedAt : 0;
 
   const inWindow = useMemo(() => {
@@ -210,6 +259,27 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
   }, [inWindow, sort, now]);
 
   const creators = useMemo(() => rankYoutubeCreators(inWindow), [inWindow]);
+  const sortedCreators = useMemo(() => {
+    const by: Record<CSort, (a: YtCreator, b: YtCreator) => number> = {
+      points: (a, b) => b.points - a.points,
+      score: (a, b) => b.score.total - a.score.total || b.points - a.points,
+      views: (a, b) => b.views - a.views,
+      videos: (a, b) => b.videos - a.videos || b.points - a.points,
+      likes: (a, b) => b.likes - a.likes,
+      runtime: (a, b) => b.durationSec - a.durationSec,
+    };
+    return [...creators].sort(by[csort]);
+  }, [creators, csort]);
+  // Rising: most points from videos published in the last 30 days.
+  const rising = useMemo(() => {
+    if (state.status !== "ready") return [] as YtCreator[];
+    return rankYoutubeCreators(inWindow.filter((v) => now - Date.parse(v.publishedAt) <= 30 * 86_400_000)).slice(0, 5);
+  }, [inWindow, now, state.status]);
+  // Hidden gems: strong Creator Score from small channels (under 50K subs).
+  const gems = useMemo(
+    () => creators.filter((c) => c.channelSubs != null && c.channelSubs < 50_000 && c.views >= 1000).sort((a, b) => b.score.total - a.score.total).slice(0, 5),
+    [creators]
+  );
 
   const stats = useMemo(() => {
     const views = inWindow.reduce((s, v) => s + v.views, 0);
@@ -319,40 +389,94 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
             <Panel className="lg:col-span-3">
-              <PanelTitle title="Top creators" sub={`${full(creators.length)} channels · tap one for its videos`} />
+              <PanelTitle title="Top creators" sub={`${full(creators.length)} channels · tap one for the full breakdown`} />
+              <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+                {CSORTS.map(([k, l]) => (
+                  <Chip key={k} active={csort === k} onClick={() => setCsort(k)}>
+                    {l}
+                  </Chip>
+                ))}
+              </div>
               {creators.length === 0 ? (
                 <Empty>No videos in this window{q ? " match your search" : ""}.</Empty>
               ) : (
                 <ol className="divide-y divide-hairline">
-                  {creators.slice(0, 15).map((c, i) => (
-                    <motion.li key={c.channelId} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.025 }}>
+                  {sortedCreators.slice(0, cLimit).map((c, i) => (
+                    <motion.li key={c.channelId} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 12) * 0.02 }}>
                       <button type="button" onClick={() => setOpen(c)} className="group flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left hover:bg-ink-800/50">
                         <RankMark rank={i + 1} />
                         <Avatar src={c.channelAvatar} alt={c.channelTitle} />
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="min-w-0 truncate text-sm font-semibold text-content group-hover:text-gold-200">{c.channelTitle}</span>
-                            <span className="hidden sm:inline">
-                              <LevelChip n={levelFor(c.points).n} compact />
+                            <span className="shrink-0 rounded-full bg-mint-400/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-mint-300" title="Creator Score, of 1000">
+                              {c.score.total}
                             </span>
                           </div>
                           <div className="truncate text-xs text-content-subtle">
-                            {c.videos} video{c.videos === 1 ? "" : "s"} · {compact(c.views)} views
+                            {c.videos} video{c.videos === 1 ? "" : "s"} · {compact(c.views)} views · {compact(c.likes)} likes · {runtime(c.durationSec)}
                             {c.channelSubs != null && <> · {compact(c.channelSubs)} subs</>}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-display text-base font-bold tabular-nums text-gold-300">{compact(c.points)}</div>
-                          <div className="text-[10px] uppercase tracking-wider text-content-subtle">points</div>
+                        <div className="w-[64px] shrink-0 text-right">
+                          <div className="font-display text-base font-bold tabular-nums text-gold-300">
+                            {csort === "score" ? c.score.total : csort === "views" ? compact(c.views) : csort === "videos" ? c.videos : csort === "likes" ? compact(c.likes) : csort === "runtime" ? runtime(c.durationSec) : compact(c.points)}
+                          </div>
+                          <div className="text-[10px] uppercase tracking-wider text-content-subtle">{csort === "points" ? "points" : CSORTS.find((x) => x[0] === csort)![1]}</div>
                         </div>
                       </button>
                     </motion.li>
                   ))}
                 </ol>
               )}
+              {sortedCreators.length > cLimit && (
+                <div className="mt-3 text-center">
+                  <button type="button" className="btn-ghost" onClick={() => setCLimit((n) => n + 30)}>
+                    Show more ({full(sortedCreators.length - cLimit)} left)
+                  </button>
+                </div>
+              )}
             </Panel>
 
-            <div className="space-y-6 lg:col-span-2">
+            <div className="min-w-0 space-y-6 lg:col-span-2">
+              <Panel>
+                <PanelTitle title="Rising" sub="Most points from videos of the last 30 days" />
+                {rising.length === 0 ? (
+                  <p className="text-sm text-content-muted">No new videos in the last 30 days for this filter.</p>
+                ) : (
+                  <ol className="space-y-1">
+                    {rising.map((c, i) => (
+                      <li key={c.channelId}>
+                        <button type="button" onClick={() => setOpen(creators.find((x) => x.channelId === c.channelId) ?? c)} className="flex w-full items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left hover:bg-ink-800/50">
+                          <span className="w-4 shrink-0 font-mono text-xs text-content-subtle">{i + 1}</span>
+                          <Avatar src={c.channelAvatar} alt={c.channelTitle} size={28} />
+                          <span className="min-w-0 flex-1 truncate text-sm text-content">{c.channelTitle}</span>
+                          <span className="shrink-0 font-mono text-xs font-semibold tabular-nums text-mint-300">+{compact(c.points)}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </Panel>
+              <Panel>
+                <PanelTitle title="Hidden gems" sub="Best Creator Score under 50K subscribers" />
+                {gems.length === 0 ? (
+                  <p className="text-sm text-content-muted">None in this filter yet.</p>
+                ) : (
+                  <ol className="space-y-1">
+                    {gems.map((c) => (
+                      <li key={c.channelId}>
+                        <button type="button" onClick={() => setOpen(c)} className="flex w-full items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left hover:bg-ink-800/50">
+                          <Avatar src={c.channelAvatar} alt={c.channelTitle} size={28} />
+                          <span className="min-w-0 flex-1 truncate text-sm text-content">{c.channelTitle}</span>
+                          <span className="shrink-0 text-[11px] tabular-nums text-content-subtle">{compact(c.channelSubs)} subs</span>
+                          <span className="shrink-0 rounded-full bg-mint-400/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-mint-300">{c.score.total}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </Panel>
               <Panel>
                 <PanelTitle title="Mindshare" sub="Share of views by venue in this filter" />
                 <div className="space-y-2.5">
@@ -449,8 +573,10 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
           <p className="text-xs leading-relaxed text-content-subtle">
             Data from the YouTube Data API{state.partial ? " (some topics are still loading)" : ""}. Once a day, for each venue, we find the all-time
             most viewed videos plus the most viewed and newest of the last 90 days, and keep only videos actually about that venue. Their views, likes
-            and comments are re-read about every 10 minutes, and this page refreshes itself while open. Video points = views ÷ 100 + likes + 2 × comments. A
-            channel&apos;s points are the sum of its videos in the selected window. Hidden like or comment counts score 0. Shorts = 3 minutes or less.
+            and comments are re-read about every 10 minutes, and this page refreshes itself while open. Video points = views ÷ 100 × (1 + depth) + likes + 2 ×
+            comments, where depth = video length ÷ 20 min (max 1), so long deep dives earn up to double view credit and Shorts almost none. A channel&apos;s
+            points = its videos&apos; points + 25 per video in the window. Creator Score (0-1000) = reach 250 (views) + output 150 (videos, 10 = full) +
+            approval 200 (likes per view, 5% = full) + conversation 150 (comments per view, 0.5% = full) + depth 250 (average length, 20 min = full). Hidden like or comment counts score 0. Shorts = 3 minutes or less.
             Trending = views per day since upload.
           </p>
         </div>

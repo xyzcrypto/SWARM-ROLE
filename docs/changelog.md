@@ -5,6 +5,100 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-19 (149) — Creators v4: premium UI, live editorial hero, Variational-only X, composite YouTube ranking, Arena v3
+
+The owner asked for:
+- a premium, human-feeling UI and hero;
+- an accurate, realtime X board limited to Variational creators;
+- YouTube ranking by more than views (videos, likes, duration);
+- a more useful Arena with manual profiles and more metrics;
+- perfect alignment on desktop and mobile.
+
+### Hero (new `Hero.tsx`)
+- Editorial two-column layout. One plain headline ("Who is actually moving Variational right
+  now.") with a single accent phrase, and a sentence that says exactly what is ranked and by
+  what.
+- **The look-up box sits in the hero**, since that is the action people come for.
+- **A live board card**: this week's real top 5 with their points, posts this week, and the top
+  YouTube channel. It replaces decoration.
+- The stacked glow orbs are removed from the whole page (design-system: restraint over glow).
+
+### X · Variational
+- **Variational only.** Entropy is removed from the X venues (it stays a YouTube topic).
+- Tighter maths/ML filter: VQE, neural, diffusion, arXiv/preprint, Hamiltonian and similar.
+- Indexing every **15 min**. The paid rotation of older posts stays at 30 min, so the cost is
+  the same as before.
+- **New panels:**
+  - **Rank movement:** ▲/▼ against the same board a week ago, and "New" for first-timers.
+  - **Creator of the week:** with their best post.
+  - **What people talk about:** posts mentioning Omni / RFQ / Points / TGE / Airdrop / OLP /
+    Funding / Leverage / Arbitrum / Fees over 30 days, counted in SQL with a word-start regex.
+    Verified against a direct DB count.
+  - **Latest posts:** a live feed.
+  - **Active this week:** distinct creators who posted in the last 7 days.
+  - Activity summary (posts and views over 30 days, busiest day).
+- The profile drops venue tabs. Its engagement-mix panel (likes / replies / reposts / quotes /
+  bookmarks) replaces points-by-venue.
+
+### YouTube: accuracy and a composite ranking
+- **The venue name must be in the title.** Descriptions are full of referral links ("trade on
+  Hyperliquid with my code"), so a description-only mention no longer counts.
+  - The discovery cache key moved to v2, so old entries built under the loose rule are not
+    served. That costs one extra discovery pass on deploy.
+- **Video points:**
+  - Formula: views ÷ 100 × (1 + depth) + likes + 2 × comments.
+  - Depth = length ÷ 20 min, capped at 1. It is a watch-time credit: Shorts earn almost none,
+    and deep dives earn up to double view credit.
+- **Channel points:** video points plus 25 per video, which rewards output.
+  - A test pins that 8 steady 20-minute videos out-rank one viral Short.
+- **Creator Score (0-1000)** is reach 250 + output 150 + approval 200 + conversation 150 +
+  depth 250. It has its own sort, and the channel drawer shows the breakdown.
+- **Creators table:**
+  - Sort by Points / Creator Score / Views / Videos / Likes / Runtime.
+  - Each row shows likes and total runtime, and the list has "show more".
+  - New **Rising** panel (last 30 days) and **Hidden gems** panel (best score under 50K subs).
+
+### Arena v3
+- **Add any X profile.**
+  - It is looked up through the same profile route as the board (real numbers).
+  - Up to 8 profiles are kept in this browser and reloaded with fresh numbers.
+  - An added profile joins every game.
+- **More metrics:**
+  - Head to Head: 12 X stats (points, XYZ Score, views, likes, replies, reposts, posts,
+    followers, engagement, views/post, points/post, active weeks), or 10 YouTube stats
+    (including comments, videos, subscribers and average length). It can switch between X and
+    YouTube, and the radar shows 8 axes.
+  - Higher or Lower: six metrics per source.
+- **New: Squad Builder.**
+  - Draft 3 creators with 100 credits; cost depends on rank (top 10 = 45, 11-30 = 30,
+    31-100 = 20, others 10).
+  - See live totals against the board's top 3, and share the squad.
+- Board ids are lowercased, so "compare" from a profile always finds the right entry.
+
+### Fixes found while verifying (seeded local DB)
+- **Board shape change vs a cache that outlives deploys.**
+  - The cause: `unstable_cache` kept serving the v3 board shape after the code changed.
+    Without topics, the new client would have thrown on `board.topics.every` for up to 5 min
+    after the deploy.
+  - The fix: the key is now `creators-x-board-v4` (with a comment saying it must be bumped
+    with the shape), and the client fills defaults for any missing field.
+- A sentinel "until" date (year 275760) cannot be sent to Postgres, so the movement query
+  failed. The upper bound is now an optional SQL clause.
+- The topic regex lost its `\m` backslash in the template literal, so it matched nothing.
+  Fixed, and the counts were checked against `psql`.
+
+### Alignment
+- Measured `scrollWidth == clientWidth` on X, YouTube, Arena, Arena/Head to Head,
+  Arena/Squad and the profile, at 1440 / 390 / 375 / 412 px. That is 24 of 24 checks.
+- Panels sharing a row are filled with real content (best post, 30-day summary) rather than
+  left with empty space.
+
+Tests: 32 in `creators.test.ts`. They cover the title-only relevance rule (a referral link is
+rejected), Creator Score bounds and monotonicity, depth credit, channel output bonus versus a
+viral Short, and the Variational-only X venues.
+
+---
+
 ## 2026-11-19 (148) — Creators: mobile alignment, live YouTube stats, auto-refresh
 
 The owner reported, with a screenshot from the live site (YouTube key now active), that the

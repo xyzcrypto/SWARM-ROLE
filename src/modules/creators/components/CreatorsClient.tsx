@@ -8,22 +8,21 @@ import { XIcon, YouTubeIcon } from "@shared/components/BrandIcons";
 import { cn } from "@/lib/utils";
 import { rankYoutubeCreators, type TopicId } from "@modules/creators/lib/scoring";
 import type { VenueFilter, XWindow } from "@modules/creators/lib/x-index";
-import { compact, full } from "@modules/creators/lib/game";
 import { XBoard, venueLabel, type BoardState } from "./XBoard";
 import { XProfile } from "./XProfile";
 import { YoutubeBoard, type YtState } from "./YoutubeBoard";
 import { Arena, fromBoard, fromYoutube } from "./Arena";
-import { CountUp, useLocalList } from "./ui";
+import { useLocalList } from "./ui";
+import { Hero } from "./Hero";
 
 type Tab = "x" | "youtube" | "arena";
 
 const TABS: { id: Tab; label: string; short: string; Icon: (p: { className?: string }) => React.ReactNode }[] = [
-  { id: "x", label: "X · Perp DEX", short: "X", Icon: XIcon },
+  { id: "x", label: "X · Variational", short: "Variational", Icon: XIcon },
   { id: "youtube", label: "YouTube · Perp DEX", short: "YouTube", Icon: YouTubeIcon },
   { id: "arena", label: "Arena", short: "Arena", Icon: Swords },
 ];
 
-const VALID_VENUES = new Set(["variational", "entropy", "all"]);
 
 /**
  * Live refresh. Each poll is SHORTER than its route's edge window (X 300s,
@@ -64,7 +63,9 @@ export function CreatorsClient() {
   const isAdmin = (session?.user as any)?.role === "ADMIN";
 
   const [tab, setTab] = useState<Tab>("x");
-  const [venue, setVenue] = useState<VenueFilter>("variational");
+  // The X board is Variational only (owner's call). Kept as a value so the
+  // API contract (?venue=) stays explicit.
+  const venue: VenueFilter = "variational";
   const [win, setWin] = useState<XWindow>("all");
   const [board, setBoard] = useState<BoardState>({ status: "loading" });
   const [topic, setTopic] = useState<TopicId>("all");
@@ -86,9 +87,7 @@ export function CreatorsClient() {
       const sp = new URLSearchParams(window.location.search);
       const x = sp.get("x");
       const tb = sp.get("tab");
-      const v = sp.get("venue");
       if (tb === "youtube" || tb === "arena" || tb === "x") setTab(tb);
-      if (v && VALID_VENUES.has(v)) setVenue(v as VenueFilter);
       if (x && /^[A-Za-z0-9_]{1,15}$/.test(x)) setProfile(x);
     }, 0);
     return () => clearTimeout(t);
@@ -110,7 +109,13 @@ export function CreatorsClient() {
         const body = await r.json().catch(() => null);
         if (!alive) return;
         if (!r.ok || !Array.isArray(body?.rows)) return setBoard((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error" }));
-        setBoard({ status: "ready", board: body, refreshing: false });
+        // Defaults for fields a cached older payload might lack, so a shape
+        // change can never crash the page during a deploy window.
+        setBoard({
+          status: "ready",
+          board: { latest: [], topics: [], rising: [], topPosts: [], daily: [], ranking: [], active7d: 0, ...body, rows: body.rows.map((r: any) => ({ move: null, ...r })) },
+          refreshing: false,
+        });
       })
       .catch(() => alive && setBoard((s) => (s.status === "ready" ? { ...s, refreshing: false } : { status: "error" })));
     return () => {
@@ -186,63 +191,25 @@ export function CreatorsClient() {
     setTab(t);
     setUrl("tab", t === "x" ? null : t);
   };
-  const changeVenue = (v: VenueFilter) => {
-    setVenue(v);
-    setUrl("venue", v === "variational" ? null : v);
-  };
 
   const rows = useMemo(() => (board.status === "ready" ? board.board.rows : []), [board]);
   const xPool = useMemo(() => fromBoard(rows), [rows]);
   const ytPool = useMemo(() => (yt.status === "ready" ? fromYoutube(rankYoutubeCreators(yt.videos)) : []), [yt]);
   const ytCount = yt.status === "ready" ? yt.videos.length : 0;
+  const ytTop = useMemo(() => (yt.status === "ready" ? (rankYoutubeCreators(yt.videos)[0] ?? null) : null), [yt]);
 
   return (
     <div className="space-y-8">
-      {/* Hero */}
-      <header className="relative">
-        <div aria-hidden className="pointer-events-none absolute -left-20 -top-16 h-56 w-56 rounded-full bg-mint-400/10 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute right-0 top-10 hidden h-48 w-48 rounded-full bg-gold-400/10 blur-3xl md:block" />
-        <motion.p initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} className="relative text-[11px] font-semibold uppercase tracking-[0.24em] text-gold-400">
-          Creator Leaderboard
-        </motion.p>
-        <motion.h1
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="relative mt-2 max-w-3xl font-display text-[2rem] font-bold leading-[1.08] tracking-tight text-content sm:text-5xl"
-        >
-          Who really moves <span className="text-shine">perp DEX</span> <span className="text-shimmer">crypto Twitter and YouTube</span>
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.12, duration: 0.6 }}
-          className="relative mt-4 max-w-2xl text-sm leading-relaxed text-content-muted sm:text-[15px]"
-        >
-          Scan any X handle for its proof of work on Variational and Entropy, climb eight levels, collect badges, and see which YouTube creators lead
-          on ten perp DEXs. Every number comes from public data, and every formula is on the page.
-        </motion.p>
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }} className="relative mt-5 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-          <span className="text-content-subtle">
-            <span className="font-display text-lg font-bold text-content">
-              <CountUp value={board.status === "ready" ? board.board.totals.accounts : 0} format={full} />
-            </span>{" "}
-            X creators · {venueLabel(venue)}
-          </span>
-          <span className="text-content-subtle">
-            <span className="font-display text-lg font-bold text-content">
-              <CountUp value={board.status === "ready" ? board.board.totals.views : 0} format={compact} />
-            </span>{" "}
-            post views
-          </span>
-          <span className="text-content-subtle">
-            <span className="font-display text-lg font-bold text-content">
-              <CountUp value={ytCount} format={full} />
-            </span>{" "}
-            perp DEX videos
-          </span>
-        </motion.div>
-      </header>
+      <Hero
+        board={board.status === "ready" ? board.board : null}
+        topChannel={ytTop}
+        ytVideos={ytCount}
+        onScan={(h) => {
+          changeTab("x");
+          openProfile(h);
+        }}
+        onOpen={openProfile}
+      />
 
       {/* Tabs */}
       <div role="tablist" aria-label="Boards" className="sticky top-20 z-20 -mx-1 flex gap-1 overflow-x-auto rounded-2xl border border-hairline bg-ink-950/80 p-1 backdrop-blur-xl [scrollbar-width:none]">
@@ -277,7 +244,6 @@ export function CreatorsClient() {
             <XBoard
               state={board}
               venue={venue}
-              setVenue={changeVenue}
               win={win}
               setWin={setWin}
               onOpen={openProfile}

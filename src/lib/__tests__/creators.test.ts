@@ -6,6 +6,7 @@ import {
   videoScore,
   withinWindow,
   rankYoutubeCreators,
+  creatorScore,
   matchesQuery,
   compactCount,
   engagementRate,
@@ -84,9 +85,13 @@ describe("creators: relevance gate", () => {
 });
 
 describe("creators: scoring", () => {
-  it("video score = views/100 + likes + 2 x comments; hidden counts score 0", () => {
-    expect(videoScore({ views: 10_000, likes: 50, comments: 10 })).toBe(100 + 50 + 20);
-    expect(videoScore({ views: 500, likes: null, comments: null })).toBe(5);
+  it("video score = views/100 x (1 + depth) + likes + 2 x comments; hidden counts score 0", () => {
+    // A Short gets (almost) no watch-time credit, a 20-min video doubles view credit.
+    expect(videoScore({ views: 10_000, likes: 50, comments: 10, durationSec: 0 })).toBe(100 + 50 + 20);
+    expect(videoScore({ views: 10_000, likes: 50, comments: 10, durationSec: 1200 })).toBe(200 + 50 + 20);
+    expect(videoScore({ views: 10_000, likes: 50, comments: 10, durationSec: 3600 })).toBe(200 + 50 + 20); // capped
+    expect(videoScore({ views: 10_000, likes: 0, comments: 0, durationSec: 600 })).toBe(150);
+    expect(videoScore({ views: 500, likes: null, comments: null, durationSec: 0 })).toBe(5);
   });
 
   it("window filter is inclusive of the window and rejects junk dates", () => {
@@ -105,7 +110,11 @@ describe("creators: scoring", () => {
       vid({ id: "c", channelId: "c2", views: 100, likes: 120 }), // 121
     ]);
     expect(ranked.map((c) => c.channelId)).toEqual(["c1", "c2"]);
-    expect(ranked[0]).toMatchObject({ videos: 2, views: 15_000, points: 160, best: { id: "a" } });
+    // 60s videos: depth 0.05. a = round(100*1.05) = 105, b = round(50*1.05 + 10) = 63,
+    // plus 25 per video for output.
+    expect(ranked[0]).toMatchObject({ videos: 2, views: 15_000, points: 105 + 63 + 50, durationSec: 120, best: { id: "a" } });
+    expect(ranked[1]!.points).toBe(121 + 25);
+    expect(ranked[0]!.score.total).toBeGreaterThan(0);
   });
 
   it("search and number formatting are deterministic", () => {
@@ -331,8 +340,10 @@ describe("creators: venues (Variational + Entropy)", () => {
     expect(isEntropyPost("password entropy matters")).toBe(false);
   });
 
-  it("classifies a post into every venue it is about", () => {
-    expect(venuesFor("Variational RFQ vs @EntropyIO pre-IPO perps")).toEqual(["variational", "entropy"]);
+  it("the X board is Variational only", () => {
+    expect(VENUES.map((v) => v.id)).toEqual(["variational"]);
+    expect(venuesFor("Variational RFQ vs @EntropyIO pre-IPO perps")).toEqual(["variational"]);
+    expect(venuesFor("@EntropyIO pre-IPO perps")).toEqual([]);
     expect(venuesFor("gm, farming Variational points")).toEqual(["variational"]);
     expect(venuesFor("gm")).toEqual([]);
   });
@@ -341,7 +352,7 @@ describe("creators: venues (Variational + Entropy)", () => {
     const q = handleQuery("perpqueen");
     for (const v of VENUES) expect(q).toContain(v.match);
     expect(q).toContain("-filter:retweets");
-    expect(isOfficialHandle("EntropyIO")).toBe(true);
+    expect(isOfficialHandle("variational_io")).toBe(true);
     expect(isOfficialHandle("entropy_maxi")).toBe(false);
   });
 
@@ -390,5 +401,39 @@ describe("creators: YouTube live stats", () => {
     const merged = withStats([vid({ id: "v0", views: 1 }), vid({ id: "gone", views: 5 })], stats);
     expect(merged[0]!.views).toBe(999);
     expect(merged[1]!.views).toBe(5); // not returned -> keeps its snapshot
+  });
+});
+
+describe("creators: YouTube accuracy and composite ranking", () => {
+  it("needs the venue in the TITLE - a referral link in the description is not enough", () => {
+    const hl = topicById("hyperliquid")!;
+    expect(isRelevant(hl, "My weekly crypto portfolio update", "Trade on Hyperliquid with my code: ...")).toBe(false);
+    expect(isRelevant(hl, "Hyperliquid HIP-3 explained", "")).toBe(true);
+    const v = topicById("variational")!;
+    expect(isRelevant(v, "Best airdrops this month", "variational omni perp dex points")).toBe(false);
+  });
+
+  it("Creator Score adds five bounded parts and rewards each metric", () => {
+    const zero = creatorScore({ views: 0, videos: 0, likes: 0, comments: 0, durationSec: 0 });
+    expect(zero.total).toBe(0);
+    const max = creatorScore({ views: 5_000_000, videos: 12, likes: 400_000, comments: 40_000, durationSec: 12 * 1500 });
+    expect(max).toMatchObject({ reach: 250, output: 150, approval: 200, conversation: 150, depth: 250, total: 1000 });
+    const base = { views: 100_000, videos: 5, likes: 2_000, comments: 200, durationSec: 5 * 600 };
+    const more = (k: keyof typeof base, f: number) => creatorScore({ ...base, [k]: base[k] * f }).total;
+    const b0 = creatorScore(base).total;
+    // Same audience behaviour at 10x the reach scores higher...
+    expect(creatorScore({ ...base, views: base.views * 10, likes: base.likes * 10, comments: base.comments * 10 }).total).toBeGreaterThan(b0);
+    // ...but 10x views with the same likes means a weaker approval rate, on purpose.
+    expect(creatorScore({ ...base, views: base.views * 10 }).approval).toBeLessThan(creatorScore(base).approval);
+    expect(more("videos", 2)).toBeGreaterThan(b0);
+    expect(more("likes", 2)).toBeGreaterThan(b0);
+    expect(more("durationSec", 2)).toBeGreaterThan(b0);
+  });
+
+  it("a consistent channel can out-rank one viral upload", () => {
+    const viral = Array.from({ length: 1 }, (_, i) => vid({ id: `v${i}`, channelId: "viral", views: 40_000, likes: 200, comments: 10, durationSec: 30 }));
+    const steady = Array.from({ length: 8 }, (_, i) => vid({ id: `s${i}`, channelId: "steady", views: 3_000, likes: 120, comments: 15, durationSec: 1200 }));
+    const ranked = rankYoutubeCreators([...viral, ...steady]);
+    expect(ranked[0]!.channelId).toBe("steady");
   });
 });
