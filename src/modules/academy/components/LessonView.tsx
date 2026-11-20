@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Headphones, Lightbulb, Paus
 import { cn } from "@/lib/utils";
 import { useAudio, useMe } from "../client/hooks";
 import { play, say, stopVoice, unlock } from "../client/audio";
+import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { VoiceLine } from "../client/voice-lines";
 import { DIFF_TONE, Icon, LEVEL_LABEL, Pill } from "./ui";
 
@@ -40,7 +41,7 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
   const [flipped, setFlipped] = useState<Set<number>>(new Set());
   const greeted = useRef(false);
 
-  // The first lesson of a topic gets Nova's spoken intro (if she speaks on her own).
+  // The first lesson of a topic gets AneQue's spoken intro (if she speaks on her own).
   useEffect(() => {
     if (greeted.current || !lesson.isFirst) return;
     greeted.current = true;
@@ -51,6 +52,11 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
     if (!voice.speaking) setReading(null);
   }, [voice.speaking]);
   useEffect(() => () => stopVoice(), []);
+  // Tell AneQue what is on screen so "explain this" works in Live Talk.
+  useEffect(() => {
+    setTalkContext({ topic: nav.category.title, lesson: lesson.title, questionOpen: false, question: null });
+    return () => clearTalkContext(["topic", "lesson"]);
+  }, [nav.category.title, lesson.title]);
 
   const readSection = (i: number) => {
     unlock();
@@ -95,7 +101,7 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
                 setReading(null);
                 return;
               }
-              // Nova reads the summary in her own voice, then the lesson in order.
+              // AneQue reads the summary in her own voice, then the lesson in order.
               play([{ url: lesson.summaryVoice, text: lesson.summary }, ...lesson.sections.map((x) => ({ text: `${x.heading}. ${x.body}` }))], { caption: lesson.summary });
               setReading(-1);
             }}

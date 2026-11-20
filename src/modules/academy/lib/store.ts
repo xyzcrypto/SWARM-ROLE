@@ -8,7 +8,7 @@ import {
   type LevelDef,
 } from "./config";
 import { categoryFile } from "./content-schema";
-import { SEED } from "../content";
+import { SEED_BATCHES } from "../content";
 
 // ------------------------------------------------------------------ config
 
@@ -58,11 +58,21 @@ let seeded = false;
  */
 export async function ensureSeeded(force = false): Promise<{ created: number }> {
   if (seeded && !force) return { created: 0 };
-  const existing = await prisma.academyCategory.findMany({ select: { slug: true } });
-  if (existing.length && !force) {
+  // Curriculum ships in versioned batches. A batch is installed once: its
+  // missing topics are created, then the stored version moves past it. So a
+  // new batch reaches a database that already has the first one, and a topic
+  // an admin deleted from an older batch is never brought back.
+  const [existing, verRow] = await Promise.all([
+    prisma.academyCategory.findMany({ select: { slug: true } }),
+    prisma.academyConfig.findUnique({ where: { key: "seedVersion" } }).catch(() => null),
+  ]);
+  const stored = typeof verRow?.value === "number" ? verRow.value : existing.length ? 1 : 0;
+  const latest = Math.max(...SEED_BATCHES.map((b) => b.version));
+  if (!force && stored >= latest) {
     seeded = true;
     return { created: 0 };
   }
+  const SEED = SEED_BATCHES.filter((b) => force || b.version > stored).flatMap((b) => b.files);
   const have = new Set(existing.map((c) => c.slug));
   let created = 0;
   for (const raw of SEED) {
@@ -110,6 +120,9 @@ export async function ensureSeeded(force = false): Promise<{ created: number }> 
       if ((err as { code?: string })?.code !== "P2002") throw err;
     }
   }
+  await prisma.academyConfig
+    .upsert({ where: { key: "seedVersion" }, create: { key: "seedVersion", value: latest }, update: { value: latest } })
+    .catch(() => null);
   seeded = true;
   return { created };
 }

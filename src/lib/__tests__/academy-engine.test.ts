@@ -210,4 +210,17 @@ describe("academy integrity invariants (source)", () => {
     expect(xp).toMatch(/skipDuplicates: true/);
     expect(quiz).not.toMatch(/academyProfile\.update\([^)]*xp: \{ increment/);
   });
+  it("AneQue is told never to give away an open question", () => {
+    const prompt = readFileSync("src/modules/academy/lib/aneque.ts", "utf8");
+    expect(prompt).toMatch(/questionOpen \? "- A quiz question is open on screen\. NEVER reveal/);
+    for (const f of ["src/modules/academy/components/QuizClient.tsx", "src/modules/academy/components/LiveArena.tsx"]) {
+      expect(readFileSync(f, "utf8")).toMatch(/setTalkContext\(.*questionOpen: true/s);
+    }
+  });
+  it("Live Talk transcribes on the server, not with the browser recogniser that fails in Brave", () => {
+    const talk = readFileSync("src/modules/academy/client/talk.ts", "utf8");
+    expect(talk).toMatch(/MediaRecorder/);
+    expect(talk).toMatch(/\/api\/academy\/aneque\/listen/);
+    expect(readFileSync("src/modules/academy/components/Guide.tsx", "utf8")).not.toMatch(/useSpeechInput/);
+  });
 });

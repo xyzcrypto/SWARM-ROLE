@@ -29,6 +29,21 @@ function resetsIn(end: number) {
   return `resets in ${h}h ${String(m).padStart(2, "0")}m`;
 }
 
+/** "updated 12s ago", ticking. The clock is read in an effect, never during render. */
+function Ago({ at }: { at: number }) {
+  const [secs, setSecs] = useState(0);
+  useEffect(() => {
+    const tick = () => setSecs(Math.max(0, Math.round((Date.now() - at) / 1000)));
+    const first = setTimeout(tick, 0);
+    const id = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, [at]);
+  return <span>updated {secs}s ago</span>;
+}
+
 function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
   const order = [rows[1], rows[0], rows[2]].filter(Boolean) as BoardRow[];
   // With one or two people on the board the podium stays centred, not pinned left.
@@ -145,16 +160,18 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadedAt, setLoadedAt] = useState<number | null>(null);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<BoardRow[] | null>(null);
   const { me, reload: reloadMe } = useMe();
-  useTicker(!compact, 30_000);
+  useTicker(!compact, 5_000);
 
   const load = useCallback(
     async (p: Period) => {
       try {
         const b = await getJson<Board>(`/api/academy/leaderboard?period=${p}`);
         setBoard(b);
+        setLoadedAt(Date.now());
         setExtra([]);
         setPage(1);
         setError(null);
@@ -171,10 +188,14 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
   }, [period, load]);
 
   // Someone earned XP: refetch the (edge-cached) board and my standing.
-  useAcademyPing(() => {
-    void load(period);
-    if (!compact) void reloadMe();
-  });
+  useAcademyPing(
+    () => {
+      void load(period);
+      if (!compact) void reloadMe();
+    },
+    5_000,
+    60_000
+  );
 
   useEffect(() => {
     if (compact || !me) return;
@@ -240,7 +261,15 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
             </button>
           ))}
         </div>
-        {board && period !== "alltime" && <span className="text-[11px] text-content-subtle">UTC · {resetsIn(board.end)}</span>}
+        {board && (
+          <span className="flex items-center gap-2 text-[11px] text-content-subtle">
+            <span className="flex items-center gap-1 font-semibold text-mint-300">
+              <span className="acad-live-dot h-1.5 w-1.5 rounded-full bg-mint-400 text-mint-400" /> Live
+            </span>
+            {loadedAt != null && <Ago at={loadedAt} />}
+            {period !== "alltime" && <span>· UTC · {resetsIn(board.end)}</span>}
+          </span>
+        )}
         {!compact && (
           <label className="relative ml-auto w-full sm:w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-content-subtle" />

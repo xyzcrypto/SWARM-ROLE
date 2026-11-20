@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, CalendarDays, CheckCircle2, Flame, Headphones, Pause, Radio, Trophy } from "lucide-react";
+import { ArrowRight, AudioLines, CalendarDays, CheckCircle2, Flame, Headphones, Pause, Radio, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NovaCaption, NovaWave } from "./Guide";
+import { GuideCaption, GuideWave } from "./Guide";
 import { Avatar, CountUp, fmt, ProgressBar } from "./ui";
 import { pauseVoice, play, resumeVoice, unlock, type Piece } from "../client/audio";
 import { useAudio, type Me } from "../client/hooks";
@@ -55,7 +55,7 @@ export function Hero({ pulse, me, topics, questions }: { pulse: Pulse | null; me
   const top = pulse?.top?.slice(0, 3) ?? [];
   const daily = me?.daily;
 
-  const hearNova = () => {
+  const hearGuide = () => {
     unlock();
     if (speaking) return pauseVoice();
     if (voice.paused) return resumeVoice();
@@ -82,7 +82,7 @@ export function Hero({ pulse, me, topics, questions }: { pulse: Pulse | null; me
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.08 + i * 0.1, ease }}
               >
-                {i === 2 ? <span className="text-gold-gradient">{t}</span> : t}
+                {i === 2 ? <span className="text-shine">{t}</span> : t}
               </motion.span>
             ))}
           </h1>
@@ -102,6 +102,26 @@ export function Hero({ pulse, me, topics, questions }: { pulse: Pulse | null; me
             <Stat value={pulse?.quizzesToday ?? null} label="quizzes today" />
             <Stat value={pulse ? pulse.liveParticipants : null} label="in live quizzes" />
           </motion.div>
+          {pulse && pulse.achievements.length + pulse.certificates.length > 0 && (
+            <div className="acad-ticker mt-6 max-w-xl overflow-hidden" aria-label="Recent activity">
+              <div className="acad-ticker-track flex w-max gap-8 text-[13px] text-content-muted">
+                {[0, 1].map((k) => (
+                  <div key={k} className="flex gap-8" aria-hidden={k === 1}>
+                    {pulse.achievements.map((a, i) => (
+                      <span key={`a${i}`} className="whitespace-nowrap">
+                        <span className="font-semibold text-content">{a.name}</span> unlocked <span className="text-gold-300">{a.title}</span>
+                      </span>
+                    ))}
+                    {pulse.certificates.map((c) => (
+                      <span key={c.code} className="whitespace-nowrap">
+                        <span className="font-semibold text-content">{c.displayName}</span> earned <span className="text-gold-300">{c.title}</span>
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ---------- today card ---------- */}
@@ -180,28 +200,41 @@ export function Hero({ pulse, me, topics, questions }: { pulse: Pulse | null; me
             </div>
           </div>
 
-          {/* Nova */}
+          {/* AneQue */}
           <div className="border-t border-hairline bg-ink-950/60 px-5 py-4 sm:px-6">
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={hearNova}
+                onClick={hearGuide}
                 className={cn("relative grid h-11 w-11 shrink-0 place-items-center rounded-full border transition-colors", speaking ? "border-gold-400/70 bg-gold-400/15 text-gold-200" : "border-hairline bg-ink-900 text-content")}
-                aria-label={speaking ? "Pause Nova" : "Hear Nova"}
+                aria-label={speaking ? "Pause AneQue" : "Hear AneQue"}
               >
                 {speaking ? <Pause className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
                 {speaking && <span className="absolute inset-0 animate-ping rounded-full border border-gold-400/40" />}
               </button>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-content">Nova</span>
-                  <span className="text-[11px] text-content-subtle">{speaking ? "speaking" : voice.paused ? "paused" : "your study partner"}</span>
+                  <span className="text-sm font-semibold text-content">
+                    AneQue <span className="font-normal text-content-subtle">· AI study partner</span>
+                  </span>
+                  <span className="text-[11px] text-content-subtle">{speaking ? "speaking" : voice.paused ? "paused" : "online"}</span>
                 </div>
-                <NovaWave speaking={speaking} bars={28} className="mt-1 h-5" />
+                <GuideWave speaking={speaking} bars={28} className="mt-1 h-5" />
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  unlock();
+                  window.dispatchEvent(new Event("academy:talk"));
+                }}
+                className="btn-primary h-10 shrink-0 px-4 text-xs"
+                aria-label="Talk to AneQue live"
+              >
+                <AudioLines className="h-4 w-4" /> Talk
+              </button>
             </div>
-            <NovaCaption
-              text={voice.text || "Tap the headphones and I'll walk you through today. I read every question in my own voice."}
+            <GuideCaption
+              text={voice.text || "Ask me anything about Web3 out loud, from funding rates to airdrops. Tap Talk, speak, and I'll answer. I also read every question in my own voice."}
               speaking={speaking}
               className="mt-3 line-clamp-3 text-[13px] leading-relaxed"
             />

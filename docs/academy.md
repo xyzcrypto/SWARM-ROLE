@@ -6,8 +6,14 @@ components = UI, content = starter curriculum). Pages: `src/app/academy/*`,
 
 ## First deploy
 Nothing to do by hand. `db push` creates the `Academy*` tables, and the first request
-to any Academy page or API seeds the 14 starter topics from `content/*.json`
-(`ensureSeeded`). Seeding never overwrites a topic that already exists by slug.
+to any Academy page or API seeds the curriculum from `content/*.json` (`ensureSeeded`).
+
+Curriculum ships in versioned batches (`SEED_BATCHES` in `content/index.ts`; the stored
+version is `AcademyConfig.seedVersion`). A new batch is installed once on the next
+request after deploy: its missing topics are created, existing ones are never
+overwritten, and a topic an admin deleted from an older batch is not brought back.
+Batch 1: the 14 core topics. Batch 2: Perp DEX Masterclass, On-chain Trading & Routing,
+RWA, Crypto Prop Firms, Airdrop Masterclass, AI x Crypto, Quantum Computing.
 
 ## Who can administer
 Super Admins, or staff granted **`academy:manage`** (Access tab on /dashboard).
@@ -33,7 +39,18 @@ Production syncs the schema with `db push` on deploy. `prisma/migrations/43_crea
 `44_academy` record the same tables as idempotent SQL for anyone building a database by
 hand or auditing the history.
 
-## Nova's voice
+## AneQue (the voice guide, said "Aneq")
+
+Renamed from Nova. Scripted lines and curriculum recordings below; Live Talk is a
+conversation: the browser records a short clip (voice-activity detection ends it),
+`/api/academy/aneque/listen` transcribes it with Whisper (same Groq key as XYZ AI; the
+browser's own recogniser is not used because Brave cannot reach its service), commands
+like "open leaderboard" act locally, and anything else goes to `/api/academy/aneque/chat`
+(the XYZ AI gateway, plans and daily limits) whose answer is spoken by the browser voice.
+While a quiz question is open the prompt forbids giving it away. Without a Groq key Live
+Talk says it is unavailable; everything else keeps working.
+
+## Voice recordings
 - Scripted lines: `client/voice-lines.ts`, each with `public/academy/voice/<key>.mp3`.
 - Curriculum text (prompts, options, explanations, lesson summaries):
   `public/academy/voice/c/<sha1(text)[:16]>.mp3`, listed in `content/voice-manifest.json`;

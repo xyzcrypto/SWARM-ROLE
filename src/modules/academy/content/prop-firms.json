@@ -1,0 +1,356 @@
+{
+  "slug": "prop-firms",
+  "title": "Crypto Prop Trading Firms",
+  "tagline": "How funded-trader programs work, how they earn, and how to judge one with clear eyes",
+  "icon": "Briefcase",
+  "order": 18,
+  "modules": [
+    {
+      "slug": "what-is-a-prop-firm",
+      "level": "beginner",
+      "title": "What a prop firm is and how funding works",
+      "summary": "A modern retail prop firm sells you an evaluation: pass it under strict rules and you trade an account on the firm's terms for a share of the profits. Knowing exactly what you are buying is the first step.",
+      "minutes": 9,
+      "objectives": [
+        "Explain the difference between a traditional prop desk and a retail funded-trader program",
+        "Describe how an evaluation or challenge phase works",
+        "Tell simulated capital apart from live capital",
+        "Explain profit splits, payout cycles and scaling plans",
+        "Describe what a trader is really paying for when buying a challenge"
+      ],
+      "sections": [
+        {
+          "heading": "Proprietary trading, old and new",
+          "body": "Proprietary trading originally meant a bank or trading house risking its own money through in-house traders who were employees. Those desks hired, trained and paid traders directly, and the firm kept most of the upside. The modern retail version works differently: anyone online can pay a fee to attempt a test, and the firm never hires them. If you pass, you get access to an account under the firm's rules and keep a share of any profit. The word is the same, but the business model, the legal relationship and the risks are very different."
+        },
+        {
+          "heading": "The evaluation or challenge",
+          "body": "The challenge is a trial account where you must reach a profit target without breaking any rule. Some programs use a single phase, others use two or more phases with separate targets, and some have no target at all but a minimum period of trading. You usually pay a one-time fee per attempt, and breaking a rule ends the attempt immediately, even if you were in profit. Many programs allow unlimited time while others set a deadline. The challenge is designed to test whether you can make money while respecting risk limits, not just whether you can make money."
+        },
+        {
+          "heading": "Simulated versus live capital",
+          "body": "A key detail that marketing often blurs is whether the funded account is real money at all. In many programs the funded account remains a simulated account, and your payouts are paid from the firm's own revenue rather than from profits earned in a real market. Other firms place some or all of a trader's positions in a live market, sometimes only after a trader has proved themselves for a while. Both models can be legitimate, but they create very different incentives and risks. The only reliable place to find out which model applies is the firm's terms, read in full."
+        },
+        {
+          "heading": "Profit split and payouts",
+          "body": "When a funded account makes money, the trader receives an agreed percentage of the profit and the firm keeps the rest. Payouts are usually requested on a fixed cycle, often after a minimum number of days or trades, and many firms require a minimum profit before a withdrawal is allowed. Some programs refund the challenge fee with the first payout. A payout request can trigger a review of your trading history against the rules. A profit that has not yet been paid out is a number on a screen, not money in your account."
+        },
+        {
+          "heading": "Scaling plans",
+          "body": "A scaling plan increases the size of your account, or your share of profits, after you meet set conditions such as a profit level over several months. The idea is to reward consistency rather than one lucky week. Scaling usually comes with the same or stricter rules, so a larger account does not mean more freedom. Read the conditions carefully, because some plans reset progress after a single breach. Treat scaling as a bonus for disciplined trading, never as a reason to take extra risk."
+        },
+        {
+          "heading": "What you are actually buying",
+          "body": "When you pay for a challenge, you are buying a service: a chance to trade under a rule set, with the possibility of a payout if you succeed. You are usually treated as an independent contractor or customer, not an employee, and you have no claim on the firm's capital. Your real cost is the fee multiplied by the number of attempts it takes you to pass. Thinking of the fee as a cost of doing business, rather than an investment with a guaranteed return, keeps your expectations realistic."
+        }
+      ],
+      "concepts": [
+        { "term": "Prop firm", "definition": "A business that lets traders trade an account on its terms, in the retail model usually after passing a paid evaluation." },
+        { "term": "Evaluation", "definition": "A trial phase where a trader must hit set goals without breaking any risk rule to earn a funded account." },
+        { "term": "Funded account", "definition": "The account a trader receives after passing, which may be simulated or connected to a live market depending on the firm." },
+        { "term": "Profit split", "definition": "The agreed percentage of profits paid to the trader, with the remainder kept by the firm." },
+        { "term": "Payout cycle", "definition": "The schedule and conditions under which a trader may request a withdrawal of their share of profits." },
+        { "term": "Scaling plan", "definition": "A set of conditions under which a firm increases account size or profit share after consistent results." }
+      ],
+      "example": {
+        "title": "Two traders, two readings of the same offer",
+        "body": "Two friends sign up for the same two-phase challenge. One reads the marketing, assumes he is now trading a large real account, and sizes up aggressively, breaching the drawdown rule in his second week. The other reads the terms, learns the funded account is simulated and payouts come from the firm's revenue, and treats the fee as the cost of a test. She trades small, passes slowly, and plans her first payout around the published cycle."
+      }
+    },
+    {
+      "slug": "prop-rule-sets",
+      "level": "beginner",
+      "title": "Rule sets: the limits that end accounts",
+      "summary": "Most failed accounts do not fail because of a bad strategy but because of a broken rule. Learning exactly how each common rule is measured is the cheapest edge a trader can have.",
+      "minutes": 10,
+      "objectives": [
+        "Explain how a daily loss limit is usually calculated",
+        "Compare a static maximum drawdown with a trailing one",
+        "Describe what a consistency rule tries to prevent",
+        "Recognise news, weekend, leverage and minimum-day rules",
+        "Read a rule set and identify which rule is most likely to end your account"
+      ],
+      "sections": [
+        {
+          "heading": "The daily loss limit",
+          "body": "A daily loss limit caps how much an account may lose within one trading day. The details matter: some firms measure it from the starting balance of the day, others from the higher of balance or equity, and many include unrealised losses on open positions. That means a trade can breach the limit while still open, even if it would later have recovered. The day usually resets at a fixed server time that may not match your local midnight. Knowing the exact formula and reset time is essential before you place a single trade."
+        },
+        {
+          "heading": "Maximum drawdown: static versus trailing",
+          "body": "The maximum drawdown is the total loss an account may ever suffer before it is closed. A static drawdown is measured from the starting balance and never moves, so the floor stays fixed. A trailing drawdown follows your highest balance or equity upward, so every new high also raises the floor beneath you. Some trailing rules stop moving once the floor reaches the starting balance, while others keep trailing. Under a trailing rule, giving back open profit can end an account that is still well above where it started."
+        },
+        {
+          "heading": "Consistency rules",
+          "body": "A consistency rule limits how much of your total profit may come from a single day or single trade. Its purpose is to stop traders passing with one oversized bet that is closer to gambling than to a repeatable method. If one day makes up too large a share of profits, you may need to keep trading until the share falls, or a payout may be refused. These rules can appear in the challenge, the funded stage, or both. They reward steady position sizes and punish hero trades."
+        },
+        {
+          "heading": "News and weekend rules",
+          "body": "Many firms restrict trading around major scheduled news events, when spreads widen and prices can gap. A news rule may forbid opening or closing positions within a window around an announcement, or may simply not count profits made during it. Weekend rules may require positions to be closed before markets close, which matters less for crypto markets that trade around the clock but still applies on many platforms. Breaking these rules often results in profits being removed rather than an instant failure. Check the event calendar the firm uses, not a calendar of your choice."
+        },
+        {
+          "heading": "Leverage caps and prohibited strategies",
+          "body": "Firms cap leverage and position size, often more tightly on volatile assets such as crypto than on major currencies. Many also ban specific strategies: exploiting price-feed delays, hedging the same account against another, copying trades between accounts, or using certain automated tools. Some of these bans are described in vague language that leaves the firm wide discretion. A strategy that is perfectly legal in the market can still be against the rules of the program. When in doubt, ask support in writing and keep the answer."
+        },
+        {
+          "heading": "Minimum trading days and inactivity",
+          "body": "Many programs require a minimum number of trading days before a phase can be passed or a payout requested. This prevents a trader from hitting the target in one lucky session and leaving. There may also be an inactivity rule that closes accounts with no trades for a set period. These rules are easy to satisfy with a planned routine but easy to forget under pressure. Put the minimums in your trading plan alongside the loss limits."
+        }
+      ],
+      "concepts": [
+        { "term": "Daily loss limit", "definition": "The maximum amount an account may lose within one trading day, often including open losses." },
+        { "term": "Static drawdown", "definition": "A maximum loss floor measured from the starting balance that never moves." },
+        { "term": "Trailing drawdown", "definition": "A maximum loss floor that rises as the account reaches new highs, following the peak balance or equity." },
+        { "term": "Consistency rule", "definition": "A rule limiting how much of total profit may come from a single day or trade." },
+        { "term": "News rule", "definition": "A restriction on trading in a window around scheduled high-impact announcements." },
+        { "term": "Unrealised loss", "definition": "The loss on a position that is still open, which many firms count toward their limits." }
+      ],
+      "example": {
+        "title": "Breached while in profit",
+        "body": "A trader starts a challenge with a trailing drawdown that follows equity. A strong trade pushes open equity well above the starting balance, which raises the floor. He does not take profit, the market reverses, and the open profit evaporates. His balance never fell below where he started, but equity touched the raised floor and the account was closed."
+      }
+    },
+    {
+      "slug": "how-prop-firms-make-money",
+      "level": "intermediate",
+      "title": "How prop firms make money, and why it matters",
+      "summary": "A prop firm's revenue model shapes its rules, its marketing and its willingness to pay. Understanding fees, B-booking and market routing lets you judge an offer by incentives rather than promises.",
+      "minutes": 10,
+      "objectives": [
+        "Explain why challenge fees are a core revenue source",
+        "Describe B-booking and how it differs from routing to the market",
+        "Explain a hybrid model where only some traders are routed",
+        "Identify the conflict of interest in a fee-funded model",
+        "Use the revenue model to set realistic expectations about payouts"
+      ],
+      "sections": [
+        {
+          "heading": "Challenge fees as revenue",
+          "body": "For many retail prop firms, the largest source of income is the fees traders pay to attempt challenges. Every failed attempt is revenue with no payout attached, and resets or re-attempts add more. Discounts, promotions and affiliate marketing exist because the business grows with the number of attempts sold. This does not make the model a scam, since the fee pays for a real service and some traders do get paid. It does mean the firm's finances depend on how many traders fail, not only on how many succeed."
+        },
+        {
+          "heading": "B-booking: taking the other side",
+          "body": "B-booking means the firm or its broker does not send your trades to a real market. Your positions are recorded internally, and your profit is the firm's cost while your loss is the firm's gain. In a funded program that runs on simulated accounts, every trader is effectively B-booked. This is common across retail trading and is not illegal in itself, but it creates a direct financial interest in traders losing. Knowing whether you are B-booked helps explain rules that seem designed to end accounts quickly."
+        },
+        {
+          "heading": "A-booking and routing to market",
+          "body": "A-booking means trades are passed through to a real market or liquidity provider. The firm then earns from fees, commissions or its share of profits, and a winning trader is good news rather than a cost. Running real capital requires risk management, funding and relationships with execution venues, so it is more expensive to operate. Some firms describe themselves as live-capital firms but only route a small subset of accounts. Ask how and when routing happens and whether it is documented in the terms."
+        },
+        {
+          "heading": "Hybrid models and copying the best",
+          "body": "Many firms run a hybrid: most accounts stay simulated, while consistently profitable traders are copied or mirrored into a live account the firm controls. In that model, your payout may come from real market profits for a few traders and from fee revenue for everyone else. The firm may also hedge the aggregate exposure of its traders rather than each individual. A hybrid can be sustainable if fees and live profits cover payouts with room to spare. It becomes fragile if payouts grow faster than new fee income."
+        },
+        {
+          "heading": "Why the model matters to you",
+          "body": "If a firm pays traders mainly from new fees, its ability to pay depends on continuous growth, much like any business with obligations funded by new customers. Sudden rule changes, stricter payout reviews or delayed withdrawals can be early signs of strain. Firms have shut down or stopped paying after market disruptions or platform problems, leaving traders with unpaid profits. A transparent firm explains its model plainly. A vague one leaves you to guess who is on the other side of your trades."
+        }
+      ],
+      "concepts": [
+        { "term": "Challenge fee", "definition": "The payment a trader makes to attempt an evaluation, a core revenue source for many firms." },
+        { "term": "B-booking", "definition": "Keeping client trades internal rather than sending them to a market, so the firm gains when the trader loses." },
+        { "term": "A-booking", "definition": "Passing client trades through to a real market or liquidity provider." },
+        { "term": "Hybrid model", "definition": "A setup where most accounts are simulated and only selected traders are routed or copied to live markets." },
+        { "term": "Conflict of interest", "definition": "A situation where the firm's financial gain depends on an outcome that harms its customer." },
+        { "term": "Liquidity provider", "definition": "A firm or venue that supplies prices and fills orders for a broker or trading business." }
+      ],
+      "example": {
+        "title": "Reading the incentive behind a rule",
+        "body": "A trader notices that a firm recently shortened its payout window for new accounts and added a stricter consistency rule. Rather than taking it personally, she asks what the change tells her about the firm's finances. A firm earning mostly from fees has reason to tighten payouts when they grow faster than sales. She decides to withdraw profits as soon as she is eligible rather than letting them accumulate."
+      }
+    },
+    {
+      "slug": "prop-firm-due-diligence",
+      "level": "advanced",
+      "title": "Due diligence: payouts, terms and red flags",
+      "summary": "Before paying any firm, verify that it pays, that its terms are fair, and that you know who you are dealing with. Most painful stories begin with a terms clause nobody read.",
+      "minutes": 11,
+      "objectives": [
+        "Verify a firm's payout history using independent evidence",
+        "Spot discretionary clauses and other terms traps",
+        "Explain when and why KYC is requested",
+        "Check the legal entity, jurisdiction and dispute process",
+        "List common red flags in prop firm marketing and behaviour",
+        "Understand how platform and price-feed quality affect results"
+      ],
+      "sections": [
+        {
+          "heading": "Verifying payout history",
+          "body": "A firm's own screenshots and testimonials are marketing, not evidence. Look for independent sources: traders you can verify discussing payouts over time, consistent reports across different communities, and, where payments are made in crypto, transactions you can check on a block explorer. Pay attention to the pattern of complaints, not just their number, especially reports of denied payouts with vague reasons. A firm that paid reliably last year can still change, so look at the most recent evidence. Absence of complaints for a brand-new firm means little, because it has not been tested."
+        },
+        {
+          "heading": "Terms traps",
+          "body": "Read the full terms of service, not the summary on the pricing page. Watch for clauses that let the firm deny payouts or close accounts at its sole discretion, or that define prohibited trading in broad, vague language. Check rules about using the same strategy across accounts, trading from shared IP addresses or devices, using expert advisors or copy tools, and holding positions over news. Look for the right to change rules at any time and whether changes apply to existing accounts. If a key term is ambiguous, ask for clarification in writing before you pay."
+        },
+        {
+          "heading": "KYC and eligibility",
+          "body": "Know Your Customer checks verify your identity, and many firms request them only at the funded stage or the first payout rather than at signup. That timing means a trader can pay, pass, and then discover they are not eligible because of their country or documents. Read the list of restricted countries and required documents before you start. Consider how the firm will store your identity documents and whether it explains its data handling. Your passport is worth more than any challenge fee if it ends up in the wrong hands."
+        },
+        {
+          "heading": "Entity, jurisdiction and disputes",
+          "body": "Find the legal company behind the brand, where it is registered, and which law governs the contract. Many prop firms are not regulated as brokers or investment firms, because they argue they sell evaluations rather than investment services, which leaves traders with limited protection. Check how disputes are handled: internal review only, arbitration, or courts in a specific country. A firm with no clear legal entity, or one that changes entity names often, gives you very little recourse. If you cannot work out who you would sue, assume you could not."
+        },
+        {
+          "heading": "Red flags",
+          "body": "Be cautious with offers that seem built on urgency: permanent countdown timers, constant deep discounts and aggressive affiliate promotion. Promises that sound too generous compared to the rest of the market deserve extra scrutiny, because generosity has to be paid for somehow. Other warning signs include delayed payouts blamed on unnamed processors, rule changes applied retroactively, and support that stops responding after a payout request. A sudden switch of trading platform or broker can also signal operational trouble. One red flag is a question, several together are an answer."
+        },
+        {
+          "heading": "Platform and price feed",
+          "body": "In a simulated account, your fills depend entirely on the firm's price feed and execution model. Spreads, slippage, commissions and swap or funding charges may differ from a real exchange and can quietly turn a winning strategy into a losing one. Compare the firm's quotes with a major market during volatile periods if you can. Check how the platform handles outages and whether trades closed during an outage are reviewed fairly. A strategy is only as good as the conditions it is executed under."
+        }
+      ],
+      "concepts": [
+        { "term": "Discretionary clause", "definition": "A contract term that lets the firm decide an outcome, such as a payout denial, at its own judgment." },
+        { "term": "KYC", "definition": "Know Your Customer, the process of verifying a person's identity with documents." },
+        { "term": "Governing law", "definition": "The jurisdiction whose laws apply to a contract and its disputes." },
+        { "term": "Arbitration", "definition": "A private dispute process where an arbitrator, not a court, decides the outcome." },
+        { "term": "Slippage", "definition": "The difference between the expected price of a trade and the price at which it actually fills." },
+        { "term": "Retroactive rule change", "definition": "A change to the rules that applies to accounts that were bought under the old rules." }
+      ],
+      "example": {
+        "title": "A ten-minute terms review",
+        "body": "Before buying a challenge, a trader searches the terms for the words discretion, prohibited, IP, news and modify. She finds that the firm may refuse a payout if it considers trading to be inconsistent with real market conditions, without defining that phrase. She emails support asking whether her scalping strategy is allowed and saves the reply. The vague clause does not stop her, but it lowers how much she is willing to spend on attempts there."
+      }
+    },
+    {
+      "slug": "onchain-prop-and-vaults",
+      "level": "advanced",
+      "title": "Crypto-native prop models and vault alternatives",
+      "summary": "Crypto has built its own versions of the funded-trader idea: trading competitions, on-chain funding protocols and vaults where depositors back a lead trader. Each moves trust from a company to rules, code or public records.",
+      "minutes": 11,
+      "objectives": [
+        "Explain how exchange trading competitions reward traders",
+        "Describe how an on-chain funded-trader design can enforce rules with smart contracts",
+        "Explain the mechanism of a copy-trading or leader vault",
+        "Compare the transparency of on-chain models with off-chain firms",
+        "Identify the specific risks of vaults and on-chain programs"
+      ],
+      "sections": [
+        {
+          "heading": "Trading competitions",
+          "body": "Exchanges and protocols run trading competitions in which participants trade their own capital and compete on a leaderboard for prizes. Ranking may be by percentage return, absolute profit or trading volume, and the choice shapes the behaviour it rewards. Competitions ranked purely by return favour extreme risk, because a trader with nothing to lose can swing for the top. The host benefits from activity, fees and attention, so the prize is a marketing cost. Unlike a prop challenge, your own money is at risk, but there is no fee to participate."
+        },
+        {
+          "heading": "On-chain funded-trader designs",
+          "body": "Some crypto projects try to rebuild the prop model with smart contracts. In a typical design, liquidity providers deposit capital into a pool, traders are allocated trading limits, and risk rules such as maximum loss are enforced automatically by code rather than by a support team. Some designs require traders to post their own collateral that absorbs losses first. Because rules are on-chain, they can be read and checked rather than interpreted. The trade-off is smart contract risk and the possibility that the rules themselves are poorly designed."
+        },
+        {
+          "heading": "Vaults: backing a lead trader",
+          "body": "A vault pools deposits under the control of a lead trader or strategy. On Hyperliquid, for example, a vault leader trades the pooled funds, depositors share in profits and losses in proportion to their share of the vault, and the leader receives a share of the profits. The structure flips the prop model: the trader is funded by depositors instead of by a company, and the depositor takes the investment risk. Positions and performance are visible on-chain, so depositors can watch what the leader is doing. Depositors still depend entirely on the leader's judgment."
+        },
+        {
+          "heading": "Copy trading",
+          "body": "Copy trading lets a follower automatically mirror another trader's positions in their own account, either on a centralised exchange or through on-chain tools. The lead trader is usually paid a share of followers' profits. Followers may get worse prices than the leader, especially in fast markets or thin order books, because their orders arrive later. Past performance on a leaderboard can be the result of luck or of hidden risk such as large, rarely stopped losing positions. Treat a public track record as a starting point for analysis, not a guarantee."
+        },
+        {
+          "heading": "Transparency as the key difference",
+          "body": "The biggest structural change in crypto-native models is visibility. On-chain vaults and contracts show balances, trades and rule enforcement in public records, while an off-chain prop firm asks you to trust its internal systems. That transparency makes it harder to hide losses or change rules quietly. It does not remove the risk of a bad strategy, a contract bug or a market crash. Transparency lets you check, but you still have to look."
+        },
+        {
+          "heading": "Risks to weigh",
+          "body": "Vaults and on-chain programs carry smart contract risk, oracle risk and the risk of liquidation in a fast market. A vault may also have withdrawal conditions, such as delays or lockups, that matter during stress. Leaders can change behaviour, take on more leverage after a losing streak, or simply stop managing well. Competitions with high-risk incentives can encourage habits that would fail a disciplined prop challenge. Size any exposure as money you can afford to lose."
+        }
+      ],
+      "concepts": [
+        { "term": "Trading competition", "definition": "An event where traders compete with their own capital for prizes based on a ranking metric." },
+        { "term": "Vault", "definition": "A pool of deposited funds managed by a lead trader or strategy, with profits and losses shared pro rata." },
+        { "term": "Vault leader", "definition": "The trader who controls a vault's positions and is usually paid a share of its profits." },
+        { "term": "Copy trading", "definition": "Automatically mirroring another trader's positions in your own account." },
+        { "term": "First-loss collateral", "definition": "Capital posted by a trader that absorbs losses before anyone else's funds are affected." },
+        { "term": "Pro rata", "definition": "Shared in proportion to each participant's stake." }
+      ],
+      "example": {
+        "title": "Reading a vault before depositing",
+        "body": "A trader considers depositing into a vault on a perpetual exchange. Instead of looking only at the headline return, she reviews the leader's open positions, the largest historical drawdown and how leverage changed after losing periods. She notices the leader averaged down into a losing position for weeks before it recovered. She decides that the strong return came with hidden tail risk and deposits only a small amount, if any."
+      }
+    },
+    {
+      "slug": "passing-an-evaluation",
+      "level": "expert",
+      "title": "Risk management and a plan to pass an evaluation",
+      "summary": "Passing an evaluation is mostly a risk problem: you need to reach a target before you hit a floor. Sizing positions to the drawdown buffer and knowing your expectancy turns a gamble into a plan.",
+      "minutes": 13,
+      "objectives": [
+        "Calculate expectancy from win rate and average win and loss",
+        "Size positions as a fraction of the remaining drawdown buffer",
+        "Estimate how many consecutive losses an account can survive",
+        "Set personal limits stricter than the firm's rules",
+        "Adapt sizing to a trailing drawdown",
+        "Build a written plan covering pre-trade checks, journaling and review"
+      ],
+      "sections": [
+        {
+          "heading": "Expectancy first",
+          "body": "Expectancy is the average amount you expect to win or lose per trade, calculated as win rate times average win minus loss rate times average loss. A strategy with a positive expectancy makes money over many trades, while a negative one loses no matter how it is sized. Measure it from a reasonable sample of your own journaled trades, not from memory or a handful of wins. Expressing results in R, the amount risked per trade, makes expectancy comparable across position sizes. If you do not know your expectancy, a challenge is a test of luck rather than skill."
+        },
+        {
+          "heading": "Sizing to the drawdown buffer",
+          "body": "The drawdown buffer is the distance between your current equity and the level that ends the account. Instead of sizing as a percentage of the nominal account, size as a small fraction of that buffer. For example, if a hypothetical account can lose 10 percent before failing and you risk 1 percent per trade, ten straight losses end it. Risking 0.5 percent per trade doubles that number. Smaller risk per trade makes the target take longer but sharply raises the chance of reaching it."
+        },
+        {
+          "heading": "Losing streaks are normal",
+          "body": "Even a profitable strategy produces streaks of losses, and the longer you trade, the longer the worst streak you will see. A strategy that wins half the time will regularly produce runs of five or more losses over a few hundred trades. Your sizing must survive the streak your strategy can realistically produce, not the streak you hope for. Run the numbers before the challenge: how many losses in a row end the account at your chosen risk? If the answer is uncomfortably small, reduce risk."
+        },
+        {
+          "heading": "Personal limits inside the firm's limits",
+          "body": "Set a personal daily stop well inside the firm's daily loss limit, so that a single bad day can never be fatal. A common approach is to stop after a fixed number of losing trades or a fixed loss in R, whichever comes first. Leave space for slippage and for open positions that move against you before your stop fills. Under a trailing drawdown, lock in profit or reduce size as equity rises, because the floor rises with it. Your limits should make the firm's rules almost irrelevant to your daily decisions."
+        },
+        {
+          "heading": "The written plan",
+          "body": "A good evaluation plan lists the markets you trade, the setups you take, your risk per trade, your daily stop, and the times you will not trade, such as around restricted news events. It includes a pre-trade checklist that confirms the setup, the stop and the position size before entry. Every trade is journaled with the reason for entry, the result in R and any rule you came close to breaking. A weekly review compares results with your expected expectancy. The plan exists so that decisions under pressure have already been made calmly."
+        },
+        {
+          "heading": "Pressure points: near the target and after losses",
+          "body": "Two moments break most plans: being close to the target and being in a drawdown. Near the target, traders often increase size to finish quickly, which turns a nearly passed account into a failed one. After losses, the urge to win it back leads to oversized trades that hit the loss limit. The fix is the same in both cases: keep the same risk per trade and let the expectancy work. Passing slowly is still passing, and a funded account rewards the same discipline you used to get there."
+        }
+      ],
+      "concepts": [
+        { "term": "Expectancy", "definition": "The average profit or loss per trade, equal to win rate times average win minus loss rate times average loss." },
+        { "term": "R multiple", "definition": "A trade's result expressed as a multiple of the amount risked on it." },
+        { "term": "Drawdown buffer", "definition": "The distance between current equity and the level at which an account is closed." },
+        { "term": "Risk of ruin", "definition": "The probability that a sequence of losses ends an account before it reaches its goal." },
+        { "term": "Losing streak", "definition": "A run of consecutive losing trades, which every strategy produces over time." },
+        { "term": "Trading journal", "definition": "A record of each trade with its reasoning, result and lessons, used to measure performance." }
+      ],
+      "example": {
+        "title": "Same strategy, two sizes",
+        "body": "Two traders use the same strategy with a modest positive expectancy on a hypothetical challenge that fails at a 10 percent loss. One risks 2 percent per trade and reaches the target quickly when luck is good, but a five-trade losing streak, which the strategy produces regularly, leaves him one bad day from failure. The other risks 0.5 percent per trade, takes several weeks longer, and survives two losing streaks without stress. Over repeated attempts, the smaller size passes far more often."
+      }
+    }
+  ],
+  "questions": [
+    { "module": "what-is-a-prop-firm", "difficulty": "easy", "prompt": "In the retail funded-trader model, what does a trader usually pay for?", "options": ["An attempt at an evaluation under set rules", "A salary contract with the trading firm", "A permanent share of the firm's own trading capital", "A licence to manage outside client money"], "answer": 0, "explanation": "Retail prop firms sell evaluation attempts. Passing gives access to a funded account on the firm's terms, not employment or ownership of capital." },
+    { "module": "what-is-a-prop-firm", "difficulty": "easy", "prompt": "What usually happens if you break a rule during a challenge?", "options": ["You receive a warning and keep trading", "The attempt ends, even if you are in profit", "Your profit target is raised for the rest of the phase", "Your next payout is delayed one cycle"], "answer": 1, "explanation": "A rule breach typically ends the attempt immediately. Being in profit does not protect an account that has broken a risk rule." },
+    { "module": "what-is-a-prop-firm", "difficulty": "easy", "prompt": "Where can you reliably find out whether a funded account is simulated or live?", "options": ["The firm's social media posts", "Reviews from affiliate partners", "The firm's full terms of service", "The size of the profit split offered"], "answer": 2, "explanation": "Marketing often blurs this detail. The terms of service are the binding document that states how funded accounts actually work." },
+    { "module": "what-is-a-prop-firm", "difficulty": "easy", "prompt": "What is a scaling plan in a funded program?", "options": ["A way to split one account into smaller ones", "A discount on future challenge attempts", "A rule that lowers leverage after a loss", "Account growth after meeting set conditions"], "answer": 3, "explanation": "A scaling plan increases account size or profit share after a trader meets conditions such as consistent profits over time." },
+    { "module": "what-is-a-prop-firm", "difficulty": "easy", "prompt": "What is the most realistic way to think about a challenge fee?", "options": ["As a cost of a service you may not recover", "As a deposit the firm must always refund", "As an investment with a guaranteed return", "As margin that backs your funded positions"], "answer": 0, "explanation": "The fee buys a chance to trade under a rule set. It is a cost, and your total cost is the fee times the number of attempts you need." },
+
+    { "module": "prop-rule-sets", "difficulty": "easy", "prompt": "How does a trailing maximum drawdown differ from a static one?", "options": ["It only applies on weekends and holidays", "Its floor rises as the account makes new highs", "It resets to zero at the start of each day", "It is measured from the lowest balance the account has seen"], "answer": 1, "explanation": "A trailing drawdown follows the account's peak upward, so new highs raise the floor. A static drawdown stays fixed at the starting level." },
+    { "module": "prop-rule-sets", "difficulty": "easy", "prompt": "Why can a trade breach a daily loss limit while it is still open?", "options": ["Firms always close trades at the daily reset", "Spreads are doubled for open trades overnight", "Many firms count unrealised losses toward it", "Open trades are charged an extra entry fee"], "answer": 2, "explanation": "Many firms measure the daily limit using equity, which includes open losses. A position can breach the limit before it is ever closed." },
+    { "module": "prop-rule-sets", "difficulty": "easy", "prompt": "What is a consistency rule mainly designed to prevent?", "options": ["Trading in more than one market at a time", "Requesting payouts more often than once in a calendar month", "Using a different platform from the firm's", "Passing with one oversized lucky trade or day"], "answer": 3, "explanation": "Consistency rules limit how much profit may come from a single day or trade, discouraging hero bets that are closer to gambling." },
+    { "module": "prop-rule-sets", "difficulty": "easy", "prompt": "What does a minimum trading days rule require?", "options": ["Trading on a set number of days before passing", "Trading on every single day that the market is open", "Holding each position for at least one day", "Waiting a set number of days after a loss"], "answer": 0, "explanation": "It sets a minimum number of days with trading activity before a phase can be passed or a payout requested." },
+    { "module": "prop-rule-sets", "difficulty": "easy", "prompt": "A strategy is legal in the market but banned by a firm. What applies inside that firm's program?", "options": ["The market's rules override the firm's ban", "The firm's rules, since you agreed to them", "Whichever rule is less strict for the trader", "Neither, once the account has been funded"], "answer": 1, "explanation": "Inside a program you are bound by the firm's terms. A strategy that is allowed in the wider market can still breach a prop firm's rules." },
+
+    { "module": "how-prop-firms-make-money", "difficulty": "medium", "prompt": "What does B-booking mean?", "options": ["Sending every order to a second exchange", "Charging a fee for each booked payout", "Keeping trades internal instead of in a market", "Booking all profits only at the end of each calendar month"], "answer": 2, "explanation": "B-booking keeps client trades on the firm's own books. The trader's profit becomes the firm's cost and the trader's loss its gain." },
+    { "module": "how-prop-firms-make-money", "difficulty": "medium", "prompt": "Why does a mostly fee-funded prop model create a conflict of interest?", "options": ["Fees must be paid in a specific currency", "Traders are never allowed to see the firm's own balance sheet", "The firm cannot legally refund any fees", "The firm's income depends on traders failing"], "answer": 3, "explanation": "When most income comes from attempt fees and payouts are costs, the firm benefits financially when traders fail." },
+    { "module": "how-prop-firms-make-money", "difficulty": "medium", "prompt": "In a hybrid model, which traders are typically routed or copied to live markets?", "options": ["A selected group of consistently profitable traders", "Every trader, starting from the first day of their challenge", "Only traders who have paid for a premium account", "Traders whose accounts are close to failing"], "answer": 0, "explanation": "Hybrid firms usually keep most accounts simulated and mirror or route only selected, consistently profitable traders." },
+    { "module": "how-prop-firms-make-money", "difficulty": "medium", "prompt": "Which change could be an early sign of financial strain at a fee-funded firm?", "options": ["Publishing its full terms on the website", "Suddenly stricter payout reviews and delays", "Adding a new crypto market to its list of tradable assets", "Offering a demo account before purchase"], "answer": 1, "explanation": "If payouts grow faster than fee income, tighter reviews, rule changes and delays can follow. Transparency and demos are not warning signs." },
+    { "module": "how-prop-firms-make-money", "difficulty": "medium", "prompt": "Under A-booking, how does a winning trader affect the firm?", "options": ["It always costs the firm the full profit amount", "It forces the firm to close the trader's account at once", "It can be good news, since the profit is from the market", "It has no effect because no trades are placed"], "answer": 2, "explanation": "When trades go to a real market, profits come from the market rather than from the firm, so the firm can earn from a successful trader." },
+
+    { "module": "prop-firm-due-diligence", "difficulty": "hard", "prompt": "Which is the strongest evidence that a crypto-paying firm actually pays traders?", "options": ["Payout certificates on the firm's own website", "A large number of affiliate video reviews", "A promise of fast payouts in the sales page", "Verifiable payout transactions over time"], "answer": 3, "explanation": "Independent, checkable evidence such as on-chain payout transactions is far stronger than material produced or paid for by the firm." },
+    { "module": "prop-firm-due-diligence", "difficulty": "hard", "prompt": "Why is KYC timing an important detail to check before paying for a challenge?", "options": ["Some firms check eligibility only at payout stage", "KYC must be redone for every single trade", "KYC is only required for traders under 25", "KYC results decide the size of the funded account you receive"], "answer": 0, "explanation": "If identity and country checks happen only at the funded stage or payout, a trader can pay and pass and still be ineligible." },
+    { "module": "prop-firm-due-diligence", "difficulty": "hard", "prompt": "What is the main risk of a clause allowing payout denial at the firm's sole discretion?", "options": ["It makes the firm's challenge prices higher than its rivals", "It gives the trader very little ground to dispute", "It means payouts are made only in stablecoins", "It requires the trader to use a set platform"], "answer": 1, "explanation": "A sole-discretion clause lets the firm decide without a clear standard, which leaves a trader with little contractual basis to challenge a refusal." },
+    { "module": "prop-firm-due-diligence", "difficulty": "hard", "prompt": "Why does the quality of a firm's price feed matter so much in a simulated account?", "options": ["It determines which country's law governs the contract", "It decides how KYC documents are stored", "Fills, spreads and slippage all depend on it", "It sets the maximum number of trading days"], "answer": 2, "explanation": "In simulation there is no external market to fill you. The firm's feed and execution model decide every price you get." },
+    { "module": "prop-firm-due-diligence", "difficulty": "hard", "prompt": "Why does it matter that many prop firms are not regulated as brokers?", "options": ["They cannot accept card payments at all", "They are barred from offering crypto markets", "They must pay out within twenty-four hours", "Traders may have limited formal protection"], "answer": 3, "explanation": "Many firms position themselves as selling evaluations rather than investment services, so traders often lack the protections a regulated broker relationship would give." },
+
+    { "module": "onchain-prop-and-vaults", "difficulty": "hard", "prompt": "Why do competitions ranked purely by percentage return tend to reward extreme risk?", "options": ["A trader with little to lose can gamble for the top", "Percentage returns cannot be measured on-chain", "High-risk trades pay lower trading fees", "Prizes are only paid to the lowest-risk trader"], "answer": 0, "explanation": "Ranking only by return rewards the largest outcome and ignores how it was achieved, so going all in is a rational way to chase the top spot." },
+    { "module": "onchain-prop-and-vaults", "difficulty": "hard", "prompt": "In a vault such as those on Hyperliquid, how are profits and losses shared among depositors?", "options": ["Equally per wallet, regardless of deposit size", "In proportion to each depositor's share", "Only the leader bears losses on the vault", "Only the earliest depositors share profits"], "answer": 1, "explanation": "Depositors share results pro rata to their stake, while the leader trades the pool and receives a share of profits." },
+    { "module": "onchain-prop-and-vaults", "difficulty": "hard", "prompt": "What is the main structural advantage of on-chain vaults over an off-chain prop firm?", "options": ["They guarantee depositors a positive return", "They remove all risk from leveraged trading", "Positions and results can be publicly checked", "They do not need any lead trader to operate"], "answer": 2, "explanation": "On-chain records make balances, trades and rule enforcement visible. That lets users verify activity, though it does not remove strategy or contract risk." },
+    { "module": "onchain-prop-and-vaults", "difficulty": "hard", "prompt": "Why might a copy-trading follower get worse results than the leader they copy?", "options": ["Followers are charged the leader's KYC fees", "Followers must use a larger leverage setting", "Followers trade on a different blockchain", "Their orders arrive later and can fill worse"], "answer": 3, "explanation": "Copied orders execute after the leader's, so in fast or thin markets they often fill at worse prices." },
+    { "module": "onchain-prop-and-vaults", "difficulty": "hard", "prompt": "In some on-chain funded-trader designs, what is first-loss collateral?", "options": ["Trader capital that absorbs losses before others", "A fee paid to join a trading competition", "Insurance bought from the exchange's fund", "Tokens burned when a trader passes a phase"], "answer": 0, "explanation": "First-loss collateral is posted by the trader and takes losses first, protecting the capital providers in the pool." },
+
+    { "module": "passing-an-evaluation", "difficulty": "expert", "prompt": "A strategy wins 40% of trades, averaging 2R per win and 1R per loss. What is its expectancy per trade?", "options": ["0.4R", "0.2R", "-0.2R", "0.8R"], "answer": 1, "explanation": "Expectancy is 0.4 times 2R minus 0.6 times 1R, which equals 0.8R minus 0.6R, or 0.2R per trade." },
+    { "module": "passing-an-evaluation", "difficulty": "expert", "prompt": "An account fails after an 8% loss and you risk 0.5% per trade. Roughly how many straight full losses can it take?", "options": ["About 4 losses", "About 8 losses", "About 16 losses", "About 40 losses"], "answer": 2, "explanation": "Dividing the 8 percent buffer by 0.5 percent risk per trade gives about 16 full losses before the account fails." },
+    { "module": "passing-an-evaluation", "difficulty": "expert", "prompt": "Under a trailing drawdown, what is a sensible adjustment as equity rises?", "options": ["Increase size since the buffer is now larger", "Stop journaling until the next drawdown", "Remove stops to give trades more room", "Protect gains, since the floor rises too"], "answer": 3, "explanation": "A trailing floor rises with equity, so the real buffer may not grow. Locking in profit or trimming size protects against giving gains back into the floor." },
+    { "module": "passing-an-evaluation", "difficulty": "expert", "prompt": "Why should a personal daily stop sit well inside the firm's daily loss limit?", "options": ["To leave room for slippage and open losses", "Because firms reward traders who stop early", "So the challenge target becomes smaller", "Because the firm's limit resets each hour"], "answer": 0, "explanation": "Stops can fill worse than planned and open trades can move further. A tighter personal limit keeps one bad day from becoming a breach." },
+    { "module": "passing-an-evaluation", "difficulty": "expert", "prompt": "You are close to the profit target. What does a disciplined plan say about position size?", "options": ["Double size to finish before a losing streak", "Keep the same risk per trade as before", "Switch to a market with higher leverage", "Stop placing stops so that winners can run"], "answer": 1, "explanation": "Raising size near the target is a classic way to fail. Keeping the same risk per trade lets the positive expectancy finish the job." }
+  ]
+}

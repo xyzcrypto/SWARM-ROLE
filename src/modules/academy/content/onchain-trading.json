@@ -1,0 +1,703 @@
+{
+  "slug": "onchain-trading",
+  "title": "On-chain Trading & Routing",
+  "tagline": "Route swaps well: aggregators, MEV protection, intents and cross-chain execution.",
+  "icon": "Route",
+  "order": 16,
+  "modules": [
+    {
+      "slug": "your-first-onchain-swap",
+      "level": "beginner",
+      "title": "Your first on-chain swap",
+      "summary": "Compare swapping on a DEX from your own wallet with trading on a centralized exchange, and walk through what actually happens when you press swap.",
+      "minutes": 10,
+      "objectives": [
+        "Contrast custody, matching and settlement on a CEX and on a DEX",
+        "Describe the steps of an on-chain swap from quote to confirmation",
+        "Explain why gas is paid and what happens when a swap reverts",
+        "Recognize what a token approval is and why it is needed",
+        "Read a swap confirmation screen before signing"
+      ],
+      "sections": [
+        {
+          "heading": "Two ways to trade the same token",
+          "body": "On a centralized exchange (CEX), you deposit funds into an account the exchange controls, and trades are matched in the exchange's private systems. Your balance there is a claim on the exchange until you withdraw to your own wallet. On a decentralized exchange (DEX), you trade from a self-custodial wallet and a smart contract executes the swap on the blockchain. Tokens leave and enter your wallet in the same transaction, so there is no deposit step and no balance held by an operator. The trade-off is that you take on responsibility for your keys, your fees and checking everything you sign."
+        },
+        {
+          "heading": "What happens when you press swap",
+          "body": "The interface first requests a quote based on the current state of the pools it can reach. It then builds a transaction that calls a swap contract with your input amount and a minimum acceptable output. Your wallet displays that transaction and asks you to sign it with your private key. The signed transaction is broadcast to the network, waits to be included in a block, and then either executes in full or reverts. Only after inclusion does your wallet balance actually change."
+        },
+        {
+          "heading": "Gas and failed transactions",
+          "body": "Every on-chain action consumes computation, and you pay for it in the chain's native token as a gas fee. The fee is charged even when a transaction reverts, because the network still processed it. A swap can revert if the price moves beyond your limit, if its deadline passes, or if you lack the required balance or approval. On a CEX you pay trading fees instead, but withdrawing to a wallet usually carries a network fee. Keeping a small native-token balance on each chain you use avoids being stuck without a way to pay for transactions."
+        },
+        {
+          "heading": "Token approvals",
+          "body": "On EVM chains, a contract cannot pull an ERC-20 token from your wallet unless you have first granted it an allowance. That is why a first swap of a token often needs two transactions: an approval and then the swap itself. The approval names a spender contract and an amount, and the spender can move up to that amount until the allowance is used up or changed. Many interfaces suggest a very large or unlimited approval for convenience, which saves gas later but leaves a standing permission in place. Approvals return later in this course because they are a common source of losses."
+        },
+        {
+          "heading": "Reading the confirmation screen",
+          "body": "Before signing, check the input token and amount, the expected output and the minimum you will receive after slippage. Confirm the network, because the same symbol can exist on many chains and as look-alike contracts. Compare the estimated network fee with the trade size, since a small trade on a busy chain can lose a meaningful share to gas. If your wallet shows a simulated balance change, check that it matches what you expect. If anything looks unfamiliar, cancel and verify the token's contract address from an official source."
+        }
+      ],
+      "concepts": [
+        { "term": "Self-custody", "definition": "Holding the private keys to your own wallet, so no third party controls your funds." },
+        { "term": "Centralized exchange (CEX)", "definition": "A company-run venue that holds user deposits and matches trades in its own systems." },
+        { "term": "Gas fee", "definition": "The payment in a chain's native token for the computation a transaction uses, charged even if it reverts." },
+        { "term": "Token approval", "definition": "An on-chain permission letting a named contract transfer up to a set amount of your ERC-20 tokens." },
+        { "term": "Revert", "definition": "The outcome where a transaction fails and its state changes are undone, except for the gas already spent." }
+      ],
+      "example": {
+        "title": "A first USDC to ETH swap",
+        "body": "A user wants to swap USDC for ETH from a self-custodial wallet on an EVM chain. The app first asks them to approve the swap contract to spend USDC, which is its own transaction with its own gas fee. Once that confirms, the swap screen shows an expected output and a lower minimum received based on the slippage setting. When the swap is included in a block, the ETH appears in the same wallet that sent the USDC, with no exchange account involved."
+      }
+    },
+    {
+      "slug": "aggregators-and-routing",
+      "level": "beginner",
+      "title": "DEX aggregators and smart order routing",
+      "summary": "Liquidity is spread across many pools and venues. Learn how aggregators search it, split orders and combine AMM pools with market maker quotes.",
+      "minutes": 10,
+      "objectives": [
+        "Explain why fragmented liquidity creates a need for aggregators",
+        "Describe how split and multi-hop routes improve execution",
+        "Distinguish AMM liquidity from RFQ market maker quotes",
+        "Name aggregators on EVM chains and Solana and what they do",
+        "Identify the limits of what an aggregator can protect you from"
+      ],
+      "sections": [
+        {
+          "heading": "Liquidity is fragmented",
+          "body": "The same token pair often trades on several DEXs and in several pools with different fee tiers. Each pool has its own depth, so the best venue for a small trade can differ from the best venue for a large one. Checking every pool by hand is impractical, and prices change from block to block. DEX aggregators solve this by querying many liquidity sources and building a route for you. You still sign a single transaction, and the aggregator's contract carries out the route."
+        },
+        {
+          "heading": "How smart order routing works",
+          "body": "A router models how each pool's price responds to trade size, then searches for the combination that returns the most output after fees. It can split an order so that parts go through different pools at once, which reduces the price impact on each one. It can also route through an intermediate token when going from A to C via a deep pool for B gives a better result than a direct A to C pool. More hops and splits cost more gas, so a good router weighs extra output against extra fees. The quote is a prediction, and the result depends on the chain state when your transaction executes."
+        },
+        {
+          "heading": "Examples across ecosystems",
+          "body": "1inch is an aggregator whose classic swap mode uses a routing engine called Pathfinder to split orders across liquidity sources. 0x provides a Swap API that combines public AMM liquidity with quotes from professional market makers, and its Matcha app is built on that API. ParaSwap, which rebranded as Velora in 2025, started as an EVM aggregator and moved toward an intent-based design. On Solana, Jupiter aggregates liquidity across the chain's DEXs and also offers limit orders and recurring DCA orders. Many wallets embed one of these engines, so you may use an aggregator without visiting its site."
+        },
+        {
+          "heading": "AMM liquidity versus RFQ quotes",
+          "body": "AMM liquidity is public and always available, priced by a formula from the pool's balances. Request-for-quote (RFQ) liquidity comes from market makers who return a firm price for a specific trade, signed off-chain and valid for a short time. 0x's documentation describes including market maker quotes only when they are more competitive than AMM routes. An aggregator that draws on both can sometimes beat either source alone. RFQ fills still settle on-chain, but the price was set by a professional counterparty rather than a pool formula."
+        },
+        {
+          "heading": "What an aggregator does not do",
+          "body": "An aggregator does not change the risk of the tokens themselves, so a malicious token stays malicious however well it is routed. It does not guarantee the quote, because the market can move before your transaction is included. It adds its own contracts to the set you trust, and an approval to an aggregator's router is a permission like any other. Some aggregators charge a fee or let integrating apps add one, which should appear in the quote. For a large trade, comparing quotes from two aggregators is a sensible habit."
+        }
+      ],
+      "concepts": [
+        { "term": "DEX aggregator", "definition": "A service that queries many liquidity sources and builds the best route for a swap." },
+        { "term": "Smart order routing", "definition": "The algorithmic search for the split and path that maximize output after fees and gas." },
+        { "term": "Split route", "definition": "A route that sends parts of one order through different pools in the same transaction." },
+        { "term": "Multi-hop route", "definition": "A route that passes through one or more intermediate tokens to reach the target token." },
+        { "term": "RFQ (request for quote)", "definition": "A model where market makers return firm, short-lived prices for a specific trade." }
+      ],
+      "example": {
+        "title": "Splitting a large swap",
+        "body": "A trader wants to swap a large amount of a mid-cap token for a stablecoin and requests a quote from an aggregator. Instead of sending everything through one pool, the router sends part through a deep pool on one DEX, part through a different fee tier, and part via an intermediate token. Each slice moves its pool's price less than one large trade would. The trader signs a single transaction, and because it executes atomically, either every leg succeeds or the whole swap reverts."
+      }
+    },
+    {
+      "slug": "slippage-and-mev",
+      "level": "intermediate",
+      "title": "Slippage, price impact and MEV",
+      "summary": "Separate the price you move from the price you lose, understand sandwiches and back-runs, and learn how private routes and batch auctions protect swaps.",
+      "minutes": 12,
+      "objectives": [
+        "Distinguish price impact from slippage and set a tolerance deliberately",
+        "Explain where MEV comes from and which forms harm users",
+        "Walk through a sandwich attack and why tolerance bounds it",
+        "Describe how private RPCs and MEV-blocking endpoints reduce exposure",
+        "Explain how uniform clearing prices in batch auctions neutralize ordering"
+      ],
+      "sections": [
+        {
+          "heading": "Price impact versus slippage",
+          "body": "Price impact is the movement your own trade causes in a pool, set by trade size relative to liquidity, and it is known before you send. Slippage is the difference between the quoted price and the executed price, which includes any change in the pool between quote and inclusion. Slippage tolerance is the worst difference you accept, encoded in the transaction as a minimum output amount. If execution would return less than that minimum, the swap reverts. Tolerance does not set your price, it only sets the worst outcome you allow."
+        },
+        {
+          "heading": "What MEV is",
+          "body": "Maximal extractable value (MEV) is the profit available from including, excluding or reordering transactions within a block. On many chains, pending transactions sit in a public mempool where anyone can see them before inclusion, and block builders decide the order. Some MEV is broadly useful, such as arbitrage that realigns DEX prices with other markets, or liquidations that keep lending protocols solvent. Other MEV is taken directly from users, and swaps are the most common target. Understanding which kind you face shapes how you send a trade."
+        },
+        {
+          "heading": "Sandwich attacks",
+          "body": "In a sandwich, a searcher sees your pending swap, buys the same token just before you (the front-run) and sells just after you (the back-run). Your trade executes at a worse price because the front-run moved the pool, and the searcher keeps the difference. The attacker can only push the price as far as your slippage tolerance allows, otherwise your swap reverts and the attack fails. A loose tolerance on a large trade in a thin pool is therefore an open invitation. Tight tolerances help, but setting them too tight causes frequent reverts and wasted gas in volatile markets."
+        },
+        {
+          "heading": "Back-running and arbitrage",
+          "body": "A back-run is a transaction placed immediately after a target to profit from the state it leaves, without changing the target's own execution. After a large swap moves a pool's price, an arbitrageur can trade the pool back toward the wider market price and keep the difference. That value was created by the user's trade, so some protection services auction the right to back-run and return part of the proceeds to the user. This is why a swap that avoids being sandwiched can still leave value on the table."
+        },
+        {
+          "heading": "Protection through private routes",
+          "body": "A private RPC sends your transaction to block builders without exposing it in the public mempool, removing the window in which sandwich bots can see it. Flashbots Protect is one such RPC, and it can return a share of back-run value to users as refunds. MEV Blocker is another RPC that aims to block front-running and sandwiching while running an auction among searchers for back-run rights and rebating users. You use either by adding its RPC endpoint to your wallet's network settings. These services reduce exposure but rely on builders and relays honoring privacy, so they are mitigation rather than a guarantee."
+        },
+        {
+          "heading": "Protection through batch auctions",
+          "body": "CoW Protocol collects signed orders off-chain and settles them in batches, where trades of the same token pair in a batch clear at a uniform price. Because those orders share one price, reordering them inside the batch gives no advantage, which removes intra-batch sandwiching. When two users want opposite sides of a pair, a solver can match them directly as a coincidence of wants without touching an AMM. Anything that cannot be matched is routed to on-chain liquidity. This design shifts execution risk from the user to competing solvers, a theme the expert module develops."
+        }
+      ],
+      "concepts": [
+        { "term": "Price impact", "definition": "The change in a pool's price caused by your own trade, driven by size relative to liquidity." },
+        { "term": "Slippage tolerance", "definition": "The maximum adverse price difference you accept, enforced as a minimum output." },
+        { "term": "MEV", "definition": "Value extracted by including, excluding or reordering transactions within a block." },
+        { "term": "Sandwich attack", "definition": "Trading just before and just after a victim's swap to profit from the price move it causes." },
+        { "term": "Back-run", "definition": "A transaction placed right after a target to capture value from the state it leaves." },
+        { "term": "Private RPC", "definition": "A transaction endpoint that delivers transactions to builders without broadcasting them to the public mempool." }
+      ],
+      "example": {
+        "title": "A sandwich in slow motion",
+        "body": "A user sends a swap of ETH for a thinly traded token with a 5% slippage tolerance through the public mempool. A bot sees it, buys the token first and pushes the price up by nearly that much. The user's swap still clears because it stays just inside the minimum output, and the bot then sells into the higher price. Had the user sent the same swap through a private RPC, or set a tolerance closer to the expected price impact, the bot would not have had room to profit."
+      }
+    },
+    {
+      "slug": "advanced-orders-and-hygiene",
+      "level": "advanced",
+      "title": "Advanced orders and execution hygiene",
+      "summary": "Go beyond market swaps with limit, TWAP and DCA orders, then harden every trade with careful approvals, Permit2 awareness and simulation.",
+      "minutes": 14,
+      "objectives": [
+        "Explain how off-chain signed limit orders are filled on-chain",
+        "Compare TWAP and DCA orders and the problem each addresses",
+        "Assess the risk of standing token approvals and how to limit it",
+        "Distinguish SignatureTransfer and AllowanceTransfer in Permit2",
+        "Use simulation and signature review as part of every execution"
+      ],
+      "sections": [
+        {
+          "heading": "Limit orders on-chain",
+          "body": "A DEX swap is a market order, while a limit order should execute only when a target price is reachable. A smart contract cannot wake itself up, so on-chain limit orders are usually signed off-chain, stored by a service, and filled by a third party once the price is met. The filler submits the transaction and pays the gas, and the settlement contract checks that you receive at least your stated amount. Jupiter on Solana and CoW Swap on EVM chains both offer limit orders, and CoW states that any surplus beyond the limit price goes to the trader. Orders can expire or be cancelled, and depending on the design a cancellation may itself need an on-chain transaction."
+        },
+        {
+          "heading": "TWAP orders",
+          "body": "A time-weighted average price (TWAP) order splits a large order into smaller parts executed at fixed intervals. The goal is to cut price impact by giving arbitrageurs time to rebalance pools between slices. CoW Protocol implements TWAP as a series of limit orders created through its ComposableCoW framework for conditional orders, which builds on smart contract signatures (ERC-1271). Each slice can carry price protection, so it will not fill below the price the trader allows. The trade-off is exposure to market moves over the whole duration."
+        },
+        {
+          "heading": "DCA orders",
+          "body": "Dollar-cost averaging (DCA) buys a fixed amount at regular intervals regardless of price, as a habit rather than an execution tactic for one large trade. On-chain DCA locks funds in a program or vault that executes each purchase on schedule, often through an aggregator. Jupiter offers DCA on Solana, and its documentation notes that such an order cannot be paused, only cancelled and recreated. DCA does not guarantee a better average price, and per-execution fees weigh more heavily on small amounts. It is a scheduling tool, not a recommendation to buy any asset."
+        },
+        {
+          "heading": "Approvals and their risk",
+          "body": "A standing ERC-20 allowance lets the approved contract move your tokens later without asking again. If that contract has a bug or is compromised, every wallet with an open allowance is exposed, even wallets that have not traded in months. In January 2024, Socket reported an incident affecting wallets with infinite approvals to its contracts, traced to a validation flaw in a recently added route. Socket stated that Bungee does not request infinite approvals by default, and users were urged to revoke approvals to the affected contract. Approving only what you need and periodically revoking old allowances limits this class of risk."
+        },
+        {
+          "heading": "Permits and Permit2",
+          "body": "EIP-2612 lets supporting tokens set an allowance through a signed off-chain message instead of an approval transaction. Uniswap's Permit2 contract brings signature-based approvals to any ERC-20: you approve Permit2 once, then grant individual apps permission through signatures. Its SignatureTransfer mode authorizes a one-time transfer with a deadline, while AllowanceTransfer sets an amount and an expiration for a spender. Signatures are convenient but risky, because a phishing site can request one that costs no gas and never appears as a pending transaction. Treat any signature request that names a token, an amount and a spender as seriously as an approval."
+        },
+        {
+          "heading": "Simulation before signing",
+          "body": "Transaction simulation runs your transaction against current chain state and shows the expected balance changes before you sign. Many wallets and security tools show this preview, and node providers expose methods such as eth_simulateV1 for simulating multi-step flows. A simulation is not a guarantee, because state can change before inclusion and a malicious contract can behave differently later. Simulation also covers transactions more easily than off-chain signatures, which is exactly where permit phishing operates. Use it as a strong signal alongside checking addresses, spenders and amounts yourself."
+        }
+      ],
+      "concepts": [
+        { "term": "Limit order", "definition": "An order that executes only at a specified price or better." },
+        { "term": "TWAP order", "definition": "An order split into equal parts executed at fixed time intervals to reduce price impact." },
+        { "term": "DCA", "definition": "Buying a fixed amount at regular intervals regardless of price." },
+        { "term": "Unlimited approval", "definition": "An allowance with no practical cap, letting the spender move any amount of a token later." },
+        { "term": "Permit2", "definition": "A Uniswap contract enabling signature-based approvals and transfers for any ERC-20 token." },
+        { "term": "Transaction simulation", "definition": "Executing a transaction against current state off-chain to preview its effects before signing." }
+      ],
+      "example": {
+        "title": "A DAO sells through a TWAP",
+        "body": "A DAO treasury needs to sell a large position for stablecoins without overwhelming the available liquidity. Instead of one swap, it creates a TWAP order on CoW Swap from its Safe multisig, splitting the sale into equal parts over several days with a minimum price per part. Each slice becomes fillable as its window opens, and if the market falls below the minimum, those slices simply do not fill. The DAO accepts that its average price depends on the market over the period, in return for much lower price impact per trade."
+      }
+    },
+    {
+      "slug": "cross-chain-swaps",
+      "level": "advanced",
+      "title": "Cross-chain swaps and route aggregators",
+      "summary": "Understand why cross-chain swaps cannot be atomic, how bridge aggregators build routes, and how intent-based bridges like Across move the waiting onto relayers.",
+      "minutes": 14,
+      "objectives": [
+        "Explain why cross-chain swaps are sequences rather than atomic trades",
+        "Describe what bridge and route aggregators such as LI.FI and Bungee do",
+        "Compare lock-and-mint, liquidity network and intent-based bridge designs",
+        "Trace an Across transfer from deposit to relayer repayment",
+        "Identify the extra risks that cross-chain routes add"
+      ],
+      "sections": [
+        {
+          "heading": "Why cross-chain swaps are harder",
+          "body": "A swap on one chain is atomic: it happens in one transaction or not at all. Moving value between chains cannot be atomic in the same way, because each chain has its own consensus and finality. A cross-chain swap is therefore a sequence: a swap or deposit on the source chain, a message or proof that crosses over, and a release or swap on the destination. Each step adds time, fees and a trust assumption about how the destination learns what happened on the source."
+        },
+        {
+          "heading": "Bridge and route aggregators",
+          "body": "Just as DEX aggregators compare pools, bridge aggregators compare routes across bridges and DEXs on both chains. LI.FI provides an API and SDK that aggregate bridges and DEXs, and its Jumper app is a consumer front end on that engine. Bungee is a consumer app built on Socket's routing infrastructure that compares bridge and swap providers to build routes. A typical route swaps token A to a stablecoin on the source chain, bridges the stablecoin, and swaps into token B on the destination. The aggregator shows estimated output, fees and time, but each bridge and DEX in the route remains part of your risk."
+        },
+        {
+          "heading": "Lock-and-mint, liquidity networks and intents",
+          "body": "Lock-and-mint bridges lock tokens on the source chain and mint a wrapped version on the destination, so the wrapped token is only as safe as the locked collateral and the bridge's verification. Liquidity networks hold pools on each chain and pay users out of the destination pool. Intent-based bridges invert the flow: the user states what they want to receive, and a third party delivers it from its own funds first. The user's deposit then repays that third party once the fill has been verified. The user's wait depends on how fast a filler acts, not on how long verification takes."
+        },
+        {
+          "heading": "Across as an intents-based bridge",
+          "body": "In Across, a user deposits on the origin chain along with an intent describing what they should receive on the destination chain. Relayers compete to fill that intent by fronting their own capital on the destination, so the user is paid quickly. Relayers are repaid later: fills are aggregated into bundles that are proposed to UMA's optimistic oracle with a bond, and anyone can dispute an invalid bundle during a challenge window. If no relayer fills before the deadline, the user can reclaim the deposit on the origin chain. The design moves the finality wait and verification risk from the user to relayers, who price it into their fees."
+        },
+        {
+          "heading": "Risks on cross-chain routes",
+          "body": "Bridges have been behind some of the largest losses in crypto, often through compromised keys or flawed message verification. A route aggregator adds its own contracts and approvals on top of every bridge it uses. Destination-side swaps carry slippage too, and prices can move during the bridging delay. A wrapped token may not be the canonical version that apps on the destination chain accept. Before a large transfer, check which bridge the route uses, how it verifies messages and what its history is, not only the aggregator's interface."
+        },
+        {
+          "heading": "Standardizing cross-chain intents",
+          "body": "As more protocols adopt intents, a shared order format lets fillers serve many apps without a custom integration for each. ERC-7683 is a proposed Ethereum standard for cross-chain intent orders, intended to let compatible filler networks see and settle the same orders. Standardization does not change the trust model of any individual settlement system. Its main effect is to widen the set of competing fillers, which tends to improve speed and pricing for users."
+        }
+      ],
+      "concepts": [
+        { "term": "Bridge aggregator", "definition": "A service that compares bridges and DEXs across chains and assembles a cross-chain route." },
+        { "term": "Wrapped token", "definition": "A token minted on one chain to represent an asset locked on another chain." },
+        { "term": "Canonical token", "definition": "The version of an asset that its issuer or the destination ecosystem treats as official." },
+        { "term": "Relayer", "definition": "In Across, a party that fronts its own funds to fill a user's cross-chain intent and is repaid later." },
+        { "term": "Optimistic verification", "definition": "Accepting a claim as valid unless someone disputes it with evidence within a challenge window." },
+        { "term": "ERC-7683", "definition": "A proposed standard format for cross-chain intent orders shared across filler networks." }
+      ],
+      "example": {
+        "title": "Moving USDC with an intent bridge",
+        "body": "A user holds USDC on one Ethereum rollup and needs it on another. They deposit into Across on the source rollup, specifying the amount to receive on the destination and a deadline. A relayer sees the deposit and sends USDC from its own inventory to the user on the destination, without waiting for the source deposit to be verified. The relayer is repaid later, once its fill is included in a bundle that passes the optimistic challenge window."
+      }
+    },
+    {
+      "slug": "intents-and-solvers",
+      "level": "expert",
+      "title": "Intents, solvers and auction economics",
+      "summary": "See how intents hand execution to competing solvers and fillers, compare batch and Dutch auctions, and analyze where solver profit comes from.",
+      "minutes": 16,
+      "objectives": [
+        "Explain how intents shift execution responsibility to solvers",
+        "Compare CoW Protocol batch auctions with Dutch auctions in UniswapX and 1inch Fusion",
+        "Analyze where solver profit comes from and how competition returns it to users",
+        "Evaluate centralization and trust trade-offs in solver markets",
+        "Choose an execution path suited to trade size, urgency and risk"
+      ],
+      "sections": [
+        {
+          "heading": "From transactions to intents",
+          "body": "With a normal swap, you sign a transaction that specifies exactly how to execute: which contract, which pools and which path. With an intent, you sign a message describing an outcome you will accept, such as selling a set amount of one token for at least a minimum of another before a deadline. A third party, called a solver, filler or resolver depending on the protocol, decides how to achieve it and submits the transaction. The settlement contract checks that your signed constraints are met, so the executor cannot give you less than your minimum. Routing, gas and much of the MEV exposure move from the user to professional competitors."
+        },
+        {
+          "heading": "CoW Protocol: solvers competing over batches",
+          "body": "CoW Protocol aggregates signed orders off-chain into batches and auctions the right to settle each batch to a set of solvers. Solvers propose settlements that can combine coincidences of wants, AMM routes and their own liquidity. Solutions are scored mainly on the surplus they deliver to users, and the winning solver executes on-chain. Uniform clearing prices within a batch remove the advantage of ordering trades inside it. Solvers are vetted and bonded, so misbehavior can be penalized, which is part of what makes delegating execution acceptable."
+        },
+        {
+          "heading": "UniswapX and 1inch Fusion: Dutch auctions",
+          "body": "UniswapX lets users sign orders that fillers compete to execute, with the filler paying gas, so swappers do not pay gas for failed swaps. Its auction pairs an RFQ step, in which a quoter can win a short exclusive window, with a Dutch auction in which the price starts favorable to the user and decays toward the user's minimum over time. If the quoter does not fill during its window, the order opens to all fillers. 1inch Fusion uses a similar idea: the rate falls from the desired rate toward the minimum return until filling becomes profitable for a resolver. In a Dutch auction the first filler to accept wins, so competition pushes fills to happen as early as is profitable."
+        },
+        {
+          "heading": "Where solver profit comes from",
+          "body": "A solver earns the difference between what it delivers to the user and what execution costs it, after gas and any protocol fees. Its edge can come from private inventory, better routing models, access to market maker quotes, or the ability to net opposing orders against each other. A solver that can hedge on centralized exchanges can quote tighter prices because it offloads inventory risk immediately. Competition is what returns most of this edge to users, because when many solvers bid, the winning bid moves toward their true cost. When few solvers compete, users rely more heavily on their own minimum limits for protection."
+        },
+        {
+          "heading": "Risks and centralization in solver markets",
+          "body": "Intent systems depend on a healthy, competitive set of executors, yet the capital and expertise required favor a small number of sophisticated firms. Exclusive windows and permissioned solver sets trade some openness for reliability and accountability. Users trust the settlement contract to enforce their limits, and they trust off-chain order infrastructure to stay available and treat orders fairly. Because orders are signed messages, users must check exactly what they sign, including expiry and recipient. Assessing an intent protocol means asking who can fill, how winners are chosen and what happens when nobody fills."
+        },
+        {
+          "heading": "Choosing an execution path",
+          "body": "For a small swap of a liquid pair, a direct DEX swap or aggregator route with a sensible tolerance is usually adequate. For larger or MEV-sensitive trades, intent-based systems and private routes can reduce sandwich exposure and capture surplus. For trades that can wait, TWAP and limit orders trade speed for lower impact. Cross-chain needs add bridge and relayer risk to the decision. The skill this course builds is matching the method to the trade's size, urgency and risk, then verifying every approval and signature along the way."
+        }
+      ],
+      "concepts": [
+        { "term": "Intent", "definition": "A signed statement of the outcome a user accepts, leaving the execution path to a third party." },
+        { "term": "Solver", "definition": "A party that competes to find and submit the best execution for users' intents." },
+        { "term": "Dutch auction", "definition": "An auction where the offered price moves toward the user's minimum over time until someone accepts." },
+        { "term": "Exclusive filler window", "definition": "A short period in which only the winning quoter may fill an order before it opens to all fillers." },
+        { "term": "Surplus", "definition": "The amount a user receives above their signed minimum or limit price." },
+        { "term": "Coincidence of wants", "definition": "Two orders on opposite sides of a pair that can be matched directly without external liquidity." }
+      ],
+      "example": {
+        "title": "One order, many competing fillers",
+        "body": "A user signs a UniswapX order to sell a token, with a starting output above the current market and a minimum below it. A quoter wins the exclusive window but does not fill, so the order opens to all fillers as its Dutch auction decays. A filler that can source the token cheaply elsewhere fills as soon as the decaying price becomes profitable, and pays the gas itself. The user receives an amount between the starting and minimum outputs and pays no gas for the swap."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "your-first-onchain-swap",
+      "difficulty": "easy",
+      "prompt": "What is the main custody difference between a CEX and a DEX?",
+      "options": [
+        "On a DEX you trade from your own wallet, while a CEX holds your deposits",
+        "On a CEX you trade from your own wallet, while a DEX holds your deposits",
+        "Both hold your deposits, but a DEX publishes its full balance sheet on-chain",
+        "Neither holds any funds, because trades on both settle directly on a blockchain"
+      ],
+      "answer": 0,
+      "explanation": "A DEX executes swaps through smart contracts straight from a self-custodial wallet. A CEX takes deposits into accounts it controls and matches trades internally."
+    },
+    {
+      "module": "your-first-onchain-swap",
+      "difficulty": "easy",
+      "prompt": "Why do you still pay a gas fee when a swap reverts?",
+      "options": [
+        "The DEX keeps the fee as a penalty for setting your slippage too tight",
+        "The network still processed the transaction and must be paid for it",
+        "The fee is held temporarily and refunded to you in the next block",
+        "Reverted swaps are charged extra gas to discourage network spam"
+      ],
+      "answer": 1,
+      "explanation": "Gas pays for the computation the network performs, which happens whether or not the transaction succeeds. A revert undoes state changes but not the fee."
+    },
+    {
+      "module": "your-first-onchain-swap",
+      "difficulty": "easy",
+      "prompt": "Why does a first swap of an ERC-20 token often require two transactions?",
+      "options": [
+        "The first transaction registers your wallet address with the DEX",
+        "The first transaction converts the token into the native gas token",
+        "The first transaction approves the swap contract to spend the token",
+        "The first transaction locks a deposit returned after the swap settles"
+      ],
+      "answer": 2,
+      "explanation": "Contracts cannot pull ERC-20 tokens from a wallet without an allowance. The approval grants that allowance, and the swap then uses it."
+    },
+    {
+      "module": "your-first-onchain-swap",
+      "difficulty": "easy",
+      "prompt": "Which line on a swap confirmation screen shows the worst outcome you will accept?",
+      "options": [
+        "The estimated network fee in the native token",
+        "The route diagram showing which pools the swap uses",
+        "The expected output based on the current quote",
+        "The minimum received after your slippage setting"
+      ],
+      "answer": 3,
+      "explanation": "The minimum received is the floor encoded in the transaction. If execution would return less, the swap reverts instead of filling."
+    },
+    {
+      "module": "your-first-onchain-swap",
+      "difficulty": "easy",
+      "prompt": "When does your wallet balance actually change during an on-chain swap?",
+      "options": [
+        "As soon as the interface displays a price quote",
+        "Once the transaction is included in a block and executes",
+        "At the moment you sign the transaction in your wallet",
+        "When the transaction first appears in the mempool"
+      ],
+      "answer": 1,
+      "explanation": "Quotes, signatures and mempool broadcasts change nothing on-chain. Balances update only when the transaction is included and executes successfully."
+    },
+    {
+      "module": "aggregators-and-routing",
+      "difficulty": "easy",
+      "prompt": "What problem do DEX aggregators mainly solve?",
+      "options": [
+        "They custody user funds so trades settle faster than on one DEX",
+        "They issue wrapped versions of tokens that have deeper liquidity",
+        "They search liquidity spread across many pools for the best route",
+        "They replace AMM pools with an order book run by a single operator"
+      ],
+      "answer": 2,
+      "explanation": "The same pair trades across many venues and pools. Aggregators query them and build the route that returns the most output after costs."
+    },
+    {
+      "module": "aggregators-and-routing",
+      "difficulty": "easy",
+      "prompt": "What is a split route?",
+      "options": [
+        "Sending a trade through an intermediate token instead of directly",
+        "Dividing a swap into two transactions sent in consecutive blocks",
+        "Sharing a swap's gas fee between the user and the aggregator",
+        "Sending parts of one order through different pools at once"
+      ],
+      "answer": 3,
+      "explanation": "Splitting spreads an order across several pools in one transaction, so each pool's price moves less than it would under the full trade."
+    },
+    {
+      "module": "aggregators-and-routing",
+      "difficulty": "easy",
+      "prompt": "In 0x's Swap API, where does RFQ liquidity come from?",
+      "options": [
+        "Professional market makers quoting a firm price for the trade",
+        "Public AMM pools that anyone can deposit into and trade against",
+        "Other users' resting limit orders stored in an on-chain book",
+        "Funds borrowed from lending protocols for the length of the trade"
+      ],
+      "answer": 0,
+      "explanation": "RFQ quotes come from market makers who sign a short-lived firm price. 0x includes them when they beat the available AMM routes."
+    },
+    {
+      "module": "aggregators-and-routing",
+      "difficulty": "easy",
+      "prompt": "What does a multi-hop route do?",
+      "options": [
+        "Splits the order across several DEXs at the same moment",
+        "Passes the trade through an intermediate token to reach the target",
+        "Retries a failed swap automatically over the next few blocks",
+        "Sends the swap to several chains and keeps only the best fill"
+      ],
+      "answer": 1,
+      "explanation": "A multi-hop route goes from token A to token C via token B when the pools along that path give a better result than a direct pool."
+    },
+    {
+      "module": "aggregators-and-routing",
+      "difficulty": "easy",
+      "prompt": "Which risk does routing through a DEX aggregator leave unchanged?",
+      "options": [
+        "A malicious token stays malicious however well it is routed",
+        "Getting a worse price by checking only one pool by hand",
+        "Paying extra price impact by sending a whole order to one pool",
+        "Missing a better path that runs through an intermediate token"
+      ],
+      "answer": 0,
+      "explanation": "Aggregators improve execution, not asset quality. A scam or broken token is just as dangerous after a well-optimized route."
+    },
+    {
+      "module": "slippage-and-mev",
+      "difficulty": "medium",
+      "prompt": "What is the difference between price impact and slippage?",
+      "options": [
+        "Price impact is the pool's trading fee, while slippage is the gas paid for the swap",
+        "They are two names for the same number shown by different swap interfaces",
+        "Slippage comes from your own trade size, while price impact comes from other traders",
+        "Price impact comes from your trade's size, while slippage adds changes before inclusion"
+      ],
+      "answer": 3,
+      "explanation": "Price impact is the move your own trade causes and is known in advance. Slippage is the gap between quote and execution, which also captures pool changes before your transaction lands."
+    },
+    {
+      "module": "slippage-and-mev",
+      "difficulty": "medium",
+      "prompt": "In a sandwich attack, what caps how much the attacker can extract from your swap?",
+      "options": [
+        "Your slippage tolerance, since a larger move makes your swap revert",
+        "The gas price you set, since attackers cannot outbid higher fees",
+        "The pool's fee tier, since higher tiers block front-running bots",
+        "The token's decimals, since rounding limits any possible price move"
+      ],
+      "answer": 0,
+      "explanation": "The attacker's front-run can only move the price until your minimum output is hit. Beyond that your swap reverts and the sandwich fails."
+    },
+    {
+      "module": "slippage-and-mev",
+      "difficulty": "medium",
+      "prompt": "Which form of MEV is generally considered useful to markets?",
+      "options": [
+        "Sandwiching retail swaps in thinly traded pools",
+        "Arbitrage that realigns DEX prices with other venues",
+        "Front-running a large swap spotted in the mempool",
+        "Censoring transactions that compete with a searcher"
+      ],
+      "answer": 1,
+      "explanation": "Arbitrage keeps DEX prices consistent with the wider market. Sandwiching and front-running take value directly from users."
+    },
+    {
+      "module": "slippage-and-mev",
+      "difficulty": "medium",
+      "prompt": "How does a private RPC such as Flashbots Protect reduce sandwich risk?",
+      "options": [
+        "It lowers the gas fee so bots cannot profit from the trade",
+        "It splits the swap into many small trades across blocks",
+        "It keeps the transaction out of the public mempool before inclusion",
+        "It guarantees the quoted price by locking the pool's reserves"
+      ],
+      "answer": 2,
+      "explanation": "Sandwich bots need to see a pending swap before it is included. Sending it privately to builders removes that public window."
+    },
+    {
+      "module": "slippage-and-mev",
+      "difficulty": "medium",
+      "prompt": "Why do uniform clearing prices in a CoW Protocol batch reduce MEV?",
+      "options": [
+        "Batches are settled on a separate private chain that has no mempool at all",
+        "Solvers are forbidden from routing any order in the batch to AMM pools",
+        "Trades of a pair in the batch share one price, so ordering gives no edge",
+        "Each order in the batch stays hidden until a full week after settlement"
+      ],
+      "answer": 2,
+      "explanation": "When every trade of a pair in the batch clears at the same price, moving one order ahead of another changes nothing, which removes intra-batch sandwiching."
+    },
+    {
+      "module": "advanced-orders-and-hygiene",
+      "difficulty": "hard",
+      "prompt": "How is a typical on-chain limit order executed once its target price is reachable?",
+      "options": [
+        "The smart contract watches prices and triggers itself automatically",
+        "A third party submits the signed order on-chain and pays the gas",
+        "The user's wallet stays online and broadcasts it at the right time",
+        "Validators are obliged to execute any order whose price has been met"
+      ],
+      "answer": 1,
+      "explanation": "Contracts cannot act on their own, so signed orders wait off-chain until a filler submits them. The settlement contract still enforces the user's limit."
+    },
+    {
+      "module": "advanced-orders-and-hygiene",
+      "difficulty": "hard",
+      "prompt": "What is the main purpose of a TWAP order?",
+      "options": [
+        "Buying a fixed amount on a schedule regardless of price as a habit",
+        "Guaranteeing execution at the exact average price of the whole day",
+        "Reducing price impact by splitting a large order into timed slices",
+        "Hiding the order from solvers until its final slice has executed"
+      ],
+      "answer": 2,
+      "explanation": "TWAP spreads one large order over time so pools can rebalance between slices. Scheduled buying regardless of price describes DCA instead."
+    },
+    {
+      "module": "advanced-orders-and-hygiene",
+      "difficulty": "hard",
+      "prompt": "In Permit2, what distinguishes AllowanceTransfer from SignatureTransfer?",
+      "options": [
+        "AllowanceTransfer needs no signature, SignatureTransfer needs one per token",
+        "SignatureTransfer is for NFTs, while AllowanceTransfer is for ERC-20s",
+        "AllowanceTransfer only works with tokens that implement EIP-2612 permits",
+        "AllowanceTransfer sets an amount and expiry, SignatureTransfer is one-time"
+      ],
+      "answer": 3,
+      "explanation": "AllowanceTransfer gives a spender a reusable allowance bounded by amount and expiration. SignatureTransfer authorizes a single transfer with a deadline."
+    },
+    {
+      "module": "advanced-orders-and-hygiene",
+      "difficulty": "hard",
+      "prompt": "Why are off-chain permit signatures attractive to phishing sites?",
+      "options": [
+        "They cost no gas and never show up as a pending transaction",
+        "They can only be revoked by the token issuer, not by the user",
+        "They bypass hardware wallets because no private key is needed",
+        "They automatically grant access to every token in the wallet"
+      ],
+      "answer": 0,
+      "explanation": "A permit signature looks like a harmless message, yet anyone holding it can submit it to set an allowance. Victims often see nothing until funds move."
+    },
+    {
+      "module": "advanced-orders-and-hygiene",
+      "difficulty": "hard",
+      "prompt": "What did the January 2024 Socket incident illustrate about token approvals?",
+      "options": [
+        "Only wallets that traded that day were exposed to the flawed route",
+        "Revoking approvals has no effect once a contract is compromised",
+        "Approving an exact amount is riskier than granting an unlimited one",
+        "Standing infinite approvals exposed wallets to a newly added flaw"
+      ],
+      "answer": 3,
+      "explanation": "Wallets with infinite approvals to the affected contract were at risk regardless of recent activity. Limiting and revoking approvals reduces that exposure."
+    },
+    {
+      "module": "cross-chain-swaps",
+      "difficulty": "hard",
+      "prompt": "Why can't a cross-chain swap be atomic the way a single-chain swap is?",
+      "options": [
+        "Each chain has its own consensus and finality, so steps run in sequence",
+        "Tokens on different chains use decimals that must be reconciled by hand",
+        "Bridges are legally required to hold funds for a minimum waiting period",
+        "Destination chains reject any transaction that originates from a bridge"
+      ],
+      "answer": 0,
+      "explanation": "No single transaction can execute on two independent chains at once. A cross-chain swap is a source step, a cross-chain message or proof, and a destination step."
+    },
+    {
+      "module": "cross-chain-swaps",
+      "difficulty": "hard",
+      "prompt": "In Across, who provides the funds a user receives on the destination chain?",
+      "options": [
+        "A pool of wrapped tokens minted by the destination chain's validators",
+        "Relayers who front their own capital and are repaid after verification",
+        "UMA token holders who vote to approve each transfer before it pays out",
+        "The origin bridge contract, which releases them after source finality"
+      ],
+      "answer": 1,
+      "explanation": "Across relayers fill intents from their own inventory for speed. They are reimbursed later from user deposits once their fills pass verification."
+    },
+    {
+      "module": "cross-chain-swaps",
+      "difficulty": "hard",
+      "prompt": "What role does UMA's optimistic oracle play in Across?",
+      "options": [
+        "It quotes the exchange rate users receive on the destination chain",
+        "It holds user deposits in escrow until a relayer accepts the intent",
+        "It verifies repayment bundles, which anyone can dispute in a window",
+        "It assigns which relayer is allowed to fill each individual deposit"
+      ],
+      "answer": 2,
+      "explanation": "Bundles of relayer fills are proposed with a bond and accepted unless disputed during the challenge window. That verification governs relayer repayment."
+    },
+    {
+      "module": "cross-chain-swaps",
+      "difficulty": "hard",
+      "prompt": "What does a route aggregator such as LI.FI or Bungee add to a cross-chain transfer?",
+      "options": [
+        "Insurance that reimburses users if any bridge in the route fails",
+        "A consensus layer that replaces each bridge's own verification",
+        "A guarantee that the destination token is the canonical version",
+        "A comparison of bridge and DEX routes, plus its own contracts"
+      ],
+      "answer": 3,
+      "explanation": "Route aggregators find and assemble routes across providers. They add convenience and their own contract risk, but each underlying bridge's risk remains."
+    },
+    {
+      "module": "cross-chain-swaps",
+      "difficulty": "hard",
+      "prompt": "What happens in Across if no relayer fills an intent before its deadline?",
+      "options": [
+        "The user can reclaim the deposit on the origin chain",
+        "The deposit is converted into a wrapped token instead",
+        "The protocol fills it from its treasury at a penalty rate",
+        "The deposit is shared among relayers as a late-fill bonus"
+      ],
+      "answer": 0,
+      "explanation": "An unfilled intent expires, and the deposit can be returned on the origin chain. The user is not left with funds stuck in transit."
+    },
+    {
+      "module": "intents-and-solvers",
+      "difficulty": "expert",
+      "prompt": "What does a user sign when trading through an intent-based protocol?",
+      "options": [
+        "A transaction specifying the exact pools and path to execute",
+        "A blanket approval letting the solver pick any minimum output",
+        "A message stating the outcome they accept, such as a minimum",
+        "A deposit into a solver's custody account held off-chain"
+      ],
+      "answer": 2,
+      "explanation": "An intent describes acceptable results, not the execution path. Solvers choose the path, and the settlement contract enforces the signed constraints."
+    },
+    {
+      "module": "intents-and-solvers",
+      "difficulty": "expert",
+      "prompt": "In a UniswapX Dutch auction, how does the order's price change?",
+      "options": [
+        "It rises over time until some filler accepts the higher price",
+        "It stays fixed while fillers compete only on their gas price",
+        "It resets every block to the best AMM quote then available",
+        "It starts favorable to the user and decays toward their minimum"
+      ],
+      "answer": 3,
+      "explanation": "The order begins at a price better for the user than the market and decays toward the signed minimum. The first filler to find it profitable takes it."
+    },
+    {
+      "module": "intents-and-solvers",
+      "difficulty": "expert",
+      "prompt": "How does CoW Protocol choose which solver settles a batch?",
+      "options": [
+        "Solutions are ranked by the surplus they deliver to users",
+        "The solver offering the highest gas price always wins",
+        "Solvers take turns in a fixed rotation regardless of price",
+        "The solver holding the most protocol tokens is selected"
+      ],
+      "answer": 0,
+      "explanation": "Solvers compete on the value their settlement delivers to users, measured mainly as surplus above limit prices. That competition is what returns value to traders."
+    },
+    {
+      "module": "intents-and-solvers",
+      "difficulty": "expert",
+      "prompt": "Why can a solver that hedges on centralized exchanges quote tighter prices?",
+      "options": [
+        "It can skip the settlement contract's minimum output checks",
+        "It can offload the inventory risk from a fill immediately",
+        "It avoids gas costs because centralized venues cover them",
+        "It sees users' signed orders earlier than other solvers do"
+      ],
+      "answer": 1,
+      "explanation": "Hedging removes the price risk of holding inventory after a fill. Lower risk lets the solver accept a thinner margin and bid more competitively."
+    },
+    {
+      "module": "intents-and-solvers",
+      "difficulty": "expert",
+      "prompt": "What most directly protects a user when few solvers compete for an order?",
+      "options": [
+        "The solver's reputation score shown in the swap interface",
+        "The minimum output enforced by the settlement contract",
+        "The uniform clearing price chosen by protocol governance",
+        "The exclusive window granted to the first quoting party"
+      ],
+      "answer": 1,
+      "explanation": "Weak competition means less surplus, but the settlement contract still refuses any fill below the user's signed minimum. Setting that limit carefully matters most when competition is thin."
+    }
+  ]
+}

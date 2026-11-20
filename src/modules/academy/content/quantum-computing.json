@@ -1,0 +1,816 @@
+{
+  "slug": "quantum-computing",
+  "title": "Quantum Computing & Crypto Security",
+  "tagline": "What quantum computers could break, what they could not, and how blockchains can adapt",
+  "icon": "Atom",
+  "order": 21,
+  "modules": [
+    {
+      "slug": "qubits-and-entanglement",
+      "level": "beginner",
+      "title": "Qubits, superposition and entanglement",
+      "summary": "Quantum computers use qubits, which follow the rules of quantum physics rather than ordinary logic. Understanding superposition, measurement and entanglement clears up the most common myths.",
+      "minutes": 9,
+      "objectives": [
+        "Explain how a qubit differs from a classical bit",
+        "Describe superposition and what happens when a qubit is measured",
+        "Explain entanglement and what it does and does not allow",
+        "Explain why a quantum computer does not simply try every answer at once"
+      ],
+      "sections": [
+        {
+          "heading": "Bits and qubits",
+          "body": "A classical computer stores information in bits, each of which is either 0 or 1. A quantum computer uses qubits, which can be built from things like trapped ions, superconducting circuits or photons. A qubit's state is described by two numbers called amplitudes, one linked to 0 and one linked to 1. These amplitudes can be positive, negative or even complex numbers, which is something ordinary probabilities cannot be. This extra structure is what quantum algorithms exploit."
+        },
+        {
+          "heading": "Superposition",
+          "body": "A qubit in superposition has nonzero amplitudes for both 0 and 1 at the same time. This does not mean the qubit is secretly 0 or 1 and we simply do not know which. The state is a genuine combination, and operations on the qubit act on both amplitudes together. A group of n qubits is described by 2 to the power of n amplitudes, so the description grows exponentially as qubits are added. Simulating many qubits on a classical computer quickly becomes infeasible for this reason."
+        },
+        {
+          "heading": "Measurement",
+          "body": "When you measure a qubit, you do not see its amplitudes. You get a single result, 0 or 1, with probabilities determined by the amplitudes, and the superposition is gone. Measuring n qubits gives you just n ordinary bits, not the 2 to the power of n amplitudes behind them. This is the crucial limit on quantum computing. A quantum algorithm has to arrange things so that, by the time you measure, the useful answer is very likely to appear."
+        },
+        {
+          "heading": "Interference, not parallel guessing",
+          "body": "A popular myth says quantum computers try every possible answer at once and pick the right one. That is not how they work, because measurement would just return one random possibility. Instead, quantum algorithms use interference: amplitudes can add up or cancel out, like waves. A well-designed algorithm makes the amplitudes of wrong answers cancel and the amplitudes of right answers reinforce. Only problems with the right mathematical structure allow this trick to work well."
+        },
+        {
+          "heading": "Entanglement",
+          "body": "Entanglement is a link between qubits where the state of the group cannot be described by giving each qubit its own separate state. When entangled qubits are measured, their results are correlated in ways that no classical explanation with independent parts can reproduce. These correlations have been confirmed in experiments known as Bell tests. Entanglement does not allow sending messages faster than light, because each individual result still looks random on its own. In computation, entanglement is a resource that lets quantum algorithms build the structured interference they need."
+        },
+        {
+          "heading": "Fragile hardware",
+          "body": "Qubits are extremely sensitive to their environment, and stray heat, vibration or electromagnetic noise can disturb them. This loss of quantum behavior is called decoherence, and it introduces errors into calculations. Quantum error correction spreads one reliable logical qubit across many physical qubits so errors can be detected and fixed. Running long algorithms such as those that threaten cryptography requires many logical qubits, and therefore a much larger number of physical ones. This gap between today's noisy devices and fault-tolerant machines is why counting physical qubits alone says little about cryptographic risk."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Qubit",
+          "definition": "The basic unit of quantum information, described by amplitudes for 0 and 1."
+        },
+        {
+          "term": "Amplitude",
+          "definition": "A number attached to each possible outcome whose size determines the probability of that outcome when measured."
+        },
+        {
+          "term": "Superposition",
+          "definition": "A state with nonzero amplitudes for more than one outcome at the same time."
+        },
+        {
+          "term": "Measurement",
+          "definition": "Reading a qubit, which returns a single outcome and destroys the superposition."
+        },
+        {
+          "term": "Entanglement",
+          "definition": "A shared state of several qubits that cannot be described as separate states for each qubit."
+        },
+        {
+          "term": "Logical qubit",
+          "definition": "An error-corrected qubit built from many physical qubits so it can run long computations reliably."
+        }
+      ],
+      "example": {
+        "title": "Bell tests and the 2022 Nobel Prize",
+        "body": "For decades, physicists debated whether entangled particles might just carry hidden instructions set in advance. Experiments known as Bell tests measured entangled photons and found correlations that hidden instructions cannot explain. The 2022 Nobel Prize in Physics was awarded to Alain Aspect, John Clauser and Anton Zeilinger for this experimental work. The same physics that these experiments confirmed is what quantum computers rely on."
+      }
+    },
+    {
+      "slug": "what-quantum-is-good-at",
+      "level": "beginner",
+      "title": "Why quantum computers excel only at some problems",
+      "summary": "Quantum computers are not faster versions of ordinary computers. They offer large speedups for a few problems with special structure and little or no benefit for most everyday tasks.",
+      "minutes": 8,
+      "objectives": [
+        "Explain why quantum computers are not universally faster",
+        "Distinguish exponential speedups from quadratic speedups",
+        "Name problems where quantum algorithms are expected to help",
+        "Explain why public-key and symmetric cryptography face different levels of threat"
+      ],
+      "sections": [
+        {
+          "heading": "Not a faster ordinary computer",
+          "body": "A quantum computer is a different kind of machine, not a faster version of a laptop. For most tasks, such as browsing, databases or running a blockchain node, there is no known quantum advantage at all. Quantum operations are also slow and error-prone compared with classical ones, so any advantage must come from needing far fewer steps. That only happens when an algorithm can use interference to exploit some hidden structure in the problem. For everyday computing, classical machines remain the right tool."
+        },
+        {
+          "heading": "Exponential speedups",
+          "body": "For a few problems, the best known quantum algorithms are exponentially faster than the best known classical ones. This means a problem that would take a classical computer longer than the age of the universe could, in principle, be solved in a practical time. The most important examples for security are factoring large numbers and computing discrete logarithms, both solved by Shor's algorithm. These problems hide a repeating pattern, or period, that a quantum computer can find using interference. Exponential speedups are rare and depend on this kind of structure."
+        },
+        {
+          "heading": "Quadratic speedups",
+          "body": "For general search problems with no special structure, the best a quantum computer can do is a quadratic speedup, given by Grover's algorithm. Roughly, a search needing N steps classically can be done in about the square root of N quantum steps. That sounds large, but it means a problem needing 2 to the power of 128 steps still needs about 2 to the power of 64 quantum steps, each of them slow and error-corrected. It has also been proven that no quantum algorithm can do better than this for fully unstructured search. Problems with only a quadratic speedup are usually handled by making them bigger."
+        },
+        {
+          "heading": "Simulating nature",
+          "body": "One of the most promising uses for quantum computers has nothing to do with cryptography. Molecules and materials obey quantum physics, and simulating them on classical computers becomes infeasible as systems grow. A quantum computer can represent such systems more naturally, which may help in chemistry and materials science. This was in fact the original motivation for the idea of quantum computing. It is a reminder that cryptography is only one part of the story."
+        },
+        {
+          "heading": "What this means for cryptography",
+          "body": "Cryptography rests on problems believed to be hard, and the type of problem decides how a quantum computer affects it. Public-key systems such as RSA and elliptic-curve cryptography rely on factoring and discrete logarithms, which Shor's algorithm solves efficiently, so they would be broken outright. Symmetric encryption and hash functions rely on problems where only Grover's quadratic speedup is known, so they mainly need larger parameters. For blockchains, this means signatures are the main concern, while hashing is in much better shape. The next modules look at each case in detail."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Quantum advantage",
+          "definition": "A case where a quantum computer solves a problem meaningfully faster than any classical approach."
+        },
+        {
+          "term": "Exponential speedup",
+          "definition": "A reduction in work so large that problems infeasible for classical computers become practical."
+        },
+        {
+          "term": "Quadratic speedup",
+          "definition": "A reduction of N steps to about the square root of N steps, as in Grover's algorithm."
+        },
+        {
+          "term": "Unstructured search",
+          "definition": "Finding a target among many possibilities with no pattern to exploit, other than checking candidates."
+        },
+        {
+          "term": "Public-key cryptography",
+          "definition": "Cryptography using a public key and a private key, such as RSA and elliptic-curve signatures."
+        },
+        {
+          "term": "Symmetric cryptography",
+          "definition": "Cryptography where the same secret key encrypts and decrypts, such as AES."
+        }
+      ],
+      "example": {
+        "title": "Feynman's original motivation",
+        "body": "In the early 1980s, physicist Richard Feynman argued that simulating quantum physics on ordinary computers is fundamentally inefficient and that a computer built from quantum parts could do it naturally. That idea helped launch the field of quantum computing. Breaking cryptography only became a headline application in 1994, when Peter Shor published his algorithm for factoring and discrete logarithms. The field's first goal was understanding nature, not breaking codes."
+      }
+    },
+    {
+      "slug": "shors-algorithm",
+      "level": "intermediate",
+      "title": "Shor's algorithm and public-key cryptography",
+      "summary": "Shor's algorithm solves factoring and discrete logarithms efficiently on a large fault-tolerant quantum computer. That would break RSA and the elliptic-curve signatures that secure nearly every blockchain.",
+      "minutes": 10,
+      "objectives": [
+        "Explain what problems Shor's algorithm solves",
+        "Explain why Shor's algorithm breaks RSA",
+        "Explain why it also breaks elliptic-curve cryptography, including secp256k1 and Ed25519",
+        "Explain why simply using larger keys does not help against Shor",
+        "Describe what is needed before Shor's algorithm becomes a practical threat"
+      ],
+      "sections": [
+        {
+          "heading": "What Shor's algorithm does",
+          "body": "Peter Shor published his algorithm in 1994. It efficiently finds the period of a certain mathematical function, meaning the interval after which its values repeat. Finding this period is the hard step in factoring large numbers and in computing discrete logarithms. The quantum part uses a quantum Fourier transform, which makes the amplitudes interfere so the period shows up with high probability when measured. Ordinary classical computation handles the rest."
+        },
+        {
+          "heading": "Breaking RSA",
+          "body": "RSA's public key contains a large number that is the product of two secret primes. Anyone who can factor that number can compute the private key. Classically, the best known factoring methods become infeasible for the key sizes in use. Shor's algorithm factors in polynomial time, which means its cost grows only modestly as keys get larger. On a sufficiently large fault-tolerant quantum computer, RSA would provide no meaningful security."
+        },
+        {
+          "heading": "Breaking elliptic curves",
+          "body": "Elliptic-curve cryptography relies on the elliptic-curve discrete logarithm problem. A private key is a number, and the public key is a point produced by repeatedly combining a fixed starting point with itself that many times. Computing the public key from the private key is easy, but reversing it is believed to be infeasible for classical computers. Shor's algorithm solves this discrete logarithm problem too, so it can recover a private key from its public key. This affects ECDSA and Schnorr signatures, and EdDSA schemes such as Ed25519, because they all depend on the same kind of hardness."
+        },
+        {
+          "heading": "Why this matters for blockchains",
+          "body": "Bitcoin and Ethereum accounts are secured by signatures over the secp256k1 elliptic curve, using ECDSA and, for Bitcoin's Taproot, Schnorr signatures. Solana and several other chains use Ed25519. Ethereum's proof-of-stake validators use BLS signatures, which are based on elliptic-curve pairings and are also vulnerable to Shor. In each case, anyone who learns a public key and can run Shor's algorithm at scale could derive the private key and sign transactions as the owner. Signatures, not hashing or consensus rules, are the main quantum weak point of today's blockchains."
+        },
+        {
+          "heading": "Bigger keys do not save you",
+          "body": "Against classical attacks, the standard response to growing computing power is to use bigger keys. That does not work against Shor's algorithm, because its cost grows only polynomially with key size. Doubling the key size makes the quantum attack somewhat more expensive but not infeasible. This is why RSA and elliptic-curve schemes need to be replaced rather than resized. The replacements must rest on different mathematical problems that have no known efficient quantum algorithm."
+        },
+        {
+          "heading": "What a real attack requires",
+          "body": "Running Shor's algorithm against real key sizes requires a large, fault-tolerant quantum computer, often called a cryptographically relevant quantum computer. Such a machine would need many error-corrected logical qubits and the ability to run a long sequence of operations reliably. Published estimates of the resources required vary widely and have changed as algorithms and error-correction techniques improve. Estimates of when such a machine might exist vary even more, and no one can state a reliable date. The responsible approach is to prepare for the threat without relying on any specific timeline."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Shor's algorithm",
+          "definition": "A quantum algorithm that efficiently solves factoring and discrete logarithm problems."
+        },
+        {
+          "term": "Period finding",
+          "definition": "Finding the interval after which a function's values repeat, the core quantum step in Shor's algorithm."
+        },
+        {
+          "term": "Elliptic-curve discrete logarithm problem",
+          "definition": "The problem of recovering a private key number from its elliptic-curve public key point."
+        },
+        {
+          "term": "secp256k1",
+          "definition": "The elliptic curve used for signatures by Bitcoin and Ethereum accounts."
+        },
+        {
+          "term": "Ed25519",
+          "definition": "A widely used EdDSA signature scheme over an elliptic curve, used by Solana among others."
+        },
+        {
+          "term": "Cryptographically relevant quantum computer",
+          "definition": "A quantum computer large and reliable enough to break real-world public-key cryptography."
+        }
+      ],
+      "example": {
+        "title": "Factoring 15",
+        "body": "In 2001, researchers at IBM and Stanford used a seven-qubit nuclear magnetic resonance device to run a simplified form of Shor's algorithm and factor the number 15 into 3 and 5. It was an important proof of concept that the algorithm's steps could be carried out on real quantum hardware. Real RSA keys are numbers with hundreds of digits, and breaking them requires error-corrected machines vastly beyond such demonstrations. The experiment shows the principle, not a practical threat."
+      }
+    },
+    {
+      "slug": "grovers-algorithm",
+      "level": "advanced",
+      "title": "Grover's algorithm, hashes and symmetric keys",
+      "summary": "Grover's algorithm gives a quadratic speedup for brute-force search. For hashes and symmetric encryption, the usual answer is larger parameters, not new algorithms.",
+      "minutes": 10,
+      "objectives": [
+        "Explain what Grover's algorithm does and the size of its speedup",
+        "Explain why Grover's speedup is hard to parallelize",
+        "Describe how Grover affects symmetric keys such as AES",
+        "Describe how Grover affects hash preimage resistance",
+        "Explain NIST's security categories for post-quantum algorithms"
+      ],
+      "sections": [
+        {
+          "heading": "Quantum brute force",
+          "body": "Lov Grover published his search algorithm in 1996. Given a way to check whether a candidate is the target, it finds the target among N possibilities in roughly the square root of N steps instead of about N. It works by repeatedly nudging amplitude toward the correct answer through interference. For a secret key with n bits, this reduces a brute-force search from about 2 to the power of n tries to about 2 to the power of n divided by 2. This is often summarized as halving the security level in bits."
+        },
+        {
+          "heading": "Why the speedup is smaller in practice",
+          "body": "Grover's steps must run one after another, and splitting the search across many quantum computers helps much less than it does classically. With k machines, the speedup grows only by about the square root of k, not by k. Each step must also run on error-corrected hardware, which is far slower than classical chips. As a result, many experts consider the simple halving rule a pessimistic upper bound on the real-world threat. Even so, the common practice is to plan for it as a margin of safety."
+        },
+        {
+          "heading": "Symmetric encryption",
+          "body": "Symmetric ciphers such as AES use the same secret key to encrypt and decrypt, and the best known quantum attack on a well-designed cipher is Grover-based key search. Because the speedup is only quadratic, the defense is simply to use longer keys. AES-256 retains a large security margin even under the halving rule, which is why many post-quantum guidelines recommend it. Some organizations also consider AES-128 likely to remain adequate given how hard Grover is to parallelize, though guidance differs. Either way, symmetric encryption does not need to be replaced."
+        },
+        {
+          "heading": "Hash functions",
+          "body": "Hash functions such as SHA-256 must resist preimage attacks, where an attacker tries to find an input that produces a given hash. Grover's algorithm can speed up this search quadratically in principle, so a 256-bit hash still requires an enormous quantum effort. That is why hash functions are considered quantum-resistant at sufficient output sizes. Blockchains use hashes for block linking, Merkle trees, addresses and proof-of-work, and none of these uses is broken by known quantum algorithms. In principle Grover could also speed up proof-of-work searching, but the gain is quadratic and its practical value against specialized mining hardware is uncertain."
+        },
+        {
+          "heading": "NIST security categories",
+          "body": "To compare post-quantum algorithms, NIST defined security categories based on the cost of attacking well-understood symmetric primitives. Category 1 means at least as hard to break as a key search on AES-128, category 3 matches AES-192, and category 5 matches AES-256. Categories 2 and 4 are defined by the difficulty of finding collisions in SHA-256 and SHA-384. Each standardized post-quantum algorithm comes in parameter sets mapped to these categories. This framework shows how symmetric primitives, adjusted for Grover, remain the yardstick for quantum-era security."
+        },
+        {
+          "heading": "The contrast with Shor",
+          "body": "The difference between Grover and Shor explains the shape of post-quantum migration. Shor breaks public-key schemes completely, so they must be replaced with new algorithms. Grover only weakens symmetric keys and hashes, so they mostly need larger parameters. For a blockchain, this means the hashing structure can largely stay, while the signature scheme is the part that must change. Confusing these two threats leads to both needless panic and misplaced confidence."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Grover's algorithm",
+          "definition": "A quantum search algorithm that finds a target among N options in about the square root of N steps."
+        },
+        {
+          "term": "Preimage resistance",
+          "definition": "The property that finding an input matching a given hash output is infeasible."
+        },
+        {
+          "term": "Collision resistance",
+          "definition": "The property that finding two different inputs with the same hash output is infeasible."
+        },
+        {
+          "term": "AES-256",
+          "definition": "The Advanced Encryption Standard with a 256-bit key, widely recommended for long-term quantum resistance."
+        },
+        {
+          "term": "Security category",
+          "definition": "A NIST level that rates a post-quantum algorithm's strength against the cost of attacking AES or SHA-2."
+        },
+        {
+          "term": "Parallelization limit",
+          "definition": "The fact that splitting Grover's search across k machines speeds it up by only about the square root of k."
+        }
+      ],
+      "example": {
+        "title": "Choosing parameters for long-lived data",
+        "body": "A custody provider encrypts backups that must stay confidential for decades. Its engineers keep AES as the cipher but standardize on 256-bit keys so that even a halved security level leaves a large margin. They also keep SHA-256 for integrity checks, since a quantum preimage search would remain enormously expensive. The public-key parts of the system, which protect how those keys are exchanged and signed, are the parts they plan to migrate to post-quantum algorithms."
+      }
+    },
+    {
+      "slug": "blockchain-exposure",
+      "level": "advanced",
+      "title": "What is exposed in Bitcoin and Ethereum",
+      "summary": "A quantum attacker needs a public key to run Shor's algorithm. Whether a public key is visible on-chain depends on the output type, whether the address has spent before, and how the chain works.",
+      "minutes": 11,
+      "objectives": [
+        "Explain why a visible public key is the precondition for a Shor attack",
+        "Identify Bitcoin output types that expose public keys, including P2PK and Taproot",
+        "Explain how spending and address reuse reveal public keys",
+        "Explain why Ethereum accounts reveal their public keys after the first transaction",
+        "Describe the in-flight risk to transactions waiting to be confirmed"
+      ],
+      "sections": [
+        {
+          "heading": "The public key is the target",
+          "body": "Shor's algorithm turns a public key into a private key, so an attacker first needs the public key. Many blockchain addresses are hashes of a public key rather than the key itself. A hash is not reversible by Shor's algorithm, so funds behind an address whose public key has never appeared on-chain are much harder to attack. Once the public key is revealed, that protection is gone. Understanding when keys become visible is therefore the core of assessing exposure."
+        },
+        {
+          "heading": "P2PK: keys in plain sight",
+          "body": "Bitcoin's earliest output type, pay-to-public-key or P2PK, places the full public key directly in the output. Many outputs from Bitcoin's first years, including early mining rewards, use this format and have never moved. Since the public key is visible from the moment the output is created, these coins have no hash layer protecting them. A sufficiently capable quantum attacker could target them at any time. This makes long-dormant P2PK coins a central topic in quantum migration discussions."
+        },
+        {
+          "heading": "Hashed addresses and spending",
+          "body": "Later Bitcoin formats such as P2PKH and P2WPKH lock coins to a hash of the public key. The public key only appears when the owner spends, because it must be provided along with the signature to prove ownership. Before that first spend, an attacker sees only the hash. This is why a fresh address that has received coins but never spent from them has an extra layer of protection. The protection disappears once a spend from that address is published."
+        },
+        {
+          "heading": "Address reuse and Taproot",
+          "body": "Address reuse means receiving funds to an address after its public key has already been revealed by an earlier spend. Any coins sitting at a reused address are then exposed in the same way as P2PK coins. Taproot outputs, known as P2TR, are a structural exception to the hashed pattern: the output itself contains a public key, a tweaked version of the owner's key, so it is visible from creation. Taproot brought real benefits in privacy and efficiency, but from a quantum perspective its outputs resemble P2PK. Good practice, such as never reusing addresses, reduces exposure but cannot eliminate it."
+        },
+        {
+          "heading": "Ethereum accounts",
+          "body": "An Ethereum address is derived from the last 20 bytes of the Keccak-256 hash of the account's public key. However, the public key can be recovered from any ECDSA signature the account produces. So once an externally owned account sends its first transaction, its public key is effectively public, and Ethereum accounts are normally reused for many transactions. Unlike Bitcoin, where coins can be moved to a fresh address each time, an Ethereum account's balance and history stay attached to the same key. Smart contract accounts are different, because their rules for valid transactions are set by contract code and could in principle be changed to a new signature scheme."
+        },
+        {
+          "heading": "The in-flight window",
+          "body": "Even coins in a never-spent hashed address face a risk at the moment they are spent. A transaction waiting in the mempool reveals the public key before it is confirmed in a block. An attacker who could run Shor's algorithm fast enough could derive the private key and broadcast a competing transaction, perhaps with a higher fee, to redirect the funds. Whether this is feasible depends on how fast a future quantum computer could break a single key, which no one can predict reliably. This is why hashed addresses reduce exposure but are not a complete defense."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "P2PK",
+          "definition": "Bitcoin's pay-to-public-key output type, which stores the full public key in the output."
+        },
+        {
+          "term": "P2PKH",
+          "definition": "Bitcoin's pay-to-public-key-hash output type, which reveals the public key only when spent."
+        },
+        {
+          "term": "P2TR",
+          "definition": "Bitcoin's Taproot output type, which contains a tweaked public key visible from creation."
+        },
+        {
+          "term": "Address reuse",
+          "definition": "Receiving funds to an address whose public key has already been revealed by an earlier spend."
+        },
+        {
+          "term": "Public key recovery",
+          "definition": "Deriving the signer's public key from an ECDSA signature and the signed message."
+        },
+        {
+          "term": "Mempool",
+          "definition": "The pool of broadcast transactions waiting to be included in a block."
+        }
+      ],
+      "example": {
+        "title": "Early Bitcoin mining rewards",
+        "body": "In Bitcoin's first years, block rewards were commonly paid to P2PK outputs, so the public keys behind them have been visible on-chain ever since. A large number of these coins have never moved, and some may belong to owners who have lost their keys. If a cryptographically relevant quantum computer existed, these coins would be among the easiest targets because no hash stands in the way. What, if anything, should happen to coins that cannot be migrated by their owners is one of the hardest debates in Bitcoin's quantum planning."
+      }
+    },
+    {
+      "slug": "post-quantum-migration",
+      "level": "expert",
+      "title": "Post-quantum cryptography and blockchain migration",
+      "summary": "NIST has standardized post-quantum algorithms built on lattices and hash functions. Moving blockchains to them raises hard problems around signature size, consensus changes and coins whose owners cannot act.",
+      "minutes": 13,
+      "objectives": [
+        "Name NIST's standardized post-quantum algorithms and their FIPS numbers",
+        "Explain the difference between a key-encapsulation mechanism and a signature scheme",
+        "Explain how hash-based signatures work and why statefulness matters",
+        "Compare post-quantum signature and key sizes with elliptic-curve ones",
+        "Describe the consensus, key rotation and coordination challenges of migration",
+        "Explain harvest now, decrypt later and how it applies to blockchains"
+      ],
+      "sections": [
+        {
+          "heading": "NIST's standards",
+          "body": "After a multi-year public competition, NIST published three post-quantum standards. FIPS 203 specifies ML-KEM, the Module-Lattice-Based Key-Encapsulation Mechanism, derived from CRYSTALS-Kyber. FIPS 204 specifies ML-DSA, the Module-Lattice-Based Digital Signature Algorithm, derived from CRYSTALS-Dilithium. FIPS 205 specifies SLH-DSA, the Stateless Hash-Based Digital Signature Algorithm, derived from SPHINCS+. NIST has also selected Falcon, under the name FN-DSA, for standardization as a signature scheme, and HQC, a code-based scheme, as a backup key-encapsulation mechanism."
+        },
+        {
+          "heading": "Key exchange versus signatures",
+          "body": "A key-encapsulation mechanism, or KEM, lets two parties establish a shared secret over a public channel, which is then used for symmetric encryption. A signature scheme proves who authorized a message, which is what a blockchain transaction needs. ML-KEM therefore protects things like encrypted connections, while ML-DSA and SLH-DSA are the candidates for replacing transaction signatures. Lattice-based schemes such as ML-KEM and ML-DSA rely on the difficulty of problems involving structured lattices, for which no efficient quantum algorithm is known. Having a hash-based option alongside them provides diversity in case a weakness is found in lattice assumptions."
+        },
+        {
+          "heading": "Hash-based signatures",
+          "body": "Hash-based signatures rely only on the security of hash functions, which makes them a conservative choice. The basic building block is a one-time signature, such as a Lamport signature, where signing reveals part of a secret and the key must never be used twice. Stateful schemes such as XMSS and LMS, approved by NIST in SP 800-208, combine many one-time keys in a tree and require the signer to track which keys have been used. Reusing state by mistake, for example after restoring a backup, can destroy security, which is a real risk for wallets. SLH-DSA is stateless, avoiding that risk at the cost of much larger signatures."
+        },
+        {
+          "heading": "The size problem",
+          "body": "Post-quantum signatures and keys are much larger than elliptic-curve ones. A Schnorr signature on secp256k1 is 64 bytes and a compressed public key is 33 bytes. ML-DSA-44, the smallest ML-DSA parameter set, has a 1,312-byte public key and a 2,420-byte signature. SLH-DSA with the SHA2-128s parameter set has a tiny 32-byte public key but a 7,856-byte signature. On a blockchain where every node stores and checks every signature, this growth affects block space, fees, bandwidth and storage directly."
+        },
+        {
+          "heading": "Migration challenges",
+          "body": "Adding a new signature scheme to a blockchain requires a consensus change, such as a new output type in Bitcoin or new account and validation rules in Ethereum. Users must then actively move their funds to new quantum-safe keys, which requires each owner to act, and owners who have lost their keys cannot do so. Communities must decide what happens to exposed coins that never move, a question with no technical answer and deep social implications. Other systems also need upgrading, including wallets, hardware signers, exchanges, custody setups and, on Ethereum, validator signatures. Hybrid approaches that require both a classical and a post-quantum signature can protect against a flaw in either one during the transition."
+        },
+        {
+          "heading": "Harvest now, decrypt later",
+          "body": "Harvest now, decrypt later describes an attacker who records encrypted data today and stores it until a quantum computer can break the key exchange that protected it. This threat applies to confidentiality, so it is the main reason to deploy post-quantum key exchange early, and major browsers and content delivery networks have already deployed hybrid key exchange combining X25519 with ML-KEM. Blockchain transactions are public rather than encrypted, so the parallel risk is different: every public key recorded on-chain stays there permanently and could be attacked once the capability exists. Private communication around crypto, such as exchange connections and encrypted wallet backups, faces the classic version of the threat. Because estimates of when a capable quantum computer might exist vary widely, long migration lead times are the main argument for starting early."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "ML-KEM",
+          "definition": "The lattice-based key-encapsulation mechanism standardized in FIPS 203, derived from CRYSTALS-Kyber."
+        },
+        {
+          "term": "ML-DSA",
+          "definition": "The lattice-based digital signature algorithm standardized in FIPS 204, derived from CRYSTALS-Dilithium."
+        },
+        {
+          "term": "SLH-DSA",
+          "definition": "The stateless hash-based digital signature algorithm standardized in FIPS 205, derived from SPHINCS+."
+        },
+        {
+          "term": "Key-encapsulation mechanism",
+          "definition": "A scheme that lets two parties establish a shared secret key over a public channel."
+        },
+        {
+          "term": "Stateful signature",
+          "definition": "A hash-based signature scheme where the signer must track used one-time keys and never reuse them."
+        },
+        {
+          "term": "Harvest now, decrypt later",
+          "definition": "Recording encrypted data today in order to decrypt it once a quantum computer can break its key exchange."
+        }
+      ],
+      "example": {
+        "title": "Hybrid key exchange on the web",
+        "body": "Web browsers and large content delivery networks have deployed hybrid key exchange for TLS that combines the classical X25519 algorithm with ML-KEM. A connection is secure as long as either component holds, so a flaw in the new algorithm does not leave users worse off than before. This rollout targets harvest now, decrypt later by protecting today's traffic against future decryption. It also shows the cost of migration, since the larger post-quantum keys add bytes to every connection handshake, a smaller version of the size problem blockchains face with signatures."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "qubits-and-entanglement",
+      "difficulty": "easy",
+      "prompt": "What do you get when you measure a qubit in superposition?",
+      "options": [
+        "Both 0 and 1 printed at the same time",
+        "The full list of complex amplitudes for each outcome",
+        "A number between 0 and 1 showing its state",
+        "A single result, 0 or 1, with set probabilities"
+      ],
+      "answer": 3,
+      "explanation": "Measurement returns one outcome with probabilities set by the amplitudes, and the superposition is lost."
+    },
+    {
+      "module": "qubits-and-entanglement",
+      "difficulty": "easy",
+      "prompt": "Why is 'quantum computers try every answer at once' misleading?",
+      "options": [
+        "Quantum computers can only store a single bit",
+        "Qubits cannot hold more than one value at any point in time",
+        "Measuring would return just one random possibility",
+        "Quantum computers have no way to be measured"
+      ],
+      "answer": 2,
+      "explanation": "Useful algorithms rely on interference so wrong answers cancel, since measurement alone would give a random result."
+    },
+    {
+      "module": "qubits-and-entanglement",
+      "difficulty": "easy",
+      "prompt": "Can entanglement be used to send messages faster than light?",
+      "options": [
+        "Yes, but only across very short distances",
+        "No, each individual result still looks random",
+        "Yes, if the qubits are kept extremely cold",
+        "No, because entanglement has never been observed"
+      ],
+      "answer": 1,
+      "explanation": "Entangled results are correlated, but each side alone sees random outcomes, so no message can be sent this way."
+    },
+    {
+      "module": "qubits-and-entanglement",
+      "difficulty": "easy",
+      "prompt": "What is a logical qubit?",
+      "options": [
+        "A qubit that only stores the values true or false",
+        "A classical bit that simulates a quantum state in software",
+        "An error-corrected qubit built from many physical ones",
+        "A qubit used solely for measuring other qubits"
+      ],
+      "answer": 2,
+      "explanation": "Error correction spreads one reliable logical qubit across many noisy physical qubits so long algorithms can run."
+    },
+    {
+      "module": "qubits-and-entanglement",
+      "difficulty": "easy",
+      "prompt": "What effect do quantum algorithms use to make correct answers likely?",
+      "options": [
+        "Raising the clock speed of each qubit",
+        "Interference between amplitudes",
+        "Copying each qubit many times over",
+        "Measuring the qubits as often as possible"
+      ],
+      "answer": 1,
+      "explanation": "Amplitudes can reinforce or cancel like waves, and algorithms arrange this so the right answer dominates at measurement."
+    },
+    {
+      "module": "what-quantum-is-good-at",
+      "difficulty": "easy",
+      "prompt": "Are quantum computers faster than classical computers at most everyday tasks?",
+      "options": [
+        "Yes, they speed up every program by roughly the same fixed amount",
+        "Yes, but only when running web browsers and databases",
+        "No, because they cannot run any useful algorithms",
+        "No, advantages exist only for problems with special structure"
+      ],
+      "answer": 3,
+      "explanation": "Quantum speedups depend on structure that interference can exploit, so most everyday computing gains nothing."
+    },
+    {
+      "module": "what-quantum-is-good-at",
+      "difficulty": "easy",
+      "prompt": "Which problem does Shor's algorithm solve with an exponential speedup?",
+      "options": [
+        "Factoring large numbers",
+        "Sorting a list of names",
+        "Searching an unsorted list",
+        "Compressing large video files"
+      ],
+      "answer": 0,
+      "explanation": "Shor's algorithm efficiently solves factoring and discrete logarithms, which hide a period that interference can reveal."
+    },
+    {
+      "module": "what-quantum-is-good-at",
+      "difficulty": "easy",
+      "prompt": "Roughly how many quantum steps does Grover's algorithm need for a search of N items?",
+      "options": [
+        "About the logarithm of N",
+        "About N divided by two",
+        "About the square root of N",
+        "About N squared steps"
+      ],
+      "answer": 2,
+      "explanation": "Grover gives a quadratic speedup, reducing N classical steps to roughly the square root of N."
+    },
+    {
+      "module": "what-quantum-is-good-at",
+      "difficulty": "easy",
+      "prompt": "Why are hash functions in a better position than elliptic-curve signatures against quantum attacks?",
+      "options": [
+        "Hash functions are encrypted with quantum keys",
+        "Quantum computers cannot process binary data",
+        "Hashes are stored offline and never published",
+        "Only a quadratic speedup is known against them"
+      ],
+      "answer": 3,
+      "explanation": "Hashes face only Grover's quadratic speedup, while elliptic curves are broken outright by Shor's algorithm."
+    },
+    {
+      "module": "what-quantum-is-good-at",
+      "difficulty": "easy",
+      "prompt": "What was the original motivation for the idea of quantum computing?",
+      "options": [
+        "Breaking military encryption codes",
+        "Mining cryptocurrency more cheaply",
+        "Speeding up ordinary office software tools",
+        "Simulating quantum physics efficiently"
+      ],
+      "answer": 3,
+      "explanation": "Feynman and others proposed quantum computers to simulate nature, and cryptographic uses came later with Shor's algorithm."
+    },
+    {
+      "module": "shors-algorithm",
+      "difficulty": "medium",
+      "prompt": "What is the core quantum step in Shor's algorithm?",
+      "options": [
+        "Finding the period of a function",
+        "Guessing keys at random until one fits",
+        "Sorting the public key's digits in order",
+        "Hashing the key many times in a row"
+      ],
+      "answer": 0,
+      "explanation": "Shor's algorithm uses a quantum Fourier transform to find a period, which unlocks factoring and discrete logarithms."
+    },
+    {
+      "module": "shors-algorithm",
+      "difficulty": "medium",
+      "prompt": "What could an attacker running Shor's algorithm at scale derive from an elliptic-curve public key?",
+      "options": [
+        "The wallet's seed phrase words",
+        "The matching private key",
+        "The owner's IP address",
+        "The next block's hash"
+      ],
+      "answer": 1,
+      "explanation": "Shor solves the elliptic-curve discrete logarithm problem, recovering the private key number from the public point."
+    },
+    {
+      "module": "shors-algorithm",
+      "difficulty": "medium",
+      "prompt": "Which signature schemes are vulnerable to Shor's algorithm?",
+      "options": [
+        "ECDSA, Schnorr, EdDSA and BLS",
+        "Only RSA, not elliptic-curve schemes",
+        "Only ECDSA on the secp256k1 curve",
+        "Only schemes using short private keys"
+      ],
+      "answer": 0,
+      "explanation": "All of these rely on discrete logarithms over elliptic curves or related groups, which Shor's algorithm solves efficiently."
+    },
+    {
+      "module": "shors-algorithm",
+      "difficulty": "medium",
+      "prompt": "Why does using larger RSA or elliptic-curve keys not solve the quantum threat?",
+      "options": [
+        "Shor's cost grows only polynomially with key size",
+        "Larger keys cannot be stored or verified by any blockchain",
+        "Quantum computers ignore the size of the key",
+        "Larger keys are weaker against classical attacks"
+      ],
+      "answer": 0,
+      "explanation": "Because the attack scales modestly with key size, bigger keys raise the cost without making the attack infeasible."
+    },
+    {
+      "module": "shors-algorithm",
+      "difficulty": "medium",
+      "prompt": "What is the most accurate statement about when a cryptographically relevant quantum computer will exist?",
+      "options": [
+        "Experts agree it will arrive within two years",
+        "Estimates vary widely and no reliable date exists",
+        "It has already been built but is kept secret",
+        "Physics proves it can never be built at all"
+      ],
+      "answer": 1,
+      "explanation": "Resource and timing estimates differ and change as research advances, so planning should not depend on a specific date."
+    },
+    {
+      "module": "grovers-algorithm",
+      "difficulty": "hard",
+      "prompt": "Under the common halving rule, what is the approximate quantum security of a 256-bit symmetric key?",
+      "options": [
+        "About 128 bits",
+        "About 16 bits",
+        "About 64 bits",
+        "About 255 bits"
+      ],
+      "answer": 0,
+      "explanation": "Grover reduces a search of 2 to the 256 to about 2 to the 128 steps, which is still far beyond reach."
+    },
+    {
+      "module": "grovers-algorithm",
+      "difficulty": "hard",
+      "prompt": "Why is Grover's speedup smaller in practice than the halving rule suggests?",
+      "options": [
+        "It only works on keys shorter than 64 bits",
+        "Its steps are sequential and parallelize poorly",
+        "It requires the attacker to know part of the key first",
+        "It must be rerun from scratch after each block"
+      ],
+      "answer": 1,
+      "explanation": "Splitting the search over k machines gains only about the square root of k, and each step needs slow error-corrected hardware."
+    },
+    {
+      "module": "grovers-algorithm",
+      "difficulty": "hard",
+      "prompt": "What is the standard response to Grover's algorithm for symmetric encryption?",
+      "options": [
+        "Replace AES with a lattice-based cipher",
+        "Switch from symmetric to RSA encryption",
+        "Keep the cipher but use longer keys",
+        "Stop encrypting any long-lived data"
+      ],
+      "answer": 2,
+      "explanation": "A quadratic speedup is countered by larger parameters, so AES-256 retains a large margin without a new algorithm."
+    },
+    {
+      "module": "grovers-algorithm",
+      "difficulty": "hard",
+      "prompt": "In NIST's post-quantum framework, what does security category 1 correspond to?",
+      "options": [
+        "At least as hard as factoring RSA-1024",
+        "At least as hard as a SHA-512 collision",
+        "At least as hard as key search on AES-128",
+        "At least as hard as key search on AES-256"
+      ],
+      "answer": 2,
+      "explanation": "NIST ties categories 1, 3 and 5 to AES-128, AES-192 and AES-256 key search, and categories 2 and 4 to SHA-2 collisions."
+    },
+    {
+      "module": "grovers-algorithm",
+      "difficulty": "hard",
+      "prompt": "For a blockchain, which component most needs replacing because of quantum attacks?",
+      "options": [
+        "The SHA-256 block hashes",
+        "The Merkle tree structure",
+        "The signature scheme",
+        "The peer-to-peer network"
+      ],
+      "answer": 2,
+      "explanation": "Hash-based structures face only Grover's quadratic speedup, while elliptic-curve signatures are broken by Shor's algorithm."
+    },
+    {
+      "module": "blockchain-exposure",
+      "difficulty": "hard",
+      "prompt": "Why are coins in a never-spent P2PKH address harder for a quantum attacker to target?",
+      "options": [
+        "Only a hash of the public key is visible on-chain",
+        "P2PKH addresses use a post-quantum signature",
+        "The coins are stored off-chain by the miners",
+        "P2PKH outputs cannot be spent by anyone"
+      ],
+      "answer": 0,
+      "explanation": "Shor's algorithm needs the public key itself, and a hash cannot be reversed by it, until a spend reveals the key."
+    },
+    {
+      "module": "blockchain-exposure",
+      "difficulty": "hard",
+      "prompt": "Why are Bitcoin P2PK outputs considered highly exposed?",
+      "options": [
+        "They use a weaker elliptic curve than others",
+        "The full public key is stored in the output",
+        "Their private keys are published in the block",
+        "They can be spent without any signature"
+      ],
+      "answer": 1,
+      "explanation": "P2PK places the public key directly on-chain from creation, so no hash layer protects it from a Shor attack."
+    },
+    {
+      "module": "blockchain-exposure",
+      "difficulty": "hard",
+      "prompt": "From a quantum perspective, why do Taproot (P2TR) outputs resemble P2PK?",
+      "options": [
+        "The output contains a tweaked public key",
+        "Taproot outputs reuse the miner's address",
+        "Taproot outputs skip signature checks",
+        "Taproot outputs store the private key hash"
+      ],
+      "answer": 0,
+      "explanation": "A P2TR output embeds a tweaked public key, so it is visible from creation rather than hidden behind a hash."
+    },
+    {
+      "module": "blockchain-exposure",
+      "difficulty": "hard",
+      "prompt": "When does an Ethereum externally owned account's public key become effectively public?",
+      "options": [
+        "As soon as it receives its very first deposit",
+        "After it signs and sends its first transaction",
+        "Only if the owner posts it on a block explorer",
+        "Never, because addresses are hashes of keys"
+      ],
+      "answer": 1,
+      "explanation": "The public key can be recovered from any ECDSA signature, so the first outgoing transaction reveals it."
+    },
+    {
+      "module": "blockchain-exposure",
+      "difficulty": "hard",
+      "prompt": "What is the in-flight risk for a transaction in the mempool?",
+      "options": [
+        "Its fee can be lowered by any network node",
+        "Its public key is visible before confirmation",
+        "Its amount is hidden until the next block",
+        "Its private key is broadcast with the data"
+      ],
+      "answer": 1,
+      "explanation": "A fast enough quantum attacker could derive the key from the revealed public key and broadcast a competing transaction."
+    },
+    {
+      "module": "post-quantum-migration",
+      "difficulty": "expert",
+      "prompt": "Which standard specifies ML-DSA, derived from CRYSTALS-Dilithium?",
+      "options": [
+        "FIPS 203",
+        "FIPS 205",
+        "FIPS 204",
+        "SP 800-208"
+      ],
+      "answer": 2,
+      "explanation": "FIPS 203 is ML-KEM, FIPS 204 is ML-DSA, FIPS 205 is SLH-DSA, and SP 800-208 covers the stateful LMS and XMSS schemes."
+    },
+    {
+      "module": "post-quantum-migration",
+      "difficulty": "expert",
+      "prompt": "Why is ML-KEM alone not enough to protect blockchain transactions?",
+      "options": [
+        "It establishes shared keys but does not sign",
+        "It is only approved for use on mobile phones",
+        "It is broken by Grover's search algorithm",
+        "It needs a trusted setup for every account"
+      ],
+      "answer": 0,
+      "explanation": "Transactions need signatures to prove authorization, so ML-DSA or SLH-DSA, not a KEM, would replace ECDSA."
+    },
+    {
+      "module": "post-quantum-migration",
+      "difficulty": "expert",
+      "prompt": "What is the main operational risk of stateful hash-based signatures such as XMSS and LMS in wallets?",
+      "options": [
+        "They rely on lattices that Shor's algorithm breaks",
+        "They need a new hash function for each signature",
+        "Their public keys change after every transaction",
+        "Reusing a one-time key state can break security"
+      ],
+      "answer": 3,
+      "explanation": "Stateful schemes must never reuse a one-time key, which is easy to get wrong when wallets are restored from backups."
+    },
+    {
+      "module": "post-quantum-migration",
+      "difficulty": "expert",
+      "prompt": "Compared with a 64-byte Schnorr signature, how large is an ML-DSA-44 signature?",
+      "options": [
+        "32 bytes",
+        "666 bytes",
+        "65 bytes",
+        "2,420 bytes"
+      ],
+      "answer": 3,
+      "explanation": "ML-DSA-44 signatures are 2,420 bytes, which is why block space and fees are central to blockchain migration."
+    },
+    {
+      "module": "post-quantum-migration",
+      "difficulty": "expert",
+      "prompt": "Why does harvest now, decrypt later matter less for on-chain transactions than for private messages?",
+      "options": [
+        "Transactions are deleted after one year",
+        "Blockchains already use ML-KEM to encrypt every block",
+        "Quantum computers cannot read block data",
+        "Transaction data is already public, not encrypted"
+      ],
+      "answer": 3,
+      "explanation": "Harvesting targets encrypted data, while on-chain data is already public, though exposed public keys remain a lasting risk."
+    }
+  ]
+}

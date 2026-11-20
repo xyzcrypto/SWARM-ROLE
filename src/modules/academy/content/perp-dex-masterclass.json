@@ -1,0 +1,1097 @@
+{
+  "slug": "perp-dex-masterclass",
+  "title": "Perp DEX Masterclass",
+  "tagline": "From funding and liquidations to ZK order books: how perpetual DEXs really work.",
+  "icon": "CandlestickChart",
+  "order": 15,
+  "modules": [
+    {
+      "slug": "perp-dex-basics",
+      "level": "beginner",
+      "title": "What a perpetual DEX is",
+      "summary": "Learn what a perpetual future is, what makes an exchange for them decentralized, and how a perp DEX differs from a centralized exchange in custody, transparency and trust.",
+      "minutes": 9,
+      "objectives": [
+        "Define a perpetual future and explain why it has no expiry",
+        "Explain why traders use perps instead of buying spot tokens",
+        "Describe what makes a perp exchange decentralized",
+        "Compare custody, transparency and access on a perp DEX and a CEX",
+        "Name the main ways a perp DEX supplies the other side of a trade"
+      ],
+      "sections": [
+        {
+          "heading": "A futures contract that never expires",
+          "body": "A perpetual future, or perp, is a contract whose value tracks the price of an underlying asset, such as BTC or ETH, without the trader owning that asset. Classic futures have an expiry date on which they settle, and that settlement is what pulls their price back to the spot price. A perp has no expiry, so it needs a different anchor: a periodic payment between longs and shorts called funding. When the perp trades above its reference price, longs pay shorts, and when it trades below, shorts pay longs. This steady incentive keeps the contract price close to the underlying market for as long as the position stays open."
+        },
+        {
+          "heading": "Why traders use perps",
+          "body": "Perps let you go short as easily as you go long, which spot markets do not. They also let you take a large position with a smaller deposit, called margin, which is what leverage means. Because positions are settled in a collateral asset, usually a stablecoin such as USDC, you can gain exposure to many assets without holding or transferring each one. Perps are also used for hedging: someone holding a token can short its perp to reduce their exposure without selling. The same features that make perps useful also make losses arrive faster, because leverage scales losses exactly as it scales gains."
+        },
+        {
+          "heading": "What makes a perp exchange decentralized",
+          "body": "On a perpetual DEX, the rules for margin, matching, funding and liquidation are enforced by smart contracts or by a blockchain's own state machine rather than by a company's private database. Users connect a self-custody wallet and authorize actions with signatures instead of logging in to an account. Balances, open positions and often the order book itself are visible on a public ledger, so anyone can audit what the exchange is doing. Deposits sit in a contract or bridge that the operator cannot simply spend at will, although how strong that guarantee is depends on the design. The degree of decentralization varies widely between venues, and it is a property to check rather than assume."
+        },
+        {
+          "heading": "How a perp DEX differs from a CEX",
+          "body": "A centralized exchange (CEX) holds your funds in its own wallets and tracks your balance in an internal ledger that outsiders cannot inspect. Its matching engine, liquidation logic and risk parameters are private, and access depends on an account the exchange can freeze. A perp DEX keeps the ledger public and lets you withdraw by signing a request rather than asking permission. In exchange, you take on new risks: smart contract bugs, bridge failures, and dependence on whoever runs the sequencer or validators. Neither model removes market risk; a DEX changes who you must trust, not whether leverage can hurt you."
+        },
+        {
+          "heading": "Who takes the other side",
+          "body": "Every perp trade needs a counterparty, and perp DEXs supply one in different ways. Order-book venues match your order against other traders' resting orders, the same way a stock exchange does. Pool-based venues let you trade against a shared liquidity pool at a price taken from an oracle, so the pool's depositors are your counterparty. Request-for-quote (RFQ) venues ask a market maker to quote you a price that you can accept or reject. Some venues combine these sources, and later modules examine each design in detail."
+        },
+        {
+          "heading": "What does not change",
+          "body": "Moving from a CEX to a DEX does not change the economics of a leveraged position. You still post margin, still pay or receive funding, and can still be liquidated if losses consume your collateral. Fees still exist, though they may be split differently between makers, takers, liquidity providers and the protocol. On-chain venues add operational steps that a CEX hides, such as bridging collateral to the right chain before you can trade. Understanding these mechanics is the foundation for every other module in this course."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Perpetual future",
+          "definition": "A derivative that tracks an asset's price, can be held indefinitely and uses funding payments instead of expiry to stay anchored."
+        },
+        {
+          "term": "Margin",
+          "definition": "Collateral posted to open and keep a leveraged position."
+        },
+        {
+          "term": "Self-custody",
+          "definition": "Holding assets in a wallet whose keys you control, so no exchange can move them without your signature."
+        },
+        {
+          "term": "Order book",
+          "definition": "A list of resting buy and sell orders at specific prices that incoming orders are matched against."
+        },
+        {
+          "term": "Liquidity pool",
+          "definition": "A shared pot of deposited assets that acts as the counterparty to traders on pool-based venues."
+        },
+        {
+          "term": "Cash settlement",
+          "definition": "Settling profit and loss in a collateral asset rather than delivering the underlying token."
+        }
+      ],
+      "example": {
+        "title": "Placing an order on dYdX Chain",
+        "body": "dYdX v4 runs as its own blockchain built with the Cosmos SDK. Validators keep open orders in an in-memory order book that is not committed to consensus, so placing or cancelling an order does not cost gas. When orders match, the resulting trades are included in the next block and settled on-chain. A trader therefore gets an exchange-like ordering experience while every fill and balance change is recorded on a public chain."
+      }
+    },
+    {
+      "slug": "margin-pnl-funding",
+      "level": "beginner",
+      "title": "Margin, leverage, PnL, funding and liquidation",
+      "summary": "Work through the numbers behind a leveraged position: notional size, initial and maintenance margin, profit and loss, funding payments and the point at which a position gets liquidated.",
+      "minutes": 10,
+      "objectives": [
+        "Calculate notional size, initial margin and effective leverage",
+        "Compute profit and loss for long and short positions",
+        "Explain maintenance margin and why liquidation happens before equity reaches zero",
+        "Calculate a funding payment and say which side pays",
+        "List the main fees a perp trader pays",
+        "Choose position size based on liquidation distance rather than maximum leverage"
+      ],
+      "sections": [
+        {
+          "heading": "Notional, margin and leverage",
+          "body": "The notional value of a position is its size multiplied by the price, for example 10 contracts of a hypothetical asset priced at 100 is a notional of 1,000. Initial margin is the collateral required to open it, which equals notional divided by leverage, so at 10x the position above needs 100 of margin. Leverage does not change how much you gain or lose per unit of price movement; that depends only on size. What leverage changes is how little collateral stands behind the position, and therefore how small a move can wipe that collateral out. Most venues set a maximum leverage per market, and riskier or thinner markets get lower maximums."
+        },
+        {
+          "heading": "Profit and loss",
+          "body": "For a long position, profit and loss (PnL) equals size multiplied by the exit price minus the entry price. For a short, it is size multiplied by the entry price minus the exit price, so shorts gain when the price falls. While a position is open, the gain or loss is unrealized and is usually measured against a mark price rather than the last trade. When you close or reduce the position, that portion of PnL becomes realized and is credited to or debited from your collateral. Using the earlier example, a 10-contract long from 100 to 105 earns 50, which is a 50 percent return on 100 of margin, before fees and funding."
+        },
+        {
+          "heading": "Maintenance margin and liquidation",
+          "body": "Your account equity is your collateral plus unrealized PnL. Each market also has a maintenance margin requirement, a fraction of notional that must stay covered while the position is open, and it is lower than the initial margin. If equity falls below the maintenance requirement, the venue's liquidation engine closes some or all of the position. Liquidation happens before equity reaches zero on purpose, because the remaining buffer is meant to cover the cost of closing the position in a moving market. As a rough guide, a long at 10x with a maintenance requirement of half the initial margin is liquidated after a price drop of around 5 percent, not 10."
+        },
+        {
+          "heading": "Funding in practice",
+          "body": "A funding payment equals the position's notional value multiplied by the funding rate for that period. If the rate is positive, longs pay shorts; if it is negative, shorts pay longs. Funding is exchanged between traders, so it is not a fee the exchange keeps. Many centralized exchanges settle funding every eight hours, while venues such as Hyperliquid and dYdX settle it every hour, using a rate expressed over eight hours and applied one eighth at a time. Holding a position for days on the paying side can cost more than the trading fees, so funding matters for any strategy that is not short-term."
+        },
+        {
+          "heading": "Fees you actually pay",
+          "body": "Most order-book venues charge a taker fee when your order removes liquidity and a lower maker fee, sometimes zero or negative, when your order rests on the book and gets filled. Pool-based venues instead tend to charge opening and closing fees, a price impact charge for large or imbalancing trades, and a borrow fee for as long as the position stays open. On-chain actions can also carry network fees, and moving collateral between chains can add bridge costs. Liquidations usually carry an extra penalty or lose the remaining maintenance margin. Adding these together is the only honest way to judge whether a trade idea is worth placing."
+        },
+        {
+          "heading": "Sizing a position sensibly",
+          "body": "Maximum leverage is a ceiling set by the venue, not a recommendation. A more useful habit is to decide where your trade idea would be proven wrong and make sure the liquidation price sits well beyond that point. Lower leverage on the same size means more margin and a liquidation price further away. Stop orders can close a position before the liquidation engine does, often at a smaller loss than the liquidation penalty. Remember that in cross margin, a losing position draws on the whole account, so one bad trade can put others at risk."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Notional value",
+          "definition": "Position size multiplied by price: the full economic exposure of a position."
+        },
+        {
+          "term": "Initial margin",
+          "definition": "Collateral required to open a position, equal to notional divided by leverage."
+        },
+        {
+          "term": "Maintenance margin",
+          "definition": "The minimum equity a position must keep; falling below it triggers liquidation."
+        },
+        {
+          "term": "Unrealized PnL",
+          "definition": "The gain or loss on an open position measured at the current mark price."
+        },
+        {
+          "term": "Funding rate",
+          "definition": "The periodic rate used to calculate payments between longs and shorts."
+        },
+        {
+          "term": "Liquidation price",
+          "definition": "The price at which equity would fall below the maintenance requirement."
+        }
+      ],
+      "example": {
+        "title": "A worked 10x long",
+        "body": "A trader deposits 100 USDC and opens a 10x long of 10 contracts on a hypothetical asset at 100, a notional of 1,000. If the price rises to 104, unrealized PnL is 40 and equity is 140. If funding is positive at 0.01 percent for an hour, the trader pays 0.1 USDC for that hour. If the price instead falls by roughly 5 percent and equity drops below the maintenance requirement, the liquidation engine closes the position and most of the remaining margin is lost."
+      }
+    },
+    {
+      "slug": "four-architectures",
+      "level": "intermediate",
+      "title": "The four perp DEX architectures",
+      "summary": "Compare how perp DEXs are built: order books on an app-chain, oracle-priced pools, off-chain matching with proof-based settlement, and request-for-quote trading.",
+      "minutes": 12,
+      "objectives": [
+        "Explain how an app-chain can host a full order book",
+        "Describe how oracle and pool-based perps price and fill trades",
+        "Explain what ZK proofs do and do not guarantee for off-chain matching",
+        "Describe the request-for-quote flow and settlement pools",
+        "Compare the trust and liquidity trade-offs of each design"
+      ],
+      "sections": [
+        {
+          "heading": "Order books on an app-chain",
+          "body": "General-purpose blockchains are too slow and expensive for every order and cancel to be a transaction, so some teams build a chain dedicated to the exchange. Hyperliquid's state is split into HyperCore, which holds the perpetual and spot order books, margining and liquidations, and HyperEVM, a smart contract environment. Both are secured by the same HyperBFT consensus, a variant of HotStuff, so the order book is part of the chain's state rather than an off-chain service. dYdX v4 takes a different route on a Cosmos SDK chain: each validator keeps open orders in memory without committing them to consensus, and only matched trades are written into blocks. Both designs give one canonical ordering of trades, but they depend on the honesty and liveness of the validator set."
+        },
+        {
+          "heading": "Oracle and pool-based perps",
+          "body": "Pool-based venues do not need resting orders at all. A liquidity pool takes the other side of every trade, and the execution price comes from an oracle that reports the asset's price on external markets. GMX v2 organizes liquidity into GM pools, each pairing a long token and a short token to back one market, while Jupiter Perps uses a single multi-asset pool called JLP. Both use a two-step flow: the trader submits a request on-chain, and a keeper executes it shortly afterwards using fresh oracle prices. Because there is no order book, large trades are charged price impact fees rather than walking a book, and the pool's depositors absorb traders' net profits and losses."
+        },
+        {
+          "heading": "Off-chain matching with proof-based settlement",
+          "body": "A third design runs a fast matching engine off-chain and settles the results on a rollup that posts validity proofs to Ethereum. Paradex runs as an application-specific chain built on the Starknet stack, edgeX's original version settles through StarkEx, and both use STARK proofs to show that state transitions followed the rules. Lighter goes further by proving the matching and liquidation logic itself with zero-knowledge circuits, so a valid proof shows that orders were matched according to the published rules. A proof guarantees that the operator could not credit itself funds it did not have, but it does not stop the operator from choosing which orders to accept or in what order. Escape hatches that let users withdraw directly on Ethereum if the operator stops are an important part of the trust model."
+        },
+        {
+          "heading": "Request-for-quote perps",
+          "body": "In a request-for-quote (RFQ) design there is no shared order book. The taker asks for a price on a given size, a market maker responds with a quote, and the taker accepts or rejects it. Variational is built this way: trades settle into settlement pools, isolated smart contract escrows between counterparties that hold their margin and track their positions. In its retail app, Omni, a single protocol liquidity provider called OLP answers every request, and each user has a bilateral pool with OLP. RFQ can quote long-tail assets quickly, but price quality depends on the maker and the taker cannot see a public book."
+        },
+        {
+          "heading": "Comparing the trade-offs",
+          "body": "Order books give transparent price discovery and let anyone make markets, but they need professional liquidity to look deep. Pool-based designs give any listed asset instant liquidity up to the pool's limits, but their prices come from external venues, so the oracle is the most important security component. Off-chain matching with proofs gets close to CEX speed while keeping settlement verifiable, at the cost of trusting a sequencer for ordering and availability. RFQ concentrates risk in the quoting market maker. Each design moves trust to a different place, and understanding where it sits is the core skill for evaluating any venue."
+        },
+        {
+          "heading": "Hybrids blur the lines",
+          "body": "Real venues often combine designs. Drift on Solana mixes three liquidity sources: a just-in-time auction in which market makers compete to fill incoming market orders, a decentralized order book of resting limit orders matched by third-party keepers, and a protocol AMM that acts as backstop liquidity. Hyperliquid pairs its order book with a community vault that market-makes on it. dYdX added a vault that provides liquidity across markets. When you meet a new venue, ask where prices come from, who fills the order and who absorbs losses, rather than relying on its label."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "App-chain",
+          "definition": "A blockchain built for a single application, such as an exchange, so its rules can be tuned for that use."
+        },
+        {
+          "term": "Oracle price",
+          "definition": "A price reported to the protocol from external markets rather than discovered on the venue itself."
+        },
+        {
+          "term": "Keeper",
+          "definition": "An off-chain bot that executes requests, matches orders or triggers liquidations on a protocol."
+        },
+        {
+          "term": "Validity proof",
+          "definition": "A cryptographic proof that a batch of state changes followed the protocol's rules."
+        },
+        {
+          "term": "Request for quote (RFQ)",
+          "definition": "A trading flow where a taker asks a market maker for a price and then accepts or rejects it."
+        },
+        {
+          "term": "Settlement pool",
+          "definition": "On Variational, an isolated escrow contract that holds the margin and positions between counterparties."
+        }
+      ],
+      "example": {
+        "title": "One order, four designs",
+        "body": "Imagine a trader buying a perp in size. On Hyperliquid the order walks the on-chain book and fills against resting asks. On GMX v2 a keeper fills it at the oracle price plus a price impact charge, and the GM pool becomes the counterparty. On Lighter the order is matched off-chain and the fill is later covered by a ZK proof posted to Ethereum, while on Variational's Omni the OLP quotes a price that the trader can accept or reject."
+      }
+    },
+    {
+      "slug": "platform-deep-dives",
+      "level": "intermediate",
+      "title": "Platform deep dives",
+      "summary": "Examine what is mechanically distinctive about Hyperliquid, dYdX, GMX, Lighter, Paradex, edgeX, Aster, Variational and Drift, focusing on how each one matches, prices and backstops trades.",
+      "minutes": 14,
+      "objectives": [
+        "Describe Hyperliquid's oracle, HLP vault and builder-deployed markets",
+        "Explain dYdX v4's validator-run book, isolated markets and MegaVault",
+        "Describe GMX v2's GM pools, keepers and fee mechanics",
+        "Compare how Lighter, Paradex and edgeX use proofs",
+        "Explain what sets Aster, Variational and Drift apart",
+        "Identify which questions to ask when meeting a new venue"
+      ],
+      "sections": [
+        {
+          "heading": "Hyperliquid",
+          "body": "Hyperliquid runs fully on-chain order books inside HyperCore, its own layer 1. Validators publish oracle prices roughly every three seconds, each computed as a weighted median of spot prices from several large exchanges, and the protocol takes a stake-weighted median of those submissions. A protocol vault called HLP, open to deposits, runs market-making strategies and includes the liquidator vault that takes over positions in backstop liquidations. HIP-3 lets third-party deployers launch their own perp markets on HyperCore with deployer-set oracles and parameters. Because HyperEVM shares consensus with HyperCore, contracts on HyperEVM can read HyperCore state directly."
+        },
+        {
+          "heading": "dYdX v4",
+          "body": "dYdX v4 is a standalone chain built with the Cosmos SDK, where validators run the order book in memory and commit matched trades in blocks, so orders and cancels carry no gas cost. Funding is calculated hourly from sampled premiums and capped per sample and per hour, with parameters that governance can change. Markets are cross-margined by default and share an insurance fund, while isolated markets, added in a later software release, have segregated collateral and their own insurance fund. MegaVault lets users deposit USDC to provide liquidity across many markets without choosing them individually. The combination is designed to support new listings that need liquidity from day one."
+        },
+        {
+          "heading": "GMX v2",
+          "body": "GMX v2 splits liquidity into GM pools, each backing one market with a long token and a short token, so risk in one market does not spill into the others. Some markets are synthetic, meaning the asset being traded differs from the tokens backing the pool. Orders are created on-chain and executed by keepers using prices from Chainlink Data Streams, which narrows the window for traders to exploit stale prices. Traders pay a borrowing fee based on how much of the pool their open interest uses, a funding fee that adapts over time to the long and short imbalance, and price impact that rewards trades which rebalance the market. GLV vaults hold several GM tokens and rebalance between them automatically."
+        },
+        {
+          "heading": "Lighter, Paradex and edgeX",
+          "body": "These three venues all match orders off-chain and rely on validity proofs, but they prove different things. Lighter uses zero-knowledge circuits to prove the order book matching and liquidations themselves, with the book stored in a tree structure designed to be efficient to prove, and it settles to Ethereum with an escape hatch for withdrawals if the operator stops. Paradex is an application-specific rollup on the Starknet stack that encrypts its state data before posting it, which gives traders privacy but means outsiders cannot rebuild the state without the keyholders. Paradex also offers portfolio margin that nets perps against its options products. edgeX's original version uses StarkEx, which batches trades off-chain and verifies them on Ethereum with STARK proofs."
+        },
+        {
+          "heading": "Aster and Variational",
+          "body": "Aster offers two trading modes: a simple one-click mode and a Pro mode with a full order book and advanced tools. In Pro mode it supports hidden orders, which rest on the book without being visible to other traders. Its multi-asset margin mode accepts yield-bearing assets such as asBNB and USDF as collateral, applying a haircut to each, so margin can keep earning while it backs positions. Variational instead uses RFQ: positions live in isolated settlement pools between counterparties, and in its Omni app the protocol earns from a share of its liquidity provider's revenue rather than from fees on user trades. Its institutional product lets traders request quotes from many makers or trade bilaterally with a chosen one."
+        },
+        {
+          "heading": "Drift",
+          "body": "Drift is a Solana perp venue built around a hybrid matching engine. Incoming market orders start a short just-in-time auction in which market makers compete to fill them at improving prices. Resting limit orders form a decentralized order book that third-party keepers watch and match. A protocol AMM provides backstop liquidity, and the matching engine compares it with book and auction liquidity before each fill, using it first if it offers a better price. Drift also runs an insurance fund that users can stake into, which absorbs losses the liquidation process cannot cover."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "HLP",
+          "definition": "Hyperliquid's protocol vault that runs market-making strategies and backstop liquidations on behalf of depositors."
+        },
+        {
+          "term": "HIP-3",
+          "definition": "Hyperliquid's framework for third parties to deploy perp markets with their own oracle and parameters."
+        },
+        {
+          "term": "MegaVault",
+          "definition": "dYdX's vault that pools USDC deposits to provide liquidity across many markets."
+        },
+        {
+          "term": "GM pool",
+          "definition": "A GMX v2 liquidity pool that backs one market using a long token and a short token."
+        },
+        {
+          "term": "JIT auction",
+          "definition": "A brief auction on Drift in which market makers compete to fill an incoming order."
+        },
+        {
+          "term": "Hidden order",
+          "definition": "An order that rests on the book without being shown to other traders."
+        }
+      ],
+      "example": {
+        "title": "Reading a venue in five questions",
+        "body": "Faced with a new perp DEX, ask: where does the price come from, who fills my order, who takes the other side of losses, who decides ordering, and how do I withdraw if the operator disappears. For Hyperliquid the answers are a validator oracle, an on-chain book, HLP and ADL as backstops, a validator set, and a validator-signed bridge. For GMX v2 they are Chainlink Data Streams, keepers, GM pool depositors, keepers and the chain itself, and Arbitrum's own withdrawal rules. Writing the answers down for each venue makes the trust differences obvious."
+      }
+    },
+    {
+      "slug": "oracles-liquidation-engines",
+      "level": "advanced",
+      "title": "Oracles, mark price, ADL and liquidation engines",
+      "summary": "Go inside the risk engine: how index and mark prices are built, how liquidations are staged, what insurance funds and bankruptcy prices are, and when auto-deleveraging closes profitable positions.",
+      "minutes": 13,
+      "objectives": [
+        "Distinguish index or oracle price, mark price and last traded price",
+        "Explain why mark price is built as a median of several inputs",
+        "Describe staged liquidation, including partial and backstop liquidation",
+        "Explain bankruptcy price and the role of an insurance fund",
+        "Describe when and how auto-deleveraging is triggered",
+        "Explain the solvency limits pool-based venues place on open interest"
+      ],
+      "sections": [
+        {
+          "heading": "Three prices, three jobs",
+          "body": "A perp venue tracks several prices at once. The index or oracle price estimates the underlying asset's spot value from external markets and is the anchor for funding. The last traded price is simply where the most recent fill happened on the venue and can be pushed around by a single large order. The mark price is the value used for margin checks, unrealized PnL and liquidations, and it is designed to be harder to manipulate than either of the others. Keeping these roles separate means one bad print on a thin book cannot by itself liquidate traders."
+        },
+        {
+          "heading": "Building a robust mark price",
+          "body": "Hyperliquid's mark price is the median of three inputs: the oracle price adjusted by a moving average of the gap between the venue's mid price and the oracle, the median of the venue's best bid, best ask and last trade, and a median of perp prices on large external exchanges. Taking a median means an attacker must distort at least two independent inputs to move the mark. Its oracle is in turn a stake-weighted median of validator submissions, each itself a weighted median of several spot venues. Funding on Hyperliquid is computed from premiums against the oracle using impact prices, which reflect the cost of trading meaningful size rather than the top of the book. This layering of medians is a common pattern, because any single source can fail or be gamed."
+        },
+        {
+          "heading": "Staged liquidation",
+          "body": "Liquidation engines usually escalate in stages rather than dumping a whole position at once. On Hyperliquid, a position below maintenance margin is first closed with market orders on the book, and large positions are liquidated in partial slices with a cooldown between them to limit price impact. If equity keeps falling, below two thirds of the maintenance requirement, the liquidator vault inside HLP can take the position over as a backstop, and the remaining maintenance margin is not returned to the trader. That retained buffer is meant to make backstop liquidations profitable on average. Other venues use keepers or liquidators who are paid a fee to close unhealthy positions."
+        },
+        {
+          "heading": "Bankruptcy price and insurance funds",
+          "body": "The bankruptcy price is the price at which a position's collateral is exactly used up. If a liquidation fills at a better price than bankruptcy, the leftover can go to an insurance fund; if it fills worse, the shortfall is bad debt that something must absorb. On dYdX, a liquidated account can lose up to its remaining value as a penalty that is transferred to the insurance fund, and that fund covers deficits when liquidations fill beyond bankruptcy. Insurance funds are a buffer, not a guarantee: a fast enough move or a large enough position can drain one. What happens after the fund runs out is the next line of defense."
+        },
+        {
+          "heading": "Auto-deleveraging",
+          "body": "Auto-deleveraging (ADL) is the last resort when a losing position cannot be closed without creating bad debt and the backstops are exhausted. The protocol closes positions on the opposite side, usually choosing those with the highest profit and leverage first, at a price that lets the losing position be closed. dYdX describes deleveraging as used only when the insurance fund cannot liquidate a position before its equity turns negative. Profitable traders affected by ADL keep their realized gains but lose the rest of their position involuntarily, which can break a hedge. ADL is rare on healthy venues, but every serious trader should know whether and how it can happen."
+        },
+        {
+          "heading": "Solvency limits in pool-based designs",
+          "body": "A pool that is the counterparty to all traders must cap how much it can owe. GMX v2 uses a reserve factor that limits how much of the pool can back open positions and open interest caps per market and per side. When traders' pending profits grow too large relative to the pool, it applies a maximum PnL factor that caps the profit counted toward pool value. In some markets, if pending PnL exceeds a separate threshold, ADL reduces profitable positions to protect the pool. These limits mean a winning trader on a pool-based venue cannot assume unlimited payout capacity."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Index price",
+          "definition": "An estimate of the underlying asset's spot value built from external markets."
+        },
+        {
+          "term": "Mark price",
+          "definition": "The manipulation-resistant price used for margin, unrealized PnL and liquidations."
+        },
+        {
+          "term": "Impact price",
+          "definition": "The average price to fill a set notional size against the book, used to measure premium."
+        },
+        {
+          "term": "Bankruptcy price",
+          "definition": "The price at which a position's collateral is exactly exhausted."
+        },
+        {
+          "term": "Insurance fund",
+          "definition": "A reserve that absorbs liquidation shortfalls before losses are socialized."
+        },
+        {
+          "term": "Auto-deleveraging (ADL)",
+          "definition": "Forced reduction of profitable opposing positions when a loss cannot otherwise be covered."
+        }
+      ],
+      "example": {
+        "title": "A liquidation that escalates",
+        "body": "A large long on Hyperliquid falls below maintenance margin during a sharp drop. The engine sends market orders in slices, but the book is thin and equity keeps falling. Once equity drops below two thirds of maintenance, the HLP liquidator vault takes over the remaining position and keeps the leftover margin. If even that backstop could not absorb the loss, ADL would reduce the most exposed opposing positions."
+      }
+    },
+    {
+      "slug": "lps-and-vaults",
+      "level": "advanced",
+      "title": "Liquidity providers and vaults",
+      "summary": "Understand how HLP-style vaults, GM and GLV pools, JLP and MegaVault make money, what risks their depositors carry, and how to break a vault's returns into their real sources.",
+      "minutes": 13,
+      "objectives": [
+        "Explain how a market-making vault such as HLP earns and loses",
+        "Describe GM pool LP economics, including fees and trader PnL",
+        "Explain why JLP holders carry basket exposure plus trader PnL",
+        "Define adverse selection and toxic flow",
+        "Break vault returns into fees, spread, funding, liquidations and directional exposure",
+        "List the questions to ask before depositing into any vault"
+      ],
+      "sections": [
+        {
+          "heading": "Market-making vaults",
+          "body": "On order-book venues, someone has to quote both sides. Hyperliquid's HLP is a protocol vault that anyone can deposit USDC into, and it runs market-making strategies across many markets while also hosting the liquidator vault for backstop liquidations. Depositors share proportionally in its profit and loss, which comes from bid-ask spread, funding and liquidation outcomes. dYdX's MegaVault follows a related idea, pooling USDC to provide liquidity across markets so depositors do not have to pick individual ones. These vaults turn professional market-making into something passive depositors can join, but they also hand depositors the market maker's inventory risk."
+        },
+        {
+          "heading": "GM and GLV pools",
+          "body": "On GMX v2, liquidity providers deposit into a GM pool for a specific market and receive GM tokens representing their share. The pool earns trading, borrowing and price impact fees, and it is also the counterparty to trader PnL, so it gains when traders lose and pays when they win. LPs are also exposed to the price of the pool's backing tokens, for example ETH and a stablecoin in an ETH market. Borrowing fees rise as open interest uses more of the pool, which compensates LPs for the capital tied up backing positions. GLV vaults hold several GM tokens and shift liquidity between them, giving depositors diversified exposure to multiple markets."
+        },
+        {
+          "heading": "JLP and basket exposure",
+          "body": "Jupiter Perps uses one pool, JLP, as the counterparty for all its markets. JLP holds a basket of assets, and its value moves with those assets' prices as well as with traders' net PnL and the fees the pool collects. Jupiter Perps does not charge funding rates; instead traders pay borrow fees that compound hourly, and collected fees are added back to the pool. A JLP holder is therefore partly a holder of the underlying basket, partly the house in a trading venue, and partly a fee earner. Some traders hedge the basket exposure with short perps elsewhere to isolate the fee and trader-PnL components, which brings its own funding and execution costs."
+        },
+        {
+          "heading": "How LPs lose",
+          "body": "The main risk for any market-making pool is adverse selection: trading against counterparties who know more, or act faster, than the pool. Flow that consistently profits at the pool's expense is called toxic flow, and oracle-priced pools are especially exposed when their oracle lags fast-moving markets. Pools also lose when traders are collectively right during a strong trend, because the pool sits on the other side of the crowd. Concentrated positions in thin markets are a particular danger, because closing them can move prices against the vault. Fee income is steady and visible, while these losses are lumpy, which can make a vault look safer than it is between bad events."
+        },
+        {
+          "heading": "A vault under attack",
+          "body": "In March 2025, a trader on Hyperliquid opened a large short in the thinly traded JELLY market while buying the token on spot markets, pushing its price up. The short was liquidated and HLP inherited it, so the rising price created large unrealized losses for the vault. Hyperliquid's validators voted to delist the market and settled positions at a price below where it was trading, which ended with the vault showing a small gain rather than a large loss. The episode showed both how a vault can be targeted through thin markets and how much power a small validator set held over the outcome. Many venues tightened limits on open interest and listings for small markets after incidents like this."
+        },
+        {
+          "heading": "Evaluating a vault",
+          "body": "Before depositing, split a vault's historical returns into fees, spread, funding, liquidation income and directional exposure, because only some of these are likely to persist. Check whether returns came steadily or from a few large events, and look at the largest drawdowns rather than the average. Read the withdrawal terms: some vaults impose lock-up periods, and pooled designs may limit withdrawals when assets are committed to backing positions. Find out who controls the strategy, what limits apply to each market, and what happens to the vault if a backstop liquidation goes badly. A high displayed yield says nothing about the size of the tail risk behind it."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Liquidity provider (LP)",
+          "definition": "A depositor who supplies capital that traders trade against, in return for a share of fees and PnL."
+        },
+        {
+          "term": "Adverse selection",
+          "definition": "Losses from trading against better-informed or faster counterparties."
+        },
+        {
+          "term": "Toxic flow",
+          "definition": "Order flow that consistently profits at the liquidity provider's expense."
+        },
+        {
+          "term": "Basket exposure",
+          "definition": "The price risk an LP takes on from the assets a multi-asset pool holds."
+        },
+        {
+          "term": "GLV",
+          "definition": "A GMX vault that holds several GM tokens and rebalances liquidity between them."
+        },
+        {
+          "term": "Lock-up period",
+          "definition": "A minimum time a deposit must stay in a vault before it can be withdrawn."
+        }
+      ],
+      "example": {
+        "title": "Three return streams in one pool",
+        "body": "Suppose the assets in a multi-asset pool like JLP fall in price while traders who are short profit from the move. The pool loses twice: once on its basket, and once paying the winning shorts. Meanwhile, borrow fees and trading fees keep flowing in. Whether the depositor ends the period up or down depends on the size of each stream, which is why decomposing returns matters more than the headline yield."
+      }
+    },
+    {
+      "slug": "execution-and-risk",
+      "level": "expert",
+      "title": "Execution and risk technicals",
+      "summary": "Apply advanced execution and portfolio techniques: measuring slippage and price impact, funding and basis trades, delta-neutral construction, and choosing between isolated, cross and portfolio margin.",
+      "minutes": 15,
+      "objectives": [
+        "Estimate slippage from book depth and price impact functions",
+        "Structure a funding or basis trade and list its risks",
+        "Build and maintain a delta-neutral position",
+        "Compare isolated, cross and portfolio margin mechanically",
+        "Choose order types that control execution cost",
+        "Account for keeper and oracle delays on pool-based venues"
+      ],
+      "sections": [
+        {
+          "heading": "Slippage and price impact",
+          "body": "On an order book, a market order fills against resting orders from the best price outward, so its average price depends on depth, not just the top quote. Venues that measure premium with impact prices, as Hyperliquid does for funding, are explicitly accounting for the cost of trading meaningful size. On pool-based venues there is no book to walk, so the protocol applies a price impact function that grows with trade size and with how much the trade worsens the long and short imbalance. On GMX v2, a trade that improves that balance can receive positive price impact instead of paying. Estimating the cost before placing a large order, and splitting it if needed, is often worth more than shaving a basis point off fees."
+        },
+        {
+          "heading": "Funding and basis trades",
+          "body": "A basis or cash-and-carry trade buys an asset on spot and shorts the same notional in its perp, leaving the trader roughly neutral to price while collecting funding when it is positive. A funding arbitrage instead holds opposite perp positions on two venues whose funding rates differ, earning the spread between them. Neither trade is risk-free: funding can flip sign, the two legs can be liquidated independently if margin is held separately, and fees and slippage on entry and exit eat into returns. Venues also compute funding differently, with different intervals, caps and premium formulas, so rates are not directly comparable without normalizing them. The largest losses in these trades usually come from a leg being liquidated during a sharp move while the hedge sits on another venue."
+        },
+        {
+          "heading": "Building delta-neutral positions",
+          "body": "Delta is the sensitivity of a position's value to the underlying price, and a delta-neutral portfolio has offsetting exposures so small price moves roughly cancel out. Perps make this easy because their delta is one per unit of size, unlike options. A neutral position still drifts over time: PnL on the perp leg changes its margin, and pools like JLP change their asset weights, so hedges need rebalancing. Each rebalance costs fees and slippage, creating a trade-off between tracking error and cost. Delta-neutral does not mean risk-free; it swaps price risk for funding, liquidation, counterparty and execution risk."
+        },
+        {
+          "heading": "Isolated, cross and portfolio margin",
+          "body": "In isolated margin, each position has its own collateral, so a liquidation cannot take more than what was assigned to that position. In cross margin, all positions share one collateral pool, so gains on one support the others, but a single large loss can drag the whole account toward liquidation. dYdX v4 is cross-margined by default and runs isolated markets with segregated collateral and their own insurance fund. Portfolio margin goes further by recognizing offsetting risk across instruments: Hyperliquid's portfolio margin nets cross-margin perp positions with spot balances and allows automatic borrowing, and Paradex offers portfolio margin that offsets perps against options. Lower requirements on hedged books free capital, but they also mean less buffer if the hedge breaks."
+        },
+        {
+          "heading": "Order types and execution control",
+          "body": "Limit orders let you control price at the risk of not filling, while market orders guarantee a fill at an uncertain price. Post-only orders are rejected if they would execute immediately, which guarantees maker status and its fee. Reduce-only orders can only shrink a position, which prevents a stop or take-profit from accidentally opening a new position in the other direction. Time-weighted average price (TWAP) execution splits a large order into slices over time to reduce impact. Stop orders are triggered by the mark price on many venues, so a stop may fire at a different moment than the last trade suggests."
+        },
+        {
+          "heading": "Latency and keeper delay",
+          "body": "On order-book chains, the time between sending an order and its inclusion depends on block times and how the validators or sequencer order transactions. On pool-based venues using a two-step flow, a keeper executes your request a few seconds after you submit it, at the oracle price at execution time rather than the price you saw. That delay is deliberate, because it stops traders from front-running known oracle updates, but it means your fill can differ from the quote. Slippage limits on those requests protect you from executing too far from your expected price. Any strategy that depends on tight timing must be tested against the actual execution path of the venue."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Basis trade",
+          "definition": "Long spot and short perp in equal notional to collect funding while staying roughly price-neutral."
+        },
+        {
+          "term": "Funding arbitrage",
+          "definition": "Holding opposite perp positions on venues with different funding rates to earn the spread."
+        },
+        {
+          "term": "Delta",
+          "definition": "How much a position's value changes for a one-unit change in the underlying price."
+        },
+        {
+          "term": "Cross margin",
+          "definition": "A mode where all positions share one collateral pool and support each other."
+        },
+        {
+          "term": "Portfolio margin",
+          "definition": "A margin method that lowers requirements for positions whose risks offset."
+        },
+        {
+          "term": "Reduce-only order",
+          "definition": "An order that can only decrease an existing position, never increase or flip it."
+        }
+      ],
+      "example": {
+        "title": "A basis trade that goes wrong",
+        "body": "A trader buys spot on one venue and shorts the same notional of the perp on another to collect positive funding. A sharp rally pushes the short leg toward liquidation, while the spot gains sit on a different venue and cannot be used as margin in time. The short is liquidated at a loss and the trader is left holding unhedged spot. Keeping extra margin on the short leg, or holding both legs where portfolio margin recognizes the hedge, would have reduced that risk."
+      }
+    },
+    {
+      "slug": "security-and-failure-modes",
+      "level": "expert",
+      "title": "Security and failure modes",
+      "summary": "Study how perp DEXs fail: oracle and market manipulation, validator and sequencer trust, bridge and deposit risk, admin keys, and the distortions that points programs and token incentives introduce.",
+      "minutes": 15,
+      "objectives": [
+        "Explain how manipulating a thin spot market can exploit an oracle",
+        "Describe the trust placed in validators and sequencers",
+        "Assess bridge, deposit and withdrawal risk for a venue",
+        "Explain why escape hatches and data availability matter",
+        "Recognize how admin keys and upgrades create risk",
+        "Explain how points and token incentives distort activity metrics"
+      ],
+      "sections": [
+        {
+          "heading": "Oracle and market manipulation",
+          "body": "If a venue prices positions or collateral from external spot markets, an attacker who can move those markets can move the venue's prices. The pattern is usually the same: open a large position on the perp venue, then push the price on the thin spot markets that feed its oracle, and extract the inflated value before it corrects. In the 2022 Mango Markets incident, an attacker pumped the MNGO token on the spot markets its oracle drew from, then borrowed against the inflated unrealized profit on a perp position. Also in 2022, a trader exploited GMX v1's zero price impact design by moving the AVAX price on reference exchanges and trading against the pool at the manipulated level. Defenses include medians over many sources, price impact on large trades, open interest caps sized to the underlying market's real liquidity, and conservative listing of thin assets."
+        },
+        {
+          "heading": "Validator and sequencer trust",
+          "body": "Every perp DEX depends on someone to order transactions and keep the system running. On an app-chain, that is the validator set, and a small or concentrated set can halt the chain, censor transactions, or vote to intervene in markets, as Hyperliquid's validators did when they delisted JELLY. On rollup-style venues, a single sequencer usually orders trades, so it can delay or reorder transactions even though validity proofs stop it from stealing funds. dYdX's validators also supply its oracle prices, which ties price integrity to the validator set. Ask how many independent parties must collude to censor, halt or alter outcomes, because that number is the real decentralization of the venue."
+        },
+        {
+          "heading": "Bridge and deposit risk",
+          "body": "Most perp DEXs require collateral to be moved onto their own chain or rollup, which means trusting a bridge. Hyperliquid's bridge releases withdrawals when validators sign them, so its security depends on the validator set rather than on Ethereum alone. On a validity rollup, withdrawals depend on proofs being posted, and if only whitelisted proposers can post state, a failure can freeze withdrawals. Escape hatches, such as Lighter's mechanism for proof-based withdrawals directly on Ethereum, exist to let users exit if the operator stops, but they are only as good as their implementation and the availability of the data needed to use them. Paradex encrypts its posted state data, so users depend on its keyholders to reconstruct state in an emergency."
+        },
+        {
+          "heading": "Admin keys and upgrades",
+          "body": "Many protocols keep administrative powers to upgrade contracts, change risk parameters or pause markets. These powers help teams respond to bugs, but they are also an attack surface: whoever controls them can often change rules or move funds. In 2026, attackers who gained control of a Solana perp protocol's administrative authority drained its vaults within minutes. Timelocks delay upgrades so users can react, and larger multisigs with independent signers make key compromise harder. When reviewing a venue, find out who holds upgrade and pause powers, how many signers are required, and whether any delay applies."
+        },
+        {
+          "heading": "Points programs and token incentives",
+          "body": "Many perp DEXs reward activity with points that may later convert into tokens, or with direct token emissions. These programs attract volume, but they also invite wash trading, where the same party trades with itself to farm rewards, and Sybil farming across many wallets. As a result, volume and open interest on an incentivized venue can overstate genuine demand. When incentives end, liquidity and activity can fall sharply, and market makers paid in tokens may withdraw. Treat points as an uncertain, unpriced reward, and judge a venue by its mechanisms and risk controls rather than by its activity statistics."
+        },
+        {
+          "heading": "A failure-mode checklist",
+          "body": "Before trusting a venue with collateral, work through its failure modes in order. Ask how its prices are formed and how thin the markets behind them are. Ask who orders transactions, who can halt or intervene, and how many parties that requires. Ask how deposits and withdrawals work, whether there is a tested escape path, and who controls upgrades. Finally, ask how losses are absorbed, from liquidation through insurance fund to ADL, and whether incentives are inflating the numbers you are looking at."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Oracle manipulation",
+          "definition": "Moving the external prices a protocol relies on to extract value from it."
+        },
+        {
+          "term": "Sequencer",
+          "definition": "The party that orders transactions on a rollup or off-chain matching venue."
+        },
+        {
+          "term": "Escape hatch",
+          "definition": "A mechanism that lets users withdraw directly on the base chain if the operator stops."
+        },
+        {
+          "term": "Timelock",
+          "definition": "A delay between approving a protocol change and executing it, giving users time to react."
+        },
+        {
+          "term": "Wash trading",
+          "definition": "Trading with yourself to inflate volume or farm rewards without real economic exposure."
+        },
+        {
+          "term": "Sybil farming",
+          "definition": "Using many wallets to collect more incentive rewards than one participant should receive."
+        }
+      ],
+      "example": {
+        "title": "The Mango Markets pattern",
+        "body": "In 2022 an attacker funded two accounts on Mango Markets and opened a large MNGO perp position between them. They then bought MNGO on the spot markets that fed the oracle, pushing its price up sharply in a short time. The long position showed a large unrealized profit, which the attacker used as collateral to borrow other assets from the platform. When the price fell back, the borrowed assets were gone and the protocol was left with the loss."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "perp-dex-basics",
+      "difficulty": "easy",
+      "prompt": "What keeps a perpetual future's price close to the underlying asset's price?",
+      "options": [
+        "A fixed expiry date on which every contract settles",
+        "Periodic funding payments between longs and shorts",
+        "The exchange buying the asset whenever it rises",
+        "A rule that freezes trading if prices drift apart"
+      ],
+      "answer": 1,
+      "explanation": "Perps have no expiry, so funding provides the anchor: the side pushing the price away from the reference pays the other side."
+    },
+    {
+      "module": "perp-dex-basics",
+      "difficulty": "easy",
+      "prompt": "Which feature is a key difference between a perp DEX and a CEX?",
+      "options": [
+        "Positions on a DEX can never end in any forced liquidation",
+        "A DEX guarantees that traders cannot lose money",
+        "A DEX lets you trade without any collateral at all",
+        "Balances and positions sit on a public, auditable ledger"
+      ],
+      "answer": 3,
+      "explanation": "A perp DEX keeps its ledger on a blockchain anyone can inspect, while a CEX keeps balances in a private internal database."
+    },
+    {
+      "module": "perp-dex-basics",
+      "difficulty": "easy",
+      "prompt": "On a pool-based perp DEX, who is the trader's counterparty?",
+      "options": [
+        "The pool of deposited assets and its depositors",
+        "Only another trader with an equal opposite order",
+        "The blockchain's validators, using their stake",
+        "The token issuer of the asset being traded"
+      ],
+      "answer": 0,
+      "explanation": "Pool-based venues let traders trade against a shared pool, so trader profits are paid by the pool and trader losses flow to it."
+    },
+    {
+      "module": "perp-dex-basics",
+      "difficulty": "easy",
+      "prompt": "Why might a token holder short that token's perpetual?",
+      "options": [
+        "To earn staking rewards on the tokens they hold",
+        "To move the tokens over to a different blockchain network",
+        "To avoid paying any trading fees on the position",
+        "To hedge price exposure without selling the tokens"
+      ],
+      "answer": 3,
+      "explanation": "A short perp gains when the price falls, offsetting losses on the held tokens, so the holder reduces exposure without selling."
+    },
+    {
+      "module": "perp-dex-basics",
+      "difficulty": "easy",
+      "prompt": "Which statement about trading on a perp DEX is accurate?",
+      "options": [
+        "It removes liquidation risk because code is public",
+        "It makes leverage safe because rules are on-chain",
+        "It removes the need to manage or top up collateral at all",
+        "It changes who you trust but does not remove market risk"
+      ],
+      "answer": 3,
+      "explanation": "Decentralization shifts trust from a company to code, validators or operators, but leveraged losses and liquidations work the same way."
+    },
+    {
+      "module": "margin-pnl-funding",
+      "difficulty": "easy",
+      "prompt": "A trader opens a position with 2,000 notional at 5x leverage. What initial margin is required?",
+      "options": [
+        "200",
+        "1,000",
+        "400",
+        "10,000"
+      ],
+      "answer": 2,
+      "explanation": "Initial margin equals notional divided by leverage, so 2,000 divided by 5 is 400."
+    },
+    {
+      "module": "margin-pnl-funding",
+      "difficulty": "easy",
+      "prompt": "A short of 4 contracts is opened at 50 and closed at 45. What is the PnL before fees?",
+      "options": [
+        "A loss of 20",
+        "A profit of 5",
+        "A profit of 20",
+        "A profit of 200"
+      ],
+      "answer": 2,
+      "explanation": "Short PnL is size times entry minus exit: 4 times (50 minus 45) equals a profit of 20."
+    },
+    {
+      "module": "margin-pnl-funding",
+      "difficulty": "easy",
+      "prompt": "When the funding rate is positive, which side pays?",
+      "options": [
+        "Shorts pay longs",
+        "Longs pay shorts",
+        "Both sides pay the exchange",
+        "Only liquidated traders pay"
+      ],
+      "answer": 1,
+      "explanation": "A positive rate means the perp trades above its reference, so longs pay shorts to discourage further buying."
+    },
+    {
+      "module": "margin-pnl-funding",
+      "difficulty": "easy",
+      "prompt": "Why does liquidation trigger before account equity reaches zero?",
+      "options": [
+        "The leftover buffer covers the cost of closing in a moving market",
+        "Exchanges are legally required to refund every trader's full deposit",
+        "Equity cannot be measured until it has reached exactly zero",
+        "It lets the trader add more leverage before the position closes"
+      ],
+      "answer": 0,
+      "explanation": "Maintenance margin leaves a cushion so that closing the position at worse prices does not create losses beyond the trader's collateral."
+    },
+    {
+      "module": "margin-pnl-funding",
+      "difficulty": "easy",
+      "prompt": "Holding the same position size, what does lowering leverage do?",
+      "options": [
+        "Raises the profit earned for each unit of price change",
+        "Removes the need to pay or receive any funding at all",
+        "Cuts the position's notional value by exactly the same factor",
+        "Adds margin and moves the liquidation price further away"
+      ],
+      "answer": 3,
+      "explanation": "PnL per price move depends only on size; lower leverage just means more collateral behind the position and a more distant liquidation price."
+    },
+    {
+      "module": "four-architectures",
+      "difficulty": "medium",
+      "prompt": "On Hyperliquid, what is the relationship between HyperCore and HyperEVM?",
+      "options": [
+        "HyperEVM is a separate chain bridged by multisig",
+        "HyperCore runs off-chain and HyperEVM settles it",
+        "HyperEVM stores the order book for HyperCore",
+        "Both are secured by the same HyperBFT consensus"
+      ],
+      "answer": 3,
+      "explanation": "Hyperliquid's state is split into HyperCore and HyperEVM, but both run under one HyperBFT consensus rather than as separate chains."
+    },
+    {
+      "module": "four-architectures",
+      "difficulty": "medium",
+      "prompt": "How does dYdX v4 handle open orders that have not yet matched?",
+      "options": [
+        "Validators hold them in memory, outside consensus",
+        "Each order is written into a block as it arrives",
+        "A single company server stores and matches them",
+        "They sit in an Ethereum smart contract until filled"
+      ],
+      "answer": 0,
+      "explanation": "dYdX v4 validators keep unmatched orders in an in-memory book; only the resulting trades are committed on-chain."
+    },
+    {
+      "module": "four-architectures",
+      "difficulty": "medium",
+      "prompt": "In a pool-based perp design, what sets the execution price of a trade?",
+      "options": [
+        "An oracle price, adjusted by fees and price impact",
+        "The last fill on the venue's own order book",
+        "A price chosen by the trader when placing the order",
+        "The average entry price of everyone in the pool"
+      ],
+      "answer": 0,
+      "explanation": "Pool-based venues have no book to discover price, so they fill at an oracle price and add fees and price impact charges."
+    },
+    {
+      "module": "four-architectures",
+      "difficulty": "medium",
+      "prompt": "What does a validity proof on an off-chain matching venue NOT guarantee?",
+      "options": [
+        "That balances changed only as the published rules allow",
+        "That the operator could never quietly credit itself fake funds",
+        "That the operator included orders fairly and in arrival order",
+        "That posted state follows from the previous state"
+      ],
+      "answer": 2,
+      "explanation": "Proofs verify that state transitions followed the rules, but the sequencer still decides which orders to include and in what order."
+    },
+    {
+      "module": "four-architectures",
+      "difficulty": "medium",
+      "prompt": "In Variational's Omni app, who quotes the price for a user's trade?",
+      "options": [
+        "Whichever user posts the best resting order",
+        "An on-chain AMM curve with no market maker",
+        "The protocol's liquidity provider, OLP",
+        "A rotating validator chosen for each block"
+      ],
+      "answer": 2,
+      "explanation": "Omni uses an RFQ flow in which OLP is the only maker, answering every request with a quote the user can accept or reject."
+    },
+    {
+      "module": "platform-deep-dives",
+      "difficulty": "medium",
+      "prompt": "How is Hyperliquid's oracle price produced?",
+      "options": [
+        "Single feed published by one Hyperliquid server",
+        "Last trade price on Hyperliquid's own order book",
+        "Stake-weighted median of validators' weighted spot medians",
+        "Time-weighted average price of the HyperEVM AMM pools on-chain"
+      ],
+      "answer": 2,
+      "explanation": "Each validator computes a weighted median of several exchanges' spot prices, and the protocol takes a stake-weighted median of those submissions."
+    },
+    {
+      "module": "platform-deep-dives",
+      "difficulty": "medium",
+      "prompt": "What distinguishes dYdX v4 isolated markets from its default markets?",
+      "options": [
+        "They are matched off-chain by one company-operated server",
+        "They settle on Ethereum rather than on the dYdX chain",
+        "They have segregated collateral and their own insurance fund",
+        "They allow a much higher maximum leverage than others"
+      ],
+      "answer": 2,
+      "explanation": "Default dYdX markets are cross-margined and share an insurance fund, while isolated markets keep collateral and insurance separate."
+    },
+    {
+      "module": "platform-deep-dives",
+      "difficulty": "medium",
+      "prompt": "On GMX v2, what is a synthetic market?",
+      "options": [
+        "One that is traded only by keepers and never by users",
+        "One whose prices come from GMX's own order book",
+        "One whose liquidity comes from a centralized exchange",
+        "One where the traded asset is not a token backing the pool"
+      ],
+      "answer": 3,
+      "explanation": "Synthetic GM markets let traders trade an asset that is not one of the pool's backing tokens, which changes how pool solvency is managed."
+    },
+    {
+      "module": "platform-deep-dives",
+      "difficulty": "medium",
+      "prompt": "What does Lighter use zero-knowledge proofs to verify?",
+      "options": [
+        "That every trader has passed identity verification",
+        "That its oracle prices exactly match centralized exchanges",
+        "That each trade was profitable for the market maker",
+        "That order matching and liquidations followed its rules"
+      ],
+      "answer": 3,
+      "explanation": "Lighter proves the matching and liquidation logic itself, so a valid proof shows orders were processed according to the published rules."
+    },
+    {
+      "module": "platform-deep-dives",
+      "difficulty": "medium",
+      "prompt": "On Drift, what happens to part of a market order that the JIT auction does not fill?",
+      "options": [
+        "It can be filled by the protocol AMM as backstop liquidity",
+        "It is cancelled and the trader must place it again",
+        "It is sent to a centralized exchange for execution",
+        "It waits on the book until a keeper is rewarded"
+      ],
+      "answer": 0,
+      "explanation": "Drift routes unfilled size to its AMM, which provides backstop liquidity when market makers do not fill the order in the auction."
+    },
+    {
+      "module": "oracles-liquidation-engines",
+      "difficulty": "hard",
+      "prompt": "Why do venues liquidate against a mark price rather than the last traded price?",
+      "options": [
+        "The last traded price is never published to traders on-chain",
+        "The last trade can be pushed by one large order on a thin book",
+        "Mark price is always higher, which protects longs from losses",
+        "Regulators everywhere require that liquidations use an external price"
+      ],
+      "answer": 1,
+      "explanation": "A single print is easy to manipulate, so venues use a mark price that combines several inputs and is much harder to move."
+    },
+    {
+      "module": "oracles-liquidation-engines",
+      "difficulty": "hard",
+      "prompt": "Hyperliquid's mark price is a median of three inputs. What does using a median achieve?",
+      "options": [
+        "An attacker must distort at least two inputs to move it",
+        "It always equals the oracle price at every update",
+        "It removes the need for any oracle in the system",
+        "It makes the mark track the last trade more closely"
+      ],
+      "answer": 0,
+      "explanation": "With a median of three, one corrupted input is ignored, so moving the mark requires distorting a majority of the inputs."
+    },
+    {
+      "module": "oracles-liquidation-engines",
+      "difficulty": "hard",
+      "prompt": "On Hyperliquid, when can the liquidator vault take over a position?",
+      "options": [
+        "As soon as unrealized PnL becomes negative at all",
+        "Only after the insurance fund has been fully drained",
+        "Whenever a trader requests it in order to avoid market orders",
+        "When equity falls below two thirds of maintenance margin"
+      ],
+      "answer": 3,
+      "explanation": "Market liquidation comes first; positions below two thirds of the maintenance requirement can then be taken over as a backstop."
+    },
+    {
+      "module": "oracles-liquidation-engines",
+      "difficulty": "hard",
+      "prompt": "A liquidation fills at a price worse than the bankruptcy price. What does this create?",
+      "options": [
+        "A surplus that is paid out to the liquidated trader",
+        "A full refund of the trader's entire initial margin deposit",
+        "A shortfall that the insurance fund or ADL must cover",
+        "No effect, because the position has already closed"
+      ],
+      "answer": 2,
+      "explanation": "Beyond bankruptcy the collateral is gone, so the gap is bad debt absorbed by the insurance fund or, if that fails, by deleveraging."
+    },
+    {
+      "module": "oracles-liquidation-engines",
+      "difficulty": "hard",
+      "prompt": "On GMX v2, what does the reserve factor limit?",
+      "options": [
+        "How much funding long traders must pay each hour",
+        "How much of a pool can be committed to backing positions",
+        "How long a keeper may wait before executing orders",
+        "How many GM tokens a single depositor may hold"
+      ],
+      "answer": 1,
+      "explanation": "The reserve factor caps the share of pool assets that can back open positions, protecting the pool's ability to pay trader profits."
+    },
+    {
+      "module": "lps-and-vaults",
+      "difficulty": "hard",
+      "prompt": "Where does a market-making vault like HLP get its profit and loss?",
+      "options": [
+        "Fixed interest paid by the protocol treasury",
+        "Spread, funding and liquidation outcomes",
+        "Newly minted tokens issued to every depositor",
+        "Gas fees collected from HyperEVM transactions"
+      ],
+      "answer": 1,
+      "explanation": "HLP depositors share in the vault's market-making spread, funding and liquidation results, which can be positive or negative."
+    },
+    {
+      "module": "lps-and-vaults",
+      "difficulty": "hard",
+      "prompt": "A GMX v2 GM pool's traders are collectively profitable over a month. What happens to the pool?",
+      "options": [
+        "It is unaffected, because it only earns trading fees",
+        "It earns more, because profitable traders pay more",
+        "It pays out their profits, offsetting its fee income",
+        "It automatically closes every position to stop losses"
+      ],
+      "answer": 2,
+      "explanation": "The GM pool is the counterparty to trader PnL, so winning traders are paid from the pool, offsetting the fees it earns."
+    },
+    {
+      "module": "lps-and-vaults",
+      "difficulty": "hard",
+      "prompt": "What charge do Jupiter Perps traders pay instead of a funding rate?",
+      "options": [
+        "A one-time listing fee charged when each market opens",
+        "Borrow fees that compound hourly on the borrowed amount",
+        "A gas rebate paid to the validators of the network",
+        "A fixed monthly subscription charged for using any leverage"
+      ],
+      "answer": 1,
+      "explanation": "Jupiter Perps does not use funding; traders pay hourly-compounding borrow fees on the amount borrowed from the JLP pool."
+    },
+    {
+      "module": "lps-and-vaults",
+      "difficulty": "hard",
+      "prompt": "Why are oracle-priced pools especially exposed to toxic flow?",
+      "options": [
+        "Their order books show every resting order publicly",
+        "Traders can act when the oracle lags fast-moving markets",
+        "Their depositors are required to trade on every block",
+        "Their fees are always set to zero for informed market makers"
+      ],
+      "answer": 1,
+      "explanation": "If the oracle trails real prices, a fast trader can open at a stale price and profit at the pool's expense."
+    },
+    {
+      "module": "lps-and-vaults",
+      "difficulty": "hard",
+      "prompt": "What did the March 2025 JELLY episode on Hyperliquid illustrate?",
+      "options": [
+        "Thin markets can be used to target a vault",
+        "Vaults cannot lose money once they hold a position",
+        "Oracle prices on Hyperliquid were set by one exchange",
+        "Validators had no ability to change market outcomes"
+      ],
+      "answer": 0,
+      "explanation": "A trader used a thin market to push losses onto HLP, and validators intervened by delisting and settling the market."
+    },
+    {
+      "module": "execution-and-risk",
+      "difficulty": "expert",
+      "prompt": "A trader holds spot ETH and an equal-notional short ETH perp. What does the position mainly earn or pay?",
+      "options": [
+        "The full upside of any ETH price rally",
+        "Funding, net of fees and slippage",
+        "Staking rewards paid by the perp venue",
+        "A fixed yield guaranteed by the protocol"
+      ],
+      "answer": 1,
+      "explanation": "Equal spot and short-perp legs roughly cancel price exposure, so the main return is the funding received or paid, minus costs."
+    },
+    {
+      "module": "execution-and-risk",
+      "difficulty": "expert",
+      "prompt": "What is the main hidden danger when the two legs of a basis trade sit on different venues?",
+      "options": [
+        "One leg can be liquidated while its hedge cannot be used as margin",
+        "Both legs automatically net into one position that cannot be closed",
+        "Funding rates are identical on every venue so profit is always zero",
+        "Spot balances on one venue automatically pay the other venue's fees"
+      ],
+      "answer": 0,
+      "explanation": "Separate venues hold margin separately, so a sharp move can liquidate one leg even though the other leg has gained."
+    },
+    {
+      "module": "execution-and-risk",
+      "difficulty": "expert",
+      "prompt": "What does Hyperliquid's portfolio margin net together?",
+      "options": [
+        "Isolated positions held on different venues",
+        "Options on Paradex and perps on Hyperliquid",
+        "Every user's positions into a shared pool",
+        "Cross-margin perp positions and spot balances"
+      ],
+      "answer": 3,
+      "explanation": "Hyperliquid's portfolio margin combines cross-margin perps with spot balances in one account and supports automatic borrowing."
+    },
+    {
+      "module": "execution-and-risk",
+      "difficulty": "expert",
+      "prompt": "On a pool-based venue with a two-step flow, why might a fill differ from the price shown when you submitted?",
+      "options": [
+        "The pool reprices only once a day at a fixed settlement time",
+        "The venue adds a random markup to discourage frequent trading",
+        "A keeper executes later using the oracle price at that moment",
+        "Orders are batched weekly and filled at the weekly average"
+      ],
+      "answer": 2,
+      "explanation": "The request is filled a few seconds later by a keeper at the then-current oracle price; slippage limits bound how far that can be."
+    },
+    {
+      "module": "execution-and-risk",
+      "difficulty": "expert",
+      "prompt": "Why use a reduce-only flag on a stop-loss order?",
+      "options": [
+        "So it is guaranteed to fill at exactly the trigger price set",
+        "So it pays the maker fee instead of the taker fee charged",
+        "So it can never open a new position in the opposite direction",
+        "So it is hidden from other traders until it is triggered"
+      ],
+      "answer": 2,
+      "explanation": "A reduce-only order can only shrink an existing position, which prevents an oversized stop from flipping the trader's exposure."
+    },
+    {
+      "module": "security-and-failure-modes",
+      "difficulty": "expert",
+      "prompt": "What is the usual first step in an oracle manipulation attack on a perp venue?",
+      "options": [
+        "Open a large position before pushing the oracle's source markets",
+        "Hack the oracle provider's servers to publish false prices",
+        "Take over the venue's admin keys to edit account balances",
+        "Submit invalid validity proofs to the base chain contract"
+      ],
+      "answer": 0,
+      "explanation": "The attacker positions first, then moves the thin markets the oracle reads, so the venue's own price logic credits them inflated value."
+    },
+    {
+      "module": "security-and-failure-modes",
+      "difficulty": "expert",
+      "prompt": "What did the 2022 GMX v1 AVAX incident exploit?",
+      "options": [
+        "A bug that let anyone mint pool tokens for free",
+        "A stolen key that controlled the protocol treasury",
+        "A bridge flaw that duplicated deposited collateral",
+        "Zero price impact on large trades against the pool"
+      ],
+      "answer": 3,
+      "explanation": "With no price impact, a trader could move AVAX on reference venues and trade large size against the pool at the manipulated price."
+    },
+    {
+      "module": "security-and-failure-modes",
+      "difficulty": "expert",
+      "prompt": "On a validity rollup, what can a single sequencer still do despite proofs?",
+      "options": [
+        "Credit itself funds that it never had",
+        "Delay, censor or reorder transactions",
+        "Post state that breaks the protocol's rules",
+        "Rewrite blocks that are already proven"
+      ],
+      "answer": 1,
+      "explanation": "Validity proofs prevent invalid state changes, but ordering and inclusion stay under the sequencer's control."
+    },
+    {
+      "module": "security-and-failure-modes",
+      "difficulty": "expert",
+      "prompt": "Why is Paradex's encrypted state data relevant to its trust model?",
+      "options": [
+        "It allows the operator to change balances without proofs",
+        "Users need the keyholders to rebuild state in an emergency",
+        "It means trades are never settled on any blockchain at all",
+        "It removes any need for an escape hatch or forced exit"
+      ],
+      "answer": 1,
+      "explanation": "Encrypted data gives traders privacy, but outsiders cannot reconstruct the state independently, which matters if the operator fails."
+    },
+    {
+      "module": "security-and-failure-modes",
+      "difficulty": "expert",
+      "prompt": "Why can volume on a venue with a points program overstate real demand?",
+      "options": [
+        "Rewards invite wash trading and farming across many wallets",
+        "Points are counted as trading volume on most dashboards",
+        "Points programs double the fees that every trader pays",
+        "Venues with points are not allowed to publish real volume"
+      ],
+      "answer": 0,
+      "explanation": "When activity earns rewards, some participants trade with themselves or split across wallets, inflating volume without real demand."
+    }
+  ]
+}

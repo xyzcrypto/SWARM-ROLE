@@ -5,7 +5,7 @@ import { AcademyNav } from "@modules/academy/components/AcademyNav";
 import { GuideDock } from "@modules/academy/components/Guide";
 
 // Shared frame for every /academy page: the site header, the Academy's own
-// tab bar and Nova's floating guide. No data is read here, so it never makes
+// tab bar and AneQue's floating guide. No data is read here, so it never makes
 // a page dynamic.
 export default function AcademyLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -27,6 +27,12 @@ import {
   Trophy,
   Vote,
   Waypoints,
+  Route,
+  Building2,
+  Briefcase,
+  Gift,
+  Cpu,
+  Atom,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -60,6 +66,12 @@ export const ICONS: Record<string, LucideIcon> = {
   GraduationCap,
   BadgeCheck,
   BookOpen,
+  Route,
+  Building2,
+  Briefcase,
+  Gift,
+  Cpu,
+  Atom,
 };
 
 export function Icon({ name, className }: { name: string; className?: string }) {
