@@ -1,159 +1,212 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Flame, Play, Radio, Trophy, Users, Zap } from "lucide-react";
+import { ArrowRight, CalendarDays, CheckCircle2, Flame, Headphones, Pause, Radio, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { NetworkCanvas } from "./NetworkCanvas";
-import { GuideOrb } from "./Guide";
+import { NovaCaption, NovaWave } from "./Guide";
 import { Avatar, CountUp, fmt, ProgressBar } from "./ui";
-import { say, unlock } from "../client/audio";
+import { pauseVoice, play, resumeVoice, unlock, type Piece } from "../client/audio";
 import { useAudio, type Me } from "../client/hooks";
+import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import type { Pulse } from "./types";
 
 const ease = [0.22, 1, 0.36, 1] as const;
+const vline = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
 
-function Line({ children, i, className }: { children: React.ReactNode; i: number; className?: string }) {
-  return (
-    <motion.span
-      className={cn("block", className)}
-      initial={{ opacity: 0, y: 28, filter: "blur(8px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ duration: 0.8, delay: 0.1 + i * 0.12, ease }}
-    >
-      {children}
-    </motion.span>
-  );
+/** Time left until the daily challenge rolls over (00:00 UTC). Client-only, after mount. */
+function useUntilUtcMidnight() {
+  const [left, setLeft] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now();
+      const next = Date.UTC(new Date(now).getUTCFullYear(), new Date(now).getUTCMonth(), new Date(now).getUTCDate() + 1);
+      setLeft(next - now);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return left;
 }
 
-function LiveChip({ icon, value, label, live }: { icon: React.ReactNode; value: number | null; label: string; live?: boolean }) {
+const hms = (ms: number) => {
+  const s = Math.floor(ms / 1000);
+  return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map((n) => String(n).padStart(2, "0")).join(":");
+};
+
+function Stat({ value, label, live }: { value: number | null; label: string; live?: boolean }) {
   return (
-    <div className="flex items-center gap-2 rounded-full border border-hairline bg-ink-900/60 px-3 py-1.5 text-xs text-content-muted backdrop-blur">
-      {live ? <span className="acad-live-dot h-1.5 w-1.5 rounded-full bg-mint-400 text-mint-400" /> : icon}
-      <span className="font-semibold tabular-nums text-content">{value == null ? "–" : <CountUp value={value} />}</span>
-      {label}
+    <div className="min-w-0">
+      <div className="flex items-center gap-2 font-display text-2xl font-semibold tabular-nums text-content sm:text-3xl">
+        {live && <span className="acad-live-dot h-2 w-2 rounded-full bg-mint-400 text-mint-400" />}
+        {value == null ? <span className="text-content-subtle">–</span> : <CountUp value={value} />}
+      </div>
+      <div className="mt-0.5 text-xs text-content-subtle">{label}</div>
     </div>
   );
 }
 
-export function Hero({ pulse, me }: { pulse: Pulse | null; me: Me | null }) {
+export function Hero({ pulse, me, topics, questions }: { pulse: Pulse | null; me: Me | null; topics: number | null; questions: number | null }) {
   const { voice } = useAudio();
   const speaking = voice.speaking && !voice.paused;
+  const left = useUntilUtcMidnight();
   const top = pulse?.top?.slice(0, 3) ?? [];
+  const daily = me?.daily;
+
+  const hearNova = () => {
+    unlock();
+    if (speaking) return pauseVoice();
+    if (voice.paused) return resumeVoice();
+    play(me ? [vline("welcome_back"), vline(daily?.status === "done" ? "daily_done" : "daily_new")] : [vline("welcome"), vline("learn_pick")]);
+  };
 
   return (
-    <section className="relative isolate -mx-5 overflow-hidden px-5 pb-12 pt-6 sm:mx-0 sm:rounded-[2.5rem] sm:border sm:border-hairline sm:px-10 sm:pb-16 sm:pt-12 lg:px-14">
-      <div className="acad-grid-bg pointer-events-none absolute inset-0 -z-10" aria-hidden />
-      <NetworkCanvas className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-80" />
-      <div className="pointer-events-none absolute -right-24 -top-24 -z-10 h-96 w-96 rounded-full bg-gold-500/10 blur-3xl" aria-hidden />
-
-      <div className="grid items-center gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-6">
-        <div className="min-w-0">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease }} className="eyebrow-glass inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-200">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold-300" /> XYZ Crypto Academy
-          </motion.div>
-          <h1 className="mt-6 font-display text-[clamp(2.1rem,6.4vw,4.6rem)] font-bold uppercase leading-[0.98] tracking-[-0.03em] text-content">
-            <Line i={0}>
-              <span className="text-shimmer">Master Web3.</span>
-            </Line>
-            <Line i={1}>
-              <span className="text-shimmer">Prove your knowledge.</span>
-            </Line>
-            <Line i={2}>
-              <span className="text-shine">Dominate the leaderboard.</span>
-            </Line>
+    <section className="relative isolate">
+      <div className="acad-ruled pointer-events-none absolute inset-x-0 -top-6 bottom-0 -z-10" aria-hidden />
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start lg:gap-14 xl:grid-cols-[minmax(0,1fr)_27rem]">
+        {/* ---------- copy ---------- */}
+        <div className="min-w-0 pt-2 lg:pt-8">
+          <motion.p initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="text-[13px] font-medium text-content-muted">
+            <span className="font-semibold text-gold-300">XYZ Crypto Academy</span>
+            <span className="mx-2 text-content-subtle">/</span>
+            {topics ?? 14} topics, {questions ?? 280} questions, live quizzes every week
+          </motion.p>
+          <h1 className="mt-5 font-display text-[clamp(2.25rem,5.6vw,4.25rem)] font-bold leading-[1.02] tracking-[-0.035em] text-content">
+            {["Master Web3.", "Prove your knowledge.", "Dominate the leaderboard."].map((t, i) => (
+              <motion.span
+                key={t}
+                className="block"
+                initial={{ opacity: 0, y: 22 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.08 + i * 0.1, ease }}
+              >
+                {i === 2 ? <span className="text-gold-gradient">{t}</span> : t}
+              </motion.span>
+            ))}
           </h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.55 }} className="mt-6 max-w-xl text-base leading-relaxed text-content-muted sm:text-lg">
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.45 }} className="mt-6 max-w-xl text-[17px] leading-relaxed text-content-muted">
             Learn Web3 through interactive challenges, compete in live quizzes, earn XP, and become one of the top Web3 minds in the community.
           </motion.p>
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.7, ease }} className="mt-8 flex flex-wrap items-center gap-3">
-            <Link href={me?.next ? `/academy/learn/${me.next.categorySlug}/${me.next.moduleSlug}` : "/academy/learn"} className="btn-primary group h-12 px-6 text-sm">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55, ease }} className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
+            <Link href={me?.next ? `/academy/learn/${me.next.categorySlug}/${me.next.moduleSlug}` : "/academy/learn"} className="btn-primary group h-12 justify-center whitespace-nowrap px-3 text-[13px] sm:px-6 sm:text-sm">
               Start Learning <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
             </Link>
-            <Link href="/academy/live" className="btn-gold group h-12 px-6 text-sm">
+            <Link href="/academy/live" className="btn-gold h-12 justify-center whitespace-nowrap px-3 text-[13px] sm:px-6 sm:text-sm">
               <Radio className="h-4 w-4" /> Enter Live Quiz
             </Link>
           </motion.div>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8, delay: 0.9 }} className="mt-8 flex flex-wrap gap-2">
-            <LiveChip live value={pulse?.learningNow ?? null} label="learning now" icon={null} />
-            <LiveChip icon={<Zap className="h-3.5 w-3.5 text-gold-300" />} value={pulse?.quizzesToday ?? null} label="quizzes today" />
-            <LiveChip icon={<Users className="h-3.5 w-3.5 text-sky-300" />} value={pulse ? pulse.liveParticipants : null} label={pulse?.liveNow ? "in live quizzes" : "in live quizzes now"} />
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.7 }} className="mt-10 grid max-w-lg grid-cols-3 gap-4 border-t border-hairline pt-6">
+            <Stat live value={pulse?.learningNow ?? null} label="learning now" />
+            <Stat value={pulse?.quizzesToday ?? null} label="quizzes today" />
+            <Stat value={pulse ? pulse.liveParticipants : null} label="in live quizzes" />
           </motion.div>
         </div>
 
-        {/* Nova + previews */}
-        <div className="relative mx-auto flex w-full max-w-md flex-col items-center lg:max-w-none">
-          <motion.button
-            type="button"
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1, delay: 0.2, ease }}
-            onClick={() => {
-              unlock();
-              say(me ? "welcome_back" : "welcome");
-            }}
-            className="acad-float relative rounded-full focus-visible:outline-none"
-            aria-label="Hear Nova, your Academy guide"
-          >
-            <GuideOrb size={200} speaking={speaking} className="sm:!h-[280px] sm:!w-[280px]" />
-            <span className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-gold-400/30 bg-ink-950/80 px-3 py-1 text-[11px] font-semibold text-gold-200 backdrop-blur">
-              <Play className="h-3 w-3" /> {speaking ? "Nova is speaking" : "Hear Nova"}
-            </span>
-          </motion.button>
+        {/* ---------- today card ---------- */}
+        <motion.aside
+          initial={{ opacity: 0, y: 24, rotate: -1.2 }}
+          animate={{ opacity: 1, y: 0, rotate: 0 }}
+          transition={{ duration: 0.8, delay: 0.25, ease }}
+          className="acad-ticket relative min-w-0 overflow-hidden rounded-[1.75rem] border border-hairline bg-ink-900/80 shadow-elevate"
+          aria-label="Today in the Academy"
+        >
+          <div className="p-5 sm:p-6">
+            <div className="flex items-center justify-between gap-3">
+              <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+                <CalendarDays className="h-3.5 w-3.5 text-gold-300" /> Daily challenge
+              </span>
+              <span className="font-mono text-xs tabular-nums text-content-muted" title="Resets at 00:00 UTC">
+                {left == null ? "--:--:--" : hms(left)} left
+              </span>
+            </div>
+            {daily?.status === "done" ? (
+              <div className="mt-4">
+                <div className="flex items-center gap-2 font-display text-2xl font-semibold text-content">
+                  <CheckCircle2 className="h-6 w-6 text-mint-300" /> {daily.correct}/{daily.total} today
+                </div>
+                <p className="mt-1 text-sm text-content-muted">{fmt(daily.score)} points. A new set opens when the clock above runs out.</p>
+              </div>
+            ) : (
+              <div className="mt-4">
+                <div className="font-display text-2xl font-semibold leading-tight text-content">Ten questions. Same for everyone.</div>
+                <p className="mt-1 text-sm text-content-muted">One attempt, bonus XP, and today&apos;s leaderboard is still open.</p>
+              </div>
+            )}
+            <Link href={me ? "/academy/quiz?mode=daily" : "/login?callbackUrl=/academy/quiz?mode=daily"} className="btn-gold mt-5 h-11 w-full justify-center text-sm">
+              {daily?.status === "done" ? "See your answers" : daily?.status === "active" ? "Resume today's challenge" : "Play today's challenge"}
+            </Link>
+          </div>
 
-          <div className="mt-6 grid w-full gap-3 sm:grid-cols-2">
-            <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.8, ease }} className="glass rounded-2xl p-4">
+          <div className="acad-perforation" aria-hidden />
+
+          <div className="grid grid-cols-2 gap-4 px-5 py-4 sm:px-6">
+            <div className="min-w-0">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Your run</div>
               {me ? (
                 <>
-                  <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
-                    <span>Level {me.level.level}</span>
-                    <span className="text-gold-300">{me.level.name}</span>
+                  <div className="mt-1 flex items-center gap-1.5 font-display text-lg font-semibold text-content">
+                    <Flame className={cn("h-4 w-4", me.streak ? "text-gold-300" : "text-content-subtle")} /> {me.streak} day{me.streak === 1 ? "" : "s"}
                   </div>
-                  <div className="mt-2 font-display text-2xl font-bold text-content">
-                    <CountUp value={me.xp} /> <span className="text-sm font-semibold text-gold-300">XP</span>
+                  <div className="mt-2 text-[11px] text-content-subtle">
+                    Lv {me.level.level} · {fmt(me.xp)} XP
                   </div>
-                  <ProgressBar value={me.level.progress} className="mt-3" />
-                  <div className="mt-1.5 text-[11px] text-content-subtle">{me.level.next == null ? "Max level reached" : `${fmt(me.level.toNext)} XP to level ${me.level.level + 1}`}</div>
+                  <ProgressBar value={me.level.progress} className="mt-1.5 h-1.5" />
                 </>
               ) : (
-                <>
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Your progress</div>
-                  <div className="mt-2 text-sm leading-relaxed text-content-muted">Every correct answer earns XP. Six levels from Web3 Beginner to Crypto Legend.</div>
-                  <Link href="/login?callbackUrl=/academy" className="mt-3 inline-flex text-xs font-semibold text-gold-300 hover:text-gold-200">
-                    Sign in to start tracking →
-                  </Link>
-                </>
+                <Link href="/login?callbackUrl=/academy" className="mt-1 block text-sm font-semibold text-gold-300 hover:underline">
+                  Sign in to track XP
+                </Link>
               )}
-            </motion.div>
-            <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.95, ease }} className="glass rounded-2xl p-4">
-              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
-                <span>This week</span>
-                <Trophy className="h-3.5 w-3.5 text-gold-300" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">
+                <Trophy className="h-3 w-3 text-gold-300" /> This week
               </div>
               {top.length ? (
-                <ul className="mt-2 space-y-1.5">
+                <ol className="mt-1.5 space-y-1">
                   {top.map((r) => (
-                    <li key={r.userId} className="flex items-center gap-2 text-sm">
-                      <span className={cn("w-4 text-center font-mono text-xs font-bold", r.rank === 1 ? "text-gold-300" : r.rank === 2 ? "text-zinc-300" : "text-amber-600")}>{r.rank}</span>
-                      <Avatar src={r.image} alt={r.name} size={22} />
+                    <li key={r.userId} className="flex items-center gap-1.5 text-[13px]">
+                      <span className="w-3 font-mono text-[11px] text-content-subtle">{r.rank}</span>
+                      <Avatar src={r.image} alt={r.name} size={18} />
                       <span className="min-w-0 flex-1 truncate text-content">{r.name}</span>
-                      <span className="font-mono text-xs text-gold-300">{fmt(r.xp)}</span>
                     </li>
                   ))}
-                </ul>
+                </ol>
               ) : (
-                <div className="mt-2 text-sm leading-relaxed text-content-muted">
-                  {pulse ? "No one has scored this week yet. The top spot is open." : "Loading the board…"}
-                </div>
+                <div className="mt-1 text-sm text-content-muted">{pulse ? "Nobody yet. Be first." : "…"}</div>
               )}
-              {me?.streak ? (
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-content-subtle">
-                  <Flame className="h-3.5 w-3.5 text-gold-300" /> {me.streak}-day streak
-                </div>
-              ) : null}
-            </motion.div>
+            </div>
           </div>
-        </div>
+
+          {/* Nova */}
+          <div className="border-t border-hairline bg-ink-950/60 px-5 py-4 sm:px-6">
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={hearNova}
+                className={cn("relative grid h-11 w-11 shrink-0 place-items-center rounded-full border transition-colors", speaking ? "border-gold-400/70 bg-gold-400/15 text-gold-200" : "border-hairline bg-ink-900 text-content")}
+                aria-label={speaking ? "Pause Nova" : "Hear Nova"}
+              >
+                {speaking ? <Pause className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
+                {speaking && <span className="absolute inset-0 animate-ping rounded-full border border-gold-400/40" />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-content">Nova</span>
+                  <span className="text-[11px] text-content-subtle">{speaking ? "speaking" : voice.paused ? "paused" : "your study partner"}</span>
+                </div>
+                <NovaWave speaking={speaking} bars={28} className="mt-1 h-5" />
+              </div>
+            </div>
+            <NovaCaption
+              text={voice.text || "Tap the headphones and I'll walk you through today. I read every question in my own voice."}
+              speaking={speaking}
+              className="mt-3 line-clamp-3 text-[13px] leading-relaxed"
+            />
+          </div>
+        </motion.aside>
       </div>
     </section>
   );

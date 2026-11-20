@@ -192,6 +192,34 @@ function ensure(): AudioContext | null {
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      // A small room: a generated stereo impulse (2.2s, darkening tail) shared
+      // by effects and music, so everything sounds like it is in one space.
+      try {
+        const len = Math.floor(ctx.sampleRate * 2.2);
+        const ir = ctx.createBuffer(2, len, ctx.sampleRate);
+        for (let ch = 0; ch < 2; ch++) {
+          const x = ir.getChannelData(ch);
+          let lp = 0;
+          for (let i = 0; i < len; i++) {
+            const t = i / len;
+            lp += ((Math.random() * 2 - 1) - lp) * (0.6 - 0.45 * t);
+            x[i] = lp * Math.pow(1 - t, 2.6);
+          }
+        }
+        const verb = ctx.createConvolver();
+        verb.buffer = ir;
+        const ret = ctx.createGain();
+        ret.gain.value = 0.55;
+        verb.connect(ret).connect(master);
+        const sfxSend = ctx.createGain();
+        sfxSend.gain.value = 0.22;
+        sfxBus.connect(sfxSend).connect(verb);
+        const musicSend = ctx.createGain();
+        musicSend.gain.value = 0.45;
+        musicBus.connect(musicSend).connect(verb);
+      } catch {
+        /* no convolver: dry sound */
+      }
       applyGains();
     }
     if (ctx.state === "suspended") void ctx.resume();
@@ -222,113 +250,200 @@ export function unlock() {
   }
 }
 
-type Tone = { f: number; to?: number; at: number; dur: number; type?: OscillatorType; gain?: number; noise?: boolean; hp?: number };
+// ---------- instruments
+//
+// Three voices that sound like objects, not beeps:
+//   pluck  marimba-ish: a sine with its 4th partial, both decaying fast
+//   bell   FM bell: carrier + inharmonic modulator (ratio 3.5) whose depth decays
+//   keys   electric-piano-ish FM with a gentle tremolo, for the Night track
+// Everything is slightly humanised: a few ms of timing and ~15% of velocity
+// jitter per note, the way a person never hits two notes identically.
+
+type Voice = "pluck" | "bell" | "keys" | "osc" | "noise" | "thud";
+type Tone = { f: number; to?: number; at: number; dur: number; type?: OscillatorType; gain?: number; v?: Voice; hp?: number };
 const midi = (n: number) => 440 * Math.pow(2, (n - 69) / 12);
+const human = (g: number) => g * (0.88 + Math.random() * 0.24);
+const jitter = () => (Math.random() - 0.5) * 0.008;
+
+function env(g: GainNode, at: number, peak: number, attack: number, dur: number) {
+  g.gain.setValueAtTime(0.0001, at);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), at + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
+}
+
+function playVoice(t: Tone, at: number, bus: AudioNode) {
+  const c = ctx!;
+  const peak = human(t.gain ?? 0.25);
+  const out = c.createGain();
+  const pan = c.createStereoPanner ? c.createStereoPanner() : null;
+  if (pan) {
+    pan.pan.value = (Math.random() - 0.5) * 0.3;
+    out.connect(pan).connect(bus);
+  } else out.connect(bus);
+  const v = t.v ?? (t.type ? "osc" : "osc");
+  if (v === "noise") {
+    if (!noise) return;
+    const s = c.createBufferSource();
+    s.buffer = noise;
+    const f = c.createBiquadFilter();
+    f.type = "highpass";
+    f.frequency.value = t.hp ?? 2000;
+    s.connect(f).connect(out);
+    env(out, at, peak, 0.005, t.dur);
+    s.start(at, Math.random() * 0.5);
+    s.stop(at + t.dur + 0.05);
+    return;
+  }
+  if (v === "pluck") {
+    for (const [mult, g, d] of [
+      [1, 1, 1],
+      [4, 0.25, 0.35],
+      [10, 0.06, 0.12],
+    ] as const) {
+      const o = c.createOscillator();
+      const og = c.createGain();
+      o.frequency.value = t.f * mult;
+      env(og, at, peak * g, 0.003, t.dur * d);
+      o.connect(og).connect(out);
+      o.start(at);
+      o.stop(at + t.dur + 0.05);
+    }
+    out.gain.value = 1;
+    return;
+  }
+  if (v === "bell" || v === "keys") {
+    const carrier = c.createOscillator();
+    const mod = c.createOscillator();
+    const modGain = c.createGain();
+    const ratio = v === "bell" ? 3.5 : 1;
+    carrier.frequency.value = t.f;
+    mod.frequency.value = t.f * ratio;
+    const depth = t.f * (v === "bell" ? 2.4 : 0.9);
+    modGain.gain.setValueAtTime(depth, at);
+    modGain.gain.exponentialRampToValueAtTime(Math.max(1, depth * 0.05), at + t.dur * (v === "bell" ? 0.6 : 0.3));
+    mod.connect(modGain).connect(carrier.frequency);
+    const cg = c.createGain();
+    env(cg, at, peak, v === "bell" ? 0.002 : 0.008, t.dur);
+    carrier.connect(cg).connect(out);
+    if (v === "keys") {
+      const trem = c.createOscillator();
+      const tg = c.createGain();
+      trem.frequency.value = 4.5;
+      tg.gain.value = 0.12;
+      trem.connect(tg).connect(cg.gain);
+      trem.start(at);
+      trem.stop(at + t.dur + 0.05);
+    }
+    out.gain.value = 1;
+    carrier.start(at);
+    mod.start(at);
+    carrier.stop(at + t.dur + 0.05);
+    mod.stop(at + t.dur + 0.05);
+    return;
+  }
+  if (v === "thud") {
+    const o = c.createOscillator();
+    o.frequency.setValueAtTime(t.f, at);
+    o.frequency.exponentialRampToValueAtTime(t.to ?? t.f * 0.6, at + t.dur);
+    const f = c.createBiquadFilter();
+    f.type = "lowpass";
+    f.frequency.value = 900;
+    o.connect(f).connect(out);
+    env(out, at, peak, 0.006, t.dur);
+    o.start(at);
+    o.stop(at + t.dur + 0.05);
+    return;
+  }
+  const o = c.createOscillator();
+  o.type = t.type ?? "sine";
+  o.frequency.setValueAtTime(t.f, at);
+  if (t.to) o.frequency.exponentialRampToValueAtTime(t.to, at + t.dur);
+  o.connect(out);
+  env(out, at, peak, 0.008, t.dur);
+  o.start(at);
+  o.stop(at + t.dur + 0.05);
+}
 
 const SFX: Record<Sfx, Tone[]> = {
-  click: [{ f: 1800, at: 0, dur: 0.035, type: "triangle", gain: 0.16 }],
-  hover: [{ f: 2600, at: 0, dur: 0.018, type: "sine", gain: 0.05 }],
-  select: [{ f: 900, to: 1300, at: 0, dur: 0.07, type: "sine", gain: 0.22 }],
+  click: [{ f: midi(96), at: 0, dur: 0.05, v: "pluck", gain: 0.06 }],
+  hover: [{ f: midi(100), at: 0, dur: 0.03, v: "pluck", gain: 0.02 }],
+  select: [{ f: midi(84), at: 0, dur: 0.14, v: "pluck", gain: 0.14 }],
   correct: [
-    { f: midi(76), at: 0, dur: 0.14, type: "triangle", gain: 0.35 },
-    { f: midi(81), at: 0.09, dur: 0.16, type: "triangle", gain: 0.35 },
-    { f: midi(88), at: 0.18, dur: 0.34, type: "sine", gain: 0.3 },
+    { f: midi(76), at: 0, dur: 0.5, v: "pluck", gain: 0.24 },
+    { f: midi(80), at: 0.075, dur: 0.5, v: "pluck", gain: 0.22 },
+    { f: midi(83), at: 0.15, dur: 0.7, v: "pluck", gain: 0.24 },
+    { f: midi(88), at: 0.15, dur: 1.2, v: "bell", gain: 0.05 },
   ],
   wrong: [
-    { f: midi(57), at: 0, dur: 0.18, type: "sine", gain: 0.35 },
-    { f: midi(52), at: 0.12, dur: 0.34, type: "sine", gain: 0.3 },
+    { f: 196, to: 150, at: 0, dur: 0.28, v: "thud", gain: 0.32 },
+    { f: 165, to: 120, at: 0.13, dur: 0.38, v: "thud", gain: 0.26 },
   ],
   xp: [
-    { f: midi(84), at: 0, dur: 0.08, type: "square", gain: 0.07 },
-    { f: midi(88), at: 0.06, dur: 0.08, type: "square", gain: 0.07 },
-    { f: midi(91), at: 0.12, dur: 0.14, type: "square", gain: 0.07 },
+    { f: midi(88), at: 0, dur: 0.5, v: "bell", gain: 0.06 },
+    { f: midi(95), at: 0.07, dur: 0.6, v: "bell", gain: 0.05 },
   ],
   coin: [
-    { f: midi(83), at: 0, dur: 0.06, type: "square", gain: 0.08 },
-    { f: midi(88), at: 0.05, dur: 0.22, type: "square", gain: 0.08 },
+    { f: midi(88), at: 0, dur: 0.45, v: "bell", gain: 0.07 },
+    { f: midi(93), at: 0.06, dur: 0.7, v: "bell", gain: 0.07 },
   ],
   levelup: [
-    { f: midi(72), at: 0, dur: 0.18, type: "triangle", gain: 0.3 },
-    { f: midi(76), at: 0.12, dur: 0.18, type: "triangle", gain: 0.3 },
-    { f: midi(79), at: 0.24, dur: 0.18, type: "triangle", gain: 0.3 },
-    { f: midi(84), at: 0.36, dur: 0.7, type: "triangle", gain: 0.32 },
-    { f: midi(88), at: 0.36, dur: 0.8, type: "sine", gain: 0.2 },
-    { f: midi(91), at: 0.36, dur: 0.9, type: "sine", gain: 0.14 },
-    { f: 0, at: 0.3, dur: 0.6, noise: true, hp: 6000, gain: 0.06 },
+    { f: midi(72), at: 0, dur: 0.6, v: "pluck", gain: 0.22 },
+    { f: midi(76), at: 0.11, dur: 0.6, v: "pluck", gain: 0.22 },
+    { f: midi(79), at: 0.22, dur: 0.6, v: "pluck", gain: 0.22 },
+    { f: midi(84), at: 0.33, dur: 1.6, v: "bell", gain: 0.12 },
+    { f: midi(88), at: 0.4, dur: 1.8, v: "bell", gain: 0.08 },
+    { f: midi(91), at: 0.47, dur: 2.0, v: "bell", gain: 0.06 },
+    { f: 0, at: 0.33, dur: 0.9, v: "noise", hp: 7000, gain: 0.03 },
   ],
-  tick: [{ f: 1200, at: 0, dur: 0.03, type: "square", gain: 0.05 }],
-  count: [{ f: midi(81), at: 0, dur: 0.16, type: "triangle", gain: 0.28 }],
+  tick: [{ f: midi(100), at: 0, dur: 0.04, v: "pluck", gain: 0.05 }],
+  count: [{ f: midi(81), at: 0, dur: 0.4, v: "bell", gain: 0.1 }],
   go: [
-    { f: midi(67), at: 0, dur: 0.12, type: "triangle", gain: 0.3 },
-    { f: midi(79), at: 0.1, dur: 0.38, type: "triangle", gain: 0.32 },
+    { f: midi(81), at: 0, dur: 0.3, v: "pluck", gain: 0.18 },
+    { f: midi(88), at: 0.09, dur: 0.9, v: "bell", gain: 0.12 },
   ],
   heartbeat: [
-    { f: 70, to: 45, at: 0, dur: 0.12, type: "sine", gain: 0.5 },
-    { f: 66, to: 42, at: 0.16, dur: 0.12, type: "sine", gain: 0.38 },
+    { f: 80, to: 48, at: 0, dur: 0.16, v: "thud", gain: 0.45 },
+    { f: 72, to: 44, at: 0.2, dur: 0.16, v: "thud", gain: 0.32 },
   ],
   winner: [
-    { f: midi(72), at: 0, dur: 0.16, type: "triangle", gain: 0.3 },
-    { f: midi(72), at: 0.16, dur: 0.16, type: "triangle", gain: 0.3 },
-    { f: midi(72), at: 0.32, dur: 0.16, type: "triangle", gain: 0.3 },
-    { f: midi(79), at: 0.5, dur: 0.5, type: "triangle", gain: 0.34 },
-    { f: midi(84), at: 0.5, dur: 0.9, type: "sine", gain: 0.24 },
-    { f: midi(88), at: 0.75, dur: 0.9, type: "sine", gain: 0.16 },
-    { f: 0, at: 0.5, dur: 1.0, noise: true, hp: 7000, gain: 0.05 },
+    { f: midi(72), at: 0, dur: 0.4, v: "pluck", gain: 0.2 },
+    { f: midi(76), at: 0.12, dur: 0.4, v: "pluck", gain: 0.2 },
+    { f: midi(79), at: 0.24, dur: 0.4, v: "pluck", gain: 0.2 },
+    { f: midi(84), at: 0.36, dur: 2.2, v: "bell", gain: 0.13 },
+    { f: midi(88), at: 0.36, dur: 2.2, v: "bell", gain: 0.09 },
+    { f: midi(91), at: 0.5, dur: 2.4, v: "bell", gain: 0.07 },
+    { f: 0, at: 0.36, dur: 1.2, v: "noise", hp: 7500, gain: 0.025 },
   ],
   achievement: [
-    { f: midi(83), at: 0, dur: 0.12, type: "sine", gain: 0.28 },
-    { f: midi(88), at: 0.08, dur: 0.12, type: "sine", gain: 0.28 },
-    { f: midi(95), at: 0.16, dur: 0.55, type: "sine", gain: 0.24 },
+    { f: midi(83), at: 0, dur: 1.0, v: "bell", gain: 0.1 },
+    { f: midi(88), at: 0.09, dur: 1.2, v: "bell", gain: 0.1 },
+    { f: midi(95), at: 0.18, dur: 1.6, v: "bell", gain: 0.08 },
   ],
-  whoosh: [{ f: 0, at: 0, dur: 0.22, noise: true, hp: 2500, gain: 0.08 }],
+  whoosh: [{ f: 0, at: 0, dur: 0.28, v: "noise", hp: 1800, gain: 0.05 }],
   fifty: [
-    { f: 1400, to: 300, at: 0, dur: 0.25, type: "sawtooth", gain: 0.05 },
-    { f: 0, at: 0, dur: 0.2, noise: true, hp: 3000, gain: 0.06 },
+    { f: 0, at: 0, dur: 0.25, v: "noise", hp: 2500, gain: 0.05 },
+    { f: midi(70), at: 0.02, dur: 0.3, v: "pluck", gain: 0.14 },
+    { f: midi(65), at: 0.1, dur: 0.35, v: "pluck", gain: 0.12 },
   ],
   fire: [
-    { f: 0, at: 0, dur: 0.35, noise: true, hp: 1200, gain: 0.08 },
-    { f: midi(79), at: 0.05, dur: 0.12, type: "triangle", gain: 0.2 },
-    { f: midi(86), at: 0.14, dur: 0.26, type: "triangle", gain: 0.2 },
+    { f: 0, at: 0, dur: 0.45, v: "noise", hp: 900, gain: 0.05 },
+    { f: midi(84), at: 0.05, dur: 0.4, v: "pluck", gain: 0.16 },
+    { f: midi(91), at: 0.13, dur: 0.9, v: "bell", gain: 0.08 },
   ],
   lock: [
-    { f: 520, at: 0, dur: 0.05, type: "square", gain: 0.1 },
-    { f: 780, at: 0.05, dur: 0.08, type: "square", gain: 0.08 },
+    { f: midi(79), at: 0, dur: 0.12, v: "pluck", gain: 0.14 },
+    { f: midi(86), at: 0.06, dur: 0.2, v: "pluck", gain: 0.12 },
   ],
   reveal: [
-    ...Array.from({ length: 10 }, (_, i) => ({ f: 0, at: i * 0.045, dur: 0.04, noise: true, hp: 900, gain: 0.04 + i * 0.006 })),
-    { f: midi(74), at: 0.46, dur: 0.3, type: "triangle" as OscillatorType, gain: 0.25 },
+    ...Array.from({ length: 12 }, (_, i): Tone => ({ f: 0, at: i * 0.04, dur: 0.035, v: "noise", hp: 700, gain: 0.025 + i * 0.004 })),
+    { f: midi(86), at: 0.5, dur: 1.0, v: "bell", gain: 0.1 },
   ],
-  pop: [{ f: 600, to: 1600, at: 0, dur: 0.06, type: "sine", gain: 0.2 }],
+  pop: [{ f: midi(91), at: 0, dur: 0.12, v: "pluck", gain: 0.12 }],
 };
 
-function playTones(tones: Tone[], bus: GainNode, at = 0) {
-  const c = ctx!;
-  const now = c.currentTime + 0.01 + at;
-  for (const t of tones) {
-    const g = c.createGain();
-    const peak = t.gain ?? 0.25;
-    g.gain.setValueAtTime(0.0001, now + t.at);
-    g.gain.exponentialRampToValueAtTime(peak, now + t.at + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, now + t.at + t.dur);
-    if (t.noise && noise) {
-      const src = c.createBufferSource();
-      src.buffer = noise;
-      const f = c.createBiquadFilter();
-      f.type = "highpass";
-      f.frequency.value = t.hp ?? 2000;
-      src.connect(f).connect(g).connect(bus);
-      src.start(now + t.at, Math.random() * 0.5);
-      src.stop(now + t.at + t.dur + 0.05);
-    } else {
-      const o = c.createOscillator();
-      o.type = t.type ?? "sine";
-      o.frequency.setValueAtTime(t.f, now + t.at);
-      if (t.to) o.frequency.exponentialRampToValueAtTime(t.to, now + t.at + t.dur);
-      o.connect(g).connect(bus);
-      o.start(now + t.at);
-      o.stop(now + t.at + t.dur + 0.05);
-    }
-  }
+function playTones(tones: Tone[], bus: AudioNode, at = 0) {
+  const now = ctx!.currentTime + 0.01 + at;
+  for (const t of tones) playVoice(t, now + t.at + (t.at ? jitter() : 0), bus);
 }
 
 let lastHover = 0;
@@ -347,10 +462,10 @@ export function sfx(name: Sfx) {
 //
 // Three generative tracks on one look-ahead scheduler (a 16th-note grid,
 // notes queued 150ms ahead), all on Am9 - Fmaj9 - Cmaj9 - G6 so switching
-// never clashes:
-//   focus  slow wide pads for reading and lessons
-//   arena  112 bpm pulse: soft kick, hats, bass and a plucked arp, for quizzes
-//   night  76 bpm lo-fi keys with a brushed beat
+// never clashes, all through the same room reverb:
+//   focus  slow chorused pads with a breathing filter, for reading
+//   arena  112 bpm with swing: soft kick, brushed hats, round bass, marimba arp
+//   night  76 bpm lo-fi: electric-piano chords, lazy kick, rim, faint vinyl
 
 const CHORDS = [
   [45, 57, 60, 64, 71],
@@ -367,85 +482,71 @@ let schedTimer: ReturnType<typeof setInterval> | null = null;
 let nextStepAt = 0;
 let step = 0;
 
-function note(n: number, at: number, dur: number, type: OscillatorType, gain: number, cutoff = 2400, detune = 0) {
+function pad(n: number, at: number, dur: number, gain: number) {
   const c = ctx!;
-  const o = c.createOscillator();
-  const g = c.createGain();
   const f = c.createBiquadFilter();
   f.type = "lowpass";
-  f.frequency.value = cutoff;
-  o.type = type;
-  o.frequency.value = midi(n);
-  o.detune.value = detune;
-  g.gain.setValueAtTime(0.0001, at);
-  g.gain.exponentialRampToValueAtTime(gain, at + Math.min(0.02, dur / 4));
-  g.gain.exponentialRampToValueAtTime(0.0001, at + dur);
-  o.connect(f).connect(g).connect(musicBus!);
-  o.start(at);
-  o.stop(at + dur + 0.05);
+  f.frequency.setValueAtTime(600, at);
+  f.frequency.linearRampToValueAtTime(1500, at + dur * 0.5);
+  f.frequency.linearRampToValueAtTime(700, at + dur);
+  const g = c.createGain();
+  env(g, at, gain, 1.8, dur + 1.5);
+  f.connect(g).connect(musicBus!);
+  for (const d of [-9, 0, 8]) {
+    const o = c.createOscillator();
+    o.type = "triangle";
+    o.frequency.value = midi(n);
+    o.detune.value = d;
+    o.connect(f);
+    o.start(at);
+    o.stop(at + dur + 1.6);
+  }
 }
 
-function kick(at: number, gain = 0.35) {
+function kick(at: number, gain = 0.3) {
   const c = ctx!;
   const o = c.createOscillator();
   const g = c.createGain();
-  o.frequency.setValueAtTime(120, at);
-  o.frequency.exponentialRampToValueAtTime(40, at + 0.18);
-  g.gain.setValueAtTime(gain, at);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.25);
+  o.frequency.setValueAtTime(110, at);
+  o.frequency.exponentialRampToValueAtTime(42, at + 0.16);
+  env(g, at, human(gain), 0.004, 0.28);
   o.connect(g).connect(musicBus!);
   o.start(at);
-  o.stop(at + 0.3);
+  o.stop(at + 0.32);
 }
 
-function hat(at: number, gain = 0.05, len = 0.04, hp = 7000) {
-  const c = ctx!;
-  if (!noise) return;
-  const s = c.createBufferSource();
-  s.buffer = noise;
-  const f = c.createBiquadFilter();
-  f.type = "highpass";
-  f.frequency.value = hp;
-  const g = c.createGain();
-  g.gain.setValueAtTime(gain, at);
-  g.gain.exponentialRampToValueAtTime(0.0001, at + len);
-  s.connect(f).connect(g).connect(musicBus!);
-  s.start(at, Math.random() * 0.5);
-  s.stop(at + len + 0.02);
+function brush(at: number, gain = 0.04, len = 0.05, hp = 6500) {
+  playVoice({ f: 0, at: 0, dur: len, v: "noise", hp, gain }, at, musicBus!);
 }
 
-function scheduleStep(track: Exclude<Track, "auto">, i: number, at: number, sixteenth: number) {
+function scheduleStep(track: Exclude<Track, "auto">, i: number, at0: number, sixteenth: number) {
   const bar = Math.floor(i / 16);
   const s = i % 16;
+  // swing the off-beat 16ths (arena, night) and humanise every hit
+  const swing = track !== "focus" && s % 2 === 1 ? sixteenth * (track === "night" ? 0.22 : 0.12) : 0;
+  const at = at0 + swing + jitter();
   const chord = CHORDS[Math.floor(bar / (track === "focus" ? 1 : 2)) % CHORDS.length];
   if (track === "focus") {
-    if (s === 0) {
-      const len = sixteenth * 16 + 2;
-      chord.forEach((n, k) => {
-        note(n, at, len, k === 0 ? "sine" : "triangle", k === 0 ? 0.07 : 0.028, 1200, -6);
-        if (k > 0) note(n, at, len, "triangle", 0.028, 1200, 6);
-      });
-    }
-    if (s === 8 && bar % 2 === 1) note(chord[chord.length - 1] + 12, at, 1.6, "sine", 0.025, 4000);
+    if (s === 0) chord.forEach((n, k) => pad(n, at, sixteenth * 16, k === 0 ? 0.05 : 0.022));
+    if (s === 8 && bar % 2 === 1) playVoice({ f: midi(chord[chord.length - 1] + 12), at: 0, dur: 2.4, v: "bell", gain: 0.02 }, at, musicBus!);
     return;
   }
   if (track === "arena") {
-    if (s % 4 === 0) kick(at, s === 0 ? 0.32 : 0.24);
-    if (s % 4 === 2) hat(at, 0.045);
-    if (s % 2 === 1) hat(at, 0.018, 0.02, 9000);
-    if (s % 2 === 0) note(chord[0] - 12 + (s % 8 === 6 ? 7 : 0), at, sixteenth * 1.8, "sawtooth", 0.05, 500);
+    if (s === 0 || s === 8 || (s === 14 && bar % 2 === 1)) kick(at, s === 0 ? 0.3 : 0.22);
+    if (s === 4 || s === 12) brush(at, 0.05, 0.12, 2500);
+    if (s % 2 === 0) brush(at, 0.016, 0.03, 8000);
+    if (s % 4 === 0 || s === 6 || s === 14) playVoice({ f: midi(chord[0] - 12), at: 0, dur: sixteenth * 3, v: "thud", to: midi(chord[0] - 12) * 0.98, gain: 0.16 }, at, musicBus!);
     const arp = [chord[1], chord[2], chord[3], chord[4], chord[3], chord[2]];
-    if (s % 2 === 0) note(arp[(s / 2) % arp.length] + 12, at, sixteenth * 1.4, "triangle", 0.03, 3200);
-    if (s === 0 && bar % 2 === 0) chord.slice(1).forEach((n) => note(n, at, sixteenth * 30, "triangle", 0.012, 900));
+    if (s % 2 === 0) playVoice({ f: midi(arp[(s / 2) % arp.length] + 12), at: 0, dur: 0.45, v: "pluck", gain: 0.05 }, at, musicBus!);
     return;
   }
   // night
-  if (s === 0 || s === 10) kick(at, 0.2);
-  if (s === 4 || s === 12) hat(at, 0.06, 0.12, 1800);
-  if (s % 2 === 0) hat(at, 0.012, 0.03, 8000);
-  const keys = [0, 3, 6, 10, 12];
-  if (keys.includes(s)) note(chord[1 + (keys.indexOf(s) % 4)], at + 0.012 * Math.random(), sixteenth * 5, "triangle", 0.045, 1500);
-  if (s === 0) note(chord[0] - 12, at, sixteenth * 14, "sine", 0.09, 400);
+  if (s === 0 || s === 10) kick(at, 0.18);
+  if (s === 4 || s === 12) brush(at, 0.045, 0.1, 1800);
+  if (s % 2 === 0) brush(at, 0.009, 0.03, 8500);
+  if (Math.random() < 0.06) brush(at, 0.006, 0.01, 3000); // vinyl dust
+  if (s === 0 || s === 7) chord.slice(1).forEach((n, k) => playVoice({ f: midi(n), at: 0, dur: sixteenth * 9, v: "keys", gain: 0.035 }, at + k * 0.012, musicBus!));
+  if (s === 0) playVoice({ f: midi(chord[0] - 12), at: 0, dur: sixteenth * 12, v: "thud", to: midi(chord[0] - 12) * 0.99, gain: 0.14 }, at, musicBus!);
 }
 
 function pickTrack(): Exclude<Track, "auto"> {
@@ -509,6 +610,11 @@ let utter: SpeechSynthesisUtterance | null = null;
 export type Piece = { url?: string | null; text: string };
 let queue: Piece[] = [];
 let token = 0;
+// Where Nova is inside the current caption, 0..1, for the word-by-word caption.
+let pieceIndex = 0;
+let pieceCount = 1;
+let ttsChar = 0;
+let ttsLen = 1;
 
 const FEMALE_HINTS = ["samantha", "ava", "allison", "susan", "victoria", "karen", "moira", "tessa", "serena", "zira", "aria", "jenny", "sonia", "libby", "natasha", "female", "woman", "google uk english female", "google us english"];
 
@@ -587,6 +693,11 @@ function ensureClip() {
 function pump(my: number) {
   if (my !== token) return;
   const piece = queue.shift();
+  if (piece) {
+    pieceIndex = pieceCount - queue.length - 1;
+    ttsChar = 0;
+    ttsLen = Math.max(1, piece.text.length);
+  }
   if (!piece) {
     setVoice({ speaking: false, paused: false });
     return;
@@ -614,6 +725,9 @@ function tts(text: string, my: number, done: () => void) {
   u.rate = 1;
   u.pitch = 1.05;
   u.volume = snap.settings.masterVol * snap.settings.voiceVol;
+  u.onboundary = (e) => {
+    ttsChar = e.charIndex;
+  };
   u.onend = u.onerror = () => {
     if (utter === u) done();
   };
@@ -636,6 +750,8 @@ export function play(pieces: Piece[], opts: { caption?: string; line?: VoiceLine
   stopVoice();
   const my = ++token;
   queue = [...pieces];
+  pieceCount = pieces.length;
+  pieceIndex = 0;
   setVoice({ speaking: true, paused: false, text: caption, line: opts.line ?? null });
   pump(my);
 }
@@ -665,6 +781,15 @@ export function sayOneOf(prefix: string, count: number, opts: { auto?: boolean; 
 /** Speak free text with the best available voice (no recording exists for it). */
 export function speak(text: string) {
   play([{ text }]);
+}
+
+/** 0..1: how far Nova is through the current caption (drives the word-by-word reveal). */
+export function voiceProgress(): number {
+  if (!snap.voice.speaking) return 1;
+  let inPiece = 0;
+  if (clip && clip.getAttribute("src") && !clip.paused && clip.duration > 0) inPiece = clip.currentTime / clip.duration;
+  else inPiece = Math.min(1, ttsChar / ttsLen);
+  return Math.max(0, Math.min(1, (pieceIndex + inPiece) / Math.max(1, pieceCount)));
 }
 
 /** 0..1 loudness of Nova right now, for the orb. Browser speech cannot be measured, so it is animated. */
