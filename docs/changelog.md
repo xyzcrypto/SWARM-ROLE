@@ -5,6 +5,18 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (164) — Academy hero v5: a structured, app-like phone layout
+
+- Phones read like an app home screen: greeting + live badge, a tighter balanced headline
+  ("Web3." in gold), Start Learning and Live Quiz side by side with a compact AneQue button,
+  then four quick-action tiles (Daily, Quick quiz, Ranks, Certificates), then today's
+  challenge card, then the numbers, tracks and promises (a single scrollable chip row).
+- Done with CSS grid areas, so desktop keeps copy-left / card-right with no duplicate markup.
+- The "—" placeholders: the stats show a shimmer while loading, and the pulse request retries
+  once (a cold start used to leave dashes up until the next refresh).
+
+---
+
 ## 2026-11-20 (163) — Smoothness round 2, live market prices, AneQue on Markets/News/Points, share cards, premium certificate, public profiles
 
 ### Smoothness (owner's top priority)
