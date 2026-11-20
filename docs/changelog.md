@@ -5,6 +5,29 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (157) — Creators: YouTube venues failed to save on a split emoji
+
+The owner's screenshot finally carried the real code (thanks to #154): "Invalid
+`prisma.ytDiscovery.upsert()` invocation: unexpected end of hex escape at column 179045".
+
+### Cause
+Video descriptions were cut with `String.slice(0, 1500)`. When the cut landed inside an
+emoji, a lone surrogate was left behind; JSON keeps it as `\ud83d`, and Prisma's engine
+rejects the whole JSON payload. One such description failed the save of an entire venue's
+discovery, so the tab showed the error instead of any videos, and the quota spent on the
+search was wasted. Reproduced locally with the identical message. A NUL character in any
+text (`\u0000`) fails the same way in Postgres ("unsupported Unicode escape sequence").
+
+### Fix
+- `src/modules/creators/lib/text.ts`: `cleanText()` truncates by code point and drops lone
+  surrogates and NUL. Used for YouTube titles, descriptions and channel names, and for X
+  names, bios and post text (same risk in `twitterapi.ts`).
+- `api/creators/youtube`: the fetched videos are kept in memory and served even if storing
+  them fails, so a database hiccup can no longer turn spent quota into an error screen.
+- Tests: `creators-text.test.ts`.
+
+---
+
 ## 2026-11-20 (156) — Academy round 2: Nova reads everything, 3 music tracks, lifelines, Mistakes + Speed Run, migrations, alignment fixes
 
 ### Migrations

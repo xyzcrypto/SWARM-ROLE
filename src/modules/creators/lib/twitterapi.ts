@@ -8,6 +8,7 @@
 // provider documents, with fallbacks for the variants seen in its examples.
 // A post that cannot be read cleanly is dropped rather than half-stored.
 
+import { cleanText } from "./text";
 const BASE = "https://api.twitterapi.io";
 
 export class TwitterApiError extends Error {
@@ -65,11 +66,11 @@ export function normalizeUser(raw: any): XUser | null {
   return {
     id: raw?.id != null ? String(raw.id) : null,
     handle,
-    name: String(raw?.name || handle).slice(0, 120),
+    name: cleanText(raw?.name || handle, 120),
     avatar: avatar(raw?.profilePicture ?? raw?.profile_image_url_https),
     followers: int(raw?.followers ?? raw?.followers_count),
     verified: Boolean(raw?.isBlueVerified ?? raw?.isVerified ?? raw?.verified),
-    bio: String(raw?.description ?? raw?.profile_bio?.description ?? "").slice(0, 300),
+    bio: cleanText(raw?.description ?? raw?.profile_bio?.description ?? "", 300),
   };
 }
 
@@ -83,7 +84,7 @@ export function normalizeTweet(raw: any): XTweetData | null {
   return {
     id: String(id),
     url: `https://x.com/${author.handle}/status/${id}`,
-    text: text.slice(0, 4000),
+    text: cleanText(text, 4000),
     createdAt: new Date(created).toISOString(),
     views: int(raw?.viewCount ?? raw?.views),
     likes: int(raw?.likeCount ?? raw?.favorite_count),

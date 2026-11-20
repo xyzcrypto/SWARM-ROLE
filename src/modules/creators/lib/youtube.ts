@@ -13,6 +13,7 @@
 // recorded fixture and a stub fetch.
 
 import { topicsFor, type Topic, type YtVideo } from "./scoring";
+import { cleanText } from "./text";
 
 const API = "https://www.googleapis.com/youtube/v3";
 export const LOOKBACK_DAYS = 90;
@@ -131,14 +132,14 @@ export async function fetchTopic(topic: Topic, apiKey: string, now: number, f: F
     const ch = channels.get(v.snippet.channelId);
     return {
       id: v.id,
-      title: v.snippet.title ?? "",
+      title: cleanText(v.snippet.title, 300),
       // Long enough for the relevance context check; trimmed again before it
       // is sent to a browser.
-      description: String(v.snippet.description ?? "").slice(0, 1500),
+      description: cleanText(v.snippet.description, 1500),
       publishedAt: v.snippet.publishedAt,
       thumbnail: bestThumb(v.snippet.thumbnails),
       channelId: v.snippet.channelId,
-      channelTitle: v.snippet.channelTitle ?? "",
+      channelTitle: cleanText(v.snippet.channelTitle, 200),
       channelAvatar: ch?.avatar ?? null,
       channelSubs: ch?.subs ?? null,
       views: num(v.statistics?.viewCount) ?? 0,
@@ -162,7 +163,7 @@ export function classify(lists: YtVideo[][]): YtVideo[] {
       if (by.has(v.id)) continue;
       const topics = topicsFor(v.title, v.description);
       if (!topics.length) continue;
-      by.set(v.id, { ...v, topics, description: v.description.slice(0, 240) });
+      by.set(v.id, { ...v, topics, description: cleanText(v.description, 240) });
     }
   }
   return [...by.values()];

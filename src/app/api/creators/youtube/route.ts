@@ -83,13 +83,19 @@ async function refresh(topicId: string): Promise<Stored | null> {
   try {
     const videos = await fetchTopic(topic, env.YOUTUBE_API_KEY, Date.now());
     const now = new Date();
-    await prisma.ytDiscovery.upsert({
-      where: { topic: topicId },
-      create: { topic: topicId, videos: videos as unknown as object, fetchedAt: now },
-      update: { videos: videos as unknown as object, fetchedAt: now },
-    });
     const v = { videos, fetchedAt: now.toISOString(), fresh: true };
+    // Keep what YouTube returned even if storing it fails: the quota is
+    // already spent, and showing the data beats showing a database error.
     memo.set(topicId, { at: Date.now(), v });
+    try {
+      await prisma.ytDiscovery.upsert({
+        where: { topic: topicId },
+        create: { topic: topicId, videos: videos as unknown as object, fetchedAt: now },
+        update: { videos: videos as unknown as object, fetchedAt: now },
+      });
+    } catch (dbErr) {
+      console.error("[creators:youtube] store failed", topicId, dbErr instanceof Error ? dbErr.message.slice(-300) : dbErr);
+    }
     return v;
   } catch (err) {
     await noteQuota(err);
