@@ -462,8 +462,9 @@ export function GuideDock() {
 
   return (
     // The site-wide XYZ AI button owns the bottom-right corner. On phones the
-    // dock takes the bottom-left; from md up it sits directly above XYZ AI.
-    <div className={cn("pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 z-40 transition-all duration-300 md:bottom-[5.5rem] md:left-auto md:right-6", tucked && !open && !talk.active && "invisible translate-y-4 opacity-0")}>
+    // dock takes the left side, lifted well above the bottom nav so it and its
+    // panel sit in easy thumb reach; from md up it sits directly above XYZ AI.
+    <div className={cn("pointer-events-none fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] left-4 z-40 transition-all duration-300 md:bottom-[5.5rem] md:left-auto md:right-6", tucked && !open && !talk.active && "invisible translate-y-4 opacity-0")}>
       <AnimatePresence>
         {open && (
           <motion.div
@@ -472,7 +473,7 @@ export function GuideDock() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="pointer-events-auto mb-3 max-h-[calc(100dvh-12rem)] w-[min(23rem,calc(100vw-2rem))] origin-bottom-left overflow-y-auto overscroll-contain rounded-3xl border border-hairline bg-ink-950/95 p-4 shadow-elevate backdrop-blur-xl md:max-h-[calc(100dvh-14rem)] md:origin-bottom-right"
+            className="pointer-events-auto mb-3 max-h-[calc(100dvh-17rem)] w-[min(23rem,calc(100vw-2rem))] origin-bottom-left overflow-y-auto overscroll-contain rounded-3xl border border-hairline bg-ink-950/95 p-4 shadow-elevate backdrop-blur-xl md:max-h-[calc(100dvh-14rem)] md:origin-bottom-right"
             role="dialog"
             aria-label="AneQue, your Academy guide"
           >
