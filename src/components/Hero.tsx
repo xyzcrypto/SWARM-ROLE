@@ -12,20 +12,12 @@ import { useLiteMotion } from "@shared/hooks/useClientFlag";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, BarChart3, Coins, GraduationCap, Newspaper, Trophy } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { LAUNCHES } from "@shared/utils/launches";
 
 // Newest launch, for the chip above the headline. A constant (not filtered by
 // today's date) so the server and the browser always render the same thing.
 const LATEST = LAUNCHES[0];
-
-const JUMP = [
-  { href: "/markets", label: "Markets", icon: BarChart3 },
-  { href: "/points", label: "Points", icon: Coins },
-  { href: "/academy", label: "Academy", icon: GraduationCap },
-  { href: "/news", label: "News", icon: Newspaper },
-  { href: "/creators", label: "Creators", icon: Trophy },
-];
 
 // One chunk of the hero headline, revealed in its own staggered beat (blur ->
 // focus, rise -> settle) so the line reads as a deliberate cascade landing
@@ -201,23 +193,6 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
               here; see HeroCta for why the card is a column. */}
           <HeroCta research={research} />
 
-          {/* Jump straight into a product. */}
-          <nav
-            aria-label="Jump to a product"
-            style={{ "--rise-y": "10px", "--rise-dur": "0.6s", "--rise-delay": "0.3s" } as React.CSSProperties}
-            className="hero-rise mx-auto mt-5 flex max-w-md flex-wrap justify-center gap-1.5 lg:mx-0 lg:max-w-[580px] lg:justify-start"
-          >
-            {JUMP.map((j) => (
-              <Link
-                key={j.href}
-                href={j.href}
-                className="inline-flex h-8 items-center gap-1.5 rounded-full border border-line bg-ink-900/60 px-3 text-[12px] font-medium text-zinc-400 transition-colors hover:border-gold-400/40 hover:text-zinc-100 active:border-gold-400/40 active:text-zinc-100"
-              >
-                <j.icon className="h-3.5 w-3.5 text-gold-300" strokeWidth={1.8} />
-                {j.label}
-              </Link>
-            ))}
-          </nav>
 
           {/* live stats */}
           <div

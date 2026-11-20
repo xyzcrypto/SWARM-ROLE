@@ -49,20 +49,34 @@ describe("nothing can fall out of the navigation", () => {
 });
 
 describe("the desktop rail fits the links it has", () => {
-  it("shows six links, measured at 684px", () => {
-    expect(railLinks).toHaveLength(6);
+  it("shows eight links, re-measured when Academy and Creators joined", () => {
+    // 2026-11-20, owner's request. Measured on a production build with every
+    // visible header child summed against the nav's inner width (slack =
+    // room left over), signed out / signed in:
+    //   1280: 42 / 36px   1366: 70 / 64px   1536+: 194 / 64px
+    // Bought by (a) rail padding that steps up with the width (px-2, then
+    // 2.5 from 1366, 3 from 2xl) and (b) the account button showing only the
+    // avatar below 2xl. Before (b), signed in overflowed by 69px at 1440.
+    // A NINTH rail link needs re-measuring; this is the record of why.
+    expect(railLinks).toHaveLength(8);
+    expect(railLinks.map((l) => l.href)).toEqual(["/", "/markets", "/points", "/news", "/research", "/academy", "/creators", "/community"]);
+  });
+
+  it("keeps the width-saving steps that make eight links fit", () => {
+    expect(src).toMatch(/px-2 py-2 text-sm font-medium transition-colors min-\[1366px\]:px-2\.5 2xl:px-3/);
+    expect(src).toMatch(/hidden flex-col items-start leading-tight 2xl:flex/);
+    expect(src).toMatch(/whitespace-nowrap font-display text-\[15px\]/);
   });
 
   it("keeps the secondary destinations out of the rail", () => {
     // ⚠️ The exact list is pinned on purpose. `railLinks` and `moreLinks` are
     // DERIVED from `navLinks`, so a new destination lands in "More" by default -
     // which is right, but it must be a decision someone saw. `/saved` is
-    // per-member and belongs here rather than in the six-link rail, which is
-    // already eight pixels from overflowing at its breakpoint. `/creators` (the
-    // creator leaderboard) joined "More" for the same reason, and so did `/academy`
-    // and `/feedback`.
+    // per-member and belongs here rather than in the rail. `/academy` and
+    // `/creators` moved OUT of "More" onto the rail (2026-11-20); `/feedback`
+    // joined "More".
     const more = moreLinks.map((l) => l.href).sort();
-    expect(more).toEqual(["/academy", "/contact", "/creators", "/feedback", "/premium", "/saved", "/tools"]);
+    expect(more).toEqual(["/contact", "/feedback", "/premium", "/saved", "/tools"]);
   });
 
   it("still appears only from xl, for the eight-pixel reason above", () => {
@@ -84,17 +98,22 @@ describe("the desktop rail fits the links it has", () => {
   });
 });
 
-describe("the bottom bar stays four links, so Profile stays centred", () => {
-  // Four links plus the raised Profile button is five cells. A fifth link makes
-  // it cell 3 of 6 - visibly left of centre - which is why this list only ever
-  // changes by swapping.
+describe("the bottom bar keeps Profile centred", () => {
+  // Links + the raised Profile button must be an ODD number of cells, so the
+  // link count must be EVEN, split evenly either side. It was four; Academy
+  // (far left) and Creators (far right) made it six on 2026-11-20. Measured:
+  // 46px cells on a 320px phone, every label whole.
   const items = [...bottom.matchAll(/\{ href: "([^"]+)", label: "([^"]+)"/g)].map((m) => ({
     href: m[1],
     label: m[2],
   }));
 
-  it("has exactly four", () => {
-    expect(items).toHaveLength(4);
+  it("has six, Academy first and Creators last, in seven columns", () => {
+    expect(items).toHaveLength(6);
+    expect(items[0].href).toBe("/academy");
+    expect(items[items.length - 1].href).toBe("/creators");
+    expect(bottom).toMatch(/grid-cols-7/);
+    expect(bottom).toMatch(/const half = ITEMS\.length \/ 2;/);
   });
 
   it("carries Research rather than Tools", () => {
@@ -125,17 +144,15 @@ describe("Points took Premium's place on the rail", () => {
     expect(railLinks.some((l) => l.href === "/premium")).toBe(false);
   });
 
-  it("was a SWAP, so the eight-pixel margin above is not spent", () => {
+  it("was a SWAP when it happened (the rail has since grown, re-measured above)", () => {
     // ⚠️ This is the assertion that matters, given the history at the top of
     // this file: the rail has overflowed twice, both times because a link was
     // ADDED. Points did not join the rail, it replaced Premium - the count is
     // unchanged at six, and "Points" is a character SHORTER than "Premium", so
     // the measured width goes down rather than up. An addition here would need
     // re-measuring; this does not.
-    expect(railLinks).toHaveLength(6);
     const rail = railLinks.map((l) => l.label).join("");
     expect(rail).not.toMatch(/Premium/);
-    expect(rail.length).toBeLessThanOrEqual("HomeMarketsNewsResearchCommunityPremium".length);
   });
 
   it("Premium is still reachable from everywhere it was", () => {

@@ -5,6 +5,28 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (162) — Academy + Creators in the main navigation; home quick links removed
+
+- **Home hero:** the Markets / Points / Academy / News / Creators quick-link row (added in
+  #161) is removed on desktop and mobile, at the owner's request. The slogan "The Home Of Next
+  Gen Web3.." is back as the first line, with the NEW launch chip under it.
+- **Desktop navbar:** Academy and Creators are on the rail (8 links: Home, Markets, Points,
+  News, Research, Academy, Creators, Community; "More" keeps Saved, Premium, Feedback, Tools,
+  Contact). The rail has overflowed twice before when a link was added, so it was
+  re-measured on a production build at 1280-1920px, signed in and out. Signed in, the first
+  attempt overflowed by up to 130px. Two changes make it fit:
+  - rail padding steps up with the width (`px-2`, `2.5` from 1366, `3` from 2xl);
+  - the account button shows only the avatar below 2xl (email + plan from 1536px; the
+    dropdown still shows the account).
+  Minimum room left over is now 36px at 1280 signed in. The logo and "XYZ AI" never wrap.
+- **Mobile bottom nav:** Academy on the far left and Creators on the far right. That makes six
+  links, seven cells, with Profile still exactly in the middle. Every label stays whole on a
+  320px phone (46px cells).
+- Tests: `nav-rail-width.test.ts` pins the 8-link rail, the measured slack, the width-saving
+  classes and the 6-link bottom bar, with Academy first and Creators last.
+
+---
+
 ## 2026-11-20 (161) — Smooth like butter: no lost taps, no endless spinners, native scrolling, one-screen quiz
 
 The owner reported the site as slow and laggy, sometimes stuck until a refresh, and asked

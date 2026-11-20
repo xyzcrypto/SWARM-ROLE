@@ -150,13 +150,13 @@ export function Navbar() {
             : "border border-transparent"
         )}
       >
-        <Link href="/" className="group flex items-center gap-2.5">
+        <Link href="/" className="group flex shrink-0 items-center gap-2.5">
           {/* The coin carries its own gold rim, so no ring and no rounded clip -
               both fought the artwork. object-contain keeps it whole. */}
           <span className="relative inline-flex h-9 w-9 transition-transform group-hover:scale-105 group-active:scale-105">
             <Image src="/logo.png" alt="XYZ Crypto" fill className="object-contain" sizes="36px" />
           </span>
-          <span className="font-display text-[15px] font-semibold tracking-tight">
+          <span className="whitespace-nowrap font-display text-[15px] font-semibold tracking-tight">
             <span className="text-gold-gradient">XYZ</span>{" "}
             <span className="text-zinc-100">Crypto</span>
           </span>
@@ -190,14 +190,17 @@ export function Navbar() {
               prefetch={false}
               aria-current={isActive(l.href) ? "page" : undefined}
               className={cn(
-                "group relative rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
+                // Padding steps up with the width: eight rail links (Academy and
+                // Creators joined) must fit at 1280 with a signed-in header.
+                // Measured slack is pinned in nav-rail-width.test.ts.
+                "group relative whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors min-[1366px]:px-2.5 2xl:px-3",
                 isActive(l.href) ? "text-zinc-50" : "text-zinc-400 hover:text-zinc-100"
               )}
             >
               {l.label}
               <span
                 className={cn(
-                  "absolute inset-x-3.5 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300",
+                  "absolute inset-x-2 -bottom-0.5 h-px bg-gradient-to-r from-transparent via-gold-400 to-transparent transition-transform duration-300 min-[1366px]:inset-x-2.5 2xl:inset-x-3",
                   isActive(l.href) ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100 group-active:scale-x-100"
                 )}
               />
@@ -214,7 +217,7 @@ export function Navbar() {
                 aria-expanded={more}
                 aria-haspopup="menu"
                 className={cn(
-                  "group relative inline-flex items-center gap-1 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors",
+                  "group relative inline-flex items-center gap-1 whitespace-nowrap rounded-lg px-2 py-2 text-sm font-medium transition-colors min-[1366px]:px-2.5 2xl:px-3",
                   moreLinks.some((l) => isActive(l.href)) || more
                     ? "text-zinc-50"
                     : "text-zinc-400 hover:text-zinc-100"
@@ -264,7 +267,7 @@ export function Navbar() {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT))}
-            className="ai-nav-btn ml-1 inline-flex items-center gap-1.5 rounded-lg border border-mint-500/50 bg-transparent px-3 py-1.5 text-sm font-semibold text-mint-700 transition-transform dark:border-mint-400/40 dark:text-mint-100"
+            className="ai-nav-btn ml-1 inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-mint-500/50 bg-transparent px-3 py-1.5 text-sm font-semibold text-mint-700 transition-transform dark:border-mint-400/40 dark:text-mint-100"
           >
             <span className="relative z-10 inline-flex items-center gap-1.5">
               <RobotIcon className="ai-bot h-5 w-5" />
@@ -314,7 +317,10 @@ export function Navbar() {
                   <span className="pointer-events-none absolute -inset-0.5 rounded-full ring-1 ring-gold-500/40 [animation:ping-soft_3s_ease-in-out_infinite]" />
                   <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" premium={isPremium} />
                 </span>
-                <span className="flex flex-col items-start leading-tight">
+                {/* Email + plan only from 2xl: below that the rail needs the room
+                    (the avatar's ring already shows Premium, and the dropdown
+                    shows the account). */}
+                <span className="hidden flex-col items-start leading-tight 2xl:flex">
                   <span className="mono text-[12px] text-zinc-200">{masked}</span>
                   <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
                     {isPremium ? "Premium" : "Free"}
