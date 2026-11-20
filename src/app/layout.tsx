@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { Fraunces } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { NavProgress } from "@shared/components/NavProgress";
 import { SmoothScrollMount } from "@/components/SmoothScrollMount";
 import { HashScroll } from "@/components/HashScroll";
 import { SameRouteTopScroll } from "@/components/SameRouteTopScroll";
@@ -225,6 +226,7 @@ export default function RootLayout({
             SameRouteTopScroll above, which covers clicking a link to the page
             you are already on - no navigation, so this never fires for it. */}
         <RouteScroll />
+        <NavProgress />
         <Providers>
           <RealtimeSession
             url={env.NEXT_PUBLIC_SUPABASE_URL}

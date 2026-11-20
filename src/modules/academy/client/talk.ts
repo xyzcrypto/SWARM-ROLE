@@ -129,7 +129,14 @@ export class TalkError extends Error {
 }
 
 async function call<T>(url: string, init: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
+  // Transcription + an AI answer can take a while, but never forever: a hung
+  // request would leave Live Talk "Thinking…" until the page was refreshed.
+  let res: Response;
+  try {
+    res = await fetch(url, { ...init, signal: AbortSignal.timeout(35_000) });
+  } catch (e) {
+    throw new TalkError((e as Error).name === "TimeoutError" ? "That took too long. Try again." : "You seem to be offline.", 0);
+  }
   const body = await res.json().catch(() => null);
   if (!res.ok) throw new TalkError(body?.error || "Something went wrong.", res.status);
   return body as T;

@@ -171,7 +171,12 @@ export function BackToTop({ threshold = 1200 }: { threshold?: number }) {
       frame = requestAnimationFrame(() => {
         const max = document.documentElement.scrollHeight - window.innerHeight;
         const y = window.scrollY;
-        setState({ show: y > threshold, progress: max > 0 ? Math.min(1, y / max) : 0 });
+        // Quantised, and a no-op when nothing visible changed: this used to
+        // hand React a new object on every scroll frame, re-rendering the
+        // component 60 times a second while reading.
+        const show = y > threshold;
+        const progress = max > 0 ? Math.round(Math.min(1, y / max) * 200) / 200 : 0;
+        setState((prev) => (prev.show === show && prev.progress === progress ? prev : { show, progress }));
       });
     };
     onScroll();

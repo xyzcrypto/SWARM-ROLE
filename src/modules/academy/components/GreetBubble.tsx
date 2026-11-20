@@ -141,7 +141,7 @@ export function GreetBubble({ hidden, onVisible }: { hidden: boolean; onVisible:
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 6, scale: 0.97 }}
           transition={{ type: "spring", stiffness: 320, damping: 26 }}
-          className="acad-greet pointer-events-auto relative mb-3 w-[min(17rem,calc(100vw-2rem))] origin-bottom-left rounded-2xl rounded-bl-md border border-gold-400/30 bg-ink-950/95 p-3.5 shadow-elevate backdrop-blur-xl md:ml-auto md:origin-bottom-right md:rounded-bl-2xl md:rounded-br-md"
+          className="acad-greet pointer-events-none relative mb-3 w-[min(17rem,calc(100vw-2rem))] origin-bottom-left rounded-2xl rounded-bl-md border border-gold-400/30 bg-ink-950/95 p-3.5 shadow-elevate backdrop-blur-xl md:ml-auto md:origin-bottom-right md:rounded-bl-2xl md:rounded-br-md"
           role="status"
           aria-live="polite"
         >
@@ -151,7 +151,7 @@ export function GreetBubble({ hidden, onVisible }: { hidden: boolean; onVisible:
               stopVoice();
               setBubble(null);
             }}
-            className="absolute right-1.5 top-1.5 rounded-full p-1 text-content-subtle hover:text-content"
+            className="pointer-events-auto absolute right-1.5 top-1.5 rounded-full p-1 text-content-subtle hover:text-content"
             aria-label="Dismiss AneQue's greeting"
           >
             <X className="h-3.5 w-3.5" />
@@ -164,12 +164,12 @@ export function GreetBubble({ hidden, onVisible }: { hidden: boolean; onVisible:
                 unlock();
                 sfx("pop");
               }}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gold-400/15 px-3 py-2 text-xs font-semibold text-gold-100 transition-colors hover:bg-gold-400/25"
+              className="pointer-events-auto mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-gold-400/15 px-3 py-2 text-xs font-semibold text-gold-100 transition-colors hover:bg-gold-400/25"
             >
               <Volume2 className="h-4 w-4" /> Tap to hear AneQue
             </button>
           ) : (
-            <GuideCaption text={caption} speaking={voice.speaking && !voice.paused} className="mt-1 text-[13px] leading-relaxed" />
+            <GuideCaption text={caption} speaking={voice.speaking && !voice.paused} className="mt-1 line-clamp-3 text-[13px] leading-relaxed" />
           )}
         </motion.div>
       )}

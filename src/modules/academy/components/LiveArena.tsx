@@ -78,6 +78,16 @@ export function LiveArena({ id }: { id: string }) {
   const phase = state ? livePhase(state.clock, now) : null;
   useTicker(!!state && phase?.kind !== "ended" && phase?.kind !== "cancelled", 250);
 
+  // Play mode while a question is up: same one-screen frame as solo quizzes.
+  const playing = phase?.kind === "question" || phase?.kind === "reveal";
+  useEffect(() => {
+    if (!playing) return;
+    document.documentElement.dataset.acadPlaying = "1";
+    return () => {
+      delete document.documentElement.dataset.acadPlaying;
+    };
+  }, [playing]);
+
   // When our clock crosses into a new phase, fetch what it contains (the
   // question, or the reveal). The public state is edge-cached for 2s, so a full
   // room costs one origin call; a small jitter spreads the burst.
@@ -275,7 +285,7 @@ export function LiveArena({ id }: { id: string }) {
         </span>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <h1 className="font-display text-2xl font-semibold tracking-tight text-content sm:text-3xl">{state.title}</h1>
+        <h1 className="font-display text-xl font-semibold tracking-tight text-content sm:text-3xl">{state.title}</h1>
         {(phase.kind === "question" || phase.kind === "reveal" || phase.kind === "countdown") && (
           <Pill tone="border-mint-400/50 text-mint-300">
             <span className="acad-live-dot h-1.5 w-1.5 rounded-full bg-mint-400 text-mint-400" /> LIVE
@@ -283,7 +293,7 @@ export function LiveArena({ id }: { id: string }) {
         )}
       </div>
 
-      <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_20rem]">
+      <div className="mt-3 grid gap-5 sm:mt-6 lg:grid-cols-[1fr_20rem]">
         <div className="min-w-0">
           {phase.kind === "scheduled" || phase.kind === "countdown" ? (
             <WaitingRoom state={state} phase={phase} now={now} joined={!!me?.joined} guest={!!guest} joining={joining} onJoin={join} />
@@ -451,7 +461,7 @@ function QuestionStage({
   const total = (q.distribution ?? [0, 0, 0, 0]).reduce((a, b) => a + b, 0);
   const locked = !!mine || sending != null;
   return (
-    <motion.div key={phase.index} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="surface relative overflow-hidden rounded-3xl p-5 sm:p-8">
+    <motion.div key={phase.index} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="surface relative overflow-hidden rounded-3xl p-4 sm:p-8">
       <div className="absolute inset-x-0 top-0 h-1 bg-white/5">
         <div className={cn("h-full transition-[width] duration-200 ease-linear", left < 5000 ? "bg-red-400" : "bg-gold-300")} style={{ width: `${pct * 100}%` }} />
       </div>
@@ -473,8 +483,8 @@ function QuestionStage({
           )}
         </span>
       </div>
-      <h2 className="mt-4 font-display text-xl font-semibold leading-snug text-content sm:text-2xl">{q.prompt}</h2>
-      <div className="mt-6 grid gap-2.5 sm:grid-cols-2">
+      <h2 className="acad-play-prompt mt-3 font-display font-semibold leading-snug text-content sm:mt-4">{q.prompt}</h2>
+      <div className="mt-4 grid gap-2 sm:mt-6 sm:grid-cols-2 sm:gap-2.5">
         {q.options.map((o, i) => {
           const right = revealing && q.answer === i;
           const picked = mine?.choice === i || sending === i;
@@ -487,7 +497,7 @@ function QuestionStage({
               disabled={!canAnswer || locked || phase.kind !== "question" || phase.paused}
               onClick={() => onAnswer(i)}
               className={cn(
-                "acad-option relative flex min-h-[4rem] items-center gap-3 overflow-hidden rounded-2xl border border-hairline bg-ink-900/40 px-4 py-3 text-left text-[15px] text-content",
+                "acad-option acad-play-option relative flex items-center gap-3 overflow-hidden rounded-2xl border border-hairline bg-ink-900/40 px-4 text-left text-content sm:min-h-[4rem]",
                 picked && !revealing && "is-picked",
                 right && "is-right",
                 wrong && "is-wrong",

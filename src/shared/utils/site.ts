@@ -45,8 +45,8 @@ export const navLinks = [
   { label: "Tools", href: "/tools" },
   { label: "News", href: "/news" },
   { label: "Research", href: "/research" },
-  { label: "Creators", href: "/creators" },
   { label: "Academy", href: "/academy" },
+  { label: "Creators", href: "/creators" },
   // Per-member, so it lives in "More" rather than the rail - but it MUST be in
   // this list, because a page absent from `navLinks` is a page that cannot be
   // reached from anywhere (the footer and the mobile drawer both render it).
@@ -74,7 +74,10 @@ export const navLinks = [
 // how a nav stops looking designed. Premium moves into "More", where it is
 // still reachable from the rail, the footer and the mobile drawer, because it
 // stays in `navLinks`.
-const RAIL_HREFS = new Set(["/", "/markets", "/news", "/research", "/community", "/points"]);
+// Academy and Creators joined the rail on 2026-11-20 at the owner's request
+// (8 links). Re-measured at the rail's breakpoint (xl, 1280px) signed in and
+// signed out - see nav-rail-width.test.ts for the numbers and the padding step.
+const RAIL_HREFS = new Set(["/", "/markets", "/points", "/news", "/research", "/academy", "/creators", "/community"]);
 
 export const railLinks = navLinks.filter((l) => RAIL_HREFS.has(l.href));
 export const moreLinks = navLinks.filter((l) => !RAIL_HREFS.has(l.href));

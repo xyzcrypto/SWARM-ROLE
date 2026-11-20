@@ -328,11 +328,10 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
                 {speaking && <span className="absolute inset-0 animate-ping rounded-full border border-gold-400/40" />}
               </button>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-content">
-                    AneQue <span className="font-normal text-content-subtle">· AI study partner</span>
-                  </span>
-                  {(speaking || voice.paused) && <span className="text-[11px] text-content-subtle">{speaking ? "speaking" : "paused"}</span>}
+                {/* One line that never wraps: the status replaces the subtitle
+                    instead of being squeezed in next to the Talk button. */}
+                <div className="truncate text-sm font-semibold text-content">
+                  AneQue <span className={cn("font-normal", speaking ? "text-gold-300" : "text-content-subtle")}>· {speaking ? "speaking" : voice.paused ? "paused" : "AI study partner"}</span>
                 </div>
                 <GuideWave speaking={speaking} bars={28} className="mt-1 h-5" />
               </div>

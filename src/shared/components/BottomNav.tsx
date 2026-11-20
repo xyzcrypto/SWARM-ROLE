@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Wrench, Newspaper, NotebookPen, LineChart, User, FlaskConical } from "lucide-react";
+import { Wrench, Newspaper, NotebookPen, LineChart, User, FlaskConical, GraduationCap, Trophy } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { isBottomActive, isBottomHidden } from "@/lib/bottom-nav";
 import { cn } from "@/lib/utils";
@@ -22,11 +22,18 @@ type Item = { href: string; label: string; Icon: typeof Wrench };
 // reach for when you already know you need one; Research is the thing people
 // come back to. Tools stays reachable from the drawer, and the same drawer now
 // carries Points and Contact for the same reason - see `moreLinks` in site.ts.
+//
+// 2026-11-20: SIX links (owner's request): Academy on the far left and
+// Creators on the far right, one on each side, so it is still three links +
+// Profile + three links and Profile stays in the exact middle of seven cells.
+// Keep the count even.
 const ITEMS: Item[] = [
+  { href: "/academy", label: "Academy", Icon: GraduationCap },
   { href: "/research", label: "Research", Icon: FlaskConical },
   { href: "/news", label: "News", Icon: Newspaper },
   { href: "/journal", label: "Journal", Icon: NotebookPen },
   { href: "/markets", label: "Markets", Icon: LineChart },
+  { href: "/creators", label: "Creators", Icon: Trophy },
 ];
 
 // Sizing is fluid rather than fixed, so one rule covers every screen instead of
@@ -52,8 +59,9 @@ export function BottomNav() {
   const pathname = usePathname() || "/";
   const { data: session } = useSession();
   if (isBottomHidden(pathname)) return null;
-  const left = ITEMS.slice(0, 2);
-  const right = ITEMS.slice(2);
+  const half = ITEMS.length / 2;
+  const left = ITEMS.slice(0, half);
+  const right = ITEMS.slice(half);
 
   const user = session?.user as any;
   const isPremium = user?.membership === "Premium";
@@ -65,7 +73,7 @@ export function BottomNav() {
     <>
       {/* In-flow spacer so page content + footer clear the fixed bar (only when
           the bar is actually shown - immersive routes above return null). */}
-      <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] lg:hidden" />
+      <div aria-hidden className="nav-spacer h-[calc(3.5rem+env(safe-area-inset-bottom))] lg:hidden" />
       <nav
         className="nav-shell fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-ink-950/95 lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
@@ -75,9 +83,9 @@ export function BottomNav() {
           and the grid fills the width below that instead of leaving side gaps.
           On a tablet the cap keeps it from stretching absurdly wide - though
           the bar is lg:hidden, so that only applies below 1024px.
-          grid-cols-5 must match ITEMS.length + 1; they are what centres the
+          grid-cols-7 must match ITEMS.length + 1; they are what centres the
           Profile cell. */}
-      <div className="mx-auto grid w-full max-w-lg grid-cols-5">
+      <div className="mx-auto grid w-full max-w-lg grid-cols-7">
         {left.map((it) => (
           <NavCell key={it.href} item={it} active={isBottomActive(pathname, it.href)} />
         ))}

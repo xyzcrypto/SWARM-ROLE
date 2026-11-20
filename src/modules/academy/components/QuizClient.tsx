@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowRight, Brain, CalendarDays, CheckCircle2, Clock, Flame, Gauge, Headphones, Layers, Loader2, LogIn, RotateCcw, Split, Swords, Timer, Trophy, XCircle, Zap } from "lucide-react";
+import { ArrowRight, AudioLines, Brain, CalendarDays, CheckCircle2, Clock, Flame, Gauge, Headphones, Layers, Loader2, LogIn, RotateCcw, Split, Swords, Timer, Trophy, XCircle, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { duck, play, say, sayOneOf, sfx, stopVoice, unlock, type Piece } from "../client/audio";
@@ -371,7 +371,7 @@ function TimerRing({ left, limitMs, frozen }: { left: number; limitMs: number; f
   const c = 2 * Math.PI * r;
   const urgent = left < 5000 && !frozen;
   return (
-    <div className={cn("relative grid h-14 w-14 shrink-0 place-items-center", urgent && "animate-pulse")} role="timer" aria-label={`${Math.ceil(left / 1000)} seconds left`}>
+    <div className={cn("acad-timer relative grid h-12 w-12 shrink-0 place-items-center sm:h-14 sm:w-14", urgent && "animate-pulse")} role="timer" aria-label={`${Math.ceil(left / 1000)} seconds left`}>
       <svg viewBox="0 0 52 52" className="absolute inset-0 -rotate-90">
         <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
         <circle cx="26" cy="26" r={r} fill="none" stroke={urgent ? "#f87171" : "#e2a72f"} strokeWidth="4" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={{ transition: "stroke-dashoffset 250ms linear" }} />
@@ -379,6 +379,53 @@ function TimerRing({ left, limitMs, frozen }: { left: number; limitMs: number; f
       <span className={cn("font-mono text-sm font-bold tabular-nums", urgent ? "text-red-300" : frozen ? "text-content-subtle" : "text-content")}>{Math.ceil(left / 1000)}</span>
     </div>
   );
+}
+
+/**
+ * The countdown, isolated: it is the only part of the quiz that re-renders
+ * five times a second. It used to tick the whole player (question, options,
+ * their framer-motion props, the progress bar), which is what made answering
+ * feel laggy on phones. The server still decides time-outs; this only asks it
+ * to settle when the clock runs out, and plays the warnings.
+ */
+function QuizClock({
+  q,
+  reveal,
+  busy,
+  clock,
+  timedOut,
+  onExpire,
+}: {
+  q: NonNullable<QuizState["question"]>;
+  reveal: AnswerResult | null;
+  busy: boolean;
+  clock: { now: () => number };
+  timedOut: React.MutableRefObject<number | null>;
+  onExpire: () => void;
+}) {
+  useTicker(!reveal, 200);
+  const warned = useRef<{ i: number; ten: boolean; beats: number }>({ i: -1, ten: false, beats: 99 });
+  const now = clock.now();
+  const left = reveal ? Math.max(0, q.limitMs - reveal.ms) : Math.max(0, q.deadline - now);
+  useEffect(() => {
+    if (reveal || busy) return;
+    if (warned.current.i !== q.index) warned.current = { i: q.index, ten: false, beats: 99 };
+    if (now > q.deadline + 600 && timedOut.current !== q.index) {
+      timedOut.current = q.index;
+      onExpire();
+      return;
+    }
+    const secs = Math.ceil((q.deadline - now) / 1000);
+    if (q.limitMs >= 20_000 && secs === 10 && !warned.current.ten) {
+      warned.current.ten = true;
+      say("time_10", { auto: true, queue: true });
+    }
+    if (secs <= 5 && secs > 0 && secs < warned.current.beats) {
+      warned.current.beats = secs;
+      sfx("heartbeat");
+    }
+  }, [now, q, reveal, busy, timedOut, onExpire]);
+  return <TimerRing left={left} limitMs={q.limitMs} frozen={!!reveal} />;
 }
 
 function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFinished: (r: QuizResult) => void; onLost: () => void }) {
@@ -394,11 +441,8 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
   const { settings } = useAudio();
   const timedOut = useRef<number | null>(null);
   const announced = useRef<number>(-1);
-  const warned = useRef<{ i: number; ten: boolean; beats: number }>({ i: -1, ten: false, beats: 99 });
   const q = state?.question ?? null;
   const lifelinesOff = state?.mode === "daily" || state?.mode === "weekly" || state?.mode === "challenge";
-  useTicker(!!q && !reveal, 200);
-
   const adopt = useCallback((s: QuizState) => {
     setState(s);
     setHidden(s.question?.hidden ?? []);
@@ -516,6 +560,9 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
         if (after.length) play(after, { queue: true, caption: r.explanation });
       } catch (e) {
         setErr((e as Error).message);
+        setPicked(null);
+        // A failed time-out must be retried, or the question sits at 0s forever.
+        if (choice === -1) setTimeout(() => (timedOut.current = null), 2500);
         if ((e as { status?: number }).status === 409) void load();
       } finally {
         setBusy(false);
@@ -567,28 +614,18 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
     }
   }, [reveal, busy, attemptId, onFinished, clock, load, adopt]);
 
-  // Clock: the server decides time-outs; this asks it to settle, and warns.
-  const now = clock.now();
-  const left = q ? (reveal ? Math.max(0, q.limitMs - reveal.ms) : Math.max(0, q.deadline - now)) : 0;
+  const expire = useCallback(() => void answer(-1), [answer]);
+
+  // Play mode: the question owns the whole screen. CSS (academy.css) hides the
+  // Academy tabs, and on phones the bottom nav and floating buttons, while
+  // this flag is set, so nothing needs scrolling and nothing covers an option.
   useEffect(() => {
-    if (!q || reveal || busy) return;
-    const w = warned.current;
-    if (w.i !== q.index) warned.current = { i: q.index, ten: false, beats: 99 };
-    if (now > q.deadline + 600 && timedOut.current !== q.index) {
-      timedOut.current = q.index;
-      void answer(-1);
-      return;
-    }
-    const secs = Math.ceil((q.deadline - now) / 1000);
-    if (q.limitMs >= 20_000 && secs === 10 && !warned.current.ten) {
-      warned.current.ten = true;
-      say("time_10", { auto: true, queue: true });
-    }
-    if (secs <= 5 && secs > 0 && secs < warned.current.beats) {
-      warned.current.beats = secs;
-      sfx("heartbeat");
-    }
-  }, [now, q, reveal, busy, answer]);
+    if (!q) return;
+    document.documentElement.dataset.acadPlaying = "1";
+    return () => {
+      delete document.documentElement.dataset.acadPlaying;
+    };
+  }, [q]);
 
   // Keyboard
   useEffect(() => {
@@ -641,11 +678,14 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
     );
 
   return (
-    <div className="mx-auto max-w-3xl">
-      {/* sticky progress */}
-      <div className="sticky top-[4.5rem] z-20 -mx-5 border-b border-hairline bg-ink-950/90 px-5 py-2.5 backdrop-blur sm:top-20 sm:mx-0 sm:rounded-2xl sm:border sm:px-4">
+    // One screen, no page scroll: the play area is exactly the viewport under
+    // the header (see .acad-play). The card is a flex column; only its middle
+    // scrolls, and only if a very long explanation needs it, so the timer,
+    // the options and the Next button are always in view.
+    <div className="acad-play mx-auto flex max-w-3xl flex-col">
+      <div className="shrink-0 rounded-2xl border border-hairline bg-ink-950/80 px-3 py-2 backdrop-blur sm:px-4">
         <div className="flex items-center gap-3">
-          <TimerRing left={left} limitMs={q.limitMs} frozen={!!reveal} />
+          <QuizClock q={q} reveal={reveal} busy={busy} clock={clock} timedOut={timedOut} onExpire={expire} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2 text-xs">
               <span className="font-semibold text-content">
@@ -662,124 +702,154 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
               </span>
             </div>
             <div className="mt-2 flex gap-1">
-              {segments.map((s, i) => (
-                <span key={i} className={cn("h-1.5 flex-1 rounded-full transition-colors duration-500", s === "right" ? "bg-mint-400" : s === "wrong" ? "bg-red-400/80" : s === "current" ? "bg-gold-300" : "bg-white/10")} />
+              {segments.map((sg, i) => (
+                <span key={i} className={cn("h-1.5 flex-1 rounded-full transition-colors duration-500", sg === "right" ? "bg-mint-400" : sg === "wrong" ? "bg-red-400/80" : sg === "current" ? "bg-gold-300" : "bg-white/10")} />
               ))}
             </div>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              unlock();
+              window.dispatchEvent(new Event("academy:open"));
+            }}
+            className="acad-play-guide grid h-9 w-9 shrink-0 place-items-center rounded-full border border-hairline text-gold-200 md:hidden"
+            aria-label="Open AneQue"
+          >
+            <AudioLines className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
       <AnimatePresence mode="popLayout" initial={false}>
-        <motion.div key={q.index} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }} className="mt-4">
-          <div className="surface relative rounded-3xl p-5 sm:p-8">
-            <div className="flex flex-wrap items-center gap-2">
-              <Pill tone={DIFF_TONE[q.difficulty]}>{DIFF_LABEL[q.difficulty]}</Pill>
-              <span className="min-w-0 truncate text-[11px] text-content-subtle">{q.category}</span>
-              <div className="ml-auto flex items-center gap-1.5">
-                {!lifelinesOff && (
+        <motion.div key={q.index} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className="mt-2.5 flex min-h-0 flex-1 flex-col sm:mt-3">
+          <div className="surface relative flex min-h-0 flex-1 flex-col rounded-3xl">
+            <div className="acad-play-body min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-7 sm:pt-6">
+              <div className="flex items-center gap-2">
+                <Pill tone={DIFF_TONE[q.difficulty]}>{DIFF_LABEL[q.difficulty]}</Pill>
+                <span className="hidden min-w-0 truncate text-[11px] text-content-subtle sm:inline">{q.category}</span>
+                <div className="ml-auto flex items-center gap-1.5">
+                  {!lifelinesOff && (
+                    <button
+                      type="button"
+                      onClick={() => void fifty()}
+                      disabled={!!reveal || busy || fiftyLeft <= 0 || hidden.length > 0}
+                      className={cn("flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold transition-colors disabled:opacity-40", hidden.length ? "border-gold-400/60 text-gold-200" : "border-hairline text-content-muted hover:border-gold-400/50 hover:text-gold-200")}
+                      aria-label={`Use 50:50 lifeline, ${fiftyLeft} left`}
+                      title="Remove two wrong answers. This answer scores half."
+                    >
+                      <Split className="h-3.5 w-3.5" /> 50:50 <span className="font-mono text-content-subtle">×{fiftyLeft}</span>
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => void fifty()}
-                    disabled={!!reveal || busy || fiftyLeft <= 0 || hidden.length > 0}
-                    className={cn("flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold transition-colors disabled:opacity-40", hidden.length ? "border-gold-400/60 text-gold-200" : "border-hairline text-content-muted hover:border-gold-400/50 hover:text-gold-200")}
-                    aria-label={`Use 50:50 lifeline, ${fiftyLeft} left`}
-                    title="Remove two wrong answers. This answer scores half."
+                    onClick={() => {
+                      unlock();
+                      readQuestion(true);
+                    }}
+                    className="acad-icon-btn h-8 w-8"
+                    aria-label="Read the question and options aloud"
+                    title="Read aloud (R)"
                   >
-                    <Split className="h-3.5 w-3.5" /> 50:50 <span className="font-mono text-content-subtle">×{fiftyLeft}</span>
+                    <Headphones />
                   </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    unlock();
-                    readQuestion(true);
-                  }}
-                  className="acad-icon-btn h-8 w-8"
-                  aria-label="Read the question and options aloud"
-                  title="Read aloud (R)"
-                >
-                  <Headphones />
-                </button>
+                </div>
               </div>
-            </div>
-            <h2 className="mt-4 font-display text-xl font-semibold leading-snug text-content sm:text-2xl">{q.prompt}</h2>
+              <h2 className="acad-play-prompt mt-3 font-display font-semibold leading-snug text-content sm:mt-4">{q.prompt}</h2>
 
-            <div className="mt-6 grid gap-2.5">
-              {q.options.map((o, i) => {
-                const isPicked = picked === i;
-                const right = reveal && reveal.correctShown === i;
-                const wrong = reveal && isPicked && !reveal.correct;
-                const gone = hidden.includes(i) && !right;
-                return (
-                  <motion.button
-                    key={i}
-                    type="button"
-                    disabled={!!reveal || busy || gone}
-                    onClick={() => void answer(i)}
-                    onMouseEnter={() => !reveal && !gone && sfx("hover")}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: gone ? 0.25 : 1, y: 0, scale: gone ? 0.98 : 1 }}
-                    transition={{ delay: gone ? 0 : 0.05 + i * 0.05 }}
-                    className={cn(
-                      "acad-option flex w-full items-center gap-3 rounded-2xl border border-hairline bg-ink-900/40 px-4 py-3.5 text-left text-[15px] text-content sm:py-4",
-                      isPicked && !reveal && "is-picked",
-                      right && "is-right",
-                      wrong && "is-wrong",
-                      gone && "line-through",
-                      reveal && !right && !wrong && !gone && "opacity-55"
-                    )}
-                  >
-                    <span
+              <div className="mt-3 grid gap-2 sm:mt-5 sm:gap-2.5">
+                {q.options.map((o, i) => {
+                  const isPicked = picked === i;
+                  const right = reveal && reveal.correctShown === i;
+                  const wrong = reveal && isPicked && !reveal.correct;
+                  const gone = hidden.includes(i) && !right;
+                  return (
+                    <motion.button
+                      key={i}
+                      type="button"
+                      disabled={!!reveal || busy || gone}
+                      onClick={() => void answer(i)}
+                      onMouseEnter={() => !reveal && !gone && sfx("hover")}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: gone ? 0.25 : 1, y: 0, scale: gone ? 0.98 : 1 }}
+                      transition={{ delay: gone ? 0 : 0.04 + i * 0.04 }}
                       className={cn(
-                        "grid h-8 w-8 shrink-0 place-items-center rounded-xl border font-mono text-xs font-bold",
-                        right ? "border-mint-400 bg-mint-400 text-ink-950" : wrong ? "border-red-400 bg-red-400 text-ink-950" : "border-hairline text-content-subtle"
+                        "acad-option acad-play-option flex w-full items-center gap-3 rounded-2xl border border-hairline bg-ink-900/40 px-3.5 text-left text-content sm:px-4",
+                        isPicked && !reveal && "is-picked",
+                        right && "is-right",
+                        wrong && "is-wrong",
+                        gone && "line-through",
+                        reveal && !right && !wrong && !gone && "opacity-55"
                       )}
                     >
-                      {right ? <CheckCircle2 className="h-4 w-4" /> : wrong ? <XCircle className="h-4 w-4" /> : LETTERS[i]}
-                    </span>
-                    <span className="min-w-0 flex-1">{o}</span>
-                    {busy && isPicked && !reveal && <Loader2 className="h-4 w-4 animate-spin text-gold-300" />}
-                  </motion.button>
-                );
-              })}
-            </div>
+                      <span
+                        className={cn(
+                          "grid h-7 w-7 shrink-0 place-items-center rounded-lg border font-mono text-xs font-bold sm:h-8 sm:w-8 sm:rounded-xl",
+                          right ? "border-mint-400 bg-mint-400 text-ink-950" : wrong ? "border-red-400 bg-red-400 text-ink-950" : "border-hairline text-content-subtle"
+                        )}
+                      >
+                        {right ? <CheckCircle2 className="h-4 w-4" /> : wrong ? <XCircle className="h-4 w-4" /> : LETTERS[i]}
+                      </span>
+                      <span className="min-w-0 flex-1">{o}</span>
+                      {busy && isPicked && !reveal && <Loader2 className="h-4 w-4 animate-spin text-gold-300" />}
+                    </motion.button>
+                  );
+                })}
+              </div>
 
-            <AnimatePresence>
-              {pop && (
-                <motion.div
-                  key={pop.id}
-                  initial={{ opacity: 0, y: 10, scale: 0.8 }}
-                  animate={{ opacity: 1, y: -18, scale: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                  className="pointer-events-none absolute right-6 top-16 font-display text-2xl font-bold text-mint-300 drop-shadow-[0_0_14px_rgba(52,227,161,0.6)]"
-                >
-                  {pop.text}
+              <AnimatePresence>
+                {pop && (
+                  <motion.div
+                    key={pop.id}
+                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                    animate={{ opacity: 1, y: -18, scale: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    className="pointer-events-none absolute right-6 top-14 font-display text-2xl font-bold text-mint-300 drop-shadow-[0_0_14px_rgba(52,227,161,0.6)]"
+                  >
+                    {pop.text}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {reveal && (
+                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+                  <div className={cn("mt-3 rounded-2xl border p-3 sm:mt-4 sm:p-4", reveal.correct ? "border-mint-400/30 bg-mint-400/[0.05]" : "border-red-400/25 bg-red-400/[0.04]")}>
+                    <div className={cn("flex items-center gap-2 text-sm font-semibold", reveal.correct ? "text-mint-300" : "text-red-300")}>
+                      {reveal.correct ? <CheckCircle2 className="h-4 w-4" /> : reveal.timedOut ? <Timer className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                      {reveal.correct ? `Correct, +${reveal.points} points${reveal.assisted ? " (50:50)" : ""}` : reveal.timedOut ? "Time's up" : "Not quite"}
+                      <span className="ml-auto flex items-center gap-1 font-mono text-[11px] font-normal text-content-subtle">
+                        <Clock className="h-3 w-3" /> {(reveal.ms / 1000).toFixed(1)}s
+                      </span>
+                    </div>
+                    {reveal.explanation && <p className="mt-1.5 text-[13px] leading-relaxed text-content-muted sm:text-sm">{reveal.explanation}</p>}
+                    {reveal.correct && !reveal.fresh && <p className="mt-1.5 text-[11px] text-content-subtle">Practice answer: you got this one right recently, so it scores but earns no XP this time.</p>}
+                  </div>
                 </motion.div>
               )}
-            </AnimatePresence>
-
-            {reveal && (
-              <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-                <div className={cn("mt-5 rounded-2xl border p-4", reveal.correct ? "border-mint-400/30 bg-mint-400/[0.05]" : "border-red-400/25 bg-red-400/[0.04]")}>
-                  <div className={cn("flex items-center gap-2 text-sm font-semibold", reveal.correct ? "text-mint-300" : "text-red-300")}>
-                    {reveal.correct ? <CheckCircle2 className="h-4 w-4" /> : reveal.timedOut ? <Timer className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-                    {reveal.correct ? `Correct, +${reveal.points} points${reveal.assisted ? " (50:50)" : ""}` : reveal.timedOut ? "Time's up" : "Not quite"}
-                    <span className="ml-auto flex items-center gap-1 font-mono text-[11px] font-normal text-content-subtle">
-                      <Clock className="h-3 w-3" /> {(reveal.ms / 1000).toFixed(1)}s
-                    </span>
-                  </div>
-                  {reveal.explanation && <p className="mt-2 text-sm leading-relaxed text-content-muted">{reveal.explanation}</p>}
-                  {reveal.correct && !reveal.fresh && <p className="mt-2 text-[11px] text-content-subtle">Practice answer: you got this one right recently, so it scores but earns no XP this time.</p>}
+              {err && (
+                <div className="mt-3 flex items-center gap-3 rounded-xl bg-red-500/10 px-3 py-2 text-[13px] text-red-300">
+                  <span className="min-w-0 flex-1">{err}</span>
+                  <button type="button" onClick={() => void load()} className="shrink-0 font-semibold underline">
+                    Retry
+                  </button>
                 </div>
-                <button type="button" onClick={() => void next()} disabled={busy} className="btn-primary mt-4 h-12 w-full justify-center text-base">
+              )}
+            </div>
+            {/* Always-visible action row */}
+            <div className={cn("shrink-0 border-t border-hairline px-4 py-2.5 sm:px-7 sm:py-3", !reveal && "acad-play-hint")}>
+              {reveal ? (
+                <button type="button" onClick={() => void next()} disabled={busy} className="btn-primary h-11 w-full justify-center text-[15px] sm:h-12 sm:text-base">
                   {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                   {reveal.last ? "See results" : "Next question"} <ArrowRight className="h-5 w-5" />
                 </button>
-              </motion.div>
-            )}
-            {err && <div className="mt-4 text-sm text-red-300">{err}</div>}
+              ) : (
+                <p className="flex h-11 items-center justify-center gap-2 text-center text-[12px] text-content-subtle sm:h-12">
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin text-gold-300" /> : null}
+                  {busy ? "Checking your answer…" : "Tap an answer. Keys 1-4 or A-D work too."}
+                </p>
+              )}
+            </div>
           </div>
         </motion.div>
       </AnimatePresence>

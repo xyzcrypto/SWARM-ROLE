@@ -70,6 +70,7 @@ export function WhatsNewManager() {
     <div className="space-y-5">
       <form onSubmit={add} className="surface space-y-3 rounded-2xl p-5 sm:p-6">
         <h2 className="font-display text-lg font-semibold text-zinc-100">Add a What&apos;s New entry</h2>
+        <p className="mt-1 text-xs text-zinc-500">Published entries dated in the last 7 days also pop up on the home page for visitors who haven&apos;t seen them (closes itself after 9 s).</p>
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
