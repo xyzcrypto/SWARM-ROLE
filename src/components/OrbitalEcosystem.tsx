@@ -18,7 +18,7 @@ const NODES: Node[] = [
   { label: "AI Tools", desc: "AI-powered market assistants", href: "/#products", tone: "mint" },
   { label: "Analytics", desc: "Real-time charts & on-chain data", href: "/#products", tone: "violet" },
   { label: "Premium", desc: "Exclusive premium research", href: "/research", tone: "gold" },
-  { label: "Education", desc: "XYZ Web3 Academy & guides", href: "/#ecosystem", tone: "mint" },
+  { label: "Education", desc: "XYZ Web3 Academy & guides", href: "/academy", tone: "mint" },
   { label: "Community", desc: "Join the XYZ Crypto community", href: "/community", tone: "violet" },
 ];
 

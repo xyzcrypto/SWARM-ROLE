@@ -2,10 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Crown, Loader2, Search, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getJson, useAcademyPing, useMe, useTicker, type Me } from "../client/hooks";
+import { getJson, useAcademyPing, useMe, type Me } from "../client/hooks";
 import { say, sfx, unlock } from "../client/audio";
 import type { VoiceLine } from "../client/voice-lines";
 import type { Board, BoardRow } from "./types";
@@ -54,7 +54,6 @@ function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
         const first = r.rank === 1;
         return (
           <motion.div
-            layout
             key={r.userId}
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -91,7 +90,6 @@ function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
 function Row({ r, me }: { r: BoardRow; me: boolean }) {
   return (
     <motion.li
-      layout
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0 }}
@@ -164,7 +162,8 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<BoardRow[] | null>(null);
   const { me, reload: reloadMe } = useMe();
-  useTicker(!compact, 5_000);
+  // (No board-wide ticker: the only clock on this view is "updated Ns ago",
+  // and <Ago> ticks itself. A 5 s re-render of every row was pure cost.)
 
   const load = useCallback(
     async (p: Period) => {
@@ -254,9 +253,11 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
                 setPeriod(p.id);
                 if (!compact) say(`board_${p.id}` as VoiceLine, { auto: true });
               }}
-              className={cn("relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors", period === p.id ? "text-ink-950" : "text-content-muted hover:text-content")}
+              // A CSS highlight, not a framer-motion shared layoutId: that kept
+              // a layout-projection tree alive that re-measured the whole board
+              // on every re-render.
+              className={cn("relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition-[background-color,color,box-shadow] duration-300", period === p.id ? "bg-gold-300 text-ink-950 shadow-[0_4px_14px_-6px_rgba(226,167,47,0.7)]" : "text-content-muted hover:text-content")}
             >
-              {period === p.id && <motion.span layoutId={compact ? "lb-tab-c" : "lb-tab"} className="absolute inset-0 rounded-full bg-gold-300" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
               <span className="relative">{p.label}</span>
             </button>
           ))}
@@ -327,7 +328,7 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
           </div>
         </Empty>
       ) : (
-        <LayoutGroup>
+        <>
           <div className={cn(compact ? "mt-8" : "mt-10")}>
             <Podium rows={top} meId={meId} />
           </div>
@@ -364,7 +365,7 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
               </Link>
             </div>
           )}
-        </LayoutGroup>
+        </>
       )}
     </div>
   );

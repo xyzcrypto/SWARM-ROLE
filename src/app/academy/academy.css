@@ -591,3 +591,15 @@ html[data-acad-playing] .acad-shell {
     padding-top: 0.75rem;
   }
 }
+
+/* Hero headline: phones wrap naturally; from lg each phrase is ONE line, sized
+   off the viewport so the longest ("Dominate the leaderboard.") fills the copy
+   column instead of breaking into a fourth line and leaving a ragged gap. */
+.acad-hero-title {
+  font-size: clamp(2.25rem, 9.6vw, 3.5rem);
+}
+@media (min-width: 1024px) {
+  .acad-hero-title {
+    font-size: clamp(2.5rem, 3.75vw, 3.85rem);
+  }
+}

@@ -147,11 +147,11 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               )}
             </span>
           </motion.div>
-          <h1 className="mt-5 font-display text-[clamp(2.25rem,5.6vw,4.25rem)] font-bold leading-[1.02] tracking-[-0.035em] text-content">
+          <h1 className="acad-hero-title mt-5 font-display font-bold leading-[1.04] tracking-[-0.035em] text-content">
             {["Master Web3.", "Prove your knowledge.", "Dominate the leaderboard."].map((t, i) => (
               <motion.span
                 key={t}
-                className="block"
+                className="block lg:whitespace-nowrap"
                 initial={{ opacity: 0, y: 22 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.08 + i * 0.1, ease }}
@@ -354,6 +354,47 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
             />
           </div>
         </aside>
+
+        {/* Fills the column under the ticket with live proof: the newest
+            certificates (real, verifiable) and whether a live quiz is on. */}
+        <div className="acad-hero-proof mt-4 hidden rounded-[1.5rem] border border-hairline bg-ink-900/60 p-4 lg:block">
+          <div className="flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">
+              <BadgeCheck className="h-3.5 w-3.5 text-gold-300" /> Latest certificates
+            </span>
+            {pulse && pulse.liveNow > 0 ? (
+              <Link href="/academy/live" className="flex items-center gap-1.5 text-[11px] font-semibold text-mint-300 hover:underline">
+                <span className="acad-live-dot h-1.5 w-1.5 rounded-full bg-mint-400 text-mint-400" /> {pulse.liveNow} live now
+              </Link>
+            ) : (
+              <Link href="/academy/certificates" className="text-[11px] font-semibold text-gold-300 hover:underline">
+                View all
+              </Link>
+            )}
+          </div>
+          {pulse && pulse.certificates.length > 0 ? (
+            <ul className="mt-3 space-y-2">
+              {pulse.certificates.slice(0, 2).map((c) => (
+                <li key={c.code}>
+                  <Link href={`/academy/certificate/${c.code}`} className="group flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-white/[0.04] active:bg-white/[0.04]">
+                    <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-gold-400/30 bg-gold-400/10 text-gold-200">
+                      <Trophy className="h-4 w-4" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13px] font-semibold text-content">{c.displayName}</span>
+                      <span className="block truncate text-[11px] text-content-subtle">{c.title}</span>
+                    </span>
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-content-subtle transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-[13px] leading-relaxed text-content-muted">
+              Top the daily, weekly or monthly board, or win a live quiz, to earn a verifiable certificate.
+            </p>
+          )}
+        </div>
         </motion.div>
       </div>
     </section>

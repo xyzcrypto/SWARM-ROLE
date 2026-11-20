@@ -75,9 +75,10 @@ export const navLinks = [
 // still reachable from the rail, the footer and the mobile drawer, because it
 // stays in `navLinks`.
 // Academy and Creators joined the rail on 2026-11-20 at the owner's request
-// (8 links). Re-measured at the rail's breakpoint (xl, 1280px) signed in and
+// (8 links). Community moved to "More" the same day to lighten the rail (7).
+// Re-measured at the rail's breakpoint (xl, 1280px) signed in and
 // signed out - see nav-rail-width.test.ts for the numbers and the padding step.
-const RAIL_HREFS = new Set(["/", "/markets", "/points", "/news", "/research", "/academy", "/creators", "/community"]);
+const RAIL_HREFS = new Set(["/", "/markets", "/points", "/news", "/research", "/academy", "/creators"]);
 
 export const railLinks = navLinks.filter((l) => RAIL_HREFS.has(l.href));
 export const moreLinks = navLinks.filter((l) => !RAIL_HREFS.has(l.href));
