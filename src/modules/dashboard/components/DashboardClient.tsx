@@ -359,6 +359,12 @@ export function DashboardClient({
             )}
           </button>
         ))}
+        {/* The Academy has its own admin screen (content, live quizzes, certificates). */}
+        {hasPermission(viewer, "academy:manage") && (
+          <Link href="/dashboard/academy" className="rounded-t-lg px-4 py-2.5 text-sm font-semibold text-zinc-500 transition-colors hover:text-gold-200">
+            Academy ↗
+          </Link>
+        )}
       </div>
 
       {tab === "overview" && <Overview stats={stats} online={online} health={health} />}

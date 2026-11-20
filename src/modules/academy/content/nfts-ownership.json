@@ -1,0 +1,427 @@
+{
+  "slug": "nfts-ownership",
+  "title": "NFTs & Digital Ownership",
+  "tagline": "Understand how NFTs work, what you really own and how to trade them safely.",
+  "icon": "Gem",
+  "order": 8,
+  "modules": [
+    {
+      "slug": "what-is-an-nft",
+      "level": "beginner",
+      "title": "What is an NFT?",
+      "summary": "An NFT is a unique token on a blockchain that records who owns a specific item. This module explains what makes NFTs different from regular tokens.",
+      "minutes": 6,
+      "objectives": [
+        "Explain the difference between fungible and non-fungible tokens",
+        "Describe what an NFT records on the blockchain",
+        "List common uses for NFTs beyond art"
+      ],
+      "sections": [
+        {
+          "heading": "Fungible and non-fungible",
+          "body": "Fungible means interchangeable: one dollar or one ETH is as good as any other. Non-fungible means each item is unique, like a concert seat with its own row and number. NFT stands for non-fungible token, a token that cannot be swapped one-for-one with another."
+        },
+        {
+          "heading": "What an NFT records",
+          "body": "Each NFT lives in a smart contract and has its own token ID. The blockchain records which address owns each ID and keeps a public history of every transfer. Anyone can check who owns a given NFT and where it came from."
+        },
+        {
+          "heading": "More than pictures",
+          "body": "NFTs are well known for digital art, but the same idea works for many things. Examples include event tickets, game items, membership passes, domain names and certificates. In each case the NFT acts as a verifiable record of ownership."
+        }
+      ],
+      "concepts": [
+        { "term": "Fungible", "definition": "Interchangeable, where every unit is worth the same as any other unit." },
+        { "term": "Non-fungible token", "definition": "A unique token on a blockchain that cannot be swapped one-for-one with another." },
+        { "term": "Token ID", "definition": "The number that identifies one specific NFT inside its contract." },
+        { "term": "Provenance", "definition": "The full ownership history of an item, back to when it was created." }
+      ],
+      "example": {
+        "title": "An NFT concert ticket",
+        "body": "A venue sells tickets as NFTs. Each ticket has its own token ID tied to a seat. At the door, staff check that the holder's wallet owns that token ID. Because the history is public, a buyer on a resale market can confirm the ticket came from the venue's official contract."
+      }
+    },
+    {
+      "slug": "token-standards-and-metadata",
+      "level": "intermediate",
+      "title": "Token standards and metadata",
+      "summary": "NFTs follow shared standards so wallets and marketplaces can read them. This module covers ERC-721, ERC-1155 and where the image and details are actually stored.",
+      "minutes": 8,
+      "objectives": [
+        "Compare ERC-721 and ERC-1155",
+        "Explain how tokenURI and metadata work",
+        "Describe the trade-offs of different storage options"
+      ],
+      "sections": [
+        {
+          "heading": "ERC-721",
+          "body": "ERC-721 is the original Ethereum standard for NFTs. Each token ID in an ERC-721 contract is unique and has exactly one owner. Functions such as ownerOf and transferFrom work the same way across every compliant contract, so any wallet or marketplace can support them."
+        },
+        {
+          "heading": "ERC-1155",
+          "body": "ERC-1155 is a multi-token standard. One contract can hold many token types, and each type can have one copy or many copies. This suits games, where a contract might hold a unique sword alongside thousands of identical potions. It also supports batch transfers, which save gas when moving several items at once."
+        },
+        {
+          "heading": "Metadata and tokenURI",
+          "body": "Most NFTs do not store their image on-chain. Instead, the contract returns a link, called the tokenURI, that points to a JSON file with the name, description, attributes and image link. Wallets and marketplaces read this file to display the NFT."
+        },
+        {
+          "heading": "Where files are stored",
+          "body": "If metadata sits on an ordinary web server, the owner of that server can change or delete it. IPFS uses content addressing, where the link is a hash of the file, so the content behind a link cannot change, though someone must keep pinning it. Some projects store everything fully on-chain, which costs more but removes outside dependencies."
+        }
+      ],
+      "concepts": [
+        { "term": "ERC-721", "definition": "The Ethereum standard for unique NFTs, where each token ID has one owner." },
+        { "term": "ERC-1155", "definition": "A multi-token standard where one contract can hold both unique and identical tokens." },
+        { "term": "tokenURI", "definition": "A link returned by an NFT contract that points to the token's metadata." },
+        { "term": "Content addressing", "definition": "Identifying a file by a hash of its content, so the link always means the same data." }
+      ],
+      "example": {
+        "title": "A game item contract",
+        "body": "A game uses one ERC-1155 contract for its items. Token type 1 is a legendary shield with a supply of one. Token type 2 is a healing potion with a supply of fifty thousand. A player can send three potions and the shield to a friend in one batch transfer."
+      }
+    },
+    {
+      "slug": "ownership-rights-and-royalties",
+      "level": "advanced",
+      "title": "Ownership, rights and royalties",
+      "summary": "Owning an NFT is not the same as owning everything about the artwork. This module covers licences, royalties, approvals and the safety risks of trading NFTs.",
+      "minutes": 9,
+      "objectives": [
+        "Separate token ownership from copyright and licence rights",
+        "Explain how ERC-2981 royalties work and their limits",
+        "Recognise the risk of setApprovalForAll"
+      ],
+      "sections": [
+        {
+          "heading": "Token versus rights",
+          "body": "Owning an NFT means your address controls that token. It does not automatically give you the copyright to the artwork. What you may do with the art, such as commercial use, depends on the licence the creator attaches, which can range from none to very broad."
+        },
+        {
+          "heading": "Royalties",
+          "body": "ERC-2981 is a standard that lets an NFT contract report a royalty amount and recipient for each sale. It only reports the information: it cannot force a marketplace to pay. Whether creators receive royalties depends on each marketplace's policy or on extra transfer restrictions built into the contract."
+        },
+        {
+          "heading": "Marketplace approvals",
+          "body": "To list NFTs, you usually call setApprovalForAll, which lets an operator move every NFT you hold in that collection. That is convenient for real marketplaces but dangerous if the operator is malicious. Drainers often ask for this approval, and it should be revoked when no longer needed."
+        },
+        {
+          "heading": "Fakes and copies",
+          "body": "Anyone can deploy a contract with the same name and images as a famous collection. The only reliable check is the contract address. Verify it from the project's official channels before buying, rather than trusting a name or a picture."
+        }
+      ],
+      "concepts": [
+        { "term": "Licence", "definition": "The terms that state what an NFT holder may legally do with the underlying work." },
+        { "term": "ERC-2981", "definition": "A standard that lets an NFT contract report royalty information for sales." },
+        { "term": "setApprovalForAll", "definition": "A function that lets an operator move all of your NFTs in one collection." },
+        { "term": "Contract address", "definition": "The on-chain address that uniquely identifies an NFT collection." }
+      ],
+      "example": {
+        "title": "Two identical collections",
+        "body": "Nina finds a cheap listing for a well-known collection. The name and images match, but the contract address differs from the one on the project's official site. She realises it is a copycat contract. Checking the address saved her from buying a worthless copy."
+      }
+    },
+    {
+      "slug": "nft-mechanics-deep-dive",
+      "level": "expert",
+      "title": "Mint mechanics and advanced design",
+      "summary": "Behind a smooth mint sit careful design choices. This module covers allowlists with Merkle proofs, lazy minting, fair reveals and soulbound tokens.",
+      "minutes": 11,
+      "objectives": [
+        "Explain how Merkle proofs verify allowlists cheaply",
+        "Describe lazy minting with signed vouchers",
+        "Understand fair reveals and non-transferable tokens"
+      ],
+      "sections": [
+        {
+          "heading": "Allowlists with Merkle proofs",
+          "body": "Storing thousands of allowlisted addresses on-chain is expensive. Instead, a project builds a Merkle tree of the list and stores only its root in the contract. At mint time, each user submits a short proof showing their address is in the tree, and the contract checks it against the root."
+        },
+        {
+          "heading": "Lazy minting",
+          "body": "With lazy minting, a creator signs a voucher off-chain describing the NFT and its price. Nothing is minted until a buyer submits the voucher, and the buyer pays the gas. The contract checks the creator's signature before minting, so the creator avoids upfront costs."
+        },
+        {
+          "heading": "Fair reveals",
+          "body": "If buyers can see which token ID will be rare before minting, they can target it. Many projects hide metadata until the mint ends, then reveal it using a random offset. The randomness should come from a source that the team and miners or validators cannot easily predict or bias."
+        },
+        {
+          "heading": "Soulbound tokens",
+          "body": "A soulbound token is an NFT that cannot be transferred once issued. It suits things that should stay with one person, such as credentials, attendance proofs or reputation. Because it cannot be sold, it represents something earned rather than something bought."
+        }
+      ],
+      "concepts": [
+        { "term": "Merkle root", "definition": "A single hash that summarises every entry in a Merkle tree." },
+        { "term": "Merkle proof", "definition": "A short list of hashes that proves one entry belongs to a tree with a known root." },
+        { "term": "Lazy minting", "definition": "Deferring the mint until a buyer submits a creator-signed voucher." },
+        { "term": "Soulbound token", "definition": "A non-transferable token tied permanently to one address." }
+      ],
+      "example": {
+        "title": "An allowlist for ten thousand wallets",
+        "body": "A project allowlists ten thousand addresses. Rather than store them all, it saves one Merkle root in the contract. When Kai mints, the website gives him a proof of about fourteen hashes. The contract hashes his address with the proof, gets the stored root and lets him mint."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-an-nft",
+      "difficulty": "easy",
+      "prompt": "What does non-fungible mean?",
+      "options": [
+        "Each item is unique and not interchangeable",
+        "Each item is worth exactly the same amount",
+        "Each item can be split into smaller parts",
+        "Each item is stored outside the blockchain"
+      ],
+      "answer": 0,
+      "explanation": "Non-fungible items are unique. One cannot be swapped one-for-one with another as if they were identical."
+    },
+    {
+      "module": "what-is-an-nft",
+      "difficulty": "easy",
+      "prompt": "Which of these is fungible?",
+      "options": [
+        "A numbered concert seat",
+        "A one-of-a-kind painting",
+        "A unique game character",
+        "One unit of a currency"
+      ],
+      "answer": 3,
+      "explanation": "Currency units are interchangeable, so they are fungible. The other items are each unique."
+    },
+    {
+      "module": "what-is-an-nft",
+      "difficulty": "easy",
+      "prompt": "What identifies one specific NFT inside its contract?",
+      "options": [
+        "Its market price",
+        "Its token ID",
+        "Its file size",
+        "Its image colour"
+      ],
+      "answer": 1,
+      "explanation": "Each NFT in a contract has its own token ID, and the contract records who owns each ID."
+    },
+    {
+      "module": "what-is-an-nft",
+      "difficulty": "easy",
+      "prompt": "Why can a buyer check an NFT's provenance?",
+      "options": [
+        "Because sellers must upload a paper receipt",
+        "Because marketplaces keep private sale records",
+        "Because transfers are recorded publicly on-chain",
+        "Because each NFT image contains a hidden signature"
+      ],
+      "answer": 2,
+      "explanation": "Every transfer is recorded on the blockchain, so anyone can trace an NFT back to the contract that created it."
+    },
+    {
+      "module": "what-is-an-nft",
+      "difficulty": "easy",
+      "prompt": "Which of these is a common non-art use of NFTs?",
+      "options": [
+        "Mining new blocks",
+        "Event tickets",
+        "Setting gas prices",
+        "Storing seed phrases"
+      ],
+      "answer": 1,
+      "explanation": "NFTs work well as tickets because each one is unique and its ownership is easy to verify."
+    },
+    {
+      "module": "token-standards-and-metadata",
+      "difficulty": "medium",
+      "prompt": "What is a key feature of ERC-1155 compared with ERC-721?",
+      "options": [
+        "It only supports a single token per contract",
+        "It cannot be traded on any NFT marketplace",
+        "One contract can hold unique and identical tokens",
+        "It stores every image directly inside the token contract"
+      ],
+      "answer": 2,
+      "explanation": "ERC-1155 is a multi-token standard. One contract can manage many token types, each with one or many copies."
+    },
+    {
+      "module": "token-standards-and-metadata",
+      "difficulty": "medium",
+      "prompt": "What does the tokenURI of an NFT usually point to?",
+      "options": [
+        "A JSON file with the NFT's metadata",
+        "The private key of the NFT's owner",
+        "The marketplace where it was first sold",
+        "The gas fee paid to mint the token"
+      ],
+      "answer": 0,
+      "explanation": "The tokenURI links to a metadata file with the name, description, attributes and image link."
+    },
+    {
+      "module": "token-standards-and-metadata",
+      "difficulty": "medium",
+      "prompt": "In an ERC-721 contract, how many owners can a single token ID have at once?",
+      "options": [
+        "As many as the creator allows",
+        "Up to ten addresses at a time",
+        "One for each marketplace listing",
+        "Exactly one owner"
+      ],
+      "answer": 3,
+      "explanation": "ERC-721 tokens are unique, and ownerOf returns a single owner for each token ID."
+    },
+    {
+      "module": "token-standards-and-metadata",
+      "difficulty": "medium",
+      "prompt": "Why is IPFS often preferred over an ordinary web server for NFT metadata?",
+      "options": [
+        "IPFS files are always stored for free forever by the network",
+        "Links are content hashes, so the data cannot change",
+        "IPFS automatically pays royalties to creators",
+        "Web servers cannot serve image files to wallets"
+      ],
+      "answer": 1,
+      "explanation": "IPFS links are derived from the file's hash, so the content behind a link cannot be swapped. Someone still has to keep it pinned."
+    },
+    {
+      "module": "token-standards-and-metadata",
+      "difficulty": "medium",
+      "prompt": "What is an advantage of ERC-1155 batch transfers?",
+      "options": [
+        "They hide transfers from block explorers",
+        "They let anyone mint new tokens for free",
+        "They move several items in one transaction",
+        "They make every token in the batch unique"
+      ],
+      "answer": 3,
+      "explanation": "A batch transfer sends several token types in a single transaction, which saves gas compared with separate transfers."
+    },
+    {
+      "module": "ownership-rights-and-royalties",
+      "difficulty": "hard",
+      "prompt": "You buy an NFT of an artwork. What determines whether you can use the art commercially?",
+      "options": [
+        "The price you paid for the NFT",
+        "The licence the creator attached",
+        "The blockchain it was minted on",
+        "The number of NFTs in your wallet"
+      ],
+      "answer": 1,
+      "explanation": "Token ownership does not transfer copyright by itself. Usage rights come from the creator's licence."
+    },
+    {
+      "module": "ownership-rights-and-royalties",
+      "difficulty": "hard",
+      "prompt": "What does ERC-2981 actually do?",
+      "options": [
+        "It forces every marketplace to pay creator royalties on resale",
+        "It stops NFTs from being sold below the mint price",
+        "It reports royalty details that marketplaces may honour",
+        "It sends royalties automatically on every transfer"
+      ],
+      "answer": 2,
+      "explanation": "ERC-2981 only reports a royalty amount and recipient. Payment depends on the marketplace or extra contract rules."
+    },
+    {
+      "module": "ownership-rights-and-royalties",
+      "difficulty": "hard",
+      "prompt": "Why is signing setApprovalForAll for an unknown operator risky?",
+      "options": [
+        "It lets the operator move every NFT you hold in that collection",
+        "It lets the operator change the artwork in your NFTs",
+        "It lets the operator read your private key from the wallet extension",
+        "It lets the operator mint new NFTs in your name"
+      ],
+      "answer": 0,
+      "explanation": "setApprovalForAll grants transfer rights over all your tokens in that collection, which a malicious operator can use to take them."
+    },
+    {
+      "module": "ownership-rights-and-royalties",
+      "difficulty": "hard",
+      "prompt": "What is the most reliable way to confirm an NFT belongs to the real collection?",
+      "options": [
+        "Check that the name matches the famous project",
+        "Check that the image looks like the originals",
+        "Check that the listing price seems fair",
+        "Check the contract address from official sources"
+      ],
+      "answer": 3,
+      "explanation": "Names and images can be copied, but the contract address is unique. Verify it from the project's official channels."
+    },
+    {
+      "module": "ownership-rights-and-royalties",
+      "difficulty": "hard",
+      "prompt": "If NFT metadata is hosted on a project's own web server, what risk does the holder face?",
+      "options": [
+        "The server owner can change or remove what the NFT shows",
+        "The token ID can be reassigned to a different contract by anyone",
+        "The holder must pay rent to the server every month",
+        "The NFT will be burned if the server is restarted"
+      ],
+      "answer": 0,
+      "explanation": "The on-chain token stays, but what it displays depends on the server. The owner of the server can alter or delete the data."
+    },
+    {
+      "module": "nft-mechanics-deep-dive",
+      "difficulty": "expert",
+      "prompt": "Why do projects store a Merkle root instead of the full allowlist on-chain?",
+      "options": [
+        "It hides who minted from the block explorer",
+        "It lets anyone add themselves to the list",
+        "It removes the need for any user signature",
+        "It costs far less storage while staying verifiable"
+      ],
+      "answer": 3,
+      "explanation": "One root replaces thousands of stored addresses. Each user proves membership with a short Merkle proof checked against it."
+    },
+    {
+      "module": "nft-mechanics-deep-dive",
+      "difficulty": "expert",
+      "prompt": "In lazy minting, who usually pays the gas to create the NFT?",
+      "options": [
+        "The creator, before listing it",
+        "The buyer, when submitting the voucher",
+        "The marketplace, from its fee income",
+        "The validator who includes the block"
+      ],
+      "answer": 1,
+      "explanation": "The creator signs a voucher off-chain. The NFT is minted only when a buyer submits it, and the buyer pays the gas."
+    },
+    {
+      "module": "nft-mechanics-deep-dive",
+      "difficulty": "expert",
+      "prompt": "Why do many collections delay revealing metadata until after the mint?",
+      "options": [
+        "To lower the gas cost of each mint transaction",
+        "To make the NFTs non-transferable until the mint has sold out",
+        "To stop minters from targeting known rare token IDs",
+        "To let the team change the total supply later"
+      ],
+      "answer": 2,
+      "explanation": "If rarity is visible in advance, buyers can snipe rare IDs. A later reveal with unbiased randomness keeps the mint fair."
+    },
+    {
+      "module": "nft-mechanics-deep-dive",
+      "difficulty": "expert",
+      "prompt": "What does a Merkle proof contain?",
+      "options": [
+        "The sibling hashes needed to rebuild the root",
+        "Every address on the full allowlist",
+        "The private key of the project owner",
+        "A signed copy of the NFT's metadata"
+      ],
+      "answer": 0,
+      "explanation": "A proof lists the sibling hashes along the path from a leaf to the root. Hashing them in order should reproduce the stored root."
+    },
+    {
+      "module": "nft-mechanics-deep-dive",
+      "difficulty": "expert",
+      "prompt": "Which use case suits a soulbound token best?",
+      "options": [
+        "A collectible meant to be resold for profit",
+        "A game item players trade with each other",
+        "A course completion credential for one person",
+        "A ticket that fans can pass on to friends"
+      ],
+      "answer": 2,
+      "explanation": "Soulbound tokens cannot be transferred, which fits records that should stay with one person, like a credential."
+    }
+  ]
+}

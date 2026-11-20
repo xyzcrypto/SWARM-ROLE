@@ -1,0 +1,52 @@
+// Scripted lines for Nova, the Academy voice guide. Each key has a matching
+// pre-recorded clip in /public/academy/voice/<key>.mp3 (natural female voice,
+// generated once offline). The text is also shown as a caption, so the guide
+// is readable with sound off. Anything not in this list (reading a question
+// aloud, explaining an answer) is spoken by the browser's own speech engine.
+
+export const VOICE_LINES = {
+  "welcome": "Welcome to XYZ Crypto Academy. Ready to master Web3 today?",
+  "welcome_back": "Welcome back. Your next lesson is ready whenever you are.",
+  "signin": "Sign in to save your progress, earn XP, and climb the leaderboard.",
+  "quiz_ready_5": "Your challenge is ready. You have five questions. Let's see how much you know about Web3.",
+  "quiz_ready_10": "Your challenge is ready. You have ten questions. Let's see how much you know about Web3.",
+  "quiz_ready_15": "Your challenge is ready. You have fifteen questions. Let's see how much you know about Web3.",
+  "quiz_ready_20": "Your challenge is ready. You have twenty questions. Let's see how much you know about Web3.",
+  "daily_ready": "Today's daily challenge is ready. Everyone gets the same questions. Good luck.",
+  "weekly_ready": "The weekly challenge is open. Twenty questions. Stay calm and stay sharp.",
+  "correct_1": "Excellent! That's the correct answer. You've earned XP.",
+  "correct_2": "Spot on. Nicely done.",
+  "correct_3": "Correct. You're on a roll.",
+  "streak": "That's three in a row. Your streak bonus is active.",
+  "incorrect_1": "Not quite. Let's understand why this answer was incorrect.",
+  "incorrect_2": "Close, but not this time. Here's the reasoning.",
+  "timeout": "Time's up on that one. Let's look at the answer together.",
+  "quiz_done_great": "Brilliant work. Let's look at your results.",
+  "quiz_done": "Quiz complete. Here's how you did, and what to review next.",
+  "level_up": "Congratulations! You've reached a new level. Keep learning and keep growing.",
+  "achievement": "Achievement unlocked. Well earned.",
+  "top10": "You're currently in the top ten. A few more correct answers could improve your position.",
+  "leaderboard": "Here's the leaderboard. Every correct answer moves you up.",
+  "live_soon": "The live quiz is about to begin. Get ready!",
+  "live_go": "Here comes the first question.",
+  "live_winner": "We have our winners. Congratulations to everyone who played.",
+  "module_check": "Time for a quick knowledge check on this lesson.",
+  "lesson_done": "Lesson complete. That knowledge is yours now.",
+  "certificate": "You've earned an official XYZ Crypto certificate. Share it proudly.",
+  "learn_blockchain-fundamentals": "Let's start with Blockchain Fundamentals. This lesson will help you understand how blockchain technology works.",
+  "learn_bitcoin-ethereum": "Let's start with Bitcoin and Ethereum. This lesson will help you understand the two networks that started it all.",
+  "learn_smart-contracts": "Let's start with Smart Contracts. This lesson will help you understand how code can hold and move value on its own.",
+  "learn_defi-lending": "Let's start with DeFi and Lending. This lesson will help you understand how lending, borrowing and yield work onchain.",
+  "learn_dex-perps": "Let's start with DEX and Perpetual DEX. This lesson will help you understand how onchain trading and perpetual futures work.",
+  "learn_trading-fundamentals": "Let's start with Trading and Market Fundamentals. This lesson will help you understand how markets move and how to manage risk.",
+  "learn_wallets-security": "Let's start with Crypto Wallets and Security. This lesson will help you understand how to keep your keys and your funds safe.",
+  "learn_nfts-ownership": "Let's start with NFTs and Digital Ownership. This lesson will help you understand what it really means to own something onchain.",
+  "learn_layer1-layer2": "Let's start with Layer 1 and Layer 2. This lesson will help you understand how blockchains scale.",
+  "learn_cross-chain-bridges": "Let's start with Cross-chain and Bridges. This lesson will help you understand how value moves between chains, and where the risks are.",
+  "learn_daos-governance": "Let's start with DAOs and Governance. This lesson will help you understand how communities make decisions onchain.",
+  "learn_oracles-infrastructure": "Let's start with Oracles and Infrastructure. This lesson will help you understand how blockchains get real-world data.",
+  "learn_zero-knowledge": "Let's start with Zero-Knowledge Technology. This lesson will help you understand how you can prove something without revealing it.",
+  "learn_web3-ecosystem": "Let's start with Web3 Ecosystem and Research. This lesson will help you understand how to research a project like a professional.",
+} as const;
+
+export type VoiceLine = keyof typeof VOICE_LINES;

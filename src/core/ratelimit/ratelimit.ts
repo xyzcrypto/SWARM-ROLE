@@ -90,6 +90,11 @@ const limiters = {
   // handle not read in the last 6h) spends this, and that call is billed, so
   // it is tight. A scan of a fresh handle is a DB read and costs nothing here.
   creatorScan: make(6, 600, "creator_scan"), // 6/10min per IP
+  // Academy. Starting a quiz picks and stores a question set, so it is tighter
+  // than playing one: a 20-question quiz is 40 answer/next calls plus a finish.
+  academyStart: make(12, 60, "academy_start"), // 12/min per user
+  academy: make(120, 60, "academy"), // 120/min per user - answers, next, finish, live answers, joins
+  academyAdmin: make(60, 60, "academy_admin"), // 60/min per staff member - content editing
 };
 
 export type RateKey = keyof typeof limiters;

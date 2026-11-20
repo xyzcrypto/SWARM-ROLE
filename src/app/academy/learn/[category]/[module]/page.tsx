@@ -1,0 +1,58 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getModule } from "@modules/academy/lib/store";
+import { LessonView } from "@modules/academy/components/LessonView";
+import { JsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
+import { pageSeo } from "@/lib/seo";
+
+// Same caching as the topic page: on demand, then a day, revalidated by admin edits.
+export const revalidate = 86400;
+
+type Props = { params: Promise<{ category: string; module: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { category, module } = await params;
+  const r = await getModule(category, module).catch(() => null);
+  if (!r) return { title: "Lesson not found" };
+  return pageSeo({ title: `${r.module.title} | ${r.category.title} | XYZ Crypto Academy`, description: r.module.summary, path: `/academy/learn/${category}/${module}` });
+}
+
+export default async function LessonPage({ params }: Props) {
+  const { category, module } = await params;
+  const r = await getModule(category, module);
+  if (!r) notFound();
+  const m = r.module;
+  const idx = r.category.modules.findIndex((x) => x.id === m.id);
+  const lesson = {
+    id: m.id,
+    slug: m.slug,
+    level: m.level,
+    title: m.title,
+    summary: m.summary,
+    minutes: m.minutes,
+    objectives: (m.objectives as string[]) ?? [],
+    sections: (m.sections as { heading: string; body: string }[]) ?? [],
+    concepts: (m.concepts as { term: string; definition: string }[]) ?? [],
+    example: (m.example as { title: string; body: string } | null) ?? null,
+    questions: m._count.questions,
+    isFirst: idx === 0,
+  };
+  const nav = {
+    category: { slug: r.category.slug, title: r.category.title, icon: r.category.icon },
+    modules: r.category.modules.map((x) => ({ id: x.id, slug: x.slug, level: x.level, title: x.title, minutes: x.minutes })),
+    prev: idx > 0 ? r.category.modules[idx - 1].slug : null,
+    next: idx < r.category.modules.length - 1 ? r.category.modules[idx + 1].slug : null,
+  };
+  return (
+    <>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Academy", path: "/academy" },
+          { name: r.category.title, path: `/academy/learn/${r.category.slug}` },
+          { name: m.title, path: `/academy/learn/${r.category.slug}/${m.slug}` },
+        ])}
+      />
+      <LessonView lesson={lesson} nav={nav} />
+    </>
+  );
+}

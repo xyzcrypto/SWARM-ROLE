@@ -1,0 +1,431 @@
+{
+  "slug": "bitcoin-ethereum",
+  "title": "Bitcoin & Ethereum",
+  "tagline": "How the two foundational blockchains work, and where they differ.",
+  "icon": "Bitcoin",
+  "order": 2,
+  "modules": [
+    {
+      "slug": "meet-bitcoin-and-ethereum",
+      "level": "beginner",
+      "title": "Meet Bitcoin and Ethereum",
+      "summary": "Bitcoin is digital money with a fixed supply. Ethereum is a programmable blockchain. Learn where each came from and what each is for.",
+      "minutes": 6,
+      "objectives": [
+        "Describe the origins and purpose of Bitcoin and Ethereum",
+        "Explain the difference between a fixed and a flexible supply",
+        "Use the small units satoshi, wei and gwei correctly"
+      ],
+      "sections": [
+        {
+          "heading": "Bitcoin: digital money without a bank",
+          "body": "In October 2008, a person or group using the name Satoshi Nakamoto published the Bitcoin whitepaper. It described peer-to-peer electronic cash that works without a bank or payment company in the middle. The network went live in January 2009. Bitcoin's main job is simple: let people hold and send value that no single party controls."
+        },
+        {
+          "heading": "Ethereum: a programmable blockchain",
+          "body": "Ethereum was proposed by Vitalik Buterin in 2013 and launched in 2015. It keeps a shared ledger like Bitcoin, but it also runs programs called smart contracts. That makes it a platform for applications such as tokens, exchanges and lending markets. Its native coin, ether (ETH), pays for that computation."
+        },
+        {
+          "heading": "Fixed supply versus flexible supply",
+          "body": "Bitcoin's supply is capped at 21 million coins, and the rate of new coins halves roughly every four years. Ethereum has no fixed cap. New ETH is issued to validators while part of every fee is burned, so the total supply can rise or fall over time."
+        },
+        {
+          "heading": "Small units",
+          "body": "One bitcoin divides into 100 million satoshis, its smallest unit. One ether divides into a billion billion wei, and fees are usually quoted in gwei, which is one billionth of an ether. Small units let people send tiny amounts without long strings of decimals."
+        }
+      ],
+      "concepts": [
+        { "term": "Satoshi", "definition": "The smallest unit of bitcoin, equal to one hundred millionth of a coin." },
+        { "term": "Gwei", "definition": "One billionth of an ether, the usual unit for quoting Ethereum gas prices." },
+        { "term": "Halving", "definition": "The scheduled event that cuts Bitcoin's new-coin reward per block in half." },
+        { "term": "Smart contract", "definition": "A program stored on a blockchain that runs exactly as written when called." }
+      ],
+      "example": {
+        "title": "The pizza transaction",
+        "body": "In May 2010, programmer Laszlo Hanyecz paid 10,000 BTC for two pizzas, often cited as the first real-world purchase made with bitcoin. Fans still mark May 22 as Bitcoin Pizza Day. The story shows how Bitcoin began as an experiment between enthusiasts before it gained wider use."
+      }
+    },
+    {
+      "slug": "utxos-accounts-and-fees",
+      "level": "intermediate",
+      "title": "UTXOs, accounts and fees",
+      "summary": "Bitcoin and Ethereum track balances in different ways. Learn the UTXO and account models and how each network charges fees.",
+      "minutes": 8,
+      "objectives": [
+        "Explain the UTXO model and change outputs",
+        "Explain the account model and transaction nonces",
+        "Describe how fees are calculated on each network"
+      ],
+      "sections": [
+        {
+          "heading": "Bitcoin's UTXO model",
+          "body": "Bitcoin does not store account balances. It tracks unspent transaction outputs (UTXOs), which work like individual notes of different sizes. A transaction spends whole UTXOs as inputs and creates new outputs. If the inputs are worth more than the payment, the wallet sends the remainder back to itself as a change output."
+        },
+        {
+          "heading": "Ethereum's account model",
+          "body": "Ethereum stores a balance for each account, much like a bank ledger. There are externally owned accounts controlled by private keys and contract accounts controlled by code. Each account has a nonce, a counter that goes up with every transaction it sends. The nonce stops a signed transaction from being replayed and makes an account's transactions run in order."
+        },
+        {
+          "heading": "Fees on Bitcoin",
+          "body": "A Bitcoin fee is simply the value of the inputs minus the value of the outputs. Miners prefer transactions that pay more per unit of block space, so fees are quoted in satoshis per virtual byte. A transaction with many inputs is larger, so it costs more even if it sends a small amount."
+        },
+        {
+          "heading": "Fees on Ethereum",
+          "body": "On Ethereum, every operation costs a set amount of gas, and you pay the gas used times the price per gas. A plain ETH transfer uses 21,000 gas, while a complex contract call can use far more. If a transaction runs out of gas, its changes are reverted but the fee for the work already done is still charged."
+        }
+      ],
+      "concepts": [
+        { "term": "UTXO", "definition": "An unspent transaction output, a chunk of bitcoin that can be spent once as an input." },
+        { "term": "Change output", "definition": "The output that returns leftover value from spent inputs to the sender's own wallet." },
+        { "term": "Account nonce", "definition": "A counter of transactions sent by an Ethereum account, used for ordering and replay protection." },
+        { "term": "Gas", "definition": "The unit that measures how much computation an Ethereum transaction uses." }
+      ],
+      "example": {
+        "title": "Paying for coffee from a large UTXO",
+        "body": "Say your wallet holds one UTXO worth 0.01 BTC and you pay 0.002 BTC for a coffee. The transaction spends the whole 0.01 BTC input, sends 0.002 BTC to the shop, and returns a little under 0.008 BTC to a change address you control. The small amount not assigned to any output becomes the miner's fee."
+      }
+    },
+    {
+      "slug": "issuance-and-eip-1559",
+      "level": "advanced",
+      "title": "Monetary policy and EIP-1559",
+      "summary": "Dig into how new coins are issued on each chain and how Ethereum's EIP-1559 fee market burns part of every fee.",
+      "minutes": 10,
+      "objectives": [
+        "Explain Bitcoin's issuance schedule and why it ends",
+        "Describe the base fee and priority fee under EIP-1559",
+        "Explain why ETH supply can shrink or grow"
+      ],
+      "sections": [
+        {
+          "heading": "Bitcoin's issuance schedule",
+          "body": "New bitcoins enter circulation as the block subsidy paid to miners. The subsidy started at 50 BTC per block and halves every 210,000 blocks. Because it keeps halving, total supply approaches but never exceeds 21 million, and the subsidy reaches zero around the year 2140. After that, miners will rely on fees alone."
+        },
+        {
+          "heading": "EIP-1559",
+          "body": "Since the London upgrade in August 2021, every Ethereum block has a base fee per unit of gas set by the protocol, and that base fee is burned. Users add a priority fee, or tip, which goes to the block producer. You also set a max fee, and anything between the max fee and what you actually pay is never charged."
+        },
+        {
+          "heading": "How the base fee moves",
+          "body": "Each block has a gas target equal to half of its gas limit. If a block uses more gas than the target, the next block's base fee rises, and if it uses less, the base fee falls. The change is capped at 12.5% per block, so fees adjust smoothly and predictably."
+        },
+        {
+          "heading": "Issuance after The Merge",
+          "body": "Under proof of stake, validators earn newly issued ETH for proposing and attesting to blocks. The net change in supply equals new issuance minus the ETH burned through base fees. When demand for block space is high, burns can exceed issuance and supply shrinks, and when demand is low, supply grows."
+        }
+      ],
+      "concepts": [
+        { "term": "Block subsidy", "definition": "Newly created bitcoin paid to the miner of each block, separate from fees." },
+        { "term": "Base fee", "definition": "The protocol-set minimum price per gas in an Ethereum block, which is burned." },
+        { "term": "Priority fee", "definition": "An optional tip per gas that goes to the block producer to prioritize a transaction." },
+        { "term": "Burn", "definition": "Permanently removing coins from circulation so nobody can spend them." }
+      ],
+      "example": {
+        "title": "Setting fees in a wallet",
+        "body": "Suppose the base fee is 20 gwei and you set a max fee of 50 gwei with a priority fee of 2 gwei. You pay 22 gwei per gas: 20 is burned and 2 goes to the validator. The other 28 gwei of headroom is never charged, which is why a generous max fee is usually safe."
+      }
+    },
+    {
+      "slug": "advanced-transaction-mechanics",
+      "level": "expert",
+      "title": "Advanced transaction mechanics",
+      "summary": "Go deep on fee bumping, stuck transactions, SegWit and Taproot, and the compounding math behind EIP-1559 base fees.",
+      "minutes": 12,
+      "objectives": [
+        "Use RBF, CPFP and nonce replacement to fix stuck transactions",
+        "Explain what SegWit and Taproot changed in Bitcoin",
+        "Reason about base fee changes across several blocks"
+      ],
+      "sections": [
+        {
+          "heading": "Stuck transactions on Bitcoin",
+          "body": "A Bitcoin transaction that pays too little can sit unconfirmed for a long time. Replace-by-fee (RBF) lets the sender broadcast a new version that spends the same inputs with a higher fee. Child-pays-for-parent (CPFP) lets the receiver, or the sender through the change output, spend the unconfirmed output in a high-fee child, so miners include both to collect the combined fee."
+        },
+        {
+          "heading": "Stuck transactions on Ethereum",
+          "body": "Ethereum includes an account's transactions strictly in nonce order. If nonce 5 is stuck, nonce 6 and later cannot be included either. To fix it, you send a new transaction with the same nonce 5 and a higher fee, which replaces the original. Nodes usually require a meaningful fee increase before they accept a replacement."
+        },
+        {
+          "heading": "SegWit and Taproot",
+          "body": "SegWit, activated in 2017, moved signature data into a separate witness section. This fixed third-party transaction malleability, where someone could change a transaction's ID without invalidating it, which made payment channels like the Lightning Network practical. Taproot, activated in 2021, added Schnorr signatures and lets complex spending conditions look like ordinary single-signature payments when spent cooperatively."
+        },
+        {
+          "heading": "Base fee compounding",
+          "body": "Because the base fee can rise up to 12.5% per block, a run of full blocks compounds quickly. After about six full blocks in a row, the base fee roughly doubles, since 1.125 to the sixth power is just over 2. That is why Ethereum fees can spike within a minute or two of a sudden rush."
+        }
+      ],
+      "concepts": [
+        { "term": "Replace-by-fee (RBF)", "definition": "Replacing an unconfirmed Bitcoin transaction with a version that pays a higher fee." },
+        { "term": "Child-pays-for-parent (CPFP)", "definition": "Spending an unconfirmed output with a high fee so miners confirm the parent and child together." },
+        { "term": "Transaction malleability", "definition": "The ability to change a transaction's ID without making it invalid." },
+        { "term": "Schnorr signature", "definition": "A signature scheme added by Taproot that allows efficient key and signature aggregation." }
+      ],
+      "example": {
+        "title": "Rescuing a stuck token approval",
+        "body": "Imagine you sent a token approval with nonce 12 during a quiet period, then fees jumped and it stalled. Every later transaction from your account is now queued behind it. Many wallets offer a speed up button that rebroadcasts nonce 12 with a higher fee, or a cancel button that sends a zero-value transfer to yourself with the same nonce."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "meet-bitcoin-and-ethereum",
+      "difficulty": "easy",
+      "prompt": "Who published the Bitcoin whitepaper in 2008?",
+      "options": [
+        "Vitalik Buterin",
+        "Hal Finney",
+        "Satoshi Nakamoto",
+        "Nick Szabo"
+      ],
+      "answer": 2,
+      "explanation": "The whitepaper was published under the name Satoshi Nakamoto, a pseudonym whose real identity is unknown. Vitalik Buterin later proposed Ethereum."
+    },
+    {
+      "module": "meet-bitcoin-and-ethereum",
+      "difficulty": "easy",
+      "prompt": "What is the maximum number of bitcoins that will ever exist?",
+      "options": [
+        "21 million",
+        "100 million",
+        "18 million",
+        "There is no limit"
+      ],
+      "answer": 0,
+      "explanation": "Bitcoin's halving schedule means total supply approaches, but never exceeds, 21 million coins."
+    },
+    {
+      "module": "meet-bitcoin-and-ethereum",
+      "difficulty": "easy",
+      "prompt": "What is the main thing Ethereum adds compared with Bitcoin?",
+      "options": [
+        "Faster internet connections for every node and user",
+        "A fixed supply of coins",
+        "Accounts that hide all balances",
+        "General-purpose programs called smart contracts"
+      ],
+      "answer": 3,
+      "explanation": "Ethereum was designed as a programmable blockchain where anyone can deploy smart contracts. It has no fixed supply and balances are public."
+    },
+    {
+      "module": "meet-bitcoin-and-ethereum",
+      "difficulty": "easy",
+      "prompt": "What is a gwei?",
+      "options": [
+        "The smallest unit of bitcoin",
+        "One billionth of an ether",
+        "A type of Ethereum wallet",
+        "A fee paid only to exchanges"
+      ],
+      "answer": 1,
+      "explanation": "Gwei is a small unit of ETH commonly used to quote gas prices. The smallest unit of bitcoin is the satoshi."
+    },
+    {
+      "module": "meet-bitcoin-and-ethereum",
+      "difficulty": "easy",
+      "prompt": "What happens at a Bitcoin halving?",
+      "options": [
+        "The reward for new blocks is cut in half",
+        "The coins in every wallet are cut in half",
+        "The time between blocks drops to five minutes",
+        "All transaction fees are cut in half"
+      ],
+      "answer": 0,
+      "explanation": "A halving cuts the new-coin subsidy miners receive per block. Existing balances, block timing and fees are not changed by it."
+    },
+    {
+      "module": "utxos-accounts-and-fees",
+      "difficulty": "medium",
+      "prompt": "How does Bitcoin keep track of who owns what?",
+      "options": [
+        "As a running balance stored for each account address",
+        "As unspent outputs from earlier transactions",
+        "As a list kept by each exchange",
+        "As entries in a central bank database"
+      ],
+      "answer": 1,
+      "explanation": "Bitcoin uses the UTXO model. Your balance is the sum of unspent outputs your keys can spend."
+    },
+    {
+      "module": "utxos-accounts-and-fees",
+      "difficulty": "medium",
+      "prompt": "Your Bitcoin wallet spends a 1 BTC UTXO to pay 0.3 BTC. Where does most of the remaining value go?",
+      "options": [
+        "It stays locked in the old UTXO",
+        "It is burned by the protocol",
+        "It goes to the receiver as a tip",
+        "It returns to you as a change output"
+      ],
+      "answer": 3,
+      "explanation": "UTXOs are spent in full, so the wallet adds a change output back to you. Whatever is left unassigned becomes the miner fee."
+    },
+    {
+      "module": "utxos-accounts-and-fees",
+      "difficulty": "medium",
+      "prompt": "What is the purpose of an account nonce on Ethereum?",
+      "options": [
+        "It sets the gas price for the transaction",
+        "It encrypts the account's balance",
+        "It orders transactions and prevents replays",
+        "It counts the tokens the account holds"
+      ],
+      "answer": 2,
+      "explanation": "Each transaction must use the next nonce, so the same signed transaction cannot be included twice and transactions run in sequence."
+    },
+    {
+      "module": "utxos-accounts-and-fees",
+      "difficulty": "medium",
+      "prompt": "How much gas does a plain ETH transfer between two regular accounts use?",
+      "options": [
+        "21,000",
+        "2,100",
+        "100,000",
+        "1,000,000"
+      ],
+      "answer": 0,
+      "explanation": "A simple ETH transfer between externally owned accounts costs a fixed 21,000 gas. Contract calls cost more."
+    },
+    {
+      "module": "utxos-accounts-and-fees",
+      "difficulty": "medium",
+      "prompt": "An Ethereum transaction runs out of gas halfway through. What happens?",
+      "options": [
+        "It finishes using gas borrowed from the next block's budget",
+        "It is refunded in full and never recorded",
+        "Its changes revert but the gas used is still charged",
+        "The receiver pays for the remaining gas"
+      ],
+      "answer": 2,
+      "explanation": "The network did real work before running out, so that gas is paid. The transaction is recorded as failed and its state changes are undone."
+    },
+    {
+      "module": "issuance-and-eip-1559",
+      "difficulty": "hard",
+      "prompt": "Under EIP-1559, what happens to the base fee?",
+      "options": [
+        "It is burned",
+        "It goes to the block producer",
+        "It is sent to a development fund",
+        "It is refunded after one hour"
+      ],
+      "answer": 0,
+      "explanation": "The base fee is destroyed, removing that ETH from supply. Only the priority fee goes to the block producer."
+    },
+    {
+      "module": "issuance-and-eip-1559",
+      "difficulty": "hard",
+      "prompt": "How often does the Bitcoin block subsidy halve?",
+      "options": [
+        "Every 21,000 blocks",
+        "Every 2,016 blocks",
+        "Every 210,000 blocks",
+        "Every 1,000,000 blocks"
+      ],
+      "answer": 2,
+      "explanation": "The subsidy halves every 210,000 blocks, which is roughly four years. The 2,016 figure is the difficulty adjustment period."
+    },
+    {
+      "module": "issuance-and-eip-1559",
+      "difficulty": "hard",
+      "prompt": "An Ethereum block uses more gas than its target. What happens next?",
+      "options": [
+        "The gas limit doubles for the next block",
+        "The base fee rises in the next block",
+        "The extra transactions are dropped",
+        "The priority fee is burned instead"
+      ],
+      "answer": 1,
+      "explanation": "The base fee rises when blocks are fuller than the target and falls when they are emptier, by up to 12.5% per block."
+    },
+    {
+      "module": "issuance-and-eip-1559",
+      "difficulty": "hard",
+      "prompt": "The base fee is 30 gwei, your priority fee is 2 gwei and your max fee is 100 gwei. What do you pay per gas?",
+      "options": [
+        "100 gwei",
+        "30 gwei",
+        "2 gwei",
+        "32 gwei"
+      ],
+      "answer": 3,
+      "explanation": "You pay the base fee plus your priority fee, 30 plus 2. The max fee is only a ceiling and the unused part is never charged."
+    },
+    {
+      "module": "issuance-and-eip-1559",
+      "difficulty": "hard",
+      "prompt": "Why can the total supply of ETH shrink over a period of time?",
+      "options": [
+        "Validators destroy coins they do not need",
+        "Unused balances expire after a few years",
+        "Smart contracts delete inactive accounts",
+        "Burned base fees can exceed new issuance"
+      ],
+      "answer": 3,
+      "explanation": "Net supply change is issuance minus burn. When demand for block space is high, more ETH is burned than issued."
+    },
+    {
+      "module": "advanced-transaction-mechanics",
+      "difficulty": "expert",
+      "prompt": "Your Ethereum transaction with nonce 8 is stuck. You then send nonce 9 with a high fee. What happens?",
+      "options": [
+        "Nonce 9 confirms first and nonce 8 is dropped",
+        "Nonce 9 waits until nonce 8 is included or replaced",
+        "Both are merged into a single transaction",
+        "Nonce 9 automatically raises the fee paid by nonce 8 to match"
+      ],
+      "answer": 1,
+      "explanation": "Transactions from one account must be included in nonce order, so nonce 9 cannot land before nonce 8. Replace nonce 8 with a higher fee to unblock the queue."
+    },
+    {
+      "module": "advanced-transaction-mechanics",
+      "difficulty": "expert",
+      "prompt": "You received bitcoin in a low-fee transaction that is stuck. Which technique can you use as the receiver?",
+      "options": [
+        "Child-pays-for-parent",
+        "Replace-by-fee",
+        "Nonce replacement",
+        "Raising the gas limit"
+      ],
+      "answer": 0,
+      "explanation": "The receiver controls the new output, so they can spend it in a high-fee child transaction. RBF requires the sender's keys to re-sign the inputs."
+    },
+    {
+      "module": "advanced-transaction-mechanics",
+      "difficulty": "expert",
+      "prompt": "Which problem did SegWit fix that made the Lightning Network practical?",
+      "options": [
+        "The 21 million supply cap",
+        "The lack of smart contracts",
+        "Slow block propagation between miners",
+        "Third-party transaction malleability"
+      ],
+      "answer": 3,
+      "explanation": "Payment channels depend on pre-signed transactions that reference a parent transaction's ID. Malleability let others change that ID, which SegWit prevented by separating signature data."
+    },
+    {
+      "module": "advanced-transaction-mechanics",
+      "difficulty": "expert",
+      "prompt": "The base fee is 10 gwei and the next six blocks are completely full. Roughly what is the base fee afterwards?",
+      "options": [
+        "10.75 gwei",
+        "16.25 gwei",
+        "20 gwei",
+        "60 gwei"
+      ],
+      "answer": 2,
+      "explanation": "A full block is twice the target, so each raises the base fee by the maximum 12.5%. Compounded over six blocks, 1.125 to the sixth power is about 2.03."
+    },
+    {
+      "module": "advanced-transaction-mechanics",
+      "difficulty": "expert",
+      "prompt": "What is a key benefit of Taproot for complex Bitcoin spending conditions?",
+      "options": [
+        "It removes fees for multisig wallets",
+        "Cooperative spends can look like ordinary single-signature payments",
+        "It lets Bitcoin scripts run unbounded loops and keep state like the EVM",
+        "It raises the block size limit to 32 MB"
+      ],
+      "answer": 1,
+      "explanation": "With Schnorr key aggregation and script trees, a cooperative spend reveals only one key and signature, improving privacy and efficiency."
+    }
+  ]
+}

@@ -1,0 +1,431 @@
+{
+  "slug": "defi-lending",
+  "title": "DeFi & Lending",
+  "tagline": "Lending, borrowing and stablecoins built from open smart contracts.",
+  "icon": "Landmark",
+  "order": 4,
+  "modules": [
+    {
+      "slug": "what-is-defi",
+      "level": "beginner",
+      "title": "What is DeFi?",
+      "summary": "Decentralized finance rebuilds services like lending and trading from public smart contracts. Learn the core ideas and the trade-offs.",
+      "minutes": 6,
+      "objectives": [
+        "Explain what DeFi is and how it differs from traditional finance",
+        "Describe what a stablecoin is and how they are backed",
+        "Understand composability and why it cuts both ways"
+      ],
+      "sections": [
+        {
+          "heading": "Finance without middlemen",
+          "body": "Decentralized finance, or DeFi, is a set of financial services built from smart contracts. You can trade, lend, borrow and earn interest directly from your wallet. There is no account application, and the rules live in public code rather than a company's policy."
+        },
+        {
+          "heading": "Self-custody",
+          "body": "In DeFi, you usually keep control of your own keys. When you use a protocol, your assets move only according to its contract code. This removes the risk of a company freezing your account, but it also means there is no customer support to undo a mistake."
+        },
+        {
+          "heading": "Stablecoins",
+          "body": "Stablecoins are tokens designed to track a currency, most often the US dollar. Some, like USDC, are backed by reserves held by a company. Others, like DAI from MakerDAO (since rebranded as Sky), are created against crypto collateral locked in smart contracts. Stablecoins act as the base currency for much of DeFi."
+        },
+        {
+          "heading": "Composability",
+          "body": "DeFi protocols can plug into each other like building blocks, often called money legos. A token earned in one protocol can be used as collateral in another, even within the same transaction. This speeds up innovation, but a failure in one piece can spread to everything built on top of it."
+        }
+      ],
+      "concepts": [
+        { "term": "DeFi", "definition": "Financial services such as trading and lending built from public smart contracts." },
+        { "term": "Self-custody", "definition": "Holding your own private keys so no company controls your funds." },
+        { "term": "Stablecoin", "definition": "A token designed to keep a steady value, usually one US dollar." },
+        { "term": "Composability", "definition": "The ability of protocols to connect and build on one another without permission." }
+      ],
+      "example": {
+        "title": "Supplying to Aave",
+        "body": "On Aave, a user can deposit a token such as USDC and earn interest paid by borrowers. In return they receive aTokens, which track the deposit plus the interest it earns. They can withdraw whenever they like, as long as the pool has enough unborrowed liquidity."
+      }
+    },
+    {
+      "slug": "overcollateralized-lending",
+      "level": "intermediate",
+      "title": "Overcollateralized lending",
+      "summary": "See how DeFi lending works without credit checks, using collateral, loan-to-value limits, health factors and utilization-based rates.",
+      "minutes": 8,
+      "objectives": [
+        "Explain why DeFi loans are overcollateralized",
+        "Calculate a health factor from collateral, threshold and debt",
+        "Describe how utilization drives interest rates"
+      ],
+      "sections": [
+        {
+          "heading": "Why overcollateralized?",
+          "body": "DeFi lending has no credit checks, because borrowers are just addresses. To protect lenders, borrowers lock collateral worth more than what they borrow. For example, 1,000 dollars of ETH might let you borrow 750 dollars of stablecoins."
+        },
+        {
+          "heading": "Loan-to-value and liquidation threshold",
+          "body": "Each collateral asset has a maximum loan-to-value (LTV), the most you can borrow against it when opening or adding to a loan. It also has a liquidation threshold, a slightly higher ratio at which the position can be liquidated. The gap between the two gives you a buffer if prices move."
+        },
+        {
+          "heading": "Health factor",
+          "body": "Protocols like Aave summarize a position as a health factor: collateral value weighted by its liquidation threshold, divided by debt. Above 1 the position is safe. Below 1, liquidators can repay part of the debt and take some collateral at a discount."
+        },
+        {
+          "heading": "Interest rates and utilization",
+          "body": "Interest rates float based on utilization, the share of a pool's deposits that is currently borrowed. When utilization is low, rates stay low to encourage borrowing. Past a target point, rates climb steeply to attract new deposits and push borrowers to repay, which helps keep liquidity available for lenders who want to withdraw."
+        }
+      ],
+      "concepts": [
+        { "term": "Collateral", "definition": "Assets locked to secure a loan, which can be seized if the loan becomes unsafe." },
+        { "term": "Loan-to-value (LTV)", "definition": "The ratio of debt to collateral value, capped by the protocol when you borrow." },
+        { "term": "Health factor", "definition": "Threshold-weighted collateral divided by debt, where below 1 means liquidatable." },
+        { "term": "Utilization", "definition": "The share of a lending pool's deposits that is currently borrowed." }
+      ],
+      "example": {
+        "title": "Borrowing stablecoins against ETH",
+        "body": "Say you supply ETH worth 10,000 dollars to a market with an 80% liquidation threshold and borrow 5,000 dollars of USDC. Your health factor is 10,000 times 0.8 divided by 5,000, which is 1.6. If ETH fell 37.5%, your collateral would be worth 6,250 dollars and the health factor would reach exactly 1."
+      }
+    },
+    {
+      "slug": "liquidations-and-oracles",
+      "level": "advanced",
+      "title": "Liquidations, oracles and bad debt",
+      "summary": "Learn how liquidations keep lending markets solvent, how price oracles feed them, and what happens when both fail at once.",
+      "minutes": 10,
+      "objectives": [
+        "Explain the mechanics and incentives of a liquidation",
+        "Describe how oracle networks publish prices and why spot prices are unsafe",
+        "Explain how bad debt arises and who absorbs it"
+      ],
+      "sections": [
+        {
+          "heading": "How liquidations work",
+          "body": "When a position becomes unsafe, anyone can act as a liquidator. They repay part of the borrower's debt and receive collateral worth that amount plus a liquidation bonus. Protocols often cap how much debt can be repaid in one call, which is called the close factor. In practice, liquidators are bots competing for the bonus."
+        },
+        {
+          "heading": "Price oracles",
+          "body": "Lending protocols need asset prices to calculate health factors. Many rely on oracle networks like Chainlink, which aggregate prices from many sources and publish an update when the price moves past a deviation threshold or a heartbeat timer expires. Using a single DEX spot price is dangerous, because it can be pushed around within one transaction."
+        },
+        {
+          "heading": "Collateralized stablecoins",
+          "body": "MakerDAO pioneered minting a stablecoin, DAI, against crypto collateral held in vaults. Each vault type has a minimum collateral ratio, and a stability fee accrues on the debt. If a vault falls below the minimum, its collateral is auctioned to cover the debt plus a penalty."
+        },
+        {
+          "heading": "Bad debt",
+          "body": "If prices fall too fast, or markets are too thin, collateral can become worth less than the debt before anyone liquidates it. The shortfall is bad debt, and someone has to absorb it: a reserve, a safety module, or ultimately the lenders. Conservative LTVs and supply caps on risky assets exist to limit this."
+        }
+      ],
+      "concepts": [
+        { "term": "Liquidation bonus", "definition": "The discount a liquidator receives on seized collateral as a reward." },
+        { "term": "Close factor", "definition": "The maximum share of a borrower's debt that can be repaid in one liquidation." },
+        { "term": "Price oracle", "definition": "A system that publishes asset prices on-chain for contracts to read." },
+        { "term": "Bad debt", "definition": "Debt left unpaid because the remaining collateral is worth less than it." }
+      ],
+      "example": {
+        "title": "Black Thursday on MakerDAO",
+        "body": "On March 12, 2020, crypto prices crashed and Ethereum became heavily congested. Some MakerDAO collateral auctions were won with bids of close to zero DAI, because few keepers could get their transactions through. The protocol was left with bad debt, minted and sold MKR to cover it, and later redesigned its auction system."
+      }
+    },
+    {
+      "slug": "vault-accounting-and-risk",
+      "level": "expert",
+      "title": "Vault accounting and protocol risk",
+      "summary": "Work through ERC-4626 share math, the vault inflation attack, interest index accounting and oracle manipulation against lending markets.",
+      "minutes": 12,
+      "objectives": [
+        "Calculate ERC-4626 share conversions and explain the rounding rules",
+        "Explain the vault inflation attack and its defenses",
+        "Apply interest index math and spot oracle manipulation risk to real positions"
+      ],
+      "sections": [
+        {
+          "heading": "ERC-4626 share accounting",
+          "body": "ERC-4626 is the standard for tokenized vaults. Depositors receive shares, and each share is worth totalAssets divided by totalSupply. Deposits mint shares rounded down and withdrawals burn shares rounded up, so rounding always favors the vault and its existing holders."
+        },
+        {
+          "heading": "The inflation attack",
+          "body": "A classic attack targets a new, empty vault. The attacker deposits a tiny amount to get one share, then donates a large amount of the asset directly to the vault, inflating the share price. A victim's next deposit rounds down to zero or very few shares, and the attacker redeems for much of the victim's funds. Defenses include virtual shares and assets, a decimals offset, or seeding the vault with an initial deposit that is never withdrawn."
+        },
+        {
+          "heading": "Interest index math",
+          "body": "Lending protocols do not update every user's balance each block. They keep a global index that grows as interest accrues and store each position as a scaled balance. Your actual debt is your scaled balance times the current index, so interest compounds for everyone with one storage update."
+        },
+        {
+          "heading": "Oracle manipulation",
+          "body": "If an attacker can inflate a collateral asset's price, for example through a thin market that feeds the oracle, they can borrow real assets against fake value and walk away. The protocol is left with collateral that is worth far less than the debt once the price returns. Low-liquidity assets therefore need strict caps, robust oracles, or should not be accepted as collateral at all."
+        }
+      ],
+      "concepts": [
+        { "term": "Vault shares", "definition": "Tokens representing a proportional claim on the assets held by an ERC-4626 vault." },
+        { "term": "Inflation attack", "definition": "Donating assets to an almost empty vault so later deposits round down to few or zero shares." },
+        { "term": "Interest index", "definition": "A global multiplier that converts scaled balances into actual balances including accrued interest." },
+        { "term": "Oracle manipulation", "definition": "Moving the price an oracle reports so a protocol values assets incorrectly." }
+      ],
+      "example": {
+        "title": "Mango Markets",
+        "body": "In October 2022, a trader pushed up the price of the MNGO token on thin spot markets that fed the Mango Markets oracle. The inflated value of their position let them borrow most of the protocol's assets against it. The case shows why collateral with easily moved prices needs strict limits or should not be accepted at all."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-defi",
+      "difficulty": "easy",
+      "prompt": "What is DeFi?",
+      "options": [
+        "A government program for crypto banks",
+        "A type of hardware wallet",
+        "A stock exchange for crypto companies",
+        "Financial services built from smart contracts"
+      ],
+      "answer": 3,
+      "explanation": "DeFi rebuilds services like trading, lending and borrowing as public smart contracts anyone can use from a wallet."
+    },
+    {
+      "module": "what-is-defi",
+      "difficulty": "easy",
+      "prompt": "What is a stablecoin designed to do?",
+      "options": [
+        "Double in value every year",
+        "Track the value of a currency such as the US dollar",
+        "Pay for gas on every blockchain",
+        "Replace the need for private keys when sending payments"
+      ],
+      "answer": 1,
+      "explanation": "Stablecoins aim to hold a steady value, most often one US dollar, using reserves or crypto collateral."
+    },
+    {
+      "module": "what-is-defi",
+      "difficulty": "easy",
+      "prompt": "What does composability mean in DeFi?",
+      "options": [
+        "Protocols can be combined like building blocks",
+        "Every protocol must use the same token",
+        "All contracts must be written and deployed by one company",
+        "Users can edit any protocol's code"
+      ],
+      "answer": 0,
+      "explanation": "Composability means protocols can call and build on each other freely, like stacking building blocks."
+    },
+    {
+      "module": "what-is-defi",
+      "difficulty": "easy",
+      "prompt": "What is a downside of self-custody in DeFi?",
+      "options": [
+        "You must ask permission for every trade",
+        "A bank can freeze your funds at any time",
+        "Nobody can reverse a mistaken transaction for you",
+        "You can only use one protocol at a time"
+      ],
+      "answer": 2,
+      "explanation": "With self-custody, you are fully in control, which also means there is no support desk that can undo an error."
+    },
+    {
+      "module": "what-is-defi",
+      "difficulty": "easy",
+      "prompt": "When you deposit into an Aave pool, what do you receive?",
+      "options": [
+        "aTokens that track your deposit plus interest",
+        "A paper certificate mailed to you",
+        "Voting rights in every DeFi protocol",
+        "A fixed-term bond you cannot withdraw"
+      ],
+      "answer": 0,
+      "explanation": "Aave issues aTokens to suppliers. Their balance grows as interest accrues, and they are redeemed when you withdraw."
+    },
+    {
+      "module": "overcollateralized-lending",
+      "difficulty": "medium",
+      "prompt": "Why are DeFi loans usually overcollateralized?",
+      "options": [
+        "To make borrowing cheaper than taking out a loan at a bank",
+        "Because tokens cannot be lent otherwise",
+        "Because there are no credit checks on anonymous borrowers",
+        "So that lenders can earn a fixed rate"
+      ],
+      "answer": 2,
+      "explanation": "Lenders cannot chase an anonymous address for repayment, so the loan is secured by collateral worth more than the debt."
+    },
+    {
+      "module": "overcollateralized-lending",
+      "difficulty": "medium",
+      "prompt": "What happens when your health factor drops below 1?",
+      "options": [
+        "Your interest rate drops to zero",
+        "Your collateral is returned automatically",
+        "The protocol freezes your account",
+        "Your position can be partly liquidated"
+      ],
+      "answer": 3,
+      "explanation": "Below 1, the position is undercollateralized by the protocol's rules, so liquidators may repay debt and seize collateral."
+    },
+    {
+      "module": "overcollateralized-lending",
+      "difficulty": "medium",
+      "prompt": "Collateral is worth 20,000 dollars with a 75% liquidation threshold, and debt is 10,000 dollars. What is the health factor?",
+      "options": [
+        "2.0",
+        "1.5",
+        "0.75",
+        "1.25"
+      ],
+      "answer": 1,
+      "explanation": "20,000 times 0.75 is 15,000, and 15,000 divided by 10,000 debt is 1.5."
+    },
+    {
+      "module": "overcollateralized-lending",
+      "difficulty": "medium",
+      "prompt": "What usually happens to borrow rates when utilization rises sharply past the target?",
+      "options": [
+        "They rise steeply",
+        "They fall to zero",
+        "They stay fixed",
+        "They turn negative"
+      ],
+      "answer": 0,
+      "explanation": "Interest rate curves have a kink at the target utilization. Above it, rates rise fast to attract deposits and encourage repayment."
+    },
+    {
+      "module": "overcollateralized-lending",
+      "difficulty": "medium",
+      "prompt": "What is the difference between max LTV and the liquidation threshold?",
+      "options": [
+        "They are two names for the same number",
+        "Max LTV limits new borrowing, the threshold is where liquidation starts",
+        "Max LTV applies only to lenders, while the threshold applies only to borrowers",
+        "The threshold is always set lower than max LTV"
+      ],
+      "answer": 1,
+      "explanation": "You can only borrow up to max LTV, and liquidation begins at the higher threshold. The gap is your safety buffer."
+    },
+    {
+      "module": "liquidations-and-oracles",
+      "difficulty": "hard",
+      "prompt": "What does a liquidator receive for repaying part of a borrower's debt?",
+      "options": [
+        "A fixed fee paid from the protocol treasury and nothing else",
+        "Newly minted governance tokens",
+        "The borrower's entire account",
+        "Collateral worth the repaid debt plus a bonus"
+      ],
+      "answer": 3,
+      "explanation": "The liquidator gets collateral at a discount, the liquidation bonus, which pays for their gas and price risk."
+    },
+    {
+      "module": "liquidations-and-oracles",
+      "difficulty": "hard",
+      "prompt": "Why is a single DEX spot price a risky oracle for a lending protocol?",
+      "options": [
+        "It can be manipulated within one transaction",
+        "DEX prices are only updated once a day",
+        "DEXs never expose prices on-chain",
+        "It costs too much gas to read"
+      ],
+      "answer": 0,
+      "explanation": "A large swap, often funded by a flash loan, can move a pool's spot price and reverse it in the same transaction."
+    },
+    {
+      "module": "liquidations-and-oracles",
+      "difficulty": "hard",
+      "prompt": "When does a Chainlink price feed typically publish a new on-chain update?",
+      "options": [
+        "Only when the protocol team requests one",
+        "Exactly once in every Ethereum block",
+        "When the price moves past a deviation threshold or a heartbeat expires",
+        "Only when a liquidation is about to happen and a keeper requests a price"
+      ],
+      "answer": 2,
+      "explanation": "Push-based feeds update when the price deviates enough from the last value, or when the heartbeat interval passes without an update."
+    },
+    {
+      "module": "liquidations-and-oracles",
+      "difficulty": "hard",
+      "prompt": "What is bad debt in a lending protocol?",
+      "options": [
+        "Any debt with an interest rate above 20%",
+        "Debt that exceeds the value of its remaining collateral",
+        "Money the protocol owes to its auditors",
+        "Any loan that is older than one year"
+      ],
+      "answer": 1,
+      "explanation": "When collateral is worth less than the debt, liquidating cannot fully repay it, and the shortfall must be absorbed by someone."
+    },
+    {
+      "module": "liquidations-and-oracles",
+      "difficulty": "hard",
+      "prompt": "What went wrong in MakerDAO's collateral auctions on Black Thursday in March 2020?",
+      "options": [
+        "Oracles stopped reporting ETH prices entirely",
+        "DAI rose to ten dollars for a whole week",
+        "Vault owners were refunded their collateral twice by a faulty auction contract",
+        "Network congestion let some collateral be won with near-zero bids"
+      ],
+      "answer": 3,
+      "explanation": "With few keepers able to bid during congestion, some auctions closed with bids of almost nothing, leaving the protocol with bad debt."
+    },
+    {
+      "module": "vault-accounting-and-risk",
+      "difficulty": "expert",
+      "prompt": "A vault holds 1,000 assets and has 800 shares outstanding. How many shares does a deposit of 100 assets mint?",
+      "options": [
+        "80",
+        "125",
+        "100",
+        "800"
+      ],
+      "answer": 0,
+      "explanation": "Shares minted equal assets times totalSupply divided by totalAssets: 100 times 800 divided by 1,000 is 80."
+    },
+    {
+      "module": "vault-accounting-and-risk",
+      "difficulty": "expert",
+      "prompt": "In the ERC-4626 inflation attack, what does the attacker do after minting a tiny first share?",
+      "options": [
+        "Borrows the vault's assets with a flash loan",
+        "Calls the vault's emergency pause function",
+        "Donates assets directly to the vault to inflate the share price",
+        "Burns the shares of every other depositor"
+      ],
+      "answer": 2,
+      "explanation": "A direct transfer raises totalAssets without minting shares, so the next deposit converts to very few shares and value shifts to the attacker."
+    },
+    {
+      "module": "vault-accounting-and-risk",
+      "difficulty": "expert",
+      "prompt": "Why does ERC-4626 round shares down on deposit and up on withdrawal?",
+      "options": [
+        "To reduce gas costs",
+        "To match bank accounting rules",
+        "To give depositors a small bonus",
+        "So rounding never favors a user at the vault's expense"
+      ],
+      "answer": 3,
+      "explanation": "If rounding favored users, repeated small deposits and withdrawals could slowly extract value from other holders."
+    },
+    {
+      "module": "vault-accounting-and-risk",
+      "difficulty": "expert",
+      "prompt": "Your scaled debt balance is 1,000 and the borrow index rises from 1.05 to 1.10. By how much did your debt grow?",
+      "options": [
+        "5",
+        "50",
+        "100",
+        "10"
+      ],
+      "answer": 1,
+      "explanation": "Debt is the scaled balance times the index: 1,000 times 1.05 is 1,050 and 1,000 times 1.10 is 1,100, a rise of 50."
+    },
+    {
+      "module": "vault-accounting-and-risk",
+      "difficulty": "expert",
+      "prompt": "An attacker can briefly double the price of a thinly traded token that a lending market accepts as collateral. What is the main risk?",
+      "options": [
+        "Borrowers on the market are liquidated more slowly than usual",
+        "Interest rates on the token drop to zero",
+        "The attacker borrows real assets against inflated collateral",
+        "The oracle stops publishing prices for good"
+      ],
+      "answer": 2,
+      "explanation": "Inflated collateral supports a large loan of real assets. When the price returns, the collateral cannot cover the debt and the protocol is left with bad debt."
+    }
+  ]
+}

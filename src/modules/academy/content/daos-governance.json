@@ -1,0 +1,431 @@
+{
+  "slug": "daos-governance",
+  "title": "DAOs & Governance",
+  "tagline": "How on-chain communities make decisions, and how those decisions can be attacked",
+  "icon": "Vote",
+  "order": 11,
+  "modules": [
+    {
+      "slug": "what-is-a-dao",
+      "level": "beginner",
+      "title": "What is a DAO?",
+      "summary": "A DAO is a group that coordinates through rules written in smart contracts. Members propose and vote on decisions, and the results can be carried out on-chain.",
+      "minutes": 6,
+      "objectives": [
+        "Explain what a DAO is in plain words",
+        "Describe how a basic proposal moves from idea to vote",
+        "Name common things DAOs make decisions about"
+      ],
+      "sections": [
+        {
+          "heading": "A group run by shared rules",
+          "body": "DAO stands for decentralized autonomous organization. It is a community that agrees to follow rules written into smart contracts. Instead of a CEO signing off on every choice, members vote. The rules are public, so anyone can check how decisions are made."
+        },
+        {
+          "heading": "How a proposal works",
+          "body": "A member writes a proposal, such as funding a grant or changing a fee. It is usually discussed on a forum first. Then it goes to a vote for a fixed period. If it passes, the change is carried out, sometimes automatically by a contract."
+        },
+        {
+          "heading": "What DAOs control",
+          "body": "Many DAOs manage a treasury, which is a shared pool of funds. Others control settings of a protocol, like interest rates or which assets are supported. Some fund public goods or run investment clubs. The common thread is shared ownership of a decision."
+        },
+        {
+          "heading": "Why it matters",
+          "body": "DAOs let people who have never met coordinate around money and software. That is powerful, but it is not magic. A DAO is only as fair as its rules and only as safe as its contracts."
+        }
+      ],
+      "concepts": [
+        { "term": "DAO", "definition": "A decentralized autonomous organization, a group that makes decisions through rules enforced by smart contracts." },
+        { "term": "Proposal", "definition": "A formal suggestion for a change that members can vote on." },
+        { "term": "Treasury", "definition": "The pool of funds a DAO controls together." },
+        { "term": "Governance token", "definition": "A token that gives its holder voting power in a DAO." }
+      ],
+      "example": {
+        "title": "The DAO of 2016",
+        "body": "One of the first large DAOs on Ethereum was simply called The DAO. It raised a large amount of ETH, then a bug in its contract let an attacker drain funds. The Ethereum community chose to reverse the theft with a hard fork, and the chain that kept the original history became Ethereum Classic."
+      }
+    },
+    {
+      "slug": "token-voting-delegation",
+      "level": "intermediate",
+      "title": "Token voting, delegation and quorum",
+      "summary": "Most DAOs give one vote per token. Delegation and quorum rules try to keep voting active and legitimate when most holders do not vote.",
+      "minutes": 8,
+      "objectives": [
+        "Explain how token-weighted voting works and its trade-offs",
+        "Describe what delegation is and why it exists",
+        "Explain quorum and voting thresholds"
+      ],
+      "sections": [
+        {
+          "heading": "One token, one vote",
+          "body": "In token voting, your voting power equals the number of governance tokens you hold or have been delegated. It is simple and hard to fake with fake accounts. The downside is that large holders have far more say than small ones."
+        },
+        {
+          "heading": "Delegation",
+          "body": "Most holders do not have time to read every proposal. Delegation lets you assign your voting power to someone else while keeping your tokens. You can take the delegation back at any time. Active delegates often publish their reasoning so others can follow them."
+        },
+        {
+          "heading": "Quorum and thresholds",
+          "body": "Quorum is the minimum amount of voting power that must take part for a vote to count. Without it, a tiny group could pass changes while everyone else is away. A threshold sets how much support is needed to pass, such as a simple majority."
+        },
+        {
+          "heading": "Snapshots and off-chain votes",
+          "body": "Many votes record balances at a fixed block, called a snapshot. This stops people from buying tokens after a vote starts to swing it. Some DAOs vote off-chain to save fees, then a trusted group or contract carries out the result."
+        }
+      ],
+      "concepts": [
+        { "term": "Delegation", "definition": "Assigning your voting power to another address while keeping ownership of your tokens." },
+        { "term": "Quorum", "definition": "The minimum participation needed for a vote result to be valid." },
+        { "term": "Snapshot block", "definition": "The block at which voting power is measured for a proposal." },
+        { "term": "Voter apathy", "definition": "The common pattern where most token holders never vote." }
+      ],
+      "example": {
+        "title": "Delegating instead of selling",
+        "body": "A holder believes in a protocol but has no time to follow its forum. She delegates her tokens to a delegate who writes clear vote explanations. Her tokens never leave her wallet, and she can redelegate if she disagrees with a later vote."
+      }
+    },
+    {
+      "slug": "governor-contracts-timelocks",
+      "level": "advanced",
+      "title": "Governor contracts, timelocks and multisigs",
+      "summary": "On-chain governance is usually built from a governor contract, a timelock and sometimes a multisig. Each part adds a different kind of safety.",
+      "minutes": 10,
+      "objectives": [
+        "Describe the lifecycle of a proposal in a governor contract",
+        "Explain why timelocks delay execution",
+        "Compare multisig control with token governance"
+      ],
+      "sections": [
+        {
+          "heading": "The governor contract",
+          "body": "A governor contract handles proposals on-chain. A proposal moves through stages: pending, active voting, then succeeded or defeated, then queued and executed. Popular designs include Compound's Governor Bravo and OpenZeppelin's Governor. A proposal threshold often requires a minimum number of votes just to create a proposal."
+        },
+        {
+          "heading": "Timelocks",
+          "body": "A timelock is a contract that holds a passed proposal for a set delay before it can run. This gives users time to review the exact code that will execute. If they dislike it, they can exit the protocol before it takes effect. The timelock is often the real owner of the protocol's admin powers."
+        },
+        {
+          "heading": "Multisigs",
+          "body": "A multisig wallet needs several signers to approve a transaction, such as 4 of 7. Safe, formerly Gnosis Safe, is a widely used example. Multisigs are fast and simple, but they rely on trusting the signers. Many DAOs use a multisig as a guardian that can pause things in an emergency."
+        },
+        {
+          "heading": "Putting it together",
+          "body": "A common setup is token holders voting in a governor, a timelock delaying execution, and a multisig with limited emergency powers. The key question is always who can change what, and how fast. Checking these permissions on-chain tells you more than a project's marketing."
+        }
+      ],
+      "concepts": [
+        { "term": "Governor contract", "definition": "A smart contract that manages proposal creation, voting and execution." },
+        { "term": "Timelock", "definition": "A contract that enforces a waiting period between a vote passing and the change running." },
+        { "term": "Multisig", "definition": "A wallet that needs a set number of signers to approve each transaction." },
+        { "term": "Proposal threshold", "definition": "The minimum voting power needed to create a new proposal." }
+      ],
+      "example": {
+        "title": "A fee change through the pipeline",
+        "body": "A delegate proposes raising a protocol fee. Holders vote during the voting window and the proposal succeeds. It is queued in a two-day timelock, during which users can read the exact call data. After the delay, anyone can trigger execution and the new fee goes live."
+      }
+    },
+    {
+      "slug": "governance-attacks-design",
+      "level": "expert",
+      "title": "Governance attacks and better voting design",
+      "summary": "Token voting can be bought, borrowed or captured. Understanding these attacks explains why snapshots, timelocks and alternative voting systems exist.",
+      "minutes": 12,
+      "objectives": [
+        "Explain how a flash-loan governance attack works in general terms",
+        "Identify forms of vote buying and governance capture",
+        "Evaluate quadratic voting and its main weakness"
+      ],
+      "sections": [
+        {
+          "heading": "Flash-loan governance attacks",
+          "body": "A flash loan lets someone borrow huge sums with no collateral, as long as it is repaid in the same transaction. If a DAO counts voting power at the moment of voting and can execute instantly, an attacker can borrow tokens, vote, pass a malicious proposal and repay. The Beanstalk exploit in 2022 is a well-known case. Snapshot blocks and timelocks block this pattern."
+        },
+        {
+          "heading": "Vote buying and capture",
+          "body": "Votes can also be bought openly or through bribe markets that pay holders to vote a certain way. A wealthy actor can slowly accumulate tokens until they control outcomes. Low turnout makes this cheaper, since fewer votes are needed to win. This is called governance capture."
+        },
+        {
+          "heading": "Quadratic voting",
+          "body": "In quadratic voting, casting n votes on one issue costs n squared credits. One vote costs 1, but ten votes cost 100. This lets people express how strongly they care while limiting the power of large holders. It only works if each person has one identity, so it is vulnerable to Sybil attacks where one actor splits into many accounts."
+        },
+        {
+          "heading": "Defensive design",
+          "body": "Good designs measure voting power before a proposal starts, delay execution, and limit what governance can do in one step. Some add veto powers, rage-quit options that let members exit with their share, or vote-escrow systems that reward long-term locking. Every defense trades some speed or openness for safety."
+        }
+      ],
+      "concepts": [
+        { "term": "Flash loan", "definition": "An uncollateralized loan that must be borrowed and repaid within a single transaction." },
+        { "term": "Governance capture", "definition": "When one actor or small group gains enough voting power to control outcomes." },
+        { "term": "Quadratic voting", "definition": "A system where the cost of votes rises with the square of the number cast." },
+        { "term": "Sybil attack", "definition": "Creating many fake identities to gain influence in a system meant to be one-person-one-voice." }
+      ],
+      "example": {
+        "title": "Why Beanstalk was exposed",
+        "body": "Beanstalk had an emergency path that let a proposal execute quickly with a large supermajority. An attacker used flash loans to gain that supermajority within one transaction, passed a proposal that sent funds to themselves, and repaid the loans. A snapshot taken before the vote and a mandatory delay would have closed that door."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-a-dao",
+      "difficulty": "easy",
+      "prompt": "What does DAO stand for?",
+      "options": [
+        "Decentralized autonomous organization",
+        "Digital asset operator",
+        "Distributed accounting office",
+        "Decentralized application oracle"
+      ],
+      "answer": 0,
+      "explanation": "DAO stands for decentralized autonomous organization, a group run by rules written into smart contracts."
+    },
+    {
+      "module": "what-is-a-dao",
+      "difficulty": "easy",
+      "prompt": "What is a DAO treasury?",
+      "options": [
+        "A list of all members' wallet addresses",
+        "A pool of funds the DAO controls together",
+        "A private key held by the founder",
+        "A record of every past proposal"
+      ],
+      "answer": 1,
+      "explanation": "The treasury is the shared pool of funds that members decide how to spend."
+    },
+    {
+      "module": "what-is-a-dao",
+      "difficulty": "easy",
+      "prompt": "What usually gives a member voting power in a DAO?",
+      "options": [
+        "Their number of social media followers",
+        "The age of their wallet address",
+        "Holding the DAO's governance token",
+        "Running a full node of the blockchain"
+      ],
+      "answer": 2,
+      "explanation": "Most DAOs grant voting power based on how many governance tokens a member holds or has been delegated."
+    },
+    {
+      "module": "what-is-a-dao",
+      "difficulty": "easy",
+      "prompt": "What happened after The DAO was drained in 2016?",
+      "options": [
+        "The attacker returned the funds voluntarily",
+        "Ethereum shut down for several months",
+        "The funds were frozen by a central bank",
+        "Ethereum hard forked to reverse the theft"
+      ],
+      "answer": 3,
+      "explanation": "Ethereum hard forked to return the funds, and the chain that kept the original history became Ethereum Classic."
+    },
+    {
+      "module": "what-is-a-dao",
+      "difficulty": "easy",
+      "prompt": "Where is a DAO proposal often discussed before it goes to a vote?",
+      "options": [
+        "Inside the token's smart contract code",
+        "On a public forum with the community",
+        "In a private meeting of the founders",
+        "On a centralized exchange order book"
+      ],
+      "answer": 1,
+      "explanation": "Most proposals are debated on a community forum first, so ideas can be improved before a formal vote."
+    },
+    {
+      "module": "token-voting-delegation",
+      "difficulty": "medium",
+      "prompt": "What does quorum mean in DAO voting?",
+      "options": [
+        "The share of votes needed to create a proposal",
+        "The time a proposal waits before it executes",
+        "The minimum participation for a vote to count",
+        "The number of signers on the DAO multisig"
+      ],
+      "answer": 2,
+      "explanation": "Quorum is the minimum amount of voting power that must take part for the result to be valid."
+    },
+    {
+      "module": "token-voting-delegation",
+      "difficulty": "medium",
+      "prompt": "When you delegate your governance tokens, what happens to the tokens themselves?",
+      "options": [
+        "They are sent to the delegate's wallet",
+        "They are locked until the next vote ends",
+        "They are burned and reissued to the delegate's address",
+        "They stay in your wallet and you keep ownership"
+      ],
+      "answer": 3,
+      "explanation": "Delegation only assigns voting power. The tokens stay in your wallet and you can redelegate at any time."
+    },
+    {
+      "module": "token-voting-delegation",
+      "difficulty": "medium",
+      "prompt": "Why do many DAOs measure voting power at a snapshot block?",
+      "options": [
+        "To stop people buying tokens mid-vote to swing it",
+        "To make voting cheaper by skipping gas fees",
+        "To let voters change their vote after it closes",
+        "To hide each voter's choice until the end"
+      ],
+      "answer": 0,
+      "explanation": "Fixing balances at a set block prevents someone from acquiring tokens after a vote starts to change the outcome."
+    },
+    {
+      "module": "token-voting-delegation",
+      "difficulty": "medium",
+      "prompt": "What is the main fairness criticism of one-token-one-vote?",
+      "options": [
+        "It is easy to fake with many new accounts",
+        "Large holders have far more say than small ones",
+        "Votes cannot be counted on a blockchain",
+        "It forces every holder to vote on every proposal"
+      ],
+      "answer": 1,
+      "explanation": "Voting power scales with holdings, so whales can outvote many smaller holders combined."
+    },
+    {
+      "module": "token-voting-delegation",
+      "difficulty": "medium",
+      "prompt": "Why does low voter turnout make a DAO riskier?",
+      "options": [
+        "It makes the treasury lose value automatically",
+        "It forces the timelock delay to be skipped",
+        "Fewer votes are needed for a small group to win",
+        "It prevents any proposal from being created"
+      ],
+      "answer": 2,
+      "explanation": "When few holders vote, a small or coordinated group can pass proposals with relatively little voting power."
+    },
+    {
+      "module": "governor-contracts-timelocks",
+      "difficulty": "hard",
+      "prompt": "What is the main purpose of a timelock in DAO governance?",
+      "options": [
+        "To limit how many proposals one address can make",
+        "To encrypt votes until the voting period ends",
+        "To store the DAO's tokens in cold storage",
+        "To give users time to react before a change runs"
+      ],
+      "answer": 3,
+      "explanation": "A timelock delays execution so users can review the exact change and exit if they disagree."
+    },
+    {
+      "module": "governor-contracts-timelocks",
+      "difficulty": "hard",
+      "prompt": "A 4-of-7 multisig needs what to approve a transaction?",
+      "options": [
+        "Signatures from at least 4 of its 7 signers",
+        "A token vote with at least 4 percent quorum",
+        "Four separate proposals over seven days",
+        "Approval from 4 delegates and 7 token holders"
+      ],
+      "answer": 0,
+      "explanation": "An m-of-n multisig requires m valid signatures from its n authorized signers, here 4 of 7."
+    },
+    {
+      "module": "governor-contracts-timelocks",
+      "difficulty": "hard",
+      "prompt": "In a typical governor contract, what happens right after a proposal succeeds?",
+      "options": [
+        "It is deleted and must be proposed again",
+        "It is sent back for a second round of voting",
+        "It is queued in the timelock before execution",
+        "It executes in the same block the vote ends"
+      ],
+      "answer": 2,
+      "explanation": "In governor plus timelock setups, a succeeded proposal is queued, waits out the delay, then can be executed."
+    },
+    {
+      "module": "governor-contracts-timelocks",
+      "difficulty": "hard",
+      "prompt": "What is the main trade-off of controlling a protocol with a multisig instead of token voting?",
+      "options": [
+        "It is slower but removes the need for trust",
+        "It is faster but relies on trusting the signers",
+        "It is cheaper but cannot hold any funds",
+        "It is more private but cannot upgrade contracts"
+      ],
+      "answer": 1,
+      "explanation": "Multisigs act quickly with few signatures, but users must trust that those signers will not collude or be compromised."
+    },
+    {
+      "module": "governor-contracts-timelocks",
+      "difficulty": "hard",
+      "prompt": "What does a proposal threshold control in a governor contract?",
+      "options": [
+        "The minimum voting power needed to create a proposal",
+        "The share of yes votes needed for a proposal to pass",
+        "The delay between a vote passing and execution",
+        "The maximum number of proposals open at once"
+      ],
+      "answer": 0,
+      "explanation": "The proposal threshold sets how much voting power an address needs to submit a proposal, which limits spam."
+    },
+    {
+      "module": "governance-attacks-design",
+      "difficulty": "expert",
+      "prompt": "Which design choice most directly blocks a flash-loan governance attack?",
+      "options": [
+        "Raising the quorum to a higher percentage",
+        "Measuring voting power at a block before voting starts",
+        "Moving the DAO forum to a new platform",
+        "Letting the multisig vote alongside token holders on every proposal"
+      ],
+      "answer": 1,
+      "explanation": "Flash-loaned tokens exist only within one transaction, so counting balances at an earlier block gives them no voting power."
+    },
+    {
+      "module": "governance-attacks-design",
+      "difficulty": "expert",
+      "prompt": "Under quadratic voting, how many credits does it cost to cast 5 votes on one issue?",
+      "options": [
+        "5 credits",
+        "10 credits",
+        "15 credits",
+        "25 credits"
+      ],
+      "answer": 3,
+      "explanation": "Cost equals the number of votes squared, so 5 votes cost 25 credits."
+    },
+    {
+      "module": "governance-attacks-design",
+      "difficulty": "expert",
+      "prompt": "What is the main weakness of quadratic voting in an open crypto system?",
+      "options": [
+        "It is vulnerable to one actor splitting into many identities",
+        "It gives large holders even more power than plain token voting does",
+        "It cannot be calculated inside a smart contract",
+        "It requires every vote to be public before it closes"
+      ],
+      "answer": 0,
+      "explanation": "Quadratic voting assumes one identity per person. Splitting funds across many fake accounts, a Sybil attack, defeats the square cost."
+    },
+    {
+      "module": "governance-attacks-design",
+      "difficulty": "expert",
+      "prompt": "Why was the Beanstalk protocol exposed to its 2022 governance exploit?",
+      "options": [
+        "Its multisig signers leaked their private keys",
+        "Its oracle reported a wrong price for its token during the vote",
+        "Votes counted instantly and an emergency path executed at once",
+        "Its forum was hacked and a fake proposal posted"
+      ],
+      "answer": 2,
+      "explanation": "The attacker used flash loans to gain a supermajority in one transaction and used a fast execution path, with no snapshot or delay to stop it."
+    },
+    {
+      "module": "governance-attacks-design",
+      "difficulty": "expert",
+      "prompt": "What does a rage-quit mechanism let DAO members do?",
+      "options": [
+        "Cancel any proposal they personally voted against at any time",
+        "Freeze the treasury until a new vote is held",
+        "Remove a delegate from their role without a vote",
+        "Exit with their share of funds before a change runs"
+      ],
+      "answer": 3,
+      "explanation": "Rage-quit lets dissenting members leave with their proportional share, which protects minorities from harmful majority decisions."
+    }
+  ]
+}

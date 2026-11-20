@@ -1,0 +1,431 @@
+{
+  "slug": "wallets-security",
+  "title": "Crypto Wallets & Security",
+  "tagline": "Protect your keys, read what you sign and keep your assets safe.",
+  "icon": "ShieldCheck",
+  "order": 7,
+  "modules": [
+    {
+      "slug": "keys-and-seed-phrases",
+      "level": "beginner",
+      "title": "Keys, wallets and seed phrases",
+      "summary": "A crypto wallet does not hold coins, it holds the keys that control them. This module explains private keys, seed phrases and how to store them safely.",
+      "minutes": 6,
+      "objectives": [
+        "Explain what a private key and a public address are",
+        "Describe what a seed phrase is and why it matters",
+        "Store a seed phrase safely and never share it"
+      ],
+      "sections": [
+        {
+          "heading": "What a wallet really holds",
+          "body": "Your coins live on the blockchain, not inside your wallet app. The wallet stores a private key, a secret number that proves you own an address. Your public address is safe to share so people can send you funds. Your private key must never be shared."
+        },
+        {
+          "heading": "The seed phrase",
+          "body": "Most wallets create a seed phrase, usually 12 or 24 words, when you set them up. These words can rebuild every key in the wallet on any compatible app. Anyone who has your seed phrase has full control of your funds, and no one can reverse their transactions."
+        },
+        {
+          "heading": "Storing it safely",
+          "body": "Write the seed phrase down on paper or metal and keep it somewhere private and safe from fire and water. Do not store it in screenshots, notes apps, email or cloud drives. Never type it into a website, a chat or a form, whoever asks."
+        },
+        {
+          "heading": "Custodial and self-custody",
+          "body": "With a custodial wallet, such as an exchange account, the company holds the keys for you. With a self-custody wallet, you hold the keys yourself. Self-custody gives you full control, but it also means there is no support desk that can recover a lost seed phrase."
+        }
+      ],
+      "concepts": [
+        { "term": "Private key", "definition": "A secret number that lets you sign transactions and control an address." },
+        { "term": "Public address", "definition": "An identifier derived from your key that others use to send you funds." },
+        { "term": "Seed phrase", "definition": "A list of words that can recreate all the private keys in a wallet." },
+        { "term": "Self-custody", "definition": "Holding your own keys instead of trusting a company to hold them." }
+      ],
+      "example": {
+        "title": "The fake support agent",
+        "body": "Maya posts in a forum that her wallet balance looks wrong. A stranger messages her claiming to be official support and asks for her seed phrase to fix it. Real support teams never ask for a seed phrase. Maya ignores the message and her funds stay safe."
+      }
+    },
+    {
+      "slug": "hardware-wallets-and-approvals",
+      "level": "intermediate",
+      "title": "Hardware wallets and token approvals",
+      "summary": "Hardware wallets keep keys off your computer, and approvals control who can move your tokens. This module covers both, plus how to revoke approvals you no longer need.",
+      "minutes": 8,
+      "objectives": [
+        "Explain why a hardware wallet reduces risk",
+        "Describe what a token approval allows a contract to do",
+        "Review and revoke approvals you no longer need"
+      ],
+      "sections": [
+        {
+          "heading": "Hardware wallets",
+          "body": "A hardware wallet is a small device that stores your private key and signs transactions inside the device. The key never touches your computer, so malware on the computer cannot simply copy it. Always check the details shown on the device screen before you confirm, because that screen is harder for an attacker to fake."
+        },
+        {
+          "heading": "What an approval is",
+          "body": "On Ethereum and similar chains, a token's approve function lets a contract, called the spender, move your tokens up to a set amount. Apps need this so they can, for example, swap your tokens. Many apps ask for an unlimited approval so you do not have to approve again each time."
+        },
+        {
+          "heading": "Why old approvals are risky",
+          "body": "An approval stays active until you change it, even after you stop using the app. If that contract is later exploited or turns out to be malicious, it can move your approved tokens without asking you again. Unlimited approvals put your whole balance of that token at risk."
+        },
+        {
+          "heading": "Revoking approvals",
+          "body": "You can revoke an approval by setting the allowance back to zero. This is an on-chain transaction, so it costs a small gas fee. Approval-checker tools and many wallets list your active approvals so you can review and revoke them."
+        }
+      ],
+      "concepts": [
+        { "term": "Hardware wallet", "definition": "A device that keeps private keys offline and signs transactions on the device itself." },
+        { "term": "Token approval", "definition": "Permission for a contract to move up to a set amount of your tokens." },
+        { "term": "Allowance", "definition": "The amount of a token a spender is currently allowed to move for you." },
+        { "term": "Revoke", "definition": "Setting an allowance back to zero so the spender can no longer move your tokens." }
+      ],
+      "example": {
+        "title": "Cleaning up old approvals",
+        "body": "Leo used several swap apps over the years and approved unlimited amounts each time. He opens an approval checker, connects his address and sees approvals to apps he no longer uses. He revokes each one, paying a small gas fee per revoke, and his tokens are no longer exposed to those contracts."
+      }
+    },
+    {
+      "slug": "phishing-and-signatures",
+      "level": "advanced",
+      "title": "Phishing, drainers and signatures",
+      "summary": "Many thefts happen because a user signs something they did not understand. This module covers drainer scams and the main signature types: eth_sign, personal_sign and EIP-712 typed data.",
+      "minutes": 10,
+      "objectives": [
+        "Recognise common phishing and drainer tactics",
+        "Compare eth_sign, personal_sign and EIP-712 signatures",
+        "Explain why an off-chain signature can still move your tokens"
+      ],
+      "sections": [
+        {
+          "heading": "How drainers work",
+          "body": "A drainer is a malicious site or script that tricks you into signing approvals, transfers or permits that hand your assets to an attacker. It usually arrives through fake airdrops, copied websites, hacked social accounts or ads that look like real projects. The page often looks normal until the moment you sign."
+        },
+        {
+          "heading": "eth_sign and personal_sign",
+          "body": "The old eth_sign method signs a raw 32-byte hash. That hash could be the hash of a real transaction, so signing it blindly can authorise a transfer you never saw. personal_sign adds a fixed prefix to the message before signing, so the result cannot be used as a valid transaction. Many wallets now block or strongly warn about eth_sign."
+        },
+        {
+          "heading": "EIP-712 typed data",
+          "body": "EIP-712 lets apps ask you to sign structured data with named fields, such as spender, amount and deadline. It also includes a domain, with details like the chain ID and the verifying contract, so a signature is tied to one app and chain. This makes signatures readable, but readable does not mean safe: you still have to check what the fields say."
+        },
+        {
+          "heading": "Gasless permits",
+          "body": "Standards such as EIP-2612 permit let you grant a token allowance with an off-chain EIP-712 signature instead of a transaction. Signing costs no gas and shows no on-chain transaction, which is why drainers like it. Anyone holding that signature can submit it and then move your tokens."
+        }
+      ],
+      "concepts": [
+        { "term": "Drainer", "definition": "A malicious tool that tricks users into signing away their assets." },
+        { "term": "eth_sign", "definition": "A legacy signing method that signs a raw hash and can authorise hidden transactions." },
+        { "term": "EIP-712", "definition": "A standard for signing structured, typed data that wallets can display field by field." },
+        { "term": "Permit", "definition": "An off-chain signature that grants a token allowance without sending a transaction." }
+      ],
+      "example": {
+        "title": "The free mint that was a permit",
+        "body": "Ade clicks an ad for a free NFT mint. The site asks for a signature, not a transaction, so he assumes it is harmless. The wallet shows typed data with a spender address and a very large amount on his stablecoin. He cancels, because a real mint would not need permission to spend his stablecoins."
+      }
+    },
+    {
+      "slug": "multisig-and-account-abstraction",
+      "level": "expert",
+      "title": "Multisig and account abstraction",
+      "summary": "Smart contract accounts can enforce rules that a single key cannot. This module covers multisig wallets, ERC-4337 account abstraction and advanced attack patterns.",
+      "minutes": 11,
+      "objectives": [
+        "Explain how an M-of-N multisig removes single points of failure",
+        "Describe the main parts of ERC-4337",
+        "Recognise advanced attacks such as address poisoning and blind signing"
+      ],
+      "sections": [
+        {
+          "heading": "Multisig wallets",
+          "body": "A multisig is a smart contract wallet that needs M of N approved keys to sign before a transaction runs, for example 2 of 3. Losing one key does not lose the funds, and stealing one key is not enough to move them. Teams and treasuries often use multisigs, ideally with keys on separate hardware wallets held by different people."
+        },
+        {
+          "heading": "Externally owned accounts and smart accounts",
+          "body": "A normal Ethereum account, called an externally owned account (EOA), is controlled by one private key and has no custom rules. A smart contract account is controlled by code, so it can add rules like spending limits, multiple signers or recovery. Account abstraction is the idea of letting these smart accounts act as full user wallets."
+        },
+        {
+          "heading": "How ERC-4337 works",
+          "body": "ERC-4337 adds account abstraction without changing Ethereum's core protocol. Users send UserOperations to a separate mempool, where bundlers package them into a normal transaction sent to a shared EntryPoint contract. Paymasters can sponsor gas or let users pay fees in tokens. This enables features like social recovery, session keys and batched actions."
+        },
+        {
+          "heading": "Advanced attacks",
+          "body": "Address poisoning sends tiny or zero-value transfers from an address that looks like one you use, hoping you copy it from your history. Blind signing means approving data a device or wallet cannot decode, which removes your chance to check it. Even a multisig is only as safe as what its signers actually verify before they sign."
+        }
+      ],
+      "concepts": [
+        { "term": "Multisig", "definition": "A wallet that requires several independent keys to approve a transaction." },
+        { "term": "UserOperation", "definition": "An ERC-4337 object describing what a smart account wants to do, sent to a separate mempool." },
+        { "term": "Paymaster", "definition": "An ERC-4337 contract that can pay gas on a user's behalf under its own rules." },
+        { "term": "Address poisoning", "definition": "A scam that plants look-alike addresses in your history so you send funds to the attacker." }
+      ],
+      "example": {
+        "title": "A 2-of-3 treasury",
+        "body": "A small DAO keeps its treasury in a 2-of-3 multisig. Each signer holds a key on a separate hardware wallet. When one signer's laptop is compromised, the attacker still cannot move funds, because a second signer must approve. The DAO replaces the exposed key with a new signer through a multisig transaction."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "keys-and-seed-phrases",
+      "difficulty": "easy",
+      "prompt": "What does a crypto wallet actually store?",
+      "options": [
+        "A copy of every coin you have ever received",
+        "Your exchange username and account password",
+        "The private keys that control your addresses",
+        "A full backup of the entire blockchain history"
+      ],
+      "answer": 2,
+      "explanation": "Coins live on the blockchain. The wallet stores the private keys that prove you control your addresses."
+    },
+    {
+      "module": "keys-and-seed-phrases",
+      "difficulty": "easy",
+      "prompt": "Someone claiming to be wallet support asks for your seed phrase. What should you do?",
+      "options": [
+        "Refuse, because real support never needs it",
+        "Share it only over a private direct message",
+        "Share just the first half of the words",
+        "Send it if they show an official-looking badge"
+      ],
+      "answer": 0,
+      "explanation": "Anyone with your seed phrase controls your funds. Legitimate support will never ask for it."
+    },
+    {
+      "module": "keys-and-seed-phrases",
+      "difficulty": "easy",
+      "prompt": "Which is the safest way to back up a seed phrase?",
+      "options": [
+        "A screenshot saved in your phone's photo gallery",
+        "A draft email that you send only to yourself",
+        "A note synced to your cloud storage account",
+        "Written on paper or metal kept somewhere private"
+      ],
+      "answer": 3,
+      "explanation": "An offline physical copy cannot be stolen by malware or a hacked online account."
+    },
+    {
+      "module": "keys-and-seed-phrases",
+      "difficulty": "easy",
+      "prompt": "Which of these is safe to share with someone who wants to send you crypto?",
+      "options": [
+        "Your seed phrase",
+        "Your public address",
+        "Your private key",
+        "Your wallet password"
+      ],
+      "answer": 1,
+      "explanation": "Your public address is meant to be shared. It lets others send you funds but not spend them."
+    },
+    {
+      "module": "keys-and-seed-phrases",
+      "difficulty": "easy",
+      "prompt": "What is a key trade-off of self-custody?",
+      "options": [
+        "A company can freeze your funds at any time",
+        "You must ask permission from a company before each transaction",
+        "No one can recover your funds if you lose the seed",
+        "Your coins are stored on the company's servers"
+      ],
+      "answer": 2,
+      "explanation": "Self-custody gives you full control, so there is no one who can restore access if the seed phrase is lost."
+    },
+    {
+      "module": "hardware-wallets-and-approvals",
+      "difficulty": "medium",
+      "prompt": "Why does a hardware wallet reduce risk from computer malware?",
+      "options": [
+        "It encrypts your browser history automatically",
+        "It blocks every website that asks you for a wallet signature",
+        "It makes all your transactions free of gas fees",
+        "The private key stays inside the device when signing"
+      ],
+      "answer": 3,
+      "explanation": "Signing happens on the device, so the key never reaches the computer where malware could copy it."
+    },
+    {
+      "module": "hardware-wallets-and-approvals",
+      "difficulty": "medium",
+      "prompt": "What does a token approval allow?",
+      "options": [
+        "It lets you view the token's price chart",
+        "It lets a contract move your tokens up to a limit",
+        "It lets the token issuer create new tokens",
+        "It lets other users see your wallet balance"
+      ],
+      "answer": 1,
+      "explanation": "An approval grants a spender contract an allowance to transfer your tokens."
+    },
+    {
+      "module": "hardware-wallets-and-approvals",
+      "difficulty": "medium",
+      "prompt": "You stopped using an app months ago. What happens to the approval you gave it?",
+      "options": [
+        "It stays active until you revoke or change it",
+        "It expires automatically after thirty days",
+        "It is removed when you disconnect the site",
+        "It is cancelled when you close the browser"
+      ],
+      "answer": 0,
+      "explanation": "Approvals are stored on-chain and remain active. Disconnecting a site in your wallet does not revoke them."
+    },
+    {
+      "module": "hardware-wallets-and-approvals",
+      "difficulty": "medium",
+      "prompt": "How do you revoke a token approval?",
+      "options": [
+        "Delete the app's website from your bookmarks",
+        "Move your tokens to a brand new exchange account",
+        "Send a transaction setting the allowance to zero",
+        "Ask the app's team to remove it from their database"
+      ],
+      "answer": 2,
+      "explanation": "Revoking is an on-chain transaction that resets the allowance to zero, and it costs a small gas fee."
+    },
+    {
+      "module": "hardware-wallets-and-approvals",
+      "difficulty": "medium",
+      "prompt": "When confirming a transaction on a hardware wallet, what should you check?",
+      "options": [
+        "The details shown on the device's own screen",
+        "The colour scheme of the website you are using",
+        "The number of followers the project has online",
+        "The time shown on your computer's system clock"
+      ],
+      "answer": 0,
+      "explanation": "The device screen is much harder to tamper with than the computer, so verify the address and amount there."
+    },
+    {
+      "module": "phishing-and-signatures",
+      "difficulty": "hard",
+      "prompt": "Why is eth_sign considered dangerous?",
+      "options": [
+        "It always costs a very high gas fee",
+        "It sends your seed phrase to the site",
+        "It only works on hardware wallets",
+        "It signs a raw hash that may be a transaction"
+      ],
+      "answer": 3,
+      "explanation": "eth_sign signs an arbitrary 32-byte hash, which could be the hash of a real transaction you cannot see."
+    },
+    {
+      "module": "phishing-and-signatures",
+      "difficulty": "hard",
+      "prompt": "What does personal_sign do differently from eth_sign?",
+      "options": [
+        "It encrypts the message so only the site can read it",
+        "It adds a fixed prefix so it cannot be a transaction",
+        "It sends the message on-chain for anyone to verify",
+        "It requires two separate keys to produce a signature"
+      ],
+      "answer": 1,
+      "explanation": "personal_sign prepends a standard prefix before hashing, so the signature cannot be replayed as a valid transaction."
+    },
+    {
+      "module": "phishing-and-signatures",
+      "difficulty": "hard",
+      "prompt": "What is the purpose of the domain in an EIP-712 signature?",
+      "options": [
+        "It stores the website's URL for search engines",
+        "It hides the message fields from the wallet",
+        "It ties the signature to a specific app and chain",
+        "It lets the same signature be reused on any chain or app"
+      ],
+      "answer": 2,
+      "explanation": "The domain includes details like chain ID and verifying contract, which stops a signature being replayed elsewhere."
+    },
+    {
+      "module": "phishing-and-signatures",
+      "difficulty": "hard",
+      "prompt": "Why can a gasless permit signature lead to stolen tokens?",
+      "options": [
+        "Whoever holds it can submit it and gain an allowance",
+        "It reveals your private key inside the signature",
+        "It permanently disables your wallet's security",
+        "It moves your tokens out the moment the site finishes loading"
+      ],
+      "answer": 0,
+      "explanation": "A permit is an off-chain approval. The attacker submits it on-chain, then uses the allowance to transfer your tokens."
+    },
+    {
+      "module": "phishing-and-signatures",
+      "difficulty": "hard",
+      "prompt": "A free mint site asks you to sign EIP-712 data naming a spender and a huge amount of your stablecoin. What is the best reading?",
+      "options": [
+        "It is normal, since all mints require this step",
+        "It is safe, because signatures never cost gas",
+        "It is safe, because EIP-712 data is always verified",
+        "It is likely a drainer asking for token permission"
+      ],
+      "answer": 3,
+      "explanation": "A mint has no need to spend your stablecoins. A spender plus a large amount is the shape of a permit drainer."
+    },
+    {
+      "module": "multisig-and-account-abstraction",
+      "difficulty": "expert",
+      "prompt": "In a 2-of-3 multisig, what happens if one signer's key is stolen?",
+      "options": [
+        "The attacker still needs a second key to move funds",
+        "The attacker can move all funds straight away",
+        "The multisig deletes itself to protect the funds",
+        "The other two keys stop working until reset"
+      ],
+      "answer": 0,
+      "explanation": "Two approvals are required, so one stolen key is not enough. The owners can then rotate the exposed signer out."
+    },
+    {
+      "module": "multisig-and-account-abstraction",
+      "difficulty": "expert",
+      "prompt": "In ERC-4337, what does a bundler do?",
+      "options": [
+        "It stores users' seed phrases in an encrypted vault",
+        "It approves new tokens for listing on exchanges",
+        "It packages UserOperations into a transaction for the EntryPoint",
+        "It changes Ethereum's consensus rules to support smart accounts natively"
+      ],
+      "answer": 2,
+      "explanation": "Bundlers collect UserOperations from a separate mempool and submit them in a normal transaction to the EntryPoint contract."
+    },
+    {
+      "module": "multisig-and-account-abstraction",
+      "difficulty": "expert",
+      "prompt": "What role does a paymaster play in ERC-4337?",
+      "options": [
+        "It validates blocks for the Ethereum network",
+        "It can sponsor gas or accept fees in tokens",
+        "It sets the price of tokens in a swap pool",
+        "It generates the seed phrase for new accounts"
+      ],
+      "answer": 1,
+      "explanation": "A paymaster is a contract that can pay gas for users under its own rules, including letting them pay in tokens."
+    },
+    {
+      "module": "multisig-and-account-abstraction",
+      "difficulty": "expert",
+      "prompt": "How does an address poisoning attack try to steal funds?",
+      "options": [
+        "It guesses your private key from your address",
+        "It changes the address stored in your hardware wallet",
+        "It reverses a confirmed transaction on the chain",
+        "It plants look-alike addresses for you to copy"
+      ],
+      "answer": 3,
+      "explanation": "The attacker sends small transfers from an address resembling one you use, hoping you copy it from your history later."
+    },
+    {
+      "module": "multisig-and-account-abstraction",
+      "difficulty": "expert",
+      "prompt": "Which ability does a smart contract account have that a plain EOA does not?",
+      "options": [
+        "It can hold tokens from more than one token standard",
+        "It can enforce custom rules like spending limits",
+        "It can receive funds from any other address",
+        "It can be used without paying any network fees"
+      ],
+      "answer": 1,
+      "explanation": "A smart account runs code, so it can enforce rules such as limits, multiple signers or recovery. An EOA follows one key."
+    }
+  ]
+}

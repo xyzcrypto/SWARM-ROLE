@@ -5,6 +5,81 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (155) — XYZ Crypto Academy: lessons, server-scored quizzes, leaderboards, live multiplayer, Nova voice guide, certificates
+
+A new section at **/academy**, built on the existing stack (Next 16, Prisma/Postgres,
+next-auth, Supabase Realtime broadcast, Upstash limits). Ops notes: `docs/academy.md`.
+
+### What members get
+- **Learn:** 14 topics × 4 levels (Beginner → Expert) = 56 lessons with objectives, short
+  sections (read-aloud), tap-to-reveal key concepts and a real-world example. A lesson
+  completes when its knowledge check scores ≥ 60%.
+- **Quiz engine:** Quick, Topic, Advanced, Daily (same 10 for everyone, once a day), Weekly
+  (20, once a week), lesson checks and "Challenge friends" replays. 5/10/15/20 questions,
+  easy → expert, timer, streak flame, instant explanations, keyboard (1-4, Enter) and voice
+  commands, results with accuracy ring, XP breakdown, level/rank movement and answer review.
+- **XP, levels, streaks, 14 achievements**, all configurable by admins.
+- **Leaderboards:** Daily / Weekly / Monthly / All-time from the XP ledger (UTC periods,
+  ISO weeks), gold/silver/bronze podium, rank-movement arrows, username search, "your
+  position", pagination, realtime refresh.
+- **Live Quiz Arena:** scheduled rooms that auto-start, waiting room, synced countdown, same
+  question for everyone, answers revealed together with the vote split, round leaderboard,
+  winners, XP and certificates. Host start/pause/resume/end/cancel.
+- **Nova, the voice guide:** 42 pre-recorded lines in a natural female voice (Kokoro
+  af_heart, generated offline, 1.3 MB total, fetched on use) plus the browser's best female
+  voice for questions/explanations. Captions always, play/pause/replay, mute, volume, voice
+  picker, "speaks on her own" toggle, optional mic commands (permission only on tap).
+- **Sound:** synthesised SFX and an ambient music bed (Web Audio, nothing licensed), master /
+  music / effects / voice switches and volumes, persisted, nothing before a user gesture,
+  music ducks while a question is open.
+- **Certificates:** daily/weekly/monthly champions (closed after the period ends), live
+  winners, and admin-issued event/milestone awards. Unique ID, QR, public verification page,
+  A4 PDF (pdf-lib), share to X, revoke/approve.
+- **Admin (`/dashboard/academy`, permission `academy:manage`):** topics, lessons, question
+  bank, scoring/XP/levels/award rules/achievements, live scheduling and hosting,
+  certificates, XP grants, analytics. Every action audit-logged.
+
+### Integrity
+- The server picks the questions and the option order, times every answer from its own
+  clock (+1.5s grace), scores it and writes XP. The browser only sends "I tapped option N".
+- The open question never carries its answer (solo or live); live scores shown during a
+  question exclude that question.
+- XP is a ledger with a unique idempotency key per reward (`quiz:<attempt>`,
+  `ach:<user>:<code>`, `live:<id>:<user>`…), written with ON CONFLICT DO NOTHING, so retries
+  and double-submits pay once. One answer per question by primary key.
+- Anti-farming: a question answered correctly for XP earns 0 XP again for 7 days, and quiz
+  XP is capped per UTC day (2,500 by default).
+- Period close and certificate issue are exactly-once (`AcademyPeriodClose` PK, unique
+  `(kind, periodKey, userId)`).
+
+### Cost
+- `/academy`, `/academy/learn`, `/quiz`, `/leaderboard`, `/live`, `/certificates` are static
+  shells (○). Lessons and topics are on-demand ISR (1 day, revalidated by admin edits); the
+  certificate page 1h.
+- Public endpoints carry `Cache-Control` from day one: catalog 300s, pulse 30s, leaderboard
+  15s, live list 10s, live room 2s (collapses a full room into one origin call per phase),
+  challenge 1h, PDF 1h. Personal endpoints are `private, no-store`.
+- Nothing polls on a timer while realtime is up: boards refetch on a content-free
+  `academy` broadcast, throttled client-side; the fallback poll (realtime down) is 120s,
+  15s in a live room.
+- No cron: finished periods close from the leaderboard route via `after()` (or the admin
+  button).
+
+### Content
+280 questions, correct answers spread 5/5/5/5 across positions per topic, and rebalanced so
+the right answer is the longest option in only ~25% of questions (was 61%). Tests pin this.
+
+### Tests
+`academy-engine.test.ts` (levels, scoring, streaks, UTC/ISO periods, seeded challenges, live
+clock incl. pause, tie-break, certificate codes, config merge, answer-never-sent invariants)
+and `academy-client.test.ts` (voice commands, audio settings, every line has a clip, content
+validity, no em dashes). End-to-end in a real browser: lesson → check → results, quick quiz
+with wrong answers, leaderboard, admin schedule → learner join → countdown → answer →
+reveal → host end → winner certificate → PDF, desktop and iPhone 13, zero console errors,
+no horizontal overflow.
+
+---
+
 ## 2026-11-20 (154) — Creators: YouTube loads in the background, and the page says why when it can't
 
 The owner reported the YouTube tab still showed "YouTube didn't respond just now" after #153.

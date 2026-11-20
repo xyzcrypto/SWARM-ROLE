@@ -1,0 +1,431 @@
+{
+  "slug": "web3-ecosystem",
+  "title": "Web3 Ecosystem & Research",
+  "tagline": "How to research a project, read tokenomics and on-chain data, and spot red flags",
+  "icon": "Telescope",
+  "order": 14,
+  "modules": [
+    {
+      "slug": "how-to-research-a-project",
+      "level": "beginner",
+      "title": "How to research a project",
+      "summary": "Good research starts with a few simple questions: what does it do, who built it, and has anyone checked the code? A short routine protects you from most bad decisions.",
+      "minutes": 6,
+      "objectives": [
+        "Follow a basic checklist when looking at a new project",
+        "Know where to find official docs and audits",
+        "Tell the difference between primary sources and hype"
+      ],
+      "sections": [
+        {
+          "heading": "Start with the problem",
+          "body": "Ask what the project actually does and who needs it. If you cannot explain it in one or two sentences after reading the docs, that is a warning sign. A real product solves a clear problem. Buzzwords are not a product."
+        },
+        {
+          "heading": "Read the official docs",
+          "body": "The documentation explains how the protocol works, what its token is for, and which contracts it uses. Find the docs through the official website, and check the link is real, since fake sites are common. Docs are a primary source. Social media posts are not."
+        },
+        {
+          "heading": "Check the team and audits",
+          "body": "Look at who built the project and their track record. Anonymous teams are common in crypto, which is not automatically bad, but it means you rely more on the code. An audit is a security review by an outside firm. Read the report itself, not just the badge, and check whether serious issues were fixed."
+        },
+        {
+          "heading": "Separate signal from noise",
+          "body": "Influencers are often paid to promote projects, and paid posts are not always marked. Treat excitement as noise until you confirm the facts yourself. A calm checklist beats a fear of missing out."
+        }
+      ],
+      "concepts": [
+        { "term": "Primary source", "definition": "Information that comes directly from the project, such as its docs, code or contracts." },
+        { "term": "Audit", "definition": "An independent security review of a project's smart contracts." },
+        { "term": "Due diligence", "definition": "The research you do before trusting a project with your time or money." },
+        { "term": "FOMO", "definition": "Fear of missing out, the urge to act quickly that often leads to poor decisions." }
+      ],
+      "example": {
+        "title": "A five-minute check",
+        "body": "A friend shares a new token. Before doing anything, you find the official docs, read what the token is used for, look up the team, and open the audit report. The report lists two high-severity issues marked as unresolved, which tells you to wait."
+      }
+    },
+    {
+      "slug": "tokenomics-supply",
+      "level": "intermediate",
+      "title": "Tokenomics, supply and unlocks",
+      "summary": "Tokenomics describes how a token is created, shared out and released over time. Supply numbers and unlock schedules often matter more than the headline price.",
+      "minutes": 8,
+      "objectives": [
+        "Explain circulating, total and maximum supply",
+        "Compare market cap with fully diluted valuation",
+        "Read a vesting schedule with cliffs and unlocks"
+      ],
+      "sections": [
+        {
+          "heading": "Supply terms",
+          "body": "Circulating supply is the number of tokens that can trade right now. Total supply is all tokens that exist, including locked ones. Maximum supply is the most that can ever exist, if there is a cap at all. These three numbers can be very different."
+        },
+        {
+          "heading": "Market cap vs FDV",
+          "body": "Market cap is price times circulating supply. Fully diluted valuation, or FDV, is price times the maximum or total supply. If only a small share of tokens circulate, FDV can be many times larger than market cap. That gap shows how much supply could still reach the market."
+        },
+        {
+          "heading": "Vesting and unlocks",
+          "body": "Team members and early investors usually receive tokens on a vesting schedule. A cliff is a period where nothing unlocks, followed by a release, often monthly after that. When a large unlock happens, holders who received cheap tokens may sell. Many research sites track upcoming unlocks for this reason."
+        },
+        {
+          "heading": "Distribution and utility",
+          "body": "Look at who holds the supply: team, investors, treasury, community. Then ask what the token is used for, such as fees, governance or staking. A token with no clear use depends almost entirely on demand from new buyers."
+        }
+      ],
+      "concepts": [
+        { "term": "Circulating supply", "definition": "The number of tokens currently available to trade." },
+        { "term": "FDV", "definition": "Fully diluted valuation, the price multiplied by the total or maximum token supply." },
+        { "term": "Vesting", "definition": "A schedule that releases tokens to holders gradually over time." },
+        { "term": "Cliff", "definition": "An initial period in a vesting schedule during which no tokens unlock." }
+      ],
+      "example": {
+        "title": "Low float, high FDV",
+        "body": "A new token launches with only 10 percent of its supply circulating. Its market cap looks modest, but its FDV is ten times larger. Over the next few years, the other 90 percent unlocks to the team, investors and treasury. Anyone buying should expect that new supply to arrive."
+      }
+    },
+    {
+      "slug": "on-chain-research",
+      "level": "advanced",
+      "title": "Reading block explorers and on-chain data",
+      "summary": "On-chain data lets you check claims directly. With a block explorer you can inspect contracts, holders, admin powers and transaction history.",
+      "minutes": 10,
+      "objectives": [
+        "Use a block explorer to inspect a token contract",
+        "Assess holder concentration and admin control",
+        "Read a transaction's details and token approvals"
+      ],
+      "sections": [
+        {
+          "heading": "Explorers are public windows",
+          "body": "A block explorer, such as Etherscan for Ethereum, shows every transaction, address and contract on a chain. You can paste a contract address to see its code, holders and activity. Always get the contract address from official docs, since scammers copy token names and symbols."
+        },
+        {
+          "heading": "Verified code and admin powers",
+          "body": "A verified contract has its source code published and matched to the deployed bytecode. Unverified code is a warning sign. Check for an owner or admin, and whether the contract is upgradeable through a proxy. Admin keys may be able to mint tokens, pause transfers or change logic."
+        },
+        {
+          "heading": "Holder concentration",
+          "body": "The holders list shows how supply is spread. A few wallets holding most of the supply can move the price sharply. Label each large holder if you can: some are exchanges, vesting contracts, or liquidity pools, which are less worrying than a single unknown wallet."
+        },
+        {
+          "heading": "Reading transactions and approvals",
+          "body": "A transaction page shows the sender, the contract called, the function and the tokens moved. Token approvals let a contract spend your tokens later, sometimes with no limit. Many explorers have a tool to review and revoke old approvals, which reduces your risk if a contract is later exploited."
+        }
+      ],
+      "concepts": [
+        { "term": "Block explorer", "definition": "A website that lets anyone search and read blockchain data." },
+        { "term": "Verified contract", "definition": "A contract whose published source code matches its deployed bytecode." },
+        { "term": "Proxy contract", "definition": "A contract that forwards calls to logic that an admin can upgrade." },
+        { "term": "Token approval", "definition": "Permission you grant a contract to spend your tokens on your behalf." }
+      ],
+      "example": {
+        "title": "Checking a new token",
+        "body": "You open a token's contract on an explorer. The code is verified, but the owner can mint unlimited tokens and the top wallet holds most of the supply with no label. Neither fact is in the marketing, and together they mean the owner could dilute or dump on holders at any time."
+      }
+    },
+    {
+      "slug": "red-flags-airdrops",
+      "level": "expert",
+      "title": "Red flags, airdrops and points programs",
+      "summary": "Experienced researchers combine many weak signals into a judgment. This module covers common red flags and how airdrops and points programs really work.",
+      "minutes": 12,
+      "objectives": [
+        "Identify common red flags in protocols and tokens",
+        "Explain how airdrops and points programs are designed",
+        "Assess the real costs and risks of farming rewards"
+      ],
+      "sections": [
+        {
+          "heading": "Technical red flags",
+          "body": "Watch for upgradeable contracts controlled by one key with no timelock, unaudited code holding large deposits, and tokens that block selling, often called honeypots. Liquidity that is not locked lets a team remove it and leave tokens worthless, which is known as a rug pull. One flag is a reason to dig, several together are a reason to walk away."
+        },
+        {
+          "heading": "Economic red flags",
+          "body": "Very high yields with no clear source usually come from printing new tokens or from new deposits paying old ones. Ask where the yield comes from: fees, interest from borrowers, or emissions. If emissions are the only source, returns fall as the token is sold. Ponzi-like designs look healthy only while inflows grow."
+        },
+        {
+          "heading": "Airdrops and points",
+          "body": "An airdrop gives tokens to users, often based on past activity, to spread ownership and reward early users. Points programs track activity before a token exists and may later convert to an airdrop, but the conversion is usually not guaranteed. Teams filter out Sybil farmers who use many wallets, so rules are often unclear by design."
+        },
+        {
+          "heading": "Counting the true cost",
+          "body": "Farming has costs: fees, time, capital locked in risky contracts, and the chance of getting nothing. Fake airdrop sites are a common scam that asks you to connect a wallet and sign a malicious approval. A real airdrop never needs your seed phrase. Compare expected rewards with the risks honestly before you commit funds."
+        }
+      ],
+      "concepts": [
+        { "term": "Rug pull", "definition": "When a team abandons a project and removes liquidity or funds, leaving holders with losses." },
+        { "term": "Honeypot", "definition": "A token designed so that buyers can purchase it but cannot sell it." },
+        { "term": "Points program", "definition": "A system that tracks user activity, often before a token launch, with possible later rewards." },
+        { "term": "Sybil farming", "definition": "Using many wallets to pose as many users and collect more rewards." }
+      ],
+      "example": {
+        "title": "Uniswap's 2020 airdrop",
+        "body": "In 2020, Uniswap airdropped UNI governance tokens to addresses that had used the protocol before a cutoff date. It became a well-known example of rewarding past users. It also taught many people to use new protocols in the hope of future airdrops, which later led to points programs and heavy Sybil farming."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "how-to-research-a-project",
+      "difficulty": "easy",
+      "prompt": "Which of these is a primary source for researching a project?",
+      "options": [
+        "A paid influencer's video review",
+        "A trending post on social media",
+        "A comment in a community chat",
+        "The project's official documentation"
+      ],
+      "answer": 3,
+      "explanation": "Official docs come directly from the project. Posts and reviews are secondhand and may be paid or wrong."
+    },
+    {
+      "module": "how-to-research-a-project",
+      "difficulty": "easy",
+      "prompt": "What is a smart contract audit?",
+      "options": [
+        "A tax report filed by the project team",
+        "An independent security review of the code",
+        "A vote by holders to approve the token",
+        "A list of exchanges that support the token"
+      ],
+      "answer": 1,
+      "explanation": "An audit is a review by an outside security firm looking for bugs and vulnerabilities in the contracts."
+    },
+    {
+      "module": "how-to-research-a-project",
+      "difficulty": "easy",
+      "prompt": "Why should you read an audit report rather than trust an 'audited' badge?",
+      "options": [
+        "The report shows which issues were found and fixed",
+        "Badges are only ever given to projects that have no bugs",
+        "Reports include the team's personal details",
+        "Badges expire after a project's first month"
+      ],
+      "answer": 0,
+      "explanation": "A badge says nothing about severity or fixes. The report tells you whether serious issues remain unresolved."
+    },
+    {
+      "module": "how-to-research-a-project",
+      "difficulty": "easy",
+      "prompt": "What is a good first question when researching a new project?",
+      "options": [
+        "How many followers does it have online?",
+        "Which celebrities have mentioned it lately?",
+        "What problem does it solve and for whom?",
+        "How fast did its token rise this week?"
+      ],
+      "answer": 2,
+      "explanation": "A real product solves a clear problem. If you cannot explain what it does, popularity tells you little."
+    },
+    {
+      "module": "how-to-research-a-project",
+      "difficulty": "easy",
+      "prompt": "Why should you find a project's website through its official channels?",
+      "options": [
+        "Official sites always load faster",
+        "Fake copycat sites are common scams",
+        "Search engines hide crypto websites",
+        "Only official sites show token prices"
+      ],
+      "answer": 1,
+      "explanation": "Scammers create lookalike sites to steal funds, so always confirm links through verified official sources."
+    },
+    {
+      "module": "tokenomics-supply",
+      "difficulty": "medium",
+      "prompt": "What is fully diluted valuation (FDV)?",
+      "options": [
+        "Price times total or maximum supply",
+        "Price times circulating supply",
+        "Total value locked in the protocol",
+        "Trading volume over the last year"
+      ],
+      "answer": 0,
+      "explanation": "FDV values every token that will ever exist at today's price, unlike market cap, which uses circulating supply."
+    },
+    {
+      "module": "tokenomics-supply",
+      "difficulty": "medium",
+      "prompt": "A token has 20 percent of its supply circulating. How does its FDV compare with its market cap?",
+      "options": [
+        "FDV is one fifth of the market cap",
+        "FDV and market cap are equal",
+        "FDV is five times the market cap",
+        "FDV is twenty times the market cap"
+      ],
+      "answer": 2,
+      "explanation": "If 20 percent circulates, the full supply is five times larger, so FDV is five times market cap at the same price."
+    },
+    {
+      "module": "tokenomics-supply",
+      "difficulty": "medium",
+      "prompt": "What is a cliff in a vesting schedule?",
+      "options": [
+        "A sudden drop in a token's price",
+        "The final date all tokens are burned",
+        "A limit on how many tokens one wallet can hold",
+        "A period at the start where nothing unlocks"
+      ],
+      "answer": 3,
+      "explanation": "A cliff is an initial waiting period with no unlocks, after which tokens begin to release."
+    },
+    {
+      "module": "tokenomics-supply",
+      "difficulty": "medium",
+      "prompt": "Why do researchers watch large token unlocks closely?",
+      "options": [
+        "Newly unlocked holders may sell, adding supply",
+        "Unlocks always raise the token's price",
+        "Unlocks delete tokens from circulation",
+        "Unlocks require holders to vote first"
+      ],
+      "answer": 0,
+      "explanation": "Unlocks release tokens often bought cheaply by insiders, who may sell and increase supply on the market."
+    },
+    {
+      "module": "tokenomics-supply",
+      "difficulty": "medium",
+      "prompt": "What is the difference between circulating and total supply?",
+      "options": [
+        "Total supply only counts tokens on exchanges",
+        "Circulating can trade now, total includes locked tokens",
+        "Circulating includes tokens that have not yet been minted",
+        "They always describe exactly the same number"
+      ],
+      "answer": 1,
+      "explanation": "Circulating supply is what can trade now. Total supply also counts tokens that exist but are locked or vesting."
+    },
+    {
+      "module": "on-chain-research",
+      "difficulty": "hard",
+      "prompt": "What does it mean when a contract is verified on a block explorer?",
+      "options": [
+        "The explorer has audited it for security bugs",
+        "The contract cannot be upgraded by anyone",
+        "Its published source code matches the deployed code",
+        "The project team has passed an identity check"
+      ],
+      "answer": 2,
+      "explanation": "Verification only proves the source code matches the bytecode on-chain. It says nothing about whether the code is safe."
+    },
+    {
+      "module": "on-chain-research",
+      "difficulty": "hard",
+      "prompt": "Why should you get a token's contract address from official docs?",
+      "options": [
+        "Explorers do not list contract addresses",
+        "Official addresses have lower gas fees",
+        "Contract addresses change every day",
+        "Scammers copy token names and symbols"
+      ],
+      "answer": 3,
+      "explanation": "Anyone can deploy a token with the same name and symbol. Only the contract address identifies the real one."
+    },
+    {
+      "module": "on-chain-research",
+      "difficulty": "hard",
+      "prompt": "What risk does an upgradeable proxy contract with a single admin key create?",
+      "options": [
+        "The token can never be traded on exchanges",
+        "The admin can change the contract's logic",
+        "The contract will run out of gas over time",
+        "Holders lose their tokens after each block"
+      ],
+      "answer": 1,
+      "explanation": "A proxy forwards calls to logic the admin can replace, so one key can change how the contract behaves."
+    },
+    {
+      "module": "on-chain-research",
+      "difficulty": "hard",
+      "prompt": "The top holder of a token has most of the supply. What should you check next?",
+      "options": [
+        "Whether that address is a known contract or exchange",
+        "Whether the token's logo is high resolution",
+        "Whether the token has a long or short name",
+        "Whether the explorer shows the token page in dark mode"
+      ],
+      "answer": 0,
+      "explanation": "Large holders that are vesting contracts, exchanges or pools are less worrying than one unknown wallet."
+    },
+    {
+      "module": "on-chain-research",
+      "difficulty": "hard",
+      "prompt": "Why is it wise to revoke old unlimited token approvals?",
+      "options": [
+        "Approvals slowly reduce your token balance",
+        "Approvals stop you from receiving tokens",
+        "Approvals make your wallet address public",
+        "An exploited contract could spend your tokens"
+      ],
+      "answer": 3,
+      "explanation": "An approval lets a contract move your tokens. If that contract is later hacked, an unlimited approval can be drained."
+    },
+    {
+      "module": "red-flags-airdrops",
+      "difficulty": "expert",
+      "prompt": "A protocol pays very high yields funded only by new token emissions. What is the main risk?",
+      "options": [
+        "Yields rise automatically as more users join",
+        "Emissions are locked forever and never sold",
+        "Returns fall as reward tokens are sold off",
+        "Emissions guarantee a fixed token price"
+      ],
+      "answer": 2,
+      "explanation": "Emission-funded yield is paid in new tokens. As recipients sell, the token's value and real returns tend to fall."
+    },
+    {
+      "module": "red-flags-airdrops",
+      "difficulty": "expert",
+      "prompt": "What is a honeypot token?",
+      "options": [
+        "A token that can be bought but not sold",
+        "A token that pays rewards to early holders",
+        "A token with a fixed maximum supply",
+        "A token used to fund public goods"
+      ],
+      "answer": 0,
+      "explanation": "Honeypot contracts let buyers in but block or heavily tax sells, trapping their funds."
+    },
+    {
+      "module": "red-flags-airdrops",
+      "difficulty": "expert",
+      "prompt": "Why are airdrop eligibility rules often kept vague before a snapshot?",
+      "options": [
+        "Teams are legally barred from publishing them",
+        "Clear rules make Sybil farming much easier",
+        "Explorers cannot track wallet activity",
+        "Points must stay secret to keep their value"
+      ],
+      "answer": 1,
+      "explanation": "Publishing exact criteria lets farmers game them with many wallets, so teams keep details vague to reward real users."
+    },
+    {
+      "module": "red-flags-airdrops",
+      "difficulty": "expert",
+      "prompt": "A site claims you can claim an airdrop if you enter your seed phrase. What is it?",
+      "options": [
+        "A normal step in most token airdrops",
+        "A way to prove you are not a Sybil",
+        "A required step for points programs",
+        "A scam, since real airdrops never need it"
+      ],
+      "answer": 3,
+      "explanation": "Your seed phrase gives full control of your wallet. No legitimate airdrop ever asks for it."
+    },
+    {
+      "module": "red-flags-airdrops",
+      "difficulty": "expert",
+      "prompt": "What is the most accurate description of a points program?",
+      "options": [
+        "A legally binding promise of a fixed token reward at launch",
+        "A loyalty card issued by an exchange",
+        "Tracked activity that may or may not convert to tokens",
+        "A token that already trades on exchanges"
+      ],
+      "answer": 2,
+      "explanation": "Points track activity and may lead to an airdrop later, but conversion is usually not guaranteed."
+    }
+  ]
+}

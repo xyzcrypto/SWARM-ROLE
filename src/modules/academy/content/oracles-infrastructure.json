@@ -1,0 +1,431 @@
+{
+  "slug": "oracles-infrastructure",
+  "title": "Oracles & Infrastructure",
+  "tagline": "How blockchains learn about the outside world, and the plumbing apps rely on",
+  "icon": "Radio",
+  "order": 12,
+  "modules": [
+    {
+      "slug": "the-oracle-problem",
+      "level": "beginner",
+      "title": "The oracle problem",
+      "summary": "Blockchains cannot see anything outside themselves. Oracles bring outside data on-chain, and that makes them a key point of trust.",
+      "minutes": 6,
+      "objectives": [
+        "Explain why smart contracts cannot fetch outside data on their own",
+        "Describe what an oracle does",
+        "Explain why oracles are a common target for attacks"
+      ],
+      "sections": [
+        {
+          "heading": "Blockchains are sealed boxes",
+          "body": "Every node in a blockchain must reach the same result when it runs a transaction. If a contract could call a website, different nodes might get different answers. So smart contracts can only read data that is already on the chain. They have no built-in way to know the price of an asset or the weather."
+        },
+        {
+          "heading": "What an oracle does",
+          "body": "An oracle is a service that puts outside data onto the blockchain so contracts can use it. Price feeds are the most common kind. Others report sports results, random numbers or events on other chains. Once the data is on-chain, every node sees the same value."
+        },
+        {
+          "heading": "The trust problem",
+          "body": "A contract is only as reliable as the data it uses. If an oracle reports a wrong price, a lending app might liquidate healthy loans or let someone borrow too much. This is the oracle problem: bringing in outside data without adding a weak point."
+        },
+        {
+          "heading": "Spreading out trust",
+          "body": "Good oracle networks use many independent data sources and many node operators. They combine the answers, often using a median, so one bad source cannot move the result much. This is not perfect, but it is much safer than trusting a single feed."
+        }
+      ],
+      "concepts": [
+        { "term": "Oracle", "definition": "A service that delivers off-chain data to a blockchain for smart contracts to use." },
+        { "term": "Price feed", "definition": "An oracle output that reports the price of an asset on-chain." },
+        { "term": "Oracle problem", "definition": "The challenge of bringing outside data on-chain without creating a single point of failure." },
+        { "term": "Determinism", "definition": "The rule that every node must get the same result when running the same transaction." }
+      ],
+      "example": {
+        "title": "A lending app needs a price",
+        "body": "A lending app lets you borrow stablecoins against ETH. To know when your loan is unsafe, it needs the current ETH price. It cannot look this up itself, so it reads a price feed that an oracle network keeps updated on-chain."
+      }
+    },
+    {
+      "slug": "push-pull-oracles",
+      "level": "intermediate",
+      "title": "Push and pull oracles",
+      "summary": "Oracles either push updates on-chain on a schedule or let users pull a fresh signed price when they need it. Each model has different costs and risks.",
+      "minutes": 8,
+      "objectives": [
+        "Compare push and pull oracle models",
+        "Describe how deviation thresholds and heartbeats trigger updates",
+        "Name Chainlink and Pyth as examples of each model"
+      ],
+      "sections": [
+        {
+          "heading": "Push oracles",
+          "body": "In a push model, the oracle network writes new values on-chain on its own. Chainlink price feeds work this way. An update is sent when the price moves past a set percentage, called a deviation threshold, or when a set time passes, called a heartbeat. Apps simply read the latest stored value."
+        },
+        {
+          "heading": "Pull oracles",
+          "body": "In a pull model, prices are signed and published off-chain often. When a user needs a price, their transaction brings the latest signed update on-chain and the contract verifies it. Pyth is a well-known example of this design. The user pays to post the update, and only when it is needed."
+        },
+        {
+          "heading": "Trade-offs",
+          "body": "Push feeds are simple to read but can be slightly stale between updates, and someone pays for every update even if nobody uses it. Pull feeds can be very fresh and cheap to run across many chains. But apps must check that the price they receive is recent enough, or users might submit an old one."
+        },
+        {
+          "heading": "Always check freshness",
+          "body": "Every oracle value has a timestamp. A careful contract rejects prices older than a limit it sets. Ignoring this is a common bug, especially when a feed pauses during network trouble."
+        }
+      ],
+      "concepts": [
+        { "term": "Push oracle", "definition": "An oracle that writes updates on-chain itself, based on time or price movement." },
+        { "term": "Pull oracle", "definition": "An oracle whose signed updates are brought on-chain by the user who needs them." },
+        { "term": "Deviation threshold", "definition": "The price change that triggers a new push update." },
+        { "term": "Heartbeat", "definition": "The maximum time between updates, even if the price has not moved." }
+      ],
+      "example": {
+        "title": "Two ways to get the same price",
+        "body": "A perpetuals exchange needs fast prices for every trade. Using a pull oracle, each trade includes a freshly signed price that the contract verifies. A slower lending app might instead read a push feed that updates whenever the price moves enough."
+      }
+    },
+    {
+      "slug": "twap-manipulation",
+      "level": "advanced",
+      "title": "TWAPs and price manipulation",
+      "summary": "Reading a price straight from a DEX pool is easy to manipulate. Time-weighted averages and deep liquidity make attacks far more expensive.",
+      "minutes": 10,
+      "objectives": [
+        "Explain why a DEX spot price is a dangerous oracle",
+        "Describe how a TWAP works and what it protects against",
+        "Explain how thin liquidity enables manipulation"
+      ],
+      "sections": [
+        {
+          "heading": "Spot prices can be moved",
+          "body": "An automated market maker sets its price from the ratio of tokens in the pool. A large trade shifts that ratio and the price with it. If a contract reads that spot price, an attacker can push it, use the false price, then trade back. With a flash loan, all of this can happen in one transaction."
+        },
+        {
+          "heading": "Time-weighted average prices",
+          "body": "A TWAP averages the price over a window, such as 30 minutes. Uniswap pools store cumulative price values so contracts can compute this average. To move a TWAP, an attacker must hold a distorted price across many blocks, which costs real money and invites arbitrage."
+        },
+        {
+          "heading": "The cost of a TWAP",
+          "body": "A TWAP lags behind fast moves. In a sharp crash, it may show an outdated price, which can delay liquidations. Longer windows are safer from manipulation but slower to react. Protocols pick a window based on how volatile the asset is."
+        },
+        {
+          "heading": "Thin liquidity is the real danger",
+          "body": "Manipulation is cheapest where liquidity is low. A small token with a shallow pool can be pushed a long way with little capital. If a lending app accepts that token as collateral, an attacker can inflate its price, borrow against it, and leave the app with bad debt."
+        }
+      ],
+      "concepts": [
+        { "term": "Spot price", "definition": "The price implied by a pool's current token balances at this instant." },
+        { "term": "TWAP", "definition": "A time-weighted average price, calculated over a chosen window of time." },
+        { "term": "Liquidity depth", "definition": "How much can be traded before the price moves by a given amount." },
+        { "term": "Bad debt", "definition": "Loans worth more than their collateral, leaving the protocol with a loss." }
+      ],
+      "example": {
+        "title": "Inflating a thin collateral token",
+        "body": "A lending app lists a small token and prices it from a shallow DEX pool. An attacker buys heavily to spike the price, deposits the token as collateral, and borrows stablecoins against the fake value. When the price falls back, the loan is worth far more than the collateral and the app is left with bad debt."
+      }
+    },
+    {
+      "slug": "infrastructure-layer",
+      "level": "expert",
+      "title": "RPC nodes, indexers and data availability",
+      "summary": "Wallets and apps reach the chain through RPC nodes, query history through indexers, and depend on data availability for security. Each layer carries its own trust assumptions.",
+      "minutes": 12,
+      "objectives": [
+        "Explain the role and trust model of RPC providers",
+        "Describe why indexers exist and what they trade off",
+        "Explain data availability and why rollups depend on it"
+      ],
+      "sections": [
+        {
+          "heading": "RPC nodes",
+          "body": "A wallet does not talk to the whole network. It sends requests to one node through an RPC endpoint to read balances and broadcast transactions. Most users rely on hosted RPC providers. That provider can see your requests and IP address, could return wrong data, or could go offline, so running your own node removes that trust."
+        },
+        {
+          "heading": "Indexers",
+          "body": "Blockchains are good at storing data but slow to search. Asking a node for every transfer a wallet ever made is costly. Indexers read each block, organize the data into a database and serve fast queries. The Graph is a well-known indexing protocol, and many apps also run their own indexers."
+        },
+        {
+          "heading": "Data availability",
+          "body": "Data availability means the data behind a block has actually been published so anyone can check it. A rollup must post its transaction data somewhere public. If it posts only a result and withholds the data, users cannot rebuild the state, cannot prove fraud and may be unable to withdraw."
+        },
+        {
+          "heading": "Where data lives",
+          "body": "Rollups can post data to Ethereum, which since EIP-4844 offers cheaper temporary data called blobs. Others use separate data availability layers, which can be cheaper but add a new trust assumption. Some designs let light nodes check availability by randomly sampling small pieces of the data, called data availability sampling."
+        }
+      ],
+      "concepts": [
+        { "term": "RPC endpoint", "definition": "The address an app uses to send requests to a blockchain node." },
+        { "term": "Indexer", "definition": "A service that organizes blockchain data into a searchable database." },
+        { "term": "Data availability", "definition": "The guarantee that the data behind a block was published and can be downloaded by anyone." },
+        { "term": "Data availability sampling", "definition": "Checking that data is available by downloading small random pieces instead of all of it." }
+      ],
+      "example": {
+        "title": "When the RPC is the weak link",
+        "body": "A popular hosted RPC provider has an outage. Many wallets that depend on it suddenly show zero balances or fail to send transactions, even though the blockchain itself is running fine. Users who switch to another endpoint or their own node see everything as normal."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "the-oracle-problem",
+      "difficulty": "easy",
+      "prompt": "Why can't a smart contract simply call a website to get a price?",
+      "options": [
+        "Websites block requests from blockchain addresses",
+        "Every node must get the same result from a transaction",
+        "Smart contracts are not allowed to use numbers",
+        "Price data is too large to store on a blockchain in full"
+      ],
+      "answer": 1,
+      "explanation": "Nodes must all reach the same result. Outside calls could return different answers to different nodes, so contracts only read on-chain data."
+    },
+    {
+      "module": "the-oracle-problem",
+      "difficulty": "easy",
+      "prompt": "What is the most common type of data an oracle provides?",
+      "options": [
+        "Wallet passwords",
+        "Block rewards",
+        "Gas refunds",
+        "Asset prices"
+      ],
+      "answer": 3,
+      "explanation": "Price feeds are the most widely used oracle data, especially for lending and trading apps."
+    },
+    {
+      "module": "the-oracle-problem",
+      "difficulty": "easy",
+      "prompt": "What can go wrong if a lending app's oracle reports a false price?",
+      "options": [
+        "Healthy loans may be liquidated unfairly",
+        "The blockchain stops producing blocks",
+        "All user wallets are automatically emptied",
+        "The token's smart contract is deleted"
+      ],
+      "answer": 0,
+      "explanation": "Lending apps decide liquidations and borrowing limits from oracle prices, so a wrong price causes wrong decisions."
+    },
+    {
+      "module": "the-oracle-problem",
+      "difficulty": "easy",
+      "prompt": "Why do oracle networks combine answers from many independent sources?",
+      "options": [
+        "To make each update cost less gas",
+        "To let users choose their favorite price",
+        "So one bad source cannot move the result much",
+        "So the price only changes once a day"
+      ],
+      "answer": 2,
+      "explanation": "Aggregating many sources, often by median, limits the damage any single faulty or malicious source can do."
+    },
+    {
+      "module": "the-oracle-problem",
+      "difficulty": "easy",
+      "prompt": "What is an oracle in blockchain terms?",
+      "options": [
+        "A service that brings outside data on-chain",
+        "A wallet that stores a protocol's treasury",
+        "A miner that predicts the next block",
+        "A tool that writes smart contract code"
+      ],
+      "answer": 0,
+      "explanation": "An oracle delivers off-chain information, like prices, to smart contracts on a blockchain."
+    },
+    {
+      "module": "push-pull-oracles",
+      "difficulty": "medium",
+      "prompt": "In a push oracle, what is a heartbeat?",
+      "options": [
+        "A signature proving the data is correct",
+        "The fee the user pays for each update",
+        "The number of nodes that must agree",
+        "The maximum time allowed between updates"
+      ],
+      "answer": 3,
+      "explanation": "A heartbeat forces an update after a set time even when the price has not moved enough to trigger one."
+    },
+    {
+      "module": "push-pull-oracles",
+      "difficulty": "medium",
+      "prompt": "In a pull oracle like Pyth, who typically brings the price update on-chain?",
+      "options": [
+        "A central server run by the blockchain",
+        "The user whose transaction needs the price",
+        "The validator who proposes the next block on the chain",
+        "Nobody, prices are stored only off-chain"
+      ],
+      "answer": 1,
+      "explanation": "In a pull design, the user's transaction includes a signed price update that the contract verifies before using it."
+    },
+    {
+      "module": "push-pull-oracles",
+      "difficulty": "medium",
+      "prompt": "What triggers a push update based on a deviation threshold?",
+      "options": [
+        "A user paying for a fresh price",
+        "A governance vote to refresh the feed",
+        "The price moving past a set percentage",
+        "A new block being added to the chain"
+      ],
+      "answer": 2,
+      "explanation": "A deviation threshold sends a new update once the price changes by more than a chosen percentage."
+    },
+    {
+      "module": "push-pull-oracles",
+      "difficulty": "medium",
+      "prompt": "Why should a contract check the timestamp of an oracle price?",
+      "options": [
+        "To reject prices that are too old to trust",
+        "To convert the price into a different currency",
+        "To pay the oracle operator the right fee",
+        "To find out which node signed the update"
+      ],
+      "answer": 0,
+      "explanation": "A stale price can be badly wrong after a fast move, so contracts should refuse values older than a set limit."
+    },
+    {
+      "module": "push-pull-oracles",
+      "difficulty": "medium",
+      "prompt": "What is one downside of the push model?",
+      "options": [
+        "Users must sign every price update themselves",
+        "Prices cannot be read by smart contracts",
+        "Only one data source can ever be used",
+        "Updates cost gas even when nobody uses them"
+      ],
+      "answer": 3,
+      "explanation": "Push feeds write updates on a schedule or on price moves, so someone pays for each update whether or not it is read."
+    },
+    {
+      "module": "twap-manipulation",
+      "difficulty": "hard",
+      "prompt": "Why is reading a DEX spot price directly a risky oracle choice?",
+      "options": [
+        "DEX prices are only updated once per day",
+        "Spot prices are encrypted on-chain and hard for contracts to read",
+        "A large trade can move it within one transaction",
+        "DEX pools never hold enough tokens to trade"
+      ],
+      "answer": 2,
+      "explanation": "Spot price comes from current pool balances, so a big trade, often funded by a flash loan, can distort it instantly."
+    },
+    {
+      "module": "twap-manipulation",
+      "difficulty": "hard",
+      "prompt": "What makes a TWAP harder to manipulate than a spot price?",
+      "options": [
+        "The attacker must hold a false price across many blocks",
+        "It is calculated off-chain by a trusted company and then posted",
+        "It ignores all trades larger than a set size",
+        "It only updates when governance approves it"
+      ],
+      "answer": 0,
+      "explanation": "A TWAP averages over time, so moving it requires sustaining a distorted price for a long window, which is costly and invites arbitrage."
+    },
+    {
+      "module": "twap-manipulation",
+      "difficulty": "hard",
+      "prompt": "What is the main drawback of using a long TWAP window?",
+      "options": [
+        "It costs more gas to read on every call",
+        "It reacts slowly to genuine fast price moves",
+        "It can only be used for stablecoin pairs",
+        "It makes flash-loan attacks much cheaper"
+      ],
+      "answer": 1,
+      "explanation": "Longer averages resist manipulation but lag real moves, which can delay liquidations in a crash."
+    },
+    {
+      "module": "twap-manipulation",
+      "difficulty": "hard",
+      "prompt": "Why are tokens with thin liquidity dangerous as lending collateral?",
+      "options": [
+        "Their contracts cannot be audited",
+        "They cannot be held in normal wallets",
+        "They are always excluded from TWAPs",
+        "Their price can be pushed with little capital"
+      ],
+      "answer": 3,
+      "explanation": "Shallow pools move a lot per trade, so an attacker can cheaply inflate the price, borrow against it, and leave bad debt."
+    },
+    {
+      "module": "twap-manipulation",
+      "difficulty": "hard",
+      "prompt": "What does bad debt mean for a lending protocol?",
+      "options": [
+        "Loans that were repaid later than expected",
+        "Loans whose collateral is worth less than the debt",
+        "Loans taken out by addresses on a blocklist",
+        "Loans that pay their interest in a volatile governance token"
+      ],
+      "answer": 1,
+      "explanation": "Bad debt is debt no longer covered by collateral, so the protocol or its lenders absorb the loss."
+    },
+    {
+      "module": "infrastructure-layer",
+      "difficulty": "expert",
+      "prompt": "What trust do you place in a hosted RPC provider when using a wallet?",
+      "options": [
+        "That it returns correct data and stays online",
+        "That it holds your private keys safely",
+        "That it decides which blocks are valid",
+        "That it sets the gas price for the network"
+      ],
+      "answer": 0,
+      "explanation": "The RPC provider answers your reads and relays your transactions. It could return wrong data, see your requests or go down."
+    },
+    {
+      "module": "infrastructure-layer",
+      "difficulty": "expert",
+      "prompt": "Why do many apps use an indexer instead of querying a node directly?",
+      "options": [
+        "Nodes refuse to share data with apps",
+        "Indexers can change past transactions",
+        "Nodes are slow at searching historical data",
+        "Indexers remove the need for blocks"
+      ],
+      "answer": 2,
+      "explanation": "Nodes store data for validation, not search. Indexers organize it into databases that answer queries quickly."
+    },
+    {
+      "module": "infrastructure-layer",
+      "difficulty": "expert",
+      "prompt": "What could happen if a rollup published its state result but withheld the transaction data?",
+      "options": [
+        "Transactions would become cheaper for all users",
+        "The rollup would automatically switch to a new chain",
+        "Every pending transaction would execute twice",
+        "Users could not rebuild state or prove fraud"
+      ],
+      "answer": 3,
+      "explanation": "Without the data, nobody can recompute the state or challenge it, and users may be unable to withdraw safely."
+    },
+    {
+      "module": "infrastructure-layer",
+      "difficulty": "expert",
+      "prompt": "What did EIP-4844 add to Ethereum for rollups?",
+      "options": [
+        "A built-in price oracle for all tokens",
+        "Cheaper temporary data space called blobs",
+        "A way to run smart contracts off-chain",
+        "A new token used only to pay for data"
+      ],
+      "answer": 1,
+      "explanation": "EIP-4844 introduced blobs, a cheaper data space that is pruned after a period, made for rollups to post their data."
+    },
+    {
+      "module": "infrastructure-layer",
+      "difficulty": "expert",
+      "prompt": "What does data availability sampling let a light node do?",
+      "options": [
+        "Execute every transaction in the block itself to confirm it",
+        "Choose which validators produce the next block",
+        "Check data is available by downloading random pieces",
+        "Store a full copy of the chain using less disk"
+      ],
+      "answer": 2,
+      "explanation": "By fetching small random chunks of erasure-coded data, a light node gains high confidence the full data was published."
+    }
+  ]
+}

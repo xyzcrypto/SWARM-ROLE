@@ -1,0 +1,431 @@
+{
+  "slug": "zero-knowledge",
+  "title": "Zero-Knowledge Technology",
+  "tagline": "Proving something is true without revealing why, and how it scales blockchains",
+  "icon": "EyeOff",
+  "order": 13,
+  "modules": [
+    {
+      "slug": "what-is-a-zk-proof",
+      "level": "beginner",
+      "title": "What is a zero-knowledge proof?",
+      "summary": "A zero-knowledge proof lets you convince someone a statement is true without showing them the secret behind it. Checking the proof is usually much easier than making it.",
+      "minutes": 6,
+      "objectives": [
+        "Explain the idea of proving without revealing",
+        "Name the two roles in a proof: prover and verifier",
+        "Give everyday examples of why this is useful"
+      ],
+      "sections": [
+        {
+          "heading": "Proving without revealing",
+          "body": "Imagine proving you know a password without ever typing it where anyone can see. A zero-knowledge proof does this with math. You convince someone a statement is true, but they learn nothing else. The secret stays with you."
+        },
+        {
+          "heading": "Prover and verifier",
+          "body": "There are two roles. The prover knows the secret and creates the proof. The verifier checks the proof and decides whether to accept it. In blockchains, the verifier is often a smart contract."
+        },
+        {
+          "heading": "Checking is cheaper than doing",
+          "body": "Making a proof can take a lot of computing power. Checking it is usually fast and cheap. This gap is what makes zero-knowledge useful for blockchains. One party does the heavy work once, and everyone else can verify it quickly."
+        },
+        {
+          "heading": "Two big uses",
+          "body": "The first use is privacy: proving a payment is valid without showing who paid whom. The second is scaling: proving that thousands of transactions were processed correctly with one small proof. Many projects use the same math for both."
+        }
+      ],
+      "concepts": [
+        { "term": "Zero-knowledge proof", "definition": "A proof that a statement is true which reveals nothing beyond that fact." },
+        { "term": "Prover", "definition": "The party who knows the secret and creates the proof." },
+        { "term": "Verifier", "definition": "The party who checks the proof and accepts or rejects it." },
+        { "term": "Statement", "definition": "The claim being proven, such as knowing a value that produces a given hash." }
+      ],
+      "example": {
+        "title": "Proving you are over 18",
+        "body": "A website needs to know you are an adult. Instead of uploading your ID with your full birth date and address, you share a proof that says only that you are over 18. The site can verify the proof, and it never sees your birth date."
+      }
+    },
+    {
+      "slug": "zk-properties",
+      "level": "intermediate",
+      "title": "Completeness, soundness and zero-knowledge",
+      "summary": "Every zero-knowledge proof system must satisfy three properties. Understanding them tells you what a proof does and does not guarantee.",
+      "minutes": 8,
+      "objectives": [
+        "Define completeness, soundness and zero-knowledge",
+        "Explain the difference between interactive and non-interactive proofs",
+        "Explain what a circuit is in a proof system"
+      ],
+      "sections": [
+        {
+          "heading": "Completeness",
+          "body": "If the statement is true and the prover is honest, the verifier will accept the proof. In short, true claims can always be proven. A system that sometimes rejected honest proofs would be useless."
+        },
+        {
+          "heading": "Soundness",
+          "body": "If the statement is false, a cheating prover cannot convince the verifier, except with a tiny chance. This is what makes proofs trustworthy. A flaw in soundness would let someone prove things that are not true, such as a fake balance."
+        },
+        {
+          "heading": "Zero-knowledge",
+          "body": "The verifier learns nothing except that the statement is true. The proof does not leak the secret or any part of it. Some systems used for scaling do not need this property, so they are better called validity proofs, even though people often still say ZK."
+        },
+        {
+          "heading": "Interactive vs non-interactive",
+          "body": "Early proofs needed many rounds of back-and-forth questions between prover and verifier. Non-interactive proofs fit into a single message that anyone can check later. Blockchains need the non-interactive kind, because the proof is posted once and checked by many. To make a proof, the computation is first written as a circuit, a set of math constraints."
+        }
+      ],
+      "concepts": [
+        { "term": "Completeness", "definition": "An honest prover with a true statement can always convince the verifier." },
+        { "term": "Soundness", "definition": "A prover cannot convince the verifier of a false statement, except with negligible chance." },
+        { "term": "Non-interactive proof", "definition": "A proof delivered as a single message that anyone can verify without talking to the prover." },
+        { "term": "Circuit", "definition": "A computation expressed as math constraints so that it can be proven." }
+      ],
+      "example": {
+        "title": "The colorblind friend",
+        "body": "You hold two balls that look identical to a colorblind friend, one red and one green. Behind their back, they either swap the balls or not, and you say which. If you were guessing, you would fail half the time, so after many rounds they are convinced the balls differ. Yet they still do not know which ball is red."
+      }
+    },
+    {
+      "slug": "snarks-vs-starks",
+      "level": "advanced",
+      "title": "SNARKs vs STARKs",
+      "summary": "SNARKs and STARKs are the two main families of practical proof systems. They differ in setup, proof size, verification cost and security assumptions.",
+      "minutes": 10,
+      "objectives": [
+        "Explain what a trusted setup is and why it matters",
+        "Compare SNARK and STARK proof sizes and verification costs",
+        "Explain why STARKs are considered post-quantum secure"
+      ],
+      "sections": [
+        {
+          "heading": "SNARKs",
+          "body": "SNARK stands for succinct non-interactive argument of knowledge. SNARK proofs are very small, often a few hundred bytes, and cheap to verify on-chain. Many common SNARKs rely on elliptic curve cryptography. Groth16 and PLONK are well-known SNARK systems."
+        },
+        {
+          "heading": "Trusted setup",
+          "body": "Many SNARKs need a trusted setup, a ceremony that creates public parameters from secret randomness. If anyone kept that secret, sometimes called toxic waste, they could forge proofs. Ceremonies use many participants so that only one needs to be honest and delete their part. Groth16 needs a new setup per circuit, while PLONK uses one universal setup that many circuits can share."
+        },
+        {
+          "heading": "STARKs",
+          "body": "STARK stands for scalable transparent argument of knowledge. Transparent means there is no trusted setup, since all randomness is public. STARKs rely only on hash functions. Their proofs are much larger than SNARK proofs, often tens of kilobytes or more, so they cost more to verify on-chain."
+        },
+        {
+          "heading": "Quantum and trade-offs",
+          "body": "Elliptic curve cryptography could be broken by a large enough quantum computer. Hash-based STARKs are believed to resist quantum attacks, so they are considered post-quantum secure. Some systems combine both: they create a STARK, then wrap it in a small SNARK to make on-chain verification cheaper."
+        }
+      ],
+      "concepts": [
+        { "term": "SNARK", "definition": "Succinct non-interactive argument of knowledge, a proof system with very small proofs." },
+        { "term": "STARK", "definition": "Scalable transparent argument of knowledge, a hash-based proof system with no trusted setup." },
+        { "term": "Trusted setup", "definition": "A ceremony that generates public parameters from secret randomness that must be destroyed." },
+        { "term": "Post-quantum security", "definition": "Security that is believed to hold even against attackers with large quantum computers." }
+      ],
+      "example": {
+        "title": "Zcash and its ceremony",
+        "body": "Zcash launched in 2016 as one of the first major uses of zk-SNARKs for private payments. Before launch, it ran a trusted setup ceremony with several participants. The design meant forged coins would only be possible if every participant had kept their secret part."
+      }
+    },
+    {
+      "slug": "zk-rollups-zkevms",
+      "level": "expert",
+      "title": "ZK rollups, zkEVMs and private transactions",
+      "summary": "ZK rollups use validity proofs to scale blockchains, zkEVMs make that work for Ethereum apps, and privacy systems use commitments and nullifiers to hide transfers.",
+      "minutes": 12,
+      "objectives": [
+        "Explain how a ZK rollup proves its state changes",
+        "Compare zkEVM types and the compatibility trade-off",
+        "Describe how commitments and nullifiers enable private transfers"
+      ],
+      "sections": [
+        {
+          "heading": "ZK rollups",
+          "body": "A ZK rollup executes transactions off the main chain, then posts the transaction data and a validity proof to it. A contract on the main chain verifies the proof before accepting the new state. Unlike optimistic rollups, there is no challenge period to wait out, so withdrawals can finalize once the proof is verified."
+        },
+        {
+          "heading": "zkEVM types",
+          "body": "A zkEVM proves the execution of Ethereum-style smart contracts. A widely used classification runs from Type 1, fully equivalent to Ethereum and slowest to prove, to Type 4, which compiles high-level code like Solidity into a different, proof-friendly machine. Lower types are more compatible with existing tools. Higher types prove faster but may break some contracts or tooling."
+        },
+        {
+          "heading": "Private transactions",
+          "body": "Private payment systems hide amounts and parties using commitments, which are like sealed envelopes holding a value. To spend, a user proves in zero knowledge that they own an unspent commitment in the set. They also publish a nullifier, a unique tag derived from that note, without revealing which commitment it came from."
+        },
+        {
+          "heading": "Why nullifiers matter",
+          "body": "If the same note is spent twice, it produces the same nullifier, so the second spend is rejected. This prevents double spending without linking the spend to the original deposit. The privacy set, meaning everyone who could have made the transfer, is what hides the user. A small set gives weak privacy."
+        }
+      ],
+      "concepts": [
+        { "term": "Validity proof", "definition": "A proof that a batch of transactions was executed correctly according to the rules." },
+        { "term": "zkEVM", "definition": "A system that produces proofs of correct execution for Ethereum-compatible smart contracts." },
+        { "term": "Commitment", "definition": "A cryptographic value that hides data while binding the creator to it." },
+        { "term": "Nullifier", "definition": "A unique tag published when a private note is spent, used to block double spends." }
+      ],
+      "example": {
+        "title": "Withdrawing from a ZK rollup",
+        "body": "A user withdraws funds from a ZK rollup to Ethereum. The rollup includes the withdrawal in a batch, generates a validity proof, and posts it to its contract on Ethereum. Once the contract verifies the proof, the withdrawal can be completed without waiting through a fraud challenge window."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-a-zk-proof",
+      "difficulty": "easy",
+      "prompt": "What does a zero-knowledge proof let you do?",
+      "options": [
+        "Encrypt a file so only one person can open it",
+        "Send tokens without paying any network fee",
+        "Prove a statement is true without revealing the secret",
+        "Recover a lost private key from its matching public address"
+      ],
+      "answer": 2,
+      "explanation": "A zero-knowledge proof convinces a verifier that something is true while keeping the underlying secret hidden."
+    },
+    {
+      "module": "what-is-a-zk-proof",
+      "difficulty": "easy",
+      "prompt": "In a zero-knowledge proof, who creates the proof?",
+      "options": [
+        "The prover",
+        "The verifier",
+        "The validator",
+        "The oracle"
+      ],
+      "answer": 0,
+      "explanation": "The prover knows the secret and creates the proof. The verifier only checks it."
+    },
+    {
+      "module": "what-is-a-zk-proof",
+      "difficulty": "easy",
+      "prompt": "Why are zero-knowledge proofs useful for scaling blockchains?",
+      "options": [
+        "They let every node skip storing any blockchain data at all",
+        "They make every transaction completely free",
+        "They remove the need for private keys",
+        "Checking a proof is much cheaper than redoing the work"
+      ],
+      "answer": 3,
+      "explanation": "One party does the heavy computation and makes a proof. Everyone else verifies it cheaply instead of repeating the work."
+    },
+    {
+      "module": "what-is-a-zk-proof",
+      "difficulty": "easy",
+      "prompt": "A site checks a proof that you are over 18. What does it learn?",
+      "options": [
+        "Your exact birth date",
+        "Only that you are over 18",
+        "Your name and home address",
+        "Your ID document number"
+      ],
+      "answer": 1,
+      "explanation": "The proof reveals only the statement being proven, that you are over 18, and nothing else."
+    },
+    {
+      "module": "what-is-a-zk-proof",
+      "difficulty": "easy",
+      "prompt": "In blockchain systems, what often plays the role of the verifier?",
+      "options": [
+        "A hardware wallet",
+        "A token holder",
+        "A smart contract",
+        "A block explorer"
+      ],
+      "answer": 2,
+      "explanation": "A smart contract on-chain commonly checks proofs and accepts or rejects them automatically."
+    },
+    {
+      "module": "zk-properties",
+      "difficulty": "medium",
+      "prompt": "Which property means a false statement cannot be proven, except with tiny chance?",
+      "options": [
+        "Soundness",
+        "Completeness",
+        "Succinctness",
+        "Transparency"
+      ],
+      "answer": 0,
+      "explanation": "Soundness guarantees a cheating prover cannot convince the verifier of something untrue."
+    },
+    {
+      "module": "zk-properties",
+      "difficulty": "medium",
+      "prompt": "What does completeness guarantee?",
+      "options": [
+        "The proof reveals nothing about the secret",
+        "The proof is smaller than the original data",
+        "No trusted setup is needed to create proofs",
+        "An honest prover with a true claim is accepted"
+      ],
+      "answer": 3,
+      "explanation": "Completeness means true statements proven honestly will always be accepted by the verifier."
+    },
+    {
+      "module": "zk-properties",
+      "difficulty": "medium",
+      "prompt": "Why do blockchains need non-interactive proofs?",
+      "options": [
+        "Interactive proofs cannot be sound",
+        "A single proof is posted once and checked by many",
+        "Non-interactive proofs need no math or cryptography at all",
+        "Interactive proofs always leak the secret"
+      ],
+      "answer": 1,
+      "explanation": "On a blockchain, nobody can hold a live conversation with the prover, so the proof must be one message anyone can check."
+    },
+    {
+      "module": "zk-properties",
+      "difficulty": "medium",
+      "prompt": "In a proof system, what is a circuit?",
+      "options": [
+        "A hardware chip that stores private keys",
+        "A loop of validators that sign each block",
+        "A computation written as math constraints",
+        "A network path between prover and verifier"
+      ],
+      "answer": 2,
+      "explanation": "To prove a computation, it is first expressed as a circuit, a system of constraints the proof shows are satisfied."
+    },
+    {
+      "module": "zk-properties",
+      "difficulty": "medium",
+      "prompt": "Many scaling rollups do not hide any data. What is a more precise name for their proofs?",
+      "options": [
+        "Validity proofs",
+        "Fraud proofs",
+        "Proofs of stake",
+        "Proofs of work"
+      ],
+      "answer": 0,
+      "explanation": "When the goal is proving correct execution rather than hiding data, the proof is better described as a validity proof."
+    },
+    {
+      "module": "snarks-vs-starks",
+      "difficulty": "hard",
+      "prompt": "What does the T in STARK stand for, and what does it mean?",
+      "options": [
+        "Trusted, it needs a setup ceremony",
+        "Transparent, it needs no trusted setup",
+        "Threshold, it needs several signers",
+        "Temporary, its proofs expire later"
+      ],
+      "answer": 1,
+      "explanation": "STARKs are transparent: all randomness is public, so no trusted setup ceremony is required."
+    },
+    {
+      "module": "snarks-vs-starks",
+      "difficulty": "hard",
+      "prompt": "In a trusted setup, what could someone do if they kept the secret randomness?",
+      "options": [
+        "Read every private transaction's contents",
+        "Freeze any account that uses the system",
+        "Raise the fee required to verify a proof",
+        "Create fake proofs that verify as valid"
+      ],
+      "answer": 3,
+      "explanation": "The leftover secret, often called toxic waste, would allow forging proofs that pass verification."
+    },
+    {
+      "module": "snarks-vs-starks",
+      "difficulty": "hard",
+      "prompt": "Why are STARKs generally considered post-quantum secure?",
+      "options": [
+        "They rely only on hash functions",
+        "They use larger elliptic curves",
+        "They run on quantum hardware",
+        "They require a trusted setup"
+      ],
+      "answer": 0,
+      "explanation": "STARKs depend on hash functions, which are believed to resist quantum attacks, unlike elliptic curve assumptions."
+    },
+    {
+      "module": "snarks-vs-starks",
+      "difficulty": "hard",
+      "prompt": "How do typical SNARK and STARK proof sizes compare?",
+      "options": [
+        "They are always exactly the same size",
+        "SNARKs are much larger than STARKs",
+        "SNARKs are much smaller than STARKs",
+        "Size depends only on the blockchain used"
+      ],
+      "answer": 2,
+      "explanation": "SNARK proofs are often a few hundred bytes, while STARK proofs are commonly tens of kilobytes or more."
+    },
+    {
+      "module": "snarks-vs-starks",
+      "difficulty": "hard",
+      "prompt": "What is the key difference between Groth16 and PLONK setups?",
+      "options": [
+        "Groth16 has no setup at all while PLONK needs a new one per circuit",
+        "Both need a new ceremony for every single proof",
+        "Both share one universal setup used by all circuits",
+        "Groth16 needs a setup per circuit while PLONK's is universal"
+      ],
+      "answer": 3,
+      "explanation": "Groth16 requires a circuit-specific ceremony, while PLONK uses one universal setup that many circuits can reuse."
+    },
+    {
+      "module": "zk-rollups-zkevms",
+      "difficulty": "expert",
+      "prompt": "Why can ZK rollup withdrawals finalize without a long challenge period?",
+      "options": [
+        "A trusted operator approves each withdrawal manually",
+        "A validity proof shows the new state is correct",
+        "Withdrawals skip the main chain entirely",
+        "Fraud is impossible because data is never posted"
+      ],
+      "answer": 1,
+      "explanation": "The main-chain contract verifies a validity proof before accepting the state, so there is nothing to wait to challenge."
+    },
+    {
+      "module": "zk-rollups-zkevms",
+      "difficulty": "expert",
+      "prompt": "Compared with a Type 4 zkEVM, what is true of a Type 1 zkEVM?",
+      "options": [
+        "It is more Ethereum-compatible but slower to prove",
+        "It proves faster but breaks more existing contracts",
+        "It compiles Solidity into a different virtual machine",
+        "It needs no proofs because it trusts the sequencer"
+      ],
+      "answer": 0,
+      "explanation": "Type 1 aims for full Ethereum equivalence, which maximizes compatibility at the cost of slower proving."
+    },
+    {
+      "module": "zk-rollups-zkevms",
+      "difficulty": "expert",
+      "prompt": "In a private payment system, what stops the same note being spent twice?",
+      "options": [
+        "The sender's address is checked against a list",
+        "A trusted server records every private balance",
+        "Each spend publishes a unique nullifier",
+        "Notes expire after one block has passed"
+      ],
+      "answer": 2,
+      "explanation": "Spending a note reveals its nullifier. A second spend would repeat it and be rejected, without revealing which note it was."
+    },
+    {
+      "module": "zk-rollups-zkevms",
+      "difficulty": "expert",
+      "prompt": "Why does a small privacy set weaken a private transaction system?",
+      "options": [
+        "It makes the proofs too large to verify",
+        "It forces users to reveal their nullifiers",
+        "It requires a new trusted setup each time",
+        "Fewer possible senders makes each easier to guess"
+      ],
+      "answer": 3,
+      "explanation": "Privacy comes from hiding among others. If few people use the system, linking a transfer to a user becomes much easier."
+    },
+    {
+      "module": "zk-rollups-zkevms",
+      "difficulty": "expert",
+      "prompt": "Why might a project wrap a STARK proof inside a SNARK?",
+      "options": [
+        "To add a trusted setup that improves the privacy of the proof",
+        "To get a small proof that is cheap to verify on-chain",
+        "To make the system fully post-quantum secure",
+        "To let the verifier learn the prover's secret"
+      ],
+      "answer": 1,
+      "explanation": "The STARK does the heavy proving with no trusted setup, and the SNARK wrapper shrinks it so on-chain verification costs less."
+    }
+  ]
+}

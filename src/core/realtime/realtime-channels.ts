@@ -25,6 +25,11 @@ export const CH_NOTIFY = "notifications"; // global "new notification" ping → 
 // rather than CH_NOTIFY because that one is a signed-in bell and this feed is
 // public: anonymous readers must get the ping too.
 export const CH_POINTS = "points-updates";
+// XYZ Crypto Academy: a content-free "something changed" ping for the public
+// leaderboards and activity strip (they refetch cached endpoints), and one topic
+// per live quiz for host actions.
+export const CH_ACADEMY = "academy";
+export const liveChannel = (liveId: string) => `academy-live:${liveId}`;
 export const userChannel = (userId: string) => `user:${userId}`; // per-user events
 // Per-conversation DM topic, joined by both participants while the thread is
 // open. Carries only ephemeral, content-free signals (the typing indicator) that

@@ -1,0 +1,309 @@
+/* XYZ Crypto Academy. Loaded only by /academy/* (see layout.tsx).
+   Decorative motion here is deliberately NOT gated on prefers-reduced-motion
+   (design-system skill: only heavy full-screen loops are). The one heavy
+   ambient effect, the hero network canvas, is gated in its component. */
+
+/* ---------------------------------------------------------------- Nova orb */
+.acad-orb {
+  --lvl: 0;
+  isolation: isolate;
+}
+.acad-orb-halo {
+  position: absolute;
+  inset: -18%;
+  border-radius: 9999px;
+  background: radial-gradient(closest-side, rgba(226, 167, 47, 0.28), rgba(226, 167, 47, 0.06) 60%, transparent 72%);
+  transform: scale(calc(0.92 + var(--lvl) * 0.22));
+  transition: transform 120ms linear;
+  animation: acad-breathe 6s ease-in-out infinite;
+}
+.acad-orb-ring {
+  position: absolute;
+  inset: 4%;
+  border-radius: 9999px;
+  background: conic-gradient(from 0deg, transparent 0 20%, rgba(243, 212, 136, 0.65) 30%, transparent 42%, rgba(52, 227, 161, 0.35) 62%, transparent 74%);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 1.5px), #000 calc(100% - 1px));
+  animation: acad-spin 9s linear infinite;
+}
+.acad-orb-core {
+  position: absolute;
+  inset: 16%;
+  overflow: hidden;
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 246, 220, 0.95), rgba(243, 212, 136, 0.55) 18%, transparent 42%),
+    radial-gradient(circle at 70% 75%, rgba(52, 227, 161, 0.35), transparent 50%),
+    radial-gradient(circle at 50% 50%, #3a2a0c, #120d05 70%);
+  box-shadow:
+    inset 0 0 calc(18px + var(--lvl) * 30px) rgba(243, 212, 136, 0.45),
+    0 0 calc(24px + var(--lvl) * 40px) rgba(226, 167, 47, calc(0.25 + var(--lvl) * 0.35));
+  transform: scale(calc(1 + var(--lvl) * 0.05));
+  transition: transform 90ms linear, box-shadow 90ms linear;
+}
+.acad-orb-swirl {
+  position: absolute;
+  inset: -30%;
+  background: conic-gradient(from 90deg, transparent, rgba(253, 247, 231, 0.18), transparent 30%, rgba(226, 167, 47, 0.25), transparent 60%);
+  filter: blur(6px);
+  animation: acad-spin 14s linear infinite reverse;
+}
+.acad-orb-glint {
+  position: absolute;
+  left: 22%;
+  top: 16%;
+  width: 26%;
+  height: 16%;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.55);
+  filter: blur(4px);
+  transform: rotate(-24deg);
+}
+.acad-orb-wave {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.acad-orb.is-speaking .acad-orb-wave {
+  opacity: 1;
+}
+.acad-orb-wave span {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: 50%;
+  margin-left: -1px;
+  transform-origin: 50% 0;
+}
+.acad-orb-wave span::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 40%;
+  width: 2px;
+  height: calc(4% + var(--lvl) * (6% + var(--i) * 2.2%));
+  border-radius: 2px;
+  background: linear-gradient(to bottom, rgba(243, 212, 136, 0.95), rgba(52, 227, 161, 0.5));
+  transition: height 80ms linear;
+}
+@keyframes acad-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes acad-breathe {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.acad-dock-btn {
+  background: radial-gradient(circle, rgba(21, 21, 26, 0.95), rgba(8, 8, 10, 0.95));
+  border: 1px solid rgba(226, 167, 47, 0.28);
+  box-shadow: 0 12px 40px -12px rgba(0, 0, 0, 0.9), 0 0 0 4px rgba(226, 167, 47, 0.06);
+  transition: transform 200ms ease, border-color 200ms ease;
+}
+.acad-dock-btn:hover {
+  transform: translateY(-2px);
+  border-color: rgba(226, 167, 47, 0.5);
+}
+
+/* ---------------------------------------------------------------- controls */
+.acad-icon-btn {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: #d4d4d8;
+  transition: border-color 160ms ease, color 160ms ease, background-color 160ms ease;
+}
+.acad-icon-btn:hover {
+  border-color: rgba(226, 167, 47, 0.45);
+  color: #faecc4;
+}
+.acad-icon-btn svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.acad-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+}
+.acad-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: #f3d488;
+  box-shadow: 0 0 0 4px rgba(226, 167, 47, 0.18);
+  cursor: pointer;
+}
+.acad-range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border: 0;
+  border-radius: 9999px;
+  background: #f3d488;
+  cursor: pointer;
+}
+
+.acad-bar-sheen {
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.45) 50%, transparent 80%);
+  background-size: 220% 100%;
+  animation: acad-sheen 2.8s ease-in-out infinite;
+}
+@keyframes acad-sheen {
+  from {
+    background-position: 160% 0;
+  }
+  to {
+    background-position: -60% 0;
+  }
+}
+
+/* ---------------------------------------------------------------- answers */
+.acad-option {
+  position: relative;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease, box-shadow 220ms ease;
+}
+.acad-option:not(:disabled):hover {
+  border-color: rgba(226, 167, 47, 0.45);
+  transform: translateY(-1px);
+}
+.acad-option.is-picked {
+  border-color: rgba(243, 212, 136, 0.8);
+  background: rgba(226, 167, 47, 0.1);
+}
+.acad-option.is-right {
+  border-color: rgba(52, 227, 161, 0.75);
+  background: rgba(52, 227, 161, 0.1);
+  box-shadow: 0 0 0 1px rgba(52, 227, 161, 0.25), 0 18px 40px -20px rgba(52, 227, 161, 0.55);
+}
+.acad-option.is-wrong {
+  border-color: rgba(248, 113, 113, 0.7);
+  background: rgba(248, 113, 113, 0.08);
+  animation: acad-shake 380ms ease;
+}
+@keyframes acad-shake {
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
+}
+
+/* ---------------------------------------------------------------- podium */
+.acad-podium-1 {
+  background: linear-gradient(180deg, rgba(243, 212, 136, 0.22), rgba(226, 167, 47, 0.06) 60%, transparent);
+  border-color: rgba(243, 212, 136, 0.55);
+  box-shadow: 0 0 0 1px rgba(226, 167, 47, 0.18), 0 30px 80px -30px rgba(226, 167, 47, 0.55);
+}
+.acad-podium-2 {
+  background: linear-gradient(180deg, rgba(226, 232, 240, 0.16), rgba(148, 163, 184, 0.05) 60%, transparent);
+  border-color: rgba(203, 213, 225, 0.45);
+}
+.acad-podium-3 {
+  background: linear-gradient(180deg, rgba(217, 140, 82, 0.2), rgba(180, 100, 50, 0.05) 60%, transparent);
+  border-color: rgba(217, 140, 82, 0.45);
+}
+.acad-me-row {
+  background: linear-gradient(90deg, rgba(226, 167, 47, 0.14), rgba(226, 167, 47, 0.03));
+  box-shadow: inset 2px 0 0 #e2a72f;
+}
+
+/* ---------------------------------------------------------------- confetti */
+.acad-confetti {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+  width: 0;
+  height: 0;
+}
+.acad-confetti i {
+  position: absolute;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: acad-confetti 1.9s cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+}
+@keyframes acad-confetti {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) rotate(0);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), calc(var(--dy) + 260px)) rotate(var(--r));
+  }
+}
+
+/* ---------------------------------------------------------------- live */
+.acad-live-dot {
+  position: relative;
+}
+.acad-live-dot::after {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 1px solid currentColor;
+  animation: acad-ping 1.6s ease-out infinite;
+}
+@keyframes acad-ping {
+  from {
+    opacity: 0.8;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.8);
+  }
+}
+
+.acad-grid-bg {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 30%, #000 40%, transparent 100%);
+}
+
+.acad-float {
+  animation: acad-float 7s ease-in-out infinite;
+}
+@keyframes acad-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@media print {
+  .acad-noprint {
+    display: none !important;
+  }
+}

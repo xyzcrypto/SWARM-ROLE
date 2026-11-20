@@ -1,0 +1,431 @@
+{
+  "slug": "smart-contracts",
+  "title": "Smart Contracts",
+  "tagline": "Programs that run on a blockchain, how they work and how they break.",
+  "icon": "FileCode2",
+  "order": 3,
+  "modules": [
+    {
+      "slug": "what-is-a-smart-contract",
+      "level": "beginner",
+      "title": "What is a smart contract?",
+      "summary": "Smart contracts are programs that live on a blockchain and run exactly as written. Learn what they do, what they power and where their limits are.",
+      "minutes": 6,
+      "objectives": [
+        "Explain what a smart contract is in plain words",
+        "Name common applications built from smart contracts",
+        "Recognize the main limits and risks of on-chain code"
+      ],
+      "sections": [
+        {
+          "heading": "Code that runs on a blockchain",
+          "body": "A smart contract is a program stored on a blockchain. Once deployed, it runs exactly as written whenever someone calls it, and every node checks the result. Nobody can quietly change its rules or stop it from running, unless the code itself allows that."
+        },
+        {
+          "heading": "Like a vending machine",
+          "body": "A classic comparison is a vending machine. You provide the right input, and the machine delivers the output automatically, with no shop assistant involved. A smart contract works the same way: send the right transaction, and it moves tokens or updates records by its own rules."
+        },
+        {
+          "heading": "What they are used for",
+          "body": "Smart contracts power tokens, decentralized exchanges, lending markets, NFTs and DAOs. A token is simply a contract that keeps a table of balances and rules for moving them. Because contracts are public, anyone can read the code and build on top of it."
+        },
+        {
+          "heading": "Limits to know",
+          "body": "Smart contracts can only see data that is already on the blockchain. To use outside information, like the price of an asset, they rely on oracles. Bugs are also costly: once a contract holds money, a mistake can be exploited, and deployed code is often hard or impossible to change."
+        }
+      ],
+      "concepts": [
+        { "term": "Smart contract", "definition": "A program stored on a blockchain that runs automatically when called." },
+        { "term": "Token", "definition": "A digital asset whose balances and transfer rules are managed by a smart contract." },
+        { "term": "Oracle", "definition": "A service that brings outside data, such as prices, onto the blockchain for contracts to use." },
+        { "term": "DAO", "definition": "A decentralized autonomous organization, a group whose rules and treasury are managed by smart contracts." }
+      ],
+      "example": {
+        "title": "An ERC-20 token",
+        "body": "Many tokens on Ethereum follow the ERC-20 standard. The contract stores each holder's balance and offers functions like transfer and balanceOf. Because every ERC-20 token uses the same interface, wallets and exchanges can support new tokens without custom work."
+      }
+    },
+    {
+      "slug": "evm-gas-and-standards",
+      "level": "intermediate",
+      "title": "The EVM, gas and token standards",
+      "summary": "Learn how the Ethereum Virtual Machine runs contracts, why every step costs gas, and how token standards and approvals work.",
+      "minutes": 8,
+      "objectives": [
+        "Describe how the EVM executes contract code",
+        "Explain why storage writes are expensive in gas",
+        "Use the approve and transferFrom pattern safely"
+      ],
+      "sections": [
+        {
+          "heading": "The Ethereum Virtual Machine",
+          "body": "Contracts are usually written in a language like Solidity or Vyper and compiled into bytecode. The Ethereum Virtual Machine (EVM) runs that bytecode one instruction at a time, and every node runs it to reach the same result. Many other chains, including several layer 2 networks, are EVM compatible, so the same contracts can be deployed there."
+        },
+        {
+          "heading": "Gas and storage",
+          "body": "Every EVM instruction has a gas cost. Writing to permanent storage is among the most expensive operations, while arithmetic and reading memory are cheap. Gas protects the network: it stops endless loops and makes heavy computation pay for itself."
+        },
+        {
+          "heading": "Approve and transferFrom",
+          "body": "A contract cannot pull your ERC-20 tokens unless you allow it. You first call approve to give a spender an allowance, then the spender calls transferFrom to move up to that amount. Unlimited approvals are convenient but risky, because a compromised spender could take your full balance."
+        },
+        {
+          "heading": "Events and NFTs",
+          "body": "Contracts emit events, which are logs that apps and indexers read to track activity cheaply. ERC-721 is the standard for non-fungible tokens, where every token ID is unique. ERC-1155 lets one contract manage many token types, both fungible and non-fungible."
+        }
+      ],
+      "concepts": [
+        { "term": "Bytecode", "definition": "The low-level compiled instructions that the EVM actually executes." },
+        { "term": "Allowance", "definition": "The amount of your tokens a specific spender is approved to move on your behalf." },
+        { "term": "Event", "definition": "A log emitted by a contract that off-chain apps can read and index." },
+        { "term": "ERC-721", "definition": "The Ethereum standard for non-fungible tokens, where each token ID is unique." }
+      ],
+      "example": {
+        "title": "Swapping a token on Uniswap",
+        "body": "The first time you sell a particular token on Uniswap, your wallet usually asks for an approval before the swap. The approval lets Uniswap's contracts move that token for you. The swap then pulls your tokens with transferFrom and sends the output token to your wallet."
+      }
+    },
+    {
+      "slug": "common-vulnerabilities",
+      "level": "advanced",
+      "title": "Common vulnerabilities",
+      "summary": "Study the bugs behind real exploits: reentrancy, missing access control, arithmetic edge cases and upgradeable proxies.",
+      "minutes": 10,
+      "objectives": [
+        "Explain reentrancy and the checks-effects-interactions pattern",
+        "Spot access control and input validation flaws",
+        "Understand how upgradeable proxies use delegatecall"
+      ],
+      "sections": [
+        {
+          "heading": "Reentrancy",
+          "body": "When a contract sends ETH or calls another contract, the receiver gets control and can call back in before the first call finishes. If the original contract updates balances only after that external call, an attacker can withdraw again and again. The fix is checks-effects-interactions: validate inputs, update state, and only then make external calls. A reentrancy guard adds a second layer of protection."
+        },
+        {
+          "heading": "Access control",
+          "body": "Many exploits come from functions that should be restricted but are not, such as a mint or initialize function anyone can call. Contracts use modifiers like onlyOwner or role-based permissions to lock these down. Every privileged function should be reviewed for who can call it and what happens if the wrong person does."
+        },
+        {
+          "heading": "Arithmetic and input issues",
+          "body": "Since Solidity 0.8, arithmetic overflow and underflow revert by default, but code in unchecked blocks or older compiler versions can still wrap around. Integer division always rounds down, which attackers can exploit when amounts are tiny. Validate inputs and test edge cases such as zero amounts and empty pools."
+        },
+        {
+          "heading": "Upgradeable proxies",
+          "body": "A proxy contract holds the state and forwards calls to a logic contract using delegatecall, which runs the logic code against the proxy's own storage. This lets teams upgrade logic without moving funds. It also adds risks: storage layout collisions, uninitialized contracts, and the fact that whoever holds the upgrade key can change the rules."
+        }
+      ],
+      "concepts": [
+        { "term": "Reentrancy", "definition": "A bug where an external call lets an attacker re-enter a function before its state is updated." },
+        { "term": "Checks-effects-interactions", "definition": "A coding pattern that validates, then updates state, and only then calls other contracts." },
+        { "term": "delegatecall", "definition": "An EVM call that runs another contract's code using the calling contract's storage and context." },
+        { "term": "Proxy contract", "definition": "A contract that keeps state and forwards calls to a replaceable logic contract." }
+      ],
+      "example": {
+        "title": "The DAO hack",
+        "body": "In 2016, an attacker exploited a reentrancy bug in The DAO, an early Ethereum investment contract, and drained a large share of its ETH. The contract sent ETH before updating the attacker's balance, so it could be called back repeatedly. Ethereum responded with a hard fork that returned the funds, and the original unforked chain continued as Ethereum Classic."
+      }
+    },
+    {
+      "slug": "expert-attack-patterns",
+      "level": "expert",
+      "title": "Expert attack patterns",
+      "summary": "Go beyond the basics: cross-function and read-only reentrancy, signature replay, tx.origin phishing, front-running and flash loan amplification.",
+      "minutes": 12,
+      "objectives": [
+        "Recognize cross-function and read-only reentrancy",
+        "Design signatures that cannot be replayed",
+        "Reason about front-running and flash loan amplified attacks"
+      ],
+      "sections": [
+        {
+          "heading": "Cross-function and read-only reentrancy",
+          "body": "A guard on one function does not help if an attacker re-enters a different unguarded function that shares the same state. In read-only reentrancy, the attacker triggers a view function while state is half updated, and another protocol reads a wrong value, such as a pool's share price. The victim is the protocol that trusted the view, not the contract being re-entered."
+        },
+        {
+          "heading": "Signatures and replay",
+          "body": "Contracts that accept off-chain signatures, such as permits or meta-transactions, must stop the same signature being used twice. EIP-712 signatures include a domain separator with the chain ID and contract address, and the signed data should also include a per-user nonce and a deadline. Missing any of these can allow replay on another chain, against another contract, or a second time on the same one."
+        },
+        {
+          "heading": "tx.origin and front-running",
+          "body": "Using tx.origin for authorization is unsafe, because a malicious contract the owner interacts with can call your contract while tx.origin is still the owner. Check msg.sender instead. Pending transactions are public, so anything that reveals a valuable secret can be copied by a bot paying a higher fee. A commit-reveal scheme hides the value until it can no longer be stolen."
+        },
+        {
+          "heading": "Flash loans as amplifiers",
+          "body": "A flash loan lends any amount with no collateral, as long as it is repaid in the same transaction. It does not create bugs, but it removes the capital barrier to exploiting them. Any logic that trusts a spot price or a balance that can be moved within one transaction should be treated as attackable by someone with near unlimited funds."
+        }
+      ],
+      "concepts": [
+        { "term": "Read-only reentrancy", "definition": "Re-entering a view function mid-update so a protocol that reads it gets a wrong value." },
+        { "term": "Domain separator", "definition": "The part of an EIP-712 signature that binds it to one chain ID and one contract." },
+        { "term": "Commit-reveal", "definition": "A two-step scheme where a hash is submitted first and the hidden value is revealed later." },
+        { "term": "Flash loan", "definition": "An uncollateralized loan that must be borrowed and repaid within a single transaction." }
+      ],
+      "example": {
+        "title": "Read-only reentrancy through a Curve pool",
+        "body": "In early 2023, the lending protocol dForce lost funds to a read-only reentrancy attack. While removing liquidity from a Curve pool that paid out native ETH, the attacker re-entered dForce before the pool had finished updating, so the LP token price that dForce read was temporarily wrong. The flaw was in how dForce consumed the price, not in Curve's own accounting."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-a-smart-contract",
+      "difficulty": "easy",
+      "prompt": "What is a smart contract?",
+      "options": [
+        "A program stored and run on a blockchain",
+        "A legal document signed with a digital pen",
+        "A chat bot that negotiates trades for you",
+        "A paper agreement scanned onto a server"
+      ],
+      "answer": 0,
+      "explanation": "A smart contract is code deployed to a blockchain that runs automatically when called and is checked by every node."
+    },
+    {
+      "module": "what-is-a-smart-contract",
+      "difficulty": "easy",
+      "prompt": "Why are smart contracts often compared to vending machines?",
+      "options": [
+        "Both only accept cash payments",
+        "Both need staff to approve each sale",
+        "Both follow fixed rules and act automatically",
+        "Both can be restocked by anyone"
+      ],
+      "answer": 2,
+      "explanation": "Like a vending machine, a contract takes a valid input and produces the programmed result with no middleman."
+    },
+    {
+      "module": "what-is-a-smart-contract",
+      "difficulty": "easy",
+      "prompt": "What is an ERC-20 token?",
+      "options": [
+        "A coin created by proof of work mining",
+        "A token contract that follows a standard interface",
+        "A popular model of hardware wallet",
+        "An Ethereum upgrade that lowered fees"
+      ],
+      "answer": 1,
+      "explanation": "ERC-20 defines common functions like transfer and balanceOf, so wallets and apps can support any compliant token."
+    },
+    {
+      "module": "what-is-a-smart-contract",
+      "difficulty": "easy",
+      "prompt": "Why does a smart contract need an oracle to know the price of gold?",
+      "options": [
+        "Oracles make contracts run faster",
+        "Prices are not allowed to be stored on-chain by the protocol rules",
+        "Gold can only be traded on Bitcoin",
+        "Contracts cannot read data from outside the blockchain"
+      ],
+      "answer": 3,
+      "explanation": "Contracts only see on-chain data. An oracle publishes outside information, like prices, on-chain so contracts can use it."
+    },
+    {
+      "module": "what-is-a-smart-contract",
+      "difficulty": "easy",
+      "prompt": "What is a major risk of smart contracts?",
+      "options": [
+        "They stop working after one year",
+        "They require a bank account to use",
+        "Bugs can be exploited and are hard to fix later",
+        "Only their creator is ever allowed to call their functions"
+      ],
+      "answer": 2,
+      "explanation": "Contracts often hold real money and are hard to change once deployed, so a bug can be exploited before it can be fixed."
+    },
+    {
+      "module": "evm-gas-and-standards",
+      "difficulty": "medium",
+      "prompt": "What does the EVM actually execute?",
+      "options": [
+        "Solidity source code",
+        "JavaScript sent by the wallet",
+        "Python scripts stored on IPFS",
+        "Compiled bytecode"
+      ],
+      "answer": 3,
+      "explanation": "Solidity and Vyper are compiled to EVM bytecode before deployment. Nodes run that bytecode, not the source code."
+    },
+    {
+      "module": "evm-gas-and-standards",
+      "difficulty": "medium",
+      "prompt": "Which operation is typically among the most expensive in gas?",
+      "options": [
+        "Writing a new value to contract storage",
+        "Adding two numbers together",
+        "Reading a value from memory",
+        "Comparing two values"
+      ],
+      "answer": 0,
+      "explanation": "Storage is permanent and every node must keep it, so writing new storage values costs far more gas than arithmetic or memory use."
+    },
+    {
+      "module": "evm-gas-and-standards",
+      "difficulty": "medium",
+      "prompt": "Before a DEX contract can pull your ERC-20 tokens, what must you usually do?",
+      "options": [
+        "Send the tokens to the DEX team first",
+        "Approve the contract to spend them",
+        "Convert the tokens into ETH",
+        "Register your wallet with the token issuer"
+      ],
+      "answer": 1,
+      "explanation": "ERC-20 transferFrom only works up to an allowance the owner has granted with approve."
+    },
+    {
+      "module": "evm-gas-and-standards",
+      "difficulty": "medium",
+      "prompt": "What is the main risk of an unlimited token approval?",
+      "options": [
+        "It charges gas every single block",
+        "It locks your tokens in the spender contract for a full year",
+        "A compromised spender could take your whole balance",
+        "It makes your tokens non-transferable"
+      ],
+      "answer": 2,
+      "explanation": "An unlimited allowance lets the spender move every token you hold. If that contract is exploited, the attacker can drain your balance."
+    },
+    {
+      "module": "evm-gas-and-standards",
+      "difficulty": "medium",
+      "prompt": "What makes an ERC-721 token different from an ERC-20 token?",
+      "options": [
+        "Each ERC-721 token ID is unique",
+        "ERC-721 tokens cannot be transferred",
+        "ERC-721 tokens only exist on Bitcoin",
+        "ERC-721 tokens have no owner"
+      ],
+      "answer": 0,
+      "explanation": "ERC-721 tokens are non-fungible: every token ID is distinct. ERC-20 tokens are fungible, so every unit is interchangeable."
+    },
+    {
+      "module": "common-vulnerabilities",
+      "difficulty": "hard",
+      "prompt": "What is the core idea of checks-effects-interactions?",
+      "options": [
+        "Make external calls first, then validate inputs",
+        "Update state before making any external calls",
+        "Check the gas price before every function",
+        "Only interact with contracts that are audited"
+      ],
+      "answer": 1,
+      "explanation": "If balances are updated before control passes to another contract, a re-entrant call sees the new state and cannot withdraw twice."
+    },
+    {
+      "module": "common-vulnerabilities",
+      "difficulty": "hard",
+      "prompt": "What does delegatecall do?",
+      "options": [
+        "Sends ETH to another address",
+        "Deploys a brand new contract",
+        "Calls another contract and uses that contract's storage",
+        "Runs another contract's code using the caller's storage"
+      ],
+      "answer": 3,
+      "explanation": "delegatecall executes the target's code in the caller's context, so it reads and writes the caller's storage. This is how proxies work."
+    },
+    {
+      "module": "common-vulnerabilities",
+      "difficulty": "hard",
+      "prompt": "In Solidity 0.8 and later, what happens by default when a uint256 addition overflows?",
+      "options": [
+        "The transaction reverts",
+        "The value wraps around to zero",
+        "The value is capped at the maximum",
+        "The result is rounded down"
+      ],
+      "answer": 0,
+      "explanation": "Solidity 0.8 added checked arithmetic, so overflow and underflow revert unless the code is inside an unchecked block."
+    },
+    {
+      "module": "common-vulnerabilities",
+      "difficulty": "hard",
+      "prompt": "Which type of bug was exploited in The DAO hack in 2016?",
+      "options": [
+        "A stolen admin private key",
+        "A manipulated price oracle",
+        "Reentrancy",
+        "Integer overflow"
+      ],
+      "answer": 2,
+      "explanation": "The DAO sent ETH before updating the caller's balance, so the attacker's contract re-entered the withdrawal function repeatedly."
+    },
+    {
+      "module": "common-vulnerabilities",
+      "difficulty": "hard",
+      "prompt": "A new proxy's initialize function has no access control and has never been called. What is the risk?",
+      "options": [
+        "The contract will run out of gas",
+        "Anyone can call it and make themselves the owner",
+        "The proxy will reject all deposits forever after deployment",
+        "The storage layout resets on every call"
+      ],
+      "answer": 1,
+      "explanation": "Proxies use initialize instead of a constructor. If it is left open, the first caller can set themselves as owner and take control."
+    },
+    {
+      "module": "expert-attack-patterns",
+      "difficulty": "expert",
+      "prompt": "A contract has a nonReentrant guard on withdraw but not on transfer, and both use the same balances. What is the risk?",
+      "options": [
+        "None, because one guard protects the whole contract",
+        "Gas costs double on every withdrawal",
+        "An attacker can re-enter transfer during withdraw",
+        "The guard blocks all transfers permanently"
+      ],
+      "answer": 2,
+      "explanation": "The guard only blocks functions that carry it. During withdraw's external call, the attacker can call transfer and move a balance that has not been reduced yet."
+    },
+    {
+      "module": "expert-attack-patterns",
+      "difficulty": "expert",
+      "prompt": "In a read-only reentrancy attack, who usually suffers the loss?",
+      "options": [
+        "The contract that was re-entered",
+        "The block producer",
+        "The attacker's own contract",
+        "A protocol that read a view function mid-update"
+      ],
+      "answer": 3,
+      "explanation": "The re-entered contract's own state ends up correct. The protocol that trusted its temporarily wrong view value is the one that gets drained."
+    },
+    {
+      "module": "expert-attack-patterns",
+      "difficulty": "expert",
+      "prompt": "A permit signature binds the token address but not the chain ID. What attack does that allow?",
+      "options": [
+        "Replaying the signature on another chain where the same contract exists",
+        "Changing the token's total supply",
+        "Re-entering the permit function",
+        "Front-running the token's deployment to claim its address on the same chain"
+      ],
+      "answer": 0,
+      "explanation": "Without the chain ID in the domain separator, the same signature is valid for an identical contract at the same address on another chain."
+    },
+    {
+      "module": "expert-attack-patterns",
+      "difficulty": "expert",
+      "prompt": "Why is require(tx.origin == owner) a dangerous authorization check?",
+      "options": [
+        "Reading tx.origin costs too much gas to use in a production contract",
+        "A malicious contract the owner calls can pass the check",
+        "tx.origin is always the zero address",
+        "It only works on layer 2 networks"
+      ],
+      "answer": 1,
+      "explanation": "tx.origin is the original signer, so if the owner is tricked into calling a malicious contract, that contract can call yours and still pass the check."
+    },
+    {
+      "module": "expert-attack-patterns",
+      "difficulty": "expert",
+      "prompt": "What does a flash loan change about exploiting a price manipulation bug?",
+      "options": [
+        "It makes the bug impossible to exploit",
+        "It hides the attacker's address",
+        "It forces the attack to be spread across several separate blocks",
+        "It removes the need for the attacker's own capital"
+      ],
+      "answer": 3,
+      "explanation": "Flash loans let anyone borrow huge amounts for one transaction, so attacks that need large capital to move a price become available to everyone."
+    }
+  ]
+}

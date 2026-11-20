@@ -8,7 +8,7 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import {
   Bookmark, BookOpen, Coins, Crown, Home, LayoutDashboard, LineChart, LogOut, Mail, Menu,
-  MessageCircle, Newspaper, NotebookPen, Search, Settings, SlidersHorizontal, Trophy, User, Users, Wrench, X,
+  MessageCircle, Newspaper, NotebookPen, Search, Settings, SlidersHorizontal, Trophy, GraduationCap, User, Users, Wrench, X,
 } from "lucide-react";
 import { openCustomize } from "@shared/utils/site-prefs";
 import { navLinks } from "@/lib/site";
@@ -30,6 +30,7 @@ const ICONS: Record<string, typeof Home> = {
   "/news": Newspaper,
   "/research": BookOpen,
   "/creators": Trophy,
+  "/academy": GraduationCap,
   "/saved": Bookmark,
   "/community": Users,
   "/premium": Crown,
