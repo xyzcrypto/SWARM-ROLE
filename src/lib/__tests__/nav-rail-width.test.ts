@@ -49,7 +49,7 @@ describe("nothing can fall out of the navigation", () => {
 });
 
 describe("the desktop rail fits the links it has", () => {
-  it("shows eight links, re-measured when Academy and Creators joined", () => {
+  it("shows seven links: Academy and Creators joined, Community moved to More", () => {
     // 2026-11-20, owner's request. Measured on a production build with every
     // visible header child summed against the nav's inner width (slack =
     // room left over), signed out / signed in:
@@ -58,8 +58,10 @@ describe("the desktop rail fits the links it has", () => {
     // 2.5 from 1366, 3 from 2xl) and (b) the account button showing only the
     // avatar below 2xl. Before (b), signed in overflowed by 69px at 1440.
     // A NINTH rail link needs re-measuring; this is the record of why.
-    expect(railLinks).toHaveLength(8);
-    expect(railLinks.map((l) => l.href)).toEqual(["/", "/markets", "/points", "/news", "/research", "/academy", "/creators", "/community"]);
+    // (Measured with eight; Community then moved to "More" to lighten the
+    // rail, so the slack below only grew.)
+    expect(railLinks).toHaveLength(7);
+    expect(railLinks.map((l) => l.href)).toEqual(["/", "/markets", "/points", "/news", "/research", "/academy", "/creators"]);
   });
 
   it("keeps the width-saving steps that make eight links fit", () => {
@@ -76,7 +78,7 @@ describe("the desktop rail fits the links it has", () => {
     // `/creators` moved OUT of "More" onto the rail (2026-11-20); `/feedback`
     // joined "More".
     const more = moreLinks.map((l) => l.href).sort();
-    expect(more).toEqual(["/contact", "/feedback", "/premium", "/saved", "/tools"]);
+    expect(more).toEqual(["/community", "/contact", "/feedback", "/premium", "/saved", "/tools"]);
   });
 
   it("still appears only from xl, for the eight-pixel reason above", () => {

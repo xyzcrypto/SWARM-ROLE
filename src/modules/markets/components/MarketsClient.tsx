@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   TrendingUp,
@@ -37,6 +37,9 @@ import { HeroMarketSection } from "./HeroMarketSection";
 import { HorizontalTrendingBar } from "./HorizontalTrendingBar";
 import { TotalMarketCapChart } from "./TotalMarketCapChart";
 import { MarketHeatmap } from "./MarketHeatmap";
+import { getLivePrices, overlayLive, useLivePrices } from "../lib/live-prices";
+import { marketBrief } from "../lib/market-brief";
+import { setPageBrief } from "@modules/academy/client/page-brief";
 import { AIMarketIntelligenceCard } from "./AIMarketIntelligenceCard";
 import { WatchlistWidget } from "./WatchlistWidget";
 import { PerpLeaderboardWidget } from "./PerpLeaderboardWidget";
@@ -194,6 +197,21 @@ function MarketsClientInner() {
   const x = usePolledJson<DexResp>("/api/markets/dex", 300_000);
   const y = usePolledJson<YieldResp>("/api/markets/yields", 300_000);
   const c = usePolledJson<CoinsResp>("/api/markets/coins", 180_000);
+
+  // AneQue's brief: built when she is asked, from the freshest numbers
+  // (refs, so publishing it never re-renders this page).
+  const briefData = useRef({ c: c.data, g: g.data, d: d.data });
+  useEffect(() => {
+    briefData.current = { c: c.data, g: g.data, d: d.data };
+  }, [c.data, g.data, d.data]);
+  useEffect(() => {
+    const build = () => {
+      const { c: cd, g: gd, d: dd } = briefData.current;
+      return marketBrief({ coins: cd?.list, gainers: cd?.gainers, losers: cd?.losers, global: gd, defi: dd, live: getLivePrices() });
+    };
+    setPageBrief({ page: "markets", label: "Explain the market", build });
+    return () => setPageBrief(null);
+  }, []);
 
   const sources = [g.live, d.live, p.live, x.live, y.live, c.live];
   const allLive = sources.every(Boolean);
@@ -482,7 +500,11 @@ function Overview({
 
 
 function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null; loading: boolean; isEmbedded?: boolean; g?: GlobalMarket | null }) {
-  const base = c?.list ?? [];
+  // Real-time prices for the top 100 rows (Binance stream, batched ~1/s);
+  // everything else (market cap rank, sparklines, volume) stays on the poll.
+  const polled = c?.list;
+  const { prices: livePx, live: pricesLive } = useLivePrices(useMemo(() => (polled ?? []).slice(0, 100).map((r) => r.symbol), [polled]));
+  const base = useMemo(() => (polled ?? []).map((r) => overlayLive(r, livePx)), [polled, livePx]);
   const [q, setQ] = useState("");
   const [remote, setRemote] = useState<CoinRow[]>([]);
   const [searching, setSearching] = useState(false);
@@ -515,7 +537,7 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
   const prevPrices = useRef<Map<string, number>>(new Map());
   const [flash, setFlash] = useState<Map<string, "up" | "down">>(new Map());
   useEffect(() => {
-    const list = c?.list ?? [];
+    const list = base;
     if (!list.length) return;
     const next = new Map<string, "up" | "down">();
     for (const r of list) {
@@ -525,9 +547,9 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
     }
     if (!next.size) return;
     setFlash(next);
-    const t = setTimeout(() => setFlash(new Map()), 1200);
+    const t = setTimeout(() => setFlash(new Map()), 900);
     return () => clearTimeout(t);
-  }, [c]);
+  }, [base]);
 
   useEffect(() => {
     if (query.length < 2) { setRemote([]); setSearching(false); return; }
@@ -594,7 +616,13 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
       action={
         !isEmbedded ? (
           <div className="flex items-center gap-3">
-            <UpdatedPill ts={c?.ts} />
+            {pricesLive ? (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-mint-300" title="Prices stream from Binance in real time">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mint-400" /> Live prices
+              </span>
+            ) : (
+              <UpdatedPill ts={c?.ts} />
+            )}
           </div>
         ) : null
       }

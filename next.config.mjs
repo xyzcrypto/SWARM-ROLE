@@ -34,7 +34,11 @@ const csp = [
   // sentry.io), which connect-src governs - without it every client event is
   // silently refused by CSP, however correctly the SDK is initialised. The
   // wildcard covers all ingest regions (*. matches multi-label subdomains).
-  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.supabase.co wss://*.supabase.co https://*.sentry.io",
+  // wss://data-stream.binance.vision: Binance's public, read-only market-data
+  // stream for real-time prices (markets heatmap, coin table, ticker). See
+  // src/modules/markets/lib/live-prices.ts. Browser to Binance directly, so it
+  // costs no Vercel usage.
+  "connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.supabase.co wss://*.supabase.co https://*.sentry.io wss://data-stream.binance.vision",
   "frame-src 'self' https://accounts.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -64,6 +68,12 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  // Academy share cards read their fonts and logo from disk at request time;
+  // make sure the serverless functions that render them ship those files.
+  outputFileTracingIncludes: {
+    "/academy/card/**": ["./src/modules/academy/assets/**"],
+    "/academy/certificate/**": ["./src/modules/academy/assets/**"],
+  },
   reactStrictMode: true,
   poweredByHeader: false,
   // Strip console.* from production bundles (keep error/warn) - smaller, faster JS.

@@ -61,3 +61,22 @@ describe("quiz fits one screen", () => {
     expect(read("src/modules/academy/components/LiveArena.tsx")).toMatch(/dataset\.acadPlaying = "1"/);
   });
 });
+
+describe("R7 smoothness", () => {
+  it("lists that re-render often do not use framer-motion layout measurement", () => {
+    for (const p of ["src/modules/academy/components/Leaderboard.tsx", "src/modules/academy/components/LiveArena.tsx", "src/modules/creators/components/XBoard.tsx", "src/modules/creators/components/YoutubeBoard.tsx"]) {
+      const s = read(p);
+      expect(s, p).not.toMatch(/^\s*layout\s*$/m);
+      expect(s, p).not.toMatch(/ layout initial=/);
+      expect(s, p).not.toMatch(/layoutId=|LayoutGroup/);
+    }
+    expect(read("src/modules/academy/components/Leaderboard.tsx")).not.toMatch(/useTicker\(/);
+  });
+
+  it("the audio graph is not built on page load without a user gesture, and its reverb waits for idle", () => {
+    const a = read("src/modules/academy/client/audio.ts");
+    expect(a).toMatch(/ua && !ua\.hasBeenActive && policy !== "allowed"/);
+    expect(a).toMatch(/requestIdleCallback/);
+    expect(a).not.toMatch(/Math\.pow\(1 - t, 2\.6\)/);
+  });
+});

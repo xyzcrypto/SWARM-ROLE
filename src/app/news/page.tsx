@@ -1,3 +1,5 @@
+import "../academy/academy.css";
+import { AneQueDockLazy } from "@modules/academy/components/AneQueDockLazy";
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { NewsClient } from "@/components/NewsClient";
@@ -56,6 +58,8 @@ export default async function NewsPage() {
           <NewsClient initial={initial} />
         </div>
       </main>
+      {/* AneQue: explains this page out loud and answers questions about it. */}
+      <AneQueDockLazy />
     </>
   );
 }

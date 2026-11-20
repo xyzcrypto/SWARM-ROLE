@@ -345,7 +345,6 @@ export function LiveArena({ id }: { id: string }) {
                 <AnimatePresence initial={false}>
                   {top.map((r) => (
                     <motion.li
-                      layout
                       key={r.userId}
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}

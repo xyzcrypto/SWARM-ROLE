@@ -173,6 +173,58 @@ let analyser: AnalyserNode | null = null;
 let noise: AudioBuffer | null = null;
 let duckLevel = 1;
 
+/** The shared room reverb (see ensure()). */
+function buildRoom(c: AudioContext) {
+  if (c !== ctx || !master || !sfxBus || !musicBus) return;
+  // A small room: a generated stereo impulse (2.2s, darkening tail) shared
+  // by effects and music, so everything sounds like it is in one space.
+  try {
+    // Same darkening exponential tail as before, computed with running
+    // multipliers instead of a Math.pow per sample (several times cheaper),
+    // both channels in one pass.
+    const len = Math.floor(c.sampleRate * 1.6);
+    const ir = c.createBuffer(2, len, c.sampleRate);
+    const L = ir.getChannelData(0);
+    const R = ir.getChannelData(1);
+    const decay = Math.pow(0.0006, 1 / len); // ~-64 dB over the tail
+    const dColor = 0.45 / len;
+    let env = 1;
+    let color = 0.6;
+    let lpL = 0;
+    let lpR = 0;
+    // xorshift32 noise: several times faster than Math.random() here, and
+    // noise is all a reverb tail needs.
+    let seed = 0x9e3779b9;
+    const rnd = () => {
+      seed ^= seed << 13;
+      seed ^= seed >>> 17;
+      seed ^= seed << 5;
+      return (seed >>> 0) / 2147483648 - 1;
+    };
+    for (let i = 0; i < len; i++) {
+      lpL += (rnd() - lpL) * color;
+      lpR += (rnd() - lpR) * color;
+      L[i] = lpL * env;
+      R[i] = lpR * env;
+      env *= decay;
+      color -= dColor;
+    }
+    const verb = c.createConvolver();
+    verb.buffer = ir;
+    const ret = c.createGain();
+    ret.gain.value = 0.55;
+    verb.connect(ret).connect(master);
+    const sfxSend = c.createGain();
+    sfxSend.gain.value = 0.22;
+    sfxBus.connect(sfxSend).connect(verb);
+    const musicSend = c.createGain();
+    musicSend.gain.value = 0.45;
+    musicBus.connect(musicSend).connect(verb);
+  } catch {
+    /* no convolver: dry sound */
+  }
+}
+
 function ensure(): AudioContext | null {
   if (typeof window === "undefined") return null;
   try {
@@ -198,34 +250,13 @@ function ensure(): AudioContext | null {
       noise = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
       const d = noise.getChannelData(0);
       for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-      // A small room: a generated stereo impulse (2.2s, darkening tail) shared
-      // by effects and music, so everything sounds like it is in one space.
-      try {
-        const len = Math.floor(ctx.sampleRate * 2.2);
-        const ir = ctx.createBuffer(2, len, ctx.sampleRate);
-        for (let ch = 0; ch < 2; ch++) {
-          const x = ir.getChannelData(ch);
-          let lp = 0;
-          for (let i = 0; i < len; i++) {
-            const t = i / len;
-            lp += ((Math.random() * 2 - 1) - lp) * (0.6 - 0.45 * t);
-            x[i] = lp * Math.pow(1 - t, 2.6);
-          }
-        }
-        const verb = ctx.createConvolver();
-        verb.buffer = ir;
-        const ret = ctx.createGain();
-        ret.gain.value = 0.55;
-        verb.connect(ret).connect(master);
-        const sfxSend = ctx.createGain();
-        sfxSend.gain.value = 0.22;
-        sfxBus.connect(sfxSend).connect(verb);
-        const musicSend = ctx.createGain();
-        musicSend.gain.value = 0.45;
-        musicBus.connect(musicSend).connect(verb);
-      } catch {
-        /* no convolver: dry sound */
-      }
+      // The room reverb is ~200k generated samples: built when the main
+      // thread is idle, not while the page is still rendering (it was the
+      // single biggest JS cost of opening an Academy page on a phone).
+      const c = ctx;
+      const idle = (window as unknown as { requestIdleCallback?: (f: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+      if (idle) idle(() => buildRoom(c), { timeout: 2000 });
+      else setTimeout(() => buildRoom(c), 200);
       applyGains();
     }
     if (ctx.state === "suspended") void ctx.resume();
@@ -257,6 +288,13 @@ function applyGains() {
 export async function tryAutoUnlock(): Promise<boolean> {
   if (!loaded) loadSettings();
   if (snap.unlocked) return true;
+  // No interaction with this tab yet: browsers will refuse, so do not even
+  // build the audio graph (that work is wasted and lands on page load).
+  // After any click on the site (including the link that brought them here)
+  // `hasBeenActive` is true and this goes ahead.
+  const ua = (navigator as unknown as { userActivation?: { hasBeenActive: boolean } }).userActivation;
+  const policy = (navigator as unknown as { getAutoplayPolicy?: (t: string) => string }).getAutoplayPolicy?.("audiocontext");
+  if (ua && !ua.hasBeenActive && policy !== "allowed") return false;
   const c = ensure();
   if (!c) return false;
   try {
@@ -660,7 +698,10 @@ let pieceCount = 1;
 let ttsChar = 0;
 let ttsLen = 1;
 
-const FEMALE_HINTS = ["samantha", "ava", "allison", "susan", "victoria", "karen", "moira", "tessa", "serena", "zira", "aria", "jenny", "sonia", "libby", "natasha", "female", "woman", "google uk english female", "google us english"];
+// Best first. The Edge/Windows "Online (Natural)" neural voices (Ava, Jenny,
+// Aria, Emma, Neerja for Indian English) and Apple's premium/enhanced voices
+// sound close to a person; the old desktop SAPI voices (Zira) do not.
+const FEMALE_HINTS = ["ava", "jenny", "aria", "emma", "neerja", "michelle", "sonia", "libby", "natasha", "samantha", "google uk english female", "allison", "susan", "victoria", "karen", "moira", "tessa", "serena", "zira", "female", "woman", "google us english"];
 
 export function browserVoices(): SpeechSynthesisVoice[] {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return [];
@@ -671,7 +712,7 @@ export function femaleScore(v: SpeechSynthesisVoice): number {
   const n = v.name.toLowerCase();
   if (/\b(male|david|mark|daniel|alex|fred|george|james|guy|ryan)\b/.test(n) && !/female/.test(n)) return -1;
   const i = FEMALE_HINTS.findIndex((h) => n.includes(h));
-  return (i < 0 ? 0 : 100 - i) + (/natural|neural|premium|enhanced/.test(n) ? 50 : 0) + (v.localService ? 0 : 5);
+  return (i < 0 ? 0 : 100 - i) + (/natural|neural/.test(n) ? 120 : /premium|enhanced/.test(n) ? 80 : 0) + (v.localService ? 0 : 5);
 }
 
 function pickVoice(): SpeechSynthesisVoice | null {
@@ -778,7 +819,8 @@ function tts(text: string, my: number, done: () => void) {
     const v = pickVoice();
     if (v) u.voice = v;
     u.rate = 1;
-    u.pitch = 1.05;
+    // Neural voices are tuned at their natural pitch; nudging them sounds synthetic.
+    u.pitch = v && /natural|neural|premium|enhanced/i.test(v.name) ? 1 : 1.05;
     u.volume = snap.settings.masterVol * snap.settings.voiceVol;
     const base = offset;
     u.onboundary = (e) => {

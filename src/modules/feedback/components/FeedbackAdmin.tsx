@@ -12,6 +12,7 @@ type Item = {
   rating: number;
   message: string;
   page: string;
+  image: string | null;
   status: string;
   xp: number;
   createdAt: string;
@@ -169,6 +170,12 @@ export function FeedbackAdmin() {
                 <span className="ml-auto text-content-subtle">{when(it.createdAt)}</span>
               </div>
               <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-content">{it.message}</p>
+              {it.image && (
+                <a href={it.image} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={it.image} alt="Attached screenshot" className="max-h-56 rounded-xl border border-hairline object-contain" loading="lazy" />
+                </a>
+              )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 {it.page && <span className="font-mono text-[11px] text-content-subtle">from {it.page}</span>}
                 {it.xp > 0 && <span className="rounded-full bg-mint-400/10 px-2 py-0.5 font-mono text-[10px] text-mint-300">+{it.xp} XP paid</span>}

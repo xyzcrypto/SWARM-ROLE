@@ -11,6 +11,7 @@ import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 
 const line = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
 import type { QuizResult } from "./types";
+import { ShareSheet } from "./ShareSheet";
 import { burstConfetti, CountUp, DIFF_LABEL, DIFF_TONE, duration, Eyebrow, fmt, Panel, Pill, ProgressBar, shareOnX } from "./ui";
 
 const LETTERS = ["A", "B", "C", "D"];
@@ -60,7 +61,9 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
   const { settings } = useAudio();
   const leveled = r.level.after.level > r.level.before.level;
   const announced = useRef(false);
-  const challengeUrl = typeof window !== "undefined" ? `${window.location.origin}/academy/quiz?challenge=${r.attemptId}` : "";
+  // The share link is a page whose preview is the score card; it offers the
+  // same questions as a challenge.
+  const challengeUrl = typeof window !== "undefined" ? `${window.location.origin}/academy/s/quiz/${r.attemptId}` : "";
 
   useEffect(() => {
     if (announced.current) return;
@@ -271,6 +274,15 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
         <Link href="/academy" className="btn-ghost h-12 justify-center text-sm">
           Back to Academy
         </Link>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-hairline bg-white/[0.02] p-4">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Share your score card</span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/academy/card/quiz/${r.attemptId}`} alt="" width={120} height={63} className="hidden h-[63px] w-[120px] rounded-lg border border-hairline object-cover sm:block" loading="lazy" />
+        </div>
+        <ShareSheet url={challengeUrl} image={`/academy/card/quiz/${r.attemptId}`} text={`I scored ${fmt(r.score)} (${r.correct}/${r.total}) on XYZ Crypto Academy. Same questions, can you beat me?`} fileName="xyz-quiz-score.png" />
       </div>
 
       <AnimatePresence>

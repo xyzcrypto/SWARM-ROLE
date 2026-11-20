@@ -4,7 +4,7 @@ import type { ComponentType } from "react";
 import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Globe, MapPin, MessageSquare } from "lucide-react";
+import { Globe, Lock, MapPin, MessageSquare } from "lucide-react";
 import { JsonLd, personJsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 import { prisma } from "@/lib/prisma";
 import { Navbar } from "@/components/Navbar";
@@ -18,6 +18,8 @@ import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { ProfileFollow } from "@/components/ProfileFollow";
 import { JournalActivityFeed } from "@/components/JournalActivityFeed";
+import { ProfileAcademy } from "@modules/academy/components/ProfileAcademy";
+import { profileActivity } from "@modules/academy/lib/profile-activity";
 import { EditProfileButton } from "@/components/EditProfileButton";
 import { ProfileBannerImage } from "@/components/ProfileBannerImage";
 import { ImageLightbox } from "@/components/ImageLightbox";
@@ -47,6 +49,7 @@ const getProfile = cache(async (usernameParam: string) => {
         id: true, name: true, username: true, image: true, bannerImage: true,
         bio: true, location: true, website: true, twitter: true, github: true,
         telegram: true, role: true, membership: true, createdAt: true,
+        profileVisibility: true,
         _count: { select: { comments: true, likes: true } },
       },
     })
@@ -92,6 +95,9 @@ export default async function ProfilePage(props: Props) {
   // Published posts authored by this user (most are non-authors → usually 0).
   // `extra` reads the migration-20 social columns through a guarded query so an
   // un-migrated DB doesn't break the page (returns nulls until applied).
+  // "Private" (Settings -> Privacy): everyone else sees only the header card.
+  const isPrivate = user.profileVisibility === "private";
+  const activity = isPrivate ? null : await profileActivity(user.id).catch(() => null);
   const [postCount, recentComments, extra, followersCount, followingCount, journalActivity, bookmarkRows] = await Promise.all([
     prisma.post.count({ where: { authorId: user.id, published: true, ...NOT_TRASHED } }).catch(() => 0),
     prisma.comment
@@ -330,10 +336,25 @@ export default async function ProfilePage(props: Props) {
           </div>
           </Reveal>
 
+          {isPrivate ? (
+            <div className="mt-8 rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center">
+              <Lock className="mx-auto h-6 w-6 text-zinc-500" />
+              <p className="mt-3 text-sm font-medium text-zinc-300">This profile is private.</p>
+              <p className="mt-1 text-xs text-zinc-500">Only the member can see their activity.</p>
+            </div>
+          ) : (
+          <>
           {/* Stats */}
           <div className="mt-6">
             <ProfileStats posts={postCount} comments={user._count.comments} likes={user._count.likes} premium={isPremium} />
           </div>
+
+          {/* Academy level, XP, quizzes, certificates, achievements and feedback. */}
+          {activity && user.username && (
+            <Reveal variant="up" className="mt-8 block">
+              <ProfileAcademy a={activity} username={user.username} />
+            </Reveal>
+          )}
 
           {/* Journal Activity - a separate, live section: whatever a member does
               in their trading Journal (that they've marked public) shows up here. */}
@@ -385,6 +406,8 @@ export default async function ProfilePage(props: Props) {
               </ul>
             )}
           </Reveal>
+          </>
+          )}
         </div>
       </main>
       </PressFeedback>

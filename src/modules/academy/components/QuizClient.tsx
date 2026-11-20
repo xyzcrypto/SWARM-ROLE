@@ -797,6 +797,11 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
                 })}
               </div>
 
+              {reveal?.correct && reveal.run >= 3 && (
+                <div key={`streak-${q.index}`} className="acad-streak-banner pointer-events-none absolute left-1/2 top-3 z-10 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-500 to-gold-300 px-4 py-1.5 text-sm font-bold text-ink-950 shadow-[0_10px_30px_-10px_rgba(226,167,47,0.8)]">
+                  🔥 {reveal.run} in a row!
+                </div>
+              )}
               <AnimatePresence>
                 {pop && (
                   <motion.div

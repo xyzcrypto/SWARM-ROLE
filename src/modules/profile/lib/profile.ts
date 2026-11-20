@@ -166,6 +166,8 @@ export const profileSchema = z.object({
   // Who may open a DM with this member. Lives on the profile form because that
   // is where every other "how I appear to other people" control already is.
   dmPrivacy: z.enum(["everyone", "following", "nobody"]).optional(),
+  // Who can see the profile's activity (Academy, feedback, posts, library).
+  profileVisibility: z.enum(["public", "private"]).optional(),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;

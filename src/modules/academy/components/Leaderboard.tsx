@@ -2,10 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Crown, Loader2, Search, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getJson, useAcademyPing, useMe, useTicker, type Me } from "../client/hooks";
+import { getJson, useAcademyPing, useMe, type Me } from "../client/hooks";
+import { periodBounds } from "@modules/academy/lib/engine";
+import { ShareSheet } from "./ShareSheet";
 import { say, sfx, unlock } from "../client/audio";
 import type { VoiceLine } from "../client/voice-lines";
 import type { Board, BoardRow } from "./types";
@@ -54,7 +56,6 @@ function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
         const first = r.rank === 1;
         return (
           <motion.div
-            layout
             key={r.userId}
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -91,7 +92,6 @@ function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
 function Row({ r, me }: { r: BoardRow; me: boolean }) {
   return (
     <motion.li
-      layout
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0 }}
@@ -128,27 +128,88 @@ function Row({ r, me }: { r: BoardRow; me: boolean }) {
   );
 }
 
-function MyPosition({ me, period }: { me: Me; period: Period }) {
+/** Time left in the current period, ticking once a minute (after mount only). */
+function ResetsIn({ period }: { period: Period }) {
+  const [left, setLeft] = useState<number | null>(null);
+  useEffect(() => {
+    if (period === "alltime") return;
+    const tick = () => setLeft(Math.max(0, periodBounds(period, Date.now()).end - Date.now()));
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, [period]);
+  if (period === "alltime" || left == null) return null;
+  const h = Math.floor(left / 3_600_000);
+  const d = Math.floor(h / 24);
+  const m = Math.floor((left % 3_600_000) / 60_000);
+  return <span>{d >= 1 ? `resets in ${d}d ${h % 24}h` : `resets in ${h}h ${m}m`}</span>;
+}
+
+function MyPosition({ me, period, rows }: { me: Me; period: Period; rows: BoardRow[] }) {
   const s = me.standing[period];
+  const [sharing, setSharing] = useState(false);
+  // The person directly above: how much XP it takes to pass them.
+  const above = s?.rank && s.rank > 1 ? rows.find((r) => r.rank === s.rank! - 1) : null;
+  const gap = above ? Math.max(1, above.xp - (s?.xp ?? 0) + 1) : null;
+  const handle = me.user?.username;
+  const shareUrl = handle && typeof window !== "undefined" ? `${window.location.origin}/academy/s/rank/${handle}?p=${period}` : "";
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-gold-400/30 bg-gold-400/[0.06] px-4 py-3">
-      <Avatar src={me.user?.image ?? null} alt={me.user?.name ?? "You"} size={36} />
-      <div className="min-w-0 flex-1">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">Your position</div>
-        <div className="truncate text-sm text-content">
-          {s?.rank ? (
-            <>
-              <span className="font-display text-lg font-bold">#{fmt(s.rank)}</span> <span className="text-content-subtle">of {fmt(s.size)}</span>
-            </>
-          ) : (
-            <span className="text-content-muted">Not ranked yet. Answer a question correctly to join.</span>
+    <div className="rounded-2xl border border-gold-400/30 bg-gold-400/[0.06] px-4 py-3">
+      <div className="flex items-center gap-3">
+        <Avatar src={me.user?.image ?? null} alt={me.user?.name ?? "You"} size={36} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">
+            Your position <span className="font-normal normal-case tracking-normal text-content-subtle"><ResetsIn period={period} /></span>
+          </div>
+          <div className="truncate text-sm text-content">
+            {s?.rank ? (
+              <>
+                <span className="font-display text-lg font-bold">#{fmt(s.rank)}</span> <span className="text-content-subtle">of {fmt(s.size)}</span>
+              </>
+            ) : (
+              <span className="text-content-muted">Not ranked yet. Answer a question correctly to join.</span>
+            )}
+          </div>
+          {gap != null && above && (
+            <div className="mt-0.5 truncate text-[12px] text-content-muted">
+              <span className="font-mono font-semibold text-mint-500 dark:text-mint-300">+{fmt(gap)} XP</span> to pass {above.name}
+            </div>
+          )}
+          {s?.rank === 1 && <div className="mt-0.5 text-[12px] font-semibold text-gold-600 dark:text-gold-200">You are on top. Hold it!</div>}
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <div className="text-right">
+            <div className="font-mono text-sm font-semibold text-gold-200">{fmt(s?.xp ?? 0)}</div>
+            <div className="text-[10px] uppercase tracking-wide text-content-subtle">XP</div>
+          </div>
+          {handle && (
+            <button
+              type="button"
+              onClick={() => {
+                unlock();
+                sfx("click");
+                setSharing((v) => !v);
+              }}
+              className="rounded-full border border-gold-400/40 px-2.5 py-0.5 text-[11px] font-semibold text-gold-600 transition-colors hover:bg-gold-400/10 dark:text-gold-200"
+              aria-expanded={sharing}
+            >
+              Share
+            </button>
           )}
         </div>
       </div>
-      <div className="text-right">
-        <div className="font-mono text-sm font-semibold text-gold-200">{fmt(s?.xp ?? 0)}</div>
-        <div className="text-[10px] uppercase tracking-wide text-content-subtle">XP</div>
-      </div>
+      {sharing && handle && (
+        <div className="mt-3 border-t border-gold-400/20 pt-3">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/academy/card/rank/${handle}?p=${period}`} alt="Your rank card" width={1200} height={630} className="mb-3 w-full max-w-md rounded-xl border border-hairline" loading="lazy" />
+          <ShareSheet
+            url={shareUrl}
+            image={`/academy/card/rank/${handle}?p=${period}`}
+            text={s?.rank ? `I'm #${s.rank} on the XYZ Crypto Academy leaderboard. Come beat me.` : "I'm learning Web3 on XYZ Crypto Academy."}
+            fileName="xyz-rank.png"
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -164,7 +225,8 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<BoardRow[] | null>(null);
   const { me, reload: reloadMe } = useMe();
-  useTicker(!compact, 5_000);
+  // (No board-wide ticker: the only clock on this view is "updated Ns ago",
+  // and <Ago> ticks itself. A 5 s re-render of every row was pure cost.)
 
   const load = useCallback(
     async (p: Period) => {
@@ -254,9 +316,11 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
                 setPeriod(p.id);
                 if (!compact) say(`board_${p.id}` as VoiceLine, { auto: true });
               }}
-              className={cn("relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors", period === p.id ? "text-ink-950" : "text-content-muted hover:text-content")}
+              // A CSS highlight, not a framer-motion shared layoutId: that kept
+              // a layout-projection tree alive that re-measured the whole board
+              // on every re-render.
+              className={cn("relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition-[background-color,color,box-shadow] duration-300", period === p.id ? "bg-gold-300 text-ink-950 shadow-[0_4px_14px_-6px_rgba(226,167,47,0.7)]" : "text-content-muted hover:text-content")}
             >
-              {period === p.id && <motion.span layoutId={compact ? "lb-tab-c" : "lb-tab"} className="absolute inset-0 rounded-full bg-gold-300" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}
               <span className="relative">{p.label}</span>
             </button>
           ))}
@@ -287,7 +351,7 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
 
       {!compact && me && (
         <div className="mt-4">
-          <MyPosition me={me} period={period} />
+          <MyPosition me={me} period={period} rows={rows} />
         </div>
       )}
 
@@ -327,7 +391,7 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
           </div>
         </Empty>
       ) : (
-        <LayoutGroup>
+        <>
           <div className={cn(compact ? "mt-8" : "mt-10")}>
             <Podium rows={top} meId={meId} />
           </div>
@@ -364,7 +428,7 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
               </Link>
             </div>
           )}
-        </LayoutGroup>
+        </>
       )}
     </div>
   );

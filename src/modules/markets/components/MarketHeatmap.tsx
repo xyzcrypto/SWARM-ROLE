@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useLivePrices } from "../lib/live-prices";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { Maximize2, X, Search, Sparkles, ZoomIn, ZoomOut, RotateCcw, ChevronDown } from "lucide-react";
@@ -848,16 +849,18 @@ export function computeCryptoTreemap(
   return results;
 }
 
-const NO_LIVE_UPDATES: Record<string, { price: number; change24h: number }> = {};
 
 function useLiveMarketHeatmap(initialCoins?: CoinRow[]) {
-  // A Binance `!miniTicker@arr` socket used to live here. The site CSP
-  // (connect-src) never allowed stream.binance.com, so in production it failed
-  // and reconnected every 4s forever; had it connected, it would have parsed
-  // every symbol on the exchange once a second. Tiles refresh from the cached
-  // /api/markets/* polls instead.
-  const isLive = false;
-  const liveUpdates = NO_LIVE_UPDATES;
+  // Real-time prices for exactly the coins on the map, from the shared
+  // Binance market-data stream (see lib/live-prices.ts for why this one is
+  // safe where the old `!miniTicker@arr` socket was not). Until the first
+  // frame, or if Binance is unreachable, tiles keep the polled
+  // /api/markets/coins values.
+  const liveSymbols = useMemo(
+    () => [INITIAL_BTC, INITIAL_ETH, INITIAL_SOL, ...INITIAL_ROW2, ...INITIAL_ROW3, ...INITIAL_MOSAIC_ROW2, ...INITIAL_MOSAIC_ROW3].map((t) => t.symbol).concat((initialCoins ?? []).slice(0, 100).map((c) => c.symbol)),
+    [initialCoins]
+  );
+  const { prices: liveUpdates, live: isLive } = useLivePrices(liveSymbols);
 
   const coinMap = useMemo(() => {
     const map = new Map<string, CoinRow>();
@@ -1182,9 +1185,10 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
           </h2>
           {/* Live indicator dot */}
           <span
-            title={isLive ? "Real-time live ticker stream active" : "Connected (periodic refresh)"}
+            title={isLive ? "Live: prices stream from Binance in real time" : "Refreshed every few minutes"}
             className="flex items-center gap-1 text-[10px] text-zinc-500 dark:text-zinc-400 font-medium ml-0.5"
           >
+            <span className="sr-only">{isLive ? "Live" : "Delayed"}</span>
             <span
               className={cn(
                 "w-1.5 h-1.5 rounded-full",
@@ -1847,7 +1851,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
               {/* Modal Footer */}
               <div className="pt-2 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-zinc-400 flex-none">
                 <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                  <span>Real-Time Crypto Treemap · Binance WebSocket Feed</span>
+                  <span>{isLive ? "Real-time crypto treemap · live Binance prices" : "Crypto treemap · prices refresh every few minutes"}</span>
                   <span className="text-zinc-600">·</span>
                   <span>
                     Metric: <strong className="text-white capitalize">{metric === "marketCap" ? "Market Capitalization" : "24h Volume"}</strong>

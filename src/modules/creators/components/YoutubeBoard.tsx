@@ -438,7 +438,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
               ) : (
                 <ol className="divide-y divide-hairline">
                   {sortedCreators.slice(0, cLimit).map((c, i) => (
-                    <motion.li key={c.channelId} layout initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 12) * 0.02 }}>
+                    <motion.li key={c.channelId} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 12) * 0.02 }}>
                       <button type="button" onClick={() => setOpen(c)} className="group flex w-full items-center gap-3 rounded-xl px-1 py-2.5 text-left hover:bg-ink-800/50">
                         <RankMark rank={i + 1} />
                         <Avatar src={c.channelAvatar} alt={c.channelTitle} />

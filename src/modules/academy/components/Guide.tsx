@@ -25,6 +25,7 @@ import {
 } from "../client/audio";
 import { useAudio } from "../client/hooks";
 import { GreetBubble } from "./GreetBubble";
+import { usePageBrief, type PageBrief } from "../client/page-brief";
 import { dispatchCommand, parseCommand } from "../client/commands";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import { askAneque, recordUtterance, releaseMic, talkSupported, transcribe, type TalkError, type Turn } from "../client/talk";
@@ -220,6 +221,26 @@ function untilQuiet(maxMs = 60_000) {
  * Live Talk: listen (record + server transcription), act on a command or ask
  * the AI, speak the answer, listen again, until the learner stops it.
  */
+/** Retry once, after a short pause, when the failure looks transient. */
+async function retryOnce<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    const st = (e as TalkError).status;
+    if (st === 0 || st === 502 || st === 504 || st === 429) {
+      await new Promise((r) => setTimeout(r, st === 429 ? 1500 : 700));
+      return fn();
+    }
+    throw e;
+  }
+}
+
+/** Phrases speech-to-text produces from silence or room noise. Pure, for tests. */
+export function isSilenceHallucination(text: string): boolean {
+  const t = text.trim().toLowerCase().replace(/[.!?,]+$/g, "");
+  return !t || /^(thank you|thanks|thanks for watching|thank you for watching|you|bye|hmm|uh|um|subtitles by.*|\.+)$/.test(t);
+}
+
 function useLiveTalk(router: ReturnType<typeof useRouter>) {
   const [state, setState] = useState<TalkState>("idle");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -307,7 +328,10 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
       setState("transcribing");
       let text = "";
       try {
-        text = (await transcribe(rec.blob)).text.trim();
+        // One quiet retry on a network blip before telling the learner.
+        text = (await retryOnce(() => transcribe(rec.blob))).text.trim();
+        // Whisper invents these on near-silence; treat them as "didn't catch that".
+        if (isSilenceHallucination(text)) text = "";
       } catch (e) {
         const st = (e as TalkError).status;
         if (st === 401) say("talk_login");
@@ -322,7 +346,7 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
       }
       if (!active.current) return;
       if (!text) {
-        say("talk_error");
+        say("talk_again");
         await untilQuiet(8000);
         continue;
       }
@@ -334,7 +358,7 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
       setState("thinking");
       history.current = [...history.current, { role: "user" as const, content: text }].slice(-12);
       try {
-        const { text: answer } = await askAneque(history.current);
+        const { text: answer } = await retryOnce(() => askAneque(history.current));
         if (!active.current) return;
         history.current = [...history.current, { role: "assistant" as const, content: answer }].slice(-12);
         setTurns((t) => [...t, { role: "assistant" as const, content: answer }].slice(-6));
@@ -465,6 +489,31 @@ export function GuideDock() {
     return () => window.removeEventListener("academy:open", on);
   }, []);
 
+  // Outside the Academy (Markets, News, Points) the page publishes a brief
+  // built from the data on screen; AneQue reads it aloud on request.
+  const brief = usePageBrief();
+  const explain = (b: PageBrief) => {
+    unlock();
+    sfx("click");
+    let spoken: string[] = [];
+    try {
+      spoken = b.build().spoken;
+    } catch {
+      spoken = [];
+    }
+    if (!spoken.length) {
+      say("brief_waiting");
+      return;
+    }
+    const intro = (`brief_${b.page}` as VoiceLine) in VOICE_LINES ? (`brief_${b.page}` as VoiceLine) : null;
+    const pieces = [
+      ...(intro ? [{ url: `/academy/voice/${intro}.mp3`, text: VOICE_LINES[intro] }] : []),
+      ...spoken.map((t) => ({ text: t })),
+      { url: "/academy/voice/brief_outro.mp3", text: VOICE_LINES.brief_outro },
+    ];
+    play(pieces);
+  };
+
   const replay = () => {
     unlock();
     if (voice.line) say(voice.line);
@@ -529,6 +578,17 @@ export function GuideDock() {
                   {talk.active ? `End talk · ${TALK_LABEL[talk.state]}` : "Talk to AneQue"}
                 </button>
                 {talk.error && <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[11px] leading-relaxed text-content-subtle">{talk.error}</p>}
+
+                {brief && (
+                  <button
+                    type="button"
+                    onClick={() => explain(brief)}
+                    disabled={talk.active}
+                    className="btn-gold mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm disabled:opacity-50"
+                  >
+                    <Sparkles className="h-4 w-4" /> {brief.label}
+                  </button>
+                )}
 
                 <div className="mt-2 flex items-center gap-2">
                   {speaking ? (

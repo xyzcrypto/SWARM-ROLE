@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { BadgeCheck, Clock, Copy, Download, ShieldAlert, Share2 } from "lucide-react";
+import { BadgeCheck, Clock, Download, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { shareOnX, utcDate } from "./ui";
+import { utcDate } from "./ui";
+import { ShareSheet } from "./ShareSheet";
 
 type Cert = {
   code: string;
@@ -21,58 +21,88 @@ type Cert = {
 };
 type Issuer = { name: string; unit: string; signatory: string; contact: string; site: string };
 
-/** The certificate as a page: same layout as the PDF, scaled for any screen. */
+/**
+ * The certificate as a page: same layout as the PDF, scaled for any screen.
+ * Colours come from --cert-* variables (academy.css): black and gold on the
+ * dark theme, ivory paper with ink and gold foil on the light theme, so it
+ * reads like a real certificate either way.
+ */
 export function CertificateCard({ cert, issuer, url, qr }: { cert: Cert; issuer: Issuer; url: string; qr: string }) {
   return (
-    <div className="relative aspect-[842/595] w-full overflow-hidden rounded-2xl bg-[#08080a] text-center shadow-[0_40px_120px_-40px_rgba(226,167,47,0.45)] [container-type:inline-size]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-1/3 bg-gradient-to-b from-gold-500/10 to-transparent" />
-      <div className="absolute inset-[2.6%] rounded-lg border border-gold-400/80" />
-      <div className="absolute inset-[3.6%] rounded border border-gold-400/35" />
+    <div className="acad-cert relative aspect-[842/595] w-full overflow-hidden rounded-2xl text-center [container-type:inline-size]">
+      {/* guilloche + foil glow */}
+      <div className="acad-cert-guilloche pointer-events-none absolute inset-0" aria-hidden />
+      <div className="acad-cert-glow pointer-events-none absolute inset-0" aria-hidden />
+      <div className="acad-cert-frame absolute inset-[2.4%] rounded-lg" aria-hidden />
+      <div className="acad-cert-frame-inner absolute inset-[3.5%] rounded" aria-hidden />
       {[
-        "left-[4.5%] top-[6.4%] border-l border-t",
-        "right-[4.5%] top-[6.4%] border-r border-t",
-        "left-[4.5%] bottom-[6.4%] border-l border-b",
-        "right-[4.5%] bottom-[6.4%] border-r border-b",
+        "left-[4.4%] top-[6.2%] border-l-2 border-t-2",
+        "right-[4.4%] top-[6.2%] border-r-2 border-t-2",
+        "left-[4.4%] bottom-[6.2%] border-l-2 border-b-2",
+        "right-[4.4%] bottom-[6.2%] border-r-2 border-b-2",
       ].map((c) => (
-        <span key={c} className={cn("absolute h-[5.7%] w-[4%] border-gold-200", c)} />
+        <span key={c} className={cn("acad-cert-corner absolute h-[6%] w-[4.2%]", c)} aria-hidden />
       ))}
-      <div className="relative flex h-full flex-col items-center px-[9%] pt-[5.5%]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="XYZ Crypto" className="h-[7.7cqw] w-auto" />
-        <div className="mt-[0.6cqw] text-[1.2cqw] font-bold tracking-[0.3em] text-gold-400">XYZ CRYPTO ACADEMY</div>
-        <div className="mt-[2.4cqw] font-serif text-[3.6cqw] font-bold tracking-wide text-gold-200">CERTIFICATE OF ACHIEVEMENT</div>
-        <div className="mt-[0.9cqw] h-px w-[17%] bg-gold-400" />
-        <div className="mt-[2.2cqw] text-[1.45cqw] text-zinc-400">This certifies that</div>
-        <div className="mt-[0.6cqw] max-w-full truncate font-serif text-[5.4cqw] font-bold italic leading-tight text-white">{cert.displayName}</div>
-        <div className="mt-[0.4cqw] h-px w-[48%] bg-gold-400/60" />
-        <div className="mt-[1.8cqw] text-[1.45cqw] text-zinc-400">has been awarded the title of</div>
-        <div className="mt-[0.9cqw] font-serif text-[3.1cqw] font-bold uppercase tracking-wide text-gold-200">{cert.title}</div>
-        <div className="mt-[0.9cqw] text-[1.4cqw] text-zinc-100">{cert.line}</div>
-        <div className="mt-[0.6cqw] text-[1.3cqw] text-zinc-400">
-          Final rank: #{cert.rank} &nbsp;&nbsp; Score: {cert.score.toLocaleString("en-US")}
+      <div className="relative flex h-full flex-col items-center px-[9%] pt-[5%]">
+        <div className="flex items-center gap-[1cqw]">
+          <span className="acad-cert-rule h-px w-[7cqw]" aria-hidden />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="XYZ Crypto" className="h-[7cqw] w-auto drop-shadow-[0_0.4cqw_1cqw_rgba(176,120,22,0.45)]" />
+          <span className="acad-cert-rule h-px w-[7cqw]" aria-hidden />
         </div>
+        <div className="acad-cert-gold mt-[0.8cqw] text-[1.15cqw] font-bold tracking-[0.42em]">XYZ CRYPTO ACADEMY</div>
+        <div className="mt-[1.9cqw] font-serif text-[3.7cqw] font-bold tracking-[0.06em]">
+          <span className="acad-cert-foil">CERTIFICATE OF ACHIEVEMENT</span>
+        </div>
+        <div className="acad-cert-rule mt-[0.9cqw] h-[0.18cqw] w-[20%]" aria-hidden />
+        <div className="acad-cert-muted mt-[2cqw] text-[1.45cqw] italic">This is proudly presented to</div>
+        <div className="acad-cert-ink mt-[0.5cqw] max-w-full truncate font-serif text-[5.6cqw] font-bold italic leading-tight">{cert.displayName}</div>
+        <div className="acad-cert-rule mt-[0.3cqw] h-px w-[50%] opacity-70" aria-hidden />
+        <div className="acad-cert-muted mt-[1.6cqw] text-[1.45cqw]">for earning the title of</div>
+        <div className="mt-[0.7cqw] font-serif text-[3.2cqw] font-bold uppercase tracking-[0.05em]">
+          <span className="acad-cert-foil">{cert.title}</span>
+        </div>
+        <div className="acad-cert-ink mt-[0.8cqw] text-[1.45cqw] font-medium">{cert.line}</div>
+        <div className="acad-cert-muted mt-[0.5cqw] font-mono text-[1.25cqw]">
+          FINAL RANK #{cert.rank} &nbsp;·&nbsp; SCORE {cert.score.toLocaleString("en-US")}
+        </div>
+
+        {/* wax seal */}
+        <div className="acad-cert-seal absolute bottom-[8%] right-[20.5%] grid h-[10cqw] w-[10cqw] place-items-center rounded-full" aria-hidden>
+          <div className="grid h-[7.6cqw] w-[7.6cqw] place-items-center rounded-full border border-dashed border-white/40 text-center">
+            <div className="text-[0.85cqw] font-black leading-tight tracking-[0.16em] text-white">
+              VERIFIED
+              <br />
+              <span className="text-[1.6cqw]">★</span>
+              <br />
+              XYZ
+            </div>
+          </div>
+        </div>
+
         <div className="absolute inset-x-[9.5%] bottom-[7%] flex items-end justify-between text-left">
           <div>
-            <div className="text-[0.95cqw] font-bold tracking-[0.2em] text-gold-400">ISSUED</div>
-            <div className="text-[1.45cqw] text-white">{utcDate(cert.issuedAt)}</div>
-            <div className="mt-[0.9cqw] text-[0.95cqw] font-bold tracking-[0.2em] text-gold-400">CERTIFICATE ID</div>
-            <div className="font-mono text-[1.45cqw] text-white">{cert.code}</div>
+            <div className="acad-cert-gold text-[0.95cqw] font-bold tracking-[0.2em]">ISSUED</div>
+            <div className="acad-cert-ink text-[1.45cqw]">{utcDate(cert.issuedAt)}</div>
+            <div className="acad-cert-gold mt-[0.9cqw] text-[0.95cqw] font-bold tracking-[0.2em]">CERTIFICATE ID</div>
+            <div className="acad-cert-ink font-mono text-[1.45cqw]">{cert.code}</div>
           </div>
           <div className="text-center">
-            <div className="mx-auto h-px w-[22cqw] bg-gold-400" />
-            <div className="mt-[0.6cqw] font-serif text-[1.6cqw] font-bold italic text-white">{issuer.signatory}</div>
-            <div className="text-[1cqw] text-zinc-400">
-              Issued by {issuer.name} · {issuer.site}
+            <div className="acad-cert-ink font-serif text-[2.1cqw] italic leading-none [font-family:'Brush_Script_MT','Segoe_Script',cursive]">{issuer.signatory}</div>
+            <div className="acad-cert-rule mx-auto mt-[0.5cqw] h-px w-[22cqw]" />
+            <div className="acad-cert-ink mt-[0.5cqw] font-serif text-[1.45cqw] font-bold">{issuer.signatory}</div>
+            <div className="acad-cert-muted text-[1cqw]">
+              {issuer.name} · {issuer.site}
             </div>
           </div>
           <div className="flex flex-col items-end">
-            <div className="h-[9.3cqw] w-[9.3cqw] rounded bg-transparent [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} aria-label={`QR code linking to ${url}`} role="img" />
-            <div className="mt-[0.5cqw] text-[0.9cqw] text-zinc-400">Scan to verify</div>
+            <div className="acad-cert-qr h-[9.3cqw] w-[9.3cqw] rounded p-[0.4cqw] [&>svg]:h-full [&>svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} aria-label={`QR code linking to ${url}`} role="img" />
+            <div className="acad-cert-muted mt-[0.5cqw] text-[0.9cqw]">Scan to verify</div>
           </div>
         </div>
         {cert.status !== "issued" && (
           <div className="absolute inset-0 grid place-items-center">
-            <span className="-rotate-12 rounded-xl border-4 border-red-400/80 px-[3cqw] py-[1cqw] text-[6cqw] font-black tracking-widest text-red-400/80">{cert.status === "revoked" ? "REVOKED" : "PENDING"}</span>
+            <span className="-rotate-12 rounded-xl border-4 border-red-500/80 px-[3cqw] py-[1cqw] text-[6cqw] font-black tracking-widest text-red-500/80">{cert.status === "revoked" ? "REVOKED" : "PENDING"}</span>
           </div>
         )}
       </div>
@@ -81,7 +111,6 @@ export function CertificateCard({ cert, issuer, url, qr }: { cert: Cert; issuer:
 }
 
 export function CertificateView({ cert, issuer, url, qr }: { cert: Cert; issuer: Issuer; url: string; qr: string }) {
-  const [copied, setCopied] = useState(false);
   const valid = cert.status === "issued";
   return (
     <div className="mx-auto max-w-5xl">
@@ -93,9 +122,9 @@ export function CertificateView({ cert, issuer, url, qr }: { cert: Cert; issuer:
           valid ? "border-mint-400/40 bg-mint-400/[0.06]" : cert.status === "pending" ? "border-gold-400/40 bg-gold-400/[0.06]" : "border-red-400/40 bg-red-400/[0.06]"
         )}
       >
-        {valid ? <BadgeCheck className="h-6 w-6 text-mint-300" /> : cert.status === "pending" ? <Clock className="h-6 w-6 text-gold-300" /> : <ShieldAlert className="h-6 w-6 text-red-300" />}
+        {valid ? <BadgeCheck className="h-6 w-6 text-mint-600 dark:text-mint-300" /> : cert.status === "pending" ? <Clock className="h-6 w-6 text-gold-600 dark:text-gold-300" /> : <ShieldAlert className="h-6 w-6 text-red-500 dark:text-red-300" />}
         <div className="min-w-0 flex-1">
-          <div className={cn("font-semibold", valid ? "text-mint-200" : cert.status === "pending" ? "text-gold-200" : "text-red-200")}>
+          <div className={cn("font-semibold", valid ? "text-mint-700 dark:text-mint-200" : cert.status === "pending" ? "text-gold-700 dark:text-gold-200" : "text-red-600 dark:text-red-200")}>
             {valid ? "Verified certificate" : cert.status === "pending" ? "Awaiting approval" : "This certificate has been revoked"}
           </div>
           <div className="text-xs text-content-muted">
@@ -108,28 +137,17 @@ export function CertificateView({ cert, issuer, url, qr }: { cert: Cert; issuer:
         <CertificateCard cert={cert} issuer={issuer} url={url} qr={qr} />
       </motion.div>
 
-      <div className="mt-6 flex flex-wrap gap-2.5">
+      {valid && (
+        <div className="mt-6 rounded-2xl border border-hairline bg-white/[0.02] p-4">
+          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Share your certificate</div>
+          <ShareSheet url={url} image={`/academy/certificate/${cert.code}/opengraph-image`} text={`I earned "${cert.title}" on XYZ Crypto Academy. Verify it here:`} fileName={`xyz-certificate-${cert.code}.png`} />
+        </div>
+      )}
+
+      <div className="mt-4 flex flex-wrap gap-2.5">
         <a href={`/api/academy/certificates/${cert.code}/pdf`} className="btn-gold h-11 px-5 text-sm" download>
           <Download className="h-4 w-4" /> Download PDF
         </a>
-        <button type="button" onClick={() => shareOnX(`I earned "${cert.title}" on XYZ Crypto Academy. Verify it here:`, url)} className="btn-secondary h-11 px-5 text-sm" disabled={!valid}>
-          <Share2 className="h-4 w-4" /> Share on X
-        </button>
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(url);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 2000);
-            } catch {
-              /* clipboard blocked */
-            }
-          }}
-          className="btn-secondary h-11 px-5 text-sm"
-        >
-          <Copy className="h-4 w-4" /> {copied ? "Link copied" : "Copy link"}
-        </button>
         <Link href="/academy" className="btn-ghost h-11 px-5 text-sm">
           XYZ Crypto Academy
         </Link>

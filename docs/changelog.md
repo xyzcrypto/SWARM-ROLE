@@ -5,6 +5,72 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (163) — Smoothness round 2, live market prices, AneQue on Markets/News/Points, share cards, premium certificate, public profiles
+
+### Smoothness (owner's top priority)
+Measured with a throttled-phone navigation stress test (Pixel 7, 4× CPU, real link clicks)
+and CPU profiles, then fixed what the profiles named:
+- **Audio engine no longer built on page load.** Without a user gesture the browser refuses
+  sound anyway, so `tryAutoUnlock()` now skips building the graph. The reverb (~200k
+  generated samples) is built in idle time with a fast PRNG instead of `Math.random`/`Math.pow`.
+- **framer-motion `layout` measurement removed** from lists that re-render often (Academy
+  leaderboard rows and podium, live arena standings every 250 ms, Creators X/YouTube boards),
+  and the leaderboard's shared-`layoutId` tab pill became CSS. Each of these re-measured
+  the whole list with `getBoundingClientRect` on every render.
+- The leaderboard's 5-second whole-board ticker is gone (`<Ago>` ticks itself).
+
+### Requested changes
+- Desktop nav: **Community moved into "More"** (rail: Home, Markets, Points, News, Research,
+  Academy, Creators).
+- Home hero: the "The Home Of Next Gen Web3.." line is removed; the NEW launch chip stays.
+- **Who we are** realigned: equal columns centred against each other, the eyebrow no longer
+  stretches, Learn/Trade/Earn link to Academy/Markets/Points, the trust card sits under them.
+- Products → **Web3 Academy now opens /academy** (it went to /research); the orbital
+  "Education" node too.
+- Academy hero: the headline is three lines that fill the column on desktop, and the space
+  under the today-ticket shows the latest certificates and live-quiz status.
+
+### Markets: real-time prices
+- The heatmap had a Binance socket removed because the CSP blocked it; it then refreshed every
+  3 minutes while still labelled "Binance WebSocket Feed". New `markets/lib/live-prices.ts`:
+  one shared socket to Binance's public market-data stream (`wss://data-stream.binance.vision`,
+  now in `connect-src`), subscribing only to the symbols on screen, batched into React about
+  once a second, closed while the tab is hidden, falling back to the polled data after
+  repeated failures. A 25% sanity guard ignores a same-ticker different asset.
+- Used by the heatmap, the coin table (now shows "Live prices") and the site ticker. Labels
+  now say what is true ("live" only while the stream is up).
+
+### AneQue on Markets, News and Points
+- Her dock is lazy-loaded on those pages (separate chunk, no SSR). **"Explain the market" /
+  "Read me the top stories" / "Explain the points programs"** speak a brief built at that
+  moment from the data on screen (live prices included), with recorded intro/outro lines.
+- Live Talk sends that same data with the question, and the prompt tells her to use those
+  figures and never invent numbers. Page greetings by name on all three pages.
+
+### Academy premium
+- **Certificate v2**: guilloché pattern, gold-foil headings, wax seal, signature; black and
+  gold on dark, **ivory paper on the light theme** (QR on a dark tile so it still scans).
+- **Share cards** (1200×630, Geist fonts bundled): certificate (its link preview), quiz score
+  and leaderboard rank, with share pages (`/academy/s/quiz/[id]`, `/academy/s/rank/[handle]`)
+  whose previews are the cards. A share sheet (native share with the image, X, WhatsApp,
+  Telegram, copy, download) on certificates, quiz results and the leaderboard.
+- **Leaderboard**: "+N XP to pass <name>", period reset countdown, share-my-rank.
+- **Live Talk**: one automatic retry on network blips, Whisper's silence hallucinations
+  ("Thank you.") ignored, natural/neural voices preferred at their own pitch.
+- Answers: a right answer pops with a ring and a sweep, a streak of 3+ shows a banner.
+
+### Profiles and feedback
+- **Public profile** shows Academy level and XP bar, quizzes, accuracy, streak, achievements,
+  certificates, recent quizzes (each opens its score card) and feedback sent/shipped/badges.
+- **Public / private** setting (Settings → Privacy): private shows only name and photo.
+- Feedback: **attach a screenshot** (compressed in the browser, verified by magic bytes on the
+  server, stored like other images); the owner's email/Telegram links it and the admin
+  dashboard shows it.
+- Migration `46_profile_visibility` (additive, idempotent): `User.profileVisibility`,
+  `Feedback.image`.
+
+---
+
 ## 2026-11-20 (162) — Academy + Creators in the main navigation; home quick links removed
 
 - **Home hero:** the Markets / Points / Academy / News / Creators quick-link row (added in

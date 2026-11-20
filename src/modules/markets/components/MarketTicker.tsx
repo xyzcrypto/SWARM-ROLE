@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { useTickerPoll } from "@/lib/useTickerPoll";
+import { useLivePrices } from "@modules/markets/lib/live-prices";
 
 type Coin = { symbol: string; name: string; price: number; change: number; image: string };
 
@@ -61,7 +62,19 @@ export function MarketTicker() {
   // Shared across every consumer on the page (see useTickerPoll) - was its
   // own independent 60s poll, duplicating LiveMarketVisual's identical fetch.
   const { coins: polled, live, loading } = useTickerPoll();
-  const coins = polled ?? fallback;
+  const base = polled ?? fallback;
+  // Live Binance prices on top of the poll (shared socket, ~1 update/s; see
+  // lib/live-prices.ts). Same 25% sanity guard as the markets table.
+  const { prices: livePx } = useLivePrices(useMemo(() => base.map((c) => c.symbol), [base]));
+  const coins = useMemo(
+    () =>
+      base.map((c) => {
+        const l = livePx[c.symbol.toUpperCase()];
+        if (!l || (c.price > 0 && Math.abs(l.price - c.price) / c.price > 0.25)) return c;
+        return { ...c, price: l.price, change: l.change24h };
+      }),
+    [base, livePx]
+  );
   const [flash, setFlash] = useState<Record<string, "up" | "down">>({});
   const prev = useRef<Record<string, number>>({});
 

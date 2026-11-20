@@ -138,15 +138,9 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
             style={{ "--rise-y": "12px", "--rise-dur": "0.5s" } as React.CSSProperties}
             className="hero-rise hero-eyebrow mb-6 flex flex-col items-center gap-2.5 lg:items-start"
           >
-            {/* The brand slogan stays the first line of the page. */}
-            <span className="eyebrow eyebrow-glass text-zinc-200">
-              <MagicStar size={14} variant="Bold" color="#e2a72f" />
-              <span className="mono text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">
-                The Home Of Next Gen Web3..
-              </span>
-            </span>
-            {/* Under it, the newest launch as a link: what's new is visible
-                to a returning visitor without a popup. */}
+            {/* The newest launch as a link: what's new is visible to a
+                returning visitor without a popup. (The slogan line was
+                removed 2026-11-20 at the owner's request, to lighten the hero.) */}
             <Link
               href={LATEST?.href ?? "/"}
               className="hero-new-chip group inline-flex max-w-full items-center gap-2 rounded-full border border-gold-400/30 bg-ink-900/70 py-1 pl-1 pr-3 text-[12px] text-zinc-300 backdrop-blur transition-colors hover:border-gold-400/60 active:border-gold-400/60 sm:text-[13px]"

@@ -39,6 +39,10 @@ model User {
   // "following" means people THIS user follows - the inbox they opted into,
   // not the crowd who opted into them.
   dmPrivacy     String    @default("everyone")
+  // Public profile visibility: "public" shows everything on /u/<handle>
+  // (Academy level/XP/certificates, feedback, posts, library, journal);
+  // "private" shows only name and avatar to everyone else.
+  profileVisibility String  @default("public")
 
   // Brute-force defence (works without Upstash): lock the account for a short
   // window after repeated failed password attempts; reset on success.
@@ -1432,6 +1436,7 @@ model Feedback {
   rating    Int // 1-5
   message   String
   page      String   @default("")
+  image     String? // optional screenshot (Storage URL, or inline data URL without Storage)
   status    String   @default("new") // new | seen | done
   xp        Int      @default(0) // XP paid when it was sent
   createdAt DateTime @default(now())
