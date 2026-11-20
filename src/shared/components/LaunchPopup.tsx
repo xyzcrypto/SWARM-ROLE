@@ -10,14 +10,17 @@ import { activeLaunches, type Launch } from "@shared/utils/launches";
  * "What's new" popup on the home page: the latest product launches (and admin
  * What's New entries from the last week) the visitor has not seen yet, one
  * card at a time. Close it with X, or it closes itself after AUTO_MS
- * (paused while hovered or touched). Seen items are remembered per browser.
+ * (paused while hovered or touched). Only the cards actually shown are
+ * remembered as seen, so an auto-closed popup leads with the next launch on
+ * the next visit.
  *
  * Nothing here renders on the server or the first client pass: the list is
  * built after mount, so it can never cause a hydration mismatch.
  */
 
 const KEY = "xyz:launches:seen:v1";
-const AUTO_MS = 8000;
+/** The whole popup closes itself after this, whichever card is showing. */
+const AUTO_MS = 9000;
 const ICONS = { GraduationCap, AudioLines, Trophy, Coins, MessageSquareHeart, Sparkles } as const;
 
 type Item = Pick<Launch, "id" | "product" | "title" | "body" | "href" | "cta" | "icon">;
@@ -75,11 +78,11 @@ export function LaunchPopup() {
   }, []);
 
   const close = useCallback(() => {
-    writeSeen(items.map((x) => x.id));
+    writeSeen(items.slice(0, i + 1).map((x) => x.id));
     setOpen(false);
-  }, [items]);
+  }, [items, i]);
 
-  // Auto-close: a progress bar runs for AUTO_MS per card, paused on hover/touch.
+  // Auto-close: a progress bar runs for AUTO_MS, paused on hover/touch.
   useEffect(() => {
     if (!open || paused) return;
     let raf = 0;
@@ -90,19 +93,14 @@ export function LaunchPopup() {
       const p = Math.min(1, elapsed.current / AUTO_MS);
       setProgress(p);
       if (p >= 1) {
-        if (i < items.length - 1) {
-          elapsed.current = 0;
-          setI((x) => x + 1);
-        } else {
-          close();
-          return;
-        }
+        close();
+        return;
       }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [open, paused, i, items.length, close]);
+  }, [open, paused, close]);
 
   const item = items[i];
   const Icon = item ? ICONS[item.icon] ?? Sparkles : Sparkles;
@@ -121,7 +119,7 @@ export function LaunchPopup() {
           onPointerEnter={() => setPaused(true)}
           onPointerLeave={() => setPaused(false)}
           onTouchStart={() => setPaused(true)}
-          className="launch-pop fixed inset-x-3 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[70] mx-auto max-w-md overflow-hidden rounded-3xl border border-gold-400/35 bg-ink-950/95 shadow-elevate backdrop-blur-xl sm:inset-x-auto sm:bottom-6 sm:left-6 sm:mx-0 sm:w-[25rem]"
+          className="launch-pop fixed inset-x-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] z-[70] mx-auto max-w-md overflow-hidden rounded-3xl border border-gold-400/35 bg-ink-950/95 shadow-elevate backdrop-blur-xl sm:inset-x-auto sm:bottom-6 sm:left-6 sm:mx-0 sm:w-[25rem]"
         >
           <div className="launch-pop-glow pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative p-4 sm:p-5">
@@ -157,6 +155,7 @@ export function LaunchPopup() {
                 <button
                   type="button"
                   onClick={() => {
+                    // Reading on: give this card its own full time.
                     elapsed.current = 0;
                     setProgress(0);
                     setI(i + 1);

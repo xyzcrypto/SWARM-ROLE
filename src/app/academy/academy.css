@@ -454,3 +454,71 @@ html:not(.dark) .acad-ruled {
     background-position: -60% 0;
   }
 }
+
+/* ---------------------------------------------------------------- hero v4
+   Topic rail, stats strip, and the ticket's gold ring, glow and tilt. Exempt
+   from reduced motion per the design-system policy (small, local, brand). */
+.acad-track-rail {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.acad-track-rail-track {
+  animation: acad-rail 60s linear infinite;
+}
+.acad-track-rail:hover .acad-track-rail-track,
+.acad-track-rail:focus-within .acad-track-rail-track {
+  animation-play-state: paused;
+}
+@keyframes acad-rail {
+  to { transform: translateX(calc(-50% - 0.25rem)); }
+}
+.acad-hero-stats {
+  backdrop-filter: blur(6px);
+}
+
+.acad-ticket-glow {
+  background: radial-gradient(55% 50% at 60% 40%, rgba(226, 167, 47, 0.16), transparent 70%);
+  filter: blur(8px);
+}
+@property --acad-ring {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+.acad-ticket-ring {
+  padding: 1px;
+  background: conic-gradient(from var(--acad-ring), transparent 0deg, rgba(240, 196, 92, 0.85) 40deg, transparent 110deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: acad-ring 7s linear infinite;
+  z-index: 2;
+}
+@keyframes acad-ring {
+  to { --acad-ring: 360deg; }
+}
+.acad-ticket-sheen {
+  background: radial-gradient(40% 35% at var(--mx, 50%) var(--my, 0%), rgba(255, 255, 255, 0.07), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  .acad-tilt {
+    transform: perspective(1100px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+  }
+  .acad-tilt:hover .acad-ticket-sheen {
+    opacity: 1;
+  }
+}
+html:not(.dark) .acad-ticket-glow {
+  background: radial-gradient(55% 50% at 60% 40%, rgba(200, 144, 31, 0.14), transparent 70%);
+}
+html:not(.dark) .acad-ticket-ring {
+  background: conic-gradient(from var(--acad-ring), transparent 0deg, rgba(176, 120, 22, 0.75) 40deg, transparent 110deg, transparent 360deg);
+}
+html:not(.dark) .acad-ticket-sheen {
+  background: radial-gradient(40% 35% at var(--mx, 50%) var(--my, 0%), rgba(200, 144, 31, 0.08), transparent 70%);
+}

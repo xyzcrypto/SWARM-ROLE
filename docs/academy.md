@@ -36,7 +36,7 @@ process to keep alive. Pause freezes the clock; End awards immediately.
 
 ## Migrations
 Production syncs the schema with `db push` on deploy. `prisma/migrations/43_creators` and
-`44_academy` record the same tables as idempotent SQL for anyone building a database by
+`44_academy` (and `45_feedback` for the site feedback table) record the same tables as idempotent SQL for anyone building a database by
 hand or auditing the history.
 
 ## AneQue (the voice guide, said "Aneq")
@@ -49,6 +49,17 @@ like "open leaderboard" act locally, and anything else goes to `/api/academy/ane
 (the XYZ AI gateway, plans and daily limits) whose answer is spoken by the browser voice.
 While a quiz question is open the prompt forbids giving it away. Without a Groq key Live
 Talk says it is unavailable; everything else keeps working.
+
+**Greeting by name.** `GreetBubble` (inside the dock, so on every Academy page) greets the
+member by first name as the page opens: "Hey Riya!" plays from her recorded name bank
+(`client/name-bank.ts`, 290 common names, `public/academy/voice/n/<name>.mp3`); any other
+name is said by the browser voice. `tryAutoUnlock()` starts sound without a tap when the
+browser allows it (an in-site click carried over, or high media engagement); otherwise a
+"Tap to hear AneQue" bubble waits for the first tap. The full greeting (name, time of day,
+streak/daily status) plays once per browser session; the library, leaderboard, live and
+certificate pages each get one short line the first time they open. `client/greet.ts` is
+the pure builder and is pinned by tests. To add names, append to the bank and render with
+the same Kokoro voice (`Hey <Name>!`); the test fails if a bank name has no clip.
 
 ## Voice recordings
 - Scripted lines: `client/voice-lines.ts`, each with `public/academy/voice/<key>.mp3`.

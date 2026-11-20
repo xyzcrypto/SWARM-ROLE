@@ -123,10 +123,14 @@ export function GreetBubble({ hidden, onVisible }: { hidden: boolean; onVisible:
     spoke.current = false;
   }, [path]);
 
-  const show = Boolean(bubble) && !hidden;
+  // On the Academy home the hero card already shows her words, so the bubble
+  // is only needed there to ask for the tap.
+  const show = Boolean(bubble) && !hidden && (page !== "home" || Boolean(bubble?.waiting));
   useEffect(() => onVisible(show), [show, onVisible]);
 
-  const caption = bubble ? (voice.speaking && voice.text ? voice.text : bubble.pieces.map((p) => p.text).join(" ")) : "";
+  // The bubble's title already says "Hey Riya!", so the caption starts after it.
+  const full = bubble ? (voice.speaking && voice.text ? voice.text : bubble.pieces.map((p) => p.text).join(" ")) : "";
+  const caption = full.replace(/^Hey [^!]{1,30}!\s*/, "");
 
   return (
     <AnimatePresence>

@@ -48,7 +48,7 @@ export function AcademyHome() {
 
   return (
     <div>
-      <Hero pulse={pulse} me={me} topics={catalog?.length ?? null} questions={catalog ? catalog.reduce((n, c) => n + c.questionCount, 0) : null} />
+      <Hero pulse={pulse} me={me} topics={catalog?.length ?? null} questions={catalog ? catalog.reduce((n, c) => n + c.questionCount, 0) : null} tracks={catalog} />
 
       {status === "authenticated" ? (
         me ? (

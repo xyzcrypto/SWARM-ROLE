@@ -106,6 +106,21 @@ export function FeedbackClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
+  // On a phone the next step (or the thank-you) can open below the fold:
+  // bring the card's top back into view when it changes.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const firstStep = useRef(true);
+  useEffect(() => {
+    if (firstStep.current) {
+      firstStep.current = false;
+      return;
+    }
+    const el = cardRef.current;
+    if (!el) return;
+    const top = el.getBoundingClientRect().top;
+    if (top < 72 || top > window.innerHeight * 0.6) window.scrollTo({ top: window.scrollY + top - 96, behavior: "smooth" });
+  }, [step, done]);
+
   const q = useMemo(() => quality(message), [message]);
   const praisedQuality = useRef(false);
   useEffect(() => {
@@ -234,6 +249,7 @@ export function FeedbackClient() {
           </p>
         </motion.header>
 
+        <div ref={cardRef} className="scroll-mt-24">
         <Panel className="fb-card relative overflow-hidden !p-0">
           <div className="fb-glow pointer-events-none absolute inset-0" aria-hidden />
           {/* progress */}
@@ -455,6 +471,7 @@ export function FeedbackClient() {
             </AnimatePresence>
           </div>
         </Panel>
+        </div>
       </div>
 
       {/* ---------------------------------------------------------- sidebar */}
