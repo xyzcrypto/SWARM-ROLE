@@ -68,6 +68,12 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  // Academy share cards read their fonts and logo from disk at request time;
+  // make sure the serverless functions that render them ship those files.
+  outputFileTracingIncludes: {
+    "/academy/card/**": ["./src/modules/academy/assets/**"],
+    "/academy/certificate/**": ["./src/modules/academy/assets/**"],
+  },
   reactStrictMode: true,
   poweredByHeader: false,
   // Strip console.* from production bundles (keep error/warn) - smaller, faster JS.

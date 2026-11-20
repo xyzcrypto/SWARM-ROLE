@@ -603,3 +603,145 @@ html[data-acad-playing] .acad-shell {
     font-size: clamp(2.5rem, 3.75vw, 3.85rem);
   }
 }
+
+/* ---------------------------------------------------------------- certificate v2
+   Black + gold foil on the dark theme; ivory paper + ink + gold foil on the
+   light theme. Every colour on the card is one of these variables. */
+.acad-cert {
+  --cert-bg: radial-gradient(120% 90% at 50% 0%, #17130b 0%, #0a0907 45%, #050505 100%);
+  --cert-ink: #f6f1e6;
+  --cert-muted: #a8a093;
+  --cert-gold: #e2a72f;
+  --cert-line: rgba(226, 167, 47, 0.75);
+  --cert-line-soft: rgba(226, 167, 47, 0.3);
+  --cert-foil: linear-gradient(100deg, #b07816 0%, #f3d488 22%, #fff3c4 38%, #e2a72f 55%, #f6d98f 72%, #b07816 100%);
+  --cert-guilloche: rgba(226, 167, 47, 0.07);
+  background: var(--cert-bg);
+  box-shadow: 0 40px 120px -40px rgba(226, 167, 47, 0.45), inset 0 0 0 1px rgba(226, 167, 47, 0.25);
+}
+html:not(.dark) .acad-cert {
+  --cert-bg: radial-gradient(120% 90% at 50% 0%, #fffdf7 0%, #fbf6ea 55%, #f3ead6 100%);
+  --cert-ink: #1d1a14;
+  --cert-muted: #6b6250;
+  --cert-gold: #9a6612;
+  --cert-line: rgba(154, 102, 18, 0.75);
+  --cert-line-soft: rgba(154, 102, 18, 0.32);
+  --cert-foil: linear-gradient(100deg, #7a4d0c 0%, #b8821c 25%, #d9a63c 42%, #8f5b10 60%, #c48f2a 80%, #7a4d0c 100%);
+  --cert-guilloche: rgba(154, 102, 18, 0.09);
+  box-shadow: 0 30px 80px -40px rgba(80, 55, 10, 0.45), inset 0 0 0 1px rgba(154, 102, 18, 0.3);
+}
+.acad-cert-ink {
+  color: var(--cert-ink);
+}
+.acad-cert-muted {
+  color: var(--cert-muted);
+}
+.acad-cert-gold {
+  color: var(--cert-gold);
+}
+.acad-cert-rule {
+  background: var(--cert-line);
+}
+.acad-cert-frame {
+  border: 2px solid var(--cert-line);
+}
+.acad-cert-frame-inner {
+  border: 1px solid var(--cert-line-soft);
+}
+.acad-cert-corner {
+  border-color: var(--cert-gold);
+}
+/* Gold foil: each foil phrase is its own leaf span (gradient-text gotcha). */
+.acad-cert-foil {
+  background: var(--cert-foil);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: acad-foil 7s ease-in-out infinite;
+}
+@keyframes acad-foil {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+/* Fine guilloche (banknote-style) pattern from two offset ring gradients. */
+.acad-cert-guilloche {
+  background-image:
+    repeating-radial-gradient(circle at 18% 120%, transparent 0 1.1cqw, var(--cert-guilloche) 1.1cqw 1.2cqw),
+    repeating-radial-gradient(circle at 82% 120%, transparent 0 1.1cqw, var(--cert-guilloche) 1.1cqw 1.2cqw);
+  -webkit-mask-image: radial-gradient(80% 70% at 50% 60%, transparent 35%, #000 100%);
+  mask-image: radial-gradient(80% 70% at 50% 60%, transparent 35%, #000 100%);
+}
+.acad-cert-glow {
+  background: radial-gradient(50% 35% at 50% 0%, rgba(243, 212, 136, 0.18), transparent 70%);
+}
+html:not(.dark) .acad-cert-glow {
+  background: radial-gradient(50% 35% at 50% 0%, rgba(217, 166, 60, 0.18), transparent 70%);
+}
+.acad-cert-seal {
+  background: radial-gradient(circle at 35% 30%, #d14b4b, #8e1d1d 60%, #5e1010);
+  box-shadow: 0 0.6cqw 1.6cqw -0.4cqw rgba(0, 0, 0, 0.6), inset 0 0 0 0.35cqw rgba(255, 255, 255, 0.08), inset 0 -0.6cqw 1cqw rgba(0, 0, 0, 0.35);
+  transform: rotate(-8deg);
+}
+/* The QR's modules are gold: on ivory they get a dark tile so they still scan. */
+html:not(.dark) .acad-cert-qr {
+  background: #16120b;
+}
+
+/* Answer feedback v2: a right answer pops with an expanding ring and a light
+   sweep; a pick presses in. Short, transform/opacity only. */
+.acad-option:not(:disabled):active {
+  transform: scale(0.985);
+}
+.acad-option.is-picked {
+  animation: acad-pick 260ms ease-out;
+}
+@keyframes acad-pick {
+  0% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+.acad-option.is-right {
+  animation: acad-right 520ms cubic-bezier(0.2, 1.4, 0.4, 1);
+  overflow: hidden;
+}
+@keyframes acad-right {
+  0% { transform: scale(0.97); }
+  55% { transform: scale(1.025); }
+  100% { transform: scale(1); }
+}
+.acad-option.is-right::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.22) 45%, transparent 70%);
+  transform: translateX(-120%);
+  animation: acad-sweep 900ms 120ms ease-out forwards;
+  pointer-events: none;
+}
+.acad-option.is-right::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: inherit;
+  border: 2px solid rgba(52, 227, 161, 0.7);
+  animation: acad-ring 700ms ease-out forwards;
+  pointer-events: none;
+}
+@keyframes acad-sweep {
+  to { transform: translateX(120%); }
+}
+@keyframes acad-ring {
+  0% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.06); }
+}
+.acad-streak-banner {
+  animation: acad-streak 1.6s cubic-bezier(0.2, 1.2, 0.4, 1) forwards;
+}
+@keyframes acad-streak {
+  0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); }
+  18% { opacity: 1; transform: translate(-50%, 0) scale(1.06); }
+  30% { transform: translate(-50%, 0) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -14px) scale(0.98); }
+}

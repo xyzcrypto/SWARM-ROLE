@@ -221,6 +221,26 @@ function untilQuiet(maxMs = 60_000) {
  * Live Talk: listen (record + server transcription), act on a command or ask
  * the AI, speak the answer, listen again, until the learner stops it.
  */
+/** Retry once, after a short pause, when the failure looks transient. */
+async function retryOnce<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    const st = (e as TalkError).status;
+    if (st === 0 || st === 502 || st === 504 || st === 429) {
+      await new Promise((r) => setTimeout(r, st === 429 ? 1500 : 700));
+      return fn();
+    }
+    throw e;
+  }
+}
+
+/** Phrases speech-to-text produces from silence or room noise. Pure, for tests. */
+export function isSilenceHallucination(text: string): boolean {
+  const t = text.trim().toLowerCase().replace(/[.!?,]+$/g, "");
+  return !t || /^(thank you|thanks|thanks for watching|thank you for watching|you|bye|hmm|uh|um|subtitles by.*|\.+)$/.test(t);
+}
+
 function useLiveTalk(router: ReturnType<typeof useRouter>) {
   const [state, setState] = useState<TalkState>("idle");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -308,7 +328,10 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
       setState("transcribing");
       let text = "";
       try {
-        text = (await transcribe(rec.blob)).text.trim();
+        // One quiet retry on a network blip before telling the learner.
+        text = (await retryOnce(() => transcribe(rec.blob))).text.trim();
+        // Whisper invents these on near-silence; treat them as "didn't catch that".
+        if (isSilenceHallucination(text)) text = "";
       } catch (e) {
         const st = (e as TalkError).status;
         if (st === 401) say("talk_login");
@@ -323,7 +346,7 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
       }
       if (!active.current) return;
       if (!text) {
-        say("talk_error");
+        say("talk_again");
         await untilQuiet(8000);
         continue;
       }
@@ -335,7 +358,7 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
       setState("thinking");
       history.current = [...history.current, { role: "user" as const, content: text }].slice(-12);
       try {
-        const { text: answer } = await askAneque(history.current);
+        const { text: answer } = await retryOnce(() => askAneque(history.current));
         if (!active.current) return;
         history.current = [...history.current, { role: "assistant" as const, content: answer }].slice(-12);
         setTurns((t) => [...t, { role: "assistant" as const, content: answer }].slice(-6));

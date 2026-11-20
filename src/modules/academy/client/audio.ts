@@ -698,7 +698,10 @@ let pieceCount = 1;
 let ttsChar = 0;
 let ttsLen = 1;
 
-const FEMALE_HINTS = ["samantha", "ava", "allison", "susan", "victoria", "karen", "moira", "tessa", "serena", "zira", "aria", "jenny", "sonia", "libby", "natasha", "female", "woman", "google uk english female", "google us english"];
+// Best first. The Edge/Windows "Online (Natural)" neural voices (Ava, Jenny,
+// Aria, Emma, Neerja for Indian English) and Apple's premium/enhanced voices
+// sound close to a person; the old desktop SAPI voices (Zira) do not.
+const FEMALE_HINTS = ["ava", "jenny", "aria", "emma", "neerja", "michelle", "sonia", "libby", "natasha", "samantha", "google uk english female", "allison", "susan", "victoria", "karen", "moira", "tessa", "serena", "zira", "female", "woman", "google us english"];
 
 export function browserVoices(): SpeechSynthesisVoice[] {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return [];
@@ -709,7 +712,7 @@ export function femaleScore(v: SpeechSynthesisVoice): number {
   const n = v.name.toLowerCase();
   if (/\b(male|david|mark|daniel|alex|fred|george|james|guy|ryan)\b/.test(n) && !/female/.test(n)) return -1;
   const i = FEMALE_HINTS.findIndex((h) => n.includes(h));
-  return (i < 0 ? 0 : 100 - i) + (/natural|neural|premium|enhanced/.test(n) ? 50 : 0) + (v.localService ? 0 : 5);
+  return (i < 0 ? 0 : 100 - i) + (/natural|neural/.test(n) ? 120 : /premium|enhanced/.test(n) ? 80 : 0) + (v.localService ? 0 : 5);
 }
 
 function pickVoice(): SpeechSynthesisVoice | null {
@@ -816,7 +819,8 @@ function tts(text: string, my: number, done: () => void) {
     const v = pickVoice();
     if (v) u.voice = v;
     u.rate = 1;
-    u.pitch = 1.05;
+    // Neural voices are tuned at their natural pitch; nudging them sounds synthetic.
+    u.pitch = v && /natural|neural|premium|enhanced/i.test(v.name) ? 1 : 1.05;
     u.volume = snap.settings.masterVol * snap.settings.voiceVol;
     const base = offset;
     u.onboundary = (e) => {
