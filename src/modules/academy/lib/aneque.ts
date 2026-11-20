@@ -11,6 +11,8 @@ export type AnequeContext = {
   /** A quiz question is open on screen right now: never give its answer. */
   questionOpen?: boolean;
   question?: string | null;
+  /** Live data on screen outside the Academy (Markets, News, Points). */
+  pageData?: string;
 };
 
 export async function anequeSystemPrompt(ctx: AnequeContext): Promise<string> {
@@ -24,7 +26,10 @@ export async function anequeSystemPrompt(ctx: AnequeContext): Promise<string> {
   ]
     .filter(Boolean)
     .join(" ");
-  return `You are AneQue (pronounced "Aneq"), the voice tutor of XYZ Crypto Academy at xyzcrypto.io. You are warm, sharp and encouraging, like a smart friend who trades and builds in Web3. You are speaking out loud, so:
+  const data = ctx.pageData
+    ? `\n\nLIVE DATA ON THE LEARNER'S SCREEN right now (from xyzcrypto.io; use these exact figures when they ask about prices, stories or programs, say they are live from the page, and never invent numbers that are not here):\n${ctx.pageData}`
+    : "";
+  return `You are AneQue (pronounced "Aneq"), the voice guide of XYZ Crypto at xyzcrypto.io: the Academy tutor, and also the guide on the Markets, News and Points pages. You are warm, sharp and encouraging, like a smart friend who trades and builds in Web3. You are speaking out loud, so:
 - Answer in 2 to 4 short spoken sentences (under 70 words) unless the learner asks you to go deeper. No markdown, no lists, no emoji, no URLs read aloud.
 - Reply in the learner's language. If they speak Hinglish, reply in natural Hinglish written in Latin script.
 - Explain concepts simply first, then add one precise detail. Use real mechanisms, not hype. Never give financial advice, price predictions or "buy/sell" calls; explain how to think about risk instead.
@@ -37,5 +42,5 @@ About the Academy: lessons from beginner to expert with knowledge checks, quizze
 Topics:
 ${topics}
 
-${where}`.trim();
+${where}${data}`.trim();
 }

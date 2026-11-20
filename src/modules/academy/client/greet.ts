@@ -5,9 +5,12 @@ import type { Piece } from "./audio";
 import { VOICE_LINES, type VoiceLine } from "./voice-lines";
 import { nameClip } from "./name-bank";
 
-export type GreetPage = "home" | "learn" | "leaderboard" | "live" | "certificates" | "other";
+export type GreetPage = "home" | "learn" | "leaderboard" | "live" | "certificates" | "markets" | "news" | "points" | "other";
 
 export function greetPage(path: string | null | undefined): GreetPage {
+  if (path === "/markets") return "markets";
+  if (path === "/news") return "news";
+  if (path === "/points") return "points";
   if (!path || path === "/academy") return "home";
   if (path.startsWith("/academy/learn")) return "learn";
   if (path.startsWith("/academy/leaderboard")) return "leaderboard";
@@ -29,6 +32,9 @@ const PAGE_LINE: Partial<Record<GreetPage, VoiceLine>> = {
   leaderboard: "greet_leaderboard",
   live: "greet_live",
   certificates: "greet_cert",
+  markets: "greet_markets",
+  news: "greet_news",
+  points: "greet_points",
 };
 
 export type GreetInput = {

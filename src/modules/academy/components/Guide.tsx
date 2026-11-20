@@ -25,6 +25,7 @@ import {
 } from "../client/audio";
 import { useAudio } from "../client/hooks";
 import { GreetBubble } from "./GreetBubble";
+import { usePageBrief, type PageBrief } from "../client/page-brief";
 import { dispatchCommand, parseCommand } from "../client/commands";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import { askAneque, recordUtterance, releaseMic, talkSupported, transcribe, type TalkError, type Turn } from "../client/talk";
@@ -465,6 +466,31 @@ export function GuideDock() {
     return () => window.removeEventListener("academy:open", on);
   }, []);
 
+  // Outside the Academy (Markets, News, Points) the page publishes a brief
+  // built from the data on screen; AneQue reads it aloud on request.
+  const brief = usePageBrief();
+  const explain = (b: PageBrief) => {
+    unlock();
+    sfx("click");
+    let spoken: string[] = [];
+    try {
+      spoken = b.build().spoken;
+    } catch {
+      spoken = [];
+    }
+    if (!spoken.length) {
+      say("brief_waiting");
+      return;
+    }
+    const intro = (`brief_${b.page}` as VoiceLine) in VOICE_LINES ? (`brief_${b.page}` as VoiceLine) : null;
+    const pieces = [
+      ...(intro ? [{ url: `/academy/voice/${intro}.mp3`, text: VOICE_LINES[intro] }] : []),
+      ...spoken.map((t) => ({ text: t })),
+      { url: "/academy/voice/brief_outro.mp3", text: VOICE_LINES.brief_outro },
+    ];
+    play(pieces);
+  };
+
   const replay = () => {
     unlock();
     if (voice.line) say(voice.line);
@@ -529,6 +555,17 @@ export function GuideDock() {
                   {talk.active ? `End talk · ${TALK_LABEL[talk.state]}` : "Talk to AneQue"}
                 </button>
                 {talk.error && <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[11px] leading-relaxed text-content-subtle">{talk.error}</p>}
+
+                {brief && (
+                  <button
+                    type="button"
+                    onClick={() => explain(brief)}
+                    disabled={talk.active}
+                    className="btn-gold mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm disabled:opacity-50"
+                  >
+                    <Sparkles className="h-4 w-4" /> {brief.label}
+                  </button>
+                )}
 
                 <div className="mt-2 flex items-center gap-2">
                   {speaking ? (

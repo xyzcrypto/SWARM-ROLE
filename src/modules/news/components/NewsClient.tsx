@@ -3,6 +3,8 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
 import { createPortal } from "react-dom";
 import { useSession } from "next-auth/react";
+import { setPageBrief } from "@modules/academy/client/page-brief";
+import { newsBrief } from "../lib/news-brief";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Search, Bookmark, BookmarkCheck, Share2, ExternalLink, Loader2,
@@ -128,6 +130,18 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   const [sheet, setSheet] = useState<"trending" | "impact" | null>(null);
   const [items, setItems] = useState<NewsItem[]>(initial?.items ?? []);
   const [pending, setPending] = useState<NewsItem[]>([]); // fresh stories buffered for the "N new" pill
+
+  // AneQue's brief reads the newest important stories; refs, so publishing it
+  // never re-renders the feed.
+  const briefItems = useRef(items);
+  useEffect(() => {
+    briefItems.current = items;
+  }, [items]);
+  useEffect(() => {
+    const build = () => newsBrief(briefItems.current);
+    setPageBrief({ page: "news", label: "Read me the top stories", build });
+    return () => setPageBrief(null);
+  }, []);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(Boolean(initial?.hasMore));
   const [loading, setLoading] = useState(!initial);

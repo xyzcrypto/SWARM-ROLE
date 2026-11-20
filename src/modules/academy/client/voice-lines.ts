@@ -245,6 +245,14 @@ export const VOICE_LINES = {
   "feedback_guest": "Thank you! Sign in next time, and you'll earn XP for every note.",
   "feedback_cooldown": "You've already earned today's feedback XP. We still love the note!",
   "feedback_listening": "Go ahead, I'm listening. Tap again when you're done.",
+  "brief_markets": "Here's the crypto market right now.",
+  "brief_news": "Here are the top stories right now.",
+  "brief_points": "Here's what's happening with points and airdrops.",
+  "brief_outro": "Want more detail? Tap Talk and ask me anything about it.",
+  "brief_waiting": "The live data is still loading. Give me a second and try again.",
+  "greet_markets": "Welcome to Markets. Tap Explain, and I'll walk you through what's moving.",
+  "greet_news": "Welcome to the news room. I can read you the top stories.",
+  "greet_points": "Welcome to Points. I can tell you which programs are live right now.",
 } as const;
 
 export type VoiceLine = keyof typeof VOICE_LINES;
