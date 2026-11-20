@@ -312,7 +312,6 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
         if (st === 401) say("talk_login");
         else if (st === 503) say("talk_unavailable");
         else say("talk_error");
-        setError((e as Error).message);
         if (st === 401 || st === 503) {
           stop();
           return;
@@ -344,7 +343,6 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
       } catch (e) {
         const st = (e as TalkError).status;
         say(st === 429 ? "talk_limit" : st === 401 ? "talk_login" : st === 503 ? "talk_unavailable" : "talk_error");
-        setError((e as Error).message);
         if (st === 401 || st === 503) {
           stop();
           return;

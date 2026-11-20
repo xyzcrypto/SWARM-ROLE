@@ -5,6 +5,52 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (159) — Academy: AneQue Live Talk that works in every browser, 7 advanced tracks, certificate showcase, haptics
+
+### AneQue (renamed from Nova, said "Aneq") and Live Talk
+- **Why Live Talk failed:** the dock used the browser's Web Speech recogniser. Brave ships the
+  API but cannot reach Google's speech service ("Speech service unreachable", the owner's
+  screenshot), Firefox has no API, Safari needs Siri. Now the browser records a short clip
+  with MediaRecorder, a small voice-activity detector ends it when the learner stops
+  talking, and `POST /api/academy/aneque/listen` transcribes it with the Whisper model the
+  site already uses for voice notes (handles Hinglish). Audio is never stored.
+- **Conversation:** commands ("open leaderboard", "start quiz", "option B") act locally;
+  anything else goes to `POST /api/academy/aneque/chat` (XYZ AI gateway, plans, daily
+  limits, concurrency slot), answers are short and spoken. AneQue knows the page, lesson
+  and topic; **while a quiz or live question is open the prompt forbids giving it away**
+  (pinned by a test). Hands-free loop until "End talk"; a mic meter while listening.
+- 13 new recorded lines (intro, listening, retry, unavailable, sign-in, limit, navigation).
+- Long browser-voice speech is now chunked by sentence: Chrome silently stopped single
+  utterances after ~15 s, cutting long explanations off.
+
+### Learn: batch 2, seven advanced tracks (46 lessons, 230 questions)
+Perp DEX Masterclass (8 lessons: architectures, platform deep dives, oracles/ADL, vaults,
+execution, failure modes), On-chain Trading & Routing (aggregators, MEV, intents, Bungee and
+other route aggregators), Real-World Assets, Crypto Prop Trading Firms, Airdrop Masterclass
+(8 lessons, basic to sybil detection and taxes), AI x Crypto, Quantum Computing & Crypto
+Security. Written with web-verified claims; anything unverifiable or time-sensitive left
+out. Every lesson has its knowledge check; every topic its Topic Challenge.
+- **Versioned seeding** so the new batch reaches production, which already has batch 1:
+  `SEED_BATCHES` + `AcademyConfig.seedVersion`; deleted topics are never resurrected.
+- Every new question, option, explanation and summary recorded in AneQue's voice.
+
+### Quiz, leaderboard, certificates, haptics
+- "Quiz any lesson": pick a topic, start any lesson's check from the quiz page.
+- Leaderboard edge window 15s to 5s, refetch on every XP ping (min 5s apart), "Live ·
+  updated Ns ago".
+- Certificate showcase on the Academy home: the real certificate design as a labelled
+  sample (decorative pattern, not a scannable QR), pointer tilt and sheen, how to earn
+  each award, and the roadmap note.
+- Haptics paired with the sound effects (Android), its own switch, using the site's feel
+  settings; works even when sound is muted.
+
+### Hero
+AneQue "Talk" button opens Live Talk directly; "Dominate the leaderboard." with the brand
+shine; a ticker of real recent achievements and certificates; tighter tab bar on phones
+with an edge fade.
+
+---
+
 ## 2026-11-20 (158) — Light theme for Creators + Academy, a hand-made Academy hero, Nova captions, realistic sound
 
 ### Light theme

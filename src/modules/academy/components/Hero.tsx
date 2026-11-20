@@ -217,7 +217,7 @@ export function Hero({ pulse, me, topics, questions }: { pulse: Pulse | null; me
                   <span className="text-sm font-semibold text-content">
                     AneQue <span className="font-normal text-content-subtle">· AI study partner</span>
                   </span>
-                  <span className="text-[11px] text-content-subtle">{speaking ? "speaking" : voice.paused ? "paused" : "online"}</span>
+                  {(speaking || voice.paused) && <span className="text-[11px] text-content-subtle">{speaking ? "speaking" : "paused"}</span>}
                 </div>
                 <GuideWave speaking={speaking} bars={28} className="mt-1 h-5" />
               </div>
