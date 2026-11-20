@@ -4,11 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Award, BadgeCheck, Brain, CalendarDays, Gauge, Layers, LogIn, Radio, Sparkles, Trophy, Zap } from "lucide-react";
-import { getJson, useAcademyPing, useAudio, useMe } from "../client/hooks";
-import { play, type Piece } from "../client/audio";
-import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
-
-const vline = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
+import { getJson, useAcademyPing, useMe } from "../client/hooks";
 import { Hero } from "./Hero";
 import { Dashboard } from "./Dashboard";
 import { CertificateShowcase } from "./CertificateShowcase";
@@ -26,13 +22,10 @@ const MODES = [
   { href: "/academy/live", icon: Radio, title: "Live Multiplayer", body: "Everyone, same question, same clock." },
 ];
 
-const SESSION_KEY = "xyz:academy:welcomed";
-
 export function AcademyHome() {
   const [pulse, setPulse] = useState<Pulse | null>(null);
   const [catalog, setCatalog] = useState<CatalogCategory[] | null>(null);
   const { me, status } = useMe();
-  const { unlocked, settings } = useAudio();
 
   const loadPulse = useCallback(async () => {
     try {
@@ -51,33 +44,11 @@ export function AcademyHome() {
 
   useAcademyPing(loadPulse, 30_000);
 
-  // AneQue greets once per browser session, on the first tap (browsers forbid
-  // sound before one), and only if the member leaves "speaks on her own" on.
-  useEffect(() => {
-    if (!unlocked || status === "loading" || (status === "authenticated" && !me)) return;
-    try {
-      if (sessionStorage.getItem(SESSION_KEY)) return;
-      sessionStorage.setItem(SESSION_KEY, "1");
-    } catch {
-      /* no storage: greet anyway */
-    }
-    // Local hour is read here, after mount, never during render.
-    const h = new Date().getHours();
-    const pieces: Piece[] = [];
-    pieces.push(vline(h < 12 ? "good_morning" : h < 17 ? "good_afternoon" : "good_evening"));
-    const pick = (keys: VoiceLine[]) => keys[Math.floor(Math.random() * keys.length)];
-    if (status === "authenticated") {
-      pieces.push(vline(pick(["welcome_back", "welcome_back_2", "welcome_back_3", "welcome_back_4"])));
-      if (me && me.streak > 0 && !me.learnedToday) pieces.push(vline("streak_alive"));
-      else if (me && !me.daily) pieces.push(vline("daily_new"));
-    } else pieces.push(vline(pick(["welcome", "welcome_2", "welcome_3"])));
-    if (settings.guide) play(pieces);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [unlocked, status, !!me]);
+  // AneQue's greeting (by name, on open) lives in the dock: see GreetBubble.
 
   return (
     <div>
-      <Hero pulse={pulse} me={me} topics={catalog?.length ?? null} questions={catalog ? catalog.reduce((n, c) => n + c.questionCount, 0) : null} />
+      <Hero pulse={pulse} me={me} topics={catalog?.length ?? null} questions={catalog ? catalog.reduce((n, c) => n + c.questionCount, 0) : null} tracks={catalog} />
 
       {status === "authenticated" ? (
         me ? (

@@ -3008,3 +3008,10 @@ html:not(.dark) .soon-veil { background-image: linear-gradient(to bottom, rgb(24
   border-radius: 14px;
   transition: outline-color 0.2s ease;
 }
+
+/* Home-page launch popup (LaunchPopup). */
+.launch-pop-glow {
+  background:
+    radial-gradient(70% 60% at 0% 0%, rgba(226, 167, 47, 0.16), transparent 70%),
+    radial-gradient(50% 50% at 100% 100%, rgba(52, 211, 153, 0.08), transparent 70%);
+}

@@ -247,6 +247,29 @@ function applyGains() {
   musicBus.gain.setTargetAtTime(s.music && musicOn ? s.musicVol * 0.55 * duckLevel * voiceDuck : 0, t, 0.35);
 }
 
+/**
+ * Try to start sound WITHOUT a gesture, so AneQue can greet the moment an
+ * Academy page opens. Browsers allow it when the visitor already interacted
+ * with the site in this tab (an in-app link click carries over) or has played
+ * media here often enough; otherwise the context stays suspended, this
+ * returns false and nothing is heard, and the caller asks for a tap instead.
+ */
+export async function tryAutoUnlock(): Promise<boolean> {
+  if (!loaded) loadSettings();
+  if (snap.unlocked) return true;
+  const c = ensure();
+  if (!c) return false;
+  try {
+    await Promise.race([c.resume(), new Promise((r) => setTimeout(r, 450))]);
+  } catch {
+    /* blocked */
+  }
+  if (c.state !== "running") return false;
+  emit({ unlocked: true });
+  if (snap.settings.master && snap.settings.music) startMusic();
+  return true;
+}
+
 /** Call from a click/tap handler; safe to call repeatedly. */
 export function unlock() {
   if (!loaded) loadSettings();

@@ -24,6 +24,7 @@ import {
   type AudioSettings,
 } from "../client/audio";
 import { useAudio } from "../client/hooks";
+import { GreetBubble } from "./GreetBubble";
 import { dispatchCommand, parseCommand } from "../client/commands";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import { askAneque, recordUtterance, releaseMic, talkSupported, transcribe, type TalkError, type Turn } from "../client/talk";
@@ -406,6 +407,7 @@ export function GuideDock() {
   const [panel, setPanel] = useState<"guide" | "settings">("guide");
   const path = usePathname();
   const talk = useLiveTalk(router);
+  const [greeting, setGreeting] = useState(false);
   // On a phone at the top of /academy the hero already shows AneQue,
   // and the dock would sit on the hero's buttons. Hide it there until the
   // reader scrolls. Starts visible (matches the server), decided after mount.
@@ -464,7 +466,7 @@ export function GuideDock() {
     // The site-wide XYZ AI button owns the bottom-right corner. On phones the
     // dock takes the left side, lifted well above the bottom nav so it and its
     // panel sit in easy thumb reach; from md up it sits directly above XYZ AI.
-    <div className={cn("pointer-events-none fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] left-4 z-40 transition-all duration-300 md:bottom-[5.5rem] md:left-auto md:right-6", tucked && !open && !talk.active && "invisible translate-y-4 opacity-0")}>
+    <div className={cn("pointer-events-none fixed bottom-[calc(8.5rem+env(safe-area-inset-bottom))] left-4 z-40 transition-all duration-300 md:bottom-[5.5rem] md:left-auto md:right-6", tucked && !open && !talk.active && !greeting && "invisible translate-y-4 opacity-0")}>
       <AnimatePresence>
         {open && (
           <motion.div
@@ -553,6 +555,7 @@ export function GuideDock() {
           </motion.div>
         )}
       </AnimatePresence>
+      <GreetBubble hidden={open} onVisible={setGreeting} />
       <div className="flex md:justify-end">
         <button
           type="button"

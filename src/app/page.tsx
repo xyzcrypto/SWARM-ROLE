@@ -18,6 +18,7 @@ import { Footer } from "@/components/Footer";
 import { JsonLd, faqJsonLd } from "@/lib/jsonld";
 import { FAQ } from "@/lib/faq";
 import { StickyCta } from "@/components/StickyCta";
+import { LaunchPopup } from "@shared/components/LaunchPopup";
 import { GuestOnly } from "@/components/GuestOnly";
 import { prisma } from "@/lib/prisma";
 import type { Metadata } from "next";
@@ -130,6 +131,8 @@ export default async function HomePage() {
       </main>
       <Footer />
       <StickyCta />
+      {/* New launches: one card at a time, closes itself after 8s. */}
+      <LaunchPopup />
     </>
   );
 }

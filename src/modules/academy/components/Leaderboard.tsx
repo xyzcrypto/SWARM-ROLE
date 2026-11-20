@@ -200,7 +200,7 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
   useEffect(() => {
     if (compact || !me) return;
     const r = me.standing[period]?.rank;
-    if (r && r <= 10) say("top10", { auto: true });
+    if (r && r <= 10) say("top10", { auto: true, queue: true });
     // once per board visit
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [compact, !!me]);

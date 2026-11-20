@@ -5,6 +5,57 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (160) — Launch popup on the home page, gamified /feedback with XP, AneQue greets members by name, Academy hero v4
+
+### Launch popup (home page)
+- `shared/components/LaunchPopup.tsx` + `shared/utils/launches.ts`. New launches (Feedback,
+  AneQue Live Talk, the advanced tracks, Creator Index) plus admin What's New entries from the
+  last 7 days, one card at a time with Next. Close with X; otherwise it **closes itself after
+  9 s** (progress bar, paused while hovered or touched). Only cards actually shown are marked
+  seen (localStorage), so the next visit leads with the next launch. Built after mount, so no
+  hydration risk; bottom-left on desktop (XYZ AI owns bottom-right), above the bottom nav on
+  phones. A launch retires on its own 21 days after its date.
+
+### /feedback (new page, static shell)
+- Three steps: topic cards, emoji rating, message with a live "how useful" meter, optional
+  **voice dictation** (members, through AneQue's Whisper route). AneQue welcomes by name and
+  reacts to each choice in her recorded voice, with sound effects, optional Focus music and
+  confetti + XP count-up on send. Badges (First Feedback, Bug Hunter, Idea Machine, Community
+  Voice, Shipped It), XP rules and the member's history with status (Sent / Seen / Shipped).
+- XP through the Academy ledger: **+40** for the first feedback each UTC day, **+60** once for
+  the first ever, **+100** when staff mark it done. All idempotent ledger keys.
+- Guests can send too (optional name + email/Telegram); a honeypot field drops bots.
+- `POST /api/feedback` (rate limited per IP 6/h and per member 5/h, zod, `after()` alert),
+  `GET /api/feedback/mine`, `GET/PATCH /api/admin/feedback` (`feedback:manage`, 120/min).
+  Every route `private, no-store`.
+- **The owner is told on every send:** `notifyOwner` emails `site.email` and posts to the
+  Telegram bot (both no-op if unconfigured). Staff triage on **/dashboard/feedback**
+  (new "Feedback ↗" tab), with filters, stats and Seen / Done / Reopen.
+- New `Feedback` model + `prisma/migrations/45_feedback` (idempotent, additive). Added to the
+  nav (in "More"), footer, drawer and sitemap.
+
+### AneQue greets by name (Academy)
+- Opening any Academy page: "Hey Riya!" in her recorded voice (290-name bank, browser voice
+  for other names), then time of day + streak/daily status on the first page of a session,
+  or a short page line on the library, leaderboard, live and certificates pages.
+- Plays straight away when the browser allows sound, otherwise a "Tap to hear AneQue" bubble
+  waits for the first tap. 29 new recorded lines (greetings + the feedback room).
+- The leaderboard's own "top 10" line now queues behind the greeting instead of cutting it.
+
+### Academy hero v4
+- Personal eyebrow ("Good evening, Riya" for members, tracks/questions for guests), a third
+  CTA "Ask AneQue", a scrolling rail of the real tracks (from the catalog, linked), a glass
+  stats strip, and four promises (free, server-scored, verifiable certificates, voice tutor).
+- Today ticket: animated gold ring, soft glow, and a desktop-only pointer tilt + sheen written
+  as CSS variables (never a render input; touch screens never get it).
+
+### Tests
+- `feedback-greet.test.ts` (14): quality meter, badges, name parsing, name-bank clips exist,
+  greeting builder, page mapping, launch windows, popup auto-close 5-10 s.
+- Nav rail test now lists `/feedback` in "More".
+
+---
+
 ## 2026-11-20 (159) — Academy: AneQue Live Talk that works in every browser, 7 advanced tracks, certificate showcase, haptics
 
 ### AneQue (renamed from Nova, said "Aneq") and Live Talk

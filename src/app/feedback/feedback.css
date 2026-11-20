@@ -1,0 +1,28 @@
+/* /feedback: the gamified feedback room. Tokens only (see design-system skill). */
+.fb-glow {
+  background:
+    radial-gradient(60% 50% at 100% 0%, rgba(226, 167, 47, 0.1), transparent 70%),
+    radial-gradient(50% 40% at 0% 100%, rgba(52, 211, 153, 0.07), transparent 70%);
+}
+.fb-choice {
+  -webkit-tap-highlight-color: transparent;
+}
+.fb-choice:active {
+  transform: scale(0.98);
+}
+.fb-pop {
+  animation: fb-pop 0.5s cubic-bezier(0.2, 1.6, 0.4, 1);
+}
+@keyframes fb-pop {
+  0% { transform: scale(0.6) rotate(-12deg); }
+  60% { transform: scale(1.25) rotate(6deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.fb-badge {
+  box-shadow: 0 0 24px -8px rgba(226, 167, 47, 0.6);
+  animation: fb-badge 3.2s ease-in-out infinite;
+}
+@keyframes fb-badge {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}

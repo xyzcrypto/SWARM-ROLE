@@ -95,6 +95,11 @@ const limiters = {
   academyStart: make(12, 60, "academy_start"), // 12/min per user
   academy: make(120, 60, "academy"), // 120/min per user - answers, next, finish, live answers, joins
   academyAdmin: make(60, 60, "academy_admin"), // 60/min per staff member - content editing
+  // /feedback. Each send emails + Telegrams the owner, so it is tight on both
+  // keys: per IP (guests) and per member.
+  feedbackIp: make(6, 3600, "feedback_ip"), // 6/hour per IP
+  feedback: make(5, 3600, "feedback"), // 5/hour per member
+  feedbackAdmin: make(120, 60, "feedback_admin"), // 120/min per staff member - status changes
 };
 
 export type RateKey = keyof typeof limiters;
