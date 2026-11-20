@@ -32,6 +32,7 @@ type SettingsUser = {
   github: string | null;
   telegram: string | null;
   dmPrivacy?: string | null;
+  profileVisibility?: string | null;
   discord: string | null;
   youtube: string | null;
   linkedin: string | null;
@@ -156,6 +157,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
   const [github, setGithub] = useState(user.github ?? "");
   const [telegram, setTelegram] = useState(user.telegram ?? "");
   const [dmPrivacy, setDmPrivacy] = useState(user.dmPrivacy ?? "everyone");
+  const [profileVisibility, setProfileVisibility] = useState(user.profileVisibility ?? "public");
   const [discord, setDiscord] = useState(user.discord ?? "");
   const [youtube, setYoutube] = useState(user.youtube ?? "");
   const [linkedin, setLinkedin] = useState(user.linkedin ?? "");
@@ -225,6 +227,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
           linkedin,
           instagram,
           dmPrivacy,
+          profileVisibility,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -423,6 +426,22 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
         <p className="text-[11px] leading-relaxed text-zinc-500">
           This decides who can start a new conversation with you. Conversations
           you already have keep working - use Block in a thread to end one.
+        </p>
+        <label className="block pt-2">
+          <span className="mb-1.5 block text-[13px] text-zinc-300">Who can see my profile activity</span>
+          <select
+            value={profileVisibility}
+            onChange={(e) => setProfileVisibility(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2.5 text-[14px] text-zinc-100 outline-none focus:border-gold-500/40"
+          >
+            <option value="public">Everyone (public profile)</option>
+            <option value="private">Only me (private profile)</option>
+          </select>
+        </label>
+        <p className="text-[11px] leading-relaxed text-zinc-500">
+          Public shows your Academy level, XP, streak, quizzes, certificates and
+          feedback on your profile so anyone can follow your progress. Private
+          shows only your name and photo. Leaderboards still list your name and XP.
         </p>
       </div>
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { publicImageUrl } from "@/lib/utils";
 import { notifyOwner } from "@modules/notifications/lib/notify-owner";
+import { uploadImage } from "@/lib/storage";
 import { grant, pingBoards } from "@modules/academy/lib/xp";
 import { badgesFor, CATEGORIES, CATEGORY_IDS, MAX_MESSAGE, MIN_MESSAGE, STATUSES, XP_DAILY, XP_FIRST, XP_SHIPPED } from "./shared";
 
@@ -20,6 +21,12 @@ export const feedbackInput = z.object({
   page: z.string().max(200).optional().default(""),
   name: z.string().max(60).optional().transform((v) => (v ? clean(v) : undefined)),
   contact: z.string().max(120).optional().transform((v) => (v ? clean(v) : undefined)),
+  // Optional screenshot as a data URL (the page compresses it to ~<700 KB).
+  image: z
+    .string()
+    .max(1_400_000)
+    .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/, "Unsupported screenshot.")
+    .optional(),
   // Honeypot: a hidden field a person never fills.
   website: z.string().max(200).optional(),
 });
@@ -28,7 +35,18 @@ export type FeedbackInput = z.infer<typeof feedbackInput>;
 const utcDay = (t: number) => new Date(t).toISOString().slice(0, 10);
 
 /** Stores the feedback and pays the member's XP. Returns what was paid. */
-export async function submitFeedback(userId: string | null, input: FeedbackInput, now = Date.now()) {
+/** Decode, verify (by magic bytes) and store a screenshot; null if none or invalid. */
+export async function storeScreenshot(dataUrl: string | undefined): Promise<string | null> {
+  if (!dataUrl) return null;
+  const m = dataUrl.match(/^data:(image\/(?:png|jpeg|webp));base64,(.+)$/);
+  if (!m) return null;
+  const buf = Buffer.from(m[2], "base64");
+  const bytes = buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) as ArrayBuffer;
+  const r = await uploadImage(bytes, m[1]).catch(() => null);
+  return r && r.ok ? r.url : null;
+}
+
+export async function submitFeedback(userId: string | null, input: FeedbackInput, now = Date.now(), image: string | null = null) {
   return prisma.$transaction(async (tx) => {
     let xp = 0;
     let first = false;
@@ -48,6 +66,7 @@ export async function submitFeedback(userId: string | null, input: FeedbackInput
         rating: input.rating,
         message: input.message,
         page: input.page ?? "",
+        image,
         xp,
       },
       select: { id: true, createdAt: true },
@@ -57,7 +76,7 @@ export async function submitFeedback(userId: string | null, input: FeedbackInput
 }
 
 /** Owner alert: email (site.email) + Telegram. Best-effort, never throws. */
-export async function alertOwner(id: string, input: FeedbackInput, who: { name: string; email?: string | null }) {
+export async function alertOwner(id: string, input: FeedbackInput, who: { name: string; email?: string | null }, image: string | null = null) {
   const cat = CATEGORIES.find((c) => c.id === input.category);
   const stars = "★".repeat(input.rating) + "☆".repeat(5 - input.rating);
   const subject = `${cat?.emoji ?? ""} New ${cat?.label ?? "feedback"} feedback ${stars}`.trim();
@@ -65,6 +84,7 @@ export async function alertOwner(id: string, input: FeedbackInput, who: { name: 
     `From: ${who.name}${who.email ? ` <${who.email}>` : ""}`,
     `Category: ${cat?.label ?? input.category} · Rating: ${input.rating}/5`,
     input.page ? `Page: ${input.page}` : "",
+    image ? (image.startsWith("http") ? `Screenshot: ${image}` : "Screenshot attached (open it on the dashboard)") : "",
     "",
     input.message,
     "",
@@ -146,7 +166,7 @@ export async function adminList(status: string | null, cursor: string | null) {
     take: 51,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
     select: {
-      id: true, category: true, rating: true, message: true, page: true, status: true, xp: true, createdAt: true, name: true, contact: true,
+      id: true, category: true, rating: true, message: true, page: true, image: true, status: true, xp: true, createdAt: true, name: true, contact: true,
       user: { select: { id: true, name: true, email: true, username: true, image: true } },
     },
   });

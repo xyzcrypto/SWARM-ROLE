@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Loader2, LogIn, Mic, Music, Send, Sparkles, Square, Volume2, VolumeX } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ImagePlus, Loader2, LogIn, Mic, Music, Send, Sparkles, Square, Volume2, VolumeX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { play, say, sayOneOf, setScene, sfx, stopVoice, tryAutoUnlock, unlock, updateSettings, type Piece } from "@modules/academy/client/audio";
 import { useAudio } from "@modules/academy/client/hooks";
@@ -54,6 +54,27 @@ export function FeedbackClient() {
   const [guestName, setGuestName] = useState("");
   const [contact, setContact] = useState("");
   const [hp, setHp] = useState("");
+  // Optional screenshot, compressed in the browser (max 1600px JPEG) so it
+  // uploads fast on a phone connection.
+  const [shot, setShot] = useState<string | null>(null);
+  const [shotBusy, setShotBusy] = useState(false);
+  const pickShot = async (file: File | undefined) => {
+    if (!file) return;
+    setError(null);
+    if (!/^image\/(png|jpeg|webp|gif|heic|heif)$/.test(file.type) && !file.type.startsWith("image/")) {
+      setError("That file isn't an image.");
+      return;
+    }
+    setShotBusy(true);
+    try {
+      setShot(await compressImage(file));
+      sfx("pop");
+    } catch {
+      setError("Couldn't read that image. Try a PNG or JPG.");
+    } finally {
+      setShotBusy(false);
+    }
+  };
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ xp: number; first: boolean } | null>(null);
@@ -203,7 +224,7 @@ export function FeedbackClient() {
       const r = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category, rating, message, page, name: guestName || undefined, contact: contact || undefined, website: hp || undefined }),
+        body: JSON.stringify({ category, rating, message, page, name: guestName || undefined, contact: contact || undefined, website: hp || undefined, image: shot || undefined }),
       });
       const body = await r.json().catch(() => null);
       if (!r.ok) throw new Error(body?.error || "Couldn't send that. Try again.");
@@ -226,6 +247,7 @@ export function FeedbackClient() {
   };
 
   const reset = () => {
+    setShot(null);
     setStep(0);
     setCategory(null);
     setRating(0);
@@ -431,6 +453,25 @@ export function FeedbackClient() {
                     </div>
                   </div>
 
+                  {/* screenshot */}
+                  <div className="mt-3 flex flex-wrap items-center gap-3">
+                    <label className={cn("inline-flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-dashed px-3 text-xs font-semibold transition-colors", shot ? "border-mint-400/50 text-mint-300" : "border-hairline text-content-muted hover:border-gold-400/50 hover:text-content")}>
+                      {shotBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                      {shot ? "Change screenshot" : "Add a screenshot"}
+                      <input type="file" accept="image/*" className="sr-only" onChange={(e) => void pickShot(e.target.files?.[0])} />
+                    </label>
+                    {shot && (
+                      <span className="relative inline-block">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={shot} alt="Your screenshot" className="h-14 w-auto max-w-[8rem] rounded-lg border border-hairline object-cover" />
+                        <button type="button" onClick={() => setShot(null)} className="absolute -right-2 -top-2 grid h-5 w-5 place-items-center rounded-full bg-ink-950 text-content-subtle ring-1 ring-hairline hover:text-content" aria-label="Remove screenshot">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    )}
+                    <span className="text-[11px] text-content-subtle">{category === "bug" ? "A screenshot helps us fix it faster." : "Optional"}</span>
+                  </div>
+
                   {/* quality meter */}
                   <div className="mt-4">
                     <div className="flex items-center justify-between text-[11px]">
@@ -612,4 +653,35 @@ export function FeedbackClient() {
       </aside>
     </div>
   );
+}
+
+/** Downscale to <= 1600px and re-encode as JPEG (about 150-500 KB). */
+async function compressImage(file: File): Promise<string> {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = rej;
+      i.src = url;
+    });
+    const scale = Math.min(1, 1600 / Math.max(img.naturalWidth, img.naturalHeight));
+    const w = Math.max(1, Math.round(img.naturalWidth * scale));
+    const h = Math.max(1, Math.round(img.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("no canvas");
+    ctx.drawImage(img, 0, 0, w, h);
+    let q = 0.82;
+    let out = canvas.toDataURL("image/jpeg", q);
+    while (out.length > 900_000 && q > 0.45) {
+      q -= 0.12;
+      out = canvas.toDataURL("image/jpeg", q);
+    }
+    return out;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }

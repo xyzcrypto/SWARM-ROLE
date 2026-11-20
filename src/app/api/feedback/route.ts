@@ -3,7 +3,7 @@ import { fail, getSessionUser } from "@/lib/api";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
 import { prisma } from "@/lib/prisma";
 import { pingBoards } from "@modules/academy/lib/xp";
-import { alertOwner, feedbackInput, submitFeedback } from "@modules/feedback/lib/feedback";
+import { alertOwner, feedbackInput, storeScreenshot, submitFeedback } from "@modules/feedback/lib/feedback";
 import { academyError, json, PRIVATE } from "@modules/academy/lib/http";
 
 export const runtime = "nodejs";
@@ -28,14 +28,15 @@ export async function POST(req: Request) {
     // Honeypot filled: answer like a success so the bot learns nothing.
     if (parsed.data.website) return json({ ok: true, xp: 0, first: false }, PRIVATE);
 
-    const res = await submitFeedback(me?.id ?? null, parsed.data);
+    const image = await storeScreenshot(parsed.data.image);
+    const res = await submitFeedback(me?.id ?? null, parsed.data, Date.now(), image);
     after(async () => {
       let who = { name: parsed.data.name || "Guest", email: parsed.data.contact || null } as { name: string; email: string | null };
       if (me) {
         const u = await prisma.user.findUnique({ where: { id: me.id }, select: { name: true, username: true, email: true } }).catch(() => null);
         who = { name: `${u?.name || "Member"}${u?.username ? ` (@${u.username})` : ""}`, email: u?.email ?? null };
       }
-      await alertOwner(res.id, parsed.data, who);
+      await alertOwner(res.id, parsed.data, who, image);
       if (res.xp) await pingBoards("xp").catch(() => undefined);
     });
     return json({ ok: true, ...res }, PRIVATE);

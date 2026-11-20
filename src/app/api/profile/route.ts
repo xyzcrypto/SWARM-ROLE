@@ -20,6 +20,7 @@ const PUBLIC_SELECT = {
   github: true,
   telegram: true,
   dmPrivacy: true,
+  profileVisibility: true,
 } as const;
 
 // GET /api/profile - the signed-in user's own profile, image fields as stored
