@@ -1,0 +1,431 @@
+{
+  "slug": "trading-fundamentals",
+  "title": "Trading & Market Fundamentals",
+  "tagline": "Learn how markets work, how orders fill and how to manage risk.",
+  "icon": "CandlestickChart",
+  "order": 6,
+  "modules": [
+    {
+      "slug": "how-markets-work",
+      "level": "beginner",
+      "title": "How crypto markets work",
+      "summary": "Prices come from buyers and sellers meeting in a market. This module explains order books, trading pairs and the basic order types.",
+      "minutes": 6,
+      "objectives": [
+        "Explain what a trading pair and an order book are",
+        "Tell the difference between a market order and a limit order",
+        "Understand the bid, the ask and the spread"
+      ],
+      "sections": [
+        {
+          "heading": "Buyers, sellers and price",
+          "body": "A market is a place where buyers and sellers agree on a price. The price you see is simply the last price at which a trade happened. If more people want to buy than sell at that price, the price tends to rise. If more want to sell, it tends to fall."
+        },
+        {
+          "heading": "Trading pairs and the order book",
+          "body": "Assets trade in pairs, such as ETH/USDC, which shows how much of the second asset one unit of the first costs. Many exchanges use an order book: a live list of buy orders (bids) and sell orders (asks). The highest bid and the lowest ask sit closest together, and the gap between them is called the spread."
+        },
+        {
+          "heading": "Market orders and limit orders",
+          "body": "A market order buys or sells right away at the best price available. It is fast, but you do not control the exact price. A limit order sets the price you are willing to accept. It only fills if the market reaches that price, so it may fill later or not at all."
+        },
+        {
+          "heading": "Makers and takers",
+          "body": "A limit order that waits in the book adds liquidity, so its owner is called a maker. An order that fills immediately against a waiting order removes liquidity, so its owner is a taker. Many exchanges charge makers a lower fee than takers."
+        }
+      ],
+      "concepts": [
+        { "term": "Order book", "definition": "A live list of all open buy and sell orders for a trading pair, sorted by price." },
+        { "term": "Spread", "definition": "The gap between the highest bid and the lowest ask in an order book." },
+        { "term": "Market order", "definition": "An order that fills immediately at the best available price." },
+        { "term": "Limit order", "definition": "An order that only fills at a price you choose or better." }
+      ],
+      "example": {
+        "title": "Placing a limit buy",
+        "body": "Sam wants to buy ETH but thinks the price is a little high. He places a limit buy order below the current price. The order sits in the order book as a bid. If sellers later accept his price, it fills; if not, he can cancel it at any time."
+      }
+    },
+    {
+      "slug": "spot-and-derivatives",
+      "level": "intermediate",
+      "title": "Spot, derivatives and leverage",
+      "summary": "Not every trade means owning the asset. This module covers spot trading, futures, perpetual swaps, leverage and liquidation.",
+      "minutes": 8,
+      "objectives": [
+        "Compare spot trading with derivatives trading",
+        "Explain how perpetual futures and funding rates work",
+        "Understand how leverage leads to liquidation"
+      ],
+      "sections": [
+        {
+          "heading": "Spot trading",
+          "body": "In spot trading you buy or sell the actual asset and settle right away. If you buy BTC on the spot market, you own that BTC. Your loss is limited to what you paid, because the price cannot go below zero."
+        },
+        {
+          "heading": "Futures and perpetual swaps",
+          "body": "A derivative is a contract whose value follows another asset. A futures contract is an agreement to trade at a set price on a future date. A perpetual swap is a futures-style contract with no expiry date. It uses a funding rate, a regular payment between long and short traders, to keep its price close to the spot price."
+        },
+        {
+          "heading": "Long, short and leverage",
+          "body": "Going long means you profit if the price rises, and going short means you profit if it falls. Leverage lets you open a position larger than your deposit, called margin. With 10x leverage, a 1% price move changes your position value by about 10% of your margin, in either direction."
+        },
+        {
+          "heading": "Liquidation",
+          "body": "If losses eat into your margin past a set level, the exchange closes your position automatically. This is called liquidation, and you lose most or all of the margin. The higher the leverage, the smaller the price move needed to trigger it."
+        }
+      ],
+      "concepts": [
+        { "term": "Derivative", "definition": "A contract whose value is based on the price of another asset." },
+        { "term": "Perpetual swap", "definition": "A futures-style contract with no expiry that uses funding payments to track the spot price." },
+        { "term": "Funding rate", "definition": "A periodic payment between longs and shorts that pulls a perpetual's price toward spot." },
+        { "term": "Liquidation", "definition": "The forced closing of a leveraged position when its margin can no longer cover losses." }
+      ],
+      "example": {
+        "title": "How leverage cuts both ways",
+        "body": "Priya opens a 5x long position with 100 USDC of margin, so her position is worth 500 USDC. A 10% price rise adds about 50 USDC, half her margin. A 10% drop removes about 50 USDC, and a drop of around 20% would wipe out her margin and trigger liquidation, before fees."
+      }
+    },
+    {
+      "slug": "risk-and-position-sizing",
+      "level": "advanced",
+      "title": "Risk management and position sizing",
+      "summary": "Good traders focus on how much they can lose before thinking about how much they can win. This module covers stop-losses, position sizing and risk-reward.",
+      "minutes": 9,
+      "objectives": [
+        "Size a position from a fixed percentage of account risk",
+        "Use stop-losses and risk-reward ratios",
+        "Understand why drawdowns are hard to recover from"
+      ],
+      "sections": [
+        {
+          "heading": "Risk per trade",
+          "body": "A common approach is to risk only a small, fixed share of your account on any one trade, such as 1%. Risk here means the amount you lose if your stop-loss is hit, not the size of the position. This keeps a losing streak from destroying the account."
+        },
+        {
+          "heading": "Position sizing from the stop",
+          "body": "First decide where your stop-loss goes, based on where your trade idea is proven wrong. Then work out the position size: the amount you are willing to risk divided by the distance from entry to stop. A wider stop means a smaller position for the same risk."
+        },
+        {
+          "heading": "Risk-reward ratio",
+          "body": "The risk-reward ratio compares the possible loss with the possible gain. A trade risking 100 to aim for 300 has a ratio of 1:3. With a higher ratio, you can be wrong more often than right and still come out ahead over many trades, though no ratio guarantees a profit."
+        },
+        {
+          "heading": "Why drawdowns hurt",
+          "body": "Losses and gains are not symmetric. After a 50% loss, you need a 100% gain just to get back to where you started. Keeping losses small protects your ability to recover."
+        }
+      ],
+      "concepts": [
+        { "term": "Stop-loss", "definition": "An order that closes a position automatically once the price reaches a level you set." },
+        { "term": "Position size", "definition": "How much of an asset you buy or sell in a single trade." },
+        { "term": "Risk-reward ratio", "definition": "The planned loss on a trade compared with its planned gain." },
+        { "term": "Drawdown", "definition": "The fall in account value from a peak to a later low point." }
+      ],
+      "example": {
+        "title": "Sizing a trade",
+        "body": "Lena has a 10,000 USDC account and risks 1% per trade, so 100 USDC. She enters at 2,000 with a stop at 1,900, a distance of 100 per unit. Her position size is 100 divided by 100, which is 1 unit. If the stop is hit, she loses about 100 USDC plus fees."
+      }
+    },
+    {
+      "slug": "liquidity-volatility-volume",
+      "level": "expert",
+      "title": "Liquidity, volatility and volume",
+      "summary": "The same order can cost very different amounts depending on market conditions. This module covers market depth, slippage, price impact, volatility and reading volume.",
+      "minutes": 10,
+      "objectives": [
+        "Explain market depth, slippage and price impact",
+        "Describe how volatility affects stops and sizing",
+        "Read volume as confirmation and spot when it can mislead"
+      ],
+      "sections": [
+        {
+          "heading": "Depth and price impact",
+          "body": "Liquidity is how easily you can trade without moving the price. Market depth is the amount of orders sitting near the current price. A large market order in a thin book eats through several price levels, so the average fill price is worse than the first quote. That difference is called price impact."
+        },
+        {
+          "heading": "Slippage and AMMs",
+          "body": "Slippage is the gap between the price you expected and the price you got. On automated market makers (AMMs), price impact grows with trade size relative to the pool. A slippage tolerance setting caps how much worse a swap may fill, but a loose setting can be exploited by sandwich attacks."
+        },
+        {
+          "heading": "Volatility",
+          "body": "Volatility measures how much a price moves over time. In volatile markets a tight stop is more likely to be hit by normal noise, so traders often widen stops and shrink position size to keep the same risk. Measures such as Average True Range (ATR) help put a number on recent movement."
+        },
+        {
+          "heading": "Reading volume",
+          "body": "Volume is the amount traded over a period. A price move on rising volume shows broad participation and is often seen as stronger, while a move on falling volume may lack conviction. Volume can be distorted by wash trading, where the same party trades with itself, so compare it across venues before trusting it."
+        }
+      ],
+      "concepts": [
+        { "term": "Market depth", "definition": "The total size of buy and sell orders resting near the current price." },
+        { "term": "Price impact", "definition": "How much your own order moves the price against you as it fills." },
+        { "term": "Average True Range", "definition": "An indicator that measures the average size of recent price ranges." },
+        { "term": "Wash trading", "definition": "Trading with yourself to create fake volume and a false sense of activity." }
+      ],
+      "example": {
+        "title": "A large swap in a small pool",
+        "body": "Omar swaps a large amount of a token in a pool with little liquidity. The AMM curve moves sharply, so his average price is far worse than the quoted price. Splitting the trade into smaller pieces, using a deeper pool or a DEX aggregator would have reduced the price impact."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "how-markets-work",
+      "difficulty": "easy",
+      "prompt": "What does a market order do?",
+      "options": [
+        "It waits until the price reaches a level you choose",
+        "It fills right away at the best available price",
+        "It only fills at the end of the trading day",
+        "It cancels itself if the price moves at all"
+      ],
+      "answer": 1,
+      "explanation": "A market order executes immediately against the best orders in the book. You get speed but do not control the exact price."
+    },
+    {
+      "module": "how-markets-work",
+      "difficulty": "easy",
+      "prompt": "What is the spread in an order book?",
+      "options": [
+        "The total number of open buy and sell orders in the book",
+        "The fee an exchange charges on each trade",
+        "The price change over the last 24 hours",
+        "The gap between the highest bid and lowest ask"
+      ],
+      "answer": 3,
+      "explanation": "The spread is the difference between the best buy price (bid) and the best sell price (ask)."
+    },
+    {
+      "module": "how-markets-work",
+      "difficulty": "easy",
+      "prompt": "What is a limit order?",
+      "options": [
+        "An order that only fills at your price or better",
+        "An order that always fills instantly at any price",
+        "An order that limits how many trades you can make",
+        "An order that can only be placed by market makers"
+      ],
+      "answer": 0,
+      "explanation": "A limit order sets the worst price you will accept. It only fills if the market reaches that price."
+    },
+    {
+      "module": "how-markets-work",
+      "difficulty": "easy",
+      "prompt": "In the pair ETH/USDC, what does the price show?",
+      "options": [
+        "How much ETH one USDC costs",
+        "How many ETH exist in total",
+        "How much USDC one ETH costs",
+        "How many trades happened today"
+      ],
+      "answer": 2,
+      "explanation": "A pair quotes the first asset in units of the second, so ETH/USDC shows how many USDC one ETH costs."
+    },
+    {
+      "module": "how-markets-work",
+      "difficulty": "easy",
+      "prompt": "Why is someone who places a resting limit order called a maker?",
+      "options": [
+        "Because they created the token being traded",
+        "Because their order adds liquidity to the book",
+        "Because they set the official market price",
+        "Because they run the exchange's matching engine"
+      ],
+      "answer": 1,
+      "explanation": "A resting limit order adds liquidity that others can trade against, so its owner is called a maker."
+    },
+    {
+      "module": "spot-and-derivatives",
+      "difficulty": "medium",
+      "prompt": "What is the main difference between spot trading and trading a perpetual swap?",
+      "options": [
+        "Spot gives you the actual asset; a perpetual is a contract on its price",
+        "Spot trades can only be long; perpetuals can only be short",
+        "Spot trades settle at the end of next month; perpetuals settle instantly",
+        "Spot trading uses leverage; perpetuals never allow leverage"
+      ],
+      "answer": 0,
+      "explanation": "In spot trading you own the asset. A perpetual swap is a derivative that tracks the price without you owning the asset itself."
+    },
+    {
+      "module": "spot-and-derivatives",
+      "difficulty": "medium",
+      "prompt": "What is the purpose of the funding rate on a perpetual swap?",
+      "options": [
+        "To pay the exchange a monthly listing fee",
+        "To reward traders who hold their position open the longest",
+        "To keep the contract price close to the spot price",
+        "To set the maximum leverage a trader can use"
+      ],
+      "answer": 2,
+      "explanation": "Funding payments flow between longs and shorts, which pulls the perpetual's price back toward the spot price."
+    },
+    {
+      "module": "spot-and-derivatives",
+      "difficulty": "medium",
+      "prompt": "A trader goes short. When do they profit?",
+      "options": [
+        "When the price rises above their entry",
+        "When the funding rate becomes zero",
+        "When trading volume increases sharply",
+        "When the price falls below their entry"
+      ],
+      "answer": 3,
+      "explanation": "A short position gains value as the price falls."
+    },
+    {
+      "module": "spot-and-derivatives",
+      "difficulty": "medium",
+      "prompt": "With 10x leverage, roughly how much does a 2% price move against you change your margin?",
+      "options": [
+        "It changes your margin by about 2%",
+        "It changes your margin by about 20%",
+        "It changes your margin by about 10%",
+        "It changes your margin by about 200%"
+      ],
+      "answer": 1,
+      "explanation": "Leverage multiplies the effect of price moves on margin, so 2% times 10 is about 20%, before fees."
+    },
+    {
+      "module": "spot-and-derivatives",
+      "difficulty": "medium",
+      "prompt": "What happens to the liquidation distance as leverage increases?",
+      "options": [
+        "A smaller price move is enough to liquidate you",
+        "A larger price move is needed to liquidate you",
+        "Liquidation distance stays the same at any leverage",
+        "Liquidation can no longer happen above 10x"
+      ],
+      "answer": 0,
+      "explanation": "Higher leverage means losses consume your margin faster, so a smaller move against you triggers liquidation."
+    },
+    {
+      "module": "risk-and-position-sizing",
+      "difficulty": "hard",
+      "prompt": "An account holds 5,000 USDC and the trader risks 2% per trade. Entry is 50 and the stop is 45. What position size keeps to the plan?",
+      "options": [
+        "10 units",
+        "40 units",
+        "20 units",
+        "100 units"
+      ],
+      "answer": 2,
+      "explanation": "2% of 5,000 is 100. The stop distance is 5 per unit, so 100 divided by 5 is 20 units."
+    },
+    {
+      "module": "risk-and-position-sizing",
+      "difficulty": "hard",
+      "prompt": "After a 50% loss, what gain is needed to return to the starting balance?",
+      "options": [
+        "A 50% gain",
+        "A 75% gain",
+        "A 150% gain",
+        "A 100% gain"
+      ],
+      "answer": 3,
+      "explanation": "Half the account must double to get back to the start, so a 100% gain is needed."
+    },
+    {
+      "module": "risk-and-position-sizing",
+      "difficulty": "hard",
+      "prompt": "Where should a stop-loss usually be placed?",
+      "options": [
+        "At the price where the trade idea is shown to be wrong",
+        "At a round number that matches your desired position size",
+        "Exactly 1% below entry on every trade, whatever the setup",
+        "Wherever it lets you use the most leverage possible"
+      ],
+      "answer": 0,
+      "explanation": "The stop belongs where the setup is invalidated. Position size is then derived from that distance, not the other way round."
+    },
+    {
+      "module": "risk-and-position-sizing",
+      "difficulty": "hard",
+      "prompt": "A strategy wins 40% of trades with a risk-reward of 1:3 on every trade. Ignoring fees, what is the expected result?",
+      "options": [
+        "It loses money because most trades are losers",
+        "It makes money because wins outweigh the losses",
+        "It breaks even exactly over many trades",
+        "It cannot be judged without knowing the asset"
+      ],
+      "answer": 1,
+      "explanation": "Over 10 trades: 4 wins of 3R is 12R, 6 losses of 1R is 6R, a net gain of 6R. A good ratio can offset a low win rate."
+    },
+    {
+      "module": "risk-and-position-sizing",
+      "difficulty": "hard",
+      "prompt": "Two trades risk the same dollar amount. Trade A has a stop twice as far from entry as Trade B. How should their sizes compare?",
+      "options": [
+        "Trade A should be twice as large as Trade B",
+        "Both trades should be exactly the same size",
+        "Trade A should be four times smaller than B",
+        "Trade A should be half the size of Trade B"
+      ],
+      "answer": 3,
+      "explanation": "Size equals risk divided by stop distance. Doubling the distance halves the size for the same dollar risk."
+    },
+    {
+      "module": "liquidity-volatility-volume",
+      "difficulty": "expert",
+      "prompt": "Why does a large market order in a thin order book get a worse average price?",
+      "options": [
+        "Exchanges add a penalty fee to large orders",
+        "It fills through several worse price levels",
+        "The spread is always wider for market orders",
+        "Large orders are delayed until the next block"
+      ],
+      "answer": 1,
+      "explanation": "When resting orders at the best price run out, the order keeps filling at worse levels. This is price impact."
+    },
+    {
+      "module": "liquidity-volatility-volume",
+      "difficulty": "expert",
+      "prompt": "What risk does a very loose slippage tolerance on an AMM swap create?",
+      "options": [
+        "The swap may be sandwiched and filled at a much worse price",
+        "The swap will always fail because no route can be found for it",
+        "The pool will charge a higher fixed fee on the trade",
+        "The tokens will be locked until the tolerance expires"
+      ],
+      "answer": 0,
+      "explanation": "A searcher can buy before and sell after your swap, pushing your fill toward the worst price your tolerance allows."
+    },
+    {
+      "module": "liquidity-volatility-volume",
+      "difficulty": "expert",
+      "prompt": "Volatility has doubled. A trader wants to keep the same dollar risk per trade. What is a sensible adjustment?",
+      "options": [
+        "Keep the stop distance and double the size",
+        "Remove the stop so noise cannot trigger it",
+        "Widen the stop and reduce the position size",
+        "Tighten the stop and raise the leverage"
+      ],
+      "answer": 2,
+      "explanation": "A wider stop avoids being hit by normal noise, and a smaller size keeps the dollar risk unchanged."
+    },
+    {
+      "module": "liquidity-volatility-volume",
+      "difficulty": "expert",
+      "prompt": "A price breaks out to a new high on sharply falling volume. How is this usually read?",
+      "options": [
+        "As strong confirmation that the move will continue",
+        "As proof that wash trading has stopped on the venue",
+        "As a sign that liquidity has become much deeper",
+        "As a move with weak participation that may not hold"
+      ],
+      "answer": 3,
+      "explanation": "Falling volume on a breakout suggests few participants are behind the move, so traders treat it with caution."
+    },
+    {
+      "module": "liquidity-volatility-volume",
+      "difficulty": "expert",
+      "prompt": "Why should reported volume on a single venue be checked against other venues?",
+      "options": [
+        "Because volume is only counted on weekends",
+        "Because volume never affects the price at all",
+        "Because it may be inflated by wash trading",
+        "Because only one venue can list a given pair"
+      ],
+      "answer": 2,
+      "explanation": "Wash trading creates fake volume. Comparing several venues helps reveal numbers that do not match real activity."
+    }
+  ]
+}

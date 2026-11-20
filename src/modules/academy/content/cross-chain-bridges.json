@@ -1,0 +1,431 @@
+{
+  "slug": "cross-chain-bridges",
+  "title": "Cross-chain & Bridges",
+  "tagline": "Learn how assets and messages move between chains, and where the risks hide.",
+  "icon": "Waypoints",
+  "order": 10,
+  "modules": [
+    {
+      "slug": "why-bridges-exist",
+      "level": "beginner",
+      "title": "Why bridges exist",
+      "summary": "Blockchains cannot see each other directly. This module explains what a bridge does and what a wrapped token is.",
+      "minutes": 6,
+      "objectives": [
+        "Explain why chains cannot talk to each other on their own",
+        "Describe what a bridge does in simple terms",
+        "Understand what a wrapped token represents"
+      ],
+      "sections": [
+        {
+          "heading": "Separate worlds",
+          "body": "Each blockchain keeps its own records and follows its own rules. A smart contract on one chain cannot read balances or events on another chain by itself. So you cannot simply send a token from one chain and have it appear on another."
+        },
+        {
+          "heading": "What a bridge does",
+          "body": "A bridge is a system that carries assets or messages between chains. It watches for an action on the source chain, such as a deposit, and triggers a matching action on the destination chain. How the bridge confirms that the first action really happened is what decides how safe it is."
+        },
+        {
+          "heading": "Wrapped tokens",
+          "body": "Often a bridge locks your original token on the source chain and gives you a wrapped token on the destination chain. The wrapped token is like a receipt that represents the locked original. It is only worth as much as the bridge's promise to give back the original."
+        },
+        {
+          "heading": "Check before you bridge",
+          "body": "Send a small test amount first, and always open the bridge from an address you trust rather than a link in a message. Make sure you are using the correct destination chain and address. Bridging mistakes are often impossible to undo."
+        }
+      ],
+      "concepts": [
+        { "term": "Bridge", "definition": "A system that moves assets or messages from one blockchain to another." },
+        { "term": "Source chain", "definition": "The chain an asset or message leaves from." },
+        { "term": "Destination chain", "definition": "The chain an asset or message arrives on." },
+        { "term": "Wrapped token", "definition": "A token on one chain that represents an asset locked on another chain." }
+      ],
+      "example": {
+        "title": "Moving tokens to a cheaper chain",
+        "body": "Jo wants to use an app on a chain with lower fees. She deposits tokens into a bridge on her current chain. A few minutes later, wrapped versions of those tokens appear in her wallet on the new chain, ready to use."
+      }
+    },
+    {
+      "slug": "bridge-designs",
+      "level": "intermediate",
+      "title": "Lock-and-mint, burn-and-mint and liquidity networks",
+      "summary": "Bridges move value in a few main ways. This module compares lock-and-mint, burn-and-mint and liquidity network designs.",
+      "minutes": 8,
+      "objectives": [
+        "Explain the lock-and-mint model and its risk",
+        "Explain how burn-and-mint keeps a single supply",
+        "Describe how liquidity networks avoid wrapped tokens"
+      ],
+      "sections": [
+        {
+          "heading": "Lock-and-mint",
+          "body": "In lock-and-mint, your tokens are locked in a contract on the source chain and the bridge mints the same amount of wrapped tokens on the destination chain. To go back, the wrapped tokens are burned and the originals are unlocked. The locked pool backs every wrapped token, so it becomes a large target."
+        },
+        {
+          "heading": "Burn-and-mint",
+          "body": "Some tokens are issued natively on several chains by the same issuer. To move them, the bridge burns tokens on the source chain and mints new ones on the destination chain. Total supply stays the same, there is no large locked pool, and users get the official token instead of a wrapped copy."
+        },
+        {
+          "heading": "Liquidity networks",
+          "body": "A liquidity network keeps pools of real tokens on each chain. You deposit into the pool on the source chain, and a liquidity provider or the pool pays you native tokens on the destination chain. Transfers can be fast and need no wrapped tokens, but size is limited by the liquidity available, and providers charge a fee."
+        },
+        {
+          "heading": "Why the design matters",
+          "body": "If two bridges each create their own wrapped version of the same token, those versions are not interchangeable. Users can end up holding a token that apps do not accept. Knowing which model a bridge uses tells you what you actually hold and what backs it."
+        }
+      ],
+      "concepts": [
+        { "term": "Lock-and-mint", "definition": "Locking tokens on one chain and minting wrapped tokens on another." },
+        { "term": "Burn-and-mint", "definition": "Burning tokens on one chain and minting the same amount on another, keeping one total supply." },
+        { "term": "Liquidity network", "definition": "A bridge design that pays out native tokens from pools on each chain." },
+        { "term": "Liquidity provider", "definition": "Someone who supplies tokens to a pool in return for fees." }
+      ],
+      "example": {
+        "title": "Two versions of one token",
+        "body": "Tom bridges a stablecoin through Bridge A and receives Bridge A's wrapped version. His friend uses Bridge B and receives a different wrapped version. A lending app on the destination chain only accepts one of them, so Tom has to swap before he can use it."
+      }
+    },
+    {
+      "slug": "verifying-cross-chain-messages",
+      "level": "advanced",
+      "title": "How bridges verify messages",
+      "summary": "Every bridge must answer one question: how does the destination chain know the source event really happened? This module compares light-client, externally verified, optimistic and native rollup bridges.",
+      "minutes": 10,
+      "objectives": [
+        "Compare light-client bridges with externally verified bridges",
+        "Explain how optimistic bridges use watchers",
+        "Understand why finality matters before releasing funds"
+      ],
+      "sections": [
+        {
+          "heading": "Externally verified bridges",
+          "body": "Many bridges rely on a set of validators, a multisig or an oracle network to attest that an event happened on the source chain. When enough of them sign, the destination contract accepts the message. This is flexible and fast, but users must trust that the signers stay honest and keep their keys safe."
+        },
+        {
+          "heading": "Light-client bridges",
+          "body": "A light-client bridge runs a small verifier of the source chain's consensus inside a contract on the destination chain. It checks block headers and proofs directly, so it trusts the source chain's own validators rather than a separate group. This is more trust-minimised, but it can be costly and complex to build."
+        },
+        {
+          "heading": "Optimistic bridges",
+          "body": "An optimistic bridge accepts messages after a waiting period unless a watcher proves a message is false. Only one honest watcher is needed to stop a bad message. The trade-off is a delay before funds or messages are final."
+        },
+        {
+          "heading": "Finality and reorgs",
+          "body": "A block that looks confirmed can sometimes be replaced if the source chain reorganises. If a bridge releases funds before the deposit is final, an attacker could reverse the deposit and keep both sides. Careful bridges wait for finality before acting."
+        }
+      ],
+      "concepts": [
+        { "term": "Light client", "definition": "A verifier that checks a chain's headers and proofs without storing the full chain." },
+        { "term": "Externally verified", "definition": "A bridge model that relies on a separate group of signers to confirm events." },
+        { "term": "Watcher", "definition": "An independent party that monitors an optimistic bridge and disputes false messages." },
+        { "term": "Finality", "definition": "The point after which a transaction can no longer be reversed." }
+      ],
+      "example": {
+        "title": "Two ways to check one deposit",
+        "body": "A user deposits on Chain A. Bridge X waits for five of its eight validators to sign that the deposit happened. Bridge Y has a contract on Chain B that checks Chain A's block header and a proof of the deposit directly. Both deliver the funds, but they ask the user to trust very different things."
+      }
+    },
+    {
+      "slug": "bridge-security",
+      "level": "expert",
+      "title": "Why bridges get hacked",
+      "summary": "Bridges hold large pools of value and connect complex systems, which makes them a frequent target. This module covers common failure modes and how to assess bridge risk.",
+      "minutes": 12,
+      "objectives": [
+        "Describe validator key compromise and threshold risk",
+        "Recognise contract bugs in message verification",
+        "Assess a bridge's trust assumptions before using it"
+      ],
+      "sections": [
+        {
+          "heading": "Honeypots",
+          "body": "A lock-and-mint bridge holds every locked token in one place. If an attacker drains it, the wrapped tokens on the other chain lose their backing at once. Large, concentrated value makes bridges one of the most attractive targets in crypto."
+        },
+        {
+          "heading": "Validator key compromise",
+          "body": "In an externally verified bridge, whoever controls the signing threshold controls the bridge. If attackers steal enough keys, they can sign fake withdrawals that look valid. A small validator set, or several keys held by one organisation, lowers the real number of parties an attacker must breach."
+        },
+        {
+          "heading": "Contract bugs",
+          "body": "Some of the worst bridge losses came from code, not keys. Typical flaws include signature checks that can be skipped, message verification that accepts forged proofs, and setup mistakes that mark invalid messages as already approved. Audits help, but complex cross-chain logic is hard to get fully right."
+        },
+        {
+          "heading": "Assessing a bridge",
+          "body": "Ask who or what verifies messages, how many independent parties must collude to steal funds, and whether upgrades can be pushed instantly by a small group. Rate limits and pause controls can cap losses, while timelocks on upgrades give users time to react. Keeping only what you need on the far side of a bridge limits your own exposure."
+        }
+      ],
+      "concepts": [
+        { "term": "Signing threshold", "definition": "The minimum number of signers needed to approve a bridge message." },
+        { "term": "Message verification", "definition": "The logic a bridge uses to decide whether a cross-chain message is genuine." },
+        { "term": "Rate limit", "definition": "A cap on how much value can leave a bridge within a set time." },
+        { "term": "Upgrade timelock", "definition": "A delay between announcing a contract upgrade and it taking effect." }
+      ],
+      "example": {
+        "title": "A five-of-nine bridge",
+        "body": "A bridge needs five of nine validator signatures to release funds. On paper an attacker must compromise five parties. If four of those keys are run by the same team on shared infrastructure, one breach of that team gets the attacker almost all the way there. Counting independent parties matters more than counting keys."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "why-bridges-exist",
+      "difficulty": "easy",
+      "prompt": "Why do we need bridges between blockchains?",
+      "options": [
+        "Because every chain uses the exact same coin",
+        "Because chains cannot read each other's records directly",
+        "Because wallets can only ever connect to one chain at a time",
+        "Because tokens expire if they stay on one chain"
+      ],
+      "answer": 1,
+      "explanation": "Each chain only knows its own state. A bridge is needed to carry information or value from one chain to another."
+    },
+    {
+      "module": "why-bridges-exist",
+      "difficulty": "easy",
+      "prompt": "What is a wrapped token?",
+      "options": [
+        "A token with its transaction history hidden from explorers",
+        "A token that can never be moved again",
+        "A token that represents an asset locked elsewhere",
+        "A token sold only in limited gift bundles"
+      ],
+      "answer": 2,
+      "explanation": "A wrapped token stands in for an original asset held by the bridge on another chain."
+    },
+    {
+      "module": "why-bridges-exist",
+      "difficulty": "easy",
+      "prompt": "What gives a wrapped token its value?",
+      "options": [
+        "The bridge's ability to return the original asset",
+        "The number of people who hold the wrapped token",
+        "The design of the token's logo and name",
+        "The fees the destination chain charges"
+      ],
+      "answer": 0,
+      "explanation": "A wrapped token is like a receipt. It is only as good as the bridge's ability to redeem it for the original."
+    },
+    {
+      "module": "why-bridges-exist",
+      "difficulty": "easy",
+      "prompt": "What is a sensible first step when using a bridge for the first time?",
+      "options": [
+        "Send your full balance to save on fees",
+        "Use the link from a message you received",
+        "Pick any destination address that works",
+        "Send a small test amount before the rest"
+      ],
+      "answer": 3,
+      "explanation": "A small test confirms the route, chain and address are right before you risk a larger amount."
+    },
+    {
+      "module": "why-bridges-exist",
+      "difficulty": "easy",
+      "prompt": "What does the source chain mean in a bridge transfer?",
+      "options": [
+        "The chain the asset is leaving from",
+        "The chain the asset is arriving on",
+        "The chain that issued the bridge's token",
+        "The chain with the lowest fees"
+      ],
+      "answer": 0,
+      "explanation": "The source chain is where the transfer starts. The destination chain is where it ends."
+    },
+    {
+      "module": "bridge-designs",
+      "difficulty": "medium",
+      "prompt": "In lock-and-mint, what happens when you bridge back to the source chain?",
+      "options": [
+        "New originals are minted on the source chain",
+        "Both the wrapped and original tokens are kept",
+        "The wrapped tokens are sent to a liquidity pool",
+        "Wrapped tokens are burned and originals unlocked"
+      ],
+      "answer": 3,
+      "explanation": "The reverse trip burns the wrapped tokens on the destination chain and releases the locked originals."
+    },
+    {
+      "module": "bridge-designs",
+      "difficulty": "medium",
+      "prompt": "What is a key benefit of burn-and-mint for a token issuer?",
+      "options": [
+        "Total supply stays the same with no large locked pool",
+        "Every chain gets its own separate wrapped version of the token",
+        "Users never pay any fees to move the token",
+        "Transfers no longer need any verification"
+      ],
+      "answer": 0,
+      "explanation": "Burning on one chain and minting on another keeps one total supply and avoids a big pool of locked tokens."
+    },
+    {
+      "module": "bridge-designs",
+      "difficulty": "medium",
+      "prompt": "How does a liquidity network deliver funds on the destination chain?",
+      "options": [
+        "It mints a new wrapped token for each user",
+        "It burns the token and waits for a new issue",
+        "It pays out native tokens from a pool there",
+        "It asks the user to find a buyer manually"
+      ],
+      "answer": 2,
+      "explanation": "Liquidity networks hold real tokens on each chain and pay the user from the destination pool."
+    },
+    {
+      "module": "bridge-designs",
+      "difficulty": "medium",
+      "prompt": "What limits the size of a transfer through a liquidity network?",
+      "options": [
+        "The age of the user's wallet address",
+        "The liquidity available on the destination side",
+        "The number of validators on the source chain",
+        "The length of the token's name and symbol"
+      ],
+      "answer": 1,
+      "explanation": "Payouts come from a pool, so a transfer cannot exceed the liquidity available there."
+    },
+    {
+      "module": "bridge-designs",
+      "difficulty": "medium",
+      "prompt": "Two bridges each create a wrapped version of the same token. What is the problem?",
+      "options": [
+        "Both versions are always worth exactly zero",
+        "The original token is burned on its home chain",
+        "The versions are not interchangeable in apps",
+        "The destination chain stops producing blocks"
+      ],
+      "answer": 2,
+      "explanation": "Each wrapped version is a separate token backed by a different bridge, so apps may accept one and not the other."
+    },
+    {
+      "module": "verifying-cross-chain-messages",
+      "difficulty": "hard",
+      "prompt": "What does an externally verified bridge ask users to trust?",
+      "options": [
+        "Only the source chain's own consensus",
+        "Only the maths of a validity proof",
+        "A separate group of signers or oracles",
+        "A single honest watcher in a challenge period"
+      ],
+      "answer": 2,
+      "explanation": "Externally verified bridges depend on their own validators, multisig or oracles staying honest and secure."
+    },
+    {
+      "module": "verifying-cross-chain-messages",
+      "difficulty": "hard",
+      "prompt": "What makes a light-client bridge more trust-minimised?",
+      "options": [
+        "It skips verification to save gas costs",
+        "It verifies the source chain's headers and proofs directly",
+        "It uses a larger multisig than other bridges",
+        "It stores users' private keys in a secure contract on both chains"
+      ],
+      "answer": 1,
+      "explanation": "A light-client bridge checks the source chain's consensus on-chain, so it does not rely on a separate trusted group."
+    },
+    {
+      "module": "verifying-cross-chain-messages",
+      "difficulty": "hard",
+      "prompt": "How many honest watchers does an optimistic bridge need to stop a false message?",
+      "options": [
+        "A majority of all watchers",
+        "Two thirds of all watchers",
+        "Every single watcher",
+        "Just one honest watcher"
+      ],
+      "answer": 3,
+      "explanation": "Any one watcher can submit proof that a message is false during the waiting period, which blocks it."
+    },
+    {
+      "module": "verifying-cross-chain-messages",
+      "difficulty": "hard",
+      "prompt": "Why should a bridge wait for finality on the source chain?",
+      "options": [
+        "A reorg could reverse the deposit after funds are released",
+        "Finality is needed before a wallet can show a balance",
+        "Waiting lowers the gas price on the destination chain",
+        "Validators can only sign messages during set hours"
+      ],
+      "answer": 0,
+      "explanation": "If the deposit block is replaced in a reorg, the deposit disappears while the bridged funds remain with the attacker."
+    },
+    {
+      "module": "verifying-cross-chain-messages",
+      "difficulty": "hard",
+      "prompt": "What is the main trade-off of an optimistic bridge?",
+      "options": [
+        "It needs every validator to sign each message",
+        "It cannot carry anything except native coins",
+        "It requires users to run a full node themselves",
+        "Messages are only final after a waiting period"
+      ],
+      "answer": 3,
+      "explanation": "Optimistic bridges give watchers time to dispute, so messages wait before they are final."
+    },
+    {
+      "module": "bridge-security",
+      "difficulty": "expert",
+      "prompt": "A bridge requires 5 of 9 signatures, but 4 keys are run by one team. Why is this a concern?",
+      "options": [
+        "One breach of that team gets an attacker close to the threshold",
+        "The bridge will refuse any message signed twice by keys from the same team",
+        "Signatures from one team are invalid under the protocol rules",
+        "The bridge needs all 9 keys whenever one team holds several"
+      ],
+      "answer": 0,
+      "explanation": "Security depends on independent parties, not key count. Compromising one team could hand over four of the five needed signatures."
+    },
+    {
+      "module": "bridge-security",
+      "difficulty": "expert",
+      "prompt": "Why are lock-and-mint bridges such attractive targets?",
+      "options": [
+        "Their wrapped tokens can be copied for free by anyone on the chain",
+        "They store users' seed phrases on-chain",
+        "They hold large pools of locked value in one place",
+        "They never use any form of verification"
+      ],
+      "answer": 2,
+      "explanation": "All the backing for the wrapped tokens sits in one contract, so draining it pays off hugely and leaves the wrapped tokens unbacked."
+    },
+    {
+      "module": "bridge-security",
+      "difficulty": "expert",
+      "prompt": "Which is an example of a contract bug that has led to bridge losses?",
+      "options": [
+        "A token logo that fails to load in wallets",
+        "Message verification that accepts forged proofs",
+        "A user interface that shows the wrong chain name",
+        "A slow block explorer that delays updates"
+      ],
+      "answer": 1,
+      "explanation": "If verification can be fooled, an attacker can submit a fake message and withdraw funds that were never deposited."
+    },
+    {
+      "module": "bridge-security",
+      "difficulty": "expert",
+      "prompt": "What does a timelock on bridge upgrades give users?",
+      "options": [
+        "Faster transfers during busy periods",
+        "Lower fees on every bridged transfer",
+        "A guarantee that no bug can ever exist",
+        "Time to react before a change takes effect"
+      ],
+      "answer": 3,
+      "explanation": "A delay between announcing and applying an upgrade lets users review it and exit if they do not trust it."
+    },
+    {
+      "module": "bridge-security",
+      "difficulty": "expert",
+      "prompt": "How does a rate limit help reduce the damage from a bridge exploit?",
+      "options": [
+        "It blocks all users from the bridge permanently",
+        "It caps how much value can leave in a set time",
+        "It hides the bridge's contract from attackers",
+        "It doubles the number of required signatures"
+      ],
+      "answer": 1,
+      "explanation": "Limiting outflows per period slows an attacker, giving the team time to pause the bridge before everything is drained."
+    }
+  ]
+}

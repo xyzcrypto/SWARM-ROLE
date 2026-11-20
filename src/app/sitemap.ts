@@ -83,6 +83,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // These three are real public pages with their own metadata (and /tools has
     // breadcrumb JSON-LD) that the sitemap simply never mentioned.
     { url: `${SITE_URL}/creators`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
+    { url: `${SITE_URL}/academy`, lastModified: now, changeFrequency: "daily", priority: 0.8 },
+    { url: `${SITE_URL}/academy/learn`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${SITE_URL}/academy/leaderboard`, lastModified: now, changeFrequency: "hourly", priority: 0.6 },
+    { url: `${SITE_URL}/academy/live`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
     { url: `${SITE_URL}/tools`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
     { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${SITE_URL}/disclaimer`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },

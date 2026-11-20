@@ -5,6 +5,163 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (157) — Creators: YouTube venues failed to save on a split emoji
+
+The owner's screenshot finally carried the real code (thanks to #154): "Invalid
+`prisma.ytDiscovery.upsert()` invocation: unexpected end of hex escape at column 179045".
+
+### Cause
+Video descriptions were cut with `String.slice(0, 1500)`. When the cut landed inside an
+emoji, a lone surrogate was left behind; JSON keeps it as `\ud83d`, and Prisma's engine
+rejects the whole JSON payload. One such description failed the save of an entire venue's
+discovery, so the tab showed the error instead of any videos, and the quota spent on the
+search was wasted. Reproduced locally with the identical message. A NUL character in any
+text (`\u0000`) fails the same way in Postgres ("unsupported Unicode escape sequence").
+
+### Fix
+- `src/modules/creators/lib/text.ts`: `cleanText()` truncates by code point and drops lone
+  surrogates and NUL. Used for YouTube titles, descriptions and channel names, and for X
+  names, bios and post text (same risk in `twitterapi.ts`).
+- `api/creators/youtube`: the fetched videos are kept in memory and served even if storing
+  them fails, so a database hiccup can no longer turn spent quota into an error screen.
+- Tests: `creators-text.test.ts`.
+
+---
+
+## 2026-11-20 (156) — Academy round 2: Nova reads everything, 3 music tracks, lifelines, Mistakes + Speed Run, migrations, alignment fixes
+
+### Migrations
+- `prisma/migrations/43_creators` and `44_academy`: the Creators and Academy tables had
+  reached production only through `db push`. Both are idempotent (IF NOT EXISTS,
+  DO-blocks for foreign keys). Verified on a fresh database: main's schema, then both files
+  twice, then `prisma migrate diff` against `schema.prisma` reports an empty migration.
+
+### Nova, about 46x the voice
+- 198 scripted lines (was 42): greetings by time of day, question cues (first, halfway,
+  last, "question five"), ten "correct" and seven "wrong" variants, fast-answer and streak
+  calls (3/5/7/10, streak broken), time warnings, 50:50, results by score band, every level
+  and achievement by name, streak days, rank moves, challenge win/lose/tie, leaderboard tabs,
+  and live countdown 3-2-1-go, lock-in, reveal, halfway, last question, pause/resume, winner,
+  podium.
+- **Every question, option, explanation and lesson summary of the curriculum** recorded in
+  her voice (~1,700 clips, named by a hash of the exact text, 32 kbps mono). Questions are
+  read as they open, options on demand (R key, button, "repeat question"), and explanations
+  after a wrong answer. Admin-edited text has no clip, so the browser voice reads the new
+  wording instead of a stale recording. Settings: "Read each question aloud" and "Explain
+  wrong answers aloud".
+- Lessons: "Listen to this lesson" (summary in Nova's voice, then each section).
+- Voice queue: lines play in order instead of cutting each other off; music ducks while she
+  talks.
+
+### Sound
+- Three generative tracks on one look-ahead scheduler: Focus (pads), Arena (112 bpm pulse:
+  kick, hats, bass, plucked arp) and Night (76 bpm lo-fi keys). Auto plays Focus while
+  reading and Arena while playing.
+- New effects: hover, coin, countdown, heartbeat (last 5 seconds), 50:50, streak fire,
+  answer lock, live reveal roll, pop; a gentle compressor on the master bus.
+
+### Features
+- **50:50 lifeline**: two per quiz, removes two wrong options server-side (seeded, so a
+  resume shows the same two), that answer keeps half its points. Off in Daily, Weekly and
+  Challenge so everyone plays on equal terms. Key F.
+- **Mistakes mode**: replays the questions whose latest answer was wrong, until they are
+  right.
+- **Speed Run**: easy and medium only, 12 seconds each, +30 XP bonus.
+- All three tunable in Rewards & rules.
+
+### Fixes
+- Sections that waited for `whileInView` stayed invisible after a fast scroll or an anchor
+  jump (Continue learning, achievements, modes, library, weekly chart). All Academy reveals
+  now run on mount; a test keeps `whileInView` out of the Academy.
+- `/api/academy/me` was fetched two or three times per page (one per component); now one
+  shared request.
+- **Site-wide: `sm:text-base` painted text in the page background colour.** The semantic
+  `base` colour (`var(--bg)`) was a global Tailwind colour, so `text-base` was ALSO
+  generated as a colour utility, and the `sm:` variant (ordered after colour classes)
+  overrode the element's real colour. Found as an invisible tagline on Academy topic pages;
+  the same class is on 9 elements (Markets heatmap and charts, Points hero, portfolio,
+  explainer player). `base` now lives only in `backgroundColor` and `gradientColorStops`,
+  so `bg-base`, `from-base` and `to-base` are unchanged and `text-base` is font-size only.
+- Podium centred when only one or two people are on the board.
+- Results/timer: the ring shows the time you answered in instead of a dash.
+
+---
+
+## 2026-11-20 (155) — XYZ Crypto Academy: lessons, server-scored quizzes, leaderboards, live multiplayer, Nova voice guide, certificates
+
+A new section at **/academy**, built on the existing stack (Next 16, Prisma/Postgres,
+next-auth, Supabase Realtime broadcast, Upstash limits). Ops notes: `docs/academy.md`.
+
+### What members get
+- **Learn:** 14 topics × 4 levels (Beginner → Expert) = 56 lessons with objectives, short
+  sections (read-aloud), tap-to-reveal key concepts and a real-world example. A lesson
+  completes when its knowledge check scores ≥ 60%.
+- **Quiz engine:** Quick, Topic, Advanced, Daily (same 10 for everyone, once a day), Weekly
+  (20, once a week), lesson checks and "Challenge friends" replays. 5/10/15/20 questions,
+  easy → expert, timer, streak flame, instant explanations, keyboard (1-4, Enter) and voice
+  commands, results with accuracy ring, XP breakdown, level/rank movement and answer review.
+- **XP, levels, streaks, 14 achievements**, all configurable by admins.
+- **Leaderboards:** Daily / Weekly / Monthly / All-time from the XP ledger (UTC periods,
+  ISO weeks), gold/silver/bronze podium, rank-movement arrows, username search, "your
+  position", pagination, realtime refresh.
+- **Live Quiz Arena:** scheduled rooms that auto-start, waiting room, synced countdown, same
+  question for everyone, answers revealed together with the vote split, round leaderboard,
+  winners, XP and certificates. Host start/pause/resume/end/cancel.
+- **Nova, the voice guide:** 42 pre-recorded lines in a natural female voice (Kokoro
+  af_heart, generated offline, 1.3 MB total, fetched on use) plus the browser's best female
+  voice for questions/explanations. Captions always, play/pause/replay, mute, volume, voice
+  picker, "speaks on her own" toggle, optional mic commands (permission only on tap).
+- **Sound:** synthesised SFX and an ambient music bed (Web Audio, nothing licensed), master /
+  music / effects / voice switches and volumes, persisted, nothing before a user gesture,
+  music ducks while a question is open.
+- **Certificates:** daily/weekly/monthly champions (closed after the period ends), live
+  winners, and admin-issued event/milestone awards. Unique ID, QR, public verification page,
+  A4 PDF (pdf-lib), share to X, revoke/approve.
+- **Admin (`/dashboard/academy`, permission `academy:manage`):** topics, lessons, question
+  bank, scoring/XP/levels/award rules/achievements, live scheduling and hosting,
+  certificates, XP grants, analytics. Every action audit-logged.
+
+### Integrity
+- The server picks the questions and the option order, times every answer from its own
+  clock (+1.5s grace), scores it and writes XP. The browser only sends "I tapped option N".
+- The open question never carries its answer (solo or live); live scores shown during a
+  question exclude that question.
+- XP is a ledger with a unique idempotency key per reward (`quiz:<attempt>`,
+  `ach:<user>:<code>`, `live:<id>:<user>`…), written with ON CONFLICT DO NOTHING, so retries
+  and double-submits pay once. One answer per question by primary key.
+- Anti-farming: a question answered correctly for XP earns 0 XP again for 7 days, and quiz
+  XP is capped per UTC day (2,500 by default).
+- Period close and certificate issue are exactly-once (`AcademyPeriodClose` PK, unique
+  `(kind, periodKey, userId)`).
+
+### Cost
+- `/academy`, `/academy/learn`, `/quiz`, `/leaderboard`, `/live`, `/certificates` are static
+  shells (○). Lessons and topics are on-demand ISR (1 day, revalidated by admin edits); the
+  certificate page 1h.
+- Public endpoints carry `Cache-Control` from day one: catalog 300s, pulse 30s, leaderboard
+  15s, live list 10s, live room 2s (collapses a full room into one origin call per phase),
+  challenge 1h, PDF 1h. Personal endpoints are `private, no-store`.
+- Nothing polls on a timer while realtime is up: boards refetch on a content-free
+  `academy` broadcast, throttled client-side; the fallback poll (realtime down) is 120s,
+  15s in a live room.
+- No cron: finished periods close from the leaderboard route via `after()` (or the admin
+  button).
+
+### Content
+280 questions, correct answers spread 5/5/5/5 across positions per topic, and rebalanced so
+the right answer is the longest option in only ~25% of questions (was 61%). Tests pin this.
+
+### Tests
+`academy-engine.test.ts` (levels, scoring, streaks, UTC/ISO periods, seeded challenges, live
+clock incl. pause, tie-break, certificate codes, config merge, answer-never-sent invariants)
+and `academy-client.test.ts` (voice commands, audio settings, every line has a clip, content
+validity, no em dashes). End-to-end in a real browser: lesson → check → results, quick quiz
+with wrong answers, leaderboard, admin schedule → learner join → countdown → answer →
+reveal → host end → winner certificate → PDF, desktop and iPhone 13, zero console errors,
+no horizontal overflow.
+
+---
+
 ## 2026-11-20 (154) — Creators: YouTube loads in the background, and the page says why when it can't
 
 The owner reported the YouTube tab still showed "YouTube didn't respond just now" after #153.

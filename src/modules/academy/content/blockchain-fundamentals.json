@@ -1,0 +1,431 @@
+{
+  "slug": "blockchain-fundamentals",
+  "title": "Blockchain Fundamentals",
+  "tagline": "Learn how blockchains store data, reach agreement and stay secure.",
+  "icon": "Blocks",
+  "order": 1,
+  "modules": [
+    {
+      "slug": "what-is-a-blockchain",
+      "level": "beginner",
+      "title": "What is a blockchain?",
+      "summary": "A blockchain is a shared record that many computers keep in sync. Learn why that matters and how it differs from a normal database.",
+      "minutes": 6,
+      "objectives": [
+        "Explain what a blockchain is in plain words",
+        "Describe why decentralization removes the need for one trusted party",
+        "Recognize the roles of nodes, wallets and transactions"
+      ],
+      "sections": [
+        {
+          "heading": "A shared ledger",
+          "body": "A blockchain is a list of records, called a ledger, that is copied across many computers. Each computer, called a node, keeps its own copy. When new records are added, the nodes agree on them and update together. No single company owns the list."
+        },
+        {
+          "heading": "Why not just use a database?",
+          "body": "A normal database is run by one organization, and you have to trust it not to change or censor records. A blockchain spreads that trust across many independent participants. Changing history would mean convincing or overpowering most of the network, which is very hard by design."
+        },
+        {
+          "heading": "Wallets, keys and transactions",
+          "body": "You use a blockchain through a wallet. A wallet holds a private key, a secret number that lets you sign transactions. Anyone can check the signature against your public address, but only the key holder can create it. If you lose the private key, nobody can recover it for you."
+        },
+        {
+          "heading": "Public and permissionless",
+          "body": "Networks like Bitcoin and Ethereum are public: anyone can read the ledger, run a node or send a transaction. This openness is what makes them hard to censor. It also means transactions are visible to everyone, even though names are not attached to addresses."
+        }
+      ],
+      "concepts": [
+        { "term": "Ledger", "definition": "A record of transactions and balances, like an accounting book." },
+        { "term": "Node", "definition": "A computer that keeps a copy of the blockchain and checks new data against the rules." },
+        { "term": "Private key", "definition": "A secret number that proves ownership and lets you sign transactions." },
+        { "term": "Decentralization", "definition": "Spreading control across many independent participants instead of one authority." }
+      ],
+      "example": {
+        "title": "Bitcoin's first block",
+        "body": "The Bitcoin network started in January 2009 when its first block, often called the genesis block, was created. Since then, thousands of independent nodes around the world have kept copies of the same ledger. Anyone can download the full history and check every transaction for themselves."
+      }
+    },
+    {
+      "slug": "blocks-and-hashing",
+      "level": "intermediate",
+      "title": "Blocks, hashes and Merkle trees",
+      "summary": "See how transactions are grouped into blocks and how cryptographic hashes chain those blocks together so tampering is easy to detect.",
+      "minutes": 8,
+      "objectives": [
+        "Explain what a cryptographic hash function does",
+        "Describe how each block links to the one before it",
+        "Understand how a Merkle root summarizes many transactions"
+      ],
+      "sections": [
+        {
+          "heading": "Hash functions",
+          "body": "A hash function turns any input into a fixed-size output that looks random. The same input always gives the same output, but changing even one character changes the result completely. A good hash function makes it practically impossible to find two inputs with the same hash. Bitcoin uses SHA-256 and Ethereum uses Keccak-256."
+        },
+        {
+          "heading": "Chaining blocks together",
+          "body": "Every block header includes the hash of the previous block. If someone edits an old block, its hash changes, which breaks the link to every block after it. That is why the structure is called a chain, and why tampering is easy to spot."
+        },
+        {
+          "heading": "Merkle trees",
+          "body": "The transactions in a block are hashed in pairs, then those hashes are hashed in pairs, until a single hash remains: the Merkle root. The root is stored in the block header. A light client can check that a transaction is in a block using a short proof, without downloading every transaction."
+        },
+        {
+          "heading": "Mempool and confirmations",
+          "body": "New transactions wait in a pool, usually called the mempool, until a block producer includes them. Each new block added on top counts as another confirmation. More confirmations make it less likely that the transaction will be reversed by a chain reorganization."
+        }
+      ],
+      "concepts": [
+        { "term": "Hash", "definition": "A fixed-size fingerprint of some data that changes completely if the data changes." },
+        { "term": "Block header", "definition": "The small summary of a block that holds the previous block's hash and the Merkle root." },
+        { "term": "Merkle root", "definition": "One hash that commits to every transaction in a block." },
+        { "term": "Confirmation", "definition": "A block built on top of the block that contains your transaction." }
+      ],
+      "example": {
+        "title": "Checking a payment with a light wallet",
+        "body": "The Bitcoin whitepaper described Simplified Payment Verification (SPV). A light wallet downloads only block headers and asks a full node for a Merkle proof of its transaction. By hashing up the proof and comparing the result with the Merkle root in the header, the wallet confirms the transaction is included without storing the whole chain."
+      }
+    },
+    {
+      "slug": "consensus-mechanisms",
+      "level": "advanced",
+      "title": "Consensus: proof of work and proof of stake",
+      "summary": "Understand how thousands of nodes agree on one history, and how proof of work and proof of stake defend against fake identities.",
+      "minutes": 10,
+      "objectives": [
+        "Explain the Sybil problem and why consensus needs a scarce resource",
+        "Compare proof of work and proof of stake",
+        "Distinguish probabilistic finality from economic finality"
+      ],
+      "sections": [
+        {
+          "heading": "The Sybil problem",
+          "body": "On an open network, anyone can create thousands of fake identities. If voting were one node, one vote, an attacker could simply run more nodes. Consensus mechanisms solve this by tying influence to something costly: computing power in proof of work, or locked capital in proof of stake."
+        },
+        {
+          "heading": "Proof of work",
+          "body": "Miners repeatedly hash a block header with different nonces until the result falls below a target. Finding such a hash takes enormous computation, but anyone can verify it instantly. Nodes follow the valid chain with the most accumulated work. Bitcoin adjusts the difficulty every 2,016 blocks to keep blocks roughly ten minutes apart."
+        },
+        {
+          "heading": "Proof of stake",
+          "body": "Validators lock up the native coin as stake and take turns proposing and attesting to blocks. If they break the rules, for example by signing two conflicting blocks, part of their stake can be destroyed, which is called slashing. Ethereum switched from proof of work to proof of stake in September 2022 in an upgrade known as The Merge."
+        },
+        {
+          "heading": "Finality",
+          "body": "In proof of work, finality is probabilistic: a block gets safer as more blocks are built on top, but it is never absolutely final. Ethereum's proof of stake adds checkpoints that become finalized once validators holding two thirds of the stake attest to them. Reverting a finalized checkpoint would require at least one third of all stake to be slashed."
+        }
+      ],
+      "concepts": [
+        { "term": "Sybil attack", "definition": "Gaining outsized influence on a network by creating many fake identities." },
+        { "term": "Nonce", "definition": "In mining, a number miners change over and over to search for a valid block hash." },
+        { "term": "Slashing", "definition": "Destroying part of a validator's stake as a penalty for provably breaking the rules." },
+        { "term": "Finality", "definition": "The point after which a block cannot be reversed without a huge, visible cost." }
+      ],
+      "example": {
+        "title": "Ethereum's Merge",
+        "body": "Before September 2022, Ethereum blocks were produced by miners using proof of work. The Merge joined the original chain with the Beacon Chain, a proof of stake chain that had been running alongside it since December 2020. Mining on Ethereum ended, and validators with staked ETH took over block production."
+      }
+    },
+    {
+      "slug": "attacks-and-scaling",
+      "level": "expert",
+      "title": "Attacks, the trilemma and rollups",
+      "summary": "Examine how blockchains fail under attack, why scaling is hard, and how rollups move execution off the base layer while relying on its security.",
+      "minutes": 12,
+      "objectives": [
+        "Analyze majority attacks and the fault thresholds behind consensus",
+        "Explain the scalability trilemma and data availability",
+        "Compare optimistic and zero-knowledge rollups"
+      ],
+      "sections": [
+        {
+          "heading": "Majority attacks and double spends",
+          "body": "An attacker with most of the hash power can privately mine a longer chain and then release it, replacing recent blocks. That lets them double spend: pay a merchant, wait for delivery, then erase the payment. They still cannot spend coins from other people's addresses or break the supply rules, because every block must remain valid. Smaller proof of work chains are most exposed, since hash power can often be rented."
+        },
+        {
+          "heading": "Fault tolerance thresholds",
+          "body": "Classic Byzantine fault tolerant protocols, which many proof of stake chains build on, stay safe as long as less than one third of the voting power is malicious. Nakamoto-style proof of work instead assumes honest miners hold most of the hash power. Research on selfish mining showed that a well-connected miner can earn more than its fair share with less than half the hash power, so the practical safety margin is below 50%."
+        },
+        {
+          "heading": "The scalability trilemma",
+          "body": "Raising block size or block speed makes nodes more expensive to run, which pushes out smaller operators and weakens decentralization. This tension between scalability, security and decentralization is often called the blockchain trilemma. Many designs keep the base layer cheap to verify and push heavy work to other layers."
+        },
+        {
+          "heading": "Rollups and data availability",
+          "body": "A rollup executes transactions off the main chain and posts compressed transaction data plus a commitment to the new state back to it. Optimistic rollups assume batches are valid but allow a challenge window for fraud proofs, while zero-knowledge rollups post a validity proof that the main chain checks directly. Either way, the data must be available, or users could not rebuild the state and exit. Ethereum's EIP-4844 added blobs, a cheaper space for exactly this data."
+        }
+      ],
+      "concepts": [
+        { "term": "Double spend", "definition": "Spending the same coins twice by getting a confirmed payment erased from the chain." },
+        { "term": "Selfish mining", "definition": "Withholding found blocks to waste honest miners' work and earn an unfair share of rewards." },
+        { "term": "Data availability", "definition": "The guarantee that the data behind a block or batch was published so anyone can verify it." },
+        { "term": "Validity proof", "definition": "A cryptographic proof that a batch of transactions was executed correctly." }
+      ],
+      "example": {
+        "title": "Ethereum Classic reorganizations",
+        "body": "In 2020, Ethereum Classic, a smaller proof of work chain, suffered several deep chain reorganizations attributed to attackers with majority hash power. Thousands of blocks were replaced, and exchanges reported double spends. The events showed that a chain's security depends on how costly it is to gain majority hash power, not on its code alone."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-a-blockchain",
+      "difficulty": "easy",
+      "prompt": "What is a node in a blockchain network?",
+      "options": [
+        "A single transaction waiting to be confirmed",
+        "A computer that keeps a copy of the ledger",
+        "A password used to unlock a crypto exchange",
+        "A company that owns and runs the blockchain"
+      ],
+      "answer": 1,
+      "explanation": "Nodes are the computers that store the blockchain and check new data against the rules. Many independent nodes are what make the network decentralized."
+    },
+    {
+      "module": "what-is-a-blockchain",
+      "difficulty": "easy",
+      "prompt": "What does a private key let you do?",
+      "options": [
+        "Read every transaction on the network",
+        "Create new coins whenever you want",
+        "Reverse a payment you already sent",
+        "Sign transactions that spend your funds"
+      ],
+      "answer": 3,
+      "explanation": "The private key creates signatures that prove you own an address. Reading the chain needs no key, and keys cannot create coins or undo payments."
+    },
+    {
+      "module": "what-is-a-blockchain",
+      "difficulty": "easy",
+      "prompt": "Why is it hard to change past records on a public blockchain?",
+      "options": [
+        "Many independent nodes would have to accept the change",
+        "A government agency checks every block by hand",
+        "Records are deleted after a few days anyway",
+        "Only the founder has permission to edit old blocks on the chain"
+      ],
+      "answer": 0,
+      "explanation": "Every node keeps its own copy and checks the rules, so a change only sticks if most of the network accepts it."
+    },
+    {
+      "module": "what-is-a-blockchain",
+      "difficulty": "easy",
+      "prompt": "What happens if you lose the private key to a self-custody wallet?",
+      "options": [
+        "The network emails you a reset link",
+        "Your funds move to a recovery address",
+        "Nobody can recover access for you",
+        "Miners return the coins after a month"
+      ],
+      "answer": 2,
+      "explanation": "There is no central company holding a backup of your key. That is why backing up your recovery phrase safely matters so much."
+    },
+    {
+      "module": "what-is-a-blockchain",
+      "difficulty": "easy",
+      "prompt": "What does permissionless mean for a blockchain like Bitcoin?",
+      "options": [
+        "Transactions do not need any signatures",
+        "Anyone can join and use it without approval",
+        "Users never pay any transaction fees",
+        "The ledger is hidden from the public"
+      ],
+      "answer": 1,
+      "explanation": "Permissionless means nobody has to approve you before you run a node or send a transaction. Signatures and fees still apply."
+    },
+    {
+      "module": "blocks-and-hashing",
+      "difficulty": "medium",
+      "prompt": "What happens to a hash if you change one character of the input?",
+      "options": [
+        "The output changes completely",
+        "Only the last character of the output changes",
+        "The output stays exactly the same",
+        "The output becomes twice as long"
+      ],
+      "answer": 0,
+      "explanation": "Cryptographic hashes are designed so a tiny change in input produces an unrelated output. The output length always stays the same."
+    },
+    {
+      "module": "blocks-and-hashing",
+      "difficulty": "medium",
+      "prompt": "What does each block header contain that links it to the chain?",
+      "options": [
+        "The private key of the block producer",
+        "A list of every wallet balance",
+        "The hash of the previous block",
+        "The full text of the genesis block"
+      ],
+      "answer": 2,
+      "explanation": "Including the previous block's hash ties each block to its parent. Editing an old block would change its hash and break every link after it."
+    },
+    {
+      "module": "blocks-and-hashing",
+      "difficulty": "medium",
+      "prompt": "What is a Merkle root?",
+      "options": [
+        "The first block ever created on a chain",
+        "The address that receives block rewards",
+        "The oldest unconfirmed transaction in the mempool",
+        "One hash that summarizes all transactions in a block"
+      ],
+      "answer": 3,
+      "explanation": "Transactions are hashed in pairs, level by level, until one hash remains. That Merkle root is stored in the block header."
+    },
+    {
+      "module": "blocks-and-hashing",
+      "difficulty": "medium",
+      "prompt": "Why do merchants often wait for several confirmations before treating a payment as final?",
+      "options": [
+        "Each confirmation lowers the fee they pay",
+        "Each extra block makes a reversal less likely",
+        "Confirmations reveal the sender's real name",
+        "Funds are invisible until six blocks pass"
+      ],
+      "answer": 1,
+      "explanation": "Reversing a transaction means replacing every block on top of it. The deeper it is buried, the more work or stake that would take."
+    },
+    {
+      "module": "blocks-and-hashing",
+      "difficulty": "medium",
+      "prompt": "What does a Merkle proof let a light client verify?",
+      "options": [
+        "That a transaction is included in a block",
+        "That a sender can afford all future payments",
+        "That a block producer will stay honest",
+        "That a private key has never been stolen"
+      ],
+      "answer": 0,
+      "explanation": "By hashing the proof up to the Merkle root in a block header, a light client confirms inclusion without downloading the full block."
+    },
+    {
+      "module": "consensus-mechanisms",
+      "difficulty": "hard",
+      "prompt": "What problem do proof of work and proof of stake both solve?",
+      "options": [
+        "Making every transaction fully private",
+        "Compressing block data to save space",
+        "Setting the market price of the chain's native coin on exchanges",
+        "Stopping cheap fake identities from controlling consensus"
+      ],
+      "answer": 3,
+      "explanation": "Both tie influence to a scarce resource, computation or locked capital, so creating many identities gives an attacker no extra power."
+    },
+    {
+      "module": "consensus-mechanisms",
+      "difficulty": "hard",
+      "prompt": "In proof of work, what does a miner search for?",
+      "options": [
+        "A private key that matches a public address",
+        "A nonce that makes the block hash fall below a target",
+        "The largest transaction waiting in the mempool",
+        "A validator with the biggest stake to sign the block"
+      ],
+      "answer": 1,
+      "explanation": "Miners try nonce after nonce until the header hash is below the difficulty target. Finding it is hard, but checking it is instant."
+    },
+    {
+      "module": "consensus-mechanisms",
+      "difficulty": "hard",
+      "prompt": "What is slashing in proof of stake?",
+      "options": [
+        "Lowering fees during busy periods",
+        "Splitting a block into smaller pieces",
+        "Destroying part of a validator's stake for breaking the rules",
+        "Removing old transactions from the chain to save validators disk space"
+      ],
+      "answer": 2,
+      "explanation": "Slashing punishes provable misbehavior, such as signing two conflicting blocks, by burning part of the validator's stake."
+    },
+    {
+      "module": "consensus-mechanisms",
+      "difficulty": "hard",
+      "prompt": "Which rule do Bitcoin nodes use to choose between competing valid chains?",
+      "options": [
+        "Follow the chain with the most accumulated work",
+        "Follow the chain with the most transactions",
+        "Follow the chain signed by the most nodes",
+        "Follow the chain with the newest timestamp"
+      ],
+      "answer": 0,
+      "explanation": "Nodes follow the valid chain that represents the most total proof of work, not simply the one with the most blocks or transactions."
+    },
+    {
+      "module": "consensus-mechanisms",
+      "difficulty": "hard",
+      "prompt": "Why is finality in proof of work called probabilistic?",
+      "options": [
+        "Blocks are chosen by a random lottery of coin holders",
+        "Each transaction is valid only with a certain probability set by miners",
+        "Reversal stays possible but grows less likely with each new block",
+        "Miners vote once a day on which blocks become final"
+      ],
+      "answer": 2,
+      "explanation": "There is no checkpoint that makes a block absolutely final. Each block on top makes a rewrite exponentially less likely."
+    },
+    {
+      "module": "attacks-and-scaling",
+      "difficulty": "expert",
+      "prompt": "An attacker controls 60% of a proof of work chain's hash power. What can they do?",
+      "options": [
+        "Spend coins from any address without knowing its private key",
+        "Create blocks that break the coin supply rules",
+        "Change the signature scheme for every user",
+        "Reverse their own recent payments by reorganizing blocks"
+      ],
+      "answer": 3,
+      "explanation": "Majority hash power lets an attacker rewrite recent history and double spend their own coins. Nodes still reject blocks with invalid signatures or supply."
+    },
+    {
+      "module": "attacks-and-scaling",
+      "difficulty": "expert",
+      "prompt": "A BFT-style proof of stake protocol stays safe as long as malicious validators hold less than what share of the stake?",
+      "options": [
+        "One third",
+        "One half",
+        "Two thirds",
+        "One quarter"
+      ],
+      "answer": 0,
+      "explanation": "Byzantine fault tolerant protocols need more than two thirds honest voting power, so safety holds while faulty validators control less than one third."
+    },
+    {
+      "module": "attacks-and-scaling",
+      "difficulty": "expert",
+      "prompt": "What did research on selfish mining show?",
+      "options": [
+        "Mining pools always reduce network security to zero",
+        "A miner can earn more than its fair share with under half the hash power",
+        "Withholding blocks is impossible when difficulty adjusts after every block",
+        "Proof of work cannot reach consensus with more than 100 miners"
+      ],
+      "answer": 1,
+      "explanation": "By strategically withholding blocks, a well-connected miner can waste honest work and gain extra rewards below 50%, lowering the practical safety threshold."
+    },
+    {
+      "module": "attacks-and-scaling",
+      "difficulty": "expert",
+      "prompt": "Why must a rollup make its transaction data available?",
+      "options": [
+        "So miners on the base layer earn extra fees",
+        "So the rollup can skip checking signatures on user transactions entirely",
+        "So users can rebuild the state and exit if the operator disappears",
+        "So block explorers can display token prices"
+      ],
+      "answer": 2,
+      "explanation": "Without the data, nobody could reconstruct balances, produce fraud proofs or prove what they own, so the rollup's security would rest on the operator alone."
+    },
+    {
+      "module": "attacks-and-scaling",
+      "difficulty": "expert",
+      "prompt": "How does an optimistic rollup differ from a zero-knowledge rollup?",
+      "options": [
+        "It stores no data on the base layer at all",
+        "It requires a validity proof for every batch before the L1 accepts it",
+        "It lets users withdraw instantly with no delay",
+        "It accepts batches unless someone proves fraud in a challenge window"
+      ],
+      "answer": 3,
+      "explanation": "Optimistic rollups assume batches are correct and rely on fraud proofs during a challenge period, which is why native withdrawals take time. ZK rollups prove validity up front."
+    }
+  ]
+}

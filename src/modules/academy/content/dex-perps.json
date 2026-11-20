@@ -1,0 +1,431 @@
+{
+  "slug": "dex-perps",
+  "title": "DEX & Perpetual DEX",
+  "tagline": "Swap on AMMs, trade perpetuals and understand the risks behind both.",
+  "icon": "ArrowLeftRight",
+  "order": 5,
+  "modules": [
+    {
+      "slug": "what-is-a-dex",
+      "level": "beginner",
+      "title": "What is a DEX?",
+      "summary": "Decentralized exchanges let you trade straight from your wallet. Learn how swaps, liquidity pools, slippage and perpetual DEXs work at a basic level.",
+      "minutes": 6,
+      "objectives": [
+        "Explain how a DEX differs from a centralized exchange",
+        "Describe liquidity pools and the role of liquidity providers",
+        "Understand slippage and the basic idea of leverage"
+      ],
+      "sections": [
+        {
+          "heading": "Trading without an exchange account",
+          "body": "A decentralized exchange (DEX) lets you swap tokens directly from your wallet using smart contracts. There is no sign-up, and the exchange never holds your funds between trades. A swap either completes fully in one transaction or does not happen at all."
+        },
+        {
+          "heading": "Liquidity pools",
+          "body": "Many DEXs use liquidity pools instead of a traditional order book. A pool holds two tokens supplied by liquidity providers (LPs). Traders swap against the pool, and LPs earn a share of the trading fees in return."
+        },
+        {
+          "heading": "Price impact and slippage",
+          "body": "The price you get depends on the pool's balances and the size of your trade. Larger trades move the price more, so you receive a worse average price than the one first quoted. The price can also move while your transaction waits, so wallets let you set a slippage tolerance that cancels the trade if the final price is worse than you accept."
+        },
+        {
+          "heading": "Perpetual DEXs",
+          "body": "Some DEXs offer perpetual futures, contracts that track an asset's price with no expiry date. You can go long or short and use leverage. Leverage multiplies both gains and losses, and a position can be liquidated if losses eat through its margin."
+        }
+      ],
+      "concepts": [
+        { "term": "DEX", "definition": "An exchange run by smart contracts where users trade from their own wallets." },
+        { "term": "Liquidity provider", "definition": "Someone who deposits tokens into a pool so others can trade, earning fees in return." },
+        { "term": "Slippage tolerance", "definition": "The worst price change you will accept before a swap automatically fails." },
+        { "term": "Perpetual future", "definition": "A leveraged contract that tracks an asset's price and never expires." }
+      ],
+      "example": {
+        "title": "A swap on Uniswap",
+        "body": "On Uniswap, you choose the token to sell, the token to buy and the amount. The interface shows the expected output and the minimum you will accept based on your slippage setting. If the price moves too far before your transaction is included, it reverts and you only lose the gas fee."
+      }
+    },
+    {
+      "slug": "amms-and-impermanent-loss",
+      "level": "intermediate",
+      "title": "AMMs and impermanent loss",
+      "summary": "Understand the constant product formula, how AMMs compare with order books, and why LPs face impermanent loss when prices move.",
+      "minutes": 8,
+      "objectives": [
+        "Use x*y=k to work out pool prices and trade outputs",
+        "Compare automated market makers with order books",
+        "Explain impermanent loss and concentrated liquidity"
+      ],
+      "sections": [
+        {
+          "heading": "The constant product formula",
+          "body": "Uniswap's classic design keeps the product of the two token reserves constant: x times y equals k. When you add token X to the pool, you take out just enough token Y that the product stays the same, before fees. The price is the ratio of the reserves, so every trade moves it."
+        },
+        {
+          "heading": "Order books versus AMMs",
+          "body": "An order book matches buyers and sellers at specific prices, and market makers update their quotes constantly. That works well on fast, cheap systems but is costly when every quote change is an on-chain transaction. An automated market maker (AMM) replaces quotes with a formula, so it is always available, but it relies on arbitrage traders to keep its price in line with other markets."
+        },
+        {
+          "heading": "Impermanent loss",
+          "body": "When the market price moves, arbitrageurs trade with the pool until its price matches. This leaves LPs holding more of the token that fell and less of the token that rose, so the position is worth less than simply holding the two tokens. The loss is called impermanent because it shrinks if prices return to where they started, but it becomes real if you withdraw while prices have moved."
+        },
+        {
+          "heading": "Concentrated liquidity",
+          "body": "Uniswap v3 lets LPs place liquidity in a chosen price range instead of across all prices. Inside that range, the same capital provides much deeper liquidity and earns more fees. Outside it, the position holds only one token and earns nothing, and impermanent loss within the range is amplified."
+        }
+      ],
+      "concepts": [
+        { "term": "Constant product (x*y=k)", "definition": "An AMM rule that keeps the product of the two reserves fixed during trades." },
+        { "term": "Arbitrage", "definition": "Buying where a price is low and selling where it is high, which pulls prices back in line." },
+        { "term": "Impermanent loss", "definition": "The shortfall of an LP position compared with simply holding the deposited tokens." },
+        { "term": "Concentrated liquidity", "definition": "Providing liquidity only within a chosen price range to use capital more efficiently." }
+      ],
+      "example": {
+        "title": "A price doubling in an ETH/USDC pool",
+        "body": "Imagine an LP deposits into a constant product ETH/USDC pool, and ETH's price then doubles. Arbitrageurs buy ETH from the pool until its price matches the market. The LP's position ends up worth about 5.7% less than if they had simply held the original ETH and USDC, before counting the fees they earned."
+      }
+    },
+    {
+      "slug": "perps-funding-and-margin",
+      "level": "advanced",
+      "title": "Perpetuals: funding, mark price and margin",
+      "summary": "Learn how funding rates anchor perps to spot, why exchanges use a mark price, and how margin, leverage and liquidation fit together.",
+      "minutes": 10,
+      "objectives": [
+        "Explain funding rates and which side pays",
+        "Distinguish index price, mark price and last traded price",
+        "Calculate leverage and understand cross versus isolated margin"
+      ],
+      "sections": [
+        {
+          "heading": "Funding rates",
+          "body": "A perpetual has no expiry, so something must keep its price close to the spot market. That is the funding rate: regular payments between longs and shorts. When the perp trades above the index price, funding is positive and longs pay shorts. When it trades below, funding is negative and shorts pay longs."
+        },
+        {
+          "heading": "Index price and mark price",
+          "body": "The index price is a spot price built from several external markets, often delivered by an oracle. The mark price is the exchange's fair value for the perp, usually derived from the index plus a smoothed premium. Exchanges use the mark price, not the last trade, to compute unrealized profit and loss and to trigger liquidations, so a single outlier trade cannot easily liquidate people."
+        },
+        {
+          "heading": "Margin and leverage",
+          "body": "Initial margin is the collateral needed to open a position, and leverage is position size divided by that margin. Maintenance margin is the smaller amount you must keep to avoid liquidation. Cross margin shares collateral across all your positions, while isolated margin limits the risk to one position's own collateral."
+        },
+        {
+          "heading": "Liquidation",
+          "body": "If your equity falls below maintenance margin at the mark price, the exchange closes the position, fully or in part. Losses beyond the posted margin are usually absorbed by an insurance fund or a liquidity vault. If those buffers run out, profitable traders on the other side can be auto-deleveraged, meaning their positions are reduced to cover the gap."
+        }
+      ],
+      "concepts": [
+        { "term": "Funding rate", "definition": "A periodic payment between longs and shorts that pulls the perp price toward the index." },
+        { "term": "Index price", "definition": "A reference spot price aggregated from several external markets." },
+        { "term": "Mark price", "definition": "The fair value an exchange uses for profit and loss and liquidations." },
+        { "term": "Maintenance margin", "definition": "The minimum equity a position must keep to avoid being liquidated." }
+      ],
+      "example": {
+        "title": "Paying funding on a long",
+        "body": "Suppose you hold a 10,000 dollar long and the hourly funding rate is 0.01%. While funding is positive, you pay 1 dollar to shorts every hour, whether or not the price moves. Over a day that adds up to 24 dollars, so funding matters a lot for positions held for weeks."
+      }
+    },
+    {
+      "slug": "perp-dex-design",
+      "level": "expert",
+      "title": "Perp DEX design and market microstructure",
+      "summary": "Compare order book, pool-based and RFQ perp DEXs, work through liquidation price math, and see how oracle lag and MEV create risk.",
+      "minutes": 12,
+      "objectives": [
+        "Compare order book, pool-based and RFQ perp DEX designs",
+        "Calculate an approximate liquidation price for an isolated position",
+        "Analyze oracle lag, sandwich attacks and basis trades"
+      ],
+      "sections": [
+        {
+          "heading": "Three designs",
+          "body": "Order book perp DEXs, such as Hyperliquid and dYdX in its v4 design, run a central limit order book on their own chain. Pool-based venues such as GMX let traders open positions against a shared liquidity pool at oracle prices, so the LPs are the counterparty. RFQ-style venues ask professional market makers for signed quotes, and the trader settles the chosen quote on-chain."
+        },
+        {
+          "heading": "Liquidation price math",
+          "body": "For an isolated long with no fees, the liquidation price is roughly entry times (1 minus 1/leverage plus the maintenance margin rate). At 10x with a 0.5% maintenance rate, a long entered at 100 liquidates near 90.5. Higher leverage pulls the liquidation price closer to entry, and fees and funding pull it closer still."
+        },
+        {
+          "heading": "Oracle and pool risks",
+          "body": "Pool-based perps that fill at oracle prices are exposed if the oracle lags the real market, because traders can open positions at stale prices. They defend with spreads, price impact fees, open interest caps and fast signed price updates. Thinly traded assets are dangerous, because their index can be moved cheaply to profit on a large perp position."
+        },
+        {
+          "heading": "MEV and fairness",
+          "body": "On public chains, pending trades can be seen and reordered. A sandwich attack places a buy before a victim's swap and a sell right after it, capturing the price impact the victim causes. Tight slippage limits, private transaction relays, batch auctions and RFQ fills reduce this exposure."
+        }
+      ],
+      "concepts": [
+        { "term": "Central limit order book", "definition": "A matching engine that fills orders by best price, then by time." },
+        { "term": "RFQ", "definition": "Request for quote, where market makers return signed prices that a trader can execute." },
+        { "term": "Sandwich attack", "definition": "Trading just before and just after a victim's swap to profit from its price impact." },
+        { "term": "Open interest cap", "definition": "A limit on the total size of open positions in a market to bound risk." }
+      ],
+      "example": {
+        "title": "GMX-style pools and oracle lag",
+        "body": "In pool-based designs like GMX, the liquidity pool takes the other side of every trade, so LPs gain when traders lose and lose when traders win. Because fills use oracle prices, these designs must defend against traders who see a price move on major exchanges before the on-chain price updates. Price impact fees and faster oracle updates are the main tools for closing that gap."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-a-dex",
+      "difficulty": "easy",
+      "prompt": "What is a key difference between a DEX and a centralized exchange?",
+      "options": [
+        "A DEX can only trade Bitcoin",
+        "On a DEX you trade from your own wallet without giving up custody",
+        "A DEX requires full identity checks before every single trade you make",
+        "A DEX sets its prices by hand once a day"
+      ],
+      "answer": 1,
+      "explanation": "A DEX runs on smart contracts, so you keep your tokens in your own wallet until the swap executes."
+    },
+    {
+      "module": "what-is-a-dex",
+      "difficulty": "easy",
+      "prompt": "What do liquidity providers earn on most AMM DEXs?",
+      "options": [
+        "A share of the trading fees",
+        "A fixed salary from the protocol",
+        "Interest paid by a bank",
+        "Free gas on every trade"
+      ],
+      "answer": 0,
+      "explanation": "Each swap pays a fee that is shared among the LPs in that pool, in proportion to their share of liquidity."
+    },
+    {
+      "module": "what-is-a-dex",
+      "difficulty": "easy",
+      "prompt": "What does a slippage tolerance setting do?",
+      "options": [
+        "Lowers the trading fee",
+        "Speeds up your transaction",
+        "Hides your pending trade from other traders in the public mempool",
+        "Cancels the trade if the price moves too far against you"
+      ],
+      "answer": 3,
+      "explanation": "It sets a minimum output. If the final price is worse than your tolerance allows, the swap reverts."
+    },
+    {
+      "module": "what-is-a-dex",
+      "difficulty": "easy",
+      "prompt": "What makes a perpetual future different from a regular futures contract?",
+      "options": [
+        "It can only be bought with cash",
+        "It settles automatically every Friday",
+        "It has no expiry date",
+        "It can only be traded on weekends"
+      ],
+      "answer": 2,
+      "explanation": "Regular futures expire on a set date. Perpetuals never expire and use funding payments to stay close to the spot price."
+    },
+    {
+      "module": "what-is-a-dex",
+      "difficulty": "easy",
+      "prompt": "You open a 5x leveraged long and the price falls 10%. Ignoring fees, what happens to your margin?",
+      "options": [
+        "It falls 2%",
+        "It falls 10%",
+        "It rises 50%",
+        "It falls 50%"
+      ],
+      "answer": 3,
+      "explanation": "At 5x, the position is five times your margin, so a 10% price drop removes 5 times 10%, or half of your margin."
+    },
+    {
+      "module": "amms-and-impermanent-loss",
+      "difficulty": "medium",
+      "prompt": "A pool holds 10 ETH and 20,000 USDC and uses x*y=k. What is k?",
+      "options": [
+        "20,010",
+        "2,000",
+        "200,000",
+        "20,000"
+      ],
+      "answer": 2,
+      "explanation": "k is the product of the reserves: 10 times 20,000 equals 200,000."
+    },
+    {
+      "module": "amms-and-impermanent-loss",
+      "difficulty": "medium",
+      "prompt": "In that same pool of 10 ETH and 20,000 USDC, what is the pool's price of ETH?",
+      "options": [
+        "200 USDC",
+        "2,000 USDC",
+        "20,000 USDC",
+        "1,000 USDC"
+      ],
+      "answer": 1,
+      "explanation": "The price is the ratio of the reserves: 20,000 USDC divided by 10 ETH is 2,000 USDC per ETH."
+    },
+    {
+      "module": "amms-and-impermanent-loss",
+      "difficulty": "medium",
+      "prompt": "What keeps an AMM's price in line with prices on other markets?",
+      "options": [
+        "Arbitrage traders",
+        "The team updating it every day",
+        "A central bank price feed",
+        "LPs voting once an hour"
+      ],
+      "answer": 0,
+      "explanation": "When the pool price drifts, arbitrageurs profit by trading against it until it matches other markets again."
+    },
+    {
+      "module": "amms-and-impermanent-loss",
+      "difficulty": "medium",
+      "prompt": "About how much impermanent loss does a constant product LP have if one token's price doubles relative to the other?",
+      "options": [
+        "0.5%",
+        "25%",
+        "50%",
+        "5.7%"
+      ],
+      "answer": 3,
+      "explanation": "For a price ratio change r, the loss is 2 times the square root of r divided by (1 + r), minus 1. For r = 2, that is about 5.7%."
+    },
+    {
+      "module": "amms-and-impermanent-loss",
+      "difficulty": "medium",
+      "prompt": "What happens to a Uniswap v3 position when the price moves outside its range?",
+      "options": [
+        "It moves itself to the new price",
+        "It holds only one token and stops earning fees",
+        "It is liquidated and closed",
+        "It earns double fees until the price returns"
+      ],
+      "answer": 1,
+      "explanation": "Out of range, the position has been fully converted into one token and is no longer used for trades, so it earns no fees."
+    },
+    {
+      "module": "perps-funding-and-margin",
+      "difficulty": "hard",
+      "prompt": "A perp trades well above its index price. Which way does funding usually flow?",
+      "options": [
+        "Longs pay shorts",
+        "Shorts pay longs",
+        "The exchange pays both sides",
+        "No funding is paid"
+      ],
+      "answer": 0,
+      "explanation": "Positive funding makes longs pay shorts, which discourages longs and rewards shorts until the perp moves back toward the index."
+    },
+    {
+      "module": "perps-funding-and-margin",
+      "difficulty": "hard",
+      "prompt": "Why do exchanges liquidate using the mark price instead of the last traded price?",
+      "options": [
+        "The mark price is always higher",
+        "The last traded price is kept secret from traders until settlement",
+        "A single outlier trade is less able to trigger liquidations",
+        "The mark price already includes fees"
+      ],
+      "answer": 2,
+      "explanation": "The mark price is anchored to the index and smoothed, so one wild trade on a thin book cannot liquidate many positions."
+    },
+    {
+      "module": "perps-funding-and-margin",
+      "difficulty": "hard",
+      "prompt": "You post 2,000 dollars of margin for a 20,000 dollar position. What is your leverage?",
+      "options": [
+        "2x",
+        "20x",
+        "5x",
+        "10x"
+      ],
+      "answer": 3,
+      "explanation": "Leverage is position size divided by margin: 20,000 divided by 2,000 equals 10x."
+    },
+    {
+      "module": "perps-funding-and-margin",
+      "difficulty": "hard",
+      "prompt": "What is the main difference between cross margin and isolated margin?",
+      "options": [
+        "Cross margin charges no trading fees",
+        "Isolated margin limits the loss to that position's collateral",
+        "Isolated margin always lets you use higher leverage than cross margin",
+        "Cross margin only works for short positions"
+      ],
+      "answer": 1,
+      "explanation": "Isolated margin ring-fences one position. Cross margin shares your whole balance, so one losing trade can draw on all of it."
+    },
+    {
+      "module": "perps-funding-and-margin",
+      "difficulty": "hard",
+      "prompt": "What is auto-deleveraging (ADL)?",
+      "options": [
+        "Reducing profitable opposing positions when buffers cannot cover losses",
+        "Lowering every trader's leverage at the end of each day",
+        "Pulling extra margin from your linked bank account automatically when needed",
+        "Setting funding rates to zero during high volatility"
+      ],
+      "answer": 0,
+      "explanation": "If liquidations leave losses the insurance fund or vault cannot absorb, ADL closes part of the winning positions on the other side."
+    },
+    {
+      "module": "perp-dex-design",
+      "difficulty": "expert",
+      "prompt": "In a pool-based perp DEX like GMX, who is the counterparty to traders?",
+      "options": [
+        "Other traders matched in an order book",
+        "The exchange's founding team",
+        "A market maker chosen by governance",
+        "The shared liquidity pool and its LPs"
+      ],
+      "answer": 3,
+      "explanation": "Traders open positions against the pool at oracle prices, so LPs collectively take the other side of every trade."
+    },
+    {
+      "module": "perp-dex-design",
+      "difficulty": "expert",
+      "prompt": "An isolated long at 10x is entered at 100 with a 0.5% maintenance margin rate and no fees. Roughly where is the liquidation price?",
+      "options": [
+        "99.5",
+        "95.0",
+        "90.5",
+        "80.0"
+      ],
+      "answer": 2,
+      "explanation": "Entry times (1 minus 1/10 plus 0.005) is 100 times 0.905, about 90.5. The exact value, 90 divided by 0.995, is about 90.45."
+    },
+    {
+      "module": "perp-dex-design",
+      "difficulty": "expert",
+      "prompt": "How does an RFQ-style perp DEX source its prices?",
+      "options": [
+        "Market makers sign quotes on request and the trader settles one on-chain",
+        "A constant product curve sets every price",
+        "Liquidity providers vote on each fill",
+        "It fills every order at the volume-weighted average price of the previous block"
+      ],
+      "answer": 0,
+      "explanation": "In request for quote designs, professional makers respond with signed prices, and the trader's transaction executes the chosen quote."
+    },
+    {
+      "module": "perp-dex-design",
+      "difficulty": "expert",
+      "prompt": "In a sandwich attack, what does the attacker do?",
+      "options": [
+        "Copies the victim's trade one block later",
+        "Trades just before and just after the victim's swap",
+        "Cancels the victim's pending transaction",
+        "Lends the victim funds at a high rate"
+      ],
+      "answer": 1,
+      "explanation": "The attacker buys first to push the price up, lets the victim buy at the worse price, then sells into the victim's price impact."
+    },
+    {
+      "module": "perp-dex-design",
+      "difficulty": "expert",
+      "prompt": "Funding on a perp has been strongly positive for weeks. Which roughly delta-neutral position collects it?",
+      "options": [
+        "Long the perp and long spot",
+        "Short the perp and short spot",
+        "Short the perp and long the same size in spot",
+        "Long the perp with no hedge"
+      ],
+      "answer": 2,
+      "explanation": "Shorts receive positive funding, and holding the same size in spot cancels most of the price exposure. This is often called a basis or cash-and-carry trade."
+    }
+  ]
+}

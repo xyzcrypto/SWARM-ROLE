@@ -1,0 +1,427 @@
+{
+  "slug": "layer1-layer2",
+  "title": "Layer 1 & Layer 2",
+  "tagline": "See how base chains and rollups work together to scale blockchains.",
+  "icon": "Layers",
+  "order": 9,
+  "modules": [
+    {
+      "slug": "what-is-layer-1",
+      "level": "beginner",
+      "title": "What is a Layer 1?",
+      "summary": "A Layer 1 is a base blockchain with its own rules and security. This module explains what Layer 1s do and why they struggle to scale.",
+      "minutes": 6,
+      "objectives": [
+        "Define a Layer 1 blockchain",
+        "Describe the scalability trilemma",
+        "Explain why busy blockchains get expensive"
+      ],
+      "sections": [
+        {
+          "heading": "The base layer",
+          "body": "A Layer 1 (L1) is a blockchain that runs on its own network and secures itself. Bitcoin and Ethereum are both Layer 1s. Each has its own consensus method, its own native coin and its own rules for which transactions are valid."
+        },
+        {
+          "heading": "Limited block space",
+          "body": "Every block can only hold a limited amount of transactions. When more people want to transact than fits, they compete by offering higher fees. That is why fees rise on a busy chain and fall when it is quiet."
+        },
+        {
+          "heading": "The scalability trilemma",
+          "body": "The trilemma says it is hard for a blockchain to be decentralised, secure and scalable all at once. Making blocks much bigger can raise throughput, but it also makes nodes more expensive to run, so fewer people run them. Fewer nodes means a less decentralised network."
+        }
+      ],
+      "concepts": [
+        { "term": "Layer 1", "definition": "A base blockchain that runs its own consensus and secures itself." },
+        { "term": "Block space", "definition": "The limited room in each block for transactions." },
+        { "term": "Throughput", "definition": "How many transactions a network can process in a given time." },
+        { "term": "Scalability trilemma", "definition": "The difficulty of being decentralised, secure and scalable at the same time." }
+      ],
+      "example": {
+        "title": "A busy day on chain",
+        "body": "A popular mint launches and thousands of users try to transact at once. Block space fills up, so users raise their fees to get included sooner. Someone sending a simple transfer that hour pays far more than usual, even though their transaction did not change."
+      }
+    },
+    {
+      "slug": "scaling-approaches",
+      "level": "intermediate",
+      "title": "Ways to scale",
+      "summary": "There are several ways to move activity off the base chain. This module compares rollups, sidechains and state channels.",
+      "minutes": 8,
+      "objectives": [
+        "Define a Layer 2 and how it relates to its Layer 1",
+        "Compare rollups, sidechains and state channels",
+        "Explain what it means to inherit security"
+      ],
+      "sections": [
+        {
+          "heading": "What makes a Layer 2",
+          "body": "A Layer 2 (L2) runs transactions outside the base chain but relies on the L1 for security. It posts data or proofs back to the L1 so that users can always check the state and withdraw. The L1 acts as the final judge if something goes wrong."
+        },
+        {
+          "heading": "Rollups",
+          "body": "A rollup executes many transactions off-chain, then posts them in compressed batches to the L1. Because the transaction data lives on the L1, anyone can rebuild the rollup's state. Sharing the cost of one L1 posting across many users makes each transaction cheaper."
+        },
+        {
+          "heading": "Sidechains",
+          "body": "A sidechain is a separate blockchain with its own validators, connected to an L1 by a bridge. It can be fast and cheap, but its security comes from its own validators, not from the L1. If those validators misbehave, the L1 cannot step in."
+        },
+        {
+          "heading": "State channels",
+          "body": "A state channel lets two parties lock funds on-chain and then trade signed updates off-chain as often as they like. Only the opening and closing settle on the L1. Bitcoin's Lightning Network is a well-known network of payment channels."
+        }
+      ],
+      "concepts": [
+        { "term": "Layer 2", "definition": "A network that processes transactions off the base chain while relying on it for security." },
+        { "term": "Rollup", "definition": "An L2 that batches transactions and posts their data to the L1." },
+        { "term": "Sidechain", "definition": "A separate chain with its own validators, linked to an L1 by a bridge." },
+        { "term": "State channel", "definition": "A setup where parties trade signed updates off-chain and settle only the final result." }
+      ],
+      "example": {
+        "title": "A coffee over Lightning",
+        "body": "Ravi opens a Lightning channel with one on-chain transaction. He then pays for coffee many times through the channel, and each payment settles almost instantly off-chain. Only when the channel is closed does the final balance go back on the Bitcoin chain."
+      }
+    },
+    {
+      "slug": "optimistic-and-zk-rollups",
+      "level": "advanced",
+      "title": "Optimistic and zero-knowledge rollups",
+      "summary": "Rollups prove their results to the L1 in two main ways. This module covers fraud proofs, challenge windows and validity proofs.",
+      "minutes": 10,
+      "objectives": [
+        "Explain how optimistic rollups use fraud proofs",
+        "Explain how zk rollups use validity proofs",
+        "Compare withdrawal times and trade-offs"
+      ],
+      "sections": [
+        {
+          "heading": "Optimistic rollups",
+          "body": "An optimistic rollup posts new state to the L1 and assumes it is correct. During a challenge window, anyone watching can submit a fraud proof showing a batch was wrong. If the proof succeeds, the bad state is rolled back and the dishonest party loses its bond."
+        },
+        {
+          "heading": "The challenge window",
+          "body": "Because fraud can be reported until the window closes, withdrawals to the L1 must wait for it to end. On major optimistic rollups this wait is often about a week. Liquidity providers can offer faster exits for a fee by fronting the funds."
+        },
+        {
+          "heading": "Zero-knowledge rollups",
+          "body": "A zk rollup creates a validity proof, a cryptographic proof that a batch of transactions was executed correctly. The L1 contract checks the proof before accepting the new state. Once the proof is verified there is nothing left to challenge, so withdrawals do not need a long waiting period."
+        },
+        {
+          "heading": "Trade-offs",
+          "body": "Optimistic rollups are simpler to build and work closely with existing smart contract tools, but exits are slow by default. Zk rollups offer faster finality on the L1, but generating proofs takes heavy computation and the systems are more complex to build."
+        }
+      ],
+      "concepts": [
+        { "term": "Fraud proof", "definition": "Evidence submitted to the L1 showing that a rollup batch was computed incorrectly." },
+        { "term": "Challenge window", "definition": "The period during which an optimistic rollup's results can be disputed." },
+        { "term": "Validity proof", "definition": "A cryptographic proof that a batch of transactions was executed correctly." },
+        { "term": "Prover", "definition": "The system that generates validity proofs for a zk rollup." }
+      ],
+      "example": {
+        "title": "Two withdrawals",
+        "body": "Ana withdraws from an optimistic rollup and must wait for the challenge window before claiming on the L1. Ben withdraws from a zk rollup and can claim once the batch with his withdrawal has its proof verified on the L1. Both are secured by the L1, but in different ways."
+      }
+    },
+    {
+      "slug": "data-availability-and-sequencing",
+      "level": "expert",
+      "title": "Data availability, blobs and sequencers",
+      "summary": "A rollup is only as safe as the data behind it. This module covers data availability, EIP-4844 blobs, validiums and the role of sequencers.",
+      "minutes": 12,
+      "objectives": [
+        "Explain why data availability matters for rollup security",
+        "Describe how EIP-4844 blobs lowered rollup costs",
+        "Assess sequencer risks and forced inclusion"
+      ],
+      "sections": [
+        {
+          "heading": "Why data availability matters",
+          "body": "Proofs alone are not enough. If the transaction data is withheld, users cannot rebuild the state, cannot create fraud proofs and may not be able to prove what they own to withdraw. Data availability means the data needed to rebuild the state has been published where anyone can get it."
+        },
+        {
+          "heading": "EIP-4844 blobs",
+          "body": "EIP-4844, also called proto-danksharding, added blobs to Ethereum. Blobs are large chunks of data attached to blocks with their own separate fee market. The EVM cannot read blob contents, only a commitment to them, and nodes delete blob data after a few weeks. That is long enough for anyone to download and check it, and it made posting rollup data much cheaper than using calldata."
+        },
+        {
+          "heading": "Rollups, validiums and DA layers",
+          "body": "A rollup publishes its data on the L1. A validium uses validity proofs but keeps data off the L1, often with a committee promising to keep it available. This is cheaper, but if the committee withholds the data, users can be unable to withdraw. Some systems use separate data availability layers, which bring their own trust assumptions."
+        },
+        {
+          "heading": "Sequencers and forced inclusion",
+          "body": "A sequencer orders L2 transactions and posts batches to the L1. A single sequencer gives fast confirmations, but it can censor users or go offline. Well-designed rollups offer forced inclusion, letting users submit transactions through the L1 so the rollup must eventually process them."
+        }
+      ],
+      "concepts": [
+        { "term": "Data availability", "definition": "The guarantee that the data needed to rebuild a chain's state has been published." },
+        { "term": "Blob", "definition": "A large, temporary data attachment to an Ethereum block, introduced by EIP-4844." },
+        { "term": "Validium", "definition": "A system that uses validity proofs but stores its data off the L1." },
+        { "term": "Forced inclusion", "definition": "A way for users to push a transaction into an L2 through the L1 if the sequencer ignores them." }
+      ],
+      "example": {
+        "title": "A sequencer goes offline",
+        "body": "A rollup's only sequencer stops working for several hours. New L2 transactions are not confirmed during that time. Because the rollup supports forced inclusion, a user who needs to exit submits a withdrawal through the L1 contract, and the system must eventually process it."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-layer-1",
+      "difficulty": "easy",
+      "prompt": "What is a Layer 1 blockchain?",
+      "options": [
+        "An app that runs on top of another chain",
+        "A wallet that stores keys for many chains",
+        "A website that shows blockchain data",
+        "A base chain that secures itself"
+      ],
+      "answer": 3,
+      "explanation": "A Layer 1 runs its own network and consensus. Bitcoin and Ethereum are examples."
+    },
+    {
+      "module": "what-is-layer-1",
+      "difficulty": "easy",
+      "prompt": "Why do fees usually rise when a blockchain is busy?",
+      "options": [
+        "Validators raise prices on weekends",
+        "Users compete for limited block space",
+        "The chain prints fewer coins each day",
+        "Wallets add extra fees during busy times"
+      ],
+      "answer": 1,
+      "explanation": "Blocks have limited room, so when demand is high, users offer higher fees to get included sooner."
+    },
+    {
+      "module": "what-is-layer-1",
+      "difficulty": "easy",
+      "prompt": "Which three properties does the scalability trilemma describe?",
+      "options": [
+        "Decentralisation, security and scalability",
+        "Privacy, speed and low fees",
+        "Liquidity, volume and volatility",
+        "Mining, staking and lending"
+      ],
+      "answer": 0,
+      "explanation": "The trilemma says it is hard to maximise decentralisation, security and scalability at the same time."
+    },
+    {
+      "module": "what-is-layer-1",
+      "difficulty": "easy",
+      "prompt": "What is a downside of simply making blocks much bigger?",
+      "options": [
+        "Transactions stop needing signatures",
+        "The native coin can no longer be sent",
+        "Nodes get costlier to run, so fewer people run them",
+        "Smart contracts can no longer be deployed on the chain"
+      ],
+      "answer": 2,
+      "explanation": "Bigger blocks need more storage and bandwidth, which raises the cost of running a node and reduces decentralisation."
+    },
+    {
+      "module": "what-is-layer-1",
+      "difficulty": "easy",
+      "prompt": "Which of these is a Layer 1?",
+      "options": [
+        "A payment channel",
+        "A token swap app",
+        "Ethereum",
+        "A browser wallet"
+      ],
+      "answer": 2,
+      "explanation": "Ethereum is a base chain with its own consensus. The others are built on top of chains."
+    },
+    {
+      "module": "scaling-approaches",
+      "difficulty": "medium",
+      "prompt": "What makes a rollup different from a sidechain?",
+      "options": [
+        "A rollup has no users of its own",
+        "A rollup posts its data to the L1",
+        "A rollup cannot run smart contracts",
+        "A rollup uses no transaction fees"
+      ],
+      "answer": 1,
+      "explanation": "Rollups post transaction data to the L1 and rely on it for security. Sidechains rely on their own validators."
+    },
+    {
+      "module": "scaling-approaches",
+      "difficulty": "medium",
+      "prompt": "Where does a sidechain's security come from?",
+      "options": [
+        "Its own set of validators",
+        "The L1 it is bridged to",
+        "The wallets that connect to it",
+        "The apps deployed on it"
+      ],
+      "answer": 0,
+      "explanation": "A sidechain runs its own consensus. The L1 cannot correct it if those validators misbehave."
+    },
+    {
+      "module": "scaling-approaches",
+      "difficulty": "medium",
+      "prompt": "In a state channel, which steps settle on the L1?",
+      "options": [
+        "Every single payment between the parties",
+        "Only the payments above a set size",
+        "None of them, because channels never settle",
+        "Only the opening and closing of the channel"
+      ],
+      "answer": 3,
+      "explanation": "Parties exchange signed updates off-chain. Only opening the channel and settling the final balance touch the L1."
+    },
+    {
+      "module": "scaling-approaches",
+      "difficulty": "medium",
+      "prompt": "Why are rollup transactions usually cheaper than L1 transactions?",
+      "options": [
+        "Rollups do not need any security",
+        "Rollups skip transaction signatures",
+        "One L1 posting is shared across many users",
+        "Rollup validators work without pay"
+      ],
+      "answer": 2,
+      "explanation": "Many transactions are compressed into one batch, so the L1 cost is split between all of them."
+    },
+    {
+      "module": "scaling-approaches",
+      "difficulty": "medium",
+      "prompt": "What does it mean for an L2 to inherit security from its L1?",
+      "options": [
+        "The L1 can settle disputes and users can always exit through it",
+        "The L2 copies the L1's native coin and its full supply",
+        "The L2 shares the same validators as any sidechain",
+        "The L1 automatically runs every app deployed on the L2 a second time"
+      ],
+      "answer": 0,
+      "explanation": "An L2 that inherits security relies on the L1 to verify its state and to let users withdraw, even if the L2 operator fails."
+    },
+    {
+      "module": "optimistic-and-zk-rollups",
+      "difficulty": "hard",
+      "prompt": "How does an optimistic rollup catch an invalid batch?",
+      "options": [
+        "Someone submits a fraud proof in the challenge window",
+        "Every batch includes a validity proof that is checked",
+        "The sequencer re-runs each batch twice before posting",
+        "Users vote on each batch before it is accepted"
+      ],
+      "answer": 0,
+      "explanation": "Optimistic rollups assume batches are valid and rely on watchers to submit fraud proofs before the window closes."
+    },
+    {
+      "module": "optimistic-and-zk-rollups",
+      "difficulty": "hard",
+      "prompt": "Why are default withdrawals from optimistic rollups slow?",
+      "options": [
+        "The L1 limits withdrawals to one per day",
+        "The prover needs days to create a proof",
+        "They must wait for the challenge window to end",
+        "Bridged tokens are locked for a fixed year"
+      ],
+      "answer": 2,
+      "explanation": "A batch could still be disputed until the window closes, so withdrawals wait for it to pass."
+    },
+    {
+      "module": "optimistic-and-zk-rollups",
+      "difficulty": "hard",
+      "prompt": "What does a validity proof show?",
+      "options": [
+        "That the sequencer has not been offline",
+        "That a batch was executed correctly",
+        "That all users have enough funds for gas",
+        "That no one has disputed the batch yet"
+      ],
+      "answer": 1,
+      "explanation": "A validity proof cryptographically shows the state transition was computed correctly, so the L1 can accept it right away."
+    },
+    {
+      "module": "optimistic-and-zk-rollups",
+      "difficulty": "hard",
+      "prompt": "How can a user exit an optimistic rollup faster than the challenge window?",
+      "options": [
+        "Submit their own validity proof to the L1",
+        "Ask the sequencer to skip the window",
+        "Withdraw through a sidechain bridge first",
+        "Use a liquidity provider who fronts the funds"
+      ],
+      "answer": 3,
+      "explanation": "A liquidity provider pays the user on the L1 now, for a fee, and claims the slow withdrawal later."
+    },
+    {
+      "module": "optimistic-and-zk-rollups",
+      "difficulty": "hard",
+      "prompt": "What is a main cost of zk rollups compared with optimistic rollups?",
+      "options": [
+        "Withdrawals always take longer to finalise",
+        "Generating proofs needs heavy computation",
+        "They cannot post any data to the L1",
+        "They require a week-long challenge window"
+      ],
+      "answer": 1,
+      "explanation": "Creating validity proofs is computationally expensive, and the systems are more complex to build."
+    },
+    {
+      "module": "data-availability-and-sequencing",
+      "difficulty": "expert",
+      "prompt": "Why is data availability essential even for a rollup with valid proofs?",
+      "options": [
+        "Without the data, the L1 cannot produce new blocks",
+        "Without the data, the sequencer cannot set gas prices for new batches",
+        "Without the data, users cannot rebuild state or prove balances",
+        "Without the data, blocks on the L1 would be rejected"
+      ],
+      "answer": 2,
+      "explanation": "Proofs show a transition was valid, but users still need the data to know the state and to exit on their own."
+    },
+    {
+      "module": "data-availability-and-sequencing",
+      "difficulty": "expert",
+      "prompt": "Which statement about EIP-4844 blobs is correct?",
+      "options": [
+        "Blob data is stored forever by every Ethereum node",
+        "Smart contracts can read the full contents of a blob",
+        "Blobs share the exact same fee market as calldata",
+        "Blobs have their own fee market and are pruned later"
+      ],
+      "answer": 3,
+      "explanation": "Blobs use a separate fee market, the EVM only sees a commitment to them, and nodes drop the data after a few weeks."
+    },
+    {
+      "module": "data-availability-and-sequencing",
+      "difficulty": "expert",
+      "prompt": "What is the key extra risk of a validium compared with a rollup?",
+      "options": [
+        "Withheld off-chain data can stop users withdrawing",
+        "Invalid state can be accepted on the L1 without any proof at all",
+        "Its challenge window is longer than a rollup's",
+        "It cannot run smart contracts at all"
+      ],
+      "answer": 0,
+      "explanation": "Validiums still use validity proofs, but their data lives off the L1. If it is withheld, users may be unable to exit."
+    },
+    {
+      "module": "data-availability-and-sequencing",
+      "difficulty": "expert",
+      "prompt": "What problem does forced inclusion solve?",
+      "options": [
+        "It lets the sequencer skip fraud proofs",
+        "It lets users bypass a censoring sequencer via the L1",
+        "It lets blob data be stored on the L1 permanently instead of weeks",
+        "It lets validiums post their data on-chain"
+      ],
+      "answer": 1,
+      "explanation": "If the sequencer ignores a user, they can submit their transaction through the L1, and the rollup must eventually include it."
+    },
+    {
+      "module": "data-availability-and-sequencing",
+      "difficulty": "expert",
+      "prompt": "Why is it acceptable that blob data is deleted after a few weeks?",
+      "options": [
+        "Rollups never need any of their old transaction data again",
+        "The data is copied into every L2 smart contract",
+        "Validity proofs make the data itself unnecessary",
+        "It stays long enough for anyone to fetch and check it"
+      ],
+      "answer": 3,
+      "explanation": "The goal is availability at publication time. Anyone who needs the data has weeks to download it, and the L1 keeps a commitment."
+    }
+  ]
+}

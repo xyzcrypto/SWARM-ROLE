@@ -17,6 +17,7 @@ export const PERMISSIONS = {
   "points:manage": "Post perp DEX & airdrop updates",
   "users:roles": "Grant staff roles & permissions",
   "ai:manage": "View AI usage & set members' AI limits",
+  "academy:manage": "Manage the Academy: lessons, quizzes, live quizzes & certificates",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

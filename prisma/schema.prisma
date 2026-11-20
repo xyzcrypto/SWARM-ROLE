@@ -114,6 +114,17 @@ model User {
   xp       Int       @default(0)
   xpEvents XpEvent[]
 
+  // XYZ Crypto Academy (/academy). A separate ledger from the engagement XP
+  // above: Academy XP is earned by answering correctly, so it ranks learners,
+  // and the 1-XP-a-day engagement actions must not move those rankings.
+  academyProfile      AcademyProfile?
+  academyXp           AcademyXp[]
+  academyAttempts     AcademyAttempt[]
+  academyProgress     AcademyProgress[]
+  academyAchievements AcademyAchievement[]
+  academyLive         AcademyLiveParticipant[]
+  academyCertificates AcademyCertificate[]
+
   @@index([createdAt]) // dashboard "new in last 7 days" aggregate
   @@index([username]) // public profile lookup
   @@index([membership, createdAt]) // dashboard premium-member list (Phase 1)
@@ -1113,4 +1124,296 @@ model YtDiscovery {
   videos    Json
   fetchedAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ============================================================ XYZ Crypto Academy
+// Content is DB-driven (seeded once from src/modules/academy/content/*.json,
+// then edited from /dashboard/academy). Every score and every XP point is
+// computed on the server; the browser only ever submits a choice.
+
+model AcademyCategory {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  tagline   String   @default("")
+  icon      String   @default("BookOpen")
+  order     Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  modules   AcademyModule[]
+  questions AcademyQuestion[]
+
+  @@index([published, order])
+}
+
+model AcademyModule {
+  id         String   @id @default(cuid())
+  categoryId String
+  slug       String
+  level      String // beginner | intermediate | advanced | expert
+  title      String
+  summary    String   @default("")
+  minutes    Int      @default(5)
+  objectives Json // string[]
+  sections   Json // {heading, body}[]
+  concepts   Json // {term, definition}[]
+  example    Json? // {title, body}
+  order      Int      @default(0)
+  published  Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  category  AcademyCategory   @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  questions AcademyQuestion[]
+  progress  AcademyProgress[]
+
+  @@unique([categoryId, slug])
+  @@index([categoryId, order])
+}
+
+model AcademyQuestion {
+  id          String   @id @default(cuid())
+  categoryId  String
+  moduleId    String?
+  difficulty  String // easy | medium | hard | expert
+  prompt      String
+  options     Json // string[4]
+  answer      Int // index into options - NEVER sent to a browser before that question is answered
+  explanation String   @default("")
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category AcademyCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  module   AcademyModule?  @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+
+  @@index([categoryId, difficulty, active])
+  @@index([moduleId])
+  @@index([active, difficulty])
+}
+
+/// Per-member Academy totals. Denormalized from AcademyXp / AcademyAttempt in
+/// the same transaction that writes them.
+model AcademyProfile {
+  userId        String   @id
+  xp            Int      @default(0)
+  quizzes       Int      @default(0)
+  answered      Int      @default(0)
+  correct       Int      @default(0)
+  streak        Int      @default(0)
+  bestStreak    Int      @default(0)
+  lastActiveDay String? // UTC YYYY-MM-DD of the last finished quiz
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([xp])
+}
+
+/// The XP ledger. `key` is the idempotency key ("quiz:<attemptId>",
+/// "streak:<user>:<day>", ...): a reward can only ever be written once.
+/// Period leaderboards are SUMs over this table by createdAt.
+model AcademyXp {
+  id        String   @id @default(cuid())
+  userId    String
+  amount    Int
+  reason    String // quiz | module | streak | achievement | live | daily | weekly | admin
+  key       String   @unique
+  label     String   @default("")
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt, userId])
+  @@index([userId, createdAt])
+}
+
+model AcademyAttempt {
+  id          String    @id @default(cuid())
+  userId      String
+  mode        String // quick | topic | daily | weekly | advanced | module | challenge | mistakes | speed
+  categoryId  String?
+  moduleId    String?
+  difficulty  String    @default("mixed")
+  questionIds String[]
+  // Per question, the order the options were shown in: shown[i] = original index.
+  shuffles    Json
+  current     Int       @default(0)
+  // When the CURRENT question was served. The server times every answer from this.
+  servedAt    DateTime  @default(now())
+  revealed    Boolean   @default(false) // current question answered, waiting for "next"
+  status      String    @default("active") // active | done
+  periodKey   String? // daily/weekly challenge: one attempt per member per period
+  challengeOf String? // attempt id this one replays ("Challenge friends")
+  // Question indexes where the 50:50 lifeline was used (that answer scores half).
+  fiftyUsed   Int[]     @default([])
+  score       Int       @default(0)
+  // Score from answers that still earn XP (not repeats inside the cooldown).
+  xpScore     Int       @default(0)
+  correct     Int       @default(0)
+  bestRun     Int       @default(0)
+  run         Int       @default(0)
+  timeMs      Int       @default(0)
+  xp          Int       @default(0)
+  startedAt   DateTime  @default(now())
+  finishedAt  DateTime?
+
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers AcademyAnswer[]
+
+  @@unique([userId, mode, periodKey])
+  @@index([userId, startedAt])
+  @@index([status, finishedAt])
+}
+
+model AcademyAnswer {
+  id         String   @id @default(cuid())
+  attemptId  String
+  userId     String
+  index      Int
+  questionId String
+  choice     Int // ORIGINAL option index, -1 = timed out
+  correct    Boolean
+  ms         Int
+  points     Int
+  // false = answered correctly for XP within the repeat cooldown: scores, earns no XP.
+  fresh      Boolean  @default(true)
+  assisted   Boolean  @default(false) // 50:50 lifeline used on this question
+  createdAt  DateTime @default(now())
+
+  attempt AcademyAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  @@unique([attemptId, index])
+  @@index([userId, questionId, createdAt])
+  @@index([createdAt])
+}
+
+model AcademyProgress {
+  userId      String
+  moduleId    String
+  score       Int      @default(0) // best knowledge-check accuracy, 0-100
+  completedAt DateTime @default(now())
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module AcademyModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, moduleId])
+}
+
+model AcademyAchievement {
+  userId   String
+  code     String
+  earnedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, code])
+  @@index([earnedAt])
+}
+
+/// Admin-editable settings (XP values, levels, award rules, achievements).
+/// Missing keys fall back to the defaults in src/modules/academy/lib/config.ts.
+model AcademyConfig {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+/// A live multiplayer quiz. Timing is a pure function of startedAt, pausedMs and
+/// the per-question durations (see live-clock.ts), so every client and the
+/// server agree on which question is open without a ticking process anywhere.
+model AcademyLive {
+  id          String    @id @default(cuid())
+  title       String
+  description String    @default("")
+  scheduledAt DateTime
+  status      String    @default("scheduled") // scheduled | live | ended | cancelled
+  questionIds String[]
+  questionSec Int       @default(20)
+  revealSec   Int       @default(7)
+  startedAt   DateTime?
+  pausedAt    DateTime?
+  pausedMs    Int       @default(0)
+  endedAt     DateTime?
+  finalizedAt DateTime?
+  createdById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  participants AcademyLiveParticipant[]
+  answers      AcademyLiveAnswer[]
+
+  @@index([status, scheduledAt])
+}
+
+model AcademyLiveParticipant {
+  liveId   String
+  userId   String
+  joinedAt DateTime @default(now())
+  score    Int      @default(0)
+  correct  Int      @default(0)
+  totalMs  Int      @default(0)
+  rank     Int?
+
+  live AcademyLive @relation(fields: [liveId], references: [id], onDelete: Cascade)
+  user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([liveId, userId])
+  @@index([liveId, score])
+}
+
+model AcademyLiveAnswer {
+  liveId    String
+  userId    String
+  index     Int
+  choice    Int
+  correct   Boolean
+  ms        Int
+  points    Int
+  createdAt DateTime @default(now())
+
+  live AcademyLive @relation(fields: [liveId], references: [id], onDelete: Cascade)
+
+  @@id([liveId, userId, index])
+}
+
+model AcademyCertificate {
+  id          String   @id @default(cuid())
+  code        String   @unique // public id on the certificate, e.g. XYZ-7F3K-92QD
+  userId      String
+  kind        String // daily | weekly | monthly | live | event | milestone
+  periodKey   String // "2026-11-19", "2026-W47", "2026-11", "live:<id>", "event:<slug>"
+  title       String
+  displayName String
+  rank        Int
+  score       Int
+  status      String   @default("issued") // pending | issued | revoked
+  issuedAt    DateTime @default(now())
+  issuedById  String?
+  template    String   @default("gold")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([kind, periodKey, userId])
+  @@index([kind, periodKey, rank])
+  @@index([userId, issuedAt])
+  @@index([status, issuedAt])
+}
+
+/// Marks a leaderboard period as finalized (winners computed, certificates
+/// created). Its primary key makes finalization run exactly once.
+model AcademyPeriodClose {
+  key      String   @id // "daily:2026-11-19" | "weekly:2026-W47" | "monthly:2026-11"
+  closedAt DateTime @default(now())
+  winners  Json
+}
+
+/// Last-hour rank snapshot per board, for the rank-movement arrows.
+model AcademyBoardSnap {
+  key       String   @id
+  ranks     Json // { userId: rank }
+  prevRanks Json
+  takenAt   DateTime @default(now())
 }
