@@ -93,7 +93,7 @@ describe("academy content", () => {
   });
   it("every curriculum text in the voice manifest has its recording", () => {
     const manifest = JSON.parse(readFileSync("src/modules/academy/content/voice-manifest.json", "utf8")) as string[];
-    expect(manifest.length).toBeGreaterThan(0);
+    expect(manifest.length).toBeGreaterThan(1500);
     expect(manifest.filter((h) => !existsSync(`public/academy/voice/c/${h}.mp3`))).toEqual([]);
   });
 });
