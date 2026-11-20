@@ -5,7 +5,10 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Award, BadgeCheck, Brain, CalendarDays, Gauge, Layers, LogIn, Radio, Sparkles, Trophy, Zap } from "lucide-react";
 import { getJson, useAcademyPing, useAudio, useMe } from "../client/hooks";
-import { say } from "../client/audio";
+import { play, type Piece } from "../client/audio";
+import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
+
+const vline = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
 import { Hero } from "./Hero";
 import { Dashboard } from "./Dashboard";
 import { Library } from "./Library";
@@ -28,7 +31,7 @@ export function AcademyHome() {
   const [pulse, setPulse] = useState<Pulse | null>(null);
   const [catalog, setCatalog] = useState<CatalogCategory[] | null>(null);
   const { me, status } = useMe();
-  const { unlocked } = useAudio();
+  const { unlocked, settings } = useAudio();
 
   const loadPulse = useCallback(async () => {
     try {
@@ -50,15 +53,26 @@ export function AcademyHome() {
   // Nova greets once per browser session, on the first tap (browsers forbid
   // sound before one), and only if the member leaves "speaks on her own" on.
   useEffect(() => {
-    if (!unlocked || status === "loading") return;
+    if (!unlocked || status === "loading" || (status === "authenticated" && !me)) return;
     try {
       if (sessionStorage.getItem(SESSION_KEY)) return;
       sessionStorage.setItem(SESSION_KEY, "1");
     } catch {
       /* no storage: greet anyway */
     }
-    say(status === "authenticated" ? "welcome_back" : "welcome", { auto: true });
-  }, [unlocked, status]);
+    // Local hour is read here, after mount, never during render.
+    const h = new Date().getHours();
+    const pieces: Piece[] = [];
+    pieces.push(vline(h < 12 ? "good_morning" : h < 17 ? "good_afternoon" : "good_evening"));
+    const pick = (keys: VoiceLine[]) => keys[Math.floor(Math.random() * keys.length)];
+    if (status === "authenticated") {
+      pieces.push(vline(pick(["welcome_back", "welcome_back_2", "welcome_back_3", "welcome_back_4"])));
+      if (me && me.streak > 0 && !me.learnedToday) pieces.push(vline("streak_alive"));
+      else if (me && !me.daily) pieces.push(vline("daily_new"));
+    } else pieces.push(vline(pick(["welcome", "welcome_2", "welcome_3"])));
+    if (settings.guide) play(pieces);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlocked, status, !!me]);
 
   return (
     <div>
@@ -92,7 +106,7 @@ export function AcademyHome() {
         <SectionTitle eyebrow="Play" title="Choose your challenge" sub="Every mode is scored on the server: correct answers, difficulty, speed and streaks. Wrong answers never earn quiz XP." />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {MODES.map((m, i) => (
-            <motion.div key={m.title} initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.45, delay: i * 0.05 }}>
+            <motion.div key={m.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: i * 0.05 }}>
               <Link href={m.href} className="surface surface-hover lift group flex h-full items-start gap-4 rounded-3xl p-5">
                 <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-hairline bg-ink-900/60 text-gold-300 transition-colors group-hover:border-gold-400/40">
                   <m.icon className="h-5 w-5" strokeWidth={1.7} />

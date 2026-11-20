@@ -83,3 +83,6 @@ id_ed25519
 
 # vercel
 .vercel
+
+# Academy voice renders in progress
+*.part.mp3

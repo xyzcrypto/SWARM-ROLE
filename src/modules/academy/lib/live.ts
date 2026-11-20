@@ -8,6 +8,7 @@ import { loadConfig, ensureSeeded } from "./store";
 import { liveAnswerPoints, livePhase, rankLive, shuffle, type LivePhase } from "./engine";
 import { checkAchievements, grant, pingBoards } from "./xp";
 import { issueCertificate } from "./board";
+import { clip } from "./voice";
 import { GRACE_MS, QuizError } from "./quiz";
 
 const COUNTDOWN_MS = 6_000;
@@ -201,7 +202,8 @@ export async function publicLiveState(id: string, now = Date.now()) {
             options: q.options as string[],
             difficulty: q.difficulty,
             category: q.category.title,
-            ...(revealing ? { answer: q.answer, explanation: q.explanation, distribution } : {}),
+            voice: { prompt: clip(q.prompt), options: (q.options as string[]).map((o) => clip(o)) },
+            ...(revealing ? { answer: q.answer, explanation: q.explanation, distribution, voiceExplanation: clip(q.explanation) } : {}),
           }
         : null,
     participants: count,

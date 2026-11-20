@@ -28,11 +28,21 @@ now** starts it 6 seconds later. Timing is a pure function of the start time, to
 time and the per-question/reveal durations (`livePhase` in `engine.ts`), so there is no
 process to keep alive. Pause freezes the clock; End awards immediately.
 
+## Migrations
+Production syncs the schema with `db push` on deploy. `prisma/migrations/43_creators` and
+`44_academy` record the same tables as idempotent SQL for anyone building a database by
+hand or auditing the history.
+
 ## Nova's voice
-Scripted lines live in `client/voice-lines.ts`; each has `public/academy/voice/<key>.mp3`
-(Kokoro `af_heart`, 24 kHz mono, 48 kbps). A test fails if a line has no clip. To add a
-line: add it to `voice-lines.ts`, render it with the same voice, drop the mp3 in. Free text
-(questions, explanations) uses the browser's speech engine with the best female voice.
+- Scripted lines: `client/voice-lines.ts`, each with `public/academy/voice/<key>.mp3`.
+- Curriculum text (prompts, options, explanations, lesson summaries):
+  `public/academy/voice/c/<sha1(text)[:16]>.mp3`, listed in `content/voice-manifest.json`;
+  `lib/voice.ts` attaches a clip URL only when the exact text has one.
+- Voice: Kokoro `af_heart`, 24 kHz mono mp3 (48 kbps lines, 32 kbps curriculum). Tests fail
+  if a line or a manifest entry has no file.
+- Edited or new questions simply have no clip and are read by the browser's best female
+  voice. To record new text, render it with the same voice and settings, name it by the
+  hash, and add the hash to the manifest.
 
 ## Tunables
 Everything numeric (points per difficulty, seconds, speed/streak bonuses, daily XP cap,

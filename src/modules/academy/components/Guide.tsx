@@ -12,6 +12,7 @@ import {
   pauseVoice,
   resumeVoice,
   say,
+  setScene,
   sfx,
   speak,
   stopVoice,
@@ -137,8 +138,36 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
       <Slider value={s.sfxVol} onChange={(v) => set({ sfxVol: v })} label="Effects volume" disabled={!s.master || !s.sfx} />
       <Toggle on={s.music} onChange={(v) => set({ music: v })} label="Background music" icon={<Music className="h-4 w-4 text-content-subtle" />} />
       <Slider value={s.musicVol} onChange={(v) => set({ musicVol: v })} label="Music volume" disabled={!s.master || !s.music} />
+      <div className={cn("grid grid-cols-4 gap-1 px-1 pb-2", (!s.master || !s.music) && "opacity-40")} role="radiogroup" aria-label="Music track">
+        {(
+          [
+            ["auto", "Auto"],
+            ["focus", "Focus"],
+            ["arena", "Arena"],
+            ["night", "Night"],
+          ] as const
+        ).map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="radio"
+            aria-checked={s.track === id}
+            disabled={!s.master || !s.music}
+            onClick={() => {
+              unlock();
+              set({ track: id });
+              sfx("click");
+            }}
+            className={cn("rounded-lg border py-1.5 text-[11px] font-semibold", s.track === id ? "border-gold-400/60 bg-gold-400/10 text-gold-100" : "border-hairline text-content-muted")}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       <div className="border-t border-hairline pt-2">
-        <Toggle on={s.guide} onChange={(v) => set({ guide: v })} label="Nova speaks on her own" />
+        <Toggle on={s.guide} onChange={(v) => set({ guide: v })} label="Nova reacts on her own" />
+        <Toggle on={s.readQuestions} onChange={(v) => set({ readQuestions: v })} label="Read each question aloud" />
+        <Toggle on={s.explainWrong} onChange={(v) => set({ explainWrong: v })} label="Explain wrong answers aloud" />
         <label className="mt-1 block px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">
           Voice
           <select
@@ -160,7 +189,7 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
           </select>
         </label>
         <p className="px-1 pt-2 text-[11px] leading-relaxed text-content-subtle">
-          Nova reads her guidance in a natural recorded voice. Questions and explanations use your device&apos;s best female voice. Every line is also shown as text.
+          Nova speaks in a natural recorded voice: her guidance, every question, option and explanation, and lesson summaries. Anything new an admin writes is read by your device&apos;s best female voice. Every line is also shown as text. Auto music plays Focus while you read and Arena while you play.
         </p>
       </div>
     </div>
@@ -211,6 +240,7 @@ export function GuideDock() {
       else if (p.cmd === "pause") pauseVoice();
       else if (p.cmd === "resume") resumeVoice();
       else if (p.cmd === "stop") stopVoice();
+      else if (p.cmd === "help") say("help");
       else if (p.cmd === "start" && !window.location.pathname.startsWith("/academy/quiz")) router.push("/academy/quiz");
       dispatchCommand(p);
     },
@@ -227,6 +257,11 @@ export function GuideDock() {
       window.removeEventListener("keydown", on);
     };
   }, []);
+
+  // Auto music: Arena while playing, Focus everywhere else.
+  useEffect(() => {
+    setScene(path?.startsWith("/academy/quiz") || path?.startsWith("/academy/live/") ? "arena" : "focus");
+  }, [path]);
 
   const replay = () => {
     unlock();
@@ -248,7 +283,7 @@ export function GuideDock() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="pointer-events-auto mb-3 w-[min(22rem,calc(100vw-2rem))] origin-bottom-left rounded-3xl border border-hairline bg-ink-950/95 p-4 shadow-elevate backdrop-blur-xl md:origin-bottom-right"
+            className="pointer-events-auto mb-3 max-h-[calc(100dvh-12rem)] w-[min(22rem,calc(100vw-2rem))] origin-bottom-left overflow-y-auto overscroll-contain rounded-3xl border border-hairline bg-ink-950/95 p-4 shadow-elevate backdrop-blur-xl md:max-h-[calc(100dvh-14rem)] md:origin-bottom-right"
             role="dialog"
             aria-label="Nova, your Academy guide"
           >
@@ -301,6 +336,7 @@ export function GuideDock() {
                       onClick={() => {
                         unlock();
                         setHeard(null);
+                        if (!mic.listening) say("mic_on");
                         mic.toggle();
                       }}
                       className={cn("acad-icon-btn", mic.listening && "border-gold-400/60 text-gold-200")}

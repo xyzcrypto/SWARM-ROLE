@@ -58,6 +58,9 @@ const config: Config = {
   darkMode: "class",
   theme: {
     extend: {
+      // The page background token (see the note in `colors`): fills and gradient stops only.
+      backgroundColor: { base: "var(--bg)" },
+      gradientColorStops: { base: "var(--bg)" },
       // Extra breakpoint for small/large phone distinction (default sm = 640px).
       screens: {
         xs: "400px",
@@ -137,7 +140,10 @@ const config: Config = {
         },
         // Semantic, theme-aware tokens (resolve via CSS vars per light/dark).
         // Components adopt these incrementally; brand gold/mint stay constant.
-        base: "var(--bg)",
+        // NOTE: `base` (var(--bg)) is NOT a global color: as one, Tailwind also
+        // generated `text-base` as a COLOR, so `sm:text-base` painted text in
+        // the page background (invisible taglines on /academy, /points, markets).
+        // It lives in backgroundColor + gradientColorStops below instead.
         surface: "var(--surface)",
         "surface-2": "var(--surface-2)",
         content: "var(--content)",

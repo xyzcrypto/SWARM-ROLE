@@ -76,8 +76,8 @@ export function CategoryView({ c }: { c: C }) {
             <motion.li
               key={m.id}
               initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              animate={{ opacity: 1, y: 0 }}
+             
               transition={{ duration: 0.45, delay: i * 0.06 }}
               className="relative pl-14 sm:pl-16"
             >

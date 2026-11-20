@@ -6,7 +6,8 @@ import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { Crown, Loader2, Search, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getJson, useAcademyPing, useMe, useTicker, type Me } from "../client/hooks";
-import { say } from "../client/audio";
+import { say, sfx, unlock } from "../client/audio";
+import type { VoiceLine } from "../client/voice-lines";
 import type { Board, BoardRow } from "./types";
 import { Avatar, Empty, fmt, Movement, Skeleton } from "./ui";
 
@@ -30,8 +31,10 @@ function resetsIn(end: number) {
 
 function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
   const order = [rows[1], rows[0], rows[2]].filter(Boolean) as BoardRow[];
+  // With one or two people on the board the podium stays centred, not pinned left.
+  const cols = order.length === 1 ? "mx-auto max-w-[11rem] grid-cols-1" : order.length === 2 ? "mx-auto max-w-md grid-cols-2" : "grid-cols-3";
   return (
-    <div className="grid grid-cols-3 items-end gap-2 sm:gap-4">
+    <div className={cn("grid items-end gap-2 sm:gap-4", cols)}>
       {order.map((r) => {
         const first = r.rank === 1;
         return (
@@ -224,7 +227,12 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
               type="button"
               role="tab"
               aria-selected={period === p.id}
-              onClick={() => setPeriod(p.id)}
+              onClick={() => {
+                unlock();
+                sfx("click");
+                setPeriod(p.id);
+                if (!compact) say(`board_${p.id}` as VoiceLine, { auto: true });
+              }}
               className={cn("relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors", period === p.id ? "text-ink-950" : "text-content-muted hover:text-content")}
             >
               {period === p.id && <motion.span layoutId={compact ? "lb-tab-c" : "lb-tab"} className="absolute inset-0 rounded-full bg-gold-300" transition={{ type: "spring", stiffness: 400, damping: 32 }} />}

@@ -5,6 +5,65 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (156) — Academy round 2: Nova reads everything, 3 music tracks, lifelines, Mistakes + Speed Run, migrations, alignment fixes
+
+### Migrations
+- `prisma/migrations/43_creators` and `44_academy`: the Creators and Academy tables had
+  reached production only through `db push`. Both are idempotent (IF NOT EXISTS,
+  DO-blocks for foreign keys). Verified on a fresh database: main's schema, then both files
+  twice, then `prisma migrate diff` against `schema.prisma` reports an empty migration.
+
+### Nova, about 46x the voice
+- 198 scripted lines (was 42): greetings by time of day, question cues (first, halfway,
+  last, "question five"), ten "correct" and seven "wrong" variants, fast-answer and streak
+  calls (3/5/7/10, streak broken), time warnings, 50:50, results by score band, every level
+  and achievement by name, streak days, rank moves, challenge win/lose/tie, leaderboard tabs,
+  and live countdown 3-2-1-go, lock-in, reveal, halfway, last question, pause/resume, winner,
+  podium.
+- **Every question, option, explanation and lesson summary of the curriculum** recorded in
+  her voice (~1,700 clips, named by a hash of the exact text, 32 kbps mono). Questions are
+  read as they open, options on demand (R key, button, "repeat question"), and explanations
+  after a wrong answer. Admin-edited text has no clip, so the browser voice reads the new
+  wording instead of a stale recording. Settings: "Read each question aloud" and "Explain
+  wrong answers aloud".
+- Lessons: "Listen to this lesson" (summary in Nova's voice, then each section).
+- Voice queue: lines play in order instead of cutting each other off; music ducks while she
+  talks.
+
+### Sound
+- Three generative tracks on one look-ahead scheduler: Focus (pads), Arena (112 bpm pulse:
+  kick, hats, bass, plucked arp) and Night (76 bpm lo-fi keys). Auto plays Focus while
+  reading and Arena while playing.
+- New effects: hover, coin, countdown, heartbeat (last 5 seconds), 50:50, streak fire,
+  answer lock, live reveal roll, pop; a gentle compressor on the master bus.
+
+### Features
+- **50:50 lifeline**: two per quiz, removes two wrong options server-side (seeded, so a
+  resume shows the same two), that answer keeps half its points. Off in Daily, Weekly and
+  Challenge so everyone plays on equal terms. Key F.
+- **Mistakes mode**: replays the questions whose latest answer was wrong, until they are
+  right.
+- **Speed Run**: easy and medium only, 12 seconds each, +30 XP bonus.
+- All three tunable in Rewards & rules.
+
+### Fixes
+- Sections that waited for `whileInView` stayed invisible after a fast scroll or an anchor
+  jump (Continue learning, achievements, modes, library, weekly chart). All Academy reveals
+  now run on mount; a test keeps `whileInView` out of the Academy.
+- `/api/academy/me` was fetched two or three times per page (one per component); now one
+  shared request.
+- **Site-wide: `sm:text-base` painted text in the page background colour.** The semantic
+  `base` colour (`var(--bg)`) was a global Tailwind colour, so `text-base` was ALSO
+  generated as a colour utility, and the `sm:` variant (ordered after colour classes)
+  overrode the element's real colour. Found as an invisible tagline on Academy topic pages;
+  the same class is on 9 elements (Markets heatmap and charts, Points hero, portfolio,
+  explainer player). `base` now lives only in `backgroundColor` and `gradientColorStops`,
+  so `bg-base`, `from-base` and `to-base` are unchanged and `text-base` is font-size only.
+- Podium centred when only one or two people are on the board.
+- Results/timer: the ring shows the time you answered in instead of a dash.
+
+---
+
 ## 2026-11-20 (155) — XYZ Crypto Academy: lessons, server-scored quizzes, leaderboards, live multiplayer, Nova voice guide, certificates
 
 A new section at **/academy**, built on the existing stack (Next 16, Prisma/Postgres,

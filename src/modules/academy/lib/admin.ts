@@ -44,6 +44,9 @@ const configSchemas: Record<keyof AcademyConfigShape, z.ZodTypeAny> = {
       streakMilestones: z.record(z.string().regex(/^\d+$/), nonNeg),
       livePerPoint: z.number().min(0).max(10),
       livePodium: z.tuple([nonNeg, nonNeg, nonNeg]),
+      speedSeconds: z.number().int().min(5).max(60),
+      fiftyPerQuiz: z.number().int().min(0).max(5),
+      fiftyKeep: z.number().min(0).max(1),
     })
     .partial(),
   levels: levelsSchema,

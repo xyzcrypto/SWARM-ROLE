@@ -1233,7 +1233,7 @@ model AcademyXp {
 model AcademyAttempt {
   id          String    @id @default(cuid())
   userId      String
-  mode        String // quick | topic | daily | weekly | advanced | module | challenge
+  mode        String // quick | topic | daily | weekly | advanced | module | challenge | mistakes | speed
   categoryId  String?
   moduleId    String?
   difficulty  String    @default("mixed")
@@ -1247,6 +1247,8 @@ model AcademyAttempt {
   status      String    @default("active") // active | done
   periodKey   String? // daily/weekly challenge: one attempt per member per period
   challengeOf String? // attempt id this one replays ("Challenge friends")
+  // Question indexes where the 50:50 lifeline was used (that answer scores half).
+  fiftyUsed   Int[]     @default([])
   score       Int       @default(0)
   // Score from answers that still earn XP (not repeats inside the cooldown).
   xpScore     Int       @default(0)
@@ -1278,6 +1280,7 @@ model AcademyAnswer {
   points     Int
   // false = answered correctly for XP within the repeat cooldown: scores, earns no XP.
   fresh      Boolean  @default(true)
+  assisted   Boolean  @default(false) // 50:50 lifeline used on this question
   createdAt  DateTime @default(now())
 
   attempt AcademyAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)

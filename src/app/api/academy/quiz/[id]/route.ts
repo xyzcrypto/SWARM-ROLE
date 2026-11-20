@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { fail, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
-import { answerQuiz, finishQuiz, getQuizState, nextQuestion } from "@modules/academy/lib/quiz";
+import { answerQuiz, finishQuiz, getQuizState, nextQuestion, applyFifty } from "@modules/academy/lib/quiz";
 import { academyError, json, PRIVATE } from "@modules/academy/lib/http";
 
 export const runtime = "nodejs";
@@ -25,10 +25,11 @@ export async function GET(_req: Request, { params }: Ctx) {
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("answer"), index: z.number().int().min(0).max(50), choice: z.number().int().min(-1).max(3) }),
   z.object({ action: z.literal("next") }),
+  z.object({ action: z.literal("fifty"), index: z.number().int().min(0).max(50) }),
   z.object({ action: z.literal("finish") }),
 ]);
 
-// POST /api/academy/quiz/:id - answer | next | finish. The browser sends only
+// POST /api/academy/quiz/:id - answer | next | fifty | finish. The browser sends only
 // which option was tapped; correctness, time and points are all decided here.
 export async function POST(req: Request, { params }: Ctx) {
   try {
@@ -42,6 +43,7 @@ export async function POST(req: Request, { params }: Ctx) {
     const body = parsed.data;
     if (body.action === "answer") return json(await answerQuiz(me.id, id, body.index, body.choice), PRIVATE);
     if (body.action === "next") return json(await nextQuestion(me.id, id), PRIVATE);
+    if (body.action === "fifty") return json(await applyFifty(me.id, id, body.index), PRIVATE);
     return json(await finishQuiz(me.id, id), PRIVATE);
   } catch (err) {
     return academyError(err, "academy:quiz:post");

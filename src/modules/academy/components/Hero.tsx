@@ -95,7 +95,7 @@ export function Hero({ pulse, me }: { pulse: Pulse | null; me: Me | null }) {
             className="acad-float relative rounded-full focus-visible:outline-none"
             aria-label="Hear Nova, your Academy guide"
           >
-            <GuideOrb size={240} speaking={speaking} className="sm:!h-[280px] sm:!w-[280px]" />
+            <GuideOrb size={200} speaking={speaking} className="sm:!h-[280px] sm:!w-[280px]" />
             <span className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full border border-gold-400/30 bg-ink-950/80 px-3 py-1 text-[11px] font-semibold text-gold-200 backdrop-blur">
               <Play className="h-3 w-3" /> {speaking ? "Nova is speaking" : "Hear Nova"}
             </span>

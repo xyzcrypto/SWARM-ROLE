@@ -195,7 +195,12 @@ describe("academy integrity invariants (source)", () => {
   const live = readFileSync("src/modules/academy/lib/live.ts", "utf8");
   it("the open solo question is built without its answer", () => {
     const fn = quiz.slice(quiz.indexOf("function publicQuestion"), quiz.indexOf("function reviewRow"));
-    expect(fn).not.toMatch(/q\.answer|answer:/);
+    // The only use allowed: choosing which two WRONG options the 50:50 hides,
+    // and only once the lifeline was spent on this question.
+    const without = fn.replace("a.fiftyUsed.includes(index) ? fiftyHide(a, index, q.answer) : []", "");
+    expect(without).not.toMatch(/q\.answer|answer:/);
+    const hide = quiz.slice(quiz.indexOf("function fiftyHide"), quiz.indexOf("function fiftyHide") + 500);
+    expect(hide).toMatch(/order\[i\] !== answer/);
   });
   it("live answers are only attached in the reveal phase", () => {
     expect(live).toMatch(/\.\.\.\(revealing \? \{ answer: q\.answer/);

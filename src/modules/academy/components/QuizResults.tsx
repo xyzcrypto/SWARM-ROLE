@@ -5,7 +5,11 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowDown, ArrowUp, Award, CheckCircle2, ChevronDown, Copy, GraduationCap, RotateCcw, Share2, Sparkles, Swords, Timer, Trophy, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { say, sfx } from "../client/audio";
+import { play, say, sfx, type Piece } from "../client/audio";
+import { useAudio } from "../client/hooks";
+import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
+
+const line = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
 import type { QuizResult } from "./types";
 import { burstConfetti, CountUp, DIFF_LABEL, DIFF_TONE, duration, Eyebrow, fmt, Panel, Pill, ProgressBar, shareOnX } from "./ui";
 
@@ -53,6 +57,7 @@ function Ring({ pct }: { pct: number }) {
 export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; onPlayAgain: () => void }) {
   const [review, setReview] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { settings } = useAudio();
   const leveled = r.level.after.level > r.level.before.level;
   const announced = useRef(false);
   const challengeUrl = typeof window !== "undefined" ? `${window.location.origin}/academy/quiz?challenge=${r.attemptId}` : "";
@@ -61,25 +66,42 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
     if (announced.current) return;
     announced.current = true;
     const t = setTimeout(() => {
+      // One spoken recap, in order: the round, then whatever it unlocked.
+      const pieces: Piece[] = [];
+      const pick = (prefix: string, n: number) => {
+        const k = (n > 1 && Math.random() < 0.5 ? `${prefix}_2` : prefix) as VoiceLine;
+        return line(k in VOICE_LINES ? k : (prefix as VoiceLine));
+      };
+      if (r.mode === "module") pieces.push(line(r.moduleCompleted ? (Math.random() < 0.5 ? "lesson_done" : "module_done_2") : "module_failed"));
+      else if (r.accuracy === 100 && r.total >= 5) pieces.push(pick("result_perfect", 2));
+      else if (r.accuracy >= 80) pieces.push(pick("result_great", 2));
+      else if (r.accuracy >= 60) pieces.push(pick("result_good", 2));
+      else if (r.accuracy >= 40) pieces.push(pick("result_ok", 2));
+      else pieces.push(pick("result_low", 2));
+      if (r.challenge) pieces.push(line(r.score > r.challenge.score ? "challenge_win" : r.score === r.challenge.score ? "challenge_tie" : "challenge_lose"));
+      if (leveled && `level_${r.level.after.level}` in VOICE_LINES) pieces.push(line(`level_${r.level.after.level}` as VoiceLine));
+      for (const u of r.unlocked.slice(0, 3)) if (`ach_${u.code}` in VOICE_LINES) pieces.push(line(`ach_${u.code}` as VoiceLine));
+      if (r.xp.streak > 0 && `streak_day_${r.streak}` in VOICE_LINES) pieces.push(line(`streak_day_${r.streak}` as VoiceLine));
+      if (r.rank.after === 1 && r.rank.before !== 1) pieces.push(line("rank_first"));
+      else if (r.rank.after && r.rank.after <= 3 && (r.rank.before ?? 99) > 3) pieces.push(line("top3"));
+      else if (r.rank.before && r.rank.after && r.rank.after < r.rank.before) pieces.push(line("rank_up"));
+      if (r.xp.total === 0 && r.correct > 0) pieces.push(line("no_xp"));
+
       if (leveled) {
         sfx("levelup");
         burstConfetti();
-        say("level_up", { auto: true });
       } else if (r.unlocked.length) {
         sfx("achievement");
         burstConfetti();
-        say("achievement", { auto: true });
       } else if (r.accuracy >= 80) {
         sfx("winner");
         burstConfetti();
-        say("quiz_done_great", { auto: true });
-      } else {
-        sfx("xp");
-        say("quiz_done", { auto: true });
-      }
+      } else sfx("xp");
+      if (settings.guide) play(pieces);
     }, 450);
     return () => clearTimeout(t);
-  }, [leveled, r.unlocked.length, r.accuracy]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const moved = r.rank.before && r.rank.after ? r.rank.before - r.rank.after : null;
   const wrong = r.total - r.correct;
@@ -235,6 +257,7 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
             try {
               await navigator.clipboard.writeText(challengeUrl);
               setCopied(true);
+              say("challenge_sent", { auto: true });
               setTimeout(() => setCopied(false), 2000);
             } catch {
               /* clipboard blocked: the X share still works */

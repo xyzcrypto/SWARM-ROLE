@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getJson, useMe } from "../client/hooks";
+import { say } from "../client/audio";
 import { Library } from "./Library";
 import type { CatalogCategory } from "./types";
 import { ProgressBar, SectionTitle } from "./ui";
@@ -9,6 +10,9 @@ import { ProgressBar, SectionTitle } from "./ui";
 export function LearnIndex() {
   const [catalog, setCatalog] = useState<CatalogCategory[] | null>(null);
   const { me } = useMe();
+  useEffect(() => {
+    say("learn_pick", { auto: true });
+  }, []);
   useEffect(() => {
     getJson<{ categories: CatalogCategory[] }>("/api/academy/catalog")
       .then((r) => setCatalog(r.categories))

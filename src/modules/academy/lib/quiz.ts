@@ -17,6 +17,7 @@ import {
   weekKey,
 } from "./engine";
 import { checkAchievements, grant, pingBoards, quizXpToday, type Unlocked } from "./xp";
+import { clip } from "./voice";
 
 /** Network slack on every answer deadline. Timing itself is the server's clock. */
 export const GRACE_MS = 1_500;
@@ -43,7 +44,7 @@ type QRow = { id: string; categoryId: string; difficulty: string; prompt: string
 
 const COUNTS = [5, 10, 15, 20];
 
-async function pickIds(input: StartInput, now: number): Promise<{ ids: string[]; categoryId: string | null; periodKey: string | null; difficulty: string }> {
+async function pickIds(input: StartInput, now: number, userId: string): Promise<{ ids: string[]; categoryId: string | null; periodKey: string | null; difficulty: string }> {
   const count = COUNTS.includes(input.count ?? 10) ? (input.count as number) : 10;
   const diff = input.difficulty && input.difficulty !== "mixed" ? input.difficulty : null;
 
@@ -51,6 +52,27 @@ async function pickIds(input: StartInput, now: number): Promise<{ ids: string[];
     const src = await prisma.academyAttempt.findUnique({ where: { id: String(input.challenge ?? "") }, select: { questionIds: true, status: true, categoryId: true, difficulty: true } });
     if (!src || src.status !== "done") throw new QuizError("That challenge link is not valid any more.", 404);
     return { ids: src.questionIds, categoryId: src.categoryId, periodKey: null, difficulty: src.difficulty };
+  }
+
+  if (input.mode === "mistakes") {
+    // Questions whose most recent answer by this member was wrong.
+    const rows = await prisma.academyAnswer.findMany({
+      where: { userId },
+      orderBy: { createdAt: "desc" },
+      select: { questionId: true, correct: true },
+      take: 2000,
+    });
+    const latest = new Map<string, boolean>();
+    for (const r of rows) if (!latest.has(r.questionId)) latest.set(r.questionId, r.correct);
+    const wrong = [...latest].filter(([, ok]) => !ok).map(([id]) => id);
+    const active = await prisma.academyQuestion.findMany({ where: { id: { in: wrong }, active: true }, select: { id: true } });
+    if (!active.length) throw new QuizError("No mistakes to review. Every question you missed has since been answered right.", 404);
+    return { ids: shuffle(active.map((r) => r.id)).slice(0, count), categoryId: null, periodKey: null, difficulty: "mixed" };
+  }
+
+  if (input.mode === "speed") {
+    const rows = await prisma.academyQuestion.findMany({ where: { active: true, difficulty: { in: ["easy", "medium"] } }, select: { id: true } });
+    return { ids: shuffle(rows.map((r) => r.id)).slice(0, count), categoryId: null, periodKey: null, difficulty: "speed" };
   }
 
   if (input.mode === "module") {
@@ -96,7 +118,7 @@ async function pickIds(input: StartInput, now: number): Promise<{ ids: string[];
 export async function startQuiz(userId: string, input: StartInput) {
   await ensureSeeded();
   const now = Date.now();
-  const picked = await pickIds(input, now);
+  const picked = await pickIds(input, now, userId);
 
   if (picked.periodKey) {
     const existing = await prisma.academyAttempt.findUnique({
@@ -155,8 +177,15 @@ async function questionsFor(ids: string[]): Promise<Map<string, QRow & { categor
   return new Map(rows.map((r) => [r.id, r]));
 }
 
-const limitFor = (difficulty: string, cfg: Awaited<ReturnType<typeof loadConfig>>) =>
-  (cfg.xp.seconds[difficulty as Difficulty] ?? cfg.xp.seconds.medium) * 1000;
+const limitFor = (difficulty: string, cfg: Awaited<ReturnType<typeof loadConfig>>, mode?: string) =>
+  (mode === "speed" ? cfg.xp.speedSeconds : (cfg.xp.seconds[difficulty as Difficulty] ?? cfg.xp.seconds.medium)) * 1000;
+
+/** The two wrong options (shown positions) the 50:50 lifeline removes. Seeded, so a resume shows the same two. */
+function fiftyHide(a: { id: string; shuffles: unknown }, index: number, answer: number): number[] {
+  const order = (a.shuffles as number[][])[index] ?? [0, 1, 2, 3];
+  const wrongShown = [0, 1, 2, 3].filter((i) => order[i] !== answer);
+  return shuffle(wrongShown, rng(`fifty:${a.id}:${index}`)).slice(0, 2).sort();
+}
 
 /** The question as a browser may see it: options in shown order, no answer. */
 function publicQuestion(a: AttemptRow, q: QRow & { category: { title: string } }, index: number, limitMs: number) {
@@ -164,6 +193,9 @@ function publicQuestion(a: AttemptRow, q: QRow & { category: { title: string } }
   const options = q.options as string[];
   const servedAt = a.servedAt.getTime();
   return {
+    voice: { prompt: clip(q.prompt), options: order.map((o) => clip(options[o])) },
+    hidden: a.fiftyUsed.includes(index) ? fiftyHide(a, index, q.answer) : [],
+    fiftyLeft: 0,
     index,
     total: a.questionIds.length,
     prompt: q.prompt,
@@ -192,7 +224,9 @@ function reviewRow(a: AttemptRow, q: QRow, index: number) {
     points: ans?.points ?? 0,
     ms: ans?.ms ?? 0,
     fresh: ans?.fresh ?? true,
+    assisted: ans?.assisted ?? false,
     explanation: q.explanation,
+    voice: { prompt: clip(q.prompt), explanation: clip(q.explanation) },
   };
 }
 
@@ -201,7 +235,7 @@ async function settleTimeout(a: AttemptRow, now: number): Promise<boolean> {
   if (a.status !== "active" || a.revealed) return false;
   const q = await prisma.academyQuestion.findUnique({ where: { id: a.questionIds[a.current] }, select: { difficulty: true } });
   const cfg = await loadConfig();
-  const limit = limitFor(q?.difficulty ?? "medium", cfg);
+  const limit = limitFor(q?.difficulty ?? "medium", cfg, a.mode);
   if (now <= a.servedAt.getTime() + limit + GRACE_MS) return false;
   try {
     await prisma.$transaction([
@@ -241,7 +275,9 @@ export async function getQuizState(userId: string, attemptId: string) {
     answered: answered.filter(Boolean),
   };
   if (a.status !== "active" || !q) return { ...base, question: null };
-  return { ...base, question: publicQuestion(a, q, a.current, limitFor(q.difficulty, cfg)) };
+  const pq = publicQuestion(a, q, a.current, limitFor(q.difficulty, cfg, a.mode));
+  pq.fiftyLeft = Math.max(0, cfg.xp.fiftyPerQuiz - a.fiftyUsed.length);
+  return { ...base, question: pq };
 }
 
 export async function answerQuiz(userId: string, attemptId: string, index: number, choice: number) {
@@ -254,14 +290,16 @@ export async function answerQuiz(userId: string, attemptId: string, index: numbe
   const q = (await questionsFor([a.questionIds[index]])).get(a.questionIds[index]);
   if (!q) throw new QuizError("Question missing.", 410);
 
-  const limit = limitFor(q.difficulty, cfg);
+  const limit = limitFor(q.difficulty, cfg, a.mode);
   const ms = Math.max(0, now - a.servedAt.getTime());
   const order = (a.shuffles as number[][])[index] ?? [0, 1, 2, 3];
   const original = choice >= 0 && choice < 4 ? order[choice] : -1;
   const inTime = ms <= limit + GRACE_MS;
   const correct = inTime && original === q.answer;
   const run = correct ? a.run + 1 : 0;
-  const { points } = scoreAnswer({ correct, difficulty: q.difficulty as Difficulty, ms: Math.min(ms, limit), limitMs: limit, run, cfg: cfg.xp });
+  const assisted = a.fiftyUsed.includes(index);
+  const raw = scoreAnswer({ correct, difficulty: q.difficulty as Difficulty, ms: Math.min(ms, limit), limitMs: limit, run, cfg: cfg.xp }).points;
+  const points = assisted ? Math.round(raw * cfg.xp.fiftyKeep) : raw;
 
   // Re-answering a question you already got right for XP recently still scores,
   // but earns no XP: replaying the same quiz is practice, not progress.
@@ -277,7 +315,7 @@ export async function answerQuiz(userId: string, attemptId: string, index: numbe
   try {
     await prisma.$transaction(async (tx) => {
       await tx.academyAnswer.create({
-        data: { attemptId: a.id, userId, index, questionId: q.id, choice: original, correct, ms: Math.min(ms, limit), points, fresh },
+        data: { attemptId: a.id, userId, index, questionId: q.id, choice: original, correct, ms: Math.min(ms, limit), points, fresh, assisted },
       });
       const { count } = await tx.academyAttempt.updateMany({
         where: { id: a.id, current: index, revealed: false, status: "active" },
@@ -304,13 +342,37 @@ export async function answerQuiz(userId: string, attemptId: string, index: numbe
     timedOut: !inTime || original < 0,
     correctShown: order.indexOf(q.answer),
     explanation: q.explanation,
+    voice: { explanation: clip(q.explanation) },
     points,
     fresh,
+    assisted,
     ms: Math.min(ms, limit),
     run,
     score: a.score + points,
     last: index === a.questionIds.length - 1,
   };
+}
+
+/** The 50:50 lifeline: remove two wrong options from the open question. That answer then keeps `fiftyKeep` of its points. */
+export async function applyFifty(userId: string, attemptId: string, index: number) {
+  const a = await loadAttempt(attemptId);
+  if (!a || a.userId !== userId) throw new QuizError("Quiz not found.", 404);
+  if (a.status !== "active" || a.current !== index || a.revealed) throw new QuizError("That question is not open.", 409);
+  if (a.mode === "daily" || a.mode === "weekly" || a.mode === "challenge") throw new QuizError("Lifelines are off in this mode: everyone plays the same questions on equal terms.", 409);
+  const cfg = await loadConfig();
+  if (a.fiftyUsed.includes(index)) {
+    const q0 = await prisma.academyQuestion.findUnique({ where: { id: a.questionIds[index] }, select: { answer: true } });
+    return { hidden: fiftyHide(a, index, q0?.answer ?? 0), fiftyLeft: Math.max(0, cfg.xp.fiftyPerQuiz - a.fiftyUsed.length) };
+  }
+  if (a.fiftyUsed.length >= cfg.xp.fiftyPerQuiz) throw new QuizError("No 50:50 lifelines left in this quiz.", 409);
+  const q = await prisma.academyQuestion.findUnique({ where: { id: a.questionIds[index] }, select: { answer: true } });
+  if (!q) throw new QuizError("Question missing.", 410);
+  const { count } = await prisma.academyAttempt.updateMany({
+    where: { id: a.id, current: index, revealed: false, status: "active", NOT: { fiftyUsed: { has: index } } },
+    data: { fiftyUsed: { push: index } },
+  });
+  if (!count) throw new QuizError("That question is not open.", 409);
+  return { hidden: fiftyHide(a, index, q.answer), fiftyLeft: Math.max(0, cfg.xp.fiftyPerQuiz - a.fiftyUsed.length - 1) };
 }
 
 export async function nextQuestion(userId: string, attemptId: string) {

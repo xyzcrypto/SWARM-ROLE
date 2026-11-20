@@ -8,8 +8,11 @@ import { cn } from "@/lib/utils";
 import { useRealtime } from "@/lib/useRealtime";
 import { liveChannel } from "@/lib/realtime-channels";
 import { livePhase, type LivePhase } from "@modules/academy/lib/engine";
-import { duck, say, sfx, unlock } from "../client/audio";
-import { getJson, postJson, useServerClock, useTicker } from "../client/hooks";
+import { duck, play, say, sayOneOf, sfx, unlock, type Piece } from "../client/audio";
+import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
+
+const vline = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
+import { getJson, postJson, useAudio, useServerClock, useTicker } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
 import type { LiveMe, LiveState } from "./types";
 import { Avatar, burstConfetti, DIFF_LABEL, DIFF_TONE, Empty, fmt, Panel, Pill } from "./ui";
@@ -26,6 +29,7 @@ export function LiveArena({ id }: { id: string }) {
   const [sending, setSending] = useState<number | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const clock = useServerClock();
+  const audio = useAudio();
   const lastKey = useRef("");
   const announced = useRef<Set<string>>(new Set());
 
@@ -112,17 +116,48 @@ export function LiveArena({ id }: { id: string }) {
     if (announced.current.has(key)) return;
     announced.current.add(key);
     if (phase.kind === "countdown") say("live_soon", { auto: true });
-    if (phase.kind === "question") {
-      sfx("go");
-      if (phase.index === 0) say("live_go", { auto: true });
-    }
+    if (phase.kind === "reveal") sfx("reveal");
     if (phase.kind === "ended" && state?.status === "ended") {
       sfx("winner");
       burstConfetti();
-      say("live_winner", { auto: true });
+      const mine = me?.joined ? me.rank : null;
+      const pieces = [vline("live_winner")];
+      if (mine === 1 && (me?.score ?? 0) > 0) pieces.push(vline("live_you_won"));
+      else if (mine && mine <= 3 && (me?.score ?? 0) > 0) pieces.push(vline("live_podium"));
+      else if (me?.joined) pieces.push(vline("live_thanks"));
+      if (audio.settings.guide) play(pieces);
     }
     duck(phase.kind === "question" ? 0.25 : 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, state?.status]);
+
+  // Each question: a cue (first / halfway / last / next), then Nova reads it.
+  const readFor = useRef(-1);
+  useEffect(() => {
+    if (phase?.kind !== "question" || !state?.question || state.question.index !== phase.index || readFor.current === phase.index) return;
+    readFor.current = phase.index;
+    sfx("go");
+    const q = state.question;
+    const pieces = [];
+    if (audio.settings.guide) {
+      if (phase.index === 0) pieces.push(vline("live_go"));
+      else if (phase.index === state.count - 1) pieces.push(vline("live_last"));
+      else if (state.count >= 6 && phase.index === Math.floor(state.count / 2)) pieces.push(vline("live_half"));
+      else pieces.push(vline("live_next"));
+    }
+    if (audio.settings.readQuestions) pieces.push({ url: q.voice.prompt, text: q.prompt });
+    if (pieces.length) play(pieces, { caption: q.prompt });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase?.kind, phase && "index" in phase ? phase.index : -1, state?.question?.index]);
+
+  // Pause / resume announcements
+  const wasPaused = useRef(false);
+  const pausedNow = !!phase && "paused" in phase && phase.paused;
+  useEffect(() => {
+    if (pausedNow && !wasPaused.current) say("live_paused", { auto: true });
+    if (!pausedNow && wasPaused.current) say("live_resumed", { auto: true });
+    wasPaused.current = pausedNow;
+  }, [pausedNow]);
 
   // Countdown ticks
   const lastTick = useRef(-1);
@@ -131,7 +166,8 @@ export function LiveArena({ id }: { id: string }) {
     const s = Math.ceil((phase.startsAt - now) / 1000);
     if (s !== lastTick.current && s <= 5 && s > 0) {
       lastTick.current = s;
-      sfx("tick");
+      sfx("count");
+      if (s <= 3) say(`count_${s}` as VoiceLine, { auto: true });
     }
   }, [phase, now]);
 
@@ -142,6 +178,7 @@ export function LiveArena({ id }: { id: string }) {
     try {
       await postJson(`/api/academy/live/${id}/me`, { action: "join" });
       sfx("achievement");
+      say("live_join", { auto: true });
       await loadAll();
     } catch (e) {
       setMsg((e as Error).message);
@@ -162,6 +199,8 @@ export function LiveArena({ id }: { id: string }) {
       try {
         await postJson(`/api/academy/live/${id}/me`, { action: "answer", index, choice });
         setMe((m) => (m ? { ...m, answers: [...m.answers, { index, choice, correct: null, points: null }] } : m));
+        sfx("lock");
+        sayOneOf("live_lock", 2, { auto: true });
       } catch (e) {
         setMsg((e as Error).message);
         void loadMe();
@@ -191,6 +230,10 @@ export function LiveArena({ id }: { id: string }) {
     if (a && a.correct != null) {
       revealedFor.current = phase.index;
       sfx(a.correct ? "correct" : "wrong");
+      const q = state?.question;
+      const pieces = audio.settings.guide ? [vline(Math.random() < 0.5 ? "live_reveal" : "live_reveal_2")] : [];
+      if (!a.correct && audio.settings.explainWrong && q?.explanation) pieces.push({ url: q.voiceExplanation ?? null, text: q.explanation });
+      if (pieces.length) play(pieces, { caption: q?.explanation ?? undefined });
     }
   }, [phase, me]);
 

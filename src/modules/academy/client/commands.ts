@@ -1,7 +1,7 @@
 // Voice commands for the Academy. Pure parsing, unit-tested; the dock turns a
 // recognised command into a window event that the open page acts on.
 
-export type Command = "start" | "next" | "repeat" | "explain" | "leaderboard" | "live" | "learn" | "pause" | "resume" | "mute" | "unmute" | "stop" | "answer";
+export type Command = "help" | "start" | "next" | "repeat" | "explain" | "leaderboard" | "live" | "learn" | "pause" | "resume" | "mute" | "unmute" | "stop" | "answer";
 
 export type Parsed = { cmd: Command; option?: number } | null;
 
@@ -12,6 +12,7 @@ export function parseCommand(raw: string): Parsed {
   if (!t) return null;
   const opt = /\b(?:option|answer|choose|pick|select)\s+(a|b|c|d|one|two|three|four|first|second|third|fourth|[1-4])\b/.exec(t);
   if (opt) return { cmd: "answer", option: OPTION_WORDS[opt[1]] };
+  if (/\b(help|what can i say|commands)\b/.test(t)) return { cmd: "help" };
   if (/\b(start|begin|play)\b.*\b(quiz|challenge|game)\b|^(start|begin)$/.test(t)) return { cmd: "start" };
   if (/\b(next|continue|skip ahead)\b/.test(t)) return { cmd: "next" };
   if (/\b(repeat|again|say that|read)\b/.test(t)) return { cmd: "repeat" };

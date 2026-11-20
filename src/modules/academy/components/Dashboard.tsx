@@ -22,8 +22,8 @@ function WeekChart({ week }: { week: Me["week"] }) {
               <motion.div
                 className={cn("w-full rounded-t-lg", i === week.length - 1 ? "bg-gradient-to-t from-gold-600 to-gold-300" : "bg-gradient-to-t from-gold-700/50 to-gold-400/50")}
                 initial={{ height: 0 }}
-                whileInView={{ height: `${Math.max(w.xp ? 6 : 2, (w.xp / max) * 100)}%` }}
-                viewport={{ once: true }}
+                animate={{ height: `${Math.max(w.xp ? 6 : 2, (w.xp / max) * 100)}%` }}
+               
                 transition={{ duration: 0.8, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>

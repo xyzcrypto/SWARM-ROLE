@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getModule } from "@modules/academy/lib/store";
+import { clip } from "@modules/academy/lib/voice";
 import { LessonView } from "@modules/academy/components/LessonView";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 import { pageSeo } from "@/lib/seo";
@@ -29,6 +30,7 @@ export default async function LessonPage({ params }: Props) {
     level: m.level,
     title: m.title,
     summary: m.summary,
+    summaryVoice: clip(m.summary),
     minutes: m.minutes,
     objectives: (m.objectives as string[]) ?? [],
     sections: (m.sections as { heading: string; body: string }[]) ?? [],

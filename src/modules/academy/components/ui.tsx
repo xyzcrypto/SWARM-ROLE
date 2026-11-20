@@ -105,8 +105,8 @@ export function Panel({ children, className, delay = 0 }: { children: React.Reac
   return (
     <motion.section
       initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
+      animate={{ opacity: 1, y: 0 }}
+     
       transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
       className={cn("surface min-w-0 rounded-3xl p-5 sm:p-6", className)}
     >

@@ -23,27 +23,53 @@ export async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
 
 export const postJson = <T,>(url: string, data: unknown) => getJson<T>(url, { method: "POST", body: JSON.stringify(data) });
 
+// One shared copy of /api/academy/me per page. Several components show parts
+// of it (hero, dashboard, leaderboard, certificates); each fetching its own was
+// two or three identical, fairly heavy requests on every Academy page.
+let meCache: { data: Me | null; error: string | null; at: number; inflight: Promise<void> | null } = { data: null, error: null, at: 0, inflight: null };
+const meListeners = new Set<() => void>();
+const meEmit = () => meListeners.forEach((l) => l());
+
+async function fetchMe(force = false) {
+  if (meCache.inflight) return meCache.inflight;
+  if (!force && meCache.data && Date.now() - meCache.at < 5_000) return;
+  meCache.inflight = getJson<Me>("/api/academy/me")
+    .then((d) => {
+      meCache = { ...meCache, data: d, error: null, at: Date.now() };
+    })
+    .catch((e) => {
+      meCache = { ...meCache, error: (e as Error).message };
+    })
+    .finally(() => {
+      meCache.inflight = null;
+      meEmit();
+    });
+  return meCache.inflight;
+}
+
 /**
  * The signed-in member's Academy dashboard. `status` mirrors the session so
  * the page can show the sign-in prompt instead of a spinner for guests.
  */
 export function useMe() {
   const { status } = useSession();
-  const [me, setMe] = useState<Me | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const load = useCallback(async () => {
-    try {
-      setMe(await getJson<Me>("/api/academy/me"));
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
+  const [, force] = useState(0);
+  useEffect(() => {
+    const l = () => force((x) => x + 1);
+    meListeners.add(l);
+    return () => {
+      meListeners.delete(l);
+    };
   }, []);
   useEffect(() => {
-    if (status === "authenticated") void load();
-    if (status === "unauthenticated") setMe(null);
-  }, [status, load]);
-  return { me, status, error, reload: load };
+    if (status === "authenticated") void fetchMe();
+    if (status === "unauthenticated" && meCache.data) {
+      meCache = { data: null, error: null, at: 0, inflight: null };
+      meEmit();
+    }
+  }, [status]);
+  const reload = useCallback(() => fetchMe(true), []);
+  return { me: status === "authenticated" ? meCache.data : null, status, error: meCache.error, reload };
 }
 
 /**

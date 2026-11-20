@@ -29,8 +29,8 @@ export function Library({ categories, me }: { categories: CatalogCategory[] | nu
           <motion.div
             key={c.id}
             initial={{ opacity: 0, y: 18 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-30px" }}
+            animate={{ opacity: 1, y: 0 }}
+           
             transition={{ duration: 0.5, delay: (i % 3) * 0.06, ease: [0.22, 1, 0.36, 1] }}
           >
             <Link

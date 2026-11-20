@@ -16,8 +16,8 @@ export const LEVEL_DIFFICULTY: Record<Level, Difficulty> = {
   expert: "expert",
 };
 
-export type QuizMode = "quick" | "topic" | "daily" | "weekly" | "advanced" | "module" | "challenge";
-export const QUIZ_MODES: QuizMode[] = ["quick", "topic", "daily", "weekly", "advanced", "module", "challenge"];
+export type QuizMode = "quick" | "topic" | "daily" | "weekly" | "advanced" | "module" | "challenge" | "mistakes" | "speed";
+export const QUIZ_MODES: QuizMode[] = ["quick", "topic", "daily", "weekly", "advanced", "module", "challenge", "mistakes", "speed"];
 
 export type XpConfig = {
   /** Points for a correct answer, by difficulty. Score -> XP is score / scoreToXp. */
@@ -52,6 +52,11 @@ export type XpConfig = {
   /** Live quiz: XP per point scored, and a bonus for the podium. */
   livePerPoint: number;
   livePodium: [number, number, number];
+  /** Speed Run: seconds per question (every difficulty). */
+  speedSeconds: number;
+  /** 50:50 lifelines per quiz, and the share of points an assisted answer keeps. */
+  fiftyPerQuiz: number;
+  fiftyKeep: number;
 };
 
 export const DEFAULT_XP: XpConfig = {
@@ -62,7 +67,7 @@ export const DEFAULT_XP: XpConfig = {
   streakCap: 0.5,
   scoreToXp: 10,
   seconds: { easy: 25, medium: 30, hard: 40, expert: 45 },
-  modeBonus: { quick: 10, topic: 15, daily: 50, weekly: 150, advanced: 40, module: 0, challenge: 20 },
+  modeBonus: { quick: 10, topic: 15, daily: 50, weekly: 150, advanced: 40, module: 0, challenge: 20, mistakes: 15, speed: 30 },
   perfectBonus: 0.25,
   dailyQuizCap: 2500,
   repeatCooldownDays: 7,
@@ -72,6 +77,9 @@ export const DEFAULT_XP: XpConfig = {
   streakMilestones: { "3": 30, "7": 100, "14": 200, "30": 500 },
   livePerPoint: 0.1,
   livePodium: [300, 200, 100],
+  speedSeconds: 12,
+  fiftyPerQuiz: 2,
+  fiftyKeep: 0.5,
 };
 
 export type LevelDef = { name: string; xp: number };

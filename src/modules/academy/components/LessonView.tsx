@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Headphones, Lightbulb, Pause, Swords, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAudio, useMe } from "../client/hooks";
-import { say, speak, stopVoice, unlock } from "../client/audio";
+import { play, say, stopVoice, unlock } from "../client/audio";
 import type { VoiceLine } from "../client/voice-lines";
 import { DIFF_TONE, Icon, LEVEL_LABEL, Pill } from "./ui";
 
@@ -16,6 +16,7 @@ type Lesson = {
   level: string;
   title: string;
   summary: string;
+  summaryVoice: string | null;
   minutes: number;
   objectives: string[];
   sections: { heading: string; body: string }[];
@@ -59,7 +60,7 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
       return;
     }
     const s = lesson.sections[i];
-    speak(`${s.heading}. ${s.body}`);
+    play([{ text: `${s.heading}. ${s.body}` }]);
     setReading(i);
   };
 
@@ -84,6 +85,25 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
         </div>
         <h1 className="mt-3 font-display text-3xl font-semibold leading-tight tracking-tight text-content sm:text-[2.6rem]">{lesson.title}</h1>
         <p className="mt-3 text-base leading-relaxed text-content-muted sm:text-lg">{lesson.summary}</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              unlock();
+              if (reading === -1) {
+                stopVoice();
+                setReading(null);
+                return;
+              }
+              // Nova reads the summary in her own voice, then the lesson in order.
+              play([{ url: lesson.summaryVoice, text: lesson.summary }, ...lesson.sections.map((x) => ({ text: `${x.heading}. ${x.body}` }))], { caption: lesson.summary });
+              setReading(-1);
+            }}
+            className="btn-secondary h-10 px-4 text-sm"
+          >
+            {reading === -1 ? <Pause className="h-4 w-4" /> : <Headphones className="h-4 w-4" />} {reading === -1 ? "Stop" : "Listen to this lesson"}
+          </button>
+        </div>
 
         {lesson.objectives.length > 0 && (
           <div className="mt-6 rounded-3xl border border-gold-400/25 bg-gold-400/[0.04] p-5">
@@ -106,8 +126,8 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
             <motion.section
               key={i}
               initial={{ opacity: 0, y: 14 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-40px" }}
+              animate={{ opacity: 1, y: 0 }}
+             
               transition={{ duration: 0.45 }}
               className={cn("surface rounded-3xl p-5 sm:p-6", reading === i && "ring-1 ring-gold-300/50")}
             >

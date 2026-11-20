@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { parseCommand } from "@modules/academy/client/commands";
 import { DEFAULT_AUDIO, parseSettings } from "@modules/academy/client/audio";
 import { VOICE_LINES } from "@modules/academy/client/voice-lines";
@@ -81,5 +81,19 @@ describe("academy content", () => {
     const hooks = readFileSync("src/modules/academy/client/hooks.ts", "utf8");
     expect(hooks).toMatch(/@\/lib\/realtime-channels/);
     expect(hooks).not.toMatch(/from "@\/lib\/realtime"/);
+  });
+  it("academy content never waits on a scroll observer to become visible", () => {
+    // whileInView left whole sections at opacity 0 when a fast scroll or an
+    // anchor jump skipped the observer (found in the alignment pass).
+    const dir = "src/modules/academy/components";
+    const offenders = readdirSync(dir, { recursive: true })
+      .map(String)
+      .filter((f) => f.endsWith(".tsx") && readFileSync(`${dir}/${f}`, "utf8").includes("whileInView"));
+    expect(offenders).toEqual([]);
+  });
+  it("every curriculum text in the voice manifest has its recording", () => {
+    const manifest = JSON.parse(readFileSync("src/modules/academy/content/voice-manifest.json", "utf8")) as string[];
+    expect(manifest.length).toBeGreaterThan(0);
+    expect(manifest.filter((h) => !existsSync(`public/academy/voice/c/${h}.mp3`))).toEqual([]);
   });
 });
