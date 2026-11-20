@@ -13,7 +13,7 @@ import { hey } from "@modules/academy/client/greet";
 import { VOICE_LINES } from "@modules/academy/client/voice-lines";
 import { recordUtterance, releaseMic, talkSupported, transcribe, TalkError } from "@modules/academy/client/talk";
 import { GuideCaption, GuideOrb, GuideWave } from "@modules/academy/components/Guide";
-import { burstConfetti, CountUp, Panel, utcDate } from "@modules/academy/components/ui";
+import { Avatar, burstConfetti, CountUp, Panel, utcDate } from "@modules/academy/components/ui";
 import { BADGES, CATEGORIES, MAX_MESSAGE, MIN_MESSAGE, quality, XP_DAILY, XP_FIRST, XP_SHIPPED, type BadgeCode, type Category } from "../lib/shared";
 
 type Mine = {
@@ -59,6 +59,13 @@ export function FeedbackClient() {
   const [done, setDone] = useState<{ xp: number; first: boolean } | null>(null);
   const [mine, setMine] = useState<Mine | null>(null);
   const [page, setPage] = useState("");
+  const [voices, setVoices] = useState<{ rank: number; name: string; username: string | null; image: string | null; count: number; shipped: number }[] | null>(null);
+  useEffect(() => {
+    fetch("/api/feedback/board")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => setVoices(b?.voices ?? []))
+      .catch(() => setVoices([]));
+  }, []);
 
   const loadMine = useCallback(async () => {
     try {
@@ -553,6 +560,32 @@ export function FeedbackClient() {
             </li>
           </ul>
         </Panel>
+
+        {voices && voices.length > 0 && (
+          <Panel>
+            <div className="flex items-baseline justify-between">
+              <h3 className="font-display text-base font-semibold text-content">Top voices</h3>
+              <span className="text-[11px] text-content-subtle">last 30 days</span>
+            </div>
+            <ol className="mt-3 space-y-2">
+              {voices.map((v) => (
+                <li key={v.rank} className="flex items-center gap-2.5 text-[13px]">
+                  <span className={cn("w-5 text-center font-mono text-[11px] font-bold", v.rank === 1 ? "text-gold-300" : "text-content-subtle")}>{v.rank}</span>
+                  <Avatar src={v.image} alt={v.name} size={26} />
+                  {v.username ? (
+                    <Link href={`/u/${v.username}`} className="min-w-0 flex-1 truncate font-medium text-content hover:underline">
+                      {v.name}
+                    </Link>
+                  ) : (
+                    <span className="min-w-0 flex-1 truncate font-medium text-content">{v.name}</span>
+                  )}
+                  {v.shipped > 0 && <span className="rounded-full bg-mint-400/15 px-1.5 py-0.5 font-mono text-[10px] text-mint-300" title="Shipped">🚀 {v.shipped}</span>}
+                  <span className="font-mono text-[11px] text-content-muted">{v.count}</span>
+                </li>
+              ))}
+            </ol>
+          </Panel>
+        )}
 
         {signedIn && mine && mine.items.length > 0 && (
           <Panel>

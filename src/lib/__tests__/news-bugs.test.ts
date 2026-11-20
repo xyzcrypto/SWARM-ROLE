@@ -90,10 +90,10 @@ describe("a scroll the reader asked for actually happens", () => {
     expect(lock).toMatch(/if \(smooth\) smooth\.smoothTo\(y\);\s*else window\.scrollTo\(\{ top: y, behavior: "smooth" \}\)/);
   });
 
-  it("registers the eased control", () => {
-    expect(smooth).toMatch(/smoothTo: \(y\) => lenis\.scrollTo\(y, \{ force: true \}\)/);
-    // And the instant one is still immediate - a route change should not glide.
-    expect(smooth).toMatch(/toOffset: \(y\) => lenis\.scrollTo\(y, \{ immediate: true, force: true \}\)/);
+  it("has no JS scroll engine to race with", () => {
+    // Lenis was removed: with nothing registered, scrollPageToSmooth is a
+    // native smooth scroll, the only scroller left.
+    expect(smooth).not.toMatch(/new Lenis\(/);
   });
 });
 

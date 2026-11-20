@@ -5,6 +5,64 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (161) — Smooth like butter: no lost taps, no endless spinners, native scrolling, one-screen quiz
+
+The owner reported the site as slow and laggy, sometimes stuck until a refresh, and asked
+for the quiz to fit on one screen. Everything below was measured locally first (Playwright,
+CPU profiles while scrolling, the same quiz on five devices).
+
+### Why it felt stuck
+- **The first tap on Academy pages was swallowed.** AneQue's greeting bubble grows when she
+  starts talking, and on phones it rose over the page: the tap on "Start quiz" (or anything
+  under it) landed on the bubble and did nothing, so people tapped again or refreshed.
+  Reproduced on an iPhone 13 profile. The bubble now lets taps through (only its own X and
+  "Tap to hear" buttons are clickable) and its caption is capped at 3 lines.
+- **Requests could hang forever.** Academy `getJson`/`postJson` now time out after 15 s
+  (Live Talk after 35 s) with a readable "connection is slow, try again" message instead of
+  a spinner that never stops. A failed quiz time-out is retried, so a question can no longer
+  sit at 0 s.
+- **Clicks on server-rendered pages gave no feedback.** New `NavProgress`: a thin gold bar on
+  every internal link click until the page is on screen (no React state, gives up after 12 s).
+  New skeleton `loading.tsx` for the Academy, lessons, `/markets/[id]`, protocol pages and
+  `/news/read`.
+
+### Why it lagged
+- **Lenis smooth-scroll removed.** It drove the page scroll from JavaScript on every frame,
+  so any other work made scrolling stutter (profiled: `scrollTo` ~1 s of CPU in 6 s on
+  /news). Native scrolling runs on the compositor and cannot be blocked by JS. Main-thread
+  idle time while scrolling /news went from 1.3 s to 3.0 s of 6 s.
+- **Navbar scroll handler removed** (it is on every page). Reading `scrollY` in a scroll event
+  forced a layout each time (~600 ms per 6 s of scrolling on /news); an IntersectionObserver
+  sentinel gives the same "scrolled" state for free. Same for the home sticky CTA. The news
+  reading bar no longer re-renders on every frame.
+- **Quiz:** only the countdown re-renders 5×/s now (`QuizClock`); it used to re-render the
+  whole question, options and their animations. AneQue's captions re-render per word instead
+  of per frame (up to three on screen), and her voice level is read once per frame.
+
+### Quiz on one screen (desktop + mobile)
+- While a question is up the page is exactly the viewport: the Academy tabs hide, and on
+  phones/tablets the bottom nav, XYZ AI button and AneQue orb step aside (an AneQue button sits
+  in the quiz header instead). Timer, question, all four options and Next are always visible;
+  only a very long explanation scrolls inside the card. Short screens (iPhone SE) get tighter
+  type. Verified with page height = screen height on 1440×900, 1280×720, iPhone 13,
+  iPhone SE and Pixel 7. Live quizzes use the same frame.
+
+### Also
+- Academy hero: AneQue's strip no longer overlaps the Talk button (status replaces the
+  subtitle on one line).
+- Home hero: a "New" chip with the latest launch above the headline, and quick links to
+  Markets, Points, Academy, News and Creators.
+- /feedback: **Top voices** (most feedback in 30 days, shipped count), from
+  `GET /api/feedback/board` (public, `s-maxage=300`).
+- Dashboard What's New: a note that recent entries also appear in the home popup.
+
+### Tests
+- `smooth-r6.test.ts`: bubble tap-through, request timeouts, NavProgress + skeletons, no scroll
+  handlers in Navbar/StickyCta, clock isolation, per-word captions, play mode. Lenis tests in
+  `route-scroll` and `news-bugs` now pin its absence.
+
+---
+
 ## 2026-11-20 (160) — Launch popup on the home page, gamified /feedback with XP, AneQue greets members by name, Academy hero v4
 
 ### Launch popup (home page)

@@ -454,6 +454,17 @@ export function GuideDock() {
     return () => window.removeEventListener("academy:talk", on);
   }, [talk]);
 
+  // The quiz header's AneQue button (phones hide the orb while a question is open).
+  useEffect(() => {
+    const on = () => {
+      setPanel("guide");
+      setOpen(true);
+      sfx("click");
+    };
+    window.addEventListener("academy:open", on);
+    return () => window.removeEventListener("academy:open", on);
+  }, []);
+
   const replay = () => {
     unlock();
     if (voice.line) say(voice.line);
@@ -583,29 +594,38 @@ export function GuideDock() {
  * silent, so it reads the same with sound off.
  */
 export function GuideCaption({ text, speaking, className }: { text: string; speaking: boolean; className?: string }) {
-  const [p, setP] = useState(1);
+  const words = text.split(/(\s+)/);
+  const total = words.filter((w) => w.trim()).length || 1;
+  // How many words are lit. It changes a few times a second, so the caption
+  // re-renders only when another word lights up. It used to set state on
+  // every animation frame (60 renders a second per caption, and up to three
+  // captions on screen), which was a real share of the Academy's lag.
+  const [lit, setLit] = useState(total);
   useEffect(() => {
     if (!speaking) {
-      setP(1);
+      setLit(total);
       return;
     }
     let raf = 0;
+    let last = -1;
     const tick = () => {
-      setP(voiceProgress());
+      const k = Math.min(total, Math.ceil((voiceProgress() + 0.04) * total));
+      if (k !== last) {
+        last = k;
+        setLit(k);
+      }
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [speaking, text]);
-  const words = text.split(/(\s+)/);
-  const total = words.filter((w) => w.trim()).length || 1;
+  }, [speaking, text, total]);
   let n = 0;
   return (
     <p className={className} aria-live="polite">
       {words.map((w, i) => {
         if (!w.trim()) return w;
         n++;
-        const on = !speaking || n / total <= p + 0.04;
+        const on = !speaking || n <= lit;
         return (
           <span key={i} className={cn("transition-colors duration-200", on ? "text-content" : "text-content-subtle/60")}>
             {w}

@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { publicImageUrl } from "@/lib/utils";
 import { notifyOwner } from "@modules/notifications/lib/notify-owner";
 import { grant, pingBoards } from "@modules/academy/lib/xp";
 import { badgesFor, CATEGORIES, CATEGORY_IDS, MAX_MESSAGE, MIN_MESSAGE, STATUSES, XP_DAILY, XP_FIRST, XP_SHIPPED } from "./shared";
@@ -94,6 +95,43 @@ export async function myFeedback(userId: string) {
     badges: badgesFor(rows),
     items: rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
   };
+}
+
+/**
+ * "Top voices": members with the most feedback in the last 30 days, and how
+ * many of theirs shipped. Public (names and avatars only, never emails).
+ */
+export async function topVoices(now = Date.now()) {
+  const since = new Date(now - 30 * 86_400_000);
+  const rows = await prisma.feedback.groupBy({
+    by: ["userId"],
+    where: { userId: { not: null }, createdAt: { gte: since } },
+    _count: { _all: true },
+    orderBy: { _count: { userId: "desc" } },
+    take: 8,
+  });
+  const ids = rows.map((r) => r.userId!).filter(Boolean);
+  if (!ids.length) return [];
+  const [users, shipped] = await Promise.all([
+    prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true, username: true, image: true } }),
+    prisma.feedback.groupBy({ by: ["userId"], where: { userId: { in: ids }, status: "done" }, _count: { _all: true } }),
+  ]);
+  const byId = new Map(users.map((u) => [u.id, u]));
+  const shippedBy = new Map(shipped.map((s) => [s.userId, s._count._all]));
+  return rows
+    .map((r, i) => {
+      const u = byId.get(r.userId!);
+      if (!u) return null;
+      return {
+        rank: i + 1,
+        name: u.name?.trim() || (u.username ? `@${u.username}` : "Member"),
+        username: u.username,
+        image: publicImageUrl(u.image, u.id),
+        count: r._count._all,
+        shipped: shippedBy.get(u.id) ?? 0,
+      };
+    })
+    .filter(Boolean);
 }
 
 // ── Admin ───────────────────────────────────────────────────────────────

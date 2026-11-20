@@ -853,14 +853,21 @@ export function voiceProgress(): number {
 }
 
 /** 0..1 loudness of AneQue right now, for the orb. Browser speech cannot be measured, so it is animated. */
+// One analyser read per animation frame, however many orbs and waves ask.
+let lvlAt = -1;
+let lvlVal = 0;
+let lvlBuf: Uint8Array<ArrayBuffer> | null = null;
 export function voiceLevel(t: number): number {
   if (!snap.voice.speaking || snap.voice.paused) return 0;
   if (analyser && clip && !clip.paused && clipSource) {
-    const buf = new Uint8Array(analyser.frequencyBinCount);
-    analyser.getByteFrequencyData(buf);
+    if (t === lvlAt) return lvlVal;
+    if (!lvlBuf || lvlBuf.length !== analyser.frequencyBinCount) lvlBuf = new Uint8Array(analyser.frequencyBinCount);
+    analyser.getByteFrequencyData(lvlBuf);
     let sum = 0;
-    for (let i = 2; i < 40; i++) sum += buf[i];
-    return Math.min(1, sum / (38 * 160));
+    for (let i = 2; i < 40; i++) sum += lvlBuf[i];
+    lvlAt = t;
+    lvlVal = Math.min(1, sum / (38 * 160));
+    return lvlVal;
   }
   return 0.35 + 0.25 * Math.abs(Math.sin(t / 110)) * Math.abs(Math.sin(t / 47));
 }

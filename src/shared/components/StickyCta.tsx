@@ -13,11 +13,19 @@ export function StickyCta() {
   const { data: session } = useSession();
   const [show, setShow] = useState(false);
 
+  // Past the hero? A sentinel + IntersectionObserver, not a scroll handler
+  // (reading scrollY on every scroll event forces layout; see Navbar).
   useEffect(() => {
-    const onScroll = () => setShow(window.scrollY > 640);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const probe = document.createElement("div");
+    probe.setAttribute("aria-hidden", "true");
+    probe.style.cssText = "position:absolute;top:640px;left:0;width:1px;height:1px;pointer-events:none;visibility:hidden";
+    document.body.appendChild(probe);
+    const io = new IntersectionObserver(([e]) => setShow(!e.isIntersecting && e.boundingClientRect.top < 0));
+    io.observe(probe);
+    return () => {
+      io.disconnect();
+      probe.remove();
+    };
   }, []);
 
   if (session) return null;

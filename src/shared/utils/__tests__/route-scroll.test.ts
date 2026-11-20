@@ -42,13 +42,19 @@ describe("a forward navigation lands at the top", () => {
     expect(strip(layout)).toContain("<RouteScroll />");
   });
 
-  it("moves the native scroll AND the smooth-scroll engine together", () => {
-    // Half a fix is no fix: Lenis holds its own target and rewrites the scroll
-    // on its next rAF tick, so a native `scrollTo` it did not initiate is undone
-    // a frame later. That is what the forward bug was made of.
+  it("moves the native scroll (and any registered engine) together", () => {
+    // Lenis was removed (scroll now runs on the compositor thread, see
+    // SmoothScroll.tsx), but the helper still moves both halves so that a
+    // future engine cannot reintroduce the forward-navigation bug.
     expect(strip(lock)).toMatch(/export function scrollPageTo\(y: number\)[\s\S]{0,240}window\.scrollTo\(0, y\)/);
     expect(strip(lock)).toMatch(/export function scrollPageTo\(y: number\)[\s\S]{0,240}smooth\?\.toOffset\(y\)/);
-    expect(strip(smooth)).toMatch(/toOffset:\s*\(y\)\s*=>\s*lenis\.scrollTo\(y,\s*\{[^}]*immediate:\s*true/);
+  });
+
+  it("does not drive the page scroll from JavaScript", () => {
+    // A JS scroller (Lenis) puts every scroll frame on the main thread, which
+    // is what made the site lag on desktop. Native scrolling only.
+    expect(strip(smooth)).not.toMatch(/from "lenis"|new Lenis\(/);
+    expect(strip(smooth)).not.toContain("requestAnimationFrame");
   });
 
   it("runs after the router, not with it", () => {

@@ -53,11 +53,24 @@ export function Navbar() {
     }
   }
 
+  // "Scrolled past the top?" without a scroll listener. Reading
+  // `window.scrollY` inside a scroll handler forces a synchronous layout on
+  // every scroll event whenever the page has pending DOM changes; profiled on
+  // /news that handler was ~600 ms of main-thread time in 6 s of scrolling, on
+  // every page since the Navbar is everywhere. A 1px sentinel 12px down the
+  // document and an IntersectionObserver give the same answer off the scroll
+  // path.
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const probe = document.createElement("div");
+    probe.setAttribute("aria-hidden", "true");
+    probe.style.cssText = "position:absolute;top:12px;left:0;width:1px;height:1px;pointer-events:none;visibility:hidden";
+    document.body.appendChild(probe);
+    const io = new IntersectionObserver(([e]) => setScrolled(!e.isIntersecting));
+    io.observe(probe);
+    return () => {
+      io.disconnect();
+      probe.remove();
+    };
   }, []);
 
   // Flag the open mobile drawer on <html> so the floating XYZ AI launcher can

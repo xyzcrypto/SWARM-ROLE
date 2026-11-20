@@ -65,7 +65,7 @@ export function BottomNav() {
     <>
       {/* In-flow spacer so page content + footer clear the fixed bar (only when
           the bar is actually shown - immersive routes above return null). */}
-      <div aria-hidden className="h-[calc(3.5rem+env(safe-area-inset-bottom))] lg:hidden" />
+      <div aria-hidden className="nav-spacer h-[calc(3.5rem+env(safe-area-inset-bottom))] lg:hidden" />
       <nav
         className="nav-shell fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-ink-950/95 lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
