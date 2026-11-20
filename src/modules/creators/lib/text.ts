@@ -15,7 +15,6 @@ const LONE_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[
 
 export function cleanText(input: unknown, max = Infinity): string {
   let s = typeof input === "string" ? input : input == null ? "" : String(input);
-  // eslint-disable-next-line no-control-regex
   s = s.replace(/\u0000/g, "").replace(LONE_SURROGATE, "");
   if (s.length <= max) return s;
   return Array.from(s).slice(0, max).join("");
