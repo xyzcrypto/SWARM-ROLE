@@ -19,6 +19,7 @@ import {
   unlock,
   updateSettings,
   voiceLevel,
+  voiceProgress,
   type AudioSettings,
 } from "../client/audio";
 import { useAudio } from "../client/hooks";
@@ -301,9 +302,10 @@ export function GuideDock() {
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <p className="mt-3 min-h-[3rem] rounded-2xl border border-hairline bg-ink-900/50 px-3.5 py-3 text-sm leading-relaxed text-content-muted" aria-live="polite">
-                  {voice.text || VOICE_LINES.welcome}
-                </p>
+                <div className="mt-3 rounded-2xl border border-hairline bg-ink-900/50 px-3.5 py-3">
+                  <NovaWave speaking={voice.speaking && !voice.paused} bars={36} className="mb-2 h-6" />
+                  <NovaCaption text={voice.text || VOICE_LINES.welcome} speaking={voice.speaking && !voice.paused} className="min-h-[2.5rem] text-sm leading-relaxed" />
+                </div>
                 <div className="mt-3 flex items-center gap-2">
                   {voice.speaking && !voice.paused ? (
                     <button type="button" onClick={pauseVoice} className="btn-secondary h-9 flex-1 justify-center text-xs" aria-label="Pause voice">
@@ -383,6 +385,78 @@ export function GuideDock() {
           {voice.speaking && !open && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-ink-950 bg-mint-400" />}
         </button>
       </div>
+    </div>
+  );
+}
+
+
+/**
+ * Nova's caption, revealed word by word in step with her voice (recorded clip
+ * time, or the browser voice's word boundaries). Static text when she is
+ * silent, so it reads the same with sound off.
+ */
+export function NovaCaption({ text, speaking, className }: { text: string; speaking: boolean; className?: string }) {
+  const [p, setP] = useState(1);
+  useEffect(() => {
+    if (!speaking) {
+      setP(1);
+      return;
+    }
+    let raf = 0;
+    const tick = () => {
+      setP(voiceProgress());
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [speaking, text]);
+  const words = text.split(/(\s+)/);
+  const total = words.filter((w) => w.trim()).length || 1;
+  let n = 0;
+  return (
+    <p className={className} aria-live="polite">
+      {words.map((w, i) => {
+        if (!w.trim()) return w;
+        n++;
+        const on = !speaking || n / total <= p + 0.04;
+        return (
+          <span key={i} className={cn("transition-colors duration-200", on ? "text-content" : "text-content-subtle/60")}>
+            {w}
+          </span>
+        );
+      })}
+    </p>
+  );
+}
+
+/** A slim live waveform: bars follow Nova's actual loudness while she talks, rest flat. */
+export function NovaWave({ speaking, bars = 32, className }: { speaking: boolean; bars?: number; className?: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const spans = Array.from(el.children) as HTMLElement[];
+    if (!speaking) {
+      spans.forEach((sp) => (sp.style.transform = "scaleY(0.12)"));
+      return;
+    }
+    let raf = 0;
+    const tick = (t: number) => {
+      const lvl = voiceLevel(t);
+      spans.forEach((sp, i) => {
+        const wobble = 0.55 + 0.45 * Math.abs(Math.sin(t / (90 + i * 7) + i));
+        sp.style.transform = `scaleY(${Math.max(0.12, Math.min(1, lvl * wobble * 1.6))})`;
+      });
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [speaking]);
+  return (
+    <div ref={ref} className={cn("flex h-8 items-center gap-[3px]", className)} aria-hidden>
+      {Array.from({ length: bars }, (_, i) => (
+        <span key={i} className="h-full w-[3px] origin-center rounded-full bg-gradient-to-t from-gold-500 to-gold-200 transition-transform duration-75" style={{ transform: "scaleY(0.12)" }} />
+      ))}
     </div>
   );
 }

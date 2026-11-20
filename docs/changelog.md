@@ -5,6 +5,42 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-20 (158) — Light theme for Creators + Academy, a hand-made Academy hero, Nova captions, realistic sound
+
+### Light theme
+A light-theme contrast audit (every visible text element against its real background, in
+a browser) found the failures behind the owner's screenshots, then confirmed **0 below 3:1**
+across /creators (all three tabs) and seven Academy pages after the fix.
+- Site-wide light twins for dark fills that had none: `bg-ink-900/70` (the Creators handle
+  input), `bg-ink-800/60`, `bg-ink-800/50`, `bg-ink-700(/70)`, the `hover:bg-ink-*` row hovers
+  (the black band with black text on "This week on X"), `bg-black/70` overlays, and the
+  alpha gold/red text variants (`text-gold-300/90` eyebrows were 1.5:1).
+- Academy light styles: icon buttons, sliders, dock button, answer states, podium, your-row.
+
+### Academy hero
+Rebuilt to look like product, not decoration: the glowing sphere, particle network and
+all-caps headline are gone. Real content only: today's daily challenge with a live
+countdown to the 00:00 UTC rollover and your result, your streak and level, this week's
+top three, live activity as plain numbers, and Nova as a voice strip. Ticket-style card
+with a perforated tear line; ruled-paper texture; aligned two-column on desktop, stacked
+on phones with side-by-side CTAs.
+
+### Nova
+- Captions reveal word by word in time with her voice (clip position for recordings, word
+  boundaries for the browser voice).
+- A live waveform that follows her real loudness, in the hero and the dock.
+
+### Sound
+- New instrument voices instead of beeps: marimba-like plucks, FM bells, electric-piano keys,
+  soft thuds. Correct, wrong, coin, level-up, achievement, countdown, lock and reveal all
+  redesigned.
+- A shared room reverb (generated impulse) for effects and music; slight stereo spread.
+- Humanised playback: a few ms of timing and ~15% velocity variation per note, swing on
+  Arena and Night. Night adds electric-piano chords and faint vinyl dust; Focus uses
+  chorused pads with a breathing filter.
+
+---
+
 ## 2026-11-20 (157) — Creators: YouTube venues failed to save on a split emoji
 
 The owner's screenshot finally carried the real code (thanks to #154): "Invalid

@@ -1655,6 +1655,27 @@ html:not(.dark) .bg-ink-950\/60,
 html:not(.dark) .bg-ink-950\/50 { background-color: rgba(255, 255, 255, 0.92); }
 html:not(.dark) .bg-ink-950 { background-color: var(--surface-2); }
 html:not(.dark) .bg-ink-900 { background-color: var(--surface); }
+/* More dark fills that had no light twin, found by a light-theme contrast audit
+   of /creators and /academy: the handle input, stat tiles, skeleton bars, avatar
+   fallbacks and the row hover that turned into a black band with black text. */
+html:not(.dark) .bg-ink-900\/70 { background-color: rgba(255, 255, 255, 0.92); }
+html:not(.dark) .bg-ink-800\/60,
+html:not(.dark) .bg-ink-800\/50 { background-color: var(--surface-2); }
+html:not(.dark) .bg-ink-700\/70,
+html:not(.dark) .bg-ink-700 { background-color: #e6e7ec; }
+html:not(.dark) .hover\:bg-ink-800\/50:hover,
+html:not(.dark) .hover\:bg-ink-800\/60:hover,
+html:not(.dark) .hover\:bg-ink-700\/60:hover,
+html:not(.dark) .hover\:bg-ink-700:hover { background-color: rgba(16, 18, 27, 0.06); }
+html:not(.dark) .bg-black\/70 { background-color: rgba(16, 18, 27, 0.45); }
+/* Translucent gold / red text: the solid shades are remapped above, the alpha
+   variants were not, so they stayed pale yellow on white (1.4:1). */
+html:not(.dark) .text-gold-300\/90,
+html:not(.dark) .text-gold-300\/80,
+html:not(.dark) .text-gold-300\/70 { color: #8a5810; }
+html:not(.dark) .text-red-300\/70,
+html:not(.dark) .text-red-400\/80,
+html:not(.dark) .hover\:text-red-300:hover { color: var(--data-down); }
 html:not(.dark) .placeholder\:text-zinc-600::placeholder { color: #9a9aa2; }
 
 /* Surface primitives - clean white cards (ambient behind them is hidden). */
