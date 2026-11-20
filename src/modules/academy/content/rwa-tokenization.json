@@ -1,0 +1,709 @@
+{
+  "slug": "rwa-tokenization",
+  "title": "Real-World Assets (RWA)",
+  "tagline": "How real-world assets go on-chain, what holders own, and how to judge the risks.",
+  "icon": "Building2",
+  "order": 17,
+  "modules": [
+    {
+      "slug": "what-is-tokenization",
+      "level": "beginner",
+      "title": "What tokenization means",
+      "summary": "A token can represent a claim on a Treasury bill, a fund share, a loan or a gold bar. Learn what that claim is, what changes on-chain, and what does not.",
+      "minutes": 10,
+      "objectives": [
+        "Define tokenization and what a token holder actually owns",
+        "Distinguish native on-chain records from tokens representing off-chain holdings",
+        "Explain what tokenization changes and what it cannot change",
+        "List the main reasons issuers tokenize assets",
+        "Identify the layers of trust behind any RWA token"
+      ],
+      "sections": [
+        {
+          "heading": "From off-chain asset to on-chain token",
+          "body": "Tokenization means representing a claim on an asset as a token on a blockchain. The asset itself, such as a Treasury bill, a fund share, a loan or a bar of gold, still exists in the traditional world. The token records who holds a claim on it, and that record can move on-chain. What the holder actually owns depends on the legal structure behind the token, not on the code alone. That gap between token and asset is the central idea of this course."
+        },
+        {
+          "heading": "What changes and what does not",
+          "body": "Tokens can be transferred at any hour, settled quickly and held in the same wallets as other crypto assets. Smart contracts can enforce rules such as who may hold the token, and can automate distributions. The underlying asset keeps its own timetable, however: bonds mature on schedule, funds calculate their value at set times, and custodians and courts work business hours. Tokenizing an illiquid asset does not create buyers for it. It can make transfers easier, but real liquidity still depends on demand and on redemption terms."
+        },
+        {
+          "heading": "Native records versus represented assets",
+          "body": "Some tokens are native records, meaning the blockchain entry itself is the official record of ownership. Franklin Templeton's onchain money fund is an example: its transfer agent keeps the official record of share ownership through a blockchain-integrated system. Other tokens represent assets held elsewhere, often by a custodian or a special purpose vehicle, and the token is a claim on that holding. Represented tokens depend on the issuer and custodian keeping the off-chain side matched to the on-chain supply. Both models exist, and the offering documents say which one applies."
+        },
+        {
+          "heading": "Why institutions tokenize",
+          "body": "Issuers look for faster settlement, lower operating costs, round-the-clock transfers and new distribution channels. For crypto-native users, tokenized assets bring exposures like short-term government debt onto the same rails as stablecoins. On-chain records can make holdings and transfers easier to audit. Programmable tokens can also plug into DeFi protocols as collateral or treasury assets. These benefits are real, but they depend on legal and operational plumbing that the token cannot provide by itself."
+        },
+        {
+          "heading": "The trust stack",
+          "body": "Every RWA token rests on several layers of trust. You rely on the issuer to manage the asset, the custodian to safeguard it, the legal structure to give you an enforceable claim, and an administrator or oracle to report its value. You also rely on the smart contract and the blockchain it runs on. A failure in any layer can break the link between token and asset. Learning to name each layer is the foundation for the risk framework at the end of this course."
+        }
+      ],
+      "concepts": [
+        { "term": "Tokenization", "definition": "Representing a claim on an asset as a transferable token on a blockchain." },
+        { "term": "Real-world asset (RWA)", "definition": "An asset that exists outside the blockchain, such as debt, fund shares, credit or commodities." },
+        { "term": "Issuer", "definition": "The entity that creates the token and owes obligations to its holders." },
+        { "term": "Custodian", "definition": "The institution that safeguards the underlying asset on behalf of token holders." },
+        { "term": "Native record", "definition": "A token whose on-chain entry is itself the official ownership record of the asset." },
+        { "term": "Trust stack", "definition": "The layers of issuer, custody, legal, data and technical trust that link a token to its asset." }
+      ],
+      "example": {
+        "title": "A gold token",
+        "body": "PAX Gold (PAXG) is issued by Paxos, and each token is backed by one fine troy ounce of London Good Delivery gold held in custody by Paxos Trust Company. The gold sits in LBMA-accredited vaults in London, and holders can look up details of the bars allocated to their address. The token moves on-chain at any hour, but the gold stays in the vault. The holder's claim depends on Paxos, its custody arrangements and its redemption terms, which is the trust stack in miniature."
+      }
+    },
+    {
+      "slug": "tokenized-treasuries",
+      "level": "beginner",
+      "title": "Tokenized treasuries and money funds",
+      "summary": "Short-term government debt was one of the first assets to move on-chain. See how tokenized fund shares work through BlackRock BUIDL, Franklin Templeton's onchain fund and Ondo's products.",
+      "minutes": 10,
+      "objectives": [
+        "Explain why short-term government debt suits tokenization",
+        "Describe the lifecycle of a tokenized fund share from subscription to redemption",
+        "Compare how BUIDL, FOBXX and Ondo's products are structured",
+        "Distinguish tokenized fund shares from payment stablecoins",
+        "Recognize eligibility limits on who may hold these tokens"
+      ],
+      "sections": [
+        {
+          "heading": "Why treasuries came first",
+          "body": "Short-term US government debt is widely held, well understood and valued daily, which makes it a natural candidate for tokenization. For crypto users holding stablecoins, a tokenized Treasury product offers exposure to government debt without leaving the blockchain. For asset managers, these products fit inside familiar fund structures with established custodians and administrators. That combination made the asset class a common starting point for tokenization efforts by large managers."
+        },
+        {
+          "heading": "How a tokenized fund share works",
+          "body": "An investor first completes onboarding with the fund's transfer agent, including identity and eligibility checks. They subscribe with cash or, where the fund allows it, stablecoins. The fund buys short-term government securities and repurchase agreements as its documents permit, and shares are recorded as tokens in the investor's approved wallet. Income accrues and is distributed according to the fund's rules, and redemptions return cash or stablecoins. The token is the share record, while the portfolio is managed and held like a traditional fund."
+        },
+        {
+          "heading": "BlackRock BUIDL",
+          "body": "BlackRock launched the BlackRock USD Institutional Digital Liquidity Fund, BUIDL, on Ethereum in March 2024. Securitize acts as transfer agent and tokenization platform, and BNY Mellon was named custodian and fund administrator. The fund seeks to maintain a stable value of one dollar per token, and dividends accrued daily are paid to investors' wallets as new tokens each month. Tokens can be transferred around the clock, but only to other pre-approved investors. It is offered privately to qualified investors rather than to the general public."
+        },
+        {
+          "heading": "Franklin Templeton's onchain money fund",
+          "body": "The Franklin OnChain U.S. Government Money Fund (FOBXX) is a money market fund registered under the US Investment Company Act of 1940. One share of the fund is represented by one BENJI token. The fund's transfer agent keeps the official ownership record through a proprietary blockchain-integrated system, which launched using the Stellar network and later expanded to other networks, beginning with Polygon. In 2024, Franklin Templeton enabled peer-to-peer transfers of fund shares between shareholders on public blockchains. Its registered status sets it apart from tokenized funds sold as private placements."
+        },
+        {
+          "heading": "Ondo's products",
+          "body": "Ondo Finance builds products that give on-chain access to Treasury exposure. OUSG is aimed at qualified investors and provides exposure to short-term US Treasuries, with holdings that have included tokenized Treasury funds such as BUIDL. USDY is a tokenized note offered to non-US individuals and institutions, secured by short-term US Treasuries and bank demand deposits. The two products have different legal forms, eligibility rules and risks, even though both relate to Treasury yields. Each product's own documents are the only reliable guide to what a holder is owed."
+        },
+        {
+          "heading": "Not a stablecoin",
+          "body": "Tokenized money funds can resemble stablecoins because they target a stable value and live on-chain. They are securities, however, with eligibility rules, transfer restrictions and fund-level risks. BlackRock's own materials note that BUIDL may not be able to maintain a stable one dollar value per token at all times. Income treatment, redemption timing and who may hold the token all differ from a payment stablecoin. Treating these tokens as cash without reading the terms is a common mistake."
+        }
+      ],
+      "concepts": [
+        { "term": "Money market fund", "definition": "A fund that invests in short-term, high-quality debt such as Treasury bills and repurchase agreements." },
+        { "term": "Transfer agent", "definition": "The entity that maintains a fund's official record of who owns its shares." },
+        { "term": "Qualified purchaser", "definition": "A US investor category meeting high wealth thresholds, required by some private funds." },
+        { "term": "Net asset value (NAV)", "definition": "A fund's assets minus liabilities, usually expressed per share." },
+        { "term": "Accrued dividend", "definition": "Income earned by a fund that has built up but not yet been paid out." },
+        { "term": "Tokenized note", "definition": "A debt instrument issued as a token, giving the holder a claim against the issuer." }
+      ],
+      "example": {
+        "title": "Monthly dividends as new tokens",
+        "body": "A qualified investor holds BUIDL tokens in a wallet approved through Securitize. Each day the fund accrues income on its holdings, and once a month the accrued amount arrives as additional BUIDL tokens in the same wallet. The investor's token count rises while the target value per token stays at one dollar. If they want to move tokens to another wallet, that wallet must belong to a pre-approved investor."
+      }
+    },
+    {
+      "slug": "legal-wrappers-and-custody",
+      "level": "intermediate",
+      "title": "Legal wrappers, custody and redemption",
+      "summary": "A smart contract cannot own a bond. Learn how SPVs, funds and trusts hold assets, how whitelists and ERC-3643 restrict transfers, and why redemption terms decide your exit.",
+      "minutes": 12,
+      "objectives": [
+        "Explain why tokens need a legal entity to hold real-world assets",
+        "Describe how SPVs aim to isolate assets from a sponsor's liabilities",
+        "Explain how allowlists and ERC-3643 enforce transfer restrictions",
+        "Assess custody, segregation and attestation arrangements",
+        "Read redemption terms as the key driver of exit liquidity"
+      ],
+      "sections": [
+        {
+          "heading": "Why a legal wrapper is needed",
+          "body": "A smart contract cannot own a building, sign a loan agreement or open a bank account. A legal entity has to hold the asset and owe obligations to token holders. Common wrappers include registered funds, private funds, trusts and special purpose vehicles. The wrapper decides what holders are entitled to, whom they can claim against, and what happens in insolvency. Two tokens tracking the same asset can carry very different rights because of their wrappers."
+        },
+        {
+          "heading": "Special purpose vehicles",
+          "body": "A special purpose vehicle (SPV) is a separate legal entity created to hold specific assets. Its aim is to isolate those assets from the sponsor's other liabilities, so that the sponsor's creditors cannot easily reach them. In tokenized credit, an asset originator may set up an SPV that receives financing from a protocol pool against its assets. Bankruptcy remoteness is a design goal, not a guarantee, and its strength depends on jurisdiction and drafting. Holders should know which entity issued their token and which entity holds the assets."
+        },
+        {
+          "heading": "Whitelists, KYC and transfer restrictions",
+          "body": "Many RWA tokens are securities or similar instruments, so issuers must know who holds them. Investors pass know-your-customer (KYC) and eligibility checks before their wallet is added to an allowlist, and the token contract blocks transfers to wallets that are not approved. ERC-3643, which grew out of the T-REX framework developed by Tokeny, is one standard for this. Its token checks an identity registry and a compliance contract before each transfer and reverts if either check fails. Compliance modules can encode rules such as investor caps, lock-up periods and country restrictions."
+        },
+        {
+          "heading": "Custody of the underlying",
+          "body": "The asset behind a token is held by a custodian, such as a bank or trust company, or sometimes by the issuer itself. Segregation matters: assets held for token holders should be kept apart from the custodian's and the issuer's own property. Attestations and audits check that off-chain holdings matched on-chain supply at a point in time. Between reports, holders rely on the custodian's controls. A token whose custody arrangements are not disclosed should be treated as unverified."
+        },
+        {
+          "heading": "Redemption: the real exit",
+          "body": "The ability to redeem a token with its issuer for cash or the underlying asset is what anchors its price. Redemption terms define who may redeem, minimum sizes, notice periods, settlement times and fees. Secondary on-chain markets for RWA tokens can be thin, so many holders depend on primary redemption to exit. If redemption is paused, gated or limited to certain investors, the token can trade below its stated value. Read redemption terms before acquiring a token, not when you need to sell."
+        },
+        {
+          "heading": "Smart contract powers",
+          "body": "Permissioned tokens often give the issuer administrative powers that a typical DeFi token would not have. These can include pausing transfers, freezing addresses, forced transfers, minting, burning and upgrading the contract. Such powers support compliance actions and recovery of lost keys, but they also concentrate key-management and governance risk. Holders should check who controls these keys, whether multisigs or timelocks apply, and what legal duties constrain their use."
+        }
+      ],
+      "concepts": [
+        { "term": "Legal wrapper", "definition": "The legal entity or structure that holds an asset and defines token holders' rights." },
+        { "term": "Special purpose vehicle (SPV)", "definition": "A separate entity created to hold specific assets apart from its sponsor's other liabilities." },
+        { "term": "Bankruptcy remoteness", "definition": "Structuring designed to keep assets out of reach of a sponsor's creditors if the sponsor fails." },
+        { "term": "Allowlist", "definition": "The set of approved wallet addresses permitted to hold or receive a restricted token." },
+        { "term": "KYC", "definition": "Know-your-customer checks that verify an investor's identity and eligibility." },
+        { "term": "ERC-3643", "definition": "A token standard for permissioned assets that checks identity and compliance rules on every transfer." }
+      ],
+      "example": {
+        "title": "A blocked transfer",
+        "body": "An investor holding a permissioned RWA token tries to send it to a friend's wallet. The token contract checks its identity registry, finds that the receiving address has not passed the issuer's eligibility checks, and the transaction reverts. The investor can still move tokens to another wallet of their own that has been verified, or redeem with the issuer. This is the intended behavior of a compliance-enforcing token, not a bug."
+      }
+    },
+    {
+      "slug": "private-credit-onchain",
+      "level": "advanced",
+      "title": "Private credit protocols and their risks",
+      "summary": "On-chain private credit funds real businesses through pools, SPVs and tranches. Study Centrifuge and Maple, what went wrong in past defaults, and how to question a credit pool.",
+      "minutes": 14,
+      "objectives": [
+        "Explain how on-chain private credit differs from overcollateralized DeFi lending",
+        "Describe Centrifuge's originator, issuer and tranche structure",
+        "Describe Maple's pool delegate model and lessons from its 2022 default",
+        "Analyze default, concentration, liquidity and legal risks",
+        "Apply a due-diligence checklist to a credit pool"
+      ],
+      "sections": [
+        {
+          "heading": "What on-chain private credit is",
+          "body": "Private credit is lending to businesses outside public bond markets. On-chain private credit protocols connect such borrowers with lenders who supply stablecoins to pools. Returns come from interest paid by real businesses rather than from crypto borrowing demand. The trade-off is that loans can be undercollateralized by on-chain measures and depend on off-chain underwriting and legal enforcement. When a borrower fails, recovery happens through courts and workouts, not instant liquidation."
+        },
+        {
+          "heading": "Centrifuge: originators, NFTs and tranches",
+          "body": "In Centrifuge's model, an asset originator generates real-world assets such as invoices or loans and pledges them to an issuer, often a dedicated SPV, in return for financing. The assets are represented as NFTs that the issuer can lock into a pool as collateral to draw financing. Pools are commonly tranched: the senior tranche receives proceeds first and is protected by the tranches below it, while the junior tranche absorbs losses first and receives what remains. In Centrifuge's earlier Tinlake app, the senior token was called DROP and the junior token TIN. Junior capital often comes from the originator, which gives it skin in the game."
+        },
+        {
+          "heading": "Maple: pool delegates and underwriting",
+          "body": "Maple Finance runs lending pools whose credit decisions are made by pool delegates acting as credit managers. Delegates vet borrowers, who must pass KYC, and set loan terms, and pools are siloed so that problems in one are meant to stay there. In late 2022, Orthogonal Trading defaulted on loans after losses linked to FTX, and Maple terminated its affiliate Orthogonal Credit as a pool delegate. Maple's next version required pool delegates to post first-loss capital and made loans payable immediately once a borrower met default conditions. The episode showed how counterparty risk and conflicts of interest concentrate in underwriters."
+        },
+        {
+          "heading": "Credit risks that code cannot remove",
+          "body": "Borrowers can default for ordinary business reasons, and on-chain data cannot show the health of an off-chain balance sheet. Information about loans is often delayed and reported by originators or delegates themselves. Concentration in a few large borrowers can turn one failure into a large pool loss. Recovery can take months, and legal costs reduce what lenders get back. In 2023, MakerDAO voted to stop new lending to a Centrifuge pool after its single borrower defaulted, an early public test of these risks."
+        },
+        {
+          "heading": "Liquidity and structure risks",
+          "body": "Lenders often face lock-ups, withdrawal queues or limited redemption windows, because the underlying loans cannot be sold instantly. Tranche tokens may have no active secondary market. Senior protection depends on the size of the junior buffer, often expressed as a subordination ratio, and a large enough loss can exhaust it. Legal enforceability depends on the SPV's jurisdiction and documents. Smart contract and oracle risk sit on top of all the credit risk, not in place of it."
+        },
+        {
+          "heading": "Questions to ask a credit pool",
+          "body": "Who underwrites the loans, how are they paid, and what holds them accountable? What collateral backs each loan, who holds it, and how is it valued? How diversified is the pool by borrower, sector and region? What is the tranche structure, and who holds the junior position? What are the withdrawal terms, and how were past defaults on the platform handled?"
+        }
+      ],
+      "concepts": [
+        { "term": "Private credit", "definition": "Lending to businesses through negotiated loans rather than publicly traded bonds." },
+        { "term": "Asset originator", "definition": "The business that creates the underlying loans or receivables and seeks financing against them." },
+        { "term": "Senior tranche", "definition": "The pool tranche paid first and protected from losses by subordinate tranches." },
+        { "term": "Junior tranche", "definition": "The first-loss tranche that absorbs defaults before senior holders and takes the residual return." },
+        { "term": "Pool delegate", "definition": "In Maple, the credit manager who vets borrowers and sets loan terms for a pool." },
+        { "term": "Subordination ratio", "definition": "The share of a pool made up of tranches below the senior tranche, measuring its loss buffer." }
+      ],
+      "example": {
+        "title": "When a tranche absorbs a loss",
+        "body": "A pool finances trade invoices, with a senior tranche protected by a junior tranche that makes up part of the pool. One borrower defaults, and the loss is charged first against the junior tranche, whose token value falls. Senior holders keep receiving their expected return as long as the junior buffer covers the loss. If losses exceeded the junior tranche, senior holders would start losing value too, and recovery would depend on legal action against the borrower."
+      }
+    },
+    {
+      "slug": "rwa-in-defi",
+      "level": "advanced",
+      "title": "RWAs in DeFi: collateral, oracles and NAV",
+      "summary": "Follow RWAs into DeFi, from MakerDAO's trust-based vaults to Sky's tokenized fund allocations, and learn how NAV and reserve data reach smart contracts.",
+      "minutes": 14,
+      "objectives": [
+        "Explain why stablecoins and DeFi protocols allocate to RWAs",
+        "Describe how MakerDAO's RWA vaults relied on trusts and off-chain agreements",
+        "Trace the Sky ecosystem's move toward holding tokenized fund shares",
+        "Explain how NAV and Proof of Reserve data reach smart contracts",
+        "Analyze the liquidation mismatch between DeFi and RWA collateral"
+      ],
+      "sections": [
+        {
+          "heading": "Why DeFi wants RWAs",
+          "body": "Stablecoin issuers and DeFi protocols hold large reserves that need yield and diversification away from crypto-only collateral. Tokenized Treasuries and credit offer returns tied to traditional markets. RWAs can back stablecoins, sit in DAO treasuries or serve as collateral for loans. Each use imports the asset's off-chain risks into an on-chain system that may not be able to react quickly. Designing around that mismatch is the core challenge."
+        },
+        {
+          "heading": "MakerDAO's RWA vaults",
+          "body": "MakerDAO, which rebranded as Sky in 2024, was one of the first DeFi protocols to accept real-world assets as backing for its stablecoin. Its RWA vaults let an off-chain structure, such as a trust, mint DAI against assets the structure held. The 6s Capital vault used a Delaware statutory trust with a federally chartered bank as trustee. The Monetalis Clydesdale vault invested in liquid bond strategies through a trust arranged by Monetalis, and its proposal gave Maker governance the ability to trigger liquidation by executive vote. Enforcing any such decision still depended on trustees and legal agreements, which showed both the income potential and the operational weight of RWA collateral."
+        },
+        {
+          "heading": "Sky's allocators and tokenized funds",
+          "body": "In the Sky ecosystem, capital allocators known as Stars deploy reserves into yield sources. In 2025, Spark ran a Tokenization Grand Prix and, following Sky governance votes, allocated reserves to tokenized Treasury funds including BlackRock's BUIDL, Superstate's USTB and Centrifuge's JTRSY. Grove, another Star, launched with an allocation to a tokenized AAA CLO strategy created by Janus Henderson's Anemoy in collaboration with Centrifuge. This marks a shift from bespoke vault structures to holding standardized tokenized fund shares. The underlying risk still sits with each fund, its manager and its legal structure."
+        },
+        {
+          "heading": "Pricing an RWA on-chain",
+          "body": "A DeFi protocol needs a value for any collateral it accepts. For a tokenized fund, the reference value is usually its net asset value (NAV), calculated by a fund administrator from the portfolio. NAV is calculated periodically, so it does not move continuously like a crypto market price. Oracles bring this value on-chain, and Chainlink's SmartData offerings include NAV feeds and Proof of Reserve feeds for tokenized assets. An oracle can only relay what its source reports, so the data is only as reliable as the administrator and its controls."
+        },
+        {
+          "heading": "Proof of Reserve and supply checks",
+          "body": "Proof of Reserve feeds report backing figures, such as ounces of gold or units held by a custodian, rather than prices. A protocol can compare reported reserves with a token's on-chain supply and halt minting if supply would exceed reserves. This adds an automated check between periodic audits. It does not prove legal ownership or the absence of liens, and it still depends on whoever supplies the reserve data. It is a useful layer, not a replacement for audits and legal structure."
+        },
+        {
+          "heading": "Liquidation and the mismatch problem",
+          "body": "DeFi lending relies on selling collateral quickly when its value falls. RWA collateral often cannot be sold instantly, may only be held or redeemed by approved investors, and may settle on business-day timelines. If ordinary liquidators cannot hold a permissioned token, a protocol needs special arrangements such as designated liquidators, redemption-based exits or conservative collateral limits. Stale NAV data can also hide a loss until the next update. Sound RWA integrations size exposure to how fast the protocol can actually exit, not to the token's quoted value."
+        }
+      ],
+      "concepts": [
+        { "term": "RWA vault", "definition": "A MakerDAO vault type that let an off-chain legal structure mint DAI against real-world assets." },
+        { "term": "NAV oracle", "definition": "An oracle feed that publishes a fund's net asset value on-chain for smart contracts to read." },
+        { "term": "Proof of Reserve", "definition": "An on-chain feed reporting the reserves backing a token so they can be compared with supply." },
+        { "term": "Fund administrator", "definition": "The firm that calculates a fund's NAV and maintains its accounting records." },
+        { "term": "Collateral factor", "definition": "The share of an asset's value a lending protocol lets users borrow against." },
+        { "term": "Designated liquidator", "definition": "An approved party able to take over permissioned collateral when a position must be closed." }
+      ],
+      "example": {
+        "title": "A fund's NAV published on-chain",
+        "body": "In 2024, Chainlink and Sygnum Bank announced a collaboration to publish NAV data on-chain for Fidelity International's Institutional Liquidity Fund. The fund's NAV is calculated off-chain, and the oracle network delivers it to a smart contract where applications can read it like any other data feed. A lending protocol using such a feed would value the fund tokens at the reported NAV between updates. The design gives on-chain systems an authoritative reference value while making clear that it originates in an off-chain process."
+      }
+    },
+    {
+      "slug": "rwa-markets-and-risk",
+      "level": "expert",
+      "title": "Stocks, commodities, perps and a risk framework",
+      "summary": "Compare tokenized stocks, commodity tokens and RWA perpetuals, survey regulatory considerations, and apply a layered framework to judge any RWA product.",
+      "minutes": 16,
+      "objectives": [
+        "Distinguish backed tokenized stocks from synthetic and derivative exposures",
+        "Evaluate the custody and redemption structure of commodity tokens",
+        "Explain how RWA perpetuals work and where their risks lie",
+        "Describe regulatory considerations without treating them as legal advice",
+        "Apply a five-layer risk framework to compare RWA products"
+      ],
+      "sections": [
+        {
+          "heading": "Tokenized stocks",
+          "body": "Tokenized stocks aim to give exposure to listed shares on blockchain rails. Some are backed one-to-one by shares held with a custodian, while others are derivatives or debt instruments that track a share price. Backed Finance's xStocks, for example, are designed to be backed by the corresponding shares held with a custodian, and they are not offered to US persons. Whether holders receive dividends, voting rights or any direct claim on the shares depends on the structure. Trading can also continue on-chain while the underlying exchange is closed, so prices can drift away from the last official close."
+        },
+        {
+          "heading": "Tokenized commodities",
+          "body": "Commodity tokens most often represent precious metals held in vaults. A well-structured gold token identifies its custodian, vault location, bar standard and redemption process. PAX Gold, for instance, ties each token to a fine troy ounce of London Good Delivery gold and lets holders look up their allocated bars. Redemption for physical metal usually has minimum sizes and delivery constraints, so many holders exit by selling or redeeming for currency instead. The main risks are custodial, legal and operational rather than about the metal itself."
+        },
+        {
+          "heading": "RWA perpetuals",
+          "body": "Some perpetual futures venues list contracts that track stock indexes, single stocks, commodities or currencies. These are synthetic: the trader holds a leveraged contract settled in crypto collateral, not a claim on any underlying asset. Prices come from oracles that may draw on markets that close at night and on weekends, creating gap risk when those markets reopen. As with crypto perps, funding payments keep the contract near its reference price. Leverage, liquidity and oracle design drive the risks far more than the underlying asset does."
+        },
+        {
+          "heading": "Regulatory considerations",
+          "body": "In many jurisdictions, tokens that represent fund shares, debt or equities are treated as securities or other regulated instruments, which is why issuers restrict who may hold them. Rules differ by country and change over time, and a product offered in one region may be unavailable in another. Issuers face requirements around licensing, disclosure, custody and anti-money-laundering checks, and intermediaries carry their own obligations. Users are responsible for checking whether a product is offered to them lawfully. This module describes the landscape only and is not legal advice, so consult a qualified professional for any decision."
+        },
+        {
+          "heading": "A five-layer risk framework",
+          "body": "Start with the asset: what it is, how it is valued and how it behaves under stress. Next is the wrapper: which entity issued the token, what rights holders have and what happens in insolvency. Then custody and verification: who holds the asset, whether it is segregated and how often reserves are attested. Then liquidity: redemption terms, eligibility, settlement time and secondary market depth. Finally the on-chain layer: contract admin powers, oracle sources, bridges and the chains the token lives on."
+        },
+        {
+          "heading": "Putting the framework to work",
+          "body": "Apply each layer to two products that look similar, and the differences usually appear quickly. A registered money fund with an on-chain share register and a tokenized note secured by Treasuries can track similar rates yet give very different rights. A gold token with allocated bars and a perp on the gold price share a price chart and almost nothing else. For each layer, write down the single point of failure and ask how you would learn that it had failed. If the honest answer is that you would only find out when redemption failed, treat that as a material risk."
+        }
+      ],
+      "concepts": [
+        { "term": "Tokenized stock", "definition": "A token giving exposure to a listed share, either backed by held shares or structured as a derivative or note." },
+        { "term": "Shareholder rights", "definition": "Rights such as voting and dividends that belong to registered owners of a company's shares." },
+        { "term": "Allocated gold", "definition": "Specific identified bars held for a particular owner rather than a general claim on a pool of metal." },
+        { "term": "Synthetic exposure", "definition": "Price exposure through a contract that conveys no claim on the underlying asset." },
+        { "term": "Gap risk", "definition": "The risk of a sudden price jump when a closed reference market reopens." },
+        { "term": "Regulatory perimeter", "definition": "The boundary that determines which products and activities fall under a regulator's rules." }
+      ],
+      "example": {
+        "title": "Three ways to get gold exposure",
+        "body": "Consider three on-chain routes to gold: an allocated gold token, a perpetual future on the gold price, and a lending pool that accepts the gold token as collateral. The token gives a claim on specific vaulted bars through its issuer, under redemption terms that issuer sets. The perp gives leveraged price exposure with funding payments and liquidation risk, but no claim on any metal. The lending pool adds smart contract and liquidation risk on top of the token's own trust stack, which shows how the framework stacks layer by layer."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-tokenization",
+      "difficulty": "easy",
+      "prompt": "What determines what an RWA token holder actually owns?",
+      "options": [
+        "The legal structure behind the token",
+        "The token's ticker symbol and its logo",
+        "The blockchain the token was deployed on",
+        "The number of wallets holding the token"
+      ],
+      "answer": 0,
+      "explanation": "The token is a record, and the legal structure decides what claim that record represents. Code alone cannot give a holder rights over an off-chain asset."
+    },
+    {
+      "module": "what-is-tokenization",
+      "difficulty": "easy",
+      "prompt": "Which of these does tokenizing an illiquid asset NOT achieve by itself?",
+      "options": [
+        "Making the ownership record transferable on-chain",
+        "Creating buyers who want to hold the asset",
+        "Allowing transfers outside business hours",
+        "Letting smart contracts enforce holder rules"
+      ],
+      "answer": 1,
+      "explanation": "Tokenization makes transfers easier, but liquidity still depends on demand and redemption terms. A token cannot create buyers on its own."
+    },
+    {
+      "module": "what-is-tokenization",
+      "difficulty": "easy",
+      "prompt": "Why is Franklin Templeton's onchain fund an example of a native record?",
+      "options": [
+        "Its shares are wrapped tokens minted by a cross-chain bridge",
+        "Its tokens track the fund's price without being fund shares",
+        "Its official share ownership record is kept via a blockchain system",
+        "Its portfolio holds crypto assets rather than short-term government debt"
+      ],
+      "answer": 2,
+      "explanation": "The fund's transfer agent maintains the official ownership record through a blockchain-integrated system. The on-chain entry is the share record, not a claim on a record kept elsewhere."
+    },
+    {
+      "module": "what-is-tokenization",
+      "difficulty": "easy",
+      "prompt": "What backs each PAX Gold (PAXG) token?",
+      "options": [
+        "A futures contract on gold settled in stablecoins",
+        "A share of a gold mining company's revenue stream",
+        "A basket of gold-tracking exchange-traded funds",
+        "One fine troy ounce of London Good Delivery gold"
+      ],
+      "answer": 3,
+      "explanation": "Paxos backs each PAXG with one fine troy ounce of London Good Delivery gold held in custody. Holders can look up the bars allocated to their address."
+    },
+    {
+      "module": "what-is-tokenization",
+      "difficulty": "easy",
+      "prompt": "In an RWA token's trust stack, what does the custodian do?",
+      "options": [
+        "Sets the token's price on decentralized exchanges",
+        "Safeguards the underlying asset for token holders",
+        "Writes and audits the token's smart contract code",
+        "Decides which chains the token may be bridged to"
+      ],
+      "answer": 1,
+      "explanation": "The custodian holds and protects the off-chain asset. If custody fails, the token can lose its link to the asset regardless of how the contract behaves."
+    },
+    {
+      "module": "tokenized-treasuries",
+      "difficulty": "easy",
+      "prompt": "Which firm acts as transfer agent and tokenization platform for BlackRock's BUIDL?",
+      "options": [
+        "BNY Mellon",
+        "Franklin Templeton",
+        "Securitize",
+        "Ondo Finance"
+      ],
+      "answer": 2,
+      "explanation": "Securitize is BUIDL's transfer agent and tokenization platform. BNY Mellon was named custodian and fund administrator."
+    },
+    {
+      "module": "tokenized-treasuries",
+      "difficulty": "easy",
+      "prompt": "How are BUIDL's dividends paid to investors?",
+      "options": [
+        "As cash sent to investors' bank accounts each quarter",
+        "By raising the dollar value of each token every day",
+        "As ETH sent to every holder's wallet after each trade",
+        "As new tokens each month from income accrued daily"
+      ],
+      "answer": 3,
+      "explanation": "BUIDL accrues dividends daily and pays them monthly as additional tokens. This lets the fund target a stable one dollar value per token."
+    },
+    {
+      "module": "tokenized-treasuries",
+      "difficulty": "easy",
+      "prompt": "How is one share of the Franklin OnChain U.S. Government Money Fund represented?",
+      "options": [
+        "By one BENJI token",
+        "By ten BUIDL tokens",
+        "By one OUSG token",
+        "By one USDY note"
+      ],
+      "answer": 0,
+      "explanation": "Each share of the fund is represented by one BENJI token. The other tokens belong to different issuers and products."
+    },
+    {
+      "module": "tokenized-treasuries",
+      "difficulty": "easy",
+      "prompt": "Who is Ondo's USDY offered to?",
+      "options": [
+        "Only US retail investors through brokerages",
+        "Non-US individuals and institutions",
+        "Only qualified purchasers in the US",
+        "Any wallet, with no identity checks"
+      ],
+      "answer": 1,
+      "explanation": "USDY is a tokenized note offered to non-US individuals and institutions. Ondo's OUSG is the product aimed at qualified investors."
+    },
+    {
+      "module": "tokenized-treasuries",
+      "difficulty": "easy",
+      "prompt": "Why is a tokenized money fund different from a payment stablecoin?",
+      "options": [
+        "It is a security with eligibility rules, transfer limits and fund risks",
+        "It cannot hold government debt because of its on-chain token format",
+        "Its asset manager guarantees that it will always be worth one dollar",
+        "It can only be traded on centralized exchanges and never on-chain"
+      ],
+      "answer": 0,
+      "explanation": "Tokenized fund shares are securities with restrictions and fund-level risks. Even BlackRock notes BUIDL may not always hold a one dollar value."
+    },
+    {
+      "module": "legal-wrappers-and-custody",
+      "difficulty": "medium",
+      "prompt": "Why does an RWA token need a legal wrapper?",
+      "options": [
+        "Blockchains require a registered company to deploy any token contract",
+        "The wrapper lets the token trade freely with no identity checks at all",
+        "Wrappers turn the asset into a native crypto asset with no issuer",
+        "A smart contract cannot itself hold assets or owe legal obligations"
+      ],
+      "answer": 3,
+      "explanation": "Only a legal entity can own off-chain assets and owe duties to holders. The wrapper defines those duties and what happens in insolvency."
+    },
+    {
+      "module": "legal-wrappers-and-custody",
+      "difficulty": "medium",
+      "prompt": "What is the main purpose of placing assets in an SPV?",
+      "options": [
+        "Isolating them from the sponsor's other liabilities",
+        "Guaranteeing investors a fixed return on the assets",
+        "Allowing the assets to be liquidated automatically",
+        "Exempting the assets from securities regulation"
+      ],
+      "answer": 0,
+      "explanation": "An SPV aims to keep specific assets out of reach of the sponsor's creditors. This bankruptcy remoteness is a design goal whose strength depends on jurisdiction and drafting."
+    },
+    {
+      "module": "legal-wrappers-and-custody",
+      "difficulty": "medium",
+      "prompt": "Under ERC-3643, what happens when a transfer targets a wallet that fails the identity or compliance check?",
+      "options": [
+        "The tokens are held in escrow until the receiver passes KYC",
+        "The transaction reverts and the tokens stay with the sender",
+        "The tokens are burned and the issuer refunds the sender",
+        "The transfer succeeds, but the receiver cannot redeem later"
+      ],
+      "answer": 1,
+      "explanation": "An ERC-3643 token checks its identity registry and compliance contract before every transfer. If either check fails, the transfer reverts."
+    },
+    {
+      "module": "legal-wrappers-and-custody",
+      "difficulty": "medium",
+      "prompt": "What most directly anchors an RWA token's market price to its underlying asset?",
+      "options": [
+        "The number of DEX pools that list the token",
+        "The size of the issuer's social media audience",
+        "The ability to redeem the token with the issuer",
+        "The gas cost of transferring the token on-chain"
+      ],
+      "answer": 2,
+      "explanation": "If a token trades below its value, eligible holders can redeem it, which pulls the price back. When redemption is paused or gated, discounts can persist."
+    },
+    {
+      "module": "legal-wrappers-and-custody",
+      "difficulty": "medium",
+      "prompt": "Why are admin powers like freezing and forced transfers common in permissioned RWA tokens?",
+      "options": [
+        "They let anyone recover tokens that were sent to the wrong address",
+        "They are required by the ERC-20 standard for every token",
+        "They support compliance actions and recovery of lost keys",
+        "They let holders vote on the token's monthly yield rate"
+      ],
+      "answer": 2,
+      "explanation": "Issuers of regulated instruments may need to act on court orders or restore holdings after lost keys. These powers also concentrate risk in whoever controls the admin keys."
+    },
+    {
+      "module": "private-credit-onchain",
+      "difficulty": "hard",
+      "prompt": "In a tranched Centrifuge pool, which tranche absorbs losses first?",
+      "options": [
+        "The senior tranche, since it is paid first",
+        "The junior tranche, as the first-loss buffer",
+        "The mezzanine tranche, at the top of the pool",
+        "Every tranche, sharing each loss pro rata"
+      ],
+      "answer": 1,
+      "explanation": "The junior tranche takes losses before any tranche above it. That subordination is what protects senior holders."
+    },
+    {
+      "module": "private-credit-onchain",
+      "difficulty": "hard",
+      "prompt": "Why is junior capital in Centrifuge pools often provided by the asset originator?",
+      "options": [
+        "Regulators require originators to hold every tranche of their pool",
+        "Junior tokens are the only tranche that can be traded on any DEX",
+        "It gives the originator skin in the game as the first-loss holder",
+        "Originators earn a fixed return on junior tokens before seniors do"
+      ],
+      "answer": 2,
+      "explanation": "An originator holding the junior tranche loses money first if its loans go bad. That aligns its incentives with the senior lenders it is borrowing from."
+    },
+    {
+      "module": "private-credit-onchain",
+      "difficulty": "hard",
+      "prompt": "Which change did Maple introduce after the 2022 Orthogonal Trading default?",
+      "options": [
+        "Making every loan fully overcollateralized with crypto",
+        "Removing KYC requirements to widen the borrower pool",
+        "Merging all lending pools into one shared pool",
+        "Requiring pool delegates to post first-loss capital"
+      ],
+      "answer": 3,
+      "explanation": "Maple's next version required delegates to put their own capital at risk first. It also made loans payable immediately once default conditions were met."
+    },
+    {
+      "module": "private-credit-onchain",
+      "difficulty": "hard",
+      "prompt": "How does recovery after a default in on-chain private credit usually happen?",
+      "options": [
+        "Through off-chain legal action and workouts that can take months",
+        "Through instant liquidation of collateral by on-chain keepers",
+        "Through automatic refunds from a protocol-wide insurance fund",
+        "Through minting new pool tokens to cover the missing amount"
+      ],
+      "answer": 0,
+      "explanation": "The collateral and the borrower are off-chain, so recovery runs through courts and negotiations. Legal costs and time both reduce what lenders recover."
+    },
+    {
+      "module": "private-credit-onchain",
+      "difficulty": "hard",
+      "prompt": "What does a subordination ratio describe?",
+      "options": [
+        "The share of the pool's income that is paid to the pool delegate",
+        "The ratio of defaulted loans to performing loans",
+        "The rate premium paid to holders of junior tokens",
+        "The size of the buffer protecting the senior tranche"
+      ],
+      "answer": 3,
+      "explanation": "The subordination ratio is the share of the pool made up of tranches below senior. A larger ratio means losses must be bigger before senior holders are hit."
+    },
+    {
+      "module": "rwa-in-defi",
+      "difficulty": "hard",
+      "prompt": "How did MakerDAO's RWA vaults typically hold real-world assets?",
+      "options": [
+        "Through off-chain structures, such as trusts, that minted DAI against them",
+        "By having the vault contract itself hold legal title to the assets",
+        "By wrapping the assets as NFTs that any keeper could liquidate",
+        "By converting the assets into ETH held in the protocol's treasury"
+      ],
+      "answer": 0,
+      "explanation": "A legal structure such as a trust held the assets and minted DAI through the vault. Enforcement depended on trustees and agreements, not on-chain liquidation."
+    },
+    {
+      "module": "rwa-in-defi",
+      "difficulty": "hard",
+      "prompt": "What is the usual reference value for pricing a tokenized fund as DeFi collateral?",
+      "options": [
+        "The last trade price on any decentralized exchange",
+        "The NAV calculated by the fund's administrator",
+        "The average yield of comparable DeFi lending pools",
+        "The issuer's market capitalization on stock markets"
+      ],
+      "answer": 1,
+      "explanation": "Fund tokens are valued at net asset value, which the administrator calculates from the portfolio. Oracles relay that NAV on-chain."
+    },
+    {
+      "module": "rwa-in-defi",
+      "difficulty": "hard",
+      "prompt": "What does a Proof of Reserve feed report?",
+      "options": [
+        "A continuously updated market price for the asset",
+        "A legal opinion confirming each holder's ownership",
+        "Backing figures such as units or ounces held",
+        "A list of wallets approved to hold the token"
+      ],
+      "answer": 2,
+      "explanation": "Proof of Reserve feeds report reserve quantities, not prices, so contracts can compare reserves with supply. They do not prove legal ownership."
+    },
+    {
+      "module": "rwa-in-defi",
+      "difficulty": "hard",
+      "prompt": "Why is liquidating RWA collateral harder than liquidating ETH?",
+      "options": [
+        "RWA tokens cannot be priced by any oracle network",
+        "RWA collateral is always worth less than its NAV",
+        "Smart contracts are not permitted to hold RWA tokens",
+        "It may be permissioned and slow to redeem or settle"
+      ],
+      "answer": 3,
+      "explanation": "Ordinary liquidators may be unable to hold permissioned tokens, and redemption can take business days. Protocols need special exit arrangements and conservative limits."
+    },
+    {
+      "module": "rwa-in-defi",
+      "difficulty": "hard",
+      "prompt": "What did Spark's 2025 allocations to funds such as BUIDL and USTB represent for the Sky ecosystem?",
+      "options": [
+        "A shift toward holding standardized tokenized fund shares",
+        "A plan to replace USDS with a tokenized Treasury fund",
+        "A move to stop using real-world assets as backing",
+        "An agreement for BlackRock to govern the Sky protocol"
+      ],
+      "answer": 0,
+      "explanation": "Instead of bespoke trust-based vaults, reserves went into existing tokenized funds. The risk still depends on each fund, its manager and its structure."
+    },
+    {
+      "module": "rwa-markets-and-risk",
+      "difficulty": "expert",
+      "prompt": "What does a trader holding an RWA perpetual on a stock index own?",
+      "options": [
+        "A fractional share of each stock in the index",
+        "A redeemable claim on an index fund's shares",
+        "A leveraged contract with no claim on the assets",
+        "A tokenized note secured by the index's stocks"
+      ],
+      "answer": 2,
+      "explanation": "RWA perps are synthetic contracts settled in crypto collateral. They track a price through oracles but convey no ownership of anything underlying."
+    },
+    {
+      "module": "rwa-markets-and-risk",
+      "difficulty": "expert",
+      "prompt": "What creates gap risk for RWA perps and tokenized stocks that trade around the clock?",
+      "options": [
+        "Funding payments that settle only once per calendar month",
+        "Bridges that pause every token transfer over the weekend",
+        "Gas fees that rise sharply whenever stock markets open",
+        "Reference markets that close, then reopen at a new price"
+      ],
+      "answer": 3,
+      "explanation": "When the reference market is shut, on-chain prices have no live anchor. On reopening, the reference can jump, causing sudden losses and liquidations."
+    },
+    {
+      "module": "rwa-markets-and-risk",
+      "difficulty": "expert",
+      "prompt": "Which statement about tokenized stocks is accurate?",
+      "options": [
+        "Depending on structure, holders may lack voting and shareholder rights",
+        "All tokenized stocks grant full voting rights at company meetings",
+        "They are legally identical to shares held in a brokerage account",
+        "They are open to every investor in every country without limits"
+      ],
+      "answer": 0,
+      "explanation": "Some tokenized stocks are backed by held shares and others are derivatives or notes. Rights such as voting and dividends depend entirely on that structure."
+    },
+    {
+      "module": "rwa-markets-and-risk",
+      "difficulty": "expert",
+      "prompt": "In the five-layer risk framework, which layer covers who issued the token and what happens in insolvency?",
+      "options": [
+        "The asset layer",
+        "The wrapper layer",
+        "The liquidity layer",
+        "The on-chain layer"
+      ],
+      "answer": 1,
+      "explanation": "The wrapper layer is about the legal entity and the rights it gives holders. It decides what token holders can claim if something goes wrong."
+    },
+    {
+      "module": "rwa-markets-and-risk",
+      "difficulty": "expert",
+      "prompt": "Why do many RWA issuers restrict who may hold their tokens?",
+      "options": [
+        "To keep gas fees low by limiting how many wallets transact",
+        "Because the tokens are often treated as regulated securities",
+        "Because blockchains cap the number of holders any one token can have",
+        "To make sure the token's price can never fall below its NAV"
+      ],
+      "answer": 1,
+      "explanation": "Securities and similar instruments carry rules on who may buy and hold them. Allowlists and KYC let issuers enforce those rules on-chain."
+    }
+  ]
+}

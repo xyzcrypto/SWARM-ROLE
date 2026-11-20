@@ -14,6 +14,7 @@ import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 const vline = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
 import { getJson, postJson, useAudio, useServerClock, useTicker } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
+import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { LiveMe, LiveState } from "./types";
 import { Avatar, burstConfetti, DIFF_LABEL, DIFF_TONE, Empty, fmt, Panel, Pill } from "./ui";
 
@@ -131,7 +132,7 @@ export function LiveArena({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, state?.status]);
 
-  // Each question: a cue (first / halfway / last / next), then Nova reads it.
+  // Each question: a cue (first / halfway / last / next), then AneQue reads it.
   const readFor = useRef(-1);
   useEffect(() => {
     if (phase?.kind !== "question" || !state?.question || state.question.index !== phase.index || readFor.current === phase.index) return;
@@ -149,6 +150,13 @@ export function LiveArena({ id }: { id: string }) {
     if (pieces.length) play(pieces, { caption: q.prompt });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase?.kind, phase && "index" in phase ? phase.index : -1, state?.question?.index]);
+
+  // AneQue must never give an open live question away in Live Talk.
+  const openQ = phase?.kind === "question" && state?.question && state.question.index === phase.index ? state.question.prompt : null;
+  useEffect(() => {
+    setTalkContext(openQ ? { questionOpen: true, question: openQ } : { questionOpen: false, question: null });
+  }, [openQ]);
+  useEffect(() => () => clearTalkContext(["questionOpen", "question"]), []);
 
   // Pause / resume announcements
   const wasPaused = useRef(false);

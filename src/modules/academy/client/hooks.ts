@@ -7,7 +7,7 @@ import { CH_ACADEMY } from "@/lib/realtime-channels";
 import { getServerSnapshot, getSnapshot, subscribe } from "./audio";
 import type { AcademyMe } from "@modules/academy/lib/me";
 
-/** Audio settings + Nova's current line. Server snapshot = defaults, so hydration never differs. */
+/** Audio settings + AneQue's current line. Server snapshot = defaults, so hydration never differs. */
 export function useAudio() {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

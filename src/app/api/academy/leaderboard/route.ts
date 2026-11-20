@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 // GET /api/academy/leaderboard?period=daily|weekly|monthly|alltime&page=1[&q=name]
 //
 // Public and identical for everyone (the caller's own row comes from
-// /api/academy/me), so the edge caches it for 15s. Boards refetch on the
+// /api/academy/me), so the edge caches it for 5s (near real time; the edge
+// still collapses every viewer into at most one origin read per 5s per board). Boards refetch on the
 // "academy" realtime ping rather than on a timer, so the edge window bounds
 // origin traffic no matter how many tabs are open.
 //
@@ -23,8 +24,8 @@ export async function GET(req: Request) {
     const page = Math.max(1, Math.min(200, Number(url.searchParams.get("page")) || 1));
     const q = (url.searchParams.get("q") ?? "").trim();
     after(() => finalizeDuePeriods().catch((err) => console.error("[academy] finalize", err)));
-    if (q) return json({ period, results: await searchBoard(period, q) }, PUBLIC(15, 30));
-    return json(await getBoard(period, page), PUBLIC(15, 30));
+    if (q) return json({ period, results: await searchBoard(period, q) }, PUBLIC(5, 10));
+    return json(await getBoard(period, page), PUBLIC(5, 10));
   } catch (err) {
     return academyError(err, "academy:leaderboard");
   }

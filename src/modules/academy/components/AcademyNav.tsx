@@ -18,7 +18,7 @@ const TABS = [
 export function AcademyNav() {
   const path = usePathname() ?? "";
   return (
-    <nav aria-label="Academy" className="acad-noprint -mx-5 mb-6 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
+    <nav aria-label="Academy" className="acad-noprint acad-nav-scroll -mx-5 mb-5 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:mb-8 sm:px-0 [&::-webkit-scrollbar]:hidden">
       <ul className="flex w-max items-center gap-1 rounded-full border border-hairline bg-ink-900/60 p-1 backdrop-blur">
         {TABS.map((t) => {
           const active = t.exact ? path === t.href : path === t.href || path.startsWith(`${t.href}/`);
@@ -28,7 +28,7 @@ export function AcademyNav() {
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-2 text-xs font-semibold transition-colors sm:text-[13px]",
+                  "flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-3.5 sm:py-2 sm:text-[13px]",
                   active ? "bg-gold-400/15 text-gold-200 shadow-[inset_0_0_0_1px_rgba(226,167,47,0.35)]" : "text-content-muted hover:text-content"
                 )}
               >

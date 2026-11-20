@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Headphones, Mic, MicOff, Music, Pause, Play, RotateCcw, Settings2, Sparkles, Volume2, VolumeX, X } from "lucide-react";
+import { AudioLines, Headphones, Music, Pause, PhoneOff, Play, RotateCcw, Settings2, Sparkles, Vibrate, Volume2, VolumeX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSpeechInput } from "@shared/hooks/useSpeechInput";
 import {
   browserVoices,
   femaleScore,
+  getSnapshot,
+  play,
   pauseVoice,
   resumeVoice,
   say,
@@ -24,10 +25,11 @@ import {
 } from "../client/audio";
 import { useAudio } from "../client/hooks";
 import { dispatchCommand, parseCommand } from "../client/commands";
-import { VOICE_LINES } from "../client/voice-lines";
+import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
+import { askAneque, recordUtterance, releaseMic, talkSupported, transcribe, type TalkError, type Turn } from "../client/talk";
 
 /**
- * Nova's orb: layered light, a slow conic ring and a waveform that follows her
+ * AneQue's orb: layered light, a slow conic ring and a waveform that follows her
  * voice. The level is written to a CSS variable from requestAnimationFrame, so
  * React never re-renders per frame.
  */
@@ -133,7 +135,7 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
       </div>
       <Toggle on={s.master} onChange={(v) => set({ master: v })} label="All sound" icon={s.master ? <Volume2 className="h-4 w-4 text-gold-300" /> : <VolumeX className="h-4 w-4 text-content-subtle" />} />
       <Slider value={s.masterVol} onChange={(v) => set({ masterVol: v })} label="Master volume" disabled={!s.master} />
-      <Toggle on={s.voice} onChange={(v) => set({ voice: v })} label="Nova's voice" icon={<Headphones className="h-4 w-4 text-content-subtle" />} />
+      <Toggle on={s.voice} onChange={(v) => set({ voice: v })} label="AneQue's voice" icon={<Headphones className="h-4 w-4 text-content-subtle" />} />
       <Slider value={s.voiceVol} onChange={(v) => set({ voiceVol: v })} label="Voice volume" disabled={!s.master || !s.voice} />
       <Toggle on={s.sfx} onChange={(v) => set({ sfx: v })} label="Sound effects" icon={<Sparkles className="h-4 w-4 text-content-subtle" />} />
       <Slider value={s.sfxVol} onChange={(v) => set({ sfxVol: v })} label="Effects volume" disabled={!s.master || !s.sfx} />
@@ -166,9 +168,10 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
         ))}
       </div>
       <div className="border-t border-hairline pt-2">
-        <Toggle on={s.guide} onChange={(v) => set({ guide: v })} label="Nova reacts on her own" />
+        <Toggle on={s.guide} onChange={(v) => set({ guide: v })} label="AneQue reacts on her own" />
         <Toggle on={s.readQuestions} onChange={(v) => set({ readQuestions: v })} label="Read each question aloud" />
         <Toggle on={s.explainWrong} onChange={(v) => set({ explainWrong: v })} label="Explain wrong answers aloud" />
+        <Toggle on={s.haptics} onChange={(v) => set({ haptics: v })} label="Haptics (vibration)" icon={<Vibrate className="h-4 w-4 text-content-subtle" />} />
         <label className="mt-1 block px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">
           Voice
           <select
@@ -176,12 +179,12 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
             onChange={(e) => {
               set({ voiceName: e.target.value });
               unlock();
-              if (e.target.value === "nova") say("welcome");
-              else speak("Hi, I'm Nova. This is how I'll sound.");
+              if (e.target.value === "nova") say("intro");
+              else speak("Hi, I'm Aneq. This is how I'll sound.");
             }}
             className="mt-1 w-full rounded-xl border border-hairline bg-ink-900/80 px-3 py-2 text-sm normal-case tracking-normal text-content focus:border-gold-400/50 focus:outline-none"
           >
-            <option value="nova">Nova (natural, recommended)</option>
+            <option value="nova">AneQue (natural, recommended)</option>
             {voices.map((v) => (
               <option key={v.name} value={v.name}>
                 {v.name}
@@ -190,16 +193,210 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
           </select>
         </label>
         <p className="px-1 pt-2 text-[11px] leading-relaxed text-content-subtle">
-          Nova speaks in a natural recorded voice: her guidance, every question, option and explanation, and lesson summaries. Anything new an admin writes is read by your device&apos;s best female voice. Every line is also shown as text. Auto music plays Focus while you read and Arena while you play.
+          AneQue speaks in a natural recorded voice: her guidance, every question, option and explanation, and lesson summaries. Anything new an admin writes is read by your device&apos;s best female voice. Every line is also shown as text. Auto music plays Focus while you read and Arena while you play.
         </p>
       </div>
     </div>
   );
 }
 
+type TalkState = "idle" | "listening" | "transcribing" | "thinking" | "speaking";
+
+/** Wait until AneQue has finished talking (or `maxMs`). */
+function untilQuiet(maxMs = 60_000) {
+  return new Promise<void>((resolve) => {
+    const t0 = Date.now();
+    const id = setInterval(() => {
+      if (!getSnapshot().voice.speaking || Date.now() - t0 > maxMs) {
+        clearInterval(id);
+        resolve();
+      }
+    }, 150);
+  });
+}
+
 /**
- * The floating guide: Nova's caption, playback controls, voice commands and
- * the sound settings, on every Academy page. Hidden entirely when the member
+ * Live Talk: listen (record + server transcription), act on a command or ask
+ * the AI, speak the answer, listen again, until the learner stops it.
+ */
+function useLiveTalk(router: ReturnType<typeof useRouter>) {
+  const [state, setState] = useState<TalkState>("idle");
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [level, setLevel] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const active = useRef(false);
+  const history = useRef<Turn[]>([]);
+
+  const stop = useCallback(() => {
+    active.current = false;
+    releaseMic();
+    setState("idle");
+    setLevel(0);
+  }, []);
+
+  useEffect(() => () => stop(), [stop]);
+
+  const handle = useCallback(
+    async (text: string): Promise<boolean> => {
+      const p = parseCommand(text);
+      if (p && p.cmd !== "explain" && p.cmd !== "answer") {
+        const nav: Partial<Record<string, [string, VoiceLine]>> = {
+          leaderboard: ["/academy/leaderboard", "open_leaderboard"],
+          live: ["/academy/live", "open_live"],
+          learn: ["/academy/learn", "open_learn"],
+        };
+        const n = nav[p.cmd];
+        if (n) {
+          router.push(n[0]);
+          say(n[1]);
+          return true;
+        }
+        if (p.cmd === "start" && !location.pathname.startsWith("/academy/quiz")) {
+          router.push("/academy/quiz");
+          say("open_quiz");
+          return true;
+        }
+        if (p.cmd === "help") {
+          say("help");
+          return true;
+        }
+        if (p.cmd === "mute" || p.cmd === "stop") {
+          say("talk_bye");
+          stop();
+          return true;
+        }
+        dispatchCommand(p);
+        return true;
+      }
+      if (p?.cmd === "answer") {
+        dispatchCommand(p);
+        return true;
+      }
+      return false;
+    },
+    [router, stop]
+  );
+
+  const loop = useCallback(async () => {
+    let misses = 0;
+    while (active.current) {
+      setState("listening");
+      sfx("pop");
+      let rec;
+      try {
+        rec = await recordUtterance({ onLevel: setLevel });
+      } catch {
+        setError("Microphone permission is blocked. Allow the mic for this site in your browser's address bar, then tap Talk again.");
+        stop();
+        return;
+      }
+      if (!active.current) return;
+      if (!rec) {
+        misses++;
+        if (misses >= 2) {
+          say("talk_bye");
+          stop();
+          return;
+        }
+        say("talk_again");
+        await untilQuiet(8000);
+        continue;
+      }
+      misses = 0;
+      setState("transcribing");
+      let text = "";
+      try {
+        text = (await transcribe(rec.blob)).text.trim();
+      } catch (e) {
+        const st = (e as TalkError).status;
+        if (st === 401) say("talk_login");
+        else if (st === 503) say("talk_unavailable");
+        else say("talk_error");
+        if (st === 401 || st === 503) {
+          stop();
+          return;
+        }
+        await untilQuiet(8000);
+        continue;
+      }
+      if (!active.current) return;
+      if (!text) {
+        say("talk_error");
+        await untilQuiet(8000);
+        continue;
+      }
+      setTurns((t) => [...t, { role: "user" as const, content: text }].slice(-6));
+      if (await handle(text)) {
+        await untilQuiet(10_000);
+        continue;
+      }
+      setState("thinking");
+      history.current = [...history.current, { role: "user" as const, content: text }].slice(-12);
+      try {
+        const { text: answer } = await askAneque(history.current);
+        if (!active.current) return;
+        history.current = [...history.current, { role: "assistant" as const, content: answer }].slice(-12);
+        setTurns((t) => [...t, { role: "assistant" as const, content: answer }].slice(-6));
+        setState("speaking");
+        play([{ text: answer.replace(/AneQue/g, "Aneq") }], { caption: answer });
+        await untilQuiet(90_000);
+      } catch (e) {
+        const st = (e as TalkError).status;
+        say(st === 429 ? "talk_limit" : st === 401 ? "talk_login" : st === 503 ? "talk_unavailable" : "talk_error");
+        if (st === 401 || st === 503) {
+          stop();
+          return;
+        }
+        await untilQuiet(8000);
+      }
+    }
+  }, [handle, stop]);
+
+  const start = useCallback(async () => {
+    unlock();
+    setError(null);
+    if (!talkSupported()) {
+      setError("This browser can't record audio. Try Chrome, Edge, Brave, Firefox or Safari on a recent version.");
+      return;
+    }
+    stopVoice();
+    active.current = true;
+    if (!history.current.length) {
+      say("talk_hi");
+      await untilQuiet(8000);
+    }
+    void loop();
+  }, [loop]);
+
+  return { state, turns, level, error, start, stop, active: state !== "idle" };
+}
+
+/** A tiny live meter for the learner's own voice while AneQue listens. */
+function MicMeter({ level }: { level: number }) {
+  return (
+    <div className="flex h-6 items-center gap-[3px]" aria-hidden>
+      {Array.from({ length: 18 }, (_, i) => (
+        <span
+          key={i}
+          className="w-[3px] rounded-full bg-mint-400 transition-[height] duration-75"
+          style={{ height: `${Math.max(12, Math.min(100, level * 100 * (0.5 + 0.5 * Math.abs(Math.sin(i * 1.7)))))}%` }}
+        />
+      ))}
+    </div>
+  );
+}
+
+const TALK_LABEL: Record<TalkState, string> = {
+  idle: "Talk to AneQue",
+  listening: "Listening…",
+  transcribing: "Got it…",
+  thinking: "Thinking…",
+  speaking: "Speaking…",
+};
+
+/**
+ * The floating guide: AneQue's caption, playback controls, Live Talk and the
+ * sound settings, on every Academy page. Hidden entirely when the member
  * turns the guide and her voice off.
  */
 export function GuideDock() {
@@ -207,9 +404,9 @@ export function GuideDock() {
   const { settings, voice } = useAudio();
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<"guide" | "settings">("guide");
-  const [heard, setHeard] = useState<string | null>(null);
   const path = usePathname();
-  // On a phone at the top of /academy the hero already shows Nova's big orb,
+  const talk = useLiveTalk(router);
+  // On a phone at the top of /academy the hero already shows AneQue,
   // and the dock would sit on the hero's buttons. Hide it there until the
   // reader scrolls. Starts visible (matches the server), decided after mount.
   const [tucked, setTucked] = useState(false);
@@ -228,26 +425,6 @@ export function GuideDock() {
     };
   }, [path]);
 
-  const mic = useSpeechInput(
-    (text) => {
-      setHeard(text);
-      const p = parseCommand(text);
-      if (!p) return;
-      if (p.cmd === "leaderboard") router.push("/academy/leaderboard");
-      else if (p.cmd === "live") router.push("/academy/live");
-      else if (p.cmd === "learn") router.push("/academy#library");
-      else if (p.cmd === "mute") updateSettings({ master: false });
-      else if (p.cmd === "unmute") updateSettings({ master: true });
-      else if (p.cmd === "pause") pauseVoice();
-      else if (p.cmd === "resume") resumeVoice();
-      else if (p.cmd === "stop") stopVoice();
-      else if (p.cmd === "help") say("help");
-      else if (p.cmd === "start" && !window.location.pathname.startsWith("/academy/quiz")) router.push("/academy/quiz");
-      dispatchCommand(p);
-    },
-    { continuous: false }
-  );
-
   // Any first tap on an Academy page unlocks audio (browsers require a gesture).
   useEffect(() => {
     const on = () => unlock();
@@ -264,18 +441,29 @@ export function GuideDock() {
     setScene(path?.startsWith("/academy/quiz") || path?.startsWith("/academy/live/") ? "arena" : "focus");
   }, [path]);
 
+  // Other parts of the page (the hero) can open the dock straight into Live Talk.
+  useEffect(() => {
+    const on = () => {
+      setPanel("guide");
+      setOpen(true);
+      void talk.start();
+    };
+    window.addEventListener("academy:talk", on);
+    return () => window.removeEventListener("academy:talk", on);
+  }, [talk]);
+
   const replay = () => {
     unlock();
     if (voice.line) say(voice.line);
     else if (voice.text) speak(voice.text);
-    else say("welcome");
+    else say("intro");
   };
+  const speaking = voice.speaking && !voice.paused;
 
   return (
-    // The site-wide XYZ AI button owns the bottom-right corner. On phones Nova
-    // takes the bottom-left (stacking two buttons on the right covered the
-    // hero CTAs); from md up she sits directly above the AI button.
-    <div className={cn("pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 z-40 transition-all duration-300 md:bottom-[5.5rem] md:left-auto md:right-6", tucked && !open && "invisible translate-y-4 opacity-0")}>
+    // The site-wide XYZ AI button owns the bottom-right corner. On phones the
+    // dock takes the bottom-left; from md up it sits directly above XYZ AI.
+    <div className={cn("pointer-events-none fixed bottom-[calc(4.75rem+env(safe-area-inset-bottom))] left-4 z-40 transition-all duration-300 md:bottom-[5.5rem] md:left-auto md:right-6", tucked && !open && !talk.active && "invisible translate-y-4 opacity-0")}>
       <AnimatePresence>
         {open && (
           <motion.div
@@ -284,30 +472,52 @@ export function GuideDock() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.98 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="pointer-events-auto mb-3 max-h-[calc(100dvh-12rem)] w-[min(22rem,calc(100vw-2rem))] origin-bottom-left overflow-y-auto overscroll-contain rounded-3xl border border-hairline bg-ink-950/95 p-4 shadow-elevate backdrop-blur-xl md:max-h-[calc(100dvh-14rem)] md:origin-bottom-right"
+            className="pointer-events-auto mb-3 max-h-[calc(100dvh-12rem)] w-[min(23rem,calc(100vw-2rem))] origin-bottom-left overflow-y-auto overscroll-contain rounded-3xl border border-hairline bg-ink-950/95 p-4 shadow-elevate backdrop-blur-xl md:max-h-[calc(100dvh-14rem)] md:origin-bottom-right"
             role="dialog"
-            aria-label="Nova, your Academy guide"
+            aria-label="AneQue, your Academy guide"
           >
             {panel === "settings" ? (
               <SoundSettings onClose={() => setPanel("guide")} />
             ) : (
               <>
                 <div className="flex items-center gap-3">
-                  <GuideOrb size={48} speaking={voice.speaking && !voice.paused} />
+                  <GuideOrb size={44} speaking={speaking} />
                   <div className="min-w-0 flex-1">
-                    <div className="font-display text-sm font-semibold text-content">Nova</div>
-                    <div className="text-[11px] text-content-subtle">{voice.speaking ? (voice.paused ? "Paused" : "Speaking") : "Your Academy guide"}</div>
+                    <div className="font-display text-sm font-semibold text-content">AneQue</div>
+                    <div className="text-[11px] text-content-subtle">{talk.active ? TALK_LABEL[talk.state] : speaking ? "Speaking" : voice.paused ? "Paused" : "Your study partner · says “Aneq”"}</div>
                   </div>
-                  <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1.5 text-content-subtle hover:text-content" aria-label="Close guide">
+                  <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1.5 text-content-subtle hover:text-content" aria-label="Close AneQue">
                     <X className="h-4 w-4" />
                   </button>
                 </div>
+
+                {talk.turns.length > 0 && (
+                  <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+                    {talk.turns.map((t, i) => (
+                      <div key={i} className={cn("max-w-[88%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed", t.role === "user" ? "ml-auto bg-gold-400/15 text-content" : "bg-white/[0.05] text-content-muted")}>
+                        {t.content}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="mt-3 rounded-2xl border border-hairline bg-ink-900/50 px-3.5 py-3">
-                  <NovaWave speaking={voice.speaking && !voice.paused} bars={36} className="mb-2 h-6" />
-                  <NovaCaption text={voice.text || VOICE_LINES.welcome} speaking={voice.speaking && !voice.paused} className="min-h-[2.5rem] text-sm leading-relaxed" />
+                  {talk.state === "listening" ? <MicMeter level={talk.level} /> : <GuideWave speaking={speaking} bars={36} className="h-6" />}
+                  <GuideCaption text={voice.text || VOICE_LINES.intro} speaking={speaking} className="mt-2 min-h-[2.5rem] text-sm leading-relaxed" />
                 </div>
-                <div className="mt-3 flex items-center gap-2">
-                  {voice.speaking && !voice.paused ? (
+
+                <button
+                  type="button"
+                  onClick={() => (talk.active ? (talk.stop(), say("talk_bye")) : void talk.start())}
+                  className={cn("mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-sm font-semibold transition-colors", talk.active ? "bg-red-500/90 text-white hover:bg-red-500" : "btn-primary")}
+                >
+                  {talk.active ? <PhoneOff className="h-4 w-4" /> : <AudioLines className="h-4 w-4" />}
+                  {talk.active ? `End talk · ${TALK_LABEL[talk.state]}` : "Talk to AneQue"}
+                </button>
+                {talk.error && <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[11px] leading-relaxed text-content-subtle">{talk.error}</p>}
+
+                <div className="mt-2 flex items-center gap-2">
+                  {speaking ? (
                     <button type="button" onClick={pauseVoice} className="btn-secondary h-9 flex-1 justify-center text-xs" aria-label="Pause voice">
                       <Pause className="h-4 w-4" /> Pause
                     </button>
@@ -330,39 +540,13 @@ export function GuideDock() {
                     aria-label={settings.master ? "Mute all sound" : "Unmute"}
                     title={settings.master ? "Mute" : "Unmute"}
                   >
-                    {settings.master ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                    {settings.master ? <Volume2 /> : <VolumeX />}
                   </button>
-                  {mic.supported && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        unlock();
-                        setHeard(null);
-                        if (!mic.listening) say("mic_on");
-                        mic.toggle();
-                      }}
-                      className={cn("acad-icon-btn", mic.listening && "border-gold-400/60 text-gold-200")}
-                      aria-label={mic.listening ? "Stop listening" : "Voice command"}
-                      title="Voice command"
-                    >
-                      {mic.listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                    </button>
-                  )}
                   <button type="button" onClick={() => setPanel("settings")} className="acad-icon-btn" aria-label="Sound settings" title="Settings">
-                    <Settings2 className="h-4 w-4" />
+                    <Settings2 />
                   </button>
                 </div>
-                {(mic.listening || heard || mic.error) && (
-                  <div className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[11px] text-content-subtle">
-                    {mic.error
-                      ? mic.error
-                      : mic.listening
-                        ? mic.interim || "Listening… try “start quiz”, “next question”, “repeat question”, “explain answer” or “open leaderboard”."
-                        : parseCommand(heard ?? "")
-                          ? `Heard: “${heard}”`
-                          : `Heard “${heard}”, which isn't a command I know yet.`}
-                  </div>
-                )}
+                <p className="mt-2 text-[10px] leading-relaxed text-content-subtle">Live Talk records only while it says “Listening”. Try: “What is funding rate?”, “Start quiz”, “Open leaderboard”.</p>
               </>
             )}
           </motion.div>
@@ -378,24 +562,23 @@ export function GuideDock() {
             sfx("click");
           }}
           className="acad-dock-btn pointer-events-auto relative grid h-12 w-12 place-items-center rounded-full md:h-14 md:w-14"
-          aria-label={open ? "Close Nova" : "Open Nova, your Academy guide"}
+          aria-label={open ? "Close AneQue" : "Open AneQue, your Academy guide"}
           aria-expanded={open}
         >
-          <GuideOrb size={44} speaking={voice.speaking && !voice.paused} className="md:!h-[52px] md:!w-[52px]" />
-          {voice.speaking && !open && <span className="absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-ink-950 bg-mint-400" />}
+          <GuideOrb size={44} speaking={speaking} className="md:!h-[52px] md:!w-[52px]" />
+          {(speaking || talk.active) && !open && <span className={cn("absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-ink-950", talk.state === "listening" ? "bg-red-400" : "bg-mint-400")} />}
         </button>
       </div>
     </div>
   );
 }
 
-
 /**
- * Nova's caption, revealed word by word in step with her voice (recorded clip
+ * AneQue's caption, revealed word by word in step with her voice (recorded clip
  * time, or the browser voice's word boundaries). Static text when she is
  * silent, so it reads the same with sound off.
  */
-export function NovaCaption({ text, speaking, className }: { text: string; speaking: boolean; className?: string }) {
+export function GuideCaption({ text, speaking, className }: { text: string; speaking: boolean; className?: string }) {
   const [p, setP] = useState(1);
   useEffect(() => {
     if (!speaking) {
@@ -429,8 +612,8 @@ export function NovaCaption({ text, speaking, className }: { text: string; speak
   );
 }
 
-/** A slim live waveform: bars follow Nova's actual loudness while she talks, rest flat. */
-export function NovaWave({ speaking, bars = 32, className }: { speaking: boolean; bars?: number; className?: string }) {
+/** A slim live waveform: bars follow AneQue's actual loudness while she talks, rest flat. */
+export function GuideWave({ speaking, bars = 32, className }: { speaking: boolean; bars?: number; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;

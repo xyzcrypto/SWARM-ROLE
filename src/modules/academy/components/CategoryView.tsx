@@ -49,7 +49,7 @@ export function CategoryView({ c }: { c: C }) {
             }}
             className="btn-secondary h-11 px-4 text-sm"
           >
-            <Headphones className="h-4 w-4" /> Intro by Nova
+            <Headphones className="h-4 w-4" /> Intro by AneQue
           </button>
           <Link href={`/academy/quiz?mode=topic&category=${c.slug}`} className="btn-gold h-11 px-5 text-sm">
             <Swords className="h-4 w-4" /> Topic challenge

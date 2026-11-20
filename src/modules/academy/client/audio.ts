@@ -1,10 +1,10 @@
 "use client";
 
-// Academy sound: effects, three music tracks and Nova's voice, each on its own
+// Academy sound: effects, three music tracks and AneQue's voice, each on its own
 // bus with its own switch and volume under one master.
 //
 // Effects and music are synthesised with Web Audio: original, nothing
-// licensed, nothing to download. Nova's voice is a set of recorded mp3s (her
+// licensed, nothing to download. AneQue's voice is a set of recorded mp3s (her
 // scripted lines, plus every question, option, explanation and lesson summary
 // of the starter curriculum), fetched one at a time when she speaks; anything
 // without a recording is read by the browser's best female voice.
@@ -13,6 +13,8 @@
 // before unlock() runs from a click or tap. Settings persist per browser.
 
 import { VOICE_LINES, type VoiceLine } from "./voice-lines";
+import { chunkForSpeech } from "@modules/ai/lib/tts";
+import { hapticError, hapticSelect, hapticSent, hapticTap, hapticToggle } from "@shared/utils/haptics";
 
 export type Sfx =
   | "click"
@@ -51,12 +53,14 @@ export type AudioSettings = {
   voiceVol: number;
   /** "nova" = her recorded voice (+ best browser female voice for unrecorded text). */
   voiceName: string;
-  /** Nova reacts on her own at key moments (welcome, answers, results...). */
+  /** AneQue reacts on her own at key moments (welcome, answers, results...). */
   guide: boolean;
-  /** Nova reads each new question aloud. */
+  /** AneQue reads each new question aloud. */
   readQuestions: boolean;
-  /** After a wrong answer, Nova reads the explanation. */
+  /** After a wrong answer, the guide reads the explanation. */
   explainWrong: boolean;
+  /** Vibrate with the sound effects (phones that support it). */
+  haptics: boolean;
 };
 
 export const DEFAULT_AUDIO: AudioSettings = {
@@ -73,6 +77,7 @@ export const DEFAULT_AUDIO: AudioSettings = {
   guide: true,
   readQuestions: true,
   explainWrong: true,
+  haptics: true,
 };
 
 const KEY = "xyz:academy:audio:v1";
@@ -99,6 +104,7 @@ export function parseSettings(raw: string | null): AudioSettings {
       guide: bool(v.guide, DEFAULT_AUDIO.guide),
       readQuestions: bool(v.readQuestions, DEFAULT_AUDIO.readQuestions),
       explainWrong: bool(v.explainWrong, DEFAULT_AUDIO.explainWrong),
+      haptics: bool(v.haptics, DEFAULT_AUDIO.haptics),
     };
   } catch {
     return { ...DEFAULT_AUDIO };
@@ -236,7 +242,7 @@ function applyGains() {
   master.gain.setTargetAtTime(s.master ? s.masterVol : 0, t, 0.05);
   sfxBus.gain.setTargetAtTime(s.sfx ? s.sfxVol : 0, t, 0.05);
   voiceBus.gain.setTargetAtTime(s.voice ? s.voiceVol : 0, t, 0.05);
-  // Music steps back while Nova talks or a question is open.
+  // Music steps back while AneQue talks or a question is open.
   const voiceDuck = snap.voice.speaking && !snap.voice.paused ? 0.45 : 1;
   musicBus.gain.setTargetAtTime(s.music && musicOn ? s.musicVol * 0.55 * duckLevel * voiceDuck : 0, t, 0.35);
 }
@@ -448,6 +454,8 @@ function playTones(tones: Tone[], bus: AudioNode, at = 0) {
 
 let lastHover = 0;
 export function sfx(name: Sfx) {
+  // Haptics follow their own switch, so a muted phone still feels the answer.
+  if (name !== "hover") buzz(name);
   if (!snap.settings.master || !snap.settings.sfx) return;
   if (name === "hover") {
     if (performance.now() - lastHover < 60) return;
@@ -456,6 +464,19 @@ export function sfx(name: Sfx) {
   const c = ensure();
   if (!c || !sfxBus) return;
   playTones(SFX[name], sfxBus);
+}
+
+/** Haptics that match the sound (Android; iOS has no vibration API). Uses the site's own feel settings. */
+function buzz(name: Sfx) {
+  if (!snap.settings.haptics) return;
+  if (name === "select" || name === "click") hapticSelect();
+  else if (name === "correct" || name === "coin" || name === "lock") hapticSent();
+  else if (name === "wrong" || name === "heartbeat") hapticError();
+  else if (name === "go" || name === "count" || name === "fifty") hapticTap();
+  else if (name === "levelup" || name === "achievement" || name === "winner" || name === "fire") {
+    hapticToggle();
+    setTimeout(hapticSent, 180);
+  }
 }
 
 // ------------------------------------------------------------------ music
@@ -610,7 +631,7 @@ let utter: SpeechSynthesisUtterance | null = null;
 export type Piece = { url?: string | null; text: string };
 let queue: Piece[] = [];
 let token = 0;
-// Where Nova is inside the current caption, 0..1, for the word-by-word caption.
+// Where AneQue is inside the current caption, 0..1, for the word-by-word caption.
 let pieceIndex = 0;
 let pieceCount = 1;
 let ttsChar = 0;
@@ -716,28 +737,44 @@ function pump(my: number) {
   tts(piece.text, my, done);
 }
 
+/**
+ * The browser voice, in sentence-sized chunks. Chrome silently stops a single
+ * utterance after about 15 seconds and some Android engines refuse long text
+ * outright, so a long explanation used to just cut off mid-sentence.
+ */
 function tts(text: string, my: number, done: () => void) {
   if (my !== token) return;
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return done();
-  const u = new SpeechSynthesisUtterance(text);
-  const v = pickVoice();
-  if (v) u.voice = v;
-  u.rate = 1;
-  u.pitch = 1.05;
-  u.volume = snap.settings.masterVol * snap.settings.voiceVol;
-  u.onboundary = (e) => {
-    ttsChar = e.charIndex;
+  const chunks = chunkForSpeech(text, 180);
+  if (!chunks.length) return done();
+  let offset = 0;
+  const next = (i: number) => {
+    if (my !== token) return;
+    if (i >= chunks.length) return done();
+    const u = new SpeechSynthesisUtterance(chunks[i]);
+    const v = pickVoice();
+    if (v) u.voice = v;
+    u.rate = 1;
+    u.pitch = 1.05;
+    u.volume = snap.settings.masterVol * snap.settings.voiceVol;
+    const base = offset;
+    u.onboundary = (e) => {
+      ttsChar = base + e.charIndex;
+    };
+    u.onend = u.onerror = () => {
+      if (utter !== u) return;
+      offset += chunks[i].length + 1;
+      next(i + 1);
+    };
+    utter = u;
+    window.speechSynthesis.speak(u);
   };
-  u.onend = u.onerror = () => {
-    if (utter === u) done();
-  };
-  utter = u;
-  window.speechSynthesis.speak(u);
+  next(0);
 }
 
 /**
  * Speak a list of pieces in order with one caption. `queue: true` waits for
- * whatever Nova is saying; otherwise it interrupts her.
+ * whatever AneQue is saying; otherwise it interrupts her.
  */
 export function play(pieces: Piece[], opts: { caption?: string; line?: VoiceLine | null; queue?: boolean } = {}) {
   const caption = opts.caption ?? pieces.map((p) => p.text).join(" ");
@@ -757,9 +794,9 @@ export function play(pieces: Piece[], opts: { caption?: string; line?: VoiceLine
 }
 
 /**
- * Say a scripted line in Nova's recorded voice. The caption always updates,
+ * Say a scripted line in AneQue's recorded voice. The caption always updates,
  * even when muted, so guidance is readable without sound. `auto` lines only
- * play when the member leaves "Nova reacts on her own" on.
+ * play when the member leaves "AneQue reacts on her own" on.
  */
 export function say(line: VoiceLine, opts: { auto?: boolean; queue?: boolean } = {}) {
   if (!(line in VOICE_LINES)) return;
@@ -783,7 +820,7 @@ export function speak(text: string) {
   play([{ text }]);
 }
 
-/** 0..1: how far Nova is through the current caption (drives the word-by-word reveal). */
+/** 0..1: how far AneQue is through the current caption (drives the word-by-word reveal). */
 export function voiceProgress(): number {
   if (!snap.voice.speaking) return 1;
   let inPiece = 0;
@@ -792,7 +829,7 @@ export function voiceProgress(): number {
   return Math.max(0, Math.min(1, (pieceIndex + inPiece) / Math.max(1, pieceCount)));
 }
 
-/** 0..1 loudness of Nova right now, for the orb. Browser speech cannot be measured, so it is animated. */
+/** 0..1 loudness of AneQue right now, for the orb. Browser speech cannot be measured, so it is animated. */
 export function voiceLevel(t: number): number {
   if (!snap.voice.speaking || snap.voice.paused) return 0;
   if (analyser && clip && !clip.paused && clipSource) {

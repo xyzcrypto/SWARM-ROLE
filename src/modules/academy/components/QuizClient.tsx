@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { duck, play, say, sayOneOf, sfx, stopVoice, unlock, type Piece } from "../client/audio";
 import { getJson, postJson, useAudio, useServerClock, useTicker } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
+import { clearTalkContext, setTalkContext } from "../client/talk";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import type { AnswerResult, CatalogCategory, QuizState } from "./types";
 import { DIFF_LABEL, DIFF_TONE, Empty, Eyebrow, Panel, Pill } from "./ui";
@@ -141,12 +142,36 @@ export function QuizClient() {
       />
     );
 
-  return <QuizSetup setup={setup} onChange={setSetup} onStart={() => start(setup)} starting={starting} error={error} />;
+  return (
+    <QuizSetup
+      setup={setup}
+      onChange={setSetup}
+      onStart={() => start(setup)}
+      onStartLesson={(moduleId) => start({ ...setup, mode: "module", moduleId })}
+      starting={starting}
+      error={error}
+    />
+  );
 }
 
 // ------------------------------------------------------------------ setup
 
-function QuizSetup({ setup, onChange, onStart, starting, error }: { setup: Setup; onChange: (s: Setup) => void; onStart: () => void; starting: boolean; error: string | null }) {
+function QuizSetup({
+  setup,
+  onChange,
+  onStart,
+  onStartLesson,
+  starting,
+  error,
+}: {
+  setup: Setup;
+  onChange: (s: Setup) => void;
+  onStart: () => void;
+  onStartLesson: (moduleId: string) => void;
+  starting: boolean;
+  error: string | null;
+}) {
+  const [lessonTopic, setLessonTopic] = useState("");
   const [cats, setCats] = useState<CatalogCategory[]>([]);
   const [challenger, setChallenger] = useState<{ name: string; score: number; correct: number; total: number } | null>(null);
   useEffect(() => {
@@ -286,11 +311,54 @@ function QuizSetup({ setup, onChange, onStart, starting, error }: { setup: Setup
             <Split className="h-3.5 w-3.5 text-gold-300" /> Two 50:50 lifelines per quiz (half points)
           </span>
           <span className="flex items-center gap-1.5">
-            <Headphones className="h-3.5 w-3.5 text-gold-300" /> Nova reads questions in her own voice
+            <Headphones className="h-3.5 w-3.5 text-gold-300" /> AneQue reads questions in her own voice
           </span>
           <span>Keys: 1-4 or A-D, Enter for next, F for 50:50</span>
         </div>
       </Panel>
+
+      {setup.mode !== "module" && setup.mode !== "challenge" && cats.length > 0 && (
+        <Panel className="mt-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <Eyebrow>Every lesson has a quiz</Eyebrow>
+              <h2 className="mt-1 font-display text-lg font-semibold text-content">Quiz any lesson</h2>
+              <p className="text-sm text-content-muted">Pick a topic, then the lesson you want to test. Pass 60% to complete it.</p>
+            </div>
+            <select
+              value={lessonTopic || cats[0]?.slug}
+              onChange={(e) => setLessonTopic(e.target.value)}
+              className="w-full rounded-xl border border-hairline bg-ink-900/80 px-3 py-2.5 text-sm text-content focus:border-gold-400/50 focus:outline-none sm:w-64"
+              aria-label="Topic"
+            >
+              {cats.map((c) => (
+                <option key={c.slug} value={c.slug}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {(cats.find((c) => c.slug === (lessonTopic || cats[0]?.slug))?.modules ?? []).map((m, i) => (
+              <button
+                key={m.id}
+                type="button"
+                disabled={starting}
+                onMouseEnter={() => sfx("hover")}
+                onClick={() => onStartLesson(m.id)}
+                className="group flex items-center gap-3 rounded-2xl border border-hairline px-3.5 py-3 text-left transition-colors hover:border-gold-400/40"
+              >
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-hairline font-mono text-xs text-content-subtle">{i + 1}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold text-content">{m.title}</span>
+                  <span className="text-[11px] text-content-subtle">{DIFF_LABEL[{ beginner: "easy", intermediate: "medium", advanced: "hard", expert: "expert" }[m.level] ?? "mixed"]} · knowledge check</span>
+                </span>
+                <ArrowRight className="h-4 w-4 shrink-0 text-content-subtle transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
+              </button>
+            ))}
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }
@@ -372,6 +440,13 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
     };
   }, [load]);
 
+  // AneQue may help in Live Talk, but must never give the open question away.
+  useEffect(() => {
+    if (q && !reveal) setTalkContext({ questionOpen: true, question: q.prompt, topic: q.category });
+    else setTalkContext({ questionOpen: false, question: null });
+  }, [q, reveal]);
+  useEffect(() => () => clearTalkContext(["questionOpen", "question"]), []);
+
   // Music steps back while a question is open.
   useEffect(() => {
     duck(q && !reveal ? 0.35 : 1);
@@ -391,7 +466,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
     [q, hidden]
   );
 
-  // Nova announces each new question: first / halfway / last, then reads it.
+  // AneQue announces each new question: first / halfway / last, then reads it.
   useEffect(() => {
     if (!q || reveal || announced.current === q.index) return;
     announced.current = q.index;
@@ -533,7 +608,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
     return () => window.removeEventListener("keydown", on);
   }, [answer, next, reveal, fifty, readQuestion]);
 
-  // Voice commands from Nova's dock
+  // Voice commands from AneQue's dock
   useEffect(() => {
     const on = (e: Event) => {
       const p = (e as CustomEvent<NonNullable<Parsed>>).detail;

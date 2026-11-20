@@ -11,6 +11,7 @@ import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 const vline = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
 import { Hero } from "./Hero";
 import { Dashboard } from "./Dashboard";
+import { CertificateShowcase } from "./CertificateShowcase";
 import { Library } from "./Library";
 import { LeaderboardView } from "./Leaderboard";
 import type { CatalogCategory, Pulse } from "./types";
@@ -50,7 +51,7 @@ export function AcademyHome() {
 
   useAcademyPing(loadPulse, 30_000);
 
-  // Nova greets once per browser session, on the first tap (browsers forbid
+  // AneQue greets once per browser session, on the first tap (browsers forbid
   // sound before one), and only if the member leaves "speaks on her own" on.
   useEffect(() => {
     if (!unlocked || status === "loading" || (status === "authenticated" && !me)) return;
@@ -135,6 +136,8 @@ export function AcademyHome() {
         />
         <Library categories={catalog} me={me} />
       </section>
+
+      <CertificateShowcase />
 
       <section className="mt-16 grid gap-5 sm:mt-20 lg:grid-cols-[1.4fr_1fr]">
         <Panel>

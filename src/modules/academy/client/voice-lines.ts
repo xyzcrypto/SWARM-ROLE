@@ -1,8 +1,8 @@
-// Scripted lines for Nova, the Academy voice guide. Each key has a matching
-// recording in /public/academy/voice/<key>.mp3 (natural female voice, rendered
-// once offline). The text is also shown as a caption, so the guide reads fine
-// with sound off. Lesson and quiz text has its own recordings, named by a hash
-// of the text (see lib/voice.ts).
+// Scripted lines for AneQue (said "Aneq"), the Academy voice guide. Each key
+// has a matching recording in /public/academy/voice/<key>.mp3 (natural female
+// voice, rendered once offline). The text is also shown as a caption, so the
+// guide reads fine with sound off. Lesson and quiz text has its own
+// recordings, named by a hash of the text (see lib/voice.ts).
 
 export const VOICE_LINES = {
   "welcome": "Welcome to XYZ Crypto Academy. Ready to master Web3 today?",
@@ -203,6 +203,19 @@ export const VOICE_LINES = {
   "opt_B": "Option B.",
   "opt_C": "Option C.",
   "opt_D": "Option D.",
+  "intro": "Hi, I'm AneQue, your study partner at XYZ Crypto Academy. Tap talk and ask me anything about Web3.",
+  "talk_hi": "I'm listening. Ask me anything about Web3, or tell me what you want to do.",
+  "talk_again": "Go ahead, I'm still listening.",
+  "talk_error": "Sorry, I didn't catch that. Could you say it again?",
+  "talk_unavailable": "Live talk isn't available right now. You can still use the buttons and I'll guide you.",
+  "talk_bye": "Okay. I'll be right here whenever you need me.",
+  "talk_login": "Sign in first, and then we can talk live.",
+  "talk_limit": "We've talked a lot today. Let's continue tomorrow, or keep learning with the quizzes.",
+  "open_leaderboard": "Opening the leaderboard.",
+  "open_live": "Taking you to the live quiz arena.",
+  "open_learn": "Here's the learning library.",
+  "open_quiz": "Let's set up your quiz.",
+  "cert_showcase": "Win a daily, weekly or monthly leaderboard, or a live quiz, and you get an official XYZ Crypto certificate you can verify and share.",
 } as const;
 
 export type VoiceLine = keyof typeof VOICE_LINES;

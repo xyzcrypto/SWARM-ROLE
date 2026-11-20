@@ -43,7 +43,7 @@ describe("academy audio settings", () => {
 });
 
 describe("academy content", () => {
-  it("every scripted Nova line has its recorded clip", () => {
+  it("every scripted AneQue line has its recorded clip", () => {
     const missing = Object.keys(VOICE_LINES).filter((k) => !existsSync(`public/academy/voice/${k}.mp3`));
     expect(missing).toEqual([]);
   });

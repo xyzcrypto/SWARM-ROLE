@@ -1,0 +1,466 @@
+{
+  "slug": "airdrop-masterclass",
+  "title": "Airdrop Masterclass",
+  "tagline": "How airdrops work, how eligibility is judged, and how to take part safely and honestly",
+  "icon": "Gift",
+  "order": 19,
+  "modules": [
+    {
+      "slug": "what-are-airdrops",
+      "level": "beginner",
+      "title": "What airdrops are and why protocols do them",
+      "summary": "An airdrop is a distribution of tokens to a chosen set of wallets, usually to reward early users and spread ownership. Knowing why protocols airdrop helps you understand what they are looking for.",
+      "minutes": 8,
+      "objectives": [
+        "Define an airdrop and a retroactive airdrop",
+        "Explain the main reasons protocols distribute tokens this way",
+        "Describe the Uniswap and ENS airdrops by their mechanism",
+        "Understand that eligibility rules are set by the protocol and often secret beforehand",
+        "Recognise that airdrops carry no promise of value"
+      ],
+      "sections": [
+        {
+          "heading": "What an airdrop is",
+          "body": "An airdrop is when a project sends or makes claimable its tokens to a list of wallet addresses, usually for free. The list is built from a snapshot, a record of on-chain activity up to a chosen block or date. Most modern airdrops require recipients to claim the tokens through a contract rather than receiving them automatically. Some airdrops are announced in advance with clear rules, but many of the most famous were retroactive, rewarding people for activity that happened before anyone knew a token would exist. An airdrop is a decision by the project, not a right of the user."
+        },
+        {
+          "heading": "Why protocols airdrop",
+          "body": "Protocols use airdrops to put governance tokens into the hands of the people who actually use the product. This spreads voting power beyond the team and early investors, which supports the goal of community ownership. An airdrop also rewards early users who took risks on an untested product and can attract attention and new users. Some teams hope recipients will become long-term participants in governance. In practice, many recipients sell, and protocols have learned to design airdrops with that in mind."
+        },
+        {
+          "heading": "Uniswap, 2020",
+          "body": "In September 2020 Uniswap launched its UNI governance token and made part of the supply claimable by past users. Eligibility was based on a snapshot taken on 1 September 2020: addresses that had used the protocol before then qualified, and liquidity providers received additional allocations. Uniswap's own documentation notes that even addresses that had only submitted failed transactions were included. Because nobody knew in advance, the drop rewarded genuine past usage rather than activity aimed at the drop. It set a template that many later protocols followed."
+        },
+        {
+          "heading": "ENS, 2021",
+          "body": "In November 2021 the Ethereum Name Service distributed its ENS governance token to addresses that had registered .eth names. Allocation was based on how long an account had held a name and how long its registration still had to run, rather than on how much money it had spent. The airdrop was per account, not per name, so owning many names did not multiply the reward. Claims stayed open for a limited period, after which unclaimed tokens went to the DAO treasury. It showed that duration of commitment can matter more than volume."
+        },
+        {
+          "heading": "What happens after",
+          "body": "After an airdrop, many recipients sell, and the token's price often moves sharply in the first days of trading. On-chain analysis of the UNI airdrop by Dune found that the number of active recipients fell steeply over the following year. Protocols now know that a large share of activity before a drop may disappear after it. This is one reason modern programs use points, seasons and sybil filtering. For a user, it means airdrops should be seen as an occasional bonus, never as income."
+        }
+      ],
+      "concepts": [
+        { "term": "Airdrop", "definition": "A distribution of tokens to a selected set of wallet addresses, usually free to claim." },
+        { "term": "Retroactive airdrop", "definition": "An airdrop that rewards activity which took place before the airdrop was announced." },
+        { "term": "Snapshot", "definition": "A record of on-chain state at a chosen block or date, used to decide who is eligible." },
+        { "term": "Claim", "definition": "The transaction a recipient sends to a distribution contract to receive allocated tokens." },
+        { "term": "Governance token", "definition": "A token that gives holders voting power over a protocol's decisions." },
+        { "term": "Allocation", "definition": "The amount of tokens assigned to a specific eligible address." }
+      ],
+      "example": {
+        "title": "A surprise reward for normal use",
+        "body": "A user swapped tokens on Uniswap a few times in early 2020 simply because it was the tool she needed. In September 2020 she learned that her address could claim UNI governance tokens because of that past usage. She had done nothing special to qualify. Stories like hers created the idea of airdrop farming, which later made airdrops much harder to design fairly."
+      }
+    },
+    {
+      "slug": "eligibility-signals",
+      "level": "beginner",
+      "title": "Eligibility signals: what protocols tend to reward",
+      "summary": "Protocols decide eligibility using on-chain signals of real usage. You cannot know the exact formula in advance, but you can understand the kinds of behaviour it is likely to measure.",
+      "minutes": 9,
+      "objectives": [
+        "List common on-chain eligibility signals",
+        "Explain why duration and consistency are often weighted",
+        "Describe how governance and liquidity provision can count",
+        "Understand tiers, thresholds and caps in allocation formulas",
+        "Explain why the exact criteria are usually unknown beforehand"
+      ],
+      "sections": [
+        {
+          "heading": "Usage and interactions",
+          "body": "The simplest signal is whether an address used the protocol at all, such as making a swap, a deposit or a bridge transfer. Many formulas also count the number of distinct interactions or the variety of features used. A single transaction may qualify in one airdrop and be filtered out as too small in another. Protocols increasingly look for genuine product use rather than a single click. Using a protocol for what it is meant for is the most durable signal there is."
+        },
+        {
+          "heading": "Volume and fees",
+          "body": "Volume is the total value of transactions an address made, and fees are what it paid to the protocol. Fees are harder to fake than volume, because wash trading back and forth creates volume but still costs money in fees. Some formulas therefore weight fees paid more than raw volume. Large volume can also be capped so that the biggest wallets do not dominate the distribution. Volume alone is a weak signal of genuine use."
+        },
+        {
+          "heading": "Duration and consistency",
+          "body": "Duration measures how long an address has been active, and consistency measures whether it kept coming back. The ENS airdrop is a well-known example of weighting time, since it considered how long names had been held. Activity spread over many weeks or months looks more like a real user than a burst just before a snapshot. Some formulas count distinct active days, weeks or months. Time cannot be bought in bulk, which is why protocols value it."
+        },
+        {
+          "heading": "Governance and liquidity",
+          "body": "Protocols that care about governance may reward addresses that voted, delegated or took part in forums. Providing liquidity is another common signal, because liquidity providers take risk to make the product work for others. How long liquidity stayed and how much was provided both tend to matter. Holding a protocol's NFTs or using partner products sometimes counts too. These signals reward people who helped build the ecosystem, not just people who passed through it."
+        },
+        {
+          "heading": "Tiers, thresholds and caps",
+          "body": "Allocations are rarely a smooth function of activity. Many formulas use tiers, where addresses above certain thresholds receive set amounts, and caps, which stop the most active wallets taking an outsized share. A minimum threshold may exclude addresses with very little activity entirely. Some airdrops combine several criteria into a points score and then map points to tokens. This structure means the last extra transaction often changes nothing."
+        },
+        {
+          "heading": "Why the formula stays secret",
+          "body": "Teams usually keep criteria private until the snapshot has been taken, because published rules are immediately gamed. Any guess about criteria you read online is speculation, even when it sounds confident. Past airdrops give useful clues about what protocols value, but each team designs its own formula. The safest approach is to use products you actually want to use, in a way that reflects real interest. You cannot control eligibility, only your own behaviour and costs."
+        }
+      ],
+      "concepts": [
+        { "term": "Eligibility criteria", "definition": "The rules a protocol uses to decide which addresses receive an allocation." },
+        { "term": "Volume", "definition": "The total value of transactions an address has made through a protocol." },
+        { "term": "Wash trading", "definition": "Trading back and forth with yourself to inflate volume without real economic purpose." },
+        { "term": "Active days", "definition": "The number of distinct days on which an address made at least one transaction." },
+        { "term": "Threshold", "definition": "A minimum level of activity required to qualify for an allocation or a tier." },
+        { "term": "Cap", "definition": "A maximum on how much any single address can receive, regardless of activity." }
+      ],
+      "example": {
+        "title": "Two very different users",
+        "body": "One address made dozens of large swaps in a single afternoon just before rumours of a snapshot. Another made small but regular deposits and withdrawals over many months and voted in two governance proposals. When the airdrop came, the formula capped volume and rewarded active months and governance, so the second address received more. Neither user knew the formula, but only one looked like a genuine participant."
+      }
+    },
+    {
+      "slug": "points-programs",
+      "level": "intermediate",
+      "title": "Points programs and seasons",
+      "summary": "Many protocols now run points programs that make the reward process visible before any token exists. Points help protocols steer behaviour, but they are not tokens and carry no guaranteed value.",
+      "minutes": 9,
+      "objectives": [
+        "Explain what a points program is and how it differs from a token",
+        "Describe seasons and why protocols use them",
+        "Understand multipliers, boosts and referral points",
+        "Explain dilution of points across a growing user base",
+        "Recognise the risks and uncertainties of chasing points"
+      ],
+      "sections": [
+        {
+          "heading": "What points are",
+          "body": "Points are a score a protocol keeps for each address, usually in its own database rather than on-chain. They track actions the protocol wants to encourage, such as deposits, trades or referrals. Points are not tokens: they cannot normally be transferred, and the protocol decides if and how they will ever convert into anything. Programs often state that points may be considered in a future distribution while promising nothing specific. Treat a points balance as a measurement of your activity, not as an asset you own."
+        },
+        {
+          "heading": "Why protocols use them",
+          "body": "Points let a protocol show users that activity is being tracked without committing to a token, a date or an amount. They make it possible to change the rules over time as the team learns what behaviour it wants. A public leaderboard turns usage into competition, which can attract capital quickly. Points also give the team detailed data for later sybil filtering. For the protocol, points are a flexible marketing and growth tool."
+        },
+        {
+          "heading": "Seasons",
+          "body": "Many programs run in seasons, each with its own time window and sometimes its own rules. A season may end with a distribution, with a conversion of points, or simply with a new season beginning. Seasons let protocols reward different behaviour at different stages, for example early deposits first and trading volume later. They also create repeated deadlines that keep users engaged. Joining in a later season usually means competing against users who already hold large balances."
+        },
+        {
+          "heading": "Multipliers, boosts and referrals",
+          "body": "Programs often offer multipliers for certain actions, such as locking funds longer, using a new feature or holding a partner token. Referral systems give points to users who bring in others, sometimes as a share of the new user's points. Boosts can make a small amount of activity look large on the leaderboard. They can also push users into riskier positions, such as leverage or long lockups, in pursuit of a higher multiplier. Always check what risk a multiplier is asking you to take."
+        },
+        {
+          "heading": "Dilution and uncertainty",
+          "body": "Points are a share of an unknown future pool, so their value depends on everyone else's points as well as yours. As more users and capital join, each point represents a smaller share of whatever is eventually distributed. A protocol may also decide to allocate fewer tokens than users expected, or to exclude addresses it judges to be sybils. Some programs have ended with distributions that disappointed many participants. Never assume a conversion rate that the protocol has not announced."
+        }
+      ],
+      "concepts": [
+        { "term": "Points program", "definition": "A system that scores user activity, often off-chain, with a possible but unpromised link to a future distribution." },
+        { "term": "Season", "definition": "A defined period of a points program, often with its own rules and possible distribution at the end." },
+        { "term": "Multiplier", "definition": "A factor that increases the points earned for certain actions or conditions." },
+        { "term": "Referral points", "definition": "Points awarded for bringing new users to a protocol, often linked to their activity." },
+        { "term": "Dilution", "definition": "The fall in each point's share of a fixed reward pool as total points grow." },
+        { "term": "Leaderboard", "definition": "A public ranking of addresses by points or activity." }
+      ],
+      "example": {
+        "title": "The multiplier that was not worth it",
+        "body": "A user sees that locking a deposit for a long period earns a higher points multiplier than a flexible deposit. She calculates that the lockup would leave her unable to exit during a market crash and that the extra points are a small share of a pool nobody has sized. She chooses the flexible option. Weeks later, the protocol changes the multiplier schedule, which confirms that points rules can move at any time."
+      }
+    },
+    {
+      "slug": "testnets-early-ecosystems",
+      "level": "intermediate",
+      "title": "Testnets and early ecosystem participation",
+      "summary": "Testnets and newly launched networks are where protocols find their first real users. Taking part can be genuinely useful to builders, but it costs time and carries no guarantee of reward.",
+      "minutes": 9,
+      "objectives": [
+        "Explain what a testnet is and why it uses valueless tokens",
+        "Describe useful forms of testnet participation",
+        "Understand early mainnet ecosystem activity and its risks",
+        "Recognise quest platforms and badges and what they prove",
+        "Weigh the time cost against an uncertain reward"
+      ],
+      "sections": [
+        {
+          "heading": "What a testnet is",
+          "body": "A testnet is a version of a blockchain or application that runs with tokens that have no monetary value. Developers use it to test software, find bugs and try upgrades before real money is involved. Users get test tokens from a faucet, a service that hands them out for free. Because the tokens are worthless, mistakes cost nothing but time. Some projects have rewarded testnet participants, but many have not, and a testnet is never a promise."
+        },
+        {
+          "heading": "Useful participation",
+          "body": "The most valuable testnet activity is the kind that helps the team: reporting bugs clearly, giving product feedback and testing edge cases. Some networks invite users to run nodes or validators, which tests the infrastructure under real conditions. Thoughtful participation in community channels and documentation feedback can also count. Repeating the same simple transaction many times helps nobody and is easy to detect. If your activity would be useful even without a reward, it is the right kind."
+        },
+        {
+          "heading": "Early mainnet ecosystems",
+          "body": "When a new network launches its mainnet, early users bridge funds and try the first applications built on it. Being early can mean using products before they are well tested, with higher smart contract risk and thinner liquidity. Bridges to new networks are a frequent target for exploits, so only move amounts you can afford to lose. Some ecosystems run programs that reward early activity across many applications. Real money is at stake here, unlike on a testnet."
+        },
+        {
+          "heading": "Quests, badges and campaigns",
+          "body": "Quest platforms list tasks such as following accounts, joining a chat or making a transaction, and reward completion with badges or points. Badges are often minted as NFTs that show you completed a campaign. They prove that an address did something, not that a real person did it carefully. Some quests ask you to connect a wallet and sign messages, which is a security risk on unfamiliar sites. Treat quests as marketing campaigns and check every link."
+        },
+        {
+          "heading": "The time cost",
+          "body": "Testnet and early ecosystem participation costs hours, and those hours have value. Keeping notes of what you did, when, and with which address helps you avoid repeating work and judge whether it was worthwhile. Many participants spend months on networks that never distribute anything to testnet users. Choose projects you are genuinely curious about, because learning is then a reward in itself. Set a limit on the time you will invest before you start."
+        }
+      ],
+      "concepts": [
+        { "term": "Testnet", "definition": "A version of a network that uses valueless tokens so software can be tested safely." },
+        { "term": "Faucet", "definition": "A service that gives out free test tokens for use on a testnet." },
+        { "term": "Mainnet", "definition": "The live version of a network where tokens and transactions have real value." },
+        { "term": "Validator", "definition": "A node operator that helps produce and confirm blocks on a proof-of-stake network." },
+        { "term": "Quest platform", "definition": "A service that lists tasks for users and rewards completion with badges or points." },
+        { "term": "Bug report", "definition": "A clear description of a software problem, with steps to reproduce it, sent to the developers." }
+      ],
+      "example": {
+        "title": "Feedback that mattered",
+        "body": "While testing a new lending app on a testnet, a user notices that the interface shows the wrong collateral value after a price update. She writes a bug report with exact steps, screenshots and the transaction hash. The team fixes it before mainnet and thanks her publicly. Whether or not a reward ever arrives, her contribution was real and the experience taught her how the protocol works."
+      }
+    },
+    {
+      "slug": "wallet-security-airdrops",
+      "level": "advanced",
+      "title": "Wallet setup and security for airdrop hunters",
+      "summary": "Airdrop hunters interact with many new contracts and sites, which makes them a prime target for scams. A layered wallet setup and strict habits protect your main funds.",
+      "minutes": 11,
+      "objectives": [
+        "Design a layered set of wallets for different risk levels",
+        "Explain when a hardware wallet adds protection",
+        "Understand token approvals and permit signatures and how to revoke them",
+        "Identify fake claim sites and phishing patterns",
+        "Explain how wallet drainers work and how to avoid them",
+        "Handle unsolicited tokens and NFTs safely"
+      ],
+      "sections": [
+        {
+          "heading": "Separate wallets by purpose",
+          "body": "Keep long-term savings in a vault wallet that never connects to new or experimental sites. Use a separate active wallet for interacting with protocols, and fund it only with what you need. A third burner wallet can be used for unknown sites, mints and quests, so that a compromise loses little. Moving funds between your own wallets is normal, but keep in mind that it links them on-chain. Separation limits damage, it does not make risky activity safe."
+        },
+        {
+          "heading": "Hardware wallets",
+          "body": "A hardware wallet stores private keys on a separate device and requires a physical confirmation for each signature. This protects against malware on your computer stealing your keys. It does not protect you from approving a malicious transaction yourself, because the device signs whatever you confirm. Read what the device screen shows before approving, especially for unfamiliar contracts. The seed phrase backup must never be typed into any website or app."
+        },
+        {
+          "heading": "Approvals and permits",
+          "body": "When you use a token in a protocol, you often grant the contract an approval to move that token on your behalf. Some approvals are unlimited and stay active until you revoke them, so a compromised or malicious contract can drain the token later. Permit-style signatures can grant the same power through an off-chain signature that costs no gas, which makes them easy to sign without noticing. Review and revoke old approvals regularly using a reputable approval checker. Approve only the amount you need when the interface allows it."
+        },
+        {
+          "heading": "Fake claim sites and phishing",
+          "body": "Every popular airdrop attracts fake claim sites that copy the real design and are promoted through ads, replies and direct messages. Scammers often reply to official announcements with lookalike accounts and links. Only use claim links from the project's official website and verified channels, and bookmark them in advance. Be wary of urgency, such as claims that a window is closing in minutes. A real claim never needs your seed phrase."
+        },
+        {
+          "heading": "Drainers",
+          "body": "A wallet drainer is a malicious script on a phishing site that asks you to sign approvals or permits for all your valuable tokens and NFTs. Once signed, it transfers your assets to the attacker in seconds, and the transactions cannot be reversed. Drainers are sold as kits to scammers, so many sites share the same tricks. Some wallets and browser tools now warn about known drainer contracts, but new ones appear constantly. If you suspect you signed something malicious, move remaining assets from that wallet to a fresh one immediately and revoke approvals."
+        },
+        {
+          "heading": "Unsolicited tokens and NFTs",
+          "body": "Scammers airdrop worthless tokens and NFTs to many wallets with names or descriptions that point to a claim website. Interacting with that site, or trying to sell the token through its own link, can lead to a drainer. Some fake tokens are designed so that trying to swap them triggers a harmful approval. The safest response is to ignore or hide unknown assets in your wallet. A token you did not expect is far more likely to be bait than a gift."
+        }
+      ],
+      "concepts": [
+        { "term": "Vault wallet", "definition": "A wallet for long-term holdings that never connects to new or experimental sites." },
+        { "term": "Burner wallet", "definition": "A low-value wallet used for risky interactions so that a compromise loses little." },
+        { "term": "Token approval", "definition": "Permission granted to a contract to move a specific token from your wallet." },
+        { "term": "Permit signature", "definition": "An off-chain signature that grants a token approval without sending a transaction." },
+        { "term": "Wallet drainer", "definition": "Malicious code that tricks users into signing approvals and then empties their wallet." },
+        { "term": "Phishing", "definition": "Impersonating a trusted site or person to trick users into revealing secrets or signing harmful actions." }
+      ],
+      "example": {
+        "title": "The claim link in the replies",
+        "body": "A protocol announces its airdrop, and within minutes a reply from a lookalike account posts a claim link. A user clicks it from his active wallet, and the site asks for a signature that turns out to be a permit for his stablecoins. He notices the token name on his hardware wallet screen and rejects it. He then claims through the link on the official website, which asks only for a simple claim transaction."
+      }
+    },
+    {
+      "slug": "cost-benefit-capital",
+      "level": "advanced",
+      "title": "Cost, benefit and capital efficiency",
+      "summary": "Every airdrop attempt costs gas, fees, time and the use of your capital. A simple tracking habit shows whether your activity makes sense, and stops sunk costs from driving decisions.",
+      "minutes": 10,
+      "objectives": [
+        "List the direct and indirect costs of airdrop activity",
+        "Explain opportunity cost of locked capital and time",
+        "Account for smart contract, bridge and depeg risks",
+        "Build a simple spreadsheet to track activity and costs",
+        "Use an expected value mindset without assuming any outcome",
+        "Recognise the sunk cost trap"
+      ],
+      "sections": [
+        {
+          "heading": "Direct costs",
+          "body": "The most visible cost is gas, the fee paid to the network for each transaction. On top of that come bridge fees, swap fees, slippage and any protocol fees. On busy networks gas can rise sharply, turning cheap activity into expensive activity within hours. Small accounts are hit hardest, because fees are often fixed per transaction rather than a percentage. Add up every fee, not just the one you notice."
+        },
+        {
+          "heading": "Opportunity cost",
+          "body": "Capital deposited in a protocol to qualify for rewards cannot be used elsewhere at the same time. That is an opportunity cost: the return or flexibility you give up by choosing one use of money over another. Time is the same: hours spent on transactions and quests are hours not spent on work, learning or rest. Lockups make the opportunity cost larger, because you cannot react if conditions change. Always compare an activity with the simplest alternative, such as doing nothing."
+        },
+        {
+          "heading": "Risks that are also costs",
+          "body": "Depositing into new protocols exposes capital to smart contract bugs, exploits and governance failures. Bridging adds bridge risk, and using wrapped or liquid staking tokens can add the risk that they lose their peg. A single exploit can wipe out far more than any reward could replace. These risks are not visible in a fee summary, so you must include them deliberately. A sensible rule is to risk only an amount you would accept losing entirely."
+        },
+        {
+          "heading": "Tracking in a spreadsheet",
+          "body": "A simple spreadsheet turns guesswork into data. Useful columns include the date, the network, the protocol, the wallet used, the action, the amount deposited, gas and fees paid, and time spent. Add a column for notes such as points earned or the status of a campaign. Review it monthly to see total costs per protocol and per wallet. The habit also makes tax records far easier to prepare later."
+        },
+        {
+          "heading": "Expected value without promises",
+          "body": "Expected value is the average result you would get if you repeated a decision many times, weighing each possible outcome by its probability. For airdrops the probabilities and amounts are unknown, so any estimate is rough at best. Even so, the framing is useful: high costs with an uncertain reward need a strong reason. A positive outcome in one past airdrop says nothing reliable about the next. No activity guarantees a reward, and many receive nothing."
+        },
+        {
+          "heading": "The sunk cost trap",
+          "body": "After spending months and fees on a protocol, it feels wasteful to stop, even if the case for continuing has weakened. That feeling is the sunk cost fallacy: past costs cannot be recovered, so they should not drive future decisions. Decide based on what the next month costs and what it might reasonably produce. Setting a budget and an end date in advance makes this easier. Stopping is a valid choice."
+        }
+      ],
+      "concepts": [
+        { "term": "Gas", "definition": "The fee paid to a network to process a transaction." },
+        { "term": "Opportunity cost", "definition": "The value of the best alternative given up when choosing one use of money or time." },
+        { "term": "Depeg", "definition": "When a token designed to track another asset trades away from its intended value." },
+        { "term": "Expected value", "definition": "The probability-weighted average of all possible outcomes of a decision." },
+        { "term": "Sunk cost", "definition": "A cost already paid that cannot be recovered and should not drive future choices." },
+        { "term": "Capital efficiency", "definition": "How much useful activity or return a given amount of capital produces." }
+      ],
+      "example": {
+        "title": "The spreadsheet that changed a plan",
+        "body": "After three months, a user totals her spreadsheet and finds that one network accounts for most of her gas spending, with little activity beyond repeated small swaps. Another protocol, where she actually uses the product, has cost far less. She stops the repetitive activity and keeps the genuine use. The decision has nothing to do with any reward and everything to do with knowing her costs."
+      }
+    },
+    {
+      "slug": "sybil-detection",
+      "level": "expert",
+      "title": "Sybil detection and why multi-wallet farming gets filtered",
+      "summary": "A sybil attack uses many wallets to pose as many users. Protocols now invest heavily in detecting these clusters, and the methods they use explain why farming with many wallets is both risky and unfair.",
+      "minutes": 12,
+      "objectives": [
+        "Define a sybil attack in the context of airdrops",
+        "Explain funding-source analysis and transaction graph clustering",
+        "Describe behavioural patterns that link wallets together",
+        "Describe how community sybil reporting has been used",
+        "Understand false positives and the appeals problem",
+        "Reflect on the ethics of multi-wallet farming"
+      ],
+      "sections": [
+        {
+          "heading": "What a sybil is",
+          "body": "A sybil attack is when one person or group controls many identities to gain more influence or reward than a single participant should. In airdrops, this means running many wallets to collect multiple allocations meant for separate users. Because creating wallets is free, nothing at the protocol level stops this, so teams try to detect it after the fact. Large-scale farming can take a big share of a distribution away from genuine users. That is why sybil filtering has become a standard part of airdrop design."
+        },
+        {
+          "heading": "Funding-source analysis",
+          "body": "Every wallet needs gas to start, and that first funding transaction often reveals who controls it. Wallets funded from the same source address, or from the same exchange deposit address, can be grouped together. Analysts also trace where funds go after activity, such as many wallets sending to the same collection address. Even routing through several hops can leave a pattern of linked transfers. Funding and collection paths are among the strongest links between wallets."
+        },
+        {
+          "heading": "Clustering the transaction graph",
+          "body": "A transaction graph treats addresses as points and transfers between them as connections. Clustering algorithms find groups of addresses that are much more connected to each other than to everyone else. For the Arbitrum airdrop, the Arbitrum Foundation's published sybil detection approach built graphs from transfers on Arbitrum and Ethereum and split large groups using the Louvain community detection algorithm. Known bridges, exchanges and contracts were removed so they did not falsely link unrelated users. Clusters that matched known farming patterns were then excluded."
+        },
+        {
+          "heading": "Behavioural patterns",
+          "body": "Wallets controlled by one operator often behave in the same way: the same sequence of actions, similar amounts, and transactions at nearly the same times. Scripts tend to produce regular timing and identical paths through a protocol. Analysts compare these fingerprints across thousands of addresses to find groups. Even without direct transfers between wallets, near-identical behaviour can be enough to link them. Real users are messy, and that variety is hard to fake at scale."
+        },
+        {
+          "heading": "Community hunting and undisclosed filters",
+          "body": "In 2022 Hop Protocol invited the community to report sybil clusters in its airdrop list, offering a share of the recovered tokens to successful reporters. Reports were submitted publicly with evidence, and confirmed clusters were removed. The same year, Optimism applied an additional round of sybil filtering to its first airdrop and chose not to publish the extra criteria, arguing that explaining them would teach farmers to avoid detection. Both approaches show that filtering continues to evolve. What escaped detection before may not escape it next time."
+        },
+        {
+          "heading": "False positives and ethics",
+          "body": "Sybil filters make mistakes, and genuine users are sometimes excluded because they share a funding source or behave like a script. Appeals processes exist in some airdrops but are often limited. This is one more reason to use protocols in a natural way with your own wallet. On ethics, running many wallets to pose as many users takes rewards intended for real participants and often breaks a program's terms. A fair approach is one wallet per person, used honestly."
+        }
+      ],
+      "concepts": [
+        { "term": "Sybil attack", "definition": "Using many fake identities, such as wallets, to gain influence or rewards meant for distinct individuals." },
+        { "term": "Funding-source analysis", "definition": "Linking wallets by tracing where their first funds came from and where funds were sent." },
+        { "term": "Transaction graph", "definition": "A network of addresses connected by the transfers between them." },
+        { "term": "Clustering", "definition": "Grouping addresses that are closely connected or behave similarly." },
+        { "term": "Louvain algorithm", "definition": "A community detection method that splits a large graph into densely connected groups." },
+        { "term": "False positive", "definition": "A genuine user wrongly flagged as part of a sybil cluster." }
+      ],
+      "example": {
+        "title": "Fifty wallets, one fingerprint",
+        "body": "A farmer funds fifty wallets from one exchange withdrawal address and runs the same script on each, a bridge, two swaps and a deposit within a few minutes. Months later, the airdrop's filter groups all fifty by their shared funding source and identical action sequence. None of them receive an allocation. A genuine user who bridged once, swapped when she needed to and kept using the app is unaffected."
+      }
+    },
+    {
+      "slug": "claiming-vesting-taxes",
+      "level": "expert",
+      "title": "Claiming, vesting, unlocks and taxes",
+      "summary": "Receiving an airdrop involves more than one click. Claim windows, vesting, market conditions at launch and tax rules all shape what happens next, and each decision is yours to make.",
+      "minutes": 11,
+      "objectives": [
+        "Claim safely through official channels within a claim window",
+        "Explain vesting and unlock schedules for airdropped tokens",
+        "Describe market conditions often seen at token launch",
+        "List factors people weigh when choosing to sell or hold",
+        "Understand that airdrop taxation varies by country",
+        "Keep records that support tax reporting"
+      ],
+      "sections": [
+        {
+          "heading": "Claiming safely",
+          "body": "Most airdrops require a claim transaction to a distribution contract, and many have a limited claim window. ENS, for example, kept claims open for a set period and sent unclaimed tokens to its DAO treasury afterwards. Use only the claim link from the official website or verified channels, and expect fake sites to appear at the same moment. Check the contract address against official sources when you can. Claim from the wallet that is eligible, and never share a seed phrase to do so."
+        },
+        {
+          "heading": "Vesting and unlocks",
+          "body": "Some airdrops release tokens all at once, while others vest them over time or unlock a portion at launch and the rest later. Vesting is designed to reduce immediate selling and reward recipients who stay. Investor and team tokens usually have their own unlock schedules, which can add supply to the market long after the airdrop. Read the token's published distribution to see when large unlocks occur. Supply arriving over time is part of the picture for every holder."
+        },
+        {
+          "heading": "Conditions at launch",
+          "body": "When a token begins trading, liquidity can be thin and prices volatile, especially in the first hours. Many recipients receive tokens at the same time and some sell quickly, while new buyers arrive from exchange listings. Fake tokens with the same name may appear on decentralised exchanges, so verify the contract address before trading. Gas can spike on the network as everyone claims at once. Calm, verified actions matter more than speed."
+        },
+        {
+          "heading": "Selling or holding: the considerations",
+          "body": "Whether to sell, hold or use a token is a personal decision that depends on your circumstances, and this course does not give advice either way. People commonly weigh their view of the protocol's future, the token's role such as governance, the size of the position relative to their wealth, upcoming unlocks and their tax situation. Some decide on a plan before the claim so that emotion at launch does not drive it. Using a token in governance is another option that some recipients choose. Whatever you decide, write down why."
+        },
+        {
+          "heading": "Taxes in general terms",
+          "body": "Tax treatment of airdrops differs from country to country, and rules continue to change. In some places tokens may be treated as income when received, with a later sale creating a separate gain or loss, while other places treat them differently. Points, testnet rewards and vesting can raise further questions. Because the details depend on your jurisdiction and situation, consult a qualified tax professional. Nothing in this module is tax advice."
+        },
+        {
+          "heading": "Records that help",
+          "body": "Good records make any tax approach easier. Keep the date and time of each claim, the amount received, the transaction hash, and a reference value from a reliable source at that moment. Record every later sale, swap or transfer with the same details. Your activity spreadsheet from earlier modules already covers much of this. Records kept as you go are far more reliable than ones rebuilt a year later."
+        }
+      ],
+      "concepts": [
+        { "term": "Claim window", "definition": "The period during which eligible addresses can claim an airdrop before it closes." },
+        { "term": "Vesting", "definition": "Releasing tokens to holders gradually over time rather than all at once." },
+        { "term": "Unlock", "definition": "An event when previously locked tokens become transferable." },
+        { "term": "Token launch", "definition": "The moment a token begins trading on exchanges." },
+        { "term": "Transaction hash", "definition": "A unique identifier for a blockchain transaction, useful as a record." },
+        { "term": "Jurisdiction", "definition": "The country or region whose laws, including tax rules, apply to you." }
+      ],
+      "example": {
+        "title": "A calm claim day",
+        "body": "Before an expected claim, a user bookmarks the official site, notes the token contract from the project's documentation and writes down her plan for the tokens. On the day, she ignores claim links in social media replies, claims through her bookmark and logs the transaction hash and amount in her spreadsheet. She checks the contract address before any trade. Later she sends her records to a tax professional who knows her country's rules."
+      }
+    }
+  ],
+  "questions": [
+    { "module": "what-are-airdrops", "difficulty": "easy", "prompt": "What is a retroactive airdrop?", "options": ["One that rewards activity before it was announced", "One that is paid back to users if the token loses value", "One that can only be claimed after a year", "One that sends tokens back to the team"], "answer": 0, "explanation": "A retroactive airdrop rewards past activity. Uniswap's 2020 UNI airdrop is a classic example." },
+    { "module": "what-are-airdrops", "difficulty": "easy", "prompt": "What is a snapshot in the context of an airdrop?", "options": ["A screenshot that users post publicly to prove eligibility", "A record of on-chain state used for eligibility", "A short video explaining the airdrop rules", "A fee charged to claim an airdropped token"], "answer": 1, "explanation": "A snapshot records on-chain activity up to a chosen block or date, and the eligibility list is built from it." },
+    { "module": "what-are-airdrops", "difficulty": "easy", "prompt": "Who qualified for Uniswap's 2020 UNI airdrop?", "options": ["Anyone who signed up on a waiting list", "Only holders of a specific Uniswap-branded NFT collection", "Addresses that used Uniswap before the snapshot", "Users who bought UNI on an exchange first"], "answer": 2, "explanation": "Eligibility was based on past use of the protocol before the 1 September 2020 snapshot, with extra allocations for liquidity providers." },
+    { "module": "what-are-airdrops", "difficulty": "easy", "prompt": "What did the ENS airdrop weigh when setting allocations?", "options": ["The total value of ETH held in the wallet at the snapshot", "The number of social media followers held", "The amount of gas each address had spent", "How long names were held and still registered"], "answer": 3, "explanation": "ENS considered how long an account had held .eth names and how long registrations still had to run, per account rather than per name." },
+    { "module": "what-are-airdrops", "difficulty": "easy", "prompt": "What is a main reason protocols distribute governance tokens by airdrop?", "options": ["To spread ownership and voting to real users", "To raise money from the users who later claim the tokens", "To replace the need for a protocol team", "To guarantee a fixed price for the token"], "answer": 0, "explanation": "Airdrops put governance tokens in users' hands, spreading voting power beyond the team and early investors." },
+
+    { "module": "eligibility-signals", "difficulty": "easy", "prompt": "Why are fees paid often a stronger signal than raw volume?", "options": ["Fees are published before the snapshot", "Inflating volume still costs real money in fees", "Volume cannot be measured reliably on most blockchains", "Fees are only paid by verified human users"], "answer": 1, "explanation": "Wash trading can inflate volume, but every trade still pays fees, so fees are harder to fake than volume." },
+    { "module": "eligibility-signals", "difficulty": "easy", "prompt": "Why do many formulas reward duration and consistency?", "options": ["Long-term users always hold larger balances", "Older wallets pay lower gas on most networks", "Time active is hard to fake or buy in bulk", "Protocols are required to reward old wallets"], "answer": 2, "explanation": "Activity spread over months looks like a real user and cannot simply be bought at the last minute." },
+    { "module": "eligibility-signals", "difficulty": "easy", "prompt": "What does a cap do in an airdrop allocation formula?", "options": ["Sets the earliest date on which users can claim their tokens", "Requires a minimum number of transactions", "Removes all addresses linked to exchanges", "Limits the maximum any one address can receive"], "answer": 3, "explanation": "A cap stops the most active wallets taking an outsized share of the distribution." },
+    { "module": "eligibility-signals", "difficulty": "easy", "prompt": "Why do teams usually keep airdrop criteria secret until after the snapshot?", "options": ["Published rules would be gamed immediately", "Regulators forbid publishing criteria early", "Criteria are chosen at random after launch", "Users prefer not to know the exact rules"], "answer": 0, "explanation": "If criteria were known in advance, farmers would target them directly, so teams reveal them only after the snapshot." },
+    { "module": "eligibility-signals", "difficulty": "easy", "prompt": "Which behaviour is the most durable eligibility signal over time?", "options": ["Making many identical swaps in one hour", "Using a protocol for its intended purpose", "Copying actions from airdrop guides exactly", "Bridging funds back and forth repeatedly"], "answer": 1, "explanation": "Formulas change between airdrops, but genuine use of the product is what protocols consistently try to reward." },
+
+    { "module": "points-programs", "difficulty": "medium", "prompt": "How do points usually differ from tokens?", "options": ["Points can always be sold on exchanges", "Points are stored as tokens inside every user's own wallet", "Points are a tracked score, not owned assets", "Points have a fixed conversion to tokens"], "answer": 2, "explanation": "Points are typically kept in the protocol's records, are not transferable and carry no promised conversion." },
+    { "module": "points-programs", "difficulty": "medium", "prompt": "What is dilution in a points program?", "options": ["Points expire if not used within a season", "Referral points are split with the referrer", "A multiplier is reduced once the deposit's lockup period ends", "Each point's share shrinks as total points grow"], "answer": 3, "explanation": "Points are a share of an unknown future pool, so as more points are issued, each represents a smaller portion." },
+    { "module": "points-programs", "difficulty": "medium", "prompt": "Why should you check what a points multiplier asks of you?", "options": ["It may push you into extra risk such as lockups", "It always reduces your total points balance for the season", "It must be approved by a governance vote", "It requires a new wallet for every action"], "answer": 0, "explanation": "Multipliers often reward leverage, longer lockups or new features, each of which can add risk." },
+    { "module": "points-programs", "difficulty": "medium", "prompt": "What is a season in a points program?", "options": ["A period when points can be traded freely", "A defined window with its own rules and timing", "A tax period used for reporting income earned from points", "A list of wallets excluded from rewards"], "answer": 1, "explanation": "Seasons divide a program into time windows, often with different rules and sometimes a distribution at the end." },
+    { "module": "points-programs", "difficulty": "medium", "prompt": "Which statement about points conversion is accurate?", "options": ["Conversion rates are set by the exchanges", "Every point converts to exactly one token on the launch day", "Assume no rate the protocol has not announced", "Referral points convert at double the rate"], "answer": 2, "explanation": "Protocols decide if and how points convert, and they can change rules or exclude addresses, so unannounced rates are guesses." },
+
+    { "module": "testnets-early-ecosystems", "difficulty": "medium", "prompt": "Why do testnet tokens have no monetary value?", "options": ["They are burned at the end of each day", "They are only usable by the core developers", "They are backed by a stablecoin reserve", "So software can be tested without real risk"], "answer": 3, "explanation": "Valueless tokens let developers and users test software and upgrades without real money at stake." },
+    { "module": "testnets-early-ecosystems", "difficulty": "medium", "prompt": "Which testnet activity is most useful to the project team?", "options": ["Clear bug reports with steps to reproduce", "Repeating the same transaction many times", "Requesting faucet tokens as often as possible", "Posting the testnet link in many chat groups"], "answer": 0, "explanation": "Bug reports and thoughtful feedback help the team improve the product. Repetitive transactions add little and are easy to detect." },
+    { "module": "testnets-early-ecosystems", "difficulty": "medium", "prompt": "How does early mainnet activity differ from testnet activity?", "options": ["Mainnet activity never counts for rewards", "Real funds are at risk on mainnet", "Mainnet transactions need no gas fees", "Testnets have stronger bridge security"], "answer": 1, "explanation": "Mainnet uses tokens with real value, so smart contract and bridge risks can cause real losses." },
+    { "module": "testnets-early-ecosystems", "difficulty": "medium", "prompt": "What does a quest badge NFT actually prove?", "options": ["That a real person completed a task", "That the holder is eligible for an airdrop", "That an address completed a campaign task", "That the project has passed a security audit"], "answer": 2, "explanation": "A badge shows an address did something. It does not prove a unique human was behind it or that any reward will follow." },
+    { "module": "testnets-early-ecosystems", "difficulty": "medium", "prompt": "What is a sensible way to manage the time cost of testnet participation?", "options": ["Join every testnet announced to maximise chances", "Run scripts to automate all testnet tasks", "Stop keeping notes to save time on each task", "Set a time limit and pick projects you value"], "answer": 3, "explanation": "Many testnets never reward participants, so limiting time and choosing projects you care about keeps the effort worthwhile." },
+
+    { "module": "wallet-security-airdrops", "difficulty": "hard", "prompt": "What is the purpose of a burner wallet in an airdrop setup?", "options": ["To limit losses from risky interactions", "To store long-term savings safely offline", "To hide all activity from the blockchain", "To claim airdrops for multiple people"], "answer": 0, "explanation": "A burner holds little value and is used on unfamiliar sites, so a compromise costs little." },
+    { "module": "wallet-security-airdrops", "difficulty": "hard", "prompt": "What can a hardware wallet NOT protect you from?", "options": ["Malware reading keys from your computer", "Approving a malicious transaction yourself", "Remote theft of keys stored on the device", "Software that copies your browser data"], "answer": 1, "explanation": "The device signs whatever you confirm. If you approve a malicious transaction, the hardware wallet will execute it." },
+    { "module": "wallet-security-airdrops", "difficulty": "hard", "prompt": "Why are permit signatures especially easy to misuse against users?", "options": ["They always require a large gas payment", "They can only be signed on hardware wallets", "They grant approvals without a transaction", "They expire within one block of signing"], "answer": 2, "explanation": "Permits grant spending power through an off-chain signature that costs no gas, so users may sign them without realising what they allow." },
+    { "module": "wallet-security-airdrops", "difficulty": "hard", "prompt": "An unknown token appears in your wallet with a link to claim a reward. What is the safest response?", "options": ["Swap it immediately on any exchange you can", "Visit the link from a burner wallet to check", "Send it back to the address it came from", "Ignore or hide it and do not visit the link"], "answer": 3, "explanation": "Unsolicited tokens are a common lure toward drainer sites, and some trigger harmful approvals when traded. Ignoring them is safest." },
+    { "module": "wallet-security-airdrops", "difficulty": "hard", "prompt": "You think you signed a drainer approval. What should you do first?", "options": ["Move remaining assets to a fresh wallet", "Wait to see if any assets actually move", "Post your seed phrase to support for help", "Sign another approval to cancel the first"], "answer": 0, "explanation": "Drainers act fast and cannot be reversed. Moving remaining assets to a new wallet and then revoking approvals limits the damage." },
+
+    { "module": "cost-benefit-capital", "difficulty": "hard", "prompt": "Why do fixed per-transaction fees hurt small accounts the most?", "options": ["Small accounts pay a higher gas price per unit", "The fee is a larger share of a small amount", "Networks block small accounts at busy times", "Small accounts cannot use fee-free bridges"], "answer": 1, "explanation": "A fee that is the same for everyone takes a much bigger percentage of a small transaction than a large one." },
+    { "module": "cost-benefit-capital", "difficulty": "hard", "prompt": "What is the opportunity cost of locking capital in a protocol for points?", "options": ["The gas fee paid to make the deposit", "The tax that becomes due when the points are first earned", "What you give up by not using it elsewhere", "The fee the protocol takes on withdrawal"], "answer": 2, "explanation": "Opportunity cost is the value of the best alternative you give up, including flexibility to react when conditions change." },
+    { "module": "cost-benefit-capital", "difficulty": "hard", "prompt": "Which risk does not appear in a simple fee summary but must still be considered?", "options": ["The gas paid for each transaction", "The swap fee charged by a DEX", "The bridge fee shown before sending", "A smart contract exploit on a deposit"], "answer": 3, "explanation": "Exploits, bridge failures and depegs are hidden costs. They can exceed any reward and must be weighed deliberately." },
+    { "module": "cost-benefit-capital", "difficulty": "hard", "prompt": "After months of fees on one protocol, why should past spending not decide whether you continue?", "options": ["Past costs are sunk and cannot be recovered", "Past costs are refunded if you stop early", "Past costs raise your eligibility tier", "Past costs reduce future gas fees"], "answer": 0, "explanation": "The sunk cost fallacy makes people continue to justify past spending. Decisions should rest on future costs and benefits." },
+    { "module": "cost-benefit-capital", "difficulty": "hard", "prompt": "Why is expected value only a rough guide for airdrop decisions?", "options": ["It can only be calculated after the snapshot", "Probabilities and amounts are mostly unknown", "It ignores all of the costs you have paid", "It is banned by most protocols' terms"], "answer": 1, "explanation": "Expected value weighs outcomes by probability, but for airdrops both are unknown, so it is useful as a framing rather than a forecast." },
+
+    { "module": "sybil-detection", "difficulty": "expert", "prompt": "Why is funding-source analysis such a strong way to link wallets?", "options": ["All wallets must register with an exchange", "Wallet addresses contain the owner's name", "Each wallet needs gas, and the source shows", "Protocols require proof of funding to claim"], "answer": 2, "explanation": "A new wallet must receive funds to pay gas, and shared funding or collection addresses often reveal common control." },
+    { "module": "sybil-detection", "difficulty": "expert", "prompt": "In the Arbitrum Foundation's published sybil approach, what was the Louvain algorithm used for?", "options": ["Estimating the price of the token at launch", "Calculating gas costs for each cluster", "Verifying the identity of each wallet owner", "Splitting large graphs into tighter groups"], "answer": 3, "explanation": "Louvain community detection splits large transfer graphs into densely connected groups, refining which addresses form a cluster." },
+    { "module": "sybil-detection", "difficulty": "expert", "prompt": "Why were known bridges and exchanges removed before clustering wallets?", "options": ["They would falsely link unrelated users", "They are not allowed to receive airdrops", "They pay no gas on the networks studied", "They always belong to sybil operators"], "answer": 0, "explanation": "Huge numbers of unrelated users touch the same bridges and exchanges, so including them would merge innocent addresses into clusters." },
+    { "module": "sybil-detection", "difficulty": "expert", "prompt": "Why did Optimism choose not to publish its additional sybil filters for its first airdrop?", "options": ["The filters were written by an outside firm", "Publishing them would help farmers evade them", "The filters were removed before launch", "Regulators required that the filtering criteria stay private"], "answer": 1, "explanation": "Optimism argued that explaining the extra filters would teach farmers how to become undetectable." },
+    { "module": "sybil-detection", "difficulty": "expert", "prompt": "What was distinctive about Hop Protocol's 2022 approach to sybil filtering?", "options": ["It required every user to pass KYC first", "It paid every flagged address a refund", "It invited the community to report clusters", "It removed every wallet that was ever funded by an exchange"], "answer": 2, "explanation": "Hop asked the community to submit evidence of sybil clusters and rewarded successful reporters with a share of recovered tokens." },
+
+    { "module": "claiming-vesting-taxes", "difficulty": "expert", "prompt": "What happened to unclaimed tokens after the ENS claim window closed?", "options": ["They were burned permanently by the team", "They were split among existing claimers", "They were returned to early investors", "They were sent to the ENS DAO treasury"], "answer": 3, "explanation": "ENS kept claims open for a set period, after which unclaimed tokens went to the DAO treasury." },
+    { "module": "claiming-vesting-taxes", "difficulty": "expert", "prompt": "Why is it important to verify the token contract address before trading after a launch?", "options": ["Fake tokens with the same name often appear", "Contract addresses change every few hours", "Exchanges require the address to place orders", "The address decides your tax treatment"], "answer": 0, "explanation": "Scammers deploy lookalike tokens with the same name, so only the official contract address identifies the real one." },
+    { "module": "claiming-vesting-taxes", "difficulty": "expert", "prompt": "Why should holders of an airdropped token watch investor and team unlock schedules?", "options": ["Unlocks reduce the total supply of the token", "Unlocks can add supply long after the airdrop", "Unlocks cancel any airdrop still unclaimed", "Unlocks set the tax rate for airdrop income"], "answer": 1, "explanation": "Team and investor tokens often unlock on their own schedules, adding supply to the market over time." },
+    { "module": "claiming-vesting-taxes", "difficulty": "expert", "prompt": "Which statement about airdrop taxation is accurate?", "options": ["Airdrops are tax-free in every country", "Only sales of airdropped tokens are ever taxed", "Treatment varies, so consult a professional", "Tax is always paid by the protocol itself"], "answer": 2, "explanation": "Rules differ by jurisdiction and change over time. A qualified tax professional can explain how they apply to you." },
+    { "module": "claiming-vesting-taxes", "difficulty": "expert", "prompt": "Which record is most useful to keep for each airdrop claim?", "options": ["The number of followers the project had", "A screenshot of the announcement post", "The price prediction made by an influencer", "Date, amount, transaction hash and value"], "answer": 3, "explanation": "Date, amount received, transaction hash and a reference value at that moment form the core record for later reporting." }
+  ]
+}
