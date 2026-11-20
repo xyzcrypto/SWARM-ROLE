@@ -59,9 +59,10 @@ describe("the desktop rail fits the links it has", () => {
     // which is right, but it must be a decision someone saw. `/saved` is
     // per-member and belongs here rather than in the six-link rail, which is
     // already eight pixels from overflowing at its breakpoint. `/creators` (the
-    // creator leaderboard) joined "More" for the same reason, and so did `/academy`.
+    // creator leaderboard) joined "More" for the same reason, and so did `/academy`
+    // and `/feedback`.
     const more = moreLinks.map((l) => l.href).sort();
-    expect(more).toEqual(["/academy", "/contact", "/creators", "/premium", "/saved", "/tools"]);
+    expect(more).toEqual(["/academy", "/contact", "/creators", "/feedback", "/premium", "/saved", "/tools"]);
   });
 
   it("still appears only from xl, for the eight-pixel reason above", () => {

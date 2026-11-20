@@ -119,6 +119,7 @@ model User {
   // and the 1-XP-a-day engagement actions must not move those rankings.
   academyProfile      AcademyProfile?
   academyXp           AcademyXp[]
+  feedback            Feedback[]
   academyAttempts     AcademyAttempt[]
   academyProgress     AcademyProgress[]
   academyAchievements AcademyAchievement[]
@@ -1416,4 +1417,29 @@ model AcademyBoardSnap {
   ranks     Json // { userId: rank }
   prevRanks Json
   takenAt   DateTime @default(now())
+}
+
+/// Site feedback from /feedback. Guests may send it (userId null); members earn
+/// Academy XP for it through the idempotent AcademyXp ledger. The owner is
+/// notified by email + Telegram, and staff with `feedback:manage` triage it on
+/// /dashboard/feedback.
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  name      String? // guests only; members are shown by their profile
+  contact   String? // guests only, optional: email or @telegram
+  category  String // bug | idea | design | content | praise | other
+  rating    Int // 1-5
+  message   String
+  page      String   @default("")
+  status    String   @default("new") // new | seen | done
+  xp        Int      @default(0) // XP paid when it was sent
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
 }

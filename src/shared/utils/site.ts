@@ -53,6 +53,7 @@ export const navLinks = [
   { label: "Saved", href: "/saved" },
   { label: "Community", href: "/community" },
   { label: "Premium", href: "/premium" },
+  { label: "Feedback", href: "/feedback" },
   { label: "Contact", href: "/contact" },
 ];
 

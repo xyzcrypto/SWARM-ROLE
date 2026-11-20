@@ -18,6 +18,7 @@ export const PERMISSIONS = {
   "users:roles": "Grant staff roles & permissions",
   "ai:manage": "View AI usage & set members' AI limits",
   "academy:manage": "Manage the Academy: lessons, quizzes, live quizzes & certificates",
+  "feedback:manage": "Read & triage member feedback",
 } as const;
 
 export type Permission = keyof typeof PERMISSIONS;

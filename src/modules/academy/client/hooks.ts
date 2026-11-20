@@ -51,7 +51,7 @@ async function fetchMe(force = false) {
  * The signed-in member's Academy dashboard. `status` mirrors the session so
  * the page can show the sign-in prompt instead of a spinner for guests.
  */
-export function useMe() {
+export function useMe(enabled = true) {
   const { status } = useSession();
   const [, force] = useState(0);
   useEffect(() => {
@@ -62,12 +62,12 @@ export function useMe() {
     };
   }, []);
   useEffect(() => {
-    if (status === "authenticated") void fetchMe();
+    if (status === "authenticated" && enabled) void fetchMe();
     if (status === "unauthenticated" && meCache.data) {
       meCache = { data: null, error: null, at: 0, inflight: null };
       meEmit();
     }
-  }, [status]);
+  }, [status, enabled]);
   const reload = useCallback(() => fetchMe(true), []);
   return { me: status === "authenticated" ? meCache.data : null, status, error: meCache.error, reload };
 }
