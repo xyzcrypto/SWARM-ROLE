@@ -5,6 +5,19 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-21 (167) — Academy hero fits one screen; numbers and certificates move below it
+
+- The hero stage now holds only the intro (greeting, headline, copy, buttons, and the
+  quick tiles on phones) and the daily-challenge ticket. On desktop the copy column is
+  centred against the ticket, and the whole hero fits the first screen at 1440x900 and
+  1366x768.
+- The stat tiles, track rail, activity ticker, promises and "Latest certificates" are
+  now their own strip directly under the hero: the numbers on the left, certificates
+  on the right (stacked on phones).
+- Phones: the stat labels fit their tiles ("QUESTIONS" was cut off).
+
+---
+
 ## 2026-11-21 (166) — Nothing gets stuck: quiz, AneQue's voice, navigation; Academy hero v6
 
 - **AneQue's voice in order.** A clip that failed fired both `onerror` and the rejected
