@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, ImagePlus, Loader2, LogIn, Mic, Music, Send, Sparkles, Square, Volume2, VolumeX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { play, say, sayOneOf, setScene, sfx, stopVoice, tryAutoUnlock, unlock, updateSettings, type Piece } from "@modules/academy/client/audio";
+import { lineFor, play, say, sayOneOf, setScene, sfx, stopVoice, tryAutoUnlock, unlock, updateSettings, type Piece } from "@modules/academy/client/audio";
 import { useAudio } from "@modules/academy/client/hooks";
 import { greetName } from "@modules/academy/client/name-bank";
 import { hey } from "@modules/academy/client/greet";
@@ -39,7 +39,7 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   done: { label: "Shipped", cls: "bg-mint-400/15 text-mint-300" },
 };
 
-const line = (k: keyof typeof VOICE_LINES): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
+const line = (k: keyof typeof VOICE_LINES): Piece => lineFor(k);
 
 export function FeedbackClient() {
   const { data: session, status } = useSession();

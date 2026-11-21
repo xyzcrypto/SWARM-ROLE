@@ -9,6 +9,7 @@
 // the learner stops talking, so there is no button to hold.
 
 import { getPageBrief } from "./page-brief";
+import { getSnapshot } from "./audio";
 
 export type TalkContext = {
   page?: string;
@@ -167,6 +168,7 @@ export const askAneque = (messages: Turn[]) => {
         page: context.page ?? (typeof location !== "undefined" ? location.pathname : undefined),
         // Live numbers from Markets / News / Points, so answers use them.
         pageData: brief ? safeContext(brief) : undefined,
+        language: getSnapshot().settings.lang === "hi" ? "hinglish" : "english",
       },
     }),
   });

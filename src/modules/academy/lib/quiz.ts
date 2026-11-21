@@ -17,7 +17,7 @@ import {
   weekKey,
 } from "./engine";
 import { checkAchievements, grant, pingBoards, quizXpToday, type Unlocked } from "./xp";
-import { clip } from "./voice";
+import { clip, hinglish } from "./voice";
 
 /** Network slack on every answer deadline. Timing itself is the server's clock. */
 export const GRACE_MS = 1_500;
@@ -194,6 +194,7 @@ function publicQuestion(a: AttemptRow, q: QRow & { category: { title: string } }
   const servedAt = a.servedAt.getTime();
   return {
     voice: { prompt: clip(q.prompt), options: order.map((o) => clip(options[o])) },
+    hi: { prompt: hinglish(q.prompt), options: order.map((o) => hinglish(options[o])) },
     hidden: a.fiftyUsed.includes(index) ? fiftyHide(a, index, q.answer) : [],
     fiftyLeft: 0,
     index,
@@ -227,6 +228,7 @@ function reviewRow(a: AttemptRow, q: QRow, index: number) {
     assisted: ans?.assisted ?? false,
     explanation: q.explanation,
     voice: { prompt: clip(q.prompt), explanation: clip(q.explanation) },
+    hi: { prompt: hinglish(q.prompt), options: order.map((o) => hinglish(options[o])), explanation: hinglish(q.explanation) },
   };
 }
 
@@ -343,6 +345,7 @@ export async function answerQuiz(userId: string, attemptId: string, index: numbe
     correctShown: order.indexOf(q.answer),
     explanation: q.explanation,
     voice: { explanation: clip(q.explanation) },
+    hi: { explanation: hinglish(q.explanation) },
     points,
     fresh,
     assisted,

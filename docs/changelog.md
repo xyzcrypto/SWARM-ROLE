@@ -5,6 +5,38 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-21 (165) — Academy in Hinglish, with AneQue's voice; every lesson and answer explained aloud
+
+- **EN / Hinglish switch** in the Academy bar (remembered per browser). Hinglish covers every
+  lesson (title, summary, objectives, sections, key concepts, worked example), every quiz
+  question, option and explanation, the live arena and the results review — 5,380 strings,
+  written in Roman-script Hinglish, plus all 250 of AneQue's scripted lines.
+- **Voice:** every Hinglish string has its own recording (Sarvam Bulbul v3, speaker
+  "Simran", 48 kHz) under `public/academy/voice/h/<hash>.mp3` and `voice/hi/<line>.mp3`,
+  listed in `content/voice-manifest-hi.json` (5,380 + 250 clips, ~285 MB).
+- **Explained aloud:** right answers are now explained too (setting "Explain right answers
+  too", on by default), each explanation has a "Hear the explanation" button, and
+  "Listen to this lesson" reads the summary, every section and the example in recorded
+  clips (622 new English section/example clips).
+- **Live Talk** answers in natural Hinglish when the switch is on.
+- Cost: static files only, served from the CDN; no new routes, no new polling.
+- Gate: `HINGLISH_READY` (client) is now `true`; `academy-hinglish.test.ts` fails if any
+  Hinglish string or scripted line lacks a recording.
+
+---
+
+## 2026-11-20 (164) — Academy hero v5: a structured, app-like phone layout
+
+- Phones read like an app home screen: greeting + live badge, a tighter balanced headline
+  ("Web3." in gold), Start Learning and Live Quiz side by side with a compact AneQue button,
+  then four quick-action tiles (Daily, Quick quiz, Ranks, Certificates), then today's
+  challenge card, then the numbers, tracks and promises (a single scrollable chip row).
+- Done with CSS grid areas, so desktop keeps copy-left / card-right with no duplicate markup.
+- The "—" placeholders: the stats show a shimmer while loading, and the pulse request retries
+  once (a cold start used to leave dashes up until the next refresh).
+
+---
+
 ## 2026-11-20 (163) — Smoothness round 2, live market prices, AneQue on Markets/News/Points, share cards, premium certificate, public profiles
 
 ### Smoothness (owner's top priority)

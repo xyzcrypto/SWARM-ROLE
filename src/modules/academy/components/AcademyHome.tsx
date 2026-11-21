@@ -27,11 +27,16 @@ export function AcademyHome() {
   const [catalog, setCatalog] = useState<CatalogCategory[] | null>(null);
   const { me, status } = useMe();
 
+  // The live numbers in the hero. One quiet retry: a cold function or a
+  // dropped request used to leave "—" placeholders up until the next ping.
   const loadPulse = useCallback(async () => {
-    try {
-      setPulse(await getJson<Pulse>("/api/academy/pulse"));
-    } catch {
-      /* keep what is on screen */
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        setPulse(await getJson<Pulse>("/api/academy/pulse"));
+        return;
+      } catch {
+        await new Promise((r) => setTimeout(r, 2500));
+      }
     }
   }, []);
 

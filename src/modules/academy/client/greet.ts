@@ -19,7 +19,11 @@ export function greetPage(path: string | null | undefined): GreetPage {
   return "other"; // quizzes, lessons and the arena have their own lines
 }
 
-const v = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
+/** English by default; the caller passes lineFor() so Hinglish mode is honoured. */
+let v = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
+export function setGreetLineResolver(fn: (k: VoiceLine) => Piece) {
+  v = fn;
+}
 
 /** "Hey Rahul!" in her recorded voice when the name is in the bank, else the browser voice. */
 export function hey(name: string | null): Piece {

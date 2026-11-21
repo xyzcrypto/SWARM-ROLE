@@ -745,3 +745,46 @@ html:not(.dark) .acad-cert-qr {
   80% { opacity: 1; }
   100% { opacity: 0; transform: translate(-50%, -14px) scale(0.98); }
 }
+
+/* ---------------------------------------------------------------- hero v5
+   Grid areas: phones read intro -> today's card -> numbers; desktop keeps the
+   copy column left and the card right, spanning both rows. */
+.acad-hero-grid {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: "top" "card" "bottom";
+}
+@media (min-width: 1024px) {
+  .acad-hero-grid {
+    grid-template-columns: minmax(0, 1fr) 25rem;
+    grid-template-areas: "top card" "bottom card";
+    align-items: start;
+  }
+}
+@media (min-width: 1280px) {
+  .acad-hero-grid {
+    grid-template-columns: minmax(0, 1fr) 27rem;
+  }
+}
+/* Phone headline: tighter, balanced lines instead of a ragged 4-line block. */
+@media (max-width: 1023px) {
+  .acad-hero-title {
+    font-size: clamp(2.05rem, 8.4vw, 3.1rem);
+    line-height: 1.06;
+    text-wrap: balance;
+  }
+}
+.acad-quick:active {
+  transform: scale(0.97);
+}
+.acad-skel {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+  background-size: 200% 100%;
+  animation: acad-skel 1.2s ease-in-out infinite;
+}
+html:not(.dark) .acad-skel {
+  background: linear-gradient(90deg, rgba(16, 18, 27, 0.06), rgba(16, 18, 27, 0.12), rgba(16, 18, 27, 0.06));
+  background-size: 200% 100%;
+}
+@keyframes acad-skel {
+  to { background-position: -200% 0; }
+}

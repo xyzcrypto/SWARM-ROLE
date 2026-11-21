@@ -3,13 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowDown, ArrowUp, Award, CheckCircle2, ChevronDown, Copy, GraduationCap, RotateCcw, Share2, Sparkles, Swords, Timer, Trophy, XCircle } from "lucide-react";
+import { Headphones, ArrowDown, ArrowUp, Award, CheckCircle2, ChevronDown, Copy, GraduationCap, RotateCcw, Share2, Sparkles, Swords, Timer, Trophy, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { play, say, sfx, type Piece } from "../client/audio";
-import { useAudio } from "../client/hooks";
+import { lineFor, play, say, sfx, unlock, type Piece } from "../client/audio";
+import { useAudio, useLang } from "../client/hooks";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 
-const line = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
+const line = (k: VoiceLine): Piece => lineFor(k);
 import type { QuizResult } from "./types";
 import { ShareSheet } from "./ShareSheet";
 import { burstConfetti, CountUp, DIFF_LABEL, DIFF_TONE, duration, Eyebrow, fmt, Panel, Pill, ProgressBar, shareOnX } from "./ui";
@@ -59,6 +59,7 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
   const [review, setReview] = useState(false);
   const [copied, setCopied] = useState(false);
   const { settings } = useAudio();
+  const lang = useLang();
   const leveled = r.level.after.level > r.level.before.level;
   const announced = useRef(false);
   // The share link is a page whose preview is the score card; it offers the
@@ -297,7 +298,7 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
                       <Pill tone={DIFF_TONE[q.difficulty]}>{DIFF_LABEL[q.difficulty]}</Pill>
                       <span className={cn("ml-auto text-xs font-semibold", q.correct ? "text-mint-300" : "text-red-300")}>{q.correct ? `+${q.points}` : q.chosen === -1 ? "Timed out" : "Incorrect"}</span>
                     </div>
-                    <div className="mt-2 font-semibold leading-snug text-content">{q.prompt}</div>
+                    <div className="mt-2 font-semibold leading-snug text-content">{lang.tx(q.prompt, q.hi?.prompt)}</div>
                     <ul className="mt-3 space-y-1.5">
                       {q.options.map((o, i) => (
                         <li
@@ -307,11 +308,27 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
                             i === q.correctShown ? "bg-mint-400/10 text-mint-100" : i === q.chosen ? "bg-red-400/10 text-red-200" : "text-content-muted"
                           )}
                         >
-                          <span className="font-mono text-xs">{LETTERS[i]}</span> {o}
+                          <span className="font-mono text-xs">{LETTERS[i]}</span> {lang.tx(o, q.hi?.options[i])}
                         </li>
                       ))}
                     </ul>
-                    {q.explanation && <p className="mt-3 text-sm leading-relaxed text-content-muted">{q.explanation}</p>}
+                    {q.explanation && (
+                      <div className="mt-3 flex items-start gap-2">
+                        <p className="min-w-0 flex-1 text-sm leading-relaxed text-content-muted">{lang.tx(q.explanation, q.hi?.explanation)}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            unlock();
+                            play([{ url: lang.vx(q.voice.explanation, q.hi?.explanation), text: lang.tx(q.explanation, q.hi?.explanation) }]);
+                          }}
+                          className="acad-icon-btn h-7 w-7 shrink-0"
+                          aria-label="Hear the explanation"
+                          title="Hear the explanation"
+                        >
+                          <Headphones />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : null
               )}

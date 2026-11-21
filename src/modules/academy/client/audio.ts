@@ -13,6 +13,7 @@
 // before unlock() runs from a click or tap. Settings persist per browser.
 
 import { VOICE_LINES, type VoiceLine } from "./voice-lines";
+import { VOICE_LINES_HI } from "./voice-lines-hi";
 import { chunkForSpeech } from "@modules/ai/lib/tts";
 import { hapticError, hapticSelect, hapticSent, hapticTap, hapticToggle } from "@shared/utils/haptics";
 
@@ -59,6 +60,10 @@ export type AudioSettings = {
   readQuestions: boolean;
   /** After a wrong answer, the guide reads the explanation. */
   explainWrong: boolean;
+  /** After a RIGHT answer too: every answer explained, so people learn why. */
+  explainRight: boolean;
+  /** Academy language: lessons, quizzes and AneQue in English or Hinglish. */
+  lang: "en" | "hi";
   /** Vibrate with the sound effects (phones that support it). */
   haptics: boolean;
 };
@@ -77,6 +82,8 @@ export const DEFAULT_AUDIO: AudioSettings = {
   guide: true,
   readQuestions: true,
   explainWrong: true,
+  explainRight: true,
+  lang: "en",
   haptics: true,
 };
 
@@ -104,6 +111,8 @@ export function parseSettings(raw: string | null): AudioSettings {
       guide: bool(v.guide, DEFAULT_AUDIO.guide),
       readQuestions: bool(v.readQuestions, DEFAULT_AUDIO.readQuestions),
       explainWrong: bool(v.explainWrong, DEFAULT_AUDIO.explainWrong),
+      explainRight: bool(v.explainRight, DEFAULT_AUDIO.explainRight),
+      lang: v.lang === "hi" ? "hi" : "en",
       haptics: bool(v.haptics, DEFAULT_AUDIO.haptics),
     };
   } catch {
@@ -716,6 +725,12 @@ export function femaleScore(v: SpeechSynthesisVoice): number {
 }
 
 function pickVoice(): SpeechSynthesisVoice | null {
+  // Hinglish (Latin script) reads far better in an Indian English voice.
+  if (snap.settings.lang === "hi" && typeof window !== "undefined" && "speechSynthesis" in window) {
+    const inVoices = window.speechSynthesis.getVoices().filter((v) => v.lang?.toLowerCase() === "en-in");
+    const best = [...inVoices].sort((a, b) => femaleScore(b) - femaleScore(a))[0];
+    if (best) return best;
+  }
   const all = browserVoices();
   const chosen = snap.settings.voiceName;
   if (chosen && chosen !== "nova") {
@@ -865,12 +880,21 @@ export function play(pieces: Piece[], opts: { caption?: string; line?: VoiceLine
  */
 export function say(line: VoiceLine, opts: { auto?: boolean; queue?: boolean } = {}) {
   if (!(line in VOICE_LINES)) return;
-  const text = VOICE_LINES[line];
+  const { text, url } = lineFor(line);
   if (opts.auto && !snap.settings.guide) {
     if (!snap.voice.speaking) setVoice({ text, line });
     return;
   }
-  play([{ url: `/academy/voice/${line}.mp3`, text }], { line, queue: opts.queue });
+  play([{ url, text }], { line, queue: opts.queue });
+}
+
+/**
+ * A scripted line in the current language: Hinglish (caption + recording in
+ * the same voice) when the learner chose it and it exists, else English.
+ */
+export function lineFor(line: VoiceLine): { text: string; url: string } {
+  if (snap.settings.lang === "hi" && line in VOICE_LINES_HI) return { text: VOICE_LINES_HI[line]!, url: `/academy/voice/hi/${line}.mp3` };
+  return { text: VOICE_LINES[line], url: `/academy/voice/${line}.mp3` };
 }
 
 /** Pick one of several variants of a line (correct_1..correct_10 etc.). */

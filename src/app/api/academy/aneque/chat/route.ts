@@ -25,6 +25,7 @@ const schema = z.object({
       questionOpen: z.boolean().optional(),
       question: z.string().max(500).nullish(),
       pageData: z.string().max(3200).optional(),
+      language: z.enum(["english", "hinglish"]).optional(),
     })
     .default({}),
 });

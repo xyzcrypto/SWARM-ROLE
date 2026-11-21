@@ -3,18 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, AudioLines, BadgeCheck, CalendarDays, CheckCircle2, Flame, Gauge, Headphones, Pause, Radio, Trophy, Unlock } from "lucide-react";
+import { ArrowRight, AudioLines, BadgeCheck, CalendarDays, CheckCircle2, Flame, Gauge, Headphones, Pause, Radio, Trophy, Unlock, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GuideCaption, GuideWave } from "./Guide";
 import { Avatar, CountUp, fmt, Icon, ProgressBar } from "./ui";
-import { pauseVoice, play, resumeVoice, unlock, type Piece } from "../client/audio";
+import { lineFor, pauseVoice, play, resumeVoice, unlock, type Piece } from "../client/audio";
 import { useAudio, type Me } from "../client/hooks";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import type { CatalogCategory, Pulse } from "./types";
 import { greetName } from "../client/name-bank";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-const vline = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
+const vline = (k: VoiceLine): Piece => lineFor(k);
 
 /** Time left until the daily challenge rolls over (00:00 UTC). Client-only, after mount. */
 function useUntilUtcMidnight() {
@@ -42,7 +42,7 @@ function Stat({ value, label, live }: { value: number | null; label: string; liv
     <div className="min-w-0 px-3 py-3 first:pl-4 sm:px-5 sm:first:pl-5">
       <div className="flex items-center gap-2 font-display text-2xl font-semibold tabular-nums text-content sm:text-[1.75rem]">
         {live && <span className="acad-live-dot h-2 w-2 rounded-full bg-mint-400 text-mint-400" />}
-        {value == null ? <span className="text-content-subtle">–</span> : <CountUp value={value} />}
+        {value == null ? <span className="acad-skel inline-block h-7 w-10 rounded-md" aria-label="Loading" /> : <CountUp value={value} />}
       </div>
       <div className="mt-0.5 text-xs text-content-subtle">{label}</div>
     </div>
@@ -98,6 +98,13 @@ function useTilt<T extends HTMLElement>() {
   return ref;
 }
 
+const QUICK = [
+  { href: "/academy/quiz?mode=daily", label: "Daily", icon: CalendarDays, tone: "bg-gold-400/15 text-gold-600 dark:text-gold-200", auth: true },
+  { href: "/academy/quiz?mode=quick", label: "Quick quiz", icon: Zap, tone: "bg-mint-400/15 text-mint-600 dark:text-mint-300", auth: true },
+  { href: "/academy/leaderboard", label: "Ranks", icon: Trophy, tone: "bg-violet-400/15 text-violet-600 dark:text-violet-300", auth: false },
+  { href: "/academy/certificates", label: "Certificates", icon: BadgeCheck, tone: "bg-sky-400/15 text-sky-600 dark:text-sky-300", auth: false },
+];
+
 const PROMISES = [
   { icon: Unlock, text: "Free to learn" },
   { icon: Gauge, text: "Scored on the server" },
@@ -125,9 +132,11 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
   return (
     <section className="relative isolate">
       <div className="acad-ruled pointer-events-none absolute inset-x-0 -top-6 bottom-0 -z-10" aria-hidden />
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start lg:gap-14 xl:grid-cols-[minmax(0,1fr)_27rem]">
-        {/* ---------- copy ---------- */}
-        <div className="min-w-0 pt-2 lg:pt-8">
+      {/* Phones: intro, quick actions, today's card, then the numbers - an app
+          home screen, not a long column of text. Desktop: copy left, card right. */}
+      <div className="acad-hero-grid grid gap-6 lg:gap-x-14 lg:gap-y-0">
+        {/* ---------- intro ---------- */}
+        <div className="min-w-0 pt-1 [grid-area:top] lg:pt-8">
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span className="acad-hero-pill inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/[0.08] py-1 pl-1.5 pr-3 text-[12px] font-medium text-content-muted">
               <span className="rounded-full bg-gold-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ink-950">Academy</span>
@@ -146,6 +155,11 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
                 </span>
               )}
             </span>
+            {pulse && pulse.learningNow > 0 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-mint-400/30 bg-mint-400/10 px-2.5 py-1 text-[11px] font-semibold text-mint-600 dark:text-mint-300">
+                <span className="acad-live-dot h-1.5 w-1.5 rounded-full bg-mint-400 text-mint-400" /> {fmt(pulse.learningNow)} learning
+              </span>
+            )}
           </motion.div>
           <h1 className="acad-hero-title mt-5 font-display font-bold leading-[1.04] tracking-[-0.035em] text-content">
             {["Master Web3.", "Prove your knowledge.", "Dominate the leaderboard."].map((t, i) => (
@@ -156,14 +170,22 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.08 + i * 0.1, ease }}
               >
-                {i === 2 ? <span className="text-shine">{t}</span> : t}
+                {i === 2 ? (
+                  <span className="text-shine">{t}</span>
+                ) : i === 0 ? (
+                  <>
+                    Master <span className="text-gold-gradient">Web3.</span>
+                  </>
+                ) : (
+                  t
+                )}
               </motion.span>
             ))}
           </h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.45 }} className="mt-6 max-w-xl text-[17px] leading-relaxed text-content-muted">
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.45 }} className="mt-4 max-w-xl text-[15px] leading-relaxed text-content-muted sm:mt-6 sm:text-[17px]">
             Learn Web3 through interactive challenges, compete in live quizzes, earn XP, and become one of the top Web3 minds in the community.
           </motion.p>
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55, ease }} className="mt-8 grid grid-cols-2 gap-3 sm:flex sm:flex-wrap">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55, ease }} className="mt-6 grid grid-cols-[1fr_1fr_auto] gap-2.5 sm:mt-8 sm:flex sm:flex-wrap sm:gap-3">
             <Link href={me?.next ? `/academy/learn/${me.next.categorySlug}/${me.next.moduleSlug}` : "/academy/learn"} className="btn-primary group h-12 justify-center whitespace-nowrap px-3 text-[13px] sm:px-6 sm:text-sm">
               Start Learning <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
             </Link>
@@ -176,13 +198,40 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
                 unlock();
                 window.dispatchEvent(new Event("academy:talk"));
               }}
-              className="btn-ghost col-span-2 h-12 justify-center whitespace-nowrap px-4 text-[13px] sm:col-span-1 sm:text-sm"
+              className="btn-ghost h-12 w-12 justify-center whitespace-nowrap !px-0 text-[13px] sm:w-auto sm:!px-4 sm:text-sm"
+              aria-label="Ask AneQue"
             >
-              <AudioLines className="h-4 w-4 text-gold-300" /> Ask AneQue
+              <AudioLines className="h-4 w-4 text-gold-300" /> <span className="hidden sm:inline">Ask AneQue</span>
             </button>
           </motion.div>
+
+          {/* Quick actions: one tap to every way of playing (phones and tablets). */}
+          <motion.nav
+            aria-label="Quick actions"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.62, ease }}
+            className="mt-4 grid grid-cols-4 gap-2 lg:hidden"
+          >
+            {QUICK.map((a) => (
+              <Link
+                key={a.href}
+                href={me || !a.auth ? a.href : `/login?callbackUrl=${encodeURIComponent(a.href)}`}
+                className="acad-quick group flex flex-col items-center gap-1.5 rounded-2xl border border-hairline bg-white/[0.03] px-1 py-3 text-center transition-colors active:border-gold-400/50"
+              >
+                <span className={cn("grid h-9 w-9 place-items-center rounded-xl", a.tone)}>
+                  <a.icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
+                </span>
+                <span className="text-[11px] font-semibold leading-tight text-content">{a.label}</span>
+              </Link>
+            ))}
+          </motion.nav>
+        </div>
+
+        {/* ---------- numbers + tracks (phones: after today's card) ---------- */}
+        <div className="min-w-0 [grid-area:bottom]">
           {tracks && tracks.length > 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.65 }} className="acad-track-rail mt-8 max-w-xl overflow-hidden" aria-label="Learning tracks">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.65 }} className="acad-track-rail max-w-xl overflow-hidden lg:mt-8" aria-label="Learning tracks">
               <div className="acad-track-rail-track flex w-max gap-2">
                 {[0, 1].map((k) => (
                   <div key={k} className="flex gap-2" aria-hidden={k === 1}>
@@ -203,7 +252,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               </div>
             </motion.div>
           )}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.7 }} className="acad-hero-stats mt-8 grid max-w-xl grid-cols-3 divide-x divide-hairline rounded-2xl border border-hairline bg-white/[0.02]">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.7 }} className="acad-hero-stats mt-5 grid max-w-xl grid-cols-3 divide-x divide-hairline rounded-2xl border border-hairline bg-white/[0.02] lg:mt-8">
             <Stat live value={pulse?.learningNow ?? null} label="learning now" />
             <Stat value={pulse?.quizzesToday ?? null} label="quizzes today" />
             <Stat value={pulse ? pulse.liveParticipants : null} label="in live quizzes" />
@@ -228,9 +277,9 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               </div>
             </div>
           )}
-          <motion.ul initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.85 }} className="mt-6 grid max-w-xl grid-cols-2 gap-x-4 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-5">
+          <motion.ul initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.85 }} className="acad-nav-scroll -mx-5 mt-5 flex max-w-xl gap-2 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:mt-6 sm:flex-wrap sm:gap-x-5 sm:gap-y-2 sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
             {PROMISES.map((p) => (
-              <li key={p.text} className="flex items-center gap-1.5 text-[12.5px] text-content-subtle">
+              <li key={p.text} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-hairline px-3 py-1.5 text-[12px] text-content-subtle sm:rounded-none sm:border-0 sm:p-0 sm:text-[12.5px]">
                 <p.icon className="h-3.5 w-3.5 shrink-0 text-mint-400" /> {p.text}
               </li>
             ))}
@@ -238,7 +287,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
         </div>
 
         {/* ---------- today card ---------- */}
-        <motion.div initial={{ opacity: 0, y: 24, rotate: -1.2 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 0.8, delay: 0.25, ease }} className="acad-ticket-wrap relative min-w-0">
+        <motion.div initial={{ opacity: 0, y: 24, rotate: -1.2 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 0.8, delay: 0.25, ease }} className="acad-ticket-wrap relative min-w-0 [grid-area:card]">
         <div className="acad-ticket-glow pointer-events-none absolute -inset-8 -z-10" aria-hidden />
         <aside
           ref={tilt}

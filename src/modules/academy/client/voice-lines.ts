@@ -253,6 +253,8 @@ export const VOICE_LINES = {
   "greet_markets": "Welcome to Markets. Tap Explain, and I'll walk you through what's moving.",
   "greet_news": "Welcome to the news room. I can read you the top stories.",
   "greet_points": "Welcome to Points. I can tell you which programs are live right now.",
+  "lang_en": "Switched to English. Lessons, quizzes and my voice are now in English.",
+  "lang_hi": "Switched to Hinglish. Lessons, quizzes and my voice are now in Hinglish.",
 } as const;
 
 export type VoiceLine = keyof typeof VOICE_LINES;
