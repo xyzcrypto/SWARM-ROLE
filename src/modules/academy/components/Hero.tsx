@@ -37,14 +37,14 @@ const hms = (ms: number) => {
   return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map((n) => String(n).padStart(2, "0")).join(":");
 };
 
-function Stat({ value, label, live }: { value: number | null; label: string; live?: boolean }) {
+function Stat({ value, label, live, accent }: { value: number | null; label: string; live?: boolean; accent?: boolean }) {
   return (
-    <div className="min-w-0 px-3 py-3 first:pl-4 sm:px-5 sm:first:pl-5">
-      <div className="flex items-center gap-2 font-display text-2xl font-semibold tabular-nums text-content sm:text-[1.75rem]">
-        {live && <span className="acad-live-dot h-2 w-2 rounded-full bg-mint-400 text-mint-400" />}
-        {value == null ? <span className="acad-skel inline-block h-7 w-10 rounded-md" aria-label="Loading" /> : <CountUp value={value} />}
+    <div className="acad-stat min-w-0 rounded-2xl px-2.5 py-3 sm:px-4 sm:py-3.5" title={label}>
+      <div className={cn("flex items-center gap-1.5 font-display text-[1.35rem] font-semibold leading-none tabular-nums sm:text-[1.7rem]", accent ? "text-gold-gradient" : "text-content")}>
+        {live && <span className="acad-live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-mint-400 text-mint-400" />}
+        {value == null ? <span className="acad-skel inline-block h-6 w-9 rounded-md" aria-label="Loading" /> : <CountUp value={value} />}
       </div>
-      <div className="mt-0.5 text-xs text-content-subtle">{label}</div>
+      <div className="mt-1.5 truncate font-mono text-[9px] uppercase tracking-[0.06em] text-content-subtle sm:text-[10px] sm:tracking-[0.14em]">{label}</div>
     </div>
   );
 }
@@ -130,8 +130,14 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
   };
 
   return (
-    <section className="relative isolate">
-      <div className="acad-ruled pointer-events-none absolute inset-x-0 -top-6 bottom-0 -z-10" aria-hidden />
+    <section className="acad-stage relative isolate overflow-hidden rounded-[2rem] px-4 pb-5 pt-5 sm:px-8 sm:pb-8 sm:pt-8 lg:px-10 lg:pb-10 lg:pt-10">
+      {/* The stage: aurora light, a fine dot grid and a gold hairline on top. */}
+      <div className="acad-aurora pointer-events-none absolute inset-0 -z-10" aria-hidden>
+        <span className="acad-aurora-a" />
+        <span className="acad-aurora-b" />
+        <span className="acad-aurora-c" />
+      </div>
+      <div className="acad-dots pointer-events-none absolute inset-0 -z-10" aria-hidden />
       {/* Phones: intro, quick actions, today's card, then the numbers - an app
           home screen, not a long column of text. Desktop: copy left, card right. */}
       <div className="acad-hero-grid grid gap-6 lg:gap-x-14 lg:gap-y-0">
@@ -161,29 +167,18 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               </span>
             )}
           </motion.div>
-          <h1 className="acad-hero-title mt-5 font-display font-bold leading-[1.04] tracking-[-0.035em] text-content">
-            {["Master Web3.", "Prove your knowledge.", "Dominate the leaderboard."].map((t, i) => (
-              <motion.span
-                key={t}
-                className="block lg:whitespace-nowrap"
-                initial={{ opacity: 0, y: 22 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.7, delay: 0.08 + i * 0.1, ease }}
-              >
-                {i === 2 ? (
-                  <span className="text-shine">{t}</span>
-                ) : i === 0 ? (
-                  <>
-                    Master <span className="text-gold-gradient">Web3.</span>
-                  </>
-                ) : (
-                  t
-                )}
-              </motion.span>
-            ))}
+          <h1 className="acad-hero-title mt-5 font-display font-semibold text-content sm:mt-6">
+            <motion.span className="block" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.75, delay: 0.08, ease }}>
+              <span className="acad-title-ink">Master </span>
+              <span className="text-shine">Web3.</span>
+            </motion.span>
+            <motion.span className="acad-hero-sub block" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.75, delay: 0.2, ease }}>
+              <span className="text-shimmer">Prove it on the leaderboard.</span>
+            </motion.span>
           </h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.45 }} className="mt-4 max-w-xl text-[15px] leading-relaxed text-content-muted sm:mt-6 sm:text-[17px]">
-            Learn Web3 through interactive challenges, compete in live quizzes, earn XP, and become one of the top Web3 minds in the community.
+          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.45 }} className="mt-4 max-w-[34rem] text-[15px] leading-relaxed text-content-muted sm:mt-5 sm:text-[17px]">
+            <span className="sm:hidden">Bite-size lessons, live quiz battles, and AneQue explaining every answer in English or Hinglish.</span>
+            <span className="hidden sm:inline">Bite-size lessons, quizzes against the clock and live battles, with AneQue explaining every answer out loud, in English or Hinglish. Earn XP, climb the board, get certified.</span>
           </motion.p>
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.55, ease }} className="mt-6 grid grid-cols-[1fr_1fr_auto] gap-2.5 sm:mt-8 sm:flex sm:flex-wrap sm:gap-3">
             <Link href={me?.next ? `/academy/learn/${me.next.categorySlug}/${me.next.moduleSlug}` : "/academy/learn"} className="btn-primary group h-12 justify-center whitespace-nowrap px-3 text-[13px] sm:px-6 sm:text-sm">
@@ -231,7 +226,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
         {/* ---------- numbers + tracks (phones: after today's card) ---------- */}
         <div className="min-w-0 [grid-area:bottom]">
           {tracks && tracks.length > 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.65 }} className="acad-track-rail max-w-xl overflow-hidden lg:mt-8" aria-label="Learning tracks">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.65 }} className="acad-track-rail mt-1 max-w-xl overflow-hidden lg:mt-7" aria-label="Learning tracks">
               <div className="acad-track-rail-track flex w-max gap-2">
                 {[0, 1].map((k) => (
                   <div key={k} className="flex gap-2" aria-hidden={k === 1}>
@@ -252,10 +247,11 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               </div>
             </motion.div>
           )}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.7 }} className="acad-hero-stats mt-5 grid max-w-xl grid-cols-3 divide-x divide-hairline rounded-2xl border border-hairline bg-white/[0.02] lg:mt-8">
-            <Stat live value={pulse?.learningNow ?? null} label="learning now" />
-            <Stat value={pulse?.quizzesToday ?? null} label="quizzes today" />
-            <Stat value={pulse ? pulse.liveParticipants : null} label="in live quizzes" />
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.7, ease }} className="mt-5 grid max-w-xl grid-cols-4 gap-1.5 sm:gap-2 lg:mt-7">
+            <Stat accent value={questions ?? 510} label="questions" />
+            <Stat value={topics ?? 21} label="tracks" />
+            <Stat live value={pulse?.learningNow ?? null} label="live now" />
+            <Stat value={pulse?.quizzesToday ?? null} label="quizzes" />
           </motion.div>
           {pulse && pulse.achievements.length + pulse.certificates.length > 0 && (
             <div className="acad-ticker mt-6 max-w-xl overflow-hidden" aria-label="Recent activity">

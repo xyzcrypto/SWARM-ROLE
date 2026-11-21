@@ -596,11 +596,23 @@ html[data-acad-playing] .acad-shell {
    off the viewport so the longest ("Dominate the leaderboard.") fills the copy
    column instead of breaking into a fourth line and leaving a ragged gap. */
 .acad-hero-title {
-  font-size: clamp(2.25rem, 9.6vw, 3.5rem);
+  font-size: clamp(2.6rem, 12.2vw, 4.25rem);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+}
+.acad-hero-sub {
+  margin-top: 0.12em;
+  font-size: 0.56em;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  font-weight: 500;
 }
 @media (min-width: 1024px) {
   .acad-hero-title {
-    font-size: clamp(2.5rem, 3.75vw, 3.85rem);
+    font-size: clamp(4rem, 6.1vw, 5.6rem);
+  }
+  .acad-hero-sub {
+    font-size: 0.47em;
   }
 }
 
@@ -768,8 +780,6 @@ html:not(.dark) .acad-cert-qr {
 /* Phone headline: tighter, balanced lines instead of a ragged 4-line block. */
 @media (max-width: 1023px) {
   .acad-hero-title {
-    font-size: clamp(2.05rem, 8.4vw, 3.1rem);
-    line-height: 1.06;
     text-wrap: balance;
   }
 }
@@ -787,4 +797,101 @@ html:not(.dark) .acad-skel {
 }
 @keyframes acad-skel {
   to { background-position: -200% 0; }
+}
+
+/* ---------------------------------------------------------------- hero v6
+   A lit stage: a glass panel with slow aurora light (gold, mint, a touch of
+   violet), a fine dot grid fading out, and a gold hairline along the top.
+   Local to the hero and cheap (three blurred gradients, transform-only
+   drift), so it is exempt from reduced motion per the design-system policy. */
+.acad-stage {
+  background: linear-gradient(180deg, rgba(20, 21, 28, 0.72), rgba(10, 11, 15, 0.55));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.04) inset, 0 40px 80px -40px rgba(0, 0, 0, 0.7);
+}
+.acad-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0 12% auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(240, 196, 92, 0.75), rgba(52, 227, 161, 0.5), transparent);
+  pointer-events: none;
+}
+.acad-aurora { overflow: hidden; border-radius: inherit; }
+.acad-aurora span {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(60px);
+  will-change: transform;
+}
+.acad-aurora-a {
+  width: 60%; height: 70%; left: -12%; top: -30%;
+  background: radial-gradient(closest-side, rgba(226, 167, 47, 0.22), transparent);
+  animation: acad-drift-a 18s ease-in-out infinite alternate;
+}
+.acad-aurora-b {
+  width: 55%; height: 65%; right: -10%; bottom: -35%;
+  background: radial-gradient(closest-side, rgba(52, 227, 161, 0.18), transparent);
+  animation: acad-drift-b 22s ease-in-out infinite alternate;
+}
+.acad-aurora-c {
+  width: 40%; height: 50%; left: 38%; top: 10%;
+  background: radial-gradient(closest-side, rgba(139, 92, 246, 0.12), transparent);
+  animation: acad-drift-a 26s ease-in-out infinite alternate-reverse;
+}
+@keyframes acad-drift-a { to { transform: translate3d(8%, 10%, 0) scale(1.08); } }
+@keyframes acad-drift-b { to { transform: translate3d(-10%, -8%, 0) scale(1.1); } }
+.acad-dots {
+  border-radius: inherit;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(80% 70% at 30% 20%, #000, transparent 75%);
+  mask-image: radial-gradient(80% 70% at 30% 20%, #000, transparent 75%);
+}
+/* Headline ink: a soft white-to-silver fall instead of flat white. */
+.acad-title-ink {
+  background: linear-gradient(180deg, #ffffff 30%, #b9bcc8 110%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.acad-stat {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(8px);
+}
+html:not(.dark) .acad-stage {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(250, 247, 240, 0.85));
+  border-color: rgba(16, 18, 27, 0.08);
+  box-shadow: 0 30px 60px -36px rgba(120, 90, 30, 0.35);
+}
+html:not(.dark) .acad-aurora-a { background: radial-gradient(closest-side, rgba(226, 167, 47, 0.22), transparent); }
+html:not(.dark) .acad-aurora-b { background: radial-gradient(closest-side, rgba(16, 185, 129, 0.12), transparent); }
+html:not(.dark) .acad-aurora-c { background: radial-gradient(closest-side, rgba(139, 92, 246, 0.08), transparent); }
+html:not(.dark) .acad-dots { background-image: radial-gradient(rgba(16, 18, 27, 0.08) 1px, transparent 1px); }
+html:not(.dark) .acad-title-ink {
+  background: linear-gradient(180deg, #10121b 40%, #3a3d4a 120%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+html:not(.dark) .acad-stat {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.6));
+  border-color: rgba(16, 18, 27, 0.07);
+}
+@media (max-width: 639px) {
+  /* Phones: the stage runs nearly edge to edge so nothing feels boxed in. */
+  .acad-stage { margin-inline: -0.75rem; border-radius: 1.6rem; }
+}
+
+/* ---------------------------------------------------------------- premium cards
+   Every Academy card gets a soft top light and, on hover, a gold edge, so the
+   page reads as one crafted surface rather than flat grey boxes. Dark theme
+   only; the light theme's paper cards already carry their own shadow. */
+html.dark .acad-shell .surface {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 45%);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+}
+html.dark .acad-shell .surface-hover:hover {
+  border-color: rgba(226, 167, 47, 0.38);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 18px 40px -24px rgba(226, 167, 47, 0.35);
 }

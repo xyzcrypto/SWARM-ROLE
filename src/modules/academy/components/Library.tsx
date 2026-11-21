@@ -50,12 +50,12 @@ export function Library({ categories, me }: { categories: CatalogCategory[] | nu
               <h3 className="mt-4 font-display text-lg font-semibold leading-snug tracking-tight text-content">{c.title}</h3>
               <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-content-muted">{c.tagline}</p>
               <div className="mt-auto flex items-center gap-3 pt-4">
-                <div className="flex gap-1" aria-label={`${finished} of ${c.modules.length} lessons done`}>
+                <div className="flex min-w-0 flex-1 gap-1" aria-label={`${finished} of ${c.modules.length} lessons done`}>
                   {c.modules.map((m, k) => (
-                    <span key={m.id} className={cn("h-1.5 w-6 rounded-full", done.has(m.id) ? LEVEL_DOT[k] ?? "bg-gold-300" : "bg-white/10")} title={m.title} />
+                    <span key={m.id} className={cn("h-1.5 min-w-0 max-w-6 flex-1 rounded-full", done.has(m.id) ? LEVEL_DOT[k] ?? "bg-gold-300" : "bg-white/10")} title={m.title} />
                   ))}
                 </div>
-                <span className="text-[11px] text-content-subtle">
+                <span className="shrink-0 whitespace-nowrap text-[11px] text-content-subtle">
                   {c.modules.length} lessons · {c.questionCount} questions
                 </span>
                 {complete ? <CheckCircle2 className="ml-auto h-4 w-4 text-mint-300" /> : <ArrowUpRight className="ml-auto h-4 w-4 text-content-subtle transition-all group-hover:-translate-y-0.5 group-active:-translate-y-0.5 group-hover:translate-x-0.5 group-active:translate-x-0.5 group-hover:text-gold-300" />}

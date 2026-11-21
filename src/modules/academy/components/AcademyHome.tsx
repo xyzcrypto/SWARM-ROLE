@@ -15,7 +15,7 @@ import { Avatar, Empty, Panel, SectionTitle, Skeleton, utcDate } from "./ui";
 
 const MODES = [
   { href: "/academy/quiz?mode=quick", icon: Zap, title: "Quick Quiz", body: "5 to 20 mixed questions. Fast XP." },
-  { href: "/academy/quiz?mode=topic", icon: Layers, title: "Topic Challenge", body: "Go deep on one of 14 topics." },
+  { href: "/academy/quiz?mode=topic", icon: Layers, title: "Topic Challenge", body: "Go deep on any one topic, Beginner to Expert." },
   { href: "/academy/quiz?mode=daily", icon: CalendarDays, title: "Daily Challenge", body: "Same 10 questions for everyone, once a day." },
   { href: "/academy/quiz?mode=weekly", icon: Trophy, title: "Weekly Challenge", body: "20 questions. One shot. Big bonus." },
   { href: "/academy/quiz?mode=advanced", icon: Brain, title: "Advanced Challenge", body: "Hard and expert only. Less time, more XP." },
@@ -103,7 +103,7 @@ export function AcademyHome() {
         <SectionTitle
           eyebrow="Learn"
           title="The Web3 library"
-          sub="14 topics, each from Beginner to Expert. Short lessons, real examples, and a knowledge check that completes the lesson."
+          sub={`${catalog?.length ?? 21} topics, each from Beginner to Expert. Short lessons, real examples, and a knowledge check that completes the lesson.`}
           right={
             <Link href="/academy/learn" className="btn-ghost h-10 px-4 text-sm">
               All topics

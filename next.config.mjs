@@ -109,6 +109,14 @@ const nextConfig = {
       // new cut is a new URL and these can be cached for a year without a
       // revalidation round trip on every visit.
       { source: "/media/explainer/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+      // AneQue's recordings. Without this every clip was revalidated on every
+      // play, a round trip that left a gap between her lines on a phone.
+      // Scripted lines (voice/<line>.mp3, voice/hi/<line>.mp3) can be re-recorded
+      // under the same name, so a day; content clips are named by the text's
+      // hash (voice/c, voice/h), so a new text is a new URL: a month.
+      { source: "/academy/voice/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] },
+      { source: "/academy/voice/c/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=2592000, stale-while-revalidate=604800" }] },
+      { source: "/academy/voice/h/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=2592000, stale-while-revalidate=604800" }] },
     ];
   },
 };

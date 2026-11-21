@@ -6,6 +6,7 @@ import { AlertTriangle, Check, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHydrated } from "@/lib/useClientFlag";
 import type { ReportReason } from "@modules/community/lib/chat-report";
+import { lockScroll, unlockScroll } from "@shared/hooks/useScrollLock";
 
 /**
  * The reasons, and how they are worded.
@@ -70,13 +71,12 @@ export function ReportDialog({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    // Restore the previous value rather than blanking it: another overlay may
-    // already hold the lock, and clearing it would free the page under it.
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Shared, nested-safe lock: a hand-rolled save/restore here once left the
+    // page frozen when two overlays closed out of order.
+        lockScroll();
     document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = previous;
+      unlockScroll();
       document.removeEventListener("keydown", onKey);
     };
   }, [onClose]);

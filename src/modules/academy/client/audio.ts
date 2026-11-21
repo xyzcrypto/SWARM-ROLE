@@ -748,6 +748,7 @@ function setVoice(v: Partial<VoiceState>) {
 export function stopVoice() {
   token++;
   queue = [];
+  clearWatchdog();
   if (clip) {
     clip.pause();
     clip.removeAttribute("src");
@@ -789,9 +790,43 @@ function ensureClip() {
   return clip;
 }
 
-/** Play the next queued piece; each piece resolves before the next starts. */
+// Warms the browser cache with the NEXT clip while the current one plays, so
+// there is no network gap between "Correct!" and the explanation on a phone.
+let preloader: HTMLAudioElement | null = null;
+function preload(url: string | null | undefined) {
+  if (!url || typeof Audio === "undefined") return;
+  try {
+    preloader ??= new Audio();
+    preloader.preload = "auto";
+    if (preloader.getAttribute("src") !== url) {
+      preloader.src = url;
+      preloader.load();
+    }
+  } catch {
+    /* preloading is only an optimisation */
+  }
+}
+
+let watchdog: ReturnType<typeof setTimeout> | null = null;
+function clearWatchdog() {
+  if (watchdog) clearTimeout(watchdog);
+  watchdog = null;
+}
+
+/**
+ * Play the next queued piece; each piece resolves before the next starts.
+ *
+ * Every way a piece can end (ended, error, play() rejected, the watchdog) goes
+ * through one `finish` that runs at most once. Before, a failing clip fired
+ * BOTH `onerror` and the play() rejection, so the browser voice read the same
+ * line twice and the queue advanced twice - AneQue skipped a piece and spoke
+ * over herself ("the voice jumps around"). And a clip that stalled on a weak
+ * connection never fired `ended`, so she went silent for good and every
+ * queued explanation waited behind it.
+ */
 function pump(my: number) {
   if (my !== token) return;
+  clearWatchdog();
   const piece = queue.shift();
   if (piece) {
     pieceIndex = pieceCount - queue.length - 1;
@@ -802,15 +837,52 @@ function pump(my: number) {
     setVoice({ speaking: false, paused: false });
     return;
   }
-  const done = () => pump(my);
+  let settled = false;
+  const done = () => {
+    if (settled || my !== token) return;
+    settled = true;
+    clearWatchdog();
+    pump(my);
+  };
+  const fallback = () => {
+    if (settled || my !== token) return;
+    settled = true;
+    clearWatchdog();
+    if (clip) {
+      clip.onended = clip.onerror = clip.onloadedmetadata = null;
+      clip.pause();
+    }
+    tts(piece.text, my, () => pump(my));
+  };
   const useClip = piece.url && snap.settings.voiceName === "nova";
   if (useClip) {
     const a = ensureClip();
     if (!clipSource) a.volume = snap.settings.masterVol * snap.settings.voiceVol;
     a.onended = done;
-    a.onerror = () => tts(piece.text, my, done);
+    a.onerror = fallback;
+    // Once the length is known, give it that long plus slack (pauses count as
+    // playing time on purpose: a paused clip is restarted by resumeVoice).
+    a.onloadedmetadata = () => {
+      if (settled || my !== token || !Number.isFinite(a.duration)) return;
+      clearWatchdog();
+      const arm = () => {
+        watchdog = setTimeout(() => {
+          if (snap.voice.paused) return arm();
+          if (!a.paused && a.currentTime < a.duration - 0.25) return arm();
+          done();
+        }, (a.duration - a.currentTime) * 1000 + 2500);
+      };
+      arm();
+    };
+    // Nothing at all after 8s (stalled download): read it with the browser voice.
+    watchdog = setTimeout(fallback, 8000);
     a.src = piece.url!;
-    void a.play().catch(() => tts(piece.text, my, done));
+    void a.play().catch((e: unknown) => {
+      // Interrupted by the next piece or by stopVoice: not a failure.
+      if ((e as { name?: string })?.name === "AbortError") return;
+      fallback();
+    });
+    preload(queue.find((p) => p.url)?.url);
     return;
   }
   tts(piece.text, my, done);
@@ -841,13 +913,24 @@ function tts(text: string, my: number, done: () => void) {
     u.onboundary = (e) => {
       ttsChar = base + e.charIndex;
     };
-    u.onend = u.onerror = () => {
-      if (utter !== u) return;
+    let ended = false;
+    const end = () => {
+      if (ended || utter !== u) return;
+      ended = true;
+      clearWatchdog();
       offset += chunks[i].length + 1;
       next(i + 1);
     };
+    u.onend = u.onerror = end;
     utter = u;
     window.speechSynthesis.speak(u);
+    // Some Android/Chrome engines drop the end event now and then, which used to leave
+    // AneQue "speaking" forever with everything after it stuck in the queue.
+    clearWatchdog();
+    const guard = () => {
+      watchdog = setTimeout(() => (snap.voice.paused ? guard() : end()), 2500 + chunks[i].length * 110);
+    };
+    guard();
   };
   next(0);
 }
