@@ -39,12 +39,12 @@ const hms = (ms: number) => {
 
 function Stat({ value, label, live, accent }: { value: number | null; label: string; live?: boolean; accent?: boolean }) {
   return (
-    <div className="acad-stat min-w-0 rounded-2xl px-2.5 py-3 sm:px-4 sm:py-3.5" title={label}>
+    <div className="acad-stat min-w-0 rounded-2xl px-2 py-3 sm:px-4 sm:py-3.5" title={label}>
       <div className={cn("flex items-center gap-1.5 font-display text-[1.35rem] font-semibold leading-none tabular-nums sm:text-[1.7rem]", accent ? "text-gold-gradient" : "text-content")}>
         {live && <span className="acad-live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-mint-400 text-mint-400" />}
         {value == null ? <span className="acad-skel inline-block h-6 w-9 rounded-md" aria-label="Loading" /> : <CountUp value={value} />}
       </div>
-      <div className="mt-1.5 truncate font-mono text-[9px] uppercase tracking-[0.06em] text-content-subtle sm:text-[10px] sm:tracking-[0.14em]">{label}</div>
+      <div className="mt-1.5 truncate font-mono text-[8.5px] uppercase tracking-[0.04em] text-content-subtle sm:text-[10px] sm:tracking-[0.14em]">{label}</div>
     </div>
   );
 }
@@ -130,7 +130,8 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
   };
 
   return (
-    <section className="acad-stage relative isolate overflow-hidden rounded-[2rem] px-4 pb-5 pt-5 sm:px-8 sm:pb-8 sm:pt-8 lg:px-10 lg:pb-10 lg:pt-10">
+    <>
+    <section className="acad-stage relative isolate overflow-hidden rounded-[2rem] px-4 pb-5 pt-5 sm:px-8 sm:pb-8 sm:pt-8 lg:px-10 lg:py-8">
       {/* The stage: aurora light, a fine dot grid and a gold hairline on top. */}
       <div className="acad-aurora pointer-events-none absolute inset-0 -z-10" aria-hidden>
         <span className="acad-aurora-a" />
@@ -140,9 +141,9 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
       <div className="acad-dots pointer-events-none absolute inset-0 -z-10" aria-hidden />
       {/* Phones: intro, quick actions, today's card, then the numbers - an app
           home screen, not a long column of text. Desktop: copy left, card right. */}
-      <div className="acad-hero-grid grid gap-6 lg:gap-x-14 lg:gap-y-0">
+      <div className="acad-hero-grid grid gap-6 lg:items-center lg:gap-x-14">
         {/* ---------- intro ---------- */}
-        <div className="min-w-0 pt-1 [grid-area:top] lg:pt-8">
+        <div className="min-w-0 pt-1 [grid-area:top]">
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, ease }} className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span className="acad-hero-pill inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/[0.08] py-1 pl-1.5 pr-3 text-[12px] font-medium text-content-muted">
               <span className="rounded-full bg-gold-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ink-950">Academy</span>
@@ -222,66 +223,6 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
             ))}
           </motion.nav>
         </div>
-
-        {/* ---------- numbers + tracks (phones: after today's card) ---------- */}
-        <div className="min-w-0 [grid-area:bottom]">
-          {tracks && tracks.length > 0 && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.65 }} className="acad-track-rail mt-1 max-w-xl overflow-hidden lg:mt-7" aria-label="Learning tracks">
-              <div className="acad-track-rail-track flex w-max gap-2">
-                {[0, 1].map((k) => (
-                  <div key={k} className="flex gap-2" aria-hidden={k === 1}>
-                    {tracks.map((t) => (
-                      <Link
-                        key={`${k}-${t.slug}`}
-                        href={`/academy/learn/${t.slug}`}
-                        tabIndex={k === 1 ? -1 : undefined}
-                        className="inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border border-hairline bg-white/[0.03] px-3.5 text-[12.5px] font-medium text-content-muted transition-colors hover:border-gold-400/40 hover:text-content active:border-gold-400/40"
-                      >
-                        <Icon name={t.icon} className="h-3.5 w-3.5 text-gold-300" />
-                        {t.title}
-                        <span className="font-mono text-[10px] text-content-subtle">{t.modules.length}</span>
-                      </Link>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.7, ease }} className="mt-5 grid max-w-xl grid-cols-4 gap-1.5 sm:gap-2 lg:mt-7">
-            <Stat accent value={questions ?? 510} label="questions" />
-            <Stat value={topics ?? 21} label="tracks" />
-            <Stat live value={pulse?.learningNow ?? null} label="live now" />
-            <Stat value={pulse?.quizzesToday ?? null} label="quizzes" />
-          </motion.div>
-          {pulse && pulse.achievements.length + pulse.certificates.length > 0 && (
-            <div className="acad-ticker mt-6 max-w-xl overflow-hidden" aria-label="Recent activity">
-              <div className="acad-ticker-track flex w-max gap-8 text-[13px] text-content-muted">
-                {[0, 1].map((k) => (
-                  <div key={k} className="flex gap-8" aria-hidden={k === 1}>
-                    {pulse.achievements.map((a, i) => (
-                      <span key={`a${i}`} className="whitespace-nowrap">
-                        <span className="font-semibold text-content">{a.name}</span> unlocked <span className="text-gold-300">{a.title}</span>
-                      </span>
-                    ))}
-                    {pulse.certificates.map((c) => (
-                      <span key={c.code} className="whitespace-nowrap">
-                        <span className="font-semibold text-content">{c.displayName}</span> earned <span className="text-gold-300">{c.title}</span>
-                      </span>
-                    ))}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          <motion.ul initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.85 }} className="acad-nav-scroll -mx-5 mt-5 flex max-w-xl gap-2 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:mt-6 sm:flex-wrap sm:gap-x-5 sm:gap-y-2 sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
-            {PROMISES.map((p) => (
-              <li key={p.text} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-hairline px-3 py-1.5 text-[12px] text-content-subtle sm:rounded-none sm:border-0 sm:p-0 sm:text-[12.5px]">
-                <p.icon className="h-3.5 w-3.5 shrink-0 text-mint-400" /> {p.text}
-              </li>
-            ))}
-          </motion.ul>
-        </div>
-
         {/* ---------- today card ---------- */}
         <motion.div initial={{ opacity: 0, y: 24, rotate: -1.2 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 0.8, delay: 0.25, ease }} className="acad-ticket-wrap relative min-w-0 [grid-area:card]">
         <div className="acad-ticket-glow pointer-events-none absolute -inset-8 -z-10" aria-hidden />
@@ -402,7 +343,72 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
 
         {/* Fills the column under the ticket with live proof: the newest
             certificates (real, verifiable) and whether a live quiz is on. */}
-        <div className="acad-hero-proof mt-4 hidden rounded-[1.5rem] border border-hairline bg-ink-900/60 p-4 lg:block">
+        </motion.div>
+      </div>
+    </section>
+
+    {/* Below the hero: the numbers, tracks, live activity and the newest
+        certificates, so the hero itself fits one screen. */}
+    <section className="acad-hero-strip mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_25rem] xl:grid-cols-[minmax(0,1fr)_27rem]" aria-label="Academy at a glance">
+        {/* ---------- numbers, tracks, activity ---------- */}
+        <div className="acad-strip-card min-w-0 rounded-[1.5rem] p-3 sm:p-5">
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.7, ease }} className="grid grid-cols-4 gap-1.5 sm:gap-2">
+            <Stat accent value={questions ?? 510} label="questions" />
+            <Stat value={topics ?? 21} label="tracks" />
+            <Stat live value={pulse?.learningNow ?? null} label="live now" />
+            <Stat value={pulse?.quizzesToday ?? null} label="quizzes" />
+          </motion.div>
+          {tracks && tracks.length > 0 && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.65 }} className="acad-track-rail mt-4 overflow-hidden" aria-label="Learning tracks">
+              <div className="acad-track-rail-track flex w-max gap-2">
+                {[0, 1].map((k) => (
+                  <div key={k} className="flex gap-2" aria-hidden={k === 1}>
+                    {tracks.map((t) => (
+                      <Link
+                        key={`${k}-${t.slug}`}
+                        href={`/academy/learn/${t.slug}`}
+                        tabIndex={k === 1 ? -1 : undefined}
+                        className="inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border border-hairline bg-white/[0.03] px-3.5 text-[12.5px] font-medium text-content-muted transition-colors hover:border-gold-400/40 hover:text-content active:border-gold-400/40"
+                      >
+                        <Icon name={t.icon} className="h-3.5 w-3.5 text-gold-300" />
+                        {t.title}
+                        <span className="font-mono text-[10px] text-content-subtle">{t.modules.length}</span>
+                      </Link>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+          {pulse && pulse.achievements.length + pulse.certificates.length > 0 && (
+            <div className="acad-ticker mt-4 overflow-hidden" aria-label="Recent activity">
+              <div className="acad-ticker-track flex w-max gap-8 text-[13px] text-content-muted">
+                {[0, 1].map((k) => (
+                  <div key={k} className="flex gap-8" aria-hidden={k === 1}>
+                    {pulse.achievements.map((a, i) => (
+                      <span key={`a${i}`} className="whitespace-nowrap">
+                        <span className="font-semibold text-content">{a.name}</span> unlocked <span className="text-gold-300">{a.title}</span>
+                      </span>
+                    ))}
+                    {pulse.certificates.map((c) => (
+                      <span key={c.code} className="whitespace-nowrap">
+                        <span className="font-semibold text-content">{c.displayName}</span> earned <span className="text-gold-300">{c.title}</span>
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <motion.ul initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6, delay: 0.85 }} className="acad-nav-scroll -mx-3 mt-4 flex gap-2 overflow-x-auto px-3 [scrollbar-width:none] sm:mx-0 sm:mt-5 sm:flex-wrap sm:gap-x-5 sm:gap-y-2 sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
+            {PROMISES.map((p) => (
+              <li key={p.text} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-hairline px-3 py-1.5 text-[12px] text-content-subtle sm:rounded-none sm:border-0 sm:p-0 sm:text-[12.5px]">
+                <p.icon className="h-3.5 w-3.5 shrink-0 text-mint-400" /> {p.text}
+              </li>
+            ))}
+          </motion.ul>
+        </div>
+        <div className="acad-hero-proof acad-strip-card rounded-[1.5rem] p-4 sm:p-5">
           <div className="flex items-center justify-between">
             <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">
               <BadgeCheck className="h-3.5 w-3.5 text-gold-300" /> Latest certificates
@@ -440,8 +446,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
             </p>
           )}
         </div>
-        </motion.div>
-      </div>
     </section>
+    </>
   );
 }
