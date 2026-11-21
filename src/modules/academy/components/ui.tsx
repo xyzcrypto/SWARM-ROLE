@@ -136,7 +136,7 @@ export function SectionTitle({ eyebrow, title, sub, right }: { eyebrow?: string;
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
         {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
-        <h2 className="mt-1.5 font-display text-2xl font-semibold tracking-tight text-content sm:text-3xl">{title}</h2>
+        <h2 className="acad-section-title mt-2 font-display text-[1.65rem] font-semibold leading-[1.1] tracking-[-0.03em] text-content sm:text-[2.35rem]">{title}</h2>
         {sub && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-content-muted">{sub}</p>}
       </div>
       {right}

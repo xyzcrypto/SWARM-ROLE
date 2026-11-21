@@ -8,7 +8,7 @@ import { ArrowRight, AudioLines, Brain, CalendarDays, CheckCircle2, Clock, Flame
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { lineFor, duck, play, say, sayOneOf, sfx, stopVoice, unlock, type Piece } from "../client/audio";
-import { getJson, postJson, useAudio, useServerClock, useTicker } from "../client/hooks";
+import { getJson, postJson, useAudio, useServerClock, useTicker, withRetry } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
@@ -458,12 +458,12 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
   const load = useCallback(async () => {
     const sent = Date.now();
     try {
-      const s = await getJson<QuizState>(`/api/academy/quiz/${attemptId}`);
+      const s = await withRetry(() => getJson<QuizState>(`/api/academy/quiz/${attemptId}`));
       clock.sync(s.serverNow, sent);
       adopt(s);
       setErr(null);
       if (s.status !== "active") {
-        const r = await postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" });
+        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }));
         onFinished(r);
         return;
       }
@@ -488,6 +488,23 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
       duck(1);
       stopVoice();
     };
+  }, [load]);
+
+  // Back from a locked phone or another app: the server clock kept running
+  // (the question may have timed out meanwhile), so re-read the real state
+  // instead of showing a frozen question.
+  const busyRef = useRef(false);
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+  useEffect(() => {
+    let hiddenAt = 0;
+    const on = () => {
+      if (document.hidden) hiddenAt = Date.now();
+      else if (hiddenAt && Date.now() - hiddenAt > 3000 && !busyRef.current) void load();
+    };
+    document.addEventListener("visibilitychange", on);
+    return () => document.removeEventListener("visibilitychange", on);
   }, [load]);
 
   // AneQue may help in Live Talk, but must never give the open question away.
@@ -541,7 +558,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
       if (choice >= 0) sfx("select");
       const prevRun = state?.run ?? 0;
       try {
-        const r = await postJson<AnswerResult>(`/api/academy/quiz/${attemptId}`, { action: "answer", index: q.index, choice });
+        const r = await withRetry(() => postJson<AnswerResult>(`/api/academy/quiz/${attemptId}`, { action: "answer", index: q.index, choice }));
         setReveal(r);
         setState((s) => (s ? { ...s, score: r.score, correct: s.correct + (r.correct ? 1 : 0), run: r.run, revealed: true } : s));
         const after: Piece[] = [];
@@ -604,12 +621,12 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
     stopVoice();
     try {
       if (reveal.last) {
-        const r = await postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" });
+        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }));
         onFinished(r);
         return;
       }
       const sent = Date.now();
-      const s = await postJson<QuizState>(`/api/academy/quiz/${attemptId}`, { action: "next" });
+      const s = await withRetry(() => postJson<QuizState>(`/api/academy/quiz/${attemptId}`, { action: "next" }));
       clock.sync(s.serverNow, sent);
       adopt(s);
       setPicked(null);

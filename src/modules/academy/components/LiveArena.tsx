@@ -12,7 +12,7 @@ import { lineFor, duck, play, say, sayOneOf, sfx, unlock, type Piece } from "../
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 
 const vline = (k: VoiceLine): Piece => lineFor(k);
-import { getJson, postJson, useAudio, useLang, useServerClock, useTicker } from "../client/hooks";
+import { getJson, postJson, useAudio, useLang, useServerClock, useTicker, withRetry } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { LiveMe, LiveState } from "./types";
@@ -50,7 +50,7 @@ export function LiveArena({ id }: { id: string }) {
 
   const loadState = useCallback(async () => {
     try {
-      const s = await getJson<LiveState>(`/api/academy/live/${id}`);
+      const s = await withRetry(() => getJson<LiveState>(`/api/academy/live/${id}`), 2);
       setState(s);
       setError(null);
       setOffline(false);
@@ -216,7 +216,7 @@ export function LiveArena({ id }: { id: string }) {
       setSending(choice);
       setMsg(null);
       try {
-        await postJson(`/api/academy/live/${id}/me`, { action: "answer", index, choice });
+        await withRetry(() => postJson(`/api/academy/live/${id}/me`, { action: "answer", index, choice }));
         setMe((m) => (m ? { ...m, answers: [...m.answers, { index, choice, correct: null, points: null }] } : m));
         sfx("lock");
         sayOneOf("live_lock", 2, { auto: true });

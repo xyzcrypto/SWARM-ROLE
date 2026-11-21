@@ -11,9 +11,37 @@ import { usePathname } from "next/navigation";
  * profile, the dashboard) did nothing visible until the server answered,
  * which reads as "the site is stuck" and makes people click again or
  * refresh. The bar answers the click instantly. It never blocks anything,
- * renders no React state (it writes styles directly), and gives up after
- * 12 s so it can never hang on screen itself.
+ * renders no React state (it writes styles directly).
+ *
+ * If the soft navigation has still not landed after STUCK_MS (a cold function
+ * that never answered, a router request lost on a flaky connection), the
+ * click is finished as a normal full page load. That is exactly what the
+ * owner was doing by hand ("it gets stuck, I have to refresh"), done for them.
  */
+const STUCK_MS = 10_000;
+
+// Router requests in flight. A Next soft navigation fetches the new page's RSC
+// payload (header `RSC: 1`); counting those lets the fallback tell "the
+// router is still waiting for the server" from "a click handler cancelled the
+// navigation on purpose" (nothing in flight: leave it alone).
+let rscPending = 0;
+let fetchPatched = false;
+function trackRouterFetches() {
+  if (fetchPatched || typeof window === "undefined") return;
+  fetchPatched = true;
+  const orig = window.fetch.bind(window);
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    const h = init?.headers;
+    const isRsc =
+      (h instanceof Headers ? h.get("rsc") : h && !Array.isArray(h) ? (h as Record<string, string>)["rsc"] ?? (h as Record<string, string>)["RSC"] : null) === "1" ||
+      (typeof input === "string" ? input : input instanceof URL ? input.href : input.url).includes("_rsc=");
+    if (!isRsc) return orig(input, init);
+    rscPending++;
+    return orig(input, init).finally(() => {
+      rscPending = Math.max(0, rscPending - 1);
+    });
+  };
+}
 export function NavProgress() {
   const bar = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -38,11 +66,12 @@ export function NavProgress() {
   }, [pathname]);
 
   useEffect(() => {
-    const start = (href: string) => {
+    trackRouterFetches();
+    const start = (path: string, href: string) => {
       const el = bar.current;
       if (!el) return;
       finish();
-      state.current.target = href;
+      state.current.target = path;
       el.dataset.on = "1";
       el.style.transition = "none";
       el.style.opacity = "1";
@@ -54,7 +83,11 @@ export function NavProgress() {
         p += (0.92 - p) * 0.12;
         el.style.transform = `scaleX(${p.toFixed(3)})`;
       }, 250);
-      state.current.giveUp = window.setTimeout(finish, 12_000);
+      state.current.giveUp = window.setTimeout(() => {
+        const stillWaiting = state.current.target === path && window.location.pathname !== path && rscPending > 0;
+        finish();
+        if (stillWaiting && navigator.onLine !== false) window.location.assign(href);
+      }, STUCK_MS);
     };
     const onClick = (e: MouseEvent) => {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -70,7 +103,7 @@ export function NavProgress() {
       }
       if (url.origin !== window.location.origin) return;
       if (url.pathname === window.location.pathname) return; // same page (hash / query): nothing to wait for
-      start(url.pathname);
+      start(url.pathname, url.href);
     };
     const onPop = () => finish();
     document.addEventListener("click", onClick, true);

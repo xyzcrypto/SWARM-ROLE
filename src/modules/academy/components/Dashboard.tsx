@@ -12,18 +12,20 @@ const BOARD_LABEL: Record<string, string> = { daily: "Today", weekly: "This week
 function WeekChart({ week }: { week: Me["week"] }) {
   const max = Math.max(1, ...week.map((w) => w.xp));
   return (
-    <div className="flex h-28 items-end gap-2">
+    // Columns stretch to the chart's full height; the bars are a % of that.
+    // (With items-end the columns shrank to their label, so every bar was
+    // a percentage of zero and the chart rendered empty.)
+    <div className="flex h-28 gap-2">
       {week.map((w, i) => {
         const d = new Date(`${w.day}T00:00:00Z`);
         const label = d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
         return (
-          <div key={w.day} className="flex min-w-0 flex-1 flex-col items-center gap-1.5" title={`${w.day}: ${fmt(w.xp)} XP`}>
-            <div className="relative flex h-full w-full items-end">
+          <div key={w.day} className="flex h-full min-w-0 flex-1 flex-col items-center gap-1.5" title={`${w.day}: ${fmt(w.xp)} XP`}>
+            <div className="relative flex min-h-0 w-full flex-1 items-end">
               <motion.div
                 className={cn("w-full rounded-t-lg", i === week.length - 1 ? "bg-gradient-to-t from-gold-600 to-gold-300" : "bg-gradient-to-t from-gold-700/50 to-gold-400/50")}
                 initial={{ height: 0 }}
                 animate={{ height: `${Math.max(w.xp ? 6 : 2, (w.xp / max) * 100)}%` }}
-               
                 transition={{ duration: 0.8, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>

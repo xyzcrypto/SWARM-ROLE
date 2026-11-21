@@ -8,6 +8,7 @@ import { MarkdownLite } from "@/components/MarkdownLite";
 import { formatDateTime } from "@/lib/utils";
 import { useHydrated } from "@/lib/useClientFlag";
 import type { RadarItem } from "@modules/points/lib/airdrop-radar";
+import { lockScroll, unlockScroll } from "@shared/hooks/useScrollLock";
 
 /**
  * The AI briefing, given a page of its own instead of a drawer.
@@ -74,11 +75,10 @@ export function AirdropBriefModal({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+        lockScroll();
     document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = previous;
+      unlockScroll();
       document.removeEventListener("keydown", onKey);
     };
   }, [open, onClose]);

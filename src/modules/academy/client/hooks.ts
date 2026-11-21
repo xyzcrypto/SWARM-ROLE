@@ -41,6 +41,29 @@ export async function getJson<T>(url: string, init?: RequestInit & { timeoutMs?:
 
 export const postJson = <T,>(url: string, data: unknown) => getJson<T>(url, { method: "POST", body: JSON.stringify(data) });
 
+/**
+ * Retry a request that failed for a reason that is not the server saying no:
+ * a dropped connection, a timeout (status 0) or a 5xx (a cold start that fell
+ * over). 4xx answers are final and come straight back. The quiz uses this for
+ * every step, so a flaky mobile connection costs a second, not a stuck screen
+ * with a Retry button. Every quiz action is safe to repeat: the server answers
+ * a repeated answer/next with 409 and the player re-syncs.
+ */
+export async function withRetry<T>(fn: () => Promise<T>, tries = 3): Promise<T> {
+  let last: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      last = e;
+      const st = (e as { status?: number }).status ?? 0;
+      if (st >= 400 && st < 500) throw e;
+      if (i < tries - 1) await new Promise((r) => setTimeout(r, 700 * (i + 1)));
+    }
+  }
+  throw last;
+}
+
 // One shared copy of /api/academy/me per page. Several components show parts
 // of it (hero, dashboard, leaderboard, certificates); each fetching its own was
 // two or three identical, fairly heavy requests on every Academy page.

@@ -8,6 +8,7 @@ import { Maximize2, X, Search, Sparkles, ZoomIn, ZoomOut, RotateCcw, ChevronDown
 import { cn } from "@/lib/utils";
 import type { CoinRow } from "@/lib/markets";
 import { useCurrency } from "../context/CurrencyContext";
+import { lockScroll, unlockScroll } from "@shared/hooks/useScrollLock";
 
 export interface MarketHeatmapProps {
   coins?: CoinRow[];
@@ -1005,12 +1006,11 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
       }
     };
     window.addEventListener("keydown", handleKeyDown);
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+        lockScroll();
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = originalOverflow;
+      unlockScroll();
     };
   }, [isExpanded]);
 

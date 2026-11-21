@@ -12,6 +12,7 @@ import { ChatWallpaper, swatchStyle } from "./ChatWallpaper";
 import type { ChatAppearance } from "./useChatAppearance";
 import { ChatFeelSections } from "./ChatFeelSections";
 import { feelAttrs, useChatFeel } from "@shared/utils/chat-feel";
+import { lockScroll, unlockScroll } from "@shared/hooks/useScrollLock";
 
 /**
  * Chat appearance: presets, your own photo, and a live preview of both.
@@ -58,13 +59,12 @@ export function ChatAppearanceSheet({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
-    // Restore the exact previous value: another overlay may already hold the
-    // lock, and blanking it would free the page under that one.
-    const previous = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Shared, nested-safe lock: a hand-rolled save/restore here once left the
+    // page frozen when two overlays closed out of order.
+        lockScroll();
     document.addEventListener("keydown", onKey);
     return () => {
-      document.body.style.overflow = previous;
+      unlockScroll();
       document.removeEventListener("keydown", onKey);
     };
   }, [onClose]);

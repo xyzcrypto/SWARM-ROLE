@@ -5,6 +5,41 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-21 (166) — Nothing gets stuck: quiz, AneQue's voice, navigation; Academy hero v6
+
+- **AneQue's voice in order.** A clip that failed fired both `onerror` and the rejected
+  `play()`, so the line was read twice and the queue jumped a piece (she talked over
+  herself and skipped one). Every piece now ends exactly once. A clip that stalls is
+  read by the browser voice after 8 s. A clip that never sends `ended` is skipped
+  after its length plus 2.5 s. Browser speech gets the same guard. The next clip is
+  preloaded while the current one plays.
+- **Voice files are cached** (`next.config.mjs`): scripted lines for a day, hashed
+  content clips for 30 days. Before, every clip was revalidated on every play, which
+  left a gap between her lines on phones.
+- **Quiz never sits on a dead request.** Every step (load, answer, next, finish) and
+  the live arena retry a dropped connection or a 5xx (`withRetry`). 4xx answers are
+  final. Coming back to the tab after more than 3 s re-reads the real state, so a
+  question that timed out while the phone was locked no longer shows frozen.
+- **Site-wide:** if a page change is still waiting on the server after 10 s, the
+  click finishes as a normal page load. This only happens when a router request is
+  actually in flight, so a click handler that cancels navigation is left alone.
+  Four modals had hand-rolled scroll locks that could leave the page unscrollable
+  when two overlays closed out of order; they now use the shared nested-safe lock.
+  `<html data-scroll-behavior="smooth">` lets Next skip the smooth scroll on route
+  changes.
+- **Academy hero v6:** a lit glass stage (slow aurora light, dot grid, gold hairline)
+  and a bigger two-line headline: "Master **Web3.**" with the shine, and "Prove it on
+  the leaderboard." with the shimmer. New copy mentions the English and Hinglish
+  voice. Stats are four glass tiles; questions and tracks show at once, with no
+  loading dashes. On phones the stage runs nearly edge to edge.
+- **Academy fixes:** the Weekly performance chart was always empty (each column had
+  zero height, so every bar was a percentage of nothing). The "14 topics" copy now
+  shows the real count (21). Lesson meta no longer wraps on 8-lesson tracks. Cards
+  get a soft top light and a gold edge on hover, and section titles are larger.
+- Tests: `academy-unstuck.test.ts`.
+
+---
+
 ## 2026-11-21 (165) — Academy in Hinglish, with AneQue's voice; every lesson and answer explained aloud
 
 - **EN / Hinglish switch** in the Academy bar (remembered per browser). Hinglish covers every
