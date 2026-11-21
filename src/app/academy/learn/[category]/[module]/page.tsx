@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getModule } from "@modules/academy/lib/store";
-import { clip } from "@modules/academy/lib/voice";
+import { clip, hinglish } from "@modules/academy/lib/voice";
 import { LessonView } from "@modules/academy/components/LessonView";
 import { JsonLd, breadcrumbJsonLd } from "@/lib/jsonld";
 import { pageSeo } from "@/lib/seo";
@@ -39,6 +39,20 @@ export default async function LessonPage({ params }: Props) {
     questions: m._count.questions,
     isFirst: idx === 0,
   };
+  // AneQue reads every part of the lesson in her own voice (English), and the
+  // same lesson exists in Hinglish with its own recordings in the same voice.
+  const voices = {
+    sections: lesson.sections.map((x) => ({ heading: clip(x.heading), body: clip(x.body) })),
+    example: lesson.example ? { title: clip(lesson.example.title), body: clip(lesson.example.body) } : null,
+  };
+  const hi = {
+    title: hinglish(lesson.title),
+    summary: hinglish(lesson.summary),
+    objectives: lesson.objectives.map((o) => hinglish(o)),
+    sections: lesson.sections.map((x) => ({ heading: hinglish(x.heading), body: hinglish(x.body) })),
+    concepts: lesson.concepts.map((c) => hinglish(c.definition)),
+    example: lesson.example ? { title: hinglish(lesson.example.title), body: hinglish(lesson.example.body) } : null,
+  };
   const nav = {
     category: { slug: r.category.slug, title: r.category.title, icon: r.category.icon },
     modules: r.category.modules.map((x) => ({ id: x.id, slug: x.slug, level: x.level, title: x.title, minutes: x.minutes })),
@@ -54,7 +68,7 @@ export default async function LessonPage({ params }: Props) {
           { name: m.title, path: `/academy/learn/${r.category.slug}/${m.slug}` },
         ])}
       />
-      <LessonView lesson={lesson} nav={nav} />
+      <LessonView lesson={{ ...lesson, voices, hi }} nav={nav} />
     </>
   );
 }

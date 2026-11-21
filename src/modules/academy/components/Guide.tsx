@@ -9,6 +9,7 @@ import {
   browserVoices,
   femaleScore,
   getSnapshot,
+  lineFor,
   play,
   pauseVoice,
   resumeVoice,
@@ -25,6 +26,7 @@ import {
 } from "../client/audio";
 import { useAudio } from "../client/hooks";
 import { GreetBubble } from "./GreetBubble";
+import { HINGLISH_READY } from "../client/hinglish-ready";
 import { usePageBrief, type PageBrief } from "../client/page-brief";
 import { dispatchCommand, parseCommand } from "../client/commands";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
@@ -173,6 +175,8 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
         <Toggle on={s.guide} onChange={(v) => set({ guide: v })} label="AneQue reacts on her own" />
         <Toggle on={s.readQuestions} onChange={(v) => set({ readQuestions: v })} label="Read each question aloud" />
         <Toggle on={s.explainWrong} onChange={(v) => set({ explainWrong: v })} label="Explain wrong answers aloud" />
+        <Toggle on={s.explainRight} onChange={(v) => set({ explainRight: v })} label="Explain right answers too" />
+        {HINGLISH_READY && <Toggle on={s.lang === "hi"} onChange={(v) => set({ lang: v ? "hi" : "en" })} label="Hinglish (lessons, quizzes, AneQue)" />}
         <Toggle on={s.haptics} onChange={(v) => set({ haptics: v })} label="Haptics (vibration)" icon={<Vibrate className="h-4 w-4 text-content-subtle" />} />
         <label className="mt-1 block px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">
           Voice
@@ -507,9 +511,9 @@ export function GuideDock() {
     }
     const intro = (`brief_${b.page}` as VoiceLine) in VOICE_LINES ? (`brief_${b.page}` as VoiceLine) : null;
     const pieces = [
-      ...(intro ? [{ url: `/academy/voice/${intro}.mp3`, text: VOICE_LINES[intro] }] : []),
+      ...(intro ? [lineFor(intro)] : []),
       ...spoken.map((t) => ({ text: t })),
-      { url: "/academy/voice/brief_outro.mp3", text: VOICE_LINES.brief_outro },
+      lineFor("brief_outro"),
     ];
     play(pieces);
   };

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Headphones, Lightbulb, Pause, Swords, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useAudio, useMe } from "../client/hooks";
+import { useAudio, useLang, useMe, type HiText } from "../client/hooks";
 import { play, say, stopVoice, unlock } from "../client/audio";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { VoiceLine } from "../client/voice-lines";
@@ -25,6 +25,15 @@ type Lesson = {
   example: { title: string; body: string } | null;
   questions: number;
   isFirst: boolean;
+  voices: { sections: { heading: string | null; body: string | null }[]; example: { title: string | null; body: string | null } | null };
+  hi: {
+    title: HiText | null;
+    summary: HiText | null;
+    objectives: (HiText | null)[];
+    sections: { heading: HiText | null; body: HiText | null }[];
+    concepts: (HiText | null)[];
+    example: { title: HiText | null; body: HiText | null } | null;
+  };
 };
 type Nav = {
   category: { slug: string; title: string; icon: string };
@@ -36,6 +45,16 @@ type Nav = {
 export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
   const { me, status } = useMe();
   const { voice } = useAudio();
+  const { tx, vx, hiOn } = useLang();
+  const H = lesson.hi;
+  // The pieces AneQue reads for section i: its heading, then its body.
+  const sectionPieces = (i: number) => {
+    const s = lesson.sections[i];
+    return [
+      { url: vx(lesson.voices.sections[i]?.heading ?? null, H.sections[i]?.heading), text: tx(s.heading, H.sections[i]?.heading) },
+      { url: vx(lesson.voices.sections[i]?.body ?? null, H.sections[i]?.body), text: tx(s.body, H.sections[i]?.body) },
+    ];
+  };
   const done = me?.progress.modules.includes(lesson.id) ?? false;
   const [reading, setReading] = useState<number | null>(null);
   const [flipped, setFlipped] = useState<Set<number>>(new Set());
@@ -65,8 +84,7 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
       setReading(null);
       return;
     }
-    const s = lesson.sections[i];
-    play([{ text: `${s.heading}. ${s.body}` }]);
+    play(sectionPieces(i), { caption: tx(lesson.sections[i].body, H.sections[i]?.body) });
     setReading(i);
   };
 
@@ -89,8 +107,8 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
             </Pill>
           )}
         </div>
-        <h1 className="mt-3 font-display text-3xl font-semibold leading-tight tracking-tight text-content sm:text-[2.6rem]">{lesson.title}</h1>
-        <p className="mt-3 text-base leading-relaxed text-content-muted sm:text-lg">{lesson.summary}</p>
+        <h1 className="mt-3 font-display text-3xl font-semibold leading-tight tracking-tight text-content sm:text-[2.6rem]">{tx(lesson.title, H.title)}</h1>
+        <p className="mt-3 text-base leading-relaxed text-content-muted sm:text-lg">{tx(lesson.summary, H.summary)}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
@@ -102,12 +120,25 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
                 return;
               }
               // AneQue reads the summary in her own voice, then the lesson in order.
-              play([{ url: lesson.summaryVoice, text: lesson.summary }, ...lesson.sections.map((x) => ({ text: `${x.heading}. ${x.body}` }))], { caption: lesson.summary });
+              const ex = lesson.example;
+              play(
+                [
+                  { url: vx(lesson.summaryVoice, H.summary), text: tx(lesson.summary, H.summary) },
+                  ...lesson.sections.flatMap((_, i) => sectionPieces(i)),
+                  ...(ex
+                    ? [
+                        { url: vx(lesson.voices.example?.title ?? null, H.example?.title), text: tx(ex.title, H.example?.title) },
+                        { url: vx(lesson.voices.example?.body ?? null, H.example?.body), text: tx(ex.body, H.example?.body) },
+                      ]
+                    : []),
+                ],
+                { caption: tx(lesson.summary, H.summary) }
+              );
               setReading(-1);
             }}
             className="btn-secondary h-10 px-4 text-sm"
           >
-            {reading === -1 ? <Pause className="h-4 w-4" /> : <Headphones className="h-4 w-4" />} {reading === -1 ? "Stop" : "Listen to this lesson"}
+            {reading === -1 ? <Pause className="h-4 w-4" /> : <Headphones className="h-4 w-4" />} {reading === -1 ? "Stop" : hiOn ? "AneQue se poora lesson suno" : "Listen to this lesson"}
           </button>
         </div>
 
@@ -117,10 +148,10 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
               <Target className="h-3.5 w-3.5" /> By the end you will
             </div>
             <ul className="mt-3 space-y-2">
-              {lesson.objectives.map((o) => (
+              {lesson.objectives.map((o, i) => (
                 <li key={o} className="flex gap-2.5 text-sm text-content">
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-gold-300" />
-                  {o}
+                  {tx(o, H.objectives[i])}
                 </li>
               ))}
             </ul>
@@ -140,7 +171,7 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
               <div className="flex items-start justify-between gap-3">
                 <h2 className="font-display text-lg font-semibold tracking-tight text-content sm:text-xl">
                   <span className="mr-2 font-mono text-sm text-gold-300">{String(i + 1).padStart(2, "0")}</span>
-                  {s.heading}
+                  {tx(s.heading, H.sections[i]?.heading)}
                 </h2>
                 <button
                   type="button"
@@ -152,7 +183,7 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
                   {reading === i ? <Pause className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
                 </button>
               </div>
-              <p className="mt-3 text-[15px] leading-7 text-content-muted">{s.body}</p>
+              <p className="mt-3 text-[15px] leading-7 text-content-muted">{tx(s.body, H.sections[i]?.body)}</p>
             </motion.section>
           ))}
         </div>
@@ -181,7 +212,7 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
                   >
                     <div className="font-semibold text-content">{c.term}</div>
                     <motion.div initial={false} animate={{ height: open ? "auto" : 0, opacity: open ? 1 : 0 }} className="overflow-hidden">
-                      <p className="pt-2 text-sm leading-relaxed text-content-muted">{c.definition}</p>
+                      <p className="pt-2 text-sm leading-relaxed text-content-muted">{tx(c.definition, H.concepts[i])}</p>
                     </motion.div>
                     {!open && <div className="mt-1 text-[11px] text-gold-300/80">Reveal</div>}
                   </button>
@@ -196,8 +227,8 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
             <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-mint-300">
               <Lightbulb className="h-3.5 w-3.5" /> Real-world example
             </div>
-            <h3 className="mt-2 font-display text-lg font-semibold text-content">{lesson.example.title}</h3>
-            <p className="mt-2 text-[15px] leading-7 text-content-muted">{lesson.example.body}</p>
+            <h3 className="mt-2 font-display text-lg font-semibold text-content">{tx(lesson.example.title, H.example?.title)}</h3>
+            <p className="mt-2 text-[15px] leading-7 text-content-muted">{tx(lesson.example.body, H.example?.body)}</p>
           </div>
         )}
 

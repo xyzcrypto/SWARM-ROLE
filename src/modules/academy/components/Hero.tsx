@@ -7,14 +7,14 @@ import { ArrowRight, AudioLines, BadgeCheck, CalendarDays, CheckCircle2, Flame, 
 import { cn } from "@/lib/utils";
 import { GuideCaption, GuideWave } from "./Guide";
 import { Avatar, CountUp, fmt, Icon, ProgressBar } from "./ui";
-import { pauseVoice, play, resumeVoice, unlock, type Piece } from "../client/audio";
+import { lineFor, pauseVoice, play, resumeVoice, unlock, type Piece } from "../client/audio";
 import { useAudio, type Me } from "../client/hooks";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import type { CatalogCategory, Pulse } from "./types";
 import { greetName } from "../client/name-bank";
 
 const ease = [0.22, 1, 0.36, 1] as const;
-const vline = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
+const vline = (k: VoiceLine): Piece => lineFor(k);
 
 /** Time left until the daily challenge rolls over (00:00 UTC). Client-only, after mount. */
 function useUntilUtcMidnight() {

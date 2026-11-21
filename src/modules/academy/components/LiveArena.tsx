@@ -8,11 +8,11 @@ import { cn } from "@/lib/utils";
 import { useRealtime } from "@/lib/useRealtime";
 import { liveChannel } from "@/lib/realtime-channels";
 import { livePhase, type LivePhase } from "@modules/academy/lib/engine";
-import { duck, play, say, sayOneOf, sfx, unlock, type Piece } from "../client/audio";
+import { lineFor, duck, play, say, sayOneOf, sfx, unlock, type Piece } from "../client/audio";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 
-const vline = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
-import { getJson, postJson, useAudio, useServerClock, useTicker } from "../client/hooks";
+const vline = (k: VoiceLine): Piece => lineFor(k);
+import { getJson, postJson, useAudio, useLang, useServerClock, useTicker } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { LiveMe, LiveState } from "./types";
@@ -31,6 +31,7 @@ export function LiveArena({ id }: { id: string }) {
   const [msg, setMsg] = useState<string | null>(null);
   const clock = useServerClock();
   const audio = useAudio();
+  const lang = useLang();
   const lastKey = useRef("");
   const announced = useRef<Set<string>>(new Set());
 
@@ -156,8 +157,8 @@ export function LiveArena({ id }: { id: string }) {
       else if (state.count >= 6 && phase.index === Math.floor(state.count / 2)) pieces.push(vline("live_half"));
       else pieces.push(vline("live_next"));
     }
-    if (audio.settings.readQuestions) pieces.push({ url: q.voice.prompt, text: q.prompt });
-    if (pieces.length) play(pieces, { caption: q.prompt });
+    if (audio.settings.readQuestions) pieces.push({ url: lang.vx(q.voice.prompt, q.hi?.prompt), text: lang.tx(q.prompt, q.hi?.prompt) });
+    if (pieces.length) play(pieces, { caption: lang.tx(q.prompt, q.hi?.prompt) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase?.kind, phase && "index" in phase ? phase.index : -1, state?.question?.index]);
 
@@ -250,8 +251,9 @@ export function LiveArena({ id }: { id: string }) {
       sfx(a.correct ? "correct" : "wrong");
       const q = state?.question;
       const pieces = audio.settings.guide ? [vline(Math.random() < 0.5 ? "live_reveal" : "live_reveal_2")] : [];
-      if (!a.correct && audio.settings.explainWrong && q?.explanation) pieces.push({ url: q.voiceExplanation ?? null, text: q.explanation });
-      if (pieces.length) play(pieces, { caption: q?.explanation ?? undefined });
+      const explain = a.correct ? audio.settings.explainRight : audio.settings.explainWrong;
+      if (explain && q?.explanation) pieces.push({ url: lang.vx(q.voiceExplanation ?? null, q.hi?.explanation), text: lang.tx(q.explanation, q.hi?.explanation) });
+      if (pieces.length) play(pieces, { caption: q?.explanation ? lang.tx(q.explanation, q.hi?.explanation) : undefined });
     }
   }, [phase, me]);
 
@@ -454,6 +456,7 @@ function QuestionStage({
   onJoin: () => void;
   joining: boolean;
 }) {
+  const lang = useLang();
   const revealing = phase.kind === "reveal" && q.answer != null;
   const left = phase.kind === "question" ? Math.max(0, phase.closesAt - now) : 0;
   const pct = phase.kind === "question" ? left / (questionSec * 1000) : 0;
@@ -482,7 +485,7 @@ function QuestionStage({
           )}
         </span>
       </div>
-      <h2 className="acad-play-prompt mt-3 font-display font-semibold leading-snug text-content sm:mt-4">{q.prompt}</h2>
+      <h2 className="acad-play-prompt mt-3 font-display font-semibold leading-snug text-content sm:mt-4">{lang.tx(q.prompt, q.hi?.prompt)}</h2>
       <div className="mt-4 grid gap-2 sm:mt-6 sm:grid-cols-2 sm:gap-2.5">
         {q.options.map((o, i) => {
           const right = revealing && q.answer === i;
@@ -520,7 +523,7 @@ function QuestionStage({
             <div className={cn("font-semibold", mine?.correct ? "text-mint-300" : mine ? "text-red-300" : "text-content-muted")}>
               {mine?.correct ? `Correct, +${mine.points ?? 0} points` : mine ? "Not this time" : canAnswer ? "No answer this round" : "Answer revealed"}
             </div>
-            {q.explanation && <p className="mt-1.5 leading-relaxed text-content-muted">{q.explanation}</p>}
+            {q.explanation && <p className="mt-1.5 leading-relaxed text-content-muted">{lang.tx(q.explanation, q.hi?.explanation)}</p>}
             <p className="mt-2 text-[11px] text-content-subtle">Next question in {Math.max(0, Math.ceil(((phase.kind === "reveal" ? phase.nextAt : now) - now) / 1000))}s</p>
           </div>
         ) : mine ? (

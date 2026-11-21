@@ -142,3 +142,24 @@ export function useTicker(on: boolean, ms = 250) {
     return () => clearInterval(id);
   }, [on, ms]);
 }
+
+/** A Hinglish translation of one string, with AneQue's recording of it. */
+export type HiText = { text: string; voice: string | null };
+
+/**
+ * Academy language helpers. `tx(en, hi)` is the text to show and `vx(enUrl,
+ * hi)` the recording to play: Hinglish when the learner chose it and a
+ * translation exists, English otherwise.
+ */
+export function useLang() {
+  const { settings } = useAudio();
+  const hiOn = settings.lang === "hi";
+  return useMemo(
+    () => ({
+      hiOn,
+      tx: (en: string, hi?: HiText | null) => (hiOn && hi?.text ? hi.text : en),
+      vx: (en: string | null, hi?: HiText | null) => (hiOn && hi?.text ? hi.voice : en),
+    }),
+    [hiOn]
+  );
+}

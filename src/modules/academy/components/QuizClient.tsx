@@ -7,12 +7,13 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, AudioLines, Brain, CalendarDays, CheckCircle2, Clock, Flame, Gauge, Headphones, Layers, Loader2, LogIn, RotateCcw, Split, Swords, Timer, Trophy, XCircle, Zap } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
-import { duck, play, say, sayOneOf, sfx, stopVoice, unlock, type Piece } from "../client/audio";
+import { lineFor, duck, play, say, sayOneOf, sfx, stopVoice, unlock, type Piece } from "../client/audio";
 import { getJson, postJson, useAudio, useServerClock, useTicker } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import type { AnswerResult, CatalogCategory, QuizState } from "./types";
+import type { HiText } from "@modules/academy/lib/voice";
 import { DIFF_LABEL, DIFF_TONE, Empty, Eyebrow, Panel, Pill } from "./ui";
 import { QuizResults } from "./QuizResults";
 import type { QuizResult } from "./types";
@@ -31,7 +32,7 @@ const MODE_TABS: { id: Mode; label: string; icon: typeof Zap; hint: string }[] =
 ];
 
 const LETTERS = ["A", "B", "C", "D"];
-const line = (k: VoiceLine): Piece => ({ url: `/academy/voice/${k}.mp3`, text: VOICE_LINES[k] });
+const line = (k: VoiceLine): Piece => lineFor(k);
 
 export function QuizClient() {
   const params = useSearchParams();
@@ -439,6 +440,11 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
   const [pop, setPop] = useState<{ id: number; text: string } | null>(null);
   const clock = useServerClock();
   const { settings } = useAudio();
+  // Hinglish mode: the same question in Hinglish, read in AneQue's same voice.
+  // Anything without a translation falls back to English.
+  const hiOn = settings.lang === "hi";
+  const tx = (en: string, hi?: HiText | null) => (hiOn && hi?.text ? hi.text : en);
+  const vx = (en: string | null, hi?: HiText | null) => (hiOn && hi?.text ? hi.voice : en);
   const timedOut = useRef<number | null>(null);
   const announced = useRef<number>(-1);
   const q = state?.question ?? null;
@@ -465,7 +471,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
         const a = s.answered.find((x) => x && x.index === s.current);
         if (a) {
           setPicked(a.chosen);
-          setReveal({ index: a.index, correct: a.correct, timedOut: a.chosen === -1, correctShown: a.correctShown, explanation: a.explanation, voice: { explanation: a.voice.explanation }, points: a.points, fresh: a.fresh, assisted: a.assisted, ms: a.ms, run: s.run, score: s.score, last: s.current === s.total - 1 });
+          setReveal({ index: a.index, correct: a.correct, timedOut: a.chosen === -1, correctShown: a.correctShown, explanation: a.explanation, voice: { explanation: a.voice.explanation }, hi: { explanation: a.hi?.explanation ?? null }, points: a.points, fresh: a.fresh, assisted: a.assisted, ms: a.ms, run: s.run, score: s.score, last: s.current === s.total - 1 });
         }
       }
     } catch (e) {
@@ -499,13 +505,14 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
   const readQuestion = useCallback(
     (withOptions: boolean) => {
       if (!q) return;
-      const pieces: Piece[] = [{ url: q.voice.prompt, text: q.prompt }];
+      const pieces: Piece[] = [{ url: vx(q.voice.prompt, q.hi?.prompt), text: tx(q.prompt, q.hi?.prompt) }];
       if (withOptions)
         q.options.forEach((o, i) => {
           if (hidden.includes(i)) return;
-          pieces.push(line(`opt_${LETTERS[i]}` as VoiceLine), { url: q.voice.options[i], text: o });
+          pieces.push(line(`opt_${LETTERS[i]}` as VoiceLine), { url: vx(q.voice.options[i], q.hi?.options[i]), text: tx(o, q.hi?.options[i]) });
         });
-      play(pieces, { caption: withOptions ? `${q.prompt} ${q.options.map((o, i) => `${LETTERS[i]}: ${o}`).join("  ")}` : q.prompt });
+      const prompt = tx(q.prompt, q.hi?.prompt);
+      play(pieces, { caption: withOptions ? `${prompt} ${q.options.map((o, i) => `${LETTERS[i]}: ${tx(o, q.hi?.options[i])}`).join("  ")}` : prompt });
     },
     [q, hidden]
   );
@@ -521,8 +528,8 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
       else if (q.total >= 6 && q.index === Math.floor(q.total / 2)) pieces.push(line("question_half"));
       else if (q.index < 20) pieces.push(line(`q_${q.index + 1}` as VoiceLine));
     }
-    if (settings.readQuestions) pieces.push({ url: q.voice.prompt, text: q.prompt });
-    if (pieces.length) play(pieces, { caption: q.prompt, queue: q.index === 0 });
+    if (settings.readQuestions) pieces.push({ url: vx(q.voice.prompt, q.hi?.prompt), text: tx(q.prompt, q.hi?.prompt) });
+    if (pieces.length) play(pieces, { caption: tx(q.prompt, q.hi?.prompt), queue: q.index === 0 });
   }, [q, reveal, settings.guide, settings.readQuestions]);
 
   const answer = useCallback(
@@ -555,9 +562,12 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
           if (prevRun >= 3) say("streak_broken", { auto: true });
           else if (r.timedOut) sayOneOf("timeout", 3, { auto: true });
           else sayOneOf("incorrect", 7, { auto: true });
-          if (settings.explainWrong && r.explanation) after.push({ url: r.voice.explanation, text: r.explanation });
+          if (settings.explainWrong && r.explanation) after.push({ url: vx(r.voice.explanation, r.hi?.explanation), text: tx(r.explanation, r.hi?.explanation) });
         }
-        if (after.length) play(after, { queue: true, caption: r.explanation });
+        // Right answers are explained too (setting, on by default): knowing
+        // WHY it is right is how the lesson sticks.
+        if (r.correct && settings.explainRight && r.explanation) after.push({ url: vx(r.voice.explanation, r.hi?.explanation), text: tx(r.explanation, r.hi?.explanation) });
+        if (after.length) play(after, { queue: true, caption: tx(r.explanation, r.hi?.explanation) });
       } catch (e) {
         setErr((e as Error).message);
         setPicked(null);
@@ -568,7 +578,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
         setBusy(false);
       }
     },
-    [q, reveal, busy, hidden, attemptId, load, state?.run, settings.explainWrong]
+    [q, reveal, busy, hidden, attemptId, load, state?.run, settings.explainWrong, settings.explainRight, hiOn]
   );
 
   const fifty = useCallback(async () => {
@@ -651,7 +661,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
       const p = (e as CustomEvent<NonNullable<Parsed>>).detail;
       if (!q) return;
       if (p.cmd === "repeat") readQuestion(true);
-      else if (p.cmd === "explain" && reveal) play([{ url: reveal.voice.explanation, text: reveal.explanation || "There is no explanation for this one." }]);
+      else if (p.cmd === "explain" && reveal) play([{ url: vx(reveal.voice.explanation, reveal.hi?.explanation), text: tx(reveal.explanation, reveal.hi?.explanation) || "There is no explanation for this one." }]);
       else if (p.cmd === "next" && reveal) void next();
       else if (p.cmd === "answer" && p.option != null && !reveal) void answer(p.option);
     };
@@ -755,7 +765,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
                   </button>
                 </div>
               </div>
-              <h2 className="acad-play-prompt mt-3 font-display font-semibold leading-snug text-content sm:mt-4">{q.prompt}</h2>
+              <h2 className="acad-play-prompt mt-3 font-display font-semibold leading-snug text-content sm:mt-4">{tx(q.prompt, q.hi?.prompt)}</h2>
 
               <div className="mt-3 grid gap-2 sm:mt-5 sm:gap-2.5">
                 {q.options.map((o, i) => {
@@ -790,7 +800,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
                       >
                         {right ? <CheckCircle2 className="h-4 w-4" /> : wrong ? <XCircle className="h-4 w-4" /> : LETTERS[i]}
                       </span>
-                      <span className="min-w-0 flex-1">{o}</span>
+                      <span className="min-w-0 flex-1">{tx(o, q.hi?.options[i])}</span>
                       {busy && isPicked && !reveal && <Loader2 className="h-4 w-4 animate-spin text-gold-300" />}
                     </motion.button>
                   );
@@ -827,7 +837,23 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
                         <Clock className="h-3 w-3" /> {(reveal.ms / 1000).toFixed(1)}s
                       </span>
                     </div>
-                    {reveal.explanation && <p className="mt-1.5 text-[13px] leading-relaxed text-content-muted sm:text-sm">{reveal.explanation}</p>}
+                    {reveal.explanation && (
+                      <div className="mt-1.5 flex items-start gap-2">
+                        <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-content-muted sm:text-sm">{tx(reveal.explanation, reveal.hi?.explanation)}</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            unlock();
+                            play([{ url: vx(reveal.voice.explanation, reveal.hi?.explanation), text: tx(reveal.explanation, reveal.hi?.explanation) }]);
+                          }}
+                          className="acad-icon-btn h-7 w-7 shrink-0"
+                          aria-label="Hear the explanation"
+                          title="Hear the explanation"
+                        >
+                          <Headphones />
+                        </button>
+                      </div>
+                    )}
                     {reveal.correct && !reveal.fresh && <p className="mt-1.5 text-[11px] text-content-subtle">Practice answer: you got this one right recently, so it scores but earns no XP this time.</p>}
                   </div>
                 </motion.div>

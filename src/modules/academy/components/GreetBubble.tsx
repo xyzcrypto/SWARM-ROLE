@@ -5,13 +5,14 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Volume2, X } from "lucide-react";
-import { play, sfx, stopVoice, tryAutoUnlock, unlock, type Piece } from "../client/audio";
+import { lineFor, play, sfx, stopVoice, tryAutoUnlock, unlock, type Piece } from "../client/audio";
 import { useAudio, useMe } from "../client/hooks";
 import { greetName } from "../client/name-bank";
-import { greeting, greetPage } from "../client/greet";
+import { greeting, greetPage, setGreetLineResolver } from "../client/greet";
 import { GuideCaption } from "./Guide";
 
 const KEY = "xyz:academy:greeted:v2";
+setGreetLineResolver(lineFor);
 
 function seen(k: string): boolean {
   try {
