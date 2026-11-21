@@ -5,6 +5,26 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-21 (165) — Academy in Hinglish, with AneQue's voice; every lesson and answer explained aloud
+
+- **EN / Hinglish switch** in the Academy bar (remembered per browser). Hinglish covers every
+  lesson (title, summary, objectives, sections, key concepts, worked example), every quiz
+  question, option and explanation, the live arena and the results review — 5,380 strings,
+  written in Roman-script Hinglish, plus all 250 of AneQue's scripted lines.
+- **Voice:** every Hinglish string has its own recording (Sarvam Bulbul v3, speaker
+  "Simran", 48 kHz) under `public/academy/voice/h/<hash>.mp3` and `voice/hi/<line>.mp3`,
+  listed in `content/voice-manifest-hi.json` (5,380 + 250 clips, ~285 MB).
+- **Explained aloud:** right answers are now explained too (setting "Explain right answers
+  too", on by default), each explanation has a "Hear the explanation" button, and
+  "Listen to this lesson" reads the summary, every section and the example in recorded
+  clips (622 new English section/example clips).
+- **Live Talk** answers in natural Hinglish when the switch is on.
+- Cost: static files only, served from the CDN; no new routes, no new polling.
+- Gate: `HINGLISH_READY` (client) is now `true`; `academy-hinglish.test.ts` fails if any
+  Hinglish string or scripted line lacks a recording.
+
+---
+
 ## 2026-11-20 (164) — Academy hero v5: a structured, app-like phone layout
 
 - Phones read like an app home screen: greeting + live badge, a tighter balanced headline
