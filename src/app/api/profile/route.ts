@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError } from "@/lib/api";
 import { getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import bcrypt from "bcryptjs";
+import { z } from "zod";
 import { profileSchema } from "@/lib/profile";
 
 // Fields returned to the client after an update (safe, no secrets).
@@ -89,7 +91,7 @@ export async function PATCH(req: Request) {
 }
 
 // DELETE /api/profile - permanently delete the signed-in user's account.
-// Requires a JSON body { confirm: true } to avoid accidental deletes.
+// Requires { confirm: true }, plus { password } when the account has one.
 export async function DELETE(req: Request) {
   try {
     const me = await getSessionUser();
@@ -98,8 +100,22 @@ export async function DELETE(req: Request) {
     const { success } = await rateLimit("profile", me.id);
     if (!success) return fail("Too many requests. Please slow down.", 429);
 
-    const body = await req.json().catch(() => ({}));
-    if (body?.confirm !== true) return fail("Deletion not confirmed.", 400);
+    const parsed = z.object({ confirm: z.literal(true), password: z.string().max(200).optional() }).safeParse(await req.json().catch(() => null));
+    if (!parsed.success) return fail("Deletion not confirmed.", 400);
+
+    // Re-authenticate before an irreversible delete (audit F-11): a stolen
+    // session cookie alone (a shared device, a borrowed laptop) used to be
+    // enough to wipe the account. Accounts with a password must type it;
+    // OAuth-only accounts have no password to ask for.
+    const acct = await prisma.user.findUnique({ where: { id: me.id }, select: { passwordHash: true } });
+    if (acct?.passwordHash) {
+      // Same per-account budget as password changes, so this cannot be used
+      // to guess the password.
+      if (!(await rateLimit("password", `delete:${me.id}`)).success) return fail("Too many attempts. Please try again shortly.", 429);
+      if (!parsed.data.password || !(await bcrypt.compare(parsed.data.password, acct.passwordHash))) {
+        return fail("That password is not right.", 403);
+      }
+    }
 
     // Remove the user's own content/relations, then the account itself.
     // Account/Session rows cascade on user delete; authored Posts are detached

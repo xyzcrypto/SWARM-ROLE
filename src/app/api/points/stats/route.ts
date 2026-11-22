@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { ok, handleError } from "@/lib/api";
 import { prisma } from "@/lib/prisma";
 import { kv } from "@/lib/ai/kv";
@@ -71,11 +72,15 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const { success } = await rateLimit("subscribe", clientIp(req));
+    const ip = clientIp(req);
+    const { success } = await rateLimit("subscribe", ip);
     if (!success) return ok({ ok: true, rateLimited: true });
+    // Anonymous by design (guests use the calculator too), so the public
+    // figure is bounded per IP per day instead (audit F-13).
+    if (!(await rateLimit("pointsStatsDaily", ip)).success) return ok({ ok: true, rateLimited: true });
 
-    const body = await req.json().catch(() => ({}));
-    const points = Number(body?.points);
+    const parsed = z.object({ points: z.number().finite().positive().max(1e15) }).safeParse(await req.json().catch(() => null));
+    const points = parsed.success ? parsed.data.points : NaN;
 
     // Only accept realistic positive increments (up to 50M per calculation)
     if (Number.isFinite(points) && points > 0) {

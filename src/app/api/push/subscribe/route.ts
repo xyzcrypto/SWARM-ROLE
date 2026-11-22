@@ -4,6 +4,7 @@ import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { pushEnabled } from "@/lib/push";
 import { CATEGORIES } from "@/lib/news";
+import { isPushServiceEndpoint, MAX_PUSH_SUBS_PER_USER } from "@core/push/endpoints";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -12,8 +13,9 @@ const VALID = new Set<string>(CATEGORIES);
 
 const schema = z.object({
   subscription: z.object({
-    endpoint: z.string().url(),
-    keys: z.object({ p256dh: z.string().min(1), auth: z.string().min(1) }),
+    // Only a real browser push service (audit F-07): never an arbitrary URL.
+    endpoint: z.string().url().max(1000).refine(isPushServiceEndpoint),
+    keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
   }),
   // Optional notification preference (Web3 News customization).
   notifyMode: z.enum(["off", "high", "foryou", "categories"]).optional(),
@@ -62,6 +64,27 @@ export async function POST(req: Request) {
 
     const base = { p256dh: keys.p256dh, auth: keys.auth, userId: me.id };
     const prefs = notifyMode ? { notifyMode, notifyCategories: cats } : {};
+
+    // ⚠️ An endpoint already saved for ANOTHER account is only moved to this
+    // one when the caller also holds its keys (the same browser, now signed in
+    // as someone else). Before, knowing a victim's endpoint URL was enough to
+    // re-bind their device to your account (audit F-08).
+    const existing = await prisma.pushSubscription.findUnique({ where: { endpoint }, select: { userId: true, p256dh: true, auth: true } }).catch(() => null);
+    if (existing && existing.userId !== me.id && (existing.p256dh !== keys.p256dh || existing.auth !== keys.auth)) {
+      return fail("Invalid subscription.", 400);
+    }
+    // One account, at most MAX_PUSH_SUBS_PER_USER devices: a new one replaces
+    // the oldest, so one account cannot register endpoints without limit and
+    // multiply every notification it receives (audit F-07).
+    if (!existing || existing.userId !== me.id) {
+      const mine = await prisma.pushSubscription
+        .findMany({ where: { userId: me.id }, orderBy: { createdAt: "asc" }, select: { endpoint: true } })
+        .catch(() => [] as { endpoint: string }[]);
+      const over = mine.length - (MAX_PUSH_SUBS_PER_USER - 1);
+      if (over > 0) {
+        await prisma.pushSubscription.deleteMany({ where: { userId: me.id, endpoint: { in: mine.slice(0, over).map((m) => m.endpoint) } } }).catch(() => null);
+      }
+    }
 
     // Try with prefs; if the pref columns aren't migrated yet, fall back to the
     // base upsert so subscribing still works (prefs apply once migrated).

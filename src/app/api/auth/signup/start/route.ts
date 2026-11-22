@@ -32,6 +32,14 @@ export async function POST(req: Request) {
     const emailLimit = await rateLimit("otpEmail", email);
     if (!emailLimit.success) return fail("Too many attempts. Please try again shortly.", 429);
 
+    // Long-window cap per target email (audit F-10): the 10-minute bucket alone
+    // allowed ~2,000 code guesses a day against one address, forever.
+    if (!(await rateLimit("otpEmailDaily", email)).success) return fail("Too many attempts. Please try again shortly.", 429);
+
+    // Hash BEFORE looking the email up, so a new and an existing address take
+    // the same ~250ms. Hashing only for new emails made the response time say
+    // whether an account exists, even though the body was identical (audit F-15).
+    const passwordHash = await bcrypt.hash(password, 12);
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
       // Don't reveal whether an email is registered (user enumeration - login
@@ -45,7 +53,6 @@ export async function POST(req: Request) {
       return ok({ ok: true });
     }
 
-    const passwordHash = await bcrypt.hash(password, 12);
     const code = await issueCode(email, "signup", { name, passwordHash });
     const { subject, html, text } = otpEmail(code, "signup");
     const sent = await sendEmail(email, subject, html, text);

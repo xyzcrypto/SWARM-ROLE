@@ -5,6 +5,50 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-22 (169) — Security batch 1: Critical, High and Medium findings from the audit
+
+From the 2026-11-22 security audit (rating 6.5/10). Finding IDs match the audit.
+
+- **F-01 (Critical)** Next.js 16.3.8 → **16.4.6** (image-optimizer RCE advisory, GHSA-2464).
+  Sentry 10.78, Tiptap 3.33.1 (prosemirror-view XSS), source-map-js 1.2.4. `npm audit`
+  (prod): 39 → 6 (left: zod, a major upgrade, and Sentry build-time glob/minimatch).
+  `next/image` hosts are now exact: our own Supabase project (from
+  `NEXT_PUBLIC_SUPABASE_URL`, public storage path only), Google/GitHub avatar hosts,
+  Unsplash, Cloudinary. No more `**.supabase.co` / `**.githubusercontent.com`, which
+  anyone can host files on. `dangerouslyAllowSVG: false` stated explicitly. Profile
+  avatar URLs use the same exact list.
+- **F-02 (High)** Chat broadcasts are **signed** (ECDSA P-256, key derived from
+  `NEXTAUTH_SECRET` with HKDF, no new env var) and the browser verifies every content
+  event before rendering it (`core/realtime/signing.ts`, `shared/utils/realtime-verify.ts`).
+  Forged admin messages, edits, hides, pins, votes and reactions are dropped; events
+  older than 10 minutes are refused (replay). No extra requests. Without a key the
+  client trusts nothing and only nudges its throttled reconcile.
+- **F-03** SSRF guard works on numeric hextets: hex-mapped (`::ffff:7f00:1`),
+  IPv4-compatible, SIIT, NAT64 and 6to4 forms are unwrapped and the IPv4 checked.
+- **F-04** Private profiles: Journal Activity API and follower/following lists return
+  nothing to anyone but the owner.
+- **F-05** Upload and voice-note object names are `randomUUID()` (was timestamp +
+  `Math.random`). A private bucket with signed links is still to do (needs a Supabase
+  bucket change).
+- **F-07/F-08** Push subscriptions: real push-service hosts only (https), max 10 per
+  account (oldest replaced), no re-binding another account's endpoint without its keys;
+  `sendPush` refuses old rows with other hosts.
+- **F-10/F-13/F-14** New daily buckets: `otpEmailDaily` (10/day per email),
+  `aiDaily` (300/day per member across translate, transcribe, AneQue listen),
+  `pointsStatsDaily` (30/day per IP) + zod on the stats body.
+- **F-11** Deleting an account with a password requires the password (Settings asks).
+- **F-12** Re-activating a challenge counts against the Free active-challenge limit.
+- **F-15** Signup hashes the password before the existence check (no timing oracle).
+- **F-17** Google sign-in refused unless `email_verified`.
+- **F-18** Cron workflows send `CRON_SECRET` as an `Authorization` header, not `?secret=`
+  (also rules out a secret with URL-special characters being mangled in the query).
+- **Not changed, on purpose:** F-06 (nonce CSP). A per-request nonce forces every page
+  to render dynamically, which would turn the site's static and ISR pages into
+  per-request renders (the expensive direction in `cost-check`). Kept as an accepted
+  risk; there is no known injection sink.
+- Tests: `security-batch-1.test.ts` (37, including a real sign/verify round trip and
+  four forged-event attacks), updated `profile`, `chat-bugs`.
+
 ## 2026-11-22 (168) — No more "refresh to fix it": deploy recovery, quiz re-sync, Academy-only sound, AneQue grounded in the lessons
 
 - **Site stuck after a deploy.** Vercel Hobby has no skew protection, so a tab opened

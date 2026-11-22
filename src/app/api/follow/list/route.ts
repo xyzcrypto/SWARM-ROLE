@@ -17,8 +17,11 @@ export async function GET(req: Request) {
     const type = sp.get("type") === "following" ? "following" : "followers";
     if (!username) return fail("No user specified.", 400);
 
-    const target = await prisma.user.findUnique({ where: { username }, select: { id: true } });
+    const target = await prisma.user.findUnique({ where: { username }, select: { id: true, profileVisibility: true } });
     if (!target) return fail("User not found.", 404);
+    // A private profile's follower and following lists are visible to its
+    // owner only (audit F-04): "Private shows only your name and photo".
+    if (target.profileVisibility === "private" && me?.id !== target.id) return ok({ list: [], private: true });
 
     const userSelect = { id: true, name: true, username: true, image: true, bio: true } as const;
     const rows = await prisma.follow

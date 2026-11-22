@@ -15,7 +15,14 @@ describe("isAllowedImageHost", () => {
     expect(isAllowedImageHost("https://lh3.googleusercontent.com/a/x")).toBe(true);
     expect(isAllowedImageHost("https://avatars.githubusercontent.com/u/1")).toBe(true);
     expect(isAllowedImageHost("https://res.cloudinary.com/demo/image.png")).toBe(true);
-    expect(isAllowedImageHost("https://abc.supabase.co/storage/v1/object/public/x.png")).toBe(true);
+    expect(isAllowedImageHost("https://abc.supabase.co/storage/v1/object/public/x.png", "abc.supabase.co")).toBe(true);
+  });
+
+  it("allows only OUR Supabase project and exact OAuth avatar hosts, never attacker-hostable wildcards (audit F-16)", () => {
+    expect(isAllowedImageHost("https://attacker.supabase.co/storage/v1/object/public/x.png", "abc.supabase.co")).toBe(false);
+    expect(isAllowedImageHost("https://abc.supabase.co/x.png", null)).toBe(false);
+    expect(isAllowedImageHost("https://raw.githubusercontent.com/evil/x/main/a.svg")).toBe(false);
+    expect(isAllowedImageHost("https://storage.googleusercontent.com/evil/a.png")).toBe(false);
   });
 
   it("rejects non-https, non-allowlisted hosts, and junk", () => {

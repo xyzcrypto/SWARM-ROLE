@@ -22,6 +22,7 @@ export async function POST(req: Request) {
     if (!me) return fail("Sign in to talk with AneQue.", 401);
     if (!transcribeEnabled) return fail("Live talk isn't available right now.", 503);
     const { success } = await rateLimit("ai", `aneque-listen-${me.id}`);
+    if (success && !(await rateLimit("aiDaily", me.id)).success) return fail("That's enough talking for today. Live Talk resets tomorrow.", 429);
     if (!success) return fail("You're talking faster than I can listen. Give me a second.", 429);
     const bytes = await req.arrayBuffer();
     if (!bytes.byteLength) return fail("I didn't catch any audio.", 400);

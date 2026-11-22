@@ -2,6 +2,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { journalLimitsFor } from "@/lib/journal-limits";
 import { buildLeaderboard, type ChallengeTrade } from "@/lib/challenge";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
 import { activityForChallengeCompleted, challengeActivitySource, challengeActivityWhere } from "@/lib/journal-activity";
@@ -105,6 +106,19 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     const parsed = patchSchema.safeParse(await req.json());
     if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "Invalid input.", 400);
     const { startDate, endDate, ...rest } = parsed.data;
+
+    // Re-activating counts against the plan's active-challenge limit exactly
+    // like creating does. Without this a Free member could create A, mark it
+    // completed, create B, then PATCH A back to active (audit F-12).
+    if (rest.status === "active" && existing.status !== "active") {
+      const limits = journalLimitsFor(me.membership);
+      if (Number.isFinite(limits.maxActiveChallenges)) {
+        const activeCount = await prisma.challenge.count({ where: { creatorId: me.id, status: "active" } }).catch(() => 0);
+        if (activeCount >= limits.maxActiveChallenges) {
+          return fail(`Free members can run ${limits.maxActiveChallenges} active challenge at a time. Upgrade to Premium for unlimited challenges.`, 403);
+        }
+      }
+    }
 
     const challenge = await prisma.challenge.update({
       where: { id: params.id },
