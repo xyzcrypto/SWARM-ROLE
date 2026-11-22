@@ -5,6 +5,47 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-22 (168) — No more "refresh to fix it": deploy recovery, quiz re-sync, Academy-only sound, AneQue grounded in the lessons
+
+- **Site stuck after a deploy.** Vercel Hobby has no skew protection, so a tab opened
+  before a deploy that navigates to a new route asks for a JS chunk that no longer
+  exists. The automatic reload for that was guarded once per SESSION, so the second
+  deploy a long-lived tab saw was never recovered. It is now time-guarded (one reload
+  per 30s) in `shared/utils/recover.ts`, used by `PwaSetup`, `app/error.tsx` and
+  `app/global-error.tsx`.
+- **"Try again" that could not work.** `error.tsx` only called `reset()`, which
+  re-renders the same failed server payload. It now does `router.refresh()` + `reset()`
+  and falls back to a full load after two tries; a chunk error reloads straight away.
+- **Navigation watchdog.** `NavProgress` no longer needs the RSC request to still be in
+  flight to rescue a click (a route whose chunk 404'd after its request finished stayed
+  frozen), and it now also covers navigations started from code (`router.push` from
+  AneQue, buttons, the command palette) by watching the router's own page requests.
+- **Quiz wedged after a lost response.** When "Next" reached the server but its reply
+  was lost, the retry got a 409 and the re-sync loaded the new question while the old
+  reveal stayed on screen: options locked, "Next" answered 409 forever, and Retry ran
+  the same incomplete re-sync. `load()` now reconciles everything (clears a stale
+  reveal), 409/410 re-sync quietly instead of showing an error, quiz steps time out
+  at 8s instead of 15s (worst case ~26s, not ~47s), the no-state error screen has Try
+  again / New quiz, and the server skips a question an admin deleted mid-quiz instead
+  of returning `question: null` to a spinner.
+- **Academy sound stays in the Academy.** `audio.ts` now has scopes: the Academy layout
+  claims "academy" (music, voice, effects); the Feedback room claims "page" (voice and
+  effects, never music). Leaving stops everything and suspends the AudioContext, so the
+  music scheduler no longer runs on other pages. Feedback's tap-to-hear listeners are
+  removed on unmount (the first tap anywhere else used to play its greeting). AneQue's
+  dock and page briefs are removed from Markets, News and Points (owner's call).
+- **AneQue answers from the lessons.** Each Live Talk turn retrieves the lesson passages
+  that match the question (BM25-style, boosted for the lesson on screen) and the
+  learner's level, accuracy and weak topics (`aneque-knowledge.ts`), server-side. The
+  prompt has an explicit think-first protocol (resolve follow-ups, agree with the
+  notes, check numbers, pitch to level, ask when ambiguous) and prompt-injection and
+  no-financial-advice rules. Replies are cleaned for speech and never stop mid-word.
+  Questions are no longer swallowed as commands ("why is funding negative?" used to run
+  Explain; "how do live quizzes work?" opened Live). The dock gained a typed-question box.
+- Tests: `r9-unstuck-aneque.test.ts` (34), updated `academy-unstuck`, `academy-engine`.
+- Removed: `AneQueDockLazy.tsx`, `page-brief.ts`, `market-brief.ts`, `news-brief.ts`,
+  `points-brief.ts`, `aneque-briefs.test.ts`.
+
 ## 2026-11-21 (167) — Academy hero fits one screen; numbers and certificates move below it
 
 - The hero stage now holds only the intro (greeting, headline, copy, buttons, and the

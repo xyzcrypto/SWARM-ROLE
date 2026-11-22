@@ -39,7 +39,16 @@ export async function getJson<T>(url: string, init?: RequestInit & { timeoutMs?:
   return body as T;
 }
 
-export const postJson = <T,>(url: string, data: unknown) => getJson<T>(url, { method: "POST", body: JSON.stringify(data) });
+export const postJson = <T,>(url: string, data: unknown, opts?: { timeoutMs?: number }) => getJson<T>(url, { method: "POST", body: JSON.stringify(data), timeoutMs: opts?.timeoutMs });
+
+/**
+ * Quiz steps are small and must feel instant. With the general 15s timeout and
+ * three tries, one dropped request kept "Checking your answer…" spinning for
+ * up to ~47s, which nobody waits through: they refresh. 8s x 3 tries puts the
+ * worst case near 26s, and a request lost on a mobile network now retries
+ * after 8s instead of 15s.
+ */
+export const QUIZ_TIMEOUT_MS = 8_000;
 
 /**
  * Retry a request that failed for a reason that is not the server saying no:

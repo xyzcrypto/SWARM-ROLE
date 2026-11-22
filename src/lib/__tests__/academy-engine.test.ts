@@ -212,7 +212,7 @@ describe("academy integrity invariants (source)", () => {
   });
   it("AneQue is told never to give away an open question", () => {
     const prompt = readFileSync("src/modules/academy/lib/aneque.ts", "utf8");
-    expect(prompt).toMatch(/questionOpen \? "- A quiz question is open on screen\. NEVER reveal/);
+    expect(prompt).toMatch(/questionOpen \? "- A QUIZ QUESTION IS OPEN\. Never reveal, hint at, or eliminate any option/);
     for (const f of ["src/modules/academy/components/QuizClient.tsx", "src/modules/academy/components/LiveArena.tsx"]) {
       expect(readFileSync(f, "utf8")).toMatch(/setTalkContext\(.*questionOpen: true/s);
     }

@@ -46,7 +46,9 @@ describe("no-stuck guards stay in place", () => {
   });
   it("navigation: a soft navigation stuck on the server falls back to a full load", () => {
     const n = read("src/shared/components/NavProgress.tsx");
-    expect(n).toMatch(/rscPending > 0/);
+    expect(n).toMatch(/navStartedAt\.get\(path\)/);
+    // programmatic navigations (router.push) are covered too
+    expect(n).toMatch(/pendingNavs/);
     expect(n).toMatch(/window\.location\.assign\(href\)/);
   });
   it("no hand-rolled body scroll locks (they freeze the page when overlays close out of order)", () => {

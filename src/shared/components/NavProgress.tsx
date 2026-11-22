@@ -20,28 +20,65 @@ import { usePathname } from "next/navigation";
  */
 const STUCK_MS = 10_000;
 
-// Router requests in flight. A Next soft navigation fetches the new page's RSC
-// payload (header `RSC: 1`); counting those lets the fallback tell "the
-// router is still waiting for the server" from "a click handler cancelled the
-// navigation on purpose" (nothing in flight: leave it alone).
-let rscPending = 0;
+// Router page requests. A Next soft navigation fetches the new page's RSC
+// payload (header `RSC: 1`). Knowing the router actually STARTED loading the
+// clicked page lets the fallback tell "the router tried and the page never
+// arrived" from "a click handler cancelled the navigation on purpose" (no
+// request for that page: leave it alone).
 let fetchPatched = false;
+/** When the router last started loading each path. */
+const navStartedAt = new Map<string, number>();
+
+/** A soft navigation's RSC request still in flight: where it goes and when it started. */
+type PendingNav = { href: string; path: string; at: number };
+const pendingNavs = new Set<PendingNav>();
+
+function header(h: HeadersInit | undefined, name: string): string | null {
+  if (!h) return null;
+  if (h instanceof Headers) return h.get(name);
+  if (Array.isArray(h)) return h.find(([k]) => k.toLowerCase() === name)?.[1] ?? null;
+  const rec = h as Record<string, string>;
+  for (const k in rec) if (k.toLowerCase() === name) return rec[k];
+  return null;
+}
+
+/**
+ * Pure, for tests: is this fetch the router loading a page (not a prefetch,
+ * not a server action), and if so which URL would a hard load use?
+ */
+export function navTarget(url: string, init: RequestInit | undefined, origin: string): { href: string; path: string } | null {
+  const h = init?.headers;
+  const rsc = header(h, "rsc") === "1" || url.includes("_rsc=");
+  if (!rsc) return null;
+  if (header(h, "next-router-prefetch") || header(h, "next-action") || (init?.method && init.method.toUpperCase() !== "GET")) return null;
+  let u: URL;
+  try {
+    u = new URL(url, origin);
+  } catch {
+    return null;
+  }
+  if (u.origin !== origin) return null;
+  u.searchParams.delete("_rsc");
+  return { href: u.pathname + (u.search === "?" ? "" : u.search) + u.hash, path: u.pathname };
+}
+
 function trackRouterFetches() {
   if (fetchPatched || typeof window === "undefined") return;
   fetchPatched = true;
   const orig = window.fetch.bind(window);
   window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-    const h = init?.headers;
-    const isRsc =
-      (h instanceof Headers ? h.get("rsc") : h && !Array.isArray(h) ? (h as Record<string, string>)["rsc"] ?? (h as Record<string, string>)["RSC"] : null) === "1" ||
-      (typeof input === "string" ? input : input instanceof URL ? input.href : input.url).includes("_rsc=");
-    if (!isRsc) return orig(input, init);
-    rscPending++;
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+    const nav = navTarget(url, init, window.location.origin);
+    if (!nav) return orig(input, init);
+    const entry = { ...nav, at: Date.now() };
+    pendingNavs.add(entry);
+    navStartedAt.set(nav.path, entry.at);
     return orig(input, init).finally(() => {
-      rscPending = Math.max(0, rscPending - 1);
+      pendingNavs.delete(entry);
     });
   };
 }
+
 export function NavProgress() {
   const bar = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
@@ -67,10 +104,28 @@ export function NavProgress() {
 
   useEffect(() => {
     trackRouterFetches();
+    // Navigations started from code (router.push from a button, AneQue, the
+    // command palette) never pass through the click handler below. Watch the
+    // router's own page requests instead: one that has been in flight for
+    // STUCK_MS towards a page we are not on is finished as a full load.
+    const watchdog = window.setInterval(() => {
+      const now = Date.now();
+      for (const n of pendingNavs) {
+        if (now - n.at < STUCK_MS) continue;
+        pendingNavs.delete(n);
+        if (n.path !== window.location.pathname && navigator.onLine !== false && !document.hidden) {
+          window.location.assign(n.href);
+          return;
+        }
+      }
+    }, 2000);
     const start = (path: string, href: string) => {
       const el = bar.current;
       if (!el) return;
       finish();
+      // A little before the click: the router may start the request in the
+      // same tick as this capture-phase listener.
+      const clickedAt = Date.now() - 50;
       state.current.target = path;
       el.dataset.on = "1";
       el.style.transition = "none";
@@ -84,7 +139,12 @@ export function NavProgress() {
         el.style.transform = `scaleX(${p.toFixed(3)})`;
       }, 250);
       state.current.giveUp = window.setTimeout(() => {
-        const stillWaiting = state.current.target === path && window.location.pathname !== path && rscPending > 0;
+        // The click has not landed after STUCK_MS. It used to also require the
+        // RSC request to still be IN FLIGHT, so a navigation that died after
+        // its request finished (the route's JS chunk 404ing after a deploy, a
+        // render that never resolved) left the page frozen. Now: the router
+        // started loading this page and we are still not on it.
+        const stillWaiting = state.current.target === path && window.location.pathname !== path && (navStartedAt.get(path) ?? 0) >= clickedAt;
         finish();
         if (stillWaiting && navigator.onLine !== false) window.location.assign(href);
       }, STUCK_MS);
@@ -111,6 +171,7 @@ export function NavProgress() {
     return () => {
       document.removeEventListener("click", onClick, true);
       window.removeEventListener("popstate", onPop);
+      window.clearInterval(watchdog);
       finish();
     };
   }, []);

@@ -20,8 +20,6 @@ import {
   type CompVenue,
 } from "@modules/points/lib/points";
 import { buildPrograms, scenarioFdv, sortPrograms, type ProgramView } from "@modules/points/lib/programs";
-import { pointsBrief } from "@modules/points/lib/points-brief";
-import { setPageBrief } from "@modules/academy/client/page-brief";
 import { DEX_REGISTRY } from "@/lib/dex-registry";
 import { PointsHero } from "./PointsHero";
 import { FeaturedProgramsBar } from "./FeaturedProgramsBar";
@@ -226,18 +224,6 @@ export function PointsClient() {
   }, [load]);
 
   const programs = useMemo(() => sortPrograms(buildPrograms(venues)), [venues]);
-
-  // AneQue's brief for /points, built from the programmes on screen when she
-  // is asked (a ref, so publishing it never re-renders the page).
-  const briefPrograms = useRef(programs);
-  useEffect(() => {
-    briefPrograms.current = programs;
-  }, [programs]);
-  useEffect(() => {
-    const build = () => pointsBrief(briefPrograms.current);
-    setPageBrief({ page: "points", label: "Explain the points programs", build });
-    return () => setPageBrief(null);
-  }, []);
 
   const targetable = useMemo<CompVenue[]>(() => {
     const seen = new Set(venues.map((v) => v.slug));

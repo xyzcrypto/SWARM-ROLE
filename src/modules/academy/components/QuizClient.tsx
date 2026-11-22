@@ -8,7 +8,7 @@ import { ArrowRight, AudioLines, Brain, CalendarDays, CheckCircle2, Clock, Flame
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { lineFor, duck, play, say, sayOneOf, sfx, stopVoice, unlock, type Piece } from "../client/audio";
-import { getJson, postJson, useAudio, useServerClock, useTicker, withRetry } from "../client/hooks";
+import { getJson, postJson, QUIZ_TIMEOUT_MS, useAudio, useServerClock, useTicker, withRetry } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
@@ -458,14 +458,28 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
   const load = useCallback(async () => {
     const sent = Date.now();
     try {
-      const s = await withRetry(() => getJson<QuizState>(`/api/academy/quiz/${attemptId}`));
+      const s = await withRetry(() => getJson<QuizState>(`/api/academy/quiz/${attemptId}`, { timeoutMs: QUIZ_TIMEOUT_MS }));
       clock.sync(s.serverNow, sent);
       adopt(s);
       setErr(null);
-      if (s.status !== "active") {
+      // Finished, or nothing left to show (the last question was removed by an
+      // admin mid-quiz): settle it and show the results instead of a spinner.
+      if (s.status !== "active" || !s.question) {
         const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }));
         onFinished(r);
         return;
+      }
+      // ⚠️ Reconcile EVERYTHING with the server, not just the revealed case.
+      // When "Next" reached the server but its response was lost, the retry got
+      // a 409 and this re-sync loaded the NEW question while the previous
+      // question's reveal stayed on screen: the options were locked (a reveal
+      // is showing), "Next" answered 409 again ("Answer this question first")
+      // and the quiz could only be rescued by a refresh. The Retry button ran
+      // the same incomplete re-sync, so it could not rescue it either.
+      if (!s.revealed) {
+        setReveal(null);
+        setPicked(null);
+        setPop(null);
       }
       if (s.revealed) {
         const a = s.answered.find((x) => x && x.index === s.current);
@@ -558,7 +572,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
       if (choice >= 0) sfx("select");
       const prevRun = state?.run ?? 0;
       try {
-        const r = await withRetry(() => postJson<AnswerResult>(`/api/academy/quiz/${attemptId}`, { action: "answer", index: q.index, choice }));
+        const r = await withRetry(() => postJson<AnswerResult>(`/api/academy/quiz/${attemptId}`, { action: "answer", index: q.index, choice }, { timeoutMs: QUIZ_TIMEOUT_MS }));
         setReveal(r);
         setState((s) => (s ? { ...s, score: r.score, correct: s.correct + (r.correct ? 1 : 0), run: r.run, revealed: true } : s));
         const after: Piece[] = [];
@@ -586,11 +600,15 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
         if (r.correct && settings.explainRight && r.explanation) after.push({ url: vx(r.voice.explanation, r.hi?.explanation), text: tx(r.explanation, r.hi?.explanation) });
         if (after.length) play(after, { queue: true, caption: tx(r.explanation, r.hi?.explanation) });
       } catch (e) {
-        setErr((e as Error).message);
+        const st = (e as { status?: number }).status;
         setPicked(null);
         // A failed time-out must be retried, or the question sits at 0s forever.
         if (choice === -1) setTimeout(() => (timedOut.current = null), 2500);
-        if ((e as { status?: number }).status === 409) void load();
+        // 409/410: the server already moved on (an earlier attempt of this
+        // same request landed, or the question timed out). Nothing for the
+        // learner to fix, so re-sync quietly instead of showing an error.
+        if (st === 409 || st === 410) void load();
+        else setErr((e as Error).message);
       } finally {
         setBusy(false);
       }
@@ -626,7 +644,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
         return;
       }
       const sent = Date.now();
-      const s = await withRetry(() => postJson<QuizState>(`/api/academy/quiz/${attemptId}`, { action: "next" }));
+      const s = await withRetry(() => postJson<QuizState>(`/api/academy/quiz/${attemptId}`, { action: "next" }, { timeoutMs: QUIZ_TIMEOUT_MS }));
       clock.sync(s.serverNow, sent);
       adopt(s);
       setPicked(null);
@@ -634,8 +652,9 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
       setPop(null);
       sfx("whoosh");
     } catch (e) {
-      setErr((e as Error).message);
-      if ((e as { status?: number }).status === 409) void load();
+      const st = (e as { status?: number }).status;
+      if (st === 409 || st === 410) void load();
+      else setErr((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -696,7 +715,20 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
         return i === state.current ? "current" : "todo";
       });
 
-  if (err && !state) return <Empty>{err}</Empty>;
+  if (err && !state)
+    return (
+      <Empty>
+        {err}
+        <div className="mt-4 flex justify-center gap-3">
+          <button type="button" onClick={() => void load()} className="btn-primary h-10 px-5 text-sm">
+            Try again
+          </button>
+          <button type="button" onClick={onLost} className="btn-secondary h-10 px-5 text-sm">
+            New quiz
+          </button>
+        </div>
+      </Empty>
+    );
   if (!state || !q)
     return (
       <div className="grid min-h-[50vh] place-items-center">
