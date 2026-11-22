@@ -37,9 +37,7 @@ import { HeroMarketSection } from "./HeroMarketSection";
 import { HorizontalTrendingBar } from "./HorizontalTrendingBar";
 import { TotalMarketCapChart } from "./TotalMarketCapChart";
 import { MarketHeatmap } from "./MarketHeatmap";
-import { getLivePrices, overlayLive, useLivePrices } from "../lib/live-prices";
-import { marketBrief } from "../lib/market-brief";
-import { setPageBrief } from "@modules/academy/client/page-brief";
+import { overlayLive, useLivePrices } from "../lib/live-prices";
 import { AIMarketIntelligenceCard } from "./AIMarketIntelligenceCard";
 import { WatchlistWidget } from "./WatchlistWidget";
 import { PerpLeaderboardWidget } from "./PerpLeaderboardWidget";
@@ -197,21 +195,6 @@ function MarketsClientInner() {
   const x = usePolledJson<DexResp>("/api/markets/dex", 300_000);
   const y = usePolledJson<YieldResp>("/api/markets/yields", 300_000);
   const c = usePolledJson<CoinsResp>("/api/markets/coins", 180_000);
-
-  // AneQue's brief: built when she is asked, from the freshest numbers
-  // (refs, so publishing it never re-renders this page).
-  const briefData = useRef({ c: c.data, g: g.data, d: d.data });
-  useEffect(() => {
-    briefData.current = { c: c.data, g: g.data, d: d.data };
-  }, [c.data, g.data, d.data]);
-  useEffect(() => {
-    const build = () => {
-      const { c: cd, g: gd, d: dd } = briefData.current;
-      return marketBrief({ coins: cd?.list, gainers: cd?.gainers, losers: cd?.losers, global: gd, defi: dd, live: getLivePrices() });
-    };
-    setPageBrief({ page: "markets", label: "Explain the market", build });
-    return () => setPageBrief(null);
-  }, []);
 
   const sources = [g.live, d.live, p.live, x.live, y.live, c.live];
   const allLive = sources.every(Boolean);

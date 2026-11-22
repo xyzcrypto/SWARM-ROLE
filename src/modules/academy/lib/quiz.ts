@@ -252,7 +252,7 @@ async function settleTimeout(a: AttemptRow, now: number): Promise<boolean> {
   return true;
 }
 
-export async function getQuizState(userId: string, attemptId: string) {
+export async function getQuizState(userId: string, attemptId: string, depth = 0) {
   let a = await loadAttempt(attemptId);
   if (!a || a.userId !== userId) throw new QuizError("Quiz not found.", 404);
   if (await settleTimeout(a, Date.now())) a = (await loadAttempt(attemptId))!;
@@ -263,6 +263,18 @@ export async function getQuizState(userId: string, attemptId: string) {
     return q ? reviewRow(a!, q, x.index) : null;
   });
   const q = qs.get(a.questionIds[a.current]);
+  // The open question no longer exists (an admin deleted it while this quiz
+  // was running). Without this the player got `question: null` on an active
+  // quiz and showed a spinner forever. Skip it; on the last question, mark it
+  // revealed so the quiz can be finished.
+  if (a.status === "active" && !q && !a.revealed && depth < 3) {
+    const last = a.current >= a.questionIds.length - 1;
+    await prisma.academyAttempt.updateMany({
+      where: { id: a.id, current: a.current, revealed: false, status: "active" },
+      data: last ? { revealed: true } : { current: a.current + 1, servedAt: new Date() },
+    });
+    return getQuizState(userId, attemptId, depth + 1);
+  }
   const base = {
     attemptId: a.id,
     mode: a.mode,

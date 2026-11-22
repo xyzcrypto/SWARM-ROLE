@@ -171,6 +171,51 @@ export function updateSettings(patch: Partial<AudioSettings>) {
   if (!settings.master || !settings.voice) stopVoice();
 }
 
+// ------------------------------------------------------------------ scope
+//
+// ⚠️ Where sound is allowed at all. This module is a singleton that outlives
+// client-side navigation, and the AudioContext with it: before scopes, the
+// Academy's music scheduler (a 30ms setInterval) and AneQue's voice carried on
+// after the learner left the Academy, so the rest of the site played Academy
+// music and sound effects ("baki jagah bhi effect aata hai"), and the
+// scheduler kept costing CPU on every page.
+//
+// Now a page has to claim sound while it is mounted:
+//   "academy"  every /academy page (claimed by GuideDock in the Academy layout):
+//              music, voice and effects.
+//   "page"     a non-Academy page that uses AneQue's voice on purpose (the
+//              Feedback room's greeting): voice and effects, NEVER music.
+// Releasing the claim stops everything and suspends the AudioContext, so no
+// timer or audio thread survives the page that started it.
+export type AudioScope = "academy" | "page";
+let scope: AudioScope | null = null;
+let scopeToken = 0;
+
+/** Claim sound for a mounted page. Returns the release function (call it on unmount). */
+export function enterAudioScope(kind: AudioScope): () => void {
+  if (!loaded) loadSettings();
+  scope = kind;
+  const my = ++scopeToken;
+  if (ctx && ctx.state === "suspended" && snap.unlocked) void ctx.resume().catch(() => {});
+  if (kind !== "academy") stopMusic();
+  else if (snap.unlocked && snap.settings.master && snap.settings.music) startMusic();
+  return () => {
+    // A newer claim (the next page mounted first) owns the scope now.
+    if (my === scopeToken) leaveAudioScope();
+  };
+}
+
+/** Stop every sound and park the audio engine. Safe to call any time. */
+export function leaveAudioScope() {
+  scope = null;
+  stopVoice();
+  stopMusic();
+  duckLevel = 1;
+  if (ctx && ctx.state === "running") void ctx.suspend().catch(() => {});
+}
+
+export const audioScope = () => scope;
+
 // ------------------------------------------------------------------ engine
 
 let ctx: AudioContext | null = null;
@@ -525,8 +570,8 @@ function playTones(tones: Tone[], bus: AudioNode, at = 0) {
 let lastHover = 0;
 export function sfx(name: Sfx) {
   // Haptics follow their own switch, so a muted phone still feels the answer.
-  if (name !== "hover") buzz(name);
-  if (!snap.settings.master || !snap.settings.sfx) return;
+  if (scope && name !== "hover") buzz(name);
+  if (!scope || !snap.settings.master || !snap.settings.sfx) return;
   if (name === "hover") {
     if (performance.now() - lastHover < 60) return;
     lastHover = performance.now();
@@ -646,7 +691,8 @@ function pickTrack(): Exclude<Track, "auto"> {
 }
 
 export function startMusic() {
-  if (musicOn || !snap.settings.master || !snap.settings.music || !snap.unlocked) return;
+  // Music is the Academy's alone: never on any other page.
+  if (scope !== "academy" || musicOn || !snap.settings.master || !snap.settings.music || !snap.unlocked) return;
   const c = ensure();
   if (!c) return;
   musicOn = true;
@@ -771,7 +817,7 @@ export function resumeVoice() {
 }
 
 function canSpeak() {
-  return snap.settings.master && snap.settings.voice && snap.unlocked;
+  return !!scope && snap.settings.master && snap.settings.voice && snap.unlocked;
 }
 
 function ensureClip() {

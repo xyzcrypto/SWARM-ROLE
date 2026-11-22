@@ -3,13 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { AudioLines, Headphones, Music, Pause, PhoneOff, Play, RotateCcw, Settings2, Sparkles, Vibrate, Volume2, VolumeX, X } from "lucide-react";
+import { ArrowUp, AudioLines, Headphones, Music, Pause, PhoneOff, Play, RotateCcw, Settings2, Sparkles, Vibrate, Volume2, VolumeX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   browserVoices,
+  enterAudioScope,
   femaleScore,
   getSnapshot,
-  lineFor,
   play,
   pauseVoice,
   resumeVoice,
@@ -27,7 +27,6 @@ import {
 import { useAudio } from "../client/hooks";
 import { GreetBubble } from "./GreetBubble";
 import { HINGLISH_READY } from "../client/hinglish-ready";
-import { usePageBrief, type PageBrief } from "../client/page-brief";
 import { dispatchCommand, parseCommand } from "../client/commands";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import { askAneque, recordUtterance, releaseMic, talkSupported, transcribe, type TalkError, type Turn } from "../client/talk";
@@ -381,6 +380,39 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
     }
   }, [handle, stop]);
 
+  /**
+   * A typed question: the same brain as Live Talk without the microphone, for
+   * a blocked mic, a noisy room, or a learner who would rather type. Commands
+   * typed here work too ("open leaderboard").
+   */
+  const ask = useCallback(
+    async (raw: string) => {
+      const text = raw.trim().slice(0, 500);
+      if (!text || active.current) return;
+      unlock();
+      setError(null);
+      setTurns((t) => [...t, { role: "user" as const, content: text }].slice(-6));
+      if (await handle(text)) return;
+      setState("thinking");
+      history.current = [...history.current, { role: "user" as const, content: text }].slice(-12);
+      try {
+        const { text: answer } = await retryOnce(() => askAneque(history.current));
+        history.current = [...history.current, { role: "assistant" as const, content: answer }].slice(-12);
+        setTurns((t) => [...t, { role: "assistant" as const, content: answer }].slice(-6));
+        setState("speaking");
+        play([{ text: answer.replace(/AneQue/g, "Aneq") }], { caption: answer });
+        await untilQuiet(90_000);
+      } catch (e) {
+        const st = (e as TalkError).status;
+        setError((e as Error).message || "Something went wrong. Try again.");
+        say(st === 429 ? "talk_limit" : st === 401 ? "talk_login" : st === 503 ? "talk_unavailable" : "talk_error");
+      } finally {
+        if (!active.current) setState("idle");
+      }
+    },
+    [handle]
+  );
+
   const start = useCallback(async () => {
     unlock();
     setError(null);
@@ -397,7 +429,7 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
     void loop();
   }, [loop]);
 
-  return { state, turns, level, error, start, stop, active: state !== "idle" };
+  return { state, turns, level, error, start, stop, ask, active: state !== "idle" };
 }
 
 /** A tiny live meter for the learner's own voice while AneQue listens. */
@@ -455,6 +487,11 @@ export function GuideDock() {
     };
   }, [path]);
 
+  // The Academy owns sound only while one of its pages is open: leaving it
+  // (this dock unmounts with the Academy layout) stops the music, AneQue and
+  // every effect, and parks the audio engine.
+  useEffect(() => enterAudioScope("academy"), []);
+
   // Any first tap on an Academy page unlocks audio (browsers require a gesture).
   useEffect(() => {
     const on = () => unlock();
@@ -492,31 +529,6 @@ export function GuideDock() {
     window.addEventListener("academy:open", on);
     return () => window.removeEventListener("academy:open", on);
   }, []);
-
-  // Outside the Academy (Markets, News, Points) the page publishes a brief
-  // built from the data on screen; AneQue reads it aloud on request.
-  const brief = usePageBrief();
-  const explain = (b: PageBrief) => {
-    unlock();
-    sfx("click");
-    let spoken: string[] = [];
-    try {
-      spoken = b.build().spoken;
-    } catch {
-      spoken = [];
-    }
-    if (!spoken.length) {
-      say("brief_waiting");
-      return;
-    }
-    const intro = (`brief_${b.page}` as VoiceLine) in VOICE_LINES ? (`brief_${b.page}` as VoiceLine) : null;
-    const pieces = [
-      ...(intro ? [lineFor(intro)] : []),
-      ...spoken.map((t) => ({ text: t })),
-      lineFor("brief_outro"),
-    ];
-    play(pieces);
-  };
 
   const replay = () => {
     unlock();
@@ -581,18 +593,31 @@ export function GuideDock() {
                   {talk.active ? <PhoneOff className="h-4 w-4" /> : <AudioLines className="h-4 w-4" />}
                   {talk.active ? `End talk · ${TALK_LABEL[talk.state]}` : "Talk to AneQue"}
                 </button>
-                {talk.error && <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[11px] leading-relaxed text-content-subtle">{talk.error}</p>}
-
-                {brief && (
-                  <button
-                    type="button"
-                    onClick={() => explain(brief)}
+                <form
+                  className="mt-2 flex items-center gap-2"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const f = e.currentTarget.elements.namedItem("q") as HTMLInputElement | null;
+                    const v = f?.value ?? "";
+                    if (f) f.value = "";
+                    void talk.ask(v);
+                  }}
+                >
+                  <input
+                    name="q"
+                    type="text"
+                    maxLength={500}
+                    autoComplete="off"
                     disabled={talk.active}
-                    className="btn-gold mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-2xl text-sm disabled:opacity-50"
-                  >
-                    <Sparkles className="h-4 w-4" /> {brief.label}
+                    placeholder="Or type a question…"
+                    aria-label="Type a question for AneQue"
+                    className="h-10 min-w-0 flex-1 rounded-xl border border-hairline bg-ink-900/80 px-3 text-sm text-content placeholder:text-content-subtle focus:border-gold-400/50 focus:outline-none disabled:opacity-50"
+                  />
+                  <button type="submit" disabled={talk.active} className="acad-icon-btn shrink-0" aria-label="Ask AneQue">
+                    <ArrowUp />
                   </button>
-                )}
+                </form>
+                {talk.error && <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[11px] leading-relaxed text-content-subtle">{talk.error}</p>}
 
                 <div className="mt-2 flex items-center gap-2">
                   {speaking ? (

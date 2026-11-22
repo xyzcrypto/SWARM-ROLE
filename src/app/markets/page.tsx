@@ -1,5 +1,3 @@
-import "../academy/academy.css";
-import { AneQueDockLazy } from "@modules/academy/components/AneQueDockLazy";
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { MarketsClient } from "@/components/MarketsClient";
@@ -28,8 +26,6 @@ export default function MarketsPage() {
           <MarketsClient />
         </div>
       </main>
-      {/* AneQue: explains this page out loud and answers questions about it. */}
-      <AneQueDockLazy />
     </>
   );
 }

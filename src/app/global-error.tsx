@@ -2,18 +2,19 @@
 
 import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
+import { isChunkError, reloadForNewDeploy } from "@shared/utils/recover";
 
 // Last-resort boundary for errors in the root layout itself. Must render its
 // own <html>/<body>; uses inline styles (no dependency on globals.css).
 export default function GlobalError({
   error,
-  reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
   useEffect(() => {
     Sentry.captureException(error);
+    if (isChunkError(error?.message)) reloadForNewDeploy();
   }, [error]);
   return (
     <html lang="en">
@@ -42,7 +43,9 @@ export default function GlobalError({
           An unexpected error occurred. Please try again.
         </p>
         <button
-          onClick={() => reset()}
+          // The root layout itself failed: a re-render of the same tree cannot fix
+          // it, a fresh load (current deployment, fresh server render) can.
+          onClick={() => window.location.reload()}
           style={{
             marginTop: 28,
             padding: "10px 22px",

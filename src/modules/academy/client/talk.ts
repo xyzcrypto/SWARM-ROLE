@@ -8,7 +8,6 @@
 // needs Siri on Safari. A small voice-activity detector ends the clip when
 // the learner stops talking, so there is no button to hold.
 
-import { getPageBrief } from "./page-brief";
 import { getSnapshot } from "./audio";
 
 export type TalkContext = {
@@ -148,16 +147,7 @@ async function call<T>(url: string, init: RequestInit): Promise<T> {
 export const transcribe = (blob: Blob) => call<{ text: string }>("/api/academy/aneque/listen", { method: "POST", headers: { "Content-Type": blob.type || "audio/webm" }, body: blob });
 
 export type Turn = { role: "user" | "assistant"; content: string };
-function safeContext(b: { build: () => { context: string } }): string | undefined {
-  try {
-    return b.build().context.slice(0, 3000) || undefined;
-  } catch {
-    return undefined;
-  }
-}
-
 export const askAneque = (messages: Turn[]) => {
-  const brief = getPageBrief();
   return call<{ text: string }>("/api/academy/aneque/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -166,8 +156,6 @@ export const askAneque = (messages: Turn[]) => {
       context: {
         ...context,
         page: context.page ?? (typeof location !== "undefined" ? location.pathname : undefined),
-        // Live numbers from Markets / News / Points, so answers use them.
-        pageData: brief ? safeContext(brief) : undefined,
         language: getSnapshot().settings.lang === "hi" ? "hinglish" : "english",
       },
     }),

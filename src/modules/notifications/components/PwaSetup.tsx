@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
+import { isChunkError, reloadForNewDeploy } from "@shared/utils/recover";
 
 // Fired by Chromium browsers when the app is installable.
 type BeforeInstallPromptEvent = Event & {
@@ -10,7 +11,6 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const DISMISS_KEY = "xyz-pwa-install-dismissed";
-const RELOADED_KEY = "xyz-chunk-reload-once";
 
 /**
  * Registers the service worker (makes the site installable + offline) and shows
@@ -51,19 +51,12 @@ export function PwaSetup() {
   // longer exists on the current deployment (the classic symptom is the page
   // looking "frozen" - no animations, no live data, because hydration silently
   // never finished), force one hard reload to pick up the current deployment.
-  // Guarded with sessionStorage so a genuinely broken chunk can't reload-loop.
+  // Time-guarded so a genuinely broken chunk can't reload-loop.
   useEffect(() => {
-    const isChunkError = (message: string) =>
-      /ChunkLoadError|Loading chunk [\d]+ failed|failed to fetch dynamically imported module/i.test(message);
-    const reloadOnce = () => {
-      try {
-        if (sessionStorage.getItem(RELOADED_KEY)) return;
-        sessionStorage.setItem(RELOADED_KEY, "1");
-      } catch {
-        /* ignore */
-      }
-      window.location.reload();
-    };
+    // At most one automatic reload per 30s (see shared/utils/recover.ts): it
+    // used to be once per SESSION, so a tab that lived through a second deploy
+    // was never recovered and stayed frozen until a manual refresh.
+    const reloadOnce = () => void reloadForNewDeploy();
     // Resource load failures (a <script src> 404, e.g. a stale HTML shell
     // pointing at a chunk hash that no longer exists) fire a plain Event on
     // the failing element - they only reach a window listener registered on

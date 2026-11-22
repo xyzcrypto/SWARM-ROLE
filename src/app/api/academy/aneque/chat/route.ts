@@ -5,7 +5,8 @@ import { aiEnabled, completeTextWithMeta } from "@/lib/ai";
 import { aiPlanFor } from "@/lib/ai/gateway";
 import { checkDailyLimit, dailyLimitMessage } from "@/lib/ai/limits";
 import { acquireSlot } from "@/lib/ai/concurrency";
-import { anequeSystemPrompt } from "@modules/academy/lib/aneque";
+import { anequeSystemPrompt, cleanReply } from "@modules/academy/lib/aneque";
+import { learnerSnapshot, lessonNotes } from "@modules/academy/lib/aneque-knowledge";
 import { academyError, json, PRIVATE } from "@modules/academy/lib/http";
 
 export const runtime = "nodejs";
@@ -24,7 +25,6 @@ const schema = z.object({
       topic: z.string().max(120).nullish(),
       questionOpen: z.boolean().optional(),
       question: z.string().max(500).nullish(),
-      pageData: z.string().max(3200).optional(),
       language: z.enum(["english", "hinglish"]).optional(),
     })
     .default({}),
@@ -50,16 +50,27 @@ export async function POST(req: Request) {
     const slot = await acquireSlot(me.id);
     if (!slot) return fail("I'm answering another question. Give me a second.", 429);
     try {
-      const system = await anequeSystemPrompt(parsed.data.context);
+      // Ground the answer: the lesson passages that match what was asked
+      // (with the previous question too, so a follow-up still finds them) and
+      // the learner's own level and weak topics. Both are built here on the
+      // server; the client cannot inject either.
+      const ctx = parsed.data.context;
+      const lastUser = turns[turns.length - 1].content;
+      const prevUser = [...turns].reverse().find((m, i) => i > 0 && m.role === "user")?.content ?? "";
+      const [notes, learner] = await Promise.all([
+        lessonNotes(`${lastUser} ${lastUser} ${prevUser} ${ctx.topic ?? ""} ${ctx.lesson ?? ""}`, { lesson: ctx.lesson, topic: ctx.topic }),
+        learnerSnapshot(me.id),
+      ]);
+      const system = await anequeSystemPrompt({ ...ctx, notes, learner });
       const prompt = turns.map((m) => `${m.role === "user" ? "Learner" : "AneQue"}: ${m.content}`).join("\n") + "\nAneQue:";
       const res = await completeTextWithMeta({
         task: "assistant",
         system,
         prompt,
-        maxTokens: 260,
+        maxTokens: 320,
         ctx: { userId: me.id, plan, isAdmin: me.isSuperAdmin },
       });
-      const text = (res?.text ?? "").replace(/^AneQue:\s*/i, "").replace(/[*_#`>]/g, "").trim();
+      const text = cleanReply(res?.text ?? "", res?.meta.finishReason === "length");
       if (!text) return fail("I lost my train of thought. Ask me again?", 502);
       return json({ text }, PRIVATE);
     } finally {

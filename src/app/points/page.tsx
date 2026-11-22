@@ -1,5 +1,3 @@
-import "../academy/academy.css";
-import { AneQueDockLazy } from "@modules/academy/components/AneQueDockLazy";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Navbar } from "@/components/Navbar";
@@ -52,8 +50,6 @@ export default function PointsPage() {
           </div>
         </div>
       </main>
-      {/* AneQue: explains this page out loud and answers questions about it. */}
-      <AneQueDockLazy />
     </>
   );
 }

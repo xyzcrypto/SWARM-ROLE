@@ -6,7 +6,7 @@ import { useSession } from "next-auth/react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ArrowRight, Check, ImagePlus, Loader2, LogIn, Mic, Music, Send, Sparkles, Square, Volume2, VolumeX, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { lineFor, play, say, sayOneOf, setScene, sfx, stopVoice, tryAutoUnlock, unlock, updateSettings, type Piece } from "@modules/academy/client/audio";
+import { enterAudioScope, lineFor, play, say, sayOneOf, sfx, stopVoice, tryAutoUnlock, unlock, updateSettings, type Piece } from "@modules/academy/client/audio";
 import { useAudio } from "@modules/academy/client/hooks";
 import { greetName } from "@modules/academy/client/name-bank";
 import { hey } from "@modules/academy/client/greet";
@@ -111,26 +111,44 @@ export function FeedbackClient() {
     }
   }, []);
 
+  // AneQue's voice is welcome here, the Academy's music is not: this page
+  // claims sound as a "page" (voice + effects, never music), and leaving it
+  // stops her mid-sentence instead of letting her follow the visitor around.
+  useEffect(() => enterAudioScope("page"), []);
+
   // AneQue welcomes them by name: straight away if the browser allows sound,
-  // otherwise on the first tap. The calm Focus track is the room's music.
+  // otherwise on the first tap.
   const greeted = useRef(false);
   useEffect(() => {
     if (status === "loading" || greeted.current) return;
     greeted.current = true;
-    setScene("focus");
     const pieces = [hey(name), line(Math.random() < 0.5 ? "feedback_welcome" : "feedback_welcome_2")];
+    let alive = true;
+    const on = () => {
+      off();
+      if (!alive) return;
+      unlock();
+      play(pieces);
+    };
+    // The tap-to-hear listeners must go when the page does: they used to
+    // outlive it, so the first tap anywhere else on the site played the
+    // Feedback greeting.
+    const off = () => {
+      window.removeEventListener("pointerdown", on);
+      window.removeEventListener("keydown", on);
+    };
     void tryAutoUnlock().then((ok) => {
+      if (!alive) return;
       if (ok) play(pieces);
       else {
-        const on = () => {
-          unlock();
-          play(pieces);
-        };
         window.addEventListener("pointerdown", on, { once: true });
         window.addEventListener("keydown", on, { once: true });
       }
     });
-    return () => stopVoice();
+    return () => {
+      alive = false;
+      off();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
