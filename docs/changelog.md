@@ -5,6 +5,30 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-23 (169) — Live Quiz: results and answer review, reveal stats, streaks, new sounds and motion
+
+- **Results after a live quiz** (`/api/academy/live/[id]/results`, `liveResults()`): every
+  question with its correct answer, your pick, the room's vote split, % who got it right,
+  average answer time, the fastest correct player, and the explanation; plus full standings
+  (score, right answers, average time). 409 until the quiz has ended, so nothing leaks while
+  it runs; once ended it never changes, so it is edge-cached for an hour.
+- **Final screen** now has Podium / Answers / Standings tabs and a personal report card
+  (final rank, accuracy, average speed, best streak, points-per-question chart). Finished
+  quizzes in the list open straight on the answers (`?view=results`).
+- **Every reveal** shows % right, how many answered, the fastest correct player and your own
+  answer time, with a "+points" fly-up.
+- **During play:** circular timer that throbs red in the last 5s, tick then heartbeat in the
+  last seconds and a drumroll into the reveal, per-question progress bar, streak badge, a
+  You panel with correct / accuracy / streak, rank "up N / down N" with a fanfare, three
+  confetti bursts at the finale, animated waiting room (pulsing Join, rule cards, ring on
+  each countdown second).
+- **New sounds** in `audio.ts`: `drumroll`, `rankup`, `streak` (with haptics).
+- **Fixed:** while a question was open, your rank counted yourself as a player ahead of you
+  (2 players and you were "#3"); `myLiveState` now counts only other players.
+- Kept the "no framer-motion layout animation in the arena" rule (it re-renders every 250ms).
+- Tests: `live-quiz-results.test.ts` (10). Verified by playing two full live quizzes locally
+  with two accounts (desktop + phone).
+
 ## 2026-11-22 (168) — No more "refresh to fix it": deploy recovery, quiz re-sync, Academy-only sound, AneQue grounded in the lessons
 
 - **Site stuck after a deploy.** Vercel Hobby has no skew protection, so a tab opened

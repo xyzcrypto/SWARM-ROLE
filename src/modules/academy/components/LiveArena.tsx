@@ -3,23 +3,40 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Award, CheckCircle2, Crown, Loader2, Lock, LogIn, Pause, Radio, Users, WifiOff, XCircle } from "lucide-react";
+import { Award, BarChart3, CheckCircle2, ChevronDown, Crown, Flame, Gauge, ListChecks, Loader2, Lock, LogIn, Pause, Radio, Target, Timer, Trophy, TrendingDown, TrendingUp, Users, WifiOff, XCircle, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRealtime } from "@/lib/useRealtime";
 import { liveChannel } from "@/lib/realtime-channels";
 import { livePhase, type LivePhase } from "@modules/academy/lib/engine";
 import { lineFor, duck, play, say, sayOneOf, sfx, unlock, type Piece } from "../client/audio";
-import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
-
-const vline = (k: VoiceLine): Piece => lineFor(k);
+import { type VoiceLine } from "../client/voice-lines";
 import { getJson, postJson, useAudio, useLang, useServerClock, useTicker, withRetry } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
 import { clearTalkContext, setTalkContext } from "../client/talk";
-import type { LiveMe, LiveState } from "./types";
+import type { LiveMe, LiveResults, LiveState } from "./types";
 import { Avatar, burstConfetti, DIFF_LABEL, DIFF_TONE, Empty, fmt, Panel, Pill } from "./ui";
 
+const vline = (k: VoiceLine): Piece => lineFor(k);
 const LETTERS = ["A", "B", "C", "D"];
 const phaseKey = (p: LivePhase | null | undefined) => (p ? `${p.kind}:${"index" in p ? p.index : ""}` : "");
+const secs = (ms: number | null | undefined) => (ms == null ? "–" : `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)}s`);
+
+type Answer = LiveMe["answers"][number];
+
+/** Current and best run of consecutive correct answers, in question order. Pure. */
+export function streaks(answers: Pick<Answer, "index" | "correct">[]): { current: number; best: number } {
+  const sorted = [...answers].filter((a) => a.correct != null).sort((a, b) => a.index - b.index);
+  let current = 0;
+  let best = 0;
+  let prev = -2;
+  for (const a of sorted) {
+    if (a.correct && a.index === prev + 1) current += 1;
+    else current = a.correct ? 1 : 0;
+    best = Math.max(best, current);
+    prev = a.index;
+  }
+  return { current, best };
+}
 
 export function LiveArena({ id }: { id: string }) {
   const [state, setState] = useState<LiveState | null>(null);
@@ -29,17 +46,30 @@ export function LiveArena({ id }: { id: string }) {
   const [joining, setJoining] = useState(false);
   const [sending, setSending] = useState<number | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [rankMove, setRankMove] = useState<{ id: number; by: number } | null>(null);
   const clock = useServerClock();
   const audio = useAudio();
   const lang = useLang();
   const lastKey = useRef("");
   const announced = useRef<Set<string>>(new Set());
 
+  // Rank movement between two reads of my seat: "up 3" with a fanfare, or "down 1".
+  const rankRef = useRef<number | null>(null);
+  const rankTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const loadMe = useCallback(async () => {
     const sent = Date.now();
     try {
       const m = await getJson<LiveMe & { guest?: boolean }>(`/api/academy/live/${id}/me`);
       clock.sync(m.serverNow, sent);
+      const before = rankRef.current;
+      const after = m.joined ? m.rank : null;
+      rankRef.current = after;
+      if (before != null && after != null && before !== after) {
+        setRankMove({ id: Date.now(), by: before - after });
+        if (after < before) setTimeout(() => sfx("rankup"), 700);
+        if (rankTimer.current) clearTimeout(rankTimer.current);
+        rankTimer.current = setTimeout(() => setRankMove(null), 3200);
+      }
       setMe(m);
       setOffline(false);
     } catch {
@@ -132,6 +162,9 @@ export function LiveArena({ id }: { id: string }) {
     if (phase.kind === "ended" && state?.status === "ended") {
       sfx("winner");
       burstConfetti();
+      // Two more bursts from the sides for the finale.
+      setTimeout(() => burstConfetti({ x: window.innerWidth * 0.2, y: window.innerHeight * 0.45 }), 450);
+      setTimeout(() => burstConfetti({ x: window.innerWidth * 0.8, y: window.innerHeight * 0.45 }), 800);
       const mine = me?.joined ? me.rank : null;
       const pieces = [vline("live_winner")];
       if (mine === 1 && (me?.score ?? 0) > 0) pieces.push(vline("live_you_won"));
@@ -161,6 +194,27 @@ export function LiveArena({ id }: { id: string }) {
     if (pieces.length) play(pieces, { caption: lang.tx(q.prompt, q.hi?.prompt) });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase?.kind, phase && "index" in phase ? phase.index : -1, state?.question?.index]);
+
+  // The last seconds of a question: ticks, then a heartbeat, then a drumroll
+  // into the reveal. Once per second, never while paused.
+  const lastQTick = useRef("");
+  useEffect(() => {
+    if (phase?.kind !== "question" || phase.paused) return;
+    const left = phase.closesAt - now;
+    const rolled = lastQTick.current === `${phase.index}:roll`;
+    if (left <= 1500 && left > 900 && !rolled) {
+      lastQTick.current = `${phase.index}:roll`;
+      sfx("drumroll");
+      return;
+    }
+    const s = Math.ceil(left / 1000);
+    const k = `${phase.index}:${s}`;
+    if (rolled || lastQTick.current === k) return;
+    if (s > 1 && s <= 5) {
+      lastQTick.current = k;
+      sfx(s <= 3 ? "heartbeat" : "tick");
+    }
+  }, [phase, now]);
 
   // AneQue must never give an open live question away in Live Talk.
   const openQ = phase?.kind === "question" && state?.question && state.question.index === phase.index ? state.question.prompt : null;
@@ -217,7 +271,7 @@ export function LiveArena({ id }: { id: string }) {
       setMsg(null);
       try {
         await withRetry(() => postJson(`/api/academy/live/${id}/me`, { action: "answer", index, choice }));
-        setMe((m) => (m ? { ...m, answers: [...m.answers, { index, choice, correct: null, points: null }] } : m));
+        setMe((m) => (m ? { ...m, answers: [...m.answers, { index, choice, correct: null, points: null, ms: null }] } : m));
         sfx("lock");
         sayOneOf("live_lock", 2, { auto: true });
       } catch (e) {
@@ -241,7 +295,9 @@ export function LiveArena({ id }: { id: string }) {
     return () => window.removeEventListener(COMMAND_EVENT, on);
   }, [answer, phase]);
 
-  // Reveal sound for my own answer
+  const { current: streak, best: bestStreak } = useMemo(() => streaks(me?.answers ?? []), [me?.answers]);
+
+  // The reveal for my own answer: sound, "+points" fly-up, streak sparkle.
   const revealedFor = useRef(-1);
   useEffect(() => {
     if (phase?.kind !== "reveal" || revealedFor.current === phase.index) return;
@@ -249,16 +305,21 @@ export function LiveArena({ id }: { id: string }) {
     if (a && a.correct != null) {
       revealedFor.current = phase.index;
       sfx(a.correct ? "correct" : "wrong");
+      if (a.correct && a.points) setTimeout(() => sfx("coin"), 280);
+      if (a.correct && streak >= 2) setTimeout(() => sfx(streak >= 3 ? "fire" : "streak"), 520);
       const q = state?.question;
       const pieces = audio.settings.guide ? [vline(Math.random() < 0.5 ? "live_reveal" : "live_reveal_2")] : [];
       const explain = a.correct ? audio.settings.explainRight : audio.settings.explainWrong;
       if (explain && q?.explanation) pieces.push({ url: lang.vx(q.voiceExplanation ?? null, q.hi?.explanation), text: lang.tx(q.explanation, q.hi?.explanation) });
       if (pieces.length) play(pieces, { caption: q?.explanation ? lang.tx(q.explanation, q.hi?.explanation) : undefined });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, me]);
 
   const top = state?.leaderboard ?? [];
   const myRow = useMemo(() => top.find((r) => r.userId === me?.userId), [top, me]);
+  const graded = me?.answers.filter((a) => a.correct != null).length ?? 0;
+  const accuracy = graded ? Math.round(((me?.correct ?? 0) / graded) * 100) : null;
 
   if (error) return <Empty>{error}</Empty>;
   if (!state || !phase)
@@ -302,7 +363,7 @@ export function LiveArena({ id }: { id: string }) {
           ) : phase.kind === "cancelled" ? (
             <Empty>This live quiz was cancelled by the host.</Empty>
           ) : phase.kind === "ended" ? (
-            <Final state={state} me={me} />
+            <Final state={state} me={me} id={id} bestStreak={bestStreak} />
           ) : q ? (
             <QuestionStage
               phase={phase}
@@ -317,6 +378,7 @@ export function LiveArena({ id }: { id: string }) {
               onAnswer={(c) => answer(phase.index, c)}
               onJoin={join}
               joining={joining}
+              streak={streak}
             />
           ) : (
             <div className="grid min-h-[40vh] place-items-center">
@@ -328,13 +390,36 @@ export function LiveArena({ id }: { id: string }) {
 
         <aside className="space-y-4">
           {me?.joined && (
-            <div className="rounded-3xl border border-gold-400/30 bg-gold-400/[0.05] p-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">You</div>
+            <div className="relative overflow-hidden rounded-3xl border border-gold-400/30 bg-gold-400/[0.05] p-4">
+              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">
+                <span>You</span>
+                <AnimatePresence>
+                  {rankMove && rankMove.by !== 0 && (
+                    <motion.span
+                      key={rankMove.id}
+                      initial={{ opacity: 0, y: 8, scale: 0.8 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 420, damping: 22 }}
+                      className={cn("flex items-center gap-1 rounded-full px-2 py-0.5 normal-case tracking-normal", rankMove.by > 0 ? "bg-mint-400/15 text-mint-300" : "bg-red-400/15 text-red-300")}
+                    >
+                      {rankMove.by > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {rankMove.by > 0 ? `up ${rankMove.by}` : `down ${-rankMove.by}`}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
               <div className="mt-1 flex items-baseline justify-between">
-                <span className="font-display text-2xl font-bold text-content">{fmt(me.score)}</span>
+                <motion.span key={me.score} initial={{ scale: 1.25 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 400, damping: 16 }} className="font-display text-2xl font-bold text-content">
+                  {fmt(me.score)}
+                </motion.span>
                 <span className="text-sm text-content-muted">{me.rank ? `#${me.rank}` : "unranked"}</span>
               </div>
-              <div className="text-[11px] text-content-subtle">{me.correct} correct</div>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                <Stat icon={<CheckCircle2 className="h-3.5 w-3.5" />} label="Correct" value={String(me.correct)} />
+                <Stat icon={<Target className="h-3.5 w-3.5" />} label="Accuracy" value={accuracy == null ? "–" : `${accuracy}%`} />
+                <Stat icon={<Flame className={cn("h-3.5 w-3.5", streak >= 3 && "text-orange-300")} />} label="Streak" value={streak ? `x${streak}` : "0"} hot={streak >= 3} />
+              </div>
             </div>
           )}
           <Panel className="!p-4">
@@ -353,7 +438,7 @@ export function LiveArena({ id }: { id: string }) {
                       transition={{ type: "spring", stiffness: 400, damping: 34 }}
                       className={cn("flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm", r.rank === 1 && "bg-gold-400/10", myRow?.userId === r.userId && "acad-me-row")}
                     >
-                      <span className={cn("w-5 text-center font-mono text-xs font-bold", r.rank <= 3 ? "text-gold-300" : "text-content-subtle")}>{r.rank}</span>
+                      <span className={cn("w-5 text-center font-mono text-xs font-bold", r.rank <= 3 ? "text-gold-300" : "text-content-subtle")}>{r.rank === 1 ? <Crown className="mx-auto h-3.5 w-3.5" /> : r.rank}</span>
                       <Avatar src={r.image} alt={r.name} size={24} />
                       <span className="min-w-0 flex-1 truncate text-content">{r.name}</span>
                       <span className="font-mono text-xs text-gold-200">{fmt(r.score)}</span>
@@ -371,6 +456,19 @@ export function LiveArena({ id }: { id: string }) {
   );
 }
 
+function Stat({ icon, label, value, hot }: { icon: React.ReactNode; label: string; value: string; hot?: boolean }) {
+  return (
+    <div className={cn("rounded-xl border border-hairline bg-ink-900/40 px-1.5 py-1.5", hot && "border-orange-400/40 bg-orange-400/10")}>
+      <div className="flex items-center justify-center gap-1 text-[10px] text-content-subtle">
+        {icon} {label}
+      </div>
+      <motion.div key={value} initial={{ y: -6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={cn("font-mono text-sm font-bold text-content", hot && "text-orange-200")}>
+        {value}
+      </motion.div>
+    </div>
+  );
+}
+
 function WaitingRoom({ state, phase, now, joined, guest, joining, onJoin }: { state: LiveState; phase: LivePhase; now: number; joined: boolean; guest: boolean; joining: boolean; onJoin: () => void }) {
   const startsAt = phase.kind === "scheduled" || phase.kind === "countdown" ? phase.startsAt : now;
   const ms = Math.max(0, startsAt - now);
@@ -379,6 +477,16 @@ function WaitingRoom({ state, phase, now, joined, guest, joining, onJoin }: { st
   return (
     <Panel className="relative overflow-hidden text-center">
       <div className="pointer-events-none absolute inset-x-0 -top-24 mx-auto h-64 w-64 rounded-full bg-gold-500/10 blur-3xl" aria-hidden />
+      {big && (
+        <motion.div
+          key={`ring-${Math.ceil(ms / 1000)}`}
+          className="pointer-events-none absolute left-1/2 top-[5.5rem] h-40 w-40 -translate-x-1/2 rounded-full border-2 border-gold-300/50"
+          initial={{ scale: 0.6, opacity: 0.8 }}
+          animate={{ scale: 1.8, opacity: 0 }}
+          transition={{ duration: 0.9, ease: "easeOut" }}
+          aria-hidden
+        />
+      )}
       <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-300">{big ? "Get ready" : "Starts in"}</div>
       <AnimatePresence mode="popLayout">
         <motion.div
@@ -397,6 +505,18 @@ function WaitingRoom({ state, phase, now, joined, guest, joining, onJoin }: { st
       </p>
       {state.description && <p className="mx-auto mt-3 max-w-lg text-sm text-content-subtle">{state.description}</p>}
 
+      <div className="mx-auto mt-5 grid max-w-md grid-cols-3 gap-2 text-left text-[11px] text-content-muted">
+        <div className="rounded-xl border border-hairline bg-ink-900/40 p-2.5">
+          <Zap className="mb-1 h-3.5 w-3.5 text-gold-300" /> Faster right answers score more
+        </div>
+        <div className="rounded-xl border border-hairline bg-ink-900/40 p-2.5">
+          <Flame className="mb-1 h-3.5 w-3.5 text-orange-300" /> Keep a streak going
+        </div>
+        <div className="rounded-xl border border-hairline bg-ink-900/40 p-2.5">
+          <Award className="mb-1 h-3.5 w-3.5 text-mint-300" /> Top 3 get a certificate
+        </div>
+      </div>
+
       <div className="mt-6">
         {joined ? (
           <div className="inline-flex items-center gap-2 rounded-full border border-mint-400/40 bg-mint-400/10 px-4 py-2 text-sm font-semibold text-mint-200">
@@ -407,7 +527,7 @@ function WaitingRoom({ state, phase, now, joined, guest, joining, onJoin }: { st
             <LogIn className="h-4 w-4" /> Sign in to join
           </Link>
         ) : (
-          <button type="button" onClick={onJoin} disabled={joining} className="btn-primary h-12 px-8 text-base">
+          <button type="button" onClick={onJoin} disabled={joining} className="acad-join-pulse btn-primary h-12 px-8 text-base">
             {joining ? <Loader2 className="h-5 w-5 animate-spin" /> : <Radio className="h-5 w-5" />} Join Quiz
           </button>
         )}
@@ -416,8 +536,8 @@ function WaitingRoom({ state, phase, now, joined, guest, joining, onJoin }: { st
       <div className="mt-8 border-t border-hairline pt-5">
         <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Waiting room · {state.participants} joined</div>
         <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-          {state.faces.map((f) => (
-            <motion.span key={f.id} initial={{ scale: 0 }} animate={{ scale: 1 }} title={f.name}>
+          {state.faces.map((f, i) => (
+            <motion.span key={f.id} initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 18, delay: Math.min(i, 12) * 0.03 }} title={f.name}>
               <Avatar src={f.image} alt={f.name} size={32} className="ring-2 ring-ink-950" />
             </motion.span>
           ))}
@@ -426,6 +546,25 @@ function WaitingRoom({ state, phase, now, joined, guest, joining, onJoin }: { st
         </div>
       </div>
     </Panel>
+  );
+}
+
+/** A circular countdown: the ring drains, and pulses red in the last 5 seconds. */
+function TimerRing({ left, total, paused }: { left: number; total: number; paused: boolean }) {
+  const r = 20;
+  const c = 2 * Math.PI * r;
+  const k = Math.max(0, Math.min(1, total ? left / total : 0));
+  const hot = left < 5000 && !paused;
+  return (
+    <div className={cn("relative grid h-14 w-14 place-items-center", hot && "acad-timer-hot")}>
+      <svg viewBox="0 0 48 48" className="absolute inset-0 -rotate-90" aria-hidden>
+        <circle cx="24" cy="24" r={r} fill="none" stroke="currentColor" strokeWidth="4" className="text-white/10" />
+        <circle cx="24" cy="24" r={r} fill="none" strokeWidth="4" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - k)} className={cn("transition-[stroke-dashoffset] duration-200 ease-linear", hot ? "stroke-red-400" : "stroke-gold-300")} />
+      </svg>
+      <span className={cn("font-mono text-base font-bold tabular-nums", hot ? "text-red-300" : "text-content")} aria-label={paused ? "Paused" : `${Math.ceil(left / 1000)} seconds left`}>
+        {paused ? <Pause className="h-4 w-4 text-gold-300" /> : Math.ceil(left / 1000)}
+      </span>
+    </div>
   );
 }
 
@@ -442,46 +581,67 @@ function QuestionStage({
   onAnswer,
   onJoin,
   joining,
+  streak,
 }: {
   phase: Extract<LivePhase, { kind: "question" | "reveal" }>;
   q: NonNullable<LiveState["question"]>;
   now: number;
   count: number;
   questionSec: number;
-  mine: LiveMe["answers"][number] | null;
+  mine: Answer | null;
   sending: number | null;
   canAnswer: boolean;
   guest: boolean;
   onAnswer: (choice: number) => void;
   onJoin: () => void;
   joining: boolean;
+  streak: number;
 }) {
   const lang = useLang();
   const revealing = phase.kind === "reveal" && q.answer != null;
   const left = phase.kind === "question" ? Math.max(0, phase.closesAt - now) : 0;
-  const pct = phase.kind === "question" ? left / (questionSec * 1000) : 0;
   const total = (q.distribution ?? [0, 0, 0, 0]).reduce((a, b) => a + b, 0);
   const locked = !!mine || sending != null;
+  const stats = revealing ? q.stats : null;
   return (
-    <motion.div key={phase.index} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="surface relative overflow-hidden rounded-3xl p-4 sm:p-8">
-      <div className="absolute inset-x-0 top-0 h-1 bg-white/5">
-        <div className={cn("h-full transition-[width] duration-200 ease-linear", left < 5000 ? "bg-red-400" : "bg-gold-300")} style={{ width: `${pct * 100}%` }} />
+    <motion.div key={phase.index} initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 26 }} className="surface relative overflow-hidden rounded-3xl p-4 sm:p-8">
+      {/* Progress through the quiz, one segment per question. */}
+      <div className="absolute inset-x-0 top-0 flex h-1 gap-0.5" aria-hidden>
+        {Array.from({ length: count }, (_, i) => (
+          <span key={i} className={cn("h-full flex-1", i < phase.index ? "bg-gold-400/70" : i === phase.index ? "bg-gold-300" : "bg-white/5")} />
+        ))}
       </div>
+      <AnimatePresence>
+        {revealing && mine?.correct && !!mine.points && (
+          <motion.div
+            key={`gain-${phase.index}`}
+            className="pointer-events-none absolute right-8 top-24 z-10 font-display text-3xl font-bold text-mint-300 drop-shadow-[0_0_18px_rgba(52,227,161,0.6)]"
+            initial={{ opacity: 0, y: 20, scale: 0.6 }}
+            animate={{ opacity: [0, 1, 1, 0], y: [20, -10, -30, -60], scale: [0.6, 1.2, 1, 1] }}
+            transition={{ duration: 1.6, times: [0, 0.2, 0.7, 1] }}
+          >
+            +{mine.points}
+          </motion.div>
+        )}
+      </AnimatePresence>
       <div className="flex flex-wrap items-center gap-2">
         <span className="font-mono text-xs text-content-subtle">
           Q{phase.index + 1}/{count}
         </span>
         <Pill tone={DIFF_TONE[q.difficulty]}>{DIFF_LABEL[q.difficulty]}</Pill>
         <span className="text-[11px] text-content-subtle">{q.category}</span>
-        <span className="ml-auto font-mono text-lg font-bold tabular-nums text-content">
-          {phase.paused ? (
-            <span className="flex items-center gap-1 text-sm text-gold-300">
-              <Pause className="h-4 w-4" /> Paused
-            </span>
-          ) : phase.kind === "question" ? (
-            `${Math.ceil(left / 1000)}s`
+        {streak >= 2 && (
+          <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-1 rounded-full bg-orange-400/15 px-2 py-0.5 text-[11px] font-semibold text-orange-200">
+            <Flame className="h-3 w-3" /> x{streak}
+          </motion.span>
+        )}
+        <span className="ml-auto">
+          {phase.kind === "question" ? (
+            <TimerRing left={left} total={questionSec * 1000} paused={!!phase.paused} />
           ) : (
-            <span className="text-sm text-gold-300">Reveal</span>
+            <motion.span initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="inline-flex h-14 items-center gap-1 text-sm font-semibold text-gold-300">
+              <Zap className="h-4 w-4" /> Reveal
+            </motion.span>
           )}
         </span>
       </div>
@@ -493,9 +653,12 @@ function QuestionStage({
           const wrong = revealing && picked && !right;
           const share = total ? Math.round(((q.distribution?.[i] ?? 0) / total) * 100) : 0;
           return (
-            <button
+            <motion.button
               key={i}
               type="button"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 * i, type: "spring", stiffness: 380, damping: 28 }}
               disabled={!canAnswer || locked || phase.kind !== "question" || phase.paused}
               onClick={() => onAnswer(i)}
               className={cn(
@@ -506,26 +669,58 @@ function QuestionStage({
                 revealing && !right && !picked && "opacity-55"
               )}
             >
-              {revealing && <motion.span className="absolute inset-y-0 left-0 bg-white/[0.05]" initial={{ width: 0 }} animate={{ width: `${share}%` }} transition={{ duration: 0.8 }} />}
+              {revealing && <motion.span className={cn("absolute inset-y-0 left-0", right ? "bg-mint-400/[0.12]" : "bg-white/[0.05]")} initial={{ width: 0 }} animate={{ width: `${share}%` }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />}
               <span className={cn("relative grid h-8 w-8 shrink-0 place-items-center rounded-xl border font-mono text-xs font-bold", right ? "border-mint-400 bg-mint-400 text-ink-950" : wrong ? "border-red-400 bg-red-400 text-ink-950" : "border-hairline text-content-subtle")}>
                 {right ? <CheckCircle2 className="h-4 w-4" /> : wrong ? <XCircle className="h-4 w-4" /> : LETTERS[i]}
               </span>
-              <span className="relative min-w-0 flex-1">{o}</span>
+              <span className="relative min-w-0 flex-1">{lang.tx(o, q.hi?.options?.[i])}</span>
               {revealing && <span className="relative font-mono text-xs text-content-subtle">{share}%</span>}
+              {picked && !revealing && sending == null && <Lock className="relative h-3.5 w-3.5 text-gold-300" />}
               {sending === i && <Loader2 className="relative h-4 w-4 animate-spin text-gold-300" />}
-            </button>
+            </motion.button>
           );
         })}
       </div>
       <div className="mt-5 min-h-[2.5rem] text-sm">
         {revealing ? (
-          <div className={cn("rounded-2xl border p-4", mine?.correct ? "border-mint-400/30 bg-mint-400/[0.05]" : "border-hairline bg-ink-900/40")}>
-            <div className={cn("font-semibold", mine?.correct ? "text-mint-300" : mine ? "text-red-300" : "text-content-muted")}>
-              {mine?.correct ? `Correct, +${mine.points ?? 0} points` : mine ? "Not this time" : canAnswer ? "No answer this round" : "Answer revealed"}
+          <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className={cn("rounded-2xl border p-4", mine?.correct ? "border-mint-400/30 bg-mint-400/[0.05]" : "border-hairline bg-ink-900/40")}>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className={cn("font-semibold", mine?.correct ? "text-mint-300" : mine ? "text-red-300" : "text-content-muted")}>
+                {mine?.correct ? `Correct, +${mine.points ?? 0} points` : mine ? "Not this time" : canAnswer ? "No answer this round" : "Answer revealed"}
+              </span>
+              {mine?.ms != null && <span className="text-[11px] text-content-subtle">your time {secs(mine.ms)}</span>}
             </div>
-            {q.explanation && <p className="mt-1.5 leading-relaxed text-content-muted">{lang.tx(q.explanation, q.hi?.explanation)}</p>}
+            {stats && (
+              <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-xl border border-hairline bg-ink-950/30 p-2">
+                  <div className="font-mono text-base font-bold text-content">{stats.correctPct}%</div>
+                  <div className="text-[10px] text-content-subtle">got it right</div>
+                </div>
+                <div className="rounded-xl border border-hairline bg-ink-950/30 p-2">
+                  <div className="font-mono text-base font-bold text-content">{stats.answered}</div>
+                  <div className="text-[10px] text-content-subtle">answered</div>
+                </div>
+                <div className="rounded-xl border border-hairline bg-ink-950/30 p-2">
+                  {stats.fastest ? (
+                    <>
+                      <div className="flex items-center justify-center gap-1">
+                        <Avatar src={stats.fastest.image} alt={stats.fastest.name} size={16} />
+                        <span className="font-mono text-base font-bold text-gold-200">{secs(stats.fastest.ms)}</span>
+                      </div>
+                      <div className="truncate text-[10px] text-content-subtle">fastest: {stats.fastest.name}</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="font-mono text-base font-bold text-content">–</div>
+                      <div className="text-[10px] text-content-subtle">no correct answer</div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+            {q.explanation && <p className="mt-3 leading-relaxed text-content-muted">{lang.tx(q.explanation, q.hi?.explanation)}</p>}
             <p className="mt-2 text-[11px] text-content-subtle">Next question in {Math.max(0, Math.ceil(((phase.kind === "reveal" ? phase.nextAt : now) - now) / 1000))}s</p>
-          </div>
+          </motion.div>
         ) : mine ? (
           <div className="flex items-center gap-2 text-content-muted">
             <Lock className="h-4 w-4 text-gold-300" /> Answer locked in. Results are revealed to everyone at once.
@@ -546,54 +741,329 @@ function QuestionStage({
   );
 }
 
-function Final({ state, me }: { state: LiveState; me: LiveMe | null }) {
+type Tab = "podium" | "answers" | "standings";
+
+function Final({ state, me, id, bestStreak }: { state: LiveState; me: LiveMe | null; id: string; bestStreak: number }) {
   const podium = state.leaderboard.slice(0, 3);
+  // Arriving from "Answers & results" in the list opens straight on the answers.
+  // (This only renders after the quiz state has loaded on the client, so
+  // reading the URL here cannot differ from a server render.)
+  const [tab, setTab] = useState<Tab>(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("view") === "results" ? "answers" : "podium";
+    } catch {
+      return "podium";
+    }
+  });
+  const [results, setResults] = useState<LiveResults | null>(null);
+  const [rErr, setRErr] = useState<string | null>(null);
+  const loadResults = useCallback(async () => {
+    try {
+      setResults(await withRetry(() => getJson<LiveResults>(`/api/academy/live/${id}/results`), 3));
+    } catch (e) {
+      setRErr((e as Error).message);
+    }
+  }, [id]);
+  // Opened straight on Answers (from the list): fetch once after mount.
+  useEffect(() => {
+    if (tab === "podium") return;
+    const t = setTimeout(() => void loadResults(), 0);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  const open = (t: Tab) => {
+    setTab(t);
+    sfx("click");
+    if (t !== "podium" && !results) {
+      setRErr(null);
+      void loadResults();
+    }
+  };
+
+  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: "podium", label: "Podium", icon: <Trophy className="h-4 w-4" /> },
+    { id: "answers", label: "Answers", icon: <ListChecks className="h-4 w-4" /> },
+    { id: "standings", label: "Standings", icon: <BarChart3 className="h-4 w-4" /> },
+  ];
   return (
-    <Panel className="text-center">
-      <Crown className="mx-auto h-10 w-10 text-gold-300 drop-shadow-[0_0_18px_rgba(226,167,47,0.7)]" />
-      <h2 className="mt-3 font-display text-3xl font-bold text-content">
-        <span className="text-shine">We have our winners</span>
-      </h2>
-      {podium.length ? (
-        <div className="mt-8 grid grid-cols-3 items-end gap-3">
-          {[podium[1], podium[0], podium[2]].map((r, i) =>
-            r ? (
-              <motion.div
-                key={r.userId}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 + i * 0.15 }}
-                className={cn(`acad-podium-${r.rank} flex flex-col items-center rounded-3xl border px-2 pb-4`, r.rank === 1 ? "pt-8" : "pt-5")}
-              >
-                <Avatar src={r.image} alt={r.name} size={r.rank === 1 ? 64 : 48} />
-                <div className="mt-2 w-full truncate text-sm font-semibold text-content">{r.name}</div>
-                <div className="font-mono text-sm text-gold-200">{fmt(r.score)}</div>
-                <div className="text-[10px] uppercase tracking-wide text-content-subtle">#{r.rank}</div>
+    <div>
+      <div className="mb-4 flex gap-1 rounded-2xl border border-hairline bg-ink-900/40 p-1" role="tablist" aria-label="Results">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => open(t.id)}
+            className={cn("relative flex flex-1 items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold transition-colors duration-200", tab === t.id ? "bg-gold-300 text-ink-950" : "text-content-muted hover:text-content")}
+          >
+            <span className="relative flex items-center gap-1.5">
+              {t.icon} {t.label}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.2 }}>
+          {tab === "podium" ? (
+            <Panel className="text-center">
+              <motion.div initial={{ rotate: -20, scale: 0 }} animate={{ rotate: 0, scale: 1 }} transition={{ type: "spring", stiffness: 300, damping: 14 }}>
+                <Crown className="mx-auto h-10 w-10 text-gold-300 drop-shadow-[0_0_18px_rgba(226,167,47,0.7)]" />
               </motion.div>
+              <h2 className="mt-3 font-display text-3xl font-bold text-content">
+                <span className="text-shine">We have our winners</span>
+              </h2>
+              {podium.length ? (
+                <div className="mt-8 grid grid-cols-3 items-end gap-3">
+                  {[podium[1], podium[0], podium[2]].map((r, i) =>
+                    r ? (
+                      <motion.div
+                        key={r.userId}
+                        initial={{ opacity: 0, y: 60, scale: 0.9 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ delay: [0.5, 0.9, 0.2][i], type: "spring", stiffness: 220, damping: 18 }}
+                        className={cn(`acad-podium-${r.rank} flex flex-col items-center rounded-3xl border px-2 pb-4`, r.rank === 1 ? "pt-8" : "pt-5")}
+                      >
+                        <Avatar src={r.image} alt={r.name} size={r.rank === 1 ? 64 : 48} />
+                        <div className="mt-2 w-full truncate text-sm font-semibold text-content">{r.name}</div>
+                        <div className="font-mono text-sm text-gold-200">{fmt(r.score)}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-content-subtle">#{r.rank}</div>
+                      </motion.div>
+                    ) : (
+                      <div key={i} />
+                    )
+                  )}
+                </div>
+              ) : (
+                <p className="mt-4 text-sm text-content-muted">No one scored in this quiz.</p>
+              )}
+              {me?.joined && (
+                <div className="mx-auto mt-8 max-w-sm rounded-2xl border border-gold-400/30 bg-gold-400/[0.05] p-4">
+                  <div className="text-sm text-content-muted">
+                    You finished <span className="font-semibold text-content">{me.rank ? `#${me.rank}` : "unranked"}</span> with {fmt(me.score)} points ({me.correct} correct).
+                  </div>
+                  <div className="mt-1 text-[11px] text-content-subtle">XP from this quiz has been added to your profile.</div>
+                  {me.rank && me.rank <= 3 && me.score > 0 && (
+                    <Link href="/academy/certificates" className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-300">
+                      <Award className="h-4 w-4" /> View your certificate
+                    </Link>
+                  )}
+                </div>
+              )}
+              <div className="mt-6 flex flex-wrap justify-center gap-2">
+                <button type="button" onClick={() => open("answers")} className="btn-primary h-11 px-5 text-sm">
+                  <ListChecks className="h-4 w-4" /> See all answers
+                </button>
+                <Link href="/academy/live" className="btn-ghost h-11 px-5 text-sm">
+                  More live quizzes
+                </Link>
+              </div>
+            </Panel>
+          ) : !results ? (
+            rErr ? (
+              <Empty>
+                {rErr}{" "}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRErr(null);
+                    void loadResults();
+                  }}
+                  className="font-semibold text-gold-300"
+                >
+                  Try again
+                </button>
+              </Empty>
             ) : (
-              <div key={i} />
+              <div className="grid min-h-[30vh] place-items-center">
+                <Loader2 className="h-7 w-7 animate-spin text-gold-300" />
+              </div>
             )
+          ) : tab === "answers" ? (
+            <AnswersReview results={results} me={me} bestStreak={bestStreak} />
+          ) : (
+            <Standings results={results} meId={me?.userId ?? null} />
           )}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ReportCard({ results, me, bestStreak }: { results: LiveResults; me: LiveMe; bestStreak: number }) {
+  const timed = me.answers.filter((a) => a.choice >= 0 && a.ms != null);
+  const avg = timed.length ? Math.round(timed.reduce((n, a) => n + (a.ms ?? 0), 0) / timed.length) : null;
+  const acc = results.count ? Math.round((me.correct / results.count) * 100) : 0;
+  const maxPts = Math.max(1, ...me.answers.map((a) => a.points ?? 0));
+  const cards = [
+    { icon: <Trophy className="h-4 w-4 text-gold-300" />, v: me.rank ? `#${me.rank}` : "–", l: "Final rank" },
+    { icon: <Target className="h-4 w-4 text-mint-300" />, v: `${acc}%`, l: `${me.correct}/${results.count} right` },
+    { icon: <Gauge className="h-4 w-4 text-sky-300" />, v: secs(avg), l: "Average speed" },
+    { icon: <Flame className="h-4 w-4 text-orange-300" />, v: bestStreak ? `x${bestStreak}` : "0", l: "Best streak" },
+  ];
+  return (
+    <Panel className="!p-5">
+      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">Your report card</div>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {cards.map((c, i) => (
+          <motion.div key={c.l} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * i }} className="rounded-2xl border border-hairline bg-ink-900/40 p-3">
+            {c.icon}
+            <div className="mt-1 font-mono text-xl font-bold text-content">{c.v}</div>
+            <div className="text-[11px] text-content-subtle">{c.l}</div>
+          </motion.div>
+        ))}
+      </div>
+      <div className="mt-4">
+        <div className="mb-1.5 text-[11px] text-content-subtle">Points per question</div>
+        <div className="flex h-16 items-end gap-1" role="img" aria-label="Points per question">
+          {Array.from({ length: results.count }, (_, i) => {
+            const a = me.answers.find((x) => x.index === i);
+            const pts = a?.points ?? 0;
+            return (
+              <motion.div
+                key={i}
+                title={`Q${i + 1}: ${a ? (a.correct ? `+${pts}` : "wrong") : "no answer"}`}
+                className={cn("flex-1 rounded-t-md", !a ? "bg-white/[0.06]" : a.correct ? "bg-mint-400/80" : "bg-red-400/60")}
+                initial={{ height: 0 }}
+                animate={{ height: `${a?.correct ? Math.max(12, (pts / maxPts) * 100) : 10}%` }}
+                transition={{ delay: 0.15 + i * 0.04, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              />
+            );
+          })}
         </div>
-      ) : (
-        <p className="mt-4 text-sm text-content-muted">No one scored in this quiz.</p>
-      )}
-      {me?.joined && (
-        <div className="mx-auto mt-8 max-w-sm rounded-2xl border border-gold-400/30 bg-gold-400/[0.05] p-4">
-          <div className="text-sm text-content-muted">
-            You finished <span className="font-semibold text-content">{me.rank ? `#${me.rank}` : "unranked"}</span> with {fmt(me.score)} points ({me.correct} correct).
-          </div>
-          <div className="mt-1 text-[11px] text-content-subtle">XP from this quiz has been added to your profile.</div>
-          {me.rank && me.rank <= 3 && me.score > 0 && (
-            <Link href="/academy/certificates" className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-300">
-              <Award className="h-4 w-4" /> View your certificate
-            </Link>
-          )}
+        <div className="mt-1 flex justify-between font-mono text-[10px] text-content-subtle">
+          <span>Q1</span>
+          <span>Q{results.count}</span>
         </div>
-      )}
-      <Link href="/academy/live" className="btn-ghost mt-6 h-11 px-5 text-sm">
-        More live quizzes
-      </Link>
+      </div>
+    </Panel>
+  );
+}
+
+function AnswersReview({ results, me, bestStreak }: { results: LiveResults; me: LiveMe | null; bestStreak: number }) {
+  const lang = useLang();
+  const [open, setOpen] = useState<number | null>(0);
+  return (
+    <div className="space-y-3">
+      {me?.joined && <ReportCard results={results} me={me} bestStreak={bestStreak} />}
+      {results.questions.map((q, n) => {
+        const a = me?.answers.find((x) => x.index === q.index) ?? null;
+        const isOpen = open === q.index;
+        const total = q.distribution.reduce((s, v) => s + v, 0);
+        return (
+          <motion.div key={q.index} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(n, 10) * 0.04 }} className="surface overflow-hidden rounded-2xl">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(isOpen ? null : q.index);
+                sfx("click");
+              }}
+              aria-expanded={isOpen}
+              className="flex w-full items-center gap-3 px-4 py-3 text-left"
+            >
+              <span className={cn("grid h-8 w-8 shrink-0 place-items-center rounded-xl font-mono text-xs font-bold", !a ? "bg-white/[0.06] text-content-subtle" : a.correct ? "bg-mint-400 text-ink-950" : "bg-red-400 text-ink-950")}>
+                {!a ? q.index + 1 : a.correct ? <CheckCircle2 className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 text-sm font-semibold text-content">{lang.tx(q.prompt, q.hi?.prompt)}</span>
+                <span className="mt-0.5 block text-[11px] text-content-subtle">
+                  Q{q.index + 1} · {q.correctPct}% right · {q.answered} answered{a?.correct && a.points ? ` · you +${a.points}` : ""}
+                </span>
+              </span>
+              <ChevronDown className={cn("h-4 w-4 shrink-0 text-content-subtle transition-transform", isOpen && "rotate-180")} />
+            </button>
+            <AnimatePresence initial={false}>
+              {isOpen && (
+                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
+                  <div className="space-y-2 border-t border-hairline px-4 pb-4 pt-3">
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-content-subtle">
+                      <Pill tone={DIFF_TONE[q.difficulty]}>{DIFF_LABEL[q.difficulty]}</Pill>
+                      <span>{q.category}</span>
+                      {q.avgMs != null && (
+                        <span className="flex items-center gap-1">
+                          <Timer className="h-3 w-3" /> avg {secs(q.avgMs)}
+                        </span>
+                      )}
+                    </div>
+                    {q.options.map((o, i) => {
+                      const right = q.answer === i;
+                      const mineHere = a?.choice === i;
+                      const share = total ? Math.round((q.distribution[i] / total) * 100) : 0;
+                      return (
+                        <div key={i} className={cn("relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-sm", right ? "border-mint-400/60" : mineHere ? "border-red-400/60" : "border-hairline")}>
+                          <motion.span className={cn("absolute inset-y-0 left-0", right ? "bg-mint-400/[0.12]" : "bg-white/[0.04]")} initial={{ width: 0 }} animate={{ width: `${share}%` }} transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }} />
+                          <span className={cn("relative grid h-6 w-6 shrink-0 place-items-center rounded-lg font-mono text-[11px] font-bold", right ? "bg-mint-400 text-ink-950" : mineHere ? "bg-red-400 text-ink-950" : "border border-hairline text-content-subtle")}>
+                            {right ? <CheckCircle2 className="h-3.5 w-3.5" /> : LETTERS[i]}
+                          </span>
+                          <span className="relative min-w-0 flex-1 text-content">{lang.tx(o, q.hi?.options?.[i])}</span>
+                          {mineHere && <span className={cn("relative rounded-full px-2 py-0.5 text-[10px] font-semibold", right ? "bg-mint-400/15 text-mint-300" : "bg-red-400/15 text-red-300")}>you</span>}
+                          <span className="relative font-mono text-xs text-content-subtle">{share}%</span>
+                        </div>
+                      );
+                    })}
+                    {q.fastest && (
+                      <div className="flex items-center gap-2 rounded-xl border border-gold-400/25 bg-gold-400/[0.05] px-3 py-2 text-[12px] text-content-muted">
+                        <Zap className="h-3.5 w-3.5 shrink-0 text-gold-300" />
+                        <Avatar src={q.fastest.image} alt={q.fastest.name} size={18} />
+                        <span className="min-w-0 truncate">
+                          Fastest correct: <span className="font-semibold text-content">{q.fastest.name}</span> in {secs(q.fastest.ms)}
+                        </span>
+                      </div>
+                    )}
+                    {q.explanation && <p className="rounded-xl bg-white/[0.03] px-3 py-2.5 text-sm leading-relaxed text-content-muted">{lang.tx(q.explanation, q.hi?.explanation)}</p>}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+function Standings({ results, meId }: { results: LiveResults; meId: string | null }) {
+  return (
+    <Panel className="!p-0">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[30rem] text-sm">
+          <thead>
+            <tr className="text-left text-[10px] uppercase tracking-[0.14em] text-content-subtle">
+              <th className="px-4 py-3 font-semibold">#</th>
+              <th className="px-2 py-3 font-semibold">Player</th>
+              <th className="px-2 py-3 text-right font-semibold">Score</th>
+              <th className="px-2 py-3 text-right font-semibold">Right</th>
+              <th className="px-4 py-3 text-right font-semibold">Avg time</th>
+            </tr>
+          </thead>
+          <tbody>
+            {results.standings.map((r, i) => (
+              <motion.tr key={r.userId} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: Math.min(i, 15) * 0.03 }} className={cn("border-t border-hairline", r.userId === meId && "acad-me-row", r.rank === 1 && "bg-gold-400/[0.06]")}>
+                <td className={cn("px-4 py-2.5 font-mono text-xs font-bold", r.rank <= 3 ? "text-gold-300" : "text-content-subtle")}>{r.rank === 1 ? <Crown className="h-4 w-4" /> : r.rank}</td>
+                <td className="px-2 py-2.5">
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Avatar src={r.image} alt={r.name} size={24} />
+                    <span className="truncate text-content">{r.name}</span>
+                  </span>
+                </td>
+                <td className="px-2 py-2.5 text-right font-mono text-gold-200">{fmt(r.score)}</td>
+                <td className="px-2 py-2.5 text-right font-mono text-content-muted">
+                  {r.correct}/{results.count}
+                </td>
+                <td className="px-4 py-2.5 text-right font-mono text-content-muted">{secs(r.avgMs)}</td>
+              </motion.tr>
+            ))}
+            {!results.standings.length && (
+              <tr>
+                <td colSpan={5} className="px-4 py-6 text-center text-content-subtle">
+                  No one played this quiz.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </Panel>
   );
 }

@@ -37,7 +37,10 @@ export type Sfx =
   | "fire"
   | "lock"
   | "reveal"
-  | "pop";
+  | "pop"
+  | "drumroll"
+  | "rankup"
+  | "streak";
 
 export type Track = "auto" | "focus" | "arena" | "night";
 export type Scene = "focus" | "arena";
@@ -560,6 +563,24 @@ const SFX: Record<Sfx, Tone[]> = {
     { f: midi(86), at: 0.5, dur: 1.0, v: "bell", gain: 0.1 },
   ],
   pop: [{ f: midi(91), at: 0, dur: 0.12, v: "pluck", gain: 0.12 }],
+  // Live quiz: a snare roll that builds for ~1.4s into the reveal.
+  drumroll: [
+    ...Array.from({ length: 22 }, (_, i): Tone => ({ f: 0, at: i * 0.062, dur: 0.05, v: "noise", hp: 1400 + i * 40, gain: 0.018 + i * 0.0022 })),
+    { f: 95, to: 60, at: 1.36, dur: 0.22, v: "thud", gain: 0.34 },
+  ],
+  // Climbing the live leaderboard: a quick rising arpeggio with a bell on top.
+  rankup: [
+    { f: midi(79), at: 0, dur: 0.22, v: "pluck", gain: 0.16 },
+    { f: midi(83), at: 0.07, dur: 0.22, v: "pluck", gain: 0.16 },
+    { f: midi(86), at: 0.14, dur: 0.24, v: "pluck", gain: 0.16 },
+    { f: midi(91), at: 0.21, dur: 1.0, v: "bell", gain: 0.09 },
+  ],
+  // A run of right answers: a bright double sparkle.
+  streak: [
+    { f: 0, at: 0, dur: 0.3, v: "noise", hp: 6500, gain: 0.03 },
+    { f: midi(88), at: 0.02, dur: 0.5, v: "bell", gain: 0.08 },
+    { f: midi(95), at: 0.11, dur: 0.7, v: "bell", gain: 0.07 },
+  ],
 };
 
 function playTones(tones: Tone[], bus: AudioNode, at = 0) {
@@ -588,7 +609,7 @@ function buzz(name: Sfx) {
   else if (name === "correct" || name === "coin" || name === "lock") hapticSent();
   else if (name === "wrong" || name === "heartbeat") hapticError();
   else if (name === "go" || name === "count" || name === "fifty") hapticTap();
-  else if (name === "levelup" || name === "achievement" || name === "winner" || name === "fire") {
+  else if (name === "levelup" || name === "achievement" || name === "winner" || name === "fire" || name === "rankup" || name === "streak") {
     hapticToggle();
     setTimeout(hapticSent, 180);
   }
