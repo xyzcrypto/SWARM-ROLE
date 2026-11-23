@@ -5,6 +5,40 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-23 (170) — Stability: pages open without waiting on the service worker; quiz and live quiz survive weak networks and audio interruptions
+
+Found by measurement and reproduction, not guesswork: production page timings and
+main-thread blocking per page (4x CPU, phone viewport); six back-to-back quizzes with
+full sound (no leak: heap 14-18MB, 4 timers, AudioContext running throughout); the same
+with a flaky network (12% dropped requests, 10% lost replies, 0.8-6s delays); a live quiz
+with two players on that network; and an audio interruption with resume blocked.
+
+- **Pages sometimes slow to open.** `public/sw.js` handled every same-origin request
+  with no navigation preload, so when the browser had put the idle worker to sleep
+  (~30s), each page load and in-app navigation waited for it to boot first. Now:
+  navigation preload is enabled, and `/api/*`, `?_rsc=` and `/_next/data/*` bypass the
+  worker entirely (Static Routing API, Chrome 123+). Navigations are still never cached;
+  the offline page still works.
+- **Voice disappears after a few quizzes.** `ensure()` resumed the AudioContext only in
+  state `"suspended"`. iPhones (and some Android builds) use `"interrupted"` after a
+  call, notification, lock or app switch, which nothing resumed: every sound and every
+  line went silent until a reload. Now any non-running state is woken, on
+  visibility/pageshow/focus/tap too; while the engine cannot run, AneQue's clips play on
+  a plain un-routed `<audio>` so she is heard anyway (verified: clips move from the
+  routed element to the plain one while resume is blocked). The clip watchdog now also
+  finishes a clip whose time stopped advancing; before, it re-armed forever and blocked
+  every line queued behind it.
+- **Live quiz misses questions on a weak connection.** The phase sync gave up after 6
+  tries and each try could hang 15s, so a single slow request swallowed a 10s question.
+  Reproduced: one player missed questions 4-6 entirely. Now live requests time out at 4s,
+  the sync keeps trying until the phase arrives (the phase change bounds it), stale
+  replies can no longer schedule stray fetches, the arena re-syncs on tab return and
+  `online`, the first load retries, and "already answered" after a lost reply is no
+  longer shown as an error. Same network after the fix: all 6 questions seen and answered.
+- **Solo quiz shows "offline" at the very end.** "See results" now retries 5 times
+  (finishing is idempotent) and the player re-syncs by itself on `online`.
+- Tests: `stability-r10.test.ts` (11). No route, caching, design or copy changes.
+
 ## 2026-11-23 (169) — Live Quiz: results and answer review, reveal stats, streaks, new sounds and motion
 
 - **Results after a live quiz** (`/api/academy/live/[id]/results`, `liveResults()`): every

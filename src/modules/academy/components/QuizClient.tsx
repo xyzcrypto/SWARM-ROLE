@@ -32,6 +32,13 @@ const MODE_TABS: { id: Mode; label: string; icon: typeof Zap; hint: string }[] =
 ];
 
 const LETTERS = ["A", "B", "C", "D"];
+/**
+ * Finishing is safe to repeat (every XP grant has a unique key, and a finished
+ * attempt just returns its results again), so it gets more tries than the
+ * other steps. With three, a patchy connection at the very last step left the
+ * learner on "You seem to be offline" with the results one tap away.
+ */
+const FINISH_TRIES = 5;
 const line = (k: VoiceLine): Piece => lineFor(k);
 
 export function QuizClient() {
@@ -465,7 +472,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
       // Finished, or nothing left to show (the last question was removed by an
       // admin mid-quiz): settle it and show the results instead of a spinner.
       if (s.status !== "active" || !s.question) {
-        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }));
+        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }), FINISH_TRIES);
         onFinished(r);
         return;
       }
@@ -517,8 +524,17 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
       if (document.hidden) hiddenAt = Date.now();
       else if (hiddenAt && Date.now() - hiddenAt > 3000 && !busyRef.current) void load();
     };
+    // The connection came back: re-sync on our own rather than waiting for a
+    // tap on Retry.
+    const online = () => {
+      if (!busyRef.current) void load();
+    };
     document.addEventListener("visibilitychange", on);
-    return () => document.removeEventListener("visibilitychange", on);
+    window.addEventListener("online", online);
+    return () => {
+      document.removeEventListener("visibilitychange", on);
+      window.removeEventListener("online", online);
+    };
   }, [load]);
 
   // AneQue may help in Live Talk, but must never give the open question away.
@@ -639,7 +655,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
     stopVoice();
     try {
       if (reveal.last) {
-        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }));
+        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }), FINISH_TRIES);
         onFinished(r);
         return;
       }
