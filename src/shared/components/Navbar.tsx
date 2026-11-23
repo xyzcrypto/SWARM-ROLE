@@ -10,7 +10,7 @@ import { Menu, X, LayoutDashboard, User, Settings, LogOut, ChevronDown, Search, 
 import { openCustomize } from "@shared/utils/site-prefs";
 import { navLinks, railLinks, moreLinks } from "@/lib/site";
 import { XYZ_CMDK_EVENT } from "@/lib/command-search";
-import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
+import { XYZ_AI_OPEN_EVENT } from "@modules/ai/lib/events";
 import { RobotIcon } from "@/components/RobotIcon";
 import { cn, maskEmail } from "@/lib/utils";
 import { Avatar } from "@/components/Avatar";

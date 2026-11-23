@@ -5,6 +5,64 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-23 (171) — Pages become tappable sooner on mobile data; a dropped connection no longer strands the tab; quiz start and re-sync survive weak networks
+
+Measured with a phone profile on Lighthouse "Slow 4G" (1.6 Mbps, 150 ms RTT) and 4x CPU,
+production build, timing when the page is visible and when React has hydrated (taps work):
+
+| Page | Clickable before | After | JS before | After |
+|---|---|---|---|---|
+| `/` | 5.8s | 3.6s | 345KB | 259KB |
+| `/tools` | 3.7s | 2.9s | 333KB | 249KB |
+| `/academy` | 4.8s | 3.9s | 409KB | 336KB |
+| `/markets` | 5.0s | 4.0s | 371KB | 288KB |
+| `/news` | 5.9s | 4.3s | 424KB | 353KB |
+| `/community` | 4.0s | 3.3s | 367KB | 321KB |
+| `/research` | 3.7s | 2.8s | 328KB | 246KB |
+| `/points` | 4.0s | 3.1s | 357KB | 272KB |
+
+- **Sentry shipped on every page without a DSN.** `instrumentation-client.ts` and both
+  error pages imported `@sentry/nextjs` statically, which put the SDK with tracing into a
+  ~133KB-gzip framework chunk every page downloaded and parsed before it could hydrate,
+  while reporting nothing (no DSN is set). New `shared/utils/report-error.ts` loads and
+  initialises it only when `NEXT_PUBLIC_SENTRY_DSN` exists. Same reporting once the DSN
+  is added.
+- **Fraunces was preloaded site-wide for one headline.** Moved from the root layout into
+  `Hero.tsx`, the only user, so its font file is preloaded on `/` only. Same font, same
+  variable, same look.
+- **The AI assistant loaded on every page.** `Navbar`, `AppMenu`, `CommandPalette`,
+  `NewsLayout` and `AIMarketIntelligenceCard` imported the `XYZ_AI_OPEN_EVENT` string from
+  `XyzAiWidget.tsx`, which pulled the whole widget into first load and defeated its lazy
+  mount. The constant now lives in `modules/ai/lib/events.ts`.
+- **A dropped connection could strand the tab on the browser's error page.** The chunk
+  error safety net (`PwaSetup`, `error.tsx`, `global-error.tsx`) reloaded the instant a
+  `/_next/static` script failed, including when it failed because the network dropped.
+  Reproduced: fail a chunk while offline and the tab reloads into "This site can't be
+  reached" and stays there after the network returns. New `reloadWhenReachable()` waits
+  for `online`, probes with a HEAD request (never answered by the service worker), and
+  reloads only on 2xx (network back) or 404/410 (deploy skew).
+- **Quiz: Start failed on one dropped request.** Starting a quiz had no retry, so a single
+  lost connection ended on "You seem to be offline" (seen in the flaky-network marathon).
+  It now retries like every other quiz step; safe because a practice start closes any
+  other active attempt and daily/weekly starts return the same attempt.
+- **Quiz: a re-sync asked for mid-request was dropped.** If the connection returned while
+  an answer was still retrying, the `online` re-sync was skipped and the error stayed.
+  It is now queued and runs when the request settles. 50:50 also fails fast (8s) and
+  re-syncs on 409/410 instead of showing an error.
+
+Verified: 3 back-to-back quizzes on the flaky network (dropped requests, lost replies,
+0.8-6s delays) all reached results; offline answer, reload mid-question and on reveal,
+leaving and returning, triple-tap, hidden tab, timer expiry and offline 50:50 all ended
+on a live question or reveal. Route table identical to `main`.
+
+Files: `src/shared/utils/report-error.ts` (new), `src/instrumentation-client.ts`,
+`src/app/error.tsx`, `src/app/global-error.tsx`, `src/app/layout.tsx`,
+`src/components/Hero.tsx`, `src/modules/ai/lib/events.ts` (new), `XyzAiWidget.tsx` and
+its five importers, `src/shared/utils/recover.ts`, `PwaSetup.tsx`, `QuizClient.tsx`,
+`src/lib/__tests__/interactive-r11.test.ts` (new).
+
+---
+
 ## 2026-11-23 (170) — Stability: pages open without waiting on the service worker; quiz and live quiz survive weak networks and audio interruptions
 
 Found by measurement and reproduction, not guesswork: production page timings and

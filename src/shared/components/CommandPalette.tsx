@@ -8,7 +8,7 @@ import { isStaff } from "@/lib/permissions";
 import { filterCommands, XYZ_CMDK_EVENT, type CommandItem } from "@/lib/command-search";
 import { safeHref } from "@/lib/links";
 import { useScrollLock } from "@/lib/useScrollLock";
-import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
+import { XYZ_AI_OPEN_EVENT } from "@modules/ai/lib/events";
 import { cn } from "@/lib/utils";
 import { MicButton } from "@/shared/components/MicButton";
 

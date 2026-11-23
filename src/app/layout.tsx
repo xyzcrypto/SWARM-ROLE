@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { Fraunces } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
 import { NavProgress } from "@shared/components/NavProgress";
@@ -110,14 +109,6 @@ export const metadata: Metadata = {
 // Headline display face - a warm, high-contrast serif with real character,
 // scoped to ONLY the hero's main headline (not the shared `font-display`
 // class, which stays Geist Sans everywhere else) via its own CSS variable.
-const fraunces = Fraunces({
-  subsets: ["latin"],
-  weight: ["500", "600", "700"],
-  style: ["normal"],
-  variable: "--font-fraunces",
-  display: "swap",
-});
-
 export const viewport: Viewport = {
   themeColor: "#05060a",
   width: "device-width",
@@ -130,7 +121,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${GeistSans.variable} ${GeistMono.variable} ${fraunces.variable} dark`}>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${GeistSans.variable} ${GeistMono.variable} dark`}>
       <head>
         {/* Warm up connections to the third-party image CDNs used on the Markets
             and News pages (coin logos + source favicons) so those images paint
