@@ -30,6 +30,8 @@ export async function POST(req: Request) {
     // any DB lookup, so it doesn't leak whether the account exists.
     const emailLimit = await rateLimit("otpEmail", email);
     if (!emailLimit.success) return fail("Too many attempts. Please try again shortly.", 429);
+    // Long-window cap per email (audit F-10): bounds code guessing over days.
+    if (!(await rateLimit("otpEmailDaily", email)).success) return fail("Too many attempts. Please try again shortly.", 429);
 
     const user = await prisma.user.findUnique({
       where: { email },

@@ -42,6 +42,7 @@ import { AppMenu } from "@shared/components/AppMenu";
 import { feelAttrs, setFeel, useChatFeel } from "@shared/utils/chat-feel";
 import { chatPressFeedback } from "@shared/utils/chat-feedback";
 import { playSfx, unlockAudio } from "@shared/utils/sfx";
+import { verifyEvent, type PublicJwk } from "@shared/utils/realtime-verify";
 import { centredScrollTop } from "@shared/utils/scroll-into-list";
 
 const MAX_LENGTH = 500;
@@ -173,7 +174,7 @@ export function ChatClient({
   initialHasMore: boolean;
   initialPinned?: Message | null;
   me: Me | null;
-  realtime: { url: string; anonKey: string };
+  realtime: { url: string; anonKey: string; verifyKey?: PublicJwk | null };
   gifEnabled?: boolean;
 }) {
   // False on the server and during hydration, true from the next render on.
@@ -483,29 +484,48 @@ export function ChatClient({
       );
 
       const offs: Array<() => void> = [];
-      offs.push(channel.onBroadcast("new_message", (payload) => {
-        const msg = payload as Message;
+      // ⚠️ Every content event is VERIFIED before it touches the screen
+      // (security audit F-02). This channel is public: anyone holding the anon
+      // key every browser ships can broadcast on it, and these handlers used to
+      // render whatever arrived, so a stranger could post a message "from" the
+      // admin with a phishing link, rewrite real messages, or hide them. The
+      // server signs each event; anything this key did not sign is dropped.
+      // With no key configured nothing is trusted: the event only nudges the
+      // normal (throttled) reconcile, which reads the real state from the API.
+      const verifyKey = realtime.verifyKey ?? null;
+      const onVerified = (event: string, apply: (p: Record<string, unknown>) => void) =>
+        channel.onBroadcast(event, (raw) => {
+          if (!verifyKey) {
+            void tickRef.current?.();
+            return;
+          }
+          void verifyEvent(verifyKey, CHANNEL, event, raw).then((p) => {
+            if (p && !cancelled) apply(p);
+          });
+        });
+      offs.push(onVerified("new_message", (payload) => {
+        const msg = payload as unknown as Message;
         appendMessage(msg);
         if (msg.userId !== me?.id) playSfx("receive");
       }));
-      offs.push(channel.onBroadcast("message_hidden", (payload) => hideMessage((payload as { id: string }).id)));
+      offs.push(onVerified("message_hidden", (payload) => hideMessage((payload as { id: string }).id)));
       // A bulk restore carries no messages - it means "history changed under
       // you". `tick(true)` bypasses the 60s safety-reconcile throttle, which is
       // the whole point: without it a restore was invisible for up to a minute.
-      offs.push(channel.onBroadcast("messages_restored", () => { void tickRef.current?.(true); }));
-      offs.push(channel.onBroadcast("message_edited", (payload) => {
+      offs.push(onVerified("messages_restored", () => { void tickRef.current?.(true); }));
+      offs.push(onVerified("message_edited", (payload) => {
         const p = payload as { id: string; body: string; editedAt: string };
         applyEdit(p.id, p.body, p.editedAt);
       }));
-      offs.push(channel.onBroadcast("message_pinned", (payload) => {
+      offs.push(onVerified("message_pinned", (payload) => {
         const p = payload as { id: string; pinned: boolean };
         applyPinned(p.id, p.pinned);
       }));
-      offs.push(channel.onBroadcast("poll_vote", (payload) => {
-        const p = payload as { messageId: string; counts: { optionId: string; count: number }[]; total: number };
+      offs.push(onVerified("poll_vote", (payload) => {
+        const p = payload as unknown as { messageId: string; counts: { optionId: string; count: number }[]; total: number };
         applyPollCounts(p.messageId, p.counts, p.total);
       }));
-      offs.push(channel.onBroadcast("reaction", (payload) => {
+      offs.push(onVerified("reaction", (payload) => {
         const p = payload as { messageId: string; emoji: string; userId: string; op: "add" | "remove" };
         applyReaction(p.messageId, p.emoji, p.userId, p.op);
         // Blip when ANOTHER member reacts - same opt-in rule as new messages.
@@ -783,7 +803,7 @@ export function ChatClient({
     // Re-subscribe only when the connection target or the signed-in identity
     // changes; profile fields (name/image/username) ride in meRef.
      
-  }, [realtime.url, realtime.anonKey, me?.id, appendMessage, hideMessage, applyReaction, applyEdit, applyPinned, applyPollCounts]);
+  }, [realtime.url, realtime.anonKey, realtime.verifyKey, me?.id, appendMessage, hideMessage, applyReaction, applyEdit, applyPinned, applyPollCounts]);
 
   // Close the reaction popover on any press outside it (its toggle + panel are
   // tagged data-react-ui); mirrors EmojiPicker's outside-click behaviour.

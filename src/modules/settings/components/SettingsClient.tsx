@@ -522,7 +522,7 @@ function SecurityPanel({ user }: { user: SettingsUser }) {
           .
         </div>
       )}
-      <DangerZone />
+      <DangerZone hasPassword={user.hasPassword} />
     </div>
   );
 }
@@ -580,10 +580,11 @@ function ChangePassword() {
   );
 }
 
-function DangerZone() {
+function DangerZone({ hasPassword }: { hasPassword: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirm, setConfirm] = useState("");
+  const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -594,7 +595,7 @@ function DangerZone() {
       const res = await fetch("/api/profile", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirm: true }),
+        body: JSON.stringify({ confirm: true, ...(hasPassword ? { password } : {}) }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -634,11 +635,24 @@ function DangerZone() {
               className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20"
             />
           </label>
+          {hasPassword && (
+            <label className="block">
+              <span className="mb-1.5 block text-xs text-zinc-400">Your current password</span>
+              <input
+                id="delete-account-password"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none focus:border-red-500/50 focus:ring-2 focus:ring-red-500/20"
+              />
+            </label>
+          )}
           {error && <p className="text-sm text-red-300">{error}</p>}
           <div className="flex gap-2">
             <button
               onClick={remove}
-              disabled={confirm !== "DELETE" || busy}
+              disabled={confirm !== "DELETE" || busy || (hasPassword && !password)}
               className="btn-ghost !border-red-500/40 bg-red-500/10 text-red-200 disabled:opacity-50"
             >
               {busy ? "Deleting…" : "Permanently delete"}

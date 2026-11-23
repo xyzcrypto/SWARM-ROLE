@@ -67,6 +67,16 @@ const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
 ];
 
+// Our own Supabase project's host, for next/image (see images.remotePatterns).
+const SUPABASE_HOST = (() => {
+  try {
+    const u = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    return u ? new URL(u).hostname.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+})();
+
 const nextConfig = {
   // Academy share cards read their fonts and logo from disk at request time;
   // make sure the serverless functions that render them ship those files.
@@ -92,15 +102,21 @@ const nextConfig = {
     formats: ["image/avif", "image/webp"],
     // Allowlisted remote image hosts (was "**", an SSRF/abuse vector). Add a
     // host here if you reference cover/avatar images from a new domain.
+    //
+    // ⚠️ Exact hosts only (security audit F-01/F-16). Wildcards like
+    // `**.supabase.co` and `**.githubusercontent.com` let anyone point the
+    // optimizer at files they host themselves (any Supabase project, any raw
+    // GitHub file). Keep in sync with IMAGE_HOSTS in modules/profile/lib/profile.ts.
     remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "**.unsplash.com" },
-      { protocol: "https", hostname: "lh3.googleusercontent.com" },
-      { protocol: "https", hostname: "**.googleusercontent.com" },
-      { protocol: "https", hostname: "**.githubusercontent.com" },
-      { protocol: "https", hostname: "res.cloudinary.com" },
-      { protocol: "https", hostname: "**.supabase.co" }, // Supabase Storage uploads
+      ...["images.unsplash.com", "lh3.googleusercontent.com", "lh4.googleusercontent.com", "lh5.googleusercontent.com", "lh6.googleusercontent.com", "avatars.githubusercontent.com", "res.cloudinary.com"].map((hostname) => ({ protocol: "https", hostname })),
+      // Our own Supabase project (Storage uploads). Without the env var (a
+      // local build with no Supabase) there is simply no Storage host to allow.
+      ...(SUPABASE_HOST ? [{ protocol: "https", hostname: SUPABASE_HOST, pathname: "/storage/v1/object/public/**" }] : []),
     ],
+    // SVG through the optimizer is how the image-optimizer RCE advisory was
+    // reached. These are Next's defaults; stated so nobody flips them casually.
+    dangerouslyAllowSVG: false,
+    contentDispositionType: "attachment",
   },
   async headers() {
     return [

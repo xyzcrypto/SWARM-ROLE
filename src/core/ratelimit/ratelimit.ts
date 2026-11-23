@@ -68,6 +68,14 @@ const limiters = {
   notifications: make(60, 60, "notifications"), // 60/min per user - bell polling + mark-read
   contact: make(5, 60, "contact"), // 5/min/IP - contact form (own bucket so /track bursts can't 429 it)
   ai: make(15, 60, "ai"), // 15/min per user - XYZ AI assistant turns (keyed by user id)
+  // Daily ceiling for the AI routes the per-plan daily limit does not count
+  // (chat translate, voice transcription, AneQue's ears). Per-minute limits
+  // alone let one free account run ~21k paid Whisper/LLM calls a day
+  // (audit F-14). Generous for real use: a busy member sends far fewer.
+  aiDaily: make(300, 86_400, "ai_daily"),
+  // "Points analyzed" contributions: 30 calculations a day per IP (audit F-13;
+  // the per-minute bucket alone let one IP add ~720B to the public figure a day).
+  pointsStatsDaily: make(30, 86_400, "points_stats_daily"),
   journal: make(30, 60, "journal"), // 30/min per user - trade log CRUD
   xp: make(30, 60, "xp"), // 30/min per user - XP award pings
   shareCreate: make(15, 60, "share_create"), // 15/min/IP - short-link creation (anonymous)
@@ -77,6 +85,8 @@ const limiters = {
   // costs a handful of these per session even on an avatar-heavy page. What it bounds is the residue the
   // token check cannot remove - a valid user id with a forged token still costs an invocation and a DB
   // read before the 404, and that is the only part of the old unbounded cache-key vector left.
+  // 10 codes a day per target email, on top of otpEmail (audit F-10).
+  otpEmailDaily: make(10, 86_400, "otp_email_daily"),
   otpEmail: make(3, 600, "otp_email"), // 3/10min per target email - anti email-bombing (allows retry without hour-long lockouts on mistype or latency)
   // 20/min/IP - independent of the per-email `login` limiter, which a
   // bot rotating through many fake/guessed emails from one IP barely engages. Each failed login attempt

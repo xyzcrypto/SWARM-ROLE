@@ -49,6 +49,7 @@ export async function POST(req: Request) {
     if (!transcribeEnabled) return fail("Voice transcription isn't available right now.", 503);
     {
       const { success } = await rateLimit("ai", `transcribe-${me.id}`);
+      if (success && !(await rateLimit("aiDaily", me.id)).success) return fail("Daily transcription limit reached. It resets tomorrow.", 429);
       if (!success) return fail("You're going too fast. Take a breath.", 429);
     }
     {

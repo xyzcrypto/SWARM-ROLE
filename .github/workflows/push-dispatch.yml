@@ -37,7 +37,8 @@ jobs:
             exit 0
           fi
           code=$(curl -s -o /tmp/dispatch.out -w "%{http_code}" --max-time 60 \
-            "${PROD_URL%/}/api/push/dispatch?secret=${CRON_SECRET}")
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${PROD_URL%/}/api/push/dispatch")
           echo "HTTP ${code}"
           cat /tmp/dispatch.out 2>/dev/null || true
           echo ""

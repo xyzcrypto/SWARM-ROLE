@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { handleError } from "@/lib/api";
+import { handleError, isCuid } from "@/lib/api";
 
 export const runtime = "nodejs";
 
@@ -18,6 +18,15 @@ const CACHE = { headers: { "Cache-Control": "public, s-maxage=30, stale-while-re
 export async function GET(_req: Request, props: { params: Promise<{ userId: string }> }) {
   const params = await props.params;
   try {
+    // ⚠️ A PRIVATE profile shows nothing but a name and photo, and that must
+    // hold here too: this route served the last 20 activity rows of ANY user
+    // id, so a member who went private still leaked their wins and losses to
+    // anyone who had their id (it travels in chat payloads). Private (or
+    // unknown) members get an empty list, the same answer for every caller,
+    // so the response stays safely CDN-cacheable (audit F-04).
+    if (!isCuid(params.userId)) return NextResponse.json({ items: [] }, CACHE);
+    const owner = await prisma.user.findUnique({ where: { id: params.userId }, select: { profileVisibility: true } }).catch(() => null);
+    if (!owner || owner.profileVisibility === "private") return NextResponse.json({ items: [] }, CACHE);
     try {
       const items = await prisma.journalActivity.findMany({
         where: { userId: params.userId },

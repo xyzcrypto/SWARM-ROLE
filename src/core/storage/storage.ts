@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { env, storageEnabled } from "@/lib/env";
 
 const ALLOWED = new Map<string, string>([
@@ -16,10 +17,19 @@ export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
 // needs Supabase Storage or the paste-a-link fallback.
 export const INLINE_MAX_BYTES = 700 * 1024; // ~700 KB
 
+/**
+ * An unguessable object name. Public-bucket files are protected only by their
+ * URL, and the old `Date.now()` + 8 chars of `Math.random()` (about 41 bits
+ * from a non-cryptographic generator, plus a predictable timestamp) was not a
+ * secret worth relying on for private DM voice notes (audit F-05). A UUIDv4
+ * from the system CSPRNG is 122 random bits.
+ */
+export const unguessableId = () => randomUUID();
+
 /** Random, collision-resistant object path for an uploaded image. */
 export function buildObjectPath(mime: string): string {
   const ext = ALLOWED.get(mime) ?? "bin";
-  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const id = unguessableId();
   return `covers/${id}.${ext}`;
 }
 
@@ -228,7 +238,7 @@ export async function uploadAudio(bytes: ArrayBuffer): Promise<UploadResult> {
     return { ok: false, error: "Voice messages need file storage, which isn't set up yet.", status: 501 };
   }
   const bucket = env.SUPABASE_STORAGE_BUCKET;
-  const id = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+  const id = unguessableId();
   const path = `voice/${id}.${AUDIO_EXT.get(mime)}`;
   try {
     const res = await fetch(`${env.SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {

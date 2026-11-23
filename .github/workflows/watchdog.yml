@@ -39,7 +39,8 @@ jobs:
             exit 0
           fi
           code=$(curl -s -o /tmp/watchdog.out -w "%{http_code}" --max-time 60 \
-            "${PROD_URL%/}/api/watchdog?secret=${CRON_SECRET}")
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${PROD_URL%/}/api/watchdog")
           echo "HTTP ${code}"
           cat /tmp/watchdog.out 2>/dev/null || true
           echo ""

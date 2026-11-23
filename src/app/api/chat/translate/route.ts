@@ -33,6 +33,7 @@ export async function POST(req: Request) {
     if (!aiEnabled) return fail("Translation is not available right now.", 503);
 
     const { success } = await rateLimit("ai", me.id);
+    if (success && !(await rateLimit("aiDaily", me.id)).success) return fail("Daily limit reached for translations. It resets tomorrow.", 429);
     if (!success) return fail("You're going too fast. Take a breath.", 429);
 
     const parsed = bodySchema.safeParse(await req.json());

@@ -70,22 +70,40 @@ const handleField = z
 // next/image `remotePatterns` in next.config.mjs - otherwise next/image refuses
 // to render the avatar. Used by the profile schema's optional `image` field
 // (the URL fallback for when Supabase Storage uploads aren't configured).
-const ALLOWED_IMAGE_HOST_SUFFIXES = [
-  ".unsplash.com",
-  ".googleusercontent.com",
-  ".githubusercontent.com",
+//
+// ⚠️ EXACT hosts, not suffixes. This used to accept any `*.supabase.co`,
+// `*.githubusercontent.com` and `*.googleusercontent.com`. Anyone can create a
+// Supabase project or a GitHub repo, so a member could point their avatar at
+// files they control (`raw.githubusercontent.com/<them>/...`): every viewer's
+// browser then fetched from the attacker (IP tracking), and the image
+// optimizer fetched attacker bytes (security audit F-01/F-16). Only our own
+// Supabase project is allowed now, plus the OAuth avatar hosts we really use.
+export const IMAGE_HOSTS = [
+  "images.unsplash.com",
+  "lh3.googleusercontent.com",
+  "lh4.googleusercontent.com",
+  "lh5.googleusercontent.com",
+  "lh6.googleusercontent.com",
+  "avatars.githubusercontent.com",
   "res.cloudinary.com",
-  ".supabase.co",
-];
+] as const;
 
-export function isAllowedImageHost(url: string): boolean {
+/** Our own Supabase project's host, from the public URL (inlined at build). */
+export function ownSupabaseHost(url: string | undefined = process.env.NEXT_PUBLIC_SUPABASE_URL): string | null {
+  try {
+    return url ? new URL(url).hostname.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+export function isAllowedImageHost(url: string, supabaseHost: string | null = ownSupabaseHost()): boolean {
   try {
     const u = new URL(url);
     if (u.protocol !== "https:") return false;
     const host = u.hostname.toLowerCase();
-    return ALLOWED_IMAGE_HOST_SUFFIXES.some(
-      (s) => host === s.replace(/^\./, "") || host.endsWith(s)
-    );
+    if ((IMAGE_HOSTS as readonly string[]).includes(host)) return true;
+    return !!supabaseHost && host === supabaseHost;
   } catch {
     return false;
   }

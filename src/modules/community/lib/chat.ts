@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { unstable_cache } from "next/cache";
 import { broadcastEvent } from "@/lib/realtime";
+import { signRealtimePayload } from "@core/realtime/signing";
 import { publicImageUrl } from "@/lib/utils";
 import { prisma } from "@/lib/prisma";
 
@@ -100,7 +101,9 @@ type ChatEvent =
  * source of truth and clients reconcile via polling/refresh.
  */
 export async function broadcastChatEvent(evt: ChatEvent): Promise<void> {
-  await broadcastEvent(CHAT_CHANNEL, evt.event, evt.payload);
+  // Signed, so browsers can reject events that did not come from this server
+  // (the channel is public; see shared/utils/realtime-verify.ts, audit F-02).
+  await broadcastEvent(CHAT_CHANNEL, evt.event, signRealtimePayload(CHAT_CHANNEL, evt.event, evt.payload));
 }
 
 export const COMMUNITY_PREVIEW_COUNT = 20;

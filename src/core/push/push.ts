@@ -2,6 +2,7 @@
 // aren't set, `pushEnabled` is false and `sendPush` is a no-op.
 import webpush from "web-push";
 import { env, pushEnabled } from "@/lib/env";
+import { isPushServiceEndpoint } from "./endpoints";
 
 export { pushEnabled };
 
@@ -21,6 +22,9 @@ export type PushResult = "ok" | "gone" | "error";
 /** Send a push to one subscription. "gone" means the endpoint is dead (prune it). */
 export async function sendPush(sub: PushSub, payload: Record<string, unknown>): Promise<PushResult> {
   if (!ensure()) return "error";
+  // Rows stored before the subscribe route checked hosts: never POST anywhere
+  // but a real push service, and let the caller prune the row.
+  if (!isPushServiceEndpoint(sub.endpoint)) return "gone";
   try {
     await webpush.sendNotification(
       { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },

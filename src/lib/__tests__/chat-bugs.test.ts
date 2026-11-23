@@ -79,7 +79,7 @@ describe("a bulk restore is visible without a reload", () => {
   });
 
   it("the client forces a reconcile rather than waiting out the throttle", () => {
-    expect(C).toMatch(/onBroadcast\("messages_restored", \(\) => \{ void tickRef\.current\?\.\(true\); \}\)/);
+    expect(C).toMatch(/onVerified\("messages_restored", \(\) => \{ void tickRef\.current\?\.\(true\); \}\)/);
     // `force` has to exist on the ref's type or the call is a no-op the
     // compiler would have caught - it did, which is how this line got written.
     expect(C).toMatch(/tickRef: \{ current\?: \(force\?: boolean\) => Promise<void> \}/);

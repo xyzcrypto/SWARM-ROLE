@@ -7,6 +7,7 @@ import { env, gifEnabled } from "@/lib/env";
 import { CHAT_MESSAGE_SELECT, toChatPayload, getCommunityPreview } from "@/lib/chat";
 import { Navbar } from "@/components/Navbar";
 import { ChatClient } from "@/components/ChatClient";
+import { realtimePublicJwk } from "@core/realtime/signing";
 import { CommunityPreview } from "@/components/CommunityPreview";
 
 export const metadata: Metadata = {
@@ -160,6 +161,9 @@ export default async function CommunityPage() {
             realtime={{
               url: env.NEXT_PUBLIC_SUPABASE_URL,
               anonKey: env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+              // Public half of the chat-event signing key: the browser drops
+              // any broadcast this key did not sign (audit F-02).
+              verifyKey: realtimePublicJwk(),
             }}
             gifEnabled={gifEnabled}
           />

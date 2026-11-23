@@ -327,6 +327,15 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    // Google sign-in links into an existing same-email account
+    // (allowDangerousEmailAccountLinking above), which is only safe if Google
+    // vouches for the address. Google does verify Gmail addresses, but Google
+    // accounts on other domains can carry an unverified email: refuse those
+    // explicitly instead of relying on it (audit F-17).
+    async signIn({ account, profile }) {
+      if (account?.provider === "google" && (profile as { email_verified?: boolean } | undefined)?.email_verified !== true) return false;
+      return true;
+    },
     async jwt({ token, user, trigger }) {
       if (user) {
         token.uid = (user as any).id;
