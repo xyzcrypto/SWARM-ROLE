@@ -63,6 +63,25 @@ const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/logo-offline.webp"];
 
 self.addEventListener("install", (event) => {
+  // Requests this worker never handles skip it entirely (Static Routing API,
+  // Chrome 123+). Without this every API call and every in-app page
+  // transition (`?_rsc=`) was dispatched to the worker first, and when the
+  // browser had put an idle worker to sleep (it does so after ~30s) the
+  // request waited for the worker to boot before it even started - hundreds
+  // of ms, more on low-end phones, and only sometimes: "kabhi kabhi page
+  // jaldi nahi khulta". Browsers without the API ignore this and behave as
+  // before.
+  try {
+    if (event.addRoutes) {
+      event.addRoutes([
+        { condition: { urlPattern: new URLPattern({ pathname: "/api/*" }) }, source: "network" },
+        { condition: { urlPattern: new URLPattern({ search: "*_rsc=*" }) }, source: "network" },
+        { condition: { urlPattern: new URLPattern({ pathname: "/_next/data/*" }) }, source: "network" },
+      ]);
+    }
+  } catch (e) {
+    /* unsupported pattern: the fetch handler below still lets these through */
+  }
   event.waitUntil(
     caches.open(CACHE).then((c) => c.addAll(PRECACHE)).then(() => self.skipWaiting())
   );
@@ -70,7 +89,11 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys()
+    // Navigation preload: the browser starts the page request in parallel
+    // with waking this worker, instead of after it. Same reason as the routes
+    // above, for full page loads.
+    (self.registration.navigationPreload ? self.registration.navigationPreload.enable().catch(() => {}) : Promise.resolve())
+      .then(() => caches.keys())
       .then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
@@ -100,7 +123,17 @@ self.addEventListener("fetch", (event) => {
   // App navigations: network only, with the offline page if the network is
   // genuinely gone. Deliberately NOT cached - see the header note.
   if (req.mode === "navigate") {
-    event.respondWith(fetch(req).catch(() => caches.match(OFFLINE_URL)));
+    event.respondWith(
+      (async () => {
+        try {
+          const pre = await event.preloadResponse;
+          if (pre) return pre;
+          return await fetch(req);
+        } catch (e) {
+          return (await caches.match(OFFLINE_URL)) || Response.error();
+        }
+      })()
+    );
     return;
   }
 

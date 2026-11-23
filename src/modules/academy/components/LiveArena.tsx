@@ -17,6 +17,13 @@ import type { LiveMe, LiveResults, LiveState } from "./types";
 import { Avatar, burstConfetti, DIFF_LABEL, DIFF_TONE, Empty, fmt, Panel, Pill } from "./ui";
 
 const vline = (k: VoiceLine): Piece => lineFor(k);
+/**
+ * Live requests must fail FAST. A question is open for 10-20 seconds; with the
+ * general 15s timeout one hung request on a mobile network used up the whole
+ * window, so the player saw the question only at the reveal, or not at all.
+ * Retries (below) do the waiting instead, a few hundred ms apart.
+ */
+export const LIVE_TIMEOUT_MS = 4_000;
 const LETTERS = ["A", "B", "C", "D"];
 const phaseKey = (p: LivePhase | null | undefined) => (p ? `${p.kind}:${"index" in p ? p.index : ""}` : "");
 const secs = (ms: number | null | undefined) => (ms == null ? "–" : `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)}s`);
@@ -59,7 +66,7 @@ export function LiveArena({ id }: { id: string }) {
   const loadMe = useCallback(async () => {
     const sent = Date.now();
     try {
-      const m = await getJson<LiveMe & { guest?: boolean }>(`/api/academy/live/${id}/me`);
+      const m = await getJson<LiveMe & { guest?: boolean }>(`/api/academy/live/${id}/me`, { timeoutMs: LIVE_TIMEOUT_MS });
       clock.sync(m.serverNow, sent);
       const before = rankRef.current;
       const after = m.joined ? m.rank : null;
@@ -78,9 +85,9 @@ export function LiveArena({ id }: { id: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const loadState = useCallback(async () => {
+  const loadState = useCallback(async (tries = 1) => {
     try {
-      const s = await withRetry(() => getJson<LiveState>(`/api/academy/live/${id}`), 2);
+      const s = await withRetry(() => getJson<LiveState>(`/api/academy/live/${id}`, { timeoutMs: LIVE_TIMEOUT_MS }), tries);
       setState(s);
       setError(null);
       setOffline(false);
@@ -92,13 +99,29 @@ export function LiveArena({ id }: { id: string }) {
     }
   }, [id]);
 
-  const loadAll = useCallback(async () => {
-    await Promise.allSettled([loadMe(), loadState()]);
+  const loadAll = useCallback(async (tries = 1) => {
+    await Promise.allSettled([loadMe(), loadState(tries)]);
   }, [loadMe, loadState]);
 
   useEffect(() => {
-    void loadAll();
+    // The first read retries a few times: without it there is nothing on
+    // screen but a spinner until the next 15s poll.
+    void loadAll(4);
     return () => duck(1);
+  }, [loadAll]);
+
+  // Back from a locked phone or another app: the room moved on meanwhile, so
+  // re-read it at once instead of waiting for the next phase or poll.
+  useEffect(() => {
+    const on = () => {
+      if (document.visibilityState === "visible") void loadAll(2);
+    };
+    document.addEventListener("visibilitychange", on);
+    window.addEventListener("online", on);
+    return () => {
+      document.removeEventListener("visibilitychange", on);
+      window.removeEventListener("online", on);
+    };
   }, [loadAll]);
 
   // Host actions and joins arrive here; fall back to a slow poll if realtime is down.
@@ -132,22 +155,34 @@ export function LiveArena({ id }: { id: string }) {
     if (!localKey || localKey === lastKey.current) return;
     lastKey.current = localKey;
     if (serverKey === localKey) return;
+    // ⚠️ Keep trying until the server's answer matches the phase we are in.
+    // This gave up after 6 tries, and one try could hang for 15s, so on a weak
+    // connection a whole question was missed (seen only at the reveal, or the
+    // quiz jumped straight to the results). The phase itself bounds the loop:
+    // when our clock moves on, this effect is cleaned up and the next starts.
+    let alive = true;
     let tries = 0;
     let timer: ReturnType<typeof setTimeout>;
     const attempt = () => {
+      if (!alive) return;
       tries++;
       loadState()
         .then((s) => {
+          if (!alive) return;
           const local = livePhase(s.clock, clock.now());
-          if (phaseKey(s.phase) !== phaseKey(local) && tries < 6) timer = setTimeout(attempt, 900);
-          else if (local.kind === "reveal" || local.kind === "ended") void loadMe();
+          if (phaseKey(s.phase) !== phaseKey(local)) {
+            if (tries < 60) timer = setTimeout(attempt, 450 + Math.random() * 450);
+          } else if (local.kind === "reveal" || local.kind === "ended") void loadMe();
         })
         .catch(() => {
-          if (tries < 6) timer = setTimeout(attempt, 1500);
+          if (alive && tries < 60) timer = setTimeout(attempt, Math.min(2000, 350 + tries * 250));
         });
     };
     timer = setTimeout(attempt, 150 + Math.random() * 600);
-    return () => clearTimeout(timer);
+    return () => {
+      alive = false;
+      clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [localKey]);
 
@@ -270,12 +305,17 @@ export function LiveArena({ id }: { id: string }) {
       setSending(choice);
       setMsg(null);
       try {
-        await withRetry(() => postJson(`/api/academy/live/${id}/me`, { action: "answer", index, choice }));
+        await withRetry(() => postJson(`/api/academy/live/${id}/me`, { action: "answer", index, choice }, { timeoutMs: LIVE_TIMEOUT_MS + 1000 }));
         setMe((m) => (m ? { ...m, answers: [...m.answers, { index, choice, correct: null, points: null, ms: null }] } : m));
         sfx("lock");
         sayOneOf("live_lock", 2, { auto: true });
       } catch (e) {
-        setMsg((e as Error).message);
+        // "Already answered" means an earlier try of this same answer landed
+        // and only its reply was lost: the answer IS locked in, so re-sync
+        // quietly instead of telling the player something went wrong.
+        const already = (e as { status?: number }).status === 409 && /already answered/i.test((e as Error).message);
+        if (already) setMe((m) => (m && !m.answers.some((a) => a.index === index) ? { ...m, answers: [...m.answers, { index, choice, correct: null, points: null, ms: null }] } : m));
+        else setMsg((e as Error).message);
         void loadMe();
       } finally {
         setSending(null);
