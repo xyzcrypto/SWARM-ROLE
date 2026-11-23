@@ -183,6 +183,19 @@ export async function publicLiveState(id: string, now = Date.now()) {
   }
   const distribution = [0, 0, 0, 0];
   for (const d of dist) if (d.choice >= 0 && d.choice < 4) distribution[d.choice] = d._count._all;
+  // Reveal extras: how the room did on this question and who got it first.
+  let revealStats: { answered: number; correctPct: number; fastest: { name: string; image: string | null; ms: number } | null } | null = null;
+  if (revealing && showIndex != null && q) {
+    const answered = distribution.reduce((a, b) => a + b, 0);
+    const right = distribution[q.answer] ?? 0;
+    const first = await prisma.academyLiveAnswer.findFirst({ where: { liveId: id, index: showIndex, correct: true }, orderBy: { ms: "asc" }, select: { userId: true, ms: true } });
+    const who = first ? await prisma.user.findUnique({ where: { id: first.userId }, select: { id: true, name: true, username: true, image: true } }) : null;
+    revealStats = {
+      answered,
+      correctPct: answered ? Math.round((right / answered) * 100) : 0,
+      fastest: first && who ? { name: name(who), image: publicImageUrl(who.image, who.id), ms: first.ms } : null,
+    };
+  }
   return {
     id: live.id,
     title: live.title,
@@ -204,7 +217,7 @@ export async function publicLiveState(id: string, now = Date.now()) {
             category: q.category.title,
             voice: { prompt: clip(q.prompt), options: (q.options as string[]).map((o) => clip(o)) },
             hi: { prompt: hinglish(q.prompt), options: (q.options as string[]).map((o) => hinglish(o)), explanation: revealing ? hinglish(q.explanation) : null },
-            ...(revealing ? { answer: q.answer, explanation: q.explanation, distribution, voiceExplanation: clip(q.explanation) } : {}),
+            ...(revealing ? { answer: q.answer, explanation: q.explanation, distribution, voiceExplanation: clip(q.explanation), stats: revealStats } : {}),
           }
         : null,
     participants: count,
@@ -231,14 +244,17 @@ export async function myLiveState(id: string, userId: string, now = Date.now()) 
   const phase = livePhase(clockOf(live), now);
   const openIndex = phase.kind === "question" ? phase.index : -1;
   const me = await prisma.academyLiveParticipant.findUnique({ where: { liveId_userId: { liveId: id, userId } } });
-  const answers = me ? await prisma.academyLiveAnswer.findMany({ where: { liveId: id, userId }, select: { index: true, choice: true, correct: true, points: true } }) : [];
+  const answers = me ? await prisma.academyLiveAnswer.findMany({ where: { liveId: id, userId }, select: { index: true, choice: true, correct: true, points: true, ms: true } }) : [];
   // While a question is open only the fact that you answered is returned;
   // correctness and its points arrive with the reveal, for everyone at once.
   const hidden = answers.find((a) => a.index === openIndex);
   const score = (me?.score ?? 0) - (hidden?.points ?? 0);
   let rank: number | null = me?.rank ?? null;
   if (me && rank == null && score > 0) {
-    rank = (await prisma.academyLiveParticipant.count({ where: { liveId: id, score: { gt: score } } })) + 1;
+    // Others only: my own stored score still includes the points of an answer
+    // that is not revealed yet, so counting myself put me behind myself
+    // (two players, and I was "#3" while a question was open).
+    rank = (await prisma.academyLiveParticipant.count({ where: { liveId: id, userId: { not: userId }, score: { gt: score } } })) + 1;
   }
   return {
     serverNow: now,
@@ -248,7 +264,9 @@ export async function myLiveState(id: string, userId: string, now = Date.now()) 
     correct: (me?.correct ?? 0) - (hidden?.correct ? 1 : 0),
     rank,
     answers: answers.map((a) =>
-      a.index === openIndex ? { index: a.index, choice: a.choice, correct: null, points: null } : { index: a.index, choice: a.choice, correct: a.correct, points: a.points }
+      a.index === openIndex
+        ? { index: a.index, choice: a.choice, correct: null, points: null, ms: null }
+        : { index: a.index, choice: a.choice, correct: a.correct, points: a.points, ms: a.ms }
     ),
   };
 }
@@ -295,6 +313,88 @@ export async function answerLive(id: string, userId: string, index: number, choi
   }
   // Correctness is NOT returned here: it is revealed to everyone at once.
   return { accepted: true, index, ms };
+}
+
+/**
+ * The full answer review of a FINISHED live quiz: every question with its
+ * correct answer, the room's vote split, how many got it right, who answered
+ * correctly first, and the explanation; plus the final standings. Nothing here
+ * is secret any more once the quiz has ended, and it never changes again, so
+ * the route caches it at the edge.
+ */
+export async function liveResults(id: string) {
+  const { live, phase } = await loadLive(id, Date.now());
+  if (phase.kind !== "ended" || live.status !== "ended") throw new QuizError("Results open when the quiz ends.", 409);
+  const [qs, split, firsts, parts, perUser] = await Promise.all([
+    prisma.academyQuestion.findMany({
+      where: { id: { in: live.questionIds } },
+      select: { id: true, prompt: true, options: true, answer: true, explanation: true, difficulty: true, category: { select: { title: true } } },
+    }),
+    prisma.academyLiveAnswer.groupBy({ by: ["index", "choice"], where: { liveId: id }, _count: { _all: true }, _avg: { ms: true } }),
+    prisma.academyLiveAnswer.findMany({ where: { liveId: id, correct: true }, orderBy: [{ index: "asc" }, { ms: "asc" }], distinct: ["index"], select: { index: true, userId: true, ms: true } }),
+    prisma.academyLiveParticipant.findMany({
+      where: { liveId: id },
+      orderBy: [{ rank: "asc" }, { score: "desc" }],
+      take: 100,
+      select: { rank: true, score: true, correct: true, totalMs: true, user: { select: { id: true, name: true, username: true, image: true } } },
+    }),
+    prisma.academyLiveAnswer.groupBy({ by: ["userId"], where: { liveId: id, choice: { gte: 0 } }, _count: { _all: true }, _avg: { ms: true } }),
+  ]);
+  const pu = new Map(perUser.map((r) => [r.userId, { answered: r._count._all, avgMs: r._avg.ms == null ? null : Math.round(r._avg.ms) }]));
+  const byId = new Map(qs.map((q) => [q.id, q]));
+  const fastIds = [...new Set(firsts.map((f) => f.userId))];
+  const fastUsers = fastIds.length ? await prisma.user.findMany({ where: { id: { in: fastIds } }, select: { id: true, name: true, username: true, image: true } }) : [];
+  const fu = new Map(fastUsers.map((u) => [u.id, u]));
+  const questions = live.questionIds.map((qid, index) => {
+    const q = byId.get(qid);
+    const distribution = [0, 0, 0, 0];
+    let answered = 0;
+    let avgMsSum = 0;
+    for (const r of split) {
+      if (r.index !== index) continue;
+      answered += r._count._all;
+      avgMsSum += (r._avg.ms ?? 0) * r._count._all;
+      if (r.choice >= 0 && r.choice < 4) distribution[r.choice] = r._count._all;
+    }
+    const f = firsts.find((x) => x.index === index);
+    const fuser = f ? fu.get(f.userId) : null;
+    const right = q ? distribution[q.answer] ?? 0 : 0;
+    return q
+      ? {
+          index,
+          prompt: q.prompt,
+          options: q.options as string[],
+          answer: q.answer,
+          explanation: q.explanation,
+          difficulty: q.difficulty,
+          category: q.category.title,
+          hi: { prompt: hinglish(q.prompt), options: (q.options as string[]).map((o) => hinglish(o)), explanation: hinglish(q.explanation) },
+          distribution,
+          answered,
+          correctPct: answered ? Math.round((right / answered) * 100) : 0,
+          avgMs: answered ? Math.round(avgMsSum / answered) : null,
+          fastest: f && fuser ? { name: name(fuser), image: publicImageUrl(fuser.image, fuser.id), ms: f.ms } : null,
+        }
+      : null;
+  });
+  return {
+    id: live.id,
+    title: live.title,
+    endedAt: live.endedAt?.toISOString() ?? null,
+    questionSec: live.questionSec,
+    count: live.questionIds.length,
+    questions: questions.filter((x): x is NonNullable<typeof x> => x != null),
+    standings: parts.map((p, i) => ({
+      rank: p.rank ?? i + 1,
+      userId: p.user.id,
+      name: name(p.user),
+      image: publicImageUrl(p.user.image, p.user.id),
+      score: p.score,
+      correct: p.correct,
+      answered: pu.get(p.user.id)?.answered ?? 0,
+      avgMs: pu.get(p.user.id)?.avgMs ?? null,
+    })),
+  };
 }
 
 export type HostAction = "start" | "pause" | "resume" | "end" | "cancel";

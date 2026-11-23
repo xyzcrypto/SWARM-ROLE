@@ -5,7 +5,7 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
-## 2026-11-22 (169) — Security batch 1: Critical, High and Medium findings from the audit
+## 2026-11-23 (172) — Security batch 1: Critical, High and Medium findings from the audit
 
 From the 2026-11-22 security audit (rating 6.5/10). Finding IDs match the audit.
 
@@ -48,6 +48,124 @@ From the 2026-11-22 security audit (rating 6.5/10). Finding IDs match the audit.
   risk; there is no known injection sink.
 - Tests: `security-batch-1.test.ts` (37, including a real sign/verify round trip and
   four forged-event attacks), updated `profile`, `chat-bugs`.
+
+---
+
+## 2026-11-23 (171) — Pages become tappable sooner on mobile data; a dropped connection no longer strands the tab; quiz start and re-sync survive weak networks
+
+Measured with a phone profile on Lighthouse "Slow 4G" (1.6 Mbps, 150 ms RTT) and 4x CPU,
+production build, timing when the page is visible and when React has hydrated (taps work):
+
+| Page | Clickable before | After | JS before | After |
+|---|---|---|---|---|
+| `/` | 5.8s | 3.6s | 345KB | 259KB |
+| `/tools` | 3.7s | 2.9s | 333KB | 249KB |
+| `/academy` | 4.8s | 3.9s | 409KB | 336KB |
+| `/markets` | 5.0s | 4.0s | 371KB | 288KB |
+| `/news` | 5.9s | 4.3s | 424KB | 353KB |
+| `/community` | 4.0s | 3.3s | 367KB | 321KB |
+| `/research` | 3.7s | 2.8s | 328KB | 246KB |
+| `/points` | 4.0s | 3.1s | 357KB | 272KB |
+
+- **Sentry shipped on every page without a DSN.** `instrumentation-client.ts` and both
+  error pages imported `@sentry/nextjs` statically, which put the SDK with tracing into a
+  ~133KB-gzip framework chunk every page downloaded and parsed before it could hydrate,
+  while reporting nothing (no DSN is set). New `shared/utils/report-error.ts` loads and
+  initialises it only when `NEXT_PUBLIC_SENTRY_DSN` exists. Same reporting once the DSN
+  is added.
+- **Fraunces was preloaded site-wide for one headline.** Moved from the root layout into
+  `Hero.tsx`, the only user, so its font file is preloaded on `/` only. Same font, same
+  variable, same look.
+- **The AI assistant loaded on every page.** `Navbar`, `AppMenu`, `CommandPalette`,
+  `NewsLayout` and `AIMarketIntelligenceCard` imported the `XYZ_AI_OPEN_EVENT` string from
+  `XyzAiWidget.tsx`, which pulled the whole widget into first load and defeated its lazy
+  mount. The constant now lives in `modules/ai/lib/events.ts`.
+- **A dropped connection could strand the tab on the browser's error page.** The chunk
+  error safety net (`PwaSetup`, `error.tsx`, `global-error.tsx`) reloaded the instant a
+  `/_next/static` script failed, including when it failed because the network dropped.
+  Reproduced: fail a chunk while offline and the tab reloads into "This site can't be
+  reached" and stays there after the network returns. New `reloadWhenReachable()` waits
+  for `online`, probes with a HEAD request (never answered by the service worker), and
+  reloads only on 2xx (network back) or 404/410 (deploy skew).
+- **Quiz: Start failed on one dropped request.** Starting a quiz had no retry, so a single
+  lost connection ended on "You seem to be offline" (seen in the flaky-network marathon).
+  It now retries like every other quiz step; safe because a practice start closes any
+  other active attempt and daily/weekly starts return the same attempt.
+- **Quiz: a re-sync asked for mid-request was dropped.** If the connection returned while
+  an answer was still retrying, the `online` re-sync was skipped and the error stayed.
+  It is now queued and runs when the request settles. 50:50 also fails fast (8s) and
+  re-syncs on 409/410 instead of showing an error.
+
+Verified: 3 back-to-back quizzes on the flaky network (dropped requests, lost replies,
+0.8-6s delays) all reached results; offline answer, reload mid-question and on reveal,
+leaving and returning, triple-tap, hidden tab, timer expiry and offline 50:50 all ended
+on a live question or reveal. Route table identical to `main`.
+
+Files: `src/shared/utils/report-error.ts` (new), `src/instrumentation-client.ts`,
+`src/app/error.tsx`, `src/app/global-error.tsx`, `src/app/layout.tsx`,
+`src/components/Hero.tsx`, `src/modules/ai/lib/events.ts` (new), `XyzAiWidget.tsx` and
+its five importers, `src/shared/utils/recover.ts`, `PwaSetup.tsx`, `QuizClient.tsx`,
+`src/lib/__tests__/interactive-r11.test.ts` (new).
+
+---
+
+## 2026-11-23 (170) — Stability: pages open without waiting on the service worker; quiz and live quiz survive weak networks and audio interruptions
+
+Found by measurement and reproduction, not guesswork: production page timings and
+main-thread blocking per page (4x CPU, phone viewport); six back-to-back quizzes with
+full sound (no leak: heap 14-18MB, 4 timers, AudioContext running throughout); the same
+with a flaky network (12% dropped requests, 10% lost replies, 0.8-6s delays); a live quiz
+with two players on that network; and an audio interruption with resume blocked.
+
+- **Pages sometimes slow to open.** `public/sw.js` handled every same-origin request
+  with no navigation preload, so when the browser had put the idle worker to sleep
+  (~30s), each page load and in-app navigation waited for it to boot first. Now:
+  navigation preload is enabled, and `/api/*`, `?_rsc=` and `/_next/data/*` bypass the
+  worker entirely (Static Routing API, Chrome 123+). Navigations are still never cached;
+  the offline page still works.
+- **Voice disappears after a few quizzes.** `ensure()` resumed the AudioContext only in
+  state `"suspended"`. iPhones (and some Android builds) use `"interrupted"` after a
+  call, notification, lock or app switch, which nothing resumed: every sound and every
+  line went silent until a reload. Now any non-running state is woken, on
+  visibility/pageshow/focus/tap too; while the engine cannot run, AneQue's clips play on
+  a plain un-routed `<audio>` so she is heard anyway (verified: clips move from the
+  routed element to the plain one while resume is blocked). The clip watchdog now also
+  finishes a clip whose time stopped advancing; before, it re-armed forever and blocked
+  every line queued behind it.
+- **Live quiz misses questions on a weak connection.** The phase sync gave up after 6
+  tries and each try could hang 15s, so a single slow request swallowed a 10s question.
+  Reproduced: one player missed questions 4-6 entirely. Now live requests time out at 4s,
+  the sync keeps trying until the phase arrives (the phase change bounds it), stale
+  replies can no longer schedule stray fetches, the arena re-syncs on tab return and
+  `online`, the first load retries, and "already answered" after a lost reply is no
+  longer shown as an error. Same network after the fix: all 6 questions seen and answered.
+- **Solo quiz shows "offline" at the very end.** "See results" now retries 5 times
+  (finishing is idempotent) and the player re-syncs by itself on `online`.
+- Tests: `stability-r10.test.ts` (11). No route, caching, design or copy changes.
+
+## 2026-11-23 (169) — Live Quiz: results and answer review, reveal stats, streaks, new sounds and motion
+
+- **Results after a live quiz** (`/api/academy/live/[id]/results`, `liveResults()`): every
+  question with its correct answer, your pick, the room's vote split, % who got it right,
+  average answer time, the fastest correct player, and the explanation; plus full standings
+  (score, right answers, average time). 409 until the quiz has ended, so nothing leaks while
+  it runs; once ended it never changes, so it is edge-cached for an hour.
+- **Final screen** now has Podium / Answers / Standings tabs and a personal report card
+  (final rank, accuracy, average speed, best streak, points-per-question chart). Finished
+  quizzes in the list open straight on the answers (`?view=results`).
+- **Every reveal** shows % right, how many answered, the fastest correct player and your own
+  answer time, with a "+points" fly-up.
+- **During play:** circular timer that throbs red in the last 5s, tick then heartbeat in the
+  last seconds and a drumroll into the reveal, per-question progress bar, streak badge, a
+  You panel with correct / accuracy / streak, rank "up N / down N" with a fanfare, three
+  confetti bursts at the finale, animated waiting room (pulsing Join, rule cards, ring on
+  each countdown second).
+- **New sounds** in `audio.ts`: `drumroll`, `rankup`, `streak` (with haptics).
+- **Fixed:** while a question was open, your rank counted yourself as a player ahead of you
+  (2 players and you were "#3"); `myLiveState` now counts only other players.
+- Kept the "no framer-motion layout animation in the arena" rule (it re-renders every 250ms).
+- Tests: `live-quiz-results.test.ts` (10). Verified by playing two full live quizzes locally
+  with two accounts (desktop + phone).
 
 ## 2026-11-22 (168) — No more "refresh to fix it": deploy recovery, quiz re-sync, Academy-only sound, AneQue grounded in the lessons
 

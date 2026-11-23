@@ -30,7 +30,7 @@ function Card({ q, i }: { q: LiveListItem; i: number }) {
   return (
     <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}>
       <Link
-        href={`/academy/live/${q.id}`}
+        href={ended ? `/academy/live/${q.id}?view=results` : `/academy/live/${q.id}`}
         className={cn("surface surface-hover lift group flex h-full flex-col rounded-3xl p-5", live && "border-mint-400/40 shadow-[0_0_0_1px_rgba(52,227,161,0.15),0_30px_70px_-40px_rgba(52,227,161,0.6)]")}
       >
         <div className="flex items-center gap-2">
@@ -58,11 +58,16 @@ function Card({ q, i }: { q: LiveListItem; i: number }) {
         </div>
         <div className="mt-auto pt-4">
           {ended && q.winner ? (
-            <div className="flex items-center gap-2 rounded-2xl border border-gold-400/30 bg-gold-400/[0.05] px-3 py-2">
-              <Crown className="h-4 w-4 text-gold-300" />
-              <Avatar src={q.winner.image} alt={q.winner.name} size={22} />
-              <span className="min-w-0 flex-1 truncate text-sm text-content">{q.winner.name}</span>
-              <span className="font-mono text-xs text-gold-200">{q.winner.score.toLocaleString("en-US")}</span>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-2xl border border-gold-400/30 bg-gold-400/[0.05] px-3 py-2">
+                <Crown className="h-4 w-4 text-gold-300" />
+                <Avatar src={q.winner.image} alt={q.winner.name} size={22} />
+                <span className="min-w-0 flex-1 truncate text-sm text-content">{q.winner.name}</span>
+                <span className="font-mono text-xs text-gold-200">{q.winner.score.toLocaleString("en-US")}</span>
+              </div>
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-gold-300">
+                Answers &amp; results <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
+              </span>
             </div>
           ) : (
             <span className={cn("inline-flex items-center gap-1 text-sm font-semibold", live ? "text-mint-300" : "text-gold-300")}>

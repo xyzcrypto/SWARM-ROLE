@@ -905,3 +905,27 @@ html:not(.dark) .acad-strip-card {
   background: rgba(255, 255, 255, 0.85);
   border-color: rgba(16, 18, 27, 0.08);
 }
+
+/* ------------------------------------------------------------------ live quiz extras */
+/* The Join button breathes so the call to action is unmissable. Pure CSS: no
+   render input, and the static fallback is just the button. */
+.acad-join-pulse {
+  animation: acad-join-pulse 1.6s ease-out infinite;
+}
+@keyframes acad-join-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(52, 227, 161, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(52, 227, 161, 0);
+  }
+}
+/* Last five seconds of a live question: the timer ring throbs. */
+.acad-timer-hot {
+  animation: acad-timer-hot 0.5s ease-in-out infinite;
+}
+@keyframes acad-timer-hot {
+  50% {
+    transform: scale(1.08);
+  }
+}

@@ -23,8 +23,8 @@ import { useDraggablePanel } from "@/shared/hooks/useDraggablePanel";
 import { useResizablePanel, type Edge } from "@/shared/hooks/useResizablePanel";
 import { hapticTap } from "@shared/utils/haptics";
 
-// Fired by the navbar "XYZ AI" item (and anywhere else) to open the assistant.
-export const XYZ_AI_OPEN_EVENT = "xyz-ai:open";
+import { XYZ_AI_OPEN_EVENT } from "../lib/events";
+export { XYZ_AI_OPEN_EVENT };
 
 type ChatMsg = { role: "user" | "assistant"; content: string };
 type Quota = { remaining: number; limit: number };

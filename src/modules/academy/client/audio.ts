@@ -37,7 +37,10 @@ export type Sfx =
   | "fire"
   | "lock"
   | "reveal"
-  | "pop";
+  | "pop"
+  | "drumroll"
+  | "rankup"
+  | "streak";
 
 export type Track = "auto" | "focus" | "arena" | "night";
 export type Scene = "focus" | "arena";
@@ -312,12 +315,63 @@ function ensure(): AudioContext | null {
       if (idle) idle(() => buildRoom(c), { timeout: 2000 });
       else setTimeout(() => buildRoom(c), 200);
       applyGains();
+      watchWake(ctx);
     }
-    if (ctx.state === "suspended") void ctx.resume();
+    wake();
     return ctx;
   } catch {
     return null;
   }
+}
+
+/**
+ * Bring a stopped audio engine back.
+ *
+ * ⚠️ This used to resume only `"suspended"`. iPhones (and some Android
+ * builds) put the context in `"interrupted"` after a call, a notification, a
+ * screen lock or a switch to another app, and NOTHING ever resumed that state:
+ * every sound and every line of AneQue went silent until the page was
+ * reloaded, which is the "a few quizzes in, the voice disappears" report.
+ * Any state other than running or closed is now worth a resume.
+ */
+function wake() {
+  const c = ctx;
+  if (!c || c.state === "running" || (c.state as string) === "closed") return;
+  void c.resume().catch(() => {});
+}
+
+/** Pure, for tests: does this context state need waking? */
+export const needsWake = (state: string) => state !== "running" && state !== "closed";
+
+let wakeWatched = false;
+function watchWake(c: AudioContext) {
+  // When the page comes back (unlocked phone, back from another app or tab),
+  // wake the engine straight away instead of waiting for the next tap.
+  try {
+    c.addEventListener("statechange", () => {
+      if (scope && snap.unlocked && needsWake(c.state) && document.visibilityState === "visible") setTimeout(wake, 250);
+    });
+  } catch {
+    /* old Safari: the page-level listeners below still cover it */
+  }
+  if (wakeWatched || typeof window === "undefined") return;
+  wakeWatched = true;
+  const back = () => {
+    if (document.visibilityState !== "visible" || !scope || !snap.unlocked) return;
+    wake();
+    // Chrome on Android pauses speech synthesis in the background and does
+    // not always pick it up again on its own.
+    try {
+      if ("speechSynthesis" in window && window.speechSynthesis.paused && !snap.voice.paused) window.speechSynthesis.resume();
+    } catch {
+      /* no speech synthesis */
+    }
+  };
+  document.addEventListener("visibilitychange", back);
+  window.addEventListener("pageshow", back);
+  window.addEventListener("focus", back);
+  // Any tap also counts as the gesture iOS wants before it lets audio resume.
+  window.addEventListener("pointerdown", () => scope && snap.unlocked && wake(), { passive: true });
 }
 
 function applyGains() {
@@ -560,6 +614,24 @@ const SFX: Record<Sfx, Tone[]> = {
     { f: midi(86), at: 0.5, dur: 1.0, v: "bell", gain: 0.1 },
   ],
   pop: [{ f: midi(91), at: 0, dur: 0.12, v: "pluck", gain: 0.12 }],
+  // Live quiz: a snare roll that builds for ~1.4s into the reveal.
+  drumroll: [
+    ...Array.from({ length: 22 }, (_, i): Tone => ({ f: 0, at: i * 0.062, dur: 0.05, v: "noise", hp: 1400 + i * 40, gain: 0.018 + i * 0.0022 })),
+    { f: 95, to: 60, at: 1.36, dur: 0.22, v: "thud", gain: 0.34 },
+  ],
+  // Climbing the live leaderboard: a quick rising arpeggio with a bell on top.
+  rankup: [
+    { f: midi(79), at: 0, dur: 0.22, v: "pluck", gain: 0.16 },
+    { f: midi(83), at: 0.07, dur: 0.22, v: "pluck", gain: 0.16 },
+    { f: midi(86), at: 0.14, dur: 0.24, v: "pluck", gain: 0.16 },
+    { f: midi(91), at: 0.21, dur: 1.0, v: "bell", gain: 0.09 },
+  ],
+  // A run of right answers: a bright double sparkle.
+  streak: [
+    { f: 0, at: 0, dur: 0.3, v: "noise", hp: 6500, gain: 0.03 },
+    { f: midi(88), at: 0.02, dur: 0.5, v: "bell", gain: 0.08 },
+    { f: midi(95), at: 0.11, dur: 0.7, v: "bell", gain: 0.07 },
+  ],
 };
 
 function playTones(tones: Tone[], bus: AudioNode, at = 0) {
@@ -588,7 +660,7 @@ function buzz(name: Sfx) {
   else if (name === "correct" || name === "coin" || name === "lock") hapticSent();
   else if (name === "wrong" || name === "heartbeat") hapticError();
   else if (name === "go" || name === "count" || name === "fifty") hapticTap();
-  else if (name === "levelup" || name === "achievement" || name === "winner" || name === "fire") {
+  else if (name === "levelup" || name === "achievement" || name === "winner" || name === "fire" || name === "rankup" || name === "streak") {
     hapticToggle();
     setTimeout(hapticSent, 180);
   }
@@ -741,6 +813,14 @@ export function duck(level: number) {
 
 let clip: HTMLAudioElement | null = null;
 let clipSource: MediaElementAudioSourceNode | null = null;
+// A second, plain element that is NOT routed through the audio engine. Once a
+// media element is connected to an AudioContext its sound can only come out
+// through that context, so while the context is stopped (see wake()) the
+// routed clip plays in silence. The plain one is used for those pieces, so
+// AneQue is heard even when the engine cannot be woken without a tap.
+let plain: HTMLAudioElement | null = null;
+/** The element playing the current piece. */
+let cur: HTMLAudioElement | null = null;
 let utter: SpeechSynthesisUtterance | null = null;
 
 /** One spoken piece: a recorded clip if there is one, else the text through the browser voice. */
@@ -795,29 +875,44 @@ export function stopVoice() {
   token++;
   queue = [];
   clearWatchdog();
-  if (clip) {
-    clip.pause();
-    clip.removeAttribute("src");
+  for (const el of [clip, plain]) {
+    if (!el) continue;
+    el.onended = el.onerror = el.onloadedmetadata = null;
+    el.pause();
+    el.removeAttribute("src");
   }
+  cur = null;
   if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
   utter = null;
   if (snap.voice.speaking || snap.voice.paused) setVoice({ speaking: false, paused: false });
 }
 
 export function pauseVoice() {
-  if (clip && !clip.paused) clip.pause();
+  if (cur && !cur.paused) cur.pause();
   else if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.pause();
   setVoice({ paused: true });
 }
 
 export function resumeVoice() {
-  if (clip && clip.getAttribute("src") && clip.paused) void clip.play().catch(() => {});
+  if (cur && cur.getAttribute("src") && cur.paused) void cur.play().catch(() => {});
   else if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.resume();
   setVoice({ paused: false });
 }
 
 function canSpeak() {
   return !!scope && snap.settings.master && snap.settings.voice && snap.unlocked;
+}
+
+/** The element to play the next clip on: the routed one when the engine runs, else the plain one. */
+function voiceEl(): HTMLAudioElement {
+  const routed = ensureClip();
+  if (!clipSource || !ctx || !needsWake(ctx.state)) return routed;
+  wake();
+  if (!plain) {
+    plain = new Audio();
+    plain.preload = "auto";
+  }
+  return plain;
 }
 
 function ensureClip() {
@@ -894,16 +989,19 @@ function pump(my: number) {
     if (settled || my !== token) return;
     settled = true;
     clearWatchdog();
-    if (clip) {
-      clip.onended = clip.onerror = clip.onloadedmetadata = null;
-      clip.pause();
+    if (cur) {
+      cur.onended = cur.onerror = cur.onloadedmetadata = null;
+      cur.pause();
     }
     tts(piece.text, my, () => pump(my));
   };
   const useClip = piece.url && snap.settings.voiceName === "nova";
   if (useClip) {
-    const a = ensureClip();
-    if (!clipSource) a.volume = snap.settings.masterVol * snap.settings.voiceVol;
+    const a = voiceEl();
+    // Only one element carries AneQue at a time: silence the other.
+    for (const el of [clip, plain]) if (el && el !== a && !el.paused) el.pause();
+    cur = a;
+    if (a !== clip || !clipSource) a.volume = snap.settings.masterVol * snap.settings.voiceVol;
     a.onended = done;
     a.onerror = fallback;
     // Once the length is known, give it that long plus slack (pauses count as
@@ -911,12 +1009,20 @@ function pump(my: number) {
     a.onloadedmetadata = () => {
       if (settled || my !== token || !Number.isFinite(a.duration)) return;
       clearWatchdog();
+      // ⚠️ "Still playing" must also mean "still moving". A clip whose time
+      // stopped advancing (a download that stalled mid-file, an engine that
+      // went quiet) used to re-arm this forever: the piece never ended, and
+      // every line queued behind it waited with it - AneQue silent for the
+      // rest of the quiz. Now a frozen clip is finished and the queue moves on.
+      let lastT = -1;
       const arm = () => {
         watchdog = setTimeout(() => {
           if (snap.voice.paused) return arm();
-          if (!a.paused && a.currentTime < a.duration - 0.25) return arm();
+          const moving = a.currentTime > lastT + 0.05;
+          lastT = a.currentTime;
+          if (!a.paused && moving && a.currentTime < a.duration - 0.25) return arm();
           done();
-        }, (a.duration - a.currentTime) * 1000 + 2500);
+        }, Math.max(1500, (a.duration - a.currentTime) * 1000 + 2500));
       };
       arm();
     };
@@ -1042,7 +1148,7 @@ export function speak(text: string) {
 export function voiceProgress(): number {
   if (!snap.voice.speaking) return 1;
   let inPiece = 0;
-  if (clip && clip.getAttribute("src") && !clip.paused && clip.duration > 0) inPiece = clip.currentTime / clip.duration;
+  if (cur && cur.getAttribute("src") && !cur.paused && cur.duration > 0) inPiece = cur.currentTime / cur.duration;
   else inPiece = Math.min(1, ttsChar / ttsLen);
   return Math.max(0, Math.min(1, (pieceIndex + inPiece) / Math.max(1, pieceCount)));
 }
@@ -1054,7 +1160,7 @@ let lvlVal = 0;
 let lvlBuf: Uint8Array<ArrayBuffer> | null = null;
 export function voiceLevel(t: number): number {
   if (!snap.voice.speaking || snap.voice.paused) return 0;
-  if (analyser && clip && !clip.paused && clipSource) {
+  if (analyser && cur === clip && clip && !clip.paused && clipSource) {
     if (t === lvlAt) return lvlVal;
     if (!lvlBuf || lvlBuf.length !== analyser.frequencyBinCount) lvlBuf = new Uint8Array(analyser.frequencyBinCount);
     analyser.getByteFrequencyData(lvlBuf);

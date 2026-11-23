@@ -28,7 +28,7 @@ import { MagicStar } from "iconsax-react";
 import { hapticError, hapticSent, hapticToggle } from "@shared/utils/haptics";
 import { timeAgo } from "@/lib/news";
 import { TelegramIcon, XIcon, YouTubeIcon, LinkedInIcon } from "@/components/BrandIcons";
-import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
+import { XYZ_AI_OPEN_EVENT } from "@modules/ai/lib/events";
 import { RobotIcon } from "@/components/RobotIcon";
 import { NEWS_SOURCES } from "@modules/news/lib/news-sources";
 import type { NewsItem } from "@/lib/news";

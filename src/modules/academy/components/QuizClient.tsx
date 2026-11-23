@@ -32,6 +32,13 @@ const MODE_TABS: { id: Mode; label: string; icon: typeof Zap; hint: string }[] =
 ];
 
 const LETTERS = ["A", "B", "C", "D"];
+/**
+ * Finishing is safe to repeat (every XP grant has a unique key, and a finished
+ * attempt just returns its results again), so it gets more tries than the
+ * other steps. With three, a patchy connection at the very last step left the
+ * learner on "You seem to be offline" with the results one tap away.
+ */
+const FINISH_TRIES = 5;
 const line = (k: VoiceLine): Piece => lineFor(k);
 
 export function QuizClient() {
@@ -59,17 +66,28 @@ export function QuizClient() {
       setError(null);
       setResult(null);
       try {
-        const r = await postJson<{ attemptId: string; done: boolean }>("/api/academy/quiz", {
-          mode: s.mode,
-          category: s.category || null,
-          moduleId: s.moduleId || null,
-          difficulty: s.difficulty,
-          count: s.count,
-          challenge: s.challenge || null,
-        });
+        // Retried like every other quiz step: one dropped connection used to
+        // end on "You seem to be offline" with the learner tapping Start again.
+        // Safe to repeat: a practice start closes any other active attempt (so
+        // a start whose reply was lost leaves no second live quiz), and
+        // daily/weekly starts are keyed by period and return the same attempt.
+        const r = await withRetry(() =>
+          postJson<{ attemptId: string; done: boolean }>(
+            "/api/academy/quiz",
+            {
+              mode: s.mode,
+              category: s.category || null,
+              moduleId: s.moduleId || null,
+              difficulty: s.difficulty,
+              count: s.count,
+              challenge: s.challenge || null,
+            },
+            { timeoutMs: QUIZ_TIMEOUT_MS }
+          )
+        );
         if (r.done) {
           // Today's/this week's challenge already played: show its results.
-          const res = await postJson<QuizResult>(`/api/academy/quiz/${r.attemptId}`, { action: "finish" });
+          const res = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${r.attemptId}`, { action: "finish" }), FINISH_TRIES);
           say(s.mode === "daily" ? "daily_done" : "weekly_done", { auto: true });
           setResult(res);
           return;
@@ -465,7 +483,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
       // Finished, or nothing left to show (the last question was removed by an
       // admin mid-quiz): settle it and show the results instead of a spinner.
       if (s.status !== "active" || !s.question) {
-        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }));
+        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }), FINISH_TRIES);
         onFinished(r);
         return;
       }
@@ -508,17 +526,38 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
   // (the question may have timed out meanwhile), so re-read the real state
   // instead of showing a frozen question.
   const busyRef = useRef(false);
+  // ⚠️ A re-sync asked for while a request is in flight must not be dropped.
+  // Measured: answer offline, the connection returns while the answer is still
+  // retrying, the "online" event is skipped because busy, then the retries run
+  // out and "offline. Try again." stays on screen with nothing re-syncing. So
+  // the request is remembered and runs the moment the in-flight one settles.
+  const syncPending = useRef(false);
   useEffect(() => {
     busyRef.current = busy;
-  }, [busy]);
+    if (!busy && syncPending.current) {
+      syncPending.current = false;
+      void load();
+    }
+  }, [busy, load]);
   useEffect(() => {
     let hiddenAt = 0;
+    const sync = () => {
+      if (busyRef.current) syncPending.current = true;
+      else void load();
+    };
     const on = () => {
       if (document.hidden) hiddenAt = Date.now();
-      else if (hiddenAt && Date.now() - hiddenAt > 3000 && !busyRef.current) void load();
+      else if (hiddenAt && Date.now() - hiddenAt > 3000) sync();
     };
+    // The connection came back: re-sync on our own rather than waiting for a
+    // tap on Retry.
+    const online = () => sync();
     document.addEventListener("visibilitychange", on);
-    return () => document.removeEventListener("visibilitychange", on);
+    window.addEventListener("online", online);
+    return () => {
+      document.removeEventListener("visibilitychange", on);
+      window.removeEventListener("online", online);
+    };
   }, [load]);
 
   // AneQue may help in Live Talk, but must never give the open question away.
@@ -621,17 +660,21 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
     unlock();
     setBusy(true);
     try {
-      const r = await postJson<{ hidden: number[]; fiftyLeft: number }>(`/api/academy/quiz/${attemptId}`, { action: "fifty", index: q.index });
+      const r = await postJson<{ hidden: number[]; fiftyLeft: number }>(`/api/academy/quiz/${attemptId}`, { action: "fifty", index: q.index }, { timeoutMs: QUIZ_TIMEOUT_MS });
       setHidden(r.hidden);
       setFiftyLeft(r.fiftyLeft);
       sfx("fifty");
       sayOneOf("fifty", 2, { auto: true });
     } catch (e) {
-      setErr((e as Error).message);
+      // Same rule as answer/next: the server already moved on (the question
+      // timed out meanwhile), so re-sync instead of showing an error.
+      const st = (e as { status?: number }).status;
+      if (st === 409 || st === 410) void load();
+      else setErr((e as Error).message);
     } finally {
       setBusy(false);
     }
-  }, [q, reveal, busy, fiftyLeft, hidden.length, lifelinesOff, attemptId]);
+  }, [q, reveal, busy, fiftyLeft, hidden.length, lifelinesOff, attemptId, load]);
 
   const next = useCallback(async () => {
     if (!reveal || busy) return;
@@ -639,7 +682,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
     stopVoice();
     try {
       if (reveal.last) {
-        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }));
+        const r = await withRetry(() => postJson<QuizResult>(`/api/academy/quiz/${attemptId}`, { action: "finish" }), FINISH_TRIES);
         onFinished(r);
         return;
       }

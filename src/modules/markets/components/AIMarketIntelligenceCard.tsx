@@ -3,7 +3,7 @@
 import React from "react";
 import { ArrowRight } from "lucide-react";
 import { RobotIcon } from "@/components/RobotIcon";
-import { XYZ_AI_OPEN_EVENT } from "@/components/XyzAiWidget";
+import { XYZ_AI_OPEN_EVENT } from "@modules/ai/lib/events";
 import type { MoverCoin } from "@/lib/markets";
 import { compactUsd, pct } from "@/lib/markets";
 import { cn } from "@/lib/utils";

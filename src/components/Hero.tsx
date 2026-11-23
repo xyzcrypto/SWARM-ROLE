@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import Image from "next/image";
+import { Fraunces } from "next/font/google";
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { MagicStar } from "iconsax-react";
 import { Container } from "./ui/primitives";
@@ -10,6 +11,17 @@ import { Starfield } from "./Starfield";
 import { HeroCta, type HeroResearch } from "./HeroCta";
 import { useLiteMotion } from "@shared/hooks/useClientFlag";
 import { cn } from "@/lib/utils";
+
+// Fraunces is used by this one headline only. Declared here rather than in the
+// root layout so its font file is preloaded on the homepage alone, instead of
+// on every page of the site where nothing uses it.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+  style: ["normal"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
@@ -155,7 +167,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
 
           <h1
             style={{ fontFamily: "var(--font-fraunces)" }}
-            className="text-display-xl font-semibold lg:whitespace-nowrap lg:text-[2.5rem] lg:leading-[1.1] xl:text-[3.15rem] 2xl:text-[3.6rem]"
+            className={`${fraunces.variable} text-display-xl font-semibold lg:whitespace-nowrap lg:text-[2.5rem] lg:leading-[1.1] xl:text-[3.15rem] 2xl:text-[3.6rem]`}
           >
             {/* .text-shimmer is applied per-word (not on the <h1> itself) - background-clip:text
                 only clips to an element's OWN text, not text inside nested inline children, so
