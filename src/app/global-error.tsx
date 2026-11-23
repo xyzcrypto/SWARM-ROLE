@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import * as Sentry from "@sentry/nextjs";
-import { isChunkError, reloadForNewDeploy } from "@shared/utils/recover";
+import { reportError } from "@shared/utils/report-error";
+import { isChunkError, reloadWhenReachable } from "@shared/utils/recover";
 
 // Last-resort boundary for errors in the root layout itself. Must render its
 // own <html>/<body>; uses inline styles (no dependency on globals.css).
@@ -13,8 +13,8 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error);
-    if (isChunkError(error?.message)) reloadForNewDeploy();
+    reportError(error);
+    if (isChunkError(error?.message)) reloadWhenReachable();
   }, [error]);
   return (
     <html lang="en">

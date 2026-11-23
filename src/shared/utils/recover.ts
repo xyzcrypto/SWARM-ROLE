@@ -53,3 +53,61 @@ export function reloadForNewDeploy(href?: string): boolean {
   else window.location.reload();
   return true;
 }
+
+/**
+ * Pure, for tests: what a reachability probe's answer means. A 404/410 means
+ * the chunk's deployment is gone (reload now picks up the new one); any 2xx
+ * means the network is back and the file is there (reload now succeeds).
+ * Anything else, or no answer, means a reload would fail too: keep waiting.
+ */
+export function probeSaysReload(status: number | null): boolean {
+  return status != null && ((status >= 200 && status < 300) || status === 404 || status === 410);
+}
+
+let waiting = false;
+
+/**
+ * Reload for a failed chunk, but only once a reload can actually work.
+ *
+ * ⚠️ `reloadForNewDeploy()` used to run the instant a chunk failed. A chunk
+ * also fails when the CONNECTION drops (a lift, a tunnel, a weak 4G cell), and
+ * reloading while offline does not recover anything: it throws away the page
+ * the visitor was on and lands them on the browser's error page, which stays
+ * there after the network returns. Reproduced: fail a /_next/static script
+ * while offline and the tab ends on "This site can't be reached" until a
+ * manual refresh. So wait until the network answers, then reload.
+ *
+ * The probe is a HEAD request, which the service worker never intercepts
+ * (it only handles GET), so it is a real network answer, never a cached one.
+ * It targets the failed chunk when known, which also tells deploy skew (404)
+ * apart from a blip (200). Without one it probes /offline.html, a static file.
+ */
+export function reloadWhenReachable(src?: string): void {
+  if (typeof window === "undefined" || waiting) return;
+  waiting = true;
+  let tries = 0;
+  const attempt = async (): Promise<void> => {
+    if (!navigator.onLine) {
+      window.addEventListener("online", () => void attempt(), { once: true });
+      return;
+    }
+    let status: number | null = null;
+    try {
+      const ctl = new AbortController();
+      const t = setTimeout(() => ctl.abort(), 8_000);
+      status = (await fetch(src || "/offline.html", { method: "HEAD", cache: "no-store", signal: ctl.signal })).status;
+      clearTimeout(t);
+    } catch {
+      status = null;
+    }
+    if (probeSaysReload(status)) {
+      waiting = false;
+      reloadForNewDeploy();
+      return;
+    }
+    tries += 1;
+    if (tries < 30) setTimeout(() => void attempt(), Math.min(2_000 * tries, 10_000));
+    else waiting = false;
+  };
+  void attempt();
+}

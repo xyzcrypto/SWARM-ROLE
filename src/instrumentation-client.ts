@@ -1,24 +1,17 @@
-// Browser-side error monitoring. No-op until NEXT_PUBLIC_SENTRY_DSN is set.
+// Browser-side error monitoring. No-op (and nothing downloaded) until
+// NEXT_PUBLIC_SENTRY_DSN is set - see shared/utils/report-error.ts for why the
+// SDK is no longer imported here directly.
 //
 // This lives in instrumentation-client.ts (not the old sentry.client.config.ts)
 // because Next 16 builds with Turbopack, and the client Sentry config was only
 // ever loaded by Sentry's webpack plugin. Turbopack instead relies on Next's
 // native instrumentation-client entrypoint, which is executed on the client.
-import * as Sentry from "@sentry/nextjs";
+import { loadSentry } from "@shared/utils/report-error";
 
-const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
+const sentry = loadSentry();
 
-if (dsn) {
-  Sentry.init({
-    dsn,
-    environment: process.env.NODE_ENV,
-    // Keep volume low/free-tier-friendly: errors always, light tracing.
-    tracesSampleRate: 0.1,
-    replaysSessionSampleRate: 0,
-    replaysOnErrorSampleRate: 0,
-  });
-}
-
-// Instrument client-side (App Router) navigations for tracing. Safe to export
-// unconditionally - it's a no-op when Sentry isn't initialised (no DSN).
-export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+// Instrument client-side (App Router) navigations for tracing once the SDK has
+// loaded. A no-op without a DSN.
+export const onRouterTransitionStart = (href: string, navigationType: string): void => {
+  void sentry?.then((S) => S.captureRouterTransitionStart(href, navigationType)).catch(() => {});
+};

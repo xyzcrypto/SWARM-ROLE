@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Download, X } from "lucide-react";
-import { isChunkError, reloadForNewDeploy } from "@shared/utils/recover";
+import { isChunkError, reloadWhenReachable } from "@shared/utils/recover";
 
 // Fired by Chromium browsers when the app is installable.
 type BeforeInstallPromptEvent = Event & {
@@ -56,7 +56,10 @@ export function PwaSetup() {
     // At most one automatic reload per 30s (see shared/utils/recover.ts): it
     // used to be once per SESSION, so a tab that lived through a second deploy
     // was never recovered and stayed frozen until a manual refresh.
-    const reloadOnce = () => void reloadForNewDeploy();
+    // Reloads only once the network answers (see reloadWhenReachable): a chunk
+    // that failed because the connection dropped must not reload the tab into
+    // the browser's offline error page.
+    const reloadOnce = (src?: string) => reloadWhenReachable(src);
     // Resource load failures (a <script src> 404, e.g. a stale HTML shell
     // pointing at a chunk hash that no longer exists) fire a plain Event on
     // the failing element - they only reach a window listener registered on
@@ -66,7 +69,7 @@ export function PwaSetup() {
     const onError = (e: Event) => {
       const target = e.target;
       if (target instanceof HTMLScriptElement && target.src.includes("/_next/static/")) {
-        reloadOnce();
+        reloadOnce(target.src);
         return;
       }
       const message = (e as ErrorEvent).message;

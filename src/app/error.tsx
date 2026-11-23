@@ -3,8 +3,8 @@
 import { startTransition, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import * as Sentry from "@sentry/nextjs";
-import { isChunkError, reloadForNewDeploy } from "@shared/utils/recover";
+import { reportError } from "@shared/utils/report-error";
+import { isChunkError, reloadWhenReachable } from "@shared/utils/recover";
 
 export default function Error({
   error,
@@ -18,10 +18,10 @@ export default function Error({
   useEffect(() => {
     console.error(error);
     // Report nested-route errors to Sentry (no-op until a DSN is configured).
-    Sentry.captureException(error);
+    reportError(error);
     // A chunk from the previous deployment: only a full load can fix it, so
     // do it now instead of showing a button that cannot work.
-    if (isChunkError(error?.message)) reloadForNewDeploy();
+    if (isChunkError(error?.message)) reloadWhenReachable();
   }, [error]);
 
   // ⚠️ `reset()` alone only re-renders the client segment. When the error came

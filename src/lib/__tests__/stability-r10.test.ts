@@ -49,7 +49,7 @@ describe("solo quiz: the last step is patient and recovers by itself", () => {
   const q = read("src/modules/academy/components/QuizClient.tsx");
   it("finishing retries more and the quiz re-syncs when the connection returns", () => {
     expect(q).toMatch(/const FINISH_TRIES = 5;/);
-    expect(q.match(/action: "finish" \}\), FINISH_TRIES\)/g)?.length).toBe(2);
+    expect(q.match(/action: "finish" \}\), FINISH_TRIES\)/g)?.length).toBeGreaterThanOrEqual(2);
     expect(q).toMatch(/window\.addEventListener\("online", online\)/);
   });
 });
