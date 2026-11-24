@@ -9,6 +9,20 @@ export const metadata: Metadata = {
   description:
     "Win one of three $10K Bungee Funded Perps accounts. Learn Bungee in the XYZ Crypto Academy, play the Bungee live quizzes and submit your entry.",
   alternates: { canonical: "/bungee" },
+  // The card image comes from ./opengraph-image.tsx (file convention).
+  openGraph: {
+    title: "Win 1 of 3x $10K Bungee Funded Perps accounts",
+    description: "XYZ Crypto x Bungee giveaway: learn Bungee in the Academy, play the Bungee live quizzes and enter. Code XYZCRYPTO.",
+    url: "/bungee",
+    siteName: "XYZ Crypto",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Win 1 of 3x $10K Bungee Funded Perps accounts",
+    description: "XYZ Crypto x Bungee giveaway: learn Bungee, play the live quiz, enter at xyzcrypto.io/bungee.",
+    site: "@XYZCryptos",
+  },
 };
 
 // Static shell: the checklist and the entry load in the browser for the
