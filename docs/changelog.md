@@ -5,6 +5,15 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-24 (174) — Share card for xyzcrypto.io/bungee
+
+- `app/bungee/opengraph-image.tsx`: a static 1200x630 card (Bungee yellow on black:
+  "GIVEAWAY 3x $10K funded accounts", code XYZCRYPTO), prerendered at build (`○`), so
+  sharing the link on X, Telegram or WhatsApp shows the giveaway instead of the generic
+  site card. `/bungee` also gets its own og/twitter title and description.
+
+---
+
 ## 2026-11-24 (173) — Bungee Funded Perps: Academy track, cheat-resistant live quiz, referral CTA and the 3x $10K giveaway
 
 For the XYZ Crypto x Bungee giveaway (3x $10K Funded Perps accounts). Content is built
