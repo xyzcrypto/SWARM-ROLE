@@ -5,6 +5,66 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-24 (173) — Bungee Funded Perps: Academy track, cheat-resistant live quiz, referral CTA and the 3x $10K giveaway
+
+For the XYZ Crypto x Bungee giveaway (3x $10K Funded Perps accounts). Content is built
+from Bungee's own FAQ (80 answers) and rulebook (34 sections), read in full on
+2026-11-24; campaign prices from the owner's creatives.
+
+- **Academy track `bungee-funded-perps`** (seed batch 3, installs itself on the first
+  Academy visit after deploy; `order: 0` so it leads the catalog). 8 lessons, beginner to
+  expert: what it is, checkout (USDC on Base, caps, codes), the three tracks (Classic 10/3/6,
+  Pro 12/3/5, Turbo 9/3/3), balance vs equity and the 00:00 UTC daily floor, static drawdown
+  and hard breaches, execution (1.5 bps, hourly one-way funding, fixed leverage, TP/SL
+  triggers), prohibited trading, and payouts plus a plan to pass. 64 questions, 8 per lesson,
+  correct answers spread 16/16/16/16 across A-D.
+- **Referral CTA**: the last lesson carries XYZ Crypto's Bungee link
+  (`?ref=XYZCRYPTO`), a copy button for the code, and links to the giveaway and the live
+  quiz. Every other Bungee lesson shows a slim giveaway banner.
+- **Live quiz anti-cheat** (all live quizzes, not only Bungee):
+  - every player sees the options in their own order (`client/option-order.ts`, a pure
+    function of quiz, player and question; the server still receives the original index), so
+    a letter shared in a group chat is useless;
+  - an answer within 800 ms of a question opening scores nothing (`MIN_HUMAN_ANSWER_MS`);
+  - leaving the tab or window while a question is open and unanswered is recorded
+    (`AcademyLiveParticipant.blurs`), shown to staff only, and never changes the score;
+  - the question cannot be selected or copied while it is open.
+  Already in place before this: answers hidden until reveal, server-side timing, one answer
+  per question, scores masked while a question is open.
+- **Giveaway** at `/bungee` (static shell). It shows a step checklist and an entry form:
+  Bungee UID, Bungee email, Telegram, and a screenshot of the completed lessons. The form
+  opens only when all 8 lesson checks are passed, and that is verified on the server, not
+  from the screenshot. Rules:
+  - one entry per member, and one per Bungee UID;
+  - IP and browser are stored only as salted hashes;
+  - refused entries are refused before any upload.
+- **Staff view** at `/dashboard/giveaway` (`academy:manage`). For each entry it shows the
+  lessons completed, Bungee live quizzes played, score and correct answers, plus the flags
+  below. It can verify, mark a winner, reject, keep a private note, draw 3 at random from
+  verified entries (CSPRNG), export CSV, and open or close entries. Flags:
+  - same network or browser as another entry;
+  - inhumanly fast answers;
+  - tab switches;
+  - site account created within 24h of entering.
+- **Short links**: `/bungee/learn` is a config redirect, so no function runs. `/bungee/live`
+  sends people to the Bungee quiz that is live now, else the next one, else the latest
+  (edge-cached 30s). A live quiz counts as Bungee when its questions come from the Bungee
+  track, so no naming convention is needed.
+- Schema (additive): `GiveawayEntry`, `AcademyLiveParticipant.blurs`. Rate limits:
+  `giveawayIp` 10/h, `giveaway` 6/h. `compressImage` moved to `shared/utils` (shared with
+  /feedback).
+- Verified end to end on a local DB:
+  - learn link and lesson CTA work;
+  - the form stays locked (409) until the lessons are done, then the entry saves;
+  - a duplicate UID is refused;
+  - `/bungee/live` redirects to the live quiz;
+  - two players got different option orders;
+  - a 60 ms answer scored 0;
+  - a tab switch was recorded and shown in the staff view.
+- Tests: `bungee-giveaway.test.ts` (14).
+
+---
+
 ## 2026-11-23 (172) — Security batch 1: Critical, High and Medium findings from the audit
 
 From the 2026-11-22 security audit (rating 6.5/10). Finding IDs match the audit.

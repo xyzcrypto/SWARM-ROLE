@@ -1,0 +1,1371 @@
+{
+  "slug": "bungee-funded-perps",
+  "title": "Bungee Funded Perps",
+  "tagline": "Get funded on Bungee: every rule, number and trap, from first challenge to first payout",
+  "icon": "Trophy",
+  "order": 0,
+  "modules": [
+    {
+      "slug": "what-is-bungee-funded-perps",
+      "level": "beginner",
+      "title": "What Bungee Funded Perps is, and who it is for",
+      "summary": "Bungee Funded Perps is a one-step prop trading program for perpetual futures. You pay a one-time challenge fee, trade Bungee's account inside its terminal, and if you pass without breaking the risk limits you trade a funded account and keep 80% of the profit.",
+      "minutes": 8,
+      "objectives": [
+        "Explain what a prop trading program is and how Bungee's version works",
+        "Describe the challenge, the funded account and the 80/20 profit split",
+        "Understand why your maximum loss is the fee you paid",
+        "Know that challenge and funded accounts are simulated, and what that means",
+        "Check whether you are eligible before you buy"
+      ],
+      "sections": [
+        {
+          "heading": "Prop trading in one minute",
+          "body": "In proprietary, or prop, trading you trade a firm's capital instead of your own and keep a share of the profits. Modern prop firms run this as a two-stage program. First you pay a fee for a challenge that tests whether you can reach a profit target while staying inside fixed risk limits. If you pass, you trade a funded account and receive a cut of what you make on it. The firm carries the downside, and your loss is capped at the fee you paid. You are being judged on your trading decisions, not investing your own money in the market."
+        },
+        {
+          "heading": "Bungee's version: Funded Perps",
+          "body": "Bungee Funded Perps is Bungee's prop program for perpetual futures. It is built into the Bungee terminal and its markets cover crypto alongside stocks, indices and commodities, all in one place. You pay once for a challenge, trade it in the terminal, and if you hit the profit target without touching the daily loss limit or the maximum drawdown, you move to a funded account. On the funded account you keep 80% of the profits you make, paid in USDC. Bungee's own headline is simple: trade up to $100k of their money and keep 80%."
+        },
+        {
+          "heading": "Three things that make it different",
+          "body": "Bungee uses a one-step evaluation: there is a single phase, not two. There is no time limit, no minimum number of trading days and no consistency rule, so you can take as long as you need and you are not forced to trade on days you have no setup. Fees are 1.5 basis points per side, which Bungee says is over 60% below the 4 bps industry standard. That matters because fees eat into the same daily loss allowance your trading losses do."
+        },
+        {
+          "heading": "Your real downside: the fee",
+          "body": "The challenge fee is the only money you put in. You do not deposit trading capital, you are not trading your own funds, and you cannot end up owing Bungee anything if an account loses money. If you breach a risk limit, the account closes, and that is the end of it. To try again you buy a new challenge. This is the single most important mental shift: you are not protecting a deposit, you are protecting your right to keep trading the account."
+        },
+        {
+          "heading": "Simulated accounts, real payouts",
+          "body": "Challenge and funded accounts are both simulated accounts. You are not placing orders on an exchange yourself and you never deposit capital. Behind the scenes Bungee may simulate your trades internally, hedge some or all of the exposure, net exposure across accounts, or execute externally, at its discretion. You do not own or control Bungee's capital or its hedge positions. Your results are decided by Bungee's account ledger and the program rules, and payouts to you are real USDC."
+        },
+        {
+          "heading": "Who is behind it, and who can join",
+          "body": "Bungee is built by the team behind Socket, which has run trading infrastructure since 2022. Bungee reports $40B+ in volume served, 150K+ traders served and $15M+ raised, with backers including Mark Cuban, Coinbase Ventures, Lightspeed, Framework, Nascent, Archetype and Maven11. Almost anyone can join: you must be of legal age where you live, not on a sanctions list, and not in a restricted jurisdiction. You need no trading qualification or brokerage account, but you must pass KYC before trading a funded account or receiving payouts."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Prop trading",
+          "definition": "Trading a firm's capital instead of your own, in exchange for a share of the profits."
+        },
+        {
+          "term": "Challenge",
+          "definition": "The one-step test you buy: reach the profit target without hitting the daily loss limit or the maximum drawdown."
+        },
+        {
+          "term": "Funded account",
+          "definition": "The account you trade after passing, at the same size, where you keep 80% of the profits."
+        },
+        {
+          "term": "Profit split",
+          "definition": "How profit is shared on a funded account: 80% to you, 20% to Bungee."
+        },
+        {
+          "term": "Simulated account",
+          "definition": "An account whose results are kept on Bungee's ledger; Bungee decides how, or whether, to hedge or execute the exposure."
+        },
+        {
+          "term": "Restricted jurisdiction",
+          "definition": "A country or region where the program is not offered, listed in Bungee's Terms."
+        }
+      ],
+      "example": {
+        "title": "What can actually go wrong",
+        "body": "Riya buys a $10,000 Classic challenge. On day three she over-trades and her equity touches the daily loss floor. The account closes immediately. She has lost the challenge fee and nothing else: no margin call, no debt, no deposit at risk. If she wants another attempt, she buys a new challenge and starts fresh. Had she passed instead, a fresh $10,000 funded account would open and 80% of her future profit on it would be hers."
+      }
+    },
+    {
+      "slug": "getting-started-and-checkout",
+      "level": "beginner",
+      "title": "Getting started: sign in, choose, pay and set up",
+      "summary": "From sign-in to your first trade: how to log in, which track and size to choose, how USDC on Base checkout works, how many accounts you may hold, and how a referral code lowers your price.",
+      "minutes": 8,
+      "objectives": [
+        "Walk through the five steps from sign-in to payout",
+        "Pay a challenge correctly in USDC on Base",
+        "Know what happens if you underpay or miss the deadline",
+        "Understand the separate allocation caps for challenges and funded accounts",
+        "Use a referral code at checkout and check the final price"
+      ],
+      "sections": [
+        {
+          "heading": "The five steps",
+          "body": "Getting funded with Bungee follows five steps. One: choose a challenge by signing in, picking a track (Classic, Pro or Turbo) and an account size, and paying in USDC on Base. Two: pass the challenge by hitting the profit target without reaching the daily loss limit or the maximum drawdown. Three: verify your identity with KYC after you pass. Four: trade your funded account. Five: request payouts in USDC and keep 80% of your profits."
+        },
+        {
+          "heading": "Signing in and the terminal",
+          "body": "You sign in with a Google account or a crypto wallet. Trading happens in the Bungee terminal, which is web based. There is no Bungee Funded Perps mobile app at the moment; iOS and Android are listed as coming soon, so on a phone you trade in the browser. Your profit target, daily loss and drawdown sit live in the corner of the terminal, so you always know where you stand."
+        },
+        {
+          "heading": "Paying for a challenge",
+          "body": "Challenges are paid in USDC on the Base network. At checkout you see a deposit address with a QR code, the exact amount and a payment deadline, and your account opens as soon as the payment confirms. Sending the full amount or more opens the account. Sending up to $1 short still opens it. Sending more than $1 short opens nothing and the payment goes to manual review. Missing the deadline means no account opens and you start a new purchase. Always send on Base, from a wallet you control."
+        },
+        {
+          "heading": "One-time fee, not a subscription",
+          "body": "The fee is one-time per challenge. There is no subscription, no monthly fee and no renewal. If you breach an account and want to trade again, you buy a new challenge. Your challenge fee is not returned with your payouts, so treat it as the cost of the attempt and size your expectations around it."
+        },
+        {
+          "heading": "How many accounts you can hold",
+          "body": "Bungee uses two separate caps per trader, counted on the nominal starting size of active accounts. Active challenges can add up to $300,000, and active funded accounts can add up to $110,000. The caps are independent: you could hold three $100,000 challenges and, at the same time, a $100,000 plus a $10,000 funded account. Closed accounts do not count, and current equity or position size does not matter. You may buy several challenges in one purchase as long as you stay under the challenge cap."
+        },
+        {
+          "heading": "Referral codes and the XYZCRYPTO discount",
+          "body": "Eligible user codes give a checkout discount and earn commission for the code owner. Your first successful purchase requires an available user code. Discounts are not applied automatically: enter or select the code at checkout and check the final price before you pay. You cannot use your own code. In the XYZ Crypto campaign, code XYZCRYPTO showed these $100K prices: Classic $810 (was $900), Pro $540 (was $600) and Turbo $324 (was $360). Prices and plans can change, so the live checkout is always the source of truth."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "USDC on Base",
+          "definition": "The stablecoin and network Bungee accepts for challenge payments."
+        },
+        {
+          "term": "Payment deadline",
+          "definition": "The checkout time limit; miss it and no account opens, so you start a new purchase."
+        },
+        {
+          "term": "Allocation cap",
+          "definition": "The maximum combined starting size of active accounts: $300,000 for challenges and $110,000 for funded accounts."
+        },
+        {
+          "term": "Referral code",
+          "definition": "A user code entered at checkout for a discount; the first purchase requires one."
+        },
+        {
+          "term": "Bungee terminal",
+          "definition": "The web trading screen where you trade challenge and funded accounts and see your limits live."
+        }
+      ],
+      "example": {
+        "title": "A clean first purchase",
+        "body": "Arjun signs in with his wallet, picks a $100,000 Turbo challenge and enters code XYZCRYPTO. The checkout shows the discounted price, a Base deposit address, a QR code and a deadline. He sends the exact USDC amount on Base from his own wallet before the deadline. The payment confirms, his account opens, and the terminal shows his profit target, daily loss limit and drawdown in the corner."
+      }
+    },
+    {
+      "slug": "tracks-targets-and-passing",
+      "level": "intermediate",
+      "title": "Classic, Pro and Turbo: targets, limits and how you pass",
+      "summary": "The three one-step tracks trade off how much you must make against how much room you have to lose. Learn every number, how to choose a track, and exactly what happens the moment you pass.",
+      "minutes": 9,
+      "objectives": [
+        "Recall the profit target and drawdown of Classic, Pro and Turbo",
+        "Choose a track that fits your trading style",
+        "Explain how unrealized profit counts toward the target",
+        "Describe the automatic pass and promotion process",
+        "Know what carries over to the funded account and what does not"
+      ],
+      "sections": [
+        {
+          "heading": "The three tracks",
+          "body": "Every track is a one-step evaluation with no time limit and an 80% reward split. Classic: 10% profit target, 3% daily loss, 6% static maximum drawdown. Pro: 12% profit target, 3% daily loss, 5% static maximum drawdown. Turbo: 9% profit target, 3% daily loss, 3% static maximum drawdown. The daily loss limit is 3% on all three. What changes is the target and how far your equity may fall below the starting balance in total."
+        },
+        {
+          "heading": "Reading the trade-offs",
+          "body": "Classic gives the most total room, 6%, for a 10% target: forgiving for swing traders who accept bigger pullbacks. Pro asks for the highest target, 12%, with 5% room. Turbo has the lowest target, 9%, and the cheapest entry, but only 3% total room, the same size as one day's loss limit. On a $100,000 Turbo account a single bad day can end the attempt. Turbo rewards tight, disciplined risk; Classic rewards patience. Prices differ too, so compare the cost per attempt with the room each track gives you."
+        },
+        {
+          "heading": "What counts toward the target",
+          "body": "Realized profit and eligible unrealized profit both count. You do not need to close a trade for its eligible profit to count. The pass condition is your balance plus eligible unrealized P&L reaching the target, without breaching a risk limit on the way. Open-position P&L also moves your live risk equity, which is what the breach checks use, so an open winner helps you pass and an open loser can still breach you."
+        },
+        {
+          "heading": "The moment you pass",
+          "body": "You do not need a take-profit order to pass. When balance plus eligible unrealized P&L reaches the target without a breach, the system records your pass, cancels pending orders and closes your positions automatically. Later price moves or closing fees do not undo a pass that is already recorded. After closure and account checks, a funded account of the same size opens for you."
+        },
+        {
+          "heading": "A fresh start on the funded account",
+          "body": "The funded account starts clean. Positions, profit and orders from the challenge do not carry over, and the challenge fee is not refunded. Profit made during the challenge is not withdrawable; it only proves you can hit the target. After KYC you trade the funded account and can request payouts on the profit you make there. The funded account has no profit target and no time limit, but the same 3% daily loss rule, the same track drawdown and the same prohibited practices."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Profit target",
+          "definition": "The gain needed to pass: 10% Classic, 12% Pro, 9% Turbo."
+        },
+        {
+          "term": "Static maximum drawdown",
+          "definition": "The total loss limit from the original starting balance: 6% Classic, 5% Pro, 3% Turbo. It never trails upward."
+        },
+        {
+          "term": "Daily loss limit",
+          "definition": "3% of settled balance at the 00:00 UTC reset, on every track."
+        },
+        {
+          "term": "Automatic promotion",
+          "definition": "On reaching the target, Bungee records the pass, closes positions and opens a funded account of the same size."
+        },
+        {
+          "term": "Eligible unrealized P&L",
+          "definition": "Open-position profit that counts toward the profit target before you close the trade."
+        }
+      ],
+      "example": {
+        "title": "The numbers on a $100,000 account",
+        "body": "Classic: pass at $110,000, total floor $94,000. Pro: pass at $112,000, total floor $95,000. Turbo: pass at $109,000, total floor $97,000. On every track the first day's daily floor is $97,000. So on Turbo the daily floor and the total floor start at the same level: losing $3,000 in equity at any point ends the attempt, whether it happens in one day or over a week."
+      }
+    },
+    {
+      "slug": "balance-equity-and-daily-loss",
+      "level": "intermediate",
+      "title": "Balance, equity and the 3% daily loss rule",
+      "summary": "Most breaches come from misunderstanding one rule. Learn the difference between settled balance and risk equity, exactly how the daily floor is set at 00:00 UTC, and the midnight traps that end accounts.",
+      "minutes": 10,
+      "objectives": [
+        "Define settled balance and risk equity, and the formula E = B + U + F",
+        "Calculate the daily loss allowance and breach floor",
+        "Explain why open profit at midnight does not raise the next day's limit",
+        "Recognise how an open loss can breach at the daily reset",
+        "Tell the difference between the allowance and your remaining room"
+      ],
+      "sections": [
+        {
+          "heading": "Balance versus equity",
+          "body": "Settled balance (B) is your account ledger balance after realized P&L, trading fees, settled funding and other posted charges. It excludes open-position P&L, and it can change when fees or funding settle even if you never closed a trade. Risk equity (E) is balance plus full unrealized P&L (U) plus the signed effect of pending funding (F): E = B + U + F. Pending funding charges reduce equity, and once settled into balance they are not counted again. Floors are set from balance; breaches are checked against equity."
+        },
+        {
+          "heading": "How the daily floor is set",
+          "body": "At 00:00 UTC every day Bungee saves your settled balance as that day's reference. Daily loss allowance = settled balance at reset x 3%. Daily breach floor = settled balance at reset x 97%. A $10,000 settled balance gives a $300 allowance and a $9,700 floor, and equity of exactly $9,700 already breaches: reaching the floor counts, not only going below it. Note that 00:00 UTC is 5:30 AM in India."
+        },
+        {
+          "heading": "The floor does not trail",
+          "body": "The saved daily floor does not move during the day. Closing a trade changes your settled balance, but it does not recalculate today's floor, and intraday profits, losses, fees and funding do not make the floor follow you. A new floor is set only at the next 00:00 UTC reset, from the settled balance at that moment. Because the reference is settled balance, not the original account size, profit you realized yesterday raises today's floor."
+        },
+        {
+          "heading": "Trap one: open profit at midnight",
+          "body": "Unrealized profit at the reset does not raise the reference. With $100,000 settled balance and $1,500 open profit at 00:00 UTC, equity is $101,500 but the allowance is still $3,000 and the floor is $97,000. The open profit only puts equity further above the floor. If you want that profit to raise tomorrow's reference, it has to be realized and settled before the reset."
+        },
+        {
+          "heading": "Trap two: open loss at midnight",
+          "body": "Midnight does not forgive open losses. Equity is checked against the new floor as soon as the reset is processed. With a $10,000 settled balance and a $400 open loss, equity is $9,600. The new floor is $9,700, so the account breaches at the reset itself. You do not get a fresh $300 to lose from the $9,600 level. Holding a losing position into 00:00 UTC is one of the most common ways to lose a challenge."
+        },
+        {
+          "heading": "Allowance is not remaining room",
+          "body": "The allowance is a fixed number from the reset; your real room is the distance from current equity down to the floor. With a $5,000 balance the allowance is $150 and the floor $4,850. With $1,000 open profit, equity is $6,000 and you have $1,150 of room. With $1,000 open loss, equity is $4,000 and you have already breached. The maximum drawdown floor also applies at the same time, so your true room is the distance to whichever floor is higher."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Settled balance (B)",
+          "definition": "Ledger balance after realized P&L, fees, settled funding and charges; excludes open P&L."
+        },
+        {
+          "term": "Risk equity (E)",
+          "definition": "E = B + U + F: balance plus unrealized P&L plus signed pending funding. Breach checks use this."
+        },
+        {
+          "term": "Daily breach floor",
+          "definition": "Settled balance at 00:00 UTC x 97%. Equity at or below it is a hard breach."
+        },
+        {
+          "term": "Daily reset",
+          "definition": "00:00 UTC, when a new reference balance and floor are saved and equity is checked immediately."
+        },
+        {
+          "term": "Remaining room",
+          "definition": "Current equity minus the higher of the daily floor and the drawdown floor."
+        }
+      ],
+      "example": {
+        "title": "Breaching while in profit",
+        "body": "A $10,000 Classic account has an $11,000 settled balance at reset after good earlier days. The daily floor is $11,000 x 97% = $10,670. During the day a trade goes wrong and live equity falls to $10,670. The account breaches on daily loss, even though equity is still $670 above the original $10,000 size. Overall profit does not protect you from the daily rule, and a later recovery does not undo a breach."
+      }
+    },
+    {
+      "slug": "max-drawdown-and-breaches",
+      "level": "advanced",
+      "title": "Static drawdown, hard breaches and protecting your account",
+      "summary": "Two floors guard every account. Learn how the static maximum drawdown works, how it interacts with the daily floor, why there are no soft breaches, and why a stop-loss alone cannot save you.",
+      "minutes": 10,
+      "objectives": [
+        "Calculate the static maximum drawdown floor for each track",
+        "Manage both floors at once and find your real room",
+        "Explain the hard-breach model and its consequences",
+        "Understand why a stop-loss does not guarantee you avoid a breach",
+        "Build a buffer for slippage, fees and funding"
+      ],
+      "sections": [
+        {
+          "heading": "Static means it never moves up",
+          "body": "Maximum drawdown limits how far equity can fall below the account's original starting balance. Floor = original starting balance x (1 - drawdown %), with 6% for Classic, 5% for Pro and 3% for Turbo. A $10,000 Classic account has a $9,400 floor. It is static: it does not trail upward with profits. That is friendlier than the trailing drawdown many firms use, because profit you make genuinely widens your cushion above a fixed line."
+        },
+        {
+          "heading": "Two floors, one rule",
+          "body": "Every account has two floors at the same time. The daily floor comes from settled balance at the 00:00 UTC reset. The drawdown floor comes from the original starting balance. Both are compared with live risk equity, including open P&L, fees and funding, and touching either one breaches. Example: a $10,000 Classic account with a $9,800 settled balance at reset has a daily allowance of $294 and a daily floor of $9,506, while the drawdown floor stays $9,400. Equity must stay above both, so the higher one, $9,506, is the one that bites today."
+        },
+        {
+          "heading": "The hard-breach model",
+          "body": "Reaching the daily loss limit or the maximum drawdown is a hard breach, and so is using a prohibited practice or violating the rules or Terms. After a hard breach, open positions may be force-closed and the account may be permanently disabled. To keep trading you buy a new challenge. There is no automatic forgiveness, no reset, no grace period and no soft breach. The dashboard may warn you as you approach a limit, but warnings do not change the limits."
+        },
+        {
+          "heading": "Why a stop-loss is not a shield",
+          "body": "A stop-loss is not required, and you will not be breached for trading without one. But it does not override the floors. Breach checks use live equity and mark prices, while stop-loss triggers use executed Hyperliquid trade prices, and a triggered stop fills at available prices, not your trigger. Your account can breach before the stop triggers, while it fills, or after slippage and closing fees. Breach and liquidation actions take precedence over your TP/SL."
+        },
+        {
+          "heading": "Build a buffer",
+          "body": "Never place a stop exactly at the breach level: reaching the floor already counts as a breach. If your daily floor is $9,700 and equity is $9,710 when the stop triggers, just $15 of execution loss and fees takes you to $9,695, a breach. Leave room for slippage, both sides of fees, hourly funding and the other positions you hold. A practical habit is to risk only a fraction of your remaining room on any single trade, and to recompute that room after every reset."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Drawdown floor",
+          "definition": "Original starting balance x (1 - track %): $9,400 on a $10,000 Classic account."
+        },
+        {
+          "term": "Hard breach",
+          "definition": "Touching a floor or breaking a rule: positions may be force-closed and the account disabled, with no grace."
+        },
+        {
+          "term": "Soft breach",
+          "definition": "A warning-only violation. Bungee does not use soft breaches."
+        },
+        {
+          "term": "Mark price",
+          "definition": "The price used for risk equity, breaches, passes and liquidations; it can differ from the last trade."
+        },
+        {
+          "term": "Risk buffer",
+          "definition": "Deliberate distance kept between a stop and the floor to absorb slippage, fees and funding."
+        }
+      ],
+      "example": {
+        "title": "Same loss, two outcomes",
+        "body": "Two traders on $10,000 Classic accounts each risk $250 on one trade. Trader A starts the day at $9,800 settled balance: the daily floor is $9,506, so a full $250 loss puts equity at $9,550, safe, with $44 left. Trader B places the stop exactly at the floor with no buffer; slippage and the closing fee push equity a few dollars below it and the account breaches. The rule is identical; only the buffer differed."
+      }
+    },
+    {
+      "slug": "execution-fees-funding-and-tp-sl",
+      "level": "advanced",
+      "title": "Execution: fees, funding, leverage, fills and TP/SL",
+      "summary": "What it really costs to trade, and how orders actually fill. Fees of 1.5 bps, hourly one-way funding, fixed leverage up to 5x, isolated margin, position caps, slippage, and how TP/SL triggers work.",
+      "minutes": 11,
+      "objectives": [
+        "Calculate trading fees and explain why low fees protect your daily limit",
+        "Explain Bungee's one-way hourly funding",
+        "Describe fixed leverage, isolated margin, position caps and reduce-only",
+        "Understand slippage, partial fills and limit-order matching",
+        "Know which price triggers TP/SL and which price triggers breaches"
+      ],
+      "sections": [
+        {
+          "heading": "Fees: 1.5 bps per side",
+          "body": "Trading fees are 1.5 basis points (0.015%) of executed notional, the same for maker and taker, charged when you open and again when you close. Opening and closing a $10,000 position costs about $3. At the 4 bps industry standard the same round trip costs about $8. Fees reduce settled balance and risk equity, so they eat into the same 3% daily allowance as losses. Bungee's illustration: after identical trades it uses 1.8% of the daily drawdown while three other firms hit the 3% limit."
+        },
+        {
+          "heading": "Funding: hourly and never paid to you",
+          "body": "Funding is charged every hour on the notional of open positions. The rate is dynamic with a minimum of 0%, so some hours cost nothing. Unlike a live exchange, funding is never paid to you: the rate cannot go negative and never creates a credit. Pending funding reduces risk equity for breach checks; settled funding is included in the balance used at the reset. Long holds therefore have a real carrying cost that counts against both floors."
+        },
+        {
+          "heading": "Leverage, margin and position limits",
+          "body": "Leverage is fixed per market by Bungee, up to 5x, and you cannot adjust it. All markets are isolated-margin perpetuals: each position has its own margin, and cross margin is not supported, but account-level breach checks still use equity across everything open. Each market has a maximum total open position notional. Each market holds one position in one direction, so you cannot stack two BTC trades or be long and short the same market at once. When leverage changes, existing positions keep their leverage but become reduce-only until fully closed."
+        },
+        {
+          "heading": "How orders fill",
+          "body": "Market orders and the immediately executable part of limit orders fill against Bungee's execution order book, built from market data with Bungee's spread, depth and risk settings. Spread and slippage apply, large orders fill across several price levels, and if depth runs out you keep what filled and the rest is cancelled. Resting limit orders fill when an eligible executed Hyperliquid trade prints at or through your limit. Each account gets its own simulated liquidity, so you never compete with other Bungee traders. A chart touching your price does not guarantee a fill."
+        },
+        {
+          "heading": "TP/SL: trigger price is not fill price",
+          "body": "Stop-loss and take-profit are triggered by executed Hyperliquid trade prices received by Bungee, not by the mark price. For a long, the stop triggers at or below its price and the take-profit at or above it. A paired TP/SL cancels the other leg when one triggers. A market exit then fills at the next available book prices, so a $100 stop on a long can trigger on a $99.90 trade and fill at $99.80. A stop-limit becomes a reduce-only limit order that may fill partially or not at all. A triggered protection cannot be edited or re-armed."
+        },
+        {
+          "heading": "Markets and extreme volatility",
+          "body": "You trade an approved list of perpetuals: crypto such as BTC, ETH, SOL, XRP, HYPE, ADA and LTC, plus stocks like NVDA and GOOGL, the S&P 500 index, gold and crude oil. Every market is reviewed for liquidity, depth, volatility and manipulation risk before it is enabled, so not every Hyperliquid market is tradable. News trading is allowed and you can hold overnight and over weekends. In extreme volatility Bungee may reduce position sizes, change leverage for new trades, set reduce-only, reject orders, force-close where rules require, or suspend a market."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Basis point (bp)",
+          "definition": "One hundredth of a percent. Bungee charges 1.5 bps = 0.015% per side."
+        },
+        {
+          "term": "Funding",
+          "definition": "An hourly charge on open notional, minimum 0%, never paid to the trader."
+        },
+        {
+          "term": "Isolated margin",
+          "definition": "Margin assigned to each position separately; cross margin is not supported."
+        },
+        {
+          "term": "Reduce-only",
+          "definition": "A position that can be made smaller or closed, but not increased or reversed."
+        },
+        {
+          "term": "Slippage",
+          "definition": "The difference between the price you expected and the price you actually got."
+        },
+        {
+          "term": "Trigger price",
+          "definition": "The executed trade price that activates a TP/SL; it is not a guaranteed fill price."
+        }
+      ],
+      "example": {
+        "title": "What fees do to a day",
+        "body": "On a $10,000 account with a $300 daily allowance, a trader makes 20 round trips of $10,000 notional in a day. At 1.5 bps per side that is about $60 in fees, 20% of the allowance. At the 4 bps industry standard it would be about $160, more than half the allowance before a single losing trade. Lower fees do not make you profitable, but they leave far more of your risk budget for actual trading decisions."
+      }
+    },
+    {
+      "slug": "prohibited-trading-and-enforcement",
+      "level": "expert",
+      "title": "Prohibited trading: bots, scalping, hedging and abuse",
+      "summary": "Passing is worthless if the payout is denied. Learn exactly what Bungee prohibits, how scalping and hedging are judged by pattern rather than by a number, what stays allowed, and how enforcement works.",
+      "minutes": 11,
+      "objectives": [
+        "List the prohibited practices on challenge and funded accounts",
+        "Explain how scalping and HFT are identified by pattern",
+        "Understand the cross-account, between-trader and external hedging rules",
+        "Know what remains allowed: public ideas, news trading, overnight holds",
+        "Describe the enforcement ladder and the consequences of a confirmed violation"
+      ],
+      "sections": [
+        {
+          "heading": "Bots, HFT and scalping",
+          "body": "Using software, scripts, automated systems or APIs to make trading decisions or to submit, modify or cancel orders is prohibited. Ordinary stop-loss and take-profit orders you configure are not bot activity. HFT means systematic high-speed order submission, modification or cancellation, including bursts that exploit latency or stale prices. Scalping means repeated or systematic rapid entries and exits to capture small moves, spreads or short-lived execution advantages, whether manual or automated. Profit made this way is not eligible for payout."
+        },
+        {
+          "heading": "Judged by pattern, not a number",
+          "body": "Bungee does not publish a holding time, trade count or profit share below which rapid trading is acceptable. Holding slightly longer, splitting orders, or spreading rapid trades across markets, sessions or accounts does not make it acceptable. It reviews order and execution logs, trading frequency, order-to-trade and cancellation ratios, holding-time distributions, repeated sizes and timing, and evidence of automation. A single short trade, such as closing quickly because the idea failed or a stop set at entry was hit, is ordinary trading. A handful of rapid trades in one session can be enough to count."
+        },
+        {
+          "heading": "Hedging and opposite exposure",
+          "body": "Opposite exposure across two or more of your challenge or funded accounts is prohibited, whatever names, emails or identities are used. It counts even in different markets (long BTC in one account, short ETH in another), with unequal sizes, or with staggered entries. Coordinating opposite positions with other traders is prohibited, even without a written agreement, because coordination can be proven from trading patterns. Holding opposite exposure between a Bungee account and another exchange, broker, prop firm or wallet account to exploit the rules is also prohibited."
+        },
+        {
+          "heading": "Copying, sharing and technical abuse",
+          "body": "Automatically mirroring another trader, centrally controlling several accounts, synchronised trading to evade limits, and services built to game prop challenges are prohibited unless Bungee approves. Accounts are personal: no sharing logins, selling or transferring accounts, letting someone else trade, trading for someone else, or using multiple identities. Also prohibited: latency or stale-price exploitation, exploiting feed errors or platform bugs, manipulating Bungee's systems, strategies that depend on simulated-market flaws, and trading on non-public information."
+        },
+        {
+          "heading": "What stays allowed",
+          "body": "You may learn from public commentary, follow public trade ideas and use public research, as long as you act on them independently. There is no general news-trading ban: you can hold through high-impact releases. You can hold positions overnight and over the weekend, keeping in mind hourly funding and the 00:00 UTC reset check. Long and short positions in different markets inside one account are part of that account's own risk and are not, by themselves, prohibited hedging."
+        },
+        {
+          "heading": "Enforcement",
+          "body": "Depending on severity, Bungee may reject or resize orders, restrict trading, force-close positions, put an account under review, suspend it, deny an ineligible payout, reverse an improperly credited payout, permanently breach the account, close related accounts or disqualify the trader. Payouts can be held during an investigation, and a confirmed bot, HFT or scalping finding denies the applicable payout without a prior warning. For hedging, an isolated, inadvertent first violation may get a formal warning; repeated, deliberate or coordinated violations end in termination, forfeiture and disqualification."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Scalping",
+          "definition": "Repeated or systematic rapid entries and exits to capture small moves or execution edges; prohibited."
+        },
+        {
+          "term": "HFT",
+          "definition": "Systematic high-speed order activity, including bursts exploiting latency or stale prices; prohibited."
+        },
+        {
+          "term": "Opposite exposure",
+          "definition": "Long on one side and short on the other across accounts, traders or platforms, so one side gains while the other loses."
+        },
+        {
+          "term": "Copy trading",
+          "definition": "Automatically mirroring another trader's account; prohibited without Bungee's approval."
+        },
+        {
+          "term": "Payout denial",
+          "definition": "Refusing a payout request tied to prohibited activity; a denied request is final."
+        }
+      ],
+      "example": {
+        "title": "A trap that looks clever",
+        "body": "Two friends each buy a $100,000 challenge. Before a big CPI release one goes long BTC and the other goes short ETH, reasoning that one of them will surely pass. Different people, different markets and different sizes, but together it is coordinated opposite exposure designed to exploit the challenge. Bungee assesses the combined exposure and timing; a confirmed violation can terminate both accounts, deny payouts and disqualify both traders."
+      }
+    },
+    {
+      "slug": "funded-account-payouts-and-your-plan",
+      "level": "expert",
+      "title": "Funded account, payouts and your plan to get funded",
+      "summary": "How money reaches you: KYC, the 80/20 split, claiming profit versus requesting a payout, the $20,000 daily allowance, the account reset after a claim, and a step-by-step plan to pass your Bungee challenge.",
+      "minutes": 12,
+      "objectives": [
+        "Complete KYC and know what it needs",
+        "Separate the two payout steps: claim profit, then request payment",
+        "Work with the $50 minimum and the $20,000 daily gross allowance",
+        "Explain how the account resets after a claim",
+        "Build a written plan to pass and stay funded"
+      ],
+      "sections": [
+        {
+          "heading": "KYC with Sumsub",
+          "body": "After you pass and before you trade the funded account or receive payouts, you verify your identity through Sumsub. You need a government-issued photo ID, such as a passport, national ID card or driving licence, and a selfie taken in the flow. It usually takes a few minutes and starts from your dashboard. If KYC is rejected, funded trading and payouts stay on hold; contact Bungee support. If the status is resubmission required, follow the flow to correct it."
+        },
+        {
+          "heading": "Step one: claim account profit",
+          "body": "Withdrawing is two separate steps. First you claim account profit. The funded account must be active, reconciled and current on risk, with no breach, open positions, pending orders, holds or active protection. The claim takes all eligible settled profit above the original balance, applies the 80/20 split, credits your share to a user-wide withdrawable balance, and resets the trading account to its original balance and default risk limits. Unrealized profit is never withdrawable."
+        },
+        {
+          "heading": "Step two: request payment",
+          "body": "Then you request an external payout in USDC from your withdrawable balance. The minimum payout is $50 after the split, which is $62.50 of gross profit. The default allowance is $20,000 of gross profit per user per UTC day, shared across all your funded accounts; at 80% that is $16,000 to you. Accepted requests consume allowance immediately, partial requests leave the rest available, and the allowance renews at 00:00 UTC without carrying over. Bungee aims to process valid requests within 1 business day."
+        },
+        {
+          "heading": "After a claim: the reset",
+          "body": "A $10,000 Classic funded account with a $35,000 settled balance has $25,000 of eligible gross profit. Claiming it credits $20,000 to your withdrawable balance and resets trading to $10,000, with the $9,400 drawdown floor and a $9,700 daily floor restored. With a fresh $20,000 gross allowance you request $16,000 today; the remaining $4,000 waits for the next UTC day. The account stays funded and needs no new challenge. Payouts can be reviewed, especially for thin markets, unusually large positions or suspicious patterns, and you are responsible for your own taxes."
+        },
+        {
+          "heading": "Your plan to pass",
+          "body": "One: pick the track that fits you; Classic gives the most room, Turbo the cheapest entry but only 3% total. Two: before each session, write today's daily floor, the drawdown floor and your real room. Three: risk a small fixed fraction of that room per trade and leave a buffer for slippage, fees and funding. Four: close or reduce losers before 00:00 UTC (5:30 AM IST). Five: avoid anything that looks like scalping, bots or hedging. Six: when you pass, do KYC immediately and protect the funded account the same way."
+        },
+        {
+          "heading": "Start your challenge with XYZ Crypto",
+          "body": "Ready to take the challenge? Start from the XYZ Crypto referral link and use code XYZCRYPTO at checkout for the discount. Check the final price before you pay in USDC on Base. Trading involves substantial risk and past performance is not indicative of future results: never buy a challenge with money you cannot afford to lose, and treat each fee as the cost of one attempt. Funded accounts are subject to the Bungee Funded Perps rulebook and Terms."
+        }
+      ],
+      "concepts": [
+        {
+          "term": "Claim",
+          "definition": "Moving eligible settled profit above the original balance into your withdrawable balance at the 80/20 split, which resets the account."
+        },
+        {
+          "term": "Payout request",
+          "definition": "Asking for USDC from your withdrawable balance, within the daily gross allowance."
+        },
+        {
+          "term": "Daily gross allowance",
+          "definition": "$20,000 of gross profit per user per UTC day, shared across funded accounts; renews at 00:00 UTC."
+        },
+        {
+          "term": "Minimum payout",
+          "definition": "$50 after the split, equal to $62.50 of gross profit."
+        },
+        {
+          "term": "Sumsub",
+          "definition": "Bungee's identity provider: photo ID plus a selfie check."
+        }
+      ],
+      "example": {
+        "title": "From pass to first payout",
+        "body": "Meera passes a $10,000 Classic challenge. Her funded account opens at $10,000 and she completes Sumsub KYC with her passport and a selfie. Over two weeks her settled balance reaches $11,500. She closes all positions, cancels pending orders and claims: $1,500 gross becomes $1,200 in her withdrawable balance, and the account resets to $10,000 with fresh floors. She requests the $1,200 in USDC, well inside the daily allowance, and keeps trading the same funded account."
+      }
+    }
+  ],
+  "questions": [
+    {
+      "module": "what-is-bungee-funded-perps",
+      "difficulty": "easy",
+      "prompt": "In Bungee Funded Perps, what is the most you can lose on a challenge?",
+      "options": [
+        "Only the one-time challenge fee you paid",
+        "The full account size, such as $100,000",
+        "Your fee plus any losses above the daily limit",
+        "Whatever margin you deposited to open trades"
+      ],
+      "answer": 0,
+      "explanation": "The challenge fee is the only money you put in. You do not deposit trading capital and you can never owe Bungee money if the account loses."
+    },
+    {
+      "module": "what-is-bungee-funded-perps",
+      "difficulty": "easy",
+      "prompt": "What share of funded-account profits does the trader keep?",
+      "options": [
+        "50%",
+        "70%",
+        "90%",
+        "80%"
+      ],
+      "answer": 3,
+      "explanation": "The standard split is 80% to the trader and 20% to Bungee."
+    },
+    {
+      "module": "what-is-bungee-funded-perps",
+      "difficulty": "easy",
+      "prompt": "How many phases does a Bungee Funded Perps challenge have?",
+      "options": [
+        "Two phases with separate targets",
+        "Three phases plus a verification",
+        "One phase: a one-step evaluation",
+        "No phases, you are funded at once"
+      ],
+      "answer": 2,
+      "explanation": "Bungee uses a one-step evaluation: one phase, one profit target, then you are promoted to a funded account."
+    },
+    {
+      "module": "what-is-bungee-funded-perps",
+      "difficulty": "easy",
+      "prompt": "Which of these is TRUE about Bungee's challenge?",
+      "options": [
+        "There is a 30-day time limit",
+        "No time limit, no minimum days, no consistency rule",
+        "A consistency rule caps your best day",
+        "You must trade at least 5 days"
+      ],
+      "answer": 1,
+      "explanation": "Bungee's challenge has no time limit, no minimum number of trading days and no consistency rule."
+    },
+    {
+      "module": "what-is-bungee-funded-perps",
+      "difficulty": "easy",
+      "prompt": "Which markets can you trade with Bungee Funded Perps?",
+      "options": [
+        "Only Bitcoin and Ethereum",
+        "Perpetuals on crypto, stocks, indices and commodities",
+        "Spot tokens on Base only",
+        "Forex pairs and options"
+      ],
+      "answer": 1,
+      "explanation": "Funded Perps covers perpetual futures on an approved list of markets spanning crypto, stocks, indices and commodities."
+    },
+    {
+      "module": "what-is-bungee-funded-perps",
+      "difficulty": "easy",
+      "prompt": "Are Bungee challenge and funded accounts live exchange accounts?",
+      "options": [
+        "No, both are simulated accounts on Bungee's ledger",
+        "Yes, but only funded accounts are live",
+        "Yes, you trade directly on Hyperliquid",
+        "No, they are paper accounts with no payouts"
+      ],
+      "answer": 0,
+      "explanation": "Both stages use simulated accounts. Bungee may hedge or execute exposure at its discretion, and payouts are real USDC based on its ledger."
+    },
+    {
+      "module": "what-is-bungee-funded-perps",
+      "difficulty": "easy",
+      "prompt": "When must you complete KYC?",
+      "options": [
+        "Before buying any challenge",
+        "Never, Bungee does not use KYC",
+        "Only if a payout is over $20,000",
+        "After passing, before funded trading or payouts"
+      ],
+      "answer": 3,
+      "explanation": "KYC happens after you pass the challenge and before you trade the funded account or receive payouts. Buying and trading a challenge needs no KYC."
+    },
+    {
+      "module": "what-is-bungee-funded-perps",
+      "difficulty": "easy",
+      "prompt": "Who built Bungee Funded Perps?",
+      "options": [
+        "An anonymous DAO",
+        "A Hyperliquid validator group",
+        "The team behind Socket",
+        "A traditional Wall Street bank"
+      ],
+      "answer": 2,
+      "explanation": "Bungee is built by the team behind Socket, which has run trading infrastructure since 2022."
+    },
+    {
+      "module": "getting-started-and-checkout",
+      "difficulty": "easy",
+      "prompt": "Which token and network does Bungee accept for challenge payments?",
+      "options": [
+        "USDT on Ethereum",
+        "ETH on Arbitrum",
+        "USDC on Base",
+        "SOL on Solana"
+      ],
+      "answer": 2,
+      "explanation": "Challenges are paid in USDC on Base. Checkout shows the deposit address, exact amount and deadline."
+    },
+    {
+      "module": "getting-started-and-checkout",
+      "difficulty": "easy",
+      "prompt": "How can you sign in to Bungee Funded Perps?",
+      "options": [
+        "Email and SMS code only",
+        "With a Google account or a crypto wallet",
+        "Only through a centralized exchange login",
+        "With a Telegram bot"
+      ],
+      "answer": 1,
+      "explanation": "You sign in with Google or a crypto wallet."
+    },
+    {
+      "module": "getting-started-and-checkout",
+      "difficulty": "medium",
+      "prompt": "You send $2 less than the checkout total. What happens?",
+      "options": [
+        "No account opens and the payment goes to manual review",
+        "The account opens at a smaller size",
+        "The account opens normally",
+        "The $2 is charged on your first payout"
+      ],
+      "answer": 0,
+      "explanation": "Up to $1 short still opens the account. More than $1 short opens nothing and the payment goes to manual review."
+    },
+    {
+      "module": "getting-started-and-checkout",
+      "difficulty": "easy",
+      "prompt": "Is the challenge fee a subscription?",
+      "options": [
+        "Yes, it renews every 30 days",
+        "No, it is charged per trade instead",
+        "Yes, but only for the Pro track",
+        "No, it is a one-time fee per challenge"
+      ],
+      "answer": 3,
+      "explanation": "The fee is one-time. There is no subscription, monthly fee or renewal."
+    },
+    {
+      "module": "getting-started-and-checkout",
+      "difficulty": "medium",
+      "prompt": "What is the maximum combined starting size of your ACTIVE funded accounts?",
+      "options": [
+        "$100,000",
+        "$300,000",
+        "$200,000",
+        "$110,000"
+      ],
+      "answer": 3,
+      "explanation": "Funded accounts are capped at $110,000 combined. Challenges have a separate $300,000 cap."
+    },
+    {
+      "module": "getting-started-and-checkout",
+      "difficulty": "medium",
+      "prompt": "Which statement about Bungee's account caps is correct?",
+      "options": [
+        "One combined cap covers challenges and funded accounts",
+        "The caps count current equity, not starting size",
+        "Challenges and funded accounts have separate caps",
+        "Closed accounts still count toward the cap"
+      ],
+      "answer": 2,
+      "explanation": "There are two independent caps: $300,000 for active challenges and $110,000 for active funded accounts, both on nominal starting size."
+    },
+    {
+      "module": "getting-started-and-checkout",
+      "difficulty": "easy",
+      "prompt": "Is there a Bungee Funded Perps mobile app today?",
+      "options": [
+        "Yes, on iOS and Android",
+        "No, the terminal is web based, apps are coming soon",
+        "Only on Android",
+        "Only for funded accounts"
+      ],
+      "answer": 1,
+      "explanation": "There is no mobile app yet; the terminal runs in the browser and iOS and Android are marked coming soon."
+    },
+    {
+      "module": "getting-started-and-checkout",
+      "difficulty": "medium",
+      "prompt": "How does a referral discount get applied at checkout?",
+      "options": [
+        "You enter or select the code and check the final price",
+        "Automatically, on every purchase",
+        "Only after your first payout",
+        "By emailing Bungee support"
+      ],
+      "answer": 0,
+      "explanation": "Discounts are not automatic: enter or select the code at checkout and confirm the final price. Your first purchase requires an available user code."
+    },
+    {
+      "module": "tracks-targets-and-passing",
+      "difficulty": "medium",
+      "prompt": "What is the profit target on the Classic track?",
+      "options": [
+        "10%",
+        "9%",
+        "8%",
+        "12%"
+      ],
+      "answer": 0,
+      "explanation": "Classic needs 10%. Pro needs 12% and Turbo needs 9%."
+    },
+    {
+      "module": "tracks-targets-and-passing",
+      "difficulty": "medium",
+      "prompt": "Which track has the highest profit target?",
+      "options": [
+        "Classic",
+        "All three are equal",
+        "Turbo",
+        "Pro"
+      ],
+      "answer": 3,
+      "explanation": "Pro has the highest target at 12%, with a 5% static maximum drawdown."
+    },
+    {
+      "module": "tracks-targets-and-passing",
+      "difficulty": "medium",
+      "prompt": "What is Turbo's static maximum drawdown?",
+      "options": [
+        "6%",
+        "5%",
+        "3%",
+        "10%"
+      ],
+      "answer": 2,
+      "explanation": "Turbo allows only 3% total drawdown, the same size as the daily loss limit."
+    },
+    {
+      "module": "tracks-targets-and-passing",
+      "difficulty": "medium",
+      "prompt": "What is the daily loss limit on the Pro track?",
+      "options": [
+        "2%",
+        "3%",
+        "4%",
+        "5%"
+      ],
+      "answer": 1,
+      "explanation": "The daily loss limit is 3% on Classic, Pro and Turbo alike."
+    },
+    {
+      "module": "tracks-targets-and-passing",
+      "difficulty": "medium",
+      "prompt": "Does open (unrealized) profit count toward the profit target?",
+      "options": [
+        "No, only closed trades count",
+        "Yes, eligible unrealized profit counts",
+        "Only on the Turbo track",
+        "Only after 00:00 UTC"
+      ],
+      "answer": 1,
+      "explanation": "Realized and eligible unrealized profit both count toward the target; you don't have to close a trade."
+    },
+    {
+      "module": "tracks-targets-and-passing",
+      "difficulty": "medium",
+      "prompt": "Do you need a take-profit order to pass the challenge?",
+      "options": [
+        "No, the system records the pass and closes positions automatically",
+        "Yes, on Classic only",
+        "Yes, or the pass is not recorded",
+        "No, but you must close every trade within 1 hour"
+      ],
+      "answer": 0,
+      "explanation": "When balance plus eligible unrealized P&L hits the target without a breach, the pass is recorded and positions close automatically."
+    },
+    {
+      "module": "tracks-targets-and-passing",
+      "difficulty": "medium",
+      "prompt": "What carries over from the challenge to the funded account?",
+      "options": [
+        "Your open positions",
+        "Your challenge profit as withdrawable cash",
+        "Your pending limit orders",
+        "Nothing: the funded account starts fresh"
+      ],
+      "answer": 3,
+      "explanation": "The funded account starts fresh. Positions, profit and orders from the challenge do not carry over."
+    },
+    {
+      "module": "tracks-targets-and-passing",
+      "difficulty": "medium",
+      "prompt": "On a $100,000 Turbo challenge, at what equity does the static drawdown breach?",
+      "options": [
+        "$94,000",
+        "$95,000",
+        "$97,000",
+        "$91,000"
+      ],
+      "answer": 2,
+      "explanation": "Turbo's 3% static drawdown floor is $100,000 x 0.97 = $97,000."
+    },
+    {
+      "module": "balance-equity-and-daily-loss",
+      "difficulty": "medium",
+      "prompt": "How is risk equity calculated?",
+      "options": [
+        "Balance only",
+        "Original account size minus fees",
+        "Balance plus unrealized P&L plus pending funding",
+        "Balance minus the daily allowance"
+      ],
+      "answer": 2,
+      "explanation": "Risk equity E = B + U + F: settled balance, unrealized P&L and the signed effect of pending funding."
+    },
+    {
+      "module": "balance-equity-and-daily-loss",
+      "difficulty": "medium",
+      "prompt": "At what time is the daily loss reference reset?",
+      "options": [
+        "00:00 IST",
+        "00:00 UTC",
+        "Market open in New York",
+        "24 hours after your first trade"
+      ],
+      "answer": 1,
+      "explanation": "The daily reference resets at 00:00 UTC, which is 5:30 AM in India."
+    },
+    {
+      "module": "balance-equity-and-daily-loss",
+      "difficulty": "medium",
+      "prompt": "A $10,000 settled balance at reset gives which daily breach floor?",
+      "options": [
+        "$9,700",
+        "$9,400",
+        "$9,000",
+        "$9,970"
+      ],
+      "answer": 0,
+      "explanation": "Floor = settled balance x 97% = $9,700. Equity at exactly $9,700 already breaches."
+    },
+    {
+      "module": "balance-equity-and-daily-loss",
+      "difficulty": "hard",
+      "prompt": "Balance is $100,000 with $1,500 open profit at 00:00 UTC. What is that day's daily allowance?",
+      "options": [
+        "$3,045",
+        "$4,500",
+        "$1,500",
+        "$3,000"
+      ],
+      "answer": 3,
+      "explanation": "The reset uses settled balance only, so the allowance is $100,000 x 3% = $3,000. Open profit does not raise it."
+    },
+    {
+      "module": "balance-equity-and-daily-loss",
+      "difficulty": "hard",
+      "prompt": "Settled balance $10,000, open loss $400 at the reset, no pending funding. What happens?",
+      "options": [
+        "Nothing, losses reset at midnight",
+        "The loss is moved to tomorrow",
+        "You get a new $300 allowance from $9,600",
+        "The account breaches at the reset"
+      ],
+      "answer": 3,
+      "explanation": "Equity is $9,600, below the new $9,700 floor, so the account breaches as soon as the reset is processed."
+    },
+    {
+      "module": "balance-equity-and-daily-loss",
+      "difficulty": "medium",
+      "prompt": "You close a winning trade at 2 PM UTC. What happens to today's daily floor?",
+      "options": [
+        "It rises with your new balance",
+        "It falls by the profit amount",
+        "It stays the same until the next reset",
+        "It is removed for the rest of the day"
+      ],
+      "answer": 2,
+      "explanation": "Closing a trade changes settled balance but does not recalculate the saved floor. A new floor is set at the next 00:00 UTC reset."
+    },
+    {
+      "module": "balance-equity-and-daily-loss",
+      "difficulty": "hard",
+      "prompt": "Settled balance at reset is $11,000 on a $10,000 Classic account. Where is the daily floor?",
+      "options": [
+        "$9,400",
+        "$10,670",
+        "$9,700",
+        "$10,000"
+      ],
+      "answer": 1,
+      "explanation": "The daily floor uses settled balance at reset: $11,000 x 97% = $10,670, even though it is above the original size."
+    },
+    {
+      "module": "balance-equity-and-daily-loss",
+      "difficulty": "hard",
+      "prompt": "Balance $5,000 at reset, then $1,000 open loss. Which is true?",
+      "options": [
+        "Equity $4,000 is below the $4,850 floor: breached",
+        "You still have $150 of room",
+        "The allowance grows to $180",
+        "Nothing counts until you close the trade"
+      ],
+      "answer": 0,
+      "explanation": "Equity is $4,000, already below the $4,850 floor. Open losses count; you do not need to close the trade."
+    },
+    {
+      "module": "max-drawdown-and-breaches",
+      "difficulty": "hard",
+      "prompt": "What is the maximum drawdown floor of a $10,000 Classic account?",
+      "options": [
+        "$9,400",
+        "$9,000",
+        "$9,500",
+        "$9,700"
+      ],
+      "answer": 0,
+      "explanation": "Classic allows 6%: $10,000 x 0.94 = $9,400."
+    },
+    {
+      "module": "max-drawdown-and-breaches",
+      "difficulty": "hard",
+      "prompt": "Does Bungee's maximum drawdown trail upward as you make profit?",
+      "options": [
+        "Yes, it follows your highest equity",
+        "Yes, but only on funded accounts",
+        "No, it is reset every day at 00:00 UTC",
+        "No, it is static from the original starting balance"
+      ],
+      "answer": 3,
+      "explanation": "The drawdown is static. It is measured from the original starting balance and never trails upward with profits."
+    },
+    {
+      "module": "max-drawdown-and-breaches",
+      "difficulty": "hard",
+      "prompt": "A $10,000 Classic account has $9,800 settled balance at reset. Which floor matters most today?",
+      "options": [
+        "The $9,400 drawdown floor",
+        "The $9,700 original daily floor",
+        "The $9,506 daily floor",
+        "Neither, both reset to $9,800"
+      ],
+      "answer": 2,
+      "explanation": "The daily floor is $9,800 x 97% = $9,506, above the $9,400 drawdown floor. Equity must stay above both, so $9,506 binds first."
+    },
+    {
+      "module": "max-drawdown-and-breaches",
+      "difficulty": "hard",
+      "prompt": "What happens after a hard breach?",
+      "options": [
+        "A warning, then one more day to recover",
+        "Positions may be force-closed and the account disabled",
+        "Your drawdown is reset to the original size",
+        "The challenge pauses until the next reset"
+      ],
+      "answer": 1,
+      "explanation": "There is no soft breach or grace period. Positions may be force-closed and the account may be permanently disabled; a new challenge is needed."
+    },
+    {
+      "module": "max-drawdown-and-breaches",
+      "difficulty": "hard",
+      "prompt": "Is a stop-loss mandatory on Bungee Funded Perps?",
+      "options": [
+        "Yes, every position must have one",
+        "No, and you will not be breached for trading without one",
+        "Yes, on Turbo only",
+        "No, stop-losses are not supported"
+      ],
+      "answer": 1,
+      "explanation": "A stop-loss is optional. Risk management is up to you, but breach checks still use live equity."
+    },
+    {
+      "module": "max-drawdown-and-breaches",
+      "difficulty": "expert",
+      "prompt": "Why can an account breach even though its stop-loss triggered?",
+      "options": [
+        "Breaches use live equity at mark price; fills, slippage and fees can cross the floor",
+        "Stops are disabled at night",
+        "Bungee ignores stop-losses on funded accounts",
+        "Stops only work on Classic"
+      ],
+      "answer": 0,
+      "explanation": "Breach checks use live equity and mark prices. The account can breach before, during or after the stop fills, and breach actions take precedence over TP/SL."
+    },
+    {
+      "module": "max-drawdown-and-breaches",
+      "difficulty": "hard",
+      "prompt": "Daily floor $9,700, equity $9,710 when the stop triggers, then $15 of execution loss and fees. Result?",
+      "options": [
+        "Safe at $9,710",
+        "Safe at $9,700",
+        "Breach only if you close manually",
+        "Breach at $9,695"
+      ],
+      "answer": 3,
+      "explanation": "$9,710 - $15 = $9,695, below the $9,700 floor: a breach. Leave a buffer above the floor."
+    },
+    {
+      "module": "max-drawdown-and-breaches",
+      "difficulty": "hard",
+      "prompt": "Which of these does Bungee use for risk equity and breach checks?",
+      "options": [
+        "Last traded price on the chart",
+        "Your stop-loss trigger price",
+        "Mark price",
+        "The daily opening price"
+      ],
+      "answer": 2,
+      "explanation": "Risk equity, breaches, passes and liquidations use mark prices. TP/SL triggers use executed Hyperliquid trade prices."
+    },
+    {
+      "module": "execution-fees-funding-and-tp-sl",
+      "difficulty": "hard",
+      "prompt": "What is Bungee's trading fee?",
+      "options": [
+        "4 bps per side",
+        "0.1% taker, rebate for makers",
+        "1.5 bps per side, maker and taker",
+        "Free, only funding is charged"
+      ],
+      "answer": 2,
+      "explanation": "The fee is 1.5 bps (0.015%) of executed notional for both maker and taker, charged on open and on close."
+    },
+    {
+      "module": "execution-fees-funding-and-tp-sl",
+      "difficulty": "hard",
+      "prompt": "About how much does opening and closing a $10,000 position cost in fees?",
+      "options": [
+        "$1.50",
+        "$3",
+        "$8",
+        "$15"
+      ],
+      "answer": 1,
+      "explanation": "1.5 bps x $10,000 = $1.50 per side, about $3 for the round trip."
+    },
+    {
+      "module": "execution-fees-funding-and-tp-sl",
+      "difficulty": "hard",
+      "prompt": "How does funding work on Bungee Funded Perps?",
+      "options": [
+        "Charged hourly, minimum 0%, never paid to you",
+        "Paid to you when the rate is negative",
+        "Charged once a day at 00:00 UTC",
+        "There is no funding"
+      ],
+      "answer": 0,
+      "explanation": "Funding is charged hourly on open notional. The rate can be 0% but never negative, so it never creates a credit."
+    },
+    {
+      "module": "execution-fees-funding-and-tp-sl",
+      "difficulty": "hard",
+      "prompt": "Can you choose your own leverage?",
+      "options": [
+        "Yes, up to 50x",
+        "Yes, but only on crypto markets",
+        "No, all trades are 1x",
+        "No, leverage is fixed per market by Bungee"
+      ],
+      "answer": 3,
+      "explanation": "Leverage is fixed per market and set by Bungee, up to 5x; you cannot adjust it."
+    },
+    {
+      "module": "execution-fees-funding-and-tp-sl",
+      "difficulty": "hard",
+      "prompt": "Which margin mode does Bungee use?",
+      "options": [
+        "Cross margin only",
+        "Your choice per trade",
+        "Portfolio margin",
+        "Isolated margin only"
+      ],
+      "answer": 3,
+      "explanation": "All markets are isolated-margin perpetuals. Cross margin is not supported."
+    },
+    {
+      "module": "execution-fees-funding-and-tp-sl",
+      "difficulty": "expert",
+      "prompt": "Bungee changes leverage on a market where you hold a position. What happens to it?",
+      "options": [
+        "It is force-closed immediately",
+        "It converts to the new leverage",
+        "It keeps its leverage and becomes reduce-only",
+        "Nothing at all"
+      ],
+      "answer": 2,
+      "explanation": "Existing positions keep their original leverage and become reduce-only until fully closed. New positions use the new leverage."
+    },
+    {
+      "module": "execution-fees-funding-and-tp-sl",
+      "difficulty": "expert",
+      "prompt": "Which price triggers your stop-loss on Bungee?",
+      "options": [
+        "The mark price",
+        "Executed Hyperliquid trade prices",
+        "The candle low on the chart",
+        "The index price at the hour"
+      ],
+      "answer": 1,
+      "explanation": "TP/SL triggers use executed Hyperliquid trade prices received by Bungee. Breaches and liquidations use mark prices."
+    },
+    {
+      "module": "execution-fees-funding-and-tp-sl",
+      "difficulty": "hard",
+      "prompt": "Can you hold a long and a short in the same market in one account at the same time?",
+      "options": [
+        "No, each market holds one position in one direction",
+        "Yes, always",
+        "Only on stocks",
+        "Only with a stop-loss attached"
+      ],
+      "answer": 0,
+      "explanation": "Each market holds one position in one direction. You cannot stack two BTC trades or be long and short the same market at once."
+    },
+    {
+      "module": "prohibited-trading-and-enforcement",
+      "difficulty": "expert",
+      "prompt": "Which of these is allowed on Bungee Funded Perps?",
+      "options": [
+        "Following a public trade idea and acting on it yourself",
+        "A script that places orders for you",
+        "Letting a friend trade your funded account",
+        "Mirroring a signal provider automatically"
+      ],
+      "answer": 0,
+      "explanation": "Using public ideas and acting independently is allowed. Bots, account sharing and copy trading are prohibited."
+    },
+    {
+      "module": "prohibited-trading-and-enforcement",
+      "difficulty": "expert",
+      "prompt": "Is there a published minimum holding time that makes rapid trading safe?",
+      "options": [
+        "Yes, 60 seconds",
+        "Yes, 5 minutes",
+        "No, because scalping is allowed",
+        "No, scalping is judged by the overall pattern"
+      ],
+      "answer": 3,
+      "explanation": "Bungee publishes no holding time, trade count or profit share threshold. Scalping is judged by pattern."
+    },
+    {
+      "module": "prohibited-trading-and-enforcement",
+      "difficulty": "expert",
+      "prompt": "You are long BTC on one Bungee account and short ETH on another. What is it?",
+      "options": [
+        "Allowed, they are different markets",
+        "Allowed if the sizes differ",
+        "Prohibited opposite exposure across accounts",
+        "Allowed on funded accounts only"
+      ],
+      "answer": 2,
+      "explanation": "Opposite exposure across accounts is prohibited even in different markets, with different sizes or staggered entries."
+    },
+    {
+      "module": "prohibited-trading-and-enforcement",
+      "difficulty": "expert",
+      "prompt": "Are stop-loss and take-profit orders you set yourself counted as bot activity?",
+      "options": [
+        "Yes, any automatic order is a bot",
+        "No, ordinary trader-configured TP/SL is not bot activity",
+        "Only take-profit orders count",
+        "Only if more than two are active"
+      ],
+      "answer": 1,
+      "explanation": "Ordinary stop-loss and take-profit orders you configure are not, by themselves, bot activity."
+    },
+    {
+      "module": "prohibited-trading-and-enforcement",
+      "difficulty": "expert",
+      "prompt": "Can you trade during high-impact news events?",
+      "options": [
+        "No, news trading is banned",
+        "Yes, there is no general news-trading ban",
+        "Only on funded accounts",
+        "Only with half position size"
+      ],
+      "answer": 1,
+      "explanation": "There is no general news-trading ban, though temporary market restrictions may apply in extreme volatility."
+    },
+    {
+      "module": "prohibited-trading-and-enforcement",
+      "difficulty": "expert",
+      "prompt": "What happens when prohibited scalping is confirmed during a payout period?",
+      "options": [
+        "The applicable payout request is denied",
+        "A warning, then the payout is paid",
+        "Only the fee is refunded",
+        "The profit split changes to 50/50"
+      ],
+      "answer": 0,
+      "explanation": "Confirmed bot activity, HFT or scalping denies the applicable payout request, and Bungee need not warn first."
+    },
+    {
+      "module": "prohibited-trading-and-enforcement",
+      "difficulty": "expert",
+      "prompt": "What may happen after an isolated, inadvertent FIRST hedging violation?",
+      "options": [
+        "Automatic permanent ban in all cases",
+        "Nothing, first violations are ignored",
+        "A free challenge reset",
+        "A formal warning instead of termination"
+      ],
+      "answer": 3,
+      "explanation": "For an isolated, inadvertent first violation Bungee may issue a formal warning. Repeated or deliberate violations end in termination."
+    },
+    {
+      "module": "prohibited-trading-and-enforcement",
+      "difficulty": "expert",
+      "prompt": "Which practice is listed as technical abuse?",
+      "options": [
+        "Holding a trade over the weekend",
+        "Using a stop-loss",
+        "Exploiting stale prices or platform bugs",
+        "Trading Gold and Bitcoin together"
+      ],
+      "answer": 2,
+      "explanation": "Latency or stale-price exploitation, feed errors, platform bugs and simulated-market flaws are prohibited technical abuse."
+    },
+    {
+      "module": "funded-account-payouts-and-your-plan",
+      "difficulty": "expert",
+      "prompt": "How much of the gross daily payout allowance is available per user per UTC day by default?",
+      "options": [
+        "$5,000",
+        "$10,000",
+        "$20,000",
+        "Unlimited"
+      ],
+      "answer": 2,
+      "explanation": "The default allowance is $20,000 of gross profit per user per UTC day, shared across funded accounts."
+    },
+    {
+      "module": "funded-account-payouts-and-your-plan",
+      "difficulty": "expert",
+      "prompt": "What is the minimum payout after the profit split?",
+      "options": [
+        "$10",
+        "$50",
+        "$62.50",
+        "$100"
+      ],
+      "answer": 1,
+      "explanation": "The minimum payout is $50 after the split, which corresponds to $62.50 of gross profit at 80%."
+    },
+    {
+      "module": "funded-account-payouts-and-your-plan",
+      "difficulty": "expert",
+      "prompt": "What happens to a funded account when you claim its profit?",
+      "options": [
+        "It resets to its original balance and default risk limits",
+        "It closes and you need a new challenge",
+        "Its drawdown floor rises with the profit",
+        "Nothing until the payment is sent"
+      ],
+      "answer": 0,
+      "explanation": "A claim takes all eligible settled profit, applies the split and resets the account to its original balance and default limits. It stays funded."
+    },
+    {
+      "module": "funded-account-payouts-and-your-plan",
+      "difficulty": "expert",
+      "prompt": "Which condition must be met before you can CLAIM account profit?",
+      "options": [
+        "At least 10 trading days",
+        "A take-profit order on every position",
+        "A profit of at least 10%",
+        "No open positions or pending orders on the account"
+      ],
+      "answer": 3,
+      "explanation": "The account must be active, reconciled and current on risk, with no breach, open positions, pending orders, holds or active protection."
+    },
+    {
+      "module": "funded-account-payouts-and-your-plan",
+      "difficulty": "expert",
+      "prompt": "Who handles KYC for Bungee Funded Perps, and what is needed?",
+      "options": [
+        "Bungee staff by video call",
+        "A bank statement and utility bill",
+        "Your exchange account login",
+        "Sumsub: a government photo ID and a selfie"
+      ],
+      "answer": 3,
+      "explanation": "Identity verification is handled by Sumsub with a government-issued photo ID and an in-flow selfie."
+    },
+    {
+      "module": "funded-account-payouts-and-your-plan",
+      "difficulty": "expert",
+      "prompt": "$25,000 gross is claimed at 80%. How much can you request today with a fresh allowance?",
+      "options": [
+        "$25,000",
+        "$20,000",
+        "$16,000",
+        "$4,000"
+      ],
+      "answer": 2,
+      "explanation": "$25,000 gross gives $20,000 to you, but the $20,000 gross allowance limits today's request to $16,000. The remaining $4,000 waits until the next UTC day."
+    },
+    {
+      "module": "funded-account-payouts-and-your-plan",
+      "difficulty": "expert",
+      "prompt": "Bungee's target time to process a valid payout request is:",
+      "options": [
+        "Instant",
+        "1 business day",
+        "7 days",
+        "30 days"
+      ],
+      "answer": 1,
+      "explanation": "Bungee aims to process valid payout requests within 1 business day; it is a target, not a guarantee."
+    },
+    {
+      "module": "funded-account-payouts-and-your-plan",
+      "difficulty": "expert",
+      "prompt": "Can profit made during the CHALLENGE be withdrawn?",
+      "options": [
+        "No, payouts start only on the funded account",
+        "Yes, at a 50% split",
+        "Yes, after KYC",
+        "Only on the Pro track"
+      ],
+      "answer": 0,
+      "explanation": "Challenge profit is not withdrawable; it only proves you can hit the target. Payouts start on the funded account."
+    }
+  ]
+}
