@@ -110,6 +110,10 @@ const limiters = {
   feedbackIp: make(6, 3600, "feedback_ip"), // 6/hour per IP
   feedback: make(5, 3600, "feedback"), // 5/hour per member
   feedbackAdmin: make(120, 60, "feedback_admin"), // 120/min per staff member - status changes
+  // Giveaway entry form. An entry can be edited, but each save uploads a
+  // screenshot, so it is tight on both keys.
+  giveawayIp: make(10, 3600, "giveaway_ip"), // 10/hour per IP
+  giveaway: make(6, 3600, "giveaway"), // 6/hour per member
 };
 
 export type RateKey = keyof typeof limiters;

@@ -118,6 +118,12 @@ const nextConfig = {
     dangerouslyAllowSVG: false,
     contentDispositionType: "attachment",
   },
+  // Short campaign links. Config redirects are served by the edge and never
+  // invoke a function. /bungee/live is a route handler instead, because it
+  // has to look up which quiz is live.
+  async redirects() {
+    return [{ source: "/bungee/learn", destination: "/academy/learn/bungee-funded-perps", permanent: false }];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

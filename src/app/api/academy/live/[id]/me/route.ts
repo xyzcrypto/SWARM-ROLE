@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { fail, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
-import { answerLive, joinLive, myLiveState } from "@modules/academy/lib/live";
+import { answerLive, blurLive, joinLive, myLiveState } from "@modules/academy/lib/live";
 import { academyError, json, PRIVATE } from "@modules/academy/lib/http";
 
 export const runtime = "nodejs";
@@ -26,6 +26,8 @@ export async function GET(_req: Request, { params }: Ctx) {
 const schema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("join") }),
   z.object({ action: z.literal("answer"), index: z.number().int().min(0).max(100), choice: z.number().int().min(-1).max(3) }),
+  // The player left the tab while a question was open (anti-cheat signal for staff).
+  z.object({ action: z.literal("blur"), index: z.number().int().min(0).max(100) }),
 ]);
 
 // POST /api/academy/live/:id/me - join, or answer the open question. One answer
@@ -40,6 +42,7 @@ export async function POST(req: Request, { params }: Ctx) {
     if (!parsed.success) return fail("Invalid request.", 400);
     const { id } = await params;
     if (parsed.data.action === "join") return json(await joinLive(id, me.id), PRIVATE);
+    if (parsed.data.action === "blur") return json(await blurLive(id, me.id, parsed.data.index), PRIVATE);
     return json(await answerLive(id, me.id, parsed.data.index, parsed.data.choice), PRIVATE);
   } catch (err) {
     return academyError(err, "academy:live:post");

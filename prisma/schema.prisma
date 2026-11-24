@@ -19,30 +19,30 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  role          String    @default("USER") // "USER" | "ADMIN"
-  membership    String    @default("Free") // "Free" | "Premium"
-  provider      String    @default("credentials") // "credentials" | "google"
-  createdAt     DateTime  @default(now())
-  lastLoginAt   DateTime?
+  id                String    @id @default(cuid())
+  name              String?
+  email             String    @unique
+  emailVerified     DateTime?
+  image             String?
+  passwordHash      String?
+  role              String    @default("USER") // "USER" | "ADMIN"
+  membership        String    @default("Free") // "Free" | "Premium"
+  provider          String    @default("credentials") // "credentials" | "google"
+  createdAt         DateTime  @default(now())
+  lastLoginAt       DateTime?
   // "last seen" for DMs. Written by the presence endpoints the site ALREADY
   // calls (the site-wide heartbeat and the pagehide beacon), so this costs no
   // new requests. It is deliberately not on ChatPresence: that row is deleted
   // on leave, which is exactly the moment a last-seen time becomes interesting.
-  lastSeenAt    DateTime?
+  lastSeenAt        DateTime?
   // Who may open a DM with this member: "everyone" | "following" | "nobody".
   // "following" means people THIS user follows - the inbox they opted into,
   // not the crowd who opted into them.
-  dmPrivacy     String    @default("everyone")
+  dmPrivacy         String    @default("everyone")
   // Public profile visibility: "public" shows everything on /u/<handle>
   // (Academy level/XP/certificates, feedback, posts, library, journal);
   // "private" shows only name and avatar to everyone else.
-  profileVisibility String  @default("public")
+  profileVisibility String    @default("public")
 
   // Brute-force defence (works without Upstash): lock the account for a short
   // window after repeated failed password attempts; reset on success.
@@ -124,6 +124,7 @@ model User {
   academyProfile      AcademyProfile?
   academyXp           AcademyXp[]
   feedback            Feedback[]
+  giveawayEntries     GiveawayEntry[]
   academyAttempts     AcademyAttempt[]
   academyProgress     AcademyProgress[]
   academyAchievements AcademyAchievement[]
@@ -1361,6 +1362,9 @@ model AcademyLiveParticipant {
   correct  Int      @default(0)
   totalMs  Int      @default(0)
   rank     Int?
+  // Times this player left the tab or window while a question was open
+  // (anti-cheat signal shown to staff; it never changes the score).
+  blurs    Int      @default(0)
 
   live AcademyLive @relation(fields: [liveId], references: [id], onDelete: Cascade)
   user User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1447,4 +1451,31 @@ model Feedback {
   @@index([createdAt])
   @@index([status, createdAt])
   @@index([userId, createdAt])
+}
+
+// Giveaway entries (first campaign: XYZ Crypto x Bungee 3x $10K funded
+// accounts). One entry per member per campaign; Bungee UID unique per campaign
+// so one Bungee account cannot enter twice through two site accounts.
+// ipHash / uaHash are salted hashes, never the raw values: they only let staff
+// see entries that came from the same network or browser.
+model GiveawayEntry {
+  id          String   @id @default(cuid())
+  campaign    String
+  userId      String
+  bungeeUid   String
+  bungeeEmail String
+  telegram    String
+  proofUrl    String?
+  ipHash      String   @default("")
+  uaHash      String   @default("")
+  status      String   @default("pending") // pending | verified | winner | rejected
+  note        String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaign, userId])
+  @@unique([campaign, bungeeUid])
+  @@index([campaign, createdAt])
 }

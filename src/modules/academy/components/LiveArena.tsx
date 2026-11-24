@@ -12,6 +12,7 @@ import { lineFor, duck, play, say, sayOneOf, sfx, unlock, type Piece } from "../
 import { type VoiceLine } from "../client/voice-lines";
 import { getJson, postJson, useAudio, useLang, useServerClock, useTicker, withRetry } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
+import { optionOrder } from "../client/option-order";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { LiveMe, LiveResults, LiveState } from "./types";
 import { Avatar, burstConfetti, DIFF_LABEL, DIFF_TONE, Empty, fmt, Panel, Pill } from "./ui";
@@ -297,6 +298,33 @@ export function LiveArena({ id }: { id: string }) {
 
   const myAnswer = (index: number) => me?.answers.find((a) => a.index === index) ?? null;
 
+  // Anti-cheat 1: this player's own option order for the open question.
+  const phaseIndex = phase && "index" in phase ? phase.index : -1;
+  const order = useMemo(() => optionOrder(id, me?.userId, phaseIndex), [id, me?.userId, phaseIndex]);
+
+  // Anti-cheat 2: leaving the tab or window while a question is open and not
+  // yet answered is reported once per question. Staff see the count; it never
+  // touches the score, so a call or a notification costs nothing.
+  const openUnanswered = phase?.kind === "question" && !!me?.joined && !me.answers.some((a) => a.index === phaseIndex);
+  const blurSent = useRef(-1);
+  useEffect(() => {
+    if (!openUnanswered) return;
+    const report = () => {
+      if (blurSent.current === phaseIndex) return;
+      blurSent.current = phaseIndex;
+      void postJson(`/api/academy/live/${id}/me`, { action: "blur", index: phaseIndex }).catch(() => undefined);
+    };
+    const onVis = () => {
+      if (document.visibilityState === "hidden") report();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("blur", report);
+    return () => {
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("blur", report);
+    };
+  }, [openUnanswered, phaseIndex, id]);
+
   const answer = useCallback(
     async (index: number, choice: number) => {
       if (!me?.joined || sending != null || myAnswer(index)) return;
@@ -329,11 +357,11 @@ export function LiveArena({ id }: { id: string }) {
   useEffect(() => {
     const on = (e: Event) => {
       const p = (e as CustomEvent<NonNullable<Parsed>>).detail;
-      if (p.cmd === "answer" && p.option != null && phase?.kind === "question") void answer(phase.index, p.option);
+      if (p.cmd === "answer" && p.option != null && phase?.kind === "question") void answer(phase.index, order[p.option] ?? p.option);
     };
     window.addEventListener(COMMAND_EVENT, on);
     return () => window.removeEventListener(COMMAND_EVENT, on);
-  }, [answer, phase]);
+  }, [answer, phase, order]);
 
   const { current: streak, best: bestStreak } = useMemo(() => streaks(me?.answers ?? []), [me?.answers]);
 
@@ -415,6 +443,7 @@ export function LiveArena({ id }: { id: string }) {
               sending={sending}
               canAnswer={!!me?.joined}
               guest={!!guest}
+              order={order}
               onAnswer={(c) => answer(phase.index, c)}
               onJoin={join}
               joining={joining}
@@ -618,6 +647,7 @@ function QuestionStage({
   sending,
   canAnswer,
   guest,
+  order,
   onAnswer,
   onJoin,
   joining,
@@ -632,6 +662,7 @@ function QuestionStage({
   sending: number | null;
   canAnswer: boolean;
   guest: boolean;
+  order: number[];
   onAnswer: (choice: number) => void;
   onJoin: () => void;
   joining: boolean;
@@ -644,7 +675,17 @@ function QuestionStage({
   const locked = !!mine || sending != null;
   const stats = revealing ? q.stats : null;
   return (
-    <motion.div key={phase.index} initial={{ opacity: 0, y: 16, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: "spring", stiffness: 260, damping: 26 }} className="surface relative overflow-hidden rounded-3xl p-4 sm:p-8">
+    <motion.div
+      key={phase.index}
+      initial={{ opacity: 0, y: 16, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 260, damping: 26 }}
+      // Anti-cheat 3: the question cannot be selected or copied into a search
+      // box or an AI chat while it is open.
+      onCopy={(e) => phase.kind === "question" && e.preventDefault()}
+      onContextMenu={(e) => phase.kind === "question" && e.preventDefault()}
+      className={cn("surface relative overflow-hidden rounded-3xl p-4 sm:p-8", phase.kind === "question" && "select-none")}
+    >
       {/* Progress through the quiz, one segment per question. */}
       <div className="absolute inset-x-0 top-0 flex h-1 gap-0.5" aria-hidden>
         {Array.from({ length: count }, (_, i) => (
@@ -687,7 +728,11 @@ function QuestionStage({
       </div>
       <h2 className="acad-play-prompt mt-3 font-display font-semibold leading-snug text-content sm:mt-4">{lang.tx(q.prompt, q.hi?.prompt)}</h2>
       <div className="mt-4 grid gap-2 sm:mt-6 sm:grid-cols-2 sm:gap-2.5">
-        {q.options.map((o, i) => {
+        {/* Shown in this player's own order (`order[position]` = original index);
+            everything below still speaks in original indexes, so the answer,
+            the vote split and what is sent to the server are unchanged. */}
+        {order.map((i, pos) => {
+          const o = q.options[i];
           const right = revealing && q.answer === i;
           const picked = mine?.choice === i || sending === i;
           const wrong = revealing && picked && !right;
@@ -698,7 +743,7 @@ function QuestionStage({
               type="button"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.05 * i, type: "spring", stiffness: 380, damping: 28 }}
+              transition={{ delay: 0.05 * pos, type: "spring", stiffness: 380, damping: 28 }}
               disabled={!canAnswer || locked || phase.kind !== "question" || phase.paused}
               onClick={() => onAnswer(i)}
               className={cn(
@@ -711,7 +756,7 @@ function QuestionStage({
             >
               {revealing && <motion.span className={cn("absolute inset-y-0 left-0", right ? "bg-mint-400/[0.12]" : "bg-white/[0.05]")} initial={{ width: 0 }} animate={{ width: `${share}%` }} transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }} />}
               <span className={cn("relative grid h-8 w-8 shrink-0 place-items-center rounded-xl border font-mono text-xs font-bold", right ? "border-mint-400 bg-mint-400 text-ink-950" : wrong ? "border-red-400 bg-red-400 text-ink-950" : "border-hairline text-content-subtle")}>
-                {right ? <CheckCircle2 className="h-4 w-4" /> : wrong ? <XCircle className="h-4 w-4" /> : LETTERS[i]}
+                {right ? <CheckCircle2 className="h-4 w-4" /> : wrong ? <XCircle className="h-4 w-4" /> : LETTERS[pos]}
               </span>
               <span className="relative min-w-0 flex-1">{lang.tx(o, q.hi?.options?.[i])}</span>
               {revealing && <span className="relative font-mono text-xs text-content-subtle">{share}%</span>}
@@ -775,6 +820,8 @@ function QuestionStage({
               {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Join now (late entries score from the next question)
             </button>
           )
+        ) : phase.kind === "question" ? (
+          <p className="text-[11px] text-content-subtle">Fair play: options are shuffled for every player, and leaving this screen before you answer is recorded.</p>
         ) : null}
       </div>
     </motion.div>

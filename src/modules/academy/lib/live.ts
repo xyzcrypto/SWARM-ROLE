@@ -10,6 +10,7 @@ import { checkAchievements, grant, pingBoards } from "./xp";
 import { issueCertificate } from "./board";
 import { clip, hinglish } from "./voice";
 import { GRACE_MS, QuizError } from "./quiz";
+import { MIN_HUMAN_ANSWER_MS } from "@modules/giveaway/lib/bungee";
 
 const COUNTDOWN_MS = 6_000;
 
@@ -297,7 +298,11 @@ export async function answerLive(id: string, userId: string, index: number, choi
   const limit = live.questionSec * 1000;
   const ms = Math.max(0, Math.min(limit, now - phase.opensAt));
   const pick = choice >= 0 && choice < 4 ? choice : -1;
-  const correct = pick === q.answer;
+  // Anti-cheat: nobody reads a question and four options in under
+  // MIN_HUMAN_ANSWER_MS after it opens; only a script answering on the open
+  // event does. Such an answer is kept (staff see it) but scores nothing.
+  const tooFast = pick >= 0 && ms < MIN_HUMAN_ANSWER_MS;
+  const correct = !tooFast && pick === q.answer;
   const points = liveAnswerPoints(correct, q.difficulty as Difficulty, ms, limit, cfg.xp);
   try {
     await prisma.$transaction([
@@ -313,6 +318,20 @@ export async function answerLive(id: string, userId: string, index: number, choi
   }
   // Correctness is NOT returned here: it is revealed to everyone at once.
   return { accepted: true, index, ms };
+}
+
+/**
+ * The player left the tab or window while a question was open. Recorded for
+ * staff as an anti-cheat signal (looking answers up elsewhere); it never
+ * changes the score, so a phone call or a notification costs nothing.
+ */
+export async function blurLive(id: string, userId: string, index: number) {
+  const live = await prisma.academyLive.findUnique({ where: { id } });
+  if (!live) throw new QuizError("Live quiz not found.", 404);
+  const phase = livePhase(clockOf(live), Date.now());
+  if (phase.kind !== "question" || phase.index !== index) return { recorded: false };
+  const { count } = await prisma.academyLiveParticipant.updateMany({ where: { liveId: id, userId }, data: { blurs: { increment: 1 } } });
+  return { recorded: count > 0 };
 }
 
 /**

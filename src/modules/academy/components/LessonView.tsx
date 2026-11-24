@@ -10,6 +10,8 @@ import { play, say, stopVoice, unlock } from "../client/audio";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { VoiceLine } from "../client/voice-lines";
 import { DIFF_TONE, Icon, LEVEL_LABEL, Pill } from "./ui";
+import { BungeeLessonCta } from "@modules/giveaway/components/BungeeLessonCta";
+import { BUNGEE_CATEGORY, BUNGEE_LAST_MODULE } from "@modules/giveaway/lib/bungee";
 
 type Lesson = {
   id: string;
@@ -231,6 +233,9 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
             <p className="mt-2 text-[15px] leading-7 text-content-muted">{tx(lesson.example.body, H.example?.body)}</p>
           </div>
         )}
+
+        {/* Bungee Funded Perps track: giveaway banner, and the referral card on the last lesson. */}
+        {nav.category.slug === BUNGEE_CATEGORY && <BungeeLessonCta last={lesson.slug === BUNGEE_LAST_MODULE} />}
 
         <div className="mt-10 overflow-hidden rounded-3xl border border-gold-400/30 bg-gradient-to-br from-gold-400/[0.09] to-transparent p-6 sm:p-8">
           <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-300">Knowledge check</div>
