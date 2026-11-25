@@ -710,7 +710,7 @@ const BPM: Record<Exclude<Track, "auto">, number> = { focus: 60, arena: 112, liv
 // (so ducking under AneQue works exactly as before). Only the track that is
 // playing is kept decoded: a phone holds one buffer, not four. If a loop cannot
 // be fetched or decoded, the generative scheduler below plays instead.
-const LOOP_GAIN = 0.62;
+const LOOP_GAIN = 0.9;
 let loopNode: AudioBufferSourceNode | null = null;
 let loopGain: GainNode | null = null;
 let loopBuf: { track: string; buf: Promise<AudioBuffer | null> } | null = null;
