@@ -38,11 +38,11 @@ export function MyCertificates() {
             </Empty>
           ) : (
             <ul className="space-y-2.5">
-              {me.certificates.map((c) => {
+              {me.certificates.map((c, i) => {
                 const I = KIND_ICON[c.kind] ?? Award;
                 return (
-                  <li key={c.code} className="flex flex-wrap items-center gap-3 rounded-2xl border border-gold-400/30 bg-gold-400/[0.04] p-4">
-                    <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/15 text-gold-200">
+                  <li key={c.code} style={{ animationDelay: `${Math.min(i, 8) * 70}ms` }} className="acad-cert-item acad-row-in relative flex flex-wrap items-center gap-3 overflow-hidden rounded-2xl border border-gold-400/30 bg-gold-400/[0.04] p-4">
+                    <span className="acad-cert-medal grid h-11 w-11 place-items-center rounded-2xl text-ink-950">
                       <I className="h-5 w-5" />
                     </span>
                     <div className="min-w-0 flex-1">

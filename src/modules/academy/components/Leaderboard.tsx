@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { Crown, Loader2, Search, Trophy } from "lucide-react";
@@ -11,7 +11,7 @@ import { ShareSheet } from "./ShareSheet";
 import { say, sfx, unlock } from "../client/audio";
 import type { VoiceLine } from "../client/voice-lines";
 import type { Board, BoardRow } from "./types";
-import { Avatar, Empty, fmt, Movement, Skeleton } from "./ui";
+import { Avatar, CountUp, Empty, fmt, Movement, Skeleton } from "./ui";
 
 export type Period = "daily" | "weekly" | "monthly" | "alltime";
 const PERIODS: { id: Period; label: string }[] = [
@@ -46,7 +46,7 @@ function Ago({ at }: { at: number }) {
   return <span>updated {secs}s ago</span>;
 }
 
-function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
+function Podium({ rows, meId, moves }: { rows: BoardRow[]; meId?: string; moves: Record<string, number> }) {
   const order = [rows[1], rows[0], rows[2]].filter(Boolean) as BoardRow[];
   // With one or two people on the board the podium stays centred, not pinned left.
   const cols = order.length === 1 ? "mx-auto max-w-[11rem] grid-cols-1" : order.length === 2 ? "mx-auto max-w-md grid-cols-2" : "grid-cols-3";
@@ -63,10 +63,13 @@ function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
             className={cn(
               `acad-podium-${r.rank} relative flex min-w-0 flex-col items-center rounded-3xl border px-2 pb-4 text-center sm:px-4`,
               first ? "pt-8 sm:pt-10" : "pt-6",
-              r.userId === meId && "ring-1 ring-gold-300/70"
+              r.userId === meId && "ring-1 ring-gold-300/70",
+              moveClass(moves[r.userId])
             )}
           >
-            {first && <Crown className="absolute -top-4 h-8 w-8 text-gold-300 drop-shadow-[0_0_14px_rgba(226,167,47,0.7)]" strokeWidth={1.6} />}
+            {first && <span className="acad-podium-sheen pointer-events-none absolute inset-0 rounded-3xl" aria-hidden />}
+            {first && <Crown className="acad-crown absolute -top-4 h-8 w-8 text-gold-300 drop-shadow-[0_0_14px_rgba(226,167,47,0.7)]" strokeWidth={1.6} />}
+            <MoveChip move={moves[r.userId]} className="right-3 top-3" />
             <div className="relative">
               <Avatar src={r.image} alt={r.name} size={first ? 68 : 52} className={cn("ring-2", first ? "ring-gold-300" : r.rank === 2 ? "ring-zinc-300/80" : "ring-amber-600/80")} />
               <span
@@ -80,7 +83,9 @@ function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
             </div>
             <div className="mt-4 w-full truncate text-sm font-semibold text-content sm:text-base">{r.name}</div>
             <div className="text-[11px] text-content-subtle">{r.levelName}</div>
-            <div className={cn("mt-2 font-display text-lg font-bold sm:text-2xl", first ? "text-gold-200" : "text-content")}>{fmt(r.xp)}</div>
+            <div className={cn("mt-2 font-display text-lg font-bold sm:text-2xl", first ? "text-gold-200" : "text-content")}>
+              <CountUp value={r.xp} duration={1100} />
+            </div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-content-subtle">XP</div>
           </motion.div>
         );
@@ -89,15 +94,37 @@ function Podium({ rows, meId }: { rows: BoardRow[]; meId?: string }) {
   );
 }
 
-function Row({ r, me }: { r: BoardRow; me: boolean }) {
+/** A row that just moved flashes mint (climbed) or red (dropped) once. */
+function moveClass(move?: number) {
+  return move ? (move > 0 ? "acad-rank-up" : "acad-rank-down") : undefined;
+}
+
+/** "▲2" / "▼1", rising and fading over the row that moved. */
+function MoveChip({ move, className }: { move?: number; className?: string }) {
+  if (!move) return null;
+  return (
+    <span className={cn("acad-rank-chip absolute rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold", move > 0 ? "is-up" : "is-down", className)} aria-hidden>
+      {move > 0 ? "▲" : "▼"}
+      {Math.abs(move)}
+    </span>
+  );
+}
+
+function Row({ r, me, move, i = 0 }: { r: BoardRow; me: boolean; move?: number; i?: number }) {
   return (
     <motion.li
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0 }}
       transition={{ type: "spring", stiffness: 380, damping: 34 }}
-      className={cn("grid grid-cols-[2.25rem_1fr_auto] items-center gap-3 rounded-2xl px-3 py-2.5 sm:grid-cols-[2.5rem_1fr_5rem_5rem_4.5rem_3rem]", me ? "acad-me-row" : "hover:bg-white/[0.03]")}
+      style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
+      className={cn(
+        "acad-row-in relative grid grid-cols-[2.25rem_1fr_auto] items-center gap-3 rounded-2xl px-3 py-2.5 sm:grid-cols-[2.5rem_1fr_5rem_5rem_4.5rem_3rem]",
+        me ? "acad-me-row" : "hover:bg-white/[0.03]",
+        moveClass(move)
+      )}
     >
+      <MoveChip move={move} className="-top-1.5 left-1" />
       <span className={cn("text-center font-mono text-sm font-bold", r.rank <= 3 ? "text-gold-300" : "text-content-subtle")}>{r.rank}</span>
       <div className="flex min-w-0 items-center gap-3">
         <Avatar src={r.image} alt={r.name} size={34} />
@@ -225,6 +252,19 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<BoardRow[] | null>(null);
   const { me, reload: reloadMe } = useMe();
+  // Rank changes between two loads of the same board: userId -> places
+  // climbed (negative = dropped). Shown once as a flash and a chip.
+  const seen = useRef<{ period: Period; ranks: Map<string, number> } | null>(null);
+  const meRef = useRef<string | undefined>(undefined);
+  const [moves, setMoves] = useState<Record<string, number>>({});
+  useEffect(() => {
+    meRef.current = me?.user?.id;
+  }, [me]);
+  useEffect(() => {
+    if (!Object.keys(moves).length) return;
+    const id = setTimeout(() => setMoves({}), 2600);
+    return () => clearTimeout(id);
+  }, [moves]);
   // (No board-wide ticker: the only clock on this view is "updated Ns ago",
   // and <Ago> ticks itself. A 5 s re-render of every row was pure cost.)
 
@@ -232,6 +272,20 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
     async (p: Period) => {
       try {
         const b = await getJson<Board>(`/api/academy/leaderboard?period=${p}`);
+        const before = seen.current?.period === p ? seen.current.ranks : null;
+        seen.current = { period: p, ranks: new Map(b.rows.map((r) => [r.userId, r.rank])) };
+        if (before) {
+          const m: Record<string, number> = {};
+          for (const r of b.rows) {
+            const was = before.get(r.userId);
+            if (was != null && was !== r.rank) m[r.userId] = was - r.rank;
+          }
+          if (Object.keys(m).length) {
+            setMoves(m);
+            const mine = meRef.current ? m[meRef.current] : undefined;
+            if (mine && mine > 0) sfx("rankup");
+          }
+        }
         setBoard(b);
         setLoadedAt(Date.now());
         setExtra([]);
@@ -359,8 +413,8 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
         <div className="mt-5">
           {results.length ? (
             <ul className="space-y-1">
-              {results.map((r) => (
-                <Row key={r.userId} r={r} me={r.userId === meId} />
+              {results.map((r, i) => (
+                <Row key={r.userId} r={r} me={r.userId === meId} i={i} />
               ))}
             </ul>
           ) : (
@@ -393,7 +447,7 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
       ) : (
         <>
           <div className={cn(compact ? "mt-8" : "mt-10")}>
-            <Podium rows={top} meId={meId} />
+            <Podium rows={top} meId={meId} moves={moves} />
           </div>
           {rest.length > 0 && (
             <>
@@ -407,8 +461,8 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
               </div>
               <ul className="mt-2 space-y-1">
                 <AnimatePresence initial={false}>
-                  {rest.map((r) => (
-                    <Row key={r.userId} r={r} me={r.userId === meId} />
+                  {rest.map((r, i) => (
+                    <Row key={r.userId} r={r} me={r.userId === meId} move={moves[r.userId]} i={i} />
                   ))}
                 </AnimatePresence>
               </ul>
