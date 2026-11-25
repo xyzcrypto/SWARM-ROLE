@@ -78,12 +78,46 @@ export function LiveBanner() {
   // (Only rendered after the client fetched the list, so reading the clock here
   // can never disagree with the server's HTML.)
   const left = pick && !pick.live ? new Date(pick.q.scheduledAt).getTime() - now : null;
+  // The server may still call it "upcoming" for a moment (and the list is edge-
+  // cached for 10s), so retry every 4s a few times until it flips to live.
+  const due = left != null && left <= 0;
   useEffect(() => {
-    if (left == null || left > 0) return;
-    getJson<{ quizzes: LiveListItem[] }>("/api/academy/live").then((d) => setItems(d.quizzes), () => undefined);
-  }, [left != null && left <= 0]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!due) return;
+    let tries = 0;
+    const id = setInterval(() => {
+      if (++tries > 6) return clearInterval(id);
+      getJson<{ quizzes: LiveListItem[] }>("/api/academy/live").then((d) => setItems(d.quizzes), () => undefined);
+    }, 4000);
+    return () => clearInterval(id);
+  }, [due]);
 
   const hidden = !pick || path.startsWith("/academy/live/") || gone === pick.q.id;
+  const hide = () => {
+    if (!pick) return;
+    setGone(pick.q.id);
+    try {
+      sessionStorage.setItem(DISMISS, pick.q.id);
+    } catch {
+      /* fine */
+    }
+  };
+  const action = pick ? (
+    <>
+      {!pick.live && left != null && (
+        <div className="acad-live-count font-mono text-lg font-bold tabular-nums text-content sm:text-xl" aria-label="Starts in">
+          {left > 0 ? hms(left) : "Starting…"}
+        </div>
+      )}
+      <Link
+        href={`/academy/live/${pick.q.id}`}
+        onClick={() => sfx("go")}
+        className={pick.live ? "btn-primary acad-join-pulse h-10 px-4 text-sm" : "btn-gold h-10 px-4 text-sm"}
+      >
+        {pick.live ? <Radio className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
+        {pick.live ? "Join now" : "Get ready"}
+      </Link>
+    </>
+  ) : null;
   return (
     <AnimatePresence>
       {!hidden && pick && (
@@ -96,48 +130,29 @@ export function LiveBanner() {
           className={pick.live ? "acad-live-banner is-live mb-5 sm:mb-7" : "acad-live-banner mb-5 sm:mb-7"}
           role="status"
         >
-          <div className="relative flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[1.15rem] px-4 py-3 sm:px-5">
-            <span className={pick.live ? "acad-live-dot" : "acad-live-dot is-soon"} aria-hidden />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em]">
-                {pick.live ? (
-                  <span className="text-red-400">Live now</span>
-                ) : (
-                  <span className="text-gold-300">Next live quiz</span>
-                )}
-                <span className="text-content-subtle">· {pick.q.questions} questions</span>
-                {pick.q.participants > 0 && <span className="text-content-subtle">· {pick.q.participants} joined</span>}
+          <div className="relative rounded-[1.15rem] px-4 py-3 sm:px-5">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <span className={pick.live ? "acad-live-dot" : "acad-live-dot is-soon"} aria-hidden />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-x-2 text-[10px] font-bold uppercase tracking-[0.2em]">
+                  {pick.live ? <span className="text-red-400">Live now</span> : <span className="text-gold-300">Next live quiz</span>}
+                  <span className="text-content-subtle">· {pick.q.questions} questions</span>
+                  {pick.q.participants > 0 && <span className="text-content-subtle">· {pick.q.participants} joined</span>}
+                </div>
+                <div className="truncate font-display text-[15px] font-semibold text-content sm:text-base">{pick.q.title}</div>
               </div>
-              <div className="truncate font-display text-[15px] font-semibold text-content sm:text-base">{pick.q.title}</div>
+              <div className="hidden items-center gap-4 sm:flex">{action}</div>
+              <button
+                type="button"
+                aria-label="Hide"
+                onClick={hide}
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-content-subtle hover:bg-white/5 hover:text-content"
+              >
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            {!pick.live && left != null && (
-              <div className="acad-live-count font-mono text-lg font-bold tabular-nums text-content sm:text-xl" aria-label="Starts in">
-                {hms(left)}
-              </div>
-            )}
-            <Link
-              href={`/academy/live/${pick.q.id}`}
-              onClick={() => sfx("go")}
-              className={pick.live ? "btn-primary acad-join-pulse h-10 px-4 text-sm" : "btn-gold h-10 px-4 text-sm"}
-            >
-              {pick.live ? <Radio className="h-4 w-4" /> : <Zap className="h-4 w-4" />}
-              {pick.live ? "Join now" : "Get ready"}
-            </Link>
-            <button
-              type="button"
-              aria-label="Hide"
-              onClick={() => {
-                setGone(pick.q.id);
-                try {
-                  sessionStorage.setItem(DISMISS, pick.q.id);
-                } catch {
-                  /* fine */
-                }
-              }}
-              className="grid h-8 w-8 place-items-center rounded-full text-content-subtle hover:bg-white/5 hover:text-content"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {/* Phones: the countdown and the button get their own row. */}
+            <div className="mt-2.5 flex items-center justify-between gap-3 sm:hidden">{action}</div>
           </div>
         </motion.div>
       )}
