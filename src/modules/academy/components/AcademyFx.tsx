@@ -8,7 +8,8 @@ import { sfx } from "../client/audio";
  *  - every tap on a button, link or option gets a ripple at the finger, a
  *    soft tap sound and a light haptic (Android; iOS has no vibration API);
  *  - on devices with a real pointer, cards light up under the cursor (a CSS
- *    radial highlight driven by --mx/--my, see academy.css "card spotlight").
+ *    radial highlight driven by --mx/--my, see academy.css "card spotlight"),
+ *    and `.acad-tilt` cards lean toward it in 3D (--rx/--ry).
  *
  * Nothing here renders React output and nothing changes the DOM React owns:
  * the ripple is a detached element on <body>, and the spotlight only sets two
@@ -47,12 +48,20 @@ export function AcademyFx() {
         if (lit && lit !== card) {
           lit.style.removeProperty("--mx");
           lit.style.removeProperty("--my");
+          lit.style.removeProperty("--rx");
+          lit.style.removeProperty("--ry");
         }
         lit = card;
         if (!card) return;
         const b = card.getBoundingClientRect();
         card.style.setProperty("--mx", `${e.clientX - b.left}px`);
         card.style.setProperty("--my", `${e.clientY - b.top}px`);
+        if (card.classList.contains("acad-tilt")) {
+          const x = (e.clientX - b.left) / b.width - 0.5;
+          const y = (e.clientY - b.top) / b.height - 0.5;
+          card.style.setProperty("--rx", `${(-y * 6).toFixed(2)}deg`);
+          card.style.setProperty("--ry", `${(x * 8).toFixed(2)}deg`);
+        }
       });
     };
     document.addEventListener("pointerdown", onDown, { passive: true, capture: true });

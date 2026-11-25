@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { usePathname } from "next/navigation";
-import { Award, BookOpen, GraduationCap, Radio, Swords, Trophy, FlaskConical } from "lucide-react";
+import { Award, BookOpen, GraduationCap, Medal, Radio, Swords, Trophy, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAudio } from "../client/hooks";
 import { say, sfx, unlock, updateSettings } from "../client/audio";
@@ -16,6 +16,7 @@ const TABS = [
   { href: "/academy/quiz", label: "Quiz", icon: Swords },
   { href: "/academy/live", label: "Live", icon: Radio },
   { href: "/academy/leaderboard", label: "Leaderboard", icon: Trophy },
+  { href: "/academy/achievements", label: "Badges", icon: Medal },
   { href: "/academy/certificates", label: "Certificates", icon: Award },
 ];
 

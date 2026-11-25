@@ -184,8 +184,11 @@ export function Dashboard({ me }: { me: Me }) {
       <Panel>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Eyebrow>Achievements</Eyebrow>
-          <span className="text-xs text-content-subtle">
+          <span className="flex items-center gap-3 text-xs text-content-subtle">
             {earned.length} of {me.achievements.length} unlocked
+            <Link href="/academy/achievements" className="font-semibold text-gold-600 hover:text-gold-500 dark:text-gold-300 dark:hover:text-gold-200">
+              View all badges
+            </Link>
           </span>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">

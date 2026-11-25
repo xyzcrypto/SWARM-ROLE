@@ -1217,3 +1217,110 @@ html.motion-off .acad-cert-reveal > .acad-cert-tilt,
 html.motion-off .acad-cert-reveal .acad-cert-seal,
 html.motion-off .acad-cert-sweep { animation: none; }
 html.motion-off .acad-rank-chip { animation: none; opacity: 0; }
+
+/* ---------------------------------------------------------------- home, learn, badges (step 6)
+   Cards lean toward the pointer in 3D (AcademyFx sets --rx/--ry on
+   `.acad-tilt`, mouse only), challenge modes carry their own accent, track
+   progress segments fill in, and achievements are collectible medals with a
+   rarity ring. */
+.acad-tilt {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateY(var(--lift, 0px));
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s, border-color 0.35s;
+}
+@media (hover: hover) {
+  .acad-tilt:hover { --lift: -4px; box-shadow: 0 26px 50px -30px rgba(226, 167, 47, 0.55); }
+}
+.acad-acc-gold { --acc: 226, 167, 47; --acc-ink: 154, 102, 18; }
+.acad-acc-mint { --acc: 52, 227, 161; --acc-ink: 4, 120, 87; }
+.acad-acc-live { --acc: 248, 113, 113; --acc-ink: 185, 28, 28; }
+.acad-mode-icon {
+  color: rgb(var(--acc));
+  background: linear-gradient(140deg, rgba(var(--acc), 0.22), rgba(var(--acc), 0.05));
+  box-shadow: inset 0 0 0 1px rgba(var(--acc), 0.32);
+  transition: transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1), box-shadow 0.35s;
+}
+.acad-mode-glow { background: rgba(var(--acc), 0); transition: background-color 0.5s; }
+.acad-mode-tag { color: rgb(var(--acc)); background: rgba(var(--acc), 0.12); }
+html:not(.dark) .acad-mode-icon,
+html:not(.dark) .acad-mode-tag { color: rgb(var(--acc-ink)); }
+@media (hover: hover) {
+  .acad-mode:hover { border-color: rgba(var(--acc), 0.45); }
+  .acad-mode:hover .acad-mode-icon { transform: rotate(-8deg) scale(1.12); box-shadow: inset 0 0 0 1px rgba(var(--acc), 0.5), 0 0 26px -4px rgba(var(--acc), 0.65); }
+  .acad-mode:hover .acad-mode-glow { background: rgba(var(--acc), 0.16); }
+  .group:hover .acad-track-icon { transform: rotate(-6deg) scale(1.1); }
+}
+.acad-track-icon { transition: transform 0.45s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.acad-seg { transform-origin: left; animation: acad-seg-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+@keyframes acad-seg-in { from { transform: scaleX(0); opacity: 0; } }
+.acad-done-check { animation: acad-check-pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 0.5s backwards; }
+@keyframes acad-check-pop { from { transform: scale(0) rotate(-45deg); } }
+
+/* Progress ring (ui.tsx Ring) */
+.acad-ring-track { stroke: rgba(255, 255, 255, 0.08); }
+html:not(.dark) .acad-ring-track { stroke: rgba(16, 18, 27, 0.08); }
+.acad-ring-fill { transition: stroke-dashoffset 1.3s cubic-bezier(0.22, 1, 0.36, 1); filter: drop-shadow(0 0 6px rgba(226, 167, 47, 0.45)); }
+
+/* Rarity: silver, mint, gold, and gold-to-mint for legendary. */
+.is-common { --r1: #f1f5f9; --r2: #94a3b8; --r-dark: #cbd5e1; --r-ink: #475569; }
+.is-rare { --r1: #a7f3d0; --r2: #34e3a1; --r-dark: #6ee7b7; --r-ink: #047857; }
+.is-epic { --r1: #fff3c4; --r2: #e2a72f; --r-dark: #f3d488; --r-ink: #9a6612; }
+.is-legendary { --r1: #fff3c4; --r2: #34e3a1; --r-dark: #fde68a; --r-ink: #8a5a00; }
+.acad-rarity, .acad-rarity-text { color: var(--r-dark); }
+html:not(.dark) .acad-rarity, html:not(.dark) .acad-rarity-text { color: var(--r-ink); }
+.acad-badge.is-locked .acad-rarity { color: var(--content-subtle, #71717a); }
+.acad-rarity-dot { background: var(--r2); box-shadow: 0 0 8px var(--r2); }
+.is-legendary .acad-rarity-dot { background: linear-gradient(135deg, #f3d488, #34e3a1); }
+
+.acad-badge { perspective: 1000px; transition: translate 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+@media (hover: hover) {
+  .acad-badge:hover { translate: 0 -3px; }
+}
+.acad-badge-face { position: absolute; inset: 0; backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+.acad-badge-back { transform: rotateY(180deg); }
+.acad-badge.is-earned .acad-badge-face { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--r2) 45%, transparent); }
+.acad-medal { position: relative; display: grid; place-items: center; width: 84px; height: 84px; flex: none; border-radius: 9999px; padding: 4px; }
+.acad-medal-core { position: relative; display: grid; place-items: center; width: 100%; height: 100%; overflow: hidden; border-radius: 9999px; }
+.acad-badge.is-earned .acad-medal {
+  background: conic-gradient(from 210deg, var(--r1), var(--r2), var(--r1), var(--r2), var(--r1));
+  box-shadow: 0 10px 30px -10px var(--r2), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+.acad-badge.is-legendary.is-earned .acad-medal { background: conic-gradient(from 0deg, #fff3c4, #e2a72f, #34e3a1, #a7f3d0, #f3d488, #fff3c4); animation: acad-medal-spin 8s linear infinite; }
+.acad-badge.is-legendary.is-earned .acad-medal-core { animation: acad-medal-spin 8s linear infinite reverse; }
+@keyframes acad-medal-spin { to { rotate: 360deg; } }
+.acad-badge.is-earned .acad-medal-core { color: var(--r1); background: radial-gradient(circle at 35% 30%, #2a2418, #0c0b09 70%); box-shadow: inset 0 2px 6px rgba(255, 255, 255, 0.08), inset 0 -6px 12px rgba(0, 0, 0, 0.5); }
+html:not(.dark) .acad-badge.is-earned .acad-medal-core { color: var(--r-ink); background: radial-gradient(circle at 35% 30%, #ffffff, #f4efe3 75%); box-shadow: inset 0 -4px 10px rgba(80, 55, 10, 0.12); }
+.acad-badge.is-earned .acad-medal-core::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+  background-size: 250% 100%; background-position: 140% 0; transition: background-position 0.9s ease;
+}
+@media (hover: hover) {
+  .acad-badge.is-earned:hover .acad-medal-core::after { background-position: -60% 0; }
+}
+.acad-badge.is-locked .acad-medal { background: repeating-conic-gradient(rgba(148, 163, 184, 0.35) 0 6deg, transparent 6deg 12deg); }
+.acad-badge.is-locked .acad-medal-core { color: var(--content-subtle, #71717a); background: rgba(255, 255, 255, 0.03); box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.2); }
+html:not(.dark) .acad-badge.is-locked .acad-medal-core { background: rgba(16, 18, 27, 0.04); }
+.acad-badge-bar { background: rgba(255, 255, 255, 0.08); }
+html:not(.dark) .acad-badge-bar { background: rgba(16, 18, 27, 0.08); }
+.acad-badge-bar-fill { transform-origin: left; background: linear-gradient(90deg, #e2a72f, #34e3a1); animation: acad-seg-in 1s cubic-bezier(0.22, 1, 0.36, 1) 0.4s backwards; }
+.acad-badge-new { z-index: 2; color: #1a1206; background: linear-gradient(90deg, #f3d488, #34e3a1); box-shadow: 0 0 16px -2px rgba(226, 167, 47, 0.8); animation: acad-new-pulse 1.6s ease-in-out infinite; }
+@keyframes acad-new-pulse { 50% { box-shadow: 0 0 26px 2px rgba(52, 227, 161, 0.7); } }
+/* A badge unlocked since the last visit lands with a pop and a ring burst. */
+.acad-badge.is-fresh .acad-medal { animation: acad-medal-pop 0.9s cubic-bezier(0.3, 1.5, 0.5, 1) 0.45s backwards; }
+.acad-badge.is-legendary.is-fresh .acad-medal { animation: acad-medal-pop 0.9s cubic-bezier(0.3, 1.5, 0.5, 1) 0.45s backwards, acad-medal-spin 8s linear 1.35s infinite; }
+@keyframes acad-medal-pop { from { opacity: 0; transform: scale(0.2) rotate(-120deg); } }
+.acad-badge.is-fresh .acad-medal::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 9999px; pointer-events: none;
+  border: 2px solid var(--r2); opacity: 0; animation: acad-medal-burst 1.1s ease-out 0.9s;
+}
+@keyframes acad-medal-burst { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(1.9); } }
+
+html.motion-off .acad-seg,
+html.motion-off .acad-done-check,
+html.motion-off .acad-badge-bar-fill,
+html.motion-off .acad-badge-new,
+html.motion-off .acad-badge .acad-medal,
+html.motion-off .acad-badge .acad-medal-core,
+html.motion-off .acad-badge .acad-medal::after { animation: none; }
+html.motion-off .acad-ring-fill { transition: none; }
+html.motion-off .acad-tilt { transform: none; }

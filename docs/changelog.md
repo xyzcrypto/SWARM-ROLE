@@ -5,6 +5,37 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-25 (181) — Academy UI step 6: Badges page, home and learn polish
+
+- **New `/academy/achievements` (Badges)**, a static page in the Academy nav, linked from
+  the dashboard and listed in the sitemap.
+  - Every achievement is a collectible medal with a rarity ring. Rarity follows the XP
+    reward: silver Common, mint Rare, gold Epic, and a slowly turning gold-to-mint
+    Legendary.
+  - Locked badges show real progress from numbers `/api/academy/me` already returns:
+    answers, best streak, level, issued certificates and lessons per track.
+  - Tap a badge to flip it in 3D for how to unlock it and its XP.
+  - Summary: a progress ring, badge XP earned and still to earn, and your rarest badge.
+  - Filters: All, Unlocked, Locked.
+  - Badges unlocked since this device last looked land with a pop, a ring burst, a
+    "New" tag, the achievement sound and confetti. A first visit only counts the last
+    7 days.
+  - Signed-out visitors see the default set, locked, with a sign-in call.
+- **Home:**
+  - Challenge cards carry their own accent: gold, mint, or red for Live.
+  - Each card has a tag, an icon that tips and glows on hover, and a corner glow.
+  - Cards and the library tracks lean toward the mouse in 3D. The existing AcademyFx
+    pointer handler sets `--rx`/`--ry`, so there is no new listener.
+  - Track progress segments fill in, and a finished track's check pops.
+- **Learn index:**
+  - A stats strip with your completion ring, tracks, lessons and questions counting up.
+  - Filters (All, In progress, Not started, Completed) and topic search. Each track
+    keeps its own number when filtered.
+- `Ring` (an SVG progress ring) moved to `ui.tsx`. Everything new is off under
+  "Animations: Off". Tests: `academy-ui-6.test.ts`.
+
+---
+
 ## 2026-11-25 (180) — Academy UI step 5: leaderboard rank changes and certificate reveal
 
 - **Leaderboard:**
