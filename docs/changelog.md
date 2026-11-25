@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-25 (177) — Academy UI step 2: quiz feel, and the live banner leaves play mode
+
+- **Fix:** the live banner from (176) showed during a quiz, pushing the one-screen play
+  area down and half off a phone. It now steps aside in play mode, like the tab bar.
+- **Right answers** burst confetti from the option: 26 pieces, or 60 on a 3+ streak.
+- **Wrong answers** shake the option (the `translate` property, so it composes with the
+  existing transforms).
+- **Reveal:** the card washes mint or red.
+- **Combo pill** (`xN`) springs in, turns gold at 3 in a row, and blazes red-orange at 5+.
+- **Timer:** the last 5 seconds throb with a red glow instead of a plain pulse.
+- All effects are off under "Animations: Off". Tests: `academy-ui-2.test.ts`.
+
+---
+
 ## 2026-11-25 (176) — Academy UI step 1: live quiz banner, eyebrow accents
 
 - **Live quiz banner** (`LiveBanner`, every Academy page under the tab bar):

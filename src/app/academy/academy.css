@@ -1067,3 +1067,7 @@ html.motion-off .acad-flash-wrong,
 html.motion-off .acad-combo.is-blaze,
 html.motion-off .acad-timer-glow { animation: none; }
 html:not(.dark) .acad-combo:not(.is-hot):not(.is-blaze) { color: #8a5a00; background: rgba(226, 167, 47, 0.14); }
+/* Play mode owns the whole screen (see html[data-acad-playing] above): the
+   live banner steps aside like the tab bar does, or it pushes the one-screen
+   quiz down and half off a phone. */
+html[data-acad-playing] .acad-live-banner { display: none; }

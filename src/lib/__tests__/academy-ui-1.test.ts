@@ -22,6 +22,9 @@ describe("live quiz banner on every Academy page", () => {
   it("never ships time-dependent HTML from the server (renders nothing until data arrives)", () => {
     expect(b).toMatch(/if \(!items \|\| !now\) return null;/);
   });
+  it("steps aside while a quiz is being played (one-screen play mode)", () => {
+    expect(read("src/app/academy/academy.css")).toMatch(/html\[data-acad-playing\] \.acad-live-banner \{ display: none; \}/);
+  });
   it("animations stop under Animations: Off", () => {
     expect(read("src/app/academy/academy.css")).toMatch(/html\.motion-off \.acad-live-banner/);
   });
