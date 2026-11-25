@@ -49,7 +49,7 @@ describe("nothing can fall out of the navigation", () => {
 });
 
 describe("the desktop rail fits the links it has", () => {
-  it("shows seven links: Academy and Creators joined, Community moved to More", () => {
+  it("shows six links: Research moved inside the Academy", () => {
     // 2026-11-20, owner's request. Measured on a production build with every
     // visible header child summed against the nav's inner width (slack =
     // room left over), signed out / signed in:
@@ -60,8 +60,10 @@ describe("the desktop rail fits the links it has", () => {
     // A NINTH rail link needs re-measuring; this is the record of why.
     // (Measured with eight; Community then moved to "More" to lighten the
     // rail, so the slack below only grew.)
-    expect(railLinks).toHaveLength(7);
-    expect(railLinks.map((l) => l.href)).toEqual(["/", "/markets", "/points", "/news", "/research", "/academy", "/creators"]);
+    // 2026-11-25: Research moved inside the Academy (owner), so the rail lost a
+    // link and only gained slack.
+    expect(railLinks).toHaveLength(6);
+    expect(railLinks.map((l) => l.href)).toEqual(["/", "/markets", "/points", "/news", "/academy", "/creators"]);
   });
 
   it("keeps the width-saving steps that make eight links fit", () => {
@@ -118,8 +120,9 @@ describe("the bottom bar keeps Profile centred", () => {
     expect(bottom).toMatch(/const half = ITEMS\.length \/ 2;/);
   });
 
-  it("carries Research rather than Tools", () => {
-    expect(items.map((i) => i.href)).toContain("/research");
+  it("carries Points (Research lives inside the Academy) rather than Tools", () => {
+    expect(items.map((i) => i.href)).toContain("/points");
+    expect(items.map((i) => i.href)).not.toContain("/research");
     expect(items.map((i) => i.href)).not.toContain("/tools");
   });
 
@@ -161,5 +164,18 @@ describe("Points took Premium's place on the rail", () => {
     // It stays in `navLinks`, so the footer and the mobile drawer - which both
     // map the complete list - are unaffected. Only the desktop rail changed.
     expect(navLinks.some((l) => l.href === "/premium")).toBe(true);
+  });
+});
+
+describe("research lives inside the Academy", () => {
+  const read = (p: string) => readFileSync(p, "utf8");
+  it("the hub is an Academy tab before Learn, /research redirects, articles keep their URLs", () => {
+    const nav = read("src/modules/academy/components/AcademyNav.tsx");
+    expect(nav.indexOf('href: "/academy/research"')).toBeGreaterThan(0);
+    expect(nav.indexOf('href: "/academy/research"')).toBeLessThan(nav.indexOf('href: "/academy/learn"'));
+    expect(read("next.config.mjs")).toMatch(/source: "\/research", destination: "\/academy\/research", permanent: true/);
+    expect(navLinks.map((l) => l.href)).not.toContain("/research");
+    expect(read("src/app/research/[slug]/page.tsx")).toMatch(/path: "\/academy\/research"/);
+    for (const f of ["src/app/api/research/route.ts", "src/app/api/research/[id]/route.ts", "src/app/api/research/[id]/restore/route.ts"]) expect(read(f), f).toMatch(/revalidatePath\("\/academy\/research"\)/);
   });
 });

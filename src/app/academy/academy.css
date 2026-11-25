@@ -929,3 +929,58 @@ html:not(.dark) .acad-strip-card {
     transform: scale(1.08);
   }
 }
+
+/* ---------------------------------------------------------------- tactile layer
+   (AcademyFx) A ripple where the finger lands, a press-in on every control, a
+   spotlight that follows the cursor across cards, and a staggered rise when a
+   page opens. Pure CSS driven by two variables: no render input, nothing that
+   can disagree between server and client. Off under "Animations: Off". */
+.acad-ripple {
+  position: fixed;
+  z-index: 90;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border-radius: 999px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(243, 212, 136, 0.55), rgba(226, 167, 47, 0.18) 55%, transparent 70%);
+  animation: acad-ripple 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@keyframes acad-ripple {
+  from { transform: scale(0.6); opacity: 1; }
+  to { transform: scale(7); opacity: 0; }
+}
+.acad-shell a[href],
+.acad-shell button:not(:disabled) {
+  transition-property: color, background-color, border-color, box-shadow, scale, filter, opacity;
+  transition-duration: 0.18s;
+  transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+/* `scale` (not `transform`) so the press composes with any translate a
+   control already uses instead of replacing it. */
+.acad-shell a[href]:active,
+.acad-shell button:not(:disabled):active {
+  scale: 0.97;
+  filter: brightness(1.08);
+}
+/* card spotlight */
+html.dark .acad-shell .surface {
+  background-image: radial-gradient(520px circle at var(--mx, -999px) var(--my, -999px), rgba(226, 167, 47, 0.1), transparent 42%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0) 45%);
+}
+html:not(.dark) .acad-shell .surface {
+  background-image: radial-gradient(480px circle at var(--mx, -999px) var(--my, -999px), rgba(226, 167, 47, 0.09), transparent 42%);
+}
+/* page entrance: each block of a page rises in, a beat apart */
+.acad-shell > :not(nav) {
+  animation: acad-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.acad-shell > :nth-child(3) { animation-delay: 0.06s; }
+.acad-shell > :nth-child(4) { animation-delay: 0.12s; }
+.acad-shell > :nth-child(n + 5) { animation-delay: 0.18s; }
+@keyframes acad-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+html.motion-off .acad-ripple,
+html.motion-off .acad-shell > :not(nav) { animation: none; }

@@ -105,6 +105,11 @@ const limiters = {
   academyStart: make(12, 60, "academy_start"), // 12/min per user
   academy: make(120, 60, "academy"), // 120/min per user - answers, next, finish, live answers, joins
   academyAdmin: make(60, 60, "academy_admin"), // 60/min per staff member - content editing
+  // AneQue's neural voice for text with no recording. Each MISS renders audio
+  // with a paid provider; the edge caches every result for a year, so a real
+  // learner almost never reaches the function twice for the same text.
+  academyVoice: make(60, 600, "academy_voice"), // 60/10min per IP
+  academyVoiceDaily: make(400, 86_400, "academy_voice_daily"), // 400/day per IP
   // /feedback. Each send emails + Telegrams the owner, so it is tight on both
   // keys: per IP (guests) and per member.
   feedbackIp: make(6, 3600, "feedback_ip"), // 6/hour per IP

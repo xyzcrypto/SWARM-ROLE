@@ -40,10 +40,14 @@ export type Sfx =
   | "pop"
   | "drumroll"
   | "rankup"
-  | "streak";
+  | "streak"
+  | "impact"
+  | "riser"
+  | "stinger"
+  | "tap";
 
-export type Track = "auto" | "focus" | "arena" | "night";
-export type Scene = "focus" | "arena";
+export type Track = "auto" | "focus" | "arena" | "live" | "night";
+export type Scene = "focus" | "arena" | "live";
 
 export type AudioSettings = {
   master: boolean;
@@ -74,7 +78,7 @@ export type AudioSettings = {
 export const DEFAULT_AUDIO: AudioSettings = {
   master: true,
   masterVol: 0.8,
-  music: false,
+  music: true,
   musicVol: 0.4,
   track: "auto",
   sfx: true,
@@ -93,7 +97,7 @@ export const DEFAULT_AUDIO: AudioSettings = {
 const KEY = "xyz:academy:audio:v1";
 const clamp = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) ? Math.max(0, Math.min(1, v)) : d);
 const bool = (v: unknown, d: boolean) => (typeof v === "boolean" ? v : d);
-const TRACKS: Track[] = ["auto", "focus", "arena", "night"];
+const TRACKS: Track[] = ["auto", "focus", "arena", "live", "night"];
 
 /** Parse stored settings; anything unreadable falls back to the defaults. Pure, for tests. */
 export function parseSettings(raw: string | null): AudioSettings {
@@ -626,6 +630,24 @@ const SFX: Record<Sfx, Tone[]> = {
     { f: midi(86), at: 0.14, dur: 0.24, v: "pluck", gain: 0.16 },
     { f: midi(91), at: 0.21, dur: 1.0, v: "bell", gain: 0.09 },
   ],
+  // Every tap in the Academy (AcademyFx): a soft, short wooden tick.
+  tap: [{ f: midi(91), at: 0, dur: 0.035, v: "pluck", gain: 0.035 }],
+  // Live quiz: the hit as a question lands on screen.
+  impact: [
+    { f: 70, to: 38, at: 0, dur: 0.55, v: "thud", gain: 0.5 },
+    { f: 0, at: 0, dur: 0.4, v: "noise", hp: 600, gain: 0.04 },
+    { f: midi(69), at: 0.01, dur: 0.5, v: "pluck", gain: 0.12 },
+  ],
+  // Live quiz: tension in the last seconds before time is up.
+  riser: Array.from({ length: 16 }, (_, i): Tone => ({ f: 0, at: i * 0.05, dur: 0.06, v: "noise", hp: 900 + i * 380, gain: 0.012 + i * 0.0026 })),
+  // Live quiz: the chord that lands on a reveal.
+  stinger: [
+    { f: 55, to: 41, at: 0, dur: 0.5, v: "thud", gain: 0.4 },
+    { f: midi(69), at: 0, dur: 0.9, v: "pluck", gain: 0.18 },
+    { f: midi(76), at: 0.02, dur: 0.9, v: "pluck", gain: 0.15 },
+    { f: midi(81), at: 0.04, dur: 1.4, v: "bell", gain: 0.08 },
+    { f: 0, at: 0, dur: 0.6, v: "noise", hp: 5000, gain: 0.025 },
+  ],
   // A run of right answers: a bright double sparkle.
   streak: [
     { f: 0, at: 0, dur: 0.3, v: "noise", hp: 6500, gain: 0.03 },
@@ -656,10 +678,10 @@ export function sfx(name: Sfx) {
 /** Haptics that match the sound (Android; iOS has no vibration API). Uses the site's own feel settings. */
 function buzz(name: Sfx) {
   if (!snap.settings.haptics) return;
-  if (name === "select" || name === "click") hapticSelect();
+  if (name === "select" || name === "click" || name === "tap") hapticSelect();
   else if (name === "correct" || name === "coin" || name === "lock") hapticSent();
   else if (name === "wrong" || name === "heartbeat") hapticError();
-  else if (name === "go" || name === "count" || name === "fifty") hapticTap();
+  else if (name === "go" || name === "count" || name === "fifty" || name === "impact" || name === "stinger") hapticTap();
   else if (name === "levelup" || name === "achievement" || name === "winner" || name === "fire" || name === "rankup" || name === "streak") {
     hapticToggle();
     setTimeout(hapticSent, 180);
@@ -681,7 +703,27 @@ const CHORDS = [
   [48, 55, 59, 64, 71],
   [43, 55, 59, 62, 64],
 ];
-const BPM: Record<Exclude<Track, "auto">, number> = { focus: 60, arena: 112, night: 76 };
+const BPM: Record<Exclude<Track, "auto">, number> = { focus: 60, arena: 112, live: 112, night: 76 };
+
+// Studio-mixed loops (scripts: see docs/academy.md, "Music"). One seamless
+// 32-bar loop per track, decoded once and played gapless through the music bus
+// (so ducking under AneQue works exactly as before). Only the track that is
+// playing is kept decoded: a phone holds one buffer, not four. If a loop cannot
+// be fetched or decoded, the generative scheduler below plays instead.
+const LOOP_GAIN = 0.9;
+let loopNode: AudioBufferSourceNode | null = null;
+let loopGain: GainNode | null = null;
+let loopBuf: { track: string; buf: Promise<AudioBuffer | null> } | null = null;
+let musicToken = 0;
+function loopFor(track: Exclude<Track, "auto">): Promise<AudioBuffer | null> {
+  if (loopBuf?.track === track) return loopBuf.buf;
+  const buf = fetch(`/academy/music/${track}.mp3`)
+    .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+    .then((ab) => ctx!.decodeAudioData(ab))
+    .catch(() => null);
+  loopBuf = { track, buf };
+  return buf;
+}
 
 let musicOn = false;
 let scene: Scene = "focus";
@@ -739,7 +781,7 @@ function scheduleStep(track: Exclude<Track, "auto">, i: number, at0: number, six
     if (s === 8 && bar % 2 === 1) playVoice({ f: midi(chord[chord.length - 1] + 12), at: 0, dur: 2.4, v: "bell", gain: 0.02 }, at, musicBus!);
     return;
   }
-  if (track === "arena") {
+  if (track === "arena" || track === "live") {
     if (s === 0 || s === 8 || (s === 14 && bar % 2 === 1)) kick(at, s === 0 ? 0.3 : 0.22);
     if (s === 4 || s === 12) brush(at, 0.05, 0.12, 2500);
     if (s % 2 === 0) brush(at, 0.016, 0.03, 8000);
@@ -759,7 +801,7 @@ function scheduleStep(track: Exclude<Track, "auto">, i: number, at0: number, six
 
 function pickTrack(): Exclude<Track, "auto"> {
   const t = snap.settings.track;
-  return t === "auto" ? (scene === "arena" ? "arena" : "focus") : t;
+  return t === "auto" ? (scene === "live" ? "live" : scene === "arena" ? "arena" : "focus") : t;
 }
 
 export function startMusic() {
@@ -771,6 +813,26 @@ export function startMusic() {
   current = pickTrack();
   emit({ playing: current });
   applyGains();
+  const my = ++musicToken;
+  const track = current;
+  void loopFor(track).then((buf) => {
+    if (my !== musicToken || !musicOn || !ctx || !musicBus) return;
+    if (!buf) return startGenerative(c);
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(LOOP_GAIN, ctx.currentTime + 1.2);
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.connect(g).connect(musicBus);
+    src.start();
+    loopNode = src;
+    loopGain = g;
+  });
+}
+
+function startGenerative(c: AudioContext) {
+  if (!musicOn || !current) return;
   step = 0;
   nextStepAt = c.currentTime + 0.1;
   schedTimer = setInterval(() => {
@@ -786,6 +848,19 @@ export function startMusic() {
 
 export function stopMusic() {
   musicOn = false;
+  musicToken++;
+  if (loopNode && loopGain && ctx) {
+    const n = loopNode, g = loopGain, t = ctx.currentTime;
+    try {
+      g.gain.cancelScheduledValues(t);
+      g.gain.setTargetAtTime(0.0001, t, 0.12);
+      n.stop(t + 0.6);
+    } catch {
+      /* already stopped */
+    }
+  }
+  loopNode = null;
+  loopGain = null;
   if (schedTimer) clearInterval(schedTimer);
   schedTimer = null;
   current = null;
@@ -823,8 +898,32 @@ let plain: HTMLAudioElement | null = null;
 let cur: HTMLAudioElement | null = null;
 let utter: SpeechSynthesisUtterance | null = null;
 
-/** One spoken piece: a recorded clip if there is one, else the text through the browser voice. */
-export type Piece = { url?: string | null; text: string };
+/**
+ * One spoken piece: a recorded clip if there is one. Text with no recording is
+ * rendered by the server in a neural voice (`neural`), never by the device's
+ * robotic voice, unless the learner picked a device voice in settings.
+ */
+export type Piece = { url?: string | null; text: string; neural?: boolean };
+
+/** Longest text sent for one neural render (the route caps it too). */
+export const NEURAL_MAX = 420;
+
+/** AneQue's voice for text that has no recording: rendered server-side, cached at the edge per text. */
+export function neuralUrl(text: string): string {
+  const l = snap.settings.lang === "hi" ? "hi" : "en";
+  return `/api/academy/voice/say?l=${l}&t=${encodeURIComponent(text.trim().slice(0, NEURAL_MAX))}`;
+}
+
+/** Text with no recording, as neural pieces of a size the route accepts. */
+function neuralPieces(text: string): Piece[] {
+  return chunkForSpeech(text, NEURAL_MAX)
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => ({ url: neuralUrl(t), text: t, neural: true }));
+}
+
+/** AneQue's own voice (the default), as opposed to a device voice the learner chose. */
+const ownVoice = () => snap.settings.voiceName === "nova";
 let queue: Piece[] = [];
 let token = 0;
 // Where AneQue is inside the current caption, 0..1, for the word-by-word caption.
@@ -985,6 +1084,11 @@ function pump(my: number) {
     clearWatchdog();
     pump(my);
   };
+  // ⚠️ A clip that fails no longer drops to the device's robotic voice: that
+  // was the "cheap web voice" learners heard whenever a clip was slow or text
+  // had no recording. A recorded clip that fails gets one retry in the neural
+  // voice; a neural piece that fails is skipped (the caption still shows it).
+  // The device voice is used only when the learner chose one in settings.
   const fallback = () => {
     if (settled || my !== token) return;
     settled = true;
@@ -993,9 +1097,11 @@ function pump(my: number) {
       cur.onended = cur.onerror = cur.onloadedmetadata = null;
       cur.pause();
     }
-    tts(piece.text, my, () => pump(my));
+    if (!ownVoice()) return tts(piece.text, my, () => pump(my));
+    if (!piece.neural && piece.text.trim()) queue.unshift(...neuralPieces(piece.text));
+    pump(my);
   };
-  const useClip = piece.url && snap.settings.voiceName === "nova";
+  const useClip = piece.url && ownVoice();
   if (useClip) {
     const a = voiceEl();
     // Only one element carries AneQue at a time: silence the other.
@@ -1026,8 +1132,8 @@ function pump(my: number) {
       };
       arm();
     };
-    // Nothing at all after 8s (stalled download): read it with the browser voice.
-    watchdog = setTimeout(fallback, 8000);
+    // Nothing at all after 8s (stalled download; a neural render gets longer).
+    watchdog = setTimeout(fallback, piece.neural ? 16000 : 8000);
     a.src = piece.url!;
     void a.play().catch((e: unknown) => {
       // Interrupted by the next piece or by stopVoice: not a failure.
@@ -1095,6 +1201,9 @@ export function play(pieces: Piece[], opts: { caption?: string; line?: VoiceLine
   const caption = opts.caption ?? pieces.map((p) => p.text).join(" ");
   if (!opts.queue || !snap.voice.speaking) setVoice({ text: caption, line: opts.line ?? null });
   if (!canSpeak() || !pieces.length) return;
+  // Text with no recording becomes neural pieces up front, so the next one is
+  // rendering (preloaded) while the current one plays.
+  if (ownVoice()) pieces = pieces.flatMap((p) => (p.url || !p.text.trim() ? [p] : neuralPieces(p.text)));
   if (opts.queue && snap.voice.speaking) {
     queue.push(...pieces);
     return;
@@ -1139,7 +1248,7 @@ export function sayOneOf(prefix: string, count: number, opts: { auto?: boolean; 
   say(key in VOICE_LINES ? key : (prefix as VoiceLine), opts);
 }
 
-/** Speak free text with the best available voice (no recording exists for it). */
+/** Speak free text in AneQue's voice (neural render; no recording exists for it). */
 export function speak(text: string) {
   play([{ text }]);
 }

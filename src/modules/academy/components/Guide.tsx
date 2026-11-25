@@ -144,12 +144,13 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
       <Slider value={s.sfxVol} onChange={(v) => set({ sfxVol: v })} label="Effects volume" disabled={!s.master || !s.sfx} />
       <Toggle on={s.music} onChange={(v) => set({ music: v })} label="Background music" icon={<Music className="h-4 w-4 text-content-subtle" />} />
       <Slider value={s.musicVol} onChange={(v) => set({ musicVol: v })} label="Music volume" disabled={!s.master || !s.music} />
-      <div className={cn("grid grid-cols-4 gap-1 px-1 pb-2", (!s.master || !s.music) && "opacity-40")} role="radiogroup" aria-label="Music track">
+      <div className={cn("grid grid-cols-5 gap-1 px-1 pb-2", (!s.master || !s.music) && "opacity-40")} role="radiogroup" aria-label="Music track">
         {(
           [
             ["auto", "Auto"],
             ["focus", "Focus"],
             ["arena", "Arena"],
+            ["live", "Live"],
             ["night", "Night"],
           ] as const
         ).map(([id, label]) => (
@@ -198,7 +199,7 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
           </select>
         </label>
         <p className="px-1 pt-2 text-[11px] leading-relaxed text-content-subtle">
-          AneQue speaks in a natural recorded voice: her guidance, every question, option and explanation, and lesson summaries. Anything new an admin writes is read by your device&apos;s best female voice. Every line is also shown as text. Auto music plays Focus while you read and Arena while you play.
+          AneQue speaks in a natural recorded voice: her guidance, every question, option and explanation, and lesson summaries. Anything without a studio recording is read in her neural voice, never a robotic device voice. Every line is also shown as text. Auto music plays Focus while you read, Arena while you play and Live in live quizzes.
         </p>
       </div>
     </div>
@@ -505,7 +506,7 @@ export function GuideDock() {
 
   // Auto music: Arena while playing, Focus everywhere else.
   useEffect(() => {
-    setScene(path?.startsWith("/academy/quiz") || path?.startsWith("/academy/live/") ? "arena" : "focus");
+    setScene(path?.startsWith("/academy/live/") ? "live" : path?.startsWith("/academy/quiz") ? "arena" : "focus");
   }, [path]);
 
   // Other parts of the page (the hero) can open the dock straight into Live Talk.

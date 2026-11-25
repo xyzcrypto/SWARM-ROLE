@@ -180,7 +180,8 @@ export default async function PostPage(
       <JsonLd
         data={breadcrumbJsonLd([
           { name: "Home", path: "/" },
-          { name: "Research", path: "/research" },
+          { name: "Academy", path: "/academy" },
+          { name: "Research", path: "/academy/research" },
           { name: post.title, path: `/research/${post.slug}` },
         ])}
       />
@@ -195,7 +196,7 @@ export default async function PostPage(
               around an article, in the same place every time. */}
           <div className="flex flex-wrap items-center justify-between gap-3">
           <Link
-            href="/research"
+            href="/academy/research"
             className="inline-flex items-center gap-1.5 text-sm text-zinc-500 transition-colors hover:text-gold-200"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
@@ -320,7 +321,7 @@ export default async function PostPage(
               <h2 className="font-display text-xl font-semibold text-zinc-100">
                 More in <span className="text-gold-gradient">{post.category}</span>
               </h2>
-              <Link href="/research" className="text-sm font-medium text-gold-200 hover:underline">
+              <Link href="/academy/research" className="text-sm font-medium text-gold-200 hover:underline">
                 View all →
               </Link>
             </div>

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Wrench, Newspaper, NotebookPen, LineChart, User, FlaskConical, GraduationCap, Trophy } from "lucide-react";
+import { Wrench, Newspaper, NotebookPen, LineChart, User, GraduationCap, Trophy, Coins } from "lucide-react";
 import { Avatar } from "@/components/Avatar";
 import { isBottomActive, isBottomHidden } from "@/lib/bottom-nav";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,8 @@ type Item = { href: string; label: string; Icon: typeof Wrench };
 // Keep the count even.
 const ITEMS: Item[] = [
   { href: "/academy", label: "Academy", Icon: GraduationCap },
-  { href: "/research", label: "Research", Icon: FlaskConical },
+  // 2026-11-25: Research lives inside the Academy now; Points takes its cell.
+  { href: "/points", label: "Points", Icon: Coins },
   { href: "/news", label: "News", Icon: Newspaper },
   { href: "/journal", label: "Journal", Icon: NotebookPen },
   { href: "/markets", label: "Markets", Icon: LineChart },

@@ -5,6 +5,53 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-25 (175) — Academy: AneQue never sounds robotic, studio music, live quiz audio, Research inside the Academy, tactile UI
+
+- **No more "cheap web voice".**
+  - **Root cause, two parts:**
+    - 499 texts of the Bungee track had no studio recording.
+    - Any clip that was slow or missing fell back to the device's `speechSynthesis`.
+  - **Bungee recordings:** all 499 are now recorded in AneQue's own voice (Kokoro
+    `af_heart`, -16 LUFS, 24 kHz mono mp3, same settings as the rest). A test now fails if
+    any curriculum text has no clip.
+  - **Other text with no recording** (admin edits, Live Talk answers, unbanked names) goes
+    to a new neural voice route, `/api/academy/voice/say`:
+    - providers: Gemini TTS, then Groq TTS;
+    - edge-cached for a year per text;
+    - rate-limited at 60 per 10 minutes and 400 per day, per IP.
+  - **Failures:**
+    - a recorded clip that fails retries once in the neural voice;
+    - a neural piece that fails is skipped, and its caption still shows;
+    - the device voice is used only if the learner picks one in settings.
+- **Studio music.** The generative Web Audio tracks are replaced by four pre-mixed
+  32-bar loops, played gapless through the existing music bus (ducking unchanged):
+  - Focus, 92 bpm chill house;
+  - Arena, 124 bpm future house;
+  - **Live**, 128 bpm festival EDM, a new track and a new scene;
+  - Night, 80 bpm lo-fi.
+
+  Only the playing loop is decoded. If a loop fails to load, the old generator plays.
+  Music is on by default, but still only starts after the first tap.
+- **Live quiz.** Each question lands with an `impact` hit and each reveal with a
+  `stinger`, both with haptics. The Live track plays automatically on live pages.
+- **Research inside the Academy** (owner):
+  - the hub is at `/academy/research`, as a tab before Learn;
+  - it is removed from the main rail, the bottom bar (Points takes its cell) and the drawer;
+  - `/research` 308-redirects to the new hub;
+  - articles keep their `/research/<slug>` URLs, and the breadcrumbs read Home > Academy > Research;
+  - every link, the sitemap, the PWA shortcut and the revalidation paths are updated.
+- **Tactile UI** (`AcademyFx`, installed once in the layout):
+  - every tap gets a ripple at the finger, a soft tap sound and a haptic;
+  - controls press in (`scale`, so they compose with existing translates);
+  - cards light up under the cursor on desktop;
+  - page blocks rise in, staggered;
+  - the Academy tab pill slides between tabs.
+
+  All CSS-driven, never touching React's DOM, and off under "Animations: Off".
+- Tests: `academy-voice-music.test.ts`, plus updates to the nav, research and audio tests.
+
+---
+
 ## 2026-11-24 (173) — Bungee Funded Perps: Academy track, cheat-resistant live quiz, referral CTA and the 3x $10K giveaway
 
 For the XYZ Crypto x Bungee giveaway (3x $10K Funded Perps accounts). Content is built

@@ -122,7 +122,11 @@ const nextConfig = {
   // invoke a function. /bungee/live is a route handler instead, because it
   // has to look up which quiz is live.
   async redirects() {
-    return [{ source: "/bungee/learn", destination: "/academy/learn/bungee-funded-perps", permanent: false }];
+    return [
+      { source: "/bungee/learn", destination: "/academy/learn/bungee-funded-perps", permanent: false },
+      // The research hub lives inside the Academy now; articles keep /research/<slug>.
+      { source: "/research", destination: "/academy/research", permanent: true },
+    ];
   },
   async headers() {
     return [
@@ -137,6 +141,8 @@ const nextConfig = {
       // under the same name, so a day; content clips are named by the text's
       // hash (voice/c, voice/h), so a new text is a new URL: a month.
       { source: "/academy/voice/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=604800" }] },
+      // Studio music loops: content never changes under the same name.
+      { source: "/academy/music/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=2592000, stale-while-revalidate=604800" }] },
       { source: "/academy/voice/c/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=2592000, stale-while-revalidate=604800" }] },
       { source: "/academy/voice/h/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=2592000, stale-while-revalidate=604800" }] },
     ];

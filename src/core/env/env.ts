@@ -40,6 +40,7 @@ const schema = z.object({
   GEMINI_API_KEY: z.string().optional(),
   AI_PROVIDER_ORDER: z.string().optional(),
   GEMINI_MODEL: z.string().optional(),
+  ACADEMY_TTS_ORDER: z.string().optional(),
   GROQ_MODEL: z.string().optional(),
   AI_DAILY_LIMIT_FREE: z.string().optional(),
   AI_DAILY_LIMIT_PREMIUM: z.string().optional(),
@@ -105,6 +106,9 @@ export const env = {
   // the Vercel dashboard without a deploy. Empty = the provider's built-in default.
   GEMINI_MODEL: raw.GEMINI_MODEL ?? "",
   GROQ_MODEL: raw.GROQ_MODEL ?? "",
+  // AneQue's neural voice for text with no recording ("gemini,groq" by default;
+  // a provider without its key is skipped). See modules/academy/lib/neural-voice.ts.
+  ACADEMY_TTS_ORDER: raw.ACADEMY_TTS_ORDER ?? "",
   // Per-plan daily AI request caps (optional overrides of the built-in defaults).
   AI_DAILY_LIMIT_FREE: raw.AI_DAILY_LIMIT_FREE ?? "",
   AI_DAILY_LIMIT_PREMIUM: raw.AI_DAILY_LIMIT_PREMIUM ?? "",

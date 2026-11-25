@@ -44,7 +44,6 @@ export const navLinks = [
   { label: "Points", href: "/points" },
   { label: "Tools", href: "/tools" },
   { label: "News", href: "/news" },
-  { label: "Research", href: "/research" },
   { label: "Academy", href: "/academy" },
   { label: "Creators", href: "/creators" },
   // Per-member, so it lives in "More" rather than the rail - but it MUST be in
@@ -78,7 +77,8 @@ export const navLinks = [
 // (8 links). Community moved to "More" the same day to lighten the rail (7).
 // Re-measured at the rail's breakpoint (xl, 1280px) signed in and
 // signed out - see nav-rail-width.test.ts for the numbers and the padding step.
-const RAIL_HREFS = new Set(["/", "/markets", "/points", "/news", "/research", "/academy", "/creators"]);
+// 2026-11-25: Research moved inside the Academy (owner), so the rail is six links.
+const RAIL_HREFS = new Set(["/", "/markets", "/points", "/news", "/academy", "/creators"]);
 
 export const railLinks = navLinks.filter((l) => RAIL_HREFS.has(l.href));
 export const moreLinks = navLinks.filter((l) => !RAIL_HREFS.has(l.href));
