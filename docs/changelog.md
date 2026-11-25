@@ -5,6 +5,29 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-25 (180) — Academy UI step 5: leaderboard rank changes and certificate reveal
+
+- **Leaderboard:**
+  - when the board refreshes and someone moves, their row (or podium card) flashes
+    once: mint for a climb, red for a drop;
+  - a "▲5" / "▼1" chip rises over the row and fades;
+  - your own climb plays the rank-up sound with haptics.
+  - Rows cascade in on load. Podium XP counts up. #1 gets a slow sheen and a floating crown.
+  - Measured only between two loads of the same period, so switching tabs never fakes
+    a move. Still no framer layout animation on the board.
+- **Certificate page:**
+  - the certificate unfolds in 3D from a blur;
+  - one sweep of light crosses it, then the wax seal is stamped on with a thud;
+  - it tilts toward the mouse with the moving sheen, as on the Academy home showcase.
+  - The first time a device opens a valid certificate, confetti lands with the stamp.
+  - The reveal is CSS with `backwards` fill, so the card shows even if JS never runs,
+    and the tilt owns the transform afterwards.
+- **My certificates:** gold medal tiles, staggered entrance, and a hover lift with a
+  foil sweep.
+- Everything new is off under "Animations: Off". Tests: `academy-ui-5.test.ts`.
+
+---
+
 ## 2026-11-25 (179) — Academy UI step 4: reading progress and concept flashcards
 
 - **Reading progress:** every lesson has a thin gold-to-mint bar at the top that fills as

@@ -1,10 +1,12 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { BadgeCheck, Clock, Download, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { utcDate } from "./ui";
+import { burstConfetti, utcDate } from "./ui";
+import { sfx } from "../client/audio";
 import { ShareSheet } from "./ShareSheet";
 
 type Cert = {
@@ -112,6 +114,39 @@ export function CertificateCard({ cert, issuer, url, qr }: { cert: Cert; issuer:
 
 export function CertificateView({ cert, issuer, url, qr }: { cert: Cert; issuer: Issuer; url: string; qr: string }) {
   const valid = cert.status === "issued";
+  const card = useRef<HTMLDivElement>(null);
+  // The reveal itself is CSS (it plays even if JS never runs). JS only adds
+  // the seal's thud and, the first time this device opens this certificate,
+  // confetti, timed to the stamp.
+  useEffect(() => {
+    if (!valid || document.documentElement.classList.contains("motion-off")) return;
+    const key = `xyz:academy:cert-seen:${cert.code}`;
+    let first = false;
+    try {
+      first = !localStorage.getItem(key);
+      localStorage.setItem(key, "1");
+    } catch {
+      /* no storage: treat as seen */
+    }
+    const id = setTimeout(() => {
+      sfx("stinger");
+      if (first) burstConfetti(undefined, 90);
+    }, 1150);
+    return () => clearTimeout(id);
+  }, [valid, cert.code]);
+  const onMove = (e: React.PointerEvent) => {
+    const el = card.current;
+    if (!el || e.pointerType !== "mouse") return;
+    const r = el.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width - 0.5;
+    const y = (e.clientY - r.top) / r.height - 0.5;
+    el.style.setProperty("--rx", `${(-y * 6).toFixed(2)}deg`);
+    el.style.setProperty("--ry", `${(x * 8).toFixed(2)}deg`);
+  };
+  const onLeave = () => {
+    card.current?.style.setProperty("--rx", "0deg");
+    card.current?.style.setProperty("--ry", "0deg");
+  };
   return (
     <div className="mx-auto max-w-5xl">
       <motion.div
@@ -133,9 +168,13 @@ export function CertificateView({ cert, issuer, url, qr }: { cert: Cert; issuer:
         </div>
       </motion.div>
 
-      <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.1 }} className="mt-6">
-        <CertificateCard cert={cert} issuer={issuer} url={url} qr={qr} />
-      </motion.div>
+      <div className="acad-cert-stage acad-cert-reveal mt-6" onPointerMove={onMove} onPointerLeave={onLeave}>
+        <div ref={card} className="acad-cert-tilt relative">
+          <CertificateCard cert={cert} issuer={issuer} url={url} qr={qr} />
+          <span className="acad-cert-sweep pointer-events-none absolute inset-0 rounded-2xl" aria-hidden />
+          {valid && <span className="acad-cert-sheen pointer-events-none absolute inset-0 rounded-2xl" aria-hidden />}
+        </div>
+      </div>
 
       {valid && (
         <div className="mt-6 rounded-2xl border border-hairline bg-white/[0.02] p-4">
