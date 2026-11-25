@@ -39,6 +39,7 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
     // The list and the article are both cached. Restoring has to bust both, or
     // the post is back in the database and still missing from the site.
     revalidatePath("/research");
+  revalidatePath("/academy/research");
     revalidatePath(`/research/${existing.slug}`);
 
     return ok({ ok: true, restored: true, published: existing.published });

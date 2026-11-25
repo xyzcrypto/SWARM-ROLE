@@ -36,7 +36,7 @@ export async function ResearchPreview() {
                 Latest <span className="text-shine">Web3 research.</span>
               </h2>
             </div>
-            <Link href="/research" className="btn-ghost shrink-0">
+            <Link href="/academy/research" className="btn-ghost shrink-0">
               View all
               <ArrowRight className="h-4 w-4" />
             </Link>

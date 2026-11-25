@@ -43,7 +43,7 @@ export default function AboutPage() {
               <Link href="/journal">trading journal</Link>, a set of{" "}
               <Link href="/tools">calculators and tools</Link>, a{" "}
               <Link href="/community">community room</Link>, and an AI assistant that answers from the
-              site&apos;s own published <Link href="/research">research</Link>.
+              site&apos;s own published <Link href="/academy/research">research</Link>.
             </p>
 
             <h2>Who it is for</h2>

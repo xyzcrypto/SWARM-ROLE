@@ -64,7 +64,7 @@ export function HeroCta({ research }: { research: HeroResearch }) {
     >
       {/* ---------------- primary: research ---------------- */}
       <ActionLink
-        href="/research"
+        href="/academy/research"
         className="hero-cta group relative isolate flex min-w-0 max-w-full flex-col overflow-hidden rounded-2xl px-3.5 py-3.5 transition-[border-color,transform,box-shadow] duration-[400ms] ease-[cubic-bezier(.22,1,.36,1)] hover:-translate-y-0.5 active:-translate-y-0.5 lg:rounded-[18px] lg:px-[18px] lg:py-4"
       >
         <span className="flex w-full min-w-0 items-center gap-3.5 lg:gap-[18px]">

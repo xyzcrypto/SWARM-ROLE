@@ -17,7 +17,7 @@ export function EarlyAccessCta({
 }) {
   const { data: session } = useSession();
   return session ? (
-    <Link href="/research" className={className}>
+    <Link href="/academy/research" className={className}>
       Explore Research
     </Link>
   ) : (

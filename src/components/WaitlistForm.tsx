@@ -33,7 +33,7 @@ export function WaitlistForm({
           </span>
           <p className="truncate text-[13px] text-mint-100">You&apos;re in - account has access.</p>
         </div>
-        <Link href="/research" className="inline-flex shrink-0 items-center gap-0.5 text-[13px] font-semibold text-mint-200 hover:underline">
+        <Link href="/academy/research" className="inline-flex shrink-0 items-center gap-0.5 text-[13px] font-semibold text-mint-200 hover:underline">
           Explore <ArrowRight className="h-3 w-3" />
         </Link>
       </div>

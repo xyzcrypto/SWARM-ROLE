@@ -78,7 +78,7 @@ export async function RelatedResearch({
         })}
       </ul>
       <Link
-        href="/research"
+        href="/academy/research"
         className="mono mt-3 inline-block text-[11px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-gold-200"
       >
         All research →

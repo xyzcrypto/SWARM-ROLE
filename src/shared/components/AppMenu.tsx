@@ -28,7 +28,6 @@ const ICONS: Record<string, typeof Home> = {
   "/points": Coins,
   "/tools": Wrench,
   "/news": Newspaper,
-  "/research": BookOpen,
   "/creators": Trophy,
   "/academy": GraduationCap,
   "/saved": Bookmark,

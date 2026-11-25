@@ -146,7 +146,7 @@ describe("the radar reads the whole pool, not a page of it", () => {
 
 describe("a deleted research post leaves every surface", () => {
   const files = [
-    "src/app/research/page.tsx",
+    "src/modules/research/components/ResearchHub.tsx",
     "src/app/page.tsx",
     "src/app/sitemap.ts",
     "src/app/api/search/posts/route.ts",
