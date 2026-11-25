@@ -5,6 +5,20 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-25 (178) — Academy UI step 3: live quiz finale and question intro
+
+- **Podium finale:**
+  - three pillars in gold, silver and bronze rise in order (3rd, 2nd, then 1st), each
+    winner landing on top of theirs;
+  - medal rings in conic gradients, and scores count up;
+  - a crown drops on #1 last, under a sweeping spotlight.
+- **Question intro:** each live question opens with a one-second "Q3 / 10" splash that
+  lands from a blur and fades. `pointer-events: none`, so it never costs a tap.
+- No framer layout animation in the arena (it re-renders every 250ms). Everything is off
+  under "Animations: Off". Tests: `academy-ui-3.test.ts`.
+
+---
+
 ## 2026-11-25 (177) — Academy UI step 2: quiz feel, and the live banner leaves play mode
 
 - **Fix:** the live banner from (176) showed during a quiz, pushing the one-screen play

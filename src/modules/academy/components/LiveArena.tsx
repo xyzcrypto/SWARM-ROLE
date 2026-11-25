@@ -15,7 +15,7 @@ import { COMMAND_EVENT, type Parsed } from "../client/commands";
 import { optionOrder } from "../client/option-order";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { LiveMe, LiveResults, LiveState } from "./types";
-import { Avatar, burstConfetti, DIFF_LABEL, DIFF_TONE, Empty, fmt, Panel, Pill } from "./ui";
+import { Avatar, burstConfetti, CountUp, DIFF_LABEL, DIFF_TONE, Empty, fmt, Panel, Pill } from "./ui";
 
 const vline = (k: VoiceLine): Piece => lineFor(k);
 /**
@@ -690,6 +690,15 @@ function QuestionStage({
       onContextMenu={(e) => phase.kind === "question" && e.preventDefault()}
       className={cn("surface relative overflow-hidden rounded-3xl p-4 sm:p-8", phase.kind === "question" && "select-none")}
     >
+      {/* The first second of each question: a big "Q3 / 10" that lands and fades. */}
+      {phase.kind === "question" && now - phase.opensAt < 1000 && (
+        <div key={`qsplash-${phase.index}`} className="acad-qsplash pointer-events-none absolute inset-0 z-20 grid place-items-center" aria-hidden>
+          <span className="font-display font-bold tracking-tight">
+            Q{phase.index + 1}
+            <span className="text-content-subtle"> / {count}</span>
+          </span>
+        </div>
+      )}
       {/* Progress through the quiz, one segment per question. */}
       <div className="absolute inset-x-0 top-0 flex h-1 gap-0.5" aria-hidden>
         {Array.from({ length: count }, (_, i) => (
@@ -906,25 +915,52 @@ function Final({ state, me, id, bestStreak }: { state: LiveState; me: LiveMe | n
                 <span className="text-shine">We have our winners</span>
               </h2>
               {podium.length ? (
-                <div className="mt-8 grid grid-cols-3 items-end gap-3">
-                  {[podium[1], podium[0], podium[2]].map((r, i) =>
-                    r ? (
-                      <motion.div
-                        key={r.userId}
-                        initial={{ opacity: 0, y: 60, scale: 0.9 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        transition={{ delay: [0.5, 0.9, 0.2][i], type: "spring", stiffness: 220, damping: 18 }}
-                        className={cn(`acad-podium-${r.rank} flex flex-col items-center rounded-3xl border px-2 pb-4`, r.rank === 1 ? "pt-8" : "pt-5")}
-                      >
-                        <Avatar src={r.image} alt={r.name} size={r.rank === 1 ? 64 : 48} />
-                        <div className="mt-2 w-full truncate text-sm font-semibold text-content">{r.name}</div>
-                        <div className="font-mono text-sm text-gold-200">{fmt(r.score)}</div>
-                        <div className="text-[10px] uppercase tracking-wide text-content-subtle">#{r.rank}</div>
-                      </motion.div>
-                    ) : (
-                      <div key={i} />
-                    )
-                  )}
+                // The finale: three pillars rise in order (3rd, 2nd, 1st), each
+                // winner on top of theirs, a crown drops on #1 under a spotlight.
+                <div className="acad-podium-stage relative mt-8 grid grid-cols-3 items-end gap-2 sm:gap-4">
+                  <span className="acad-spotlight" aria-hidden />
+                  {[podium[1], podium[0], podium[2]].map((r, i) => {
+                    if (!r) return <div key={i} />;
+                    const at = [0.55, 1.0, 0.15][i];
+                    const tall = r.rank === 1 ? 150 : r.rank === 2 ? 108 : 78;
+                    return (
+                      <div key={r.userId} className="relative flex flex-col items-center">
+                        <motion.div
+                          initial={{ opacity: 0, y: 24, scale: 0.6 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{ delay: at + 0.35, type: "spring", stiffness: 320, damping: 16 }}
+                          className="relative flex w-full flex-col items-center px-1"
+                        >
+                          {r.rank === 1 && (
+                            <motion.span
+                              initial={{ y: -40, opacity: 0, rotate: -25 }}
+                              animate={{ y: 0, opacity: 1, rotate: 0 }}
+                              transition={{ delay: at + 0.75, type: "spring", stiffness: 260, damping: 12 }}
+                              className="absolute -top-7 z-10"
+                            >
+                              <Crown className="h-7 w-7 text-gold-300 drop-shadow-[0_0_14px_rgba(226,167,47,0.9)]" />
+                            </motion.span>
+                          )}
+                          <span className={`acad-medal-ring acad-medal-${r.rank}`}>
+                            <Avatar src={r.image} alt={r.name} size={r.rank === 1 ? 68 : 52} />
+                          </span>
+                          <div className="mt-2 w-full truncate text-sm font-semibold text-content">{r.name}</div>
+                          <div className="font-mono text-sm font-bold text-gold-200">
+                            <CountUp value={r.score} duration={1400} />
+                          </div>
+                        </motion.div>
+                        <motion.div
+                          initial={{ scaleY: 0 }}
+                          animate={{ scaleY: 1 }}
+                          transition={{ delay: at, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                          style={{ height: tall, transformOrigin: "bottom" }}
+                          className={cn(`acad-podium-${r.rank} acad-pillar mt-3 grid w-full place-items-center rounded-t-2xl border`)}
+                        >
+                          <span className="font-display text-4xl font-bold opacity-80 sm:text-5xl">{r.rank}</span>
+                        </motion.div>
+                      </div>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="mt-4 text-sm text-content-muted">No one scored in this quiz.</p>
