@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeftRight,
@@ -248,4 +248,39 @@ export function burstConfetti(origin?: { x: number; y: number }, count = 70) {
   }
   document.body.appendChild(host);
   setTimeout(() => host.remove(), 2200);
+}
+
+/** A progress ring, drawn with a stroke-dashoffset transition from empty. */
+export function Ring({ value, size = 112 }: { value: number; size?: number }) {
+  const [shown, setShown] = useState(0);
+  const gid = `acad-ring-${useId().replace(/:/g, "")}`;
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setShown(value));
+    return () => cancelAnimationFrame(id);
+  }, [value]);
+  const r = size / 2 - 7;
+  const c = 2 * Math.PI * r;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="-rotate-90" aria-hidden>
+      <defs>
+        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#f3d488" />
+          <stop offset="100%" stopColor="#34e3a1" />
+        </linearGradient>
+      </defs>
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth={7} className="acad-ring-track" />
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke={`url(#${gid})`}
+        strokeWidth={7}
+        strokeLinecap="round"
+        strokeDasharray={c.toFixed(2)}
+        strokeDashoffset={(c * (1 - Math.min(1, Math.max(0, shown)))).toFixed(2)}
+        className="acad-ring-fill"
+      />
+    </svg>
+  );
 }

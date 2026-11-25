@@ -14,12 +14,12 @@ import type { CatalogCategory, Pulse } from "./types";
 import { Avatar, Empty, Panel, SectionTitle, Skeleton, utcDate } from "./ui";
 
 const MODES = [
-  { href: "/academy/quiz?mode=quick", icon: Zap, title: "Quick Quiz", body: "5 to 20 mixed questions. Fast XP." },
-  { href: "/academy/quiz?mode=topic", icon: Layers, title: "Topic Challenge", body: "Go deep on any one topic, Beginner to Expert." },
-  { href: "/academy/quiz?mode=daily", icon: CalendarDays, title: "Daily Challenge", body: "Same 10 questions for everyone, once a day." },
-  { href: "/academy/quiz?mode=weekly", icon: Trophy, title: "Weekly Challenge", body: "20 questions. One shot. Big bonus." },
-  { href: "/academy/quiz?mode=advanced", icon: Brain, title: "Advanced Challenge", body: "Hard and expert only. Less time, more XP." },
-  { href: "/academy/live", icon: Radio, title: "Live Multiplayer", body: "Everyone, same question, same clock." },
+  { href: "/academy/quiz?mode=quick", icon: Zap, title: "Quick Quiz", body: "5 to 20 mixed questions. Fast XP.", acc: "gold", tag: "4 min" },
+  { href: "/academy/quiz?mode=topic", icon: Layers, title: "Topic Challenge", body: "Go deep on any one topic, Beginner to Expert.", acc: "mint", tag: "Any topic" },
+  { href: "/academy/quiz?mode=daily", icon: CalendarDays, title: "Daily Challenge", body: "Same 10 questions for everyone, once a day.", acc: "gold", tag: "Bonus XP" },
+  { href: "/academy/quiz?mode=weekly", icon: Trophy, title: "Weekly Challenge", body: "20 questions. One shot. Big bonus.", acc: "mint", tag: "Big bonus" },
+  { href: "/academy/quiz?mode=advanced", icon: Brain, title: "Advanced Challenge", body: "Hard and expert only. Less time, more XP.", acc: "gold", tag: "Hard" },
+  { href: "/academy/live", icon: Radio, title: "Live Multiplayer", body: "Everyone, same question, same clock.", acc: "live", tag: "Live" },
 ];
 
 export function AcademyHome() {
@@ -84,12 +84,16 @@ export function AcademyHome() {
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {MODES.map((m, i) => (
             <motion.div key={m.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: i * 0.05 }}>
-              <Link href={m.href} className="surface surface-hover lift group flex h-full items-start gap-4 rounded-3xl p-5">
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-hairline bg-ink-900/60 text-gold-300 transition-colors group-hover:border-gold-400/40">
-                  <m.icon className="h-5 w-5" strokeWidth={1.7} />
+              <Link href={m.href} className={`surface surface-hover acad-tilt acad-mode acad-acc-${m.acc} group relative flex h-full items-start gap-4 overflow-hidden rounded-3xl p-5`}>
+                <span className="acad-mode-glow pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full blur-2xl" aria-hidden />
+                <span className="acad-mode-icon grid h-12 w-12 shrink-0 place-items-center rounded-2xl">
+                  <m.icon className="h-5 w-5" strokeWidth={1.8} />
                 </span>
                 <div className="min-w-0">
-                  <div className="font-display text-base font-semibold text-content">{m.title}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-display text-base font-semibold text-content">{m.title}</span>
+                    <span className="acad-mode-tag rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]">{m.tag}</span>
+                  </div>
                   <div className="mt-0.5 text-sm text-content-muted">{m.body}</div>
                 </div>
                 <ArrowRight className="ml-auto mt-1 h-4 w-4 shrink-0 text-content-subtle transition-all group-hover:translate-x-0.5 group-active:translate-x-0.5 group-hover:text-gold-300" />
