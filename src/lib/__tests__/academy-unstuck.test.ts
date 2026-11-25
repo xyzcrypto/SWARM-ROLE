@@ -36,7 +36,7 @@ describe("no-stuck guards stay in place", () => {
   it("audio: every piece ends exactly once, and a stalled clip cannot silence AneQue", () => {
     const a = read("src/modules/academy/client/audio.ts");
     expect(a).toMatch(/let settled = false/);
-    expect(a).toMatch(/watchdog = setTimeout\(fallback, 8000\)/);
+    expect(a).toMatch(/watchdog = setTimeout\(fallback, piece\.neural \? 16000 : 8000\)/);
     expect(a).toMatch(/name === "AbortError"/);
   });
   it("quiz: every step retries, and coming back to the tab re-syncs", () => {

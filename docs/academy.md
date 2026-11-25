@@ -68,9 +68,25 @@ the same Kokoro voice (`Hey <Name>!`); the test fails if a bank name has no clip
   `lib/voice.ts` attaches a clip URL only when the exact text has one.
 - Voice: Kokoro `af_heart`, 24 kHz mono mp3 (48 kbps lines, 32 kbps curriculum). Tests fail
   if a line or a manifest entry has no file.
-- Edited or new questions simply have no clip and are read by the browser's best female
-  voice. To record new text, render it with the same voice and settings, name it by the
-  hash, and add the hash to the manifest.
+- Text with no clip (an admin's edit, a Live Talk answer, a name outside the bank) is
+  rendered by the **neural voice route** `/api/academy/voice/say?l=en|hi&t=<text>`
+  (`lib/neural-voice.ts`: Gemini TTS, then Groq TTS; a provider without its key is
+  skipped). Each distinct text is rendered once and cached at the edge for a year.
+- **AneQue never falls back to the device's robotic voice.** A recorded clip that fails
+  retries once in the neural voice; a neural piece that fails is skipped and its caption
+  still shows. The device voice is used only when the learner picks one in settings.
+- To record new curriculum text, render it with Kokoro `af_heart` (speed 1.0, trimmed,
+  -16 LUFS, 24 kHz mono mp3 32 kbps), name it by the hash, add the hash to the manifest.
+  `academy-voice-music.test.ts` fails if any curriculum text has no clip.
+
+## Music
+Four studio loops in `public/academy/music/` (focus 92 bpm, arena 124, live 128, night
+80), 32 bars each, all in A minor so a switch never clashes, mastered to -16 LUFS and
+rendered with the tails wrapped so they loop without a seam. `audio.ts` decodes the one
+that is playing and loops it gapless through the music bus (so ducking under AneQue
+works). If a loop cannot load, the old generative scheduler plays instead. Auto picks
+Focus for reading, Arena in quizzes, Live in live quizzes. Music is on by default but
+starts only after the first tap.
 
 ## Tunables
 Everything numeric (points per difficulty, seconds, speed/streak bonuses, daily XP cap,

@@ -29,10 +29,13 @@ describe("academy voice commands", () => {
 });
 
 describe("academy audio settings", () => {
-  it("falls back to defaults on junk, and never autoplays music by default", () => {
+  it("falls back to defaults on junk; music is on by default but only starts after the first tap", () => {
     expect(parseSettings(null)).toEqual(DEFAULT_AUDIO);
     expect(parseSettings("{oops")).toEqual(DEFAULT_AUDIO);
-    expect(DEFAULT_AUDIO.music).toBe(false);
+    // 2026-11-25 (owner): the Academy plays its music by default. It still never
+    // autoplays: startMusic() requires the audio engine to be unlocked by a tap.
+    expect(DEFAULT_AUDIO.music).toBe(true);
+    expect(readFileSync("src/modules/academy/client/audio.ts", "utf8")).toMatch(/!snap\.settings\.music \|\| !snap\.unlocked\) return;/);
   });
   it("clamps volumes and keeps valid choices", () => {
     const s = parseSettings(JSON.stringify({ masterVol: 7, voice: false, voiceName: "Samantha" }));

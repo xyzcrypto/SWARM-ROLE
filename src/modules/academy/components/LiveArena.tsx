@@ -194,7 +194,10 @@ export function LiveArena({ id }: { id: string }) {
     if (announced.current.has(key)) return;
     announced.current.add(key);
     if (phase.kind === "countdown") say("live_soon", { auto: true });
-    if (phase.kind === "reveal") sfx("reveal");
+    if (phase.kind === "reveal") {
+      sfx("reveal");
+      sfx("stinger");
+    }
     if (phase.kind === "ended" && state?.status === "ended") {
       sfx("winner");
       burstConfetti();
@@ -217,6 +220,7 @@ export function LiveArena({ id }: { id: string }) {
   useEffect(() => {
     if (phase?.kind !== "question" || !state?.question || state.question.index !== phase.index || readFor.current === phase.index) return;
     readFor.current = phase.index;
+    sfx("impact");
     sfx("go");
     const q = state.question;
     const pieces = [];
