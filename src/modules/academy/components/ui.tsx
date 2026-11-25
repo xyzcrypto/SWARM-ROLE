@@ -228,14 +228,14 @@ export function shareOnX(text: string, url: string) {
 }
 
 /** Lightweight confetti: DOM pieces with CSS animation, removed after. */
-export function burstConfetti(origin?: { x: number; y: number }) {
+export function burstConfetti(origin?: { x: number; y: number }, count = 70) {
   if (typeof document === "undefined") return;
   const host = document.createElement("div");
   host.className = "acad-confetti";
   host.style.left = `${origin?.x ?? window.innerWidth / 2}px`;
   host.style.top = `${origin?.y ?? window.innerHeight / 3}px`;
   const colors = ["#f3d488", "#e2a72f", "#fdf7e7", "#34e3a1", "#ffffff"];
-  for (let i = 0; i < 70; i++) {
+  for (let i = 0; i < count; i++) {
     const p = document.createElement("i");
     const angle = Math.random() * Math.PI * 2;
     const dist = 120 + Math.random() * 260;

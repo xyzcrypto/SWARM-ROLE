@@ -1025,3 +1025,49 @@ html.motion-off .acad-live-banner, html.motion-off .acad-live-dot::after { anima
 }
 @keyframes acad-draw { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 html.motion-off .acad-eyebrow::before { animation: none; }
+
+/* ---------------------------------------------------------------- quiz feel (step 2)
+   A wrong pick shakes (the `translate` property, so it composes with the
+   transform framer-motion and the pop animation already use); the card washes
+   mint or red for a moment; the combo pill heats up with the run; the timer
+   throbs red in its last seconds. All transform/opacity/shadow only. */
+.acad-option.is-wrong { animation: acad-shake 0.42s cubic-bezier(0.36, 0.07, 0.19, 0.97); }
+@keyframes acad-shake {
+  10%, 90% { translate: -2px 0; }
+  20%, 80% { translate: 4px 0; }
+  30%, 50%, 70% { translate: -7px 0; }
+  40%, 60% { translate: 7px 0; }
+  100% { translate: 0 0; }
+}
+.acad-flash-right { animation: acad-wash-right 0.9s ease-out; }
+.acad-flash-wrong { animation: acad-wash-wrong 0.9s ease-out; }
+@keyframes acad-wash-right {
+  0% { box-shadow: inset 0 0 0 2px rgba(52, 227, 161, 0.75), 0 0 60px -10px rgba(52, 227, 161, 0.55); }
+  100% { box-shadow: inset 0 0 0 0 rgba(52, 227, 161, 0), 0 0 0 0 rgba(52, 227, 161, 0); }
+}
+@keyframes acad-wash-wrong {
+  0% { box-shadow: inset 0 0 0 2px rgba(248, 113, 113, 0.7), 0 0 50px -12px rgba(248, 113, 113, 0.5); }
+  100% { box-shadow: inset 0 0 0 0 rgba(248, 113, 113, 0), 0 0 0 0 rgba(248, 113, 113, 0); }
+}
+.acad-combo { color: #f3d488; background: rgba(226, 167, 47, 0.12); box-shadow: inset 0 0 0 1px rgba(226, 167, 47, 0.35); }
+.acad-combo.is-hot { color: #1a1206; background: linear-gradient(90deg, #f3d488, #e2a72f); box-shadow: 0 0 18px -2px rgba(226, 167, 47, 0.7); }
+.acad-combo.is-blaze {
+  color: #fff;
+  background: linear-gradient(90deg, #fb923c, #ef4444, #e2a72f);
+  background-size: 200% 100%;
+  box-shadow: 0 0 22px -2px rgba(239, 68, 68, 0.75);
+  animation: acad-blaze 1.2s linear infinite;
+}
+@keyframes acad-blaze { to { background-position: -200% 0; } }
+.acad-timer-glow { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.5); animation: acad-timer-hot 0.5s ease-in-out infinite, acad-timer-glow 1s ease-out infinite; }
+@keyframes acad-timer-glow { from { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.55); } to { box-shadow: 0 0 0 12px rgba(248, 113, 113, 0); } }
+html.motion-off .acad-option.is-wrong,
+html.motion-off .acad-flash-right,
+html.motion-off .acad-flash-wrong,
+html.motion-off .acad-combo.is-blaze,
+html.motion-off .acad-timer-glow { animation: none; }
+html:not(.dark) .acad-combo:not(.is-hot):not(.is-blaze) { color: #8a5a00; background: rgba(226, 167, 47, 0.14); }
+/* Play mode owns the whole screen (see html[data-acad-playing] above): the
+   live banner steps aside like the tab bar does, or it pushes the one-screen
+   quiz down and half off a phone. */
+html[data-acad-playing] .acad-live-banner { display: none; }
