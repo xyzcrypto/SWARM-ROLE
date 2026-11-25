@@ -10,6 +10,8 @@ import { play, say, stopVoice, unlock } from "../client/audio";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { VoiceLine } from "../client/voice-lines";
 import { DIFF_TONE, Icon, LEVEL_LABEL, Pill } from "./ui";
+import { Flashcards } from "./Flashcards";
+import { ReadingProgress } from "./ReadingProgress";
 import { BungeeLessonCta } from "@modules/giveaway/components/BungeeLessonCta";
 import { BUNGEE_CATEGORY, BUNGEE_LAST_MODULE } from "@modules/giveaway/lib/bungee";
 
@@ -94,6 +96,7 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1fr_17rem]">
+      <ReadingProgress />
       <article className="min-w-0">
         <Link href={`/academy/learn/${nav.category.slug}`} className="inline-flex items-center gap-1.5 text-xs font-semibold text-content-subtle hover:text-gold-300">
           <Icon name={nav.category.icon} className="h-3.5 w-3.5" /> {nav.category.title}
@@ -193,7 +196,10 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
         {lesson.concepts.length > 0 && (
           <div className="mt-10">
             <h2 className="font-display text-xl font-semibold text-content">Key concepts</h2>
-            <p className="mt-1 text-xs text-content-subtle">Tap a card to reveal its meaning, then test yourself.</p>
+            <div className="mt-1 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-content-subtle">Tap a card to reveal its meaning, then test yourself.</p>
+              <Flashcards lessonId={lesson.id} cards={lesson.concepts.map((c, i) => ({ term: c.term, definition: tx(c.definition, H.concepts[i]) }))} lessonTitle={lesson.title} />
+            </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {lesson.concepts.map((c, i) => {
                 const open = flipped.has(i);

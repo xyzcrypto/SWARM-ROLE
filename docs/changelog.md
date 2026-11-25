@@ -5,6 +5,25 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-25 (179) — Academy UI step 4: reading progress and concept flashcards
+
+- **Reading progress:** every lesson has a thin gold-to-mint bar at the top that fills as
+  you read. It moves by transform from a rAF-throttled passive scroll listener, so
+  scrolling never re-renders React.
+- **Concept flashcards:** "Practice as flashcards" on the Key concepts card opens a
+  full-screen deck:
+  - 3D flip (tap, Space or Enter);
+  - swipe right or → for "Got it", left or ← for "Still learning", Esc closes;
+  - a sound on every move.
+  - Progress is saved on the device per lesson. The summary can replay only the cards
+    not learned yet, and learning every card ends in confetti.
+- **Theme:** the deck is dark in both themes and carries its own colour classes. The
+  light theme's global `.text-white` remap had made the term on the card front
+  invisible; this was caught in a screenshot before shipping.
+- Tests: `academy-ui-4.test.ts`.
+
+---
+
 ## 2026-11-25 (178) — Academy UI step 3: live quiz finale and question intro
 
 - **Podium finale:**
