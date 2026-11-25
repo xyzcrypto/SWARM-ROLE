@@ -94,7 +94,7 @@ export function Footer() {
                 <li><Link href="/profile" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Your profile</Link></li>
                 <li><Link href="/settings" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Settings</Link></li>
               </SignedIn>
-              <li><Link href="/research" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Research hub</Link></li>
+              <li><Link href="/academy/research" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Research hub</Link></li>
               <li><Link href="/contact" prefetch={false} className="-my-1.5 inline-block py-1.5 text-zinc-500 transition-all hover:translate-x-0.5 active:translate-x-0.5 hover:text-gold-200">Contact us</Link></li>
             </ul>
           </div>

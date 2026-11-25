@@ -49,6 +49,7 @@ async function afterPublish(post: { id: string; title: string; excerpt: string; 
 function revalidateContent(slug?: string) {
   revalidatePath("/");
   revalidatePath("/research");
+  revalidatePath("/academy/research");
   if (slug) revalidatePath(`/research/${slug}`);
 }
 

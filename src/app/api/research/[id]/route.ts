@@ -19,6 +19,7 @@ const POST_SCALARS = {
 function revalidateContent(slug?: string) {
   revalidatePath("/");
   revalidatePath("/research");
+  revalidatePath("/academy/research");
   if (slug) revalidatePath(`/research/${slug}`);
 }
 

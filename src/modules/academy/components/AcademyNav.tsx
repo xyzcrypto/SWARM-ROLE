@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Award, BookOpen, GraduationCap, Radio, Swords, Trophy } from "lucide-react";
+import { Award, BookOpen, GraduationCap, Radio, Swords, Trophy, FlaskConical } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAudio } from "../client/hooks";
 import { say, sfx, unlock, updateSettings } from "../client/audio";
@@ -10,6 +10,7 @@ import { HINGLISH_READY } from "../client/hinglish-ready";
 
 const TABS = [
   { href: "/academy", label: "Academy", icon: GraduationCap, exact: true },
+  { href: "/academy/research", label: "Research", icon: FlaskConical },
   { href: "/academy/learn", label: "Learn", icon: BookOpen },
   { href: "/academy/quiz", label: "Quiz", icon: Swords },
   { href: "/academy/live", label: "Live", icon: Radio },

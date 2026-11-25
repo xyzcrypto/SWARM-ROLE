@@ -82,14 +82,14 @@ export default function PremiumPage() {
                     <ActionLink href="/signup" className="btn-gold !px-6">
                       Create a free account
                     </ActionLink>
-                    <ActionLink href="/research" className="btn-ghost !px-6">
+                    <ActionLink href="/academy/research" className="btn-ghost !px-6">
                       Explore research
                     </ActionLink>
                   </div>
                 </GuestOnly>
                 <SignedIn>
                   <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
-                    <ActionLink href="/research" className="btn-gold !px-6">
+                    <ActionLink href="/academy/research" className="btn-gold !px-6">
                       Explore research
                     </ActionLink>
                     <ActionLink href="/profile" className="btn-ghost !px-6">
@@ -163,7 +163,7 @@ export default function PremiumPage() {
                 </ActionLink>
               </GuestOnly>
               <SignedIn>
-                <ActionLink href="/research" className="btn-gold !px-7">
+                <ActionLink href="/academy/research" className="btn-gold !px-7">
                   Explore the research hub
                 </ActionLink>
               </SignedIn>

@@ -122,7 +122,11 @@ const nextConfig = {
   // invoke a function. /bungee/live is a route handler instead, because it
   // has to look up which quiz is live.
   async redirects() {
-    return [{ source: "/bungee/learn", destination: "/academy/learn/bungee-funded-perps", permanent: false }];
+    return [
+      { source: "/bungee/learn", destination: "/academy/learn/bungee-funded-perps", permanent: false },
+      // The research hub lives inside the Academy now; articles keep /research/<slug>.
+      { source: "/research", destination: "/academy/research", permanent: true },
+    ];
   },
   async headers() {
     return [

@@ -115,7 +115,7 @@ export function SavedClient() {
           The bookmark on any research post or news story puts it here.
         </p>
         <Link
-          href="/research"
+          href="/academy/research"
           className="btn-secondary mt-4 inline-flex min-h-9 items-center text-xs"
         >
           Browse research

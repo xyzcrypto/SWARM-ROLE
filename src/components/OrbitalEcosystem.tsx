@@ -11,13 +11,13 @@ type Node = { label: string; desc: string; href: string; tone: "gold" | "mint" |
 // Ecosystem nodes placed evenly around the logo. Links point at existing
 // sections/routes so clicks navigate without any backend change.
 const NODES: Node[] = [
-  { label: "Research", desc: "On-chain research & market intelligence", href: "/research", tone: "gold" },
+  { label: "Research", desc: "On-chain research & market intelligence", href: "/academy/research", tone: "gold" },
   { label: "Trading", desc: "Pro trading tools & live signals", href: "/#products", tone: "mint" },
   { label: "Airdrops", desc: "Airdrop tracking & eligibility", href: "/#products", tone: "violet" },
   { label: "Perp DEX", desc: "On-chain perpetual futures exchange", href: "/#products", tone: "gold" },
   { label: "AI Tools", desc: "AI-powered market assistants", href: "/#products", tone: "mint" },
   { label: "Analytics", desc: "Real-time charts & on-chain data", href: "/#products", tone: "violet" },
-  { label: "Premium", desc: "Exclusive premium research", href: "/research", tone: "gold" },
+  { label: "Premium", desc: "Exclusive premium research", href: "/academy/research", tone: "gold" },
   { label: "Education", desc: "XYZ Web3 Academy & guides", href: "/academy", tone: "mint" },
   { label: "Community", desc: "Join the XYZ Crypto community", href: "/community", tone: "violet" },
 ];

@@ -39,7 +39,7 @@ export default function manifest(): MetadataRoute.Manifest {
     shortcuts: [
       { name: "Markets", short_name: "Markets", url: "/markets" },
       { name: "News", short_name: "News", url: "/news" },
-      { name: "Research", short_name: "Research", url: "/research" },
+      { name: "Research", short_name: "Research", url: "/academy/research" },
     ],
   };
 }
