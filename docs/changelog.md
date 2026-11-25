@@ -5,6 +5,23 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-25 (176) — Academy UI step 1: live quiz banner, eyebrow accents
+
+- **Live quiz banner** (`LiveBanner`, every Academy page under the tab bar):
+  - while a quiz runs: a red pulse, "LIVE NOW", the player count and "Join now";
+  - otherwise: a gold countdown to the next live quiz this week, with "Get ready";
+  - the border is a slowly rotating conic gradient;
+  - phones get a two-row layout;
+  - dismissible per quiz, and hidden inside the live room.
+- **Cost and safety:**
+  - one edge-cached request per mount and no polling; a bounded refetch (6 × 4s) runs
+    only when a countdown reaches zero;
+  - renders nothing until data arrives, so the server HTML never carries the clock.
+- **Section eyebrows** draw a short gold line in ahead of the label.
+- Tests: `academy-ui-1.test.ts`.
+
+---
+
 ## 2026-11-25 (175) — Academy: AneQue never sounds robotic, studio music, live quiz audio, Research inside the Academy, tactile UI
 
 - **No more "cheap web voice".**
