@@ -14,7 +14,7 @@ import { clearTalkContext, setTalkContext } from "../client/talk";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 import type { AnswerResult, CatalogCategory, QuizState } from "./types";
 import type { HiText } from "@modules/academy/lib/voice";
-import { DIFF_LABEL, DIFF_TONE, Empty, Eyebrow, Panel, Pill } from "./ui";
+import { burstConfetti, DIFF_LABEL, DIFF_TONE, Empty, Eyebrow, Panel, Pill } from "./ui";
 import { QuizResults } from "./QuizResults";
 import type { QuizResult } from "./types";
 
@@ -390,7 +390,7 @@ function TimerRing({ left, limitMs, frozen }: { left: number; limitMs: number; f
   const c = 2 * Math.PI * r;
   const urgent = left < 5000 && !frozen;
   return (
-    <div className={cn("acad-timer relative grid h-12 w-12 shrink-0 place-items-center sm:h-14 sm:w-14", urgent && "animate-pulse")} role="timer" aria-label={`${Math.ceil(left / 1000)} seconds left`}>
+    <div className={cn("acad-timer relative grid h-12 w-12 shrink-0 place-items-center rounded-full sm:h-14 sm:w-14", urgent && "acad-timer-hot acad-timer-glow")} role="timer" aria-label={`${Math.ceil(left / 1000)} seconds left`}>
       <svg viewBox="0 0 52 52" className="absolute inset-0 -rotate-90">
         <circle cx="26" cy="26" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
         <circle cx="26" cy="26" r={r} fill="none" stroke={urgent ? "#f87171" : "#e2a72f"} strokeWidth="4" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} style={{ transition: "stroke-dashoffset 250ms linear" }} />
@@ -617,6 +617,12 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
         const after: Piece[] = [];
         if (r.correct) {
           sfx("correct");
+          // A small burst from the option that was right.
+          const el = document.querySelectorAll<HTMLElement>(".acad-play-option")[choice];
+          if (el) {
+            const b = el.getBoundingClientRect();
+            burstConfetti({ x: b.left + b.width * 0.15, y: b.top + b.height / 2 }, r.run >= 3 ? 60 : 26);
+          }
           if (r.points) {
             setTimeout(() => sfx("coin"), 260);
             setPop({ id: Date.now(), text: `+${r.points}` });
@@ -796,8 +802,15 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
               </span>
               <span className="flex items-center gap-3">
                 {state.run >= 2 && (
-                  <motion.span key={state.run} initial={{ scale: 1.4 }} animate={{ scale: 1 }} className="flex items-center gap-1 font-semibold text-gold-300">
-                    <Flame className="h-3.5 w-3.5" /> {state.run}
+                  <motion.span
+                    key={state.run}
+                    initial={{ scale: 1.6, rotate: -8 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 18 }}
+                    className={cn("acad-combo flex items-center gap-1 rounded-full px-2 py-0.5 font-bold", state.run >= 5 ? "is-blaze" : state.run >= 3 ? "is-hot" : "")}
+                    aria-label={`${state.run} correct in a row`}
+                  >
+                    <Flame className="h-3.5 w-3.5" /> x{state.run}
                   </motion.span>
                 )}
                 <span className="font-mono font-semibold text-gold-200">{state.score.toLocaleString("en-US")} pts</span>
@@ -825,7 +838,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
 
       <AnimatePresence mode="popLayout" initial={false}>
         <motion.div key={q.index} initial={{ opacity: 0, x: 40 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -40 }} transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }} className="mt-2.5 flex min-h-0 flex-1 flex-col sm:mt-3">
-          <div className="surface relative flex min-h-0 flex-1 flex-col rounded-3xl">
+          <div className={cn("surface relative flex min-h-0 flex-1 flex-col rounded-3xl", reveal && (reveal.correct ? "acad-flash-right" : "acad-flash-wrong"))}>
             <div className="acad-play-body min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-7 sm:pt-6">
               <div className="flex items-center gap-2">
                 <Pill tone={DIFF_TONE[q.difficulty]}>{DIFF_LABEL[q.difficulty]}</Pill>
