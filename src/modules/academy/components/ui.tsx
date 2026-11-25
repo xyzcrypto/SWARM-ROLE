@@ -128,7 +128,7 @@ export function Panel({ children, className, delay = 0 }: { children: React.Reac
 }
 
 export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("mono text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-300/90", className)}>{children}</div>;
+  return <div className={cn("acad-eyebrow mono text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-300/90", className)}>{children}</div>;
 }
 
 export function SectionTitle({ eyebrow, title, sub, right }: { eyebrow?: string; title: React.ReactNode; sub?: string; right?: React.ReactNode }) {
