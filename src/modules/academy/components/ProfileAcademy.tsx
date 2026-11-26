@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { Award, BadgeCheck, Flame, GraduationCap, MessageSquareHeart, Rocket, Target, Trophy } from "lucide-react";
+import { Award, BadgeCheck, Flame, GraduationCap, MessageSquareHeart, Rocket, Swords, Target, Trophy } from "lucide-react";
 import type { ProfileActivity } from "@modules/academy/lib/profile-activity";
+import { LearningHeatmap } from "./LearningHeatmap";
+import { Icon } from "./ui";
 
 // Server component: a member's public learning and feedback record on
 // /u/<handle>. Dates are pinned to UTC (see CLAUDE.md, hydration).
@@ -68,6 +70,36 @@ export function ProfileAcademy({ a, username }: { a: ProfileActivity; username: 
               </div>
             ))}
           </div>
+
+          {a.tracks.length > 0 && (
+            <div className="surface mt-3 rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center justify-between gap-2 text-sm font-semibold text-zinc-100">
+                <span className="flex items-center gap-2">
+                  <GraduationCap className="h-4 w-4 text-gold-300" /> Track mastery
+                </span>
+                <span className="text-xs font-normal text-zinc-500">{a.lessonsDone} lessons complete</span>
+              </div>
+              <ul className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+                {a.tracks.slice(0, 8).map((t) => {
+                  const pct = Math.round((t.done / Math.max(1, t.total)) * 100);
+                  return (
+                    <li key={t.slug}>
+                      <Link href={`/academy/learn/${t.slug}`} className="group block">
+                        <div className="flex items-center gap-2 text-sm">
+                          <Icon name={t.icon} className="h-4 w-4 shrink-0 text-zinc-500 transition-colors group-hover:text-gold-300" />
+                          <span className="min-w-0 flex-1 truncate text-zinc-200 group-hover:text-zinc-50">{t.title}</span>
+                          <span className={pct === 100 ? "font-mono text-xs font-semibold text-mint-300" : "font-mono text-xs text-zinc-500"}>{pct === 100 ? "Mastered" : `${t.done}/${t.total}`}</span>
+                        </div>
+                        <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
+                          <div className={pct === 100 ? "h-full rounded-full bg-mint-400" : "h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-300"} style={{ width: `${pct}%` }} />
+                        </div>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
 
           <div className="mt-3 grid gap-3 lg:grid-cols-2">
             {/* Certificates */}
@@ -167,6 +199,67 @@ export function ProfileAcademy({ a, username }: { a: ProfileActivity; username: 
           </div>
         </>
       )}
+    </section>
+  );
+}
+
+/**
+ * The Overview tab's learning card: level and XP, all-time rank, streak, the
+ * 26-week learning calendar, and a one-tap challenge to the member's latest
+ * quiz (same questions, same clock).
+ */
+export function ProfileAcademyOverview({ a, username }: { a: ProfileActivity; username: string }) {
+  const lv = a.level;
+  if (a.xp === 0 && a.quizzes === 0) return null;
+  return (
+    <section aria-label="Learning" className="surface rounded-3xl p-4 sm:p-6">
+      <div className="flex flex-wrap items-center gap-4">
+        {lv && (
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-gold-400/40 bg-gold-400/10 font-display text-xl font-bold text-gold-200" title={`Level ${lv.level}`}>
+            {lv.level}
+          </span>
+        )}
+        <div className="min-w-0 flex-1 basis-48">
+          <div className="font-display text-lg font-semibold text-zinc-50">{lv?.name ?? "Learner"}</div>
+          <div className="text-xs text-zinc-500">
+            {n(a.xp)} XP{lv?.next ? ` · ${n(lv.toNext)} to level ${lv.level + 1}` : ""}
+          </div>
+          {lv && (
+            <div className="mt-2 h-1.5 max-w-xs overflow-hidden rounded-full bg-white/[0.06]">
+              <div className="h-full rounded-full bg-gradient-to-r from-gold-500 to-gold-300" style={{ width: `${Math.round(lv.progress * 100)}%` }} />
+            </div>
+          )}
+        </div>
+        <dl className="flex w-full justify-around gap-6 border-t border-white/[0.06] pt-3 text-center sm:w-auto sm:border-0 sm:pt-0">
+          <div>
+            <dt className="text-[11px] text-zinc-500">Rank</dt>
+            <dd className="font-display text-xl font-semibold text-zinc-50">{a.rank ? `#${n(a.rank)}` : "–"}</dd>
+          </div>
+          <div>
+            <dt className="text-[11px] text-zinc-500">Streak</dt>
+            <dd className="flex items-center justify-center gap-1 font-display text-xl font-semibold text-zinc-50">
+              <Flame className="h-4 w-4 text-orange-400" /> {a.streak}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-[11px] text-zinc-500">Badges</dt>
+            <dd className="font-display text-xl font-semibold text-zinc-50">{n(a.achievementCount)}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <LearningHeatmap days={a.heat} className="mt-5 border-t border-white/[0.06] pt-4" />
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        {a.challenge && (
+          <Link href={`/academy/quiz?challenge=${a.challenge.id}`} className="btn-gold h-10 px-4 text-sm">
+            <Swords className="h-4 w-4" /> Challenge @{username} ({n(a.challenge.score)} pts)
+          </Link>
+        )}
+        <Link href={`/academy/s/rank/${username}?p=alltime`} className="btn-ghost h-10 px-4 text-sm">
+          <Trophy className="h-4 w-4" /> Rank card
+        </Link>
+      </div>
     </section>
   );
 }

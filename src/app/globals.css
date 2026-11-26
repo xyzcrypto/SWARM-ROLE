@@ -3046,3 +3046,19 @@ html:not([data-hydrated]) [data-reveal] {
 @keyframes reveal-failsafe {
   to { opacity: 1; transform: none; filter: none; }
 }
+
+/* Learning calendar (profile): five steps of gold. Global because the
+   profile page is outside the Academy layout that loads academy.css. */
+.acad-heat { transition: transform 0.15s, box-shadow 0.15s; }
+.acad-heat.is-l0 { background: rgba(255, 255, 255, 0.05); }
+.acad-heat.is-l1 { background: rgba(226, 167, 47, 0.28); }
+.acad-heat.is-l2 { background: rgba(226, 167, 47, 0.5); }
+.acad-heat.is-l3 { background: rgba(226, 167, 47, 0.75); }
+.acad-heat.is-l4 { background: #f3d488; }
+html:not(.dark) .acad-heat.is-l0 { background: rgba(16, 18, 27, 0.07); }
+html:not(.dark) .acad-heat.is-l1 { background: rgba(154, 102, 18, 0.25); }
+html:not(.dark) .acad-heat.is-l2 { background: rgba(154, 102, 18, 0.45); }
+html:not(.dark) .acad-heat.is-l3 { background: rgba(154, 102, 18, 0.7); }
+html:not(.dark) .acad-heat.is-l4 { background: #9a6612; }
+@media (hover: hover) { button.acad-heat:hover { transform: scale(1.35); } }
+.acad-heat.is-picked { box-shadow: 0 0 0 1.5px var(--content, #fff); }

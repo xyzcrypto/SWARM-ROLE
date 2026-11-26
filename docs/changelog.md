@@ -5,6 +5,34 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-26 (188) — Profile: tabs, a learning calendar, track mastery and "Challenge @user"
+
+- **Tabs instead of one long scroll** (`ProfileTabs`): Overview · Academy · Journal ·
+  Library · Activity, with counts.
+  - Each tab is a hash link (`/u/riya#academy`), so a shared URL opens on it. The hash
+    is read after mount, so server HTML and the first render match.
+  - Arrow keys move between tabs, and switching uses `replaceState`, so it does not
+    fill the history.
+- **Learning calendar** (`LearningHeatmap`): 26 weeks of XP per UTC day in five gold
+  steps, GitHub-style.
+  - Hover or tap a day for its total, with a running "N active days · X XP" summary.
+  - It scrolls to today on phones and has light and dark ramps.
+  - Data comes from one grouped read on the XP ledger.
+- **Overview learning card:**
+  - level and XP bar;
+  - all-time rank, streak and badge count;
+  - the calendar;
+  - **"Challenge @user (N pts)"**, which replays the member's latest replayable quiz
+    with the same questions;
+  - the rank card link.
+- **Academy tab:** adds **Track mastery** (per-track progress bars, mint when mastered)
+  to the existing certificates, recent quizzes, achievements and feedback.
+- `profileActivity` adds `rank`, `heat`, `activeDays`, `tracks`, `lessonsDone` and
+  `challenge`. All reads are guarded like the rest; the page is still ISR (300s).
+- Tests: `profile-interactive.test.ts`.
+
+---
+
 ## 2026-11-26 (187) — Academy design: restraint pass (calmer, less "template")
 
 The owner asked for the Academy to look premium and handmade rather than AI-made. The

@@ -18,7 +18,8 @@ import { CopyLinkButton } from "@/components/CopyLinkButton";
 import { ProfileStats } from "@/components/ProfileStats";
 import { ProfileFollow } from "@/components/ProfileFollow";
 import { JournalActivityFeed } from "@/components/JournalActivityFeed";
-import { ProfileAcademy } from "@modules/academy/components/ProfileAcademy";
+import { ProfileAcademy, ProfileAcademyOverview } from "@modules/academy/components/ProfileAcademy";
+import { ProfileTabs } from "@modules/profile/components/ProfileTabs";
 import { profileActivity } from "@modules/academy/lib/profile-activity";
 import { EditProfileButton } from "@/components/EditProfileButton";
 import { ProfileBannerImage } from "@/components/ProfileBannerImage";
@@ -344,40 +345,47 @@ export default async function ProfilePage(props: Props) {
             </div>
           ) : (
           <>
-          {/* Stats */}
+          {/* Sections as tabs (Overview, Academy, Journal, Library, Activity).
+              Each is a hash link (#academy...) so a shared URL opens on it. */}
           <div className="mt-6">
-            <ProfileStats posts={postCount} comments={user._count.comments} likes={user._count.likes} premium={isPremium} />
-          </div>
-
-          {/* Academy level, XP, quizzes, certificates, achievements and feedback. */}
-          {activity && user.username && (
-            <Reveal variant="up" className="mt-8 block">
-              <ProfileAcademy a={activity} username={user.username} />
-            </Reveal>
-          )}
-
-          {/* Journal Activity - a separate, live section: whatever a member does
-              in their trading Journal (that they've marked public) shows up here. */}
-          {journalActivity.length > 0 && (
-            <Reveal variant="up" className="mt-8 block">
-              <JournalActivityFeed
-                userId={user.id}
-                initialItems={journalActivity.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() }))}
-              />
-            </Reveal>
-          )}
-
-          {/* Library: bookmarked community messages (public) + Saved (owner only). */}
-          {user.username && (
-            <Reveal variant="up" className="mt-8 block">
-              <ProfileLibrary owner={user.username} bookmarks={bookmarks} when={bookmarkWhen} />
-            </Reveal>
-          )}
-
-          {/* Recent activity */}
-          <Reveal variant="up" className="mt-8 block">
-            <h2 className="font-display text-lg font-semibold text-zinc-100">Recent activity</h2>
-            {recentComments.length === 0 ? (
+            <ProfileTabs
+              tabs={[
+                {
+                  id: "overview",
+                  label: "Overview",
+                  content: (
+                    <div className="space-y-5">
+                      <ProfileStats posts={postCount} comments={user._count.comments} likes={user._count.likes} premium={isPremium} />
+                      {activity && user.username && <ProfileAcademyOverview a={activity} username={user.username} />}
+                    </div>
+                  ),
+                },
+                ...(activity && user.username
+                  ? [{ id: "academy", label: "Academy", count: activity.achievementCount, content: <ProfileAcademy a={activity} username={user.username} /> }]
+                  : []),
+                ...(journalActivity.length > 0
+                  ? [
+                      {
+                        id: "journal",
+                        label: "Journal",
+                        count: journalActivity.length,
+                        content: (
+                          <JournalActivityFeed userId={user.id} initialItems={journalActivity.map((a) => ({ ...a, createdAt: a.createdAt.toISOString() }))} />
+                        ),
+                      },
+                    ]
+                  : []),
+                ...(user.username
+                  ? [{ id: "library", label: "Library", count: bookmarks.length, content: <ProfileLibrary owner={user.username} bookmarks={bookmarks} when={bookmarkWhen} /> }]
+                  : []),
+                {
+                  id: "activity",
+                  label: "Activity",
+                  count: recentComments.length,
+                  content: (
+                    <div>
+                      <h2 className="sr-only">Recent activity</h2>
+                      {recentComments.length === 0 ? (
               <div className="mt-3 rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center">
                 <MessageSquare className="mx-auto h-6 w-6 text-zinc-600" />
                 <p className="mt-3 text-sm text-zinc-400">No public activity yet.</p>
@@ -405,7 +413,12 @@ export default async function ProfilePage(props: Props) {
                 ))}
               </ul>
             )}
-          </Reveal>
+                    </div>
+                  ),
+                },
+              ]}
+            />
+          </div>
           </>
           )}
         </div>
