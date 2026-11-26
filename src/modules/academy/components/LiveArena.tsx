@@ -520,7 +520,7 @@ export function LiveArena({ id }: { id: string }) {
                 </AnimatePresence>
               </ol>
             ) : (
-              <p className="text-sm text-content-subtle">Scores appear after the first reveal.</p>
+              <p className="text-sm text-content-subtle">{phase?.kind === "ended" ? "Nobody scored in this quiz." : "Scores appear after the first reveal."}</p>
             )}
           </Panel>
         </aside>
@@ -912,7 +912,9 @@ function Final({ state, me, id, bestStreak }: { state: LiveState; me: LiveMe | n
                 <Crown className="mx-auto h-10 w-10 text-gold-300 drop-shadow-[0_0_18px_rgba(226,167,47,0.7)]" />
               </motion.div>
               <h2 className="mt-3 font-display text-3xl font-bold text-content">
-                <span className="text-shine">We have our winners</span>
+                {/* No scorers, no winners: the old heading said "We have our
+                    winners" right above "No one scored in this quiz." */}
+                {podium.length ? <span className="text-shine">We have our winners</span> : "This quiz has ended"}
               </h2>
               {podium.length ? (
                 // The finale: three pillars rise in order (3rd, 2nd, 1st), each
@@ -963,7 +965,7 @@ function Final({ state, me, id, bestStreak }: { state: LiveState; me: LiveMe | n
                   })}
                 </div>
               ) : (
-                <p className="mt-4 text-sm text-content-muted">No one scored in this quiz.</p>
+                <p className="mt-4 text-sm text-content-muted">Nobody scored in this one. The next live quiz is on the Live page.</p>
               )}
               {me?.joined && (
                 <div className="mx-auto mt-8 max-w-sm rounded-2xl border border-gold-400/30 bg-gold-400/[0.05] p-4">

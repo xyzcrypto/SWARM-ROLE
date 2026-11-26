@@ -297,10 +297,9 @@ export async function finalizeDuePeriods(now = Date.now(), force = false) {
 
 export async function getPulse(now = Date.now()) {
   const dayStart = new Date(periodBounds("daily", now).start);
-  const [learningNow, quizzesToday, liveRows, achievements, certificates, top] = await Promise.all([
+  const [learningNow, quizzesToday, achievements, certificates, top] = await Promise.all([
     prisma.academyAnswer.findMany({ where: { createdAt: { gte: new Date(now - 10 * 60_000) } }, distinct: ["userId"], select: { userId: true }, take: 500 }),
     prisma.academyAttempt.count({ where: { status: "done", finishedAt: { gte: dayStart } } }),
-    prisma.academyLive.findMany({ where: { status: "live" }, select: { id: true, _count: { select: { participants: true } } } }),
     prisma.academyAchievement.findMany({ orderBy: { earnedAt: "desc" }, take: 6, select: { code: true, earnedAt: true, user: { select: userSelect } } }),
     prisma.academyCertificate.findMany({
       where: { status: "issued" },
@@ -315,8 +314,9 @@ export async function getPulse(now = Date.now()) {
   return {
     learningNow: learningNow.length,
     quizzesToday,
-    liveNow: liveRows.length,
-    liveParticipants: liveRows.reduce((s, l) => s + l._count.participants, 0),
+    // Set by the pulse route from each live quiz's schedule (see there).
+    liveNow: 0,
+    liveParticipants: 0,
     achievements: achievements.map((a) => ({
       title: titles.get(a.code as never) ?? a.code,
       at: a.earnedAt.toISOString(),

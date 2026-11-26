@@ -37,14 +37,24 @@ const hms = (ms: number) => {
   return [Math.floor(s / 3600), Math.floor((s % 3600) / 60), s % 60].map((n) => String(n).padStart(2, "0")).join(":");
 };
 
-function Stat({ value, label, live, accent }: { value: number | null; label: string; live?: boolean; accent?: boolean }) {
-  return (
-    <div className="acad-stat min-w-0 rounded-2xl px-2 py-3 sm:px-4 sm:py-3.5" title={label}>
+function Stat({ value, label, live, accent, href }: { value: number | null; label: string; live?: boolean; accent?: boolean; href?: string }) {
+  const body = (
+    <>
       <div className={cn("flex items-center gap-1.5 font-display text-[1.35rem] font-semibold leading-none tabular-nums sm:text-[1.7rem]", accent ? "text-gold-gradient" : "text-content")}>
         {live && <span className="acad-live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-mint-400 text-mint-400" />}
         {value == null ? <span className="acad-skel inline-block h-6 w-9 rounded-md" aria-label="Loading" /> : <CountUp value={value} />}
       </div>
       <div className="mt-1.5 truncate font-mono text-[8.5px] uppercase tracking-[0.04em] text-content-subtle sm:text-[10px] sm:tracking-[0.14em]">{label}</div>
+    </>
+  );
+  const cls = "acad-stat block min-w-0 rounded-2xl px-2 py-3 sm:px-4 sm:py-3.5";
+  return href ? (
+    <Link href={href} className={cls} title={label}>
+      {body}
+    </Link>
+  ) : (
+    <div className={cls} title={label}>
+      {body}
     </div>
   );
 }
@@ -359,8 +369,11 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
           <motion.div style={rise({ y: 8, dur: 0.6, delay: 0.7 })} className="grid grid-cols-4 gap-1.5 sm:gap-2">
             <Stat accent value={questions ?? 510} label="questions" />
             <Stat value={topics ?? 21} label="tracks" />
-            <Stat live value={pulse?.learningNow ?? null} label="live now" />
-            <Stat value={pulse?.quizzesToday ?? null} label="quizzes" />
+            {/* ⚠️ "live now" means live QUIZZES. It used to show learningNow
+                (people active in the last 10 minutes), so it read "1 live now"
+                with no live quiz running. Learners are the "N learning" pill. */}
+            <Stat live={!!pulse?.liveNow} value={pulse?.liveNow ?? null} label="live now" href="/academy/live" />
+            <Stat value={pulse?.quizzesToday ?? null} label="quizzes today" />
           </motion.div>
           {tracks && tracks.length > 0 && (
             <motion.div style={rise({ dur: 0.6, delay: 0.65 })} className="acad-track-rail mt-4 overflow-hidden" aria-label="Learning tracks">
