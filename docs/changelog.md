@@ -5,6 +5,37 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-26 (186) — Fix: Academy "LIVE NOW" counted learners, and an audit of every Academy page
+
+- **"LIVE NOW" showed 1 with no live quiz running** (owner report).
+  - The hero stat labelled "live now" was bound to `learningNow`: learners who
+    answered anything in the last 10 minutes, so whoever was looking counted as 1.
+  - It now shows live quizzes, links to `/academy/live`, and has a pulsing dot only
+    when one is running. The 4th stat now says "quizzes today", which is what it
+    counts. Learners already have their own "N learning" pill.
+- **Live counts are taken from each quiz's schedule.** `getPulse` counted rows with
+  `status = "live"`, but a quiz that ended while nobody watched keeps that status until
+  someone opens it. The pulse route now uses `listLive()` state, the same one the Live
+  page shows.
+- **Ended live quiz with no scorers** said "We have our winners" above "No one scored".
+  It now says "This quiz has ended", and the side board says "Nobody scored in this
+  quiz" instead of "Scores appear after the first reveal".
+- **Haptics before the first tap.** An auto-played sound on page load tried to vibrate
+  and Chrome logged an intervention warning each time. `haptics.ts` now waits for
+  `navigator.userActivation.hasBeenActive`.
+- **Audit:** every Academy page was crawled as a guest and as a learner, on mobile and
+  desktop, in dark and light. It checked for page errors, hydration errors, failed
+  requests, horizontal overflow, broken images, "undefined/NaN/null" in text and blocks
+  left invisible. Besides the above it found:
+  - research images failing only because this sandbox cannot reach unsplash
+    (production serves them, 200);
+  - below-the-fold blocks held at their first frame by `PauseOffscreenAnimations`,
+    which is by design (they animate in once scrolled to);
+  - no other errors.
+- Tests: `academy-audit.test.ts`.
+
+---
+
 ## 2026-11-26 (185) — Academy: daily goal, streak freezes and an evening streak reminder
 
 - **Daily goal.** Pick Casual 20, Regular 50 (default), Serious 100 or Intense 150 XP a

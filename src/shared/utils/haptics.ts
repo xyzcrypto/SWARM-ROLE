@@ -76,6 +76,11 @@ function level(): { on: boolean; scale: number } {
 function enabled(): boolean {
   if (typeof window === "undefined" || typeof navigator === "undefined") return false;
   if (typeof navigator.vibrate !== "function") return false;
+  // Before the first tap on the page the browser refuses to vibrate and logs
+  // an intervention warning for every attempt (an auto-played sound on a page
+  // load used to do this). Skip quietly until the page has been touched.
+  const ua = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation;
+  if (ua && !ua.hasBeenActive) return false;
   const f = getFeel();
   if (f.haptics === "off") return false;
   if (f.hapticsChosen) return true; // the member asked for it
