@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { BadgeCheck, Clock, Download, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { burstConfetti, utcDate } from "./ui";
+import { burstConfetti, utcDate, rise } from "./ui";
 import { sfx } from "../client/audio";
 import { ShareSheet } from "./ShareSheet";
 
@@ -150,8 +150,7 @@ export function CertificateView({ cert, issuer, url, qr }: { cert: Cert; issuer:
   return (
     <div className="mx-auto max-w-5xl">
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
+        style={rise({ y: 10 })}
         className={cn(
           "flex flex-wrap items-center gap-3 rounded-2xl border px-4 py-3",
           valid ? "border-mint-400/40 bg-mint-400/[0.06]" : cert.status === "pending" ? "border-gold-400/40 bg-gold-400/[0.06]" : "border-red-400/40 bg-red-400/[0.06]"

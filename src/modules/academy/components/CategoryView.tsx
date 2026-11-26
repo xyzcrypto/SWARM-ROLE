@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { useMe } from "../client/hooks";
 import { say, unlock } from "../client/audio";
 import type { VoiceLine } from "../client/voice-lines";
-import { DIFF_TONE, Icon, LEVEL_LABEL, Pill, ProgressBar } from "./ui";
+import { DIFF_TONE, Icon, LEVEL_LABEL, Pill, ProgressBar, rise } from "./ui";
 
 type C = {
   id: string;
@@ -75,10 +75,7 @@ export function CategoryView({ c }: { c: C }) {
           return (
             <motion.li
               key={m.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-             
-              transition={{ duration: 0.45, delay: i * 0.06 }}
+              style={rise({ y: 16, dur: 0.45, delay: i * 0.06 })}
               className="relative pl-14 sm:pl-16"
             >
               <span

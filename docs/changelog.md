@@ -5,6 +5,44 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-26 (182) — Fix: Academy quiz stuck on "Checking your answer…", and pages blank until JS loads
+
+Two real causes, both reproduced before fixing:
+
+- **Quiz stuck forever on "Checking your answer…" (timer at 0).**
+  - Cause: `getJson` (`modules/academy/client/hooks.ts`) cleared its timeout as soon
+    as the response headers arrived. A mobile connection that dropped mid-body left
+    `res.json()` pending forever: no error, no retry, no way out but a refresh.
+  - Reproduced with a proxy that sends headers plus half a body and then hangs. The
+    old code stuck on the first stall; the fixed code finished every run across 14
+    stalls.
+  - The timeout now covers the body read. A body that dies is a lost connection
+    (status 0), which `withRetry` retries, and the existing 409 re-sync then
+    restores the question. A 2xx that is not JSON (a captive-portal page) is
+    treated the same way.
+  - The same helper serves the Live quiz, so Live is fixed too.
+- **Pages blank or "stuck" until all the JS has loaded.**
+  - Cause: framer-motion's `initial={{ opacity: 0 }}` is written into the server HTML.
+    Production `/academy` shipped 22 elements at opacity 0, including the headline,
+    the Start buttons, the challenge cards and the panels; lesson pages shipped 8.
+  - On a slow phone the page looked empty. When a JS chunk failed (a deploy landing
+    mid-visit), the content never appeared.
+  - These entrances now use `rise()` (`ui.tsx`), a CSS animation with `backwards`
+    fill that plays from the HTML and always ends visible. This covers Hero, Panel,
+    home cards, lessons, category, certificate and showcase. Local HTML now has 0
+    hidden elements on every Academy page except closed accordions.
+  - The site-wide `<Reveal>` stays scroll-triggered, with a failsafe: until
+    PwaSetup marks `<html data-hydrated>`, `globals.css` brings `[data-reveal]`
+    content in after 2.5s on its own.
+- The music loop download is bounded (25s) and forgotten on failure, so a stalled
+  file falls back to the generative track instead of silencing that scene.
+- Also verified, with no change needed: the quiz completed every run under 15%
+  aborted requests, 15% lost responses, 10% 9-second delays, question timeouts, a
+  4x CPU throttle and tab hide/show. Navigation across all Academy tabs never hung.
+- Tests: `academy-stuck.test.ts`.
+
+---
+
 ## 2026-11-25 (181) — Academy UI step 6: Badges page, home and learn polish
 
 - **New `/academy/achievements` (Badges)**, a static page in the Academy nav, linked from

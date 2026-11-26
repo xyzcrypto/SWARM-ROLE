@@ -3029,3 +3029,20 @@ html:not(.dark) .soon-veil { background-image: linear-gradient(to bottom, rgb(24
   background: linear-gradient(90deg, #f0c45c, #e2a72f 60%, #34e3a1);
   box-shadow: 0 0 10px rgba(226, 167, 47, 0.6);
 }
+
+/* ----------------------------------------------------------------
+   Reveal failsafe
+   ----------------------------------------------------------------
+   <Reveal> (framer-motion, scroll-triggered) is rendered by the server at
+   opacity 0 and only becomes visible once the JS has hydrated. If that is
+   slow (a weak phone on mobile data) or never happens (a chunk failed to
+   load across a deploy), the page looked blank or "stuck" with its content
+   present but invisible. Until PwaSetup marks the document hydrated, this
+   brings the content in after 2.5s on its own. An animation (not a plain
+   rule) because only an animation outranks framer's inline style. */
+html:not([data-hydrated]) [data-reveal] {
+  animation: reveal-failsafe 0.4s ease-out 2.5s forwards;
+}
+@keyframes reveal-failsafe {
+  to { opacity: 1; transform: none; filter: none; }
+}

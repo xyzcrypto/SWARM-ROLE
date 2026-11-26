@@ -113,13 +113,30 @@ export function CountUp({ value, format = (n) => Math.round(n).toLocaleString("e
 
 export const fmt = (n: number) => Math.round(n).toLocaleString("en-US");
 
+/**
+ * An entrance (fade + rise/slide) as a CSS animation in an inline style.
+ *
+ * ⚠️ Not framer-motion's `initial={{ opacity: 0 }}`: that is rendered into the
+ * SERVER html as `style="opacity:0"`, so the content stays invisible until the
+ * JS has downloaded, hydrated and run the animation. On a slow phone that was a
+ * blank Academy for seconds, and when a chunk failed to load (a deploy landing
+ * mid-visit) the text and buttons never appeared at all: the "page is stuck"
+ * reports. A CSS animation plays from the HTML alone and always ends visible.
+ * `backwards` fill only, so the element's own transform owns it afterwards.
+ */
+export function rise(o: { x?: number; y?: number; r?: number; dur?: number; delay?: number } = {}): React.CSSProperties {
+  return {
+    animation: `acad-in ${o.dur ?? 0.5}s cubic-bezier(0.22, 1, 0.36, 1) ${o.delay ?? 0}s backwards`,
+    ["--in-x" as string]: `${o.x ?? 0}px`,
+    ["--in-y" as string]: `${o.y ?? 0}px`,
+    ["--in-r" as string]: `${o.r ?? 0}deg`,
+  } as React.CSSProperties;
+}
+
 export function Panel({ children, className, delay = 0 }: { children: React.ReactNode; className?: string; delay?: number }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-     
-      transition={{ duration: 0.5, delay, ease: [0.22, 1, 0.36, 1] }}
+      style={rise({ y: 16, dur: 0.5, delay: delay })}
       className={cn("surface min-w-0 rounded-3xl p-5 sm:p-6", className)}
     >
       {children}

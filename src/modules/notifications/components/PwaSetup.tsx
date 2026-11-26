@@ -21,6 +21,13 @@ export function PwaSetup() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [show, setShow] = useState(false);
 
+  // Mark the document as hydrated. Until this is set, globals.css shows any
+  // <Reveal> content after 2.5s on its own, so a page whose JS is slow or
+  // failed to load is never left with its text and buttons invisible.
+  useEffect(() => {
+    document.documentElement.dataset.hydrated = "1";
+  }, []);
+
   // Register the service worker on load, then proactively re-check for a
   // newer version whenever the tab regains focus - browsers only check for SW
   // updates on navigation by default, so a tab left open across a deploy can

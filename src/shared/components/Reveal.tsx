@@ -143,6 +143,10 @@ export function Reveal({
   return (
     <motion.div
       className={className}
+      // Failsafe hook: globals.css reveals [data-reveal] if hydration has not
+      // happened 2.5s after load. framer renders `initial="hidden"` into the
+      // server HTML as opacity 0, so without JS this content was invisible.
+      data-reveal=""
       variants={presets[variant]}
       custom={delay}
       initial="hidden"

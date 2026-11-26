@@ -11,7 +11,7 @@ import { CertificateShowcase } from "./CertificateShowcase";
 import { Library } from "./Library";
 import { LeaderboardView } from "./Leaderboard";
 import type { CatalogCategory, Pulse } from "./types";
-import { Avatar, Empty, Panel, SectionTitle, Skeleton, utcDate } from "./ui";
+import { Avatar, Empty, Panel, SectionTitle, Skeleton, utcDate, rise } from "./ui";
 
 const MODES = [
   { href: "/academy/quiz?mode=quick", icon: Zap, title: "Quick Quiz", body: "5 to 20 mixed questions. Fast XP.", acc: "gold", tag: "4 min" },
@@ -83,7 +83,7 @@ export function AcademyHome() {
         <SectionTitle eyebrow="Play" title="Choose your challenge" sub="Every mode is scored on the server: correct answers, difficulty, speed and streaks. Wrong answers never earn quiz XP." />
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {MODES.map((m, i) => (
-            <motion.div key={m.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: i * 0.05 }}>
+            <motion.div key={m.title} style={rise({ y: 16, dur: 0.45, delay: i * 0.05 })}>
               <Link href={m.href} className={`surface surface-hover acad-tilt acad-mode acad-acc-${m.acc} group relative flex h-full items-start gap-4 overflow-hidden rounded-3xl p-5`}>
                 <span className="acad-mode-glow pointer-events-none absolute -right-12 -top-12 h-36 w-36 rounded-full blur-2xl" aria-hidden />
                 <span className="acad-mode-icon grid h-12 w-12 shrink-0 place-items-center rounded-2xl">
