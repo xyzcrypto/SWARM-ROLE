@@ -1,4 +1,6 @@
 import "server-only";
+import { reviewQueue } from "./review-db";
+import { untilText } from "./review";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import type { Difficulty, QuizMode } from "./config";
@@ -55,19 +57,19 @@ async function pickIds(input: StartInput, now: number, userId: string): Promise<
   }
 
   if (input.mode === "mistakes") {
-    // Questions whose most recent answer by this member was wrong.
-    const rows = await prisma.academyAnswer.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      select: { questionId: true, correct: true },
-      take: 2000,
-    });
-    const latest = new Map<string, boolean>();
-    for (const r of rows) if (!latest.has(r.questionId)) latest.set(r.questionId, r.correct);
-    const wrong = [...latest].filter(([, ok]) => !ok).map(([id]) => id);
-    const active = await prisma.academyQuestion.findMany({ where: { id: { in: wrong }, active: true }, select: { id: true } });
-    if (!active.length) throw new QuizError("No mistakes to review. Every question you missed has since been answered right.", 404);
-    return { ids: shuffle(active.map((r) => r.id)).slice(0, count), categoryId: null, periodKey: null, difficulty: "mixed" };
+    // Spaced review (review.ts): the missed questions that are due now, most
+    // overdue first. Ones answered right recently wait for their next step.
+    const q = await reviewQueue(userId, now);
+    if (!q.due.length)
+      throw new QuizError(
+        q.nextAt
+          ? `No mistakes due right now. Your next review is ${untilText(q.nextAt, now)}.`
+          : q.mastered
+            ? "No mistakes left to review. Every question you missed is mastered."
+            : "No mistakes to review yet. Questions you miss come back here.",
+        404
+      );
+    return { ids: q.due.slice(0, count).map((d) => d.questionId), categoryId: null, periodKey: null, difficulty: "mixed" };
   }
 
   if (input.mode === "speed") {

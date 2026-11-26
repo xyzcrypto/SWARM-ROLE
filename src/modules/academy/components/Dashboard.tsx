@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Award, BookOpen, CalendarDays, CheckCircle2, Flame, Lock, Swords, Target, Trophy, Zap } from "lucide-react";
+import { ArrowRight, Award, BookOpen, CalendarDays, CheckCircle2, Flame, Lock, RotateCcw, Swords, Target, Trophy, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Me } from "../client/hooks";
 import { Avatar, CountUp, Eyebrow, fmt, Icon, LEVEL_LABEL, Panel, Pill, DIFF_TONE, ProgressBar, Stat, utcDate } from "./ui";
@@ -58,6 +58,40 @@ function ChallengeCard({ kind, state, href }: { kind: "daily" | "weekly"; state:
       <div className="mt-1 flex items-center gap-1 text-xs text-content-subtle">
         {done ? `${fmt(state!.score)} points. Back ${kind === "daily" ? "tomorrow" : "next week"}.` : <>Bonus XP <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" /></>}
       </div>
+    </Link>
+  );
+}
+
+/**
+ * Spaced review at a glance: how many missed questions are due now. Due ones
+ * pulse gold and lead straight into the review; with nothing due it shows
+ * what is scheduled and mastered, so the habit stays visible.
+ */
+function ReviewCard({ review }: { review: Me["review"] }) {
+  const due = review.due;
+  const total = review.learning + review.mastered;
+  return (
+    <Link
+      href="/academy/quiz?mode=mistakes"
+      className={cn(
+        "acad-review-card group relative flex items-center gap-4 overflow-hidden rounded-2xl border p-4 transition-colors sm:col-span-2",
+        due ? "is-due border-gold-400/50 bg-gold-400/[0.07] hover:border-gold-400/80" : "border-hairline hover:border-gold-400/40"
+      )}
+    >
+      <span className={cn("relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl", due ? "bg-gold-400/20 text-gold-600 dark:text-gold-200" : "bg-white/[0.04] text-content-subtle")}>
+        <RotateCcw className="h-5 w-5" />
+        {due > 0 && <span className="acad-review-badge absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 font-mono text-[10px] font-bold text-white">{due > 99 ? "99+" : due}</span>}
+      </span>
+      <div className="min-w-0 flex-1">
+        <Eyebrow>Mistakes review</Eyebrow>
+        <div className="mt-0.5 font-display text-lg font-semibold text-content">
+          {due ? `${due} question${due === 1 ? "" : "s"} due now` : total ? "All caught up" : "Nothing to review yet"}
+        </div>
+        <div className="text-xs text-content-subtle">
+          {total ? `${review.learning - due} scheduled · ${review.mastered} mastered · spaced 1, 3, 7 days` : "Questions you miss come back here, spaced out until they stick."}
+        </div>
+      </div>
+      <ArrowRight className={cn("h-5 w-5 shrink-0 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5", due ? "text-gold-500 dark:text-gold-300" : "text-content-subtle")} />
     </Link>
   );
 }
@@ -160,6 +194,7 @@ export function Dashboard({ me }: { me: Me }) {
           </div>
         </Panel>
         <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
+          <ReviewCard review={me.review} />
           <ChallengeCard kind="daily" state={me.daily} href="/academy/quiz?mode=daily" />
           <ChallengeCard kind="weekly" state={me.weekly} href="/academy/quiz?mode=weekly" />
           <Link href="/academy/quiz?mode=quick" className="group flex items-center gap-3 rounded-2xl border border-hairline p-4 transition-colors hover:border-gold-400/40">

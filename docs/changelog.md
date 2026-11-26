@@ -5,6 +5,32 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-26 (183) — Academy: spaced Mistakes Review
+
+- **The "Mistakes" quiz mode is now a spaced-repetition review** (tab renamed "Review"):
+  - a missed question is due at once;
+  - each correct answer given on or after its due time moves it out 1, then 3, then
+    7 days;
+  - the 4th correct answer masters it;
+  - a correct answer given too early does not count (2h slack), and a new miss
+    starts it over.
+  - Before, the mode served every question whose latest answer was wrong, with no
+    spacing.
+- **No new table:** the schedule is derived from `AcademyAnswer` in
+  `lib/review.ts` (pure, unit-tested) and `lib/review-db.ts` (two indexed reads, active
+  questions only). Correct answers in any quiz count toward the schedule.
+- `/api/academy/me` now returns `review: { due, learning, mastered, nextAt }`.
+- **Dashboard:** a Review card leads the play grid. Due questions show a red count
+  badge and a gold sheen; otherwise it shows what is scheduled and mastered.
+- **Quiz setup Review tab:** Due now / Scheduled / Mastered, a "Review N now" button,
+  and "Next review in 5h" when nothing is due.
+- **Results:** "N moved up to their next review, M stay due".
+- An empty queue gets a specific message (next review time, all mastered, or nothing
+  missed yet).
+- Tests: `academy-review.test.ts`.
+
+---
+
 ## 2026-11-26 (182) — Fix: Academy quiz stuck on "Checking your answer…", and pages blank until JS loads
 
 Two real causes, both reproduced before fixing:

@@ -113,10 +113,22 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
   return (
     <div className="mx-auto max-w-4xl">
       <div className="text-center">
-        <Eyebrow>{r.mode === "module" ? "Knowledge check" : r.mode === "daily" ? "Daily challenge" : r.mode === "weekly" ? "Weekly challenge" : "Quiz complete"}</Eyebrow>
+        <Eyebrow>{r.mode === "module" ? "Knowledge check" : r.mode === "mistakes" ? "Mistakes review" : r.mode === "daily" ? "Daily challenge" : r.mode === "weekly" ? "Weekly challenge" : "Quiz complete"}</Eyebrow>
         <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mt-2 font-display text-3xl font-semibold tracking-tight text-content sm:text-5xl">
           {r.accuracy === 100 ? <span className="text-shine">Flawless.</span> : r.accuracy >= 80 ? <span className="text-gold-gradient">Brilliant work.</span> : r.accuracy >= 50 ? "Solid round." : "Every miss is a lesson."}
         </motion.h1>
+        {r.mode === "mistakes" && (
+          <p className="mx-auto mt-2 max-w-md text-sm text-content-muted">
+            <span className="font-semibold text-mint-600 dark:text-mint-300">{r.correct} moved up</span> to their next review (1, 3, then 7 days apart).{" "}
+            {wrong > 0 ? (
+              <>
+                <span className="font-semibold text-red-500 dark:text-red-300">{wrong} stay due</span> and come back in your next review.
+              </>
+            ) : (
+              "Nothing left due from this round."
+            )}
+          </p>
+        )}
         {r.mode === "module" && (
           <p className={cn("mt-2 text-sm", r.moduleCompleted ? "text-mint-300" : "text-content-muted")}>
             {r.moduleCompleted ? "Lesson complete. It now counts toward your progress." : "Score 60% or more to complete the lesson. Review the answers and try again."}

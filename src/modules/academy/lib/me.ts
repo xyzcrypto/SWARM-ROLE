@@ -4,6 +4,7 @@ import { publicImageUrl } from "@/lib/utils";
 import { loadConfig, getCatalog } from "./store";
 import { dayKey, levelFor, liveStreak, periodBounds, weekKey } from "./engine";
 import { myStanding } from "./board";
+import { reviewQueue } from "./review-db";
 
 /** Everything the personal dashboard shows, in one round trip. */
 export async function getMe(userId: string, now = Date.now()) {
@@ -57,7 +58,9 @@ export async function getMe(userId: string, now = Date.now()) {
     }
   }
 
+  const rq = await reviewQueue(userId, now);
   return {
+    review: { due: rq.due.length, learning: rq.due.length + rq.upcoming.length, mastered: rq.mastered, nextAt: rq.nextAt },
     user: user ? { id: user.id, name: user.name?.trim() || (user.username ? `@${user.username}` : "Learner"), username: user.username, image: publicImageUrl(user.image, user.id) } : null,
     xp,
     level: levelFor(xp, cfg.levels),
