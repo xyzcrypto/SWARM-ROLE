@@ -157,7 +157,7 @@ export function GreetBubble({ hidden, onVisible }: { hidden: boolean; onVisible:
           >
             <X className="h-3.5 w-3.5" />
           </button>
-          <div className="pr-5 font-display text-sm font-semibold text-content">{bubble.name ? `Hey ${bubble.name}! 👋` : "Hey there! 👋"}</div>
+          <div className="pr-5 font-display text-sm font-semibold text-content">{bubble.name ? `Hey ${bubble.name}!` : "Hey there!"}</div>
           {bubble.waiting ? (
             <button
               type="button"

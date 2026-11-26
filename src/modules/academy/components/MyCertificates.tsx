@@ -14,7 +14,7 @@ export function MyCertificates() {
     <div>
       <SectionTitle
         eyebrow="Official recognition"
-        title={<span className="text-gold-gradient">Certificates</span>}
+        title="Certificates"
         sub="Certificates go to the top of each finished leaderboard period and to live quiz winners. Each one has a unique ID, a QR code and a public verification page."
       />
       <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">

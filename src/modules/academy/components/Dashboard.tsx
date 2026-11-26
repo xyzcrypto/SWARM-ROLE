@@ -140,7 +140,6 @@ export function Dashboard({ me }: { me: Me }) {
       <DailyGoal me={me} onChanged={() => void reload()} />
       <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
         <Panel className="relative overflow-hidden">
-          <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-gold-500/10 blur-3xl" aria-hidden />
           <div className="flex items-center gap-4">
             <Avatar src={me.user?.image ?? null} alt={me.user?.name ?? "You"} size={60} className="ring-2 ring-gold-400/40 ring-offset-2 ring-offset-ink-950" />
             <div className="min-w-0">
@@ -180,8 +179,8 @@ export function Dashboard({ me }: { me: Me }) {
           </div>
           <div className="mt-4 grid grid-cols-2 gap-2">
             {(["daily", "weekly", "monthly", "alltime"] as const).map((p) => (
-              <Link key={p} href={`/academy/leaderboard?period=${p}`} className="rounded-xl border border-hairline px-3 py-2 transition-colors hover:border-gold-400/40">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-content-subtle">{BOARD_LABEL[p]}</div>
+              <Link key={p} href={`/academy/leaderboard?period=${p}`} className="rounded-xl bg-white/[0.025] px-3 py-2 transition-colors hover:bg-white/[0.05] active:bg-white/[0.05]">
+                <div className="text-[11px] font-medium text-content-subtle">{BOARD_LABEL[p]}</div>
                 <div className="mt-0.5 flex items-baseline justify-between gap-2">
                   <span className="font-display text-base font-semibold text-content">{me.standing[p]?.rank ? `#${fmt(me.standing[p].rank!)}` : "Unranked"}</span>
                   <span className="font-mono text-[11px] text-content-subtle">{fmt(me.standing[p]?.xp ?? 0)} XP</span>

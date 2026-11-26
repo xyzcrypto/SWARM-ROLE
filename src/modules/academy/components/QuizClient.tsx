@@ -218,7 +218,7 @@ function QuizSetup({
       <div className="text-center">
         <Eyebrow>Quiz engine</Eyebrow>
         <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-content sm:text-4xl">
-          {setup.mode === "module" ? "Knowledge check" : setup.mode === "challenge" ? "You've been challenged" : <span className="text-gold-gradient">Set up your challenge</span>}
+          {setup.mode === "module" ? "Knowledge check" : setup.mode === "challenge" ? "You've been challenged" : "Set up your challenge"}
         </h1>
         <p className="mx-auto mt-2 max-w-lg text-sm text-content-muted">One question at a time, against the clock. Faster correct answers and streaks score more. Wrong answers score nothing.</p>
       </div>
@@ -965,7 +965,7 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
 
               {reveal?.correct && reveal.run >= 3 && (
                 <div key={`streak-${q.index}`} className="acad-streak-banner pointer-events-none absolute left-1/2 top-3 z-10 flex items-center gap-1.5 rounded-full bg-gradient-to-r from-gold-500 to-gold-300 px-4 py-1.5 text-sm font-bold text-ink-950 shadow-[0_10px_30px_-10px_rgba(226,167,47,0.8)]">
-                  🔥 {reveal.run} in a row!
+                  <Flame className="h-4 w-4" /> {reveal.run} in a row
                 </div>
               )}
               <AnimatePresence>

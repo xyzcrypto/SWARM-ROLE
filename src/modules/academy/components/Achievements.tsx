@@ -174,7 +174,7 @@ export function AchievementsPage() {
     <div>
       <SectionTitle
         eyebrow="Collection"
-        title={<span className="text-gold-gradient">Badges</span>}
+        title="Badges"
         sub="Every badge pays XP once. Rarer badges pay more. Tap a badge to flip it and see exactly how to unlock it."
       />
 

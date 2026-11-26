@@ -11,7 +11,7 @@ export function LeaderboardPage() {
     <div>
       <SectionTitle
         eyebrow="Global rankings"
-        title={<span className="text-gold-gradient">The leaderboard</span>}
+        title="The leaderboard"
         sub="Ranked by XP earned in the period, from real quiz results. Periods reset at 00:00 UTC (5:30 AM IST); weeks start Monday. Top finishers of each day, week and month earn an official certificate."
       />
       <Panel>

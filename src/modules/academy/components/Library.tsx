@@ -40,12 +40,11 @@ export function Library({ categories, me, numbers }: { categories: CatalogCatego
                 complete && "border-mint-400/30"
               )}
             >
-              <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gold-500/0 blur-2xl transition-colors duration-500 group-hover:bg-gold-500/15" aria-hidden />
               <div className="flex items-start justify-between gap-3">
-                <span className="acad-track-icon grid h-11 w-11 place-items-center rounded-2xl border border-gold-400/25 bg-gradient-to-br from-gold-400/15 to-transparent text-gold-600 dark:text-gold-200">
+                <span className="acad-track-icon grid h-10 w-10 place-items-center rounded-xl border border-hairline text-content-muted transition-colors group-hover:border-gold-400/50 group-hover:text-gold-600 group-active:text-gold-600 dark:group-hover:text-gold-200">
                   <Icon name={c.icon} className="h-5 w-5" />
                 </span>
-                <span className="mono text-[10px] font-semibold text-content-subtle">{String(numbers?.get(c.id) ?? i + 1).padStart(2, "0")}</span>
+                <span className="font-mono text-[11px] tabular-nums text-content-subtle/70">{String(numbers?.get(c.id) ?? i + 1).padStart(2, "0")}</span>
               </div>
               <h3 className="mt-4 font-display text-lg font-semibold leading-snug tracking-tight text-content">{c.title}</h3>
               <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-content-muted">{c.tagline}</p>
