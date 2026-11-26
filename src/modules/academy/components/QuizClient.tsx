@@ -8,7 +8,7 @@ import { ArrowRight, AudioLines, Brain, CalendarDays, CheckCircle2, Clock, Flame
 import { useSession } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { lineFor, duck, play, say, sayOneOf, sfx, stopVoice, unlock, type Piece } from "../client/audio";
-import { getJson, postJson, QUIZ_TIMEOUT_MS, useAudio, useServerClock, useTicker, withRetry } from "../client/hooks";
+import { getJson, postJson, QUIZ_TIMEOUT_MS, useAudio, useMe, useServerClock, useTicker, withRetry } from "../client/hooks";
 import { COMMAND_EVENT, type Parsed } from "../client/commands";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
@@ -26,7 +26,7 @@ const MODE_TABS: { id: Mode; label: string; icon: typeof Zap; hint: string }[] =
   { id: "topic", label: "Topic", icon: Layers, hint: "All questions from one topic." },
   { id: "advanced", label: "Advanced", icon: Brain, hint: "Hard and expert questions only. More points per answer." },
   { id: "speed", label: "Speed Run", icon: Gauge, hint: "Easy and medium questions, 12 seconds each. Fast fingers score big." },
-  { id: "mistakes", label: "Mistakes", icon: RotateCcw, hint: "Only questions you got wrong before, until you get them right." },
+  { id: "mistakes", label: "Review", icon: RotateCcw, hint: "Questions you missed, brought back 1, 3 and 7 days apart until they stick." },
   { id: "daily", label: "Daily", icon: CalendarDays, hint: "10 questions, the same for everyone today. One attempt. No lifelines." },
   { id: "weekly", label: "Weekly", icon: Trophy, hint: "20 questions for the whole week. One attempt. No lifelines. Big bonus." },
 ];
@@ -205,6 +205,8 @@ function QuizSetup({
       .catch(() => setChallenger(null));
   }, [setup.mode, setup.challenge]);
 
+  const { me } = useMe();
+  const review = me?.review;
   const fixed = setup.mode === "daily" || setup.mode === "weekly" || setup.mode === "module" || setup.mode === "challenge";
   const set = (p: Partial<Setup>) => onChange({ ...setup, ...p });
   const needsTopic = setup.mode === "topic" && !setup.category;
@@ -256,6 +258,7 @@ function QuizSetup({
                 : "Loading the challenge…"
               : MODE_TABS.find((m) => m.id === setup.mode)?.hint}
         </p>
+        {setup.mode === "mistakes" && review && <ReviewStatus review={review} />}
 
         {!fixed && (
           <div className="mt-6 space-y-5">
@@ -323,7 +326,7 @@ function QuizSetup({
 
         <button type="button" onClick={onStart} disabled={starting || needsTopic} className="btn-primary mt-6 h-12 w-full justify-center text-base disabled:opacity-50">
           {starting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Swords className="h-5 w-5" />}
-          {setup.mode === "challenge" ? "Accept the challenge" : setup.mode === "module" ? "Start the check" : "Start quiz"}
+          {setup.mode === "challenge" ? "Accept the challenge" : setup.mode === "module" ? "Start the check" : setup.mode === "mistakes" ? (review?.due ? `Review ${Math.min(review.due, setup.count)} now` : "Start review") : "Start quiz"}
         </button>
         <div className="mt-4 grid gap-2 text-[11px] text-content-subtle sm:grid-cols-3">
           <span className="flex items-center gap-1.5">
@@ -380,6 +383,45 @@ function QuizSetup({
       )}
     </div>
   );
+}
+
+/** Due / learning / mastered for the Review tab, from /api/academy/me. */
+function ReviewStatus({ review }: { review: NonNullable<ReturnType<typeof useMe>["me"]>["review"] }) {
+  const cells = [
+    { v: review.due, l: "Due now", c: review.due ? "text-red-500 dark:text-red-300" : "text-content" },
+    { v: review.learning - review.due, l: "Scheduled", c: "text-gold-600 dark:text-gold-200" },
+    { v: review.mastered, l: "Mastered", c: "text-mint-600 dark:text-mint-300" },
+  ];
+  return (
+    <div className="mt-4">
+      <div className="grid grid-cols-3 gap-2">
+        {cells.map((x) => (
+          <div key={x.l} className="rounded-2xl border border-hairline px-3 py-2.5 text-center">
+            <div className={cn("font-display text-2xl font-bold", x.c)}>{x.v}</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-content-subtle">{x.l}</div>
+          </div>
+        ))}
+      </div>
+      {!review.due && (
+        <p className="mt-2 text-center text-xs text-content-subtle">
+          {review.nextAt ? <>Nothing due yet. <NextIn at={review.nextAt} /></> : review.mastered ? "Everything you missed is mastered." : "Questions you miss in any quiz will appear here."}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** "Next review in 5h", computed after mount (never during render). */
+function NextIn({ at }: { at: number }) {
+  const [txt, setTxt] = useState("");
+  useEffect(() => {
+    const id = setTimeout(() => {
+      const h = Math.max(0, Math.round((at - Date.now()) / 3_600_000));
+      setTxt(h < 1 ? "Next review within the hour." : h < 24 ? `Next review in ${h}h.` : `Next review in ${Math.round(h / 24)} day${Math.round(h / 24) === 1 ? "" : "s"}.`);
+    }, 0);
+    return () => clearTimeout(id);
+  }, [at]);
+  return <>{txt}</>;
 }
 
 // ------------------------------------------------------------------ player

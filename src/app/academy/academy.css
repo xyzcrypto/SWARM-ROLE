@@ -1331,3 +1331,13 @@ html.motion-off .acad-tilt { transform: none; }
   from { opacity: 0; transform: translate(var(--in-x, 0px), var(--in-y, 0px)) rotate(var(--in-r, 0deg)); }
 }
 html.motion-off [style*="acad-in"] { animation: none !important; }
+
+/* Mistakes review card: a due queue breathes gold so it is noticed. */
+.acad-review-card.is-due::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 241, 205, 0.12) 50%, transparent 65%);
+  background-size: 250% 100%; animation: acad-cert-sheen 5s ease-in-out infinite;
+}
+.acad-review-badge { animation: acad-check-pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 0.3s backwards; box-shadow: 0 0 0 2px var(--surface, #0b0b0f); }
+html.motion-off .acad-review-card.is-due::after,
+html.motion-off .acad-review-badge { animation: none; }
