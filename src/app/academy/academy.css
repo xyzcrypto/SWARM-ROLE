@@ -1341,3 +1341,31 @@ html.motion-off [style*="acad-in"] { animation: none !important; }
 .acad-review-badge { animation: acad-check-pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 0.3s backwards; box-shadow: 0 0 0 2px var(--surface, #0b0b0f); }
 html.motion-off .acad-review-card.is-due::after,
 html.motion-off .acad-review-badge { animation: none; }
+
+/* ---------------------------------------------------------------- challenge VS card
+   Two sides split by a VS badge; the winner's side glows gold, the crown
+   drops in, and the result stamp lands last. Transform/opacity only. */
+.acad-vs::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(60% 90% at 0% 50%, rgba(52, 227, 161, 0.12), transparent 60%), radial-gradient(60% 90% at 100% 50%, rgba(248, 113, 113, 0.1), transparent 60%);
+}
+.acad-vs-side { animation: acad-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) backwards; }
+.acad-vs-side.is-you { --in-x: -40px; }
+.acad-vs-side.is-them { --in-x: 40px; animation-delay: 0.08s; }
+.acad-vs-side.is-winner { filter: drop-shadow(0 0 22px rgba(226, 167, 47, 0.35)); }
+.acad-vs-crown { animation: acad-crown-drop 0.7s cubic-bezier(0.3, 1.5, 0.5, 1) 1.2s backwards, acad-crown 3.2s ease-in-out 1.9s infinite; }
+@keyframes acad-crown-drop { from { opacity: 0; transform: translateY(-24px) scale(0.4) rotate(-30deg); } }
+.acad-vs-badge {
+  color: #1a1206; background: linear-gradient(140deg, #fff3c4, #e2a72f); box-shadow: 0 0 0 4px rgba(226, 167, 47, 0.18), 0 10px 30px -8px rgba(226, 167, 47, 0.8);
+  animation: acad-vs-pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) 0.35s backwards;
+}
+@keyframes acad-vs-pop { from { opacity: 0; transform: scale(0.2) rotate(-90deg); } }
+.acad-vs-stamp { animation: acad-vs-stamp 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) 1.35s backwards; transform: rotate(-4deg); }
+@keyframes acad-vs-stamp { from { opacity: 0; transform: rotate(-30deg) scale(2.2); } }
+.acad-vs.is-win .acad-vs-stamp { color: #04150e; background: linear-gradient(90deg, #34e3a1, #a7f3d0); box-shadow: 0 10px 30px -10px rgba(52, 227, 161, 0.8); }
+.acad-vs.is-lose .acad-vs-stamp { color: #fff; background: linear-gradient(90deg, #ef4444, #f87171); box-shadow: 0 10px 30px -10px rgba(239, 68, 68, 0.7); }
+.acad-vs.is-tie .acad-vs-stamp { color: #1a1206; background: linear-gradient(90deg, #f3d488, #e2a72f); }
+html.motion-off .acad-vs-side,
+html.motion-off .acad-vs-crown,
+html.motion-off .acad-vs-badge,
+html.motion-off .acad-vs-stamp { animation: none; }

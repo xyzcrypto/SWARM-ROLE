@@ -5,6 +5,35 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-26 (184) — Academy: friend challenges with a board, VS card and WhatsApp sharing
+
+- **Challenge board.** Every finished quiz is a challenge, and everyone who replays it
+  lands on its board:
+  - each friend's best run, ranked by score and then by time;
+  - the host is tagged, and "N played · M beat the host" is shown.
+  - Logic: `lib/duel.ts`. The board is served by the existing public
+    `/api/academy/quiz/:id/challenge`, now with `s-maxage=60` (was an hour) because
+    it grows.
+  - Names and avatars only, never an email.
+- **VS card on results** after playing someone's challenge:
+  - both faces slide in from the sides with a VS badge between them;
+  - scores count up and a crown drops on the winner;
+  - a WIN / LOSE / TIE stamp lands last;
+  - the board appears next to it, with your row tagged.
+- **Sharing goes where friends are.** "Challenge Friends" opens the phone's own share
+  sheet (WhatsApp, Telegram, Instagram), falls back to WhatsApp on the web, and copies
+  the link. Before, it opened X.
+- **Share page** (`/academy/s/quiz/:id`) shows the board under the score card. The
+  "You've been challenged" screen shows the top 5 before you start.
+- **Dashboard: "Your challenges".** Your recent challenges that friends played, with
+  how many played and how many beat you, or "unbeaten". Delivered through
+  `/api/academy/me` (`challenges`).
+- Schema: `@@index([challengeOf])` on `AcademyAttempt`, applied by the production
+  deploy's `db push`.
+- Tests: `academy-duel.test.ts`.
+
+---
+
 ## 2026-11-26 (183) — Academy: spaced Mistakes Review
 
 - **The "Mistakes" quiz mode is now a spaced-repetition review** (tab renamed "Review"):

@@ -96,6 +96,40 @@ function ReviewCard({ review }: { review: Me["review"] }) {
   );
 }
 
+/** Challenges you set that friends have played: who played, who beat you. */
+function MyChallenges({ list }: { list: Me["challenges"] }) {
+  return (
+    <div className="rounded-2xl border border-hairline p-4 sm:col-span-2">
+      <div className="flex items-center gap-1.5">
+        <Swords className="h-4 w-4 text-gold-500 dark:text-gold-300" />
+        <Eyebrow>Your challenges</Eyebrow>
+      </div>
+      <ul className="mt-3 space-y-2">
+        {list.map((c) => (
+          <li key={c.id}>
+            <Link href={`/academy/s/quiz/${c.id}`} className="group flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-white/[0.03]">
+              <span className="font-mono text-sm font-semibold text-gold-600 dark:text-gold-200">{fmt(c.score)}</span>
+              <span className="min-w-0 flex-1 truncate text-sm text-content-muted">
+                <span className="font-semibold text-content">{c.takers}</span> {c.takers === 1 ? "friend" : "friends"} played
+                {c.beaten > 0 ? (
+                  <>
+                    {" "}· <span className="font-semibold text-red-500 dark:text-red-300">{c.beaten} beat you</span>
+                  </>
+                ) : (
+                  <>
+                    {" "}· <span className="font-semibold text-mint-600 dark:text-mint-300">unbeaten</span>
+                  </>
+                )}
+              </span>
+              <ArrowRight className="h-4 w-4 shrink-0 text-content-subtle transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function Dashboard({ me }: { me: Me }) {
   const rank = me.standing.alltime?.rank;
   const earned = me.achievements.filter((a) => a.earnedAt);
@@ -195,6 +229,7 @@ export function Dashboard({ me }: { me: Me }) {
         </Panel>
         <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
           <ReviewCard review={me.review} />
+          {me.challenges.length > 0 && <MyChallenges list={me.challenges} />}
           <ChallengeCard kind="daily" state={me.daily} href="/academy/quiz?mode=daily" />
           <ChallengeCard kind="weekly" state={me.weekly} href="/academy/quiz?mode=weekly" />
           <Link href="/academy/quiz?mode=quick" className="group flex items-center gap-3 rounded-2xl border border-hairline p-4 transition-colors hover:border-gold-400/40">

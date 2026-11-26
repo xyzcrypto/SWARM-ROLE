@@ -3,6 +3,7 @@ import { reviewQueue } from "./review-db";
 import { untilText } from "./review";
 import { randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { publicImageUrl } from "@/lib/utils";
 import type { Difficulty, QuizMode } from "./config";
 import { loadConfig, ensureSeeded } from "./store";
 import {
@@ -491,13 +492,21 @@ export async function finishQuiz(userId: string, attemptId: string) {
   const qs = await questionsFor(finalA.questionIds);
   const review = finalA.questionIds.map((id, i) => (qs.get(id) ? reviewRow(finalA, qs.get(id)!, i) : null)).filter(Boolean);
 
-  let challenge: { name: string; score: number; correct: number; total: number } | null = null;
+  let challenge: { id: string; name: string; image: string | null; score: number; correct: number; total: number } | null = null;
   if (finalA.challengeOf) {
     const src = await prisma.academyAttempt.findUnique({
       where: { id: finalA.challengeOf },
-      select: { score: true, correct: true, questionIds: true, user: { select: { name: true, username: true } } },
+      select: { id: true, userId: true, score: true, correct: true, questionIds: true, user: { select: { name: true, username: true, image: true } } },
     });
-    if (src) challenge = { name: src.user.username ? `@${src.user.username}` : src.user.name || "Your friend", score: src.score, correct: src.correct, total: src.questionIds.length };
+    if (src)
+      challenge = {
+        id: src.id,
+        name: src.user.username ? `@${src.user.username}` : src.user.name || "Your friend",
+        image: publicImageUrl(src.user.image, src.userId),
+        score: src.score,
+        correct: src.correct,
+        total: src.questionIds.length,
+      };
   }
 
   if (breakdown.quiz + breakdown.streak + breakdown.module + breakdown.achievements > 0) await pingBoards(unlocked.length ? "achievement" : "xp");
