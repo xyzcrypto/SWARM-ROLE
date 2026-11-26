@@ -10,7 +10,7 @@ import {
   applyCap,
   dayKey,
   levelFor,
-  nextStreak,
+  nextStreakFrozen,
   periodBounds,
   permutation,
   quizXp,
@@ -432,6 +432,7 @@ export async function finishQuiz(userId: string, attemptId: string) {
   const breakdown = { quiz: 0, streak: 0, module: 0, achievements: 0 };
   let moduleCompleted = false;
   let streakNow = before?.streak ?? 0;
+  let freeze = { used: 0, earned: false };
 
   if (a.status === "active") {
     const attempt = a;
@@ -445,8 +446,9 @@ export async function finishQuiz(userId: string, attemptId: string) {
       breakdown.quiz = await grant(tx, { userId, amount: capped, reason: "quiz", key: `quiz:${attempt.id}`, label: `${attempt.mode} quiz` });
 
       const prof = await tx.academyProfile.upsert({ where: { userId }, create: { userId }, update: {} });
-      const s = nextStreak(prof.lastActiveDay, prof.streak, today);
+      const s = nextStreakFrozen(prof.lastActiveDay, prof.streak, prof.freezes, today);
       streakNow = s.streak;
+      freeze = { used: s.freezesUsed, earned: s.earned };
       await tx.academyProfile.update({
         where: { userId },
         data: {
@@ -456,6 +458,7 @@ export async function finishQuiz(userId: string, attemptId: string) {
           streak: s.streak,
           bestStreak: Math.max(prof.bestStreak, s.streak),
           lastActiveDay: today,
+          freezes: s.freezes,
         },
       });
       if (s.continued) {
@@ -524,6 +527,7 @@ export async function finishQuiz(userId: string, attemptId: string) {
     level: { before: levelFor(xpBefore, cfg.levels), after: levelFor(xpAfter, cfg.levels) },
     rank: { before: rankBefore, after: rankAfter },
     streak: streakNow,
+    freeze,
     moduleCompleted,
     unlocked,
     review,

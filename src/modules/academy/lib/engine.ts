@@ -84,6 +84,42 @@ export function nextStreak(lastDay: string | null | undefined, streak: number, t
   return { streak: 1, continued: false };
 }
 
+// ------------------------------------------------------------------ streak freeze
+//
+// A freeze covers one missed day. Everyone starts with one; every 7th day of a
+// streak earns another, up to FREEZE_MAX. Missed days are paid for when the
+// learner comes back: miss Tuesday, play Wednesday, and one freeze is spent and
+// the streak carries on. More missed days than freezes and it starts over.
+
+export const FREEZE_MAX = 2;
+
+export function nextStreakFrozen(
+  lastDay: string | null | undefined,
+  streak: number,
+  freezes: number,
+  today: string
+): { streak: number; continued: boolean; freezesUsed: number; freezes: number; earned: boolean } {
+  const have = Math.max(0, Math.min(FREEZE_MAX, freezes));
+  if (lastDay === today) return { streak: Math.max(1, streak), continued: false, freezesUsed: 0, freezes: have, earned: false };
+  const missed = lastDay ? dayDiff(lastDay, today) - 1 : -1;
+  if (lastDay && missed >= 0 && missed <= have && streak > 0) {
+    const s = streak + 1;
+    const earned = s % 7 === 0 && have - missed < FREEZE_MAX;
+    return { streak: s, continued: true, freezesUsed: missed, freezes: have - missed + (earned ? 1 : 0), earned };
+  }
+  return { streak: 1, continued: false, freezesUsed: 0, freezes: have, earned: false };
+}
+
+/** The streak as shown: alive while the days missed since the last one are covered by freezes. */
+export function liveStreakFrozen(lastDay: string | null | undefined, streak: number, freezes: number, today: string): number {
+  if (!lastDay) return 0;
+  const d = dayDiff(lastDay, today);
+  return d <= 1 || d - 1 <= Math.max(0, Math.min(FREEZE_MAX, freezes)) ? streak : 0;
+}
+
+/** Daily XP goals a learner can pick. */
+export const DAILY_GOALS = [20, 50, 100, 150] as const;
+
 /** A streak shown to the member is only alive if they learned today or yesterday. */
 export function liveStreak(lastDay: string | null | undefined, streak: number, today: string): number {
   if (!lastDay) return 0;
