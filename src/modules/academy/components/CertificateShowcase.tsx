@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { Award, CalendarDays, Crown, Gift, Radio, ShieldCheck, Sparkles, Trophy } from "lucide-react";
 import { CertificateCard } from "./CertificateView";
-import { SectionTitle } from "./ui";
+import { SectionTitle, rise } from "./ui";
 
 // A decorative block pattern where the real QR goes. Deliberately NOT a QR
 // code: a sample must never scan to anything.
@@ -54,9 +54,7 @@ export function CertificateShowcase() {
           {WAYS.map((w, i) => (
             <motion.div
               key={w.title}
-              initial={{ opacity: 0, x: -14 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.45, delay: 0.08 * i }}
+              style={rise({ x: -14, dur: 0.45, delay: 0.08 * i })}
               className="flex items-start gap-3 rounded-2xl border border-hairline bg-ink-900/40 p-4"
             >
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-gold-400/15 text-gold-300">
@@ -87,7 +85,7 @@ export function CertificateShowcase() {
         </div>
 
         <div className="acad-cert-stage" onPointerMove={onMove} onPointerLeave={onLeave}>
-          <motion.div ref={card} initial={{ opacity: 0, y: 24, rotate: 1.5 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} className="acad-cert-tilt relative">
+          <motion.div ref={card} style={rise({ y: 24, r: 1.5, dur: 0.8 })} className="acad-cert-tilt relative">
             <CertificateCard
               cert={{
                 code: "XYZ-SAMP-LE00",

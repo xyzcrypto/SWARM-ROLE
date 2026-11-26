@@ -25,17 +25,32 @@ export async function getJson<T>(url: string, init?: RequestInit & { timeoutMs?:
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), init?.timeoutMs ?? 15_000);
   init?.signal?.addEventListener("abort", () => ctl.abort());
+  const lost = (e: unknown) =>
+    Object.assign(new Error((e as Error)?.name === "AbortError" ? "The connection is slow. Try again." : "You seem to be offline. Try again."), { status: 0 });
   let res: Response;
+  let body: { error?: string } | null = null;
+  let garbled = false;
   try {
     res = await fetch(url, { ...init, signal: ctl.signal, headers: { "Content-Type": "application/json", ...(init?.headers ?? {}) } });
+    // ⚠️ The timeout must also cover reading the body. It used to be cleared
+    // as soon as the headers arrived, so a mobile connection that stalled
+    // mid-body left `res.json()` pending forever: no error, no retry, and the
+    // quiz sat on "Checking your answer…" until a refresh. A body that dies
+    // half-way is now a lost connection (status 0), which withRetry retries.
+    const text = await res.text();
+    try {
+      body = text ? JSON.parse(text) : null;
+    } catch {
+      garbled = true;
+    }
   } catch (e) {
+    throw lost(e);
+  } finally {
     clearTimeout(timer);
-    const aborted = (e as Error).name === "AbortError";
-    throw Object.assign(new Error(aborted ? "The connection is slow. Try again." : "You seem to be offline. Try again."), { status: 0 });
   }
-  clearTimeout(timer);
-  const body = await res.json().catch(() => null);
   if (!res.ok) throw Object.assign(new Error(body?.error || `Request failed (${res.status})`), { status: res.status });
+  // A 2xx whose body is not JSON (a proxy or captive-portal page) is not data.
+  if (garbled && res.ok) throw Object.assign(new Error("The connection is slow. Try again."), { status: 0 });
   return body as T;
 }
 

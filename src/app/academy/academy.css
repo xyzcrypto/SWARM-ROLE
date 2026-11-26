@@ -1324,3 +1324,10 @@ html.motion-off .acad-badge .acad-medal-core,
 html.motion-off .acad-badge .acad-medal::after { animation: none; }
 html.motion-off .acad-ring-fill { transition: none; }
 html.motion-off .acad-tilt { transform: none; }
+
+/* Entrances that need no JS (ui.tsx `rise()`): fade + slide in from the
+   server HTML, ending visible even if hydration never happens. */
+@keyframes acad-in {
+  from { opacity: 0; transform: translate(var(--in-x, 0px), var(--in-y, 0px)) rotate(var(--in-r, 0deg)); }
+}
+html.motion-off [style*="acad-in"] { animation: none !important; }

@@ -717,10 +717,16 @@ let loopBuf: { track: string; buf: Promise<AudioBuffer | null> } | null = null;
 let musicToken = 0;
 function loopFor(track: Exclude<Track, "auto">): Promise<AudioBuffer | null> {
   if (loopBuf?.track === track) return loopBuf.buf;
-  const buf = fetch(`/academy/music/${track}.mp3`)
+  // Bounded: a download that stalls on a weak connection must fall back to
+  // the generative track, not leave this track silent for the whole visit.
+  const buf = fetch(`/academy/music/${track}.mp3`, { signal: AbortSignal.timeout(25_000) })
     .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
     .then((ab) => ctx!.decodeAudioData(ab))
-    .catch(() => null);
+    .catch(() => {
+      // Forget a failed download so the next visit to this scene tries again.
+      if (loopBuf?.track === track) loopBuf = null;
+      return null;
+    });
   loopBuf = { track, buf };
   return buf;
 }

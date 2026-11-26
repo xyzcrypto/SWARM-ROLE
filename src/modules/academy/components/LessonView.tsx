@@ -9,7 +9,7 @@ import { useAudio, useLang, useMe, type HiText } from "../client/hooks";
 import { play, say, stopVoice, unlock } from "../client/audio";
 import { clearTalkContext, setTalkContext } from "../client/talk";
 import type { VoiceLine } from "../client/voice-lines";
-import { DIFF_TONE, Icon, LEVEL_LABEL, Pill } from "./ui";
+import { DIFF_TONE, Icon, LEVEL_LABEL, Pill, rise } from "./ui";
 import { Flashcards } from "./Flashcards";
 import { ReadingProgress } from "./ReadingProgress";
 import { BungeeLessonCta } from "@modules/giveaway/components/BungeeLessonCta";
@@ -167,10 +167,7 @@ export function LessonView({ lesson, nav }: { lesson: Lesson; nav: Nav }) {
           {lesson.sections.map((s, i) => (
             <motion.section
               key={i}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-             
-              transition={{ duration: 0.45 }}
+              style={rise({ y: 14, dur: 0.45 })}
               className={cn("surface rounded-3xl p-5 sm:p-6", reading === i && "ring-1 ring-gold-300/50")}
             >
               <div className="flex items-start justify-between gap-3">
