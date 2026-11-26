@@ -16,6 +16,7 @@ import type { AnswerResult, CatalogCategory, QuizState } from "./types";
 import type { HiText } from "@modules/academy/lib/voice";
 import { burstConfetti, DIFF_LABEL, DIFF_TONE, Empty, Eyebrow, Panel, Pill } from "./ui";
 import { QuizResults } from "./QuizResults";
+import { ChallengeBoard, type DuelInfo } from "./Duel";
 import type { QuizResult } from "./types";
 
 type Mode = "quick" | "topic" | "daily" | "weekly" | "advanced" | "module" | "challenge" | "mistakes" | "speed";
@@ -192,7 +193,7 @@ function QuizSetup({
 }) {
   const [lessonTopic, setLessonTopic] = useState("");
   const [cats, setCats] = useState<CatalogCategory[]>([]);
-  const [challenger, setChallenger] = useState<{ name: string; score: number; correct: number; total: number } | null>(null);
+  const [challenger, setChallenger] = useState<DuelInfo | null>(null);
   useEffect(() => {
     getJson<{ categories: CatalogCategory[] }>("/api/academy/catalog")
       .then((r) => setCats(r.categories))
@@ -200,7 +201,7 @@ function QuizSetup({
   }, []);
   useEffect(() => {
     if (setup.mode !== "challenge" || !setup.challenge) return;
-    getJson<{ name: string; score: number; correct: number; total: number }>(`/api/academy/quiz/${setup.challenge}/challenge`)
+    getJson<DuelInfo>(`/api/academy/quiz/${setup.challenge}/challenge`)
       .then(setChallenger)
       .catch(() => setChallenger(null));
   }, [setup.mode, setup.challenge]);
@@ -259,6 +260,14 @@ function QuizSetup({
               : MODE_TABS.find((m) => m.id === setup.mode)?.hint}
         </p>
         {setup.mode === "mistakes" && review && <ReviewStatus review={review} />}
+        {setup.mode === "challenge" && challenger && challenger.takers > 0 && (
+          <div className="mt-4">
+            <div className="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+              {challenger.takers} played · {challenger.beaten} beat {challenger.name}
+            </div>
+            <ChallengeBoard board={challenger.board.slice(0, 5)} />
+          </div>
+        )}
 
         {!fixed && (
           <div className="mt-6 space-y-5">

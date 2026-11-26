@@ -6,7 +6,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Headphones, ArrowDown, ArrowUp, Award, CheckCircle2, ChevronDown, Copy, GraduationCap, RotateCcw, Share2, Sparkles, Swords, Timer, Trophy, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { lineFor, play, say, sfx, unlock, type Piece } from "../client/audio";
-import { useAudio, useLang } from "../client/hooks";
+import { getJson, useAudio, useLang, useMe } from "../client/hooks";
+import { ChallengeBoard, shareChallenge, VsCard, type DuelInfo } from "./Duel";
 import { VOICE_LINES, type VoiceLine } from "../client/voice-lines";
 
 const line = (k: VoiceLine): Piece => lineFor(k);
@@ -65,6 +66,17 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
   // The share link is a page whose preview is the score card; it offers the
   // same questions as a challenge.
   const challengeUrl = typeof window !== "undefined" ? `${window.location.origin}/academy/s/quiz/${r.attemptId}` : "";
+  const challengeText = `⚔️ I scored ${fmt(r.score)} (${r.correct}/${r.total}) on XYZ Crypto Academy. Same questions, same clock. Can you beat me?`;
+  const { me } = useMe();
+  // After playing someone's challenge: the board of everyone who played it.
+  // Keyed by this attempt so the edge serves each finisher one fresh copy.
+  const [duel, setDuel] = useState<DuelInfo | null>(null);
+  useEffect(() => {
+    if (!r.challenge) return;
+    getJson<DuelInfo>(`/api/academy/quiz/${r.challenge.id}/challenge?v=${r.attemptId}`)
+      .then(setDuel)
+      .catch(() => undefined);
+  }, [r.challenge, r.attemptId]);
 
   useEffect(() => {
     if (announced.current) return;
@@ -232,17 +244,25 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
       </div>
 
       {r.challenge && (
-        <Panel className="mt-5">
-          <div className="flex items-center gap-4">
-            <Swords className="h-6 w-6 text-gold-300" />
-            <div className="flex-1 text-sm text-content-muted">
-              <span className="font-semibold text-content">{r.challenge.name}</span> scored {fmt(r.challenge.score)} ({r.challenge.correct}/{r.challenge.total}). You scored {fmt(r.score)}.
+        <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+          <VsCard
+            you={{ name: me?.user?.name ?? "You", image: me?.user?.image ?? null, score: r.score, correct: r.correct, total: r.total }}
+            them={{ name: r.challenge.name, image: r.challenge.image, score: r.challenge.score, correct: r.challenge.correct, total: r.challenge.total }}
+          />
+          <Panel>
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+                <Swords className="h-3.5 w-3.5 text-gold-400" /> Challenge board
+              </span>
+              {duel && (
+                <span className="text-[11px] text-content-subtle">
+                  {duel.takers} played · {duel.beaten} beat the host
+                </span>
+              )}
             </div>
-            <span className={cn("font-display text-lg font-bold", r.score > r.challenge.score ? "text-mint-300" : r.score === r.challenge.score ? "text-content" : "text-red-300")}>
-              {r.score > r.challenge.score ? "You win" : r.score === r.challenge.score ? "Tie" : "They win"}
-            </span>
-          </div>
-        </Panel>
+            {duel ? <ChallengeBoard board={duel.board} meId={me?.user?.id} className="mt-3" /> : <div className="mt-3 h-32 animate-pulse rounded-2xl bg-white/[0.03]" />}
+          </Panel>
+        </div>
       )}
 
       {r.unlocked.length > 0 && (
@@ -270,19 +290,15 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
         <button
           type="button"
           onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(challengeUrl);
-              setCopied(true);
-              say("challenge_sent", { auto: true });
-              setTimeout(() => setCopied(false), 2000);
-            } catch {
-              /* clipboard blocked: the X share still works */
-            }
-            shareOnX(`I scored ${fmt(r.score)} (${r.correct}/${r.total}) on XYZ Crypto Academy. Same questions, can you beat me?`, challengeUrl);
+            const how = await shareChallenge(challengeUrl, challengeText);
+            if (how === "cancelled") return;
+            setCopied(true);
+            say("challenge_sent", { auto: true });
+            setTimeout(() => setCopied(false), 2500);
           }}
           className="btn-gold h-12 justify-center text-sm"
         >
-          {copied ? <Copy className="h-4 w-4" /> : <Share2 className="h-4 w-4" />} {copied ? "Link copied" : "Challenge Friends"}
+          {copied ? <Copy className="h-4 w-4" /> : <Share2 className="h-4 w-4" />} {copied ? "Challenge sent" : "Challenge Friends"}
         </button>
         <Link href="/academy" className="btn-ghost h-12 justify-center text-sm">
           Back to Academy

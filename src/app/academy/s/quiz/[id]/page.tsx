@@ -5,6 +5,8 @@ import { Swords } from "lucide-react";
 import { quizShare } from "@modules/academy/lib/share";
 import { SITE_URL } from "@/lib/seo";
 import { ShareSheet } from "@modules/academy/components/ShareSheet";
+import { ChallengeBoard } from "@modules/academy/components/Duel";
+import { challengeBoard } from "@modules/academy/lib/duel";
 
 // The link people share after a quiz. Its preview (X, WhatsApp, Telegram) is
 // the score card; the page offers the same questions as a challenge.
@@ -22,7 +24,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function QuizSharePage({ params }: Props) {
   const { id } = await params;
-  const q = await quizShare(id);
+  const [q, duel] = await Promise.all([quizShare(id), challengeBoard(id)]);
   if (!q) notFound();
   const url = `${SITE_URL}/academy/s/quiz/${id}`;
   return (
@@ -37,6 +39,17 @@ export default async function QuizSharePage({ params }: Props) {
         </Link>
         <ShareSheet url={url} image={`/academy/card/quiz/${id}`} text={`I scored ${q.score.toLocaleString("en-US")} (${q.correct}/${q.total}) on XYZ Crypto Academy. Can you beat me?`} className="justify-center" />
       </div>
+      {duel && duel.takers > 0 && (
+        <section className="surface mt-8 rounded-3xl p-5 sm:p-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-display text-lg font-semibold text-content">Challenge board</h2>
+            <span className="text-xs text-content-subtle">
+              {duel.takers} {duel.takers === 1 ? "friend has" : "friends have"} played · {duel.beaten} beat {q.name}
+            </span>
+          </div>
+          <ChallengeBoard board={duel.board} className="mt-4" />
+        </section>
+      )}
     </div>
   );
 }

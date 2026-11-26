@@ -1272,6 +1272,7 @@ model AcademyAttempt {
   @@unique([userId, mode, periodKey])
   @@index([userId, startedAt])
   @@index([status, finishedAt])
+  @@index([challengeOf]) // challenge boards: everyone who replayed one attempt
 }
 
 model AcademyAnswer {
