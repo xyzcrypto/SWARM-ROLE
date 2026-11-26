@@ -334,7 +334,13 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
             <GuideCaption
               text={voice.text || "Ask me anything about Web3 out loud, from funding rates to airdrops. Tap Talk, speak, and I'll answer. I also read every question in my own voice."}
               speaking={speaking}
-              className="mt-3 line-clamp-3 text-[13px] leading-relaxed"
+              // ⚠️ Fixed at three lines. The caption follows whatever AneQue
+              // is saying, and its height used to follow the text: the first
+              // tap on the page (which unlocks audio) changed the line count,
+              // the hero shrank ~21px, everything below jumped, and the tap
+              // landed beside the button it was meant for. A fixed box means
+              // the text can change without moving the page.
+              className="mt-3 line-clamp-3 h-[4rem] text-[13px] leading-relaxed"
             />
           </div>
         </aside>

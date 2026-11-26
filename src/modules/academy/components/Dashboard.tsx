@@ -4,7 +4,8 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Award, BookOpen, CalendarDays, CheckCircle2, Flame, Lock, RotateCcw, Swords, Target, Trophy, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Me } from "../client/hooks";
+import { useMe, type Me } from "../client/hooks";
+import { DailyGoal } from "./DailyGoal";
 import { Avatar, CountUp, Eyebrow, fmt, Icon, LEVEL_LABEL, Panel, Pill, DIFF_TONE, ProgressBar, Stat, utcDate } from "./ui";
 
 const BOARD_LABEL: Record<string, string> = { daily: "Today", weekly: "This week", monthly: "This month", alltime: "All-time" };
@@ -131,10 +132,12 @@ function MyChallenges({ list }: { list: Me["challenges"] }) {
 }
 
 export function Dashboard({ me }: { me: Me }) {
+  const { reload } = useMe();
   const rank = me.standing.alltime?.rank;
   const earned = me.achievements.filter((a) => a.earnedAt);
   return (
     <div className="mt-10 space-y-5">
+      <DailyGoal me={me} onChanged={() => void reload()} />
       <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
         <Panel className="relative overflow-hidden">
           <div className="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-gold-500/10 blur-3xl" aria-hidden />

@@ -5,6 +5,47 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-26 (185) — Academy: daily goal, streak freezes and an evening streak reminder
+
+- **Daily goal.** Pick Casual 20, Regular 50 (default), Serious 100 or Intense 150 XP a
+  day.
+  - A strip at the top of the dashboard shows today's progress as a ring, the streak
+    with a flickering flame, and freezes in hand.
+  - Finishing a quiz that crosses the goal shows "Daily goal complete!" with confetti
+    and the level-up sound.
+  - The goal is set via `PATCH /api/academy/me` (rate-limited, fixed choices only).
+- **Streak freezes.**
+  - Each freeze covers one missed day. Everyone starts with one, every 7th day of a
+    streak earns another, and you can hold up to 2.
+  - Missed days are paid for when you come back. More missed days than freezes, and
+    the streak starts over.
+  - Results say when a freeze saved the streak or one was earned.
+  - Logic: `nextStreakFrozen` / `liveStreakFrozen` in `engine.ts`.
+- **Streak at risk.** If you learned yesterday but not yet today, the dashboard shows
+  an orange banner with a live countdown to the 00:00 UTC (5:30 AM IST) reset and a
+  "Keep my streak" button into a 5-question quiz.
+- **Evening reminder push.**
+  - `/api/academy/remind` runs on a new **Vercel Cron, once a day at 14:30 UTC (8 PM
+    IST)**: one invocation a day.
+  - It sends "🔥 Your N-day streak is waiting" to learners with a 2+ day streak who
+    learned yesterday but not today, on devices whose notifications are on.
+  - Each learner is reminded at most once a day (`remindedDay`, marked before
+    sending), and dead subscriptions are pruned. It is secured by `CRON_SECRET`, like
+    `/api/push/dispatch`.
+- **Fix (found while testing this): the first tap on `/academy` could miss its button.**
+  - AneQue's caption in the hero follows the line she is speaking, and its height
+    followed the text.
+  - The first tap unlocks audio, which changed the caption's line count. The hero
+    shrank 21px between press and release, so the release landed beside the button
+    and no click fired.
+  - Reproduced at 50% on the dashboard goal picker. The caption now has a fixed
+    three-line box, and the same test passed 6 of 6.
+- Schema: `AcademyProfile.freezes` (default 1), `dailyGoal` (default 50) and
+  `remindedDay`, applied by the production deploy's `db push`.
+- Tests: `academy-streak-goal.test.ts`.
+
+---
+
 ## 2026-11-26 (184) — Academy: friend challenges with a board, VS card and WhatsApp sharing
 
 - **Challenge board.** Every finished quiz is a challenge, and everyone who replays it

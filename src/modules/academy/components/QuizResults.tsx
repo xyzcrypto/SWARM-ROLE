@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
-import { Headphones, ArrowDown, ArrowUp, Award, CheckCircle2, ChevronDown, Copy, GraduationCap, RotateCcw, Share2, Sparkles, Swords, Timer, Trophy, XCircle } from "lucide-react";
+import { Headphones, ArrowDown, ArrowUp, Award, CheckCircle2, ChevronDown, Copy, GraduationCap, RotateCcw, Share2, Snowflake, Sparkles, Swords, Target, Timer, Trophy, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { lineFor, play, say, sfx, unlock, type Piece } from "../client/audio";
 import { getJson, useAudio, useLang, useMe } from "../client/hooks";
@@ -67,7 +67,25 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
   // same questions as a challenge.
   const challengeUrl = typeof window !== "undefined" ? `${window.location.origin}/academy/s/quiz/${r.attemptId}` : "";
   const challengeText = `⚔️ I scored ${fmt(r.score)} (${r.correct}/${r.total}) on XYZ Crypto Academy. Same questions, same clock. Can you beat me?`;
-  const { me } = useMe();
+  const { me, reload: reloadMe } = useMe();
+  // This quiz's XP is in the ledger now: re-read the dashboard numbers once.
+  useEffect(() => {
+    void reloadMe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  // Did this quiz carry today's XP over the daily goal?
+  const goal = me?.goal;
+  const goalCrossed = !!goal && goal.today >= goal.target && goal.today - r.xp.total < goal.target;
+  const cheered = useRef(false);
+  useEffect(() => {
+    if (!goalCrossed || cheered.current) return;
+    cheered.current = true;
+    const t = setTimeout(() => {
+      sfx("levelup");
+      burstConfetti(undefined, 90);
+    }, 900);
+    return () => clearTimeout(t);
+  }, [goalCrossed]);
   // After playing someone's challenge: the board of everyone who played it.
   // Keyed by this attempt so the edge serves each finisher one fresh copy.
   const [duel, setDuel] = useState<DuelInfo | null>(null);
@@ -242,6 +260,34 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
           </div>
         </Panel>
       </div>
+
+      {(goalCrossed || r.freeze.used > 0 || r.freeze.earned) && (
+        <div className="mx-auto mt-5 flex max-w-2xl flex-col gap-2">
+          {goalCrossed && goal && (
+            <div className="acad-goal-banner flex items-center gap-3 rounded-2xl px-4 py-3">
+              <Target className="h-6 w-6 shrink-0 text-mint-600 dark:text-mint-300" />
+              <div className="min-w-0 flex-1">
+                <div className="font-display font-semibold text-content">Daily goal complete!</div>
+                <div className="text-xs text-content-muted">
+                  {fmt(goal.today)} XP today, goal {goal.target}. Come back tomorrow to keep the streak.
+                </div>
+              </div>
+            </div>
+          )}
+          {r.freeze.used > 0 && (
+            <div className="flex items-center gap-3 rounded-2xl border border-sky-400/40 bg-sky-400/[0.07] px-4 py-3 text-sm text-content">
+              <Snowflake className="h-5 w-5 shrink-0 text-sky-500 dark:text-sky-300" />
+              {r.freeze.used === 1 ? "A streak freeze" : `${r.freeze.used} streak freezes`} covered the day{r.freeze.used === 1 ? "" : "s"} you missed. Your {r.streak}-day streak lives on.
+            </div>
+          )}
+          {r.freeze.earned && (
+            <div className="flex items-center gap-3 rounded-2xl border border-sky-400/40 bg-sky-400/[0.07] px-4 py-3 text-sm text-content">
+              <Snowflake className="h-5 w-5 shrink-0 text-sky-500 dark:text-sky-300" />
+              {r.streak} days in a row: you earned a streak freeze. It covers one missed day.
+            </div>
+          )}
+        </div>
+      )}
 
       {r.challenge && (
         <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_1fr]">

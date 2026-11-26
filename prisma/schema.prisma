@@ -1211,6 +1211,10 @@ model AcademyProfile {
   streak        Int      @default(0)
   bestStreak    Int      @default(0)
   lastActiveDay String? // UTC YYYY-MM-DD of the last finished quiz
+  // Streak freezes in hand (each covers one missed day; earned every 7 days, max 2).
+  freezes       Int      @default(1)
+  dailyGoal     Int      @default(50) // XP per day the learner aims for
+  remindedDay   String? // UTC day the "streak at risk" push last went out
   updatedAt     DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

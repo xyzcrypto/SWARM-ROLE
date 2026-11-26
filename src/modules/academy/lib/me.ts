@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { publicImageUrl } from "@/lib/utils";
 import { loadConfig, getCatalog } from "./store";
-import { dayKey, levelFor, liveStreak, periodBounds, weekKey } from "./engine";
+import { dayKey, levelFor, liveStreakFrozen, periodBounds, weekKey } from "./engine";
 import { myStanding } from "./board";
 import { reviewQueue } from "./review-db";
 import { myChallenges } from "./duel";
@@ -67,7 +67,12 @@ export async function getMe(userId: string, now = Date.now()) {
     xp,
     level: levelFor(xp, cfg.levels),
     levels: cfg.levels,
-    streak: liveStreak(profile?.lastActiveDay, profile?.streak ?? 0, today),
+    streak: liveStreakFrozen(profile?.lastActiveDay, profile?.streak ?? 0, profile?.freezes ?? 1, today),
+    freezes: profile?.freezes ?? 1,
+    // Learned before but not yet today: the streak needs a quiz before 00:00 UTC.
+    streakAtRisk: !!profile?.lastActiveDay && profile.lastActiveDay !== today && liveStreakFrozen(profile.lastActiveDay, profile.streak, profile.freezes, today) > 0,
+    goal: { target: profile?.dailyGoal ?? 50, today: week[week.length - 1]?.xp ?? 0 },
+    dayEndsAt: periodBounds("daily", now).end,
     bestStreak: profile?.bestStreak ?? 0,
     learnedToday: profile?.lastActiveDay === today,
     quizzes: profile?.quizzes ?? 0,
