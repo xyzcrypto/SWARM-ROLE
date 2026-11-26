@@ -46,7 +46,7 @@ export function LearnIndex() {
     <div>
       <SectionTitle
         eyebrow="Learning library"
-        title={<span className="text-gold-gradient">Learn Web3, one level at a time</span>}
+        title="Learn Web3, one level at a time"
         sub="Every topic runs Beginner, Intermediate, Advanced, Expert. Read a short lesson, pass its knowledge check, and the lesson is complete."
       />
 

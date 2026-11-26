@@ -5,6 +5,35 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-26 (187) — Academy design: restraint pass (calmer, less "template")
+
+The owner asked for the Academy to look premium and handmade rather than AI-made. The
+design system's own bar is "restraint over glow", and the drift was repetition: the
+same flourishes on every card. This pass changes the shared primitives, so it reaches
+every Academy page at once.
+
+- **Two label weights.** The gold rule plus mono uppercase eyebrow now belongs to
+  section headings only (`<Eyebrow section>`, used by `SectionTitle`). Labels inside
+  cards are quiet neutral text. Before, the same gold flourish appeared about thirty
+  times on the dashboard alone.
+- **No boxes inside boxes.** `Stat` lost its border and background. The four board
+  tiles under Weekly performance are flat tints with sentence-case labels instead of
+  bordered mono-caps boxes.
+- **Solid page titles.** Leaderboard, Certificates, Badges, Learn and quiz setup are
+  plain text. The gold gradient stays with the hero, where it means something.
+- **Library cards:**
+  - neutral hairline icon tiles that turn gold on hover;
+  - quieter track numbers;
+  - the hover glow blob is gone.
+- **No decorative blur orb** on the dashboard profile card.
+- **No emoji in interface copy:** the greeting is "Hey Riya!", and the streak banner
+  uses a flame icon. The share message text keeps its emoji.
+- Gold and mint accents now pass light-theme contrast (`text-gold-600
+  dark:text-gold-300`).
+- Tests: `academy-restraint.test.ts`.
+
+---
+
 ## 2026-11-26 (186) — Fix: Academy "LIVE NOW" counted learners, and an audit of every Academy page
 
 - **"LIVE NOW" showed 1 with no live quiz running** (owner report).

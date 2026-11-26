@@ -144,15 +144,22 @@ export function Panel({ children, className, delay = 0 }: { children: React.Reac
   );
 }
 
-export function Eyebrow({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn("acad-eyebrow mono text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-300/90", className)}>{children}</div>;
+/**
+ * A label above content. Two weights, on purpose: the gold rule-and-mono
+ * eyebrow belongs to section headings only (`section`); inside a card the label
+ * is quiet neutral text. Every card wearing the gold eyebrow was the single most
+ * "template" thing about the Academy: the same flourish thirty times a page.
+ */
+export function Eyebrow({ children, className, section }: { children: React.ReactNode; className?: string; section?: boolean }) {
+  if (section) return <div className={cn("acad-eyebrow mono text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-600 dark:text-gold-300/90", className)}>{children}</div>;
+  return <div className={cn("text-[11px] font-semibold uppercase tracking-[0.08em] text-content-subtle", className)}>{children}</div>;
 }
 
 export function SectionTitle({ eyebrow, title, sub, right }: { eyebrow?: string; title: React.ReactNode; sub?: string; right?: React.ReactNode }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        {eyebrow && <Eyebrow>{eyebrow}</Eyebrow>}
+        {eyebrow && <Eyebrow section>{eyebrow}</Eyebrow>}
         <h2 className="acad-section-title mt-2 font-display text-[1.65rem] font-semibold leading-[1.1] tracking-[-0.03em] text-content sm:text-[2.35rem]">{title}</h2>
         {sub && <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-content-muted">{sub}</p>}
       </div>
@@ -180,12 +187,12 @@ export function ProgressBar({ value, className, tone = "gold" }: { value: number
 
 export function Stat({ label, value, sub, accent, icon }: { label: string; value: React.ReactNode; sub?: React.ReactNode; accent?: boolean; icon?: React.ReactNode }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-hairline bg-ink-900/40 px-4 py-3.5">
-      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+    <div className="min-w-0 py-1">
+      <div className="flex items-center gap-1.5 text-[11px] font-medium text-content-subtle">
         {icon}
         {label}
       </div>
-      <div className={cn("mt-1.5 truncate font-display text-2xl font-bold tracking-tight", accent ? "text-gold-300" : "text-content")}>{value}</div>
+      <div className={cn("mt-1 truncate font-display text-2xl font-semibold tabular-nums tracking-tight", accent ? "text-gold-600 dark:text-gold-300" : "text-content")}>{value}</div>
       {sub && <div className="mt-0.5 truncate text-[11px] text-content-subtle">{sub}</div>}
     </div>
   );
