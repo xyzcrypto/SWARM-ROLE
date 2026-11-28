@@ -176,16 +176,16 @@ export function BriefingBlock({
   const controls = useMemo(() => englishText && (
     <div className="mt-2.5 flex flex-wrap items-center gap-2">
       {ttsSupported && (
-        <button onClick={speak} disabled={!shown} className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[12px] font-semibold transition-colors disabled:opacity-40", speaking ? "border-mint-500/40 bg-mint-500/15 text-mint-200" : "border-white/15 text-zinc-300 hover:bg-white/5")}>
+        <button onClick={speak} disabled={!shown} className={cn("inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[0.75rem] font-semibold transition-colors disabled:opacity-40", speaking ? "border-mint-500/40 bg-mint-500/15 text-mint-200" : "border-white/15 text-zinc-300 hover:bg-white/5")}>
           {speaking ? <><Square className="h-3 w-3" /> Stop</> : <><Volume2 className="h-3.5 w-3.5" /> Listen</>}
         </button>
       )}
       {ttsSupported && (
-        <button onClick={() => setRate((r) => nextRate(r))} title="Playback speed" aria-label={`Playback speed ${rate}x`} className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2.5 py-1 text-[12px] font-semibold text-zinc-300 transition-colors hover:bg-white/5">
+        <button onClick={() => setRate((r) => nextRate(r))} title="Playback speed" aria-label={`Playback speed ${rate}x`} className="inline-flex items-center gap-1 rounded-full border border-white/15 px-2.5 py-1 text-[0.75rem] font-semibold text-zinc-300 transition-colors hover:bg-white/5">
           <Gauge className="h-3.5 w-3.5" /> {rate}×
         </button>
       )}
-      <div className="inline-flex overflow-hidden rounded-full border border-white/15 text-[12px] font-semibold">
+      <div className="inline-flex overflow-hidden rounded-full border border-white/15 text-[0.75rem] font-semibold">
         <button onClick={() => switchLang("en")} className={cn("px-3 py-1 transition-colors", lang === "en" ? "bg-gold-500/20 text-gold-100" : "text-zinc-400 hover:text-zinc-100")}>EN</button>
         <button onClick={() => switchLang("hinglish")} className={cn("inline-flex items-center gap-1 px-3 py-1 transition-colors", lang === "hinglish" ? "bg-gold-500/20 text-gold-100" : "text-zinc-400 hover:text-zinc-100")}>
           <Languages className="h-3 w-3" /> Hinglish
@@ -205,20 +205,20 @@ export function BriefingBlock({
     // `bg-*` for two reasons: an arbitrary `bg-[#...]` cannot vary by theme, and
     // it would override `.panel-solid` if the two were ever combined.
     <div className={cn("briefing-panel rounded-2xl border border-gold-500/20 p-3.5 sm:p-4", className)}>
-      <p className="mono inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-gold-200">
+      <p className="mono inline-flex items-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-wide text-gold-200">
         <RobotIcon className="h-4 w-4" /> Full briefing · XYZ AI
       </p>
-      {busy && <p className="mt-2 inline-flex items-center gap-2 text-[13px] text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> {lang === "hinglish" ? "Hinglish me likh raha hoon…" : "Writing the full briefing…"}</p>}
+      {busy && <p className="mt-2 inline-flex items-center gap-2 text-[0.8125rem] text-zinc-400"><Loader2 className="h-3.5 w-3.5 animate-spin" /> {lang === "hinglish" ? "Hinglish me likh raha hoon…" : "Writing the full briefing…"}</p>}
       {shown && !busy && <MarkdownLite text={shown} className="mt-1" />}
-      {showErr && <p className="mt-1.5 text-[12px] text-amber-300">{showErr}</p>}
+      {showErr && <p className="mt-1.5 text-[0.75rem] text-amber-300">{showErr}</p>}
       {/* A speech failure used to be silent - the button simply flipped back,
           which is indistinguishable from "nothing happened". */}
-      {ttsError && <p className="mt-1.5 text-[12px] text-amber-300">{ttsError}</p>}
-      {!loggedIn && !err && <p className="mt-1.5 text-[12px] text-zinc-500">Log in to read the full AI briefing of any story.</p>}
+      {ttsError && <p className="mt-1.5 text-[0.75rem] text-amber-300">{ttsError}</p>}
+      {!loggedIn && !err && <p className="mt-1.5 text-[0.75rem] text-zinc-500">Log in to read the full AI briefing of any story.</p>}
       {loggedIn && onGenerate && !englishText && !loading && !err && (
         <button
           onClick={onGenerate}
-          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 px-3.5 py-1.5 text-[12px] font-semibold text-gold-200 transition-colors hover:bg-gold-500/20"
+          className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-gold-500/30 bg-gold-500/10 px-3.5 py-1.5 text-[0.75rem] font-semibold text-gold-200 transition-colors hover:bg-gold-500/20"
         >
           <Sparkles className="h-3.5 w-3.5" /> Generate briefing
         </button>
@@ -229,11 +229,11 @@ export function BriefingBlock({
           tell, and will reasonably conclude the feature is broken - which is
           exactly what happened, three times. */}
       {meta?.truncated && (
-        <p className="mt-2 text-[11px] leading-relaxed text-amber-200">
+        <p className="mt-2 text-[0.6875rem] leading-relaxed text-amber-200">
           This briefing ran out of room before it finished. Generating it again usually completes it.
         </p>
       )}
-      <p className="mt-2 text-[10px] text-zinc-600">
+      <p className="mt-2 text-[0.625rem] text-zinc-600">
         AI-generated from the headline &amp; excerpt. Not financial advice.
         {/* Provenance in the smallest honest form: which model wrote it, and
             whether it came from cache. A short answer can now be described. */}

@@ -78,12 +78,12 @@ export function ValuePanel({
           placeholder={programName ?? "Your position"}
           className="w-full rounded-xl border border-hairline bg-surface-2 px-4 py-3 text-sm text-content outline-none transition-colors placeholder:text-content-subtle focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
         />
-        <span className="mt-1 block text-[11px] text-content-subtle">
+        <span className="mt-1 block text-[0.6875rem] text-content-subtle">
           Appears on the share card. {form.label.length}/{SHARE_NAME_MAX}
         </span>
       </label>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <CalcField label="Your points" value={form.yourPoints} onChange={(v) => set("yourPoints", v)} />
         <CalcField
           label="Total points in the pool"
@@ -128,7 +128,7 @@ export function ValuePanel({
                 type="button"
                 onClick={() => set("fdvLinked", !linked)}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium transition-colors",
+                  "inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[0.625rem] font-medium transition-colors",
                   linked
                     ? "bg-mint-500/15 text-mint-200 hover:bg-mint-500/25"
                     : "text-content-subtle hover:text-content-muted"
@@ -179,7 +179,7 @@ export function ValuePanel({
               ))}
             </div>
           )}
-          <span className="mt-1 block text-[11px] text-content-subtle">
+          <span className="mt-1 block text-[0.6875rem] text-content-subtle">
             Implied price: ${value.priceUsd.toLocaleString("en-US", { maximumFractionDigits: 6 })}
             {linked && anchor === "comps" && target ? ` · peers of ${target.name}` : ""}
             {linked && anchor === "program" && programName ? ` · ${programName} scenario` : ""}
@@ -187,7 +187,7 @@ export function ValuePanel({
         </div>
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <ResultTile
           label="Tokens"
           value={value.tokens.toLocaleString("en-US", { maximumFractionDigits: 0 })}
@@ -228,7 +228,7 @@ function ScenarioChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
+        "rounded-lg border px-2.5 py-1 text-[0.6875rem] font-medium transition-colors",
         active
           ? "border-gold-500/40 bg-gold-500/15 text-gold-200"
           : "border-hairline text-content-subtle hover:border-gold-500/30 hover:text-content-muted active:border-gold-500/30"

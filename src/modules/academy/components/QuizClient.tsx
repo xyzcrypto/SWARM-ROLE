@@ -262,7 +262,7 @@ function QuizSetup({
         {setup.mode === "mistakes" && review && <ReviewStatus review={review} />}
         {setup.mode === "challenge" && challenger && challenger.takers > 0 && (
           <div className="mt-4">
-            <div className="mb-2 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+            <div className="mb-2 text-center text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
               {challenger.takers} played · {challenger.beaten} beat {challenger.name}
             </div>
             <ChallengeBoard board={challenger.board.slice(0, 5)} />
@@ -273,7 +273,7 @@ function QuizSetup({
           <div className="mt-6 space-y-5">
             {setup.mode === "topic" && (
               <label className="block">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Topic</span>
+                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">Topic</span>
                 <select
                   value={setup.category}
                   onChange={(e) => set({ category: e.target.value })}
@@ -289,7 +289,7 @@ function QuizSetup({
               </label>
             )}
             <div>
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Questions</span>
+              <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">Questions</span>
               <div className="mt-2 grid grid-cols-4 gap-2">
                 {[5, 10, 15, 20].map((n) => (
                   <button
@@ -309,7 +309,7 @@ function QuizSetup({
             </div>
             {showDifficulty && (
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Difficulty</span>
+                <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">Difficulty</span>
                 <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {(setup.mode === "advanced" ? ["mixed", "expert"] : ["mixed", "easy", "medium", "hard", "expert"]).map((d) => (
                     <button
@@ -337,7 +337,7 @@ function QuizSetup({
           {starting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Swords className="h-5 w-5" />}
           {setup.mode === "challenge" ? "Accept the challenge" : setup.mode === "module" ? "Start the check" : setup.mode === "mistakes" ? (review?.due ? `Review ${Math.min(review.due, setup.count)} now` : "Start review") : "Start quiz"}
         </button>
-        <div className="mt-4 grid gap-2 text-[11px] text-content-subtle sm:grid-cols-3">
+        <div className="mt-4 grid grid-cols-1 gap-2 text-[0.6875rem] text-content-subtle sm:grid-cols-3">
           <span className="flex items-center gap-1.5">
             <Split className="h-3.5 w-3.5 text-gold-300" /> Two 50:50 lifelines per quiz (half points)
           </span>
@@ -369,7 +369,7 @@ function QuizSetup({
               ))}
             </select>
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {(cats.find((c) => c.slug === (lessonTopic || cats[0]?.slug))?.modules ?? []).map((m, i) => (
               <button
                 key={m.id}
@@ -382,7 +382,7 @@ function QuizSetup({
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-hairline font-mono text-xs text-content-subtle">{i + 1}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-semibold text-content">{m.title}</span>
-                  <span className="text-[11px] text-content-subtle">{DIFF_LABEL[{ beginner: "easy", intermediate: "medium", advanced: "hard", expert: "expert" }[m.level] ?? "mixed"]} · knowledge check</span>
+                  <span className="text-[0.6875rem] text-content-subtle">{DIFF_LABEL[{ beginner: "easy", intermediate: "medium", advanced: "hard", expert: "expert" }[m.level] ?? "mixed"]} · knowledge check</span>
                 </span>
                 <ArrowRight className="h-4 w-4 shrink-0 text-content-subtle transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
               </button>
@@ -407,7 +407,7 @@ function ReviewStatus({ review }: { review: NonNullable<ReturnType<typeof useMe>
         {cells.map((x) => (
           <div key={x.l} className="rounded-2xl border border-hairline px-3 py-2.5 text-center">
             <div className={cn("font-display text-2xl font-bold", x.c)}>{x.v}</div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-content-subtle">{x.l}</div>
+            <div className="text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">{x.l}</div>
           </div>
         ))}
       </div>
@@ -893,14 +893,14 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
             <div className="acad-play-body min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-3 pt-4 sm:px-7 sm:pt-6">
               <div className="flex items-center gap-2">
                 <Pill tone={DIFF_TONE[q.difficulty]}>{DIFF_LABEL[q.difficulty]}</Pill>
-                <span className="hidden min-w-0 truncate text-[11px] text-content-subtle sm:inline">{q.category}</span>
+                <span className="hidden min-w-0 truncate text-[0.6875rem] text-content-subtle sm:inline">{q.category}</span>
                 <div className="ml-auto flex items-center gap-1.5">
                   {!lifelinesOff && (
                     <button
                       type="button"
                       onClick={() => void fifty()}
                       disabled={!!reveal || busy || fiftyLeft <= 0 || hidden.length > 0}
-                      className={cn("flex h-8 items-center gap-1.5 rounded-full border px-3 text-[11px] font-bold transition-colors disabled:opacity-40", hidden.length ? "border-gold-400/60 text-gold-200" : "border-hairline text-content-muted hover:border-gold-400/50 hover:text-gold-200")}
+                      className={cn("flex h-8 items-center gap-1.5 rounded-full border px-3 text-[0.6875rem] font-bold transition-colors disabled:opacity-40", hidden.length ? "border-gold-400/60 text-gold-200" : "border-hairline text-content-muted hover:border-gold-400/50 hover:text-gold-200")}
                       aria-label={`Use 50:50 lifeline, ${fiftyLeft} left`}
                       title="Remove two wrong answers. This answer scores half."
                     >
@@ -989,13 +989,13 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
                     <div className={cn("flex items-center gap-2 text-sm font-semibold", reveal.correct ? "text-mint-300" : "text-red-300")}>
                       {reveal.correct ? <CheckCircle2 className="h-4 w-4" /> : reveal.timedOut ? <Timer className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
                       {reveal.correct ? `Correct, +${reveal.points} points${reveal.assisted ? " (50:50)" : ""}` : reveal.timedOut ? "Time's up" : "Not quite"}
-                      <span className="ml-auto flex items-center gap-1 font-mono text-[11px] font-normal text-content-subtle">
+                      <span className="ml-auto flex items-center gap-1 font-mono text-[0.6875rem] font-normal text-content-subtle">
                         <Clock className="h-3 w-3" /> {(reveal.ms / 1000).toFixed(1)}s
                       </span>
                     </div>
                     {reveal.explanation && (
                       <div className="mt-1.5 flex items-start gap-2">
-                        <p className="min-w-0 flex-1 text-[13px] leading-relaxed text-content-muted sm:text-sm">{tx(reveal.explanation, reveal.hi?.explanation)}</p>
+                        <p className="min-w-0 flex-1 text-[0.8125rem] leading-relaxed text-content-muted sm:text-sm">{tx(reveal.explanation, reveal.hi?.explanation)}</p>
                         <button
                           type="button"
                           onClick={() => {
@@ -1010,12 +1010,12 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
                         </button>
                       </div>
                     )}
-                    {reveal.correct && !reveal.fresh && <p className="mt-1.5 text-[11px] text-content-subtle">Practice answer: you got this one right recently, so it scores but earns no XP this time.</p>}
+                    {reveal.correct && !reveal.fresh && <p className="mt-1.5 text-[0.6875rem] text-content-subtle">Practice answer: you got this one right recently, so it scores but earns no XP this time.</p>}
                   </div>
                 </motion.div>
               )}
               {err && (
-                <div className="mt-3 flex items-center gap-3 rounded-xl bg-red-500/10 px-3 py-2 text-[13px] text-red-300">
+                <div className="mt-3 flex items-center gap-3 rounded-xl bg-red-500/10 px-3 py-2 text-[0.8125rem] text-red-300">
                   <span className="min-w-0 flex-1">{err}</span>
                   <button type="button" onClick={() => void load()} className="shrink-0 font-semibold underline">
                     Retry
@@ -1026,12 +1026,12 @@ function QuizPlayer({ attemptId, onFinished, onLost }: { attemptId: string; onFi
             {/* Always-visible action row */}
             <div className={cn("shrink-0 border-t border-hairline px-4 py-2.5 sm:px-7 sm:py-3", !reveal && "acad-play-hint")}>
               {reveal ? (
-                <button type="button" onClick={() => void next()} disabled={busy} className="btn-primary h-11 w-full justify-center text-[15px] sm:h-12 sm:text-base">
+                <button type="button" onClick={() => void next()} disabled={busy} className="btn-primary h-11 w-full justify-center text-[0.9375rem] sm:h-12 sm:text-base">
                   {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}
                   {reveal.last ? "See results" : "Next question"} <ArrowRight className="h-5 w-5" />
                 </button>
               ) : (
-                <p className="flex h-11 items-center justify-center gap-2 text-center text-[12px] text-content-subtle sm:h-12">
+                <p className="flex h-11 items-center justify-center gap-2 text-center text-[0.75rem] text-content-subtle sm:h-12">
                   {busy ? <Loader2 className="h-4 w-4 animate-spin text-gold-300" /> : null}
                   {busy ? "Checking your answer…" : "Tap an answer. Keys 1-4 or A-D work too."}
                 </p>

@@ -55,14 +55,14 @@ export function MoodMeter({ items, active, onPick }: { items: NewsItem[]; active
   return (
     <section className="surface rounded-3xl p-5" aria-labelledby="news-mood">
       <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 id="news-mood" className="flex items-center gap-2 font-display text-[15px] font-semibold text-content">
+        <h2 id="news-mood" className="flex items-center gap-2 font-display text-[0.9375rem] font-semibold text-content">
           <span className="grid h-7 w-7 place-items-center rounded-lg bg-gold-500/10 text-gold-300">
             <Gauge className="h-4 w-4" />
           </span>
           Headline mood
         </h2>
         {active !== "all" && (
-          <button onClick={() => onPick("all")} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[12px] font-medium text-content-muted transition-colors hover:bg-surface-2 hover:text-content">
+          <button onClick={() => onPick("all")} className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[0.75rem] font-medium text-content-muted transition-colors hover:bg-surface-2 hover:text-content">
             <X className="h-3.5 w-3.5" /> Clear
           </button>
         )}
@@ -76,7 +76,7 @@ export function MoodMeter({ items, active, onPick }: { items: NewsItem[]; active
           style={{ left: `${needle}%` }}
         />
       </div>
-      <div className="mb-4 flex items-baseline justify-between text-[12px]">
+      <div className="mb-4 flex items-baseline justify-between text-[0.75rem]">
         <span className={cn("font-semibold", m.lean >= 15 ? "text-mint-300" : m.lean <= -15 ? "text-red-300" : "text-content-muted")}>{m.label}</span>
         <span className="text-content-subtle">{m.total} headline{m.total === 1 ? "" : "s"}</span>
       </div>
@@ -87,14 +87,14 @@ export function MoodMeter({ items, active, onPick }: { items: NewsItem[]; active
           const on = active === r.k;
           const body = (
             <>
-              <span className={cn("flex w-20 shrink-0 items-center gap-1.5 text-[12.5px] font-medium", r.text)}>
+              <span className={cn("flex w-20 shrink-0 items-center gap-1.5 text-[0.78125rem] font-medium", r.text)}>
                 {r.icon}
                 {r.label}
               </span>
               <span className="relative h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-2">
                 <span className={cn("absolute inset-y-0 left-0 rounded-full transition-[width] duration-700 ease-out", r.bar)} style={{ width: `${pct(r.n)}%` }} />
               </span>
-              <span className="mono w-8 shrink-0 text-right text-[12px] text-content-muted">{r.n}</span>
+              <span className="mono w-8 shrink-0 text-right text-[0.75rem] text-content-muted">{r.n}</span>
             </>
           );
           return clickable ? (
@@ -116,7 +116,7 @@ export function MoodMeter({ items, active, onPick }: { items: NewsItem[]; active
           );
         })}
       </div>
-      <p className="mt-3 text-[11px] leading-relaxed text-content-subtle">From the headlines loaded on this page. Tap Bullish or Bearish to filter the feed.</p>
+      <p className="mt-3 text-[0.6875rem] leading-relaxed text-content-subtle">From the headlines loaded on this page. Tap Bullish or Bearish to filter the feed.</p>
     </section>
   );
 }
@@ -142,7 +142,7 @@ export function TokenChip({ symbol, coin, onClick }: { symbol: string; coin?: Ti
         onClick(symbol);
       }}
       title={coin ? `${coin.name}: $${coin.price.toLocaleString("en-US", { maximumFractionDigits: 6 })}` : undefined}
-      className="mono inline-flex items-center gap-1 rounded-full bg-surface-2 px-1.5 py-0.5 text-[10px] text-content-muted transition-colors hover:bg-gold-500/15 hover:text-gold-300"
+      className="mono inline-flex items-center gap-1 rounded-full bg-surface-2 px-1.5 py-0.5 text-[0.625rem] text-content-muted transition-colors hover:bg-gold-500/15 hover:text-gold-300"
     >
       {symbol}
       {ch != null && (
@@ -270,7 +270,7 @@ export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () =
             className="w-full max-w-sm rounded-3xl border border-hairline bg-surface p-5 shadow-elevate"
           >
             <div className="mb-4 flex items-center justify-between">
-              <h2 id="news-keys-title" className="flex items-center gap-2 font-display text-[15px] font-semibold text-content">
+              <h2 id="news-keys-title" className="flex items-center gap-2 font-display text-[0.9375rem] font-semibold text-content">
                 <Keyboard className="h-4 w-4 text-gold-300" /> Keyboard shortcuts
               </h2>
               <button onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-lg text-content-muted hover:bg-surface-2 hover:text-content">
@@ -279,10 +279,10 @@ export function ShortcutsSheet({ open, onClose }: { open: boolean; onClose: () =
             </div>
             <dl className="space-y-2">
               {NEWS_SHORTCUTS.map(([k, v]) => (
-                <div key={k} className="flex items-center justify-between gap-4 text-[13px]">
+                <div key={k} className="flex items-center justify-between gap-4 text-[0.8125rem]">
                   <dt className="text-content-muted">{v}</dt>
                   <dd>
-                    <kbd className="rounded-md border border-hairline bg-surface-2 px-2 py-0.5 font-mono text-[11.5px] text-content">{k}</kbd>
+                    <kbd className="rounded-md border border-hairline bg-surface-2 px-2 py-0.5 font-mono text-[0.71875rem] text-content">{k}</kbd>
                   </dd>
                 </div>
               ))}

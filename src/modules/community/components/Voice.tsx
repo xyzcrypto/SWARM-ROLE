@@ -137,9 +137,9 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
   const progress = total > 0 ? Math.min(1, pos / total) : 0;
 
   const panel = text?.show === "translation" ? text.translation : text?.show === "transcript" ? text.transcript : undefined;
-  const chip = "inline-flex min-h-7 items-center gap-1 rounded-full px-2 text-[10px] font-semibold ring-1 transition-colors";
+  const chip = "inline-flex min-h-7 items-center gap-1 rounded-full px-2 text-[0.625rem] font-semibold ring-1 transition-colors";
   return (
-    <div className="w-[min(280px,66vw)]">
+    <div className="w-[min(17.5rem,66vw)]">
     <div className="flex items-center gap-2.5 py-0.5">
       <button
         type="button"
@@ -178,7 +178,7 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
             <span
               key={i}
               className={cn(
-                "w-[3px] flex-1 rounded-full transition-colors",
+                "w-[0.1875rem] flex-1 rounded-full transition-colors",
                 i / shape.length < progress ? (mine ? "bg-gold-300" : "bg-mint-300") : "bg-zinc-500/50"
               )}
               style={{ height: `${Math.round(h * 100)}%` }}
@@ -186,9 +186,9 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
           ))}
         </div>
         {failed ? (
-          <span className="block text-[11px] text-amber-400" role="status">{failed}</span>
+          <span className="block text-[0.6875rem] text-amber-400" role="status">{failed}</span>
         ) : (
-          <span className="mono text-[10px] text-zinc-500">{fmt(playing || pos > 0 ? pos : total)}</span>
+          <span className="mono text-[0.625rem] text-zinc-500">{fmt(playing || pos > 0 ? pos : total)}</span>
         )}
       </div>
       <audio
@@ -223,12 +223,12 @@ export function VoiceNote({ src, duration, mine }: { src: string; duration: numb
       </button>
     </div>
     {text?.show && (
-      <div className="mt-1.5 rounded-xl bg-black/[0.08] px-3 py-2 text-[13px] leading-relaxed dark:bg-white/[0.05]" aria-live="polite">
+      <div className="mt-1.5 rounded-xl bg-black/[0.08] px-3 py-2 text-[0.8125rem] leading-relaxed dark:bg-white/[0.05]" aria-live="polite">
         {text.loading ? (
           <span className="inline-flex items-center gap-1.5 text-zinc-400"><Loader2 className="h-3 w-3 animate-spin" /> {text.show === "translation" ? "Translating…" : "Transcribing…"}</span>
         ) : panel ? (
           <>
-            <span className="mono mr-1.5 text-[9px] uppercase tracking-wider text-zinc-500">{text.show === "translation" ? "Translation" : "Transcript"}</span>
+            <span className="mono mr-1.5 text-[0.5625rem] uppercase tracking-wider text-zinc-500">{text.show === "translation" ? "Translation" : "Transcript"}</span>
             <span className="text-zinc-200">{panel}</span>
           </>
         ) : (
@@ -369,22 +369,22 @@ export function VoiceRecorder({ onSend, onCancel }: { onSend: (blob: Blob, secon
       <button type="button" onClick={() => stop("cancel")} aria-label="Discard recording" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-zinc-400 transition-colors hover:bg-red-500/10 hover:text-red-300">
         <Trash2 className="h-5 w-5" />
       </button>
-      <div className="flex h-11 min-w-0 flex-1 items-center gap-3 rounded-[22px] border border-red-500/30 bg-red-500/[0.06] px-4">
+      <div className="flex h-11 min-w-0 flex-1 items-center gap-3 rounded-[1.375rem] border border-red-500/30 bg-red-500/[0.06] px-4">
         {error ? (
-          <span className="truncate text-[13px] text-amber-400">{error}</span>
+          <span className="truncate text-[0.8125rem] text-amber-400">{error}</span>
         ) : (
           <>
             <span className="relative flex h-2.5 w-2.5 shrink-0">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400/70" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
             </span>
-            <span className="mono shrink-0 text-[13px] text-zinc-200" aria-live="off">{fmt(secs)}</span>
-            <span className="flex h-6 min-w-0 flex-1 items-center gap-[3px] overflow-hidden" aria-hidden>
+            <span className="mono shrink-0 text-[0.8125rem] text-zinc-200" aria-live="off">{fmt(secs)}</span>
+            <span className="flex h-6 min-w-0 flex-1 items-center gap-[0.1875rem] overflow-hidden" aria-hidden>
               {Array.from({ length: 24 }, (_, i) => (
-                <span key={i} className="w-[3px] shrink-0 rounded-full bg-red-300/70 transition-[height] duration-100" style={{ height: `${Math.max(12, Math.round(level * 100 * (0.5 + ((i * 37) % 10) / 20)))}%` }} />
+                <span key={i} className="w-[0.1875rem] shrink-0 rounded-full bg-red-300/70 transition-[height] duration-100" style={{ height: `${Math.max(12, Math.round(level * 100 * (0.5 + ((i * 37) % 10) / 20)))}%` }} />
               ))}
             </span>
-            <span className="mono hidden shrink-0 text-[10px] text-zinc-500 sm:inline">max {VOICE_MAX_SECONDS}s</span>
+            <span className="mono hidden shrink-0 text-[0.625rem] text-zinc-500 sm:inline">max {VOICE_MAX_SECONDS}s</span>
           </>
         )}
       </div>

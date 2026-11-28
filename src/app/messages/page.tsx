@@ -22,7 +22,7 @@ export default async function MessagesPage() {
     // the open thread's message list do, inside MessagesClient.
     <main className="relative flex h-[100dvh] flex-col overflow-hidden pt-[env(safe-area-inset-top)]">
       <div className="mesh hidden sm:block" />
-      <div className="relative mx-auto flex min-h-0 w-full max-w-[1400px] flex-1 flex-col sm:p-4 lg:p-5">
+      <div className="relative mx-auto flex min-h-0 w-full max-w-[87.5rem] flex-1 flex-col sm:p-4 lg:p-5">
         <Suspense fallback={null}>
           <MessagesClient meId={meId} gifEnabled={gifEnabled} />
         </Suspense>

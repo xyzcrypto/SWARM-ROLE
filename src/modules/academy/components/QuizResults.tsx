@@ -49,7 +49,7 @@ function Ring({ pct }: { pct: number }) {
           <div className="font-display text-3xl font-bold text-content">
             <CountUp value={pct} format={(n) => `${Math.round(n)}%`} />
           </div>
-          <div className="text-[10px] uppercase tracking-[0.16em] text-content-subtle">accuracy</div>
+          <div className="text-[0.625rem] uppercase tracking-[0.16em] text-content-subtle">accuracy</div>
         </div>
       </div>
     </div>
@@ -171,7 +171,7 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3, type: "spring" }} className="mx-auto mt-6 flex max-w-md items-center gap-4 rounded-3xl border border-gold-300/60 bg-gold-400/10 p-4 shadow-gold">
             <GraduationCap className="h-10 w-10 shrink-0 text-gold-200" />
             <div>
-              <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">Level up</div>
+              <div className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-gold-300">Level up</div>
               <div className="font-display text-xl font-bold text-content">
                 Level {r.level.after.level}: {r.level.after.name}
               </div>
@@ -180,14 +180,14 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
         )}
       </AnimatePresence>
 
-      <div className="mt-8 grid gap-5 md:grid-cols-[auto_1fr]">
+      <div className="mt-8 grid grid-cols-1 gap-5 md:grid-cols-[auto_minmax(0,1fr)]">
         <Panel className="flex flex-col items-center justify-center gap-4 md:px-10">
           <Ring pct={r.accuracy} />
           <div className="text-center">
             <div className="font-display text-4xl font-bold text-content">
               <CountUp value={r.score} />
             </div>
-            <div className="text-[11px] uppercase tracking-[0.16em] text-content-subtle">final score</div>
+            <div className="text-[0.6875rem] uppercase tracking-[0.16em] text-content-subtle">final score</div>
           </div>
         </Panel>
         <Panel delay={0.05}>
@@ -195,24 +195,24 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
             <div className="rounded-2xl border border-mint-400/25 bg-mint-400/[0.04] p-3.5">
               <CheckCircle2 className="h-4 w-4 text-mint-300" />
               <div className="mt-2 font-display text-2xl font-bold text-content">{r.correct}</div>
-              <div className="text-[11px] text-content-subtle">correct</div>
+              <div className="text-[0.6875rem] text-content-subtle">correct</div>
             </div>
             <div className="rounded-2xl border border-red-400/20 bg-red-400/[0.03] p-3.5">
               <XCircle className="h-4 w-4 text-red-300" />
               <div className="mt-2 font-display text-2xl font-bold text-content">{wrong}</div>
-              <div className="text-[11px] text-content-subtle">incorrect</div>
+              <div className="text-[0.6875rem] text-content-subtle">incorrect</div>
             </div>
             <div className="rounded-2xl border border-hairline p-3.5">
               <Timer className="h-4 w-4 text-sky-300" />
               <div className="mt-2 font-display text-2xl font-bold text-content">{duration(r.timeMs)}</div>
-              <div className="text-[11px] text-content-subtle">time taken</div>
+              <div className="text-[0.6875rem] text-content-subtle">time taken</div>
             </div>
             <div className="rounded-2xl border border-gold-400/30 bg-gold-400/[0.05] p-3.5">
               <Sparkles className="h-4 w-4 text-gold-300" />
               <div className="mt-2 font-display text-2xl font-bold text-gold-200">
                 +<CountUp value={r.xp.total} />
               </div>
-              <div className="text-[11px] text-content-subtle">XP earned</div>
+              <div className="text-[0.6875rem] text-content-subtle">XP earned</div>
             </div>
           </div>
 
@@ -231,7 +231,7 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
                 </div>
               ))}
             {r.xp.total === 0 && (
-              <p className="text-[13px] text-content-subtle">
+              <p className="text-[0.8125rem] text-content-subtle">
                 {r.correct === 0 ? "No XP this round: XP is only earned by correct answers." : "No new XP: these answers were practice repeats, or today's quiz XP cap is reached."}
               </p>
             )}
@@ -290,18 +290,18 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
       )}
 
       {r.challenge && (
-        <div className="mt-5 grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+        <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <VsCard
             you={{ name: me?.user?.name ?? "You", image: me?.user?.image ?? null, score: r.score, correct: r.correct, total: r.total }}
             them={{ name: r.challenge.name, image: r.challenge.image, score: r.challenge.score, correct: r.challenge.correct, total: r.challenge.total }}
           />
           <Panel>
             <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+              <span className="flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
                 <Swords className="h-3.5 w-3.5 text-gold-400" /> Challenge board
               </span>
               {duel && (
-                <span className="text-[11px] text-content-subtle">
+                <span className="text-[0.6875rem] text-content-subtle">
                   {duel.takers} played · {duel.beaten} beat the host
                 </span>
               )}
@@ -312,12 +312,12 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
       )}
 
       {r.unlocked.length > 0 && (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
           {r.unlocked.map((u, i) => (
             <motion.div key={u.code} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 + i * 0.15 }} className="flex items-center gap-3 rounded-2xl border border-gold-400/40 bg-gold-400/[0.06] p-4">
               <Award className="h-7 w-7 text-gold-200" />
               <div className="min-w-0">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">Achievement unlocked</div>
+                <div className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-gold-300">Achievement unlocked</div>
                 <div className="font-semibold text-content">{u.title}</div>
               </div>
               <span className="ml-auto font-mono text-sm text-gold-200">+{u.xp}</span>
@@ -353,9 +353,9 @@ export function QuizResults({ result: r, onPlayAgain }: { result: QuizResult; on
 
       <div className="mt-4 rounded-2xl border border-hairline bg-white/[0.02] p-4">
         <div className="mb-3 flex items-center justify-between gap-3">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Share your score card</span>
+          <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Share your score card</span>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={`/academy/card/quiz/${r.attemptId}`} alt="" width={120} height={63} className="hidden h-[63px] w-[120px] rounded-lg border border-hairline object-cover sm:block" loading="lazy" />
+          <img src={`/academy/card/quiz/${r.attemptId}`} alt="" width={120} height={63} className="hidden h-[3.9375rem] w-[7.5rem] rounded-lg border border-hairline object-cover sm:block" loading="lazy" />
         </div>
         <ShareSheet url={challengeUrl} image={`/academy/card/quiz/${r.attemptId}`} text={`I scored ${fmt(r.score)} (${r.correct}/${r.total}) on XYZ Crypto Academy. Same questions, can you beat me?`} fileName="xyz-quiz-score.png" />
       </div>

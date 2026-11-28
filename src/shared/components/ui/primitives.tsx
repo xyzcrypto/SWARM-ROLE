@@ -12,7 +12,7 @@ export function Container({
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-[1200px] px-5 sm:px-6 lg:px-8 xl:max-w-[1320px] 2xl:max-w-[1480px] 2xl:px-10",
+        "mx-auto w-full max-w-[75rem] px-5 sm:px-6 lg:px-8 xl:max-w-[82.5rem] 2xl:max-w-[92.5rem] 2xl:px-10",
         className
       )}
     >
@@ -41,7 +41,7 @@ export function Eyebrow({ children }: { children: ReactNode }) {
   return (
     <span className="eyebrow text-gold-200">
       <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
-      <span className="mono text-[11px] uppercase tracking-[0.18em]">{children}</span>
+      <span className="mono text-[0.6875rem] uppercase tracking-[0.18em]">{children}</span>
     </span>
   );
 }
@@ -105,7 +105,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] font-medium ring-1",
         tones[tone],
         className
       )}

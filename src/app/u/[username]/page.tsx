@@ -258,13 +258,13 @@ export default async function ProfilePage(props: Props) {
                   <div className="min-w-0 pt-1">
                     <h1
                       className={cn(
-                        "font-display text-[26px] font-bold leading-[1.1] tracking-tight break-words sm:text-4xl lg:text-[2.6rem]",
+                        "font-display text-[1.625rem] font-bold leading-[1.1] tracking-tight break-words sm:text-4xl lg:text-[2.6rem]",
                         isPremium ? "text-gold-gradient" : "text-zinc-50"
                       )}
                     >
                       {user.name ?? `@${user.username}`}
                     </h1>
-                    <p className="mono mt-1 truncate text-sm text-zinc-500 sm:text-[15px]">@{user.username}</p>
+                    <p className="mono mt-1 truncate text-sm text-zinc-500 sm:text-[0.9375rem]">@{user.username}</p>
                   </div>
                 </div>
                 {/* Actions. On a phone this is its own row at the card's left
@@ -291,7 +291,7 @@ export default async function ProfilePage(props: Props) {
               </div>
 
               {user.bio && (
-                <p className="mt-4 max-w-2xl whitespace-pre-line text-[15px] leading-relaxed text-zinc-300">{user.bio}</p>
+                <p className="mt-4 max-w-2xl whitespace-pre-line text-[0.9375rem] leading-relaxed text-zinc-300">{user.bio}</p>
               )}
 
               <div className="mt-5 flex flex-wrap items-center gap-2 text-sm">
@@ -313,7 +313,7 @@ export default async function ProfilePage(props: Props) {
                     aria-label={label}
                     className={`group grid h-10 w-10 place-items-center rounded-full border bg-white/[0.03] transition-all duration-300 hover:-translate-y-0.5 active:-translate-y-0.5 ${ring} ${color}`}
                   >
-                    <Icon className="h-[19px] w-[19px] transition-transform duration-300 group-hover:scale-110 group-active:scale-110" />
+                    <Icon className="h-[1.1875rem] w-[1.1875rem] transition-transform duration-300 group-hover:scale-110 group-active:scale-110" />
                   </a>
                 ))}
               </div>

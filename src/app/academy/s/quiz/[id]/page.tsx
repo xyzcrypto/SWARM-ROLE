@@ -29,7 +29,7 @@ export default async function QuizSharePage({ params }: Props) {
   const url = `${SITE_URL}/academy/s/quiz/${id}`;
   return (
     <div className="mx-auto max-w-3xl">
-      <p className="text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-300">Quiz challenge</p>
+      <p className="text-center text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-gold-300">Quiz challenge</p>
       <h1 className="mt-2 text-center font-display text-3xl font-semibold text-content sm:text-4xl">Can you beat {q.name}?</h1>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={`/academy/card/quiz/${id}`} alt={`${q.name} scored ${q.score} on XYZ Crypto Academy`} width={1200} height={630} className="mt-6 w-full rounded-2xl border border-hairline shadow-elevate" />

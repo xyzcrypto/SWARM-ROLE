@@ -34,7 +34,7 @@ const engRate = (r: BoardRow) => (r.views > 0 ? (r.likes + r.replies + r.reposts
 function ScoreChip({ v }: { v: number }) {
   const t = scoreTier(v);
   return (
-    <span className={cn("whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold tabular-nums", TONE[t.tone])} title={`XYZ Score: ${t.label}`}>
+    <span className={cn("whitespace-nowrap rounded-full px-2 py-0.5 text-[0.625rem] font-bold tabular-nums", TONE[t.tone])} title={`XYZ Score: ${t.label}`}>
       {v} XYZ
     </span>
   );
@@ -42,7 +42,7 @@ function ScoreChip({ v }: { v: number }) {
 
 /** Rank change against a week ago. */
 function Move({ m }: { m: number | null }) {
-  if (m == null) return <span className="hidden w-10 shrink-0 text-center text-[10px] font-bold uppercase tracking-wider text-sky-300 sm:inline">New</span>;
+  if (m == null) return <span className="hidden w-10 shrink-0 text-center text-[0.625rem] font-bold uppercase tracking-wider text-sky-300 sm:inline">New</span>;
   if (m === 0) return <span className="hidden w-10 shrink-0 text-center text-xs text-content-subtle sm:inline">-</span>;
   return (
     <span className={cn("inline-flex w-10 shrink-0 items-center justify-center gap-0.5 text-xs font-bold tabular-nums", m > 0 ? "text-mint-300" : "text-red-400")} title={`${m > 0 ? "Up" : "Down"} ${Math.abs(m)} since last week`}>
@@ -144,7 +144,7 @@ export function XBoard({
       {/* Status: what the board is built from and how fresh it is */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {board ? (
-          <div className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-hairline bg-ink-900/60 px-3.5 py-1.5 font-mono text-[11px] text-content-subtle">
+          <div className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-hairline bg-ink-900/60 px-3.5 py-1.5 font-mono text-[0.6875rem] text-content-subtle">
             <span className="relative flex h-2 w-2">
               <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-60", board.configured ? "animate-ping bg-mint-400" : "bg-content-subtle")} />
               <span className={cn("relative inline-flex h-2 w-2 rounded-full", board.configured ? "bg-mint-400" : "bg-content-subtle")} />
@@ -159,9 +159,9 @@ export function XBoard({
         )}
         {recents.length > 0 && (
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-content-subtle">Recent</span>
+            <span className="text-[0.6875rem] text-content-subtle">Recent</span>
             {recents.slice(0, 6).map((h) => (
-              <button key={h} type="button" onClick={() => onOpen(h)} className="rounded-full border border-hairline px-2.5 py-1 text-[11px] text-content-muted transition-colors hover:border-gold-400/40 hover:text-content">
+              <button key={h} type="button" onClick={() => onOpen(h)} className="rounded-full border border-hairline px-2.5 py-1 text-[0.6875rem] text-content-muted transition-colors hover:border-gold-400/40 hover:text-content">
                 @{h}
               </button>
             ))}
@@ -210,7 +210,7 @@ export function XBoard({
                   <div className="flex items-center gap-4">
                     <Avatar src={spotlight.row?.avatar ?? spotlight.r.avatar} alt={spotlight.r.handle} size={64} ring="ring-1 ring-gold-400/50" />
                     <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-gold-400">Creator of the week</p>
+                      <p className="text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-gold-400">Creator of the week</p>
                       <button type="button" onClick={() => onOpen(spotlight.r.handle)} className="mt-0.5 block max-w-full truncate text-left font-display text-xl font-bold tracking-tight text-content hover:text-gold-200">
                         {spotlight.r.name}
                       </button>
@@ -220,26 +220,26 @@ export function XBoard({
                   <div className="grid flex-1 grid-cols-3 gap-2 sm:ml-auto sm:max-w-sm">
                     <div className="rounded-2xl bg-ink-800/60 px-3 py-2.5 text-center">
                       <div className="font-display text-lg font-bold tabular-nums text-mint-300">+{compact(spotlight.r.points)}</div>
-                      <div className="text-[10px] uppercase tracking-wider text-content-subtle">pts 7d</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-content-subtle">pts 7d</div>
                     </div>
                     <div className="rounded-2xl bg-ink-800/60 px-3 py-2.5 text-center">
                       <div className="font-display text-lg font-bold tabular-nums text-content">{full(spotlight.r.posts)}</div>
-                      <div className="text-[10px] uppercase tracking-wider text-content-subtle">posts 7d</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-content-subtle">posts 7d</div>
                     </div>
                     <div className="rounded-2xl bg-ink-800/60 px-3 py-2.5 text-center">
                       <div className="font-display text-lg font-bold tabular-nums text-gold-300">{spotlight.row ? `#${spotlight.row.rank}` : "-"}</div>
-                      <div className="text-[10px] uppercase tracking-wider text-content-subtle">rank</div>
+                      <div className="text-[0.625rem] uppercase tracking-wider text-content-subtle">rank</div>
                     </div>
                   </div>
                 </div>
                 {spotlight.post && (
                   <figure className="mt-5 flex-1 rounded-2xl border border-hairline bg-ink-900/40 p-4">
-                    <figcaption className="mb-2 flex items-center justify-between gap-2 text-[11px] text-content-subtle">
+                    <figcaption className="mb-2 flex items-center justify-between gap-2 text-[0.6875rem] text-content-subtle">
                       <span>Their best post in this window</span>
                       <span className="font-semibold tabular-nums text-gold-300">{compact(spotlight.post.points)} pts</span>
                     </figcaption>
                     <blockquote className="line-clamp-4 whitespace-pre-line break-words text-sm leading-relaxed text-content-muted">{spotlight.post.text}</blockquote>
-                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-content-subtle">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.6875rem] tabular-nums text-content-subtle">
                       <span>{compact(spotlight.post.views)} views</span>
                       <span>{compact(spotlight.post.likes)} likes</span>
                       <span>{compact(spotlight.post.replies)} replies</span>
@@ -265,7 +265,7 @@ export function XBoard({
                   {board.topics.slice(0, 6).map((t) => {
                     const max = Math.max(1, board.topics[0]!.posts);
                     return (
-                      <div key={t.term} className="grid grid-cols-[72px_minmax(0,1fr)_40px] items-center gap-2 text-xs">
+                      <div key={t.term} className="grid grid-cols-[4.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 text-xs">
                         <span className="truncate font-semibold text-content-muted">{t.term}</span>
                         <div className="h-1.5 overflow-hidden rounded-full bg-ink-700">
                           <motion.div className="h-full rounded-full bg-gold-400" initial={{ width: 0 }} animate={{ width: `${(t.posts / max) * 100}%` }} transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} />
@@ -292,7 +292,7 @@ export function XBoard({
                 titles={board.daily.map((d) => `${d.day}: ${full(d.posts)} posts, ${compact(d.views)} views, ${full(d.creators)} creators`)}
                 height={190}
               />
-              <div className="mt-2 flex justify-between text-[10px] text-content-subtle">
+              <div className="mt-2 flex justify-between text-[0.625rem] text-content-subtle">
                 <span>{board.daily[0]?.day}</span>
                 <span>{board.daily[board.daily.length - 1]?.day}</span>
               </div>
@@ -305,7 +305,7 @@ export function XBoard({
                   ] as const
                 ).map(([l, v]) => (
                   <div key={l} className="min-w-0">
-                    <div className="truncate text-[11px] text-content-subtle">{l}</div>
+                    <div className="truncate text-[0.6875rem] text-content-subtle">{l}</div>
                     <div className="mt-0.5 truncate font-display text-base font-bold tabular-nums text-content">{v}</div>
                   </div>
                 ))}
@@ -496,9 +496,9 @@ export function XBoard({
                             </div>
                           </div>
                           <Move m={r.move} />
-                          <div className="w-[72px] shrink-0 text-right sm:w-20">
+                          <div className="w-[4.5rem] shrink-0 text-right sm:w-20">
                             <div className="font-display text-base font-bold tabular-nums text-gold-300">{full(r.points)}</div>
-                            <div className="text-[10px] uppercase tracking-wider text-content-subtle">{plain ? "points" : `#${r.rank} · pts`}</div>
+                            <div className="text-[0.625rem] uppercase tracking-wider text-content-subtle">{plain ? "points" : `#${r.rank} · pts`}</div>
                           </div>
                           <ChevronRight className="h-4 w-4 shrink-0 text-content-subtle transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
                         </button>
@@ -526,7 +526,7 @@ export function XBoard({
               </div>
             )}
             {board.totals.accounts > board.rows.length && (
-              <p className="mt-3 text-center text-[11px] text-content-subtle">
+              <p className="mt-3 text-center text-[0.6875rem] text-content-subtle">
                 Showing the top {full(board.rows.length)} of {full(board.totals.accounts)}. Scan any handle to see its exact rank.
               </p>
             )}
@@ -535,7 +535,7 @@ export function XBoard({
           {/* Live feed */}
           {board.latest.length > 0 && (
             <Panel>
-              <PanelTitle title="Latest posts" sub="Newest Variational posts we have indexed" right={<span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-mint-300"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mint-400" />Live</span>} />
+              <PanelTitle title="Latest posts" sub="Newest Variational posts we have indexed" right={<span className="inline-flex items-center gap-1.5 text-[0.6875rem] font-semibold text-mint-300"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mint-400" />Live</span>} />
               <ul className="divide-y divide-hairline">
                 {board.latest.slice(0, 8).map((p) => (
                   <li key={p.tweetId} className="flex items-start gap-3 py-3">
@@ -550,7 +550,7 @@ export function XBoard({
                         <span className="shrink-0 text-content-subtle">{formatDateTime(p.createdAt)} UTC</span>
                       </div>
                       <p className="mt-0.5 line-clamp-2 break-words text-sm text-content-muted">{p.text}</p>
-                      <div className="mt-1 flex flex-wrap gap-x-3 text-[11px] tabular-nums text-content-subtle">
+                      <div className="mt-1 flex flex-wrap gap-x-3 text-[0.6875rem] tabular-nums text-content-subtle">
                         <span>{compact(p.views)} views</span>
                         <span>{compact(p.likes)} likes</span>
                         <span>{compact(p.replies)} replies</span>
@@ -559,7 +559,7 @@ export function XBoard({
                         </a>
                       </div>
                     </div>
-                    <span className="shrink-0 rounded-full bg-gold-400/10 px-2 py-0.5 text-[11px] font-bold tabular-nums text-gold-300">{compact(p.points)}</span>
+                    <span className="shrink-0 rounded-full bg-gold-400/10 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-gold-300">{compact(p.points)}</span>
                   </li>
                 ))}
               </ul>
@@ -591,21 +591,21 @@ export function XBoard({
                           <span className="min-w-0 truncate">{p.name}</span>
                           {p.verified && <BadgeCheck className="h-3.5 w-3.5 shrink-0 text-sky-400" />}
                         </div>
-                        <div className="truncate text-[11px] text-content-subtle">
+                        <div className="truncate text-[0.6875rem] text-content-subtle">
                           @{p.handle} · {formatDate(p.createdAt)}
                         </div>
                       </div>
-                      <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[11px] font-bold tabular-nums text-gold-300">{compact(p.points)} pts</span>
+                      <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-gold-300">{compact(p.points)} pts</span>
                     </button>
                     <p className="line-clamp-5 whitespace-pre-line break-words text-sm leading-relaxed text-content-muted">{p.text}</p>
-                    <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] tabular-nums text-content-subtle">
+                    <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.6875rem] tabular-nums text-content-subtle">
                       <span>{compact(p.views)} views</span>
                       <span>{compact(p.likes)} likes</span>
                       <span>{compact(p.replies)} replies</span>
                       <span>{compact(p.reposts)} reposts</span>
                       {venue === "all" &&
                         p.venues.map((v: VenueId) => (
-                          <span key={v} className="rounded-full bg-ink-700 px-1.5 py-0.5 text-[10px] text-content-muted">
+                          <span key={v} className="rounded-full bg-ink-700 px-1.5 py-0.5 text-[0.625rem] text-content-muted">
                             {venueLabel(v)}
                           </span>
                         ))}

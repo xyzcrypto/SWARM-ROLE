@@ -89,11 +89,11 @@ export function MarkdownLite({ text, className }: { text: string; className?: st
     blocks.push(
       <Tag key={key} className="my-2 space-y-1.5 pl-1">
         {items.map((li, i) => (
-          <li key={i} className="flex gap-2 text-[15px] leading-relaxed text-zinc-300">
+          <li key={i} className="flex gap-2 text-[0.9375rem] leading-relaxed text-zinc-300">
             {ordered ? (
-              <span className="mono mt-[1px] shrink-0 text-[12px] font-semibold text-gold-300/80">{i + 1}.</span>
+              <span className="mono mt-[1px] shrink-0 text-[0.75rem] font-semibold text-gold-300/80">{i + 1}.</span>
             ) : (
-              <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-gold-400/70" />
+              <span className="mt-[0.5625rem] h-1.5 w-1.5 shrink-0 rounded-full bg-gold-400/70" />
             )}
             <span>{inline(li, `li${key}-${i}`)}</span>
           </li>
@@ -123,7 +123,7 @@ export function MarkdownLite({ text, className }: { text: string; className?: st
     const quote = line.match(/^>\s?(.*)$/);
     if (quote) {
       blocks.push(
-        <blockquote key={`q-${i}`} className="my-2 border-l-2 border-gold-500/40 pl-3 text-[14px] italic leading-relaxed text-zinc-400">
+        <blockquote key={`q-${i}`} className="my-2 border-l-2 border-gold-500/40 pl-3 text-[0.875rem] italic leading-relaxed text-zinc-400">
           {inline(quote[1], `q-${i}`)}
         </blockquote>
       );
@@ -133,13 +133,13 @@ export function MarkdownLite({ text, className }: { text: string; className?: st
     if (h) {
       const level = h[1].length;
       const cls = level <= 2
-        ? "mt-4 text-[12px] font-semibold uppercase tracking-[0.14em] text-gold-200"
-        : "mt-3 text-[15px] font-semibold text-zinc-100";
+        ? "mt-4 text-[0.75rem] font-semibold uppercase tracking-[0.14em] text-gold-200"
+        : "mt-3 text-[0.9375rem] font-semibold text-zinc-100";
       blocks.push(<h3 key={`h-${i}`} className={cls}>{inline(h[2], `h-${i}`)}</h3>);
       return;
     }
     blocks.push(
-      <p key={`p-${i}`} className="my-2 text-[15px] leading-relaxed text-zinc-300">{inline(line, `p-${i}`)}</p>
+      <p key={`p-${i}`} className="my-2 text-[0.9375rem] leading-relaxed text-zinc-300">{inline(line, `p-${i}`)}</p>
     );
   });
   flushList("l-end");

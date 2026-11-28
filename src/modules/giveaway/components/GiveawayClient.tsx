@@ -72,13 +72,13 @@ export function GiveawayClient() {
     <div>
       {/* Hero */}
       <section className="text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/[0.07] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-300">
+        <div className="inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/[0.07] px-3 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-gold-300">
           <Gift className="h-3.5 w-3.5" /> XYZ Crypto x Bungee Funded Perps
         </div>
         <h1 className="mx-auto mt-4 max-w-3xl font-display text-3xl font-semibold leading-tight text-content sm:text-5xl">
           Win one of <span className="text-gold-gradient">3x $10K</span> funded accounts
         </h1>
-        <p className="mx-auto mt-4 max-w-2xl text-[15px] leading-relaxed text-content-muted">
+        <p className="mx-auto mt-4 max-w-2xl text-[0.9375rem] leading-relaxed text-content-muted">
           Learn how Bungee Funded Perps really works, prove it in the Bungee live quizzes, and submit your entry. Three winners get a $10,000 Bungee Funded
           Perps account each.
         </p>
@@ -177,7 +177,7 @@ export function GiveawayClient() {
 
       {/* Entry */}
       <section className="mt-10 rounded-3xl border border-gold-400/30 bg-gradient-to-br from-gold-400/[0.08] to-transparent p-6 sm:p-8">
-        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-300">
+        <div className="flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-gold-300">
           <Trophy className="h-3.5 w-3.5" /> Step 5: submit your entry
         </div>
         {auth === "loading" || (auth === "authenticated" && !status && !loadErr) ? (
@@ -244,7 +244,7 @@ function Step({
           {done ? <CheckCircle2 className="h-5 w-5" /> : icon}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Step {n}</div>
+          <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">Step {n}</div>
           <h3 className="mt-0.5 font-display text-base font-semibold text-content sm:text-lg">{title}</h3>
           <p className="mt-1 text-sm leading-relaxed text-content-muted">{body}</p>
           {children}
@@ -320,7 +320,7 @@ function EntryForm({ status, lessonsDone, onSaved }: { status: Status; lessonsDo
         </div>
       )}
       <fieldset disabled={!lessonsDone || locked || busy} className="grid gap-4 disabled:opacity-60">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Bungee UID" hint="Exactly as shown in your Bungee dashboard">
             <input value={uid} onChange={(x) => setUid(x.target.value)} required maxLength={80} autoComplete="off" className={INPUT} placeholder="Your Bungee UID" />
           </Field>
@@ -367,7 +367,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
     <div className="grid gap-1.5">
       <span className="text-xs font-semibold text-content">{label}</span>
       {children}
-      {hint && <span className="text-[11px] text-content-subtle">{hint}</span>}
+      {hint && <span className="text-[0.6875rem] text-content-subtle">{hint}</span>}
     </div>
   );
 }

@@ -48,7 +48,7 @@ export function BrandLoader({ label = "Loading" }: { label?: string }) {
           />
         </motion.span>
       </div>
-      <p className="mono mt-6 text-[11px] uppercase tracking-[0.22em] text-zinc-500">
+      <p className="mono mt-6 text-[0.6875rem] uppercase tracking-[0.22em] text-zinc-500">
         {label}
         <span className="ml-0.5 inline-flex">
           {[0, 1, 2].map((i) => (

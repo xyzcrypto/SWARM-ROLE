@@ -43,12 +43,12 @@ const ITEMS: Item[] = [
 // a 430px phone each get a proportionate size, and the outer terms stop it
 // becoming unreadable or oversized. Nothing here is device-specific.
 const CELL_CLS =
-  "flex min-h-[clamp(48px,13vw,56px)] flex-col items-center justify-center gap-0.5 py-1.5 transition-colors";
+  "flex min-h-[clamp(3rem,13vw,3.5rem)] flex-col items-center justify-center gap-0.5 py-1.5 transition-colors";
 // Labels shrink on narrow phones instead of wrapping or clipping. `truncate`
 // plus `w-full` is the guard: a longer label degrades to an ellipsis rather
 // than pushing the six columns out of the viewport.
-const LABEL_CLS = "w-full truncate px-0.5 text-center text-[clamp(9px,2.5vw,11px)] font-medium leading-tight";
-const ICON_CLS = "h-[clamp(18px,5vw,20px)] w-[clamp(18px,5vw,20px)] shrink-0";
+const LABEL_CLS = "w-full truncate px-0.5 text-center text-[clamp(0.5625rem,2.5vw,0.6875rem)] font-medium leading-tight";
+const ICON_CLS = "h-[clamp(1.125rem,5vw,1.25rem)] w-[clamp(1.125rem,5vw,1.25rem)] shrink-0";
 
 /**
  * App-style bottom navigation for phones and tablets (lg:hidden). Two links, a
@@ -103,14 +103,14 @@ export function BottomNav() {
               // (320 / 6 ≈ 53px at the time), so it overflowed into its
               // neighbours. Five columns give it more room now, but the clamp
               // stays - it is what makes the cell safe at any count.
-              "-mt-5 flex h-[clamp(44px,14vw,56px)] w-[clamp(44px,14vw,56px)] items-center justify-center rounded-full border-2 bg-ink-950 shadow-lg transition-colors",
+              "-mt-5 flex h-[clamp(2.75rem,14vw,3.5rem)] w-[clamp(2.75rem,14vw,3.5rem)] items-center justify-center rounded-full border-2 bg-ink-950 shadow-lg transition-colors",
               profileActive ? "border-gold-400 shadow-gold-500/30" : "border-white/15 shadow-black/40"
             )}
           >
             {session ? (
               <Avatar name={user?.name} image={user?.image} email={user?.email} size="md" ring={false} premium={isPremium} />
             ) : (
-              <User className="h-[clamp(20px,6vw,24px)] w-[clamp(20px,6vw,24px)] text-zinc-300" />
+              <User className="h-[clamp(1.25rem,6vw,1.5rem)] w-[clamp(1.25rem,6vw,1.5rem)] text-zinc-300" />
             )}
           </span>
           <span className={cn(LABEL_CLS, profileActive ? "text-gold-200" : "text-zinc-500")}>Profile</span>

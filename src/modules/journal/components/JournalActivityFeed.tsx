@@ -69,7 +69,7 @@ export function JournalActivityFeed({ userId, initialItems }: { userId: string; 
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-zinc-300">{item.title}</p>
-                <p className="mono mt-0.5 text-[11px] text-zinc-600">{timeAgo(item.createdAt)}</p>
+                <p className="mono mt-0.5 text-[0.6875rem] text-zinc-600">{timeAgo(item.createdAt)}</p>
               </div>
             </div>
           );

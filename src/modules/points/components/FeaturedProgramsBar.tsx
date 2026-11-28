@@ -151,7 +151,7 @@ export function FeaturedProgramsBar({
 
                     <span
                       className={cn(
-                        "rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
+                        "rounded-md px-1.5 py-0.5 text-[0.625rem] font-semibold",
                         item.badge === "Official"
                           ? "border border-amber-500/30 bg-amber-500/10 text-amber-300"
                           : "border border-sky-500/30 bg-sky-500/10 text-sky-300"
@@ -162,7 +162,7 @@ export function FeaturedProgramsBar({
                   </div>
 
                   {/* Farming Status Pill */}
-                  <div className="mt-2.5 flex items-center gap-1.5 text-[11px] text-content-muted">
+                  <div className="mt-2.5 flex items-center gap-1.5 text-[0.6875rem] text-content-muted">
                     <span className="h-1.5 w-1.5 rounded-full bg-mint-400 animate-pulse" />
                     <span>Farming Now</span>
                   </div>
@@ -172,7 +172,7 @@ export function FeaturedProgramsBar({
                     <div className="mono font-display text-base font-bold text-content">
                       {item.pointsLabel}
                     </div>
-                    <div className="text-[11px] text-content-subtle">
+                    <div className="text-[0.6875rem] text-content-subtle">
                       {item.allocLabel}
                     </div>
                   </div>
@@ -182,7 +182,7 @@ export function FeaturedProgramsBar({
                     {item.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="rounded bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-content-muted"
+                        className="rounded bg-white/5 px-1.5 py-0.5 text-[0.625rem] font-medium text-content-muted"
                       >
                         {tag}
                       </span>
@@ -218,7 +218,7 @@ export function FeaturedProgramsBar({
                     <span className="text-xl">🔒</span>
                     {/* `text-[#fff]`, not `text-white`: the light theme remaps text-white to
                         dark text site-wide, which put dark text on this dark pill. */}
-                    <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-[11px] font-semibold text-[#fff] backdrop-blur-sm">
+                    <span className="rounded-full border border-white/20 bg-black/60 px-3 py-1 text-[0.6875rem] font-semibold text-[#fff] backdrop-blur-sm">
                       Coming Soon
                     </span>
                   </div>

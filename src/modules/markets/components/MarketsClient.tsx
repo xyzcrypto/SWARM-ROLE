@@ -223,7 +223,7 @@ function MarketsClientInner() {
           <HorizontalTrendingBar onOpenWatchlist={openWatchlist} />
 
           {/* ── 7-Card Global KPI Strip: Swipeable Carousel on Mobile, 7-Column Grid on Desktop ── */}
-          <div className="flex sm:grid overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory sm:snap-none gap-2 sm:grid-cols-3 lg:grid-cols-7 pb-1 sm:pb-0 touch-pan-x scroll-px-0">
+          <div className="flex sm:grid overflow-x-auto sm:overflow-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory sm:snap-none gap-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 pb-1 sm:pb-0 touch-pan-x scroll-px-0">
             {/* Every figure below is live; a missing one renders "-", never a
                 sample. Only DeFi TVL has a real history, so only it has a sparkline. */}
             <CompactKpiCard
@@ -344,7 +344,7 @@ function MarketsClientInner() {
       {tab === "trending" && <TrendingPanel c={c.data} loading={c.loading} g={g.data} />}
       {tab === "watchlist" && <WatchlistPanel coins={c.data?.list} onNavigateCoins={() => setTab("coins")} />}
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 pb-2 border-t border-white/[0.06] text-[11px] text-zinc-500">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-4 pb-2 border-t border-white/[0.06] text-[0.6875rem] text-zinc-500">
         <p>{allLive ? "Live data" : staleCount === sources.length ? "Connecting to live feeds" : `Live · ${staleCount} feed${staleCount === 1 ? "" : "s"} reconnecting`}</p>
         <p className="text-zinc-600 hidden md:block">Data: CoinGecko · DefiLlama · Hyperliquid · alternative.me</p>
         <p className="hidden sm:block">Real-time market data, trends, yields and on-chain insights.</p>
@@ -384,9 +384,14 @@ function Overview({
 }) {
   return (
     <div className="space-y-2.5">
-      {/* ── ROW 1: Compact 3-Column Grid: Chart (~50%) + Heatmap (~32%) + AI (~18%) with ~260px desktop height ── */}
-      <section className="grid grid-cols-1 lg:grid-cols-[1.95fr_1.32fr_0.73fr] gap-2 sm:gap-2.5 items-stretch lg:h-[260px]">
-        <div className="h-full min-h-[260px] lg:min-h-0">
+      {/* ── ROW 1: Chart (~50%) + Heatmap (~32%) + AI (~18%), ~260px tall, from xl.
+          1024-1279 (iPad landscape): chart + heatmap, AI card full width below.
+          At 1024 the three-column row gave the AI card ~170px against the ~213px
+          its contents need, and bare `fr` tracks cannot shrink below content, so
+          the whole row ran 22px off the screen (measured 2026-11-28). Every track
+          is minmax(0, …) for the same reason. ── */}
+      <section className="grid grid-cols-1 gap-2 sm:gap-2.5 items-stretch lg:grid-cols-[minmax(0,1.95fr)_minmax(0,1.32fr)] xl:grid-cols-[minmax(0,1.95fr)_minmax(0,1.32fr)_minmax(0,0.73fr)] xl:h-[16.25rem]">
+        <div className="h-full min-h-[16.25rem] xl:min-h-0">
           <TotalMarketCapChart
             marketCap={g?.marketCap}
             volume24h={g?.volume24h}
@@ -395,10 +400,10 @@ function Overview({
             mcapChange24h={g?.mcapChange24h}
           />
         </div>
-        <div className="h-full min-h-[260px] lg:min-h-0">
+        <div className="h-full min-h-[16.25rem] xl:min-h-0">
           <MarketHeatmap coins={c?.list} />
         </div>
-        <div className="h-full min-h-[260px] lg:min-h-0">
+        <div className="h-full min-h-[16.25rem] lg:col-span-2 xl:col-span-1 xl:min-h-0">
           <AIMarketIntelligenceCard
             gainers={c?.gainers}
             mcapChange24h={g?.mcapChange24h}
@@ -600,7 +605,7 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
         !isEmbedded ? (
           <div className="flex items-center gap-3">
             {pricesLive ? (
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-mint-300" title="Prices stream from Binance in real time">
+              <span className="inline-flex items-center gap-1.5 text-[0.6875rem] font-semibold text-mint-300" title="Prices stream from Binance in real time">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mint-400" /> Live prices
               </span>
             ) : (
@@ -618,7 +623,7 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
             <button
               onClick={() => setCatFilter(null)}
               className={cn(
-                "inline-flex h-6 shrink-0 snap-start items-center rounded-lg px-2.5 text-[11px] font-bold leading-none transition-all hover:scale-[1.02] active:scale-[1.02]",
+                "inline-flex h-6 shrink-0 snap-start items-center rounded-lg px-2.5 text-[0.6875rem] font-bold leading-none transition-all hover:scale-[1.02] active:scale-[1.02]",
                 !catFilter
                   ? "neu-inset bg-amber-400 text-black border border-amber-500/40 shadow-neu-inset-sm font-black"
                   : "neu-btn text-zinc-700 dark:text-zinc-300 border border-white/40 dark:border-white/5 hover:text-black dark:hover:text-white shadow-neu-sm"
@@ -631,7 +636,7 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
                 key={cat.id}
                 onClick={() => setCatFilter((v) => (v === cat.id ? null : cat.id))}
                 className={cn(
-                  "inline-flex h-6 shrink-0 snap-start items-center rounded-lg px-2.5 text-[11px] font-medium leading-none transition-all hover:scale-[1.02] active:scale-[1.02]",
+                  "inline-flex h-6 shrink-0 snap-start items-center rounded-lg px-2.5 text-[0.6875rem] font-medium leading-none transition-all hover:scale-[1.02] active:scale-[1.02]",
                   catFilter === cat.id
                     ? "neu-inset bg-amber-400 text-black border border-amber-500/40 shadow-neu-inset-sm font-black"
                     : "neu-btn text-zinc-700 dark:text-zinc-300 border border-white/40 dark:border-white/5 hover:text-black dark:hover:text-white shadow-neu-sm"
@@ -674,7 +679,7 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
         )}
 
         {catError && (
-          <p className="text-[12px] text-amber-300">Couldn&apos;t load that category. Showing everything.</p>
+          <p className="text-[0.75rem] text-amber-300">Couldn&apos;t load that category. Showing everything.</p>
         )}
 
         {catLoading && !rows.length ? (
@@ -690,9 +695,9 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
         ) : displayRows.length ? (
           <div className={cn("-mx-2 overflow-x-auto md:mx-0", !isEmbedded ? "md:max-h-[65vh] md:overflow-auto" : "")}>
             {!isEmbedded ? (
-              <table className="w-full text-sm md:min-w-[720px]">
+              <table className="w-full text-sm md:min-w-[45rem]">
                 <thead className="sticky top-0 z-10">
-                  <tr className="border-b border-black/[0.06] dark:border-white/10 bg-[#e9edf4]/95 dark:bg-[#0c0e14]/95 backdrop-blur-md text-[11px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  <tr className="border-b border-black/[0.06] dark:border-white/10 bg-[#e9edf4]/95 dark:bg-[#0c0e14]/95 backdrop-blur-md text-[0.6875rem] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                     <SortTh label="#" col="rank" sort={sort} onSort={onSort} align="left" />
                     <SortTh label="Coin" col="name" sort={sort} onSort={onSort} align="left" />
                     <SortTh label="Price" col="price" sort={sort} onSort={onSort} />
@@ -712,37 +717,37 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
                     const isAlert = alerts.has(r.id);
                     return (
                       <tr key={r.id} className="transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] group">
-                        <td className="mono px-2 py-2.5 text-left text-[11px] text-zinc-500 dark:text-zinc-500">{r.rank}</td>
+                        <td className="mono px-2 py-2.5 text-left text-[0.6875rem] text-zinc-500 dark:text-zinc-500">{r.rank}</td>
                         <td className="px-2 py-2.5">
                           {r.id ? (
                             <Link href={`/markets/${r.id}`} className="flex items-center gap-2">
                               {r.image && (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[22px] w-[22px] rounded-full ring-1 ring-black/10 dark:ring-white/10 shrink-0" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+                                <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[1.375rem] w-[1.375rem] rounded-full ring-1 ring-black/10 dark:ring-white/10 shrink-0" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
                               )}
-                              <span className="font-bold text-zinc-900 dark:text-zinc-100 transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-300 text-xs sm:text-[13px]">{r.symbol}</span>
+                              <span className="font-bold text-zinc-900 dark:text-zinc-100 transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-300 text-xs sm:text-[0.8125rem]">{r.symbol}</span>
                               <span className="text-zinc-500 dark:text-zinc-400 text-xs font-normal truncate">{r.name}</span>
                             </Link>
                           ) : (
                             <div className="flex items-center gap-2">
                               {r.image && (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[22px] w-[22px] rounded-full ring-1 ring-black/10 dark:ring-white/10 shrink-0" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+                                <img src={r.image} alt="" width={22} height={22} loading="lazy" className="h-[1.375rem] w-[1.375rem] rounded-full ring-1 ring-black/10 dark:ring-white/10 shrink-0" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
                               )}
-                              <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs sm:text-[13px]">{r.symbol}</span>
+                              <span className="font-bold text-zinc-900 dark:text-zinc-100 text-xs sm:text-[0.8125rem]">{r.symbol}</span>
                               <span className="text-zinc-500 dark:text-zinc-400 text-xs font-normal truncate">{r.name}</span>
                             </div>
                           )}
                         </td>
-                        <td className={cn("mono px-2 py-2.5 text-right font-medium text-zinc-900 dark:text-zinc-100 text-xs sm:text-[13px]", flash.get(r.id) === "up" && "flash-up", flash.get(r.id) === "down" && "flash-down")}>
+                        <td className={cn("mono px-2 py-2.5 text-right font-medium text-zinc-900 dark:text-zinc-100 text-xs sm:text-[0.8125rem]", flash.get(r.id) === "up" && "flash-up", flash.get(r.id) === "down" && "flash-down")}>
                           {coinPrice(r.price)}
                         </td>
                         <ChangeCell v={r.change1h} className="hidden sm:table-cell" />
                         <ChangeCell v={r.change24h} />
                         <ChangeCell v={r.change7d} className="hidden sm:table-cell" />
-                        <td className="mono hidden px-2 py-2.5 text-right text-zinc-700 dark:text-zinc-300 text-xs sm:text-[13px] lg:table-cell">{compactCleanUsd(r.volume24h)}</td>
-                        <td className="mono hidden px-2 py-2.5 text-right text-zinc-700 dark:text-zinc-300 text-xs sm:text-[13px] md:table-cell">{compactCleanUsd(r.marketCap)}</td>
-                        <td className={cn("mono hidden px-2 py-2.5 text-right text-[13px] lg:table-cell", r.athChange >= 0 ? "text-mint-400" : "text-zinc-400")}>
+                        <td className="mono hidden px-2 py-2.5 text-right text-zinc-700 dark:text-zinc-300 text-xs sm:text-[0.8125rem] lg:table-cell">{compactCleanUsd(r.volume24h)}</td>
+                        <td className="mono hidden px-2 py-2.5 text-right text-zinc-700 dark:text-zinc-300 text-xs sm:text-[0.8125rem] md:table-cell">{compactCleanUsd(r.marketCap)}</td>
+                        <td className={cn("mono hidden px-2 py-2.5 text-right text-[0.8125rem] lg:table-cell", r.athChange >= 0 ? "text-mint-400" : "text-zinc-400")}>
                           {r.athChange ? pct(r.athChange, 1) : "-"}
                         </td>
                         <td className="hidden px-2 py-2.5 sm:table-cell">
@@ -778,7 +783,7 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
             ) : (
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="border-b border-black/[0.06] dark:border-white/10 text-[10px] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  <tr className="border-b border-black/[0.06] dark:border-white/10 text-[0.625rem] uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
                     <th className="px-1 py-2 text-left font-medium w-4">#</th>
                     <th className="px-1.5 py-2 text-left font-medium">Asset</th>
                     <th className="px-1.5 py-2 text-right font-medium">Price</th>
@@ -796,15 +801,15 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
                     const isAlert = alerts.has(r.id);
                     return (
                       <tr key={r.id} className="transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] group">
-                        <td className="mono px-1 py-2.5 text-left text-[11px] text-zinc-500 dark:text-zinc-500">{i + 1}</td>
+                        <td className="mono px-1 py-2.5 text-left text-[0.6875rem] text-zinc-500 dark:text-zinc-500">{i + 1}</td>
                         <td className="px-1.5 py-2.5">
                           <Link href={`/markets/${r.id}`} className="flex items-center gap-1.5 min-w-0">
                             {r.image && (
                               // eslint-disable-next-line @next/next/no-img-element
-                              <img src={r.image} alt="" width={18} height={18} loading="lazy" className="h-[18px] w-[18px] rounded-full ring-1 ring-black/10 dark:ring-white/10 shrink-0" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
+                              <img src={r.image} alt="" width={18} height={18} loading="lazy" className="h-[1.125rem] w-[1.125rem] rounded-full ring-1 ring-black/10 dark:ring-white/10 shrink-0" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
                             )}
                             <span className="font-bold text-zinc-900 dark:text-zinc-100 transition-colors group-hover:text-amber-600 dark:group-hover:text-amber-300 text-xs shrink-0">{r.symbol}</span>
-                            <span className="text-zinc-500 dark:text-zinc-400 text-[11px] font-normal truncate hidden sm:inline">{r.name}</span>
+                            <span className="text-zinc-500 dark:text-zinc-400 text-[0.6875rem] font-normal truncate hidden sm:inline">{r.name}</span>
                           </Link>
                         </td>
                         <td className="mono px-1.5 py-2.5 text-right font-medium text-zinc-900 dark:text-zinc-100 text-xs whitespace-nowrap">
@@ -939,7 +944,7 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
                     <div>
                       <div className="flex items-center gap-1.5">
                         <span className="font-black text-sm text-zinc-900 dark:text-zinc-100 group-hover:text-amber-500 transition-colors">{coin.symbol}</span>
-                        <span className={cn("text-[10px] uppercase font-bold px-1.5 py-0.2 rounded border", spotlightBadge[i])}>#{coin.rank || i + 1} by cap</span>
+                        <span className={cn("text-[0.625rem] uppercase font-bold px-1.5 py-0.2 rounded border", spotlightBadge[i])}>#{coin.rank || i + 1} by cap</span>
                       </div>
                       <p className="mono font-bold text-xs text-zinc-800 dark:text-zinc-200 mt-0.5">{coinPrice(coin.price)}</p>
                     </div>
@@ -954,7 +959,7 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
                   </div>
                 </Link>
               ))
-            : Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[62px] animate-pulse rounded-2xl bg-white/5" />)}
+            : Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[3.875rem] animate-pulse rounded-2xl bg-white/5" />)}
         </div>
 
         {/* Visual Analytics: Market Cap Dominance Donut & Spot Liquidity Leaders, both from the live list */}
@@ -983,8 +988,8 @@ function CoinsPanel({ c, loading, isEmbedded = false, g }: { c: CoinsResp | null
           </section>
         ) : (
           <section className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-            <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
-            <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+            <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
+            <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
           </section>
         )}
 
@@ -1013,7 +1018,7 @@ function ListSkeleton({ rows = 5 }: { rows?: number }) {
 
 function MoverMiniSparkline({ data, up, width = 44 }: { data?: number[]; up: boolean; width?: number }) {
   // No series from the feed -> no line. It used to draw a canned up/down curve.
-  if (!data || data.length < 2) return <div style={{ width }} className="h-[15px] shrink-0" />;
+  if (!data || data.length < 2) return <div style={{ width }} className="h-[0.9375rem] shrink-0" />;
   const points = data;
   const min = Math.min(...points);
   const max = Math.max(...points);
@@ -1043,12 +1048,12 @@ function TrendingMoversList({ rows }: { rows: TrendingCoin[] }) {
   const items = rows.slice(0, 5);
   return (
     <div>
-      <div className="flex items-center gap-1 py-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-black/[0.04] dark:border-white/[0.04]">
+      <div className="flex items-center gap-1 py-1.5 text-[0.625rem] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-black/[0.04] dark:border-white/[0.04]">
         <div className="w-4 text-center shrink-0">#</div>
         <div className="flex-1 min-w-0">Asset</div>
-        <div className="w-[56px] text-right shrink-0">Price</div>
-        <div className="w-[46px] text-right shrink-0">24h %</div>
-        <div className="w-[44px] text-right shrink-0 hidden sm:block">Volume</div>
+        <div className="w-[3.5rem] text-right shrink-0">Price</div>
+        <div className="w-[2.875rem] text-right shrink-0">24h %</div>
+        <div className="w-[2.75rem] text-right shrink-0 hidden sm:block">Volume</div>
         <div className="w-11 text-right shrink-0">Chart</div>
       </div>
       <div className="divide-y divide-black/[0.04] dark:divide-white/5">
@@ -1064,7 +1069,7 @@ function TrendingMoversList({ rows }: { rows: TrendingCoin[] }) {
               href={t.id ? `/markets/${t.id}` : "/markets"}
               className="flex items-center gap-1 py-2 px-0.5 rounded-lg transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] group text-xs"
             >
-              <div className="w-4 text-center mono text-[11px] text-zinc-500 dark:text-zinc-500 shrink-0">
+              <div className="w-4 text-center mono text-[0.6875rem] text-zinc-500 dark:text-zinc-500 shrink-0">
                 {i + 1}
               </div>
               <div className="flex-1 flex items-center gap-1.5 min-w-0">
@@ -1083,13 +1088,13 @@ function TrendingMoversList({ rows }: { rows: TrendingCoin[] }) {
                   {t.symbol || t.name}
                 </span>
               </div>
-              <div className="w-[56px] text-right mono text-zinc-800 dark:text-zinc-300 font-medium text-[11px] shrink-0">
+              <div className="w-[3.5rem] text-right mono text-zinc-800 dark:text-zinc-300 font-medium text-[0.6875rem] shrink-0">
                 {price != null ? coinPrice(price) : "-"}
               </div>
-              <div className={cn("w-[46px] text-right mono font-semibold text-[11px] shrink-0", up ? "text-emerald-600 dark:text-mint-400" : "text-rose-600 dark:text-red-400")}>
+              <div className={cn("w-[2.875rem] text-right mono font-semibold text-[0.6875rem] shrink-0", up ? "text-emerald-600 dark:text-mint-400" : "text-rose-600 dark:text-red-400")}>
                 {up ? "+" : ""}{t.change24h.toFixed(1)}%
               </div>
-              <div className="w-[44px] text-right mono text-zinc-600 dark:text-zinc-400 font-medium text-[11px] shrink-0 hidden sm:block">
+              <div className="w-[2.75rem] text-right mono text-zinc-600 dark:text-zinc-400 font-medium text-[0.6875rem] shrink-0 hidden sm:block">
                 {vol != null ? compactCleanUsd(vol) : "-"}
               </div>
               <div className="w-11 flex items-center justify-end shrink-0">
@@ -1213,7 +1218,7 @@ function ProtocolAvatar({ project, logo }: { project: string; logo?: string | nu
   }
 
   return (
-    <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gold-500/10 text-[9px] font-bold text-amber-600 dark:text-gold-300 ring-1 ring-gold-500/30">
+    <div className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-gold-500/10 text-[0.5625rem] font-bold text-amber-600 dark:text-gold-300 ring-1 ring-gold-500/30">
       {initial}
     </div>
   );
@@ -1237,7 +1242,7 @@ function TokenAvatar({ symbol }: { symbol: string }) {
   }
 
   return (
-    <div className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-[8px] font-extrabold text-sky-400 ring-1 ring-sky-500/30 leading-none">
+    <div className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-[0.5rem] font-extrabold text-sky-400 ring-1 ring-sky-500/30 leading-none">
       {cleanSym.slice(0, 2)}
     </div>
   );
@@ -1249,11 +1254,11 @@ function YieldMoversList({ pools }: { pools: YieldPool[] }) {
   const items = pools.slice(0, 5);
   return (
     <div>
-      <div className="flex items-center gap-1 py-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-black/[0.04] dark:border-white/[0.04]">
+      <div className="flex items-center gap-1 py-1.5 text-[0.625rem] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-black/[0.04] dark:border-white/[0.04]">
         <div className="w-3.5 text-center shrink-0">#</div>
-        <div className="w-[78px] text-left shrink-0">Protocol</div>
+        <div className="w-[4.875rem] text-left shrink-0">Protocol</div>
         <div className="flex-1 min-w-0 text-left">Pool</div>
-        <div className="w-[42px] text-right shrink-0">APY</div>
+        <div className="w-[2.625rem] text-right shrink-0">APY</div>
         <div className="w-8 text-right shrink-0">Chart</div>
       </div>
       <div className="divide-y divide-black/[0.04] dark:divide-white/5">
@@ -1262,23 +1267,23 @@ function YieldMoversList({ pools }: { pools: YieldPool[] }) {
           const spark = (p as { sparkline?: number[] }).sparkline;
           const protocolName = formatProtocolName(p.project);
           return (
-            <div key={`${p.project}-${p.symbol}-${i}`} className="flex items-center gap-1 py-2 px-0.5 text-[11px]">
-              <div className="w-3.5 text-center mono text-[10.5px] text-zinc-500 dark:text-zinc-500 shrink-0">
+            <div key={`${p.project}-${p.symbol}-${i}`} className="flex items-center gap-1 py-2 px-0.5 text-[0.6875rem]">
+              <div className="w-3.5 text-center mono text-[0.65625rem] text-zinc-500 dark:text-zinc-500 shrink-0">
                 {i + 1}
               </div>
-              <div className="w-[78px] flex items-center gap-1 min-w-0 shrink-0" title={p.project}>
+              <div className="w-[4.875rem] flex items-center gap-1 min-w-0 shrink-0" title={p.project}>
                 <ProtocolAvatar project={p.project} logo={p.logo} />
-                <span className="font-semibold text-zinc-900 dark:text-zinc-200 truncate tracking-tight text-[11px]">
+                <span className="font-semibold text-zinc-900 dark:text-zinc-200 truncate tracking-tight text-[0.6875rem]">
                   {protocolName}
                 </span>
               </div>
               <div className="flex-1 flex items-center gap-1 min-w-0" title={p.symbol}>
                 <TokenAvatar symbol={p.symbol} />
-                <span className="font-bold text-zinc-800 dark:text-zinc-100 truncate tracking-tight text-[11px]">
+                <span className="font-bold text-zinc-800 dark:text-zinc-100 truncate tracking-tight text-[0.6875rem]">
                   {p.symbol}
                 </span>
               </div>
-              <div className="w-[42px] text-right mono font-bold text-emerald-600 dark:text-mint-400 text-[11px] shrink-0">
+              <div className="w-[2.625rem] text-right mono font-bold text-emerald-600 dark:text-mint-400 text-[0.6875rem] shrink-0">
                 {apy.toFixed(1)}%
               </div>
               <div className="w-8 flex items-center justify-end shrink-0">
@@ -1366,7 +1371,7 @@ function DefiPanel({ d, loading, g }: { d: DefiMarket | null; loading: boolean; 
               insightText={topChain && tvl ? `${topChain.name} holds ${((topChain.tvl / tvl) * 100).toFixed(1)}% of DeFi TVL.` : undefined}
             />
           ) : (
-            <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+            <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
           )}
 
           {protocolMoves.length ? (
@@ -1376,13 +1381,13 @@ function DefiPanel({ d, loading, g }: { d: DefiMarket | null; loading: boolean; 
               items={protocolMoves.map((r) => ({ label: r.name, sublabel: r.chain, value: r.change1d, displayValue: pct(r.change1d, 2) }))}
             />
           ) : (
-            <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+            <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
           )}
         </section>
       ) : (
         <section className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-          <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
-          <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
         </section>
       )}
 
@@ -1498,7 +1503,7 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
             insightText={lead ? `${lead.name} handles ${lead.share.toFixed(1)}% of 24h on-chain perp volume.` : undefined}
           />
         ) : (
-          <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
         )}
 
         {extremes.length ? (
@@ -1519,7 +1524,7 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
             })}
           />
         ) : (
-          <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
         )}
       </section>
 
@@ -1531,7 +1536,7 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b border-black/[0.04] dark:border-white/10 text-[10px] uppercase tracking-wider text-zinc-500 pb-2">
+                    <tr className="border-b border-black/[0.04] dark:border-white/10 text-[0.625rem] uppercase tracking-wider text-zinc-500 pb-2">
                       <th className="text-left py-2 font-medium"># DEX Venue</th>
                       <th className="text-right py-2 font-medium">24h Volume</th>
                       <th className="text-right py-2 font-medium">Market Share</th>
@@ -1543,9 +1548,9 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
                       <tr key={v.slug || v.name} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
                         <td className="py-2.5">
                           <Link href={`/markets/protocol/derivatives/${v.slug}`} className="flex items-center gap-2">
-                            <span className="mono text-zinc-500 text-[11px] w-3.5">{i + 1}</span>
+                            <span className="mono text-zinc-500 text-[0.6875rem] w-3.5">{i + 1}</span>
                             <ProtocolAvatar project={v.name} logo={v.logo} />
-                            <span className="font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-amber-500 transition-colors text-xs sm:text-[13px]">{v.name}</span>
+                            <span className="font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-amber-500 transition-colors text-xs sm:text-[0.8125rem]">{v.name}</span>
                           </Link>
                         </td>
                         <td className="text-right mono font-bold text-zinc-900 dark:text-zinc-100 py-2.5">{compactUsd(v.volume24h)}</td>
@@ -1586,17 +1591,17 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
                   </div>
                 </div>
                 <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 space-y-1.5 text-xs">
-                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                  <div className="flex items-center justify-between text-[0.6875rem] text-zinc-400">
                     <span>Markets tracked</span>
                     <span className="mono font-bold text-zinc-200">{allMarkets.length}</span>
                   </div>
-                  <div className="flex items-center justify-between text-[11px] text-zinc-400">
+                  <div className="flex items-center justify-between text-[0.6875rem] text-zinc-400">
                     <span>Total open interest</span>
                     <span className="mono font-bold text-zinc-200">{compactUsd(oiSum)}</span>
                   </div>
                 </div>
                 {avgFunding != null && (
-                  <p className="text-[11px] leading-relaxed text-zinc-500">
+                  <p className="text-[0.6875rem] leading-relaxed text-zinc-500">
                     OI-weighted funding is {(avgFunding * 100).toFixed(4)}% per hour, so {avgFunding >= 0 ? "longs are paying shorts" : "shorts are paying longs"} overall.
                     {" "}{positive} of {skewTotal} markets have positive funding.
                   </p>
@@ -1617,7 +1622,7 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
             <button
               onClick={() => setPerpFilter("all")}
               className={cn(
-                "h-6 px-2.5 rounded-lg text-[11px] font-bold transition-all",
+                "h-6 px-2.5 rounded-lg text-[0.6875rem] font-bold transition-all",
                 perpFilter === "all" ? "bg-amber-400 text-black shadow-sm" : "bg-white/5 text-zinc-400 hover:text-white"
               )}
             >
@@ -1626,7 +1631,7 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
             <button
               onClick={() => setPerpFilter("majors")}
               className={cn(
-                "h-6 px-2.5 rounded-lg text-[11px] font-bold transition-all",
+                "h-6 px-2.5 rounded-lg text-[0.6875rem] font-bold transition-all",
                 perpFilter === "majors" ? "bg-amber-400 text-black shadow-sm" : "bg-white/5 text-zinc-400 hover:text-white"
               )}
             >
@@ -1635,7 +1640,7 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
             <button
               onClick={() => setPerpFilter("memes")}
               className={cn(
-                "h-6 px-2.5 rounded-lg text-[11px] font-bold transition-all",
+                "h-6 px-2.5 rounded-lg text-[0.6875rem] font-bold transition-all",
                 perpFilter === "memes" ? "bg-amber-400 text-black shadow-sm" : "bg-white/5 text-zinc-400 hover:text-white"
               )}
             >
@@ -1658,9 +1663,9 @@ function PerpPanel({ p, loading, c }: { p: PerpResp | null; loading: boolean; c?
           <SkeletonRows />
         ) : filteredMarkets.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[420px] text-sm">
+            <table className="w-full min-w-[26.25rem] text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-zinc-500 border-b border-black/[0.04] dark:border-white/5 pb-2">
+                <tr className="text-left text-[0.6875rem] uppercase tracking-wide text-zinc-500 border-b border-black/[0.04] dark:border-white/5 pb-2">
                   <th className="py-2 font-medium">Market</th>
                   <th className="py-2 text-right font-medium">Price</th>
                   <th className="py-2 text-right font-medium">Funding /1h</th>
@@ -1781,7 +1786,7 @@ function DexPanel({ x, loading, d }: { x: DexResp | null; loading: boolean; d?: 
             insightText={topDex && dexVolume ? `${topDex.name} carries ${((topDex.volume24h / dexVolume) * 100).toFixed(1)}% of the top DEXs' 24h volume.` : undefined}
           />
         ) : (
-          <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
         )}
       </section>
 
@@ -1812,7 +1817,7 @@ function DexPanel({ x, loading, d }: { x: DexResp | null; loading: boolean; d?: 
             insightText={protocolFees ? `The top ${feeList.length} protocols generated ${compactUsd(protocolFees)} in fees over the last 24h.` : undefined}
           />
         ) : (
-          <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
         )}
       </section>
     </div>
@@ -1905,24 +1910,24 @@ function YieldsPanel({ y, loading }: { y: YieldResp | null; loading: boolean }) 
                     <TokenAvatar symbol={pool.symbol} />
                     <div className="min-w-0">
                       <p className="font-bold text-xs text-zinc-900 dark:text-zinc-100 truncate">{pool.symbol}</p>
-                      <p className="text-[10px] text-zinc-500 truncate">{formatProtocolName(pool.project)} · {pool.chain}</p>
+                      <p className="text-[0.625rem] text-zinc-500 truncate">{formatProtocolName(pool.project)} · {pool.chain}</p>
                     </div>
                   </div>
-                  <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0">{poolClass(pool.symbol)}</span>
+                  <span className="text-[0.5625rem] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 shrink-0">{poolClass(pool.symbol)}</span>
                 </div>
                 <div className="flex items-baseline justify-between mt-3 pt-2 border-t border-black/[0.04] dark:border-white/5">
                   <div>
-                    <p className="text-[10px] text-zinc-500">APY</p>
+                    <p className="text-[0.625rem] text-zinc-500">APY</p>
                     <p className="mono font-black text-emerald-400 text-base">{pool.apy.toFixed(1)}%</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[10px] text-zinc-500">Pool TVL</p>
+                    <p className="text-[0.625rem] text-zinc-500">Pool TVL</p>
                     <p className="mono text-xs font-semibold text-zinc-300">{compactUsd(pool.tvl)}</p>
                   </div>
                 </div>
               </div>
             ))
-          : Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[104px] animate-pulse rounded-2xl bg-white/5" />)}
+          : Array.from({ length: 3 }).map((_, i) => <div key={i} className="h-[6.5rem] animate-pulse rounded-2xl bg-white/5" />)}
       </div>
 
       {/* Visual Analytics: Yield Pool Asset Allocation & top APYs, both live */}
@@ -1950,8 +1955,8 @@ function YieldsPanel({ y, loading }: { y: YieldResp | null; loading: boolean }) 
         </section>
       ) : (
         <section className="grid grid-cols-1 gap-2.5 lg:grid-cols-2">
-          <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
-          <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
         </section>
       )}
 
@@ -1975,7 +1980,7 @@ function YieldsPanel({ y, loading }: { y: YieldResp | null; loading: boolean }) 
             <button
               onClick={() => setYieldFilter("all")}
               className={cn(
-                "h-6 px-2.5 rounded-lg text-[11px] font-bold transition-all",
+                "h-6 px-2.5 rounded-lg text-[0.6875rem] font-bold transition-all",
                 yieldFilter === "all" ? "bg-amber-400 text-black shadow-sm" : "bg-white/5 text-zinc-400 hover:text-white"
               )}
             >
@@ -1984,7 +1989,7 @@ function YieldsPanel({ y, loading }: { y: YieldResp | null; loading: boolean }) 
             <button
               onClick={() => setYieldFilter("stable")}
               className={cn(
-                "h-6 px-2.5 rounded-lg text-[11px] font-bold transition-all",
+                "h-6 px-2.5 rounded-lg text-[0.6875rem] font-bold transition-all",
                 yieldFilter === "stable" ? "bg-amber-400 text-black shadow-sm" : "bg-white/5 text-zinc-400 hover:text-white"
               )}
             >
@@ -1993,7 +1998,7 @@ function YieldsPanel({ y, loading }: { y: YieldResp | null; loading: boolean }) 
             <button
               onClick={() => setYieldFilter("eth")}
               className={cn(
-                "h-6 px-2.5 rounded-lg text-[11px] font-bold transition-all",
+                "h-6 px-2.5 rounded-lg text-[0.6875rem] font-bold transition-all",
                 yieldFilter === "eth" ? "bg-amber-400 text-black shadow-sm" : "bg-white/5 text-zinc-400 hover:text-white"
               )}
             >
@@ -2002,7 +2007,7 @@ function YieldsPanel({ y, loading }: { y: YieldResp | null; loading: boolean }) 
             <button
               onClick={() => setYieldFilter("high")}
               className={cn(
-                "h-6 px-2.5 rounded-lg text-[11px] font-bold transition-all",
+                "h-6 px-2.5 rounded-lg text-[0.6875rem] font-bold transition-all",
                 yieldFilter === "high" ? "bg-amber-400 text-black shadow-sm" : "bg-white/5 text-zinc-400 hover:text-white"
               )}
             >
@@ -2032,7 +2037,7 @@ function YieldsPanel({ y, loading }: { y: YieldResp | null; loading: boolean }) 
                     key={amt}
                     onClick={() => setDepositAmount(amt)}
                     className={cn(
-                      "px-2 py-0.5 rounded text-[11px] font-mono font-bold transition-all",
+                      "px-2 py-0.5 rounded text-[0.6875rem] font-mono font-bold transition-all",
                       depositAmount === amt ? "bg-amber-400 text-black" : "bg-white/5 text-zinc-400 hover:text-white"
                     )}
                   >
@@ -2043,15 +2048,15 @@ function YieldsPanel({ y, loading }: { y: YieldResp | null; loading: boolean }) 
             </div>
             <div className="grid grid-cols-3 gap-2 pt-1 border-t border-amber-500/20 text-center">
               <div>
-                <p className="text-[10px] text-zinc-400">Daily Return (@8.4%)</p>
+                <p className="text-[0.625rem] text-zinc-400">Daily Return (@8.4%)</p>
                 <p className="mono font-bold text-emerald-400 text-xs sm:text-sm">+${((depositAmount * 0.084) / 365).toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-zinc-400">Monthly Return</p>
+                <p className="text-[0.625rem] text-zinc-400">Monthly Return</p>
                 <p className="mono font-bold text-emerald-400 text-xs sm:text-sm">+${((depositAmount * 0.084) / 12).toFixed(2)}</p>
               </div>
               <div>
-                <p className="text-[10px] text-zinc-400">1-Year Compound</p>
+                <p className="text-[0.625rem] text-zinc-400">1-Year Compound</p>
                 <p className="mono font-bold text-emerald-400 text-xs sm:text-sm">+${(depositAmount * 0.084).toFixed(2)}</p>
               </div>
             </div>
@@ -2062,9 +2067,9 @@ function YieldsPanel({ y, loading }: { y: YieldResp | null; loading: boolean }) 
           <SkeletonRows />
         ) : filteredPools.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px] text-sm">
+            <table className="w-full min-w-[30rem] text-sm">
               <thead>
-                <tr className="text-left text-[11px] uppercase tracking-wide text-zinc-500 border-b border-black/[0.04] dark:border-white/5 pb-2">
+                <tr className="text-left text-[0.6875rem] uppercase tracking-wide text-zinc-500 border-b border-black/[0.04] dark:border-white/5 pb-2">
                   <th className="py-2 font-medium">Pool</th>
                   <th className="py-2 font-medium">Protocol</th>
                   <th className="py-2 font-medium">Chain</th>
@@ -2180,14 +2185,14 @@ function TrendingPanel({ c, loading, g }: { c: CoinsResp | null; loading: boolea
             const inner = (
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="mono text-[10px] font-bold text-amber-500 w-3.5">#{i + 1}</span>
+                  <span className="mono text-[0.625rem] font-bold text-amber-500 w-3.5">#{i + 1}</span>
                   {t.thumb && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={t.thumb} alt="" width={22} height={22} loading="lazy" className="h-5.5 w-5.5 rounded-full ring-1 ring-white/10 shrink-0" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
                   )}
                   <div className="min-w-0">
                     <span className="block truncate text-xs font-bold text-zinc-200 group-hover:text-gold-200 transition-colors">{t.name}</span>
-                    <span className="mono text-[10px] text-zinc-500">{t.symbol}</span>
+                    <span className="mono text-[0.625rem] text-zinc-500">{t.symbol}</span>
                   </div>
                 </div>
                 <span className={cn("mono text-xs font-bold shrink-0", t.change24h >= 0 ? "text-mint-400" : "text-red-400")}>
@@ -2227,7 +2232,7 @@ function TrendingPanel({ c, loading, g }: { c: CoinsResp | null; loading: boolea
               items={trendingCoins.slice(0, 7).map((t) => ({ label: t.symbol || t.name, sublabel: t.name, value: t.change24h, displayValue: pct(t.change24h, 1) }))}
             />
           ) : (
-            <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+            <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
           )}
           {narratives.length ? (
             <BarRankChart
@@ -2243,7 +2248,7 @@ function TrendingPanel({ c, loading, g }: { c: CoinsResp | null; loading: boolea
               }))}
             />
           ) : (
-            <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+            <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
           )}
         </section>
       ) : null}
@@ -2259,7 +2264,7 @@ function TrendingPanel({ c, loading, g }: { c: CoinsResp | null; loading: boolea
                   <span className={cn("h-1.5 w-1.5 rounded-full", nar.momentum >= 0 ? "bg-mint-400" : "bg-red-400")} />
                 </div>
                 <p className="font-bold text-xs text-zinc-200 line-clamp-1">{nar.name}</p>
-                <p className="text-[10px] text-zinc-500 truncate">{nar.tokens}</p>
+                <p className="text-[0.625rem] text-zinc-500 truncate">{nar.tokens}</p>
               </div>
             ))}
           </div>
@@ -2392,7 +2397,7 @@ function WatchlistPanel({ coins, onNavigateCoins }: { coins?: CoinRow[]; onNavig
                       <div className="flex items-center gap-2">
                         {coin.image && <img src={coin.image} alt="" className="h-4 w-4 rounded-full" />}
                         <span className="font-bold text-zinc-200">{coin.symbol}</span>
-                        <span className="text-zinc-500 text-[11px]">{coin.name}</span>
+                        <span className="text-zinc-500 text-[0.6875rem]">{coin.name}</span>
                       </div>
                       <Plus className="h-3.5 w-3.5 text-amber-400" />
                     </button>
@@ -2408,7 +2413,7 @@ function WatchlistPanel({ coins, onNavigateCoins }: { coins?: CoinRow[]; onNavig
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto [scrollbar-width:none]">
-          <span className="text-[10px] uppercase font-bold text-zinc-500 shrink-0">Quick Add:</span>
+          <span className="text-[0.625rem] uppercase font-bold text-zinc-500 shrink-0">Quick Add:</span>
           {["bitcoin", "ethereum", "solana", "hyperliquid", "sui", "binancecoin"].map((id) => {
             const isAdded = starredIds.has(id);
             const sym = id === "bitcoin" ? "BTC" : id === "ethereum" ? "ETH" : id === "solana" ? "SOL" : id === "hyperliquid" ? "HYPE" : id === "sui" ? "SUI" : "BNB";
@@ -2418,7 +2423,7 @@ function WatchlistPanel({ coins, onNavigateCoins }: { coins?: CoinRow[]; onNavig
                 onClick={() => (isAdded ? null : addCoin(id))}
                 disabled={isAdded}
                 className={cn(
-                  "px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all shrink-0",
+                  "px-2 py-0.5 rounded-lg text-[0.625rem] font-bold border transition-all shrink-0",
                   isAdded
                     ? "bg-white/5 border-white/5 text-zinc-500 cursor-default"
                     : "bg-amber-500/10 border-amber-500/20 text-amber-300 hover:bg-amber-500/20"
@@ -2443,7 +2448,7 @@ function WatchlistPanel({ coins, onNavigateCoins }: { coins?: CoinRow[]; onNavig
             insightText={allocation[0] ? `${allocation[0].name} is ${allocation[0].value.toFixed(0)}% of your watchlist by market cap.` : undefined}
           />
         ) : (
-          <div className="h-[260px] animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-[16.25rem] animate-pulse rounded-2xl bg-white/5" />
         )}
 
         <ComparativeBarChart
@@ -2465,7 +2470,7 @@ function WatchlistPanel({ coins, onNavigateCoins }: { coins?: CoinRow[]; onNavig
         icon={<Star className="h-4 w-4 fill-amber-400 text-amber-400" />}
         action={
           <div className="flex items-center gap-2">
-            <span className="text-[11px] text-zinc-500">Live prices</span>
+            <span className="text-[0.6875rem] text-zinc-500">Live prices</span>
           </div>
         }
       >
@@ -2489,7 +2494,7 @@ function WatchlistPanel({ coins, onNavigateCoins }: { coins?: CoinRow[]; onNavig
           <div className="overflow-x-auto">
             <table className="w-full text-xs sm:text-sm">
               <thead>
-                <tr className="border-b border-black/[0.04] dark:border-white/10 text-[10px] uppercase tracking-wider text-zinc-500 pb-2">
+                <tr className="border-b border-black/[0.04] dark:border-white/10 text-[0.625rem] uppercase tracking-wider text-zinc-500 pb-2">
                   <th className="text-left py-2 px-1 font-medium w-4">#</th>
                   <th className="text-left py-2 px-2 font-medium">Asset</th>
                   <th className="text-right py-2 px-2 font-medium">Price</th>
@@ -2504,7 +2509,7 @@ function WatchlistPanel({ coins, onNavigateCoins }: { coins?: CoinRow[]; onNavig
               <tbody className="divide-y divide-black/[0.04] dark:divide-white/5">
                 {watchedCoins.map((r, i) => (
                   <tr key={r.id} className="hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
-                    <td className="mono py-2.5 px-1 text-zinc-500 text-[11px]">{i + 1}</td>
+                    <td className="mono py-2.5 px-1 text-zinc-500 text-[0.6875rem]">{i + 1}</td>
                     <td className="py-2.5 px-2">
                       <Link href={`/markets/${r.id}`} className="flex items-center gap-2">
                         {r.image && (
@@ -2512,11 +2517,11 @@ function WatchlistPanel({ coins, onNavigateCoins }: { coins?: CoinRow[]; onNavig
                         )}
                         <div>
                           <span className="font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-amber-500 transition-colors text-xs sm:text-sm">{r.symbol}</span>
-                          <span className="text-zinc-500 text-[11px] ml-1.5 hidden sm:inline">{r.name}</span>
+                          <span className="text-zinc-500 text-[0.6875rem] ml-1.5 hidden sm:inline">{r.name}</span>
                         </div>
                       </Link>
                     </td>
-                    <td className="text-right mono font-bold text-zinc-900 dark:text-zinc-100 py-2.5 px-2 text-xs sm:text-[13px] whitespace-nowrap">
+                    <td className="text-right mono font-bold text-zinc-900 dark:text-zinc-100 py-2.5 px-2 text-xs sm:text-[0.8125rem] whitespace-nowrap">
                       {coinPrice(r.price)}
                     </td>
                     <td className={cn("text-right mono font-bold py-2.5 px-2 text-xs whitespace-nowrap", (r.change24h ?? 0) >= 0 ? "text-mint-400" : "text-red-400")}>
@@ -2578,10 +2583,10 @@ function TrendingNews() {
           {items.map((n) => (
             <li key={n.url}>
               <a href={n.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 py-2.5 transition-colors hover:bg-white/[0.03]">
-                <span className="mt-0.5 shrink-0 rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{n.category}</span>
+                <span className="mt-0.5 shrink-0 rounded-full bg-gold-500/10 px-2 py-0.5 text-[0.625rem] font-medium text-gold-200">{n.category}</span>
                 <span className="min-w-0 flex-1">
                   <span className="line-clamp-2 text-sm text-zinc-200">{n.title}</span>
-                  <span className="mt-0.5 block text-[11px] text-zinc-500">{n.source}</span>
+                  <span className="mt-0.5 block text-[0.6875rem] text-zinc-500">{n.source}</span>
                 </span>
               </a>
             </li>
@@ -2593,7 +2598,7 @@ function TrendingNews() {
         </p>
       )}
       <div className="mt-3 text-right">
-        <a href="/news" className="text-[12px] font-medium text-gold-200 hover:underline">Open full news hub →</a>
+        <a href="/news" className="text-[0.75rem] font-medium text-gold-200 hover:underline">Open full news hub →</a>
       </div>
     </Panel>
   );
@@ -2635,7 +2640,7 @@ function RankList({ rows, loading }: { rows: RankRow[]; loading?: boolean }) {
       {rows.map((r, i) => {
         const inner = (
           <>
-            <span className="mono w-4 shrink-0 text-[11px] text-zinc-500 dark:text-zinc-600">{i + 1}</span>
+            <span className="mono w-4 shrink-0 text-[0.6875rem] text-zinc-500 dark:text-zinc-600">{i + 1}</span>
             {r.logo ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={r.logo} alt="" width={20} height={20} loading="lazy" className="h-5 w-5 rounded-full ring-1 ring-white/10 shrink-0 object-contain" onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")} />
@@ -2645,10 +2650,10 @@ function RankList({ rows, loading }: { rows: RankRow[]; loading?: boolean }) {
               </div>
             )}
             <span className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-900 dark:text-zinc-200 group-hover:text-amber-600 dark:group-hover:text-gold-200">{r.name}</span>
-            {r.meta && <span className="hidden shrink-0 text-[11px] text-zinc-500 sm:inline">{r.meta}</span>}
+            {r.meta && <span className="hidden shrink-0 text-[0.6875rem] text-zinc-500 sm:inline">{r.meta}</span>}
             <span className="mono shrink-0 text-right text-sm text-zinc-800 dark:text-zinc-300">{r.value}</span>
             {r.change !== undefined && (
-              <span className={cn("mono w-16 shrink-0 text-right text-[11px]", r.change >= 0 ? "text-mint-400" : "text-red-400")}>{pct(r.change, 1)}</span>
+              <span className={cn("mono w-16 shrink-0 text-right text-[0.6875rem]", r.change >= 0 ? "text-mint-400" : "text-red-400")}>{pct(r.change, 1)}</span>
             )}
           </>
         );
@@ -2671,12 +2676,12 @@ function MoverList({ rows }: { rows: MoverCoin[] }) {
   const items = rows.slice(0, 5);
   return (
     <div>
-      <div className="flex items-center gap-1 py-1.5 text-[10px] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-200/60 dark:border-white/[0.04]">
+      <div className="flex items-center gap-1 py-1.5 text-[0.625rem] font-bold uppercase tracking-wider text-zinc-500 border-b border-zinc-200/60 dark:border-white/[0.04]">
         <div className="w-4 text-center shrink-0">#</div>
         <div className="flex-1 min-w-0">Asset</div>
-        <div className="w-[56px] text-right shrink-0">Price</div>
-        <div className="w-[46px] text-right shrink-0">24h %</div>
-        <div className="w-[44px] text-right shrink-0 hidden sm:block">Volume</div>
+        <div className="w-[3.5rem] text-right shrink-0">Price</div>
+        <div className="w-[2.875rem] text-right shrink-0">24h %</div>
+        <div className="w-[2.75rem] text-right shrink-0 hidden sm:block">Volume</div>
         <div className="w-11 text-right shrink-0">Chart</div>
       </div>
       <div className="divide-y divide-zinc-200/60 dark:divide-white/5">
@@ -2690,7 +2695,7 @@ function MoverList({ rows }: { rows: MoverCoin[] }) {
               href={`/markets/${r.id}`}
               className="flex items-center gap-1 py-2 px-0.5 rounded-lg transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] group text-xs"
             >
-              <div className="w-4 text-center mono text-[11px] text-zinc-500 dark:text-zinc-600 shrink-0">
+              <div className="w-4 text-center mono text-[0.6875rem] text-zinc-500 dark:text-zinc-600 shrink-0">
                 {i + 1}
               </div>
               <div className="flex-1 flex items-center gap-1.5 min-w-0">
@@ -2709,13 +2714,13 @@ function MoverList({ rows }: { rows: MoverCoin[] }) {
                   {r.symbol}
                 </span>
               </div>
-              <div className="w-[56px] text-right mono text-zinc-800 dark:text-zinc-300 font-medium text-[11px] shrink-0">
+              <div className="w-[3.5rem] text-right mono text-zinc-800 dark:text-zinc-300 font-medium text-[0.6875rem] shrink-0">
                 {coinPrice(r.price)}
               </div>
-              <div className={cn("w-[46px] text-right mono font-semibold text-[11px] shrink-0", up ? "text-mint-400" : "text-red-400")}>
+              <div className={cn("w-[2.875rem] text-right mono font-semibold text-[0.6875rem] shrink-0", up ? "text-mint-400" : "text-red-400")}>
                 {up ? "+" : ""}{r.change24h.toFixed(1)}%
               </div>
-              <div className="w-[44px] text-right mono text-zinc-600 dark:text-zinc-400 font-medium text-[11px] shrink-0 hidden sm:block">
+              <div className="w-[2.75rem] text-right mono text-zinc-600 dark:text-zinc-400 font-medium text-[0.6875rem] shrink-0 hidden sm:block">
                 {vol != null ? compactCleanUsd(vol) : "-"}
               </div>
               <div className="w-11 flex items-center justify-end shrink-0">
@@ -2743,16 +2748,16 @@ type CompactKpiCardProps = {
 
 function CompactKpiCard({ label, value, sub, subTone, icon, iconBg, sparkline, color, className }: CompactKpiCardProps) {
   return (
-    <div className={cn("neu-card rounded-2xl px-2.5 py-2 border border-white/60 dark:border-white/[0.08] shadow-neu-sm hover:scale-[1.02] active:scale-[1.02] transition-all flex flex-col justify-between h-[92px] w-[145px] sm:w-auto shrink-0 sm:shrink snap-start", className)}>
+    <div className={cn("neu-card rounded-2xl px-2.5 py-2 border border-white/60 dark:border-white/[0.08] shadow-neu-sm hover:scale-[1.02] active:scale-[1.02] transition-all flex flex-col justify-between h-[5.75rem] w-[9.0625rem] sm:w-auto shrink-0 sm:shrink snap-start", className)}>
       <div className="flex items-center gap-1.5">
-        <div className={cn("neu-inset-sm flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[11px] shadow-neu-inset-sm", iconBg)}>
+        <div className={cn("neu-inset-sm flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[0.6875rem] shadow-neu-inset-sm", iconBg)}>
           {icon}
         </div>
-        <p className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wider text-zinc-500 dark:text-zinc-400 truncate">{label}</p>
+        <p className="text-[0.59375rem] sm:text-[0.625rem] font-bold uppercase tracking-tight sm:tracking-wider text-zinc-500 dark:text-zinc-400 truncate">{label}</p>
       </div>
-      <p className="mono text-[18px] sm:text-[19px] font-black tracking-tight text-zinc-900 dark:text-zinc-50 leading-none mt-1">{value}</p>
+      <p className="mono text-[1.125rem] sm:text-[1.1875rem] font-black tracking-tight text-zinc-900 dark:text-zinc-50 leading-none mt-1">{value}</p>
       <div className="flex items-end justify-between gap-1 mt-auto">
-        <div className={cn("mono text-[11px] font-bold leading-none inline-flex items-center gap-0.5 truncate", subTone === "up" ? "text-mint-400" : subTone === "down" ? "text-red-400" : "text-zinc-500 dark:text-zinc-400")}>
+        <div className={cn("mono text-[0.6875rem] font-bold leading-none inline-flex items-center gap-0.5 truncate", subTone === "up" ? "text-mint-400" : subTone === "down" ? "text-red-400" : "text-zinc-500 dark:text-zinc-400")}>
           {sub}
         </div>
         {sparkline && <GlowingSparkline data={sparkline} color={color ?? "#10b981"} />}
@@ -2772,12 +2777,12 @@ function CompactFearGreedCard({ fg, className }: { fg: { value: number; label: s
   const label = v != null ? fngLabel(v).label : "-";
 
   return (
-    <div className={cn("neu-card rounded-2xl px-2.5 py-2 border border-white/60 dark:border-white/[0.08] shadow-neu-sm hover:scale-[1.02] active:scale-[1.02] transition-all flex flex-col justify-between h-[92px] w-[145px] sm:w-auto shrink-0 sm:shrink snap-start", className)}>
+    <div className={cn("neu-card rounded-2xl px-2.5 py-2 border border-white/60 dark:border-white/[0.08] shadow-neu-sm hover:scale-[1.02] active:scale-[1.02] transition-all flex flex-col justify-between h-[5.75rem] w-[9.0625rem] sm:w-auto shrink-0 sm:shrink snap-start", className)}>
       <div className="flex items-center gap-1.5">
-        <div className="neu-inset-sm flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-teal-500/20 text-teal-400 ring-1 ring-teal-500/40 text-[11px] shadow-neu-inset-sm">
+        <div className="neu-inset-sm flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-teal-500/20 text-teal-400 ring-1 ring-teal-500/40 text-[0.6875rem] shadow-neu-inset-sm">
           <Activity className="h-3 w-3" />
         </div>
-        <p className="text-[9.5px] sm:text-[10px] font-bold uppercase tracking-tight sm:tracking-wider text-zinc-500 dark:text-zinc-400 truncate">Fear & Greed</p>
+        <p className="text-[0.59375rem] sm:text-[0.625rem] font-bold uppercase tracking-tight sm:tracking-wider text-zinc-500 dark:text-zinc-400 truncate">Fear & Greed</p>
       </div>
 
       <div className="relative flex flex-col items-center justify-center mt-auto pb-0.5">
@@ -2791,9 +2796,9 @@ function CompactFearGreedCard({ fg, className }: { fg: { value: number; label: s
           </defs>
           <path d="M 14 45 A 36 36 0 0 1 86 45" fill="none" stroke="rgba(160, 175, 195, 0.2)" strokeWidth="6" strokeLinecap="round" />
           <path d="M 14 45 A 36 36 0 0 1 86 45" fill="none" stroke="url(#fgGaugeCompact)" strokeWidth="6" strokeLinecap="round" />
-          <text x="50" y="31" textAnchor="middle" className="mono text-[16px] font-black fill-zinc-900 dark:fill-zinc-50 leading-none">{v ?? "-"}</text>
+          <text x="50" y="31" textAnchor="middle" className="mono text-[1rem] font-black fill-zinc-900 dark:fill-zinc-50 leading-none">{v ?? "-"}</text>
           {/* "Extreme Fear"/"Extreme Greed" are wider than the arc's opening at 9px with wide tracking, and ran into the gauge's end caps. */}
-          <text x="50" y="44" textAnchor="middle" className={cn("font-bold uppercase", (fg?.label || label).length > 8 ? "text-[7.5px] tracking-normal" : "text-[9px] tracking-wider", fngFill(v))}>{fg?.label || label}</text>
+          <text x="50" y="44" textAnchor="middle" className={cn("font-bold uppercase", (fg?.label || label).length > 8 ? "text-[0.46875rem] tracking-normal" : "text-[0.5625rem] tracking-wider", fngFill(v))}>{fg?.label || label}</text>
         </svg>
       </div>
     </div>
@@ -2838,11 +2843,11 @@ type TileProps = { label: string; value: string; sub?: string; subTone?: "up" | 
 function Tile({ label, value, sub, subTone, icon, sparkline, loading }: TileProps) {
   return (
     <div className={cn("surface lift rounded-2xl p-4", "neu-card border border-white/60 dark:border-white/[0.06] shadow-neu")}>
-      <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-600 dark:text-zinc-400">{icon}{label}</p>
+      <p className="flex items-center gap-1.5 text-[0.6875rem] font-medium uppercase tracking-wide text-zinc-600 dark:text-zinc-400">{icon}{label}</p>
       <p className={cn("mono mt-1.5 text-xl font-bold text-zinc-50 text-zinc-900 dark:text-zinc-50", loading && "opacity-90")}>{value}</p>
       <div className="mt-2.5 flex items-center justify-between gap-1">
         {sub ? (
-          <p className={cn("mono text-[11px] font-semibold inline-flex items-center gap-0.5", subTone === "up" ? "text-emerald-600 dark:text-mint-400" : subTone === "down" ? "text-rose-600 dark:text-red-400" : "text-zinc-500")}>
+          <p className={cn("mono text-[0.6875rem] font-semibold inline-flex items-center gap-0.5", subTone === "up" ? "text-emerald-600 dark:text-mint-400" : subTone === "down" ? "text-rose-600 dark:text-red-400" : "text-zinc-500")}>
             {subTone === "up" ? <TrendingUp className="h-3 w-3" /> : subTone === "down" ? <TrendingDown className="h-3 w-3" /> : null}
             {sub}
           </p>
@@ -2858,9 +2863,9 @@ function Tile({ label, value, sub, subTone, icon, sparkline, loading }: TileProp
 function StatCardMini({ label, value, sub, trend }: { label: string; value: string; sub?: string; trend?: number[] }) {
   return (
     <div className={cn("surface lift rounded-2xl p-4", "neu-card border border-white/60 dark:border-white/[0.06] shadow-neu")}>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</p>
+      <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">{label}</p>
       <p className="mono mt-1.5 text-xl font-bold text-zinc-50 text-zinc-900 dark:text-zinc-50">{value}</p>
-      {sub && <p className="mt-1 text-[11px] text-zinc-600 dark:text-zinc-400">{sub}</p>}
+      {sub && <p className="mt-1 text-[0.6875rem] text-zinc-600 dark:text-zinc-400">{sub}</p>}
       {trend && trend.length > 1 && (
         <div className="mt-3">
           <Sparkline data={trend} />
@@ -2878,7 +2883,7 @@ function FearGreedTile({ fg, loading }: { fg: { value: number; label: string } |
 
   return (
     <div className="neu-card rounded-2xl border border-white/60 dark:border-white/[0.06] shadow-neu p-4 flex flex-col justify-between">
-      <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
+      <p className="flex items-center gap-1.5 text-[0.6875rem] font-medium uppercase tracking-wide text-zinc-600 dark:text-zinc-400">
         <Activity className="h-3.5 w-3.5 text-emerald-500 dark:text-emerald-400" />
         Fear & Greed
       </p>
@@ -2902,8 +2907,8 @@ function FearGreedTile({ fg, loading }: { fg: { value: number; label: string } |
           </g>
           <circle cx="50" cy="52" r="3" fill="#e2a72f" />
           <circle cx="50" cy="52" r="1.5" fill="#08080a" />
-          <text x="50" y="34" textAnchor="middle" className="mono text-[16px] font-black fill-zinc-900 dark:fill-zinc-50">{v ?? "-"}</text>
-          <text x="50" y="46" textAnchor="middle" className={cn("text-[9px] font-semibold tracking-wide", fngFill(v))}>{fg?.label || label}</text>
+          <text x="50" y="34" textAnchor="middle" className="mono text-[1rem] font-black fill-zinc-900 dark:fill-zinc-50">{v ?? "-"}</text>
+          <text x="50" y="46" textAnchor="middle" className={cn("text-[0.5625rem] font-semibold tracking-wide", fngFill(v))}>{fg?.label || label}</text>
         </svg>
       </div>
     </div>
@@ -2979,7 +2984,7 @@ function UpdatedPill({ ts }: { ts?: number }) {
   const label = s < 3 ? "just now" : s < 60 ? `${s}s ago` : `${Math.round(s / 60)}m ago`;
   const fresh = s < 90;
   return (
-    <span className="inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
+    <span className="inline-flex items-center gap-1.5 text-[0.6875rem] text-zinc-500">
       <span className={cn("h-1.5 w-1.5 rounded-full", fresh ? "bg-mint-400" : "bg-amber-400")} />
       Updated {label}
     </span>
@@ -2988,7 +2993,7 @@ function UpdatedPill({ ts }: { ts?: number }) {
 
 function ChangeCell({ v, className }: { v: number; className?: string }) {
   return (
-    <td className={cn("mono px-2 py-2.5 text-right text-[13px]", v >= 0 ? "text-mint-400" : "text-red-400", className)}>
+    <td className={cn("mono px-2 py-2.5 text-right text-[0.8125rem]", v >= 0 ? "text-mint-400" : "text-red-400", className)}>
       {pct(v, 1)}
     </td>
   );

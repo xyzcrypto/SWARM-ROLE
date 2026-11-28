@@ -8,7 +8,7 @@ export function PageSkeleton({ variant = "page", framed = true }: { variant?: "p
       <div className="mt-5 h-9 w-3/4 max-w-xl rounded-xl bg-white/[0.07] sm:h-11" />
       <div className="mt-3 h-4 w-2/3 max-w-lg rounded-full bg-white/[0.05]" />
       {variant === "lesson" ? (
-        <div className="mt-8 grid gap-6 lg:grid-cols-[16rem_1fr]">
+        <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[16rem_minmax(0,1fr)]">
           <div className="hidden space-y-2 lg:block">
             {Array.from({ length: 6 }, (_, i) => (
               <div key={i} className="h-10 rounded-xl bg-white/[0.04]" />
@@ -22,7 +22,7 @@ export function PageSkeleton({ variant = "page", framed = true }: { variant?: "p
           </div>
         </div>
       ) : (
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: variant === "detail" ? 3 : 6 }, (_, i) => (
             <div key={i} className="h-36 rounded-3xl bg-white/[0.04]" />
           ))}
@@ -33,7 +33,7 @@ export function PageSkeleton({ variant = "page", framed = true }: { variant?: "p
   if (!framed) return body;
   return (
     <main className="relative min-h-screen pt-24 sm:pt-28">
-      <div className="mx-auto max-w-[1200px] px-5 pb-24 sm:px-6 lg:px-8">{body}</div>
+      <div className="mx-auto max-w-[75rem] px-5 pb-24 sm:px-6 lg:px-8">{body}</div>
     </main>
   );
 }

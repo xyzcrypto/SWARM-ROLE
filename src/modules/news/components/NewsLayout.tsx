@@ -42,7 +42,7 @@ const openXyzAi = () => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT));
 export function SectionHead({ icon, title, action, id }: { icon?: React.ReactNode; title: string; action?: React.ReactNode; id?: string }) {
   return (
     <div className="mb-4 flex items-center justify-between gap-3">
-      <h2 id={id} className="flex items-center gap-2 font-display text-[17px] font-semibold tracking-tight text-content sm:text-lg">
+      <h2 id={id} className="flex items-center gap-2 font-display text-[1.0625rem] font-semibold tracking-tight text-content sm:text-lg">
         {icon && <span className="text-gold-400">{icon}</span>}
         {title}
       </h2>
@@ -64,26 +64,26 @@ export function NewsHeroIntro({ onExplore, live }: { onExplore: () => void; live
       <div className="hero-rise" style={{ "--rise-y": "12px", "--rise-dur": "0.5s" } as React.CSSProperties}>
         <span className="eyebrow eyebrow-glass text-zinc-200">
           <MagicStar size={14} variant="Bold" color="#e2a72f" />
-          <span className="mono text-[10px] uppercase tracking-[0.08em] sm:text-[11px] sm:tracking-[0.16em]">Live Web3 Intelligence</span>
+          <span className="mono text-[0.625rem] uppercase tracking-[0.08em] sm:text-[0.6875rem] sm:tracking-[0.16em]">Live Web3 Intelligence</span>
           <span aria-hidden className={cn("h-1.5 w-1.5 rounded-full", live ? "animate-pulse bg-mint-400" : "bg-gold-400")} />
         </span>
       </div>
-      <h1 className="hero-rise font-display text-[34px] font-bold leading-none tracking-[-0.035em] text-content sm:text-[52px]">
+      <h1 className="hero-rise font-display text-[2.125rem] font-bold leading-none tracking-[-0.035em] text-content sm:text-[3.25rem]">
         <span>Web3 </span>
         <span className="text-shine">News</span>
       </h1>
-      <p className="hero-rise max-w-md text-[14px] leading-relaxed text-content-muted sm:text-[15px]">
+      <p className="hero-rise max-w-md text-[0.875rem] leading-relaxed text-content-muted sm:text-[0.9375rem]">
         The signal behind the noise. Real-time crypto news, research, and insights that move Web3 forward.
       </p>
       <div className="hero-rise flex flex-nowrap gap-2.5">
-        <button type="button" onClick={onExplore} className="btn-gold whitespace-nowrap px-4 py-2 text-[13px] sm:text-[13.5px]">
+        <button type="button" onClick={onExplore} className="btn-gold whitespace-nowrap px-4 py-2 text-[0.8125rem] sm:text-[0.84375rem]">
           Explore News <ArrowRight className="h-4 w-4" />
         </button>
-        <button type="button" onClick={openXyzAi} className="btn-ghost whitespace-nowrap px-4 py-2 text-[13px] sm:text-[13.5px]">
+        <button type="button" onClick={openXyzAi} className="btn-ghost whitespace-nowrap px-4 py-2 text-[0.8125rem] sm:text-[0.84375rem]">
           <RobotIcon className="h-4 w-4" /> Open XYZ AI
         </button>
       </div>
-      <p className="hero-rise flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-content-subtle sm:text-[12px]">
+      <p className="hero-rise flex flex-wrap gap-x-4 gap-y-1 text-[0.71875rem] text-content-subtle sm:text-[0.75rem]">
         <span><b className="font-mono font-semibold text-content">{NEWS_SOURCES.length}</b> trusted sources</span>
         <span><b className="font-mono font-semibold text-content">2 min</b> refresh</span>
         <span><b className="font-semibold text-content">AI</b> summaries</span>
@@ -172,7 +172,7 @@ export function TrendingTopics({
   return (
     <section className={cn(!bare && "surface rounded-3xl p-5")} aria-labelledby={bare ? undefined : "news-trending"}>
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 id={bare ? undefined : "news-trending"} className={cn("flex items-center gap-2 font-display text-[17px] font-semibold tracking-tight text-content", bare && "sr-only")}>
+        <h2 id={bare ? undefined : "news-trending"} className={cn("flex items-center gap-2 font-display text-[1.0625rem] font-semibold tracking-tight text-content", bare && "sr-only")}>
           <Flame className="h-4 w-4 text-gold-400" /> Trending topics
         </h2>
         <div role="radiogroup" aria-label="Trending window" className="inline-flex rounded-lg border border-hairline bg-surface-2 p-0.5">
@@ -182,7 +182,7 @@ export function TrendingTopics({
               role="radio"
               aria-checked={range === r}
               onClick={() => setRange(r)}
-              className={cn("rounded-md px-2 py-1 font-mono text-[10.5px] font-semibold uppercase tracking-wider transition-colors", range === r ? "bg-gold-400 text-ink" : "text-content-subtle hover:text-content")}
+              className={cn("rounded-md px-2 py-1 font-mono text-[0.65625rem] font-semibold uppercase tracking-wider transition-colors", range === r ? "bg-gold-400 text-ink" : "text-content-subtle hover:text-content")}
             >
               {r === "all" ? "Feed" : "6h"}
             </button>
@@ -191,7 +191,7 @@ export function TrendingTopics({
       </div>
 
       {stats.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-hairline px-3 py-6 text-center text-[13px] text-content-muted">
+        <p className="rounded-xl border border-dashed border-hairline px-3 py-6 text-center text-[0.8125rem] text-content-muted">
           {range === "6h" ? "Nothing new in the last six hours." : "Topics appear once stories load."}
         </p>
       ) : (
@@ -216,11 +216,11 @@ export function TrendingTopics({
                 >
                   {/* share-of-feed bar behind the row */}
                   <span aria-hidden className="absolute inset-y-0 left-0 bg-gold-500/[0.05] transition-[width] duration-500" style={{ width: `${(n / max) * 100}%` }} />
-                  <span className="relative w-4 font-mono text-[11px] tabular-nums text-content-subtle">{i + 1}</span>
+                  <span className="relative w-4 font-mono text-[0.6875rem] tabular-nums text-content-subtle">{i + 1}</span>
                   <span className="relative min-w-0 flex-1">
                     <span className="flex items-center gap-1.5">
-                      <span className={cn("truncate text-[13.5px] font-semibold", on ? "text-gold-300" : "text-content")}>{t.name}</span>
-                      {rising && <span className="shrink-0 rounded bg-gold-400/15 px-1 py-px font-mono text-[9.5px] font-bold uppercase tracking-wider text-gold-300">Rising</span>}
+                      <span className={cn("truncate text-[0.84375rem] font-semibold", on ? "text-gold-300" : "text-content")}>{t.name}</span>
+                      {rising && <span className="shrink-0 rounded bg-gold-400/15 px-1 py-px font-mono text-[0.59375rem] font-bold uppercase tracking-wider text-gold-300">Rising</span>}
                     </span>
                     {/* bullish / bearish mix */}
                     <span className="mt-1.5 flex h-1 w-full overflow-hidden rounded-full bg-hairline" title={`${t.bull} bullish · ${t.bear} bearish · ${t.count - t.bull - t.bear} neutral`}>
@@ -229,8 +229,8 @@ export function TrendingTopics({
                     </span>
                   </span>
                   <span className="relative text-right">
-                    <span className="block font-mono text-[13px] font-semibold tabular-nums text-content">{n}</span>
-                    <span className="block text-[10.5px] text-content-subtle">{n === 1 ? "story" : "stories"}</span>
+                    <span className="block font-mono text-[0.8125rem] font-semibold tabular-nums text-content">{n}</span>
+                    <span className="block text-[0.65625rem] text-content-subtle">{n === 1 ? "story" : "stories"}</span>
                   </span>
                 </button>
                 {followed && (
@@ -250,7 +250,7 @@ export function TrendingTopics({
           })}
         </ol>
       )}
-      <div className="mt-3 flex items-center justify-between gap-2 text-[11px] text-content-subtle">
+      <div className="mt-3 flex items-center justify-between gap-2 text-[0.6875rem] text-content-subtle">
         <span className="inline-flex items-center gap-3">
           <span className="inline-flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full bg-mint-400" /> Bullish</span>
           <span className="inline-flex items-center gap-1"><i className="h-1.5 w-1.5 rounded-full bg-red-400" /> Bearish</span>
@@ -258,12 +258,12 @@ export function TrendingTopics({
         <span>From {items.length} loaded stories</span>
       </div>
       {onSeeAll && (
-        <button type="button" onClick={onSeeAll} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-hairline py-2 text-[12.5px] font-semibold text-gold-300 transition-colors hover:border-gold-500/40">
+        <button type="button" onClick={onSeeAll} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-hairline py-2 text-[0.78125rem] font-semibold text-gold-300 transition-colors hover:border-gold-500/40">
           See all topics <ArrowRight className="h-3.5 w-3.5" />
         </button>
       )}
       {active !== "All" && active !== "For You" && (
-        <button type="button" onClick={onClear} className="mt-3 w-full rounded-xl border border-hairline py-2 text-[12.5px] font-medium text-content-muted transition-colors hover:text-content">
+        <button type="button" onClick={onClear} className="mt-3 w-full rounded-xl border border-hairline py-2 text-[0.78125rem] font-medium text-content-muted transition-colors hover:text-content">
           Clear topic filter
         </button>
       )}
@@ -299,10 +299,10 @@ export function HighImpactPanel({
     <section className={cn(!bare && "surface rounded-3xl p-5")} aria-labelledby={bare ? undefined : "news-impact"}>
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 id={bare ? undefined : "news-impact"} className={cn("flex items-center gap-2 whitespace-nowrap font-display text-[17px] font-semibold tracking-tight text-content", bare && "sr-only")}>
+          <h2 id={bare ? undefined : "news-impact"} className={cn("flex items-center gap-2 whitespace-nowrap font-display text-[1.0625rem] font-semibold tracking-tight text-content", bare && "sr-only")}>
             <Zap className="h-4 w-4 text-gold-400" /> High impact
           </h2>
-          <p className="mt-0.5 text-[11.5px] text-content-subtle">{unread > 0 ? `${unread} unread · ranked by impact` : "All caught up"}</p>
+          <p className="mt-0.5 text-[0.71875rem] text-content-subtle">{unread > 0 ? `${unread} unread · ranked by impact` : "All caught up"}</p>
         </div>
         <div role="radiogroup" aria-label="Impact level" className="inline-flex rounded-lg border border-hairline bg-surface-2 p-0.5">
           {([false, true] as const).map((h) => (
@@ -311,7 +311,7 @@ export function HighImpactPanel({
               role="radio"
               aria-checked={onlyHigh === h}
               onClick={() => setOnlyHigh(h)}
-              className={cn("rounded-md px-2 py-1 font-mono text-[10.5px] font-semibold uppercase tracking-wider transition-colors", onlyHigh === h ? "bg-gold-400 text-ink" : "text-content-subtle hover:text-content")}
+              className={cn("rounded-md px-2 py-1 font-mono text-[0.65625rem] font-semibold uppercase tracking-wider transition-colors", onlyHigh === h ? "bg-gold-400 text-ink" : "text-content-subtle hover:text-content")}
             >
               {h ? "High" : "All"}
             </button>
@@ -319,7 +319,7 @@ export function HighImpactPanel({
         </div>
       </div>
       {list.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-hairline px-3 py-6 text-center text-[13px] text-content-muted">No high-impact stories right now.</p>
+        <p className="rounded-xl border border-dashed border-hairline px-3 py-6 text-center text-[0.8125rem] text-content-muted">No high-impact stories right now.</p>
       ) : (
         <ol className="grid gap-1">
           {list.map((item, i) => {
@@ -331,22 +331,22 @@ export function HighImpactPanel({
                 <button type="button" onClick={() => onOpen(item.id)} className="absolute inset-0 rounded-xl" aria-label={`Read: ${item.title}`} />
                 <div className="relative shrink-0">
                   <Thumb src={item.image} className="h-14 w-16 rounded-lg" />
-                  <span className="absolute -left-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full border border-hairline bg-surface font-mono text-[10px] font-bold text-content">{i + 1}</span>
+                  <span className="absolute -left-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full border border-hairline bg-surface font-mono text-[0.625rem] font-bold text-content">{i + 1}</span>
                 </div>
                 <div className="pointer-events-none relative min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
-                    <span className={cn("rounded px-1 py-px font-mono text-[9.5px] font-bold uppercase tracking-wider", item.impact === "High" ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-400")}>
+                    <span className={cn("rounded px-1 py-px font-mono text-[0.59375rem] font-bold uppercase tracking-wider", item.impact === "High" ? "bg-red-500/15 text-red-400" : "bg-amber-500/15 text-amber-400")}>
                       {item.impact}
                     </span>
                     {fresh && (
-                      <span className="inline-flex items-center gap-1 font-mono text-[9.5px] font-bold uppercase tracking-wider text-red-400">
+                      <span className="inline-flex items-center gap-1 font-mono text-[0.59375rem] font-bold uppercase tracking-wider text-red-400">
                         <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400" /> Live
                       </span>
                     )}
-                    {read && <span className="inline-flex items-center gap-0.5 text-[10.5px] text-content-subtle"><Check className="h-3 w-3" /> Read</span>}
+                    {read && <span className="inline-flex items-center gap-0.5 text-[0.65625rem] text-content-subtle"><Check className="h-3 w-3" /> Read</span>}
                   </div>
-                  <p className="mt-1 line-clamp-2 text-[13px] font-semibold leading-snug text-content group-hover:text-gold-200">{item.title}</p>
-                  <p className="mt-0.5 truncate text-[11.5px] text-content-subtle">
+                  <p className="mt-1 line-clamp-2 text-[0.8125rem] font-semibold leading-snug text-content group-hover:text-gold-200">{item.title}</p>
+                  <p className="mt-0.5 truncate text-[0.71875rem] text-content-subtle">
                     <span className={cn(item.sentiment === "bullish" ? "text-mint-400" : item.sentiment === "bearish" ? "text-red-400" : "")}>●</span> {item.source}{now ? ` · ${timeAgo(item.publishedAt, now)}` : ""}
                   </p>
                 </div>
@@ -364,7 +364,7 @@ export function HighImpactPanel({
         </ol>
       )}
       {onSeeAll && list.length > 0 && (
-        <button type="button" onClick={onSeeAll} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-hairline py-2 text-[12.5px] font-semibold text-gold-300 transition-colors hover:border-gold-500/40">
+        <button type="button" onClick={onSeeAll} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-hairline py-2 text-[0.78125rem] font-semibold text-gold-300 transition-colors hover:border-gold-500/40">
           See all high-impact stories <ArrowRight className="h-3.5 w-3.5" />
         </button>
       )}
@@ -394,7 +394,7 @@ export function NewsSheet({ title, icon, onClose, children }: { title: string; i
         style={{ ["--rise-y" as string]: "24px", ["--rise-dur" as string]: "0.35s" }}
       >
         <div className="flex items-center justify-between gap-3 border-b border-hairline px-5 py-4">
-          <p className="flex items-center gap-2 font-display text-[17px] font-semibold text-content"><span className="text-gold-400">{icon}</span>{title}</p>
+          <p className="flex items-center gap-2 font-display text-[1.0625rem] font-semibold text-content"><span className="text-gold-400">{icon}</span>{title}</p>
           <button type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-xl text-content-muted transition-colors hover:bg-surface-2 hover:text-content">
             <X className="h-4 w-4" />
           </button>
@@ -419,7 +419,7 @@ export function DiscoverSwitch({ value, onChange }: { value: "trending" | "impac
           aria-selected={value === k}
           onClick={() => onChange(k)}
           className={cn(
-            "inline-flex h-10 items-center justify-center gap-2 rounded-xl text-[13.5px] font-semibold transition-all active:scale-[0.98]",
+            "inline-flex h-10 items-center justify-center gap-2 rounded-xl text-[0.84375rem] font-semibold transition-all active:scale-[0.98]",
             value === k ? "bg-gold-400 text-ink shadow-gold-sm" : "text-content-muted hover:text-content"
           )}
         >
@@ -442,7 +442,7 @@ export function XyzAiBand() {
           </span>
           <div className="min-w-0">
             <h2 id="news-ai" className="font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">Go beyond the headlines.</h2>
-            <p className="mt-1 max-w-xl text-[14px] leading-relaxed text-content-muted">
+            <p className="mt-1 max-w-xl text-[0.875rem] leading-relaxed text-content-muted">
               Understand the story, explore the narrative, and discover the bigger picture with XYZ AI. Summaries and context on every story, and an assistant for the questions that follow.
             </p>
           </div>
@@ -507,13 +507,13 @@ export function NewsletterPanel() {
           aria-labelledby="news-letter"
         >
           <SectionHead id="news-letter" icon={<Mail className="h-4 w-4" />} title="Newsletter" />
-          <p className="-mt-2 mb-4 text-[13px] leading-relaxed text-content-muted">The day&apos;s top Web3 news and research, in your inbox.</p>
+          <p className="-mt-2 mb-4 text-[0.8125rem] leading-relaxed text-content-muted">The day&apos;s top Web3 news and research, in your inbox.</p>
           {state === "done" ? (
             <motion.p
               role="status"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 rounded-xl border border-gold-500/30 bg-gold-500/10 px-3 py-2.5 text-[13px] font-medium text-gold-200"
+              className="flex items-center gap-2 rounded-xl border border-gold-500/30 bg-gold-500/10 px-3 py-2.5 text-[0.8125rem] font-medium text-gold-200"
             >
               <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: "spring", stiffness: 500, damping: 18 }}>
                 <Check className="h-4 w-4" strokeWidth={3} />
@@ -540,7 +540,7 @@ export function NewsletterPanel() {
               </button>
             </form>
           )}
-          {state === "error" && <p id="news-letter-err" role="alert" className="mt-2 text-[12px] text-amber-300">{msg}</p>}
+          {state === "error" && <p id="news-letter-err" role="alert" className="mt-2 text-[0.75rem] text-amber-300">{msg}</p>}
         </motion.section>
       )}
     </AnimatePresence>
@@ -558,14 +558,14 @@ export function CommunityPanel() {
   return (
     <section className="surface rounded-3xl p-5" aria-labelledby="news-community">
       <SectionHead id="news-community" icon={<Users className="h-4 w-4" />} title="Join the community" />
-      <p className="-mt-2 mb-4 text-[13px] leading-relaxed text-content-muted">Discuss the news with traders, builders and researchers.</p>
+      <p className="-mt-2 mb-4 text-[0.8125rem] leading-relaxed text-content-muted">Discuss the news with traders, builders and researchers.</p>
       <div className="flex items-center gap-2">
         {links.map(({ href, label, Icon }) => (
           <a key={label} href={href} target="_blank" rel="noopener noreferrer" aria-label={`XYZ Crypto on ${label}`} className="grid h-10 w-10 place-items-center rounded-xl border border-hairline bg-surface-2 text-content-muted transition-colors hover:border-gold-500/40 hover:text-gold-300">
             <Icon className="h-4 w-4" />
           </a>
         ))}
-        <Link href="/community" className="btn-gold ml-auto whitespace-nowrap px-4 py-2 text-[13px]">Open chat</Link>
+        <Link href="/community" className="btn-gold ml-auto whitespace-nowrap px-4 py-2 text-[0.8125rem]">Open chat</Link>
       </div>
     </section>
   );

@@ -11,7 +11,7 @@ export function AnimatedEyebrow({ children, className = "" }: { children: ReactN
         <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
         <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
       </span>
-      <span className="mono text-shine text-[10px] font-semibold uppercase tracking-[0.16em] sm:text-[11px]">
+      <span className="mono text-shine text-[0.625rem] font-semibold uppercase tracking-[0.16em] sm:text-[0.6875rem]">
         {children}
       </span>
     </span>

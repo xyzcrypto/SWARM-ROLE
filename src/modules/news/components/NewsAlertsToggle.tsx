@@ -187,10 +187,10 @@ export function NewsAlertsToggle({
       {showPrefs && prefsOpen && (
         <>
           <button className="fixed inset-0 z-30 cursor-default" aria-label="Close" onClick={() => setPrefsOpen(false)} />
-          <div className="absolute right-0 top-full z-40 mt-2 w-[min(92vw,320px)] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-elevate dark:border-white/10 dark:bg-ink-900">
+          <div className="absolute right-0 top-full z-40 mt-2 w-[min(92vw,20rem)] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-elevate dark:border-white/10 dark:bg-ink-900">
             <div className="border-b border-black/5 px-4 py-2.5 dark:border-white/10">
               <p className="text-sm font-semibold text-zinc-800 dark:text-zinc-100">News alerts {savingPrefs && <Loader2 className="ml-1 inline h-3 w-3 animate-spin" />}</p>
-              <p className="text-[11px] text-zinc-500">Choose what gets pushed to your device.</p>
+              <p className="text-[0.6875rem] text-zinc-500">Choose what gets pushed to your device.</p>
             </div>
             <div className="p-2">
               {MODES.map((m) => (
@@ -206,8 +206,8 @@ export function NewsAlertsToggle({
                     {mode === m.id && <Check className="h-3 w-3" />}
                   </span>
                   <span className="min-w-0">
-                    <span className="block text-[13px] font-medium text-zinc-800 dark:text-zinc-100">{m.label}</span>
-                    <span className="block text-[11px] text-zinc-500">{m.hint}</span>
+                    <span className="block text-[0.8125rem] font-medium text-zinc-800 dark:text-zinc-100">{m.label}</span>
+                    <span className="block text-[0.6875rem] text-zinc-500">{m.hint}</span>
                   </span>
                 </button>
               ))}
@@ -222,7 +222,7 @@ export function NewsAlertsToggle({
                         key={c}
                         onClick={() => toggleCat(c)}
                         className={cn(
-                          "rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+                          "rounded-full border px-2.5 py-1 text-[0.6875rem] font-medium transition-colors",
                           on ? "border-mint-500/50 bg-mint-500/15 text-mint-600 dark:text-mint-200" : "border-black/10 text-zinc-500 hover:text-zinc-800 dark:border-white/10 dark:hover:text-zinc-200"
                         )}
                       >
@@ -231,7 +231,7 @@ export function NewsAlertsToggle({
                     );
                   })}
                 </div>
-                {cats.length === 0 && <p className="mt-2 px-1 text-[11px] text-amber-500">Pick at least one topic to get alerts.</p>}
+                {cats.length === 0 && <p className="mt-2 px-1 text-[0.6875rem] text-amber-500">Pick at least one topic to get alerts.</p>}
               </div>
             )}
           </div>
@@ -242,7 +242,7 @@ export function NewsAlertsToggle({
           header, with siblings to its right), so `right-0` anchored to the wrong
           edge and pushed this off the left edge of the screen on mobile - the
           same class of bug already fixed for NavActivity's dropdown. */}
-      {msg && <p className="absolute left-1/2 top-full z-50 mt-1 w-56 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-lg bg-ink-900 p-2 text-[11px] text-amber-300 shadow-elevate ring-1 ring-white/10">{msg}</p>}
+      {msg && <p className="absolute left-1/2 top-full z-50 mt-1 w-56 max-w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-lg bg-ink-900 p-2 text-[0.6875rem] text-amber-300 shadow-elevate ring-1 ring-white/10">{msg}</p>}
     </div>
   );
 }

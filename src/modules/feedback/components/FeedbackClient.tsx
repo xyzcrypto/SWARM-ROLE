@@ -282,17 +282,17 @@ export function FeedbackClient() {
   const cat = CATEGORIES.find((c) => c.id === category);
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-8">
       {/* ---------------------------------------------------------- main card */}
       <div className="min-w-0">
         <motion.header initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="mb-6 sm:mb-8">
-          <span className="inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-gold-200">
+          <span className="inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/10 px-3 py-1 text-[0.6875rem] font-bold uppercase tracking-[0.18em] text-gold-200">
             <Sparkles className="h-3.5 w-3.5" /> Feedback · earn XP
           </span>
           <h1 className="mt-4 font-display text-[2rem] font-semibold leading-[1.08] tracking-tight text-content sm:text-5xl">
             Help shape <span className="text-shine">XYZ Crypto</span>
           </h1>
-          <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-content-muted">
+          <p className="mt-3 max-w-xl text-[0.9375rem] leading-relaxed text-content-muted">
             Report a bug, pitch an idea, rate a page. Every note goes straight to the team, and members earn Academy XP for it.
           </p>
         </motion.header>
@@ -316,12 +316,12 @@ export function FeedbackClient() {
                   aria-label={`Step ${i + 1}: ${t}`}
                 >
                   <span className={cn("h-1.5 rounded-full transition-colors duration-500", done || i < step ? "bg-mint-400" : i === step ? "bg-gold-400" : "bg-white/[0.08]")} />
-                  <span className={cn("hidden truncate text-[11px] font-medium sm:block", i === step && !done ? "text-content" : "text-content-subtle")}>{t}</span>
+                  <span className={cn("hidden truncate text-[0.6875rem] font-medium sm:block", i === step && !done ? "text-content" : "text-content-subtle")}>{t}</span>
                 </button>
               ))}
             </div>
             {xpPreview > 0 && !done && (
-              <span className="shrink-0 rounded-full bg-mint-400/15 px-2.5 py-1 font-mono text-[11px] font-bold text-mint-300">+{xpPreview} XP</span>
+              <span className="shrink-0 rounded-full bg-mint-400/15 px-2.5 py-1 font-mono text-[0.6875rem] font-bold text-mint-300">+{xpPreview} XP</span>
             )}
           </div>
 
@@ -382,8 +382,8 @@ export function FeedbackClient() {
                         )}
                       >
                         <span className="text-3xl transition-transform duration-300 group-hover:scale-110 group-active:scale-110">{c.emoji}</span>
-                        <span className="mt-auto pt-3 font-display text-[15px] font-semibold text-content">{c.label}</span>
-                        <span className="mt-0.5 text-[12px] leading-snug text-content-subtle">{c.hint}</span>
+                        <span className="mt-auto pt-3 font-display text-[0.9375rem] font-semibold text-content">{c.label}</span>
+                        <span className="mt-0.5 text-[0.75rem] leading-snug text-content-subtle">{c.hint}</span>
                       </motion.button>
                     ))}
                   </div>
@@ -409,7 +409,7 @@ export function FeedbackClient() {
                         aria-pressed={rating === r.v}
                       >
                         <span className={cn("text-3xl transition-transform duration-300 sm:text-4xl", rating === r.v && "fb-pop")}>{r.emoji}</span>
-                        <span className="text-[11px] font-medium text-content-muted sm:text-xs">{r.label}</span>
+                        <span className="text-[0.6875rem] font-medium text-content-muted sm:text-xs">{r.label}</span>
                       </button>
                     ))}
                   </div>
@@ -443,7 +443,7 @@ export function FeedbackClient() {
                             ? "What should we build, and why would it help you?"
                             : "Tell us in your own words. Hinglish is fine too."
                       }
-                      className="block w-full resize-none rounded-t-2xl bg-transparent px-4 py-3.5 text-[15px] leading-relaxed text-content outline-none placeholder:text-content-subtle"
+                      className="block w-full resize-none rounded-t-2xl bg-transparent px-4 py-3.5 text-[0.9375rem] leading-relaxed text-content outline-none placeholder:text-content-subtle"
                       aria-label="Your feedback"
                     />
                     <div className="flex items-center gap-3 border-t border-hairline px-3 py-2.5">
@@ -460,13 +460,13 @@ export function FeedbackClient() {
                         {dictating === "listening" ? "Listening…" : dictating === "transcribing" ? "Writing…" : "Speak"}
                       </button>
                       {dictating === "listening" && (
-                        <span className="flex h-5 items-center gap-[3px]" aria-hidden>
+                        <span className="flex h-5 items-center gap-[0.1875rem]" aria-hidden>
                           {Array.from({ length: 10 }, (_, i) => (
-                            <span key={i} className="w-[3px] rounded-full bg-red-400" style={{ height: `${Math.max(15, Math.min(100, level * 110 * (0.5 + 0.5 * Math.abs(Math.sin(i * 1.9)))))}%` }} />
+                            <span key={i} className="w-[0.1875rem] rounded-full bg-red-400" style={{ height: `${Math.max(15, Math.min(100, level * 110 * (0.5 + 0.5 * Math.abs(Math.sin(i * 1.9)))))}%` }} />
                           ))}
                         </span>
                       )}
-                      <span className="ml-auto font-mono text-[11px] text-content-subtle">
+                      <span className="ml-auto font-mono text-[0.6875rem] text-content-subtle">
                         {message.length}/{MAX_MESSAGE}
                       </span>
                     </div>
@@ -488,12 +488,12 @@ export function FeedbackClient() {
                         </button>
                       </span>
                     )}
-                    <span className="text-[11px] text-content-subtle">{category === "bug" ? "A screenshot helps us fix it faster." : "Optional"}</span>
+                    <span className="text-[0.6875rem] text-content-subtle">{category === "bug" ? "A screenshot helps us fix it faster." : "Optional"}</span>
                   </div>
 
                   {/* quality meter */}
                   <div className="mt-4">
-                    <div className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center justify-between text-[0.6875rem]">
                       <span className="font-semibold uppercase tracking-[0.14em] text-content-subtle">How useful</span>
                       <span className={cn("font-semibold", q >= 80 ? "text-mint-300" : q >= 45 ? "text-gold-200" : "text-content-subtle")}>
                         {q >= 80 ? "Super detailed 🔥" : q >= 45 ? "Good, add a detail or two" : q > 0 ? "Keep going" : "Start typing"}
@@ -505,19 +505,19 @@ export function FeedbackClient() {
                   </div>
 
                   {!signedIn && status !== "loading" && (
-                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
                       <label className="block">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Name (optional)</span>
+                        <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">Name (optional)</span>
                         <input value={guestName} onChange={(e) => setGuestName(e.target.value.slice(0, 60))} className="mt-1.5 h-11 w-full rounded-xl border border-hairline bg-ink-900/40 px-3.5 text-sm text-content outline-none focus:border-gold-400/50" />
                       </label>
                       <label className="block">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Email or Telegram (optional)</span>
+                        <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">Email or Telegram (optional)</span>
                         <input value={contact} onChange={(e) => setContact(e.target.value.slice(0, 120))} placeholder="so we can reply" className="mt-1.5 h-11 w-full rounded-xl border border-hairline bg-ink-900/40 px-3.5 text-sm text-content outline-none placeholder:text-content-subtle focus:border-gold-400/50" />
                       </label>
                     </div>
                   )}
                   {/* honeypot */}
-                  <input value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[9999px] h-0 w-0 opacity-0" name="website" />
+                  <input value={hp} onChange={(e) => setHp(e.target.value)} tabIndex={-1} autoComplete="off" aria-hidden className="absolute -left-[624.9375rem] h-0 w-0 opacity-0" name="website" />
 
                   {error && <p className="mt-4 rounded-xl bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300">{error}</p>}
 
@@ -548,7 +548,7 @@ export function FeedbackClient() {
             <GuideOrb size={52} speaking={speaking} />
             <div className="min-w-0 flex-1">
               <div className="font-display text-sm font-semibold text-content">AneQue</div>
-              <div className="text-[11px] text-content-subtle">{speaking ? "Speaking" : "Here to help"}</div>
+              <div className="text-[0.6875rem] text-content-subtle">{speaking ? "Speaking" : "Here to help"}</div>
             </div>
             <button
               type="button"
@@ -578,7 +578,7 @@ export function FeedbackClient() {
           </div>
           <div className="mt-3 rounded-2xl border border-hairline bg-ink-900/50 px-3.5 py-3">
             <GuideWave speaking={speaking} bars={30} className="h-5" />
-            <GuideCaption text={voice.text || VOICE_LINES.feedback_welcome} speaking={speaking} className="mt-2 min-h-[2.5rem] text-[13px] leading-relaxed" />
+            <GuideCaption text={voice.text || VOICE_LINES.feedback_welcome} speaking={speaking} className="mt-2 min-h-[2.5rem] text-[0.8125rem] leading-relaxed" />
           </div>
           {!unlocked && (
             <button type="button" onClick={() => unlock()} className="mt-3 w-full rounded-xl bg-gold-400/15 py-2 text-xs font-semibold text-gold-100 hover:bg-gold-400/25">
@@ -598,7 +598,7 @@ export function FeedbackClient() {
               return (
                 <div key={b.code} className="group relative flex flex-col items-center text-center" title={`${b.title}: ${b.hint}`}>
                   <span className={cn("grid h-12 w-12 place-items-center rounded-2xl border text-2xl transition-all", got ? "fb-badge border-gold-400/50 bg-gold-400/10" : "border-hairline bg-white/[0.02] opacity-40 grayscale")}>{b.emoji}</span>
-                  <span className="mt-1.5 line-clamp-2 text-[10px] font-medium leading-tight text-content-muted">{b.title}</span>
+                  <span className="mt-1.5 line-clamp-2 text-[0.625rem] font-medium leading-tight text-content-muted">{b.title}</span>
                 </div>
               );
             })}
@@ -608,15 +608,15 @@ export function FeedbackClient() {
 
         <Panel>
           <h3 className="font-display text-base font-semibold text-content">How XP works</h3>
-          <ul className="mt-3 space-y-2.5 text-[13px] text-content-muted">
+          <ul className="mt-3 space-y-2.5 text-[0.8125rem] text-content-muted">
             <li className="flex items-start gap-2.5">
-              <span className="mt-0.5 rounded-md bg-mint-400/15 px-1.5 font-mono text-[11px] font-bold text-mint-300">+{XP_DAILY}</span> Your first feedback each day
+              <span className="mt-0.5 rounded-md bg-mint-400/15 px-1.5 font-mono text-[0.6875rem] font-bold text-mint-300">+{XP_DAILY}</span> Your first feedback each day
             </li>
             <li className="flex items-start gap-2.5">
-              <span className="mt-0.5 rounded-md bg-mint-400/15 px-1.5 font-mono text-[11px] font-bold text-mint-300">+{XP_FIRST}</span> Bonus on your very first one
+              <span className="mt-0.5 rounded-md bg-mint-400/15 px-1.5 font-mono text-[0.6875rem] font-bold text-mint-300">+{XP_FIRST}</span> Bonus on your very first one
             </li>
             <li className="flex items-start gap-2.5">
-              <span className="mt-0.5 rounded-md bg-gold-400/15 px-1.5 font-mono text-[11px] font-bold text-gold-200">+{XP_SHIPPED}</span> When we ship or fix what you sent
+              <span className="mt-0.5 rounded-md bg-gold-400/15 px-1.5 font-mono text-[0.6875rem] font-bold text-gold-200">+{XP_SHIPPED}</span> When we ship or fix what you sent
             </li>
           </ul>
         </Panel>
@@ -625,12 +625,12 @@ export function FeedbackClient() {
           <Panel>
             <div className="flex items-baseline justify-between">
               <h3 className="font-display text-base font-semibold text-content">Top voices</h3>
-              <span className="text-[11px] text-content-subtle">last 30 days</span>
+              <span className="text-[0.6875rem] text-content-subtle">last 30 days</span>
             </div>
             <ol className="mt-3 space-y-2">
               {voices.map((v) => (
-                <li key={v.rank} className="flex items-center gap-2.5 text-[13px]">
-                  <span className={cn("w-5 text-center font-mono text-[11px] font-bold", v.rank === 1 ? "text-gold-300" : "text-content-subtle")}>{v.rank}</span>
+                <li key={v.rank} className="flex items-center gap-2.5 text-[0.8125rem]">
+                  <span className={cn("w-5 text-center font-mono text-[0.6875rem] font-bold", v.rank === 1 ? "text-gold-300" : "text-content-subtle")}>{v.rank}</span>
                   <Avatar src={v.image} alt={v.name} size={26} />
                   {v.username ? (
                     <Link href={`/u/${v.username}`} className="min-w-0 flex-1 truncate font-medium text-content hover:underline">
@@ -639,8 +639,8 @@ export function FeedbackClient() {
                   ) : (
                     <span className="min-w-0 flex-1 truncate font-medium text-content">{v.name}</span>
                   )}
-                  {v.shipped > 0 && <span className="rounded-full bg-mint-400/15 px-1.5 py-0.5 font-mono text-[10px] text-mint-300" title="Shipped">🚀 {v.shipped}</span>}
-                  <span className="font-mono text-[11px] text-content-muted">{v.count}</span>
+                  {v.shipped > 0 && <span className="rounded-full bg-mint-400/15 px-1.5 py-0.5 font-mono text-[0.625rem] text-mint-300" title="Shipped">🚀 {v.shipped}</span>}
+                  <span className="font-mono text-[0.6875rem] text-content-muted">{v.count}</span>
                 </li>
               ))}
             </ol>
@@ -656,13 +656,13 @@ export function FeedbackClient() {
                 const st = STATUS_LABEL[it.status] ?? STATUS_LABEL.new;
                 return (
                   <li key={it.id} className="rounded-2xl border border-hairline bg-white/[0.02] p-3">
-                    <div className="flex items-center gap-2 text-[11px]">
+                    <div className="flex items-center gap-2 text-[0.6875rem]">
                       <span>{c?.emoji}</span>
                       <span className="font-semibold text-content">{c?.label}</span>
                       <span className="text-content-subtle">{utcDate(it.createdAt)}</span>
-                      <span className={cn("ml-auto rounded-full px-2 py-0.5 text-[10px] font-semibold", st.cls)}>{st.label}</span>
+                      <span className={cn("ml-auto rounded-full px-2 py-0.5 text-[0.625rem] font-semibold", st.cls)}>{st.label}</span>
                     </div>
-                    <p className="mt-1.5 line-clamp-2 text-[12px] leading-relaxed text-content-muted">{it.message}</p>
+                    <p className="mt-1.5 line-clamp-2 text-[0.75rem] leading-relaxed text-content-muted">{it.message}</p>
                   </li>
                 );
               })}

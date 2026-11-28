@@ -34,14 +34,14 @@ export function PnlCalculator() {
         <CalcSegmented options={[{ value: "long", label: "Long" }, { value: "short", label: "Short" }]} value={side} onChange={setSide} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <CalcField label="Entry price" value={entry} onChange={setEntry} suffix="USD" />
         <CalcField label="Exit price" value={exit} onChange={setExit} suffix="USD" />
         <CalcField label="Position size" value={notional} onChange={setNotional} suffix="USD" />
         <CalcField label="Fees (both legs)" value={fee} onChange={setFee} suffix="%" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <ResultTile label="Gross P&L" value={`$${result.grossPnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
         <ResultTile
           label="Net P&L"

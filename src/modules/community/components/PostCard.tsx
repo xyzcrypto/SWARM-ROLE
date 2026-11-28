@@ -52,10 +52,10 @@ export function PostCard({ post, priority }: { post: PostCardData; priority?: bo
         )}
         <div className="absolute left-3 top-3 flex gap-1.5">
           <Badge tone={catTone[post.category] ?? "gold"}>
-            <span className="mono text-[10px] uppercase tracking-wider">{post.category}</span>
+            <span className="mono text-[0.625rem] uppercase tracking-wider">{post.category}</span>
           </Badge>
           {post.premium && (
-            <span className="inline-flex items-center rounded-full bg-gold-shine px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-ink">
+            <span className="inline-flex items-center rounded-full bg-gold-shine px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wider text-ink">
               Premium
             </span>
           )}
@@ -66,7 +66,7 @@ export function PostCard({ post, priority }: { post: PostCardData; priority?: bo
           {post.title}
         </h3>
         <p className="mt-2 line-clamp-2 flex-1 text-sm text-zinc-400">{post.excerpt}</p>
-        <div className="mt-4 flex items-center justify-between mono text-[11px] text-zinc-500">
+        <div className="mt-4 flex items-center justify-between mono text-[0.6875rem] text-zinc-500">
           <span>{post.author?.name ?? "XYZ Crypto"}</span>
           <span>
             {formatDate(post.createdAt)}

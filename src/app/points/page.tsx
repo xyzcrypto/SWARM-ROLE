@@ -31,7 +31,7 @@ export default function PointsPage() {
             (1024px) while every other page runs 1200 -> 1320 -> 1480, so its cards
             sat visibly narrower than the site around them and its data tables had
             to scroll sideways at widths where they did not need to. */}
-        <div className="relative mx-auto max-w-[1200px] px-5 pb-24 sm:px-6 lg:px-8 xl:max-w-[1320px]">
+        <div className="relative mx-auto max-w-[75rem] px-5 pb-24 sm:px-6 lg:px-8 xl:max-w-[82.5rem]">
           {/* Points Intelligence Hero & Main Suite */}
           <div className="pt-2 sm:pt-4">
             <PointsClient />

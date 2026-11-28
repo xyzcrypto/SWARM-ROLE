@@ -73,14 +73,14 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
         <img src={photoSrc(story.img, 960) ?? story.img} data-orig={story.img} alt="" decoding="async" className="h-52 w-full rounded-2xl object-cover sm:h-72" onError={photoFallback((img) => (img.style.display = "none"))} />
       )}
 
-      <div className="flex flex-wrap items-center gap-2 text-[12px] text-zinc-400">
+      <div className="flex flex-wrap items-center gap-2 text-[0.75rem] text-zinc-400">
         {story.src && <span className="font-medium text-zinc-300">{story.src}</span>}
         {story.ts ? (<><span>·</span><span className="mono">{now ? timeAgo(story.ts, now) : ""}</span></>) : null}
-        {story.cat && <span className="rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{story.cat}</span>}
+        {story.cat && <span className="rounded-full bg-gold-500/10 px-2 py-0.5 text-[0.625rem] font-medium text-gold-200">{story.cat}</span>}
       </div>
 
       <h1 className="font-display text-2xl font-bold leading-tight text-zinc-50 sm:text-4xl">{story.t}</h1>
-      {story.s && <p className="text-[15px] leading-relaxed text-zinc-300">{story.s}</p>}
+      {story.s && <p className="text-[0.9375rem] leading-relaxed text-zinc-300">{story.s}</p>}
 
       {/* Advanced AI briefing - with Listen + Hinglish */}
       <BriefingBlock
@@ -94,7 +94,7 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
         onGenerate={generateBrief}
       />
       {!loggedIn && (
-        <p className="text-[13px] text-zinc-400">
+        <p className="text-[0.8125rem] text-zinc-400">
           <Link href="/login" className="text-gold-200 hover:underline">Log in</Link> to read the full AI briefing of this story.
         </p>
       )}

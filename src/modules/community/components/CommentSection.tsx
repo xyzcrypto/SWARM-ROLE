@@ -149,8 +149,8 @@ export function CommentSection({ postId }: { postId: string }) {
           />
           {error && <p className="mt-2 text-sm text-red-300">{error}</p>}
           <div className="mt-2 flex items-center justify-between">
-            <span className="mono text-[11px] text-zinc-600">{body.length}/1000</span>
-            <button type="submit" disabled={posting || !body.trim()} className="btn-gold !px-5 !py-2 text-[13px] disabled:opacity-60">
+            <span className="mono text-[0.6875rem] text-zinc-600">{body.length}/1000</span>
+            <button type="submit" disabled={posting || !body.trim()} className="btn-gold !px-5 !py-2 text-[0.8125rem] disabled:opacity-60">
               {posting ? "Posting…" : "Post comment"}
             </button>
           </div>
@@ -187,7 +187,7 @@ export function CommentSection({ postId }: { postId: string }) {
                       </span>
                     </>
                   )}
-                  <span className="mono text-[11px] text-zinc-600">{formatDateTime(c.createdAt)}</span>
+                  <span className="mono text-[0.6875rem] text-zinc-600">{formatDateTime(c.createdAt)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   {c.author.username && <MessageButton username={c.author.username} compact />}

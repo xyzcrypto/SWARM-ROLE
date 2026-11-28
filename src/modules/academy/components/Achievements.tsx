@@ -73,13 +73,13 @@ function Badge({ a, me, fresh, i }: { a: Ach; me: Me | null; fresh: boolean; i: 
     >
       <div className={cn("acad-flip-card", flip && "is-flipped")}>
         <div className="acad-badge-face surface flex flex-col items-center rounded-3xl px-3 pb-4 pt-5 text-center">
-          {fresh && <span className="acad-badge-new absolute right-3 top-3 rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em]">New</span>}
+          {fresh && <span className="acad-badge-new absolute right-3 top-3 rounded-full px-2 py-0.5 text-[0.625rem] font-black uppercase tracking-[0.14em]">New</span>}
           <span className="acad-medal">
             <span className="acad-medal-core">{got ? <Icon name={a.icon} className="h-7 w-7" /> : <Lock className="h-6 w-6" />}</span>
           </span>
-          <div className="mt-3 line-clamp-2 font-display text-[14px] font-semibold leading-snug text-content sm:text-[15px]">{a.title}</div>
-          <div className="acad-rarity mt-1 text-[10px] font-bold uppercase tracking-[0.18em]">{RARITY_LABEL[r]}</div>
-          <div className="mt-auto w-full pt-2 text-[11px] text-content-subtle">
+          <div className="mt-3 line-clamp-2 font-display text-[0.875rem] font-semibold leading-snug text-content sm:text-[0.9375rem]">{a.title}</div>
+          <div className="acad-rarity mt-1 text-[0.625rem] font-bold uppercase tracking-[0.18em]">{RARITY_LABEL[r]}</div>
+          <div className="mt-auto w-full pt-2 text-[0.6875rem] text-content-subtle">
             {got ? (
               <span>Unlocked {utcDate(a.earnedAt!)}</span>
             ) : p ? (
@@ -99,10 +99,10 @@ function Badge({ a, me, fresh, i }: { a: Ach; me: Me | null; fresh: boolean; i: 
           </div>
         </div>
         <div className="acad-badge-face acad-badge-back surface flex flex-col items-center justify-center rounded-3xl p-4 text-center">
-          <div className="acad-rarity text-[10px] font-bold uppercase tracking-[0.18em]">{got ? "Unlocked" : "How to unlock"}</div>
+          <div className="acad-rarity text-[0.625rem] font-bold uppercase tracking-[0.18em]">{got ? "Unlocked" : "How to unlock"}</div>
           <p className="mt-2 text-sm leading-relaxed text-content">{a.description}</p>
           <div className="mt-3 font-mono text-lg font-bold text-gold-600 dark:text-gold-200">+{fmt(a.xp)} XP</div>
-          {got && <div className="mt-1 text-[11px] text-content-subtle">{utcDate(a.earnedAt!)}</div>}
+          {got && <div className="mt-1 text-[0.6875rem] text-content-subtle">{utcDate(a.earnedAt!)}</div>}
         </div>
       </div>
     </button>
@@ -202,24 +202,24 @@ export function AchievementsPage() {
                 <div className="font-display text-2xl font-bold text-content">
                   <CountUp value={earned.length} />
                 </div>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-content-subtle">of {list.length}</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">of {list.length}</div>
               </div>
             </div>
             <div className="grid flex-1 grid-cols-2 gap-3 sm:grid-cols-3">
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Badge XP</div>
+                <div className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Badge XP</div>
                 <div className="mt-1 font-display text-2xl font-bold text-gold-600 dark:text-gold-200">
                   <CountUp value={xpEarned} />
                 </div>
               </div>
               <div>
-                <div className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Still to earn</div>
+                <div className="whitespace-nowrap text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Still to earn</div>
                 <div className="mt-1 whitespace-nowrap font-display text-2xl font-bold text-content">
                   <CountUp value={list.reduce((s, a) => s + a.xp, 0) - xpEarned} /> <span className="text-sm font-semibold text-content-subtle">XP</span>
                 </div>
               </div>
               <div className="col-span-2 sm:col-span-1">
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Rarest</div>
+                <div className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Rarest</div>
                 <div className={cn("mt-1 truncate font-display text-base font-semibold", rarest ? `acad-rarity-text is-${rarityOf(rarest.xp)}` : "text-content-muted")}>
                   {rarest ? rarest.title : "None yet"}
                 </div>
@@ -251,7 +251,7 @@ export function AchievementsPage() {
             </button>
           ))}
         </div>
-        <div className="flex flex-wrap items-center gap-3 text-[11px] text-content-subtle">
+        <div className="flex flex-wrap items-center gap-3 text-[0.6875rem] text-content-subtle">
           {RARITY_ORDER.map((r) => (
             <span key={r} className={cn("acad-rarity-text inline-flex items-center gap-1.5 font-semibold", `is-${r}`)}>
               <span className="acad-rarity-dot h-2 w-2 rounded-full" /> {RARITY_LABEL[r]}

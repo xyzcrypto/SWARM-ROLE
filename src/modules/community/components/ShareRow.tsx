@@ -41,7 +41,7 @@ export function ShareRow({ title, path }: { title: string; path: string }) {
     "inline-flex h-9 items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-medium text-zinc-300 transition-all hover:border-gold-500/40 hover:text-gold-100";
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       <button type="button" onClick={copy} className={btn} aria-label="Copy link">
         {copied ? <Check className="h-3.5 w-3.5 text-mint-300" /> : <Link2 className="h-3.5 w-3.5" />}
         {copied ? "Copied" : "Copy link"}

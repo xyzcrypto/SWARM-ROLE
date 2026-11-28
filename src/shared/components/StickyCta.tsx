@@ -41,11 +41,11 @@ export function StickyCta() {
           <p className="truncate text-sm font-semibold text-zinc-100">
             Join XYZ Crypto, free
           </p>
-          <p className="truncate text-[11px] text-zinc-500">
+          <p className="truncate text-[0.6875rem] text-zinc-500">
             Research, tools & early access
           </p>
         </div>
-        <ActionLink href="/signup" className="btn-primary shrink-0 !px-4 !py-2 text-[13px]">
+        <ActionLink href="/signup" className="btn-primary shrink-0 !px-4 !py-2 text-[0.8125rem]">
           Get started
           <ArrowRight className="h-4 w-4" />
         </ActionLink>

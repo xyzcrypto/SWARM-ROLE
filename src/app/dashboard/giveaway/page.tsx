@@ -19,7 +19,7 @@ export default async function GiveawayAdminPage() {
     <>
       <Navbar />
       <main className="relative min-h-screen pt-28">
-        <div className="relative mx-auto max-w-[1200px] px-5 pb-24 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-[75rem] px-5 pb-24 sm:px-6 lg:px-8">
           <GiveawayAdmin />
         </div>
       </main>

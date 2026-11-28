@@ -110,14 +110,14 @@ export function AvatarUploader({
               type="button"
               onClick={() => inputRef.current?.click()}
               disabled={busy}
-              className="btn-secondary !py-2 text-[13px] disabled:opacity-60"
+              className="btn-secondary !py-2 text-[0.8125rem] disabled:opacity-60"
             >
               {busy ? `Uploading… ${progress}%` : "Change photo"}
             </button>
             <button
               type="button"
               onClick={() => setUrlOpen((v) => !v)}
-              className="inline-flex items-center gap-1.5 text-[13px] text-zinc-400 transition-colors hover:text-mint-200"
+              className="inline-flex items-center gap-1.5 text-[0.8125rem] text-zinc-400 transition-colors hover:text-mint-200"
             >
               <Link2 className="h-3.5 w-3.5" /> Use a link
             </button>
@@ -127,14 +127,14 @@ export function AvatarUploader({
               <div className="h-full rounded-full bg-mint-shine transition-all duration-200" style={{ width: `${progress}%` }} />
             </div>
           )}
-          <p className="mt-1.5 text-[11px] text-zinc-600">JPG, PNG, WebP or GIF · max 5 MB.</p>
-          {error && <p className="mt-1 text-[11px] text-red-300">{error}</p>}
+          <p className="mt-1.5 text-[0.6875rem] text-zinc-600">JPG, PNG, WebP or GIF · max 5 MB.</p>
+          {error && <p className="mt-1 text-[0.6875rem] text-red-300">{error}</p>}
         </div>
       </div>
 
       {urlOpen && (
         <div className="rounded-xl border border-white/10 bg-ink-700/40 p-3">
-          <label className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">
+          <label className="mb-1.5 block text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-500">
             Image URL
           </label>
           <div className="flex flex-col gap-2 sm:flex-row">
@@ -158,12 +158,12 @@ export function AvatarUploader({
               type="button"
               onClick={saveUrl}
               disabled={savingUrl || !url.trim()}
-              className="btn-primary shrink-0 !py-2 text-[13px] disabled:opacity-60"
+              className="btn-primary shrink-0 !py-2 text-[0.8125rem] disabled:opacity-60"
             >
               {savingUrl ? "Saving…" : "Use URL"}
             </button>
           </div>
-          <p className="mt-1.5 text-[11px] text-zinc-600">
+          <p className="mt-1.5 text-[0.6875rem] text-zinc-600">
             Direct https image link from Unsplash, Cloudinary, GitHub, Google or Supabase.
           </p>
         </div>

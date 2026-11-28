@@ -37,7 +37,7 @@ export function LiquidationCalculator() {
         <CalcSegmented options={[{ value: "long", label: "Long" }, { value: "short", label: "Short" }]} value={side} onChange={setSide} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <CalcField label="Entry price" value={entry} onChange={setEntry} suffix="USD" />
         <CalcField label="Leverage" value={leverage} onChange={setLeverage} suffix="x" min="1" />
         <CalcField label="Maintenance margin" value={mmr} onChange={setMmr} suffix="%" hint="Editable - check your exchange's schedule." />

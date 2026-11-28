@@ -345,7 +345,7 @@ function HeroNewsCard() {
             className={`h-3.5 w-3.5 shrink-0 ${isLive ? "text-mint-400" : "text-data-down"}`}
             strokeWidth={2.5}
           />
-          <span className="shrink-0 text-[11px] font-bold uppercase tracking-wider text-mint-400">
+          <span className="shrink-0 text-[0.6875rem] font-bold uppercase tracking-wider text-mint-400">
             LATEST UPDATES
           </span>
           {/* ⚠️ Both halves were lying. `items.length || 1` printed "1 tracked"
@@ -355,7 +355,7 @@ function HeroNewsCard() {
               checked at a specific time. That is the single most misleading
               thing a live feed can do, and it is most of why this looked stuck.
               It now says what is true, including "checking…". */}
-          <span className="truncate text-[11px] text-content-subtle">
+          <span className="truncate text-[0.6875rem] text-content-subtle">
             {desk.length + items.length} tracked · {fetchedAt ? `checked ${formatDateTime(new Date(fetchedAt))}` : "checking…"}
           </span>
         </div>
@@ -426,10 +426,10 @@ function HeroNewsCard() {
           className="flex w-full items-center gap-2 border-b border-hairline bg-mint-500/[0.05] px-4 py-2 text-left transition-colors hover:bg-mint-500/[0.09]"
         >
           <RobotIcon className="h-3.5 w-3.5 shrink-0 text-mint-300" />
-          <span className="truncate text-[11px] font-medium text-content">
+          <span className="truncate text-[0.6875rem] font-medium text-content">
             {brief.err ? "The briefing did not finish" : "Your AI briefing is ready"}
           </span>
-          <span className="ml-auto shrink-0 text-[11px] font-semibold text-gold-300">Open</span>
+          <span className="ml-auto shrink-0 text-[0.6875rem] font-semibold text-gold-300">Open</span>
         </button>
       )}
 
@@ -463,7 +463,7 @@ function HeroNewsCard() {
               <p className="mt-2.5 text-xs text-content-muted">
                 No perp DEX or airdrop news in the last window.
               </p>
-              <p className="mt-1 text-[11px] text-content-subtle">
+              <p className="mt-1 text-[0.6875rem] text-content-subtle">
                 Snapshots, TGE dates and new programmes land here the moment they are reported.
               </p>
               {/* ⚠️ Says what it looked at. "Nothing matched out of 0 stories"
@@ -472,7 +472,7 @@ function HeroNewsCard() {
                   last two bugs here were both diagnosed only once production
                   could state its own case. */}
               {diag && (
-                <p className="mono mt-2 text-[10px] text-content-subtle">
+                <p className="mono mt-2 text-[0.625rem] text-content-subtle">
                   checked {diag.pool.toLocaleString("en-US")} stories
                 </p>
               )}
@@ -497,7 +497,7 @@ function HeroNewsCard() {
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
               />
             ) : (
-              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-sky-400/30 bg-sky-500/20 text-[9px] font-bold text-sky-400">
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border border-sky-400/30 bg-sky-500/20 text-[0.5625rem] font-bold text-sky-400">
                 C
               </span>
             )}
@@ -509,21 +509,21 @@ function HeroNewsCard() {
                 outlet's report are different claims and a reader acts on them
                 differently, so it is never left to be inferred. */}
             {active.lane === "desk" && (
-              <span className="shrink-0 rounded-full border border-mint-500/40 bg-mint-500/10 px-2 py-0.5 text-[10px] font-semibold text-mint-200">
+              <span className="shrink-0 rounded-full border border-mint-500/40 bg-mint-500/10 px-2 py-0.5 text-[0.625rem] font-semibold text-mint-200">
                 Desk
               </span>
             )}
-            <span className="shrink-0 rounded-full border border-gold-500/40 bg-gold-500/10 px-2 py-0.5 text-[10px] font-semibold text-gold-200">
+            <span className="shrink-0 rounded-full border border-gold-500/40 bg-gold-500/10 px-2 py-0.5 text-[0.625rem] font-semibold text-gold-200">
               {active.venues[0] ?? active.category}
             </span>
           </div>
-          <span className="shrink-0 text-[11px] text-content-subtle">
+          <span className="shrink-0 text-[0.6875rem] text-content-subtle">
             {formatDateTime(new Date(active.publishedAt))}
           </span>
         </div>
 
         {/* Title */}
-        <h3 className="mt-1.5 line-clamp-2 text-sm font-bold leading-snug text-content sm:text-[15px]">
+        <h3 className="mt-1.5 line-clamp-2 text-sm font-bold leading-snug text-content sm:text-[0.9375rem]">
           {active.title}
         </h3>
 
@@ -588,7 +588,7 @@ function HeroNewsCard() {
         </p>
 
         {/* Attribution */}
-        <p className="mt-1 text-[11px] text-content-subtle">
+        <p className="mt-1 text-[0.6875rem] text-content-subtle">
           Reported by {active.source} · {active.source}
         </p>
 
@@ -710,7 +710,7 @@ function HeroNewsCard() {
                     <p className="line-clamp-2 text-xs font-semibold leading-snug text-content">
                       {item.title}
                     </p>
-                    <p className="mt-1 text-[11px] text-content-subtle">
+                    <p className="mt-1 text-[0.6875rem] text-content-subtle">
                       {item.source} · {formatDateTime(new Date(item.publishedAt))}
                     </p>
                   </div>
@@ -894,7 +894,7 @@ export function PointsHero({ onExplore, onPortfolio, analyzedTotal }: PointsHero
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
             </span>
-            <span className="mono font-mono text-[10px] font-semibold uppercase tracking-[0.16em] sm:text-[11px]">
+            <span className="mono font-mono text-[0.625rem] font-semibold uppercase tracking-[0.16em] sm:text-[0.6875rem]">
               <span className="text-[#fdf7e7]">Airdrop</span>{" "}
               <span className="text-shine">Farming</span>
             </span>
@@ -969,7 +969,7 @@ export function PointsHero({ onExplore, onPortfolio, analyzedTotal }: PointsHero
                   )}
                   <span className="truncate">{s.v}</span>
                 </div>
-                <div className="mt-0.5 text-[11px] text-content-subtle">{s.l}</div>
+                <div className="mt-0.5 text-[0.6875rem] text-content-subtle">{s.l}</div>
               </div>
             ))}
           </div>

@@ -16,12 +16,12 @@ function Row({ m, now }: { m: ChatMessagePayload; now: number }) {
     <div className="flex items-start gap-3 py-2.5">
       <Avatar name={m.author.name} image={m.author.image} size="sm" />
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5 text-[12px]">
+        <div className="flex items-center gap-1.5 text-[0.75rem]">
           <span className="font-semibold text-zinc-200">{m.author.name ?? "Member"}</span>
           <span className="text-zinc-600">·</span>
           <span className="mono text-zinc-500">{timeAgo(new Date(m.createdAt).getTime(), now)}</span>
         </div>
-        <p className="mt-0.5 line-clamp-2 text-[13px] text-zinc-400">{bodyPreview(m)}</p>
+        <p className="mt-0.5 line-clamp-2 text-[0.8125rem] text-zinc-400">{bodyPreview(m)}</p>
       </div>
     </div>
   );
@@ -43,13 +43,13 @@ export function CommunityPreview({ messages, pinned, now }: { messages: ChatMess
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-100">
           <MessageCircle className="h-4 w-4 text-gold-300" /> Community
         </span>
-        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-500">Preview</span>
+        <span className="rounded-full bg-white/5 px-2 py-0.5 text-[0.625rem] font-medium text-zinc-500">Preview</span>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4">
         {pinned && (
           <div className="mt-3 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3">
-            <p className="mb-1.5 inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-gold-200">
+            <p className="mb-1.5 inline-flex items-center gap-1 text-[0.625rem] font-semibold uppercase tracking-wide text-gold-200">
               <Pin className="h-3 w-3" /> Pinned
             </p>
             <Row m={pinned} now={now} />
@@ -67,7 +67,7 @@ export function CommunityPreview({ messages, pinned, now }: { messages: ChatMess
       </div>
 
       <div className="border-t border-white/10 bg-ink-900/95 p-4 text-center">
-        <p className="text-[13px] text-zinc-400">Log in to chat live, react, and join polls.</p>
+        <p className="text-[0.8125rem] text-zinc-400">Log in to chat live, react, and join polls.</p>
         <Link href="/login?callbackUrl=/community" className="btn-primary mt-2.5 inline-flex items-center gap-1.5 px-4 py-2 text-sm">
           <LogIn className="h-4 w-4" /> Log in to join
         </Link>

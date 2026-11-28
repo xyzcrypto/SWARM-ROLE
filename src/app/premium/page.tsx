@@ -100,7 +100,7 @@ export default function PremiumPage() {
               </Reveal>
             </div>
 
-            <div className="mt-16 grid gap-5 lg:grid-cols-3">
+            <div className="mt-16 grid grid-cols-1 gap-5 lg:grid-cols-3">
               {tiers.map((t, i) => (
                 <Reveal key={t.name} delay={i + 1}>
                   <div
@@ -112,13 +112,13 @@ export default function PremiumPage() {
                     }
                   >
                     {t.highlight && (
-                      <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gold-200 ring-1 ring-gold-500/30">
+                      <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-gold-500/15 px-3 py-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-gold-200 ring-1 ring-gold-500/30">
                         <AnimatedEmoji emoji="⭐" variant="twinkle" className="text-xs" /> Most popular
                       </span>
                     )}
                     <p className="font-display text-lg font-semibold text-zinc-100">{t.name}</p>
                     <p className="mt-2 font-display text-2xl font-bold text-zinc-50">{t.price}</p>
-                    <p className="mt-1 text-[12px] text-zinc-500">{t.note}</p>
+                    <p className="mt-1 text-[0.75rem] text-zinc-500">{t.note}</p>
                     <ul className="mt-5 space-y-2.5">
                       {t.features.map((f) => (
                         <li key={f} className="flex items-start gap-2.5 text-sm text-zinc-300">

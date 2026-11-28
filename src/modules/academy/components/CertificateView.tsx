@@ -177,7 +177,7 @@ export function CertificateView({ cert, issuer, url, qr }: { cert: Cert; issuer:
 
       {valid && (
         <div className="mt-6 rounded-2xl border border-hairline bg-white/[0.02] p-4">
-          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Share your certificate</div>
+          <div className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Share your certificate</div>
           <ShareSheet url={url} image={`/academy/certificate/${cert.code}/opengraph-image`} text={`I earned "${cert.title}" on XYZ Crypto Academy. Verify it here:`} fileName={`xyz-certificate-${cert.code}.png`} />
         </div>
       )}
@@ -191,7 +191,7 @@ export function CertificateView({ cert, issuer, url, qr }: { cert: Cert; issuer:
         </Link>
       </div>
 
-      <dl className="mt-8 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="mt-8 grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
         {[
           ["Awarded to", cert.username ? <Link key="u" href={`/u/${cert.username}`} className="text-gold-200 hover:underline">{cert.displayName}</Link> : cert.displayName],
           ["Achievement", cert.title],
@@ -199,7 +199,7 @@ export function CertificateView({ cert, issuer, url, qr }: { cert: Cert; issuer:
           ["Issuer", `${issuer.unit} (${issuer.contact})`],
         ].map(([k, v]) => (
           <div key={k as string} className="rounded-2xl border border-hairline p-4">
-            <dt className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">{k}</dt>
+            <dt className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">{k}</dt>
             <dd className="mt-1 text-content">{v}</dd>
           </div>
         ))}

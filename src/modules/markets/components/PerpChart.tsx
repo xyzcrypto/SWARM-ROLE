@@ -102,10 +102,10 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
               }`}
             />
           </span>
-          <span className="mono text-[11px] font-semibold text-zinc-900 dark:text-zinc-200">{coin.symbol}</span>
-          <span className="mono text-[11px] text-zinc-600 dark:text-zinc-400">{priceLabel}</span>
+          <span className="mono text-[0.6875rem] font-semibold text-zinc-900 dark:text-zinc-200">{coin.symbol}</span>
+          <span className="mono text-[0.6875rem] text-zinc-600 dark:text-zinc-400">{priceLabel}</span>
           {data && (
-            <span className={`mono text-[10px] ${up ? "text-emerald-600 dark:text-mint-300" : "text-rose-600 dark:text-red-300"}`}>
+            <span className={`mono text-[0.625rem] ${up ? "text-emerald-600 dark:text-mint-300" : "text-rose-600 dark:text-red-300"}`}>
               {up ? "+" : ""}{change.toFixed(2)}%
             </span>
           )}
@@ -122,7 +122,7 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
               // Vertical only on purpose: these three sit 2px apart, so
               // expanding sideways would make neighbouring hit areas overlap
               // and steal each other's taps.
-              className={`tap-target-y rounded-md px-1.5 py-0.5 mono text-[9px] font-semibold transition-colors ${
+              className={`tap-target-y rounded-md px-1.5 py-0.5 mono text-[0.5625rem] font-semibold transition-colors ${
                 days === tf.d ? "neu-inset bg-amber-400/25 text-amber-800 dark:text-amber-200 border border-amber-400/50 shadow-neu-inset-sm" : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
               }`}
             >
@@ -138,7 +138,7 @@ export function PerpChart({ coin }: { coin: CoinCfg }) {
           {/* A flat baseline reads as "no data" the way a drawn trend never
               could, and holds the same height so the card doesn't jump. */}
           <div className="absolute inset-x-3 top-1/2 h-px bg-white/10" />
-          <span className="relative mono text-[10px] text-zinc-500">
+          <span className="relative mono text-[0.625rem] text-zinc-500">
             {failed ? "Chart unavailable" : "Loading chart…"}
           </span>
         </div>

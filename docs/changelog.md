@@ -5,6 +5,59 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-28 (192) — Every page fits every screen, from a 320px phone to a 4K TV
+
+**How it was measured:** 41 pages × 11 viewports: 320, 360, 375 and 414 (phones),
+768 and 1024 (tablets), 1280 and 1536 (laptops), 1920 (FHD and most TVs), 2560 (QHD),
+and 3840 (4K). The pages include signed-in and admin ones. Each element was checked
+for leaving the screen. `body` has `overflow-x: hidden`, so off-screen content is
+silently cut off rather than scrolling, and only a per-element check finds it. The
+final run found nothing.
+
+**Phones**
+- **The Menu button was off-screen on phones under 360px when signed in.** The
+  header needed ~350px against 272. Below 360 the "XYZ Crypto" wordmark now steps
+  aside (screen readers still hear it); the coin stays.
+- **`/news`:** the top story was 363px wide on a 320px phone, which cut off its
+  bookmark button. Cause: a grid with only responsive columns has an implicit
+  column that grows to its widest content.
+- **The same pattern in 113 grids across 59 files** now has `grid-cols-1`
+  (minmax(0,1fr)). It also fixed the Academy admin cards (82px off at 320).
+- **26 arbitrary grids** now use `minmax(0, Nfr)` instead of a bare `fr`, which
+  cannot shrink below its content.
+- **Feedback admin stats** and the research article's Like / Copy link / Post / Share
+  row wrap instead of running off a phone (the share row was 334px on a 320px
+  screen).
+
+**Tablets:** `/markets` at 1024 (iPad landscape) ran 22px off-screen. The AI card's
+column got ~170px against the ~213px it needs. From 1024 to 1279 it now sits full
+width below the chart and heatmap; three columns start at 1280. The seven KPI tiles
+are four columns there instead of seven (~133px each), so "BTC Dominance" and the
+DeFi TVL change are no longer cut off.
+
+**Big screens**
+- The whole UI now scales with the screen: unchanged up to 1920, 115% at 2560, 200%
+  at 3840. A 4K screen at 100% scaling shows exactly the 1920 layout, filling the
+  screen. Measured on the homepage, content width went from 1480 / 1480 / 1702 /
+  2960px at 1536 / 1920 / 2560 / 3840, and the headline from 57.6 to 115.2px.
+- **Why this needed a codemod:** 1,600+ px sizes (`text-[11px]`, `w-[240px]`,
+  `max-w-[1200px]`, …) would not have grown with the root, so they were converted
+  to rem. The values are identical at normal sizes.
+- **What stays px:** hairlines (≤ 2px), borders, rings, blurs, shadows and
+  breakpoints. Chat font sizes and the `container` token moved to rem too.
+- **Not CSS `zoom`:** tested, and `zoom: 2` doubles every `100vh`/`100vw` element
+  (a full-screen hero became 4320px tall).
+- **Text size in Customize** now composes with the screen scale through
+  `--ui-scale`. Before, it would have replaced the screen scale on a TV.
+
+Rules added to the `design-system` skill. Enforced by `responsive-fit.test.ts`:
+- no px size utilities;
+- every responsive grid declares its base column;
+- no bare `fr` tracks;
+- the root-scale curve.
+
+---
+
 ## 2026-11-28 (191) — Scale follow-ups: publish fan-out, notification retention, challenge board, chat reports
 
 The six follow-ups (190) left open. Each one was run end to end on a local database

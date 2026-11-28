@@ -154,12 +154,12 @@ export function WatchlistWidget({ coins, onViewAll }: WatchlistWidgetProps) {
       </div>
 
       {/* Table Headers */}
-      <div className="flex items-center gap-1 py-1.5 text-[10px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-black/[0.04] dark:border-white/[0.04]">
+      <div className="flex items-center gap-1 py-1.5 text-[0.625rem] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-black/[0.04] dark:border-white/[0.04]">
         <div className="w-4 text-center shrink-0">#</div>
         <div className="flex-1 min-w-0">Asset</div>
-        <div className="w-[62px] text-right shrink-0">Price</div>
-        <div className="w-[50px] text-right shrink-0">24h %</div>
-        <div className="w-[58px] text-right shrink-0">Chart</div>
+        <div className="w-[3.875rem] text-right shrink-0">Price</div>
+        <div className="w-[3.125rem] text-right shrink-0">24h %</div>
+        <div className="w-[3.625rem] text-right shrink-0">Chart</div>
         <div className="w-4 shrink-0" />
       </div>
 
@@ -175,7 +175,7 @@ export function WatchlistWidget({ coins, onViewAll }: WatchlistWidgetProps) {
               className="flex items-center gap-1 py-2 px-0.5 rounded-lg transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] group text-xs"
             >
               {/* Rank */}
-              <div className="w-4 text-center mono text-[11px] text-zinc-500 dark:text-zinc-500 shrink-0">
+              <div className="w-4 text-center mono text-[0.6875rem] text-zinc-500 dark:text-zinc-500 shrink-0">
                 {i + 1}
               </div>
 
@@ -191,14 +191,14 @@ export function WatchlistWidget({ coins, onViewAll }: WatchlistWidgetProps) {
               </div>
 
               {/* Price */}
-              <div className="w-[62px] text-right mono text-zinc-800 dark:text-zinc-200 font-medium shrink-0">
+              <div className="w-[3.875rem] text-right mono text-zinc-800 dark:text-zinc-200 font-medium shrink-0">
                 {r.price != null ? fmtPrice(r.price) : "-"}
               </div>
 
               {/* 24h % */}
               <div
                 className={cn(
-                  "w-[50px] text-right mono font-semibold text-[11px] shrink-0",
+                  "w-[3.125rem] text-right mono font-semibold text-[0.6875rem] shrink-0",
                   up ? "text-emerald-600 dark:text-mint-400" : "text-rose-600 dark:text-red-400"
                 )}
               >
@@ -206,7 +206,7 @@ export function WatchlistWidget({ coins, onViewAll }: WatchlistWidgetProps) {
               </div>
 
               {/* Sparkline & More actions */}
-              <div className="w-[58px] flex items-center justify-end shrink-0">
+              <div className="w-[3.625rem] flex items-center justify-end shrink-0">
                 <MiniSparkline data={r.sparkline} up={up} />
               </div>
               <div className="w-4 flex justify-end shrink-0">

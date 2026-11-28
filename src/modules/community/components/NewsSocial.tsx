@@ -134,13 +134,13 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
           onClick={toggleLike}
           disabled={!loggedIn}
           aria-label={liked ? "Unlike" : "Like"}
-          className={cn("inline-flex items-center gap-1.5 text-[13px] font-medium transition-colors disabled:opacity-60", liked ? "text-red-400" : "text-zinc-400 hover:text-zinc-100")}
+          className={cn("inline-flex items-center gap-1.5 text-[0.8125rem] font-medium transition-colors disabled:opacity-60", liked ? "text-red-400" : "text-zinc-400 hover:text-zinc-100")}
         >
           <Heart className={cn("h-4 w-4 transition-transform active:scale-90", liked && "fill-red-400")} /> {likes > 0 ? likes : "Like"}
         </button>
         <button
           onClick={() => setShowComments((v) => !v)}
-          className="inline-flex items-center gap-1.5 text-[13px] font-medium text-zinc-400 transition-colors hover:text-zinc-100"
+          className="inline-flex items-center gap-1.5 text-[0.8125rem] font-medium text-zinc-400 transition-colors hover:text-zinc-100"
         >
           <MessageCircle className="h-4 w-4" /> {comments.length > 0 ? comments.length : ""} Comment{comments.length === 1 ? "" : "s"}
         </button>
@@ -157,18 +157,18 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
                 placeholder="Add a comment…"
                 rows={2}
                 maxLength={1000}
-                className="min-h-[38px] flex-1 resize-none rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2 text-[13px] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
+                className="min-h-[2.375rem] flex-1 resize-none rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2 text-[0.8125rem] text-zinc-100 outline-none placeholder:text-zinc-600 focus:border-gold-500/40 focus:ring-1 focus:ring-gold-500/20"
               />
               <button onClick={submit} disabled={!draft.trim() || posting} aria-label="Send comment" className="btn-primary relative inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl p-0 disabled:opacity-50">
-                {posting ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-[18px] w-[18px]" />}
+                {posting ? <Loader2 className="relative z-10 h-[1.125rem] w-[1.125rem] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-[1.125rem] w-[1.125rem]" />}
               </button>
             </div>
           ) : (
-            <p className="text-[12px] text-zinc-500"><Link href="/login" className="text-gold-200 hover:underline">Log in</Link> to like and comment.</p>
+            <p className="text-[0.75rem] text-zinc-500"><Link href="/login" className="text-gold-200 hover:underline">Log in</Link> to like and comment.</p>
           )}
 
           {!loaded ? (
-            <p className="py-2 text-center text-[12px] text-zinc-500"><Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" /> Loading…</p>
+            <p className="py-2 text-center text-[0.75rem] text-zinc-500"><Loader2 className="mr-1 inline h-3.5 w-3.5 animate-spin" /> Loading…</p>
           ) : comments.length ? (
             <ul className="space-y-3">
               {comments.map((c) => (
@@ -177,23 +177,23 @@ export function NewsSocial({ url, loggedIn, now }: { url: string; loggedIn: bool
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={c.image} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover ring-1 ring-white/10" />
                   ) : (
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gold-500/15 text-[11px] font-semibold text-gold-200">{c.name.charAt(0).toUpperCase()}</span>
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-gold-500/15 text-[0.6875rem] font-semibold text-gold-200">{c.name.charAt(0).toUpperCase()}</span>
                   )}
                   <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+                    <div className="flex items-center gap-1.5 text-[0.6875rem] text-zinc-500">
                       {c.username ? <Link href={`/u/${c.username}`} className="font-medium text-zinc-300 hover:underline">{c.name}</Link> : <span className="font-medium text-zinc-300">{c.name}</span>}
                       <span>·</span>
                       <span className="mono">{now ? timeAgo(new Date(c.createdAt).getTime(), now) : ""}</span>
                       {c.username && !c.mine && <span className="ml-auto"><MessageButton username={c.username} compact /></span>}
                       {c.mine && <button onClick={() => remove(c.id)} aria-label="Delete" className="ml-auto text-zinc-600 hover:text-red-400"><Trash2 className="h-3 w-3" /></button>}
                     </div>
-                    <p className="mt-0.5 whitespace-pre-wrap break-words text-[13px] leading-relaxed text-zinc-200">{c.body}</p>
+                    <p className="mt-0.5 whitespace-pre-wrap break-words text-[0.8125rem] leading-relaxed text-zinc-200">{c.body}</p>
                   </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="py-1 text-[12px] text-zinc-500">No comments yet. Be the first.</p>
+            <p className="py-1 text-[0.75rem] text-zinc-500">No comments yet. Be the first.</p>
           )}
         </div>
       )}

@@ -167,7 +167,7 @@ export function FdvSimulatorCard({
 
       {/* Slider */}
       <div className="mt-5 space-y-2">
-        <div className="flex items-center justify-between text-[11px] text-content-subtle mono">
+        <div className="flex items-center justify-between text-[0.6875rem] text-content-subtle mono">
           <span>{fmtFdv(chartMinFdv)}</span>
           <span className="text-gold-400 font-semibold">
             {usdCompact(currentFdv)} selected
@@ -191,7 +191,7 @@ export function FdvSimulatorCard({
               key={stop.value}
               type="button"
               onClick={() => onFdvChange(String(stop.value))}
-              className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-all ${
+              className={`rounded-full border px-2 py-0.5 text-[0.625rem] font-semibold transition-all ${
                 Math.abs(currentFdv - stop.value) < 50_000_000
                   ? "border-gold-500 bg-gold-500/20 text-gold-300"
                   : "border-hairline bg-base text-content-muted hover:border-gold-500/30 hover:text-content"
@@ -224,7 +224,7 @@ export function FdvSimulatorCard({
                   x={padding.left - 8}
                   y={y + 4}
                   textAnchor="end"
-                  className="fill-content-subtle text-[9px] mono"
+                  className="fill-content-subtle text-[0.5625rem] mono"
                 >
                   {usdCompact(tick)}
                 </text>
@@ -241,7 +241,7 @@ export function FdvSimulatorCard({
                 x={x}
                 y={height - 10}
                 textAnchor="middle"
-                className="fill-content-subtle text-[9px] mono"
+                className="fill-content-subtle text-[0.5625rem] mono"
               >
                 {stop.label}
               </text>

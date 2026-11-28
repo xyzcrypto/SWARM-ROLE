@@ -54,7 +54,7 @@ export function HeroMarketSection({
   };
 
   return (
-    <div className="neu-convex relative overflow-hidden rounded-2xl border border-white/70 dark:border-white/[0.08] shadow-neu-lg min-h-[160px] sm:h-[138px] flex flex-col justify-between p-3.5 sm:px-[28px] sm:pt-3.5 sm:pb-2.5">
+    <div className="neu-convex relative overflow-hidden rounded-2xl border border-white/70 dark:border-white/[0.08] shadow-neu-lg min-h-[10rem] sm:h-[8.625rem] flex flex-col justify-between p-3.5 sm:px-[1.75rem] sm:pt-3.5 sm:pb-2.5">
       {/* ── Background: Left & bottom shifted so middle skyline top is visible and rightmost watchlist sits in pure dark space ── */}
       <div className="pointer-events-none absolute inset-0 select-none">
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -66,14 +66,14 @@ export function HeroMarketSection({
         {/* Soft linear vignette on the left to guarantee high contrast for title without hiding the artwork */}
         <div className="absolute inset-0 bg-gradient-to-r from-ink-950/90 via-ink-950/35 to-transparent w-[68%] sm:w-3/5" />
         {/* Right fade: desktop only (ensures behind My Watchlist on desktop has clean dark space, removed on mobile) */}
-        <div className="hidden sm:block absolute inset-y-0 right-0 w-[240px] bg-gradient-to-l from-ink-950/95 via-ink-950/90 to-transparent" />
+        <div className="hidden sm:block absolute inset-y-0 right-0 w-[15rem] bg-gradient-to-l from-ink-950/95 via-ink-950/90 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink-950/60 via-transparent to-transparent" />
       </div>
 
       {/* ── Top Area: Responsive Title + Currency / Watchlist ── */}
       <div className="relative z-10 flex flex-col">
         <div className="flex items-center justify-between sm:block">
-          <h1 className="text-2xl sm:text-[34px] lg:text-[38px] font-black tracking-tight text-[#ffffff] !text-[#ffffff] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+          <h1 className="text-2xl sm:text-[2.125rem] lg:text-[2.375rem] font-black tracking-tight text-[#ffffff] !text-[#ffffff] leading-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
             Web3 <span className="text-amber-400 font-extrabold drop-shadow-[0_2px_8px_rgba(245,158,11,0.35)]">Markets</span>
           </h1>
 
@@ -95,20 +95,20 @@ export function HeroMarketSection({
                 title="Switch Currency (USD / INR)"
                 aria-label="Switch Currency"
               >
-                <span className="font-bold text-[10px] text-amber-300">{currency}</span>
-                <span className="text-[9px] text-zinc-400 font-mono">({currency === "INR" ? "₹" : "$"})</span>
+                <span className="font-bold text-[0.625rem] text-amber-300">{currency}</span>
+                <span className="text-[0.5625rem] text-zinc-400 font-mono">({currency === "INR" ? "₹" : "$"})</span>
                 <ChevronDown className={cn("h-3 w-3 text-zinc-400 transition-transform duration-200", showCurrencyMenu && "rotate-180")} />
               </button>
 
               {showCurrencyMenu && (
-                <div className="neu-convex absolute right-0 top-full mt-1.5 z-50 min-w-[135px] rounded-xl border border-white/20 bg-zinc-950/95 p-1 shadow-neu-lg backdrop-blur-xl">
+                <div className="neu-convex absolute right-0 top-full mt-1.5 z-50 min-w-[8.4375rem] rounded-xl border border-white/20 bg-zinc-950/95 p-1 shadow-neu-lg backdrop-blur-xl">
                   <button
                     onClick={() => {
                       setCurrency("USD");
                       setShowCurrencyMenu(false);
                     }}
                     className={cn(
-                      "flex w-full items-center justify-between px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition-colors text-left",
+                      "flex w-full items-center justify-between px-2.5 py-1.5 text-[0.6875rem] font-semibold rounded-lg transition-colors text-left",
                       currency === "USD"
                         ? "bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30"
                         : "text-zinc-300 hover:bg-white/10"
@@ -117,7 +117,7 @@ export function HeroMarketSection({
                     <span className="flex items-center gap-1.5">
                       <span className="text-amber-400 font-bold">$</span> USD
                     </span>
-                    <span className="text-[9px] mono text-zinc-400 font-normal">$1.00</span>
+                    <span className="text-[0.5625rem] mono text-zinc-400 font-normal">$1.00</span>
                   </button>
 
                   <button
@@ -126,7 +126,7 @@ export function HeroMarketSection({
                       setShowCurrencyMenu(false);
                     }}
                     className={cn(
-                      "flex w-full items-center justify-between px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition-colors text-left mt-0.5",
+                      "flex w-full items-center justify-between px-2.5 py-1.5 text-[0.6875rem] font-semibold rounded-lg transition-colors text-left mt-0.5",
                       currency === "INR"
                         ? "bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30"
                         : "text-zinc-300 hover:bg-white/10"
@@ -135,11 +135,11 @@ export function HeroMarketSection({
                     <span className="flex items-center gap-1.5">
                       <span className="text-emerald-400 font-bold">₹</span> INR
                     </span>
-                    <span className="text-[9px] mono text-emerald-400 font-semibold">{inrRate == null ? "-" : "₹" + inrRate.toFixed(2)}</span>
+                    <span className="text-[0.5625rem] mono text-emerald-400 font-semibold">{inrRate == null ? "-" : "₹" + inrRate.toFixed(2)}</span>
                   </button>
 
                   {isLive && (
-                    <div className="flex items-center justify-center gap-1 pt-1 mt-1 border-t border-white/10 text-[8.5px] text-zinc-400">
+                    <div className="flex items-center justify-center gap-1 pt-1 mt-1 border-t border-white/10 text-[0.53125rem] text-zinc-400">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                       <span>Live Forex Rate</span>
                     </div>
@@ -150,7 +150,7 @@ export function HeroMarketSection({
           </div>
         </div>
 
-        <p className="text-[11px] sm:text-xs text-[#e4e4e7] !text-[#e4e4e7] leading-tight mt-1 max-w-lg drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+        <p className="text-[0.6875rem] sm:text-xs text-[#e4e4e7] !text-[#e4e4e7] leading-tight mt-1 max-w-lg drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
           Real-time market data, trends, yields and on-chain insights.
         </p>
 
@@ -160,15 +160,15 @@ export function HeroMarketSection({
             onClick={handleWatchlistClick}
             className="neu-card inline-flex items-center gap-2 rounded-lg border border-white/20 bg-black/60 px-2 py-1 text-left backdrop-blur-md shadow-neu-sm"
           >
-            <div className="flex items-center gap-1 text-[10.5px] font-semibold text-zinc-200">
+            <div className="flex items-center gap-1 text-[0.65625rem] font-semibold text-zinc-200">
               <Plus className="h-2.5 w-2.5 text-amber-400" />
               <span>Watchlist</span>
             </div>
             <div className="flex items-center gap-1">
-              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#f7931a] text-white text-[8px] font-bold">₿</span>
-              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#627eea] text-white text-[8px] font-bold">♦</span>
-              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gradient-to-tr from-[#9945FF] to-[#14F195] text-white text-[7px] font-bold">◎</span>
-              <span className="rounded-full bg-white/10 px-1 text-[7.5px] font-bold text-zinc-300">+{watchlistCount !== undefined ? Math.max(1, watchlistCount - 3) : 8}</span>
+              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#f7931a] text-white text-[0.5rem] font-bold">₿</span>
+              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#627eea] text-white text-[0.5rem] font-bold">♦</span>
+              <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gradient-to-tr from-[#9945FF] to-[#14F195] text-white text-[0.4375rem] font-bold">◎</span>
+              <span className="rounded-full bg-white/10 px-1 text-[0.46875rem] font-bold text-zinc-300">+{watchlistCount !== undefined ? Math.max(1, watchlistCount - 3) : 8}</span>
             </div>
             <ChevronRight className="h-3 w-3 text-amber-400" />
           </button>
@@ -176,7 +176,7 @@ export function HeroMarketSection({
       </div>
 
       {/* ── Desktop-Only: Top-Right Sample data + USD/INR Switcher + My Watchlist Card ── */}
-      <div className="hidden sm:flex absolute right-[28px] top-2.5 z-20 flex-col items-end gap-1">
+      <div className="hidden sm:flex absolute right-[1.75rem] top-2.5 z-20 flex-col items-end gap-1">
         {/* Top sub-row: Live feed + USD/INR Switcher ⌵ */}
         <div className="flex items-center gap-2 text-xs">
           <div className="inline-flex items-center gap-1.5 text-zinc-300 drop-shadow-sm">
@@ -188,7 +188,7 @@ export function HeroMarketSection({
                   : "bg-amber-400 shadow-[0_0_8px_#f59e0b]"
               )}
             />
-            <span className="font-medium text-[11px]">{allLive ? "Live feed" : "Syncing..."}</span>
+            <span className="font-medium text-[0.6875rem]">{allLive ? "Live feed" : "Syncing..."}</span>
           </div>
 
           {/* Interactive USD / INR Currency Switcher */}
@@ -199,20 +199,20 @@ export function HeroMarketSection({
               title="Switch Currency (USD / INR)"
               aria-label="Switch Currency"
             >
-              <span className="font-bold text-[10.5px] text-amber-300">{currency}</span>
-              <span className="text-[9px] text-zinc-400 font-mono">({currency === "INR" ? "₹" : "$"})</span>
+              <span className="font-bold text-[0.65625rem] text-amber-300">{currency}</span>
+              <span className="text-[0.5625rem] text-zinc-400 font-mono">({currency === "INR" ? "₹" : "$"})</span>
               <ChevronDown className={cn("h-3 w-3 text-zinc-400 transition-transform duration-200", showCurrencyMenu && "rotate-180")} />
             </button>
 
             {showCurrencyMenu && (
-              <div className="neu-convex absolute right-0 top-full mt-1.5 z-50 min-w-[135px] rounded-xl border border-white/20 bg-zinc-950/95 p-1 shadow-neu-lg backdrop-blur-xl">
+              <div className="neu-convex absolute right-0 top-full mt-1.5 z-50 min-w-[8.4375rem] rounded-xl border border-white/20 bg-zinc-950/95 p-1 shadow-neu-lg backdrop-blur-xl">
                 <button
                   onClick={() => {
                     setCurrency("USD");
                     setShowCurrencyMenu(false);
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition-colors text-left",
+                    "flex w-full items-center justify-between px-2.5 py-1.5 text-[0.6875rem] font-semibold rounded-lg transition-colors text-left",
                     currency === "USD"
                       ? "bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30"
                       : "text-zinc-300 hover:bg-white/10"
@@ -221,7 +221,7 @@ export function HeroMarketSection({
                   <span className="flex items-center gap-1.5">
                     <span className="text-amber-400 font-bold">$</span> USD
                   </span>
-                  <span className="text-[9px] mono text-zinc-400 font-normal">$1.00</span>
+                  <span className="text-[0.5625rem] mono text-zinc-400 font-normal">$1.00</span>
                 </button>
 
                 <button
@@ -230,7 +230,7 @@ export function HeroMarketSection({
                     setShowCurrencyMenu(false);
                   }}
                   className={cn(
-                    "flex w-full items-center justify-between px-2.5 py-1.5 text-[11px] font-semibold rounded-lg transition-colors text-left mt-0.5",
+                    "flex w-full items-center justify-between px-2.5 py-1.5 text-[0.6875rem] font-semibold rounded-lg transition-colors text-left mt-0.5",
                     currency === "INR"
                       ? "bg-amber-400/20 text-amber-300 font-bold border border-amber-400/30"
                       : "text-zinc-300 hover:bg-white/10"
@@ -239,11 +239,11 @@ export function HeroMarketSection({
                   <span className="flex items-center gap-1.5">
                     <span className="text-emerald-400 font-bold">₹</span> INR
                   </span>
-                  <span className="text-[9px] mono text-emerald-400 font-semibold">{inrRate == null ? "-" : "₹" + inrRate.toFixed(2)}</span>
+                  <span className="text-[0.5625rem] mono text-emerald-400 font-semibold">{inrRate == null ? "-" : "₹" + inrRate.toFixed(2)}</span>
                 </button>
 
                 {isLive && (
-                  <div className="flex items-center justify-center gap-1 pt-1 mt-1 border-t border-white/10 text-[8.5px] text-zinc-400">
+                  <div className="flex items-center justify-center gap-1 pt-1 mt-1 border-t border-white/10 text-[0.53125rem] text-zinc-400">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                     <span>Live Forex Rate</span>
                   </div>
@@ -256,28 +256,28 @@ export function HeroMarketSection({
         {/* Bottom sub-row: My Watchlist mini-card matching Image */}
         <button
           onClick={handleWatchlistClick}
-          className="neu-card flex flex-col gap-0.5 rounded-xl border border-white/20 dark:border-white/10 bg-black/50 hover:border-amber-400/50 hover:bg-black/70 px-2.5 py-1 text-left transition-all backdrop-blur-md shadow-neu-sm group min-w-[145px] hover:scale-[1.02] active:scale-[1.02]"
+          className="neu-card flex flex-col gap-0.5 rounded-xl border border-white/20 dark:border-white/10 bg-black/50 hover:border-amber-400/50 hover:bg-black/70 px-2.5 py-1 text-left transition-all backdrop-blur-md shadow-neu-sm group min-w-[9.0625rem] hover:scale-[1.02] active:scale-[1.02]"
         >
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-zinc-200 group-hover:text-amber-300 transition-colors">
+          <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-zinc-200 group-hover:text-amber-300 transition-colors">
             <Plus className="h-3 w-3 text-zinc-400 group-hover:text-amber-300" />
             <span>My Watchlist</span>
           </div>
           <div className="flex items-center justify-between gap-2 pt-0.5">
             <div className="flex items-center gap-1">
               {/* Bitcoin circular icon */}
-              <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#f7931a] text-white text-[9px] font-bold shadow-sm">
+              <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#f7931a] text-white text-[0.5625rem] font-bold shadow-sm">
                 ₿
               </div>
               {/* Ethereum circular icon */}
-              <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#627eea] text-white text-[9px] font-bold shadow-sm">
+              <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-[#627eea] text-white text-[0.5625rem] font-bold shadow-sm">
                 ♦
               </div>
               {/* Solana circular icon */}
-              <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#9945FF] to-[#14F195] text-white text-[8px] font-bold shadow-sm">
+              <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded-full bg-gradient-to-tr from-[#9945FF] to-[#14F195] text-white text-[0.5rem] font-bold shadow-sm">
                 ◎
               </div>
               {/* +Badge */}
-              <div className="neu-inset-sm flex h-4.5 shrink-0 items-center justify-center rounded-full bg-white/10 border border-white/10 px-1 text-[8px] font-bold text-zinc-300 shadow-neu-inset-sm">
+              <div className="neu-inset-sm flex h-4.5 shrink-0 items-center justify-center rounded-full bg-white/10 border border-white/10 px-1 text-[0.5rem] font-bold text-zinc-300 shadow-neu-inset-sm">
                 +{watchlistCount !== undefined ? Math.max(1, watchlistCount - 3) : 8}
               </div>
             </div>
@@ -287,7 +287,7 @@ export function HeroMarketSection({
       </div>
 
       {/* ── Bottom: Interactive Tabs (Scrollable on mobile, absolute pinned on desktop) ── */}
-      <div className="relative z-10 mt-2 sm:mt-0 sm:absolute sm:left-[28px] sm:bottom-2.5 flex items-center gap-1 sm:gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 touch-pan-x">
+      <div className="relative z-10 mt-2 sm:mt-0 sm:absolute sm:left-[1.75rem] sm:bottom-2.5 flex items-center gap-1 sm:gap-1.5 overflow-x-auto [scrollbar-width:none] -mx-1 px-1 touch-pan-x">
         {TABS.map((t) => {
           const Icon = t.icon;
           const active = activeTab === t.id;
@@ -298,7 +298,7 @@ export function HeroMarketSection({
               key={t.id}
               onClick={() => onSelectTab?.(t.id)}
               className={cn(
-                "inline-flex items-center gap-1 rounded-lg px-2 sm:px-2.5 py-1 text-[11px] font-medium transition-all backdrop-blur-sm h-[26px] hover:scale-[1.02] active:scale-[1.02] shrink-0",
+                "inline-flex items-center gap-1 rounded-lg px-2 sm:px-2.5 py-1 text-[0.6875rem] font-medium transition-all backdrop-blur-sm h-[1.625rem] hover:scale-[1.02] active:scale-[1.02] shrink-0",
                 active
                   ? "neu-inset bg-amber-400/25 border border-amber-400/60 text-amber-300 shadow-neu-inset-sm font-semibold"
                   : isWatchlist

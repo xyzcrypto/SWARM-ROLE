@@ -33,7 +33,7 @@ export function AdherenceTrendChart({ points }: { points: AdherencePoint[] }) {
 
   if (points.length === 0) {
     return (
-      <div className="flex h-[160px] items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-zinc-600">
+      <div className="flex h-[10rem] items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-zinc-600">
         Log a few trades to see your discipline trend over time.
       </div>
     );

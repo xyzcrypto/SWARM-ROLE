@@ -39,7 +39,7 @@ export function BungeeLessonCta({ last }: { last: boolean }) {
 
   return (
     <div className="mt-10 overflow-hidden rounded-3xl border border-gold-400/35 bg-gradient-to-br from-gold-400/[0.12] via-transparent to-mint-400/[0.06] p-6 sm:p-8">
-      <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-300">XYZ Crypto x Bungee Funded Perps</div>
+      <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-gold-300">XYZ Crypto x Bungee Funded Perps</div>
       <h2 className="mt-2 font-display text-2xl font-semibold text-content">Start your Bungee challenge</h2>
       <p className="mt-2 max-w-xl text-sm leading-relaxed text-content-muted">
         Open Bungee through the XYZ Crypto link and use code <span className="font-semibold text-gold-200">{BUNGEE_CODE}</span> at checkout for the discount. Check the
@@ -56,7 +56,7 @@ export function BungeeLessonCta({ last }: { last: boolean }) {
         </button>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Link href={BUNGEE_LINKS.giveaway} className="group flex items-start gap-3 rounded-2xl border border-hairline bg-surface-2 p-4 transition-colors hover:border-gold-400/40">
           <Gift className="mt-0.5 h-5 w-5 shrink-0 text-gold-300" />
           <span>
@@ -73,7 +73,7 @@ export function BungeeLessonCta({ last }: { last: boolean }) {
         </Link>
       </div>
 
-      <p className="mt-5 text-[11px] leading-relaxed text-content-subtle">
+      <p className="mt-5 text-[0.6875rem] leading-relaxed text-content-subtle">
         Trading involves substantial risk. Past performance is not indicative of future results. Funded accounts are subject to the Bungee Funded Perps rulebook.
       </p>
     </div>

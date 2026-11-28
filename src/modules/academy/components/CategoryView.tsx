@@ -89,7 +89,7 @@ export function CategoryView({ c }: { c: C }) {
               <Link href={`/academy/learn/${c.slug}/${m.slug}`} className="surface surface-hover lift group block rounded-3xl p-5 sm:p-6">
                 <div className="flex flex-wrap items-center gap-2">
                   <Pill tone={DIFF_TONE[m.level]}>{LEVEL_LABEL[m.level]}</Pill>
-                  <span className="flex items-center gap-1 text-[11px] text-content-subtle">
+                  <span className="flex items-center gap-1 text-[0.6875rem] text-content-subtle">
                     <Clock className="h-3 w-3" /> {m.minutes} min · {m.questions} question check
                   </span>
                   {isDone && <Pill tone="border-mint-400/40 text-mint-300">Completed</Pill>}
@@ -97,7 +97,7 @@ export function CategoryView({ c }: { c: C }) {
                 <h2 className="mt-3 font-display text-xl font-semibold tracking-tight text-content">{m.title}</h2>
                 <p className="mt-1 text-sm leading-relaxed text-content-muted">{m.summary}</p>
                 {m.objectives.length > 0 && (
-                  <ul className="mt-3 grid gap-1 text-[13px] text-content-muted sm:grid-cols-2">
+                  <ul className="mt-3 grid grid-cols-1 gap-1 text-[0.8125rem] text-content-muted sm:grid-cols-2">
                     {m.objectives.slice(0, 4).map((o) => (
                       <li key={o} className="flex gap-2">
                         <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-gold-300" />

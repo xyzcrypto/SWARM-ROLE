@@ -458,7 +458,7 @@ function CoinLogo({
   }
 
   return (
-    <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/20 text-white font-bold text-[9px] flex items-center justify-center shrink-0 uppercase">
+    <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-white/20 text-white font-bold text-[0.5625rem] flex items-center justify-center shrink-0 uppercase">
       {symbol.slice(0, 2)}
     </div>
   );
@@ -1180,13 +1180,13 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
       {/* ── TOP HEADER ── */}
       <div className="flex items-center justify-between gap-2 pb-2 flex-none border-b border-black/[0.06] dark:border-white/[0.05]">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm sm:text-[15px] font-bold text-zinc-900 dark:text-white tracking-tight">
+          <h2 className="text-sm sm:text-[0.9375rem] font-bold text-zinc-900 dark:text-white tracking-tight">
             Market Heatmap
           </h2>
           {/* Live indicator dot */}
           <span
             title={isLive ? "Live: prices stream from Binance in real time" : "Refreshed every few minutes"}
-            className="flex items-center gap-1 text-[10px] text-zinc-500 dark:text-zinc-400 font-medium ml-0.5"
+            className="flex items-center gap-1 text-[0.625rem] text-zinc-500 dark:text-zinc-400 font-medium ml-0.5"
           >
             <span className="sr-only">{isLive ? "Live" : "Delayed"}</span>
             <span
@@ -1239,7 +1239,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
       {/* ── COMPACT HEATMAP VIEWPORT (Top 100 3-Row Cushion Cards or Sectors) ── */}
       <div className="flex flex-col justify-between gap-1.5 flex-1 min-h-0 pt-2 relative">
         {(view === "top100" ? !coins?.length : !sectors.length) ? (
-          <div className="grid h-full min-h-[160px] grid-cols-3 gap-1.5 sm:gap-2" aria-label="Loading live market data">
+          <div className="grid h-full min-h-[10rem] grid-cols-3 gap-1.5 sm:gap-2" aria-label="Loading live market data">
             {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="animate-pulse rounded-xl bg-white/[0.04]" />
             ))}
@@ -1260,14 +1260,14 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                     className="rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-2 flex items-center justify-between border transition-all duration-200 hover:brightness-110 active:scale-[0.99] relative overflow-hidden group cursor-pointer"
                   >
                     <div className="flex flex-col justify-center h-full min-w-0 pr-1">
-                      <span className="font-extrabold text-sm sm:text-[16px] lg:text-[17px] text-[#ffffff] !text-[#ffffff] leading-none tracking-tight">
+                      <span className="font-extrabold text-sm sm:text-[1rem] lg:text-[1.0625rem] text-[#ffffff] !text-[#ffffff] leading-none tracking-tight">
                         {coin.symbol}
                       </span>
-                      <span className="font-bold text-xs sm:text-[13px] text-[#ffffff] !text-[#ffffff]/95 leading-none tracking-tight mt-1.5">
+                      <span className="font-bold text-xs sm:text-[0.8125rem] text-[#ffffff] !text-[#ffffff]/95 leading-none tracking-tight mt-1.5">
                         {isUp ? "+" : ""}
                         {coin.change24h.toFixed(2)}%
                       </span>
-                      <span className="font-medium text-[10px] sm:text-[11.5px] text-[#ffffff] !text-[#ffffff]/80 leading-none tracking-tight mt-1.5">
+                      <span className="font-medium text-[0.625rem] sm:text-[0.71875rem] text-[#ffffff] !text-[#ffffff]/80 leading-none tracking-tight mt-1.5">
                         {formatMcapCompact(coin.marketCap)}
                       </span>
                     </div>
@@ -1293,10 +1293,10 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                     onMouseLeave={handleTileMouseLeave}
                     className="col-span-2 rounded-lg px-2 py-1.5 flex flex-col justify-center border transition-all duration-200 hover:brightness-110 active:scale-[0.99] cursor-pointer"
                   >
-                    <span className="font-extrabold text-xs sm:text-[13px] text-[#ffffff] !text-[#ffffff] leading-none truncate">
+                    <span className="font-extrabold text-xs sm:text-[0.8125rem] text-[#ffffff] !text-[#ffffff] leading-none truncate">
                       {coin.symbol}
                     </span>
-                    <span className="font-bold text-[10.5px] sm:text-xs text-[#ffffff] !text-[#ffffff]/95 leading-none mt-1.5">
+                    <span className="font-bold text-[0.65625rem] sm:text-xs text-[#ffffff] !text-[#ffffff]/95 leading-none mt-1.5">
                       {isUp ? "+" : ""}
                       {coin.change24h.toFixed(2)}%
                     </span>
@@ -1315,9 +1315,9 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                       style={getMicroCushionStyle(isUp)}
                       onMouseEnter={(e) => handleTileMouseEnter(e, m)}
                       onMouseLeave={handleTileMouseLeave}
-                      className="rounded-[3px] sm:rounded-[4px] border flex items-center justify-center overflow-hidden transition-all hover:scale-110 active:scale-110 cursor-pointer px-0.5"
+                      className="rounded-[0.1875rem] sm:rounded-[0.25rem] border flex items-center justify-center overflow-hidden transition-all hover:scale-110 active:scale-110 cursor-pointer px-0.5"
                     >
-                      <span className="font-extrabold text-[8.5px] sm:text-[9.5px] text-[#ffffff] !text-[#ffffff] leading-none uppercase select-none tracking-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
+                      <span className="font-extrabold text-[0.53125rem] sm:text-[0.59375rem] text-[#ffffff] !text-[#ffffff] leading-none uppercase select-none tracking-tight drop-shadow-[0_1px_1px_rgba(0,0,0,0.4)]">
                         {m.symbol}
                       </span>
                     </Link>
@@ -1339,10 +1339,10 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                     onMouseLeave={handleTileMouseLeave}
                     className="col-span-2 rounded-lg px-2 py-1.5 flex flex-col justify-center border transition-all duration-200 hover:brightness-110 active:scale-[0.99] cursor-pointer"
                   >
-                    <span className="font-extrabold text-xs sm:text-[13px] text-[#ffffff] !text-[#ffffff] leading-none truncate">
+                    <span className="font-extrabold text-xs sm:text-[0.8125rem] text-[#ffffff] !text-[#ffffff] leading-none truncate">
                       {coin.symbol}
                     </span>
-                    <span className="font-bold text-[10.5px] sm:text-xs text-[#ffffff] !text-[#ffffff]/95 leading-none mt-1.5">
+                    <span className="font-bold text-[0.65625rem] sm:text-xs text-[#ffffff] !text-[#ffffff]/95 leading-none mt-1.5">
                       {isUp ? "+" : ""}
                       {coin.change24h.toFixed(2)}%
                     </span>
@@ -1364,7 +1364,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                       style={getMicroCushionStyle(isUp)}
                       onMouseEnter={(e) => handleTileMouseEnter(e, m)}
                       onMouseLeave={handleTileMouseLeave}
-                      className="rounded-[3px] border flex items-center justify-center overflow-hidden transition-all hover:scale-125 active:scale-125 cursor-pointer relative"
+                      className="rounded-[0.1875rem] border flex items-center justify-center overflow-hidden transition-all hover:scale-125 active:scale-125 cursor-pointer relative"
                     >
                       <span
                         style={{
@@ -1388,7 +1388,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
           /* ── SECTORS VIEW: Clean 3x3 Aligned Matrix (Zero Truncation, Live Data) ── */
           <div className="flex flex-col gap-1.5 sm:gap-2 h-full justify-between">
             {/* Tier 1: 3 Macro Powerhouse Sectors (Full width text, L1/DeFi/AI never clipped) */}
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 h-[74px] flex-none">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2 h-[4.625rem] flex-none">
               {sectors.slice(0, 3).map((sec) => {
                 const isUp = sec.change24h >= 0;
                 return (
@@ -1400,20 +1400,20 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                     className="rounded-xl p-2 sm:p-2.5 flex flex-col justify-between border transition-all duration-200 hover:brightness-110 active:scale-[0.98] cursor-pointer shadow-sm overflow-hidden"
                   >
                     <div className="flex items-start justify-between gap-1">
-                      <span className="font-black text-xs sm:text-[13px] text-[#ffffff] !text-[#ffffff] tracking-tight leading-none">
+                      <span className="font-black text-xs sm:text-[0.8125rem] text-[#ffffff] !text-[#ffffff] tracking-tight leading-none">
                         {sec.name}
                       </span>
-                      <span className="font-extrabold text-[10px] text-[#ffffff] !text-[#ffffff]/95 leading-none px-1.5 py-0.5 rounded bg-black/25 flex-shrink-0">
+                      <span className="font-extrabold text-[0.625rem] text-[#ffffff] !text-[#ffffff]/95 leading-none px-1.5 py-0.5 rounded bg-black/25 flex-shrink-0">
                         {isUp ? "+" : ""}{sec.change24h.toFixed(2)}%
                       </span>
                     </div>
                     <div className="flex items-end justify-between gap-1 mt-auto">
                       <div className="flex flex-col leading-none">
-                        <span className="font-bold text-[11px] sm:text-xs text-white/90">
+                        <span className="font-bold text-[0.6875rem] sm:text-xs text-white/90">
                           {formatMcapCompact(sec.marketCap)}
                         </span>
                         {sec.topCoins && sec.topCoins.length > 0 && (
-                          <span className="text-[8.5px] font-semibold text-white/60 tracking-wider uppercase mt-0.5">
+                          <span className="text-[0.53125rem] font-semibold text-white/60 tracking-wider uppercase mt-0.5">
                             {sec.topCoins.slice(0, 2).join(" · ")}
                           </span>
                         )}
@@ -1440,16 +1440,16 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                     className="rounded-lg p-2 flex flex-col justify-between border transition-all duration-200 hover:brightness-110 active:scale-[0.98] cursor-pointer shadow-sm overflow-hidden"
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <span className="font-black text-[11px] sm:text-xs text-white leading-tight">
+                      <span className="font-black text-[0.6875rem] sm:text-xs text-white leading-tight">
                         {sec.name}
                       </span>
-                      <span className="font-bold text-[10px] text-white/95 leading-none px-1.5 py-0.5 rounded bg-black/20 flex-shrink-0">
+                      <span className="font-bold text-[0.625rem] text-white/95 leading-none px-1.5 py-0.5 rounded bg-black/20 flex-shrink-0">
                         {isUp ? "+" : ""}{sec.change24h.toFixed(2)}%
                       </span>
                     </div>
-                    <div className="flex items-baseline justify-between gap-1 mt-auto text-[10px] text-white/80 leading-none">
+                    <div className="flex items-baseline justify-between gap-1 mt-auto text-[0.625rem] text-white/80 leading-none">
                       <span className="font-semibold">{formatMcapCompact(sec.marketCap)}</span>
-                      <span className="text-white/50 text-[8.5px] uppercase font-bold tracking-wider">{sec.symbol}</span>
+                      <span className="text-white/50 text-[0.53125rem] uppercase font-bold tracking-wider">{sec.symbol}</span>
                     </div>
                   </div>
                 );
@@ -1474,7 +1474,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                   : "translate(-50%, 0%)",
               zIndex: 999999,
             }}
-            className="pointer-events-none rounded-xl bg-white border border-slate-200 p-2.5 sm:p-3 shadow-2xl shadow-black/40 min-w-[225px] sm:min-w-[250px] flex flex-col gap-1.5 select-none"
+            className="pointer-events-none rounded-xl bg-white border border-slate-200 p-2.5 sm:p-3 shadow-2xl shadow-black/40 min-w-[14.0625rem] sm:min-w-[15.625rem] flex flex-col gap-1.5 select-none"
           >
             {/* Line 1: Coin Logo + Name + Symbol Badge */}
             <div className="flex items-center gap-1.5 pb-1 border-b border-slate-100">
@@ -1483,10 +1483,10 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                 image={hoveredTile.token.image}
                 name={hoveredTile.token.name}
               />
-              <span className="font-bold text-[13.5px] sm:text-sm text-zinc-950 tracking-tight leading-none">
+              <span className="font-bold text-[0.84375rem] sm:text-sm text-zinc-950 tracking-tight leading-none">
                 {hoveredTile.token.name}
               </span>
-              <span className="bg-[#edf2f7] text-[#64748b] font-semibold text-[10px] px-1.5 py-0.5 rounded-[4px] leading-none uppercase ml-0.5">
+              <span className="bg-[#edf2f7] text-[#64748b] font-semibold text-[0.625rem] px-1.5 py-0.5 rounded-[0.25rem] leading-none uppercase ml-0.5">
                 {hoveredTile.token.symbol}
               </span>
             </div>
@@ -1500,14 +1500,14 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                 </svg>
               </span>
               <span className="font-semibold text-[#64748b]">Price:</span>
-              <span className="font-extrabold text-zinc-900 font-mono tracking-tight text-[12.5px] sm:text-xs">
+              <span className="font-extrabold text-zinc-900 font-mono tracking-tight text-[0.78125rem] sm:text-xs">
                 {hoveredTile.token.price > 0
                   ? formatPriceExact(hoveredTile.token.price)
                   : "Index Avg"}
               </span>
               <span
                 className={cn(
-                  "font-bold text-[10.5px] px-1.5 py-0.5 rounded-[4px] text-white flex items-center gap-0.5 ml-auto leading-none",
+                  "font-bold text-[0.65625rem] px-1.5 py-0.5 rounded-[0.25rem] text-white flex items-center gap-0.5 ml-auto leading-none",
                   hoveredTile.token.change24h >= 0 ? "bg-[#00c087]" : "bg-[#f04438]"
                 )}
               >
@@ -1525,7 +1525,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                 </svg>
               </span>
               <span className="font-semibold text-[#64748b]">Market Cap:</span>
-              <span className="font-bold text-zinc-900 font-mono tracking-tight text-[11px] sm:text-[11.5px]">
+              <span className="font-bold text-zinc-900 font-mono tracking-tight text-[0.6875rem] sm:text-[0.71875rem]">
                 {formatFullCurrency(hoveredTile.token.marketCap)}
               </span>
             </div>
@@ -1541,7 +1541,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                 </svg>
               </span>
               <span className="font-semibold text-[#64748b]">Volume(24h):</span>
-              <span className="font-bold text-zinc-900 font-mono tracking-tight text-[11px] sm:text-[11.5px]">
+              <span className="font-bold text-zinc-900 font-mono tracking-tight text-[0.6875rem] sm:text-[0.71875rem]">
                 {formatFullCurrency(hoveredTile.token.volume24h)}
               </span>
             </div>
@@ -1557,7 +1557,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                 <span className="font-semibold text-[#64748b]">
                   {metric === "volume24h" ? "Vol Share:" : "Dominance:"}
                 </span>
-                <span className="font-bold text-zinc-900 font-mono tracking-tight text-[11px] sm:text-[11.5px]">
+                <span className="font-bold text-zinc-900 font-mono tracking-tight text-[0.6875rem] sm:text-[0.71875rem]">
                   {hoveredTile.dominance.toFixed(2)}%
                 </span>
               </div>
@@ -1590,7 +1590,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                     <button
                       onClick={() => setMetric("marketCap")}
                       className={cn(
-                        "px-2.5 py-1 rounded-[6px] font-semibold transition-all",
+                        "px-2.5 py-1 rounded-[0.375rem] font-semibold transition-all",
                         metric === "marketCap"
                           ? "bg-[#1f293d] text-white shadow-xs"
                           : "text-zinc-400 hover:text-zinc-200"
@@ -1601,7 +1601,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                     <button
                       onClick={() => setMetric("volume24h")}
                       className={cn(
-                        "px-2.5 py-1 rounded-[6px] font-semibold transition-all",
+                        "px-2.5 py-1 rounded-[0.375rem] font-semibold transition-all",
                         metric === "volume24h"
                           ? "bg-[#1f293d] text-white shadow-xs"
                           : "text-zinc-400 hover:text-zinc-200"
@@ -1611,7 +1611,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                     </button>
                   </div>
 
-                  <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                  <span className="px-2 py-0.5 rounded text-[0.625rem] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     LIVE
                   </span>
@@ -1638,7 +1638,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                         key={tab}
                         onClick={() => setModalFilter(tab)}
                         className={cn(
-                          "px-2.5 py-1 rounded-[6px] text-xs font-semibold whitespace-nowrap transition-all",
+                          "px-2.5 py-1 rounded-[0.375rem] text-xs font-semibold whitespace-nowrap transition-all",
                           modalFilter === tab
                             ? "bg-amber-400/20 text-amber-300 border border-amber-400/40 shadow-xs"
                             : "text-zinc-400 hover:text-zinc-200"
@@ -1662,7 +1662,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                       onClick={() => setZoomLevel(1.0)}
                       title="Reset zoom to 100%"
                       className={cn(
-                        "px-1.5 py-0.5 rounded text-[10.5px] font-mono transition-colors font-medium",
+                        "px-1.5 py-0.5 rounded text-[0.65625rem] font-mono transition-colors font-medium",
                         zoomLevel === 1.0 ? "text-amber-300 font-bold" : "text-zinc-400 hover:text-white"
                       )}
                     >
@@ -1741,7 +1741,7 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                         >
                           <div
                             style={{ backgroundColor: bg }}
-                            className="w-full h-full rounded-[2.5px] p-1 flex flex-col items-center justify-center text-center text-white overflow-hidden relative shadow-xs"
+                            className="w-full h-full rounded-[0.15625rem] p-1 flex flex-col items-center justify-center text-center text-white overflow-hidden relative shadow-xs"
                           >
                             {isMega ? (
                               /* Mega Block: BTC */
@@ -1792,15 +1792,15 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                                   {token.symbol}
                                 </div>
                                 <div className="flex flex-col items-center my-auto">
-                                  <div className="text-[11px] sm:text-xs lg:text-sm font-bold leading-tight font-mono">
+                                  <div className="text-[0.6875rem] sm:text-xs lg:text-sm font-bold leading-tight font-mono">
                                     {formatPriceExact(token.price)}
                                   </div>
-                                  <div className="text-[9.5px] sm:text-[11px] font-semibold leading-tight mt-0.5">
+                                  <div className="text-[0.59375rem] sm:text-[0.6875rem] font-semibold leading-tight mt-0.5">
                                     {isUp ? "▲" : "▼"} {Math.abs(token.change24h).toFixed(2)}%
                                   </div>
                                 </div>
                                 {node.h >= 9 && (
-                                  <div className="text-[9px] sm:text-[10px] font-medium opacity-90 leading-tight">
+                                  <div className="text-[0.5625rem] sm:text-[0.625rem] font-medium opacity-90 leading-tight">
                                     {metric === "volume24h"
                                       ? `Vol : ${dom.toFixed(2)}%`
                                       : `Dominance : ${dom.toFixed(2)}%`}
@@ -1810,19 +1810,19 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                             ) : isSmall ? (
                               /* Small Block: DOGE, XLM, BCH, NEAR, LINK, ZEC */
                               <div className="flex flex-col items-center justify-center h-full w-full p-0.5 leading-none">
-                                <div className="text-[10px] sm:text-[11.5px] font-bold truncate">
+                                <div className="text-[0.625rem] sm:text-[0.71875rem] font-bold truncate">
                                   {token.symbol}
                                 </div>
                                 {node.h >= 6 && (
-                                  <div className="text-[8.5px] sm:text-[9.5px] font-mono font-medium mt-0.5 truncate">
+                                  <div className="text-[0.53125rem] sm:text-[0.59375rem] font-mono font-medium mt-0.5 truncate">
                                     {formatPriceExact(token.price)}
                                   </div>
                                 )}
-                                <div className="text-[8px] sm:text-[9px] font-semibold mt-0.5">
+                                <div className="text-[0.5rem] sm:text-[0.5625rem] font-semibold mt-0.5">
                                   {isUp ? "+" : ""}{token.change24h.toFixed(1)}%
                                 </div>
                                 {node.h >= 10 && (
-                                  <div className="text-[7.5px] sm:text-[8px] opacity-80 mt-0.5">
+                                  <div className="text-[0.46875rem] sm:text-[0.5rem] opacity-80 mt-0.5">
                                     {`${dom.toFixed(1)}%`}
                                   </div>
                                 )}
@@ -1830,11 +1830,11 @@ export function MarketHeatmap({ coins }: MarketHeatmapProps) {
                             ) : (
                               /* Micro/Nano Matrix Tile (Eliminates Barcode Slivers) */
                               <div className="flex flex-col items-center justify-center h-full w-full leading-none p-0.5">
-                                <span className="text-[8.5px] sm:text-[9.5px] font-black truncate">
+                                <span className="text-[0.53125rem] sm:text-[0.59375rem] font-black truncate">
                                   {token.symbol}
                                 </span>
                                 {node.h >= 4.5 && (
-                                  <span className="text-[7px] sm:text-[7.5px] font-semibold opacity-90 mt-0.5">
+                                  <span className="text-[0.4375rem] sm:text-[0.46875rem] font-semibold opacity-90 mt-0.5">
                                     {isUp ? "+" : ""}{token.change24h.toFixed(0)}%
                                   </span>
                                 )}

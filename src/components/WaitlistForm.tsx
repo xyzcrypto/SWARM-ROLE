@@ -31,9 +31,9 @@ export function WaitlistForm({
           <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-mint-500/20 text-mint-300">
             <Check className="h-3 w-3" strokeWidth={3} />
           </span>
-          <p className="truncate text-[13px] text-mint-100">You&apos;re in - account has access.</p>
+          <p className="truncate text-[0.8125rem] text-mint-100">You&apos;re in - account has access.</p>
         </div>
-        <Link href="/academy/research" className="inline-flex shrink-0 items-center gap-0.5 text-[13px] font-semibold text-mint-200 hover:underline">
+        <Link href="/academy/research" className="inline-flex shrink-0 items-center gap-0.5 text-[0.8125rem] font-semibold text-mint-200 hover:underline">
           Explore <ArrowRight className="h-3 w-3" />
         </Link>
       </div>
@@ -101,7 +101,7 @@ export function WaitlistForm({
       {state === "error" && (
         <p className="mt-2 text-xs text-red-300">{error}</p>
       )}
-      <p className="mt-2 text-[11px] text-zinc-600">
+      <p className="mt-2 text-[0.6875rem] text-zinc-600">
         No spam. Unsubscribe anytime. No wallet required.
       </p>
     </form>

@@ -44,7 +44,7 @@ export async function ResearchPreview() {
         </Reveal>
 
         {posts.length > 0 ? (
-          <div className="mt-10 grid gap-5 sm:mt-12 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-10 grid grid-cols-1 gap-5 sm:mt-12 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((p, i) => (
               <Reveal key={p.id} delay={i} variant="pop">
                 <PostCard post={p} />

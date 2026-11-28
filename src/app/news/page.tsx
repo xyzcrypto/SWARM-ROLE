@@ -52,7 +52,7 @@ export default async function NewsPage() {
             featured-story panel is fed by the live feed. NewsClient is still
             server-rendered with `initial`, so the heading and first stories
             are in the HTML. */}
-        <div className="relative mx-auto max-w-[1320px] px-4 pb-24 sm:px-6 lg:px-8 2xl:max-w-[1480px]">
+        <div className="relative mx-auto max-w-[82.5rem] px-4 pb-24 sm:px-6 lg:px-8 2xl:max-w-[92.5rem]">
           <NewsClient initial={initial} />
         </div>
       </main>

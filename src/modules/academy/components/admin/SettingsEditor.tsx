@@ -41,7 +41,7 @@ export function SettingsEditor({ data, run }: { data: Overview; run: Run }) {
   return (
     <div className="space-y-5">
       <Card title="Scoring & XP" sub="Applies to quizzes finished after you save. Past XP is never recalculated." onSave={() => run({ op: "config.save", key: "xp", value: xp }, "XP rules saved")} onReset={() => run({ op: "config.reset", key: "xp" }, "XP rules reset")}>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {diffs.map((d) => (
             <Field key={d} label={`Points: ${d}`}>
               <Num value={xp.base[d]} onChange={(n) => setXp({ ...xp, base: { ...xp.base, [d]: n } })} />
@@ -96,7 +96,7 @@ export function SettingsEditor({ data, run }: { data: Overview; run: Run }) {
             </div>
           </Field>
         </div>
-        <div className="mt-5 grid gap-3 sm:grid-cols-3 lg:grid-cols-7">
+        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-7">
           {Object.keys(xp.modeBonus).map((m) => (
             <Field key={m} label={`${m} bonus`}>
               <Num value={xp.modeBonus[m as keyof typeof xp.modeBonus]} onChange={(n) => setXp({ ...xp, modeBonus: { ...xp.modeBonus, [m]: n } })} />
@@ -126,7 +126,7 @@ export function SettingsEditor({ data, run }: { data: Overview; run: Run }) {
       <Card title="Levels" sub="The first level always starts at 0 XP." onSave={() => run({ op: "config.save", key: "levels", value: levels }, "Levels saved")} onReset={() => run({ op: "config.reset", key: "levels" }, "Levels reset")}>
         <div className="space-y-2">
           {levels.map((l, i) => (
-            <div key={i} className="grid grid-cols-[3rem_1fr_8rem_2rem] items-center gap-2">
+            <div key={i} className="grid grid-cols-[3rem_minmax(0,1fr)_8rem_2rem] items-center gap-2">
               <span className="font-mono text-sm text-gold-300">L{i + 1}</span>
               <input className={inputCls} value={l.name} onChange={(e) => setLevels(levels.map((x, k) => (k === i ? { ...x, name: e.target.value } : x)))} />
               <Num value={l.xp} onChange={(n) => setLevels(levels.map((x, k) => (k === i ? { ...x, xp: n } : x)))} />
@@ -142,7 +142,7 @@ export function SettingsEditor({ data, run }: { data: Overview; run: Run }) {
       </Card>
 
       <Card title="Certificate awards" sub="Who gets a certificate when a period or live quiz ends. Turn off auto to approve each one yourself." onSave={() => run({ op: "config.save", key: "awards", value: awards }, "Award rules saved")} onReset={() => run({ op: "config.reset", key: "awards" }, "Award rules reset")}>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {(Object.keys(awards) as (keyof typeof awards)[]).map((k) => (
             <div key={k} className="space-y-2 rounded-2xl border border-hairline p-3">
               <div className="font-semibold capitalize text-content">{k}</div>
@@ -161,13 +161,13 @@ export function SettingsEditor({ data, run }: { data: Overview; run: Run }) {
       </Card>
 
       <Card title="Achievements" sub="Turn achievements on or off and set their XP. Conditions are fixed in code." onSave={() => run({ op: "config.save", key: "achievements", value: ach }, "Achievements saved")} onReset={() => run({ op: "config.reset", key: "achievements" }, "Achievements reset")}>
-        <div className="grid gap-2 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {ach.map((a, i) => (
-            <div key={a.code} className={cn("grid grid-cols-[auto_1fr_5rem] items-center gap-3 rounded-2xl border border-hairline p-3", !a.enabled && "opacity-60")}>
+            <div key={a.code} className={cn("grid grid-cols-[auto_minmax(0,1fr)_5rem] items-center gap-3 rounded-2xl border border-hairline p-3", !a.enabled && "opacity-60")}>
               <input type="checkbox" checked={a.enabled} onChange={(e) => setAch(ach.map((x, k) => (k === i ? { ...x, enabled: e.target.checked } : x)))} aria-label={`Enable ${a.title}`} />
               <div className="min-w-0">
                 <input className={cn(inputCls, "py-1.5")} value={a.title} onChange={(e) => setAch(ach.map((x, k) => (k === i ? { ...x, title: e.target.value } : x)))} />
-                <div className="mt-1 truncate text-[11px] text-content-subtle">{a.description}</div>
+                <div className="mt-1 truncate text-[0.6875rem] text-content-subtle">{a.description}</div>
               </div>
               <Num value={a.xp} onChange={(n) => setAch(ach.map((x, k) => (k === i ? { ...x, xp: n } : x)))} />
             </div>

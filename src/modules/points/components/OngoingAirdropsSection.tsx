@@ -65,7 +65,7 @@ export function OngoingAirdropsSection({
         </div>
 
         {liveCount > 0 && (
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-mint-500/30 bg-mint-500/10 px-2.5 py-1 text-[11px] font-semibold text-mint-200">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-mint-500/30 bg-mint-500/10 px-2.5 py-1 text-[0.6875rem] font-semibold text-mint-200">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
@@ -76,7 +76,7 @@ export function OngoingAirdropsSection({
       </div>
 
       {/* ── The programmes ───────────────────────────────────────────── */}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {programs.map((p, n) => {
           const logo = platformLogo({ links: p.links, logo: p.logo ?? undefined });
           const selected = activeId === p.id;
@@ -116,7 +116,7 @@ export function OngoingAirdropsSection({
                       onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
                     />
                   ) : (
-                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-white/5 text-[10px] font-semibold text-content-muted">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-white/5 text-[0.625rem] font-semibold text-content-muted">
                       {p.name.slice(0, 2).toUpperCase()}
                     </span>
                   )}
@@ -127,7 +127,7 @@ export function OngoingAirdropsSection({
 
                 <span
                   className={cn(
-                    "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+                    "shrink-0 rounded-full border px-2 py-0.5 text-[0.625rem] font-semibold",
                     PHASE_TONE[p.phase]
                   )}
                 >
@@ -141,7 +141,7 @@ export function OngoingAirdropsSection({
                   they should trust the allocation figure beside it. */}
               <span
                 className={cn(
-                  "mt-2.5 inline-flex items-center gap-1 text-[11px] font-medium",
+                  "mt-2.5 inline-flex items-center gap-1 text-[0.6875rem] font-medium",
                   p.confirmed ? "text-mint-300" : "text-content-subtle"
                 )}
               >
@@ -153,7 +153,7 @@ export function OngoingAirdropsSection({
                 {p.confirmed ? "Confirmed programme" : "Community estimate"}
               </span>
 
-              <dl className="mt-3 space-y-1.5 border-t border-hairline pt-3 text-[11px]">
+              <dl className="mt-3 space-y-1.5 border-t border-hairline pt-3 text-[0.6875rem]">
                 <div className="flex items-center justify-between gap-2">
                   <dt className="text-content-subtle">Chain</dt>
                   <dd className="truncate text-content-muted">{p.chain}</dd>
@@ -180,7 +180,7 @@ export function OngoingAirdropsSection({
                 </div>
               </dl>
 
-              <span className="mt-3 inline-flex items-center gap-1 text-[11px] font-semibold text-gold-300">
+              <span className="mt-3 inline-flex items-center gap-1 text-[0.6875rem] font-semibold text-gold-300">
                 {selected ? "Loaded in the calculator" : "Value this programme"}
                 <ArrowRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-1 group-active:translate-x-1" />
               </span>

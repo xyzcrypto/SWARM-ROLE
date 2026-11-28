@@ -19,7 +19,7 @@ export default function BungeeGiveawayPage() {
       <Navbar />
       <main className="relative min-h-screen pt-24 sm:pt-28">
         <PageBackground />
-        <div className="relative mx-auto max-w-[980px] px-5 pb-28 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-[61.25rem] px-5 pb-28 sm:px-6 lg:px-8">
           <GiveawayClient />
         </div>
       </main>

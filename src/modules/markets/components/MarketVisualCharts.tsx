@@ -57,9 +57,9 @@ export function DonutPieChart({
           <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
             <span>{title}</span>
           </h4>
-          {subtitle && <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-[0.6875rem] text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
         </div>
-        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
+        <span className="text-[0.625rem] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20">
           Distribution
         </span>
       </div>
@@ -68,7 +68,7 @@ export function DonutPieChart({
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-center my-auto">
         {/* SVG Donut Circle */}
         <div className="sm:col-span-5 flex items-center justify-center relative">
-          <div className="relative w-[150px] h-[150px] flex items-center justify-center">
+          <div className="relative w-[9.375rem] h-[9.375rem] flex items-center justify-center">
             <svg
               viewBox={`0 0 ${size} ${size}`}
               className="w-full h-full -rotate-90 transform drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
@@ -118,14 +118,14 @@ export function DonutPieChart({
 
             {/* Central Readout */}
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none px-2">
-              <span className="text-[10px] uppercase font-semibold text-zinc-500 dark:text-zinc-400 truncate max-w-[90px]">
+              <span className="text-[0.625rem] uppercase font-semibold text-zinc-500 dark:text-zinc-400 truncate max-w-[5.625rem]">
                 {activeSegment ? activeSegment.name : totalLabel}
               </span>
               <span className="text-sm sm:text-base font-black text-zinc-900 dark:text-zinc-100 tracking-tight mono">
                 {activeSegment ? `${activeSegment.value.toFixed(1)}%` : totalValue}
               </span>
               {activeSegment?.formattedValue && (
-                <span className="text-[10px] text-zinc-500 dark:text-zinc-400 mono">
+                <span className="text-[0.625rem] text-zinc-500 dark:text-zinc-400 mono">
                   {activeSegment.formattedValue}
                 </span>
               )}
@@ -165,7 +165,7 @@ export function DonutPieChart({
                 </div>
                 <div className="flex items-center gap-2.5 mono shrink-0">
                   {seg.formattedValue && (
-                    <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium hidden xs:inline">
+                    <span className="text-[0.6875rem] text-zinc-500 dark:text-zinc-400 font-medium hidden xs:inline">
                       {seg.formattedValue}
                     </span>
                   )}
@@ -182,7 +182,7 @@ export function DonutPieChart({
       {/* Market Insight Callout */}
       {insightText && (
         <div className="mt-3 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.06]">
-          <div className="flex items-start gap-1.5 text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          <div className="flex items-start gap-1.5 text-[0.6875rem] text-zinc-600 dark:text-zinc-400 leading-relaxed">
             <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <strong className="text-zinc-900 dark:text-zinc-200">Market Insight: </strong>
@@ -237,9 +237,9 @@ export function BarRankChart({
           <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
             <span>{title}</span>
           </h4>
-          {subtitle && <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-[0.6875rem] text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
         </div>
-        <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20">
+        <span className="text-[0.625rem] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-500/20">
           Rankings
         </span>
       </div>
@@ -252,7 +252,7 @@ export function BarRankChart({
             <div key={item.label} className="space-y-1 group">
               <div className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2 min-w-0">
-                  <span className="mono text-[10px] font-bold text-zinc-400 dark:text-zinc-500 w-3.5 shrink-0">
+                  <span className="mono text-[0.625rem] font-bold text-zinc-400 dark:text-zinc-500 w-3.5 shrink-0">
                     {idx + 1}
                   </span>
                   {item.icon && <span className="shrink-0">{item.icon}</span>}
@@ -260,14 +260,14 @@ export function BarRankChart({
                     {item.label}
                   </span>
                   {item.sublabel && (
-                    <span className="text-[10px] text-zinc-500 truncate hidden sm:inline">
+                    <span className="text-[0.625rem] text-zinc-500 truncate hidden sm:inline">
                       {item.sublabel}
                     </span>
                   )}
                   {item.badge && (
                     <span
                       className={cn(
-                        "text-[9px] uppercase font-bold px-1.5 py-0.2 rounded border hidden xs:inline shrink-0",
+                        "text-[0.5625rem] uppercase font-bold px-1.5 py-0.2 rounded border hidden xs:inline shrink-0",
                         item.badgeTone === "mint"
                           ? "bg-mint-500/15 text-mint-400 border-mint-500/25"
                           : item.badgeTone === "blue"
@@ -289,7 +289,7 @@ export function BarRankChart({
                   {item.change !== undefined && (
                     <span
                       className={cn(
-                        "text-[10px] font-bold px-1 rounded flex items-center gap-0.5",
+                        "text-[0.625rem] font-bold px-1 rounded flex items-center gap-0.5",
                         item.change >= 0
                           ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10"
                           : "text-rose-600 dark:text-rose-400 bg-rose-500/10"
@@ -320,7 +320,7 @@ export function BarRankChart({
       {/* Market Insight Callout */}
       {insightText && (
         <div className="mt-3 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.06]">
-          <div className="flex items-start gap-1.5 text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          <div className="flex items-start gap-1.5 text-[0.6875rem] text-zinc-600 dark:text-zinc-400 leading-relaxed">
             <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <strong className="text-zinc-900 dark:text-zinc-200">Market Insight: </strong>
@@ -372,9 +372,9 @@ export function ComparativeBarChart({
           <h4 className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5">
             <span>{title}</span>
           </h4>
-          {subtitle && <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
+          {subtitle && <p className="text-[0.6875rem] text-zinc-500 dark:text-zinc-400 mt-0.5">{subtitle}</p>}
         </div>
-        <div className="flex items-center gap-2 text-[10px] font-mono">
+        <div className="flex items-center gap-2 text-[0.625rem] font-mono">
           <span className="text-rose-500 font-bold">- Outflow</span>
           <span className="text-zinc-400">|</span>
           <span className="text-emerald-500 font-bold">+ Inflow</span>
@@ -396,7 +396,7 @@ export function ComparativeBarChart({
                     {item.label}
                   </span>
                   {item.sublabel && (
-                    <span className="text-[10px] text-zinc-500 hidden sm:inline">
+                    <span className="text-[0.625rem] text-zinc-500 hidden sm:inline">
                       {item.sublabel}
                     </span>
                   )}
@@ -444,7 +444,7 @@ export function ComparativeBarChart({
       {/* Market Insight Callout */}
       {insightText && (
         <div className="mt-3 pt-2.5 border-t border-black/[0.05] dark:border-white/[0.06]">
-          <div className="flex items-start gap-1.5 text-[11px] text-zinc-600 dark:text-zinc-400 leading-relaxed">
+          <div className="flex items-start gap-1.5 text-[0.6875rem] text-zinc-600 dark:text-zinc-400 leading-relaxed">
             <Lightbulb className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
             <div>
               <strong className="text-zinc-900 dark:text-zinc-200">Market Insight: </strong>

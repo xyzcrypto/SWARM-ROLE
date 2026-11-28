@@ -147,7 +147,7 @@ export function ScenarioAnalysisCard({
         <table className="w-full text-center border-collapse">
           <thead>
             <tr>
-              <th className="py-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-content-subtle text-left">
+              <th className="py-2 px-2 text-[0.625rem] font-semibold uppercase tracking-wider text-content-subtle text-left">
                 Alloc. \ FDV
               </th>
               {fdvCols.map((col) => (
@@ -199,7 +199,7 @@ export function ScenarioAnalysisCard({
       </div>
 
       {/* Legend */}
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-hairline text-[11px] text-content-muted">
+      <div className="mt-4 flex flex-wrap items-center justify-center gap-4 pt-3 border-t border-hairline text-[0.6875rem] text-content-muted">
         <div className="flex items-center gap-1.5">
           <span className="h-2 w-2 rounded-full bg-rose-500" />
           <span>Low Return</span>

@@ -27,7 +27,7 @@ export function CopyLinkButton({ compact = false, className }: { compact?: boole
         title={copied ? "Copied!" : "Share profile"}
         className={cn("btn-ghost grid h-9 w-9 shrink-0 place-items-center !rounded-full !p-0 text-zinc-200", copied && "!text-mint-300", className)}
       >
-        {copied ? <Check className="h-[18px] w-[18px]" /> : <Link2 className="h-[18px] w-[18px]" />}
+        {copied ? <Check className="h-[1.125rem] w-[1.125rem]" /> : <Link2 className="h-[1.125rem] w-[1.125rem]" />}
       </button>
     );
   }

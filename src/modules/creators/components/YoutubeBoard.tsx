@@ -114,11 +114,11 @@ function VideoCard({ v, i, now }: { v: YtVideo; i: number; now: number }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={v.thumbnail} alt="" loading="lazy" referrerPolicy="no-referrer" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 group-active:scale-105" />
         )}
-        <span className="absolute left-2 top-2 rounded-full bg-ink-950/80 px-2 py-0.5 text-[11px] font-bold tabular-nums text-gold-300 backdrop-blur">
+        <span className="absolute left-2 top-2 rounded-full bg-ink-950/80 px-2 py-0.5 text-[0.6875rem] font-bold tabular-nums text-gold-300 backdrop-blur">
           {compact(videoScore(v))} pts
         </span>
         {v.durationSec > 0 && (
-          <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white">
+          <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-[0.625rem] font-semibold tabular-nums text-white">
             {isShort(v) ? "Short" : duration(v.durationSec)}
           </span>
         )}
@@ -130,7 +130,7 @@ function VideoCard({ v, i, now }: { v: YtVideo; i: number; now: number }) {
         </div>
         <div className="flex flex-wrap gap-1">
           {v.topics.map((t) => (
-            <span key={t} className="rounded-full bg-ink-700 px-2 py-0.5 text-[10px] font-semibold text-content-muted">
+            <span key={t} className="rounded-full bg-ink-700 px-2 py-0.5 text-[0.625rem] font-semibold text-content-muted">
               {topicById(t)?.label ?? t}
             </span>
           ))}
@@ -149,7 +149,7 @@ function VideoCard({ v, i, now }: { v: YtVideo; i: number; now: number }) {
             {compact(v.comments)}
           </span>
           {er != null && (
-            <span className="ml-auto rounded-full bg-mint-400/10 px-2 py-0.5 text-[10px] font-bold text-mint-300" title="Engagement per view">
+            <span className="ml-auto rounded-full bg-mint-400/10 px-2 py-0.5 text-[0.625rem] font-bold text-mint-300" title="Engagement per view">
               {pct(er)}
             </span>
           )}
@@ -399,7 +399,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
       {state.status === "ready" && (
         <div className={cn("space-y-6 transition-opacity duration-300", state.refreshing && "opacity-70")}>
           <Refreshing on={state.refreshing} />
-          <div className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-hairline bg-ink-900/60 px-3.5 py-1.5 font-mono text-[11px] text-content-subtle">
+          <div className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-full border border-hairline bg-ink-900/60 px-3.5 py-1.5 font-mono text-[0.6875rem] text-content-subtle">
             <span className="relative flex h-2 w-2">
               <span className={cn("absolute inline-flex h-full w-full rounded-full opacity-60", state.statsAt ? "animate-ping bg-mint-400" : "bg-content-subtle")} />
               <span className={cn("relative inline-flex h-2 w-2 rounded-full", state.statsAt ? "bg-mint-400" : "bg-content-subtle")} />
@@ -445,7 +445,7 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
                             <span className="min-w-0 truncate text-sm font-semibold text-content group-hover:text-gold-200">{c.channelTitle}</span>
-                            <span className="shrink-0 rounded-full bg-mint-400/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-mint-300" title="Creator Score, of 1000">
+                            <span className="shrink-0 rounded-full bg-mint-400/10 px-1.5 py-0.5 text-[0.625rem] font-bold tabular-nums text-mint-300" title="Creator Score, of 1000">
                               {c.score.total}
                             </span>
                           </div>
@@ -454,11 +454,11 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
                             {c.channelSubs != null && <> · {compact(c.channelSubs)} subs</>}
                           </div>
                         </div>
-                        <div className="w-[64px] shrink-0 text-right">
+                        <div className="w-[4rem] shrink-0 text-right">
                           <div className="font-display text-base font-bold tabular-nums text-gold-300">
                             {csort === "score" ? c.score.total : csort === "views" ? compact(c.views) : csort === "videos" ? c.videos : csort === "likes" ? compact(c.likes) : csort === "runtime" ? runtime(c.durationSec) : compact(c.points)}
                           </div>
-                          <div className="text-[10px] uppercase tracking-wider text-content-subtle">{csort === "points" ? "points" : CSORTS.find((x) => x[0] === csort)![1]}</div>
+                          <div className="text-[0.625rem] uppercase tracking-wider text-content-subtle">{csort === "points" ? "points" : CSORTS.find((x) => x[0] === csort)![1]}</div>
                         </div>
                       </button>
                     </motion.li>
@@ -505,8 +505,8 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
                         <button type="button" onClick={() => setOpen(c)} className="flex w-full items-center gap-2.5 rounded-xl px-1.5 py-1.5 text-left hover:bg-ink-800/50">
                           <Avatar src={c.channelAvatar} alt={c.channelTitle} size={28} />
                           <span className="min-w-0 flex-1 truncate text-sm text-content">{c.channelTitle}</span>
-                          <span className="shrink-0 text-[11px] tabular-nums text-content-subtle">{compact(c.channelSubs)} subs</span>
-                          <span className="shrink-0 rounded-full bg-mint-400/10 px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-mint-300">{c.score.total}</span>
+                          <span className="shrink-0 text-[0.6875rem] tabular-nums text-content-subtle">{compact(c.channelSubs)} subs</span>
+                          <span className="shrink-0 rounded-full bg-mint-400/10 px-1.5 py-0.5 text-[0.625rem] font-bold tabular-nums text-mint-300">{c.score.total}</span>
                         </button>
                       </li>
                     ))}
@@ -546,9 +546,9 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
           <Panel>
             <PanelTitle title="Venue comparison" sub="Every tracked perp DEX side by side, in this window and format" />
             <div className="-mx-2 overflow-x-auto px-2">
-              <table className="w-full min-w-[640px] text-left text-sm">
+              <table className="w-full min-w-[40rem] text-left text-sm">
                 <thead>
-                  <tr className="text-[10px] uppercase tracking-[0.14em] text-content-subtle">
+                  <tr className="text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">
                     <th className="py-2 pr-3 font-semibold">Venue</th>
                     <th className="py-2 pr-3 text-right font-semibold">Videos</th>
                     <th className="py-2 pr-3 text-right font-semibold">New 30d</th>
@@ -565,13 +565,13 @@ export function YoutubeBoard({ state, topic, setTopic }: { state: YtState; topic
                       <td className="py-2.5 pr-3 text-right tabular-nums text-content-muted">{full(v.fresh)}</td>
                       <td className="py-2.5 pr-3 text-right tabular-nums text-content">{compact(v.views)}</td>
                       <td className="py-2.5 pr-3 text-right tabular-nums text-mint-300">{v.views ? pct(v.er) : "-"}</td>
-                      <td className="max-w-[200px] truncate py-2.5 text-content-muted">{v.top?.channelTitle ?? "-"}</td>
+                      <td className="max-w-[12.5rem] truncate py-2.5 text-content-muted">{v.top?.channelTitle ?? "-"}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-            {topic !== "all" && <p className="mt-2 text-[11px] text-content-subtle">Showing one venue&apos;s videos. Pick &quot;All perp DEX&quot; above to compare every venue.</p>}
+            {topic !== "all" && <p className="mt-2 text-[0.6875rem] text-content-subtle">Showing one venue&apos;s videos. Pick &quot;All perp DEX&quot; above to compare every venue.</p>}
           </Panel>
 
           <section>

@@ -69,7 +69,7 @@ describe("the desktop rail fits the links it has", () => {
   it("keeps the width-saving steps that make eight links fit", () => {
     expect(src).toMatch(/px-2 py-2 text-sm font-medium transition-colors min-\[1366px\]:px-2\.5 2xl:px-3/);
     expect(src).toMatch(/hidden flex-col items-start leading-tight 2xl:flex/);
-    expect(src).toMatch(/whitespace-nowrap font-display text-\[15px\]/);
+    expect(src).toMatch(/whitespace-nowrap font-display text-\[0\.9375rem\]/);
   });
 
   it("keeps the secondary destinations out of the rail", () => {

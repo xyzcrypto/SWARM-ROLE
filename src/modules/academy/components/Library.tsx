@@ -13,7 +13,7 @@ const LEVEL_DOT = ["bg-mint-400", "bg-sky-400", "bg-gold-400", "bg-gold-200"];
 export function Library({ categories, me, numbers }: { categories: CatalogCategory[] | null; me: Me | null; numbers?: Map<string, number> }) {
   if (!categories)
     return (
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 6 }, (_, i) => (
           <Skeleton key={i} className="h-44" />
         ))}
@@ -21,7 +21,7 @@ export function Library({ categories, me, numbers }: { categories: CatalogCatego
     );
   const done = new Set(me?.progress.modules ?? []);
   return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
       {categories.map((c, i) => {
         const finished = c.modules.filter((m) => done.has(m.id)).length;
         const complete = finished === c.modules.length && c.modules.length > 0;
@@ -44,7 +44,7 @@ export function Library({ categories, me, numbers }: { categories: CatalogCatego
                 <span className="acad-track-icon grid h-10 w-10 place-items-center rounded-xl border border-hairline text-content-muted transition-colors group-hover:border-gold-400/50 group-hover:text-gold-600 group-active:text-gold-600 dark:group-hover:text-gold-200">
                   <Icon name={c.icon} className="h-5 w-5" />
                 </span>
-                <span className="font-mono text-[11px] tabular-nums text-content-subtle/70">{String(numbers?.get(c.id) ?? i + 1).padStart(2, "0")}</span>
+                <span className="font-mono text-[0.6875rem] tabular-nums text-content-subtle/70">{String(numbers?.get(c.id) ?? i + 1).padStart(2, "0")}</span>
               </div>
               <h3 className="mt-4 font-display text-lg font-semibold leading-snug tracking-tight text-content">{c.title}</h3>
               <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-content-muted">{c.tagline}</p>
@@ -59,7 +59,7 @@ export function Library({ categories, me, numbers }: { categories: CatalogCatego
                     />
                   ))}
                 </div>
-                <span className="shrink-0 whitespace-nowrap text-[11px] text-content-subtle">
+                <span className="shrink-0 whitespace-nowrap text-[0.6875rem] text-content-subtle">
                   {c.modules.length} lessons · {c.questionCount} questions
                 </span>
                 {complete ? <CheckCircle2 className="acad-done-check ml-auto h-4 w-4 text-mint-500 dark:text-mint-300" /> : <ArrowUpRight className="ml-auto h-4 w-4 text-content-subtle transition-all group-hover:-translate-y-0.5 group-active:-translate-y-0.5 group-hover:translate-x-0.5 group-active:translate-x-0.5 group-hover:text-gold-300" />}

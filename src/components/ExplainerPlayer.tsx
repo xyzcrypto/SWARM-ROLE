@@ -53,8 +53,8 @@ export function ExplainerPlayer() {
         // is the fixed navbar plus the section heading above the frame; the frame's
         // width then follows from its aspect ratio. Phone: the 9:16 cut, never wider
         // than 400px. md+: the 16:9 cut, never wider than 1100px. Centred by mx-auto.
-        "aspect-[9/16] w-full max-w-[min(400px,calc((100svh_-_330px)*9/16))]",
-        "md:aspect-video md:max-w-[min(1100px,calc((100svh_-_340px)*16/9))] md:rounded-4xl"
+        "aspect-[9/16] w-full max-w-[min(25rem,calc((100svh_-_20.625rem)*9/16))]",
+        "md:aspect-video md:max-w-[min(68.75rem,calc((100svh_-_21.25rem)*16/9))] md:rounded-4xl"
       )}
     >
       {src ? (
@@ -98,11 +98,11 @@ export function ExplainerPlayer() {
           </span>
           <span className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 p-3 sm:gap-3 sm:p-6">
             {/* Literal colours on purpose: the light theme remaps text-white / text-zinc-* to dark, which would vanish on this dark poster.
-                ⚠️ And sm:text-[16px], never sm:text-base: this config has a colour named `base`, so `text-base`
+                ⚠️ And sm:text-[1rem], never sm:text-base: this config has a colour named `base`, so `text-base`
                 also emits `color: var(--bg)` and painted this label the page background at sm and up. */}
-            <span className="whitespace-nowrap text-sm font-semibold text-[#fff] sm:text-[16px]">Watch the story</span>
+            <span className="whitespace-nowrap text-sm font-semibold text-[#fff] sm:text-[1rem]">Watch the story</span>
             {/* The frame is narrow on a phone (it is sized to fit the screen's height), so the chip is short there. */}
-            <span className="mono whitespace-nowrap rounded-full bg-black/55 px-2.5 py-1 text-[11px] text-[#f4f4f5] ring-1 ring-white/15 sm:px-3 sm:text-xs">
+            <span className="mono whitespace-nowrap rounded-full bg-black/55 px-2.5 py-1 text-[0.6875rem] text-[#f4f4f5] ring-1 ring-white/15 sm:px-3 sm:text-xs">
               {EXPLAINER.durationLabel}
               <span className="sm:hidden"> · CC</span>
               <span className="hidden sm:inline"> · sound + captions</span>

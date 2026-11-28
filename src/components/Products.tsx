@@ -44,7 +44,7 @@ function Chip({ s }: { s: Status }) {
   return (
     <Badge tone={tone[s]}>
       <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse-dot" />
-      <span className="mono text-[10px] uppercase tracking-wider">{s}</span>
+      <span className="mono text-[0.625rem] uppercase tracking-wider">{s}</span>
     </Badge>
   );
 }
@@ -90,7 +90,7 @@ export function Products() {
           subtitle="A full product suite, shipping in stages, what's live, what's building, and what's next."
         />
 
-        <div className="mt-10 grid gap-4 sm:mt-12 lg:grid-cols-3">
+        <div className="mt-10 grid grid-cols-1 gap-4 sm:mt-12 lg:grid-cols-3">
           {/* Perp DEX spotlight */}
           <Reveal className="lg:col-span-2">
             <TiltCard max={4}>
@@ -107,7 +107,7 @@ export function Products() {
                 on-chain traders.
               </p>
               {/* live BTC + ETH perp charts (real CoinGecko data) */}
-              <div className="mt-7 grid gap-3 sm:grid-cols-2">
+              <div className="mt-7 grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <PerpChart coin={{ id: "bitcoin", symbol: "BTC", base: 64000 }} />
                 <PerpChart coin={{ id: "ethereum", symbol: "ETH", base: 3400 }} />
               </div>
@@ -134,7 +134,7 @@ export function Products() {
           </Reveal>
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {small.map((p, i) => {
             const inner = (
               <>

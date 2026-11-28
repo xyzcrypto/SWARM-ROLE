@@ -91,7 +91,7 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
           {user.username && (
             <Link
               href={`/u/${user.username}`}
-              className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-mint-500/30 bg-mint-500/10 px-3 py-2 text-[13px] font-medium text-mint-200 transition-colors hover:bg-mint-500/20"
+              className="ml-auto inline-flex items-center gap-1.5 rounded-xl border border-mint-500/30 bg-mint-500/10 px-3 py-2 text-[0.8125rem] font-medium text-mint-200 transition-colors hover:bg-mint-500/20"
             >
               View public profile <ExternalLink className="h-3.5 w-3.5" />
             </Link>
@@ -129,7 +129,7 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
           {tab === "feel" && (
             <div className="glass rounded-3xl p-5 sm:p-6">
               <p className="font-display text-lg font-semibold text-zinc-50">Customize website</p>
-              <p className="mt-1 mb-5 text-[13px] text-zinc-500">Theme, text size, animations, performance, haptics and sounds. Saved on this device; applies instantly.</p>
+              <p className="mt-1 mb-5 text-[0.8125rem] text-zinc-500">Theme, text size, animations, performance, haptics and sounds. Saved on this device; applies instantly.</p>
               <CustomizePanel />
             </div>
           )}
@@ -292,7 +292,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
       <div className="surface space-y-3 rounded-2xl p-5 sm:p-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Profile cover image</p>
-          <p className="mt-1 text-[11px] text-zinc-600">
+          <p className="mt-1 text-[0.6875rem] text-zinc-600">
             Upload an image from your device, or paste a direct https link. It shows as the banner on your
             public profile. JPG, PNG, WebP or GIF · max 5 MB.
           </p>
@@ -310,7 +310,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
             type="button"
             onClick={() => bannerInputRef.current?.click()}
             disabled={bannerBusy}
-            className="btn-secondary inline-flex items-center gap-2 !py-2 text-[13px] disabled:opacity-60"
+            className="btn-secondary inline-flex items-center gap-2 !py-2 text-[0.8125rem] disabled:opacity-60"
           >
             {bannerBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImageUp className="h-4 w-4" />}
             {bannerBusy ? `Uploading… ${bannerProgress}%` : "Upload cover"}
@@ -321,9 +321,9 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
             <div className="h-full rounded-full bg-mint-shine transition-all duration-200" style={{ width: `${bannerProgress}%` }} />
           </div>
         )}
-        {bannerErr && <p className="text-[11px] text-red-300">{bannerErr}</p>}
+        {bannerErr && <p className="text-[0.6875rem] text-red-300">{bannerErr}</p>}
         <div>
-          <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Or paste a link</label>
+          <label className="mb-1 block text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-500">Or paste a link</label>
           <input
             value={banner}
             onChange={(e) => setBanner(e.target.value)}
@@ -370,7 +370,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
               </span>
             )}
           </div>
-          <p className="mt-1.5 text-[11px] text-zinc-600">
+          <p className="mt-1.5 text-[0.6875rem] text-zinc-600">
             3-20 chars: lowercase letters, numbers or _. Your public profile lives at{" "}
             <span className="mono text-zinc-500">/u/{normalizedHandle || "handle"}</span>.
           </p>
@@ -388,7 +388,7 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
             placeholder="Web3 builder, trader, researcher…"
             className="w-full resize-none rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none transition-colors placeholder:text-zinc-600 focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
           />
-          <p className="mt-1 text-right text-[11px] text-zinc-600">{bio.length}/500</p>
+          <p className="mt-1 text-right text-[0.6875rem] text-zinc-600">{bio.length}/500</p>
         </label>
 
         <Field label="Location" value={location} onChange={setLocation} placeholder="Dubai, UAE" icon={<MapPin className="h-4 w-4" />} />
@@ -412,33 +412,33 @@ function ProfilePanel({ user }: { user: SettingsUser }) {
       <div className="surface space-y-3 rounded-2xl p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-400">Privacy</p>
         <label className="block">
-          <span className="mb-1.5 block text-[13px] text-zinc-300">Who can message me</span>
+          <span className="mb-1.5 block text-[0.8125rem] text-zinc-300">Who can message me</span>
           <select
             value={dmPrivacy}
             onChange={(e) => setDmPrivacy(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2.5 text-[14px] text-zinc-100 outline-none focus:border-gold-500/40"
+            className="w-full rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2.5 text-[0.875rem] text-zinc-100 outline-none focus:border-gold-500/40"
           >
             <option value="everyone">Everyone</option>
             <option value="following">Only people I follow</option>
             <option value="nobody">Nobody</option>
           </select>
         </label>
-        <p className="text-[11px] leading-relaxed text-zinc-500">
+        <p className="text-[0.6875rem] leading-relaxed text-zinc-500">
           This decides who can start a new conversation with you. Conversations
           you already have keep working - use Block in a thread to end one.
         </p>
         <label className="block pt-2">
-          <span className="mb-1.5 block text-[13px] text-zinc-300">Who can see my profile activity</span>
+          <span className="mb-1.5 block text-[0.8125rem] text-zinc-300">Who can see my profile activity</span>
           <select
             value={profileVisibility}
             onChange={(e) => setProfileVisibility(e.target.value)}
-            className="w-full rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2.5 text-[14px] text-zinc-100 outline-none focus:border-gold-500/40"
+            className="w-full rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2.5 text-[0.875rem] text-zinc-100 outline-none focus:border-gold-500/40"
           >
             <option value="public">Everyone (public profile)</option>
             <option value="private">Only me (private profile)</option>
           </select>
         </label>
-        <p className="text-[11px] leading-relaxed text-zinc-500">
+        <p className="text-[0.6875rem] leading-relaxed text-zinc-500">
           Public shows your Academy level, XP, streak, quizzes, certificates and
           feedback on your profile so anyone can follow your progress. Private
           shows only your name and photo. Leaderboards still list your name and XP.
@@ -486,7 +486,7 @@ function AccountPanel({ user }: { user: SettingsUser }) {
             </span>
           </div>
           {!isPremium && (
-            <Link href="/premium" className="btn-gold !py-2 text-[13px]">
+            <Link href="/premium" className="btn-gold !py-2 text-[0.8125rem]">
               Upgrade to Premium
             </Link>
           )}

@@ -38,7 +38,7 @@ export function CalcField({
           <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-zinc-500">{suffix}</span>
         )}
       </div>
-      {hint && <span className="mt-1 block text-[11px] text-zinc-600">{hint}</span>}
+      {hint && <span className="mt-1 block text-[0.6875rem] text-zinc-600">{hint}</span>}
     </label>
   );
 }

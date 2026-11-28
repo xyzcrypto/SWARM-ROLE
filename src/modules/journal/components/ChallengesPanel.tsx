@@ -130,7 +130,7 @@ export function ChallengesPanel({ isPremium }: { isPremium: boolean }) {
       {discover.length > 0 && (
         <div className="space-y-3">
           <h2 className="font-display text-base font-semibold text-zinc-200">Discover</h2>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {discover.map((c) => (
               <div key={c.id} className="surface rounded-2xl p-4">
                 <div className="flex items-start justify-between gap-2">
@@ -140,7 +140,7 @@ export function ChallengesPanel({ isPremium }: { isPremium: boolean }) {
                       {money(c.startingCapital)} start · {c._count?.participants ?? 0} joined
                     </p>
                   </div>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-violet-300 ring-1 ring-violet-500/25">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-violet-500/10 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-violet-300 ring-1 ring-violet-500/25">
                     <Users className="h-3 w-3" /> {c.visibility}
                   </span>
                 </div>
@@ -183,10 +183,10 @@ function ChallengeCard({ challenge, expanded, onToggle }: { challenge: Challenge
       <button onClick={onToggle} className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left">
         <div className="flex items-center gap-3">
           <span className="font-display text-sm font-semibold text-zinc-100">{c.title}</span>
-          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", c.visibility === "private" ? "bg-white/5 text-zinc-400 ring-white/10" : "bg-violet-500/10 text-violet-300 ring-violet-500/25")}>
+          <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide ring-1", c.visibility === "private" ? "bg-white/5 text-zinc-400 ring-white/10" : "bg-violet-500/10 text-violet-300 ring-violet-500/25")}>
             {c.visibility}
           </span>
-          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", expired ? "bg-white/5 text-zinc-400 ring-white/10" : "bg-mint-500/10 text-mint-300 ring-mint-500/25")}>
+          <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide ring-1", expired ? "bg-white/5 text-zinc-400 ring-white/10" : "bg-mint-500/10 text-mint-300 ring-mint-500/25")}>
             {expired ? "ended" : c.status}
           </span>
         </div>
@@ -202,7 +202,7 @@ function ChallengeCard({ challenge, expanded, onToggle }: { challenge: Challenge
         <div className="space-y-5 border-t border-line p-4">
           {c.description && <p className="text-sm text-zinc-400">{c.description}</p>}
 
-          <div className="grid gap-3 text-xs text-zinc-400 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 text-xs text-zinc-400 sm:grid-cols-3">
             <div>Starting capital: <span className="mono text-zinc-200">{money(c.startingCapital)}</span></div>
             {c.targetCapital && <div>Target: <span className="mono text-zinc-200">{money(c.targetCapital)}</span></div>}
             <div>{expired ? "Ended" : `${remaining} days left`}</div>
@@ -243,7 +243,7 @@ function ChallengeCard({ challenge, expanded, onToggle }: { challenge: Challenge
 
               {c.targetCapital && myEntry && (
                 <div>
-                  <div className="mb-1.5 flex items-center justify-between text-[11px] text-zinc-500">
+                  <div className="mb-1.5 flex items-center justify-between text-[0.6875rem] text-zinc-500">
                     <span>Your progress to target</span>
                     <span>{(progressTowardTarget(c, myEntry.capital) ?? 0).toFixed(0)}%</span>
                   </div>
@@ -357,11 +357,11 @@ function ChallengeDayTracker({
               <button onClick={() => (isEditing ? setEditingDay(null) : openDay(day))} className="flex w-full flex-wrap items-center gap-2 px-3 py-2 text-left text-xs">
                 <span className="mono text-zinc-500">{formatDateWithDay(day)}</span>
                 {bucket && (
-                  <span className={cn("mono rounded-full px-1.5 py-0.5 text-[10px]", bucket.pnl >= 0 ? "bg-mint-500/10 text-mint-300" : "bg-rose-500/10 text-rose-300")}>
+                  <span className={cn("mono rounded-full px-1.5 py-0.5 text-[0.625rem]", bucket.pnl >= 0 ? "bg-mint-500/10 text-mint-300" : "bg-rose-500/10 text-rose-300")}>
                     {bucket.pnl >= 0 ? "+" : ""}${bucket.pnl.toLocaleString(undefined, { maximumFractionDigits: 0 })}
                   </span>
                 )}
-                {note?.mood && <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] ring-1", MOOD_TONE[note.mood])}>{note.mood}</span>}
+                {note?.mood && <span className={cn("rounded-full px-1.5 py-0.5 text-[0.625rem] ring-1", MOOD_TONE[note.mood])}>{note.mood}</span>}
                 {note?.note && <span className="flex-1 truncate text-zinc-500">{note.note}</span>}
               </button>
               {isEditing && (
@@ -547,7 +547,7 @@ function ChallengeForm({ isPremium, onCreated, onCancel }: { isPremium: boolean;
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Start date</span>
           <input type="date" value={startDate} onChange={(e) => { setPreset("custom"); setStartDate(e.target.value); }} className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none focus:border-gold-500/50" />
@@ -558,7 +558,7 @@ function ChallengeForm({ isPremium, onCreated, onCancel }: { isPremium: boolean;
         </label>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <CalcField label="Starting capital" value={startingCapital} onChange={setStartingCapital} suffix="USD" />
         <CalcField label="Target capital" value={targetCapital} onChange={setTargetCapital} suffix="USD (optional)" />
       </div>

@@ -73,7 +73,7 @@ export function AIMarketIntelligenceCard({
             <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">AI Market Intelligence</h2>
           </div>
           {live && (
-            <span className="neu-inset-sm rounded-lg bg-amber-400/20 border border-amber-400/40 px-1.5 py-0.5 text-[9px] font-bold text-amber-700 dark:text-amber-300 shrink-0">
+            <span className="neu-inset-sm rounded-lg bg-amber-400/20 border border-amber-400/40 px-1.5 py-0.5 text-[0.5625rem] font-bold text-amber-700 dark:text-amber-300 shrink-0">
               Live
             </span>
           )}
@@ -81,25 +81,25 @@ export function AIMarketIntelligenceCard({
 
         {/* Section 1: What is happening today? */}
         <div className="pt-1.5 pb-1 border-b border-black/[0.06] dark:border-white/[0.06]">
-          <p className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100 leading-none">What is happening today?</p>
-          <p className="text-[9.5px] leading-tight text-zinc-700 dark:text-zinc-300 mt-1 line-clamp-2">
+          <p className="text-[0.625rem] font-bold text-zinc-900 dark:text-zinc-100 leading-none">What is happening today?</p>
+          <p className="text-[0.59375rem] leading-tight text-zinc-700 dark:text-zinc-300 mt-1 line-clamp-2">
             {narrative}
           </p>
-          <p className="text-[8.5px] italic text-zinc-500 dark:text-zinc-400 mt-0.5 leading-none">
+          <p className="text-[0.53125rem] italic text-zinc-500 dark:text-zinc-400 mt-0.5 leading-none">
             {live ? "From live market feeds" : "Connecting to live feeds"}
           </p>
         </div>
 
         {/* Section 2: 3 notable changes */}
         <div className="pt-1.5">
-          <p className="text-[9.5px] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">3 notable changes</p>
-          <div className="space-y-1 pt-1 text-[10px]">
+          <p className="text-[0.59375rem] font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">3 notable changes</p>
+          <div className="space-y-1 pt-1 text-[0.625rem]">
             {items.map((it) => (
               <div key={it.label} className="flex items-center justify-between">
                 <span className="flex items-center gap-1 text-zinc-700 dark:text-zinc-300 truncate">
                   <span
                     className={cn(
-                      "font-bold text-[9px] leading-none shrink-0",
+                      "font-bold text-[0.5625rem] leading-none shrink-0",
                       it.up == null ? "text-zinc-400" : it.up ? "text-emerald-600 dark:text-mint-400" : "text-rose-600 dark:text-red-400"
                     )}
                   >
@@ -124,7 +124,7 @@ export function AIMarketIntelligenceCard({
       {/* Action Button: Compact Full-Width Button */}
       <button
         onClick={handleOpen}
-        className="neu-btn-gold mt-2 flex w-full items-center justify-center gap-1 rounded-xl py-2 px-2 text-[11px] font-bold text-amber-950 dark:text-amber-950 shadow-neu-glow-gold hover:scale-[1.02] active:scale-[1.02] transition-transform cursor-pointer"
+        className="neu-btn-gold mt-2 flex w-full items-center justify-center gap-1 rounded-xl py-2 px-2 text-[0.6875rem] font-bold text-amber-950 dark:text-amber-950 shadow-neu-glow-gold hover:scale-[1.02] active:scale-[1.02] transition-transform cursor-pointer"
       >
         <span>Read Full Market Brief</span>
         <ArrowRight className="h-3 w-3" />

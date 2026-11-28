@@ -63,7 +63,7 @@ export function ProfileAcademy({ a, username }: { a: ProfileActivity; username: 
               <div key={s.k} className="surface rounded-2xl p-4">
                 <s.icon className="h-4 w-4 text-gold-300" />
                 <div className="mt-2 font-display text-xl font-semibold text-zinc-100">{s.v}</div>
-                <div className="text-[11px] uppercase tracking-[0.12em] text-zinc-500">
+                <div className="text-[0.6875rem] uppercase tracking-[0.12em] text-zinc-500">
                   {s.k}
                   {s.sub ? ` · ${s.sub}` : ""}
                 </div>
@@ -79,7 +79,7 @@ export function ProfileAcademy({ a, username }: { a: ProfileActivity; username: 
                 </span>
                 <span className="text-xs font-normal text-zinc-500">{a.lessonsDone} lessons complete</span>
               </div>
-              <ul className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2">
+              <ul className="mt-3 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
                 {a.tracks.slice(0, 8).map((t) => {
                   const pct = Math.round((t.done / Math.max(1, t.total)) * 100);
                   return (
@@ -101,7 +101,7 @@ export function ProfileAcademy({ a, username }: { a: ProfileActivity; username: 
             </div>
           )}
 
-          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
             {/* Certificates */}
             <div className="surface rounded-2xl p-4 sm:p-5">
               <div className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
@@ -115,7 +115,7 @@ export function ProfileAcademy({ a, username }: { a: ProfileActivity; username: 
                         <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-gold-400/15 text-xs font-bold text-gold-200">#{c.rank}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm text-zinc-200">{c.title}</span>
-                          <span className="block text-[11px] text-zinc-500">{day(c.issuedAt)} · {c.code}</span>
+                          <span className="block text-[0.6875rem] text-zinc-500">{day(c.issuedAt)} · {c.code}</span>
                         </span>
                       </Link>
                     </li>
@@ -138,7 +138,7 @@ export function ProfileAcademy({ a, username }: { a: ProfileActivity; username: 
                       <Link href={`/academy/s/quiz/${r.id}`} className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-white/[0.04] active:bg-white/[0.04]">
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm text-zinc-200">{r.mode}</span>
-                          {r.at && <span className="block text-[11px] text-zinc-500">{day(r.at)}</span>}
+                          {r.at && <span className="block text-[0.6875rem] text-zinc-500">{day(r.at)}</span>}
                         </span>
                         <span className="font-mono text-xs text-zinc-400">
                           {r.correct}/{r.total}
@@ -155,7 +155,7 @@ export function ProfileAcademy({ a, username }: { a: ProfileActivity; username: 
           </div>
 
           {/* Achievements + feedback */}
-          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-2">
             <div className="surface rounded-2xl p-4 sm:p-5">
               <div className="flex items-center gap-2 text-sm font-semibold text-zinc-100">
                 <Award className="h-4 w-4 text-gold-300" /> Latest achievements
@@ -179,13 +179,13 @@ export function ProfileAcademy({ a, username }: { a: ProfileActivity; username: 
               <div className="mt-3 flex items-center gap-6">
                 <div>
                   <div className="font-display text-xl font-semibold text-zinc-100">{n(a.feedback.count)}</div>
-                  <div className="text-[11px] uppercase tracking-[0.12em] text-zinc-500">Sent</div>
+                  <div className="text-[0.6875rem] uppercase tracking-[0.12em] text-zinc-500">Sent</div>
                 </div>
                 <div>
                   <div className="flex items-center gap-1 font-display text-xl font-semibold text-mint-300">
                     <Rocket className="h-4 w-4" /> {n(a.feedback.shipped)}
                   </div>
-                  <div className="text-[11px] uppercase tracking-[0.12em] text-zinc-500">Shipped</div>
+                  <div className="text-[0.6875rem] uppercase tracking-[0.12em] text-zinc-500">Shipped</div>
                 </div>
                 <div className="ml-auto flex flex-wrap justify-end gap-1.5">
                   {a.feedback.badges.map((b) => (
@@ -232,17 +232,17 @@ export function ProfileAcademyOverview({ a, username }: { a: ProfileActivity; us
         </div>
         <dl className="flex w-full justify-around gap-6 border-t border-white/[0.06] pt-3 text-center sm:w-auto sm:border-0 sm:pt-0">
           <div>
-            <dt className="text-[11px] text-zinc-500">Rank</dt>
+            <dt className="text-[0.6875rem] text-zinc-500">Rank</dt>
             <dd className="font-display text-xl font-semibold text-zinc-50">{a.rank ? `#${n(a.rank)}` : "–"}</dd>
           </div>
           <div>
-            <dt className="text-[11px] text-zinc-500">Streak</dt>
+            <dt className="text-[0.6875rem] text-zinc-500">Streak</dt>
             <dd className="flex items-center justify-center gap-1 font-display text-xl font-semibold text-zinc-50">
               <Flame className="h-4 w-4 text-orange-400" /> {a.streak}
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] text-zinc-500">Badges</dt>
+            <dt className="text-[0.6875rem] text-zinc-500">Badges</dt>
             <dd className="font-display text-xl font-semibold text-zinc-50">{n(a.achievementCount)}</dd>
           </div>
         </dl>

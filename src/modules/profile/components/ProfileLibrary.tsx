@@ -68,17 +68,17 @@ export function ProfileLibrary({ owner, bookmarks, when }: { owner: string; book
         </h2>
         <div className="ml-auto flex gap-1 rounded-2xl border border-line bg-white/[0.03] p-1" role="tablist" aria-label="Library">
           <TabButton on={active === "bookmarks"} onClick={() => setTab("bookmarks")} icon={<Bookmark className="h-3.5 w-3.5" />}>
-            Bookmarks <span className="mono text-[10px] opacity-70">{items.length}</span>
+            Bookmarks <span className="mono text-[0.625rem] opacity-70">{items.length}</span>
           </TabButton>
           {isOwner && (
             <TabButton on={active === "saved"} onClick={() => setTab("saved")} icon={<BookmarkCheck className="h-3.5 w-3.5" />}>
-              Saved <span className="text-[10px] opacity-60">· only you</span>
+              Saved <span className="text-[0.625rem] opacity-60">· only you</span>
             </TabButton>
           )}
         </div>
       </div>
 
-      {err && <p className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-[12px] text-amber-200" role="alert">{err}</p>}
+      {err && <p className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-[0.75rem] text-amber-200" role="alert">{err}</p>}
       {active === "bookmarks" ? (
         items.length === 0 ? (
           <div className="mt-3 rounded-2xl border border-line bg-white/[0.02] px-5 py-10 text-center">
@@ -87,7 +87,7 @@ export function ProfileLibrary({ owner, bookmarks, when }: { owner: string; book
             <p className="mt-1 text-xs text-zinc-600">Important messages bookmarked in the Community show up here.</p>
           </div>
         ) : (
-          <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+          <ul className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {items.map((b) => (
               <BookmarkCard key={b.id} b={b} when={when[b.id] ?? ""} onRemove={isOwner ? () => void remove(b) : undefined} busy={removing === b.id} />
             ))}
@@ -110,7 +110,7 @@ function TabButton({ on, onClick, icon, children }: { on: boolean; onClick: () =
       aria-selected={on}
       onClick={onClick}
       className={cn(
-        "inline-flex min-h-9 items-center gap-1.5 rounded-xl px-3 text-[13px] font-semibold transition-colors",
+        "inline-flex min-h-9 items-center gap-1.5 rounded-xl px-3 text-[0.8125rem] font-semibold transition-colors",
         on ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/35" : "text-zinc-400 hover:text-zinc-200"
       )}
     >
@@ -133,8 +133,8 @@ function BookmarkCard({ b, when, onRemove, busy }: { b: ProfileBookmark; when: s
       <div className="flex items-center gap-2.5">
         <Avatar name={m.author.name} image={m.author.image} size="sm" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-zinc-100">{who}</p>
-          <p className="mono text-[10px] text-zinc-500">{when}</p>
+          <p className="truncate text-[0.8125rem] font-semibold text-zinc-100">{who}</p>
+          <p className="mono text-[0.625rem] text-zinc-500">{when}</p>
         </div>
         {onRemove ? (
           <button
@@ -166,7 +166,7 @@ function BookmarkCard({ b, when, onRemove, busy }: { b: ProfileBookmark; when: s
       <Link
         href={`/community?m=${m.id}`}
         prefetch={false}
-        className="mt-3 inline-flex items-center gap-1 self-start rounded-lg text-[12px] font-semibold text-gold-300 transition-colors hover:text-gold-100"
+        className="mt-3 inline-flex items-center gap-1 self-start rounded-lg text-[0.75rem] font-semibold text-gold-300 transition-colors hover:text-gold-100"
       >
         Open in Community <ExternalLink className="h-3 w-3" />
       </Link>
