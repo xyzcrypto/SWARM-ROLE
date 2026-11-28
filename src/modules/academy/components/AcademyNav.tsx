@@ -46,7 +46,7 @@ function LangSwitch() {
           aria-checked={settings.lang === id}
           onClick={() => set(id)}
           className={cn(
-            "rounded-full px-3 py-1.5 text-xs font-bold transition-colors sm:py-2 sm:text-[13px]",
+            "rounded-full px-3 py-1.5 text-xs font-bold transition-colors sm:py-2 sm:text-[0.8125rem]",
             settings.lang === id ? "bg-gold-400 text-ink-950" : "text-content-muted hover:text-content"
           )}
         >
@@ -72,7 +72,7 @@ export function AcademyNav() {
                 href={t.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-3.5 sm:py-2 sm:text-[13px]",
+                  "relative flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-semibold transition-colors sm:px-3.5 sm:py-2 sm:text-[0.8125rem]",
                   active ? "text-gold-200" : "text-content-muted hover:text-content"
                 )}
               >

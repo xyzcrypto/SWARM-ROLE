@@ -39,7 +39,7 @@ const PostContentEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="mt-3 flex min-h-[92px] items-center justify-center rounded-xl border border-hairline bg-surface-2">
+      <div className="mt-3 flex min-h-[5.75rem] items-center justify-center rounded-xl border border-hairline bg-surface-2">
         <Loader2 className="h-4 w-4 animate-spin text-content-subtle" strokeWidth={1.7} />
       </div>
     ),
@@ -216,28 +216,28 @@ function UpdateCard({
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-medium", KIND_TONE[u.kind])}>
+        <span className={cn("rounded-full border px-2 py-0.5 text-[0.625rem] font-medium", KIND_TONE[u.kind])}>
           {KIND_LABEL[u.kind]}
         </span>
         {u.program && (
-          <span className="rounded-full border border-hairline px-2 py-0.5 text-[10px] font-medium text-content-muted">
+          <span className="rounded-full border border-hairline px-2 py-0.5 text-[0.625rem] font-medium text-content-muted">
             {u.program}
           </span>
         )}
         {u.pinned && (
-          <span className="inline-flex items-center gap-1 text-[10px] font-medium text-gold-200">
+          <span className="inline-flex items-center gap-1 text-[0.625rem] font-medium text-gold-200">
             <Pin className="h-3 w-3" strokeWidth={1.7} /> Pinned
           </span>
         )}
         {!u.published && (
-          <span className="rounded-full border border-hairline px-2 py-0.5 text-[10px] font-medium text-content-subtle">
+          <span className="rounded-full border border-hairline px-2 py-0.5 text-[0.625rem] font-medium text-content-subtle">
             Draft
           </span>
         )}
         {/* UTC-pinned. Vercel runs UTC and readers do not, and an unpinned
             timestamp near midnight renders a different calendar day on each
             side of hydration - React #418, documented in CLAUDE.md. */}
-        <span className="ml-auto text-[10px] text-content-subtle">{formatDateTime(u.createdAt)}</span>
+        <span className="ml-auto text-[0.625rem] text-content-subtle">{formatDateTime(u.createdAt)}</span>
       </div>
 
       {/* ⚠️ A plain <img>, not next/image, and deliberately: the file is served
@@ -395,7 +395,7 @@ export function Composer({
             type="button"
             onClick={() => setKind(k)}
             className={cn(
-              "rounded-lg border px-2.5 py-1 text-[11px] font-medium transition-colors",
+              "rounded-lg border px-2.5 py-1 text-[0.6875rem] font-medium transition-colors",
               kind === k ? KIND_TONE[k] : "border-hairline text-content-subtle hover:text-content-muted"
             )}
           >
@@ -425,7 +425,7 @@ export function Composer({
         <CoverPicker url={image} onChange={setImage} label="Add an image" />
         <CharCount value={body} max={UPDATE_LIMITS.body} />
       </div>
-      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input
           className={input}
           placeholder="Programme (optional) — e.g. Sodex"

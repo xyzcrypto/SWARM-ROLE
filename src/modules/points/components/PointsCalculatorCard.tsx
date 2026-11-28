@@ -267,14 +267,14 @@ export function PointsCalculatorCard({
               green "confirmed" badge as Sodex's real, trading token. The badge
               now follows the registry's own flag. */}
           {program.confirmed ? (
-            <div className="inline-flex items-center gap-1.5 rounded-xl border border-mint-500/30 bg-mint-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-mint-300">
+            <div className="inline-flex items-center gap-1.5 rounded-xl border border-mint-500/30 bg-mint-500/10 px-2.5 py-1.5 text-[0.6875rem] font-semibold text-mint-300">
               <CheckCircle2 className="h-3 w-3" />
               <span>Confirmed data</span>
             </div>
           ) : (
             <div
               title="Token supply, airdrop size and FDV are not published for this programme - these are scenario inputs you can edit."
-              className="inline-flex items-center gap-1.5 rounded-xl border border-gold-500/30 bg-gold-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-gold-200"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-gold-500/30 bg-gold-500/10 px-2.5 py-1.5 text-[0.6875rem] font-semibold text-gold-200"
             >
               <Info className="h-3 w-3" />
               <span>Scenario data</span>
@@ -319,7 +319,7 @@ export function PointsCalculatorCard({
           <div>
             <div className="mb-1 flex items-center justify-between gap-2">
               <label className="text-xs font-semibold text-content-muted">Total Token Supply</label>
-              <span className="mono text-[10px] text-content-subtle">
+              <span className="mono text-[0.625rem] text-content-subtle">
                 implied price {impliedPrice > 0 ? usdExact(impliedPrice) : "—"}
               </span>
             </div>
@@ -340,7 +340,7 @@ export function PointsCalculatorCard({
                   type="button"
                   onClick={() => onSupplyChange(s2.v)}
                   className={cn(
-                    "rounded-lg border px-2.5 py-1 text-[11px] font-semibold transition-all duration-200 active:scale-95",
+                    "rounded-lg border px-2.5 py-1 text-[0.6875rem] font-semibold transition-all duration-200 active:scale-95",
                     supply === s2.v
                       ? "border-gold-500/50 bg-gold-500/10 text-gold-200"
                       : "border-hairline text-content-subtle hover:border-gold-500/30 hover:text-content"
@@ -366,7 +366,7 @@ export function PointsCalculatorCard({
                   }
                 }}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer",
+                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[0.625rem] font-medium transition-colors cursor-pointer",
                   allocLinked
                     ? "bg-mint-500/15 text-mint-200 border border-mint-500/30 hover:bg-mint-500/25"
                     : "text-content-subtle hover:text-content-muted border border-hairline hover:border-gold-500/30"
@@ -419,7 +419,7 @@ export function PointsCalculatorCard({
                     aria-label={allocLabelOf(pill) ?? `${pill}%`}
                     title={allocLabelOf(pill)}
                     className={cn(
-                      "rounded-lg border py-1 text-center text-[11px] font-medium transition-colors truncate",
+                      "rounded-lg border py-1 text-center text-[0.6875rem] font-medium transition-colors truncate",
                       isActive
                         ? "border-gold-500/40 bg-gold-500/15 text-gold-200 ring-1 ring-gold-500/30 font-semibold"
                         : "border-hairline text-content-subtle hover:border-gold-500/30 hover:text-content-muted active:border-gold-500/30"
@@ -432,7 +432,7 @@ export function PointsCalculatorCard({
             </div>
 
             {/* Implied / Scenario Caption */}
-            <span className="mt-1 block text-[10.5px] text-content-subtle">
+            <span className="mt-1 block text-[0.65625rem] text-content-subtle">
               {allocLinked
                 ? `${officialAlloc}% of supply · ${program.name} scenario`
                 : "· manual assumption"}
@@ -453,7 +453,7 @@ export function PointsCalculatorCard({
                   }
                 }}
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer",
+                  "inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[0.625rem] font-medium transition-colors cursor-pointer",
                   linked
                     ? "bg-mint-500/15 text-mint-200 border border-mint-500/30 hover:bg-mint-500/25"
                     : "text-content-subtle hover:text-content-muted border border-hairline hover:border-gold-500/30"
@@ -508,7 +508,7 @@ export function PointsCalculatorCard({
                       }}
                       aria-pressed={isActive}
                       className={cn(
-                        "rounded-lg border py-1 text-center text-[11px] font-medium transition-colors truncate",
+                        "rounded-lg border py-1 text-center text-[0.6875rem] font-medium transition-colors truncate",
                         isActive
                           ? "border-gold-500/40 bg-gold-500/15 text-gold-200 ring-1 ring-gold-500/30 font-semibold"
                           : "border-hairline text-content-subtle hover:border-gold-500/30 hover:text-content-muted active:border-gold-500/30"
@@ -522,7 +522,7 @@ export function PointsCalculatorCard({
             )}
 
             {/* Implied Price Caption */}
-            <span className="mt-1 block text-[10.5px] text-content-subtle">
+            <span className="mt-1 block text-[0.65625rem] text-content-subtle">
               Implied price: ${value.priceUsd.toLocaleString("en-US", { maximumFractionDigits: 4 })}
               {linked && anchor === "comps" ? ` · peers of ${program.name}` : ""}
               {linked && anchor === "program" ? ` · ${program.name} scenario` : ""}
@@ -561,7 +561,7 @@ export function PointsCalculatorCard({
               <div className="mono font-display text-3xl font-bold tracking-tight text-gold-200">
                 {usdExact(value.grossUsd)}
               </div>
-              <div className="mt-0.5 text-[10.5px] text-content-subtle">
+              <div className="mt-0.5 text-[0.65625rem] text-content-subtle">
                 Estimated value at {usdCompact(inputsFdv)} FDV
               </div>
             </div>
@@ -570,8 +570,8 @@ export function PointsCalculatorCard({
                 are what change when you edit an input. */}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <div className="rounded-lg border border-hairline bg-surface-2 p-2">
-                <div className="text-[10.5px] text-content-subtle">Your share</div>
-                <div className="mono mt-0.5 font-display text-sm font-bold text-gold-300 sm:text-[15px]">
+                <div className="text-[0.65625rem] text-content-subtle">Your share</div>
+                <div className="mono mt-0.5 font-display text-sm font-bold text-gold-300 sm:text-[0.9375rem]">
                   {value.sharePct === 0
                     ? "0.0000%"
                     : value.sharePct < 0.0001
@@ -581,8 +581,8 @@ export function PointsCalculatorCard({
               </div>
 
               <div className="rounded-lg border border-hairline bg-surface-2 p-2">
-                <div className="text-[10.5px] text-content-subtle">Estimated tokens</div>
-                <div className="mono mt-0.5 font-display text-sm font-bold text-content sm:text-[15px]">
+                <div className="text-[0.65625rem] text-content-subtle">Estimated tokens</div>
+                <div className="mono mt-0.5 font-display text-sm font-bold text-content sm:text-[0.9375rem]">
                   {value.tokens.toLocaleString("en-US", { maximumFractionDigits: 2 })}
                 </div>
               </div>
@@ -592,7 +592,7 @@ export function PointsCalculatorCard({
                 Value" it read as a second, contradictory answer; as a sentence
                 that names the unlock it explains itself. */}
             {value.liquidAtTgeUsd > 0 && value.liquidAtTgeUsd < value.grossUsd && (
-              <p className="mt-2.5 text-[11px] leading-relaxed text-content-muted">
+              <p className="mt-2.5 text-[0.6875rem] leading-relaxed text-content-muted">
                 About{" "}
                 <span className="mono font-semibold text-mint-300">{usdExact(value.liquidAtTgeUsd)}</span>{" "}
                 of that is sellable at TGE — the rest unlocks later.
@@ -602,7 +602,7 @@ export function PointsCalculatorCard({
 
           {/* Bottom Action Footer: Disclaimer + Share Result Button */}
           <div className="mt-3 flex items-center justify-between gap-2 pt-2.5 border-t border-hairline">
-            <div className="flex items-center gap-1.5 text-[10.5px] text-content-subtle">
+            <div className="flex items-center gap-1.5 text-[0.65625rem] text-content-subtle">
               <Info className="h-3 w-3 shrink-0 text-gold-400" />
               <span>Estimate based on assumptions.</span>
             </div>
@@ -624,7 +624,7 @@ export function PointsCalculatorCard({
 
       {/* ⚠️ Nothing here is a forecast disclosure */}
       <details className="group mt-4 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] text-amber-200/90 transition-colors">
-        <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2 text-[11.5px] font-medium [&::-webkit-details-marker]:hidden">
+        <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2 text-[0.71875rem] font-medium [&::-webkit-details-marker]:hidden">
           <span aria-hidden className="text-amber-400">⚠</span>
           <span>Nothing here is a forecast. Volumes are live; the conversion is your assumption.</span>
           <ChevronDown
@@ -632,7 +632,7 @@ export function PointsCalculatorCard({
             strokeWidth={1.7}
           />
         </summary>
-        <p className="px-3.5 pb-2.5 pl-8 text-[11px] leading-relaxed text-amber-200/80">
+        <p className="px-3.5 pb-2.5 pl-8 text-[0.6875rem] leading-relaxed text-amber-200/80">
           No perp DEX publishes a points-to-token rate before TGE. Volumes and peer valuations on this page are
           live market data; the conversion from points to tokens is an assumption you control, and every input
           is editable.

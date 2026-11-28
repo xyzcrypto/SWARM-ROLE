@@ -89,7 +89,7 @@ function Toggle({ on, onChange, label, icon }: { on: boolean; onChange: (v: bool
         {label}
       </span>
       <span className={cn("relative h-5 w-9 shrink-0 rounded-full transition-colors", on ? "bg-gold-400" : "bg-white/15")}>
-        <span className={cn("absolute top-0.5 h-4 w-4 rounded-full bg-ink-950 transition-all", on ? "left-[18px]" : "left-0.5")} />
+        <span className={cn("absolute top-0.5 h-4 w-4 rounded-full bg-ink-950 transition-all", on ? "left-[1.125rem]" : "left-0.5")} />
       </span>
     </button>
   );
@@ -165,7 +165,7 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
               set({ track: id });
               sfx("click");
             }}
-            className={cn("rounded-lg border py-1.5 text-[11px] font-semibold", s.track === id ? "border-gold-400/60 bg-gold-400/10 text-gold-100" : "border-hairline text-content-muted")}
+            className={cn("rounded-lg border py-1.5 text-[0.6875rem] font-semibold", s.track === id ? "border-gold-400/60 bg-gold-400/10 text-gold-100" : "border-hairline text-content-muted")}
           >
             {label}
           </button>
@@ -178,7 +178,7 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
         <Toggle on={s.explainRight} onChange={(v) => set({ explainRight: v })} label="Explain right answers too" />
         {HINGLISH_READY && <Toggle on={s.lang === "hi"} onChange={(v) => set({ lang: v ? "hi" : "en" })} label="Hinglish (lessons, quizzes, AneQue)" />}
         <Toggle on={s.haptics} onChange={(v) => set({ haptics: v })} label="Haptics (vibration)" icon={<Vibrate className="h-4 w-4 text-content-subtle" />} />
-        <label className="mt-1 block px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">
+        <label className="mt-1 block px-1 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">
           Voice
           <select
             value={s.voiceName}
@@ -198,7 +198,7 @@ export function SoundSettings({ onClose }: { onClose?: () => void }) {
             ))}
           </select>
         </label>
-        <p className="px-1 pt-2 text-[11px] leading-relaxed text-content-subtle">
+        <p className="px-1 pt-2 text-[0.6875rem] leading-relaxed text-content-subtle">
           AneQue speaks in a natural recorded voice: her guidance, every question, option and explanation, and lesson summaries. Anything without a studio recording is read in her neural voice, never a robotic device voice. Every line is also shown as text. Auto music plays Focus while you read, Arena while you play and Live in live quizzes.
         </p>
       </div>
@@ -436,11 +436,11 @@ function useLiveTalk(router: ReturnType<typeof useRouter>) {
 /** A tiny live meter for the learner's own voice while AneQue listens. */
 function MicMeter({ level }: { level: number }) {
   return (
-    <div className="flex h-6 items-center gap-[3px]" aria-hidden>
+    <div className="flex h-6 items-center gap-[0.1875rem]" aria-hidden>
       {Array.from({ length: 18 }, (_, i) => (
         <span
           key={i}
-          className="w-[3px] rounded-full bg-mint-400 transition-[height] duration-75"
+          className="w-[0.1875rem] rounded-full bg-mint-400 transition-[height] duration-75"
           style={{ height: `${Math.max(12, Math.min(100, level * 100 * (0.5 + 0.5 * Math.abs(Math.sin(i * 1.7)))))}%` }}
         />
       ))}
@@ -564,7 +564,7 @@ export function GuideDock() {
                   <GuideOrb size={44} speaking={speaking} />
                   <div className="min-w-0 flex-1">
                     <div className="font-display text-sm font-semibold text-content">AneQue</div>
-                    <div className="text-[11px] text-content-subtle">{talk.active ? TALK_LABEL[talk.state] : speaking ? "Speaking" : voice.paused ? "Paused" : "Your study partner · says “Aneq”"}</div>
+                    <div className="text-[0.6875rem] text-content-subtle">{talk.active ? TALK_LABEL[talk.state] : speaking ? "Speaking" : voice.paused ? "Paused" : "Your study partner · says “Aneq”"}</div>
                   </div>
                   <button type="button" onClick={() => setOpen(false)} className="rounded-full p-1.5 text-content-subtle hover:text-content" aria-label="Close AneQue">
                     <X className="h-4 w-4" />
@@ -574,7 +574,7 @@ export function GuideDock() {
                 {talk.turns.length > 0 && (
                   <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
                     {talk.turns.map((t, i) => (
-                      <div key={i} className={cn("max-w-[88%] rounded-2xl px-3 py-2 text-[13px] leading-relaxed", t.role === "user" ? "ml-auto bg-gold-400/15 text-content" : "bg-white/[0.05] text-content-muted")}>
+                      <div key={i} className={cn("max-w-[88%] rounded-2xl px-3 py-2 text-[0.8125rem] leading-relaxed", t.role === "user" ? "ml-auto bg-gold-400/15 text-content" : "bg-white/[0.05] text-content-muted")}>
                         {t.content}
                       </div>
                     ))}
@@ -618,7 +618,7 @@ export function GuideDock() {
                     <ArrowUp />
                   </button>
                 </form>
-                {talk.error && <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[11px] leading-relaxed text-content-subtle">{talk.error}</p>}
+                {talk.error && <p className="mt-2 rounded-xl bg-white/[0.04] px-3 py-2 text-[0.6875rem] leading-relaxed text-content-subtle">{talk.error}</p>}
 
                 <div className="mt-2 flex items-center gap-2">
                   {speaking ? (
@@ -650,7 +650,7 @@ export function GuideDock() {
                     <Settings2 />
                   </button>
                 </div>
-                <p className="mt-2 text-[10px] leading-relaxed text-content-subtle">Live Talk records only while it says “Listening”. Try: “What is funding rate?”, “Start quiz”, “Open leaderboard”.</p>
+                <p className="mt-2 text-[0.625rem] leading-relaxed text-content-subtle">Live Talk records only while it says “Listening”. Try: “What is funding rate?”, “Start quiz”, “Open leaderboard”.</p>
               </>
             )}
           </motion.div>
@@ -670,7 +670,7 @@ export function GuideDock() {
           aria-label={open ? "Close AneQue" : "Open AneQue, your Academy guide"}
           aria-expanded={open}
         >
-          <GuideOrb size={44} speaking={speaking} className="md:!h-[52px] md:!w-[52px]" />
+          <GuideOrb size={44} speaking={speaking} className="md:!h-[3.25rem] md:!w-[3.25rem]" />
           {(speaking || talk.active) && !open && <span className={cn("absolute -right-0.5 -top-0.5 h-3 w-3 rounded-full border-2 border-ink-950", talk.state === "listening" ? "bg-red-400" : "bg-mint-400")} />}
         </button>
       </div>
@@ -750,9 +750,9 @@ export function GuideWave({ speaking, bars = 32, className }: { speaking: boolea
     return () => cancelAnimationFrame(raf);
   }, [speaking]);
   return (
-    <div ref={ref} className={cn("flex h-8 items-center gap-[3px]", className)} aria-hidden>
+    <div ref={ref} className={cn("flex h-8 items-center gap-[0.1875rem]", className)} aria-hidden>
       {Array.from({ length: bars }, (_, i) => (
-        <span key={i} className="h-full w-[3px] origin-center rounded-full bg-gradient-to-t from-gold-500 to-gold-200 transition-transform duration-75" style={{ transform: "scaleY(0.12)" }} />
+        <span key={i} className="h-full w-[0.1875rem] origin-center rounded-full bg-gradient-to-t from-gold-500 to-gold-200 transition-transform duration-75" style={{ transform: "scaleY(0.12)" }} />
       ))}
     </div>
   );

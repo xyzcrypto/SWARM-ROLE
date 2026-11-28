@@ -151,7 +151,7 @@ export function ChatAppearanceSheet({
 
             {readability && choice === "photo" && (
               <span
-                className="absolute right-2.5 top-2.5 z-[2] inline-flex items-center gap-1 rounded-full border border-mint-500/30 bg-ink-950/70 px-2 py-0.5 text-[10px] font-semibold text-mint-200 backdrop-blur"
+                className="absolute right-2.5 top-2.5 z-[2] inline-flex items-center gap-1 rounded-full border border-mint-500/30 bg-ink-950/70 px-2 py-0.5 text-[0.625rem] font-semibold text-mint-200 backdrop-blur"
                 title="Contrast of message text over the brightest part of your photo"
               >
                 <Check className="h-3 w-3" strokeWidth={2.5} />
@@ -162,7 +162,7 @@ export function ChatAppearanceSheet({
 
           {/* ── Your photo ──────────────────────────────────────── */}
           <section className="mt-5" aria-labelledby="appearance-photo">
-            <h3 id="appearance-photo" className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+            <h3 id="appearance-photo" className="mono text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
               Your photo
             </h3>
 
@@ -203,7 +203,7 @@ export function ChatAppearanceSheet({
                   <span className="block text-sm font-semibold text-content">
                     {busy ? "Preparing your photo…" : "Add your own photo"}
                   </span>
-                  <span className="mt-0.5 block text-[11px] leading-relaxed text-content-subtle">
+                  <span className="mt-0.5 block text-[0.6875rem] leading-relaxed text-content-subtle">
                     JPG, PNG or WebP, up to 20 MB{" "}
                     <span className="hidden sm:inline">· or drop it here</span>
                   </span>
@@ -270,7 +270,7 @@ export function ChatAppearanceSheet({
                     <label className="block">
                       <span className="flex items-center justify-between text-xs font-semibold text-content">
                         Dim
-                        <span className="mono text-[11px] font-medium text-content-subtle">
+                        <span className="mono text-[0.6875rem] font-medium text-content-subtle">
                           {Math.round(readability.dim * 100)}%
                         </span>
                       </span>
@@ -286,7 +286,7 @@ export function ChatAppearanceSheet({
                       />
                     </label>
                     {readability.floor > 0 && (
-                      <p className="text-[11px] leading-relaxed text-content-subtle">
+                      <p className="text-[0.6875rem] leading-relaxed text-content-subtle">
                         Can&rsquo;t go lighter than {Math.round(readability.floor * 100)}% on this photo — messages
                         would get hard to read.
                       </p>
@@ -295,7 +295,7 @@ export function ChatAppearanceSheet({
                     <div className="flex items-center justify-between gap-3">
                       <span className="min-w-0">
                         <span className="block text-xs font-semibold text-content">Soften</span>
-                        <span className="block text-[11px] text-content-subtle">
+                        <span className="block text-[0.6875rem] text-content-subtle">
                           Blur the photo so it sits behind the conversation.
                         </span>
                       </span>
@@ -332,7 +332,7 @@ export function ChatAppearanceSheet({
               </p>
             )}
 
-            <p className="mt-2.5 inline-flex items-center gap-1.5 text-[11px] text-content-subtle">
+            <p className="mt-2.5 inline-flex items-center gap-1.5 text-[0.6875rem] text-content-subtle">
               <Lock className="h-3 w-3" strokeWidth={2} />
               Stays in this browser. Never uploaded.
             </p>
@@ -342,7 +342,7 @@ export function ChatAppearanceSheet({
           <PresetSection title="Pattern" items={presetsIn("pattern")} appearance={appearance} />
 
           <div className="mt-7 border-t border-hairline pt-1">
-            <p className="mt-4 font-display text-[15px] font-bold tracking-tight text-content">Style &amp; feel</p>
+            <p className="mt-4 font-display text-[0.9375rem] font-bold tracking-tight text-content">Style &amp; feel</p>
           </div>
           <ChatFeelSections />
         </div>
@@ -371,7 +371,7 @@ function PresetSection({
   const id = `appearance-${title.toLowerCase()}`;
   return (
     <section className="mt-5" aria-labelledby={id}>
-      <h3 id={id} className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+      <h3 id={id} className="mono text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
         {title}
       </h3>
       <div className="mt-2.5 grid grid-cols-3 gap-2 sm:grid-cols-4" role="radiogroup" aria-labelledby={id}>
@@ -398,7 +398,7 @@ function PresetSection({
               >
                 {active && <SelectedBadge />}
               </span>
-              <span className={cn("truncate text-[11px] font-medium", active ? "text-gold-200" : "text-content-muted")}>
+              <span className={cn("truncate text-[0.6875rem] font-medium", active ? "text-gold-200" : "text-content-muted")}>
                 {bg.label}
               </span>
             </button>
@@ -429,8 +429,8 @@ function PreviewRow({ name, time, text, mine = false }: { name: string; time: st
       <Avatar name={name} image={null} size="sm" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="text-[13px] font-semibold text-zinc-100">{name}</span>
-          <span className="text-[11px] text-zinc-600">{time}</span>
+          <span className="text-[0.8125rem] font-semibold text-zinc-100">{name}</span>
+          <span className="text-[0.6875rem] text-zinc-600">{time}</span>
         </div>
         <p className="truncate text-[length:var(--chat-fs)] leading-relaxed text-zinc-200">{text}</p>
       </div>

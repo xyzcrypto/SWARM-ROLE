@@ -28,7 +28,7 @@ function fmt(p: number) {
 function Row({ c }: { c: Coin }) {
   const up = c.change >= 0;
   return (
-    <div className="flex h-[22px] items-center gap-2 border-b border-white/[0.04] text-[10.5px]">
+    <div className="flex h-[1.375rem] items-center gap-2 border-b border-white/[0.04] text-[0.65625rem]">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={c.image}
@@ -37,7 +37,7 @@ function Row({ c }: { c: Coin }) {
         height={14}
         loading="lazy"
         decoding="async"
-        className="h-[14px] w-[14px] shrink-0 rounded-full ring-1 ring-white/10"
+        className="h-[0.875rem] w-[0.875rem] shrink-0 rounded-full ring-1 ring-white/10"
         onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
       />
       <span className="mono w-9 shrink-0 font-semibold text-zinc-200">{c.symbol}</span>
@@ -68,7 +68,7 @@ export function LiveMarketVisual() {
   return (
     <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60">
       {/* header (solid bg - no backdrop-filter, cheaper on mobile scroll) */}
-      <div className="absolute inset-x-0 top-0 z-10 flex h-[22px] items-center justify-between border-b border-white/[0.06] bg-ink-950 px-3 mono text-[9px] text-zinc-500">
+      <div className="absolute inset-x-0 top-0 z-10 flex h-[1.375rem] items-center justify-between border-b border-white/[0.06] bg-ink-950 px-3 mono text-[0.5625rem] text-zinc-500">
         <span>{live ? "LIVE MARKET" : "MARKET"}</span>
         <span className="inline-flex items-center gap-1 text-mint-300">
           <span className="relative flex h-1.5 w-1.5">
@@ -79,7 +79,7 @@ export function LiveMarketVisual() {
         </span>
       </div>
       {/* scrolling track (starts below the header, softly masked top/bottom) */}
-      <div className="vscroll-mask absolute inset-x-0 bottom-0 top-[22px] overflow-hidden px-3">
+      <div className="vscroll-mask absolute inset-x-0 bottom-0 top-[1.375rem] overflow-hidden px-3">
         <div className="vscroll" style={{ animationDuration: `${dur}s` }}>
           {list.map((c, i) => (
             <Row key={`${c.symbol}-${i}`} c={c} />

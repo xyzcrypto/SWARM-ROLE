@@ -150,7 +150,7 @@ export function CompsEngine({
             enter an FDV by hand.
           </p>
           {diag && (
-            <p className="mono mt-2 text-[11px] leading-relaxed text-content-subtle">
+            <p className="mono mt-2 text-[0.6875rem] leading-relaxed text-content-subtle">
               source: {diag.source ?? "?"} · venues from upstream: {diag.protocols} · past the volume filter:{" "}
               {diag.afterFilter} · priced tokens: {diag.pricedTokens} · matched: {diag.matched}
               {diag.upstream ? ` · ${diag.upstream}` : ""}
@@ -169,7 +169,7 @@ export function CompsEngine({
               statement instead. Leaving an interactive select that the
               programme silently overrides is a dead control, and a dead control
               is the first thing a reader reaches for. */}
-          <div className="mt-6 grid gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <label className="block">
               <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-content-muted">
                 Compare against
@@ -236,7 +236,7 @@ export function CompsEngine({
                 <span className="text-xs font-semibold text-gold-200">
                   No feed reports {target.name}&apos;s volume yet
                 </span>
-                <span className="mt-1 block text-[11px] leading-relaxed text-content-muted">
+                <span className="mt-1 block text-[0.6875rem] leading-relaxed text-content-muted">
                   It is too new to be listed. Enter its 24h volume and it will be priced against the peers below,
                   the same way every listed venue is.
                 </span>
@@ -255,7 +255,7 @@ export function CompsEngine({
           )}
 
           {target && manualVolume && metricOf(target, "volume24h") > 0 && onManualVolume && (
-            <p className="mt-4 rounded-xl border border-gold-500/25 bg-gold-500/[0.06] px-4 py-2.5 text-[11px] leading-relaxed text-gold-200">
+            <p className="mt-4 rounded-xl border border-gold-500/25 bg-gold-500/[0.06] px-4 py-2.5 text-[0.6875rem] leading-relaxed text-gold-200">
               Using <span className="mono font-semibold">{usdCompact(metricOf(target, "volume24h"))}</span> 24h
               volume for {target.name} — <span className="font-semibold">your figure</span>, not a feed&apos;s.{" "}
               <button
@@ -370,7 +370,7 @@ function VenueTape({
     <div className="mt-8 border-t border-hairline pt-6">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-content-subtle">The live tape</p>
-        <p className="text-[11px] text-content-subtle">Top venues by 24h volume</p>
+        <p className="text-[0.6875rem] text-content-subtle">Top venues by 24h volume</p>
       </div>
 
       {/* Peer valuations can be entirely absent while volumes are perfect. Say
@@ -381,7 +381,7 @@ function VenueTape({
           Volumes are live, but no peer could be matched to a listed token this cycle, so there is nothing to
           derive an FDV from. The venue activity below is still current.
           {diag && (
-            <span className="mono mt-1.5 block text-[11px] opacity-80">
+            <span className="mono mt-1.5 block text-[0.6875rem] opacity-80">
               source {diag.source ?? "?"} · venues {diag.protocols} · past filter {diag.afterFilter} · priced
               tokens {diag.pricedTokens} · matched {diag.matched}
               {diag.upstream ? ` · ${diag.upstream}` : ""}
@@ -391,9 +391,9 @@ function VenueTape({
       )}
 
       <div className="-mx-1 mt-4 overflow-x-auto px-1">
-        <table className="w-full text-sm md:min-w-[560px]">
+        <table className="w-full text-sm md:min-w-[35rem]">
           <thead>
-            <tr className="border-b border-hairline text-left text-[11px] uppercase tracking-wide text-content-subtle">
+            <tr className="border-b border-hairline text-left text-[0.6875rem] uppercase tracking-wide text-content-subtle">
               <th className="py-2 pr-3 font-medium">Venue</th>
               <th className="py-2 pr-3 text-right font-medium">24h volume</th>
               <th className="hidden py-2 pr-3 text-right font-medium sm:table-cell">Open interest</th>
@@ -412,7 +412,7 @@ function VenueTape({
                         alt=""
                         width={18}
                         height={18}
-                        className="h-[18px] w-[18px] shrink-0 rounded-full"
+                        className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full"
                         onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
                       />
                     )}
@@ -429,7 +429,7 @@ function VenueTape({
                   {v.fdv !== null ? (
                     <span className="text-content-muted">{usdCompact(v.fdv)}</span>
                   ) : (
-                    <span className="text-[11px] text-gold-200">no token yet</span>
+                    <span className="text-[0.6875rem] text-gold-200">no token yet</span>
                   )}
                 </td>
               </tr>
@@ -461,7 +461,7 @@ function RangeBar({ range, metric }: { range: CompRange; metric: CompMetric }) {
           <p className="mt-1.5 mono text-3xl font-semibold sm:text-4xl">
             <span className="text-gold-gradient">{usdCompact(range.median)}</span>
           </p>
-          <p className="mt-1 text-[11px] text-content-subtle">median of the peer set</p>
+          <p className="mt-1 text-[0.6875rem] text-content-subtle">median of the peer set</p>
         </div>
       </div>
 
@@ -473,7 +473,7 @@ function RangeBar({ range, metric }: { range: CompRange; metric: CompMetric }) {
             style={{ left: `${Math.min(100, Math.max(0, pos))}%` }}
           />
         </div>
-        <div className="mt-2.5 flex justify-between text-[11px]">
+        <div className="mt-2.5 flex justify-between text-[0.6875rem]">
           <span className="mono text-content-muted">{usdCompact(range.low)}</span>
           <span className="text-content-subtle">spread {span > 0 ? `${(range.high / range.low).toFixed(1)}x` : "—"}</span>
           <span className="mono text-content-muted">{usdCompact(range.high)}</span>
@@ -511,7 +511,7 @@ function CompsTable({
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
         <p className="text-xs font-semibold uppercase tracking-wide text-content-subtle">Peer by peer</p>
         {onTogglePeer && (
-          <p className="text-[11px] text-content-subtle">
+          <p className="text-[0.6875rem] text-content-subtle">
             Tap a peer to drop it from the median
             {off.size > 0 && <span className="text-gold-200"> · {off.size} excluded</span>}
           </p>
@@ -519,9 +519,9 @@ function CompsTable({
       </div>
       {/* Only the table scrolls sideways, never the page. */}
       <div className="-mx-1 overflow-x-auto px-1">
-        <table className="w-full text-sm md:min-w-[640px]">
+        <table className="w-full text-sm md:min-w-[40rem]">
           <thead>
-            <tr className="border-b border-hairline text-left text-[11px] uppercase tracking-wide text-content-subtle">
+            <tr className="border-b border-hairline text-left text-[0.6875rem] uppercase tracking-wide text-content-subtle">
               <th className="py-2 pr-3 font-medium">Peer</th>
               <th className="py-2 pr-3 text-right font-medium">Their {COMP_METRIC_LABEL[metric]}</th>
               <th className="hidden py-2 pr-3 text-right font-medium sm:table-cell">vs you</th>
@@ -550,7 +550,7 @@ function CompsTable({
                         alt=""
                         width={18}
                         height={18}
-                        className="h-[18px] w-[18px] shrink-0 rounded-full"
+                        className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full"
                         onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
                       />
                     )}
@@ -577,7 +577,7 @@ function CompsTable({
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-[11px] leading-relaxed text-content-subtle">
+      <p className="mt-3 text-[0.6875rem] leading-relaxed text-content-subtle">
         Implied FDV = peer FDV x ({target?.name ?? "your venue"}&apos;s {COMP_METRIC_LABEL[metric]} ÷ theirs). It
         assumes the market would price the same volume the same way, which it demonstrably does not — the spread
         above is that assumption failing, measured.

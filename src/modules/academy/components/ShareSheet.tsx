@@ -51,10 +51,10 @@ export function ShareSheet({ url, image, text, fileName = "xyz-crypto-academy.pn
     sfx("click");
     window.open(href, "_blank", "noopener,noreferrer");
   };
-  const btn = "inline-flex h-10 items-center gap-2 rounded-xl border border-hairline bg-white/[0.03] px-3.5 text-[13px] font-semibold text-content transition-colors hover:border-gold-400/50 active:border-gold-400/50";
+  const btn = "inline-flex h-10 items-center gap-2 rounded-xl border border-hairline bg-white/[0.03] px-3.5 text-[0.8125rem] font-semibold text-content transition-colors hover:border-gold-400/50 active:border-gold-400/50";
   return (
     <div className={cn("flex flex-wrap gap-2", className)}>
-      <button type="button" onClick={native} disabled={busy} className="btn-gold h-10 px-4 text-[13px]">
+      <button type="button" onClick={native} disabled={busy} className="btn-gold h-10 px-4 text-[0.8125rem]">
         <Share2 className="h-4 w-4" /> Share
       </button>
       <button type="button" onClick={() => open(`https://twitter.com/intent/tweet?text=${enc(text)}&url=${enc(url)}`)} className={btn} aria-label="Share on X">

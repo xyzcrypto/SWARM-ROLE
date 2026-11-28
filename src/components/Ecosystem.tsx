@@ -69,7 +69,7 @@ export function Ecosystem() {
                   <div className="min-w-0 flex-1 pt-0.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="font-display text-lg font-semibold text-zinc-50 sm:text-2xl">{b.name}</h3>
-                      <Badge tone="gold"><span className="mono text-[10px] uppercase">{b.tag}</span></Badge>
+                      <Badge tone="gold"><span className="mono text-[0.625rem] uppercase">{b.tag}</span></Badge>
                     </div>
                     <p className="mt-1 mono truncate text-xs text-zinc-500">{b.handle}</p>
                   </div>

@@ -11,7 +11,7 @@ export function PremiumBadge({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full bg-gold-shine bg-[length:200%_auto] px-3 py-1 text-[11px] font-semibold tracking-wide text-ink shadow-gold-sm ring-1 ring-gold-300/50 animate-shine",
+        "inline-flex items-center gap-1.5 rounded-full bg-gold-shine bg-[length:200%_auto] px-3 py-1 text-[0.6875rem] font-semibold tracking-wide text-ink shadow-gold-sm ring-1 ring-gold-300/50 animate-shine",
         className
       )}
     >

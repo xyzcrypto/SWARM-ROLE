@@ -10,9 +10,9 @@ export function initialsFrom(name?: string | null, email?: string | null): strin
 }
 
 const SIZES = {
-  sm: { box: "h-8 w-8", text: "text-[11px]", px: 32, badge: "h-3 w-3", icon: "h-[7px] w-[7px]" },
+  sm: { box: "h-8 w-8", text: "text-[0.6875rem]", px: 32, badge: "h-3 w-3", icon: "h-[0.4375rem] w-[0.4375rem]" },
   md: { box: "h-10 w-10", text: "text-sm", px: 40, badge: "h-4 w-4", icon: "h-2.5 w-2.5" },
-  lg: { box: "h-16 w-16", text: "text-lg", px: 64, badge: "h-[22px] w-[22px]", icon: "h-3 w-3" },
+  lg: { box: "h-16 w-16", text: "text-lg", px: 64, badge: "h-[1.375rem] w-[1.375rem]", icon: "h-3 w-3" },
   xl: { box: "h-24 w-24", text: "text-3xl", px: 96, badge: "h-8 w-8", icon: "h-4 w-4" },
 } as const;
 

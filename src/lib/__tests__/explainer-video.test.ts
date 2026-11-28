@@ -28,8 +28,8 @@ describe("the explainer costs nothing until someone presses play", () => {
   });
   it("is sized by the screen's height so the heading and the whole frame fit on one screen", () => {
     // Measured in a real browser on 7 screens, 360x740 to 1920x1080 (changelog 133).
-    expect(player).toContain("max-w-[min(400px,calc((100svh_-_330px)*9/16))]");
-    expect(player).toContain("md:max-w-[min(1100px,calc((100svh_-_340px)*16/9))]");
+    expect(player).toContain("max-w-[min(25rem,calc((100svh_-_20.625rem)*9/16))]");
+    expect(player).toContain("md:max-w-[min(68.75rem,calc((100svh_-_21.25rem)*16/9))]");
   });
   it("keeps every file within its budget", () => {
     for (const p of Object.values(PATHS)) expect(existsSync(pub(p)), p).toBe(true);

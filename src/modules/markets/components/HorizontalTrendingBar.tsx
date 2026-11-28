@@ -25,8 +25,8 @@ export function HorizontalTrendingBar({ onOpenWatchlist }: { onOpenWatchlist?: (
           className="neu-inset-sm group flex shrink-0 items-center gap-1.5 rounded-lg border border-amber-500/25 px-2 sm:px-2.5 py-1 font-semibold text-amber-700 dark:text-amber-300 transition-colors shadow-neu-inset-sm hover:scale-[1.02] active:scale-[1.02]"
         >
           <Flame className="h-3.5 w-3.5 text-amber-500 dark:text-amber-400 fill-amber-500/30 shrink-0" />
-          <span className="font-bold text-amber-600 dark:text-amber-400 text-[11px] shrink-0">Trending</span>
-          <span className="text-zinc-700 dark:text-zinc-300 group-hover:text-amber-600 dark:group-hover:text-amber-200 transition-colors ml-0.5 text-[11px] truncate max-w-[130px] sm:max-w-none">
+          <span className="font-bold text-amber-600 dark:text-amber-400 text-[0.6875rem] shrink-0">Trending</span>
+          <span className="text-zinc-700 dark:text-zinc-300 group-hover:text-amber-600 dark:group-hover:text-amber-200 transition-colors ml-0.5 text-[0.6875rem] truncate max-w-[8.125rem] sm:max-w-none">
             Latest market news
           </span>
           <ChevronRight className="h-3 w-3 text-zinc-500 group-hover:translate-x-0.5 group-active:translate-x-0.5 transition-transform shrink-0" />
@@ -36,7 +36,7 @@ export function HorizontalTrendingBar({ onOpenWatchlist }: { onOpenWatchlist?: (
         <div className="flex items-center gap-1.5 shrink-0">
           {!list.length &&
             Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-[22px] w-[118px] shrink-0 animate-pulse rounded-lg bg-white/[0.05]" />
+              <div key={i} className="h-[1.375rem] w-[7.375rem] shrink-0 animate-pulse rounded-lg bg-white/[0.05]" />
             ))}
           {list.map((c) => {
             const up = c.change >= 0;
@@ -54,9 +54,9 @@ export function HorizontalTrendingBar({ onOpenWatchlist }: { onOpenWatchlist?: (
                   className="h-3.5 w-3.5 rounded-full ring-1 ring-white/10"
                   onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
                 />
-                <span className="font-bold text-zinc-800 dark:text-zinc-200 text-[11px]">{c.symbol}</span>
-                <span className="mono text-zinc-700 dark:text-zinc-300 text-[11px]">{formatPrice(c.price)}</span>
-                <span className={cn("mono text-[10px] font-semibold", up ? "text-mint-400" : "text-red-400")}>
+                <span className="font-bold text-zinc-800 dark:text-zinc-200 text-[0.6875rem]">{c.symbol}</span>
+                <span className="mono text-zinc-700 dark:text-zinc-300 text-[0.6875rem]">{formatPrice(c.price)}</span>
+                <span className={cn("mono text-[0.625rem] font-semibold", up ? "text-mint-400" : "text-red-400")}>
                   {up ? "+" : ""}
                   {c.change.toFixed(2)}%
                 </span>
@@ -71,7 +71,7 @@ export function HorizontalTrendingBar({ onOpenWatchlist }: { onOpenWatchlist?: (
             const el = document.getElementById("markets-search-input") || document.getElementById("top-assets-table");
             el?.scrollIntoView({ behavior: "smooth" });
           }}
-          className="neu-btn flex shrink-0 items-center justify-center gap-1 rounded-lg border border-white/40 dark:border-white/10 px-2.5 py-0.5 text-[10px] font-medium text-zinc-700 dark:text-zinc-400 hover:text-black dark:hover:text-zinc-200 shadow-neu-sm hover:scale-[1.02] active:scale-[1.02]"
+          className="neu-btn flex shrink-0 items-center justify-center gap-1 rounded-lg border border-white/40 dark:border-white/10 px-2.5 py-0.5 text-[0.625rem] font-medium text-zinc-700 dark:text-zinc-400 hover:text-black dark:hover:text-zinc-200 shadow-neu-sm hover:scale-[1.02] active:scale-[1.02]"
         >
           <Plus className="h-3 w-3" />
           <span>Add</span>
@@ -85,17 +85,17 @@ export function HorizontalTrendingBar({ onOpenWatchlist }: { onOpenWatchlist?: (
         // It now opens the Watchlist tab through the parent.
         onClick={() => onOpenWatchlist?.()}
         aria-label="Open my watchlist"
-        className="neu-card group hidden lg:flex shrink-0 items-center justify-between gap-2.5 rounded-xl border border-white/60 dark:border-white/[0.08] px-2.5 py-1 text-xs shadow-neu-sm hover:border-amber-400/40 hover:scale-[1.02] active:scale-[1.02] transition-all h-[36px]"
+        className="neu-card group hidden lg:flex shrink-0 items-center justify-between gap-2.5 rounded-xl border border-white/60 dark:border-white/[0.08] px-2.5 py-1 text-xs shadow-neu-sm hover:border-amber-400/40 hover:scale-[1.02] active:scale-[1.02] transition-all h-[2.25rem]"
       >
-        <div className="flex items-center gap-1.5 text-amber-500 dark:text-amber-400 font-semibold text-[11px]">
+        <div className="flex items-center gap-1.5 text-amber-500 dark:text-amber-400 font-semibold text-[0.6875rem]">
           <Star className="h-3.5 w-3.5 fill-amber-400/20 text-amber-400" />
           <span>My Watchlist</span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="flex items-center -space-x-1">
-            <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#f7931a] text-white text-[8px] font-bold ring-1 ring-ink-950">₿</div>
-            <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#627eea] text-white text-[8px] font-bold ring-1 ring-ink-950">♦</div>
-            <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gradient-to-tr from-[#9945FF] to-[#14F195] text-white text-[7px] font-bold ring-1 ring-ink-950">◎</div>
+            <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#f7931a] text-white text-[0.5rem] font-bold ring-1 ring-ink-950">₿</div>
+            <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#627eea] text-white text-[0.5rem] font-bold ring-1 ring-ink-950">♦</div>
+            <div className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gradient-to-tr from-[#9945FF] to-[#14F195] text-white text-[0.4375rem] font-bold ring-1 ring-ink-950">◎</div>
           </div>
           <div className="neu-inset-sm flex h-4 w-4 items-center justify-center rounded-full border border-white/10 group-hover:border-amber-400/50 shadow-neu-inset-sm">
             <ChevronRight className="h-2.5 w-2.5 text-zinc-400 group-hover:text-amber-400 transition-colors" />

@@ -253,7 +253,7 @@ export function NavActivity() {
       >
         <Mail className="h-4 w-4" />
         {dmUnread > 0 && (
-          <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gold-shine px-1 text-[10px] font-bold text-ink ring-2 ring-ink-900">
+          <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gold-shine px-1 text-[0.625rem] font-bold text-ink ring-2 ring-ink-900">
             {dmUnread > 9 ? "9+" : dmUnread}
           </span>
         )}
@@ -267,7 +267,7 @@ export function NavActivity() {
         >
           <Bell className="h-4 w-4" />
           {unread > 0 && (
-            <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gold-shine px-1 text-[10px] font-bold text-ink ring-2 ring-ink-900">
+            <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-gold-shine px-1 text-[0.625rem] font-bold text-ink ring-2 ring-ink-900">
               {unread > 9 ? "9+" : unread}
             </span>
           )}
@@ -294,7 +294,7 @@ export function NavActivity() {
                       <>
                         <p className="text-sm font-medium text-zinc-200">{n.title}</p>
                         {n.body && <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">{n.body}</p>}
-                        <p className="mono mt-1 text-[10px] text-zinc-600">{timeAgo(n.createdAt)}</p>
+                        <p className="mono mt-1 text-[0.625rem] text-zinc-600">{timeAgo(n.createdAt)}</p>
                       </>
                     );
                     const cls = `block border-b border-white/5 px-4 py-3 transition-colors hover:bg-white/5 ${

@@ -130,7 +130,7 @@ export function Flashcards({ lessonId, cards, lessonTitle }: { lessonId: string;
 
             {!done && card ? (
               <>
-                <div className="relative h-[min(52vh,380px)] w-full max-w-md" style={{ perspective: 1200 }}>
+                <div className="relative h-[min(52vh,23.75rem)] w-full max-w-md" style={{ perspective: 1200 }}>
                   <AnimatePresence initial={false} custom={dir}>
                     <motion.div
                       key={`${i}-${card.term}`}
@@ -151,12 +151,12 @@ export function Flashcards({ lessonId, cards, lessonTitle }: { lessonId: string;
                     >
                       <div className={flip ? "acad-flip-card is-flipped" : "acad-flip-card"}>
                         <div className="acad-flip-face acad-flip-front">
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-gold-300">Concept</div>
+                          <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.2em] text-gold-300">Concept</div>
                           <div className="mt-3 fc-ink font-display text-3xl font-semibold leading-tight sm:text-4xl">{card.term}</div>
                           <div className="fc-ink-50 absolute bottom-5 text-xs">Tap to flip · swipe right if you know it</div>
                         </div>
                         <div className="acad-flip-face acad-flip-back">
-                          <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-mint-300">Meaning</div>
+                          <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.2em] text-mint-300">Meaning</div>
                           <p className="fc-ink-90 mt-3 text-lg leading-relaxed">{card.definition}</p>
                         </div>
                       </div>
@@ -171,7 +171,7 @@ export function Flashcards({ lessonId, cards, lessonTitle }: { lessonId: string;
                     <Check className="h-4 w-4" /> Got it
                   </button>
                 </div>
-                <div className="fc-ink-40 mt-3 hidden text-[11px] sm:block">Space flips · ← still learning · → got it · Esc closes</div>
+                <div className="fc-ink-40 mt-3 hidden text-[0.6875rem] sm:block">Space flips · ← still learning · → got it · Esc closes</div>
               </>
             ) : (
               <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="fc-panel w-full max-w-md rounded-3xl p-6 text-center">

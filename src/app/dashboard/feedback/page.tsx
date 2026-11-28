@@ -19,7 +19,7 @@ export default async function FeedbackAdminPage() {
     <>
       <Navbar />
       <main className="relative min-h-screen pt-28">
-        <div className="relative mx-auto max-w-[980px] px-5 pb-24 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-[61.25rem] px-5 pb-24 sm:px-6 lg:px-8">
           <FeedbackAdmin />
         </div>
       </main>

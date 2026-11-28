@@ -72,7 +72,7 @@ export function PasswordField({
               />
             ))}
           </div>
-          <p className="mt-1 text-[11px] text-zinc-500">
+          <p className="mt-1 text-[0.6875rem] text-zinc-500">
             {LABELS[score]} · use 8+ chars with a number, upper/lowercase &amp; a symbol.
           </p>
         </div>

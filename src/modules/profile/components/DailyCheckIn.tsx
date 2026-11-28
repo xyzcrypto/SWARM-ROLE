@@ -103,7 +103,7 @@ function StreakBadge({ days, atRisk }: { days: number | null; atRisk: boolean })
     <span
       title={atRisk ? `${days}-day streak - check in today to keep it` : `${days}-day check-in streak`}
       className={cn(
-        "mono ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1",
+        "mono ml-auto inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold ring-1",
         // Amber only while today is unclaimed - the one moment the number is
         // actionable. Once claimed it returns to a calm gold, because a streak
         // you have kept is not a warning.

@@ -317,13 +317,13 @@ export function CommandPalette() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search coins, news & research…"
-            className="h-12 w-full bg-transparent text-[15px] text-zinc-100 outline-none placeholder:text-zinc-600"
+            className="h-12 w-full bg-transparent text-[0.9375rem] text-zinc-100 outline-none placeholder:text-zinc-600"
             autoComplete="off"
             spellCheck={false}
           />
           <MicButton size="sm" className="!ring-0" onText={(t) => setQ((v) => (v ? `${v} ${t}` : t))} />
           {loading && <Loader2 className="h-4 w-4 shrink-0 animate-spin text-zinc-500" />}
-          <button onClick={close} className="shrink-0 rounded-md px-2 py-1 text-[11px] text-zinc-500 hover:text-zinc-200 sm:hidden">
+          <button onClick={close} className="shrink-0 rounded-md px-2 py-1 text-[0.6875rem] text-zinc-500 hover:text-zinc-200 sm:hidden">
             Close
           </button>
         </div>
@@ -356,7 +356,7 @@ export function CommandPalette() {
           )}
         </div>
 
-        <div className="hidden items-center gap-3 border-t border-white/10 px-3 py-2 text-[10px] text-zinc-600 sm:flex">
+        <div className="hidden items-center gap-3 border-t border-white/10 px-3 py-2 text-[0.625rem] text-zinc-600 sm:flex">
           <span className="inline-flex items-center gap-1"><CommandIcon className="h-3 w-3" />K to toggle</span>
           <span>↑↓ navigate · ↵ open · esc close</span>
         </div>
@@ -391,11 +391,11 @@ function Section({
   return (
     <div className="py-1">
       <div className="flex items-center justify-between px-3 pb-1 pt-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{title}</p>
+        <p className="text-[0.625rem] font-semibold uppercase tracking-wider text-zinc-500">{title}</p>
         {onClear && (
           <button
             onClick={onClear}
-            className="text-[10px] uppercase tracking-wider text-zinc-600 transition-colors hover:text-zinc-300"
+            className="text-[0.625rem] uppercase tracking-wider text-zinc-600 transition-colors hover:text-zinc-300"
           >
             Clear
           </button>
@@ -419,12 +419,12 @@ function Section({
             <RowIcon row={row} />
             <span className="min-w-0 flex-1">
               <span className="block truncate text-sm text-zinc-100">{rowLabel(row)}</span>
-              {rowHint(row) && <span className="block truncate text-[11px] text-zinc-500">{rowHint(row)}</span>}
+              {rowHint(row) && <span className="block truncate text-[0.6875rem] text-zinc-500">{rowHint(row)}</span>}
             </span>
             {row.kind === "coin" && row.change24h !== 0 && (
               <span
                 className={cn(
-                  "mono shrink-0 text-[11px] font-medium",
+                  "mono shrink-0 text-[0.6875rem] font-medium",
                   // The colour rule: mint = positive data, red-400 = negative.
                   row.change24h > 0 ? "text-mint-300" : "text-red-400"
                 )}
@@ -446,7 +446,7 @@ function RowIcon({ row }: { row: Row }) {
   if (row.kind === "coin")
     return row.image ? (
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={row.image} alt="" width={18} height={18} className="h-[18px] w-[18px] shrink-0 rounded-full" />
+      <img src={row.image} alt="" width={18} height={18} className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full" />
     ) : (
       <Coins className={cls} />
     );

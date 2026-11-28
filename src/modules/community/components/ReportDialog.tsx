@@ -162,7 +162,7 @@ export function ReportDialog({
           <>
             <div className="max-h-[60vh] overflow-y-auto px-5 py-4">
               <fieldset>
-                <legend className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+                <legend className="mono text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
                   What is wrong with it?
                 </legend>
                 <div className="mt-3 space-y-1.5" role="radiogroup" aria-label="Reason for reporting">
@@ -195,7 +195,7 @@ export function ReportDialog({
                       <span className="min-w-0">
                         <span className="block text-sm font-medium text-content">{r.label}</span>
                         {r.hint && (
-                          <span className="mt-0.5 block text-[11px] text-content-subtle">{r.hint}</span>
+                          <span className="mt-0.5 block text-[0.6875rem] text-content-subtle">{r.hint}</span>
                         )}
                       </span>
                     </button>
@@ -204,7 +204,7 @@ export function ReportDialog({
               </fieldset>
 
               <label className="mt-4 block">
-                <span className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+                <span className="mono text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
                   Anything to add? <span className="normal-case tracking-normal">(optional)</span>
                 </span>
                 <textarea
@@ -214,7 +214,7 @@ export function ReportDialog({
                   placeholder="Context that would help someone reviewing this…"
                   className="mt-2 block w-full resize-none rounded-xl border border-hairline bg-base px-3.5 py-2.5 text-sm text-content outline-none transition-colors placeholder:text-content-subtle focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20"
                 />
-                <span className="mono mt-1 block text-right text-[10px] text-content-subtle">
+                <span className="mono mt-1 block text-right text-[0.625rem] text-content-subtle">
                   {details.length}/600
                 </span>
               </label>
@@ -228,7 +228,7 @@ export function ReportDialog({
 
             {/* ── Footer ───────────────────────────────────────────── */}
             <div className="flex items-center gap-3 border-t border-hairline bg-surface-2 px-5 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:pb-3.5">
-              <p className="text-[11px] leading-relaxed text-content-subtle">
+              <p className="text-[0.6875rem] leading-relaxed text-content-subtle">
                 Reporting does not remove the message.
               </p>
               <button

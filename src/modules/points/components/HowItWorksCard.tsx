@@ -32,33 +32,33 @@ export function HowItWorksCard() {
         {/* 4 Steps Grid */}
         <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
           <div className="rounded-xl border border-hairline bg-base p-3">
-            <div className="text-[10px] font-bold text-gold-400">01</div>
+            <div className="text-[0.625rem] font-bold text-gold-400">01</div>
             <div className="mt-1 font-display text-xs font-bold text-content">Enter Your Points</div>
-            <div className="mt-1 text-[11px] text-content-subtle leading-tight">
+            <div className="mt-1 text-[0.6875rem] text-content-subtle leading-tight">
               Input your earned points for any program
             </div>
           </div>
 
           <div className="rounded-xl border border-hairline bg-base p-3">
-            <div className="text-[10px] font-bold text-gold-400">02</div>
+            <div className="text-[0.625rem] font-bold text-gold-400">02</div>
             <div className="mt-1 font-display text-xs font-bold text-content">Set Assumptions</div>
-            <div className="mt-1 text-[11px] text-content-subtle leading-tight">
+            <div className="mt-1 text-[0.6875rem] text-content-subtle leading-tight">
               Adjust allocation, FDV and parameters
             </div>
           </div>
 
           <div className="rounded-xl border border-hairline bg-base p-3">
-            <div className="text-[10px] font-bold text-gold-400">03</div>
+            <div className="text-[0.625rem] font-bold text-gold-400">03</div>
             <div className="mt-1 font-display text-xs font-bold text-content">Analyze Results</div>
-            <div className="mt-1 text-[11px] text-content-subtle leading-tight">
+            <div className="mt-1 text-[0.6875rem] text-content-subtle leading-tight">
               Get instant value estimates and net ROI
             </div>
           </div>
 
           <div className="rounded-xl border border-hairline bg-base p-3">
-            <div className="text-[10px] font-bold text-gold-400">04</div>
+            <div className="text-[0.625rem] font-bold text-gold-400">04</div>
             <div className="mt-1 font-display text-xs font-bold text-content">Make Decisions</div>
-            <div className="mt-1 text-[11px] text-content-subtle leading-tight">
+            <div className="mt-1 text-[0.6875rem] text-content-subtle leading-tight">
               Compare scenarios & optimize strategy
             </div>
           </div>

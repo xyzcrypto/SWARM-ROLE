@@ -23,7 +23,7 @@ describe("light theme: everything is visible (2026-09-28 contrast audit)", () =>
     expect(read("src/modules/points/components/MyAirdropsCard.tsx")).toMatch(/soon-veil absolute inset-0/);
   });
   it("the Coming Soon pill keeps white text on its dark pill in both themes", () => {
-    expect(read("src/modules/points/components/FeaturedProgramsBar.tsx")).toMatch(/bg-black\/60 px-3 py-1 text-\[11px\] font-semibold text-\[#fff\]/);
+    expect(read("src/modules/points/components/FeaturedProgramsBar.tsx")).toMatch(/bg-black\/60 px-3 py-1 text-\[0\.6875rem\] font-semibold text-\[#fff\]/);
   });
 });
 
@@ -65,10 +65,13 @@ describe("remove a bookmark from the profile", () => {
 
 describe("large text size never pushes the page sideways", () => {
   it("125% is capped only where the layout measurably overflowed", () => {
-    expect(css).toMatch(/@media \(max-width: 379px\) \{ html\.text-scale-125 \{ font-size: 110%; \} \}/);
-    expect(css).toMatch(/@media \(min-width: 1280px\) and \(max-width: 1439px\) \{ html\.text-scale-125 \{ font-size: 118\.75%; \} \}/);
+    // The classes set --ui-scale, which the root font size multiplies, so the
+    // reader's choice composes with big-screen scaling instead of replacing it.
+    expect(css).toMatch(/@media \(max-width: 379px\) \{ html\.text-scale-125 \{ --ui-scale: 1\.1; \} \}/);
+    expect(css).toMatch(/@media \(min-width: 1280px\) and \(max-width: 1439px\) \{ html\.text-scale-125 \{ --ui-scale: 1\.1875; \} \}/);
     // Everywhere else the reader gets exactly what they picked.
-    expect(css).toMatch(/html\.text-scale-125 \{ font-size: 125%; \}/);
+    expect(css).toMatch(/html\.text-scale-125 \{ --ui-scale: 1\.25; \}/);
+    expect(css).toMatch(/font-size: calc\(100% \* var\(--ui-scale\)\);/);
   });
   it("the Communities grid bounds its single column (min-content would overflow)", () => {
     const eco = read("src/components/Ecosystem.tsx");

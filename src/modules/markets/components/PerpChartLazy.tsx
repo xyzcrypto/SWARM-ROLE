@@ -10,7 +10,7 @@ export const PerpChartLazy = dynamic(
     ssr: false,
     loading: () => (
       // Mirrors the real chart card's footprint to avoid layout shift.
-      <div className="h-[166px] w-full animate-pulse rounded-2xl border border-line bg-ink-950/60" />
+      <div className="h-[10.375rem] w-full animate-pulse rounded-2xl border border-line bg-ink-950/60" />
     ),
   }
 );

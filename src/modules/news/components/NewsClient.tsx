@@ -765,10 +765,10 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
   }, []);
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="min-w-0 space-y-6">
         {/* Hero: one compact strip - title on the left, the top story on the right. */}
-        <section className="relative grid overflow-hidden rounded-3xl border border-hairline bg-surface lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <section className="relative grid grid-cols-1 overflow-hidden rounded-3xl border border-hairline bg-surface lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
           <div className="relative">
             <HeroNetwork />
             <div aria-hidden className="pointer-events-none absolute -left-24 -top-28 h-64 w-64 rounded-full bg-gold-500/10 blur-3xl" />
@@ -778,9 +778,9 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             {featured.length > 0 ? (
               <FeaturedStory items={featured} now={now} onOpen={openReader} isSaved={isSaved} onBookmark={toggleSave} />
             ) : loading ? (
-              <div className="shimmer h-full min-h-[300px] bg-surface-2" aria-hidden />
+              <div className="shimmer h-full min-h-[18.75rem] bg-surface-2" aria-hidden />
             ) : (
-              <div className="grid h-full min-h-[300px] place-items-center p-8 text-center">
+              <div className="grid h-full min-h-[18.75rem] place-items-center p-8 text-center">
                 <p className="text-sm text-content-muted">The top story appears here as soon as the feed refreshes.</p>
               </div>
             )}
@@ -797,7 +797,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               value={rawQuery}
               onChange={(e) => setRawQuery(e.target.value)}
               placeholder="Search news, projects, tokens"
-              className="h-9 w-full rounded-xl border border-hairline bg-surface-2 pl-9 pr-16 text-[13px] text-content placeholder:text-content-subtle focus:border-gold-500/50 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
+              className="h-9 w-full rounded-xl border border-hairline bg-surface-2 pl-9 pr-16 text-[0.8125rem] text-content placeholder:text-content-subtle focus:border-gold-500/50 focus:outline-none focus:ring-2 focus:ring-gold-500/20"
             />
             <MicButton
               size="sm"
@@ -817,7 +817,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                   onClick={() => setCategory("For You")}
                   aria-pressed={category === "For You"}
                   className={cn(
-                    "inline-flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-xl px-3 text-[13px] font-medium leading-none transition-colors active:scale-95",
+                    "inline-flex h-9 shrink-0 snap-start items-center gap-1.5 rounded-xl px-3 text-[0.8125rem] font-medium leading-none transition-colors active:scale-95",
                     category === "For You" ? "bg-gold-400 text-ink" : "text-content-muted hover:bg-surface-2 hover:text-content"
                   )}
                 >
@@ -830,7 +830,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                   onClick={() => setCategory(cat)}
                   aria-pressed={category === cat}
                   className={cn(
-                    "inline-flex h-9 shrink-0 snap-start items-center rounded-xl px-3 text-[13px] font-medium leading-none transition-colors active:scale-95",
+                    "inline-flex h-9 shrink-0 snap-start items-center rounded-xl px-3 text-[0.8125rem] font-medium leading-none transition-colors active:scale-95",
                     category === cat ? "bg-gold-400 text-ink" : "text-content-muted hover:bg-surface-2 hover:text-content"
                   )}
                 >
@@ -843,7 +843,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               <select
                 value=""
                 onChange={(e) => { if (e.target.value) setCategory(e.target.value); }}
-                className="h-9 w-[88px] appearance-none rounded-xl border border-hairline bg-surface-2 pl-3 pr-7 text-[13px] font-medium text-content-muted transition-colors hover:text-content focus:border-gold-500/50 focus:outline-none"
+                className="h-9 w-[5.5rem] appearance-none rounded-xl border border-hairline bg-surface-2 pl-3 pr-7 text-[0.8125rem] font-medium text-content-muted transition-colors hover:text-content focus:border-gold-500/50 focus:outline-none"
               >
                 <option value="">More</option>
                 {CATEGORIES.filter((c) => !PRIMARY_TOPICS.includes(c as (typeof PRIMARY_TOPICS)[number])).map((c) => (
@@ -865,7 +865,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             requests. Please slow down." - and every one of them used to be
             discarded, leaving a bookmark that looked saved and was not. */}
         {saveErr && (
-          <p role="status" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-[12px] text-amber-200">
+          <p role="status" className="rounded-xl border border-amber-500/25 bg-amber-500/[0.06] px-3 py-2 text-[0.75rem] text-amber-200">
             {saveErr}
           </p>
         )}
@@ -890,7 +890,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
               // old place under the navbar.
               className="sticky top-20 z-30 flex justify-center lg:top-[9.5rem]"
             >
-              <button onClick={revealPending} className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/40 bg-gold-500/15 px-4 py-1.5 text-[13px] font-semibold text-gold-100 shadow-lg shadow-black/30 backdrop-blur transition-colors hover:bg-gold-500/25">
+              <button onClick={revealPending} className="inline-flex items-center gap-1.5 rounded-full border border-gold-500/40 bg-gold-500/15 px-4 py-1.5 text-[0.8125rem] font-semibold text-gold-100 shadow-lg shadow-black/30 backdrop-blur transition-colors hover:bg-gold-500/25">
                 <ArrowUp className="h-3.5 w-3.5" /> {pending.length} new stor{pending.length === 1 ? "y" : "ies"}
               </button>
             </motion.div>
@@ -898,14 +898,14 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
         </AnimatePresence>
 
         {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-busy="true" aria-label="Loading stories">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4" aria-busy="true" aria-label="Loading stories">
             {Array.from({ length: 4 }).map((_, i) => <div key={i} className="shimmer h-72 rounded-2xl bg-surface-2" />)}
           </div>
         ) : (
           topStories.length > 0 && (
             <section aria-labelledby="news-top">
               <h2 id="news-top" className="sr-only">{query ? `Results for ${query}` : "Top stories"}</h2>
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 {topStories.map((item, i) => (
                   <NewsCard
                     key={item.id}
@@ -948,7 +948,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                   aria-selected={activeTab === t.k}
                   onClick={() => pickTab(t.k)}
                   className={cn(
-                    "relative h-8 rounded-lg px-4 text-[13px] font-semibold transition-colors active:scale-[0.97] sm:min-w-[96px]",
+                    "relative h-8 rounded-lg px-4 text-[0.8125rem] font-semibold transition-colors active:scale-[0.97] sm:min-w-[6rem]",
                     activeTab === t.k ? "text-ink" : "text-content-muted hover:text-content"
                   )}
                 >
@@ -974,7 +974,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                     role="radio"
                     aria-checked={since === w}
                     onClick={() => setSince(w)}
-                    className={cn("relative h-7 rounded-lg px-2.5 font-mono text-[11px] font-semibold uppercase tracking-wider transition-colors", since === w ? "text-gold-300" : "text-content-subtle hover:text-content")}
+                    className={cn("relative h-7 rounded-lg px-2.5 font-mono text-[0.6875rem] font-semibold uppercase tracking-wider transition-colors", since === w ? "text-gold-300" : "text-content-subtle hover:text-content")}
                   >
                     {since === w && (
                       <motion.span
@@ -992,7 +992,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
             </div>
           </div>
           {!loading && (restStories.length > 0 || hideRead || mood !== "all") && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 text-[12px] text-content-subtle sm:px-5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-3 text-[0.75rem] text-content-subtle sm:px-5">
               <span>{savedOnly ? `${restStories.length} saved` : `${restStories.length} more ${restStories.length === 1 ? "story" : "stories"}`}{since !== "any" ? ` · last ${since}` : ""}</span>
               {mood !== "all" && (
                 <button
@@ -1066,7 +1066,7 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
                   {savedOnly ? "Tap the bookmark on any story to keep it here." : since !== "any" ? "Widen the time window or try another topic." : "Try another topic, clear the search, or check back shortly."}
                 </p>
                 {(since !== "any" || category !== "All" || query || mood !== "all" || hideRead) && !savedOnly && (
-                  <button onClick={() => { setSince("any"); setCategory("All"); setRawQuery(""); setMood("all"); setHideRead(null); }} className="btn-ghost mx-auto mt-4 px-4 py-2 text-[13px]">Reset filters</button>
+                  <button onClick={() => { setSince("any"); setCategory("All"); setRawQuery(""); setMood("all"); setHideRead(null); }} className="btn-ghost mx-auto mt-4 px-4 py-2 text-[0.8125rem]">Reset filters</button>
                 )}
               </div>
             )}
@@ -1081,8 +1081,8 @@ export function NewsClient({ initial }: { initial?: NewsPage | null }) {
 
         {isDefaultView && <XyzAiBand />}
 
-        <p className="text-center text-[12px] text-content-subtle">
-          Aggregated from CoinDesk, Cointelegraph, Decrypt and more. Not financial advice. Press <kbd className="rounded border border-hairline px-1 font-mono text-[11px]">/</kbd> to search.
+        <p className="text-center text-[0.75rem] text-content-subtle">
+          Aggregated from CoinDesk, Cointelegraph, Decrypt and more. Not financial advice. Press <kbd className="rounded border border-hairline px-1 font-mono text-[0.6875rem]">/</kbd> to search.
         </p>
       </div>
 
@@ -1231,7 +1231,7 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
         <div className="flex items-center justify-between border-b border-white/10 px-5 py-3.5">
           <div>
             <p className="text-sm font-semibold text-zinc-100">Customize your feed</p>
-            <p className="text-[11px] text-zinc-500">Pick the topics for your “For You” news.</p>
+            <p className="text-[0.6875rem] text-zinc-500">Pick the topics for your “For You” news.</p>
           </div>
           <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100"><X className="h-4 w-4" /></button>
         </div>
@@ -1241,7 +1241,7 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
               const on = picked.has(c);
               return (
                 <button key={c} onClick={() => toggle(c)}
-                  className={cn("inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[13px] font-medium transition-colors",
+                  className={cn("inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-[0.8125rem] font-medium transition-colors",
                     on ? "bg-mint-500/15 text-mint-200 ring-1 ring-mint-500/40" : "bg-white/5 text-zinc-400 hover:bg-white/10 hover:text-zinc-100")}>
                   {on && <Check className="h-3 w-3" />} {c}
                 </button>
@@ -1250,7 +1250,7 @@ function CustomizeModal({ initial, onClose, onSave }: { initial: string[]; onClo
           </div>
         </div>
         <div className="flex items-center justify-between gap-3 border-t border-white/10 px-5 py-3.5">
-          <span className="text-[11px] text-zinc-500">{picked.size} selected</span>
+          <span className="text-[0.6875rem] text-zinc-500">{picked.size} selected</span>
           <div className="flex gap-2">
             <button onClick={onClose} className="btn-ghost px-4 py-2 text-sm">Cancel</button>
             <button onClick={() => onSave([...picked])} className="btn-primary px-4 py-2 text-sm">Save</button>
@@ -1282,14 +1282,14 @@ function StoryBanner({ item, compact = false }: { item: NewsItem; compact?: bool
     // eslint-disable-next-line @next/next/no-img-element
     <img src={item.sourceIcon} alt="" width={28} height={28} className="h-full w-full object-contain" onError={() => setIconFailed(true)} />
   ) : (
-    <span className="font-mono text-[13px] font-bold tracking-tight !text-gold-200">{initials(item.source)}</span>
+    <span className="font-mono text-[0.8125rem] font-bold tracking-tight !text-gold-200">{initials(item.source)}</span>
   );
   return (
     <span className="relative grid h-full w-full place-items-center overflow-hidden" style={{ backgroundImage: toneFor(item.category) }}>
       <span aria-hidden className="absolute inset-0 opacity-[0.18] [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:22px_22px]" />
       <span className={cn("relative grid place-items-center rounded-xl border border-white/15 bg-white/10 p-2 shadow-lg backdrop-blur-sm", compact ? "h-9 w-9" : "h-14 w-14")}>{mark}</span>
       {!compact && (
-        <span className="absolute bottom-3 right-3 max-w-[60%] truncate font-mono text-[10px] font-semibold uppercase tracking-[0.14em] !text-zinc-300/80">{item.source}</span>
+        <span className="absolute bottom-3 right-3 max-w-[60%] truncate font-mono text-[0.625rem] font-semibold uppercase tracking-[0.14em] !text-zinc-300/80">{item.source}</span>
       )}
     </span>
   );
@@ -1362,7 +1362,7 @@ const NewsCard = memo(function NewsCard({
   // Source, time and bookmark: the same line on both variants, so a story's
   // attribution reads identically wherever it appears.
   const metaRow = (
-    <div className="flex min-w-0 items-center gap-2 text-[12px] text-content-subtle">
+    <div className="flex min-w-0 items-center gap-2 text-[0.75rem] text-content-subtle">
       <SafeImg src={item.sourceIcon} width={16} height={16} loading="lazy" className="h-4 w-4 shrink-0 rounded" />
       {/* Tapping the source filters to it. 29 feeds and no way to say "more
           from this one" (or "not this one") was the gap. Same reasoning as
@@ -1429,22 +1429,22 @@ const NewsCard = memo(function NewsCard({
         <div className="relative">
           {media("aspect-[16/10] w-full")}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/70 to-transparent" />
-          <span className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-black/60 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] !text-gold-200 backdrop-blur-sm">
+          <span className="pointer-events-none absolute bottom-3 left-3 rounded-md bg-black/60 px-2 py-0.5 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.12em] !text-gold-200 backdrop-blur-sm">
             {item.category}
           </span>
           <div className="pointer-events-none absolute left-3 top-3 flex gap-1.5">
             {item.impact === "High" && (
-              <span className="rounded-md bg-red-500/90 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] !text-white">Breaking</span>
+              <span className="rounded-md bg-red-500/90 px-2 py-0.5 font-mono text-[0.625rem] font-bold uppercase tracking-[0.12em] !text-white">Breaking</span>
             )}
-            {isNew && !read && <span className="rounded-md bg-gold-400 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.12em] !text-ink">New</span>}
+            {isNew && !read && <span className="rounded-md bg-gold-400 px-2 py-0.5 font-mono text-[0.625rem] font-bold uppercase tracking-[0.12em] !text-ink">New</span>}
           </div>
-          {read && <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 text-[10.5px] font-medium !text-zinc-200 backdrop-blur-sm"><Check className="h-3 w-3" /> Read</span>}
+          {read && <span className="pointer-events-none absolute right-3 top-3 inline-flex items-center gap-1 rounded-md bg-black/60 px-2 py-0.5 text-[0.65625rem] font-medium !text-zinc-200 backdrop-blur-sm"><Check className="h-3 w-3" /> Read</span>}
         </div>
         <div className="flex flex-1 flex-col gap-2 p-4">
           <button onClick={open} className="text-left">
-            <h3 className="line-clamp-3 min-h-[3.6rem] font-display text-[15px] font-semibold leading-[1.3] tracking-[-0.01em] text-content transition-colors group-hover/card:text-gold-200">{item.title}</h3>
+            <h3 className="line-clamp-3 min-h-[3.6rem] font-display text-[0.9375rem] font-semibold leading-[1.3] tracking-[-0.01em] text-content transition-colors group-hover/card:text-gold-200">{item.title}</h3>
           </button>
-          {item.summary && <p className="line-clamp-2 text-[13px] leading-relaxed text-content-muted">{item.summary}</p>}
+          {item.summary && <p className="line-clamp-2 text-[0.8125rem] leading-relaxed text-content-muted">{item.summary}</p>}
           <div className="mt-auto pt-2">{metaRow}</div>
         </div>
       </article>
@@ -1473,10 +1473,10 @@ const NewsCard = memo(function NewsCard({
     >
       {!compact && media("aspect-[4/3] w-20 self-start rounded-lg sm:w-32")}
       <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center gap-2 text-[11px]">
+        <div className="mb-1 flex items-center gap-2 text-[0.6875rem]">
           <span className="font-mono font-semibold uppercase tracking-[0.12em] text-gold-400">{item.category}</span>
-          {item.impact === "High" && <span className="rounded bg-red-500/15 px-1.5 py-px font-mono text-[10px] font-semibold uppercase tracking-wider text-red-300">Breaking</span>}
-          {isNew && !read && <span className="rounded bg-gold-400 px-1.5 py-px font-mono text-[10px] font-bold uppercase tracking-wider text-ink">New</span>}
+          {item.impact === "High" && <span className="rounded bg-red-500/15 px-1.5 py-px font-mono text-[0.625rem] font-semibold uppercase tracking-wider text-red-300">Breaking</span>}
+          {isNew && !read && <span className="rounded bg-gold-400 px-1.5 py-px font-mono text-[0.625rem] font-bold uppercase tracking-wider text-ink">New</span>}
           {read && <span className="inline-flex items-center gap-0.5 text-content-subtle"><Check className="h-3 w-3" /> Read</span>}
           {item.sentiment !== "neutral" && (
             <span className={cn("inline-flex items-center gap-0.5 font-medium", item.sentiment === "bullish" ? "text-mint-400" : "text-red-400")}>
@@ -1485,12 +1485,12 @@ const NewsCard = memo(function NewsCard({
           )}
         </div>
         <button onClick={open} className="text-left">
-          <h3 className={cn("line-clamp-2 font-display text-[15px] font-semibold leading-snug transition-colors group-hover/card:text-gold-200", read ? "text-content-muted" : "text-content")}>{item.title}</h3>
+          <h3 className={cn("line-clamp-2 font-display text-[0.9375rem] font-semibold leading-snug transition-colors group-hover/card:text-gold-200", read ? "text-content-muted" : "text-content")}>{item.title}</h3>
         </button>
-        <p className="mt-1 truncate text-[11.5px] text-content-subtle sm:hidden">
+        <p className="mt-1 truncate text-[0.71875rem] text-content-subtle sm:hidden">
           <span className="font-medium text-content-muted">{item.source}</span>{now ? ` · ${timeAgo(item.publishedAt, now)}` : ""}
         </p>
-        {!compact && item.summary && <div className="mt-1 hidden sm:block"><p className="line-clamp-1 text-[13px] leading-relaxed text-content-muted">{item.summary}</p></div>}
+        {!compact && item.summary && <div className="mt-1 hidden sm:block"><p className="line-clamp-1 text-[0.8125rem] leading-relaxed text-content-muted">{item.summary}</p></div>}
 
         {/* badges */}
         <div className={cn("mt-1.5 flex-wrap items-center gap-1.5 empty:hidden", compact ? "hidden" : "flex")}>
@@ -1504,7 +1504,7 @@ const NewsCard = memo(function NewsCard({
             .filter((c) => c !== item.category)
             .slice(0, 2)
             .map((c) => (
-              <span key={c} className="rounded-full bg-surface-2 px-2 py-0.5 text-[10px] font-medium text-content-muted">
+              <span key={c} className="rounded-full bg-surface-2 px-2 py-0.5 text-[0.625rem] font-medium text-content-muted">
                 {c}
               </span>
             ))}
@@ -1521,24 +1521,24 @@ const NewsCard = memo(function NewsCard({
         {/* why-matters result */}
         {why.text && (
           <div className="mt-3 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3">
-            <p className="mono text-[10px] font-semibold uppercase tracking-wide text-gold-300">Why this matters · XYZ AI</p>
-            <p className="mt-1 text-[13px] leading-relaxed text-content">{why.text}</p>
+            <p className="mono text-[0.625rem] font-semibold uppercase tracking-wide text-gold-300">Why this matters · XYZ AI</p>
+            <p className="mt-1 text-[0.8125rem] leading-relaxed text-content">{why.text}</p>
           </div>
         )}
-        {why.err && <p className="mt-2 text-[11px] text-amber-300">{why.err}</p>}
+        {why.err && <p className="mt-2 text-[0.6875rem] text-amber-300">{why.err}</p>}
 
         {/* AI digest - read the whole story on-site */}
         {digest.text && (
           <div className="mt-3 rounded-xl border border-gold-500/20 bg-gold-500/[0.06] p-3">
-            <p className="mono text-[10px] font-semibold uppercase tracking-wide text-gold-300">AI Summary · XYZ AI</p>
-            <p className="mt-1 text-[13px] leading-relaxed text-content">{digest.text}</p>
+            <p className="mono text-[0.625rem] font-semibold uppercase tracking-wide text-gold-300">AI Summary · XYZ AI</p>
+            <p className="mt-1 text-[0.8125rem] leading-relaxed text-content">{digest.text}</p>
           </div>
         )}
-        {digest.err && <p className="mt-2 text-[11px] text-amber-300">{digest.err}</p>}
+        {digest.err && <p className="mt-2 text-[0.6875rem] text-amber-300">{digest.err}</p>}
 
         {/* One footer line: attribution on the left, actions on the right. On
             phones the attribution moves above, so the actions keep one row. */}
-        <div className="mt-2 flex items-center gap-x-2 text-[12px] text-content-subtle">
+        <div className="mt-2 flex items-center gap-x-2 text-[0.75rem] text-content-subtle">
           <span className="hidden min-w-0 items-center gap-x-2 sm:flex">
             <SafeImg src={item.sourceIcon} width={14} height={14} loading="lazy" className="h-3.5 w-3.5 shrink-0 rounded" />
             <button
@@ -1864,7 +1864,7 @@ function NewsReader({
             what we had, and it taught nobody. */}
         {showSwipeHint && (
           <div className="pointer-events-none absolute inset-x-0 top-1/2 z-20 flex -translate-y-1/2 justify-center sm:hidden">
-            <span className="news-swipe-hint inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-ink-950/85 px-3.5 py-2 text-[12px] font-medium text-gold-100 shadow-elevate backdrop-blur">
+            <span className="news-swipe-hint inline-flex items-center gap-2 rounded-full border border-gold-500/30 bg-ink-950/85 px-3.5 py-2 text-[0.75rem] font-medium text-gold-100 shadow-elevate backdrop-blur">
               <ChevronLeft className="news-swipe-arrow-l h-4 w-4" />
               Swipe for the next story
               <ChevronRight className="news-swipe-arrow-r h-4 w-4" />
@@ -1877,7 +1877,7 @@ function NewsReader({
         </div>
         {/* top bar */}
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-2 text-[12px] text-zinc-400">
+          <div className="flex min-w-0 items-center gap-2 text-[0.75rem] text-zinc-400">
             <SafeImg src={item.sourceIcon} width={16} height={16} className="h-4 w-4 rounded" />
             <span className="truncate font-medium text-zinc-300">{item.source}</span>
             <span>·</span>
@@ -1909,16 +1909,16 @@ function NewsReader({
           <SafeImg src={item.image} photo={960} decoding="async" className="h-48 w-full object-cover sm:h-60" />
           <div className="p-4 sm:p-6">
             <div className="mb-3 flex flex-wrap items-center gap-1.5">
-              <span className="rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{item.category}</span>
-              <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium", sent.cls)}>{sent.icon}{sent.label}</span>
-              <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-medium ring-1", impactCls)}>{item.impact} impact</span>
+              <span className="rounded-full bg-gold-500/10 px-2 py-0.5 text-[0.625rem] font-medium text-gold-200">{item.category}</span>
+              <span className={cn("inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.625rem] font-medium", sent.cls)}>{sent.icon}{sent.label}</span>
+              <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-medium ring-1", impactCls)}>{item.impact} impact</span>
               {item.tokens.map((t) => (
-                <span key={t} className="mono rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-400">{t}</span>
+                <span key={t} className="mono rounded-full bg-white/5 px-1.5 py-0.5 text-[0.625rem] text-zinc-400">{t}</span>
               ))}
             </div>
 
-            <h1 className="font-display text-[22px] font-bold leading-tight tracking-[-0.01em] text-zinc-50 sm:text-[30px] sm:leading-[1.15]">{item.title}</h1>
-            {item.summary && <p className="mt-3 text-[15px] leading-relaxed text-zinc-300">{item.summary}</p>}
+            <h1 className="font-display text-[1.375rem] font-bold leading-tight tracking-[-0.01em] text-zinc-50 sm:text-[1.875rem] sm:leading-[1.15]">{item.title}</h1>
+            {item.summary && <p className="mt-3 text-[0.9375rem] leading-relaxed text-zinc-300">{item.summary}</p>}
 
             {/* Advanced AI briefing - the full story on-site, with Listen + Hinglish */}
             <BriefingBlock
@@ -1953,7 +1953,7 @@ function NewsReader({
               actually be read, and adds the count so the reader knows a feed
               exists to move through at all. */}
           {total > 0 && (
-            <span className="mono ml-1 shrink-0 text-[11px] text-zinc-500">
+            <span className="mono ml-1 shrink-0 text-[0.6875rem] text-zinc-500">
               {position} / {total}
             </span>
           )}
@@ -1963,7 +1963,7 @@ function NewsReader({
           <button onClick={share} aria-label="Share" className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-white/5 hover:text-zinc-100">
             <Share2 className="h-5 w-5" />
           </button>
-          <a href={item.url} target="_blank" rel="noopener noreferrer" className="btn-primary ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-[13px]">
+          <a href={item.url} target="_blank" rel="noopener noreferrer" className="btn-primary ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-[0.8125rem]">
             Read original <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </div>
@@ -2026,7 +2026,7 @@ function FeaturedStory({
 
   return (
     <article
-      className="group relative isolate flex h-full min-h-[250px] min-w-0 flex-col justify-end overflow-hidden sm:min-h-[300px]"
+      className="group relative isolate flex h-full min-h-[15.625rem] min-w-0 flex-col justify-end overflow-hidden sm:min-h-[18.75rem]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocus={() => setPaused(true)}
@@ -2053,18 +2053,18 @@ function FeaturedStory({
 
       <div className="flex flex-col gap-2 p-4 sm:gap-2.5 sm:p-6">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="rounded-md bg-gradient-to-br from-gold-200 to-gold-500 px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] !text-ink">
+          <span className="rounded-md bg-gradient-to-br from-gold-200 to-gold-500 px-2 py-0.5 font-mono text-[0.625rem] font-bold uppercase tracking-[0.14em] !text-ink">
             {active.impact === "High" ? "Top story" : "Featured"}
           </span>
-          <span className="rounded-md border border-white/20 bg-black/40 px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-[0.12em] !text-gold-200">{active.category}</span>
+          <span className="rounded-md border border-white/20 bg-black/40 px-2 py-0.5 font-mono text-[0.625rem] font-semibold uppercase tracking-[0.12em] !text-gold-200">{active.category}</span>
         </div>
         <button type="button" onClick={() => onOpen(active.id)} className="text-left" aria-label={`Read: ${active.title}`}>
-          <h2 className="line-clamp-2 font-display text-[19px] font-bold leading-[1.2] tracking-[-0.015em] !text-white decoration-gold-400 decoration-2 underline-offset-4 group-hover:underline sm:text-[24px]">
+          <h2 className="line-clamp-2 font-display text-[1.1875rem] font-bold leading-[1.2] tracking-[-0.015em] !text-white decoration-gold-400 decoration-2 underline-offset-4 group-hover:underline sm:text-[1.5rem]">
             {active.title}
           </h2>
         </button>
-        {active.summary && <p className="line-clamp-2 hidden max-w-xl text-[13.5px] leading-relaxed !text-zinc-300 sm:block">{active.summary}</p>}
-        <div className="mt-1 flex items-center gap-2 text-[12px] !text-zinc-300">
+        {active.summary && <p className="line-clamp-2 hidden max-w-xl text-[0.84375rem] leading-relaxed !text-zinc-300 sm:block">{active.summary}</p>}
+        <div className="mt-1 flex items-center gap-2 text-[0.75rem] !text-zinc-300">
           <SafeImg src={active.sourceIcon} width={16} height={16} className="h-4 w-4 shrink-0 rounded" />
           <span className="min-w-0 truncate font-medium !text-zinc-200">{active.source}</span>
           <span aria-hidden>·</span>

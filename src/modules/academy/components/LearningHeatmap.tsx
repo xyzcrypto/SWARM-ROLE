@@ -67,7 +67,7 @@ export function LearningHeatmap({ days, className }: { days: Day[]; className?: 
       </div>
       <div ref={scroller} className="mt-3 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="inline-block">
-          <div className="relative ml-6 h-4 text-[10px] text-content-subtle" style={{ width: weeks * 14 }}>
+          <div className="relative ml-6 h-4 text-[0.625rem] text-content-subtle" style={{ width: weeks * 14 }}>
             {months.map((m) => (
               <span key={`${m.col}${m.text}`} className="absolute" style={{ left: m.col * 14 }}>
                 {m.text}
@@ -75,14 +75,14 @@ export function LearningHeatmap({ days, className }: { days: Day[]; className?: 
             ))}
           </div>
           <div className="flex gap-1">
-            <div className="grid grid-rows-7 gap-[3px] pr-1 text-[9px] leading-[11px] text-content-subtle">
+            <div className="grid grid-rows-7 gap-[0.1875rem] pr-1 text-[0.5625rem] leading-[0.6875rem] text-content-subtle">
               {["Mon", "", "Wed", "", "Fri", "", ""].map((d, i) => (
-                <span key={i} className="h-[11px]">
+                <span key={i} className="h-[0.6875rem]">
                   {d}
                 </span>
               ))}
             </div>
-            <div className="grid grid-flow-col grid-rows-7 gap-[3px]" role="img" aria-label={`${active} active days and ${total} XP in the last 26 weeks`}>
+            <div className="grid grid-flow-col grid-rows-7 gap-[0.1875rem]" role="img" aria-label={`${active} active days and ${total} XP in the last 26 weeks`}>
               {cells.map((c, i) =>
                 c ? (
                   <button
@@ -93,25 +93,25 @@ export function LearningHeatmap({ days, className }: { days: Day[]; className?: 
                     onFocus={() => setPick(c)}
                     onClick={() => setPick(c)}
                     title={`${label(c.d)}: ${c.xp ? `${c.xp} XP` : "no activity"}`}
-                    className={cn("acad-heat h-[11px] w-[11px] rounded-[3px]", `is-l${heatLevel(c.xp)}`, pick?.d === c.d && "is-picked")}
+                    className={cn("acad-heat h-[0.6875rem] w-[0.6875rem] rounded-[0.1875rem]", `is-l${heatLevel(c.xp)}`, pick?.d === c.d && "is-picked")}
                     aria-label={`${label(c.d)}: ${c.xp} XP`}
                   />
                 ) : (
-                  <span key={`pad${i}`} className="h-[11px] w-[11px]" />
+                  <span key={`pad${i}`} className="h-[0.6875rem] w-[0.6875rem]" />
                 )
               )}
             </div>
           </div>
         </div>
       </div>
-      <div className="mt-2 flex items-center justify-between gap-3 text-[10px] text-content-subtle">
+      <div className="mt-2 flex items-center justify-between gap-3 text-[0.625rem] text-content-subtle">
         <span className="sm:hidden" aria-live="polite">
           {pick ? `${label(pick.d)}: ${pick.xp ? `${pick.xp} XP` : "no activity"}` : "Tap a day"}
         </span>
         <span className="ml-auto flex items-center gap-1">
           Less
           {[0, 1, 2, 3, 4].map((l) => (
-            <span key={l} className={cn("acad-heat h-[10px] w-[10px] rounded-[3px]", `is-l${l}`)} />
+            <span key={l} className={cn("acad-heat h-[0.625rem] w-[0.625rem] rounded-[0.1875rem]", `is-l${l}`)} />
           ))}
           More
         </span>

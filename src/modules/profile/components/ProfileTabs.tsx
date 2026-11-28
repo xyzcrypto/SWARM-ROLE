@@ -65,7 +65,7 @@ export function ProfileTabs({ tabs }: { tabs: ProfileTab[] }) {
                 )}
               >
                 {t.label}
-                {t.count != null && t.count > 0 && <span className={cn("rounded-full px-1.5 py-px font-mono text-[10px]", on ? "bg-gold-400/20 text-gold-700 dark:text-gold-200" : "bg-white/[0.06] text-content-subtle")}>{t.count > 99 ? "99+" : t.count}</span>}
+                {t.count != null && t.count > 0 && <span className={cn("rounded-full px-1.5 py-px font-mono text-[0.625rem]", on ? "bg-gold-400/20 text-gold-700 dark:text-gold-200" : "bg-white/[0.06] text-content-subtle")}>{t.count > 99 ? "99+" : t.count}</span>}
                 <span className={cn("absolute inset-x-2 -bottom-px h-0.5 rounded-full transition-all duration-300", on ? "bg-gradient-to-r from-gold-400 to-gold-300 opacity-100" : "opacity-0")} />
               </button>
             );

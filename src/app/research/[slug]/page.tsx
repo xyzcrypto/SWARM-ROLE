@@ -237,7 +237,7 @@ export default async function PostPage(
                       <p className={cn("text-sm font-semibold", authorIsPremium ? "text-gold-gradient" : "text-zinc-200")}>
                         {post.author?.name ?? "XYZ Crypto"}
                       </p>
-                      <p className="mono text-[11px] text-zinc-500">
+                      <p className="mono text-[0.6875rem] text-zinc-500">
                         {formatDate(post.createdAt)} · {readingTime(post.content)} min read
                         {" · "}
                         {(post.views + 1).toLocaleString()} views
@@ -254,7 +254,8 @@ export default async function PostPage(
                   byline
                 );
               })()}
-              <div className="flex items-center gap-2">
+              {/* Wraps: Like + Copy link + Post + Share is ~334px, wider than a 320px phone. */}
+              <div className="flex flex-wrap items-center gap-2">
                 <LikeButton postId={post.id} initialCount={likeCount} initialLiked={Boolean(myLike)} />
                 <ShareRow title={post.title} path={`/research/${post.slug}`} />
               </div>
@@ -286,10 +287,10 @@ export default async function PostPage(
             const summary = post.premium ? null : (post as { summary?: string | null }).summary;
             return summary ? (
               <div className="mt-6 rounded-xl border border-mint-500/25 bg-mint-500/[0.06] p-4">
-                <p className="mono text-[11px] font-semibold uppercase tracking-wide text-mint-300">
+                <p className="mono text-[0.6875rem] font-semibold uppercase tracking-wide text-mint-300">
                   TL;DR · XYZ AI
                 </p>
-                <p className="mt-1.5 text-[15px] leading-relaxed text-zinc-200">{summary}</p>
+                <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-zinc-200">{summary}</p>
               </div>
             ) : null;
           })()}
@@ -325,7 +326,7 @@ export default async function PostPage(
                 View all →
               </Link>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((p) => (
                 <PostCard key={p.slug} post={p} />
               ))}

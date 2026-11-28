@@ -21,7 +21,7 @@ export function Footer() {
       <Container>
         <FooterNewsletter />
 
-        <div className="grid gap-10 py-14 lg:grid-cols-[1.6fr_1fr_1fr]">
+        <div className="grid grid-cols-1 gap-10 py-14 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)]">
           <div>
             <Link href="/" prefetch={false} className="flex items-center gap-3">
               <span className="relative inline-flex h-11 w-11">
@@ -104,18 +104,18 @@ export function Footer() {
         <LiveStats className="border-t border-line py-5" />
 
         <div className="flex flex-col items-center gap-3 border-t border-line py-6 text-center sm:flex-row sm:justify-between sm:text-left">
-          <p className="mono text-[11px] text-zinc-600">© {new Date().getFullYear()} XYZ Crypto. All rights reserved.</p>
+          <p className="mono text-[0.6875rem] text-zinc-600">© {new Date().getFullYear()} XYZ Crypto. All rights reserved.</p>
           <div className="flex flex-col items-center gap-2 sm:flex-row sm:gap-4">
             <div className="flex items-center gap-4">
-              <Link href="/about" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">About</Link>
-              <Link href="/terms" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Terms</Link>
-              <Link href="/privacy" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Privacy</Link>
-              <Link href="/disclaimer" prefetch={false} className="tap-target-y mono text-[11px] text-zinc-600 transition-colors hover:text-gold-200">Disclaimer</Link>
+              <Link href="/about" prefetch={false} className="tap-target-y mono text-[0.6875rem] text-zinc-600 transition-colors hover:text-gold-200">About</Link>
+              <Link href="/terms" prefetch={false} className="tap-target-y mono text-[0.6875rem] text-zinc-600 transition-colors hover:text-gold-200">Terms</Link>
+              <Link href="/privacy" prefetch={false} className="tap-target-y mono text-[0.6875rem] text-zinc-600 transition-colors hover:text-gold-200">Privacy</Link>
+              <Link href="/disclaimer" prefetch={false} className="tap-target-y mono text-[0.6875rem] text-zinc-600 transition-colors hover:text-gold-200">Disclaimer</Link>
             </div>
-            <p className="mono text-[11px] text-zinc-600">Built for the Next Generation of Web3 · v2.0</p>
+            <p className="mono text-[0.6875rem] text-zinc-600">Built for the Next Generation of Web3 · v2.0</p>
           </div>
         </div>
-        <p className="mx-auto max-w-2xl pb-8 text-center text-[11px] leading-relaxed text-zinc-700">
+        <p className="mx-auto max-w-2xl pb-8 text-center text-[0.6875rem] leading-relaxed text-zinc-700">
           Disclaimer: Nothing on this site is financial advice. Crypto assets are
           volatile and high-risk. Always do your own research.
         </p>

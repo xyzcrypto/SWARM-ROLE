@@ -17,13 +17,13 @@ export default function PortfolioPage() {
       <Navbar />
       <main className="relative min-h-screen pt-28 flex flex-col justify-center items-center">
         <PageBackground />
-        <div className="relative mx-auto max-w-[680px] px-5 py-24 text-center">
+        <div className="relative mx-auto max-w-[42.5rem] px-5 py-24 text-center">
           <span className="eyebrow eyebrow-glass inline-flex items-center gap-2">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
             </span>
-            <span className="mono font-mono text-[10px] font-semibold uppercase tracking-[0.16em] sm:text-[11px]">
+            <span className="mono font-mono text-[0.625rem] font-semibold uppercase tracking-[0.16em] sm:text-[0.6875rem]">
               <span className="text-[#fdf7e7]">Portfolio</span>{" "}
               <span className="text-shine">Intelligence</span>
             </span>

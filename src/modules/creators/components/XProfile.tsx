@@ -302,7 +302,7 @@ export function XProfile({
                   <div className="mt-3">
                     <HeatStrip values={p.byWeekday.map((d) => d.avg)} labels={WEEKDAYS} title={(i) => `${WEEKDAYS[i]}: ${p.byWeekday[i]!.posts} posts, ${full(p.byWeekday[i]!.avg)} avg pts`} />
                   </div>
-                  <p className="mt-2 text-[11px] text-content-subtle">
+                  <p className="mt-2 text-[0.6875rem] text-content-subtle">
                     {bestHour != null ? `Strongest hour: ${String(bestHour).padStart(2, "0")}:00 UTC (average points per post). ` : "Needs a few more posts to spot a pattern. "}
                     Times are UTC.
                   </p>
@@ -338,7 +338,7 @@ export function XProfile({
                 <div className="rounded-2xl border border-hairline p-4">
                   <div className="mb-3 text-sm font-semibold text-content">Points per week</div>
                   <Sparkbars values={p.weekly.map((w) => w.points)} titles={p.weekly.map((w) => `Week of ${w.week}: ${full(w.points)} pts, ${w.posts} posts`)} height={96} />
-                  <div className="mt-2 flex justify-between text-[10px] text-content-subtle">
+                  <div className="mt-2 flex justify-between text-[0.625rem] text-content-subtle">
                     <span>12 weeks ago</span>
                     <span>This week</span>
                   </div>
@@ -414,7 +414,7 @@ export function XProfile({
                   <ul className="space-y-2">
                     {posts.map((t) => (
                       <li key={t.tweetId} className="rounded-2xl border border-hairline bg-ink-800/30 p-3.5 transition-colors hover:border-gold-400/30">
-                        <div className="mb-1.5 flex items-center justify-between gap-2 text-[11px] text-content-subtle">
+                        <div className="mb-1.5 flex items-center justify-between gap-2 text-[0.6875rem] text-content-subtle">
                           <span>
                             {formatDate(t.createdAt)}
                             {t.isReply ? " · reply" : ""}
@@ -422,7 +422,7 @@ export function XProfile({
                           <span className="rounded-full bg-gold-400/15 px-2 py-0.5 font-bold tabular-nums text-gold-300">{compact(t.points)} pts</span>
                         </div>
                         <p className="line-clamp-4 whitespace-pre-line break-words text-sm text-content-muted">{t.text}</p>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] tabular-nums text-content-subtle">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-[0.6875rem] tabular-nums text-content-subtle">
                           <span>{compact(t.views)} views</span>
                           <span>{compact(t.likes)} likes</span>
                           <span>{compact(t.replies)} replies</span>
@@ -437,7 +437,7 @@ export function XProfile({
                 )}
               </div>
 
-              <p className="text-[11px] leading-relaxed text-content-subtle">
+              <p className="text-[0.6875rem] leading-relaxed text-content-subtle">
                 Points = views × {POINT_WEIGHTS.views} + likes + replies × {POINT_WEIGHTS.replies} + reposts × {POINT_WEIGHTS.reposts} + quotes × {POINT_WEIGHTS.quotes} + bookmarks ×{" "}
                 {POINT_WEIGHTS.bookmarks}. {p.scannedAt ? `Account last read from X ${formatDate(p.scannedAt)}.` : ""}
               </p>

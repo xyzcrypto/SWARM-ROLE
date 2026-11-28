@@ -30,7 +30,7 @@ export function Social() {
           subtitle="Follow XYZ Crypto across every platform for research drops, alpha, product launches and live market coverage."
         />
 
-        <div className="mt-10 grid gap-4 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-1 gap-4 sm:mt-12 sm:grid-cols-2 lg:grid-cols-4">
           {channels.map((c, i) => (
             <Reveal key={c.name} delay={i} variant="pop">
               <TiltCard max={5}>

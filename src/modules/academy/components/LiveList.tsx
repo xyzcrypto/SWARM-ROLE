@@ -53,7 +53,7 @@ function Card({ q, i }: { q: LiveListItem; i: number }) {
         </div>
         <h3 className="mt-4 font-display text-lg font-semibold leading-snug text-content">{q.title}</h3>
         {q.description && <p className="mt-1 line-clamp-2 text-sm text-content-muted">{q.description}</p>}
-        <div className="mt-3 flex items-center gap-2 text-[12px] text-content-subtle">
+        <div className="mt-3 flex items-center gap-2 text-[0.75rem] text-content-subtle">
           <CalendarClock className="h-3.5 w-3.5" /> {when(q.scheduledAt)} · {q.questions} questions · {q.questionSec}s each
         </div>
         <div className="mt-auto pt-4">
@@ -128,7 +128,7 @@ export function LiveList() {
           </button>
         </Empty>
       ) : !items ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <Skeleton className="h-52" />
           <Skeleton className="h-52" />
           <Skeleton className="h-52" />
@@ -137,8 +137,8 @@ export function LiveList() {
         <div className="space-y-10">
           {live.length > 0 && (
             <section>
-              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-mint-300">Live now</h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-mint-300">Live now</h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {live.map((q, i) => (
                   <Card key={q.id} q={q} i={i} />
                 ))}
@@ -146,9 +146,9 @@ export function LiveList() {
             </section>
           )}
           <section>
-            <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Upcoming</h2>
+            <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Upcoming</h2>
             {upcoming.length ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {upcoming.map((q, i) => (
                   <Card key={q.id} q={q} i={i} />
                 ))}
@@ -159,8 +159,8 @@ export function LiveList() {
           </section>
           {done.length > 0 && (
             <section>
-              <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Completed</h2>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <h2 className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Completed</h2>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {done.map((q, i) => (
                   <Card key={q.id} q={q} i={i} />
                 ))}

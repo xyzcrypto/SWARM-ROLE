@@ -56,14 +56,14 @@ export function CalendarHeatmap({ dayBuckets }: { dayBuckets: PeriodBucket[] }) 
                 type="button"
                 onMouseEnter={() => setHover(d.date)}
                 onMouseLeave={() => setHover(null)}
-                className={cn("h-3.5 w-3.5 rounded-[3px] transition-transform hover:scale-125", colorFor(d.pnl, d.trades))}
+                className={cn("h-3.5 w-3.5 rounded-[0.1875rem] transition-transform hover:scale-125", colorFor(d.pnl, d.trades))}
                 aria-label={`${d.date}: ${d.trades} trades, $${d.pnl.toFixed(2)}`}
               />
             ))}
           </div>
         ))}
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-zinc-500">
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[0.6875rem] text-zinc-500">
         <span>
           {hovered
             ? `${new Date(hovered.date).toLocaleDateString()} — ${hovered.trades} trade${hovered.trades === 1 ? "" : "s"}, $${hovered.pnl.toFixed(2)}`

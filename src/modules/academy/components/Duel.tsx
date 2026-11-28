@@ -25,10 +25,10 @@ export function ChallengeBoard({ board, meId, className }: { board: DuelEntry[];
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 truncate text-sm font-semibold text-content">
               <span className="truncate">{e.name}</span>
-              {e.host && <span className="shrink-0 rounded-full bg-gold-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-gold-700 dark:text-gold-200">Host</span>}
-              {e.userId === meId && <span className="shrink-0 rounded-full bg-mint-400/20 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-mint-700 dark:text-mint-200">You</span>}
+              {e.host && <span className="shrink-0 rounded-full bg-gold-400/20 px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wider text-gold-700 dark:text-gold-200">Host</span>}
+              {e.userId === meId && <span className="shrink-0 rounded-full bg-mint-400/20 px-1.5 py-0.5 text-[0.5625rem] font-bold uppercase tracking-wider text-mint-700 dark:text-mint-200">You</span>}
             </div>
-            <div className="text-[11px] text-content-subtle">
+            <div className="text-[0.6875rem] text-content-subtle">
               {e.correct} correct · {secs(e.timeMs)}
             </div>
           </div>
@@ -55,7 +55,7 @@ export function VsCard({ you, them }: { you: { name: string; image: string | nul
         <div className={cn("mt-1 font-display text-3xl font-bold sm:text-4xl", won ? "text-gold-600 dark:text-gold-200" : "text-content")}>
           <CountUp value={p.score} duration={1200} />
         </div>
-        <div className="text-[11px] text-content-subtle">
+        <div className="text-[0.6875rem] text-content-subtle">
           {p.correct}/{p.total} correct
         </div>
       </div>

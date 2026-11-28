@@ -191,7 +191,7 @@ export function JournalClient({
           <h1 className="flex items-center gap-2 font-display text-2xl font-semibold text-zinc-50 sm:text-3xl">
             Trading <span className="text-shine">Journal</span>
             {live && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-mint-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-mint-300 ring-1 ring-mint-500/25">
+              <span className="inline-flex items-center gap-1 rounded-full bg-mint-500/10 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-mint-300 ring-1 ring-mint-500/25">
                 <Radio className="h-2.5 w-2.5 animate-pulse" /> Live
               </span>
             )}
@@ -227,14 +227,14 @@ export function JournalClient({
 
       {tab === "trades" ? (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatTile label="Win rate" value={`${stats.winRate.toFixed(1)}%`} tone="mint" />
             <StatTile label="Total P&L" value={`$${stats.totalPnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} tone={stats.totalPnl >= 0 ? "mint" : "rose"} />
             <StatTile label="Total trades" value={String(stats.totalTrades)} />
             <StatTile label="Avg R" value={stats.avgR != null ? stats.avgR.toFixed(2) : "-"} tone="gold" />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <StatTile
               label={`This week${weekPnl.trades > 0 ? ` · ${weekPnl.trades} closed` : ""}`}
               value={`${weekPnl.pnl >= 0 ? "+" : ""}$${weekPnl.pnl.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
@@ -352,14 +352,14 @@ function TradeRow({
     <div className="surface surface-hover rounded-2xl">
       <button onClick={onToggle} className="flex w-full flex-wrap items-center justify-between gap-3 p-4 text-left">
         <div className="flex flex-wrap items-center gap-3">
-          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", trade.side === "long" ? "bg-mint-500/10 text-mint-300 ring-mint-500/25" : "bg-rose-500/10 text-rose-300 ring-rose-500/25")}>
+          <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide ring-1", trade.side === "long" ? "bg-mint-500/10 text-mint-300 ring-mint-500/25" : "bg-rose-500/10 text-rose-300 ring-rose-500/25")}>
             {trade.side}
           </span>
           <span className="font-display text-sm font-semibold text-zinc-100">{trade.symbol}</span>
           <span className="text-xs text-zinc-500">{trade.type}</span>
           {platform && <span className="text-xs text-zinc-600">· {platform.name}</span>}
-          <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ring-1", STATUS_TONE[status] ?? STATUS_TONE.open)}>{status}</span>
-          <span className="mono text-[11px] text-zinc-600">{formatDateWithDay(firstEntryAt)}</span>
+          <span className={cn("rounded-full px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide ring-1", STATUS_TONE[status] ?? STATUS_TONE.open)}>{status}</span>
+          <span className="mono text-[0.6875rem] text-zinc-600">{formatDateWithDay(firstEntryAt)}</span>
         </div>
         <div className="flex items-center gap-4">
           {status !== "open" && (
@@ -373,7 +373,7 @@ function TradeRow({
 
       {expanded && (
         <div className="space-y-4 border-t border-line p-4">
-          <div className="grid gap-3 text-xs text-zinc-400 sm:grid-cols-4">
+          <div className="grid grid-cols-1 gap-3 text-xs text-zinc-400 sm:grid-cols-4">
             <div>Avg entry: <span className="mono text-zinc-200">${avgEntry.toFixed(4)}</span></div>
             <div>Leverage: <span className="mono text-zinc-200">{trade.leverage ?? 1}x</span></div>
             <div>R:R (planned): <span className="mono text-zinc-200">{rr != null ? rr.toFixed(2) : "-"}</span></div>
@@ -391,9 +391,9 @@ function TradeRow({
           {trade.notes && <p className="text-sm text-zinc-400">{trade.notes}</p>}
 
           <div>
-            <span className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Visibility</span>
+            <span className="mb-1.5 block text-[0.6875rem] font-semibold uppercase tracking-wide text-zinc-500">Visibility</span>
             <CalcSegmented options={TRADE_VISIBILITIES} value={trade.visibility as "private" | "public" | "anonymous"} onChange={onVisibilityChange} />
-            <p className="mt-1.5 text-[11px] text-zinc-600">Public trades appear on your profile&apos;s Journal Activity feed.</p>
+            <p className="mt-1.5 text-[0.6875rem] text-zinc-600">Public trades appear on your profile&apos;s Journal Activity feed.</p>
           </div>
 
           <div className="overflow-x-auto">
@@ -437,7 +437,7 @@ function TradeRow({
 }
 
 function Tag({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-full border border-white/10 px-2 py-0.5 text-[11px] text-zinc-400">{children}</span>;
+  return <span className="rounded-full border border-white/10 px-2 py-0.5 text-[0.6875rem] text-zinc-400">{children}</span>;
 }
 
 function AddFillRow({ onAdd }: { onAdd: (fill: { kind: "entry" | "exit"; price: number; size: number; fee: number }) => void }) {
@@ -465,7 +465,7 @@ function AddFillRow({ onAdd }: { onAdd: (fill: { kind: "entry" | "exit"; price: 
       <input value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" type="number" className="w-24 rounded-lg border border-white/10 bg-ink-700/60 px-2.5 py-2 text-xs text-zinc-100 outline-none" />
       <div className="flex flex-col gap-0.5">
         <input value={dollarAmount} onChange={(e) => setDollarAmount(e.target.value)} placeholder="Size ($)" type="number" className="w-24 rounded-lg border border-white/10 bg-ink-700/60 px-2.5 py-2 text-xs text-zinc-100 outline-none" />
-        {sizeUnits > 0 && <span className="mono text-[10px] text-zinc-600">≈ {sizeUnits.toLocaleString(undefined, { maximumFractionDigits: 6 })} units</span>}
+        {sizeUnits > 0 && <span className="mono text-[0.625rem] text-zinc-600">≈ {sizeUnits.toLocaleString(undefined, { maximumFractionDigits: 6 })} units</span>}
       </div>
       <input value={fee} onChange={(e) => setFee(e.target.value)} placeholder="Fee" type="number" className="w-20 rounded-lg border border-white/10 bg-ink-700/60 px-2.5 py-2 text-xs text-zinc-100 outline-none" />
       <button onClick={submit} className="btn-secondary px-3 py-2 text-xs">Add fill</button>

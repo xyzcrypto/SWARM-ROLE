@@ -233,7 +233,7 @@ function Duel({ pair, metric, picked, onPick }: { pair: [ArenaEntry, ArenaEntry]
               <div className="mt-3 h-8 font-display text-2xl font-bold tabular-nums text-gold-300">
                 {picked ? <CountUp value={val(e, metric.key)} format={metric.fmt} duration={700} /> : "?"}
               </div>
-              <div className="text-[10px] uppercase tracking-wider text-content-subtle">{metric.label}</div>
+              <div className="text-[0.625rem] uppercase tracking-wider text-content-subtle">{metric.label}</div>
             </motion.button>
           );
         })}
@@ -558,7 +558,7 @@ function Daily({ pool, source }: { pool: ArenaEntry[]; source: "x" | "yt" }) {
           {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Copied" : "Copy result"}
         </button>
         {history.length > 1 && (
-          <p className="mt-3 text-[11px] text-content-subtle">
+          <p className="mt-3 text-[0.6875rem] text-content-subtle">
             Played {history.length} days · average {(history.reduce((s, h) => s + (h.split("=")[1] ?? "").split("").filter((c) => c === "1").length, 0) / history.length).toFixed(1)}/10
           </p>
         )}
@@ -832,10 +832,10 @@ function CreatorPicker({
       >
         {value ? <Avatar src={value.avatar} alt={value.name} size={24} /> : <span className="h-6 w-6 rounded-full bg-ink-700" />}
         <span className="min-w-0 flex-1 truncate text-content">{value ? value.name : "Pick a creator"}</span>
-        <span className="text-[10px] text-content-subtle">{value?.rank ? `#${value.rank}` : value?.custom ? "added" : ""}</span>
+        <span className="text-[0.625rem] text-content-subtle">{value?.rank ? `#${value.rank}` : value?.custom ? "added" : ""}</span>
       </button>
       {open && (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1.5 min-w-[220px] rounded-2xl border border-hairline bg-ink-900 p-2 shadow-2xl">
+        <div className="absolute left-0 right-0 top-full z-30 mt-1.5 min-w-[13.75rem] rounded-2xl border border-hairline bg-ink-900 p-2 shadow-2xl">
           <input
             autoFocus
             value={q}
@@ -866,7 +866,7 @@ function CreatorPicker({
                 >
                   <Avatar src={p.avatar} alt={p.name} size={24} />
                   <span className="min-w-0 flex-1 truncate text-content">{p.name}</span>
-                  <span className="shrink-0 text-[10px] tabular-nums text-content-subtle">{p.rank ? `#${p.rank}` : p.custom ? "added" : ""}</span>
+                  <span className="shrink-0 text-[0.625rem] tabular-nums text-content-subtle">{p.rank ? `#${p.rank}` : p.custom ? "added" : ""}</span>
                 </button>
               </li>
             ))}
@@ -882,7 +882,7 @@ function CreatorPicker({
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Look up @{handle} on X and add
             </button>
           )}
-          {err && <p className="mt-1 px-1 text-[11px] text-red-300">{err}</p>}
+          {err && <p className="mt-1 px-1 text-[0.6875rem] text-red-300">{err}</p>}
         </div>
       )}
     </div>
@@ -1080,7 +1080,7 @@ function SquadBuilder({ pool, label }: { pool: ArenaEntry[]; label: string }) {
                 <Avatar src={e.avatar} alt={e.name} size={28} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm text-content">{e.name}</div>
-                  <div className="truncate text-[11px] text-content-subtle">
+                  <div className="truncate text-[0.6875rem] text-content-subtle">
                     {e.rank ? `#${e.rank}` : "Added"} · {compact(e.points)} pts
                   </div>
                 </div>
@@ -1088,7 +1088,7 @@ function SquadBuilder({ pool, label }: { pool: ArenaEntry[]; label: string }) {
                   type="button"
                   disabled={!can}
                   onClick={() => pick(e)}
-                  className={cn("shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold tabular-nums", can ? "border-gold-400/40 text-gold-200 hover:bg-gold-400/10" : "border-hairline text-content-subtle")}
+                  className={cn("shrink-0 rounded-full border px-2.5 py-1 text-[0.6875rem] font-bold tabular-nums", can ? "border-gold-400/40 text-gold-200 hover:bg-gold-400/10" : "border-hairline text-content-subtle")}
                 >
                   {cost} cr
                 </button>
@@ -1102,7 +1102,7 @@ function SquadBuilder({ pool, label }: { pool: ArenaEntry[]; label: string }) {
         <div className="mb-3 flex items-center justify-between">
           <span className="text-sm font-semibold text-content">Your squad · {label}</span>
           {members.length > 0 && (
-            <button type="button" onClick={() => saveSquad([])} className="text-[11px] text-content-subtle hover:text-content">
+            <button type="button" onClick={() => saveSquad([])} className="text-[0.6875rem] text-content-subtle hover:text-content">
               Clear
             </button>
           )}
@@ -1117,7 +1117,7 @@ function SquadBuilder({ pool, label }: { pool: ArenaEntry[]; label: string }) {
                     <Avatar src={m.avatar} alt={m.name} size={32} />
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-semibold text-content">{m.name}</div>
-                      <div className="text-[11px] tabular-nums text-content-subtle">
+                      <div className="text-[0.6875rem] tabular-nums text-content-subtle">
                         {compact(m.points)} pts · {compact(m.views)} views · {draftCost(m.rank)} cr
                       </div>
                     </div>
@@ -1145,7 +1145,7 @@ function SquadBuilder({ pool, label }: { pool: ArenaEntry[]; label: string }) {
               const mine = sum(members, k);
               const theirs = sum(top3, k);
               return (
-                <div key={k} className="grid grid-cols-[80px_minmax(0,1fr)_auto] items-center gap-2 text-xs">
+                <div key={k} className="grid grid-cols-[5rem_minmax(0,1fr)_auto] items-center gap-2 text-xs">
                   <span className="text-content-muted">{l}</span>
                   <div className="h-1.5 overflow-hidden rounded-full bg-ink-700">
                     <motion.div className="h-full rounded-full bg-gold-400" animate={{ width: `${Math.min(100, (mine / Math.max(1, theirs)) * 100)}%` }} />
@@ -1156,7 +1156,7 @@ function SquadBuilder({ pool, label }: { pool: ArenaEntry[]; label: string }) {
                 </div>
               );
             })}
-            <p className="pt-1 text-[11px] text-content-subtle">Bars compare your squad with the board&apos;s top 3 combined.</p>
+            <p className="pt-1 text-[0.6875rem] text-content-subtle">Bars compare your squad with the board&apos;s top 3 combined.</p>
             <button
               type="button"
               onClick={async () => {
@@ -1442,7 +1442,7 @@ export function Arena({ xPool, ytPool, label, compareWith }: { xPool: ArenaEntry
           >
             <Icon className={cn("h-5 w-5", mode === id ? "text-gold-300" : "text-content-subtle")} />
             <div className={cn("mt-2 truncate text-sm font-bold", mode === id ? "text-gold-100" : "text-content")}>{l}</div>
-            <div className="mt-0.5 truncate text-[11px] text-content-subtle">{sub}</div>
+            <div className="mt-0.5 truncate text-[0.6875rem] text-content-subtle">{sub}</div>
           </motion.button>
         ))}
       </div>

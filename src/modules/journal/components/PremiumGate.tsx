@@ -13,7 +13,7 @@ export function PremiumGate({ title, perks, loggedIn }: { title: string; perks: 
       <div aria-hidden className="pointer-events-none absolute -top-16 left-1/2 h-40 w-80 max-w-[120%] -translate-x-1/2 rounded-full bg-gold-500/15 blur-3xl" />
       <div className="relative">
         <LockIcon className="mx-auto h-11 w-11" />
-        <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gold-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-gold-200 ring-1 ring-gold-500/30">
+        <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-gold-500/10 px-3 py-1 text-[0.6875rem] font-semibold uppercase tracking-wide text-gold-200 ring-1 ring-gold-500/30">
           <MagicStar size={12} variant="Bold" color="#f3d488" /> Premium
         </p>
         <h3 className="mt-3 font-display text-lg font-semibold text-zinc-50">{title}</h3>

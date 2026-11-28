@@ -145,12 +145,12 @@ export function SaveButton({
       {saved && (
         <a
           href="/saved"
-          className="mt-1 text-[11px] text-content-subtle underline underline-offset-2 transition-colors hover:text-gold-200"
+          className="mt-1 text-[0.6875rem] text-content-subtle underline underline-offset-2 transition-colors hover:text-gold-200"
         >
           See your saved reads
         </a>
       )}
-      {note && <span className="mt-1 text-[11px] text-content-subtle">{note}</span>}
+      {note && <span className="mt-1 text-[0.6875rem] text-content-subtle">{note}</span>}
     </span>
   );
 }

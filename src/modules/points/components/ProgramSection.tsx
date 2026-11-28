@@ -72,7 +72,7 @@ export function ProgramSection({
         className="flex w-full flex-col items-stretch gap-3 text-left sm:flex-row sm:items-start sm:justify-between sm:gap-x-6"
       >
         <div className="min-w-0 sm:flex-1">
-          <span className={cn("eyebrow-glass inline-flex items-center gap-1.5 text-[11px]", PHASE_TONE[program.phase])}>
+          <span className={cn("eyebrow-glass inline-flex items-center gap-1.5 text-[0.6875rem]", PHASE_TONE[program.phase])}>
             {PHASE_LABEL[program.phase]}
           </span>
           <h2 className="mt-3 font-display text-xl font-semibold tracking-tight text-content sm:text-2xl">
@@ -83,7 +83,7 @@ export function ProgramSection({
                 card full of confident-looking figures. */}
             <span
               className={cn(
-                "inline-flex items-center gap-1 text-[11px] font-medium",
+                "inline-flex items-center gap-1 text-[0.6875rem] font-medium",
                 program.confirmed ? "text-mint-300" : "text-content-subtle"
               )}
             >
@@ -95,7 +95,7 @@ export function ProgramSection({
               {program.confirmed ? "Confirmed by the protocol" : "Community assumptions"}
             </span>
             {hasLiveComps(program) && (
-              <span className="mono text-[11px] text-mint-300">
+              <span className="mono text-[0.6875rem] text-mint-300">
                 {usdCompact(program.venue!.volume24h)} 24h
               </span>
             )}
@@ -113,7 +113,7 @@ export function ProgramSection({
             <span className="mono block text-lg font-semibold text-gold-gradient sm:text-xl">
               {usdCompact(value.grossUsd)}
             </span>
-            <span className="block text-[10px] text-content-subtle">
+            <span className="block text-[0.625rem] text-content-subtle">
               {usdCompact(value.liquidAtTgeUsd)} at TGE
             </span>
           </span>
@@ -128,7 +128,7 @@ export function ProgramSection({
               onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
             />
           ) : (
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/5 text-[11px] font-semibold text-content-muted">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white/5 text-[0.6875rem] font-semibold text-content-muted">
               {program.name.slice(0, 2).toUpperCase()}
             </span>
           )}
@@ -148,7 +148,7 @@ export function ProgramSection({
         {program.notes}
       </p>
 
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Fact icon={Layers} label="Markets" value={program.supportedMarkets} />
         <Fact icon={Gauge} label="Max leverage" value={program.maxLeverage} />
         <Fact icon={Percent} label="Fees" value={program.fees} />
@@ -217,7 +217,7 @@ function hostOf(url?: string): string | undefined {
 function Fact({ icon: Icon, label, value }: { icon: typeof Layers; label: string; value: string }) {
   return (
     <div className="rounded-xl border border-hairline bg-surface-2 p-3">
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-content-subtle">
+      <span className="flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-content-subtle">
         <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
         {label}
       </span>

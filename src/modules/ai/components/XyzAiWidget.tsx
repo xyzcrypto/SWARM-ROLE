@@ -392,7 +392,7 @@ export function XyzAiWidget() {
       // No spring while the pointer is down, or the panel lags behind the cursor.
       transition={drag.dragging ? { duration: 0 } : { type: "spring", stiffness: 240, damping: 24 }}
       className={cn(
-        "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,560px)] w-[min(92vw,400px)] flex-col overflow-hidden rounded-[20px] sm:right-6"
+        "ai-surface fixed bottom-24 right-4 z-[60] flex h-[min(70vh,35rem)] w-[min(92vw,25rem)] flex-col overflow-hidden rounded-[1.25rem] sm:right-6"
       )}
       ref={(el) => {
         drag.ref.current = el;
@@ -430,14 +430,14 @@ export function XyzAiWidget() {
         </span>
         <div className="min-w-0 flex-1 leading-tight">
           <p className="truncate text-sm font-semibold text-zinc-100">XYZ AI</p>
-          <p className="mono truncate text-[10px] text-mint-200/80">Online · research &amp; live markets</p>
+          <p className="mono truncate text-[0.625rem] text-mint-200/80">Online · research &amp; live markets</p>
         </div>
 
         {(level === "quiet" || level === "warn") && quota && (
           <span
             title={`${quota.remaining} of ${quota.limit} questions left today. Resets at midnight UTC.`}
             className={cn(
-              "mono shrink-0 rounded-full px-2 py-0.5 text-[10px] tabular-nums ring-1",
+              "mono shrink-0 rounded-full px-2 py-0.5 text-[0.625rem] tabular-nums ring-1",
               level === "warn"
                 ? "bg-gold-500/15 text-gold-100 ring-gold-500/40"
                 : "bg-white/5 text-zinc-400 ring-white/10"
@@ -498,13 +498,13 @@ export function XyzAiWidget() {
             {messages.length === 0 && (
               <>
                 <div className="rounded-2xl border border-mint-500/15 bg-gradient-to-b from-mint-500/[0.08] to-transparent px-4 py-3.5 text-center">
-                  <p className="text-[15px] font-semibold text-zinc-100">
+                  <p className="text-[0.9375rem] font-semibold text-zinc-100">
                     {firstName ? `Hey ${firstName}` : "Hey there"} 👋
                   </p>
                   <p className="mt-1 text-xs leading-relaxed text-zinc-400">
                     I read every research post and live market data. Ask me anything.
                   </p>
-                  <span className="mono mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[10px] ring-1 ring-white/10">
+                  <span className="mono mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[0.625rem] ring-1 ring-white/10">
                     <span className="text-zinc-500">PLAN</span>
                     <span className="font-semibold text-violet-200">{plan}</span>
                   </span>
@@ -512,7 +512,7 @@ export function XyzAiWidget() {
 
                 {contextual.length > 0 && (
                   <>
-                    <p className="mono px-1 pt-1 text-[9.5px] uppercase tracking-[0.15em] text-mint-300/70">
+                    <p className="mono px-1 pt-1 text-[0.59375rem] uppercase tracking-[0.15em] text-mint-300/70">
                       About this page
                     </p>
                     <div className="space-y-2">
@@ -525,14 +525,14 @@ export function XyzAiWidget() {
                           <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-mint-500/15">
                             <Sparkles className="h-4 w-4 text-mint-200" />
                           </span>
-                          <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-zinc-100">{s.label}</span>
+                          <span className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-zinc-100">{s.label}</span>
                         </button>
                       ))}
                     </div>
                   </>
                 )}
 
-                <p className="mono px-1 pt-1 text-[9.5px] uppercase tracking-[0.15em] text-zinc-600">Start here</p>
+                <p className="mono px-1 pt-1 text-[0.59375rem] uppercase tracking-[0.15em] text-zinc-600">Start here</p>
 
                 <div className="space-y-2">
                   {LEAD_SUGGESTIONS.map((s) => (
@@ -545,8 +545,8 @@ export function XyzAiWidget() {
                         <s.icon className="h-4 w-4" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[13px] font-medium text-zinc-100">{s.label}</span>
-                        <span className="block truncate text-[11px] text-zinc-500">{s.sub}</span>
+                        <span className="block truncate text-[0.8125rem] font-medium text-zinc-100">{s.label}</span>
+                        <span className="block truncate text-[0.6875rem] text-zinc-500">{s.sub}</span>
                       </span>
                     </button>
                   ))}
@@ -562,7 +562,7 @@ export function XyzAiWidget() {
                       <span className={cn("inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md", TONE[s.tone])}>
                         <s.icon className="h-3.5 w-3.5" />
                       </span>
-                      <span className="truncate text-[12px] text-zinc-200">{s.label}</span>
+                      <span className="truncate text-[0.75rem] text-zinc-200">{s.label}</span>
                     </button>
                   ))}
                 </div>
@@ -645,7 +645,7 @@ export function XyzAiWidget() {
           ) : (
           <>
           {(speech.listening || speech.error) && (
-            <div className="border-t border-white/10 bg-white/5 px-4 pt-2 text-[11px]">
+            <div className="border-t border-white/10 bg-white/5 px-4 pt-2 text-[0.6875rem]">
               {speech.error ? (
                 <p className="text-amber-300/90">{speech.error}</p>
               ) : (
@@ -678,7 +678,7 @@ export function XyzAiWidget() {
               rows={1}
               placeholder="Ask XYZ AI…"
               disabled={busy}
-              className="max-h-28 min-h-[40px] flex-1 resize-none rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-gold-500/40 focus:outline-none focus:ring-1 focus:ring-gold-500/30"
+              className="max-h-28 min-h-[2.5rem] flex-1 resize-none rounded-xl border border-white/10 bg-ink-950/60 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 focus:border-gold-500/40 focus:outline-none focus:ring-1 focus:ring-gold-500/30"
             />
             {speech.supported && (
               <button
@@ -707,7 +707,7 @@ export function XyzAiWidget() {
           </form>
           </>
           )}
-          <p className="px-4 pb-2 text-center text-[10px] text-zinc-600">
+          <p className="px-4 pb-2 text-center text-[0.625rem] text-zinc-600">
             XYZ AI can be wrong. Not financial advice.
           </p>
         </>
@@ -768,7 +768,7 @@ function ToolBtn({
     <button
       onClick={onClick}
       aria-label={label}
-      className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[10px] text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
+      className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 text-[0.625rem] text-zinc-500 transition-colors hover:bg-white/5 hover:text-zinc-200"
     >
       <Icon className="h-3 w-3" />
       {label}
@@ -803,10 +803,10 @@ function LimitCard({ plan, limit }: { plan: string; limit: number }) {
   const isFree = plan === "Free";
   return (
     <div className="border-t border-gold-500/20 bg-gold-500/[0.06] px-4 py-3.5 text-center">
-      <p className="text-[13px] font-semibold text-gold-100">
+      <p className="text-[0.8125rem] font-semibold text-gold-100">
         That&rsquo;s today&rsquo;s {limit > 0 ? `${limit} ` : ""}questions
       </p>
-      <p className="mt-1 text-[11px] leading-relaxed text-zinc-400">
+      <p className="mt-1 text-[0.6875rem] leading-relaxed text-zinc-400">
         Your budget resets at midnight UTC.
         {isFree ? " Premium members get a much higher daily allowance." : ""}
       </p>

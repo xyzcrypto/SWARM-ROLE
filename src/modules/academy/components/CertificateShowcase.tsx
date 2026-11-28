@@ -49,7 +49,7 @@ export function CertificateShowcase() {
         title="Earn an official XYZ Crypto certificate"
         sub="Learn, play and finish on top. Winners get a certificate with a unique ID, a QR code and a public verification page, downloadable as a PDF and ready to share."
       />
-      <div className="grid items-center gap-8 lg:grid-cols-[1fr_1.15fr] lg:gap-12">
+      <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:gap-12">
         <div className="space-y-3">
           {WAYS.map((w, i) => (
             <motion.div
@@ -104,7 +104,7 @@ export function CertificateShowcase() {
               qr={SAMPLE_PATTERN}
             />
             <span className="acad-cert-sheen pointer-events-none absolute inset-0 rounded-2xl" aria-hidden />
-            <span className="pointer-events-none absolute right-4 top-4 flex items-center gap-1 rounded-full border border-gold-400/50 bg-black/60 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gold-200">
+            <span className="pointer-events-none absolute right-4 top-4 flex items-center gap-1 rounded-full border border-gold-400/50 bg-black/60 px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-[0.2em] text-gold-200">
               <Sparkles className="h-3 w-3" /> Sample
             </span>
           </motion.div>

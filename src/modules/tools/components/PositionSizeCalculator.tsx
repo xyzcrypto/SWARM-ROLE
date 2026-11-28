@@ -33,7 +33,7 @@ export function PositionSizeCalculator() {
         <p className="mt-1 text-sm text-zinc-500">Size a trade from your risk tolerance, not a guess.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <CalcField label="Account equity" value={equity} onChange={setEquity} suffix="USD" />
         <CalcField label="Risk per trade" value={riskPct} onChange={setRiskPct} suffix="%" />
         <CalcField label="Entry price" value={entry} onChange={setEntry} suffix="USD" />
@@ -41,7 +41,7 @@ export function PositionSizeCalculator() {
         <CalcField label="Take profit" value={target} onChange={setTarget} suffix="USD" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <ResultTile label="Risk amount" value={`$${size.riskUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} tone="rose" />
         <ResultTile label="Position size" value={`$${size.notionalUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
         <ResultTile label="Leverage needed" value={`${size.leverageNeeded.toFixed(2)}x`} />

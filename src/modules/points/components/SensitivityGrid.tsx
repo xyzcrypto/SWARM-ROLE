@@ -238,7 +238,7 @@ export function SensitivityGrid({
       {/* Bear / base / bull, from the live peer spread. Three numbers a reader
           can act on, above a grid that shows why they are those numbers. */}
       {scenarios.length > 0 && (
-        <div className="mt-5 grid gap-2 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
           {scenarios.map((sc) => {
             const { gross, roi } = atFdv(sc.fdv);
             return (
@@ -253,15 +253,15 @@ export function SensitivityGrid({
                 )}
               >
                 <span className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-content-subtle">
+                  <span className="text-[0.6875rem] font-semibold uppercase tracking-wide text-content-subtle">
                     {sc.key}
                   </span>
-                  <span className="text-[10px] text-content-subtle">{sc.note}</span>
+                  <span className="text-[0.625rem] text-content-subtle">{sc.note}</span>
                 </span>
                 <span className="mono mt-1.5 block text-lg font-semibold tabular-nums text-content">
                   {usdCompact(gross)}
                 </span>
-                <span className="mt-0.5 flex items-center gap-2 text-[11px]">
+                <span className="mt-0.5 flex items-center gap-2 text-[0.6875rem]">
                   <span className="mono text-content-subtle">{usdCompact(sc.fdv)} FDV</span>
                   {hasCost && (
                     <span className={cn("mono font-semibold", roi >= 1 ? "grid-net-up" : "grid-net-down")}>
@@ -300,7 +300,7 @@ export function SensitivityGrid({
       )}
 
       <div className="-mx-1 mt-6 overflow-x-auto px-1">
-        <table className="w-full table-fixed border-separate border-spacing-1 text-xs md:min-w-[620px]">
+        <table className="w-full table-fixed border-separate border-spacing-1 text-xs md:min-w-[38.75rem]">
           <caption className="sr-only">
             {hasCost ? "Return on cost" : "Gross value"} for each combination of fully diluted valuation and
             points allocation.
@@ -310,7 +310,7 @@ export function SensitivityGrid({
               {/* Two short lines rather than one long one: on a 393px screen
                   the single-line version was sized by the "50%" column beneath
                   it and clipped to "LLOC / DV →". */}
-              <th scope="col" className="whitespace-nowrap p-1 text-left text-[10px] font-medium uppercase tracking-wide text-content-subtle">
+              <th scope="col" className="whitespace-nowrap p-1 text-left text-[0.625rem] font-medium uppercase tracking-wide text-content-subtle">
                 Alloc ↓<br />FDV →
               </th>
               {fdvs.map((f, i) => (
@@ -318,7 +318,7 @@ export function SensitivityGrid({
                   key={f}
                   scope="col"
                   className={cn(
-                    "mono p-1 text-right text-[11px] font-medium",
+                    "mono p-1 text-right text-[0.6875rem] font-medium",
                     i === col ? "text-gold-300" : "text-content-subtle"
                   )}
                 >
@@ -341,7 +341,7 @@ export function SensitivityGrid({
                 <th
                   scope="row"
                   className={cn(
-                    "mono whitespace-nowrap p-1 text-left text-[11px] font-medium",
+                    "mono whitespace-nowrap p-1 text-left text-[0.6875rem] font-medium",
                     r === row ? "text-gold-300" : "text-content-subtle"
                   )}
                 >
@@ -350,7 +350,7 @@ export function SensitivityGrid({
                       reader should not have to scan five cells to find where
                       the line falls for their allocation. */}
                   {hasCost && breakEvenFdvs?.[r] ? (
-                    <span className="ml-1 hidden text-[10px] font-normal text-content-subtle opacity-80 sm:inline">
+                    <span className="ml-1 hidden text-[0.625rem] font-normal text-content-subtle opacity-80 sm:inline">
                       BE {usdCompact(breakEvenFdvs[r])}
                     </span>
                   ) : null}
@@ -370,10 +370,10 @@ export function SensitivityGrid({
                   }`;
                   const body = hasCost ? (
                     <>
-                      <span className={cn("font-semibold", here && "text-[13px]")}>
+                      <span className={cn("font-semibold", here && "text-[0.8125rem]")}>
                         {formatMultiple(c.roiMultiple)}
                       </span>
-                      <span className="ml-1 hidden text-[10px] opacity-70 sm:inline">
+                      <span className="ml-1 hidden text-[0.625rem] opacity-70 sm:inline">
                         {usdCompact(c.netUsd)}
                       </span>
                     </>
@@ -426,7 +426,7 @@ export function SensitivityGrid({
         </table>
       </div>
 
-      <p className="mt-4 text-[11px] leading-relaxed text-content-subtle">
+      <p className="mt-4 text-[0.6875rem] leading-relaxed text-content-subtle">
         {onPick ? "Tap any cell to load that FDV and allocation into the section above. " : ""}
         {liveCol >= 0 ? (
           <>
@@ -454,7 +454,7 @@ function formatMultiple(r: number): string {
 function Legend({ hasCost }: { hasCost: boolean }) {
   if (!hasCost) return null;
   return (
-    <dl className="flex items-center gap-3 text-[11px]">
+    <dl className="flex items-center gap-3 text-[0.6875rem]">
       <div className="flex items-center gap-1.5">
         <span
           className="h-3 w-3 rounded"

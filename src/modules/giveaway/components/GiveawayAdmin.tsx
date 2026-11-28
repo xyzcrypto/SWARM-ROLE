@@ -146,7 +146,7 @@ export function GiveawayAdmin() {
     <div>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-gold-300">Giveaway</div>
+          <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-gold-300">Giveaway</div>
           <h1 className="mt-1 font-display text-2xl font-semibold text-zinc-50">Bungee: {BUNGEE_PRIZE}</h1>
           <p className="mt-1 text-sm text-zinc-400">
             {data.entries.length} entries · {data.liveHeld} Bungee live quizzes so far · {data.totalLessons} lessons ·{" "}
@@ -202,7 +202,7 @@ export function GiveawayAdmin() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     {picked && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-gold-400/20 px-2 py-0.5 text-[11px] font-semibold text-gold-200">
+                      <span className="inline-flex items-center gap-1 rounded-full bg-gold-400/20 px-2 py-0.5 text-[0.6875rem] font-semibold text-gold-200">
                         <Trophy className="h-3 w-3" /> Drawn
                       </span>
                     )}
@@ -212,7 +212,7 @@ export function GiveawayAdmin() {
                         @{e.user.username}
                       </Link>
                     )}
-                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize", e.status === "winner" ? "bg-gold-400/20 text-gold-200" : e.status === "verified" ? "bg-mint-500/15 text-mint-300" : e.status === "rejected" ? "bg-red-500/15 text-red-300" : "bg-white/5 text-zinc-300")}>
+                    <span className={cn("rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold capitalize", e.status === "winner" ? "bg-gold-400/20 text-gold-200" : e.status === "verified" ? "bg-mint-500/15 text-mint-300" : e.status === "rejected" ? "bg-red-500/15 text-red-300" : "bg-white/5 text-zinc-300")}>
                       {e.status}
                     </span>
                   </div>
@@ -229,7 +229,7 @@ export function GiveawayAdmin() {
                 </div>
               </div>
 
-              <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
+              <div className="mt-3 grid grid-cols-1 gap-2 text-sm sm:grid-cols-3">
                 <Info k="Bungee UID" v={e.bungeeUid} mono />
                 <Info k="Bungee email" v={e.bungeeEmail} />
                 <Info k="Telegram" v={e.telegram} href={e.telegram.startsWith("@") ? `https://t.me/${e.telegram.slice(1)}` : undefined} />
@@ -248,7 +248,7 @@ export function GiveawayAdmin() {
               </div>
 
               {isFlagged || e.flags.newAccount ? (
-                <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
+                <div className="mt-3 flex flex-wrap gap-1.5 text-[0.6875rem]">
                   {e.flags.sameNetwork > 0 && <Flag text={`Same network as ${e.flags.sameNetwork} other entr${e.flags.sameNetwork === 1 ? "y" : "ies"}`} />}
                   {e.flags.sameBrowser > 0 && <Flag text={`Same browser as ${e.flags.sameBrowser} other entr${e.flags.sameBrowser === 1 ? "y" : "ies"}`} />}
                   {e.flags.fastAnswers > 0 && <Flag text={`${e.flags.fastAnswers} inhumanly fast live answers`} />}

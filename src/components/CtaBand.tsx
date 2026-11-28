@@ -18,7 +18,7 @@ export function CtaBand({ memberCount = 0 }: { memberCount?: number }) {
           <div className="relative overflow-hidden rounded-4xl border border-line-gold bg-ink-900 px-6 py-14 sm:px-12 sm:py-16">
             <div className="mesh" />
             <div className="grain" />
-            <div className="relative grid items-center gap-10 lg:grid-cols-2">
+            <div className="relative grid grid-cols-1 items-center gap-10 lg:grid-cols-2">
               <div>
                 <h2 className="font-display text-display-md font-semibold tracking-tight text-zinc-50">
                   Ready to join the{" "}
@@ -52,7 +52,7 @@ export function CtaBand({ memberCount = 0 }: { memberCount?: number }) {
                   <div className="mt-5">
                     <WaitlistForm source="cta-band" cta="Join" />
                   </div>
-                  <div className="my-5 flex items-center gap-3 text-[11px] text-zinc-600">
+                  <div className="my-5 flex items-center gap-3 text-[0.6875rem] text-zinc-600">
                     <span className="h-px flex-1 bg-line" />
                     or
                     <span className="h-px flex-1 bg-line" />

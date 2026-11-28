@@ -85,7 +85,22 @@ class. A site-wide serif change was tried and explicitly reverted. Do not widen 
 
 ## Layout rhythm
 
-Container `max-w-[1200px]` → `xl:1320px` → `2xl:1480px`, `px-5 sm:px-6 lg:px-8`.
+Container `max-w-[75rem]` → `xl:max-w-[82.5rem]` → `2xl:max-w-[92.5rem]` (1200 /
+1320 / 1480px at the default size), `px-5 sm:px-6 lg:px-8`.
+
+**Sizes are rem, never px.** From 1920px up the root font size grows with the
+screen (115% at 2560, 200% at 3840, so a 4K TV shows the 1920 layout full-screen).
+A `text-[11px]` or `w-[240px]` does not grow, so on a TV it renders at half the size
+of everything around it. Write `text-[0.6875rem]`, `w-[15rem]`. Hairlines (<= 2px),
+borders, rings, blurs and shadows stay px. Breakpoints stay px (`min-[1366px]:`).
+Not CSS `zoom`: it doubles every `100vh`/`100vw` element.
+
+**A responsive grid declares its base column:** `grid grid-cols-1 sm:grid-cols-2`,
+never `grid sm:grid-cols-2`. Without it, below `sm` the implicit column grows to its
+widest content and pushes the page off a phone. On `/news` that cut off the top
+story's bookmark button at 320px.
+
+Both rules are enforced by `responsive-fit.test.ts`.
 Section rhythm `py-14 sm:py-20 lg:py-24`; heading→content `mt-10 sm:mt-12`. 8pt
 spacing. Cards `p-5 sm:p-8` (large) or `p-6` (standard).
 

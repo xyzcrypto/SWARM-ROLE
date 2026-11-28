@@ -19,7 +19,7 @@ export default function FeedbackPage() {
       <Navbar />
       <main className="relative min-h-screen pt-24 sm:pt-28">
         <PageBackground />
-        <div className="relative mx-auto max-w-[1200px] px-5 pb-28 sm:px-6 lg:px-8">
+        <div className="relative mx-auto max-w-[75rem] px-5 pb-28 sm:px-6 lg:px-8">
           <FeedbackClient />
         </div>
       </main>

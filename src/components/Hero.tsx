@@ -149,7 +149,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
           the orbital section so they never collide with the medallion. */}
       <Starfield className="opacity-80" bodies={false} />
 
-      <Container className="hero-grid relative grid items-center gap-10 sm:gap-12 lg:grid-cols-[1.05fr_0.95fr] lg:gap-14 2xl:gap-20">
+      <Container className="hero-grid relative grid grid-cols-1 items-center gap-10 sm:gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-14 2xl:gap-20">
         {/* Copy */}
         <div className="hero-copy text-center lg:text-left">
           <div
@@ -161,9 +161,9 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
                 removed 2026-11-20 at the owner's request, to lighten the hero.) */}
             <Link
               href={LATEST?.href ?? "/"}
-              className="hero-new-chip group inline-flex max-w-full items-center gap-2 rounded-full border border-gold-400/30 bg-ink-900/70 py-1 pl-1 pr-3 text-[12px] text-zinc-300 backdrop-blur transition-colors hover:border-gold-400/60 active:border-gold-400/60 sm:text-[13px]"
+              className="hero-new-chip group inline-flex max-w-full items-center gap-2 rounded-full border border-gold-400/30 bg-ink-900/70 py-1 pl-1 pr-3 text-[0.75rem] text-zinc-300 backdrop-blur transition-colors hover:border-gold-400/60 active:border-gold-400/60 sm:text-[0.8125rem]"
             >
-              <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ink-950">
+              <span className="flex shrink-0 items-center gap-1 rounded-full bg-gold-400 px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-[0.12em] text-ink-950">
                 <MagicStar size={11} variant="Bold" color="#0b0b0f" /> New
               </span>
               <span className="min-w-0 truncate">{LATEST?.title ?? "See what's new"}</span>
@@ -193,7 +193,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
               site at opacity 0 until hydration finished. */}
           <p
             style={{ "--rise-dur": "0.6s", "--rise-delay": "0.12s" } as React.CSSProperties}
-            className="hero-rise hero-lede mx-auto mt-4 max-w-md text-balance text-[15px] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0 lg:max-w-[580px]"
+            className="hero-rise hero-lede mx-auto mt-4 max-w-md text-balance text-[0.9375rem] leading-relaxed text-zinc-400 sm:mt-5 sm:max-w-xl sm:text-lg lg:mx-0 lg:max-w-[36.25rem]"
           >
             On-chain research, pro trading tools, a perpetual DEX, airdrop
             intelligence and a free academy, the complete Web3 toolkit, built
@@ -209,7 +209,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
           {/* live stats */}
           <div
             style={{ "--rise-y": "16px", "--rise-dur": "0.7s", "--rise-delay": "0.4s" } as React.CSSProperties}
-            className="hero-rise hero-stats mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-[580px]"
+            className="hero-rise hero-stats mx-auto mt-8 grid max-w-md grid-cols-3 gap-px overflow-hidden rounded-2xl border border-line bg-line lg:mx-0 lg:max-w-[36.25rem]"
           >
             {[
               { k: members, v: "Overall social community" },
@@ -218,7 +218,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
             ].map((s) => (
               <div key={s.v} className="relative bg-ink-900/90 px-3 py-4 text-center transition-colors hover:bg-ink-800 sm:px-4 lg:text-left">
                 <div className="mono text-shine text-xl font-semibold sm:text-2xl">{s.k}</div>
-                <div className="mt-1 text-[10px] leading-tight text-zinc-500 sm:text-[11px]">{s.v}</div>
+                <div className="mt-1 text-[0.625rem] leading-tight text-zinc-500 sm:text-[0.6875rem]">{s.v}</div>
               </div>
             ))}
           </div>
@@ -318,7 +318,7 @@ export function Hero({ memberCount = 0, research }: { memberCount?: number; rese
                         // `animate` adds and removes no attribute.
                         animate={lite ? undefined : { scale: [1, 1.08, 1] }}
                         transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: i * 0.4 }}
-                        className={`block rounded-full border bg-ink-900/85 px-2.5 py-1 mono text-[9px] font-semibold tracking-widest backdrop-blur-md sm:text-[10px] ${toneClass[b.tone]}`}
+                        className={`block rounded-full border bg-ink-900/85 px-2.5 py-1 mono text-[0.5625rem] font-semibold tracking-widest backdrop-blur-md sm:text-[0.625rem] ${toneClass[b.tone]}`}
                       >
                         {b.label}
                       </motion.span>

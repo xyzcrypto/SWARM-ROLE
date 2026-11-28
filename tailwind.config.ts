@@ -172,7 +172,8 @@ const config: Config = {
         "display-md": ["clamp(1.6rem,4.5vw,2.6rem)", { lineHeight: "1.12", letterSpacing: "-0.02em" }],
       },
       maxWidth: {
-        container: "1200px",
+        // rem, like every other size, so it grows with the big-screen root scale.
+        container: "75rem",
       },
       borderRadius: {
         "4xl": "2rem",

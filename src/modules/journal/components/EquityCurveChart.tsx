@@ -42,7 +42,7 @@ export function EquityCurveChart({
 
   if (points.length === 0) {
     return (
-      <div className="flex h-[220px] items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-zinc-600">
+      <div className="flex h-[13.75rem] items-center justify-center rounded-2xl border border-dashed border-white/10 text-sm text-zinc-600">
         {emptyLabel}
       </div>
     );
@@ -119,7 +119,7 @@ export function EquityCurveChart({
           ))}
         </tbody>
       </table>
-      <p className="mt-2 text-center text-[11px] text-zinc-600">
+      <p className="mt-2 text-center text-[0.6875rem] text-zinc-600">
         Range: ${minV.toLocaleString(undefined, { maximumFractionDigits: 0 })} to ${maxV.toLocaleString(undefined, { maximumFractionDigits: 0 })}
       </p>
     </div>

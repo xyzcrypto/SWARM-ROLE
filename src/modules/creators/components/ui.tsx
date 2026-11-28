@@ -119,9 +119,9 @@ export function CountUp({ value, format, duration = 900 }: { value: number; form
 export function Stat({ label, value, sub, accent }: { label: string; value: React.ReactNode; sub?: string; accent?: boolean }) {
   return (
     <div className="rounded-2xl border border-hairline bg-ink-900/40 px-4 py-3">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">{label}</div>
+      <div className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">{label}</div>
       <div className={cn("mt-1 font-display text-xl font-bold tracking-tight", accent ? "text-gold-300" : "text-content")}>{value}</div>
-      {sub && <div className="mt-0.5 text-[11px] text-content-subtle">{sub}</div>}
+      {sub && <div className="mt-0.5 text-[0.6875rem] text-content-subtle">{sub}</div>}
     </div>
   );
 }
@@ -140,7 +140,7 @@ const LEVEL_TONES = [
 export function LevelChip({ n, compact }: { n: number; compact?: boolean }) {
   const l = LEVELS[n - 1] ?? LEVELS[0]!;
   return (
-    <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider", LEVEL_TONES[n - 1])}>
+    <span className={cn("inline-flex items-center gap-1 whitespace-nowrap rounded-full border px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-wider", LEVEL_TONES[n - 1])}>
       L{l.n}
       {!compact && <span className="font-semibold normal-case tracking-normal">{l.name}</span>}
     </span>
@@ -181,7 +181,7 @@ export function ScoreRing({ value, size = 92 }: { value: number; size?: number }
           <div className="font-display text-xl font-bold leading-none text-content">
             <CountUp value={value} format={(n) => String(Math.round(n))} />
           </div>
-          <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-content-subtle">XYZ Score</div>
+          <div className="mt-0.5 text-[0.5625rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">XYZ Score</div>
         </div>
       </div>
     </div>
@@ -288,12 +288,12 @@ export function HeatStrip({ values, labels, title }: { values: number[]; labels:
           <div
             key={i}
             title={title(i)}
-            className="h-7 flex-1 rounded-[3px] bg-gold-400"
+            className="h-7 flex-1 rounded-[0.1875rem] bg-gold-400"
             style={{ opacity: v > 0 ? 0.15 + 0.85 * (v / max) : 0.06 }}
           />
         ))}
       </div>
-      <div className="mt-1 flex justify-between text-[9px] text-content-subtle">
+      <div className="mt-1 flex justify-between text-[0.5625rem] text-content-subtle">
         {labels.map((l, i) => (
           <span key={i}>{l}</span>
         ))}

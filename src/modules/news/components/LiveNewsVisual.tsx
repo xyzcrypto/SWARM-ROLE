@@ -15,9 +15,9 @@ const seed: Item[] = [
 
 function Line({ it }: { it: Item }) {
   return (
-    <div className="flex h-[21px] items-center gap-2 text-[10px] text-zinc-400">
+    <div className="flex h-[1.3125rem] items-center gap-2 text-[0.625rem] text-zinc-400">
       <span className="h-1 w-1 shrink-0 rounded-full bg-gold-400" />
-      <span className="mono shrink-0 text-[8.5px] uppercase text-zinc-600">{it.source}</span>
+      <span className="mono shrink-0 text-[0.53125rem] uppercase text-zinc-600">{it.source}</span>
       <span className="truncate">{it.title}</span>
     </div>
   );
@@ -66,7 +66,7 @@ export function LiveNewsVisual() {
   return (
     <div className="relative mt-5 h-24 overflow-hidden rounded-2xl border border-line bg-ink-950/60">
       {/* headlines rain down from the top, softly masked top/bottom */}
-      <div className="vscroll-mask absolute inset-x-0 top-0 bottom-[24px] overflow-hidden px-3 pt-1">
+      <div className="vscroll-mask absolute inset-x-0 top-0 bottom-[1.5rem] overflow-hidden px-3 pt-1">
         <div className="vscroll-down" style={{ animationDuration: `${dur}s` }}>
           {list.map((it, i) => (
             <Line key={i} it={it} />
@@ -74,13 +74,13 @@ export function LiveNewsVisual() {
         </div>
       </div>
       {/* breaking showcase, pinned bottom (solid bg - no backdrop-filter) */}
-      <div className="absolute inset-x-0 bottom-0 flex h-[24px] items-center gap-1.5 border-t border-rose-500/20 bg-ink-950 px-3">
+      <div className="absolute inset-x-0 bottom-0 flex h-[1.5rem] items-center gap-1.5 border-t border-rose-500/20 bg-ink-950 px-3">
         <span className="relative flex h-1.5 w-1.5 shrink-0">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-70" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-rose-400" />
         </span>
-        <span className="mono shrink-0 text-[9px] font-semibold uppercase tracking-wide text-rose-300">Breaking</span>
-        <span className="truncate text-[10px] text-zinc-300">{breaking?.title}</span>
+        <span className="mono shrink-0 text-[0.5625rem] font-semibold uppercase tracking-wide text-rose-300">Breaking</span>
+        <span className="truncate text-[0.625rem] text-zinc-300">{breaking?.title}</span>
       </div>
     </div>
   );

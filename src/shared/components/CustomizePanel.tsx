@@ -8,7 +8,7 @@ import { hapticToggle } from "@shared/utils/haptics";
 import { ChatFeelSections } from "@modules/community/components/ChatFeelSections";
 
 function H({ id, children }: { id: string; children: React.ReactNode }) {
-  return <h3 id={id} className="mono text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">{children}</h3>;
+  return <h3 id={id} className="mono text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">{children}</h3>;
 }
 
 function Seg<T extends string | number>({ id, value, options, onChange }: { id: string; value: T; options: Array<[T, string]>; onChange: (v: T) => void }) {
@@ -21,7 +21,7 @@ function Seg<T extends string | number>({ id, value, options, onChange }: { id: 
           role="radio"
           aria-checked={value === v}
           onClick={() => { hapticToggle(); onChange(v); }}
-          className={cn("min-h-10 rounded-xl px-2 text-[12px] font-semibold transition-colors duration-150", value === v ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/40" : "text-content-muted hover:text-content")}
+          className={cn("min-h-10 rounded-xl px-2 text-[0.75rem] font-semibold transition-colors duration-150", value === v ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/40" : "text-content-muted hover:text-content")}
         >
           {label}
         </button>
@@ -34,8 +34,8 @@ function Switch({ label, hint, on, onChange }: { label: string; hint: string; on
   return (
     <div className="flex items-center justify-between gap-3 py-2">
       <span className="min-w-0">
-        <span className="block text-[13px] font-semibold text-content">{label}</span>
-        <span className="block text-[11px] leading-relaxed text-content-subtle">{hint}</span>
+        <span className="block text-[0.8125rem] font-semibold text-content">{label}</span>
+        <span className="block text-[0.6875rem] leading-relaxed text-content-subtle">{hint}</span>
       </span>
       <button
         type="button"
@@ -68,7 +68,7 @@ export function CustomizePanel() {
         <div className="mt-4">
           <H id="cz-scale">Text size</H>
           <Seg<Scale> id="cz-scale" value={p.scale} onChange={(scale) => setSitePrefs({ scale })} options={[[90, "Small"], [100, "Default"], [110, "Large"], [125, "Extra large"]]} />
-          <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-content-subtle"><Type className="h-3 w-3" /> Scales text across the whole website.</p>
+          <p className="mt-1.5 flex items-center gap-1.5 text-[0.6875rem] text-content-subtle"><Type className="h-3 w-3" /> Scales text across the whole website.</p>
         </div>
       </section>
 
@@ -79,13 +79,13 @@ export function CustomizePanel() {
             type="button"
             onClick={() => { hapticToggle(); setSitePrefs(perfMode ? { motion: "auto", effects: true, blur: true } : { motion: "lite", effects: false, blur: false }); }}
             aria-pressed={perfMode}
-            className={cn("inline-flex min-h-8 items-center gap-1 rounded-full px-3 text-[11px] font-semibold ring-1 transition-colors", perfMode ? "bg-mint-500/15 text-mint-200 ring-mint-500/40" : "text-gold-300 ring-gold-500/30 hover:bg-gold-500/10")}
+            className={cn("inline-flex min-h-8 items-center gap-1 rounded-full px-3 text-[0.6875rem] font-semibold ring-1 transition-colors", perfMode ? "bg-mint-500/15 text-mint-200 ring-mint-500/40" : "text-gold-300 ring-gold-500/30 hover:bg-gold-500/10")}
           >
             <Gauge className="h-3.5 w-3.5" /> {perfMode ? "Performance mode on" : "Performance mode"}
           </button>
         </div>
         <Seg<Motion> id="cz-motion" value={p.motion} onChange={(motion) => setSitePrefs({ motion })} options={[["auto", "Auto"], ["full", "Full"], ["lite", "Lite"], ["off", "Off"]]} />
-        <p className="mt-1.5 text-[11px] leading-relaxed text-content-subtle">
+        <p className="mt-1.5 text-[0.6875rem] leading-relaxed text-content-subtle">
           {p.motion === "auto" && "Picks the best level for this device."}
           {p.motion === "full" && "Every animation, on any device."}
           {p.motion === "lite" && "Fewer, lighter animations - smoother on slower phones."}
@@ -95,24 +95,24 @@ export function CustomizePanel() {
           <Switch label="Background effects" hint="The animated starfield and glow behind pages." on={p.effects} onChange={(effects) => setSitePrefs({ effects })} />
           <Switch label="Glass blur" hint="Frosted-glass cards. Off is faster on older phones." on={p.blur} onChange={(blur) => setSitePrefs({ blur })} />
         </div>
-        <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-relaxed text-content-subtle">
+        <p className="mt-2 flex items-start gap-1.5 text-[0.6875rem] leading-relaxed text-content-subtle">
           <Zap className="mt-0.5 h-3 w-3 shrink-0" /> If the site ever feels slow on your phone, turn on Performance mode.
         </p>
       </section>
 
       <div className="mt-7 border-t border-hairline pt-1">
-        <p className="mt-4 font-display text-[15px] font-bold tracking-tight text-content">Haptics, sounds &amp; chat</p>
+        <p className="mt-4 font-display text-[0.9375rem] font-bold tracking-tight text-content">Haptics, sounds &amp; chat</p>
       </div>
       <ChatFeelSections />
 
       <div className="mt-7 flex items-center justify-between gap-3 border-t border-hairline pt-4">
-        <span className="flex items-center gap-1.5 text-[11px] text-content-subtle">
+        <span className="flex items-center gap-1.5 text-[0.6875rem] text-content-subtle">
           {p.theme === "dark" ? <Moon className="h-3 w-3" /> : <Sun className="h-3 w-3" />} Saved on this device.
         </span>
         <button
           type="button"
           onClick={() => { hapticToggle(); resetSitePrefs(); setFeel({ ...DEFAULT_FEEL }); }}
-          className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-hairline px-3 text-[12px] font-semibold text-content-muted transition-colors hover:border-gold-500/30 hover:text-content"
+          className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-hairline px-3 text-[0.75rem] font-semibold text-content-muted transition-colors hover:border-gold-500/30 hover:text-content"
         >
           <RotateCcw className="h-3.5 w-3.5" /> Reset to default
         </button>

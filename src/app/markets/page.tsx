@@ -20,9 +20,9 @@ export default function MarketsPage() {
       <main className="relative min-h-screen pt-20 sm:pt-24 pb-24 sm:pb-16 bg-[#e9edf4] dark:bg-[#0c0e14] text-zinc-900 dark:text-zinc-100 selection:bg-amber-500/25 overflow-x-clip">
         <PageBackground />
         {/* Soft Neumorphic Studio Lighting: Directional Top-Left Soft Ambience */}
-        <div aria-hidden className="pointer-events-none absolute -left-40 top-0 h-[600px] w-[600px] rounded-full bg-gradient-to-br from-amber-400/[0.06] via-gold-500/[0.03] to-transparent blur-[140px]" />
-        <div aria-hidden className="pointer-events-none absolute right-0 top-1/3 h-[500px] w-[500px] rounded-full bg-gradient-to-bl from-indigo-500/[0.05] via-purple-500/[0.02] to-transparent blur-[140px]" />
-        <div className="relative mx-auto max-w-[1440px] px-3 sm:px-[18px]">
+        <div aria-hidden className="pointer-events-none absolute -left-40 top-0 h-[37.5rem] w-[37.5rem] rounded-full bg-gradient-to-br from-amber-400/[0.06] via-gold-500/[0.03] to-transparent blur-[140px]" />
+        <div aria-hidden className="pointer-events-none absolute right-0 top-1/3 h-[31.25rem] w-[31.25rem] rounded-full bg-gradient-to-bl from-indigo-500/[0.05] via-purple-500/[0.02] to-transparent blur-[140px]" />
+        <div className="relative mx-auto max-w-[90rem] px-3 sm:px-[1.125rem]">
           <MarketsClient />
         </div>
       </main>

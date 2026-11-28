@@ -146,7 +146,7 @@ export function FundingFeeCalculator() {
         </AssumptionBanner>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <CalcField label="Position size" value={notional} onChange={setNotional} suffix="USD" />
         <CalcField
           label="Hourly funding rate"

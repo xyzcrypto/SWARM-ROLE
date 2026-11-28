@@ -124,11 +124,11 @@ export function LaunchPopup() {
           <div className="launch-pop-glow pointer-events-none absolute inset-0" aria-hidden />
           <div className="relative p-4 sm:p-5">
             <div className="flex items-center gap-2">
-              <span className="relative flex items-center gap-1.5 rounded-full bg-gold-400/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-gold-200">
+              <span className="relative flex items-center gap-1.5 rounded-full bg-gold-400/15 px-2.5 py-1 text-[0.625rem] font-bold uppercase tracking-[0.16em] text-gold-200">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-gold-300" /> New · {item.product}
               </span>
               {items.length > 1 && (
-                <span className="font-mono text-[10px] text-content-subtle">
+                <span className="font-mono text-[0.625rem] text-content-subtle">
                   {i + 1}/{items.length}
                 </span>
               )}
@@ -143,7 +143,7 @@ export function LaunchPopup() {
                 </span>
                 <div className="min-w-0">
                   <div className="font-display text-base font-semibold leading-snug text-content">{item.title}</div>
-                  <p className="mt-1 text-[13px] leading-relaxed text-content-muted">{item.body}</p>
+                  <p className="mt-1 text-[0.8125rem] leading-relaxed text-content-muted">{item.body}</p>
                 </div>
               </motion.div>
             </AnimatePresence>

@@ -134,12 +134,12 @@ export function LiveBanner() {
             <div className="flex items-center gap-3 sm:gap-4">
               <span className={pick.live ? "acad-live-dot" : "acad-live-dot is-soon"} aria-hidden />
               <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-x-2 text-[10px] font-bold uppercase tracking-[0.2em]">
+                <div className="flex flex-wrap items-center gap-x-2 text-[0.625rem] font-bold uppercase tracking-[0.2em]">
                   {pick.live ? <span className="text-red-400">Live now</span> : <span className="text-gold-300">Next live quiz</span>}
                   <span className="text-content-subtle">· {pick.q.questions} questions</span>
                   {pick.q.participants > 0 && <span className="text-content-subtle">· {pick.q.participants} joined</span>}
                 </div>
-                <div className="truncate font-display text-[15px] font-semibold text-content sm:text-base">{pick.q.title}</div>
+                <div className="truncate font-display text-[0.9375rem] font-semibold text-content sm:text-base">{pick.q.title}</div>
               </div>
               <div className="hidden items-center gap-4 sm:flex">{action}</div>
               <button

@@ -97,7 +97,7 @@ export function FeedbackAdmin() {
           <p className="mt-1 text-sm text-content-muted">Every note from /feedback. New ones also arrive by email and Telegram.</p>
         </div>
         {data && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {[
               { k: "Total", v: data.stats.total },
               { k: "New", v: data.stats.new },
@@ -106,7 +106,7 @@ export function FeedbackAdmin() {
             ].map((s) => (
               <div key={s.k} className="surface rounded-2xl px-4 py-2.5 text-center">
                 <div className="font-mono text-lg font-bold text-content">{s.v}</div>
-                <div className="text-[10px] uppercase tracking-[0.14em] text-content-subtle">{s.k}</div>
+                <div className="text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">{s.k}</div>
               </div>
             ))}
           </div>
@@ -122,7 +122,7 @@ export function FeedbackAdmin() {
             className={cn("h-9 shrink-0 rounded-full px-4 text-sm font-semibold transition-colors", filter === f.id ? "bg-gold-400/15 text-gold-100" : "text-content-subtle hover:text-content")}
           >
             {f.label}
-            {data && f.id !== "all" ? <span className="ml-1.5 font-mono text-[11px] opacity-70">{data.stats[f.id]}</span> : null}
+            {data && f.id !== "all" ? <span className="ml-1.5 font-mono text-[0.6875rem] opacity-70">{data.stats[f.id]}</span> : null}
           </button>
         ))}
       </div>
@@ -166,10 +166,10 @@ export function FeedbackAdmin() {
                   )}
                 </span>
                 {reach && <span className="text-content-subtle">{reach}</span>}
-                {!it.user && <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[10px] text-content-subtle">guest</span>}
+                {!it.user && <span className="rounded-full bg-white/[0.05] px-2 py-0.5 text-[0.625rem] text-content-subtle">guest</span>}
                 <span className="ml-auto text-content-subtle">{when(it.createdAt)}</span>
               </div>
-              <p className="mt-3 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-content">{it.message}</p>
+              <p className="mt-3 whitespace-pre-wrap break-words text-[0.9375rem] leading-relaxed text-content">{it.message}</p>
               {it.image && (
                 <a href={it.image} target="_blank" rel="noopener noreferrer" className="mt-3 inline-block">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -177,8 +177,8 @@ export function FeedbackAdmin() {
                 </a>
               )}
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                {it.page && <span className="font-mono text-[11px] text-content-subtle">from {it.page}</span>}
-                {it.xp > 0 && <span className="rounded-full bg-mint-400/10 px-2 py-0.5 font-mono text-[10px] text-mint-300">+{it.xp} XP paid</span>}
+                {it.page && <span className="font-mono text-[0.6875rem] text-content-subtle">from {it.page}</span>}
+                {it.xp > 0 && <span className="rounded-full bg-mint-400/10 px-2 py-0.5 font-mono text-[0.625rem] text-mint-300">+{it.xp} XP paid</span>}
                 <div className="ml-auto flex gap-1.5">
                   {busy === it.id && <Loader2 className="h-4 w-4 animate-spin self-center text-content-subtle" />}
                   {it.status !== "seen" && (

@@ -17,9 +17,9 @@ export function MyCertificates() {
         title="Certificates"
         sub="Certificates go to the top of each finished leaderboard period and to live quiz winners. Each one has a unique ID, a QR code and a public verification page."
       />
-      <div className="grid gap-5 lg:grid-cols-[1.5fr_1fr]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)]">
         <Panel>
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Your certificates</div>
+          <div className="mb-4 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Your certificates</div>
           {status === "unauthenticated" ? (
             <Empty>
               <Link href="/login?callbackUrl=/academy/certificates" className="btn-gold h-10 px-5 text-sm">
@@ -64,7 +64,7 @@ export function MyCertificates() {
           )}
         </Panel>
         <Panel delay={0.05}>
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">How certificates are awarded</div>
+          <div className="mb-4 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">How certificates are awarded</div>
           <ul className="space-y-3 text-sm text-content-muted">
             {(
               [
@@ -78,7 +78,7 @@ export function MyCertificates() {
               return (
                 <li key={k} className="rounded-2xl border border-hairline p-3.5">
                   <div className="font-semibold text-content">{title}</div>
-                  <div className="mt-0.5 text-[13px]">
+                  <div className="mt-0.5 text-[0.8125rem]">
                     {r ? (r.top > 0 ? `Top ${r.top}${r.minXp ? ` with at least ${r.minXp.toLocaleString("en-US")} ${k === "live" ? "points" : "XP"}` : ""}, finalized after ${when}.` : "Currently paused.") : `Finalized after ${when}.`}
                     {r && !r.auto && r.top > 0 ? " Approved by an administrator before issue." : ""}
                   </div>
@@ -87,7 +87,7 @@ export function MyCertificates() {
             })}
             <li className="rounded-2xl border border-hairline p-3.5">
               <div className="font-semibold text-content">Special events and milestones</div>
-              <div className="mt-0.5 text-[13px]">Issued by XYZ Crypto administrators for events and all-time milestones, never automatically.</div>
+              <div className="mt-0.5 text-[0.8125rem]">Issued by XYZ Crypto administrators for events and all-time milestones, never automatically.</div>
             </li>
           </ul>
         </Panel>
