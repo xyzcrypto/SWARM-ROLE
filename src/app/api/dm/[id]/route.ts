@@ -9,6 +9,7 @@ import { sendPush, pushEnabled } from "@/lib/push";
 import { mediaLabel } from "@modules/community/lib/chat-media";
 import { canSendInThread, isBlockedEitherWay } from "@/lib/dm-gate";
 import { toDmReactions, type DmReactions } from "@modules/messages/lib/dm-reactions";
+import { publicImageUrl } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,10 +49,14 @@ export async function GET(_req: Request, props: Ctx) {
     const iAmUserA = conv.userAId === me.id;
     const notHiddenForMe = iAmUserA ? { hiddenByA: false } : { hiddenByB: false };
 
-    const [rows, pinnedRow] = await Promise.all([
+    const [newest, pinnedRow] = await Promise.all([
+      // ⚠️ The NEWEST 200, returned oldest-first. This was `asc` + `take: 200`,
+      // which is the OLDEST 200: once a thread passed 200 messages, every new
+      // one (including the reader's own, just sent) vanished on the next poll,
+      // because the client replaces its list with this response.
       prisma.directMessage.findMany({
         where: { conversationId: conv.id, ...notHiddenForMe },
-        orderBy: { createdAt: "asc" },
+        orderBy: { createdAt: "desc" },
         take: 200,
         select: {
           id: true, body: true, createdAt: true, senderId: true, status: true,
@@ -70,13 +75,19 @@ export async function GET(_req: Request, props: Ctx) {
       }),
     ]);
 
+    const rows = newest.reverse();
+
     // Mark read for whichever side I am (best-effort; never block the read).
+    // Only when it moves: this GET runs on every 5s poll of an open thread, and
+    // writing the same row each time was a database write per reader per poll.
     const iAmA = conv.userAId === me.id;
     const myPrevRead = iAmA ? conv.readAAt : conv.readBAt;
     const readAt = new Date();
-    await prisma.conversation
-      .update({ where: { id: conv.id }, data: iAmA ? { readAAt: readAt } : { readBAt: readAt } })
-      .catch(() => null);
+    if (!myPrevRead || (conv.lastMessageAt && myPrevRead < conv.lastMessageAt)) {
+      await prisma.conversation
+        .update({ where: { id: conv.id }, data: iAmA ? { readAAt: readAt } : { readBAt: readAt } })
+        .catch(() => null);
+    }
 
     // Tell the OTHER side their message has been read, so their ticks turn
     // without waiting for a poll.
@@ -170,7 +181,8 @@ export async function GET(_req: Request, props: Ctx) {
             id: other.id,
             name: other.name || other.username || "Member",
             username: other.username,
-            image: other.image,
+            // Never a raw data: URL: this response is polled every 5s.
+            image: publicImageUrl(other.image, other.id),
             // May be absent on a database that has not had 31_last_seen pushed
             // yet; the client renders nothing rather than guessing.
             lastSeenAt: (other as { lastSeenAt?: Date | null }).lastSeenAt ?? null,

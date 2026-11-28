@@ -96,26 +96,46 @@ export async function listLive(now = Date.now()) {
 /**
  * Close a quiz whose clock has run out (or that a host ended): rank everyone
  * with the tie-break rules, pay XP and issue the winners' certificates.
- * The `finalizedAt: null` guard makes this run once however many requests
- * notice the end at the same moment.
+ *
+ * ⚠️ Resumable. `finalizedAt` used to be set FIRST and the payout loop ran
+ * after it, inside whichever request noticed the end. With a few hundred
+ * players a function could hit its time limit mid-loop, and because the quiz
+ * already read as finalized nobody ever finished it: the rest of the room got
+ * no rank and no XP. Now:
+ *  - a 60s lease (`endedAt`) lets one request work while the others (every
+ *    player polls at the end) return at once;
+ *  - every step is idempotent (ranks are recomputed, XP grants are keyed per
+ *    player, certificates are unique per player and quiz);
+ *  - `finalizedAt` is written LAST, so a run that dies is picked up by the
+ *    next request after the lease and completed.
  */
+const FINALIZE_LEASE_MS = 60_000;
 export async function finalizeLive(id: string) {
+  const now = new Date();
   const { count } = await prisma.academyLive.updateMany({
-    where: { id, finalizedAt: null },
-    data: { status: "ended", finalizedAt: new Date(), endedAt: new Date() },
+    where: { id, finalizedAt: null, OR: [{ endedAt: null }, { endedAt: { lt: new Date(now.getTime() - FINALIZE_LEASE_MS) } }] },
+    data: { status: "ended", endedAt: now },
   });
   if (!count) return false;
   const cfg = await loadConfig();
   const parts = await prisma.academyLiveParticipant.findMany({ where: { liveId: id } });
   const ranked = rankLive(parts.map((p) => ({ ...p, joinedAt: p.joinedAt.getTime() })));
-  for (const r of ranked) {
-    await prisma.academyLiveParticipant.update({ where: { liveId_userId: { liveId: id, userId: r.userId } }, data: { rank: r.rank } });
-    const xp = Math.round(r.score * cfg.xp.livePerPoint) + (r.score > 0 ? cfg.xp.livePodium[r.rank - 1] ?? 0 : 0);
-    if (xp > 0) {
-      await prisma.$transaction(async (tx) => {
-        await grant(tx, { userId: r.userId, amount: xp, reason: "live", key: `live:${id}:${r.userId}`, label: `Live quiz, ${r.rank}${r.rank === 1 ? "st" : r.rank === 2 ? "nd" : r.rank === 3 ? "rd" : "th"} place` });
-      });
-    }
+  // Ranks in one transaction (one round trip per chunk, not one per player).
+  for (let i = 0; i < ranked.length; i += 200) {
+    await prisma.$transaction(
+      ranked.slice(i, i + 200).map((r) => prisma.academyLiveParticipant.update({ where: { liveId_userId: { liveId: id, userId: r.userId } }, data: { rank: r.rank } }))
+    );
+  }
+  const ord = (n: number) => `${n}${n === 1 ? "st" : n === 2 ? "nd" : n === 3 ? "rd" : "th"}`;
+  const payable = ranked
+    .map((r) => ({ r, xp: Math.round(r.score * cfg.xp.livePerPoint) + (r.score > 0 ? cfg.xp.livePodium[r.rank - 1] ?? 0 : 0) }))
+    .filter((p) => p.xp > 0);
+  // XP in chunked transactions; each grant is keyed, so a re-run pays nothing twice.
+  for (let i = 0; i < payable.length; i += 50) {
+    const chunk = payable.slice(i, i + 50);
+    await prisma.$transaction(async (tx) => {
+      for (const { r, xp } of chunk) await grant(tx, { userId: r.userId, amount: xp, reason: "live", key: `live:${id}:${r.userId}`, label: `Live quiz, ${ord(r.rank)} place` });
+    });
   }
   const rule = cfg.awards.live;
   for (const r of ranked.slice(0, rule.top)) {
@@ -123,6 +143,8 @@ export async function finalizeLive(id: string) {
     await issueCertificate({ userId: r.userId, kind: "live", periodKey: `live:${id}`, rank: r.rank, score: r.score, status: rule.auto ? "issued" : "pending" });
   }
   for (const r of ranked.slice(0, 10)) await checkAchievements(r.userId, cfg).catch(() => []);
+  // Only now is the quiz finalized: everything above is done.
+  await prisma.academyLive.updateMany({ where: { id, finalizedAt: null }, data: { finalizedAt: new Date() } });
   await notify(id, "ended");
   await pingBoards("xp");
   return true;

@@ -35,8 +35,8 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
   try {
     const opts = { headers: { accept: "application/json" }, next: { revalidate } } as const;
     const [coinRes, chartRes] = await Promise.all([
-      fetch(`${BASE}/coins/${id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`, opts),
-      fetch(`${BASE}/coins/${id}/market_chart?vs_currency=usd&days=7`, opts),
+      fetch(`${BASE}/coins/${id}?localization=false&tickers=false&market_data=true&community_data=false&developer_data=false&sparkline=false`, { ...opts, signal: AbortSignal.timeout(8000) }),
+      fetch(`${BASE}/coins/${id}/market_chart?vs_currency=usd&days=7`, { ...opts, signal: AbortSignal.timeout(8000) }),
     ]);
     if (!coinRes.ok) throw new Error(`coin ${coinRes.status}`);
     const j: any = await coinRes.json();

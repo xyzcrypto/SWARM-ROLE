@@ -28,7 +28,10 @@ export async function sendPush(sub: PushSub, payload: Record<string, unknown>): 
   try {
     await webpush.sendNotification(
       { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-      JSON.stringify(payload)
+      JSON.stringify(payload),
+      // Bounded: a push service that stalls must not hold the sender (the
+      // streak reminder, chat and news dispatch all await these).
+      { timeout: 8000 }
     );
     return "ok";
   } catch (e: unknown) {

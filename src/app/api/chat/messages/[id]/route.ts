@@ -84,9 +84,11 @@ export async function DELETE(req: Request, props: { params: Promise<{ id: string
       return fail("You can only delete your own messages.", 403);
     }
 
+    // Recorded as the author's own delete, so a moderator's bulk "Restore all
+    // hidden" can never bring back a message its writer took down.
     await prisma.chatMessage.update({
       where: { id: params.id },
-      data: { status: "hidden" },
+      data: { status: "hidden", hiddenBy: msg.userId === me.id ? "author" : me.id },
     });
     await broadcastChatEvent({ event: "message_hidden", payload: { id: params.id } });
 

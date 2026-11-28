@@ -57,7 +57,12 @@ describe("recovering from the AI does not undo human moderation", () => {
   });
 
   it("keeps restore_all, because sometimes you do mean all of it", () => {
-    expect(mod).toMatch(/: \{ status: "hidden" \}/);
+    expect(mod).toMatch(/: \{ status: "hidden", OR: \[\{ hiddenBy: null \}, \{ hiddenBy: \{ not: "author" \} \}\] \}/);
+  });
+
+  it("but never brings back a message its own author deleted", () => {
+    expect(read("src/app/api/chat/messages/[id]/route.ts")).toMatch(/hiddenBy: msg\.userId === me\.id \? "author" : me\.id/);
+    expect(mod).toMatch(/if \(action === "restore" && msg\.hiddenBy === "author"\) return fail\("The author deleted this message\.", 409\);/);
   });
 
   it("the dashboard offers the safe one first and says which is which", () => {

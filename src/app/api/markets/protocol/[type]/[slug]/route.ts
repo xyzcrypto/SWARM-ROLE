@@ -21,7 +21,7 @@ export async function GET(_req: Request, props: { params: Promise<{ type: string
 
   try {
     const url = `https://api.llama.fi/summary/${type}/${slug}?dataType=${DATATYPE[type]}&excludeTotalDataChartBreakdown=true`;
-    const res = await fetch(url, { headers: { accept: "application/json", "user-agent": "xyzcrypto-markets/1.0" }, next: { revalidate } });
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { accept: "application/json", "user-agent": "xyzcrypto-markets/1.0" }, next: { revalidate } });
     if (!res.ok) throw new Error(`summary ${res.status}`);
     const j: any = await res.json();
 

@@ -82,6 +82,7 @@ async function getBinanceKlines(timeframe: string): Promise<Kline[]> {
   const res = await fetch(
     `https://api.binance.com/api/v3/klines?symbol=BTCUSDT&interval=${interval}&limit=${limit}`,
     {
+      signal: AbortSignal.timeout(8000),
       headers: { accept: "application/json" },
       next: { revalidate: 60 },
     }
@@ -109,6 +110,7 @@ const CG_TF: Record<string, { days: string; window: number }> = {
 async function getCoinGeckoKlines(timeframe: string): Promise<Kline[]> {
   const { days, window } = CG_TF[timeframe] || CG_TF["1D"];
   const res = await fetch(`https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=${days}`, {
+    signal: AbortSignal.timeout(8000),
     headers: { accept: "application/json" },
     next: { revalidate: 120 },
   });
@@ -135,6 +137,7 @@ async function getBtcCandles(timeframe: string): Promise<{ klines: Kline[]; sour
 async function getCoinGeckoGlobal(): Promise<{ marketCap: number; volume24h: number; btcDominance: number; mcapChange24h: number | null } | null> {
   try {
     const res = await fetch("https://api.coingecko.com/api/v3/global", {
+      signal: AbortSignal.timeout(8000),
       headers: { accept: "application/json" },
       next: { revalidate: 120 },
     });
@@ -158,6 +161,7 @@ async function getCoinGeckoGlobal(): Promise<{ marketCap: number; volume24h: num
 async function getDefiLlamaTvl(): Promise<{ date: number; tvl: number }[]> {
   try {
     const res = await fetch("https://api.llama.fi/v2/historicalChainTvl", {
+      signal: AbortSignal.timeout(8000),
       headers: { accept: "application/json" },
       next: { revalidate: 300 },
     });
@@ -172,6 +176,7 @@ async function getDefiLlamaTvl(): Promise<{ date: number; tvl: number }[]> {
 async function getDefiLlamaStablecoins(): Promise<any[]> {
   try {
     const res = await fetch("https://stablecoins.llama.fi/stablecoincharts/all", {
+      signal: AbortSignal.timeout(8000),
       headers: { accept: "application/json" },
       next: { revalidate: 300 },
     });

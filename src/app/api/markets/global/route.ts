@@ -49,6 +49,7 @@ async function ethGas(): Promise<number | null> {
   for (const rpc of GAS_RPCS) {
     try {
       const res = await fetch(rpc, {
+        signal: AbortSignal.timeout(6000),
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", method: "eth_gasPrice", params: [], id: 1 }),
@@ -109,6 +110,7 @@ async function cmcMetrics() {
   if (!cmcEnabled) return { defiMcap: null as number | null, stableMcap: null as number | null };
   try {
     const res = await fetch("https://pro-api.coinmarketcap.com/v1/global-metrics/quotes/latest", {
+      signal: AbortSignal.timeout(6000),
       headers: { "X-CMC_PRO_API_KEY": env.CMC_API_KEY, accept: "application/json" },
       next: { revalidate: 300 }, // stay well within the free ~10k/mo cap
     });

@@ -220,6 +220,7 @@ model ChatMessage {
   bookmarks ChatBookmark[]
 
   @@index([status, createdAt]) // history queries: visible, newest-first
+  @@index([status, pinnedAt]) // the pinned banner: visible, latest pinned (was a scan of every visible message per chat load)
 }
 
 // Telegram-style poll attached to a chat message (kind = "poll"; the message
@@ -545,6 +546,10 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Every sign-in purges the member's expired sessions by userId; without this
+  // that delete (and password-change / account-delete cascades) scanned the table.
+  @@index([userId])
 }
 
 model VerificationToken {

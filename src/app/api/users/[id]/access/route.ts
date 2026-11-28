@@ -49,7 +49,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
 
     const target = await prisma.user.findUnique({
       where: { id: params.id },
-      select: { id: true, email: true, role: true },
+      select: { id: true, email: true, role: true, permissions: true },
     });
     if (!target) return fail("User not found.", 404);
 
@@ -68,9 +68,17 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
       return fail(`You can't grant capabilities you don't hold: ${cannotGrant.join(", ")}.`, 403);
     }
 
+    // ...and no stripping what you don't hold either. Only the GRANTED set was
+    // checked, then the stored list was replaced wholesale, so a staffer with
+    // just `users:roles` could remove `post:manage` or `premium:manage` from a
+    // peer. Capabilities the actor lacks are carried over untouched. (A Super
+    // Admin holds everything, so for them this changes nothing.)
+    const kept = sanitizePermissions(target.permissions ?? []).filter((p) => !hasPermission(actor, p));
+    const next = [...new Set([...requested, ...kept])];
+
     const updated = await prisma.user.update({
       where: { id: target.id },
-      data: { permissions: requested },
+      data: { permissions: next },
       select: { id: true, permissions: true },
     });
 
@@ -81,7 +89,7 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
           actorId: actor.id,
           action: "access.update",
           targetId: target.id,
-          detail: JSON.stringify({ permissions: requested }),
+          detail: JSON.stringify({ permissions: next, kept }),
         },
       })
       .catch(() => null);

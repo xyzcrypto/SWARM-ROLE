@@ -109,7 +109,9 @@ export async function PATCH(req: Request, props: { params: Promise<{ id: string 
     // Publishing has to be revocable. Dropping a trade back to private must also
     // withdraw anything it already published - otherwise the public feed keeps a
     // row naming the symbol and the win/loss, with no way to take it down.
-    if (fields.visibility === "private" && existing.visibility !== "private") {
+    // Any move AWAY from public withdraws it: activity rows carry the member's
+    // name, so a trade switched to "anonymous" must lose its named row too.
+    if (fields.visibility && fields.visibility !== "public" && existing.visibility === "public") {
       await prisma.journalActivity
         .deleteMany({ where: tradeActivityWhere(trade.id, me.id) })
         .then(() => broadcastEvent(userChannel(me.id), "journal_activity", {}))

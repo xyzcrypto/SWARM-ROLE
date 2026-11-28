@@ -8,6 +8,7 @@ export async function sendTelegram(text: string): Promise<boolean> {
   if (!telegramEnabled) return false;
   try {
     const res = await fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      signal: AbortSignal.timeout(8000),
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

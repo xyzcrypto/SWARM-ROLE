@@ -160,6 +160,15 @@ function getOnce(u: URL, timeoutMs: number, maxBytes: number): Promise<{ status:
       }
     );
     req.on("timeout", () => req.destroy(new Error("timeout")));
+    // ⚠️ `timeout` above is an IDLE timeout: it resets on every byte. A server
+    // that drips one byte every few seconds never trips it and never reaches
+    // maxBytes, so it could hold this function until its platform limit. A hard
+    // deadline for the whole request (DNS included) closes that.
+    const deadline = setTimeout(() => {
+      req.destroy(new Error("deadline"));
+      reject(new Error("deadline")); // in case the response had already begun
+    }, timeoutMs * 2);
+    req.on("close", () => clearTimeout(deadline));
     req.on("error", reject);
     req.end();
   });

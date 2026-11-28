@@ -58,9 +58,10 @@ describe("journal share overview - visibility filter", () => {
     expect(findMany).toHaveBeenCalledTimes(1);
     const where = findMany.mock.calls[0][0].where;
     expect(where.userId).toBe("u_1");
-    // The assertion that matters: private trades must be excluded at the DB.
-    expect(where.visibility).toEqual({ in: ["public", "anonymous"] });
-    expect(where.visibility.in).not.toContain("private");
+    // The assertion that matters: only PUBLIC trades. Private ones are the
+    // member's own; anonymous ones were published without a name, so they
+    // cannot appear on a card that prints @username.
+    expect(where.visibility).toBe("public");
   });
 
   it("a member whose trades are all private yields zeroed stats, not their real P&L", async () => {

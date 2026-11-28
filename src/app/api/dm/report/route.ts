@@ -43,6 +43,20 @@ export async function POST(req: Request) {
     if (!isCuid(userId)) return fail("Invalid member.", 400);
     if (userId === me.id) return fail("You can't report yourself.", 400);
 
+    // A cited message must be one the REPORTED member sent, in a conversation
+    // the REPORTER is part of. Any DM id used to be accepted, and the staff
+    // queue shows that message's text: a crafted report could pin someone
+    // else's words on the accused, or surface a private DM the reporter was
+    // never in. A message that does not qualify is dropped, the report stays.
+    let citedId: string | null = null;
+    if (messageId && isCuid(messageId)) {
+      const m = await prisma.directMessage
+        .findUnique({ where: { id: messageId }, select: { senderId: true, conversation: { select: { userAId: true, userBId: true } } } })
+        .catch(() => null);
+      const inIt = m && (m.conversation.userAId === me.id || m.conversation.userBId === me.id);
+      if (m && inIt && m.senderId === userId) citedId = messageId;
+    }
+
     await prisma.report
       .create({
         data: {
@@ -50,7 +64,7 @@ export async function POST(req: Request) {
           subjectId: userId,
           reason,
           note: note || null,
-          messageId: messageId && isCuid(messageId) ? messageId : null,
+          messageId: citedId,
         },
       })
       .catch(() => null); // a not-yet-migrated DB must not swallow the UI
