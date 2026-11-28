@@ -26,9 +26,9 @@ type Tab = (typeof TABS)[number]["id"];
 export function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <label className="block">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">{label}</span>
+      <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">{label}</span>
       <div className="mt-1.5">{children}</div>
-      {hint && <span className="mt-1 block text-[11px] text-content-subtle">{hint}</span>}
+      {hint && <span className="mt-1 block text-[0.6875rem] text-content-subtle">{hint}</span>}
     </label>
   );
 }
@@ -109,7 +109,7 @@ export function AcademyAdmin() {
             className={cn("flex items-center gap-1.5 whitespace-nowrap rounded-t-lg px-4 py-2.5 text-sm font-semibold", tab === t.id ? "border-b-2 border-gold-400 text-gold-100" : "text-content-subtle hover:text-content")}
           >
             <t.icon className="h-4 w-4" /> {t.label}
-            {t.id === "certs" && data?.stats.pendingCerts ? <span className="rounded-full bg-gold-400/20 px-1.5 text-[10px] text-gold-200">{data.stats.pendingCerts}</span> : null}
+            {t.id === "certs" && data?.stats.pendingCerts ? <span className="rounded-full bg-gold-400/20 px-1.5 text-[0.625rem] text-gold-200">{data.stats.pendingCerts}</span> : null}
           </button>
         ))}
       </div>
@@ -150,9 +150,9 @@ function OverviewTab({ data }: { data: Overview }) {
         <Stat label="Answers (7d)" value={fmt(s.answersWeek)} sub={s.accuracyWeek == null ? "–" : `${s.accuracyWeek}% correct`} />
         <Stat label="XP issued (7d)" value={fmt(s.xpWeek)} sub={`${fmt(s.questions)} questions in bank`} />
       </div>
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <div className="surface rounded-3xl p-5">
-          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Top learners (all-time)</div>
+          <div className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Top learners (all-time)</div>
           <ul className="space-y-1.5">
             {data.top.map((u, i) => (
               <li key={u.userId} className="flex items-center gap-3 text-sm">
@@ -167,7 +167,7 @@ function OverviewTab({ data }: { data: Overview }) {
           </ul>
         </div>
         <div className="surface rounded-3xl p-5">
-          <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Lesson completions</div>
+          <div className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Lesson completions</div>
           <ul className="space-y-2 text-sm">
             {data.categories.map((c) => (
               <li key={c.id} className="flex items-center gap-3">
@@ -201,7 +201,7 @@ function LiveTab({ data, run }: { data: Overview; run: (b: unknown, ok: string) 
     setBusy(false);
   };
   return (
-    <div className="grid gap-5 lg:grid-cols-[22rem_1fr]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
       <div className="surface space-y-4 rounded-3xl p-5">
         <div className="font-display text-lg font-semibold text-content">Schedule a live quiz</div>
         <Field label="Title">
@@ -246,7 +246,7 @@ function LiveTab({ data, run }: { data: Overview; run: (b: unknown, ok: string) 
         </button>
       </div>
       <div className="surface rounded-3xl p-5">
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Sessions</div>
+        <div className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Sessions</div>
         <ul className="space-y-2">
           {data.live.map((l) => {
             const open = l.status === "scheduled" || l.status === "live";
@@ -303,7 +303,7 @@ function LiveTab({ data, run }: { data: Overview; run: (b: unknown, ok: string) 
 function CertsTab({ data, run }: { data: Overview; run: (b: unknown, ok: string) => Promise<unknown> }) {
   const [f, setF] = useState({ user: "", kind: "event", title: "", periodKey: "", rank: 1, score: 0 });
   return (
-    <div className="grid gap-5 lg:grid-cols-[22rem_1fr]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
       <div className="space-y-5">
         <div className="surface space-y-4 rounded-3xl p-5">
           <div className="font-display text-lg font-semibold text-content">Issue a certificate</div>
@@ -345,7 +345,7 @@ function CertsTab({ data, run }: { data: Overview; run: (b: unknown, ok: string)
         </button>
       </div>
       <div className="surface rounded-3xl p-5">
-        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Latest certificates</div>
+        <div className="mb-3 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Latest certificates</div>
         <ul className="space-y-2">
           {data.certificates.map((c) => (
             <li key={c.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-hairline p-3">
@@ -383,7 +383,7 @@ function CertsTab({ data, run }: { data: Overview; run: (b: unknown, ok: string)
 function LearnersTab({ data, run }: { data: Overview; run: (b: unknown, ok: string) => Promise<unknown> }) {
   const [f, setF] = useState({ user: "", amount: 100, note: "" });
   return (
-    <div className="grid gap-5 lg:grid-cols-[22rem_1fr]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[22rem_minmax(0,1fr)]">
       <div className="surface space-y-4 rounded-3xl p-5">
         <div className="font-display text-lg font-semibold text-content">Award XP</div>
         <p className="text-xs text-content-subtle">For special challenges and events. Written to the same ledger as earned XP, with your note, and audit-logged.</p>
@@ -403,7 +403,7 @@ function LearnersTab({ data, run }: { data: Overview; run: (b: unknown, ok: stri
       <div className="surface overflow-x-auto rounded-3xl p-5">
         <table className="w-full min-w-[36rem] text-sm">
           <thead>
-            <tr className="text-left text-[10px] uppercase tracking-[0.14em] text-content-subtle">
+            <tr className="text-left text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">
               <th className="pb-2">Learner</th>
               <th className="pb-2 text-right">XP</th>
               <th className="pb-2 text-right">Level</th>

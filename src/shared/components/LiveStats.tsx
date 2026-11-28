@@ -17,7 +17,7 @@ export function LiveStats({ className = "" }: { className?: string }) {
       <span className="inline-flex items-center gap-1.5">
         <span className="h-2 w-2 animate-pulse-dot rounded-full bg-mint-400" />
         <span className="mono text-sm font-semibold text-mint-300">{online.toLocaleString("en-US")}</span>
-        <span className="text-[11px] uppercase tracking-wide text-zinc-500">online now</span>
+        <span className="text-[0.6875rem] uppercase tracking-wide text-zinc-500">online now</span>
       </span>
     </div>
   );

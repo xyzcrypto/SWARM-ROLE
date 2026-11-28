@@ -176,7 +176,7 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
         <div className="overflow-x-auto rounded-2xl border border-white/8">
           {/* Mobile keeps Title/Status/Actions in view (no 640px forced scroll);
               Category/Views/Date reappear from md: up. */}
-          <table className="w-full min-w-[360px] text-left text-sm md:min-w-[640px]">
+          <table className="w-full min-w-[22.5rem] text-left text-sm md:min-w-[40rem]">
             <thead className="bg-ink-700/60 text-xs uppercase tracking-wide text-zinc-500">
               <tr>
                 <th className="px-4 py-3 sm:px-5">Title</th>
@@ -209,22 +209,22 @@ export function PostManager({ posts }: { posts: PostRow[] }) {
                   <td className="px-4 py-3 font-medium text-zinc-200 sm:px-5">
                     {p.title}
                     {p.premium && (
-                      <span className="ml-2 align-middle rounded bg-gold-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase text-gold-200 ring-1 ring-gold-500/30">
+                      <span className="ml-2 align-middle rounded bg-gold-500/15 px-1.5 py-0.5 text-[0.625rem] font-bold uppercase text-gold-200 ring-1 ring-gold-500/30">
                         Premium
                       </span>
                     )}
-                    <span className="mono mt-0.5 block text-[10px] text-zinc-600 md:hidden">
+                    <span className="mono mt-0.5 block text-[0.625rem] text-zinc-600 md:hidden">
                       {p.category} · {(p.views ?? 0).toLocaleString("en-US")} views · {formatDate(p.createdAt)}
                     </span>
                   </td>
                   <td className="hidden px-5 py-3 text-zinc-400 md:table-cell">{p.category}</td>
                   <td className="px-4 py-3 sm:px-5">
                     {p.published ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-500/12 px-2.5 py-1 text-[11px] font-medium text-mint-300 ring-1 ring-mint-500/30">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-500/12 px-2.5 py-1 text-[0.6875rem] font-medium text-mint-300 ring-1 ring-mint-500/30">
                         <span className="h-1.5 w-1.5 rounded-full bg-mint-400" /> Published
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/12 px-2.5 py-1 text-[11px] font-medium text-amber-300 ring-1 ring-amber-500/30">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/12 px-2.5 py-1 text-[0.6875rem] font-medium text-amber-300 ring-1 ring-amber-500/30">
                         Draft
                       </span>
                     )}

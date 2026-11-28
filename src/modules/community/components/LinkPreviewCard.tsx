@@ -66,19 +66,19 @@ export function LinkPreviewCard({ text, className }: { text: string; className?:
       aria-hidden={preview ? undefined : true}
       tabIndex={preview ? undefined : -1}
       className={cn(
-        "block max-w-[340px] overflow-hidden rounded-xl border-l-[3px] border-gold-400/60 bg-black/[0.06] transition-colors hover:bg-black/[0.1] dark:bg-white/[0.05] dark:hover:bg-white/[0.08]",
+        "block max-w-[21.25rem] overflow-hidden rounded-xl border-l-[3px] border-gold-400/60 bg-black/[0.06] transition-colors hover:bg-black/[0.1] dark:bg-white/[0.05] dark:hover:bg-white/[0.08]",
         preview ? "mt-1.5 px-3 py-2" : "h-0 border-0",
         className
       )}
     >
       {preview && (
         <>
-          <span className="mono flex items-center gap-1 text-[10px] uppercase tracking-wider text-gold-600 dark:text-gold-300/80">
+          <span className="mono flex items-center gap-1 text-[0.625rem] uppercase tracking-wider text-gold-600 dark:text-gold-300/80">
             {preview.siteName ?? preview.host}
             <ExternalLink className="h-2.5 w-2.5" aria-hidden />
           </span>
-          <span className="mt-0.5 line-clamp-2 block text-[13px] font-semibold leading-snug text-zinc-800 dark:text-zinc-100">{preview.title}</span>
-          {preview.description && <span className="mt-0.5 line-clamp-2 block text-[12px] leading-snug text-zinc-600 dark:text-zinc-400">{preview.description}</span>}
+          <span className="mt-0.5 line-clamp-2 block text-[0.8125rem] font-semibold leading-snug text-zinc-800 dark:text-zinc-100">{preview.title}</span>
+          {preview.description && <span className="mt-0.5 line-clamp-2 block text-[0.75rem] leading-snug text-zinc-600 dark:text-zinc-400">{preview.description}</span>}
         </>
       )}
     </a>

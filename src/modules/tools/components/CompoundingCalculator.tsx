@@ -32,7 +32,7 @@ export function CompoundingCalculator() {
         <p className="mt-1 text-sm text-zinc-500">Project capital growth from a fixed return per period - see how compounding adds up.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <CalcField label="Starting capital" value={capital} onChange={setCapital} suffix="USD" />
         <CalcField label="Return per period" value={returnPct} onChange={setReturnPct} suffix="%" />
         <CalcField label="Number of periods" value={periods} onChange={setPeriods} />
@@ -51,7 +51,7 @@ export function CompoundingCalculator() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <ResultTile label="Final capital" value={`$${result.finalCapital.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} tone="mint" />
         <ResultTile label="Total gain" value={`$${result.totalGain.toLocaleString(undefined, { maximumFractionDigits: 2 })}`} />
         <ResultTile label="Total return" value={`${result.totalReturnPct.toFixed(1)}%`} tone="gold" />

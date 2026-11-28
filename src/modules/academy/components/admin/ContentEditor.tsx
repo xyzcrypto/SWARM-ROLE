@@ -67,10 +67,10 @@ export function ContentEditor({ data, run }: { data: Overview; run: Run }) {
   const shown = (qs ?? []).filter((q) => !filter || q.moduleId === filter);
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[17rem_1fr]">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-[17rem_minmax(0,1fr)]">
       <div className="surface rounded-3xl p-3">
         <div className="flex items-center justify-between px-2 pb-2">
-          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Topics</span>
+          <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Topics</span>
           <button type="button" className="rounded-full p-1.5 text-gold-300 hover:bg-white/5" onClick={() => setCatForm({ slug: "", title: "", tagline: "", icon: "BookOpen", order: data.categories.length + 1, published: true })} aria-label="Add topic">
             <Plus className="h-4 w-4" />
           </button>
@@ -81,7 +81,7 @@ export function ContentEditor({ data, run }: { data: Overview; run: Run }) {
               <button type="button" onClick={() => setCatId(c.id)} className={cn("flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm", c.id === catId ? "bg-gold-400/10 text-gold-100" : "text-content-muted hover:bg-white/[0.03]")}>
                 <span className="min-w-0 flex-1 truncate">{c.title}</span>
                 {!c.published && <EyeOff className="h-3.5 w-3.5 text-content-subtle" />}
-                <span className="font-mono text-[10px] text-content-subtle">{c.questions}</span>
+                <span className="font-mono text-[0.625rem] text-content-subtle">{c.questions}</span>
               </button>
             </li>
           ))}
@@ -95,7 +95,7 @@ export function ContentEditor({ data, run }: { data: Overview; run: Run }) {
               <div className="min-w-0 flex-1">
                 <div className="font-display text-xl font-semibold text-content">{cat.title}</div>
                 <div className="text-sm text-content-muted">{cat.tagline}</div>
-                <div className="mt-1 font-mono text-[11px] text-content-subtle">/academy/learn/{cat.slug}</div>
+                <div className="mt-1 font-mono text-[0.6875rem] text-content-subtle">/academy/learn/{cat.slug}</div>
               </div>
               <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={() => setCatForm({ id: cat.id, slug: cat.slug, title: cat.title, tagline: cat.tagline, icon: cat.icon, order: cat.order, published: cat.published })}>
                 <Pencil className="h-3.5 w-3.5" /> Edit topic
@@ -109,7 +109,7 @@ export function ContentEditor({ data, run }: { data: Overview; run: Run }) {
               </button>
             </div>
             <div className="mt-5 flex items-center justify-between">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Lessons</span>
+              <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Lessons</span>
               <button
                 type="button"
                 className="btn-secondary h-8 px-3 text-xs"
@@ -124,7 +124,7 @@ export function ContentEditor({ data, run }: { data: Overview; run: Run }) {
                   <Pill tone={DIFF_TONE[m.level]}>{LEVEL_LABEL[m.level]}</Pill>
                   <span className="min-w-0 flex-1 truncate text-sm text-content">{m.title}</span>
                   {!m.published && <Pill>hidden</Pill>}
-                  <span className="text-[11px] text-content-subtle">
+                  <span className="text-[0.6875rem] text-content-subtle">
                     {m.questions} Q · {m.completions} done
                   </span>
                   <button type="button" className="btn-ghost h-8 px-3 text-xs" onClick={() => void editModule(m.id)}>
@@ -140,7 +140,7 @@ export function ContentEditor({ data, run }: { data: Overview; run: Run }) {
 
           <div className="surface rounded-3xl p-5">
             <div className="flex flex-wrap items-center gap-3">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Question bank</span>
+              <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Question bank</span>
               <select className={cn(inputCls, "ml-auto w-auto py-1.5")} value={filter} onChange={(e) => setFilter(e.target.value)} aria-label="Filter by lesson">
                 <option value="">All lessons</option>
                 {cat.modules.map((m) => (
@@ -193,7 +193,7 @@ export function ContentEditor({ data, run }: { data: Overview; run: Run }) {
 
       {catForm && (
         <Modal title={catForm.id ? "Edit topic" : "New topic"} onClose={() => setCatForm(null)}>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Title">
               <input className={inputCls} value={catForm.title} onChange={(e) => setCatForm({ ...catForm, title: e.target.value })} />
             </Field>
@@ -232,7 +232,7 @@ export function ContentEditor({ data, run }: { data: Overview; run: Run }) {
       {qForm && (
         <Modal title={qForm.id ? "Edit question" : "New question"} onClose={() => setQForm(null)}>
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Lesson">
                 <select className={inputCls} value={qForm.moduleId ?? ""} onChange={(e) => setQForm({ ...qForm, moduleId: e.target.value || null })}>
                   <option value="">No lesson (topic only)</option>
@@ -255,7 +255,7 @@ export function ContentEditor({ data, run }: { data: Overview; run: Run }) {
               <textarea className={cn(inputCls, "min-h-[5rem]")} value={qForm.prompt} onChange={(e) => setQForm({ ...qForm, prompt: e.target.value })} />
             </Field>
             <div className="space-y-2">
-              <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Options (pick the correct one)</span>
+              <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">Options (pick the correct one)</span>
               {(qForm.options ?? ["", "", "", ""]).map((o, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <input type="radio" name="correct" checked={qForm.answer === i} onChange={() => setQForm({ ...qForm, answer: i })} aria-label={`Option ${i + 1} is correct`} />
@@ -304,7 +304,7 @@ function ModuleForm({ mod, onClose, run }: { mod: Partial<ModuleFull> & { catego
   return (
     <Modal title={m.id ? "Edit lesson" : "New lesson"} onClose={onClose}>
       <div className="space-y-4">
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <Field label="Title">
             <input className={inputCls} value={m.title ?? ""} onChange={(e) => setM({ ...m, title: e.target.value })} />
           </Field>
@@ -335,7 +335,7 @@ function ModuleForm({ mod, onClose, run }: { mod: Partial<ModuleFull> & { catego
         </Field>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Sections</span>
+            <span className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">Sections</span>
             <button type="button" className="text-xs font-semibold text-gold-300" onClick={() => setM({ ...m, sections: [...(m.sections ?? []), { heading: "", body: "" }] })}>
               + Section
             </button>
@@ -386,7 +386,7 @@ function ModuleForm({ mod, onClose, run }: { mod: Partial<ModuleFull> & { catego
             }
           />
         </Field>
-        <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
           <Field label="Example title">
             <input className={inputCls} value={m.example?.title ?? ""} onChange={(e) => setM({ ...m, example: e.target.value || m.example?.body ? { title: e.target.value, body: m.example?.body ?? "" } : null })} />
           </Field>

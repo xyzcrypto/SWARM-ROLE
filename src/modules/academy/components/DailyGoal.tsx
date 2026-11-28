@@ -76,14 +76,14 @@ export function DailyGoal({ me, onChanged }: { me: Me; onChanged: () => void }) 
                 <div className="font-display text-xl font-bold text-content">
                   <CountUp value={today} />
                 </div>
-                <div className="text-[9px] uppercase tracking-[0.14em] text-content-subtle">of {target} XP</div>
+                <div className="text-[0.5625rem] uppercase tracking-[0.14em] text-content-subtle">of {target} XP</div>
               </>
             )}
           </div>
         </div>
 
         <div className="min-w-0 flex-1 basis-40">
-          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-content-subtle">Daily goal</div>
+          <div className="text-[0.625rem] font-semibold uppercase tracking-[0.18em] text-content-subtle">Daily goal</div>
           <div className="mt-0.5 font-display text-lg font-semibold text-content sm:text-xl">
             {done ? "Goal complete. Nicely done." : `${target - today} XP to go today`}
           </div>
@@ -107,7 +107,7 @@ export function DailyGoal({ me, onChanged }: { me: Me; onChanged: () => void }) 
             <div className={cn("flex items-center justify-center gap-1 font-display text-2xl font-bold", me.streak ? "text-gold-600 dark:text-gold-200" : "text-content-subtle")}>
               <Flame className={cn("h-6 w-6", me.streak && "acad-goal-flame text-orange-500")} /> {me.streak}
             </div>
-            <div className="text-[10px] uppercase tracking-[0.14em] text-content-subtle">day streak</div>
+            <div className="text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">day streak</div>
           </div>
           <div className="text-center" title="Each freeze covers one missed day. Earn one every 7 days, up to 2.">
             <div className="flex items-center justify-center gap-0.5">
@@ -115,7 +115,7 @@ export function DailyGoal({ me, onChanged }: { me: Me; onChanged: () => void }) 
                 <Snowflake key={i} className={cn("h-5 w-5", i < me.freezes ? "acad-goal-ice text-sky-500 dark:text-sky-300" : "text-content-subtle opacity-30")} />
               ))}
             </div>
-            <div className="mt-1 text-[10px] uppercase tracking-[0.14em] text-content-subtle">
+            <div className="mt-1 text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">
               {me.freezes} freeze{me.freezes === 1 ? "" : "s"}
             </div>
           </div>

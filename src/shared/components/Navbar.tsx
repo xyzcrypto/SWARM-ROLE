@@ -140,7 +140,7 @@ export function Navbar() {
     <header className="fixed inset-x-0 top-0 z-50 px-3 pt-3">
       <nav
         className={cn(
-          "mx-auto flex h-14 max-w-[1200px] items-center justify-between rounded-2xl px-3 transition-all duration-300 sm:px-4 xl:max-w-[1320px] 2xl:max-w-[1480px]",
+          "mx-auto flex h-14 max-w-[75rem] items-center justify-between rounded-2xl px-3 transition-all duration-300 sm:px-4 xl:max-w-[82.5rem] 2xl:max-w-[92.5rem]",
           scrolled
             ? // backdrop-blur-lg (not -xl) - the bar is fixed/sticky, so a full 24px
               // blur repaints on every scroll frame, site-wide, on every page. 16px
@@ -156,7 +156,13 @@ export function Navbar() {
           <span className="relative inline-flex h-9 w-9 transition-transform group-hover:scale-105 group-active:scale-105">
             <Image src="/logo.png" alt="XYZ Crypto" fill className="object-contain" sizes="36px" />
           </span>
-          <span className="whitespace-nowrap font-display text-[15px] font-semibold tracking-tight">
+          {/* Signed in, the bar also carries three activity buttons, and on a
+              phone narrower than 360px (iPhone SE 1st gen, small Androids) the
+              row needed ~350px against 272: the Menu button was pushed past the
+              screen edge and could not be tapped at all (measured 2026-11-28,
+              31px off-screen at 320). The coin stays; the words step aside
+              there, still read out to screen readers. */}
+          <span className={cn("whitespace-nowrap font-display text-[0.9375rem] font-semibold tracking-tight", session && "max-[359px]:sr-only")}>
             <span className="text-gold-gradient">XYZ</span>{" "}
             <span className="text-zinc-100">Crypto</span>
           </span>
@@ -321,8 +327,8 @@ export function Navbar() {
                     (the avatar's ring already shows Premium, and the dropdown
                     shows the account). */}
                 <span className="hidden flex-col items-start leading-tight 2xl:flex">
-                  <span className="mono text-[12px] text-zinc-200">{masked}</span>
-                  <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
+                  <span className="mono text-[0.75rem] text-zinc-200">{masked}</span>
+                  <span className={cn("text-[0.625rem] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
                     {isPremium ? "Premium" : "Free"}
                   </span>
                 </span>
@@ -379,7 +385,7 @@ export function Navbar() {
                 Log in
               </Link>
               <MagneticButton>
-                <ActionLink href="/signup" className="btn-primary !px-4 !py-2 text-[13px]">
+                <ActionLink href="/signup" className="btn-primary !px-4 !py-2 text-[0.8125rem]">
                   Get Started
                 </ActionLink>
               </MagneticButton>
@@ -460,15 +466,15 @@ export function Navbar() {
               >
                 <SlidersHorizontal className="h-4 w-4 text-gold-300" />
                 Customize website
-                <span className="ml-auto text-[11px] font-normal text-zinc-500">animations, text, haptics…</span>
+                <span className="ml-auto text-[0.6875rem] font-normal text-zinc-500">animations, text, haptics…</span>
               </button>
               {session ? (
                 <>
                   <div className="flex items-center gap-2.5 rounded-lg bg-white/5 px-3 py-2">
                     <Avatar name={session.user?.name} image={session.user?.image} email={session.user?.email} size="sm" premium={isPremium} />
                     <span className="flex flex-col leading-tight">
-                      <span className="mono text-[12px] text-zinc-200">{masked}</span>
-                      <span className={cn("text-[10px] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
+                      <span className="mono text-[0.75rem] text-zinc-200">{masked}</span>
+                      <span className={cn("text-[0.625rem] font-semibold uppercase tracking-wide", isPremium ? "text-gold-300" : "text-zinc-500")}>
                         {isPremium ? "Premium" : "Free"}
                       </span>
                     </span>

@@ -129,7 +129,7 @@ export function CoinDetailClient({ id }: { id: string }) {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-2xl font-bold text-zinc-50 sm:text-3xl">{coin.name}</h1>
               <span className="mono text-sm text-zinc-500">{coin.symbol}</span>
-              {coin.rank ? <span className="rounded-full bg-white/5 px-2 py-0.5 text-[11px] text-zinc-400">Rank #{coin.rank}</span> : null}
+              {coin.rank ? <span className="rounded-full bg-white/5 px-2 py-0.5 text-[0.6875rem] text-zinc-400">Rank #{coin.rank}</span> : null}
             </div>
             <FreshnessPill ts={coin.ts} />
           </div>
@@ -142,7 +142,7 @@ export function CoinDetailClient({ id }: { id: string }) {
 
       {/* 7d chart */}
       <div className="surface rounded-2xl p-4 sm:p-5">
-        <div className="mb-2 flex items-center justify-between text-[11px] uppercase tracking-wide text-zinc-500">
+        <div className="mb-2 flex items-center justify-between text-[0.6875rem] uppercase tracking-wide text-zinc-500">
           <span>Last 7 days</span>
           <span className="mono">{pct(coin.change7d)}</span>
         </div>
@@ -164,7 +164,7 @@ export function CoinDetailClient({ id }: { id: string }) {
       {/* 24h range */}
       {coin.high24h > coin.low24h && (
         <div className="surface rounded-2xl p-4 sm:p-5">
-          <p className="mb-2 text-[11px] uppercase tracking-wide text-zinc-500">24h Range</p>
+          <p className="mb-2 text-[0.6875rem] uppercase tracking-wide text-zinc-500">24h Range</p>
           <RangeBar low={coin.low24h} high={coin.high24h} price={coin.price} />
         </div>
       )}
@@ -179,16 +179,16 @@ export function CoinDetailClient({ id }: { id: string }) {
       {coin.description && (
         <div className="surface rounded-2xl p-4 sm:p-5">
           <p className="mb-2 text-sm font-semibold text-zinc-100">About {coin.name}</p>
-          <p className="text-[13px] leading-relaxed text-zinc-400">{coin.description}</p>
+          <p className="text-[0.8125rem] leading-relaxed text-zinc-400">{coin.description}</p>
           {coin.homepage && (
-            <a href={coin.homepage} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-[12px] text-gold-200 hover:underline">
+            <a href={coin.homepage} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1 text-[0.75rem] text-gold-200 hover:underline">
               Official site <ExternalLink className="h-3 w-3" />
             </a>
           )}
         </div>
       )}
 
-      <p className="text-center text-[11px] text-zinc-600">Data from CoinGecko. Not financial advice.</p>
+      <p className="text-center text-[0.6875rem] text-zinc-600">Data from CoinGecko. Not financial advice.</p>
     </div>
   );
 }
@@ -196,9 +196,9 @@ export function CoinDetailClient({ id }: { id: string }) {
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="surface rounded-xl p-3">
-      <p className="text-[11px] text-zinc-500">{label}</p>
+      <p className="text-[0.6875rem] text-zinc-500">{label}</p>
       <p className="mono mt-1 text-sm font-semibold text-zinc-100">{value}</p>
-      {sub && <p className="mt-0.5 text-[10px] text-zinc-500">{sub}</p>}
+      {sub && <p className="mt-0.5 text-[0.625rem] text-zinc-500">{sub}</p>}
     </div>
   );
 }
@@ -210,7 +210,7 @@ function RangeBar({ low, high, price }: { low: number; high: number; price: numb
       <div className="relative h-1.5 rounded-full bg-gradient-to-r from-red-500/40 via-zinc-600/40 to-mint-500/40">
         <span className="absolute -top-1 h-3.5 w-3.5 -translate-x-1/2 rounded-full bg-zinc-100 ring-2 ring-ink-950" style={{ left: `${pctPos}%` }} />
       </div>
-      <div className="mt-1.5 flex justify-between text-[11px] text-zinc-500">
+      <div className="mt-1.5 flex justify-between text-[0.6875rem] text-zinc-500">
         <span className="mono">{coinPrice(low)}</span>
         <span className="mono">{coinPrice(high)}</span>
       </div>
@@ -231,7 +231,7 @@ function PriceChart({ data, up }: { data: number[]; up: boolean }) {
     return { d: `M ${pts.join(" L ")}`, W, H, area: `M 0,${H} L ${pts.join(" L ")} L ${W},${H} Z` };
   }, [data]);
 
-  if (!path) return <div className="flex h-[140px] items-center justify-center text-xs text-zinc-600">Chart unavailable</div>;
+  if (!path) return <div className="flex h-[8.75rem] items-center justify-center text-xs text-zinc-600">Chart unavailable</div>;
   const color = up ? "var(--chart-mint)" : "#ef4444";
   return (
     <svg viewBox={`0 0 ${path.W} ${path.H}`} preserveAspectRatio="none" className="h-32 w-full sm:h-40" role="img" aria-label="7-day price chart">
@@ -257,7 +257,7 @@ function FreshnessPill({ ts }: { ts?: number }) {
   const s = Math.max(0, Math.round((now - ts) / 1000));
   const label = s < 3 ? "just now" : s < 60 ? `${s}s ago` : `${Math.round(s / 60)}m ago`;
   return (
-    <span className="mt-1 inline-flex items-center gap-1.5 text-[11px] text-zinc-500">
+    <span className="mt-1 inline-flex items-center gap-1.5 text-[0.6875rem] text-zinc-500">
       <span className={cn("h-1.5 w-1.5 rounded-full", s < 90 ? "bg-mint-400" : "bg-amber-400")} />
       Updated {label} · USD
     </span>
@@ -303,9 +303,9 @@ function AiTake({ coin, loggedIn }: { coin: Coin; loggedIn: boolean }) {
           </button>
         )}
       </div>
-      {state.text && <p className="mt-2 text-[13px] leading-relaxed text-zinc-200">{state.text}</p>}
-      {state.err && <p className="mt-2 text-[11px] text-amber-300">{state.err}</p>}
-      {!state.text && !state.err && <p className="mt-1 text-[11px] text-zinc-500">A neutral, education-only read on {coin.symbol} from the live numbers. Not financial advice.</p>}
+      {state.text && <p className="mt-2 text-[0.8125rem] leading-relaxed text-zinc-200">{state.text}</p>}
+      {state.err && <p className="mt-2 text-[0.6875rem] text-amber-300">{state.err}</p>}
+      {!state.text && !state.err && <p className="mt-1 text-[0.6875rem] text-zinc-500">A neutral, education-only read on {coin.symbol} from the live numbers. Not financial advice.</p>}
     </div>
   );
 }
@@ -341,8 +341,8 @@ function RelatedNews({ symbol, name }: { symbol: string; name: string }) {
             <li key={n.url}>
               <a href={n.url} target="_blank" rel="noopener noreferrer" className="flex items-start gap-2 py-2.5 transition-colors hover:bg-white/[0.03]">
                 <span className="min-w-0 flex-1">
-                  <span className="line-clamp-2 text-[13px] text-zinc-200">{n.title}</span>
-                  <span className="mt-0.5 block text-[11px] text-zinc-500">{n.source}</span>
+                  <span className="line-clamp-2 text-[0.8125rem] text-zinc-200">{n.title}</span>
+                  <span className="mt-0.5 block text-[0.6875rem] text-zinc-500">{n.source}</span>
                 </span>
                 <ExternalLink className="mt-0.5 h-3.5 w-3.5 shrink-0 text-zinc-600" />
               </a>

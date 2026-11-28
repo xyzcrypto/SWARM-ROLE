@@ -52,7 +52,7 @@ export default function ContactPage() {
               </Reveal>
             </div>
 
-            <div className="mt-14 grid gap-8 lg:grid-cols-[1fr_1.1fr]">
+            <div className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
               {/* Info column */}
               <Reveal>
                 <div className="space-y-5">
@@ -65,11 +65,11 @@ export default function ContactPage() {
                       </p>
                       <a
                         href={`mailto:${site.email}`}
-                        className="mono text-[13px] text-mint-300 transition-colors hover:text-mint-200"
+                        className="mono text-[0.8125rem] text-mint-300 transition-colors hover:text-mint-200"
                       >
                         {site.email}
                       </a>
-                      <p className="mt-1 text-[12px] text-zinc-500">
+                      <p className="mt-1 text-[0.75rem] text-zinc-500">
                         For support, partnerships and general enquiries.
                       </p>
                     </div>
@@ -88,11 +88,11 @@ export default function ContactPage() {
                         href={site.support.telegramUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mono text-[13px] text-mint-300 transition-colors hover:text-mint-200"
+                        className="mono text-[0.8125rem] text-mint-300 transition-colors hover:text-mint-200"
                       >
                         @{site.support.telegram}
                       </a>
-                      <p className="mt-1 text-[12px] text-zinc-500">
+                      <p className="mt-1 text-[0.75rem] text-zinc-500">
                         Fastest way to reach us directly.
                       </p>
                     </div>
@@ -105,7 +105,7 @@ export default function ContactPage() {
                         <AnimatedEmoji emoji="⏱️" variant="wobble" className="mr-1.5 text-sm" />
                         Response time
                       </p>
-                      <p className="mt-0.5 text-[13px] text-zinc-400">
+                      <p className="mt-0.5 text-[0.8125rem] text-zinc-400">
                         We typically reply within 1-2 business days.
                       </p>
                     </div>
@@ -113,7 +113,7 @@ export default function ContactPage() {
 
                   <div className="surface rounded-2xl p-5">
                     <p className="text-sm font-semibold text-zinc-100">Community channels</p>
-                    <p className="mt-0.5 text-[12px] text-zinc-500">Fastest answers are often in the community.</p>
+                    <p className="mt-0.5 text-[0.75rem] text-zinc-500">Fastest answers are often in the community.</p>
                     <div className="mt-4 flex flex-wrap gap-2.5">
                       {socials.map((s) => (
                         <a

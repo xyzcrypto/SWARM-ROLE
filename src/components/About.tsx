@@ -24,7 +24,7 @@ export function About() {
       {/* Two equal columns, vertically centred against each other, so neither
           side hangs lower than the other. Children of the copy column keep
           their natural width (the eyebrow no longer stretches full-width). */}
-      <Container className="grid gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
+      <Container className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:items-center lg:gap-12">
         <Reveal variant="left" className="flex flex-col items-start">
           <Eyebrow>Who we are</Eyebrow>
           <h2 className="mt-5 font-display text-display-md font-semibold tracking-tight text-zinc-50">
@@ -58,7 +58,7 @@ export function About() {
           <div className="surface surface-hover lift group relative mt-7 w-full overflow-hidden rounded-2xl p-5">
             <div className="glow-orb -right-10 -top-10 h-32 w-32 bg-gold-500/15" />
             <div className="relative flex items-center gap-2">
-              <span className="mono text-[11px] font-semibold tracking-[0.16em] text-gold-200">
+              <span className="mono text-[0.6875rem] font-semibold tracking-[0.16em] text-gold-200">
                 SINCE 2019
               </span>
               <span className="h-px flex-1 bg-gold-500/20" />
@@ -74,7 +74,7 @@ export function About() {
           </div>
         </Reveal>
 
-        <div className="grid auto-rows-fr gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 auto-rows-fr gap-4 sm:grid-cols-2">
           {pillars.map((p, i) => (
             <Reveal key={p.title} delay={i} variant="pop" className="h-full">
               <div className="surface surface-hover lift group flex h-full flex-col rounded-3xl p-6">

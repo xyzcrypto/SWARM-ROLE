@@ -330,7 +330,7 @@ export function DashboardClient({
       <div className="mb-8">
         <span className="eyebrow eyebrow-glass text-gold-200">
           <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
-          <span className="mono text-[11px] uppercase tracking-[0.18em]">Admin</span>
+          <span className="mono text-[0.6875rem] uppercase tracking-[0.18em]">Admin</span>
         </span>
         <h1 className="mt-2 font-display text-3xl font-bold text-zinc-50 sm:text-4xl">
           Welcome, {adminName.split(" ")[0]} 👋
@@ -353,7 +353,7 @@ export function DashboardClient({
           >
             {t.label}
             {t.id === "premium" && (
-              <span className="ml-1.5 rounded-full bg-gold-500/15 px-1.5 text-[10px] text-gold-200">
+              <span className="ml-1.5 rounded-full bg-gold-500/15 px-1.5 text-[0.625rem] text-gold-200">
                 {stats.premiumUsers}
               </span>
             )}
@@ -461,14 +461,14 @@ function TrendChart({ title, points, tone }: { title: string; points: DailyPoint
         </svg>
         {hover !== null && (
           <div
-            className="pointer-events-none absolute -top-1 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-ink-800/95 px-2 py-1 mono text-[10px] text-zinc-200 shadow-elevate"
+            className="pointer-events-none absolute -top-1 z-10 -translate-x-1/2 whitespace-nowrap rounded-lg border border-line bg-ink-800/95 px-2 py-1 mono text-[0.625rem] text-zinc-200 shadow-elevate"
             style={{ left: `${((x(hover) / W) * 100).toFixed(1)}%` }}
           >
             {fmtDay(points[hover]!.day)} · {points[hover]!.count.toLocaleString("en-US")}
           </div>
         )}
       </div>
-      <div className="mt-1 flex justify-between mono text-[9px] text-zinc-600">
+      <div className="mt-1 flex justify-between mono text-[0.5625rem] text-zinc-600">
         <span>{points.length ? fmtDay(points[0]!.day) : ""}</span>
         <span>{points.length ? fmtDay(points[points.length - 1]!.day) : ""}</span>
       </div>
@@ -552,7 +552,7 @@ function OnlineVisitors({
           </span>
           <h3 className="text-sm font-semibold text-zinc-200">Online now</h3>
         </div>
-        <span className="mono text-[11px] text-zinc-500">
+        <span className="mono text-[0.6875rem] text-zinc-500">
           {/* `signedIn`, never `liveTotal` - the cap applies to members, so
               comparing against a figure that counts guests would overstate how
               much was hidden. */}
@@ -577,16 +577,16 @@ function OnlineVisitors({
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={v.image} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
               ) : (
-                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-[10px] text-zinc-300">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-white/10 text-[0.625rem] text-zinc-300">
                   {label.replace(/^@/, "").charAt(0).toUpperCase()}
                 </span>
               )}
-              <span className="truncate text-[13px] text-zinc-200">{label}</span>
+              <span className="truncate text-[0.8125rem] text-zinc-200">{label}</span>
               {v.membership === "Premium" && (
-                <span className="mono text-[9px] uppercase tracking-wider text-gold-200">PRO</span>
+                <span className="mono text-[0.5625rem] uppercase tracking-wider text-gold-200">PRO</span>
               )}
               {v.role === "ADMIN" && (
-                <span className="mono text-[9px] uppercase tracking-wider text-violet-200">ADM</span>
+                <span className="mono text-[0.5625rem] uppercase tracking-wider text-violet-200">ADM</span>
               )}
             </>
           );
@@ -687,7 +687,7 @@ function Overview({ stats: initialStats, online, health }: { stats: Stats; onlin
       />
 
       {/* Live + analytics */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="surface rounded-2xl p-6 ring-1 ring-mint-500/20">
           <div className="flex items-center gap-2">
             <span className="relative flex h-2 w-2">
@@ -721,14 +721,14 @@ function Overview({ stats: initialStats, online, health }: { stats: Stats; onlin
 
       {/* 30-day trends */}
       {series && (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TrendChart title="Signups per day" points={series.signups} tone="gold" />
           <TrendChart title="Page views per day" points={series.views} tone="mint" />
         </div>
       )}
 
       {/* Signups / content */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((c) => (
           <StatCard key={c.label} {...c} />
         ))}
@@ -753,7 +753,7 @@ function Overview({ stats: initialStats, online, health }: { stats: Stats; onlin
           ).map(([label, on]) => (
             <span
               key={label}
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ${
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] font-medium ring-1 ${
                 on ? "bg-mint-500/10 text-mint-200 ring-mint-500/25" : "bg-white/5 text-zinc-500 ring-white/10"
               }`}
             >
@@ -938,9 +938,9 @@ function ModerationPanel() {
 
   const StatusBadge = ({ status }: { status: string }) =>
     status === "hidden" ? (
-      <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-300 ring-1 ring-red-500/25">Hidden</span>
+      <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[0.625rem] font-medium text-red-300 ring-1 ring-red-500/25">Hidden</span>
     ) : (
-      <span className="rounded-full bg-mint-500/10 px-2 py-0.5 text-[10px] font-medium text-mint-300 ring-1 ring-mint-500/25">Visible</span>
+      <span className="rounded-full bg-mint-500/10 px-2 py-0.5 text-[0.625rem] font-medium text-mint-300 ring-1 ring-mint-500/25">Visible</span>
     );
 
   return (
@@ -1017,8 +1017,8 @@ function ModerationPanel() {
           <ul className="space-y-2">
             {reports.map((r) => (
               <li key={r.id} className="surface rounded-2xl p-4">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
-                  <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-red-300 ring-1 ring-red-500/25">
+                <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-zinc-500">
+                  <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[0.625rem] font-medium uppercase tracking-wide text-red-300 ring-1 ring-red-500/25">
                     {r.reason}
                   </span>
                   <span className="font-medium text-zinc-300">{r.subject.name ?? "Member"}</span>
@@ -1033,7 +1033,7 @@ function ModerationPanel() {
                   <span>· {formatDateTime(r.createdAt)}</span>
                 </div>
 
-                <p className="mt-1.5 text-[11px] text-zinc-500">
+                <p className="mt-1.5 text-[0.6875rem] text-zinc-500">
                   Reported by{" "}
                   <span className="text-zinc-400">{r.reporter.name ?? r.reporter.email}</span>
                   {r.reporter.username && (
@@ -1053,10 +1053,10 @@ function ModerationPanel() {
                     why it stops at exactly the one message. */}
                 {r.message && (
                   <div className="mt-2 rounded-xl border border-white/10 bg-black/20 p-3">
-                    <p className="mono mb-1 text-[10px] uppercase tracking-wider text-zinc-600">
+                    <p className="mono mb-1 text-[0.625rem] uppercase tracking-wider text-zinc-600">
                       Reported message{r.message.deleted && " · deleted by sender"}
                     </p>
-                    <p className="whitespace-pre-wrap break-words text-[13px] text-zinc-300">{r.message.body || "(empty)"}</p>
+                    <p className="whitespace-pre-wrap break-words text-[0.8125rem] text-zinc-300">{r.message.body || "(empty)"}</p>
                   </div>
                 )}
 
@@ -1082,7 +1082,7 @@ function ModerationPanel() {
           <ul className="space-y-2">
             {comments.map((c) => (
               <li key={c.id} className="surface rounded-2xl p-4">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+                <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-zinc-500">
                   <span className="font-medium text-zinc-300">{c.authorName}</span>
                   <span>on</span>
                   <a href={`/research/${c.postSlug}`} target="_blank" className="text-gold-200 hover:underline">
@@ -1113,7 +1113,7 @@ function ModerationPanel() {
         <ul className="space-y-2">
           {messages.map((m) => (
             <li key={m.id} className="surface rounded-2xl p-4">
-              <div className="flex flex-wrap items-center gap-2 text-[11px] text-zinc-500">
+              <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-zinc-500">
                 <span className="font-medium text-zinc-300">
                   {m.author.name ?? (m.author.username ? `@${m.author.username}` : "Member")}
                 </span>
@@ -1130,8 +1130,8 @@ function ModerationPanel() {
                   <span
                     className={
                       m.hiddenBy === "ai"
-                        ? "rounded-full bg-sky-500/15 px-2 py-0.5 text-[10px] font-medium text-sky-300"
-                        : "rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium text-zinc-400"
+                        ? "rounded-full bg-sky-500/15 px-2 py-0.5 text-[0.625rem] font-medium text-sky-300"
+                        : "rounded-full bg-white/5 px-2 py-0.5 text-[0.625rem] font-medium text-zinc-400"
                     }
                   >
                     {m.hiddenBy === "ai" ? "AI filter" : m.hiddenBy ? "By staff" : "Unknown"}
@@ -1207,7 +1207,7 @@ function SubscribersPanel() {
         <>
           <div className="overflow-x-auto rounded-2xl border border-line">
             <table className="w-full text-left text-sm">
-              <thead className="bg-ink-700/60 mono text-[11px] uppercase tracking-wider text-zinc-500">
+              <thead className="bg-ink-700/60 mono text-[0.6875rem] uppercase tracking-wider text-zinc-500">
                 <tr>
                   <th className="px-4 py-3 font-medium sm:px-5">Email</th>
                   <th className="hidden px-5 py-3 font-medium sm:table-cell">Source</th>
@@ -1291,9 +1291,9 @@ function ActivityPanel() {
             {entries.map((e) => (
               <li key={e.id} className="surface flex flex-wrap items-baseline gap-x-2 gap-y-1 rounded-2xl p-4 text-sm">
                 <span className="font-medium text-zinc-200">{e.actorName}</span>
-                <span className="mono rounded bg-white/5 px-1.5 py-0.5 text-[11px] text-gold-200">{e.action}</span>
-                {e.detail && <span className="mono min-w-0 break-all text-[11px] text-zinc-500">{e.detail}</span>}
-                <span className="ml-auto mono text-[11px] text-zinc-600">{formatDateTime(e.createdAt)}</span>
+                <span className="mono rounded bg-white/5 px-1.5 py-0.5 text-[0.6875rem] text-gold-200">{e.action}</span>
+                {e.detail && <span className="mono min-w-0 break-all text-[0.6875rem] text-zinc-500">{e.detail}</span>}
+                <span className="ml-auto mono text-[0.6875rem] text-zinc-600">{formatDateTime(e.createdAt)}</span>
               </li>
             ))}
           </ul>
@@ -1370,13 +1370,13 @@ function PremiumMembers({ initial, realtime }: { initial: UserRow[]; realtime: R
           No premium members yet.
         </p>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {rows.map((u) => (
             <div key={u.id} className="surface flex items-center justify-between gap-3 rounded-2xl p-4">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-zinc-100">{u.name ?? u.email}</p>
-                <p className="mono truncate text-[11px] text-zinc-500">{u.email}</p>
-                <p className="mt-0.5 text-[11px] text-zinc-600">Since {formatDate(u.createdAt)}</p>
+                <p className="mono truncate text-[0.6875rem] text-zinc-500">{u.email}</p>
+                <p className="mt-0.5 text-[0.6875rem] text-zinc-600">Since {formatDate(u.createdAt)}</p>
               </div>
               <button
                 onClick={() => downgrade(u)}
@@ -1504,8 +1504,8 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-line">
-        <table className="w-full min-w-[340px] text-left text-sm md:min-w-[640px]">
-          <thead className="bg-ink-700/60 mono text-[11px] uppercase tracking-wider text-zinc-500">
+        <table className="w-full min-w-[21.25rem] text-left text-sm md:min-w-[40rem]">
+          <thead className="bg-ink-700/60 mono text-[0.6875rem] uppercase tracking-wider text-zinc-500">
             <tr>
               <th className="px-4 py-3 font-medium sm:px-5">Member</th>
               <th className="hidden px-5 py-3 font-medium lg:table-cell">Check-ins</th>
@@ -1541,7 +1541,7 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
                       no way to go and look at the account. Opens in a new tab
                       so the members list, its search and its scroll position
                       are still there when you come back. */}
-                  <div className="mono flex flex-wrap items-center gap-x-1.5 text-[11px] text-zinc-600">
+                  <div className="mono flex flex-wrap items-center gap-x-1.5 text-[0.6875rem] text-zinc-600">
                     <span>{u.name ?? "-"}</span>
                     {u.username ? (
                       <>
@@ -1585,17 +1585,17 @@ function Members({ users, realtime }: { users: UserRow[]; realtime: Realtime }) 
                 <td className="px-4 py-3 sm:px-5">
                   <div className="flex flex-wrap items-center gap-1.5">
                     {u.role === "ADMIN" && (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gold-500/12 px-2.5 py-1 text-[0.6875rem] font-medium text-gold-200 ring-1 ring-gold-500/30">
                         Admin
                       </span>
                     )}
                     {u.membership === "Premium" ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-500/12 px-2.5 py-1 text-[11px] font-medium text-mint-300 ring-1 ring-mint-500/30">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-mint-500/12 px-2.5 py-1 text-[0.6875rem] font-medium text-mint-300 ring-1 ring-mint-500/30">
                         <span className="h-1.5 w-1.5 rounded-full bg-mint-400" />
                         Premium
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-400 ring-1 ring-white/10">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-2.5 py-1 text-[0.6875rem] font-medium text-zinc-400 ring-1 ring-white/10">
                         Free
                       </span>
                     )}
@@ -1653,16 +1653,16 @@ function StaffRow({ u, onEdit }: { u: StaffUser; onEdit: (u: StaffUser) => void 
     <li className="surface flex items-center justify-between gap-3 rounded-2xl p-4">
       <div className="min-w-0">
         <div className="truncate text-sm font-medium text-zinc-200">{u.email}</div>
-        <div className="mono text-[11px] text-zinc-600">{u.name ?? "-"}</div>
+        <div className="mono text-[0.6875rem] text-zinc-600">{u.name ?? "-"}</div>
       </div>
       <div className="flex shrink-0 items-center gap-3">
         {u.isSuperAdmin ? (
-          <span className="rounded-full bg-gold-500/12 px-2.5 py-1 text-[11px] font-medium text-gold-200 ring-1 ring-gold-500/30">
+          <span className="rounded-full bg-gold-500/12 px-2.5 py-1 text-[0.6875rem] font-medium text-gold-200 ring-1 ring-gold-500/30">
             Super Admin
           </span>
         ) : (
           <>
-            <span className="mono hidden text-[11px] text-zinc-500 xs:inline">
+            <span className="mono hidden text-[0.6875rem] text-zinc-500 xs:inline">
               {u.permissions.length
                 ? `${u.permissions.length} ${u.permissions.length === 1 ? "capability" : "capabilities"}`
                 : "No access"}
@@ -1857,7 +1857,7 @@ function AccessEditor({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h3 className="font-display text-lg font-semibold text-zinc-100">Manage access</h3>
-            <p className="mono truncate text-[12px] text-zinc-500">{user.email}</p>
+            <p className="mono truncate text-[0.75rem] text-zinc-500">{user.email}</p>
           </div>
           <button onClick={onClose} aria-label="Close" className="rounded-lg p-1.5 text-zinc-500 hover:text-zinc-200">
             ✕
@@ -1887,7 +1887,7 @@ function AccessEditor({
                   />
                   <span>
                     <span className="block text-sm font-medium text-zinc-200">{PERMISSIONS[p]}</span>
-                    <span className="mono text-[11px] text-zinc-600">{p}</span>
+                    <span className="mono text-[0.6875rem] text-zinc-600">{p}</span>
                   </span>
                 </label>
               );
@@ -1895,7 +1895,7 @@ function AccessEditor({
           </div>
         )}
 
-        <p className="mt-3 text-[11px] leading-relaxed text-zinc-500">
+        <p className="mt-3 text-[0.6875rem] leading-relaxed text-zinc-500">
           Any capability lets this member open the dashboard (they&apos;ll see only the tabs they&apos;re
           allowed to use). If they&apos;re already signed in, they may need to refresh to pick up the change.
         </p>
@@ -1993,20 +1993,20 @@ function AiUsagePanel() {
         <p className="text-sm text-zinc-500">Gateway analytics (last 30 days). Metadata only - no prompt or response text is stored.</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Requests today" value={t.today} hint="AI calls today (UTC)" />
         <StatCard label="Requests (30d)" value={t.month} hint="all AI calls" accent="gold" />
         <StatCard label="Cache hits (30d)" value={t.cached} hint={`${Math.round(t.cacheHitRate * 100)}% of calls served from cache`} accent="mint" />
         <StatCard label="Errors (30d)" value={t.errors} hint={`${data.totals.fallbacks} recovered via fallback`} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <MiniStat label="Est. cost (30d)" value={usd(t.costMicros)} hint="notional - free tiers bill $0" />
         <MiniStat label="Input tokens (30d)" value={t.inputTokens.toLocaleString("en-US")} hint="prompt tokens" />
         <MiniStat label="Output tokens (30d)" value={t.outputTokens.toLocaleString("en-US")} hint="completion tokens" />
       </div>
 
-      <section className="grid gap-6 lg:grid-cols-2">
+      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <TrendChart title="Requests / day" points={data.requests} tone="gold" />
         <TrendChart title="Est. cost / day (¢)" points={costCents} tone="mint" />
       </section>
@@ -2045,9 +2045,9 @@ function AiUsagePanel() {
       <div className="surface rounded-2xl p-5">
         <p className="mb-3 text-sm font-semibold text-zinc-100">Top members by AI usage (30d) - set per-user daily limits</p>
         <div className="-mx-2 overflow-x-auto">
-          <table className="w-full min-w-[560px] text-sm">
+          <table className="w-full min-w-[35rem] text-sm">
             <thead>
-              <tr className="border-b border-white/10 text-[11px] uppercase tracking-wide text-zinc-500">
+              <tr className="border-b border-white/10 text-[0.6875rem] uppercase tracking-wide text-zinc-500">
                 <th className="px-2 py-2 text-left font-medium">Member</th>
                 <th className="px-2 py-2 text-right font-medium">Requests</th>
                 <th className="px-2 py-2 text-right font-medium">Est. cost</th>
@@ -2110,7 +2110,7 @@ function AiUserRow({ user }: { user: AiTopUser }) {
     <tr className="transition-colors hover:bg-white/[0.03]">
       <td className="px-2 py-2.5">
         <span className="text-zinc-100">{user.name || (user.email ? maskEmail(user.email) : "-")}</span>
-        <span className="ml-2 rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] text-zinc-500">{user.membership}</span>
+        <span className="ml-2 rounded-full bg-white/5 px-1.5 py-0.5 text-[0.625rem] text-zinc-500">{user.membership}</span>
       </td>
       <td className="mono px-2 py-2.5 text-right text-zinc-300">{user.requests.toLocaleString("en-US")}</td>
       <td className="mono px-2 py-2.5 text-right text-zinc-400">{usd(user.costMicros)}</td>
@@ -2126,7 +2126,7 @@ function AiUserRow({ user }: { user: AiTopUser }) {
           <button
             onClick={save}
             disabled={saving || !user.id}
-            className="rounded-lg border border-gold-500/30 bg-gold-500/10 px-2 py-1 text-[11px] font-medium text-gold-200 transition-colors hover:bg-gold-500/20 disabled:opacity-50"
+            className="rounded-lg border border-gold-500/30 bg-gold-500/10 px-2 py-1 text-[0.6875rem] font-medium text-gold-200 transition-colors hover:bg-gold-500/20 disabled:opacity-50"
           >
             {saving ? "…" : saved ? "✓" : "Set"}
           </button>

@@ -120,7 +120,7 @@ export function PostEditor({
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-3">
+    <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
       {/* Main column */}
       <div className="space-y-4 lg:col-span-2">
         <Field label="Title" value={form.title} onChange={(v) => set("title", v)} placeholder="e.g. The State of L2s in 2026" />
@@ -244,7 +244,7 @@ export function PostEditor({
         <label className="flex cursor-pointer items-center justify-between rounded-xl border border-gold-500/20 bg-gold-500/[0.04] px-4 py-3">
           <span>
             <span className="block text-sm font-semibold text-gold-100">Premium content</span>
-            <span className="block text-[11px] text-zinc-500">Body locked to Premium members</span>
+            <span className="block text-[0.6875rem] text-zinc-500">Body locked to Premium members</span>
           </span>
           <input
             type="checkbox"

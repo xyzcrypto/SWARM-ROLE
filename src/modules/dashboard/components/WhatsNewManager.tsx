@@ -132,10 +132,10 @@ export function WhatsNewManager() {
               <li key={e.id} className="flex items-start justify-between gap-3 py-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-300 ring-1 ring-white/10">
+                    <span className="rounded-full bg-white/5 px-2 py-0.5 text-[0.625rem] font-semibold uppercase tracking-wide text-zinc-300 ring-1 ring-white/10">
                       {e.tag}
                     </span>
-                    <span className="mono text-[11px] text-zinc-600">{formatDate(e.date)}</span>
+                    <span className="mono text-[0.6875rem] text-zinc-600">{formatDate(e.date)}</span>
                   </div>
                   <p className="mt-1 truncate text-sm font-medium text-zinc-200">{e.title}</p>
                 </div>

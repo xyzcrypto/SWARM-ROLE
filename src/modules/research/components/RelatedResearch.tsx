@@ -65,10 +65,10 @@ export async function RelatedResearch({
                 href={`/research/${p.slug}`}
                 className="group block rounded-xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 transition-colors hover:border-gold-500/30 hover:bg-white/[0.06]"
               >
-                <span className="block text-[14px] font-medium text-zinc-100 group-hover:text-gold-100">
+                <span className="block text-[0.875rem] font-medium text-zinc-100 group-hover:text-gold-100">
                   {p.title}
                 </span>
-                <span className="mt-0.5 block truncate text-[12px] text-zinc-500">
+                <span className="mt-0.5 block truncate text-[0.75rem] text-zinc-500">
                   {category ? `${category} · ` : ""}
                   {p.excerpt}
                 </span>
@@ -79,7 +79,7 @@ export async function RelatedResearch({
       </ul>
       <Link
         href="/academy/research"
-        className="mono mt-3 inline-block text-[11px] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-gold-200"
+        className="mono mt-3 inline-block text-[0.6875rem] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-gold-200"
       >
         All research →
       </Link>

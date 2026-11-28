@@ -278,7 +278,7 @@ function DmComposer({
           maxLength={2000}
           // Identical to the room's composer. `text-base` below `sm` is
           // load-bearing: iOS zooms the page into any input under 16px.
-          className="block min-h-[44px] w-full resize-none rounded-[22px] border border-white/10 bg-ink-950/60 px-4 py-2.5 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
+          className="block min-h-[2.75rem] w-full resize-none rounded-[1.375rem] border border-white/10 bg-ink-950/60 px-4 py-2.5 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
         />
         <button type="button" onClick={() => setPickerOpen((v) => !v)} className="absolute bottom-0 right-0 grid h-11 w-10 place-items-center text-zinc-500 transition-colors hover:text-gold-200" aria-label="Emoji" aria-expanded={pickerOpen}>
           <Smile className="h-5 w-5" />
@@ -324,7 +324,7 @@ function DmComposer({
         aria-label="Send message"
         className="btn-primary grid h-11 w-11 shrink-0 place-items-center !rounded-full !p-0 disabled:opacity-50"
       >
-        {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
+        {sending ? <Loader2 className="relative z-10 h-[1.125rem] w-[1.125rem] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
         
       </motion.button>
     </>
@@ -453,7 +453,7 @@ function ActionItem({
       className={cn(
         // min-h-10 so every row is a comfortable thumb target, not a 34px strip
         // where Reply and Forward are one mis-tap apart.
-        "flex min-h-10 w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] transition-colors disabled:cursor-not-allowed disabled:opacity-35",
+        "flex min-h-10 w-full items-center gap-2.5 px-3 py-2 text-left text-[0.8125rem] transition-colors disabled:cursor-not-allowed disabled:opacity-35",
         destructive ? "text-red-300 hover:bg-red-500/10" : "text-zinc-300 hover:bg-white/5 hover:text-zinc-100"
       )}
     >
@@ -480,14 +480,14 @@ function ReactionPill({ reactions, onRemoveMine, mine }: { reactions: DmReaction
       aria-label={onRemoveMine ? `${label}. Tap to remove yours.` : label}
       title={onRemoveMine ? "Tap to remove your reaction" : undefined}
       className={cn(
-        "reaction-pop relative z-[2] -mt-2 inline-flex items-center gap-0.5 rounded-full border border-white/10 bg-ink-900 px-1.5 py-0.5 text-[14px] leading-none shadow-md shadow-black/40 disabled:cursor-default",
+        "reaction-pop relative z-[2] -mt-2 inline-flex items-center gap-0.5 rounded-full border border-white/10 bg-ink-900 px-1.5 py-0.5 text-[0.875rem] leading-none shadow-md shadow-black/40 disabled:cursor-default",
         mine ? "mr-2" : "ml-2"
       )}
     >
       {same ? (
         <>
           <span>{a}</span>
-          <span className="mono text-[10px] text-zinc-400">2</span>
+          <span className="mono text-[0.625rem] text-zinc-400">2</span>
         </>
       ) : (
         <>
@@ -531,15 +531,15 @@ function ConfirmDialog({
     <div className="fixed inset-0 z-[90] grid place-items-end sm:place-items-center" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title">
       <button type="button" aria-label="Cancel" tabIndex={-1} onClick={onCancel} className="app-fade-in absolute inset-0 cursor-default bg-black/60 backdrop-blur-[2px]" />
       <div className="app-fade-in relative m-0 w-full max-w-sm rounded-t-3xl border border-white/10 bg-ink-900 p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:m-4 sm:rounded-3xl sm:pb-5">
-        <h2 id="confirm-title" className="text-[16px] font-semibold text-zinc-100">{title}</h2>
-        <p className="mt-2 text-[13px] leading-relaxed text-zinc-400">{body}</p>
+        <h2 id="confirm-title" className="text-[1rem] font-semibold text-zinc-100">{title}</h2>
+        <p className="mt-2 text-[0.8125rem] leading-relaxed text-zinc-400">{body}</p>
         <div className="mt-5 grid grid-cols-2 gap-2">
-          <button ref={cancelRef} type="button" onClick={onCancel} className="btn-ghost !py-2.5 text-[14px]">Cancel</button>
+          <button ref={cancelRef} type="button" onClick={onCancel} className="btn-ghost !py-2.5 text-[0.875rem]">Cancel</button>
           <button
             type="button"
             onClick={onConfirm}
             className={cn(
-              "rounded-xl px-4 py-2.5 text-[14px] font-semibold transition-colors",
+              "rounded-xl px-4 py-2.5 text-[0.875rem] font-semibold transition-colors",
               destructive ? "bg-red-500/90 text-white hover:bg-red-500" : "btn-primary"
             )}
           >
@@ -738,16 +738,16 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
       data-chat-surface="dm"
       {...feelAttrs(feel)}
       onPointerDownCapture={chatPressFeedback}
-      className="glass grid min-h-0 flex-1 grid-cols-1 overflow-hidden max-sm:rounded-none max-sm:border-0 sm:rounded-3xl md:grid-cols-[minmax(0,340px)_1fr] xl:grid-cols-[380px_1fr]">
+      className="glass grid min-h-0 flex-1 grid-cols-1 overflow-hidden max-sm:rounded-none max-sm:border-0 sm:rounded-3xl md:grid-cols-[minmax(0,21.25rem)_minmax(0,1fr)] xl:grid-cols-[23.75rem_minmax(0,1fr)]">
       {/* Inbox */}
       <aside className={cn("min-h-0 flex-col border-hairline md:border-r", activeId ? "hidden md:flex" : "flex")}>
         <header className={cn("flex items-center gap-2 border-b border-hairline px-2 py-2 sm:px-3", CHAT_BAR)}>
           {/* The whole site navigation, now that this page has no site header. */}
           <AppMenu />
-          <h1 className="ml-1 flex min-w-0 flex-1 items-center gap-2 font-display text-[19px] font-semibold tracking-tight text-zinc-100">
+          <h1 className="ml-1 flex min-w-0 flex-1 items-center gap-2 font-display text-[1.1875rem] font-semibold tracking-tight text-zinc-100">
             Messages
             {unreadCount > 0 && (
-              <span className="mono rounded-full bg-gold-500/20 px-2 py-0.5 text-[11px] font-semibold text-gold-200" aria-label={`${unreadCount} unread`}>
+              <span className="mono rounded-full bg-gold-500/20 px-2 py-0.5 text-[0.6875rem] font-semibold text-gold-200" aria-label={`${unreadCount} unread`}>
                 {unreadCount}
               </span>
             )}
@@ -768,7 +768,7 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
             title="New message"
             className={CHAT_ICON_BTN}
           >
-            <PenSquare className="h-[18px] w-[18px]" strokeWidth={1.8} />
+            <PenSquare className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.8} />
           </button>
         </header>
         {/* Search people */}
@@ -781,14 +781,14 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
               onChange={(e) => setQ(e.target.value)}
               placeholder="Search people to message…"
               aria-label="Search people to message"
-              className="w-full bg-transparent text-base text-zinc-100 outline-none placeholder:text-zinc-600 sm:text-[14px]"
+              className="w-full bg-transparent text-base text-zinc-100 outline-none placeholder:text-zinc-600 sm:text-[0.875rem]"
             />
             {q && <button onClick={() => setQ("")} aria-label="Clear" className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-zinc-500 hover:text-zinc-200"><X className="h-4 w-4" /></button>}
           </div>
           {/* Why "Message" did nothing. The server's own words when it has them
               - a DM privacy setting or a block is the usual reason, and neither
               is something the reader can guess from silence. */}
-          {startErr && <p className="mt-1.5 px-1 text-[11px] text-amber-500">{startErr}</p>}
+          {startErr && <p className="mt-1.5 px-1 text-[0.6875rem] text-amber-500">{startErr}</p>}
           {!q.trim() && conversations.length > 0 && (
             <div className="mt-3 flex gap-1.5" role="tablist" aria-label="Filter conversations">
               {([
@@ -803,12 +803,12 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
                   aria-selected={filter === key}
                   onClick={() => setFilter(key)}
                   className={cn(
-                    "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-semibold transition-colors",
+                    "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[0.75rem] font-semibold transition-colors",
                     filter === key ? "bg-gold-500/15 text-gold-100 ring-1 ring-gold-500/35" : "bg-white/[0.04] text-zinc-400 hover:text-zinc-200"
                   )}
                 >
                   {label}
-                  {n > 0 && key !== "all" && <span className="mono text-[10px] opacity-70">{n}</span>}
+                  {n > 0 && key !== "all" && <span className="mono text-[0.625rem] opacity-70">{n}</span>}
                 </button>
               ))}
             </div>
@@ -828,8 +828,8 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
                     <button onClick={() => u.username && startDm(u.username)} disabled={starting} className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-white/[0.05] disabled:opacity-60">
                       <span className="relative shrink-0"><Avatar name={u.name} image={u.image} size="md" /><OnlineDot show={onlineSet.has(u.id)} /></span>
                       <div className="min-w-0 flex-1">
-                        <span className="block truncate text-[15px] font-medium text-zinc-100">{u.name ?? `@${u.username}`}</span>
-                        <span className="mono block truncate text-[11px] text-zinc-500">@{u.username}</span>
+                        <span className="block truncate text-[0.9375rem] font-medium text-zinc-100">{u.name ?? `@${u.username}`}</span>
+                        <span className="mono block truncate text-[0.6875rem] text-zinc-500">@{u.username}</span>
                       </div>
                       <MessageSquare className="h-4 w-4 shrink-0 text-gold-400/60" />
                     </button>
@@ -844,11 +844,11 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
               <span className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-gold-500/10 ring-1 ring-gold-500/25">
                 <MessageSquare className="h-6 w-6 text-gold-300" />
               </span>
-              <p className="mt-4 text-[15px] font-semibold text-zinc-200">No conversations yet</p>
-              <p className="mt-1 text-[13px] text-zinc-500">Search a member above to start chatting.</p>
+              <p className="mt-4 text-[0.9375rem] font-semibold text-zinc-200">No conversations yet</p>
+              <p className="mt-1 text-[0.8125rem] text-zinc-500">Search a member above to start chatting.</p>
             </div>
           ) : shown.length === 0 ? (
-            <p className="px-5 py-10 text-center text-[13px] text-zinc-500">
+            <p className="px-5 py-10 text-center text-[0.8125rem] text-zinc-500">
               {filter === "unread" ? "You're all caught up." : "No pinned conversations."}
             </p>
           ) : (
@@ -862,19 +862,19 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
                       <span className="relative shrink-0"><Avatar name={c.other?.name} image={c.other?.image} size="md" /><OnlineDot show={!!c.other?.id && onlineSet.has(c.other.id)} /></span>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span className={cn("flex min-w-0 items-center gap-1 truncate text-[15px] text-zinc-100", c.unread ? "font-semibold" : "font-medium")}>
+                          <span className={cn("flex min-w-0 items-center gap-1 truncate text-[0.9375rem] text-zinc-100", c.unread ? "font-semibold" : "font-medium")}>
                             {c.pinned && <Pin className="h-3 w-3 shrink-0 text-gold-400/70" aria-label="Pinned" />}
                             {c.other?.name ?? "Member"}
                           </span>
-                          {now > 0 && <span className={cn("mono ml-auto shrink-0 text-[11px]", c.unread ? "text-gold-300" : "text-zinc-600")}>{timeAgo(new Date(c.lastMessageAt).getTime(), now)}</span>}
+                          {now > 0 && <span className={cn("mono ml-auto shrink-0 text-[0.6875rem]", c.unread ? "text-gold-300" : "text-zinc-600")}>{timeAgo(new Date(c.lastMessageAt).getTime(), now)}</span>}
                         </div>
                         <div className="mt-0.5 flex items-center gap-1.5">
                           {draft ? (
-                            <span className="truncate text-[13px]"><span className="font-semibold text-amber-400">Draft:</span> <span className="text-zinc-400">{draft}</span></span>
+                            <span className="truncate text-[0.8125rem]"><span className="font-semibold text-amber-400">Draft:</span> <span className="text-zinc-400">{draft}</span></span>
                           ) : (
                             <>
                               {c.lastMine && <ReadTicks read={isReadBy(c.lastMessageAt, c.otherReadAt)} />}
-                              <span className={cn("truncate text-[13px]", c.unread ? "font-medium text-zinc-200" : "text-zinc-500")}>{inboxPreview(c.lastBody)}</span>
+                              <span className={cn("truncate text-[0.8125rem]", c.unread ? "font-medium text-zinc-200" : "text-zinc-500")}>{inboxPreview(c.lastBody)}</span>
                             </>
                           )}
                           {c.unread && <span className="ml-auto h-2.5 w-2.5 shrink-0 rounded-full bg-gold-400 shadow-[0_0_8px_rgba(233,184,76,0.6)]" aria-label="Unread" />}
@@ -939,8 +939,8 @@ export function MessagesClient({ meId, gifEnabled = false }: { meId: string; gif
               <span className="mx-auto grid h-16 w-16 place-items-center rounded-3xl bg-gold-500/10 ring-1 ring-gold-500/25">
                 <MessageSquare className="h-7 w-7 text-gold-300" />
               </span>
-              <p className="mt-4 text-[16px] font-semibold text-zinc-200">Your messages</p>
-              <p className="mt-1 text-[13px] text-zinc-500">Pick a conversation, or search a member to start one.</p>
+              <p className="mt-4 text-[1rem] font-semibold text-zinc-200">Your messages</p>
+              <p className="mt-1 text-[0.8125rem] text-zinc-500">Pick a conversation, or search a member to start one.</p>
             </div>
           </div>
         )}
@@ -1578,7 +1578,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
             aria-label={`React ${e}`}
             aria-pressed={rx?.mine === e}
             className={cn(
-              "grid h-9 w-9 place-items-center rounded-full text-[20px] transition-transform duration-150 hover:scale-125 active:scale-110",
+              "grid h-9 w-9 place-items-center rounded-full text-[1.25rem] transition-transform duration-150 hover:scale-125 active:scale-110",
               rx?.mine === e && "bg-gold-500/20 ring-1 ring-gold-500/40"
             )}
           >
@@ -1637,7 +1637,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
               <div
                 data-bubble
                 className={cn(
-                  "relative max-w-full rounded-[20px] text-[length:var(--chat-fs)] leading-relaxed shadow-sm shadow-black/20",
+                  "relative max-w-full rounded-[1.25rem] text-[length:var(--chat-fs)] leading-relaxed shadow-sm shadow-black/20",
                   media ? "overflow-hidden p-1" : "px-3.5 py-2",
                   m.deleted
                     ? "bg-black/[0.03] text-zinc-500 ring-1 ring-black/5 dark:bg-white/[0.03] dark:text-zinc-500 dark:ring-white/5"
@@ -1648,7 +1648,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                 )}
               >
                 {m.forwarded && !m.deleted && (
-                  <p className="mb-1 flex items-center gap-1 text-[11px] italic opacity-60">
+                  <p className="mb-1 flex items-center gap-1 text-[0.6875rem] italic opacity-60">
                     <Forward className="h-3 w-3" /> Forwarded
                   </p>
                 )}
@@ -1661,7 +1661,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                     onClick={(e) => { e.stopPropagation(); if (!m.replyTo!.deleted) jumpTo(m.replyTo!.id); }}
                     disabled={m.replyTo.deleted}
                     aria-label="Go to the quoted message"
-                    className="mb-1.5 block w-full rounded-lg border-l-[3px] border-gold-400/70 bg-black/[0.06] px-2.5 py-1.5 text-left text-[12px] transition-colors hover:bg-black/[0.1] disabled:cursor-default dark:bg-white/[0.06] dark:hover:bg-white/[0.1]"
+                    className="mb-1.5 block w-full rounded-lg border-l-[3px] border-gold-400/70 bg-black/[0.06] px-2.5 py-1.5 text-left text-[0.75rem] transition-colors hover:bg-black/[0.1] disabled:cursor-default dark:bg-white/[0.06] dark:hover:bg-white/[0.1]"
                   >
                     <span className="block font-semibold text-gold-700 dark:text-gold-200">{m.replyTo.mine ? "You" : otherName}</span>
                     <span className="line-clamp-2 opacity-75">
@@ -1678,7 +1678,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                   // the other person had already read.
                   <p className="italic">This message was deleted</p>
                 ) : editingId === m.id ? (
-                  <div className="min-w-[220px]">
+                  <div className="min-w-[13.75rem]">
                     <textarea
                       value={editText}
                       onChange={(e) => setEditText(e.target.value)}
@@ -1689,9 +1689,9 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                       rows={2}
                       maxLength={2000}
                       autoFocus
-                      className="w-full resize-none rounded-lg border border-white/15 bg-ink-950/50 px-2 py-1.5 text-base text-zinc-100 outline-none focus:border-gold-500/40 sm:text-[14px]"
+                      className="w-full resize-none rounded-lg border border-white/15 bg-ink-950/50 px-2 py-1.5 text-base text-zinc-100 outline-none focus:border-gold-500/40 sm:text-[0.875rem]"
                     />
-                    <div className="mt-1 flex justify-end gap-3 text-[12px]">
+                    <div className="mt-1 flex justify-end gap-3 text-[0.75rem]">
                       <button type="button" onClick={() => setEditingId(null)} className="text-zinc-400 hover:text-zinc-200">Cancel</button>
                       <button type="button" onClick={() => void saveEdit(m.id)} className="font-semibold text-gold-200 hover:text-gold-100">Save</button>
                     </div>
@@ -1721,7 +1721,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                 {/* The translation sits under the original rather than
                     replacing it - you almost always want to compare. */}
                 {translations[m.id]?.shown && (
-                  <p className="mt-1.5 border-t border-white/10 pt-1.5 text-[13px] text-zinc-400">
+                  <p className="mt-1.5 border-t border-white/10 pt-1.5 text-[0.8125rem] text-zinc-400">
                     {translations[m.id]?.loading
                       ? "Translating…"
                       : translations[m.id]?.text ?? "Couldn't translate. Try again."}
@@ -1732,11 +1732,11 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                     noise, and it has to be recomputed forever. */}
                 <div className={cn("mt-0.5 flex items-center justify-end gap-1", media && "px-2 pb-0.5")}>
                   {m.editedAt && !m.deleted && (
-                    <span className={cn("mono text-[10px] italic", m.mine ? "text-gold-700/60 dark:text-gold-200/45" : "text-zinc-600")}>edited</span>
+                    <span className={cn("mono text-[0.625rem] italic", m.mine ? "text-gold-700/60 dark:text-gold-200/45" : "text-zinc-600")}>edited</span>
                   )}
                   {m.pinned && !m.deleted && <Pin className="h-3 w-3 shrink-0 text-gold-300/80" aria-label="Pinned" />}
                   <span
-                    className={cn("mono text-[10px]", m.mine ? "text-gold-700/70 dark:text-gold-200/60" : "text-zinc-500")}
+                    className={cn("mono text-[0.625rem]", m.mine ? "text-gold-700/70 dark:text-gold-200/60" : "text-zinc-500")}
                     title={hydrated ? new Date(m.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : undefined}
                   >
                     {clockTime(m.createdAt, hydrated)}
@@ -1748,7 +1748,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                 <ReactionPill reactions={rx} onRemoveMine={canReact && rx.mine ? () => void react(m, null) : undefined} mine={m.mine} />
               )}
               {seenId === m.id && (
-                <span className="mono mt-0.5 px-1 text-[10px] text-mint-500 dark:text-mint-300/80">Seen</span>
+                <span className="mono mt-0.5 px-1 text-[0.625rem] text-mint-500 dark:text-mint-300/80">Seen</span>
               )}
             </div>
             {/* Their message: the trigger goes on the right, mirroring. */}
@@ -1804,25 +1804,25 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
         </span>
         <div className="ml-1 min-w-0 flex-1">
           {other?.username ? (
-            <Link href={`/u/${other.username}`} className="block truncate text-[15px] font-semibold text-zinc-100 hover:underline">{otherName}</Link>
+            <Link href={`/u/${other.username}`} className="block truncate text-[0.9375rem] font-semibold text-zinc-100 hover:underline">{otherName}</Link>
           ) : (
-            <span className="block truncate text-[15px] font-semibold text-zinc-100">{otherName}</span>
+            <span className="block truncate text-[0.9375rem] font-semibold text-zinc-100">{otherName}</span>
           )}
           {/* Online now, else when they were last here, else just the handle.
               `now` ticks every 30s, so "last seen 3 min ago" ages by itself. */}
           {theyTyping ? (
-            <p className="flex items-center gap-1 text-[12px] font-medium text-mint-500 dark:text-mint-300" aria-live="polite">
+            <p className="flex items-center gap-1 text-[0.75rem] font-medium text-mint-500 dark:text-mint-300" aria-live="polite">
               typing
               <TypingDots />
             </p>
           ) : otherOnline ? (
-            <p className="flex items-center gap-1 text-[12px] font-medium text-mint-500 dark:text-mint-300">
+            <p className="flex items-center gap-1 text-[0.75rem] font-medium text-mint-500 dark:text-mint-300">
               <span className="h-1.5 w-1.5 animate-pulse-dot rounded-full bg-mint-500 dark:bg-mint-400" /> online
             </p>
           ) : now > 0 && lastSeenLabel(other?.lastSeenAt, now) ? (
-            <p className="truncate text-[12px] text-zinc-500">{lastSeenLabel(other?.lastSeenAt, now)}</p>
+            <p className="truncate text-[0.75rem] text-zinc-500">{lastSeenLabel(other?.lastSeenAt, now)}</p>
           ) : (
-            other?.username && <p className="mono truncate text-[11px] text-zinc-500">@{other.username}</p>
+            other?.username && <p className="mono truncate text-[0.6875rem] text-zinc-500">@{other.username}</p>
           )}
         </div>
 
@@ -1834,7 +1834,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           title="Search in conversation"
           className={CHAT_ICON_BTN}
         >
-          <Search className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          <Search className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.8} />
         </button>
         <button
           type="button"
@@ -1845,7 +1845,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           // Same control as the room's header, so the two read as one feature.
           className={CHAT_ICON_BTN}
         >
-          <Palette className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          <Palette className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.8} />
         </button>
         {/* Safety lives in the header, not buried per message: blocking and
             reporting are about the person, not about one thing they said. */}
@@ -1857,18 +1857,18 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
             aria-expanded={threadMenu}
             className={CHAT_ICON_BTN}
           >
-            <MoreVertical className="h-[18px] w-[18px]" />
+            <MoreVertical className="h-[1.125rem] w-[1.125rem]" />
           </button>
           {threadMenu && (
             <>
               <button type="button" aria-hidden tabIndex={-1} className="fixed inset-0 z-40 cursor-default" onClick={() => setThreadMenu(false)} />
               <div role="menu" className="app-fade-in absolute right-0 top-12 z-50 w-60 overflow-hidden rounded-2xl border border-white/10 bg-ink-900 p-1.5 shadow-elevate">
                 {other?.username && (
-                  <Link href={`/u/${other.username}`} onClick={() => setThreadMenu(false)} className="flex min-h-10 items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100">
+                  <Link href={`/u/${other.username}`} onClick={() => setThreadMenu(false)} className="flex min-h-10 items-center gap-2.5 rounded-xl px-3 py-2 text-[0.8125rem] text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100">
                     <UserRound className="h-4 w-4" /> View profile
                   </Link>
                 )}
-                <button type="button" onClick={() => { setThreadMenu(false); setSearchOpen(true); }} className="flex min-h-10 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[13px] text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100">
+                <button type="button" onClick={() => { setThreadMenu(false); setSearchOpen(true); }} className="flex min-h-10 w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-[0.8125rem] text-zinc-300 transition-colors hover:bg-white/5 hover:text-zinc-100">
                   <Search className="h-4 w-4" /> Search in conversation
                 </button>
                 <div className="my-1 border-t border-white/10" />
@@ -1877,7 +1877,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                 ) : (
                   <ActionItem icon={Ban} label={`Block ${otherName}`} destructive onClick={() => { setThreadMenu(false); setConfirmBlock(true); }} />
                 )}
-                <p className="mono px-3 pb-1 pt-2 text-[10px] uppercase tracking-wider text-zinc-500">Report for</p>
+                <p className="mono px-3 pb-1 pt-2 text-[0.625rem] uppercase tracking-wider text-zinc-500">Report for</p>
                 {(["spam", "harassment", "scam", "other"] as const).map((reason) => (
                   <ActionItem key={reason} icon={Flag} label={reason[0]!.toUpperCase() + reason.slice(1)} onClick={() => void reportUser(reason)} />
                 ))}
@@ -1904,7 +1904,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
               className="h-10 min-w-0 flex-1 bg-transparent text-base text-zinc-100 outline-none placeholder:text-zinc-600 sm:text-sm"
             />
             {query && (
-              <span className="mono shrink-0 text-[11px] text-zinc-500" aria-live="polite">
+              <span className="mono shrink-0 text-[0.6875rem] text-zinc-500" aria-live="polite">
                 {matches.length === 0 ? "No matches" : `${matchIdx < 0 ? matches.length : matchIdx + 1} of ${matches.length}`}
               </span>
             )}
@@ -1922,7 +1922,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
       )}
 
       {reported && (
-        <p className="relative z-10 border-b border-mint-500/20 bg-mint-500/[0.07] px-4 py-2 text-[12px] text-mint-200">
+        <p className="relative z-10 border-b border-mint-500/20 bg-mint-500/[0.07] px-4 py-2 text-[0.75rem] text-mint-200">
           Thanks - this has been sent to the team for review.
         </p>
       )}
@@ -1936,8 +1936,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           className="relative z-10 flex w-full items-center gap-2 border-b border-gold-500/20 bg-gold-500/[0.08] px-4 py-2 text-left backdrop-blur-md"
         >
           <Pin className="h-3.5 w-3.5 shrink-0 text-gold-300" aria-hidden />
-          <span className="mono shrink-0 text-[10px] uppercase tracking-wider text-gold-300/80">Pinned</span>
-          <span className="truncate text-[12px] text-zinc-300">{mediaLabel(pinned.body) ?? pinned.body}</span>
+          <span className="mono shrink-0 text-[0.625rem] uppercase tracking-wider text-gold-300/80">Pinned</span>
+          <span className="truncate text-[0.75rem] text-zinc-300">{mediaLabel(pinned.body) ?? pinned.body}</span>
           <span
             role="button"
             tabIndex={0}
@@ -1959,7 +1959,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
         <button
           onClick={scrollToEnd}
           aria-label={hasNew ? "Jump to new messages" : "Jump to latest"}
-          className="app-fade-in pointer-events-auto absolute bottom-24 right-4 z-20 inline-flex items-center gap-1 rounded-full border border-gold-500/40 bg-ink-900/90 px-3.5 py-2 text-[12px] font-semibold text-gold-100 shadow-lg shadow-black/40 backdrop-blur-md transition-colors hover:bg-gold-500/20"
+          className="app-fade-in pointer-events-auto absolute bottom-24 right-4 z-20 inline-flex items-center gap-1 rounded-full border border-gold-500/40 bg-ink-900/90 px-3.5 py-2 text-[0.75rem] font-semibold text-gold-100 shadow-lg shadow-black/40 backdrop-blur-md transition-colors hover:bg-gold-500/20"
         >
           {hasNew ? "New messages ↓" : "Latest ↓"}
         </button>
@@ -1974,15 +1974,15 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           <div className="grid h-full place-items-center py-10 text-center">
             <div>
               <span className="relative mx-auto block w-fit"><Avatar name={other?.name} image={other?.image} size="lg" /></span>
-              <p className="mt-3 text-[15px] font-semibold text-zinc-100">{otherName}</p>
-              <p className="mt-1 text-[13px] text-zinc-500">No messages yet. Say hello 👋</p>
+              <p className="mt-3 text-[0.9375rem] font-semibold text-zinc-100">{otherName}</p>
+              <p className="mt-1 text-[0.8125rem] text-zinc-500">No messages yet. Say hello 👋</p>
             </div>
           </div>
         ) : (
           days.map((d) => (
             <section key={`${d.label}-${d.items[0]!.m.id}`} aria-label={d.label}>
               <div className="pointer-events-none sticky top-2 z-10 flex justify-center py-2">
-                <span className="mono rounded-full bg-ink-900/95 px-3 py-1 text-[10px] uppercase tracking-wider text-zinc-400 shadow-md shadow-black/30 ring-1 ring-white/10">
+                <span className="mono rounded-full bg-ink-900/95 px-3 py-1 text-[0.625rem] uppercase tracking-wider text-zinc-400 shadow-md shadow-black/30 ring-1 ring-white/10">
                   {d.label}
                 </span>
               </div>
@@ -1992,7 +1992,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
         )}
         {theyTyping && loaded && (
           <div className="app-fade-in mt-3 flex justify-start" aria-hidden>
-            <span className="inline-flex items-center gap-1 rounded-[20px] rounded-bl-md bg-white/[0.06] px-4 py-3 ring-1 ring-white/10">
+            <span className="inline-flex items-center gap-1 rounded-[1.25rem] rounded-bl-md bg-white/[0.06] px-4 py-3 ring-1 ring-white/10">
               <TypingDots />
             </span>
           </div>
@@ -2008,16 +2008,16 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
             <span className="grid h-11 w-11 place-items-center rounded-full bg-red-500/10 text-red-300 ring-1 ring-red-500/25">
               <Ban className="h-5 w-5" />
             </span>
-            <p className="text-[14px] font-semibold text-zinc-100">
+            <p className="text-[0.875rem] font-semibold text-zinc-100">
               {blockedByMe ? `You blocked ${otherName}` : "You can't reply to this conversation"}
             </p>
-            <p className="text-[12px] leading-relaxed text-zinc-500">
+            <p className="text-[0.75rem] leading-relaxed text-zinc-500">
               {blockedByMe
                 ? "They can't message you or react. You can still read the history."
                 : "This member isn't accepting messages from you right now."}
             </p>
             {blockedByMe && (
-              <button type="button" onClick={() => void toggleBlock(false)} className="btn-secondary mt-1 !px-5 !py-2 text-[13px]">
+              <button type="button" onClick={() => void toggleBlock(false)} className="btn-secondary mt-1 !px-5 !py-2 text-[0.8125rem]">
                 Unblock
               </button>
             )}
@@ -2037,14 +2037,14 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           />
           <div className="max-h-[60%] overflow-y-auto rounded-t-3xl border-t border-white/10 bg-ink-900 p-4">
             <div className="mb-3 flex items-center justify-between">
-              <p className="text-[15px] font-semibold text-zinc-100">Forward to…</p>
+              <p className="text-[0.9375rem] font-semibold text-zinc-100">Forward to…</p>
               <button type="button" onClick={() => setForwarding(null)} aria-label="Close" className={CHAT_ICON_BTN}>
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <p className="mb-3 truncate rounded-xl bg-white/5 px-3 py-2 text-[12px] text-zinc-400">{inboxPreview(forwarding.body)}</p>
+            <p className="mb-3 truncate rounded-xl bg-white/5 px-3 py-2 text-[0.75rem] text-zinc-400">{inboxPreview(forwarding.body)}</p>
             {conversations.length === 0 ? (
-              <p className="px-1 py-3 text-[13px] text-zinc-500">No other conversations yet.</p>
+              <p className="px-1 py-3 text-[0.8125rem] text-zinc-500">No other conversations yet.</p>
             ) : (
               <ul className="space-y-1">
                 {conversations.map((c) => (
@@ -2056,8 +2056,8 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
                     >
                       <Avatar image={c.other?.image ?? null} name={c.other?.name ?? "?"} size="sm" />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[14px] text-zinc-100">{c.other?.name ?? "Unknown"}</span>
-                        {c.id === id && <span className="text-[11px] text-zinc-500">this conversation</span>}
+                        <span className="block truncate text-[0.875rem] text-zinc-100">{c.other?.name ?? "Unknown"}</span>
+                        {c.id === id && <span className="text-[0.6875rem] text-zinc-500">this conversation</span>}
                       </span>
                     </button>
                   </li>
@@ -2069,7 +2069,7 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
       )}
       <div className={cn("relative z-[2] border-t border-hairline px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-2 sm:px-3", CHAT_BAR)}>
         {err && (
-          <p className="mb-1.5 flex items-center gap-2 px-1 text-[12px] text-amber-500">
+          <p className="mb-1.5 flex items-center gap-2 px-1 text-[0.75rem] text-amber-500">
             <span className="min-w-0 flex-1">{err}</span>
             <button type="button" onClick={() => setErr(null)} aria-label="Dismiss" className="shrink-0 text-zinc-500 hover:text-zinc-200"><X className="h-3.5 w-3.5" /></button>
           </p>
@@ -2081,10 +2081,10 @@ function Thread({ id, meId, now, gifEnabled, onlineSet, conversations, onBack, o
           <div className="app-fade-in mb-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-1.5">
             <Reply className="h-4 w-4 shrink-0 text-gold-300" aria-hidden />
             <button type="button" onClick={() => jumpTo(replyTo.id)} className="min-w-0 flex-1 border-l-2 border-gold-500/50 pl-2 text-left">
-              <p className="text-[12px] font-semibold text-gold-200">
+              <p className="text-[0.75rem] font-semibold text-gold-200">
                 Replying to {replyTo.mine ? "yourself" : otherName}
               </p>
-              <p className="truncate text-[12px] text-zinc-400">
+              <p className="truncate text-[0.75rem] text-zinc-400">
                 {replyTo.deleted ? "message deleted" : inboxPreview(replyTo.body)}
               </p>
             </button>

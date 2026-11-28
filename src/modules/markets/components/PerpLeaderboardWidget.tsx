@@ -23,13 +23,13 @@ function VenueLogo({ src, name }: { src: string | null; name: string }) {
         height={18}
         loading="lazy"
         referrerPolicy="no-referrer"
-        className="h-[18px] w-[18px] shrink-0 rounded-full bg-zinc-900 object-contain ring-1 ring-black/10 dark:ring-white/10"
+        className="h-[1.125rem] w-[1.125rem] shrink-0 rounded-full bg-zinc-900 object-contain ring-1 ring-black/10 dark:ring-white/10"
         onError={() => setErr(true)}
       />
     );
   }
   return (
-    <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-full bg-gold-500/10 text-[9px] font-bold text-amber-600 dark:text-gold-300 ring-1 ring-gold-500/30">
+    <div className="flex h-[1.125rem] w-[1.125rem] shrink-0 items-center justify-center rounded-full bg-gold-500/10 text-[0.5625rem] font-bold text-amber-600 dark:text-gold-300 ring-1 ring-gold-500/30">
       {name[0]}
     </div>
   );
@@ -58,18 +58,18 @@ export function PerpLeaderboardWidget({ venues, onViewAll }: PerpLeaderboardWidg
         </button>
       </div>
 
-      <div className="flex items-center gap-2 py-1.5 text-[9.5px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-black/[0.04] dark:border-white/[0.04]">
+      <div className="flex items-center gap-2 py-1.5 text-[0.59375rem] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400 border-b border-black/[0.04] dark:border-white/[0.04]">
         <div className="w-4 text-center shrink-0">#</div>
         <div className="flex-1 min-w-0">Protocol</div>
-        <div className="w-[58px] text-right shrink-0">24h Vol</div>
-        <div className="w-[52px] text-right shrink-0">OI</div>
-        {showChange && <div className="w-[44px] text-right shrink-0">24h %</div>}
+        <div className="w-[3.625rem] text-right shrink-0">24h Vol</div>
+        <div className="w-[3.25rem] text-right shrink-0">OI</div>
+        {showChange && <div className="w-[2.75rem] text-right shrink-0">24h %</div>}
       </div>
 
       <div className="divide-y divide-black/[0.04] dark:divide-white/[0.04] flex-1">
         {!venues
           ? FEATURED_PERP_VENUES.map((v) => (
-              <div key={v.key} className="flex items-center py-[11px]">
+              <div key={v.key} className="flex items-center py-[0.6875rem]">
                 <div className="h-3.5 w-full animate-pulse rounded bg-white/[0.05]" />
               </div>
             ))
@@ -77,30 +77,30 @@ export function PerpLeaderboardWidget({ venues, onViewAll }: PerpLeaderboardWidg
               const up = (r.change1d ?? 0) >= 0;
               return (
                 <div key={r.key} className="flex items-center gap-2 py-2 px-0.5 rounded-lg transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] text-xs">
-                  <div className="w-4 text-center mono text-[11px] text-zinc-500 shrink-0">{r.volume24h != null ? i + 1 : "-"}</div>
+                  <div className="w-4 text-center mono text-[0.6875rem] text-zinc-500 shrink-0">{r.volume24h != null ? i + 1 : "-"}</div>
                   <div className="flex-1 min-w-0 pr-1">
                     <div className="flex items-center gap-1.5 min-w-0">
                       <VenueLogo src={r.logo} name={r.name} />
                       <span className="font-semibold text-zinc-900 dark:text-zinc-100 truncate text-xs">{r.name}</span>
                     </div>
                     {/* Share of the leader's 24h volume, from the same live feed. */}
-                    <div className="mt-1 h-[3px] w-full overflow-hidden rounded-full bg-black/[0.05] dark:bg-white/[0.05]">
+                    <div className="mt-1 h-[0.1875rem] w-full overflow-hidden rounded-full bg-black/[0.05] dark:bg-white/[0.05]">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-mint-500/70 to-gold-400/70"
                         style={{ width: `${r.volume24h != null ? Math.max(2, (r.volume24h / top) * 100) : 0}%` }}
                       />
                     </div>
                   </div>
-                  <div className="w-[58px] text-right mono text-zinc-800 dark:text-zinc-200 font-medium text-[11px] shrink-0">
+                  <div className="w-[3.625rem] text-right mono text-zinc-800 dark:text-zinc-200 font-medium text-[0.6875rem] shrink-0">
                     {compactUsd(r.volume24h)}
                   </div>
-                  <div className="w-[52px] text-right mono text-zinc-600 dark:text-zinc-400 text-[11px] shrink-0">
+                  <div className="w-[3.25rem] text-right mono text-zinc-600 dark:text-zinc-400 text-[0.6875rem] shrink-0">
                     {compactUsd(r.openInterest)}
                   </div>
                   {showChange && (
                     <div
                       className={cn(
-                        "w-[44px] text-right mono font-semibold text-[11px] shrink-0",
+                        "w-[2.75rem] text-right mono font-semibold text-[0.6875rem] shrink-0",
                         r.change1d == null ? "text-zinc-500" : up ? "text-emerald-600 dark:text-mint-400" : "text-rose-600 dark:text-red-400"
                       )}
                     >
@@ -112,7 +112,7 @@ export function PerpLeaderboardWidget({ venues, onViewAll }: PerpLeaderboardWidg
             })}
       </div>
 
-      <p className="pt-2 text-[10px] text-zinc-500">Live 24h volume and open interest via CoinGecko, Hyperliquid and DefiLlama.</p>
+      <p className="pt-2 text-[0.625rem] text-zinc-500">Live 24h volume and open interest via CoinGecko, Hyperliquid and DefiLlama.</p>
     </div>
   );
 }

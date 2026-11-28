@@ -150,7 +150,7 @@ export function SavedClient() {
                 )}
 
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2 text-[10px]">
+                  <div className="flex flex-wrap items-center gap-2 text-[0.625rem]">
                     <span
                       className={cn(
                         "rounded-full border px-2 py-0.5 font-medium",
@@ -186,7 +186,7 @@ export function SavedClient() {
                   <div className="mt-3 flex flex-wrap items-center gap-2">
                     <Link
                       href={href}
-                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline px-3 text-[11px] font-medium text-gold-200 transition-colors hover:border-gold-500/30 hover:text-gold-100"
+                      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline px-3 text-[0.6875rem] font-medium text-gold-200 transition-colors hover:border-gold-500/30 hover:text-gold-100"
                     >
                       {internal ? "Read it" : "Read on this site"}
                     </Link>
@@ -195,7 +195,7 @@ export function SavedClient() {
                         href={i.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex min-h-9 items-center gap-1 text-[11px] text-content-subtle transition-colors hover:text-content"
+                        className="inline-flex min-h-9 items-center gap-1 text-[0.6875rem] text-content-subtle transition-colors hover:text-content"
                       >
                         Original <ExternalLink className="h-3 w-3" strokeWidth={1.7} />
                       </a>
@@ -204,7 +204,7 @@ export function SavedClient() {
                       type="button"
                       onClick={() => void remove(i.url)}
                       disabled={busy === i.url}
-                      className="ml-auto inline-flex min-h-9 items-center gap-1 text-[11px] text-content-subtle transition-colors hover:text-data-down disabled:opacity-50"
+                      className="ml-auto inline-flex min-h-9 items-center gap-1 text-[0.6875rem] text-content-subtle transition-colors hover:text-data-down disabled:opacity-50"
                     >
                       {busy === i.url ? (
                         <Loader2 className="h-3 w-3 animate-spin" strokeWidth={1.7} />

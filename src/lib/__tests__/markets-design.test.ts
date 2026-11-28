@@ -89,8 +89,8 @@ describe("the coins table shows prices on a phone", () => {
   // rank and name. The PRICE, the one number this page exists for, sat
   // off-screen to the right with nothing indicating it was there.
   it("does not force a width the screen cannot show", () => {
-    expect(M).toMatch(/<table className="w-full text-sm md:min-w-\[720px\]">/);
-    expect(M).not.toMatch(/className="w-full min-w-\[720px\] text-sm"/);
+    expect(M).toMatch(/<table className="w-full text-sm md:min-w-\[45rem\]">/);
+    expect(M).not.toMatch(/className="w-full min-w-\[45rem\] text-sm"/);
   });
 
   it("keeps price and 24h at every width", () => {

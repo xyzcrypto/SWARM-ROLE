@@ -24,12 +24,12 @@ export function FooterNewsletter() {
 
   return (
     <div className="py-12">
-      <div className="surface relative grid items-center gap-6 overflow-hidden rounded-3xl p-6 sm:p-8 md:grid-cols-2">
+      <div className="surface relative grid grid-cols-1 items-center gap-6 overflow-hidden rounded-3xl p-6 sm:p-8 md:grid-cols-2">
         <div className="glow-orb -left-10 -top-12 h-44 w-44 bg-gold-500/12" />
         <div className="relative">
           <span className="eyebrow text-gold-200">
             <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
-            <span className="mono text-[11px] uppercase tracking-[0.18em]">Newsletter</span>
+            <span className="mono text-[0.6875rem] uppercase tracking-[0.18em]">Newsletter</span>
           </span>
           <h3 className="mt-4 font-display text-xl font-semibold text-zinc-50">
             Get alpha in your inbox

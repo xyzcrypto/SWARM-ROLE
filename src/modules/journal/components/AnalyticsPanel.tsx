@@ -32,7 +32,7 @@ function StatTile({ label, value, tone = "plain", hint }: { label: string; value
     <div className="surface surface-hover lift rounded-2xl p-5">
       <p className="text-xs uppercase tracking-wide text-zinc-500">{label}</p>
       <p className={cn("mt-2 mono text-2xl font-semibold", num)}>{value}</p>
-      {hint && <p className="mt-1 text-[11px] text-zinc-600">{hint}</p>}
+      {hint && <p className="mt-1 text-[0.6875rem] text-zinc-600">{hint}</p>}
     </div>
   );
 }
@@ -138,7 +138,7 @@ export function AnalyticsPanel({ trades, isPremium, userId }: { trades: Serializ
         </a>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatTile label="Gross P&L" value={money(gross)} tone={gross >= 0 ? "mint" : "rose"} />
         <StatTile label="Profit factor" value={pf != null ? pf.toFixed(2) : "-"} tone="gold" hint="Gross profit ÷ gross loss" />
         <StatTile label="Expectancy" value={money(exp)} tone={exp >= 0 ? "mint" : "rose"} hint="Avg P&L per closed trade" />
@@ -206,7 +206,7 @@ export function AnalyticsPanel({ trades, isPremium, userId }: { trades: Serializ
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <BreakdownTable title="By setup" groups={bySetup} />
             <BreakdownTable title="By asset" groups={byAsset} />
             <BreakdownTable title="By platform" groups={byPlatform} labelFor={(id) => getPlatform(id)?.name ?? id} />

@@ -170,7 +170,7 @@ export function GreetBubble({ hidden, onVisible }: { hidden: boolean; onVisible:
               <Volume2 className="h-4 w-4" /> Tap to hear AneQue
             </button>
           ) : (
-            <GuideCaption text={caption} speaking={voice.speaking && !voice.paused} className="mt-1 line-clamp-3 text-[13px] leading-relaxed" />
+            <GuideCaption text={caption} speaking={voice.speaking && !voice.paused} className="mt-1 line-clamp-3 text-[0.8125rem] leading-relaxed" />
           )}
         </motion.div>
       )}

@@ -49,7 +49,7 @@ export default async function CommunityPage() {
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400/80" />
                   <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-mint-400" />
                 </span>
-                <span className="mono text-[11px] uppercase tracking-[0.18em] text-zinc-400">
+                <span className="mono text-[0.6875rem] uppercase tracking-[0.18em] text-zinc-400">
                   Markets · Alpha · Airdrops — live
                 </span>
               </span>
@@ -137,7 +137,7 @@ export default async function CommunityPage() {
     // chrome: it is a landing page, not a place to sit and talk.
     <main className="relative flex h-[100dvh] flex-col overflow-hidden pt-[env(safe-area-inset-top)]">
       <div className="mesh hidden sm:block" />
-      <div className="relative mx-auto flex min-h-0 w-full max-w-[1100px] flex-1 flex-col sm:p-4 lg:p-5">
+      <div className="relative mx-auto flex min-h-0 w-full max-w-[68.75rem] flex-1 flex-col sm:p-4 lg:p-5">
         {/* Screen-reader-only: a member in a full-height chat does not need a
             title taking vertical space, but the page still needs exactly one
             h1 for assistive tech. */}

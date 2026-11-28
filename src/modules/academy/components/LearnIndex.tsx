@@ -61,7 +61,7 @@ export function LearnIndex() {
                 <div className="font-display text-xl font-bold text-content">
                   <CountUp value={Math.round(pct * 100)} />%
                 </div>
-                <div className="text-[9px] uppercase tracking-[0.14em] text-content-subtle">done</div>
+                <div className="text-[0.5625rem] uppercase tracking-[0.14em] text-content-subtle">done</div>
               </div>
             </div>
           )}
@@ -75,7 +75,7 @@ export function LearnIndex() {
                 <div className="font-display text-2xl font-bold text-content sm:text-3xl">
                   <CountUp value={s.v} />
                 </div>
-                <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">{s.l}</div>
+                <div className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">{s.l}</div>
               </div>
             ))}
           </div>

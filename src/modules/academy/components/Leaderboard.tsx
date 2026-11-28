@@ -74,7 +74,7 @@ function Podium({ rows, meId, moves }: { rows: BoardRow[]; meId?: string; moves:
               <Avatar src={r.image} alt={r.name} size={first ? 68 : 52} className={cn("ring-2", first ? "ring-gold-300" : r.rank === 2 ? "ring-zinc-300/80" : "ring-amber-600/80")} />
               <span
                 className={cn(
-                  "absolute -bottom-2 left-1/2 grid h-6 w-6 -translate-x-1/2 place-items-center rounded-full font-mono text-[11px] font-bold text-ink-950",
+                  "absolute -bottom-2 left-1/2 grid h-6 w-6 -translate-x-1/2 place-items-center rounded-full font-mono text-[0.6875rem] font-bold text-ink-950",
                   first ? "bg-gold-300" : r.rank === 2 ? "bg-zinc-300" : "bg-amber-600"
                 )}
               >
@@ -82,11 +82,11 @@ function Podium({ rows, meId, moves }: { rows: BoardRow[]; meId?: string; moves:
               </span>
             </div>
             <div className="mt-4 w-full truncate text-sm font-semibold text-content sm:text-base">{r.name}</div>
-            <div className="text-[11px] text-content-subtle">{r.levelName}</div>
+            <div className="text-[0.6875rem] text-content-subtle">{r.levelName}</div>
             <div className={cn("mt-2 font-display text-lg font-bold sm:text-2xl", first ? "text-gold-200" : "text-content")}>
               <CountUp value={r.xp} duration={1100} />
             </div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-content-subtle">XP</div>
+            <div className="text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">XP</div>
           </motion.div>
         );
       })}
@@ -103,7 +103,7 @@ function moveClass(move?: number) {
 function MoveChip({ move, className }: { move?: number; className?: string }) {
   if (!move) return null;
   return (
-    <span className={cn("acad-rank-chip absolute rounded-full px-1.5 py-0.5 font-mono text-[10px] font-bold", move > 0 ? "is-up" : "is-down", className)} aria-hidden>
+    <span className={cn("acad-rank-chip absolute rounded-full px-1.5 py-0.5 font-mono text-[0.625rem] font-bold", move > 0 ? "is-up" : "is-down", className)} aria-hidden>
       {move > 0 ? "▲" : "▼"}
       {Math.abs(move)}
     </span>
@@ -119,7 +119,7 @@ function Row({ r, me, move, i = 0 }: { r: BoardRow; me: boolean; move?: number; 
       transition={{ type: "spring", stiffness: 380, damping: 34 }}
       style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}
       className={cn(
-        "acad-row-in relative grid grid-cols-[2.25rem_1fr_auto] items-center gap-3 rounded-2xl px-3 py-2.5 sm:grid-cols-[2.5rem_1fr_5rem_5rem_4.5rem_3rem]",
+        "acad-row-in relative grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 rounded-2xl px-3 py-2.5 sm:grid-cols-[2.5rem_minmax(0,1fr)_5rem_5rem_4.5rem_3rem]",
         me ? "acad-me-row" : "hover:bg-white/[0.03]",
         moveClass(move)
       )}
@@ -137,9 +137,9 @@ function Row({ r, me, move, i = 0 }: { r: BoardRow; me: boolean; move?: number; 
             ) : (
               r.name
             )}
-            {me && <span className="ml-2 rounded-full bg-gold-400/20 px-1.5 py-0.5 text-[10px] font-bold text-gold-200">YOU</span>}
+            {me && <span className="ml-2 rounded-full bg-gold-400/20 px-1.5 py-0.5 text-[0.625rem] font-bold text-gold-200">YOU</span>}
           </div>
-          <div className="text-[11px] text-content-subtle">
+          <div className="text-[0.6875rem] text-content-subtle">
             Lv {r.level} · {r.levelName}
             <span className="sm:hidden"> · {r.quizzes} quizzes{r.accuracy != null ? ` · ${r.accuracy}%` : ""}</span>
           </div>
@@ -185,7 +185,7 @@ function MyPosition({ me, period, rows }: { me: Me; period: Period; rows: BoardR
       <div className="flex items-center gap-3">
         <Avatar src={me.user?.image ?? null} alt={me.user?.name ?? "You"} size={36} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">
+          <div className="flex items-center gap-2 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-gold-300">
             Your position <span className="font-normal normal-case tracking-normal text-content-subtle"><ResetsIn period={period} /></span>
           </div>
           <div className="truncate text-sm text-content">
@@ -198,16 +198,16 @@ function MyPosition({ me, period, rows }: { me: Me; period: Period; rows: BoardR
             )}
           </div>
           {gap != null && above && (
-            <div className="mt-0.5 truncate text-[12px] text-content-muted">
+            <div className="mt-0.5 truncate text-[0.75rem] text-content-muted">
               <span className="font-mono font-semibold text-mint-500 dark:text-mint-300">+{fmt(gap)} XP</span> to pass {above.name}
             </div>
           )}
-          {s?.rank === 1 && <div className="mt-0.5 text-[12px] font-semibold text-gold-600 dark:text-gold-200">You are on top. Hold it!</div>}
+          {s?.rank === 1 && <div className="mt-0.5 text-[0.75rem] font-semibold text-gold-600 dark:text-gold-200">You are on top. Hold it!</div>}
         </div>
         <div className="flex flex-col items-end gap-1">
           <div className="text-right">
             <div className="font-mono text-sm font-semibold text-gold-200">{fmt(s?.xp ?? 0)}</div>
-            <div className="text-[10px] uppercase tracking-wide text-content-subtle">XP</div>
+            <div className="text-[0.625rem] uppercase tracking-wide text-content-subtle">XP</div>
           </div>
           {handle && (
             <button
@@ -217,7 +217,7 @@ function MyPosition({ me, period, rows }: { me: Me; period: Period; rows: BoardR
                 sfx("click");
                 setSharing((v) => !v);
               }}
-              className="rounded-full border border-gold-400/40 px-2.5 py-0.5 text-[11px] font-semibold text-gold-600 transition-colors hover:bg-gold-400/10 dark:text-gold-200"
+              className="rounded-full border border-gold-400/40 px-2.5 py-0.5 text-[0.6875rem] font-semibold text-gold-600 transition-colors hover:bg-gold-400/10 dark:text-gold-200"
               aria-expanded={sharing}
             >
               Share
@@ -380,7 +380,7 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
           ))}
         </div>
         {board && (
-          <span className="flex items-center gap-2 text-[11px] text-content-subtle">
+          <span className="flex items-center gap-2 text-[0.6875rem] text-content-subtle">
             <span className="flex items-center gap-1 font-semibold text-mint-300">
               <span className="acad-live-dot h-1.5 w-1.5 rounded-full bg-mint-400 text-mint-400" /> Live
             </span>
@@ -451,7 +451,7 @@ export function LeaderboardView({ initialPeriod = "weekly", compact = false }: {
           </div>
           {rest.length > 0 && (
             <>
-              <div className="mt-6 hidden grid-cols-[2.5rem_1fr_5rem_5rem_4.5rem_3rem] gap-3 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-content-subtle sm:grid">
+              <div className="mt-6 hidden grid-cols-[2.5rem_minmax(0,1fr)_5rem_5rem_4.5rem_3rem] gap-3 px-3 text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-content-subtle sm:grid">
                 <span className="text-center">#</span>
                 <span>Learner</span>
                 <span className="text-right">Quizzes</span>

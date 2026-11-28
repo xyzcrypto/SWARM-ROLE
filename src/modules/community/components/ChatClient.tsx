@@ -129,7 +129,7 @@ function MessageBody({ text }: { text: string }) {
           src={media}
           alt="shared media"
           loading="lazy"
-          className="max-h-72 w-auto max-w-full cursor-zoom-in rounded-xl border border-white/10 object-contain sm:max-w-[300px]"
+          className="max-h-72 w-auto max-w-full cursor-zoom-in rounded-xl border border-white/10 object-contain sm:max-w-[18.75rem]"
         />
       </ImageLightbox>
     );
@@ -1339,7 +1339,7 @@ export function ChatClient({
       data-chat-surface="room"
       {...feelAttrs(feel)}
       onPointerDownCapture={chatPressFeedback}
-      className="glass relative flex h-full min-h-[420px] flex-col overflow-hidden max-sm:rounded-none max-sm:border-0 sm:rounded-3xl"
+      className="glass relative flex h-full min-h-[26.25rem] flex-col overflow-hidden max-sm:rounded-none max-sm:border-0 sm:rounded-3xl"
     >
       {/* Ambient futuristic glow behind the room. */}
       <div aria-hidden className="pointer-events-none absolute -top-24 left-1/2 h-56 w-[130%] -translate-x-1/2 rounded-full bg-mint-500/10 blur-3xl" />
@@ -1397,7 +1397,7 @@ export function ChatClient({
                 <button
                   onClick={() => setMembersOpen(true)}
                   title="See everyone online"
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-700 text-[10px] font-semibold text-zinc-300 ring-2 ring-ink-900 transition-colors hover:bg-ink-600 hover:text-zinc-100"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-ink-700 text-[0.625rem] font-semibold text-zinc-300 ring-2 ring-ink-900 transition-colors hover:bg-ink-600 hover:text-zinc-100"
                 >
                   +{members.length - 3}
                 </button>
@@ -1420,7 +1420,7 @@ export function ChatClient({
                       ? `Realtime unavailable${liveError ? `: ${liveError}` : ""}. Messages arrive on the 10s poll and the online count comes from the server heartbeat every 15s.${presenceError ? ` PRESENCE PROBLEM: ${presenceError}` : ""}`
                       : "Realtime is not configured (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY). Messages refresh by polling."
               }
-              className="inline-flex h-9 max-w-full items-center gap-2 rounded-full bg-mint-500/10 px-3 text-[13px] font-semibold text-mint-200 ring-1 ring-mint-500/25 transition-colors hover:bg-mint-500/20 disabled:cursor-default"
+              className="inline-flex h-9 max-w-full items-center gap-2 rounded-full bg-mint-500/10 px-3 text-[0.8125rem] font-semibold text-mint-200 ring-1 ring-mint-500/25 transition-colors hover:bg-mint-500/20 disabled:cursor-default"
             >
               <span className="relative flex h-2 w-2 shrink-0">
                 <span className={cn("absolute inline-flex h-full w-full rounded-full", pollError ? "bg-amber-400" : live ? "animate-pulse-dot bg-mint-400" : "bg-zinc-500")} />
@@ -1433,13 +1433,13 @@ export function ChatClient({
               <>
                 <button className="fixed inset-0 z-40 cursor-default" aria-label="Close" onClick={() => setMembersOpen(false)} />
                 <div className="app-fade-in absolute left-0 top-full z-50 mt-2 max-h-80 w-64 overflow-y-auto rounded-2xl border border-white/10 bg-ink-900 p-2 shadow-elevate">
-                  <p className="px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">Online now · {members.length}</p>
+                  <p className="px-2 pb-1.5 pt-1 text-[0.625rem] font-semibold uppercase tracking-wide text-zinc-500">Online now · {members.length}</p>
                   {members.map((m) => {
                     const inner = (
                       <>
                         <Avatar name={m.name} image={m.image} size="sm" />
                         <span className="min-w-0 flex-1 truncate text-sm text-zinc-200">{m.name}</span>
-                        {m.id === me?.id && <span className="shrink-0 text-[10px] text-zinc-500">you</span>}
+                        {m.id === me?.id && <span className="shrink-0 text-[0.625rem] text-zinc-500">you</span>}
                       </>
                     );
                     return m.username ? (
@@ -1454,7 +1454,7 @@ export function ChatClient({
               </>
             )}
           </div>
-          {pollError && <span className="mono shrink-0 text-[10px] uppercase tracking-wider text-amber-300/90">Stale</span>}
+          {pollError && <span className="mono shrink-0 text-[0.625rem] uppercase tracking-wider text-amber-300/90">Stale</span>}
         </div>
 
         <button
@@ -1465,7 +1465,7 @@ export function ChatClient({
           title="Search messages"
           className={CHAT_ICON_BTN}
         >
-          <Search className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          <Search className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.8} />
         </button>
         {/* A per-device display preference, so there is nothing to gate:
             any member in the room can use it. */}
@@ -1477,7 +1477,7 @@ export function ChatClient({
           title="Chat appearance"
           className={CHAT_ICON_BTN}
         >
-          <Palette className="h-[18px] w-[18px]" strokeWidth={1.8} />
+          <Palette className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.8} />
         </button>
         {/* Phone push alerts for the lounge (reuses the Web Push infra). */}
         {me && <NewsAlertsToggle loggedIn compact title="Get a phone notification when the lounge is active" />}
@@ -1489,7 +1489,7 @@ export function ChatClient({
           title={soundOn ? "Sounds on" : "Sounds off"}
           className={cn(CHAT_ICON_BTN, "max-[359px]:hidden")}
         >
-          {soundOn ? <Volume2 className="h-[18px] w-[18px]" /> : <VolumeX className="h-[18px] w-[18px]" />}
+          {soundOn ? <Volume2 className="h-[1.125rem] w-[1.125rem]" /> : <VolumeX className="h-[1.125rem] w-[1.125rem]" />}
         </button>
       </div>
 
@@ -1510,7 +1510,7 @@ export function ChatClient({
               className="h-10 min-w-0 flex-1 bg-transparent text-base text-zinc-100 outline-none placeholder:text-zinc-600 sm:text-sm"
             />
             {searchQuery && (
-              <span className="mono shrink-0 text-[11px] text-zinc-500" aria-live="polite">
+              <span className="mono shrink-0 text-[0.6875rem] text-zinc-500" aria-live="polite">
                 {searchMatches.length === 0 ? "No matches" : `${matchIdx < 0 ? searchMatches.length : matchIdx + 1} of ${searchMatches.length}`}
               </span>
             )}
@@ -1533,7 +1533,7 @@ export function ChatClient({
           <Pin className="h-3.5 w-3.5 shrink-0 text-gold-300" />
           <button
             onClick={() => scrollToMessage(pinned.id)}
-            className="min-w-0 flex-1 truncate text-left text-[12px] text-zinc-300 hover:text-gold-100"
+            className="min-w-0 flex-1 truncate text-left text-[0.75rem] text-zinc-300 hover:text-gold-100"
             title="Jump to pinned message"
           >
             <span className="font-medium text-gold-200">{pinned.author.name ?? "Member"}:</span>{" "}
@@ -1594,7 +1594,7 @@ export function ChatClient({
               return (
                 <div key={m.id} id={`msg-${m.id}`} className="flex items-center gap-3 rounded-xl px-2 py-1.5">
                   <div className="w-9 shrink-0" />
-                  <p className="text-[13px] italic text-zinc-600">Message removed.</p>
+                  <p className="text-[0.8125rem] italic text-zinc-600">Message removed.</p>
                 </div>
               );
             }
@@ -1603,13 +1603,13 @@ export function ChatClient({
               <div key={m.id}>
                 {showDay && (
                   <div className="my-4 flex justify-center">
-                    <span className="mono rounded-full bg-ink-900/95 px-3 py-1 text-[10px] uppercase tracking-wider text-zinc-400 shadow-md shadow-black/30 ring-1 ring-white/10">
+                    <span className="mono rounded-full bg-ink-900/95 px-3 py-1 text-[0.625rem] uppercase tracking-wider text-zinc-400 shadow-md shadow-black/30 ring-1 ring-white/10">
                       {day}
                     </span>
                   </div>
                 )}
                 {firstUnreadId === m.id && (
-                  <div className="my-3 flex items-center gap-3 text-[10px] font-semibold uppercase tracking-wider text-gold-300">
+                  <div className="my-3 flex items-center gap-3 text-[0.625rem] font-semibold uppercase tracking-wider text-gold-300">
                     <span className="h-px flex-1 bg-gold-500/30" />
                     New messages
                     <span className="h-px flex-1 bg-gold-500/30" />
@@ -1667,7 +1667,7 @@ export function ChatClient({
                       // hover (desktop) or while the tap menu is open (touch).
                       <span
                         className={cn(
-                          "mt-0.5 hidden text-[9px] leading-4 text-zinc-600 group-hover:inline",
+                          "mt-0.5 hidden text-[0.5625rem] leading-4 text-zinc-600 group-hover:inline",
                           actionsOpen && "inline"
                         )}
                       >
@@ -1682,16 +1682,16 @@ export function ChatClient({
                     {!grouped && (
                       <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                         {m.author.username ? (
-                          <Link href={`/u/${m.author.username}`} className="text-[13px] font-semibold text-zinc-100 hover:text-gold-200">
+                          <Link href={`/u/${m.author.username}`} className="text-[0.8125rem] font-semibold text-zinc-100 hover:text-gold-200">
                             {m.author.name ?? `@${m.author.username}`}
                           </Link>
                         ) : (
-                          <span className="text-[13px] font-semibold text-zinc-100">{m.author.name ?? "Member"}</span>
+                          <span className="text-[0.8125rem] font-semibold text-zinc-100">{m.author.name ?? "Member"}</span>
                         )}
                         {isTeam && <Badge tone="mint" className="!px-1.5 !py-0">Team</Badge>}
                         {isPremium && !isTeam && <Badge tone="gold" className="!px-1.5 !py-0">★</Badge>}
                         <span
-                          className="text-[11px] text-zinc-600"
+                          className="text-[0.6875rem] text-zinc-600"
                           // The full date on hover / long-press. Only after
                           // hydration: the reader's zone is client-only.
                           title={hydrated && !m.pending ? new Date(m.createdAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" }) : undefined}
@@ -1711,7 +1711,7 @@ export function ChatClient({
                         className="mb-1 flex max-w-full items-center gap-1.5 rounded-lg border-l-2 border-gold-500/40 bg-white/[0.03] px-2 py-1 text-left"
                       >
                         <Reply className="h-3 w-3 shrink-0 text-gold-400" />
-                        <span className="truncate text-[11px] text-zinc-500">
+                        <span className="truncate text-[0.6875rem] text-zinc-500">
                           <span className="text-gold-200">{m.replyTo.authorName}</span> · {mediaLabel(m.replyTo.body) ?? m.replyTo.body}
                         </span>
                       </button>
@@ -1735,7 +1735,7 @@ export function ChatClient({
                           autoFocus
                           className="w-full resize-none rounded-lg border border-gold-500/40 bg-ink-700/60 px-3 py-2 text-base text-zinc-100 outline-none focus:ring-2 focus:ring-gold-500/20 sm:text-sm"
                         />
-                        <div className="mt-1 flex items-center gap-3 text-[11px]">
+                        <div className="mt-1 flex items-center gap-3 text-[0.6875rem]">
                           <button onClick={() => saveEdit(m.id)} disabled={savingEdit} className="font-medium text-gold-200 hover:text-gold-100 disabled:opacity-50">
                             {savingEdit ? "Saving…" : "Save"}
                           </button>
@@ -1749,17 +1749,17 @@ export function ChatClient({
                       <div>
                         <MessageBody text={m.body} />
                         {m.editedAt && (
-                          <span className="mono text-[10px] text-zinc-600" title={new Date(m.editedAt).toLocaleString("en-US")}>
+                          <span className="mono text-[0.625rem] text-zinc-600" title={new Date(m.editedAt).toLocaleString("en-US")}>
                             (edited)
                           </span>
                         )}
                         {translations[m.id]?.shown && (
-                          <div className="mt-1.5 rounded-lg border-l-2 border-mint-500/40 bg-mint-500/[0.06] px-2.5 py-1.5 text-[13px] leading-relaxed text-zinc-200">
+                          <div className="mt-1.5 rounded-lg border-l-2 border-mint-500/40 bg-mint-500/[0.06] px-2.5 py-1.5 text-[0.8125rem] leading-relaxed text-zinc-200">
                             {translations[m.id]?.loading ? (
                               <span className="inline-flex items-center gap-1.5 text-zinc-400"><Loader2 className="h-3 w-3 animate-spin" /> Translating…</span>
                             ) : translations[m.id]?.text ? (
                               <>
-                                <span className="mono mr-1.5 text-[10px] uppercase tracking-wide text-mint-300/80">Translation</span>
+                                <span className="mono mr-1.5 text-[0.625rem] uppercase tracking-wide text-mint-300/80">Translation</span>
                                 {translations[m.id]!.text}
                               </>
                             ) : (
@@ -1785,12 +1785,12 @@ export function ChatClient({
                               animate={{ scale: 1, opacity: 1 }}
                               onClick={() => toggleReaction(m.id, emoji)}
                               className={cn(
-                                "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[12px] transition-colors",
+                                "inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[0.75rem] transition-colors",
                                 mine ? "border-gold-500/40 bg-gold-500/15 text-gold-100" : "border-line bg-white/5 text-zinc-300 hover:bg-white/10"
                               )}
                             >
                               <span>{emoji}</span>
-                              <span className="mono text-[11px]">{r.userIds.length}</span>
+                              <span className="mono text-[0.6875rem]">{r.userIds.length}</span>
                             </motion.button>
                           );
                         })}
@@ -1962,7 +1962,7 @@ export function ChatClient({
           {typingLabel && (
             <motion.div
               initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="mt-1 flex items-center gap-2 px-2 py-1 text-[12px] text-zinc-500"
+              className="mt-1 flex items-center gap-2 px-2 py-1 text-[0.75rem] text-zinc-500"
             >
               <span className="flex gap-0.5">
                 {[0, 1, 2].map((i) => (
@@ -2016,8 +2016,8 @@ export function ChatClient({
               <div className="app-fade-in mb-2 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] py-1.5 pl-3 pr-1.5">
                 <Reply className="h-4 w-4 shrink-0 text-gold-300" aria-hidden />
                 <button type="button" onClick={() => void scrollToMessage(replyTarget.id)} className="min-w-0 flex-1 border-l-2 border-gold-500/50 pl-2 text-left">
-                  <p className="text-[12px] font-semibold text-gold-200">Replying to {replyTarget.authorName}</p>
-                  <p className="truncate text-[12px] text-zinc-400">{replyTarget.body}</p>
+                  <p className="text-[0.75rem] font-semibold text-gold-200">Replying to {replyTarget.authorName}</p>
+                  <p className="truncate text-[0.75rem] text-zinc-400">{replyTarget.body}</p>
                 </button>
                 <button onClick={() => setReplyTarget(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-zinc-500 hover:bg-white/10 hover:text-zinc-200" aria-label="Cancel reply">
                   <X className="h-4 w-4" />
@@ -2092,7 +2092,7 @@ export function ChatClient({
           <div className="flex flex-col items-center justify-between gap-2 py-1 sm:flex-row">
             <p className="text-sm text-zinc-400">Join the conversation - it&apos;s free.</p>
             <MagneticButton>
-              <Link href="/login?callbackUrl=/community" className="btn-gold !py-2 text-[13px]">
+              <Link href="/login?callbackUrl=/community" className="btn-gold !py-2 text-[0.8125rem]">
                 Log in to chat
               </Link>
             </MagneticButton>
@@ -2197,7 +2197,7 @@ function RoomComposer({
    * The composer grows with what you type.
    *
    * ⚠️ It did not. The textarea was `rows={1}` with `resize-none` and a
-   * `min-h-[44px]`, and NOTHING anywhere adjusted its height - so a long
+   * `min-h-[2.75rem]`, and NOTHING anywhere adjusted its height - so a long
    * message scrolled inside a single 44px line. `max-h-28` was there, but a box
    * that never grows never reaches its maximum. That is the whole "long-message
    * experience is uncomfortable" report: you could type a paragraph and see one
@@ -2322,7 +2322,7 @@ function RoomComposer({
           // effect above, and a CSS max-height fighting an inline
           // height is how this kind of control ends up stuck. The
           // `min-h` stays as the one-line floor.
-          className="block min-h-[44px] w-full resize-none rounded-[22px] border border-white/10 bg-ink-950/60 px-4 py-2.5 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
+          className="block min-h-[2.75rem] w-full resize-none rounded-[1.375rem] border border-white/10 bg-ink-950/60 px-4 py-2.5 pr-20 text-base leading-relaxed text-zinc-100 outline-none transition-[border-color,box-shadow] placeholder:text-zinc-600 focus:border-mint-500/50 focus:ring-2 focus:ring-mint-500/20 sm:text-sm"
         />
         <button
           type="button"
@@ -2348,7 +2348,7 @@ function RoomComposer({
         </AnimatePresence>
         {mentionSuggestions.length > 0 && (
           <div className="absolute bottom-full left-0 z-30 mb-2 w-60 max-w-[80vw] overflow-hidden rounded-xl border border-line bg-ink-900 p-1 shadow-elevate">
-            <p className="px-2 py-1 mono text-[10px] uppercase tracking-wider text-zinc-600">Mention</p>
+            <p className="px-2 py-1 mono text-[0.625rem] uppercase tracking-wider text-zinc-600">Mention</p>
             {mentionSuggestions.map((u) => (
               <button
                 key={u.id}
@@ -2362,7 +2362,7 @@ function RoomComposer({
                 <Avatar name={u.name} image={u.image} size="sm" className="h-6 w-6" />
                 <span className="min-w-0">
                   <span className="block truncate text-sm text-zinc-100">{u.name}</span>
-                  <span className="mono text-[10px] text-zinc-500">@{u.username}</span>
+                  <span className="mono text-[0.625rem] text-zinc-500">@{u.username}</span>
                 </span>
               </button>
             ))}
@@ -2376,7 +2376,7 @@ function RoomComposer({
         className="btn-primary grid h-11 w-11 shrink-0 place-items-center !rounded-full !p-0 disabled:opacity-50"
         aria-label="Send message"
       >
-        {sending ? <Loader2 className="relative z-10 h-[18px] w-[18px] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
+        {sending ? <Loader2 className="relative z-10 h-[1.125rem] w-[1.125rem] animate-spin !text-white" /> : <SendGlyph className="relative z-10 h-4 w-4" />}
         
       </motion.button>
     </form>
@@ -2385,7 +2385,7 @@ function RoomComposer({
         chrome on every screen for a limit almost nobody reaches - it now
         appears in the last 100 characters, which is when it is useful. */}
     {(error || body.length > MAX_LENGTH - 100) && (
-      <div className="mt-1.5 flex items-center justify-between gap-2 px-1 text-[11px]">
+      <div className="mt-1.5 flex items-center justify-between gap-2 px-1 text-[0.6875rem]">
         <span className="text-red-300">{error}</span>
         {body.length > MAX_LENGTH - 100 && (
           <span className={cn("mono text-zinc-500", body.length > MAX_LENGTH - 50 && "text-amber-300")}>
@@ -2412,7 +2412,7 @@ function PollBlock({
     <div className="mt-0.5 max-w-md rounded-xl border border-line bg-white/[0.02] p-3" onClick={(e) => e.stopPropagation()}>
       <div className="flex items-center gap-2">
         <BarChart3 className="h-3.5 w-3.5 shrink-0 text-gold-300" />
-        <p className="text-[14px] font-semibold leading-snug text-zinc-100">{poll.question}</p>
+        <p className="text-[0.875rem] font-semibold leading-snug text-zinc-100">{poll.question}</p>
       </div>
       <div className="mt-2.5 space-y-1.5">
         {poll.options.map((o) => {
@@ -2437,12 +2437,12 @@ function PollBlock({
                 className={cn("absolute inset-y-0 left-0 transition-all duration-500", mine ? "bg-gold-500/20" : "bg-white/[0.06]")}
                 style={{ width: `${share}%` }}
               />
-              <span className="relative flex items-center justify-between gap-2 text-[13px]">
+              <span className="relative flex items-center justify-between gap-2 text-[0.8125rem]">
                 <span className={cn("min-w-0 truncate", mine ? "font-medium text-gold-100" : "text-zinc-200")}>
                   {mine && <Check className="mr-1 inline h-3.5 w-3.5 text-gold-300" />}
                   {o.text}
                 </span>
-                <span className="mono shrink-0 text-[11px] text-zinc-500">
+                <span className="mono shrink-0 text-[0.6875rem] text-zinc-500">
                   {share}% · {o.count.toLocaleString("en-US")}
                 </span>
               </span>
@@ -2450,7 +2450,7 @@ function PollBlock({
           );
         })}
       </div>
-      <p className="mt-2 mono text-[10px] text-zinc-600">
+      <p className="mt-2 mono text-[0.625rem] text-zinc-600">
         {poll.total === 0 ? "No votes yet" : `${poll.total.toLocaleString("en-US")} vote${poll.total === 1 ? "" : "s"}`}
         {canVote ? " · tap an option to vote" : " · log in to vote"}
       </p>
@@ -2565,7 +2565,7 @@ function PollComposer({ onClose, onCreated }: { onClose: () => void; onCreated: 
           <button onClick={onClose} className="text-sm text-zinc-500 hover:text-zinc-300">
             Cancel
           </button>
-          <button onClick={create} disabled={!canCreate} className="btn-gold !px-5 !py-2 text-[13px] disabled:opacity-50">
+          <button onClick={create} disabled={!canCreate} className="btn-gold !px-5 !py-2 text-[0.8125rem] disabled:opacity-50">
             {saving ? "Creating…" : "Create poll"}
           </button>
         </div>

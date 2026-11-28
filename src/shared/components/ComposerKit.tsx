@@ -237,7 +237,7 @@ export function CoverPicker({
         </span>
       )}
 
-      {err && <span className="mt-1.5 block text-[11px] text-amber-200">{err}</span>}
+      {err && <span className="mt-1.5 block text-[0.6875rem] text-amber-200">{err}</span>}
     </>
   );
 }
@@ -249,7 +249,7 @@ export function CharCount({ value, max }: { value: string; max: number }) {
   return (
     <span
       className={cn(
-        "mono ml-auto text-[11px] tabular-nums",
+        "mono ml-auto text-[0.6875rem] tabular-nums",
         left < 0 ? "grid-net-down" : "text-content-subtle"
       )}
     >

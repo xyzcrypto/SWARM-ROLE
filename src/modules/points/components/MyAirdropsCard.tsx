@@ -120,11 +120,11 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
         <div className="rounded-xl border border-hairline bg-base p-2.5">
           <div className="flex items-center gap-1.5 text-content-subtle">
             <Wallet className="h-3.5 w-3.5 text-gold-400" />
-            <span className="text-[10px] uppercase font-medium">Total Portfolio Value</span>
+            <span className="text-[0.625rem] uppercase font-medium">Total Portfolio Value</span>
           </div>
           <div className="mt-1 flex items-baseline gap-1.5">
-            <span className="mono text-[15px] font-bold text-content">{summary.totalVal}</span>
-            <span className="text-[10px] font-semibold text-mint-400">{summary.growth}</span>
+            <span className="mono text-[0.9375rem] font-bold text-content">{summary.totalVal}</span>
+            <span className="text-[0.625rem] font-semibold text-mint-400">{summary.growth}</span>
           </div>
         </div>
 
@@ -132,10 +132,10 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
         <div className="rounded-xl border border-hairline bg-base p-2.5">
           <div className="flex items-center gap-1.5 text-content-subtle">
             <Coins className="h-3.5 w-3.5 text-gold-400" />
-            <span className="text-[10px] uppercase font-medium">Total Points</span>
+            <span className="text-[0.625rem] uppercase font-medium">Total Points</span>
           </div>
           <div className="mt-1">
-            <span className="mono text-[15px] font-bold text-content">{summary.totalPts}</span>
+            <span className="mono text-[0.9375rem] font-bold text-content">{summary.totalPts}</span>
           </div>
         </div>
 
@@ -143,10 +143,10 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
         <div className="rounded-xl border border-hairline bg-base p-2.5">
           <div className="flex items-center gap-1.5 text-content-subtle">
             <Layers className="h-3.5 w-3.5 text-gold-400" />
-            <span className="text-[10px] uppercase font-medium">Active Farms</span>
+            <span className="text-[0.625rem] uppercase font-medium">Active Farms</span>
           </div>
           <div className="mt-1">
-            <span className="font-display text-[15px] font-bold text-content">{summary.activeFarms}</span>
+            <span className="font-display text-[0.9375rem] font-bold text-content">{summary.activeFarms}</span>
           </div>
         </div>
 
@@ -154,10 +154,10 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
         <div className="rounded-xl border border-hairline bg-base p-2.5">
           <div className="flex items-center gap-1.5 text-content-subtle">
             <DollarSign className="h-3.5 w-3.5 text-gold-400" />
-            <span className="text-[10px] uppercase font-medium">Farming Cost</span>
+            <span className="text-[0.625rem] uppercase font-medium">Farming Cost</span>
           </div>
           <div className="mt-1">
-            <span className="mono text-[15px] font-bold text-content">{summary.farmingCost}</span>
+            <span className="mono text-[0.9375rem] font-bold text-content">{summary.farmingCost}</span>
           </div>
         </div>
       </div>
@@ -166,7 +166,7 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
       <div className="mt-4 overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
           <thead>
-            <tr className="border-b border-hairline text-content-subtle text-[11px]">
+            <tr className="border-b border-hairline text-content-subtle text-[0.6875rem]">
               <th className="pb-2 font-medium">Protocol</th>
               <th className="pb-2 font-medium mono">Points</th>
               <th className="pb-2 font-medium mono">Est. Value</th>
@@ -194,7 +194,7 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
                     {logo ? (
                       <img src={logo} alt="" className="h-5 w-5 rounded-md object-contain" />
                     ) : (
-                      <span className="grid h-5 w-5 place-items-center rounded-md bg-white/5 text-[9px] font-bold text-content">
+                      <span className="grid h-5 w-5 place-items-center rounded-md bg-white/5 text-[0.5625rem] font-bold text-content">
                         {row.name.slice(0, 2).toUpperCase()}
                       </span>
                     )}
@@ -205,7 +205,7 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
                   <td className="py-2.5 mono text-content-muted">{row.cost}</td>
                   <td className="py-2.5 mono font-semibold text-mint-400">{row.roi}</td>
                   <td className="py-2.5 text-right">
-                    <span className="inline-flex items-center rounded-full bg-mint-500/10 px-2 py-0.5 text-[10px] font-semibold text-mint-300">
+                    <span className="inline-flex items-center rounded-full bg-mint-500/10 px-2 py-0.5 text-[0.625rem] font-semibold text-mint-300">
                       {row.status}
                     </span>
                   </td>
@@ -240,7 +240,7 @@ export function MyAirdropsCard({ programs, activeId, onSelect }: MyAirdropsCardP
               value and break-even. The figures behind this blur are a mockup, not yours.
             </p>
 
-            <span className="mono mt-3 inline-flex items-center gap-1.5 rounded-full border border-gold-500/25 bg-gold-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-200">
+            <span className="mono mt-3 inline-flex items-center gap-1.5 rounded-full border border-gold-500/25 bg-gold-500/10 px-3 py-1 text-[0.625rem] font-semibold uppercase tracking-[0.14em] text-gold-200">
               <Sparkles className="h-3 w-3" strokeWidth={2} />
               In build
             </span>

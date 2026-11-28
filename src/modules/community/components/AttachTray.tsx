@@ -73,7 +73,7 @@ export function AttachTray({ items, children }: { items: AttachItem[]; children?
               role="menuitem"
               disabled={disabled || itemBusy}
               onClick={() => { setOpen(false); onSelect(); }}
-              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:opacity-40"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[0.875rem] font-medium text-zinc-200 transition-colors hover:bg-white/[0.06] disabled:opacity-40"
             >
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-white/[0.05] text-gold-300">
                 {itemBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Icon className="h-4 w-4" />}

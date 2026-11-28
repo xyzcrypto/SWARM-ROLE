@@ -281,7 +281,7 @@ export function TotalMarketCapChart({
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                   </span>
-                  <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">LIVE</span>
+                  <span className="text-[0.5625rem] font-bold text-emerald-600 dark:text-emerald-400 tracking-wider">LIVE</span>
                 </span>
               )}
             </div>
@@ -338,13 +338,13 @@ export function TotalMarketCapChart({
             <div className="relative">
               <button
                 onClick={() => setShowMetricMenu(!showMetricMenu)}
-                className="neu-btn flex items-center gap-1 rounded-xl border border-white/60 dark:border-white/10 px-2 py-1 text-[10px] font-semibold text-zinc-800 dark:text-zinc-200 shadow-neu-sm hover:scale-[1.02] active:scale-[1.02] transition-transform"
+                className="neu-btn flex items-center gap-1 rounded-xl border border-white/60 dark:border-white/10 px-2 py-1 text-[0.625rem] font-semibold text-zinc-800 dark:text-zinc-200 shadow-neu-sm hover:scale-[1.02] active:scale-[1.02] transition-transform"
               >
                 <span>{currentMetricObj.label}</span>
                 <ChevronDown className="h-2.5 w-2.5 text-zinc-500 dark:text-zinc-400" />
               </button>
               {showMetricMenu && (
-                <div className="neu-convex absolute right-0 top-full mt-1.5 z-40 min-w-[130px] rounded-xl border border-white/70 dark:border-white/10 py-1 shadow-neu-lg">
+                <div className="neu-convex absolute right-0 top-full mt-1.5 z-40 min-w-[8.125rem] rounded-xl border border-white/70 dark:border-white/10 py-1 shadow-neu-lg">
                   {METRICS.map((m) => (
                     <button
                       key={m.id}
@@ -353,7 +353,7 @@ export function TotalMarketCapChart({
                         setShowMetricMenu(false);
                       }}
                       className={cn(
-                        "flex w-full items-center px-2.5 py-1.5 text-[11px] text-left transition-colors",
+                        "flex w-full items-center px-2.5 py-1.5 text-[0.6875rem] text-left transition-colors",
                         metric === m.id
                           ? "text-amber-700 dark:text-amber-400 font-bold bg-amber-400/15"
                           : "text-zinc-700 dark:text-zinc-300 hover:bg-black/[0.04] dark:hover:bg-white/5"
@@ -377,7 +377,7 @@ export function TotalMarketCapChart({
                 key={tf}
                 onClick={() => setTimeframe(tf)}
                 className={cn(
-                  "rounded-lg px-2 sm:px-1.5 py-0.5 text-[10px] font-semibold transition-all shrink-0",
+                  "rounded-lg px-2 sm:px-1.5 py-0.5 text-[0.625rem] font-semibold transition-all shrink-0",
                   timeframe === tf
                     ? "neu-inset bg-amber-400/25 text-amber-800 dark:text-amber-300 border border-amber-400/50 shadow-neu-inset-sm"
                     : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100"
@@ -424,13 +424,13 @@ export function TotalMarketCapChart({
             <div className="relative">
               <button
                 onClick={() => setShowMetricMenu(!showMetricMenu)}
-                className="neu-btn flex items-center gap-1 rounded-xl border border-white/60 dark:border-white/10 px-2 py-1 text-[10px] font-semibold text-zinc-800 dark:text-zinc-200 shadow-neu-sm hover:scale-[1.02] active:scale-[1.02] transition-transform"
+                className="neu-btn flex items-center gap-1 rounded-xl border border-white/60 dark:border-white/10 px-2 py-1 text-[0.625rem] font-semibold text-zinc-800 dark:text-zinc-200 shadow-neu-sm hover:scale-[1.02] active:scale-[1.02] transition-transform"
               >
                 <span>{currentMetricObj.label}</span>
                 <ChevronDown className="h-2.5 w-2.5 text-zinc-500 dark:text-zinc-400" />
               </button>
               {showMetricMenu && (
-                <div className="neu-convex absolute right-0 top-full mt-1.5 z-40 min-w-[130px] rounded-xl border border-white/70 dark:border-white/10 py-1 shadow-neu-lg">
+                <div className="neu-convex absolute right-0 top-full mt-1.5 z-40 min-w-[8.125rem] rounded-xl border border-white/70 dark:border-white/10 py-1 shadow-neu-lg">
                   {METRICS.map((m) => (
                     <button
                       key={m.id}
@@ -439,7 +439,7 @@ export function TotalMarketCapChart({
                         setShowMetricMenu(false);
                       }}
                       className={cn(
-                        "flex w-full items-center px-2.5 py-1.5 text-[11px] text-left transition-colors",
+                        "flex w-full items-center px-2.5 py-1.5 text-[0.6875rem] text-left transition-colors",
                         metric === m.id
                           ? "text-amber-700 dark:text-amber-400 font-bold bg-amber-400/15"
                           : "text-zinc-700 dark:text-zinc-300 hover:bg-black/[0.04] dark:hover:bg-white/5"
@@ -458,15 +458,15 @@ export function TotalMarketCapChart({
       {/* ── Shallow Compact Interactive Chart ── */}
       <div className="relative w-full flex-1 min-h-0 select-none pt-1">
         {!points.length && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center text-[11px] text-zinc-500">
+          <div className="absolute inset-0 z-10 flex items-center justify-center text-[0.6875rem] text-zinc-500">
             {isLoading ? <span className="h-full w-full animate-pulse rounded-xl bg-white/[0.03]" /> : "Live history unavailable right now"}
           </div>
         )}
         {/* Y-Axis Guidelines and Labels (Dynamic based on real data) */}
-        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-5 text-[9px] text-zinc-500 dark:text-zinc-400 mono">
+        <div className="absolute inset-0 flex flex-col justify-between pointer-events-none pb-5 text-[0.5625rem] text-zinc-500 dark:text-zinc-400 mono">
           {yAxisLabels.map((lbl, idx) => (
             <div key={idx} className="flex items-center justify-between border-b border-black/[0.04] dark:border-white/[0.04]">
-              <span className="z-10 bg-transparent px-1 py-0.2 rounded text-[8.5px] -translate-y-1.5">{lbl}</span>
+              <span className="z-10 bg-transparent px-1 py-0.2 rounded text-[0.53125rem] -translate-y-1.5">{lbl}</span>
             </div>
           ))}
         </div>
@@ -610,7 +610,7 @@ export function TotalMarketCapChart({
           >
             {chartType === "candle" && activePoint.open != null ? (
               <div className="flex flex-col gap-0.5">
-                <div className="flex items-center justify-between gap-3 text-[9px] text-zinc-500 dark:text-zinc-400 font-medium">
+                <div className="flex items-center justify-between gap-3 text-[0.5625rem] text-zinc-500 dark:text-zinc-400 font-medium">
                   <span>{activePoint.date || activePoint.time}</span>
                   <span
                     className={cn(
@@ -627,7 +627,7 @@ export function TotalMarketCapChart({
                     ).toFixed(2)}%
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-x-2.5 gap-y-0.5 text-[9px] mono mt-0.5">
+                <div className="grid grid-cols-2 gap-x-2.5 gap-y-0.5 text-[0.5625rem] mono mt-0.5">
                   <span className="text-zinc-500 dark:text-zinc-400">
                     O: <strong className="text-zinc-800 dark:text-zinc-200">{formatValue(activePoint.open ?? activePoint.value)}</strong>
                   </span>
@@ -647,7 +647,7 @@ export function TotalMarketCapChart({
                 <p className="mono text-xs font-black text-zinc-900 dark:text-white leading-none">
                   {formatValue(activePoint.value)}
                 </p>
-                <p className="text-[9px] text-zinc-600 dark:text-zinc-400 font-medium leading-none mt-0.5">
+                <p className="text-[0.5625rem] text-zinc-600 dark:text-zinc-400 font-medium leading-none mt-0.5">
                   {activePoint.date || activePoint.time}
                 </p>
               </>
@@ -656,7 +656,7 @@ export function TotalMarketCapChart({
         )}
 
         {/* Dynamic X-Axis Time Labels */}
-        <div className="absolute inset-x-0 bottom-0 flex justify-between text-[9px] mono text-zinc-500 dark:text-zinc-400">
+        <div className="absolute inset-x-0 bottom-0 flex justify-between text-[0.5625rem] mono text-zinc-500 dark:text-zinc-400">
           {xAxisLabels.map((lbl, i) => (
             <span key={i} className={i % 2 === 1 ? "hidden sm:inline" : ""}>
               {lbl}
@@ -664,7 +664,7 @@ export function TotalMarketCapChart({
           ))}
         </div>
       </div>
-      {note && <p className="pt-1 text-[9.5px] text-zinc-500">{note}</p>}
+      {note && <p className="pt-1 text-[0.59375rem] text-zinc-500">{note}</p>}
     </div>
   );
 }

@@ -32,7 +32,7 @@ export function ProgramPanel({ programs }: { programs: ProgramView[] }) {
       accent="farming"
       description="Pick a programme to load its supply, pool and allocation. Most programmes worth farming are too small for any market-data feed to list, so these are tracked by hand and each one says whether its numbers are official or a community guess."
     >
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {programs.map((p) => {
           const logo = platformLogo({ links: p.links, logo: p.logo ?? undefined });
           return (
@@ -50,11 +50,11 @@ export function ProgramPanel({ programs }: { programs: ProgramView[] }) {
                       alt=""
                       width={22}
                       height={22}
-                      className="h-[22px] w-[22px] shrink-0 rounded-md transition-transform group-hover:scale-105 group-active:scale-105"
+                      className="h-[1.375rem] w-[1.375rem] shrink-0 rounded-md transition-transform group-hover:scale-105 group-active:scale-105"
                       onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
                     />
                   ) : (
-                    <span className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-md bg-white/5 text-[10px] font-semibold text-content-muted">
+                    <span className="grid h-[1.375rem] w-[1.375rem] shrink-0 place-items-center rounded-md bg-white/5 text-[0.625rem] font-semibold text-content-muted">
                       {p.name.slice(0, 2).toUpperCase()}
                     </span>
                   )}
@@ -62,7 +62,7 @@ export function ProgramPanel({ programs }: { programs: ProgramView[] }) {
                 </span>
                 <span
                   className={cn(
-                    "shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium",
+                    "shrink-0 rounded-full border px-2 py-0.5 text-[0.625rem] font-medium",
                     PHASE_TONE[p.phase]
                   )}
                 >
@@ -75,7 +75,7 @@ export function ProgramPanel({ programs }: { programs: ProgramView[] }) {
                   difference is the difference between a plan and a daydream. */}
               <span
                 className={cn(
-                  "mt-3 inline-flex items-center gap-1 text-[11px] font-medium",
+                  "mt-3 inline-flex items-center gap-1 text-[0.6875rem] font-medium",
                   p.confirmed ? "text-mint-300" : "text-content-subtle"
                 )}
               >
@@ -87,7 +87,7 @@ export function ProgramPanel({ programs }: { programs: ProgramView[] }) {
                 {p.confirmed ? "Numbers confirmed by the protocol" : "Numbers are community assumptions"}
               </span>
 
-              <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[11px]">
+              <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1.5 text-[0.6875rem]">
                 <dt className="text-content-subtle">Points pool</dt>
                 <dd className="mono text-right text-content-muted">
                   {p.scenario.totalPoints.toLocaleString("en-US", { notation: "compact" })}
@@ -154,7 +154,7 @@ function Fact({
 }) {
   return (
     <div className="rounded-xl border border-hairline bg-surface-2 p-3">
-      <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-content-subtle">
+      <span className="flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-content-subtle">
         <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />
         {label}
       </span>

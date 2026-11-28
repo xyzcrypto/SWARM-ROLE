@@ -70,7 +70,7 @@ export function CostPanel({
         whether a farm was worth doing, and almost nobody adds it up.
       </p>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <CalcField
           label="Volume traded"
           value={form.volumeUsd}
@@ -102,7 +102,7 @@ export function CostPanel({
         />
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
         <ResultTile
           label="Out of pocket"
           value={usdCompact(cost.cashCostUsd)}
@@ -148,7 +148,7 @@ export function CostPanel({
                   {usdCompact(be.fdvUsd)}
                 </span>
               </p>
-              <p className="mt-1 text-[11px] text-content-subtle">
+              <p className="mt-1 text-[0.6875rem] text-content-subtle">
                 Below this, the farm lost money. Value scales linearly with FDV, so this is exact, not a search.
               </p>
             </div>

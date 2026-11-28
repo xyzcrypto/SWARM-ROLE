@@ -27,7 +27,7 @@ export function ProofStrip() {
     <div className="border-b border-line py-8 sm:py-10">
       <Container>
         <Reveal>
-          <p className="text-center mono text-[11px] uppercase tracking-[0.2em] text-zinc-600">
+          <p className="text-center mono text-[0.6875rem] uppercase tracking-[0.2em] text-zinc-600">
             One ecosystem · trusted across every platform
           </p>
         </Reveal>

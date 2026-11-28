@@ -38,7 +38,7 @@ function Cell({ c, fl }: { c: Coin; fl?: "up" | "down" }) {
         height={18}
         loading="lazy"
         decoding="async"
-        className="h-[18px] w-[18px] rounded-full ring-1 ring-white/10"
+        className="h-[1.125rem] w-[1.125rem] rounded-full ring-1 ring-white/10"
         onError={(e) => ((e.currentTarget as HTMLImageElement).style.visibility = "hidden")}
       />
       <span className="mono text-xs font-semibold text-zinc-200">{c.symbol}</span>
@@ -49,7 +49,7 @@ function Cell({ c, fl }: { c: Coin; fl?: "up" | "down" }) {
       >
         ${fmt(c.price)}
       </span>
-      <span className={`mono inline-flex items-center gap-0.5 text-[11px] ${up ? "text-mint-400" : "text-red-400"}`}>
+      <span className={`mono inline-flex items-center gap-0.5 text-[0.6875rem] ${up ? "text-mint-400" : "text-red-400"}`}>
         {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
         {up ? "+" : ""}
         {c.change.toFixed(2)}%
@@ -110,7 +110,7 @@ export function MarketTicker() {
           {live && !loading && <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-70" />}
           <span className={`relative inline-flex h-2 w-2 rounded-full ${loading ? "animate-pulse bg-zinc-500" : live ? "bg-mint-400" : "bg-amber-400"}`} />
         </span>
-        <span className="mono hidden text-[10px] uppercase tracking-[0.18em] text-zinc-500 sm:inline">{statusLabel}</span>
+        <span className="mono hidden text-[0.625rem] uppercase tracking-[0.18em] text-zinc-500 sm:inline">{statusLabel}</span>
       </div>
 
       {/* scrolling track */}

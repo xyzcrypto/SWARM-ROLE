@@ -405,7 +405,7 @@ export function LiveWire() {
       <div className="surface overflow-hidden rounded-3xl">
         {/* ── the band header ───────────────────────────────────────────── */}
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-hairline px-4 py-2.5 sm:px-5">
-          <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-mint-300">
+          <span className="inline-flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-mint-300">
             <span className="relative flex h-1.5 w-1.5">
               {live && (
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-75" />
@@ -436,7 +436,7 @@ export function LiveWire() {
               and perp DEX stories only, and on a slow day there genuinely is
               nothing new for hours. That is a fine answer - but it has to be a
               stated one. */}
-          <span className="text-[11px] text-content-subtle">
+          <span className="text-[0.6875rem] text-content-subtle">
             {fetchedAt !== null ? (
               <>
                 {items.length} tracked · checked {formatDateTime(new Date(fetchedAt))}
@@ -455,7 +455,7 @@ export function LiveWire() {
               onClick={() => setLens((l) => (l === "x" ? "all" : "x"))}
               aria-pressed={lens === "x"}
               className={cn(
-                "inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-medium transition-colors",
+                "inline-flex min-h-9 items-center gap-1.5 rounded-lg border px-2.5 text-[0.6875rem] font-medium transition-colors",
                 lens === "x"
                   ? "border-gold-500/40 bg-gold-500/15 text-gold-200"
                   : "border-hairline text-content-muted hover:text-content"
@@ -470,7 +470,7 @@ export function LiveWire() {
               type="button"
               onClick={() => void generateBrief()}
               disabled={brief.loading || shownItems.length === 0}
-              className="btn-ghost inline-flex min-h-8 shrink-0 items-center gap-1.5 text-[11px] disabled:opacity-50"
+              className="btn-ghost inline-flex min-h-8 shrink-0 items-center gap-1.5 text-[0.6875rem] disabled:opacity-50"
             >
               {brief.loading ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={1.7} />
@@ -493,7 +493,7 @@ export function LiveWire() {
                 void loadDesk(true);
                 void loadPress(true);
               }}
-              className="btn-ghost inline-flex min-h-8 shrink-0 items-center gap-1.5 text-[11px]"
+              className="btn-ghost inline-flex min-h-8 shrink-0 items-center gap-1.5 text-[0.6875rem]"
               aria-label="Refresh the latest updates"
             >
               <RefreshCw
@@ -516,7 +516,7 @@ export function LiveWire() {
           <button
             type="button"
             onClick={acceptNew}
-            className="flex min-h-11 w-full items-center justify-center gap-1.5 border-b border-mint-500/25 bg-mint-500/[0.06] text-[11px] font-semibold text-mint-200 transition-colors hover:bg-mint-500/[0.1]"
+            className="flex min-h-11 w-full items-center justify-center gap-1.5 border-b border-mint-500/25 bg-mint-500/[0.06] text-[0.6875rem] font-semibold text-mint-200 transition-colors hover:bg-mint-500/[0.1]"
           >
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-mint-400 opacity-75" />
@@ -533,7 +533,7 @@ export function LiveWire() {
               {/* The same mark the assistant and the news briefing use. One
                   face for XYZ AI everywhere it speaks: a reader should be able
                   to tell at a glance which words on a page are the model's. */}
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-gold-200">
+              <p className="flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-wide text-gold-200">
                 <RobotIcon className="h-4 w-4" />
                 XYZ AI briefing
               </p>
@@ -567,11 +567,11 @@ export function LiveWire() {
                 the feature is broken - which is exactly what happened on the
                 news side, four times over, before the same line was added there. */}
             {brief.meta?.truncated && (
-              <p className="mt-2 text-[11px] leading-relaxed text-amber-200">
+              <p className="mt-2 text-[0.6875rem] leading-relaxed text-amber-200">
                 This ran out of room before it finished. Generating it again usually completes it.
               </p>
             )}
-            <p className="mt-2.5 text-[10px] text-content-subtle">
+            <p className="mt-2.5 text-[0.625rem] text-content-subtle">
               Generated from the headlines above. Not financial advice, and no substitute for the sources.
               {brief.meta?.model && (
                 <span className="mono ml-1 opacity-70">
@@ -602,7 +602,7 @@ export function LiveWire() {
               onClick={toggle}
               aria-expanded={open}
               aria-controls="points-wire-more"
-              className="flex min-h-11 w-full items-center gap-2 border-t border-hairline px-4 text-[11px] font-medium text-content-muted transition-colors hover:text-content sm:px-5"
+              className="flex min-h-11 w-full items-center gap-2 border-t border-hairline px-4 text-[0.6875rem] font-medium text-content-muted transition-colors hover:text-content sm:px-5"
             >
               {open ? "Hide" : `${rest.length} more`} related update{rest.length === 1 ? "" : "s"}
               <ChevronDown
@@ -649,7 +649,7 @@ export function LiveWire() {
                   <button
                     type="button"
                     onClick={() => setShowAll((v) => !v)}
-                    className="flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-hairline text-[11px] font-medium text-content-muted transition-colors hover:text-content"
+                    className="flex min-h-11 w-full items-center justify-center gap-1.5 border-t border-hairline text-[0.6875rem] font-medium text-content-muted transition-colors hover:text-content"
                   >
                     {showAll ? "Show fewer" : `Show all ${rest.length}`}
                     <ChevronDown
@@ -704,7 +704,7 @@ function WireEntry({
         aria-expanded={open}
         className="flex w-full flex-col gap-1.5 px-4 py-3.5 text-left transition-colors hover:bg-white/[0.02] sm:px-5"
       >
-        <span className="flex flex-wrap items-center gap-2 text-[10px]">
+        <span className="flex flex-wrap items-center gap-2 text-[0.625rem]">
           <LaneBadge item={item} />
           {isNew && (
             <span className="rounded-full border border-mint-500/30 bg-mint-500/10 px-2 py-0.5 font-medium text-mint-200">
@@ -829,7 +829,7 @@ function WireEntry({
                 <MarkdownLite text={item.body} />
               </div>
             )}
-            <p className="mt-2.5 text-[11px] text-content-subtle">
+            <p className="mt-2.5 text-[0.6875rem] text-content-subtle">
               {item.lane === "desk" ? "Posted by the XYZ desk" : `Reported by ${item.source}`}
               {host && ` · ${host}`}
             </p>
@@ -837,7 +837,7 @@ function WireEntry({
               <a
                 href={href}
                 {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                className="mt-2.5 inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline px-3 text-[11px] font-medium text-gold-200 transition-colors hover:border-gold-500/30 hover:text-gold-100"
+                className="mt-2.5 inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-hairline px-3 text-[0.6875rem] font-medium text-gold-200 transition-colors hover:border-gold-500/30 hover:text-gold-100"
               >
                 {external ? `Open on ${host ?? "the source"}` : "Read the full story here"}
                 {external && <ExternalLink className="h-3 w-3" strokeWidth={1.7} />}

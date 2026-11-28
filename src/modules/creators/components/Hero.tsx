@@ -59,7 +59,7 @@ export function Hero({
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease }}
-          className="inline-flex items-center gap-2 rounded-full border border-gold-400/25 bg-gold-400/5 px-3 py-1 font-mono text-[10.5px] uppercase tracking-[0.18em] text-gold-300"
+          className="inline-flex items-center gap-2 rounded-full border border-gold-400/25 bg-gold-400/5 px-3 py-1 font-mono text-[0.65625rem] uppercase tracking-[0.18em] text-gold-300"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-gold-400" />
           Creator index · Variational
@@ -76,7 +76,7 @@ export function Hero({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.12, duration: 0.6, ease }}
-          className="mt-5 max-w-xl text-pretty text-[15px] leading-[1.7] text-content-muted"
+          className="mt-5 max-w-xl text-pretty text-[0.9375rem] leading-[1.7] text-content-muted"
         >
           We rank X accounts by what their Variational posts really earn: views, replies, reposts and saves. YouTube channels across ten perp
           DEXs are ranked by views, likes, runtime and how much they publish. Look yourself up.
@@ -132,7 +132,7 @@ export function Hero({
             ] as const
           ).map(([label, value, fmt]) => (
             <div key={label} className="min-w-0">
-              <dt className="truncate font-mono text-[10px] uppercase tracking-[0.14em] text-content-subtle">{label}</dt>
+              <dt className="truncate font-mono text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">{label}</dt>
               <dd className="mt-1 font-display text-xl font-bold tabular-nums text-content sm:text-2xl">
                 <CountUp value={value} format={fmt} />
               </dd>
@@ -152,11 +152,11 @@ export function Hero({
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="font-display text-base font-semibold tracking-tight text-content">This week on X</p>
-            <p className="mt-0.5 text-[11px] text-content-subtle">
+            <p className="mt-0.5 text-[0.6875rem] text-content-subtle">
               {board?.sync.lastIndexAt ? `Indexed ${formatDateTime(board.sync.lastIndexAt)} UTC` : "Waiting for the first index"}
             </p>
           </div>
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-mint-400/30 px-2.5 py-1 text-[11px] font-semibold text-mint-300">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-mint-400/30 px-2.5 py-1 text-[0.6875rem] font-semibold text-mint-300">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-mint-400" /> Live
           </span>
         </div>
@@ -175,7 +175,7 @@ export function Hero({
                   <button type="button" onClick={() => onOpen(r.handle)} className="flex w-full items-center gap-3 rounded-xl px-1 py-2 text-left transition-colors hover:bg-ink-800/60">
                     <span
                       className={cn(
-                        "grid h-6 w-6 shrink-0 place-items-center rounded-full font-mono text-[11px] font-bold",
+                        "grid h-6 w-6 shrink-0 place-items-center rounded-full font-mono text-[0.6875rem] font-bold",
                         i === 0 ? "bg-gold-400 text-ink-900" : i === 1 ? "bg-zinc-300 text-ink-900" : i === 2 ? "bg-amber-700 text-white" : "text-content-subtle"
                       )}
                     >
@@ -191,23 +191,23 @@ export function Hero({
 
         <div className="mt-4 grid grid-cols-2 gap-3 border-t border-hairline pt-4 text-xs">
           <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-content-subtle">Posts · 14 days</p>
+            <p className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">Posts · 14 days</p>
             <div className="mt-1 flex items-end gap-2">
               <p className="font-display text-lg font-bold tabular-nums text-content">{full(weekPosts)}</p>
-              <span className="mb-1 text-[10px] text-content-subtle">this week</span>
+              <span className="mb-1 text-[0.625rem] text-content-subtle">this week</span>
             </div>
-            <div className="mt-1.5 flex h-7 items-end gap-[3px]" aria-hidden>
+            <div className="mt-1.5 flex h-7 items-end gap-[0.1875rem]" aria-hidden>
               {spark.map((v, i) => (
                 <span key={i} className="flex-1 rounded-sm bg-gold-400/70" style={{ height: `${Math.max(8, (v / sparkMax) * 100)}%`, opacity: v ? 1 : 0.25 }} />
               ))}
             </div>
           </div>
           <div className="min-w-0">
-            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-content-subtle">Top on YouTube</p>
+            <p className="font-mono text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">Top on YouTube</p>
             <p className="mt-1 truncate font-semibold text-content" title={topChannel?.channelTitle}>
               {topChannel ? topChannel.channelTitle : "-"}
             </p>
-            {topChannel && <p className="text-[11px] tabular-nums text-content-subtle">{compact(topChannel.points)} pts</p>}
+            {topChannel && <p className="text-[0.6875rem] tabular-nums text-content-subtle">{compact(topChannel.points)} pts</p>}
           </div>
         </div>
       </motion.aside>

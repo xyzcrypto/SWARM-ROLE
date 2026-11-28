@@ -59,7 +59,7 @@ export function AcademyHome() {
         me ? (
           <Dashboard me={me} />
         ) : (
-          <div className="mt-10 grid gap-5 lg:grid-cols-[1.35fr_1fr]">
+          <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
             <Skeleton className="h-72" />
             <Skeleton className="h-72" />
           </div>
@@ -81,7 +81,7 @@ export function AcademyHome() {
 
       <section className="mt-16 sm:mt-20">
         <SectionTitle eyebrow="Play" title="Choose your challenge" sub="Every mode is scored on the server: correct answers, difficulty, speed and streaks. Wrong answers never earn quiz XP." />
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {MODES.map((m, i) => (
             <motion.div key={m.title} style={rise({ y: 16, dur: 0.45, delay: i * 0.05 })}>
               <Link href={m.href} className={`surface surface-hover acad-tilt acad-mode acad-acc-${m.acc} group relative flex h-full items-start gap-4 overflow-hidden rounded-3xl p-5`}>
@@ -92,7 +92,7 @@ export function AcademyHome() {
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-display text-base font-semibold text-content">{m.title}</span>
-                    <span className="acad-mode-tag rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em]">{m.tag}</span>
+                    <span className="acad-mode-tag rounded-full px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-[0.12em]">{m.tag}</span>
                   </div>
                   <div className="mt-0.5 text-sm text-content-muted">{m.body}</div>
                 </div>
@@ -119,7 +119,7 @@ export function AcademyHome() {
 
       <CertificateShowcase />
 
-      <section className="mt-16 grid gap-5 sm:mt-20 lg:grid-cols-[1.4fr_1fr]">
+      <section className="mt-16 grid grid-cols-1 gap-5 sm:mt-20 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
         <Panel>
           <SectionTitle eyebrow="Compete" title="Global leaderboard" />
           <LeaderboardView compact />
@@ -155,7 +155,7 @@ function CommunityPulse({ pulse }: { pulse: Pulse | null }) {
               {s.live && <span className="acad-live-dot h-1.5 w-1.5 rounded-full bg-mint-400 text-mint-400" />}
               {s.v}
             </div>
-            <div className="text-[10px] uppercase tracking-wide text-content-subtle">{s.l}</div>
+            <div className="text-[0.625rem] uppercase tracking-wide text-content-subtle">{s.l}</div>
           </div>
         ))}
       </div>
@@ -165,7 +165,7 @@ function CommunityPulse({ pulse }: { pulse: Pulse | null }) {
         <>
           {pulse.achievements.length > 0 && (
             <div>
-              <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+              <div className="mb-2 flex items-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
                 <BadgeCheck className="h-3.5 w-3.5 text-gold-300" /> Recent achievements
               </div>
               <ul className="space-y-2">
@@ -182,7 +182,7 @@ function CommunityPulse({ pulse }: { pulse: Pulse | null }) {
           )}
           {pulse.certificates.length > 0 && (
             <div>
-              <div className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+              <div className="mb-2 flex items-center gap-1.5 text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
                 <Award className="h-3.5 w-3.5 text-gold-300" /> New certificates
               </div>
               <ul className="space-y-2">
@@ -193,7 +193,7 @@ function CommunityPulse({ pulse }: { pulse: Pulse | null }) {
                       <span className="min-w-0 flex-1 truncate text-content-muted">
                         <span className="font-semibold text-content">{c.displayName}</span>, {c.title}
                       </span>
-                      <span className="text-[11px] text-content-subtle">{utcDate(c.issuedAt)}</span>
+                      <span className="text-[0.6875rem] text-content-subtle">{utcDate(c.issuedAt)}</span>
                     </Link>
                   </li>
                 ))}

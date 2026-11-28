@@ -132,7 +132,7 @@ export function RiskPanel({ trades, initialProfile }: { trades: SerializedTrade[
         <div className="surface space-y-5 rounded-3xl p-6 sm:p-7">
           <h2 className="font-display text-base font-semibold text-zinc-200">Set your risk limits</h2>
           <p className="text-xs text-zinc-500">All optional - only configured limits are checked. Leave a field blank to skip that rule.</p>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {FIELDS.map((f) => (
               <CalcField key={f.key} label={f.label} value={form[f.key]} onChange={(v) => setForm((s) => ({ ...s, [f.key]: v }))} suffix={f.suffix || undefined} />
             ))}
@@ -156,7 +156,7 @@ export function RiskPanel({ trades, initialProfile }: { trades: SerializedTrade[
             <TrendingUp className="h-4 w-4 text-gold-300" /> Discipline trend
           </h2>
           <AdherenceTrendChart points={trend} />
-          <p className="mt-3 text-center text-[11px] text-zinc-600">Your rule-adherence score, re-scored as of each of the last 30 days.</p>
+          <p className="mt-3 text-center text-[0.6875rem] text-zinc-600">Your rule-adherence score, re-scored as of each of the last 30 days.</p>
         </div>
       )}
 
@@ -165,24 +165,24 @@ export function RiskPanel({ trades, initialProfile }: { trades: SerializedTrade[
           <Calculator className="h-4 w-4 text-gold-300" /> Suggested position size
         </h2>
         <p className="text-xs text-zinc-500">Given your account size, risk %, entry and stop - the size that risks exactly that much.</p>
-        <div className="grid gap-4 sm:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <CalcField label="Account equity" value={sizeEquity} onChange={setSizeEquity} suffix="USD" />
           <CalcField label="Risk per trade" value={sizeRiskPct} onChange={setSizeRiskPct} suffix="%" />
           <CalcField label="Entry price" value={sizeEntry} onChange={setSizeEntry} suffix="USD" />
           <CalcField label="Stop price" value={sizeStop} onChange={setSizeStop} suffix="USD" />
         </div>
         {sizeResult ? (
-          <div className="grid gap-3 rounded-2xl border border-gold-500/20 bg-gold-500/[0.04] p-4 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gold-500/20 bg-gold-500/[0.04] p-4 sm:grid-cols-3">
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-zinc-500">Position size</p>
+              <p className="text-[0.6875rem] uppercase tracking-wide text-zinc-500">Position size</p>
               <p className="mono text-lg font-semibold text-gold-200">{sizeResult.size.toLocaleString(undefined, { maximumFractionDigits: 6 })}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-zinc-500">Notional</p>
+              <p className="text-[0.6875rem] uppercase tracking-wide text-zinc-500">Notional</p>
               <p className="mono text-lg font-semibold text-zinc-100">${sizeResult.notional.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
             </div>
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-zinc-500">$ at risk</p>
+              <p className="text-[0.6875rem] uppercase tracking-wide text-zinc-500">$ at risk</p>
               <p className="mono text-lg font-semibold text-rose-300">${sizeResult.riskUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}</p>
             </div>
           </div>

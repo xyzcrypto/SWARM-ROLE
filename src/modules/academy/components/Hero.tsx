@@ -44,7 +44,7 @@ function Stat({ value, label, live, accent, href }: { value: number | null; labe
         {live && <span className="acad-live-dot h-1.5 w-1.5 shrink-0 rounded-full bg-mint-400 text-mint-400" />}
         {value == null ? <span className="acad-skel inline-block h-6 w-9 rounded-md" aria-label="Loading" /> : <CountUp value={value} />}
       </div>
-      <div className="mt-1.5 truncate font-mono text-[8.5px] uppercase tracking-[0.04em] text-content-subtle sm:text-[10px] sm:tracking-[0.14em]">{label}</div>
+      <div className="mt-1.5 truncate font-mono text-[0.53125rem] uppercase tracking-[0.04em] text-content-subtle sm:text-[0.625rem] sm:tracking-[0.14em]">{label}</div>
     </>
   );
   const cls = "acad-stat block min-w-0 rounded-2xl px-2 py-3 sm:px-4 sm:py-3.5";
@@ -155,8 +155,8 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
         {/* ---------- intro ---------- */}
         <div className="min-w-0 pt-1 [grid-area:top]">
           <motion.div style={rise({ y: 8, dur: 0.5 })} className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="acad-hero-pill inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/[0.08] py-1 pl-1.5 pr-3 text-[12px] font-medium text-content-muted">
-              <span className="rounded-full bg-gold-400 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-ink-950">Academy</span>
+            <span className="acad-hero-pill inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-gold-400/[0.08] py-1 pl-1.5 pr-3 text-[0.75rem] font-medium text-content-muted">
+              <span className="rounded-full bg-gold-400 px-2 py-0.5 text-[0.625rem] font-bold uppercase tracking-[0.12em] text-ink-950">Academy</span>
               {me && dayPart ? (
                 <span>
                   {dayPart}
@@ -173,7 +173,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               )}
             </span>
             {pulse && pulse.learningNow > 0 && (
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-mint-400/30 bg-mint-400/10 px-2.5 py-1 text-[11px] font-semibold text-mint-600 dark:text-mint-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-mint-400/30 bg-mint-400/10 px-2.5 py-1 text-[0.6875rem] font-semibold text-mint-600 dark:text-mint-300">
                 <span className="acad-live-dot h-1.5 w-1.5 rounded-full bg-mint-400 text-mint-400" /> {fmt(pulse.learningNow)} learning
               </span>
             )}
@@ -187,15 +187,15 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               <span className="text-shimmer">Prove it on the leaderboard.</span>
             </motion.span>
           </h1>
-          <motion.p style={rise({ dur: 0.6, delay: 0.45 })} className="mt-4 max-w-[34rem] text-[15px] leading-relaxed text-content-muted sm:mt-5 sm:text-[17px]">
+          <motion.p style={rise({ dur: 0.6, delay: 0.45 })} className="mt-4 max-w-[34rem] text-[0.9375rem] leading-relaxed text-content-muted sm:mt-5 sm:text-[1.0625rem]">
             <span className="sm:hidden">Bite-size lessons, live quiz battles, and AneQue explaining every answer in English or Hinglish.</span>
             <span className="hidden sm:inline">Bite-size lessons, quizzes against the clock and live battles, with AneQue explaining every answer out loud, in English or Hinglish. Earn XP, climb the board, get certified.</span>
           </motion.p>
-          <motion.div style={rise({ y: 8, dur: 0.5, delay: 0.55 })} className="mt-6 grid grid-cols-[1fr_1fr_auto] gap-2.5 sm:mt-8 sm:flex sm:flex-wrap sm:gap-3">
-            <Link href={me?.next ? `/academy/learn/${me.next.categorySlug}/${me.next.moduleSlug}` : "/academy/learn"} className="btn-primary group h-12 justify-center whitespace-nowrap px-3 text-[13px] sm:px-6 sm:text-sm">
+          <motion.div style={rise({ y: 8, dur: 0.5, delay: 0.55 })} className="mt-6 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] gap-2.5 sm:mt-8 sm:flex sm:flex-wrap sm:gap-3">
+            <Link href={me?.next ? `/academy/learn/${me.next.categorySlug}/${me.next.moduleSlug}` : "/academy/learn"} className="btn-primary group h-12 justify-center whitespace-nowrap px-3 text-[0.8125rem] sm:px-6 sm:text-sm">
               Start Learning <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
             </Link>
-            <Link href="/academy/live" className="btn-gold h-12 justify-center whitespace-nowrap px-3 text-[13px] sm:px-6 sm:text-sm">
+            <Link href="/academy/live" className="btn-gold h-12 justify-center whitespace-nowrap px-3 text-[0.8125rem] sm:px-6 sm:text-sm">
               <Radio className="h-4 w-4" /> Enter Live Quiz
             </Link>
             <button
@@ -204,7 +204,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
                 unlock();
                 window.dispatchEvent(new Event("academy:talk"));
               }}
-              className="btn-ghost h-12 w-12 justify-center whitespace-nowrap !px-0 text-[13px] sm:w-auto sm:!px-4 sm:text-sm"
+              className="btn-ghost h-12 w-12 justify-center whitespace-nowrap !px-0 text-[0.8125rem] sm:w-auto sm:!px-4 sm:text-sm"
               aria-label="Ask AneQue"
             >
               <AudioLines className="h-4 w-4 text-gold-300" /> <span className="hidden sm:inline">Ask AneQue</span>
@@ -224,9 +224,9 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
                 className="acad-quick group flex flex-col items-center gap-1.5 rounded-2xl border border-hairline bg-white/[0.03] px-1 py-3 text-center transition-colors active:border-gold-400/50"
               >
                 <span className={cn("grid h-9 w-9 place-items-center rounded-xl", a.tone)}>
-                  <a.icon className="h-[18px] w-[18px]" strokeWidth={1.9} />
+                  <a.icon className="h-[1.125rem] w-[1.125rem]" strokeWidth={1.9} />
                 </span>
-                <span className="text-[11px] font-semibold leading-tight text-content">{a.label}</span>
+                <span className="text-[0.6875rem] font-semibold leading-tight text-content">{a.label}</span>
               </Link>
             ))}
           </motion.nav>
@@ -243,7 +243,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
           <span className="acad-ticket-sheen pointer-events-none absolute inset-0 rounded-[inherit]" aria-hidden />
           <div className="p-5 sm:p-6">
             <div className="flex items-center justify-between gap-3">
-              <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+              <span className="flex items-center gap-2 text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
                 <CalendarDays className="h-3.5 w-3.5 text-gold-300" /> Daily challenge
               </span>
               <span className="font-mono text-xs tabular-nums text-content-muted" title="Resets at 00:00 UTC">
@@ -272,13 +272,13 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
 
           <div className="grid grid-cols-2 gap-4 px-5 py-4 sm:px-6">
             <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">Your run</div>
+              <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">Your run</div>
               {me ? (
                 <>
                   <div className="mt-1 flex items-center gap-1.5 font-display text-lg font-semibold text-content">
                     <Flame className={cn("h-4 w-4", me.streak ? "text-gold-300" : "text-content-subtle")} /> {me.streak} day{me.streak === 1 ? "" : "s"}
                   </div>
-                  <div className="mt-2 text-[11px] text-content-subtle">
+                  <div className="mt-2 text-[0.6875rem] text-content-subtle">
                     Lv {me.level.level} · {fmt(me.xp)} XP
                   </div>
                   <ProgressBar value={me.level.progress} className="mt-1.5 h-1.5" />
@@ -290,14 +290,14 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               )}
             </div>
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">
+              <div className="flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">
                 <Trophy className="h-3 w-3 text-gold-300" /> This week
               </div>
               {top.length ? (
                 <ol className="mt-1.5 space-y-1">
                   {top.map((r) => (
-                    <li key={r.userId} className="flex items-center gap-1.5 text-[13px]">
-                      <span className="w-3 font-mono text-[11px] text-content-subtle">{r.rank}</span>
+                    <li key={r.userId} className="flex items-center gap-1.5 text-[0.8125rem]">
+                      <span className="w-3 font-mono text-[0.6875rem] text-content-subtle">{r.rank}</span>
                       <Avatar src={r.image} alt={r.name} size={18} />
                       <span className="min-w-0 flex-1 truncate text-content">{r.name}</span>
                     </li>
@@ -350,7 +350,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               // the hero shrank ~21px, everything below jumped, and the tap
               // landed beside the button it was meant for. A fixed box means
               // the text can change without moving the page.
-              className="mt-3 line-clamp-3 h-[4rem] text-[13px] leading-relaxed"
+              className="mt-3 line-clamp-3 h-[4rem] text-[0.8125rem] leading-relaxed"
             />
           </div>
         </aside>
@@ -363,7 +363,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
 
     {/* Below the hero: the numbers, tracks, live activity and the newest
         certificates, so the hero itself fits one screen. */}
-    <section className="acad-hero-strip mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_25rem] xl:grid-cols-[minmax(0,1fr)_27rem]" aria-label="Academy at a glance">
+    <section className="acad-hero-strip mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_25rem] xl:grid-cols-[minmax(0,1fr)_27rem]" aria-label="Academy at a glance">
         {/* ---------- numbers, tracks, activity ---------- */}
         <div className="acad-strip-card min-w-0 rounded-[1.5rem] p-3 sm:p-5">
           <motion.div style={rise({ y: 8, dur: 0.6, delay: 0.7 })} className="grid grid-cols-4 gap-1.5 sm:gap-2">
@@ -385,11 +385,11 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
                         key={`${k}-${t.slug}`}
                         href={`/academy/learn/${t.slug}`}
                         tabIndex={k === 1 ? -1 : undefined}
-                        className="inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border border-hairline bg-white/[0.03] px-3.5 text-[12.5px] font-medium text-content-muted transition-colors hover:border-gold-400/40 hover:text-content active:border-gold-400/40"
+                        className="inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full border border-hairline bg-white/[0.03] px-3.5 text-[0.78125rem] font-medium text-content-muted transition-colors hover:border-gold-400/40 hover:text-content active:border-gold-400/40"
                       >
                         <Icon name={t.icon} className="h-3.5 w-3.5 text-gold-300" />
                         {t.title}
-                        <span className="font-mono text-[10px] text-content-subtle">{t.modules.length}</span>
+                        <span className="font-mono text-[0.625rem] text-content-subtle">{t.modules.length}</span>
                       </Link>
                     ))}
                   </div>
@@ -399,7 +399,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
           )}
           {pulse && pulse.achievements.length + pulse.certificates.length > 0 && (
             <div className="acad-ticker mt-4 overflow-hidden" aria-label="Recent activity">
-              <div className="acad-ticker-track flex w-max gap-8 text-[13px] text-content-muted">
+              <div className="acad-ticker-track flex w-max gap-8 text-[0.8125rem] text-content-muted">
                 {[0, 1].map((k) => (
                   <div key={k} className="flex gap-8" aria-hidden={k === 1}>
                     {pulse.achievements.map((a, i) => (
@@ -419,7 +419,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
           )}
           <motion.ul style={rise({ dur: 0.6, delay: 0.85 })} className="acad-nav-scroll -mx-3 mt-4 flex gap-2 overflow-x-auto px-3 [scrollbar-width:none] sm:mx-0 sm:mt-5 sm:flex-wrap sm:gap-x-5 sm:gap-y-2 sm:overflow-visible sm:px-0 [&::-webkit-scrollbar]:hidden">
             {PROMISES.map((p) => (
-              <li key={p.text} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-hairline px-3 py-1.5 text-[12px] text-content-subtle sm:rounded-none sm:border-0 sm:p-0 sm:text-[12.5px]">
+              <li key={p.text} className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-hairline px-3 py-1.5 text-[0.75rem] text-content-subtle sm:rounded-none sm:border-0 sm:p-0 sm:text-[0.78125rem]">
                 <p.icon className="h-3.5 w-3.5 shrink-0 text-mint-400" /> {p.text}
               </li>
             ))}
@@ -427,15 +427,15 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
         </div>
         <div className="acad-hero-proof acad-strip-card rounded-[1.5rem] p-4 sm:p-5">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-content-subtle">
+            <span className="flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-content-subtle">
               <BadgeCheck className="h-3.5 w-3.5 text-gold-300" /> Latest certificates
             </span>
             {pulse && pulse.liveNow > 0 ? (
-              <Link href="/academy/live" className="flex items-center gap-1.5 text-[11px] font-semibold text-mint-300 hover:underline">
+              <Link href="/academy/live" className="flex items-center gap-1.5 text-[0.6875rem] font-semibold text-mint-300 hover:underline">
                 <span className="acad-live-dot h-1.5 w-1.5 rounded-full bg-mint-400 text-mint-400" /> {pulse.liveNow} live now
               </Link>
             ) : (
-              <Link href="/academy/certificates" className="text-[11px] font-semibold text-gold-300 hover:underline">
+              <Link href="/academy/certificates" className="text-[0.6875rem] font-semibold text-gold-300 hover:underline">
                 View all
               </Link>
             )}
@@ -449,8 +449,8 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
                       <Trophy className="h-4 w-4" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13px] font-semibold text-content">{c.displayName}</span>
-                      <span className="block truncate text-[11px] text-content-subtle">{c.title}</span>
+                      <span className="block truncate text-[0.8125rem] font-semibold text-content">{c.displayName}</span>
+                      <span className="block truncate text-[0.6875rem] text-content-subtle">{c.title}</span>
                     </span>
                     <ArrowRight className="h-3.5 w-3.5 shrink-0 text-content-subtle transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
                   </Link>
@@ -458,7 +458,7 @@ export function Hero({ pulse, me, topics, questions, tracks }: { pulse: Pulse | 
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-[13px] leading-relaxed text-content-muted">
+            <p className="mt-3 text-[0.8125rem] leading-relaxed text-content-muted">
               Top the daily, weekly or monthly board, or win a live quiz, to earn a verifiable certificate.
             </p>
           )}

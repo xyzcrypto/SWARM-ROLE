@@ -54,9 +54,9 @@ export function ContactForm() {
 
   return (
     <form onSubmit={onSubmit} className="surface space-y-4 rounded-2xl p-5 sm:p-6">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
-          <label className="mb-1.5 block text-[12px] font-semibold text-zinc-400">Name</label>
+          <label className="mb-1.5 block text-[0.75rem] font-semibold text-zinc-400">Name</label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -67,7 +67,7 @@ export function ContactForm() {
           />
         </div>
         <div>
-          <label className="mb-1.5 block text-[12px] font-semibold text-zinc-400">Email</label>
+          <label className="mb-1.5 block text-[0.75rem] font-semibold text-zinc-400">Email</label>
           <input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
@@ -82,7 +82,7 @@ export function ContactForm() {
         </div>
       </div>
       <div>
-        <label className="mb-1.5 block text-[12px] font-semibold text-zinc-400">Message</label>
+        <label className="mb-1.5 block text-[0.75rem] font-semibold text-zinc-400">Message</label>
         <textarea
           value={message}
           onChange={(e) => setMessage(e.target.value)}
@@ -94,7 +94,7 @@ export function ContactForm() {
           className={inputCls + " resize-none"}
         />
       </div>
-      {error && <p className="text-[12px] text-red-300">{error}</p>}
+      {error && <p className="text-[0.75rem] text-red-300">{error}</p>}
       <button type="submit" disabled={busy} className="btn-primary w-full disabled:opacity-60 sm:w-auto">
         {busy ? (
           <span className="inline-flex items-center gap-2">

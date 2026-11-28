@@ -22,7 +22,7 @@ export default function CreatorsPage() {
       <Navbar />
       <main className="relative min-h-screen pt-28">
         <PageBackground />
-        <div className="relative mx-auto max-w-[1200px] px-5 pb-24 sm:px-6 lg:px-8 xl:max-w-[1320px]">
+        <div className="relative mx-auto max-w-[75rem] px-5 pb-24 sm:px-6 lg:px-8 xl:max-w-[82.5rem]">
           <div className="pt-2 sm:pt-4">
             <CreatorsClient />
           </div>

@@ -15,7 +15,7 @@ export default function AcademyLayout({ children }: { children: React.ReactNode 
       <Navbar />
       <main className="acad-main relative min-h-screen pt-24 sm:pt-28">
         <PageBackground />
-        <div className="acad-shell relative mx-auto max-w-[1200px] px-5 pb-28 sm:px-6 lg:px-8 xl:max-w-[1320px]">
+        <div className="acad-shell relative mx-auto max-w-[75rem] px-5 pb-28 sm:px-6 lg:px-8 xl:max-w-[82.5rem]">
           <AcademyNav />
           <LiveBanner />
           {children}

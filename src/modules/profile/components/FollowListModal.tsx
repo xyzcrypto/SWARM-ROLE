@@ -281,8 +281,8 @@ export function FollowListModal({
                     </Link>
                     <Link href={`/u/${u.username}`} onClick={onClose} className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-zinc-100">{u.name ?? `@${u.username}`}</span>
-                      <span className="mono block truncate text-[11px] text-zinc-500">@{u.username}</span>
-                      {u.bio && <span className="mt-0.5 block truncate text-[11px] text-zinc-500">{u.bio}</span>}
+                      <span className="mono block truncate text-[0.6875rem] text-zinc-500">@{u.username}</span>
+                      {u.bio && <span className="mt-0.5 block truncate text-[0.6875rem] text-zinc-500">{u.bio}</span>}
                     </Link>
                     {!u.isMe && <RowFollow username={u.username} initial={u.isFollowing} onChanged={onChanged} onOptimistic={onOptimistic} />}
                   </li>

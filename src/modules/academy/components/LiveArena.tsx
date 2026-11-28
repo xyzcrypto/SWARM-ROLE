@@ -428,7 +428,7 @@ export function LiveArena({ id }: { id: string }) {
         )}
       </div>
 
-      <div className="mt-3 grid gap-5 sm:mt-6 lg:grid-cols-[1fr_20rem]">
+      <div className="mt-3 grid grid-cols-1 gap-5 sm:mt-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0">
           {phase.kind === "scheduled" || phase.kind === "countdown" ? (
             <WaitingRoom state={state} phase={phase} now={now} joined={!!me?.joined} guest={!!guest} joining={joining} onJoin={join} />
@@ -464,7 +464,7 @@ export function LiveArena({ id }: { id: string }) {
         <aside className="space-y-4">
           {me?.joined && (
             <div className="relative overflow-hidden rounded-3xl border border-gold-400/30 bg-gold-400/[0.05] p-4">
-              <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">
+              <div className="flex items-center justify-between text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-gold-300">
                 <span>You</span>
                 <AnimatePresence>
                   {rankMove && rankMove.by !== 0 && (
@@ -496,7 +496,7 @@ export function LiveArena({ id }: { id: string }) {
             </div>
           )}
           <Panel className="!p-4">
-            <div className="mb-3 flex items-center justify-between text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">
+            <div className="mb-3 flex items-center justify-between text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">
               <span>Live leaderboard</span>
               {phase.kind === "question" && <span className="normal-case tracking-normal">updates on reveal</span>}
             </div>
@@ -532,7 +532,7 @@ export function LiveArena({ id }: { id: string }) {
 function Stat({ icon, label, value, hot }: { icon: React.ReactNode; label: string; value: string; hot?: boolean }) {
   return (
     <div className={cn("rounded-xl border border-hairline bg-ink-900/40 px-1.5 py-1.5", hot && "border-orange-400/40 bg-orange-400/10")}>
-      <div className="flex items-center justify-center gap-1 text-[10px] text-content-subtle">
+      <div className="flex items-center justify-center gap-1 text-[0.625rem] text-content-subtle">
         {icon} {label}
       </div>
       <motion.div key={value} initial={{ y: -6, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className={cn("font-mono text-sm font-bold text-content", hot && "text-orange-200")}>
@@ -560,7 +560,7 @@ function WaitingRoom({ state, phase, now, joined, guest, joining, onJoin }: { st
           aria-hidden
         />
       )}
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-gold-300">{big ? "Get ready" : "Starts in"}</div>
+      <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.18em] text-gold-300">{big ? "Get ready" : "Starts in"}</div>
       <AnimatePresence mode="popLayout">
         <motion.div
           key={big ? Math.ceil(ms / 1000) : "clock"}
@@ -578,7 +578,7 @@ function WaitingRoom({ state, phase, now, joined, guest, joining, onJoin }: { st
       </p>
       {state.description && <p className="mx-auto mt-3 max-w-lg text-sm text-content-subtle">{state.description}</p>}
 
-      <div className="mx-auto mt-5 grid max-w-md grid-cols-3 gap-2 text-left text-[11px] text-content-muted">
+      <div className="mx-auto mt-5 grid max-w-md grid-cols-3 gap-2 text-left text-[0.6875rem] text-content-muted">
         <div className="rounded-xl border border-hairline bg-ink-900/40 p-2.5">
           <Zap className="mb-1 h-3.5 w-3.5 text-gold-300" /> Faster right answers score more
         </div>
@@ -607,7 +607,7 @@ function WaitingRoom({ state, phase, now, joined, guest, joining, onJoin }: { st
       </div>
 
       <div className="mt-8 border-t border-hairline pt-5">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Waiting room · {state.participants} joined</div>
+        <div className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Waiting room · {state.participants} joined</div>
         <div className="mt-3 flex flex-wrap justify-center gap-1.5">
           {state.faces.map((f, i) => (
             <motion.span key={f.id} initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 500, damping: 18, delay: Math.min(i, 12) * 0.03 }} title={f.name}>
@@ -723,9 +723,9 @@ function QuestionStage({
           Q{phase.index + 1}/{count}
         </span>
         <Pill tone={DIFF_TONE[q.difficulty]}>{DIFF_LABEL[q.difficulty]}</Pill>
-        <span className="text-[11px] text-content-subtle">{q.category}</span>
+        <span className="text-[0.6875rem] text-content-subtle">{q.category}</span>
         {streak >= 2 && (
-          <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-1 rounded-full bg-orange-400/15 px-2 py-0.5 text-[11px] font-semibold text-orange-200">
+          <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="flex items-center gap-1 rounded-full bg-orange-400/15 px-2 py-0.5 text-[0.6875rem] font-semibold text-orange-200">
             <Flame className="h-3 w-3" /> x{streak}
           </motion.span>
         )}
@@ -740,7 +740,7 @@ function QuestionStage({
         </span>
       </div>
       <h2 className="acad-play-prompt mt-3 font-display font-semibold leading-snug text-content sm:mt-4">{lang.tx(q.prompt, q.hi?.prompt)}</h2>
-      <div className="mt-4 grid gap-2 sm:mt-6 sm:grid-cols-2 sm:gap-2.5">
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:mt-6 sm:grid-cols-2 sm:gap-2.5">
         {/* Shown in this player's own order (`order[position]` = original index);
             everything below still speaks in original indexes, so the answer,
             the vote split and what is sent to the server are unchanged. */}
@@ -786,17 +786,17 @@ function QuestionStage({
               <span className={cn("font-semibold", mine?.correct ? "text-mint-300" : mine ? "text-red-300" : "text-content-muted")}>
                 {mine?.correct ? `Correct, +${mine.points ?? 0} points` : mine ? "Not this time" : canAnswer ? "No answer this round" : "Answer revealed"}
               </span>
-              {mine?.ms != null && <span className="text-[11px] text-content-subtle">your time {secs(mine.ms)}</span>}
+              {mine?.ms != null && <span className="text-[0.6875rem] text-content-subtle">your time {secs(mine.ms)}</span>}
             </div>
             {stats && (
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 <div className="rounded-xl border border-hairline bg-ink-950/30 p-2">
                   <div className="font-mono text-base font-bold text-content">{stats.correctPct}%</div>
-                  <div className="text-[10px] text-content-subtle">got it right</div>
+                  <div className="text-[0.625rem] text-content-subtle">got it right</div>
                 </div>
                 <div className="rounded-xl border border-hairline bg-ink-950/30 p-2">
                   <div className="font-mono text-base font-bold text-content">{stats.answered}</div>
-                  <div className="text-[10px] text-content-subtle">answered</div>
+                  <div className="text-[0.625rem] text-content-subtle">answered</div>
                 </div>
                 <div className="rounded-xl border border-hairline bg-ink-950/30 p-2">
                   {stats.fastest ? (
@@ -805,19 +805,19 @@ function QuestionStage({
                         <Avatar src={stats.fastest.image} alt={stats.fastest.name} size={16} />
                         <span className="font-mono text-base font-bold text-gold-200">{secs(stats.fastest.ms)}</span>
                       </div>
-                      <div className="truncate text-[10px] text-content-subtle">fastest: {stats.fastest.name}</div>
+                      <div className="truncate text-[0.625rem] text-content-subtle">fastest: {stats.fastest.name}</div>
                     </>
                   ) : (
                     <>
                       <div className="font-mono text-base font-bold text-content">–</div>
-                      <div className="text-[10px] text-content-subtle">no correct answer</div>
+                      <div className="text-[0.625rem] text-content-subtle">no correct answer</div>
                     </>
                   )}
                 </div>
               </div>
             )}
             {q.explanation && <p className="mt-3 leading-relaxed text-content-muted">{lang.tx(q.explanation, q.hi?.explanation)}</p>}
-            <p className="mt-2 text-[11px] text-content-subtle">Next question in {Math.max(0, Math.ceil(((phase.kind === "reveal" ? phase.nextAt : now) - now) / 1000))}s</p>
+            <p className="mt-2 text-[0.6875rem] text-content-subtle">Next question in {Math.max(0, Math.ceil(((phase.kind === "reveal" ? phase.nextAt : now) - now) / 1000))}s</p>
           </motion.div>
         ) : mine ? (
           <div className="flex items-center gap-2 text-content-muted">
@@ -834,7 +834,7 @@ function QuestionStage({
             </button>
           )
         ) : phase.kind === "question" ? (
-          <p className="text-[11px] text-content-subtle">Fair play: options are shuffled for every player, and leaving this screen before you answer is recorded.</p>
+          <p className="text-[0.6875rem] text-content-subtle">Fair play: options are shuffled for every player, and leaving this screen before you answer is recorded.</p>
         ) : null}
       </div>
     </motion.div>
@@ -972,7 +972,7 @@ function Final({ state, me, id, bestStreak }: { state: LiveState; me: LiveMe | n
                   <div className="text-sm text-content-muted">
                     You finished <span className="font-semibold text-content">{me.rank ? `#${me.rank}` : "unranked"}</span> with {fmt(me.score)} points ({me.correct} correct).
                   </div>
-                  <div className="mt-1 text-[11px] text-content-subtle">XP from this quiz has been added to your profile.</div>
+                  <div className="mt-1 text-[0.6875rem] text-content-subtle">XP from this quiz has been added to your profile.</div>
                   {me.rank && me.rank <= 3 && me.score > 0 && (
                     <Link href="/academy/certificates" className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-gold-300">
                       <Award className="h-4 w-4" /> View your certificate
@@ -1033,18 +1033,18 @@ function ReportCard({ results, me, bestStreak }: { results: LiveResults; me: Liv
   ];
   return (
     <Panel className="!p-5">
-      <div className="text-[10px] font-semibold uppercase tracking-[0.16em] text-gold-300">Your report card</div>
+      <div className="text-[0.625rem] font-semibold uppercase tracking-[0.16em] text-gold-300">Your report card</div>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {cards.map((c, i) => (
           <motion.div key={c.l} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.06 * i }} className="rounded-2xl border border-hairline bg-ink-900/40 p-3">
             {c.icon}
             <div className="mt-1 font-mono text-xl font-bold text-content">{c.v}</div>
-            <div className="text-[11px] text-content-subtle">{c.l}</div>
+            <div className="text-[0.6875rem] text-content-subtle">{c.l}</div>
           </motion.div>
         ))}
       </div>
       <div className="mt-4">
-        <div className="mb-1.5 text-[11px] text-content-subtle">Points per question</div>
+        <div className="mb-1.5 text-[0.6875rem] text-content-subtle">Points per question</div>
         <div className="flex h-16 items-end gap-1" role="img" aria-label="Points per question">
           {Array.from({ length: results.count }, (_, i) => {
             const a = me.answers.find((x) => x.index === i);
@@ -1061,7 +1061,7 @@ function ReportCard({ results, me, bestStreak }: { results: LiveResults; me: Liv
             );
           })}
         </div>
-        <div className="mt-1 flex justify-between font-mono text-[10px] text-content-subtle">
+        <div className="mt-1 flex justify-between font-mono text-[0.625rem] text-content-subtle">
           <span>Q1</span>
           <span>Q{results.count}</span>
         </div>
@@ -1096,7 +1096,7 @@ function AnswersReview({ results, me, bestStreak }: { results: LiveResults; me: 
               </span>
               <span className="min-w-0 flex-1">
                 <span className="line-clamp-2 text-sm font-semibold text-content">{lang.tx(q.prompt, q.hi?.prompt)}</span>
-                <span className="mt-0.5 block text-[11px] text-content-subtle">
+                <span className="mt-0.5 block text-[0.6875rem] text-content-subtle">
                   Q{q.index + 1} · {q.correctPct}% right · {q.answered} answered{a?.correct && a.points ? ` · you +${a.points}` : ""}
                 </span>
               </span>
@@ -1106,7 +1106,7 @@ function AnswersReview({ results, me, bestStreak }: { results: LiveResults; me: 
               {isOpen && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
                   <div className="space-y-2 border-t border-hairline px-4 pb-4 pt-3">
-                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-content-subtle">
+                    <div className="flex flex-wrap items-center gap-2 text-[0.6875rem] text-content-subtle">
                       <Pill tone={DIFF_TONE[q.difficulty]}>{DIFF_LABEL[q.difficulty]}</Pill>
                       <span>{q.category}</span>
                       {q.avgMs != null && (
@@ -1122,17 +1122,17 @@ function AnswersReview({ results, me, bestStreak }: { results: LiveResults; me: 
                       return (
                         <div key={i} className={cn("relative flex items-center gap-3 overflow-hidden rounded-xl border px-3 py-2.5 text-sm", right ? "border-mint-400/60" : mineHere ? "border-red-400/60" : "border-hairline")}>
                           <motion.span className={cn("absolute inset-y-0 left-0", right ? "bg-mint-400/[0.12]" : "bg-white/[0.04]")} initial={{ width: 0 }} animate={{ width: `${share}%` }} transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }} />
-                          <span className={cn("relative grid h-6 w-6 shrink-0 place-items-center rounded-lg font-mono text-[11px] font-bold", right ? "bg-mint-400 text-ink-950" : mineHere ? "bg-red-400 text-ink-950" : "border border-hairline text-content-subtle")}>
+                          <span className={cn("relative grid h-6 w-6 shrink-0 place-items-center rounded-lg font-mono text-[0.6875rem] font-bold", right ? "bg-mint-400 text-ink-950" : mineHere ? "bg-red-400 text-ink-950" : "border border-hairline text-content-subtle")}>
                             {right ? <CheckCircle2 className="h-3.5 w-3.5" /> : LETTERS[i]}
                           </span>
                           <span className="relative min-w-0 flex-1 text-content">{lang.tx(o, q.hi?.options?.[i])}</span>
-                          {mineHere && <span className={cn("relative rounded-full px-2 py-0.5 text-[10px] font-semibold", right ? "bg-mint-400/15 text-mint-300" : "bg-red-400/15 text-red-300")}>you</span>}
+                          {mineHere && <span className={cn("relative rounded-full px-2 py-0.5 text-[0.625rem] font-semibold", right ? "bg-mint-400/15 text-mint-300" : "bg-red-400/15 text-red-300")}>you</span>}
                           <span className="relative font-mono text-xs text-content-subtle">{share}%</span>
                         </div>
                       );
                     })}
                     {q.fastest && (
-                      <div className="flex items-center gap-2 rounded-xl border border-gold-400/25 bg-gold-400/[0.05] px-3 py-2 text-[12px] text-content-muted">
+                      <div className="flex items-center gap-2 rounded-xl border border-gold-400/25 bg-gold-400/[0.05] px-3 py-2 text-[0.75rem] text-content-muted">
                         <Zap className="h-3.5 w-3.5 shrink-0 text-gold-300" />
                         <Avatar src={q.fastest.image} alt={q.fastest.name} size={18} />
                         <span className="min-w-0 truncate">
@@ -1158,7 +1158,7 @@ function Standings({ results, meId }: { results: LiveResults; meId: string | nul
       <div className="overflow-x-auto">
         <table className="w-full min-w-[30rem] text-sm">
           <thead>
-            <tr className="text-left text-[10px] uppercase tracking-[0.14em] text-content-subtle">
+            <tr className="text-left text-[0.625rem] uppercase tracking-[0.14em] text-content-subtle">
               <th className="px-4 py-3 font-semibold">#</th>
               <th className="px-2 py-3 font-semibold">Player</th>
               <th className="px-2 py-3 text-right font-semibold">Score</th>

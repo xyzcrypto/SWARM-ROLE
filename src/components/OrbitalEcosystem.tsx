@@ -177,7 +177,7 @@ export function OrbitalEcosystem() {
           <div key={i} className="absolute animate-spin" style={{ inset: o.inset, animationDuration: `${o.dur}s`, animationDirection: o.dir, animationDelay: `${o.delay}s` }}>
             {/* trail (two fading dots behind the planet) */}
             <span className={`absolute top-0 h-1 w-1 -translate-y-[1px] rounded-full ${o.dot}`} style={{ left: "calc(50% - 8px)", opacity: 0.45 }} />
-            <span className={`absolute top-0 h-[3px] w-[3px] -translate-y-[1px] rounded-full ${o.dot}`} style={{ left: "calc(50% - 14px)", opacity: 0.22 }} />
+            <span className={`absolute top-0 h-[0.1875rem] w-[0.1875rem] -translate-y-[1px] rounded-full ${o.dot}`} style={{ left: "calc(50% - 14px)", opacity: 0.22 }} />
             <span className={`absolute left-1/2 top-0 -translate-x-1/2 rounded-full ${o.size} ${o.dot}`} style={{ boxShadow: `0 0 12px 2px ${o.glow}` }} />
           </div>
         ))}
@@ -214,7 +214,7 @@ export function OrbitalEcosystem() {
                 is switched off - it is navigation, not decoration. */}
             <div className="motion-decor orbit-node" style={{ animation: `floatNode ${5 + (i % 4)}s ease-in-out ${i * 0.3}s infinite` }}>
               <span
-                className={`flex items-center gap-1.5 rounded-full border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-[10px] font-semibold tracking-wide ring-1 backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-active:scale-110 sm:text-[11px] ${toneRing[n.tone]}`}
+                className={`flex items-center gap-1.5 rounded-full border border-white/10 bg-ink-900/85 px-2.5 py-1.5 text-[0.625rem] font-semibold tracking-wide ring-1 backdrop-blur-md transition-all duration-300 group-hover:scale-110 group-active:scale-110 sm:text-[0.6875rem] ${toneRing[n.tone]}`}
               >
                 <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
                 {n.label}
@@ -224,7 +224,7 @@ export function OrbitalEcosystem() {
                   the node's `desc` was readable with a mouse and by a screen
                   reader (it is in the `aria-label`), and invisible to everyone
                   else - the one audience that cannot ask for it another way. */}
-              <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-40 -translate-x-1/2 rounded-lg border border-white/10 bg-ink-900/95 px-3 py-2 text-center text-[11px] leading-snug text-zinc-300 opacity-0 shadow-elevate backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100 group-active:opacity-100">
+              <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-40 -translate-x-1/2 rounded-lg border border-white/10 bg-ink-900/95 px-3 py-2 text-center text-[0.6875rem] leading-snug text-zinc-300 opacity-0 shadow-elevate backdrop-blur-md transition-opacity duration-200 group-hover:opacity-100 group-active:opacity-100">
                 {n.desc}
               </span>
             </div>

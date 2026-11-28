@@ -32,7 +32,7 @@ export function ReadingProgress() {
   }, []);
   return (
     <div className="pointer-events-none fixed inset-x-0 top-0 z-[60]" aria-hidden>
-      <div ref={bar} className="h-[3px] origin-left bg-gradient-to-r from-gold-400 via-gold-300 to-mint-400 shadow-[0_0_12px_rgba(226,167,47,0.6)]" style={{ transform: "scaleX(0)" }} />
+      <div ref={bar} className="h-[0.1875rem] origin-left bg-gradient-to-r from-gold-400 via-gold-300 to-mint-400 shadow-[0_0_12px_rgba(226,167,47,0.6)]" style={{ transform: "scaleX(0)" }} />
     </div>
   );
 }

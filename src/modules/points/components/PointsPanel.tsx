@@ -83,7 +83,7 @@ export function PointsPanel({
           room for it. */}
       <header className="flex flex-col items-stretch gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-x-6">
         <div className="min-w-0 sm:flex-1">
-          <p className="eyebrow-glass inline-flex items-center gap-1.5 text-[11px]">
+          <p className="eyebrow-glass inline-flex items-center gap-1.5 text-[0.6875rem]">
             {Icon && <Icon className="h-3.5 w-3.5" strokeWidth={1.7} />}
             {eyebrow}
           </p>
@@ -108,7 +108,7 @@ export function PointsPanel({
         )}
       </header>
 
-      {meta && <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px]">{meta}</div>}
+      {meta && <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-[0.6875rem]">{meta}</div>}
 
       {children}
     </section>
@@ -179,9 +179,9 @@ export function Stat({
 }) {
   return (
     <div className={cn("min-w-0", align === "right" && "text-right")}>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-content-subtle">{label}</p>
+      <p className="text-[0.6875rem] font-medium uppercase tracking-wide text-content-subtle">{label}</p>
       <p className="mono mt-1 truncate text-lg font-semibold tabular-nums text-content">{value}</p>
-      {hint && <p className="mt-0.5 truncate text-[11px] text-content-subtle">{hint}</p>}
+      {hint && <p className="mt-0.5 truncate text-[0.6875rem] text-content-subtle">{hint}</p>}
     </div>
   );
 }

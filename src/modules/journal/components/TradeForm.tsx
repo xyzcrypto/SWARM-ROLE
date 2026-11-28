@@ -96,7 +96,7 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
         <CalcSegmented options={[{ value: "long", label: "Long" }, { value: "short", label: "Short" }]} value={side} onChange={setSide} />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Symbol</span>
           <input
@@ -133,7 +133,7 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
         </label>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <CalcField label="Entry price" value={price} onChange={setPrice} suffix="USD" />
         <CalcField
           label="Position size"
@@ -145,13 +145,13 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
         <CalcField label="Fee" value={fee} onChange={setFee} suffix="USD" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <CalcField label="Leverage" value={leverage} onChange={setLeverage} suffix="x" />
         <CalcField label="Stop loss" value={stopLoss} onChange={setStopLoss} suffix="USD" />
         <CalcField label="Take profit" value={takeProfit} onChange={setTakeProfit} suffix="USD" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <label className="block">
           <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Setup</span>
           <input value={setup} onChange={(e) => setSetup(e.target.value)} placeholder="Breakout" className="w-full rounded-xl border border-white/10 bg-ink-700/60 px-4 py-3 text-sm text-zinc-100 outline-none focus:border-gold-500/50 focus:ring-2 focus:ring-gold-500/20" />
@@ -184,7 +184,7 @@ export function TradeForm({ onSubmit, onCancel, busy }: { onSubmit: (t: NewTrade
       <div>
         <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-zinc-400">Visibility</span>
         <CalcSegmented options={VISIBILITIES} value={visibility} onChange={setVisibility} />
-        <p className="mt-1.5 text-[11px] text-zinc-600">
+        <p className="mt-1.5 text-[0.6875rem] text-zinc-600">
           Public trades appear on your profile&apos;s Journal Activity feed (symbol + side + win/loss only - never a dollar amount). Anonymous hides the symbol. Private stays only in your Journal.
         </p>
       </div>

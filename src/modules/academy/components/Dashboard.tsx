@@ -30,7 +30,7 @@ function WeekChart({ week }: { week: Me["week"] }) {
                 transition={{ duration: 0.8, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
               />
             </div>
-            <span className="text-[10px] uppercase tracking-wide text-content-subtle">{label}</span>
+            <span className="text-[0.625rem] uppercase tracking-wide text-content-subtle">{label}</span>
           </div>
         );
       })}
@@ -81,7 +81,7 @@ function ReviewCard({ review }: { review: Me["review"] }) {
     >
       <span className={cn("relative grid h-12 w-12 shrink-0 place-items-center rounded-2xl", due ? "bg-gold-400/20 text-gold-600 dark:text-gold-200" : "bg-white/[0.04] text-content-subtle")}>
         <RotateCcw className="h-5 w-5" />
-        {due > 0 && <span className="acad-review-badge absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 font-mono text-[10px] font-bold text-white">{due > 99 ? "99+" : due}</span>}
+        {due > 0 && <span className="acad-review-badge absolute -right-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-full bg-red-500 px-1 font-mono text-[0.625rem] font-bold text-white">{due > 99 ? "99+" : due}</span>}
       </span>
       <div className="min-w-0 flex-1">
         <Eyebrow>Mistakes review</Eyebrow>
@@ -138,7 +138,7 @@ export function Dashboard({ me }: { me: Me }) {
   return (
     <div className="mt-10 space-y-5">
       <DailyGoal me={me} onChanged={() => void reload()} />
-      <div className="grid gap-5 lg:grid-cols-[1.35fr_1fr]">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <Panel className="relative overflow-hidden">
           <div className="flex items-center gap-4">
             <Avatar src={me.user?.image ?? null} alt={me.user?.name ?? "You"} size={60} className="ring-2 ring-gold-400/40 ring-offset-2 ring-offset-ink-950" />
@@ -151,12 +151,12 @@ export function Dashboard({ me }: { me: Me }) {
               <div className="font-display text-3xl font-bold text-content">
                 <CountUp value={me.xp} />
               </div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.16em] text-content-subtle">Total XP</div>
+              <div className="text-[0.6875rem] font-semibold uppercase tracking-[0.16em] text-content-subtle">Total XP</div>
             </div>
           </div>
           <div className="mt-5">
             <ProgressBar value={me.level.progress} className="h-2.5" />
-            <div className="mt-2 flex justify-between text-[11px] text-content-subtle">
+            <div className="mt-2 flex justify-between text-[0.6875rem] text-content-subtle">
               <span>{fmt(me.level.floor)} XP</span>
               <span>{me.level.next == null ? "Max level" : `${fmt(me.level.toNext)} XP to ${me.levels[me.level.level]?.name ?? "next level"}`}</span>
             </div>
@@ -180,10 +180,10 @@ export function Dashboard({ me }: { me: Me }) {
           <div className="mt-4 grid grid-cols-2 gap-2">
             {(["daily", "weekly", "monthly", "alltime"] as const).map((p) => (
               <Link key={p} href={`/academy/leaderboard?period=${p}`} className="rounded-xl bg-white/[0.025] px-3 py-2 transition-colors hover:bg-white/[0.05] active:bg-white/[0.05]">
-                <div className="text-[11px] font-medium text-content-subtle">{BOARD_LABEL[p]}</div>
+                <div className="text-[0.6875rem] font-medium text-content-subtle">{BOARD_LABEL[p]}</div>
                 <div className="mt-0.5 flex items-baseline justify-between gap-2">
                   <span className="font-display text-base font-semibold text-content">{me.standing[p]?.rank ? `#${fmt(me.standing[p].rank!)}` : "Unranked"}</span>
-                  <span className="font-mono text-[11px] text-content-subtle">{fmt(me.standing[p]?.xp ?? 0)} XP</span>
+                  <span className="font-mono text-[0.6875rem] text-content-subtle">{fmt(me.standing[p]?.xp ?? 0)} XP</span>
                 </div>
               </Link>
             ))}
@@ -191,7 +191,7 @@ export function Dashboard({ me }: { me: Me }) {
         </Panel>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Panel className="lg:col-span-1">
           <Eyebrow>Continue learning</Eyebrow>
           {me.active ? (
@@ -212,7 +212,7 @@ export function Dashboard({ me }: { me: Me }) {
               <div className="mt-1 font-display text-lg font-semibold leading-snug text-content">{me.next.module}</div>
               <div className="mt-2 flex items-center gap-2">
                 <Pill tone={DIFF_TONE[me.next.level]}>{LEVEL_LABEL[me.next.level]}</Pill>
-                <span className="text-[11px] text-content-subtle">{me.next.minutes} min</span>
+                <span className="text-[0.6875rem] text-content-subtle">{me.next.minutes} min</span>
                 <ArrowRight className="ml-auto h-4 w-4 text-gold-300 transition-transform group-hover:translate-x-0.5 group-active:translate-x-0.5" />
               </div>
             </Link>
@@ -220,7 +220,7 @@ export function Dashboard({ me }: { me: Me }) {
             <div className="mt-3 rounded-2xl border border-mint-400/30 p-4 text-sm text-content-muted">Every lesson complete. Remarkable. Keep sharp with the daily challenge.</div>
           )}
           <div className="mt-4">
-            <div className="flex justify-between text-[11px] text-content-subtle">
+            <div className="flex justify-between text-[0.6875rem] text-content-subtle">
               <span>Learning progress</span>
               <span>
                 {me.progress.done}/{me.progress.total} lessons
@@ -229,7 +229,7 @@ export function Dashboard({ me }: { me: Me }) {
             <ProgressBar value={me.progress.total ? me.progress.done / me.progress.total : 0} tone="mint" className="mt-1.5" />
           </div>
         </Panel>
-        <div className="grid gap-3 sm:grid-cols-2 lg:col-span-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:col-span-2">
           <ReviewCard review={me.review} />
           {me.challenges.length > 0 && <MyChallenges list={me.challenges} />}
           <ChallengeCard kind="daily" state={me.daily} href="/academy/quiz?mode=daily" />
@@ -271,11 +271,11 @@ export function Dashboard({ me }: { me: Me }) {
               className={cn("relative rounded-2xl border p-3.5 transition-colors", a.earnedAt ? "border-gold-400/40 bg-gold-400/[0.06]" : "border-hairline opacity-60")}
             >
               <div className={cn("grid h-9 w-9 place-items-center rounded-xl", a.earnedAt ? "bg-gold-400/15 text-gold-200" : "bg-white/[0.04] text-content-subtle")}>
-                {a.earnedAt ? <Icon name={a.icon} className="h-4.5 w-4.5 h-[18px] w-[18px]" /> : <Lock className="h-4 w-4" />}
+                {a.earnedAt ? <Icon name={a.icon} className="h-4.5 w-4.5 h-[1.125rem] w-[1.125rem]" /> : <Lock className="h-4 w-4" />}
               </div>
-              <div className="mt-2.5 text-[13px] font-semibold leading-snug text-content">{a.title}</div>
-              <div className="mt-0.5 text-[11px] leading-snug text-content-subtle">{a.earnedAt ? `Earned ${utcDate(a.earnedAt)}` : a.description}</div>
-              <span className="absolute right-3 top-3 font-mono text-[10px] text-gold-300/80">+{a.xp}</span>
+              <div className="mt-2.5 text-[0.8125rem] font-semibold leading-snug text-content">{a.title}</div>
+              <div className="mt-0.5 text-[0.6875rem] leading-snug text-content-subtle">{a.earnedAt ? `Earned ${utcDate(a.earnedAt)}` : a.description}</div>
+              <span className="absolute right-3 top-3 font-mono text-[0.625rem] text-gold-300/80">+{a.xp}</span>
             </div>
           ))}
         </div>
@@ -289,13 +289,13 @@ export function Dashboard({ me }: { me: Me }) {
               View all
             </Link>
           </div>
-          <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
             {me.certificates.slice(0, 3).map((c) => (
               <Link key={c.code} href={`/academy/certificate/${c.code}`} className="flex items-center gap-3 rounded-2xl border border-gold-400/30 p-3.5 hover:border-gold-400/60">
                 <Award className="h-6 w-6 text-gold-300" />
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-content">{c.title}</div>
-                  <div className="text-[11px] text-content-subtle">
+                  <div className="text-[0.6875rem] text-content-subtle">
                     {c.status === "pending" ? "Awaiting approval" : `#${c.rank} · ${utcDate(c.issuedAt)}`}
                   </div>
                 </div>
