@@ -50,29 +50,57 @@ export async function notifyNewPost(post: {
   slug: string;
   authorId?: string | null;
 }): Promise<void> {
-  // Cap the fan-out and insert in batches so a large user base can't turn a
-  // single publish into one giant query/insert (bounded memory + transaction
-  // size). Behavior is identical at small scale.
-  const MAX_RECIPIENTS = 50_000;
-  const BATCH = 500;
+  // ONE statement, done inside the database. This used to load up to 50,000
+  // user ids into the function and send them back in up to 100 sequential
+  // `createMany` round trips, all while the admin's publish request waited
+  // (review M5, 2026-11-28). The cap stays so one publish stays bounded.
+  //
+  // Ids are "c" + 32 hex chars, so they pass isCuid() like Prisma's own. Time
+  // is written as UTC explicitly: the column is `timestamp without time zone`
+  // and Prisma stores UTC there, whatever the session's TimeZone is.
   try {
-    const users = await prisma.user.findMany({ select: { id: true }, take: MAX_RECIPIENTS });
-    const recipients = users.filter((u) => u.id !== post.authorId);
-    if (recipients.length === 0) return;
-    for (let i = 0; i < recipients.length; i += BATCH) {
-      await prisma.notification.createMany({
-        data: recipients.slice(i, i + BATCH).map((u) => ({
-          userId: u.id,
-          type: "new_post" as const,
-          title: "New research published",
-          body: post.title,
-          href: `/research/${post.slug}`,
-        })),
-      });
-    }
-    pingClients();
+    const sent = await prisma.$executeRaw`
+      INSERT INTO "Notification" ("id", "userId", "type", "title", "body", "href", "read", "createdAt")
+      SELECT 'c' || replace(gen_random_uuid()::text, '-', ''), u."id", 'new_post', ${"New research published"}::text,
+             ${post.title}::text, ${`/research/${post.slug}`}::text, false, (now() AT TIME ZONE 'UTC')
+      FROM "User" u
+      WHERE u."id" <> ${post.authorId ?? ""}::text
+      LIMIT ${NEW_POST_MAX_RECIPIENTS}::int`;
+    if (sent > 0) pingClients();
   } catch (err) {
     console.error("[notifications] notifyNewPost failed", err);
+  }
+}
+
+export const NEW_POST_MAX_RECIPIENTS = 50_000;
+
+/** Read notifications are kept this long. */
+export const KEEP_READ_DAYS = 30;
+/** Every notification, read or not, is kept at most this long. */
+export const KEEP_ANY_DAYS = 90;
+/** Rows removed per call, so a first run on a large table stays one short statement. */
+export const PRUNE_BATCH = 20_000;
+
+/**
+ * Retention for the `Notification` table, which had none: it grew by
+ * members x posts for ever (review M5). Deletes read rows older than
+ * KEEP_READ_DAYS and any row older than KEEP_ANY_DAYS, at most PRUNE_BATCH per
+ * call. Written as `createdAt < 30d AND (read OR createdAt < 90d)`, which is
+ * the same set, so the `createdAt` index bounds the scan. Called by the daily
+ * cron and after every publish. Never throws; returns rows removed.
+ */
+export async function pruneNotifications(): Promise<number> {
+  try {
+    return await prisma.$executeRaw`
+      DELETE FROM "Notification" WHERE "id" IN (
+        SELECT "id" FROM "Notification"
+        WHERE "createdAt" < (now() AT TIME ZONE 'UTC') - make_interval(days => ${KEEP_READ_DAYS}::int)
+          AND ("read" = true OR "createdAt" < (now() AT TIME ZONE 'UTC') - make_interval(days => ${KEEP_ANY_DAYS}::int))
+        LIMIT ${PRUNE_BATCH}::int
+      )`;
+  } catch (err) {
+    console.error("[notifications] prune failed", err);
+    return 0;
   }
 }
 

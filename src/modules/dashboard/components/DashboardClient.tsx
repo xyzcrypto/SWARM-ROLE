@@ -792,6 +792,8 @@ type ModMessage = {
 };
 
 type ReportRow = {
+  /** "dm": a member reported in a DM (`Report`). "chat": a community-room message (`ChatReport`). */
+  kind: "dm" | "chat";
   id: string;
   createdAt: string;
   reason: string;
@@ -799,9 +801,10 @@ type ReportRow = {
   status: string;
   reporter: { id: string; name: string | null; username: string | null; email: string };
   subject: { id: string; name: string | null; username: string | null; email: string };
-  /** The DM the reporter cited, if any. Deleted messages still appear - that is
-      why DM deletes are soft. */
-  message: { body: string; deleted: boolean; createdAt: string } | null;
+  /** The message the report is about, if any. Deleted messages still appear - that
+      is why DM deletes are soft. `id` is set for chat messages, which staff can
+      hide from here; `hidden` is whether it already is. */
+  message: { id: string | null; body: string; deleted: boolean; hidden: boolean; createdAt: string } | null;
 };
 
 function ModerationPanel() {
@@ -915,14 +918,35 @@ function ModerationPanel() {
   const hiddenCount = hiddenMessages.length;
   const aiHiddenCount = hiddenMessages.filter((m) => m.hiddenBy === "ai").length;
 
-  async function setReportReviewed(id: string, status: "open" | "reviewed") {
+  // Hide a reported chat message without leaving the queue. Same moderation
+  // action as the Chat messages tab, so it broadcasts to live clients too.
+  async function hideReportedMessage(reportId: string, messageId: string) {
+    setBusy(reportId);
+    setError("");
+    try {
+      const res = await fetch("/api/chat/messages/moderate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: messageId, action: "hide" }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || "Failed.");
+      setReports((arr) => arr.map((x) => (x.message?.id === messageId ? { ...x, message: { ...x.message, hidden: true } } : x)));
+    } catch (e: any) {
+      setError(e.message || "Failed.");
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function setReportReviewed(r: ReportRow, status: "open" | "reviewed") {
+    const id = r.id;
     setBusy(id);
     setError("");
     try {
       const res = await fetch("/api/reports", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, status }),
+        body: JSON.stringify({ id, status, kind: r.kind }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d.error || "Failed.");
@@ -1021,6 +1045,9 @@ function ModerationPanel() {
                   <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-red-300 ring-1 ring-red-500/25">
                     {r.reason}
                   </span>
+                  <span className="rounded-full bg-white/5 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-400 ring-1 ring-white/10">
+                    {r.kind === "chat" ? "Community chat" : "DM"}
+                  </span>
                   <span className="font-medium text-zinc-300">{r.subject.name ?? "Member"}</span>
                   {/* The handle is the way in: an admin reading a report almost
                       always wants to look at the account next. */}
@@ -1054,20 +1081,25 @@ function ModerationPanel() {
                 {r.message && (
                   <div className="mt-2 rounded-xl border border-white/10 bg-black/20 p-3">
                     <p className="mono mb-1 text-[10px] uppercase tracking-wider text-zinc-600">
-                      Reported message{r.message.deleted && " · deleted by sender"}
+                      Reported message{r.message.deleted ? " · deleted by sender" : r.message.hidden ? " · hidden" : ""}
                     </p>
                     <p className="whitespace-pre-wrap break-words text-[13px] text-zinc-300">{r.message.body || "(empty)"}</p>
                   </div>
                 )}
 
-                <div className="mt-3 flex gap-3 text-xs">
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs">
                   {r.status === "open" ? (
-                    <button onClick={() => setReportReviewed(r.id, "reviewed")} disabled={busy === r.id} className="font-medium text-mint-300 hover:underline disabled:opacity-50">
+                    <button onClick={() => setReportReviewed(r, "reviewed")} disabled={busy === r.id} className="font-medium text-mint-300 hover:underline disabled:opacity-50">
                       {busy === r.id ? "…" : "Mark reviewed"}
                     </button>
                   ) : (
-                    <button onClick={() => setReportReviewed(r.id, "open")} disabled={busy === r.id} className="font-medium text-amber-300 hover:underline disabled:opacity-50">
+                    <button onClick={() => setReportReviewed(r, "open")} disabled={busy === r.id} className="font-medium text-amber-300 hover:underline disabled:opacity-50">
                       {busy === r.id ? "…" : "Reopen"}
+                    </button>
+                  )}
+                  {r.kind === "chat" && r.message?.id && !r.message.hidden && (
+                    <button onClick={() => hideReportedMessage(r.id, r.message!.id!)} disabled={busy === r.id} className="font-medium text-red-300 hover:underline disabled:opacity-50">
+                      Hide message
                     </button>
                   )}
                 </div>

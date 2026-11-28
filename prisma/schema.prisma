@@ -184,6 +184,7 @@ model Notification {
 
   @@index([userId, read, createdAt]) // unread badge + recent list per user
   @@index([userId, createdAt]) // recent list ORDER BY createdAt (Phase 1)
+  @@index([createdAt]) // retention: pruneNotifications() scans by age, across users
 }
 
 // Community chat — single public room, plain-text messages. `status` enables

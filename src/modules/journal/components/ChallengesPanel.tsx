@@ -14,6 +14,7 @@ import {
   progressTowardTarget,
   totalDurationDays,
   DURATION_PRESETS,
+  LEADERBOARD_MAX,
   type LeaderboardEntry,
 } from "@/lib/challenge";
 
@@ -43,6 +44,8 @@ type ChallengeDetail = {
   challenge: ChallengeSummary;
   milestones: { id: string; label: string; targetDate: string | null; achieved: boolean }[];
   leaderboard: LeaderboardEntry[];
+  /** Everyone ranked; the list itself is the top 50 plus your own row. */
+  leaderboardTotal?: number;
   myTrades: ChallengeTradeDetail[];
   dayNotes: DayNote[];
   isParticipant: boolean;
@@ -211,12 +214,13 @@ function ChallengeCard({ challenge, expanded, onToggle }: { challenge: Challenge
                 <div>
                   <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-zinc-500">
                     <Trophy className="h-3.5 w-3.5 text-gold-400" /> Leaderboard
+                    {(detail.leaderboardTotal ?? 0) > detail.leaderboard.length && <span className="font-normal normal-case tracking-normal text-zinc-600">· top {LEADERBOARD_MAX} of {(detail.leaderboardTotal ?? 0).toLocaleString("en-US")}</span>}
                   </h3>
                   <div className="space-y-1.5">
                     {detail.leaderboard.map((l, i) => (
                       <div key={l.userId} className="flex items-center justify-between rounded-lg bg-white/[0.02] px-3 py-2 text-xs">
                         <span className="text-zinc-300">
-                          <span className="mono text-zinc-600">#{i + 1}</span> {l.name}
+                          <span className="mono text-zinc-600">#{l.rank ?? i + 1}</span> {l.name}
                         </span>
                         <span className={cn("mono", l.returnPct >= 0 ? "text-mint-300" : "text-rose-300")}>{l.returnPct.toFixed(1)}%</span>
                       </div>

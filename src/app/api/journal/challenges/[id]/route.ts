@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, getSessionUser, isCuid } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { journalLimitsFor } from "@/lib/journal-limits";
-import { buildLeaderboard, type ChallengeTrade } from "@/lib/challenge";
+import { rankStandings, type LeaderboardEntry, type Standing } from "@modules/tools/lib/challenge";
+import { challengeStandings } from "@modules/journal/lib/challenge-board";
 import { broadcastEvent, userChannel } from "@/lib/realtime";
 import { activityForChallengeCompleted, challengeActivitySource, challengeActivityWhere } from "@/lib/journal-activity";
 
@@ -12,8 +13,8 @@ export const dynamic = "force-dynamic";
 
 // GET /api/journal/challenges/[id] - challenge detail + a leaderboard.
 // PRIVACY: other participants' raw trade fills never leave the server - only
-// the aggregated {capital, returnPct, trades count} computed by
-// buildLeaderboard() is returned. The caller's OWN trades come back in full.
+// the aggregated {capital, returnPct, trades count} summed by
+// challengeStandings() is returned. The caller's OWN trades come back in full.
 export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
   try {
@@ -21,16 +22,22 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
     if (!me) return fail("Please log in.", 401);
     if (!isCuid(params.id)) return fail("Invalid challenge id.", 400);
 
-    const challenge = await prisma.challenge.findUnique({
-      where: { id: params.id },
-      include: {
-        participants: { include: { user: { select: { id: true, name: true, username: true } } } },
-        milestones: { orderBy: { createdAt: "asc" } },
-      },
-    });
+    // No participant list here any more: it was every participant with their
+    // name, sent to every viewer, on top of every participant's every fill
+    // (review M10). Membership is one indexed lookup; the board is summed in SQL.
+    const [challenge, membership] = await Promise.all([
+      prisma.challenge.findUnique({
+        where: { id: params.id },
+        include: {
+          milestones: { orderBy: { createdAt: "asc" } },
+          _count: { select: { participants: true } },
+        },
+      }),
+      prisma.challengeParticipant.findUnique({ where: { challengeId_userId: { challengeId: params.id, userId: me.id } }, select: { id: true } }),
+    ]);
     if (!challenge) return fail("Not found.", 404);
 
-    const isParticipant = challenge.creatorId === me.id || challenge.participants.some((p) => p.userId === me.id);
+    const isParticipant = challenge.creatorId === me.id || !!membership;
     if (challenge.visibility === "private" && !isParticipant) return fail("Not found.", 404);
 
     // These three are mutually independent - each keys off `challenge.id` (and
@@ -38,13 +45,8 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
     // the other, so this handler paid three full round trips to Mumbai in series
     // where one wall-clock trip would do. Only the `challenge` lookup above has
     // to come first, because the visibility gate depends on it.
-    const [allTrades, myTrades, dayNotes] = await Promise.all([
-      prisma.trade
-        .findMany({
-          where: { challengeId: challenge.id },
-          select: { userId: true, side: true, fills: { select: { kind: true, price: true, size: true, fee: true } } },
-        })
-        .catch(() => [] as any[]),
+    const [standings, myTrades, dayNotes] = await Promise.all([
+      challengeStandings(challenge.id).catch(() => [] as Standing[]),
       prisma.trade
         .findMany({
           where: { challengeId: challenge.id, userId: me.id },
@@ -57,19 +59,15 @@ export async function GET(_req: Request, props: { params: Promise<{ id: string }
         .catch(() => [] as any[]), // tolerate a not-yet-migrated DB -> empty
     ]);
 
-    const tradesByUserId = new Map<string, ChallengeTrade[]>();
-    for (const t of allTrades) {
-      const arr = tradesByUserId.get(t.userId) ?? [];
-      arr.push({ side: t.side, fills: t.fills });
-      tradesByUserId.set(t.userId, arr);
-    }
-    const participants = challenge.participants.map((p) => ({
-      userId: p.userId,
-      name: p.user.name || p.user.username || "Trader",
-    }));
-    const leaderboard = buildLeaderboard(participants, tradesByUserId, challenge.startingCapital);
+    // Top LEADERBOARD_MAX plus the caller's own row; names only for those.
+    const { entries, total } = rankStandings(standings, challenge.startingCapital, me.id);
+    const users = entries.length
+      ? await prisma.user.findMany({ where: { id: { in: entries.map((e) => e.userId) } }, select: { id: true, name: true, username: true } })
+      : [];
+    const nameOf = new Map(users.map((u) => [u.id, u.name || u.username || "Trader"]));
+    const leaderboard: LeaderboardEntry[] = entries.map((e) => ({ ...e, name: nameOf.get(e.userId) ?? "Trader" }));
 
-    return ok({ challenge, milestones: challenge.milestones, leaderboard, myTrades, dayNotes, isParticipant, isOwner: challenge.creatorId === me.id });
+    return ok({ challenge, milestones: challenge.milestones, leaderboard, leaderboardTotal: total, myTrades, dayNotes, isParticipant, isOwner: challenge.creatorId === me.id });
   } catch (err) {
     return handleError(err, "journal:challenges:get-one");
   }

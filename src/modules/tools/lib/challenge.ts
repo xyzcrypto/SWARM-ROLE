@@ -71,6 +71,8 @@ export type LeaderboardEntry = {
   capital: number;
   returnPct: number;
   trades: number;
+  /** 1-based. Set by the detail route, where the list can be cut short. */
+  rank?: number;
 };
 
 /** Ranks participants by return %, best first. `tradesByUserId` should already be scoped to this challenge. */
@@ -87,6 +89,33 @@ export function buildLeaderboard(
       return { userId: p.userId, name: p.name, capital, returnPct: returnPct(startingCapital, capital), trades: trades.length };
     })
     .sort((a, b) => b.returnPct - a.returnPct);
+}
+
+/** How many leaderboard rows a challenge detail returns (plus the caller's own, if lower). */
+export const LEADERBOARD_MAX = 50;
+
+/** One participant's totals, already aggregated by the database (see challengeStandings). */
+export type Standing = { userId: string; trades: number; pnl: number };
+
+/**
+ * The same ranking as buildLeaderboard, over totals the database already
+ * summed, so a challenge view no longer loads every participant's every fill.
+ * Returns the top `max` plus the caller's own row (with its true rank) when it
+ * falls below. Order matches buildLeaderboard: return % descending, ties keep
+ * the input order (the query orders ties by join time).
+ */
+export function rankStandings(rows: Standing[], startingCapital: number, meId: string, max = LEADERBOARD_MAX) {
+  const ranked = rows
+    .map((r, i) => {
+      const capital = currentCapital(startingCapital, r.pnl);
+      return { userId: r.userId, trades: r.trades, capital, returnPct: returnPct(startingCapital, capital), i };
+    })
+    .sort((a, b) => b.returnPct - a.returnPct || a.i - b.i)
+    .map((r, idx) => ({ userId: r.userId, trades: r.trades, capital: r.capital, returnPct: r.returnPct, rank: idx + 1 }));
+  const top = ranked.slice(0, max);
+  const mine = ranked.find((r) => r.userId === meId);
+  if (mine && mine.rank > max) top.push(mine);
+  return { entries: top, total: ranked.length };
 }
 
 export const DURATION_PRESETS = [

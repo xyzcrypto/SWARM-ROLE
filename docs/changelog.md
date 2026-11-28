@@ -5,6 +5,73 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-28 (191) — Scale follow-ups: publish fan-out, notification retention, challenge board, chat reports
+
+The six follow-ups (190) left open. Each one was run end to end on a local database
+before it was written up.
+
+**M5. Publishing no longer waits on the fan-out.**
+- **Before:** a publish loaded up to 50,000 user ids into the function, sent them back
+  in up to 100 sequential `createMany` calls, and then made an AI call, all before
+  the admin got a response.
+- **Fan-out:** one `INSERT ... SELECT` inside the database, capped at 50,000. It runs
+  in `after()`, with the AI summary, once the response has gone. Ids are `c` + 32
+  hex characters, so they pass `isCuid()`. Time is written as explicit UTC, because
+  the column has no time zone.
+- **What's New:** the entry is still awaited, and it is now created *before* the
+  homepage is revalidated, so the revalidated page already lists it.
+- **Measured locally:** publish answered in 41 ms. All 8 other members got the
+  notification.
+- **Retention:** the `Notification` table had none. `pruneNotifications()` deletes
+  read rows older than 30 days and any row older than 90 days, at most 20,000 per
+  call. It is backed by a new `@@index([createdAt])`. It runs after every publish and
+  in the daily `/api/academy/remind` cron, before the push check, so it still runs
+  when push is not configured.
+
+**M10. The challenge detail is summed in SQL.**
+- **Before:** every view loaded every participant's every trade with all fills,
+  added them up in JS, and sent every participant's name to the viewer.
+- **Now:** `challengeStandings()` returns one row per participant (P&L and trade
+  count) using the same math as before:
+  - average cost;
+  - net of fees;
+  - open trades excluded;
+  - only participants are counted.
+- **Response:** the top 50 plus your own row with its real rank (`rank`,
+  `leaderboardTotal`). The list shows "top 50 of N" when it is cut short.
+- **Verified against the old JS** on a seeded challenge (long, short, partial, open,
+  no fills, and a non-participant's trade): identical capital, return % and trade
+  counts. A 200-case property test checks the rearranged formula against
+  `realizedPnl`.
+
+**L2.** `/api/live/stats` is removed. Nothing called it (the owner had the counters
+taken off the site), but it still counted 90 days of page views for anyone, behind a
+cache a query string could bypass.
+
+**L3. Feedback admin.**
+- The list no longer selects `image`. When Storage is off or failing, screenshots are
+  stored inline at up to ~700 KB each, so 50 rows could reach tens of MB.
+- Inline screenshots now come back as a link to `/api/admin/feedback/image?id=`:
+  `feedback:manage` only, `private`, `nosniff`, PNG/JPEG/WebP only, loaded lazily.
+  Linked screenshots are unchanged.
+
+**L4. Link previews** are cached `private` (in the browser), not `public, s-maxage`.
+A shared cache never runs the handler, so anonymous callers could read any cached
+preview past the sign-in gate. Previews are still shared through the server's data
+cache, so a second member asking about the same link costs one invocation and no
+outbound fetch.
+
+**L5. Chat reports reach staff.** `ChatReport` rows were written and never read.
+- They now appear in Dashboard → Moderation → Reports alongside DM reports, tagged
+  "Community chat", with the message and masked emails.
+- Staff can mark one reviewed, reopen it, or hide the message from the queue (the
+  same moderation action, broadcast to live clients).
+
+Tests: `scale-followups-2026-11.test.ts` (new). `chat-features-v3` was updated for
+private link-preview caching.
+
+---
+
 ## 2026-11-28 (190) — Security + scale: fixes from a review of all API routes
 
 A read-only review of all 146 API routes found 22 issues: 0 Critical, 6 High, 11 Medium

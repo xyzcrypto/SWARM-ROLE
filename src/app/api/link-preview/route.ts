@@ -29,15 +29,21 @@ const json = (body: unknown, status: number, cache: string) =>
 // GET /api/link-preview?url=... - title/description for a link in a message.
 //
 // Signed-in only, so this is not an open fetch-anything proxy for the internet.
-// The answer is the same for everyone who asks about the same URL, so it is
-// cached at the edge; only successes are, so a transient failure is retried.
+//
+// ⚠️ Cached PRIVATELY (the browser), never at the edge. It used to send
+// `public, s-maxage=86400`, and a shared cache does not run this handler: any
+// anonymous caller got every preview someone had already asked for, so the
+// sign-in gate did not hold (review L4). Sharing still happens one layer down -
+// `previewFor` is a data cache keyed by URL - so a second member asking about
+// the same link costs one invocation and no outbound fetch. Only successes are
+// kept for long, so a transient failure is retried.
 export async function GET(req: Request) {
   const me = await getSessionUser();
   if (!me) return json({ error: "Please log in." }, 401, "private, no-store");
 
   const raw = new URL(req.url).searchParams.get("url") ?? "";
   const target = raw.length <= 2048 ? isFetchableUrl(raw) : null;
-  if (!target) return json({ preview: null }, 200, "public, s-maxage=86400");
+  if (!target) return json({ preview: null }, 200, `private, max-age=${TTL}`);
 
   // Only a MISS reaches here, but a miss is an outbound fetch, so it is
   // limited on both keys like anything else a person can make the server do.
@@ -54,6 +60,6 @@ export async function GET(req: Request) {
   return json(
     { preview },
     200,
-    preview ? `public, s-maxage=${TTL}, stale-while-revalidate=${TTL * 7}` : "public, s-maxage=3600"
+    preview ? `private, max-age=${TTL}` : "private, max-age=3600"
   );
 }

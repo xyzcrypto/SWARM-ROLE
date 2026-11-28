@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { checkCronAuth, cronAuthFailure } from "@/core/auth/cron-auth";
 import { pushEnabled, sendPush } from "@/lib/push";
 import { dayKey, periodBounds } from "@modules/academy/lib/engine";
+import { pruneNotifications } from "@modules/notifications/lib/notifications";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +23,11 @@ export async function GET(req: Request) {
       const { message, status } = cronAuthFailure(auth.reason);
       return fail(message, status);
     }
-    if (!pushEnabled) return ok({ skipped: "push not configured" });
+    // The site's only daily job (Hobby cron budget), so it also carries the
+    // notification retention sweep. Before the push check: pruning must not
+    // depend on push being configured.
+    const pruned = await pruneNotifications();
+    if (!pushEnabled) return ok({ skipped: "push not configured", pruned });
 
     const now = Date.now();
     const today = dayKey(now);
@@ -33,7 +38,7 @@ export async function GET(req: Request) {
       orderBy: { streak: "desc" },
       take: MAX,
     });
-    if (!atRisk.length) return ok({ sent: 0, atRisk: 0 });
+    if (!atRisk.length) return ok({ sent: 0, atRisk: 0, pruned });
 
     const streakOf = new Map(atRisk.map((p) => [p.userId, p.streak]));
     const subs = await prisma.pushSubscription.findMany({
@@ -59,7 +64,7 @@ export async function GET(req: Request) {
       else if (r === "gone") dead.push(subs[i].id);
     });
     if (dead.length) await prisma.pushSubscription.deleteMany({ where: { id: { in: dead } } });
-    return ok({ sent, atRisk: atRisk.length, devices: subs.length, removed: dead.length });
+    return ok({ sent, atRisk: atRisk.length, devices: subs.length, removed: dead.length, pruned });
   } catch (err) {
     return handleError(err, "academy:remind");
   }
