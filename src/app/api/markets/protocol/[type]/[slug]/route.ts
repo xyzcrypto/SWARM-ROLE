@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { iconSrc } from "@shared/utils/img";
 
 // Protocol summary for the Markets protocol detail page (DeFiLlama, keyless).
 // `type` ∈ derivatives | dexs | fees; `slug` is sanitized to DeFiLlama's charset
@@ -32,7 +33,7 @@ export async function GET(_req: Request, props: { params: Promise<{ type: string
       type,
       slug,
       name: String(j?.name ?? slug),
-      logo: typeof j?.logo === "string" ? j.logo : null,
+      logo: typeof j?.logo === "string" ? iconSrc(j.logo, 96) : null,
       metric: type === "fees" ? "fees" : "volume",
       total24h: Number(j?.total24h) || 0,
       total7d: Number(j?.total7d) || 0,

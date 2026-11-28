@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bookmark, ExternalLink, Loader2, Trash2 } from "lucide-react";
 import { cn, formatDateTime } from "@/lib/utils";
+import { photoFallback, photoSrc } from "@shared/utils/img";
 
 type SavedItem = {
   url: string;
@@ -139,11 +140,12 @@ export function SavedClient() {
                 {i.image && (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={i.image}
+                    src={photoSrc(i.image, 240) ?? i.image}
+                    data-orig={i.image}
                     alt=""
                     loading="lazy"
                     className="hidden h-20 w-28 shrink-0 rounded-xl border border-hairline object-cover sm:block"
-                    onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                    onError={photoFallback((img) => (img.style.display = "none"))}
                   />
                 )}
 

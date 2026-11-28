@@ -1,6 +1,7 @@
 "use client";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { whenIdle } from "@shared/hooks/useIdleGate";
 
 let cached: Promise<SupabaseClient> | null = null;
 
@@ -19,7 +20,10 @@ let cached: Promise<SupabaseClient> | null = null;
  */
 export function getRealtimeClient(url: string, anonKey: string): Promise<SupabaseClient> {
   if (!cached) {
-    cached = import("@supabase/supabase-js").then(({ createClient }) =>
+    // Waits for the page to finish loading first (see useIdleGate): the
+    // realtime library and its WebSocket used to start downloading in the
+    // same seconds as the page's own data on every route.
+    cached = whenIdle().then(() => import("@supabase/supabase-js")).then(({ createClient }) =>
       createClient(url, anonKey, {
         auth: { persistSession: false, autoRefreshToken: false },
         realtime: { reconnectAfterMs: (tries: number) => Math.min(1000 * 2 ** tries, 60_000) },

@@ -30,6 +30,7 @@ import {
   NewsHeroIntro, HeroNetwork, TrendingTopics, HighImpactPanel, XyzAiBand, NewsletterPanel, CommunityPanel,
   NewsSheet, DiscoverSwitch, ImpactIcon,
 } from "./NewsLayout";
+import { photoSrc } from "@shared/utils/img";
 
 /**
  * The topics that stay visible in the chip row. The full taxonomy is
@@ -69,11 +70,13 @@ type Resp = { items: NewsItem[]; hasMore: boolean; live: boolean; page: number }
  * element (the reader keys on `item.id`) starts clean, which is right - a new
  * story's image has not failed yet.
  */
-function SafeImg({ src, ...rest }: Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src"> & { src?: string | null }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) return null;
+function SafeImg({ src, photo, ...rest }: Omit<React.ImgHTMLAttributes<HTMLImageElement>, "src"> & { src?: string | null; photo?: number }) {
+  // 0 = resized copy (photos only), 1 = the original, 2 = give up.
+  const [stage, setStage] = useState(0);
+  if (!src || stage > 1) return null;
+  const url = photo && stage === 0 ? photoSrc(src, photo) ?? src : src;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="" {...rest} onError={() => setFailed(true)} />;
+  return <img src={url} alt="" {...rest} onError={() => setStage((s) => (photo && s === 0 && url !== src ? 1 : 2))} />;
 }
 const SAVED_KEY = "xyz:news:saved"; // guests: full saved stories in localStorage
 
@@ -1312,6 +1315,7 @@ const NewsCard = memo(function NewsCard({
   const [why, setWhy] = useState<{ loading: boolean; text: string | null; err: string | null }>({ loading: false, text: null, err: null });
   const [digest, setDigest] = useState<{ loading: boolean; text: string | null; err: string | null; meta?: BriefingMeta; /** Deltas still arriving; `loading` ends at the first word, this at the last. */ streaming?: boolean }>({ loading: false, text: null, err: null });
   const [heroFailed, setHeroFailed] = useState(false);
+  const [heroOrig, setHeroOrig] = useState(false);
 
   const share = () => shareStory(item);
 
@@ -1398,7 +1402,15 @@ const NewsCard = memo(function NewsCard({
     <button onClick={open} className={cn("group/img relative block shrink-0 overflow-hidden bg-surface-2", cls)} aria-label={`Read: ${item.title}`}>
       {item.image && !heroFailed && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={item.image} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-[1.04] group-active/card:scale-[1.04]" onError={() => setHeroFailed(true)} />
+        <img
+          src={heroOrig ? item.image : photoSrc(item.image, variant === "row" ? 320 : 720) ?? item.image}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-[1.04] group-active/card:scale-[1.04]"
+          // Resized copy first, then the original, then the branded banner.
+          onError={() => (heroOrig ? setHeroFailed(true) : setHeroOrig(true))}
+        />
       )}
       {(!item.image || heroFailed) && <StoryBanner item={item} compact={variant === "row"} />}
     </button>
@@ -1894,7 +1906,7 @@ function NewsReader({
           onScroll={onBodyScroll}
         >
           <motion.div key={item.id} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}>
-          <SafeImg src={item.image} decoding="async" className="h-48 w-full object-cover sm:h-60" />
+          <SafeImg src={item.image} photo={960} decoding="async" className="h-48 w-full object-cover sm:h-60" />
           <div className="p-4 sm:p-6">
             <div className="mb-3 flex flex-wrap items-center gap-1.5">
               <span className="rounded-full bg-gold-500/10 px-2 py-0.5 text-[10px] font-medium text-gold-200">{item.category}</span>
@@ -1971,10 +1983,12 @@ function NewsReader({
  * white text with a `drop-shadow`, so it survived; the hero just looked broken.
  */
 function BreakingImage({ src }: { src: string | null }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) return <div className="h-full w-full bg-gradient-to-br from-gold-500/25 via-ink-950 to-ink-950" />;
+  // Resized copy first, then the original, then the gradient.
+  const [stage, setStage] = useState(0);
+  if (!src || stage > 1) return <div className="h-full w-full bg-gradient-to-br from-gold-500/25 via-ink-950 to-ink-950" />;
+  const url = stage === 0 ? photoSrc(src, 1080) ?? src : src;
   // eslint-disable-next-line @next/next/no-img-element
-  return <img src={src} alt="" decoding="async" className="h-full w-full object-cover" onError={() => setFailed(true)} />;
+  return <img src={url} alt="" decoding="async" className="h-full w-full object-cover" onError={() => setStage((s) => (s === 0 && url !== src ? 1 : 2))} />;
 }
 
 // The hero's featured-story panel: high-impact stories first, auto-rotating,

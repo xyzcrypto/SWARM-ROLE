@@ -150,7 +150,8 @@ describe("a failed image is handled by React, not behind its back", () => {
 
   it("uses state instead", () => {
     expect(N).toMatch(/function SafeImg\(/);
-    expect(N).toMatch(/if \(!src \|\| failed\) return null/);
+    // 0 = resized copy, 1 = original, 2 = gone: all in state.
+    expect(N).toMatch(/if \(!src \|\| stage > 1\) return null/);
     // The card's hero has to take its wrapper with it - the wrapper carries the
     // negative margins that bleed the image to the card edge.
     expect(N).toMatch(/\{item\.image && !heroFailed &&/);
@@ -160,7 +161,7 @@ describe("a failed image is handled by React, not behind its back", () => {
     // Hiding the <img> alone left a black rectangle where the no-image gradient
     // should have been.
     expect(N).toMatch(/function BreakingImage\(/);
-    expect(N).toMatch(/if \(!src \|\| failed\) return <div className="h-full w-full bg-gradient-to-br/);
+    expect(N).toMatch(/if \(!src \|\| stage > 1\) return <div className="h-full w-full bg-gradient-to-br/);
   });
 });
 

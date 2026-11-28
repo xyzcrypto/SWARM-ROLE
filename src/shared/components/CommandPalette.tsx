@@ -8,6 +8,7 @@ import { isStaff } from "@/lib/permissions";
 import { filterCommands, XYZ_CMDK_EVENT, type CommandItem } from "@/lib/command-search";
 import { safeHref } from "@/lib/links";
 import { useScrollLock } from "@/lib/useScrollLock";
+import { consumePending } from "@shared/hooks/useIdleGate";
 import { XYZ_AI_OPEN_EVENT } from "@modules/ai/lib/events";
 import { cn } from "@/lib/utils";
 import { MicButton } from "@/shared/components/MicButton";
@@ -91,6 +92,8 @@ export function CommandPalette() {
       }
     };
     const onEvt = () => setOpen(true);
+    // Asked for (search tap, shortcut) before this chunk had loaded: open now.
+    if (consumePending(XYZ_CMDK_EVENT)) queueMicrotask(() => setOpen(true));
     window.addEventListener("keydown", onKey);
     window.addEventListener(XYZ_CMDK_EVENT, onEvt);
     return () => {

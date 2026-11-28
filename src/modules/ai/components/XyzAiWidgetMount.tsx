@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useIdleGate } from "@shared/hooks/useIdleGate";
 
 // Defer the XYZ AI widget (framer-motion + markdown + auth UI) out of the shared
 // first-load bundle on every page. It only renders for signed-in users and only
@@ -8,5 +9,6 @@ import dynamic from "next/dynamic";
 const Widget = dynamic(() => import("./XyzAiWidget").then((m) => m.XyzAiWidget), { ssr: false });
 
 export function XyzAiWidgetMount() {
-  return <Widget />;
+  // Starts downloading once the page has loaded, not during it.
+  return useIdleGate() ? <Widget /> : null;
 }

@@ -20,6 +20,7 @@ import {
   type PointsUpdateDto,
   type UpdateKind,
 } from "@modules/points/lib/points-updates";
+import { photoFallback, photoSrc } from "@shared/utils/img";
 
 /**
  * The SAME body editor the dashboard uses, so a desk post is written the way a
@@ -247,11 +248,12 @@ function UpdateCard({
       {u.image && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={u.image}
+          src={photoSrc(u.image, 960) ?? u.image}
+          data-orig={u.image}
           alt=""
           loading="lazy"
           className="mt-3 block max-h-64 w-full rounded-xl border border-hairline object-cover"
-          onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+          onError={photoFallback((img) => (img.style.display = "none"))}
         />
       )}
 

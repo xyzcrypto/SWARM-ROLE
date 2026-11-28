@@ -13,6 +13,7 @@ import { MarkdownLite } from "@/components/MarkdownLite";
 import { RobotIcon } from "@/components/RobotIcon";
 import { KIND_LABEL, KIND_TONE, sortUpdates, type PointsUpdateDto } from "@modules/points/lib/points-updates";
 import type { RadarItem } from "@modules/points/lib/airdrop-radar";
+import { photoFallback, photoSrc } from "@shared/utils/img";
 
 const RADAR_WINDOW_MS = 120_000;
 
@@ -743,14 +744,15 @@ function WireEntry({
           {item.image && !open && (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={item.image}
+              src={photoSrc(item.image, hero ? 280 : 160) ?? item.image}
+              data-orig={item.image}
               alt=""
               loading="lazy"
               className={cn(
                 "shrink-0 rounded-lg border border-hairline object-cover",
                 hero ? "h-16 w-24 sm:h-20 sm:w-32" : "h-11 w-16"
               )}
-              onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+              onError={photoFallback((img) => (img.style.display = "none"))}
             />
           )}
 
@@ -812,11 +814,12 @@ function WireEntry({
             {item.image && open && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={item.image}
+                src={photoSrc(item.image, 960) ?? item.image}
+                data-orig={item.image}
                 alt=""
                 loading="lazy"
                 className="mb-3 block max-h-56 w-full rounded-xl border border-hairline object-cover"
-                onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")}
+                onError={photoFallback((img) => (img.style.display = "none"))}
               />
             )}
             {item.body && (

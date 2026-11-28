@@ -1,5 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { lastGood } from "./last-good";
+import { iconSrc } from "@shared/utils/img";
 
 // Shared, cached access to the DefiLlama endpoints this site reads.
 //
@@ -160,7 +161,7 @@ export function reduceOverview(j: any): Overview {
     // for most. 0 means "not reported"; callers must not read it as "zero OI".
     openInterest: Number(p?.openInterestAtEnd ?? p?.openInterest) || 0,
     change1d: Number(p?.change_1d) || 0,
-    logo: typeof p?.logo === "string" ? p.logo : null,
+    logo: typeof p?.logo === "string" ? iconSrc(p.logo) : null,
   }));
   // Prefer the API's own aggregate; fall back to summing the list, exactly as
   // /api/markets/perp did before this moved here.
@@ -218,7 +219,7 @@ async function loadProtocols(): Promise<ProtocolRow[]> {
         tvl: Number(p?.tvl) || 0,
         chain: String(p?.chain ?? p?.chains?.[0] ?? "-"),
         change1d: Number(p?.change_1d) || 0,
-        logo: typeof p?.logo === "string" ? p.logo : null,
+        logo: typeof p?.logo === "string" ? iconSrc(p.logo) : null,
       }))
       .sort((a, b) => b.tvl - a.tvl)
       .slice(0, 40);

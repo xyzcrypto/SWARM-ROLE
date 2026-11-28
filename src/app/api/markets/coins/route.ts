@@ -3,6 +3,7 @@ import { dedupeTrending } from "@modules/markets/lib/markets";
 import type { TrendingCoin, MoverCoin, CoinRow } from "@/lib/markets";
 import { lastGood } from "@modules/markets/lib/last-good";
 import { thinSparkline } from "@modules/markets/lib/timeseries";
+import { iconSrc } from "@shared/utils/img";
 
 // Coins snapshot (CoinGecko, keyless): a top-250 market table (price, 1h/24h/7d
 // %, mcap, volume, 7d sparkline) + trending + 24h gainers/losers, all derived from
@@ -55,7 +56,7 @@ async function trending(list: CoinRow[] = []): Promise<TrendingCoin[]> {
         symbol,
         // The markets list carries the canonical logo; `item.thumb` is a 25px
         // thumbnail that renders blurry or wrong at row size.
-        thumb: matched?.image || (typeof c?.item?.large === "string" ? c.item.large : null) || (typeof c?.item?.thumb === "string" ? c.item.thumb : null),
+        thumb: iconSrc(matched?.image || (typeof c?.item?.large === "string" ? c.item.large : null) || (typeof c?.item?.thumb === "string" ? c.item.thumb : null)),
         change24h,
         price,
         volume,
@@ -87,7 +88,7 @@ async function markets(): Promise<CoinRow[]> {
     rank: Number(d.market_cap_rank) || i + 1,
     name: String(d.name ?? "-"),
     symbol: String(d.symbol ?? "").toUpperCase(),
-    image: typeof d.image === "string" ? d.image : null,
+    image: typeof d.image === "string" ? iconSrc(d.image) : null,
     price: Number(d.current_price) || 0,
     change1h: Number(d.price_change_percentage_1h_in_currency) || 0,
     change24h: Number(d.price_change_percentage_24h_in_currency ?? d.price_change_percentage_24h) || 0,

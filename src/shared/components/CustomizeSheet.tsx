@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { SlidersHorizontal, X } from "lucide-react";
 import { CUSTOMIZE_EVENT } from "@shared/utils/site-prefs";
+import { consumePending } from "@shared/hooks/useIdleGate";
 import { chatPressFeedback } from "@shared/utils/chat-feedback";
 import { useScrollLock } from "@shared/hooks/useScrollLock";
 import { CustomizePanel } from "./CustomizePanel";
@@ -19,6 +20,8 @@ export function CustomizeSheet() {
   useScrollLock(open);
 
   useEffect(() => {
+    // Asked for before this chunk had loaded: open now.
+    if (consumePending(CUSTOMIZE_EVENT)) queueMicrotask(() => setOpen(true));
     const onOpen = () => setOpen(true);
     window.addEventListener(CUSTOMIZE_EVENT, onOpen);
     return () => window.removeEventListener(CUSTOMIZE_EVENT, onOpen);
