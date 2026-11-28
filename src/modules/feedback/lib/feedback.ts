@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { publicImageUrl } from "@/lib/utils";
 import { notifyOwner } from "@modules/notifications/lib/notify-owner";
@@ -165,25 +166,55 @@ export async function adminList(status: string | null, cursor: string | null) {
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: 51,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    // `image` is NOT selected: when Storage is off or failing, uploadImage()
+    // stores a screenshot inline as a data: URL of up to ~700 KB, so 50 rows
+    // could put tens of MB on one staff page load (review L3). screenshotRefs()
+    // reads a link for each row instead, without pulling the bytes.
     select: {
-      id: true, category: true, rating: true, message: true, page: true, image: true, status: true, xp: true, createdAt: true, name: true, contact: true,
+      id: true, category: true, rating: true, message: true, page: true, status: true, xp: true, createdAt: true, name: true, contact: true,
       user: { select: { id: true, name: true, email: true, username: true, image: true } },
     },
   });
-  const [byStatus, avg] = await Promise.all([
+  const page = rows.slice(0, 50);
+  const [byStatus, avg, shots] = await Promise.all([
     prisma.feedback.groupBy({ by: ["status"], _count: { _all: true } }),
     prisma.feedback.aggregate({ _avg: { rating: true }, _count: { _all: true } }),
+    screenshotRefs(page.map((r) => r.id)),
   ]);
   const counts = Object.fromEntries(byStatus.map((s) => [s.status, s._count._all]));
   return {
-    items: rows.slice(0, 50).map((r) => ({
+    items: page.map((r) => ({
       ...r,
+      image: shots.get(r.id) ?? null,
       createdAt: r.createdAt.toISOString(),
       user: r.user ? { ...r.user, image: r.user.image?.startsWith("data:") ? null : r.user.image } : null,
     })),
     next: rows.length > 50 ? rows[49].id : null,
     stats: { total: avg._count._all, avgRating: avg._avg.rating ?? 0, new: counts.new ?? 0, seen: counts.seen ?? 0, done: counts.done ?? 0 },
   };
+}
+
+/** Staff-only URL that serves one inline screenshot (see /api/admin/feedback/image). */
+export const screenshotUrl = (id: string) => `/api/admin/feedback/image?id=${encodeURIComponent(id)}`;
+
+/**
+ * A displayable link for each row's screenshot: a stored https URL as-is, an
+ * inline data: URL as screenshotUrl(id), none as absent. Decided in SQL, so the
+ * inline bytes never leave the database for the list.
+ */
+async function screenshotRefs(ids: string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  const rows = await prisma.$queryRaw<{ id: string; url: string | null; inline: boolean }[]>`
+    SELECT "id", CASE WHEN "image" LIKE 'data:%' THEN NULL ELSE "image" END AS url, COALESCE("image" LIKE 'data:%', false) AS inline
+    FROM "Feedback" WHERE "id" IN (${Prisma.join(ids)}) AND "image" IS NOT NULL`;
+  return new Map(rows.flatMap((r) => (r.inline ? [[r.id, screenshotUrl(r.id)] as const] : r.url ? [[r.id, r.url] as const] : [])));
+}
+
+/** The decoded bytes of one inline screenshot, or null (none, not inline, or not an allowed image type). */
+export async function inlineScreenshot(id: string): Promise<{ mime: string; bytes: Buffer } | null> {
+  const row = await prisma.feedback.findUnique({ where: { id }, select: { image: true } });
+  const m = row?.image?.match(/^data:(image\/(?:png|jpeg|webp));base64,([A-Za-z0-9+/=]+)$/);
+  return m ? { mime: m[1], bytes: Buffer.from(m[2], "base64") } : null;
 }
 
 /** Sets a status. Marking a member's feedback "done" pays XP_SHIPPED once. */

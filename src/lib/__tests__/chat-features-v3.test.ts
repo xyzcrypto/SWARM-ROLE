@@ -71,11 +71,14 @@ describe("the preview is text-only and the route is cheap", () => {
     expect(firstLink("no links here")).toBeNull();
   });
 
-  it("route: signed-in only, own bucket on both keys, cached at the edge, reduced value cached", () => {
+  it("route: signed-in only, own bucket on both keys, cached privately (never at the edge), reduced value cached", () => {
     const r = strip(read("src/app/api/link-preview/route.ts"));
     expect(r).toMatch(/getSessionUser\(\)/);
     expect([...r.matchAll(/rateLimit\("linkPreview"/g)]).toHaveLength(2);
-    expect(r).toMatch(/public, s-maxage=\$\{TTL\}, stale-while-revalidate/);
+    // A shared cache never runs the handler, so `public` let anonymous callers
+    // read every cached preview past the sign-in gate (review L4).
+    expect(r).toMatch(/private, max-age=\$\{TTL\}/);
+    expect(r).not.toMatch(/public, s-maxage/);
     expect(r).toMatch(/unstable_cache\(/);
     expect(read("src/core/ratelimit/ratelimit.ts")).toMatch(/linkPreview: make\(30, 60, "link_preview"\)/);
   });

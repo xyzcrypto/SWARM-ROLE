@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
 
 /**
- * GET /api/reports?status=open - the moderation queue.
+ * GET /api/reports?status=open - the moderation queue: DM reports AND
+ * community-chat reports, newest first, each tagged with `kind`.
  *
  * Gated on `post:manage`, the same permission the comment and chat moderation
  * screens use. Reports are about member behaviour, so they belong to whoever
@@ -62,10 +63,67 @@ export async function GET(req: Request) {
       : [];
     const byId = new Map(messages.map((m) => [m.id, m]));
 
-    return ok({
-      reports: rows.map((r) => {
+    // Community-chat reports. `ChatReport` rows were written by
+    // /api/chat/messages/[id]/report and read by NOTHING, so a member's report
+    // never reached anyone (review L5). They join this queue: same permission,
+    // same people, one place to look. Chat is a public room, so showing the
+    // message costs no privacy. "dismissed" (a ChatReport-only state) reads as
+    // reviewed here.
+    const chatRows = await prisma.chatReport
+      .findMany({
+        where: status === "open" ? { status: "open" } : { status: { in: ["reviewed", "dismissed"] } },
+        orderBy: { createdAt: "desc" },
+        take: PAGE_SIZE,
+        select: {
+          id: true,
+          createdAt: true,
+          reason: true,
+          details: true,
+          status: true,
+          user: { select: { id: true, name: true, username: true, email: true } },
+          message: {
+            select: {
+              id: true,
+              body: true,
+              status: true,
+              hiddenBy: true,
+              createdAt: true,
+              user: { select: { id: true, name: true, username: true, email: true } },
+            },
+          },
+        },
+      })
+      .catch(() => [] as never[]);
+
+    const person = (u: { id: string; name: string | null; username: string | null; email: string }) => ({
+      id: u.id,
+      name: u.name,
+      username: u.username,
+      email: maskEmail(u.email),
+    });
+
+    const chat = chatRows.map((r) => ({
+      kind: "chat" as const,
+      id: r.id,
+      createdAt: r.createdAt.toISOString(),
+      reason: r.reason,
+      note: r.details || null,
+      status: r.status === "open" ? "open" : "reviewed",
+      reporter: person(r.user),
+      subject: person(r.message.user),
+      message: {
+        id: r.message.id,
+        body: r.message.body,
+        deleted: r.message.status === "hidden" && r.message.hiddenBy === "author",
+        hidden: r.message.status === "hidden",
+        createdAt: r.message.createdAt.toISOString(),
+      },
+    }));
+
+    const dm = rows.map((r) => {
         const cited = r.messageId ? byId.get(r.messageId) : null;
         return {
+          kind: "dm" as const,
           id: r.id,
           createdAt: r.createdAt.toISOString(),
           reason: r.reason,
@@ -87,17 +145,25 @@ export async function GET(req: Request) {
           // that is exactly why DM deletes are soft - so it is reported as
           // deleted rather than omitted.
           message: cited
-            ? { body: cited.body, deleted: cited.status === "deleted", createdAt: cited.createdAt.toISOString() }
+            ? { id: null, body: cited.body, deleted: cited.status === "deleted", hidden: false, createdAt: cited.createdAt.toISOString() }
             : null,
         };
-      }),
-    });
+      });
+
+    // One queue, newest first, one page.
+    const reports = [...dm, ...chat].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, PAGE_SIZE);
+    return ok({ reports });
   } catch (err) {
     return handleError(err, "reports:list");
   }
 }
 
-const patchSchema = z.object({ id: z.string().min(1), status: z.enum(["open", "reviewed"]) });
+const patchSchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(["open", "reviewed"]),
+  // Which table: a DM report (`Report`) or a community-chat one (`ChatReport`).
+  kind: z.enum(["dm", "chat"]).default("dm"),
+});
 
 // PATCH /api/reports - mark a report reviewed (or put it back in the queue).
 // Deliberately reversible: "reviewed" is a triage state, not a deletion, and
@@ -118,8 +184,10 @@ export async function PATCH(req: Request) {
     if (!parsed.success) return fail("Invalid request.", 400);
     if (!isCuid(parsed.data.id)) return fail("Invalid report.", 400);
 
-    await prisma.report.update({ where: { id: parsed.data.id }, data: { status: parsed.data.status } });
-    return ok({ id: parsed.data.id, status: parsed.data.status });
+    const { id, status, kind } = parsed.data;
+    if (kind === "chat") await prisma.chatReport.update({ where: { id }, data: { status } });
+    else await prisma.report.update({ where: { id }, data: { status } });
+    return ok({ id, status, kind });
   } catch (err) {
     return handleError(err, "reports:patch");
   }

@@ -6,7 +6,8 @@ import { prisma } from "@/lib/prisma";
 import { slugify, readingTime } from "@/lib/utils";
 import { ok, fail, handleError, requirePermission } from "@/lib/api";
 import { rateLimit, clientIp } from "@/lib/ratelimit";
-import { notifyNewPost } from "@/lib/notifications";
+import { after } from "next/server";
+import { notifyNewPost, pruneNotifications } from "@modules/notifications/lib/notifications";
 import { broadcastEvent, CH_NOTIFY } from "@/lib/realtime";
 import { summarize } from "@/lib/ai-tasks";
 
@@ -31,18 +32,26 @@ async function generateSummary(post: { id: string; title: string; content: strin
   }
 }
 
-// On publish: fan out the in-app notification AND auto-create a linked "What's
-// New" entry so newly-shipped research shows up in the homepage feed. Both are
+// On publish: auto-create a linked "What's New" entry so newly-shipped research
+// shows up in the homepage feed, then fan out the in-app notification. All
 // best-effort - a hiccup here never fails the publish.
-async function afterPublish(post: { id: string; title: string; excerpt: string; content: string; premium: boolean }) {
-  await notifyNewPost(post as never);
+//
+// Only the What's New insert is awaited (one row, and it should exist before
+// the homepage is revalidated). The member fan-out and the AI summary run
+// AFTER the response: they used to hold the admin's publish request for the
+// whole fan-out plus an AI call (review M5).
+async function afterPublish(post: { id: string; title: string; slug: string; excerpt: string; content: string; premium: boolean; authorId: string | null }) {
   await prisma.whatsNewEntry
     .create({ data: { title: post.title, body: post.excerpt, tag: "New", postId: post.id } })
     .then(() => broadcastEvent(CH_NOTIFY, "whatsnew_updated", { postId: post.id }))
     .catch(() => null);
-  // AI TL;DR - only for FREE articles (never tease premium content). Best-effort;
-  // no-op when AI is disabled.
-  if (!post.premium) await generateSummary(post);
+  after(async () => {
+    await notifyNewPost(post);
+    await pruneNotifications();
+    // AI TL;DR - only for FREE articles (never tease premium content). Best-effort;
+    // no-op when AI is disabled.
+    if (!post.premium) await generateSummary(post);
+  });
 }
 
 // Refresh the ISR-cached pages that list/show posts after a content change.
@@ -153,16 +162,16 @@ export async function POST(req: Request) {
     // (avoids the previous unbounded findUnique loop).
     try {
       const post = await prisma.post.create({ data: { ...payload, slug: base }, select: POST_SCALARS });
-      revalidateContent(post.slug);
-      // Fan out an in-app notification to members (only for published posts).
+      // What's New first, so the revalidated homepage already lists it.
       if (post.published) await afterPublish(post);
+      revalidateContent(post.slug);
       return ok({ post }, 201);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
         const slug = `${base}-${Math.random().toString(36).slice(2, 6)}`;
         const post = await prisma.post.create({ data: { ...payload, slug }, select: POST_SCALARS });
-        revalidateContent(post.slug);
         if (post.published) await afterPublish(post);
+        revalidateContent(post.slug);
         return ok({ post }, 201);
       }
       throw e;
