@@ -17,6 +17,17 @@ it.
   private profiles and counts public trades only. A trade moving from public to
   anonymous now also withdraws its named activity row (before, only a move to
   private did).
+- **Journal activity is checked on read (Low, found by the Vercel security review on
+  this PR).** The first version of the fix above only revoked when the trade had
+  been public. A trade made anonymous under the old rule could still carry its named
+  row, and making it private later left that row public. Now every non-public
+  visibility revokes, whatever it was before. Both readers (the profile page and
+  `/api/journal/share/activity`) also go through `publicJournalActivity()`, which
+  checks each row against its trade or challenge's current visibility. A stale row
+  is hidden at once and deleted. Rows with no recorded source are still shown (see
+  HANDOFF §8), and a row whose source is gone is hidden but kept. Cost: one or two
+  extra lookups by primary key per feed read. Both readers are cached (30s CDN,
+  300s ISR).
 - **Removed admins kept Super Admin (High).** `role: "ADMIN"` was written once at
   sign-up and never revoked. On session refresh, an ADMIN whose email is no longer
   in `ADMIN_EMAILS` is demoted. This only applies when the list is configured, so an

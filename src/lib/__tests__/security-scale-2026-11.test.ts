@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
+import fg from "fast-glob";
 import { csvCell } from "@/lib/utils";
+import { sortActivityBySource, sourceKey } from "@modules/journal/lib/journal-activity";
 
 const read = (p: string) => readFileSync(p, "utf8");
 
@@ -11,8 +13,46 @@ describe("privacy", () => {
     expect(r).toMatch(/if \(!user \|\| user\.profileVisibility === "private"\) return fallbackCard\(\);/);
     expect(r).toMatch(/where: \{ userId: params\.userId, visibility: "public" \}/);
   });
-  it("a trade moving away from public withdraws its named activity row", () => {
-    expect(read("src/app/api/journal/trades/[id]/route.ts")).toMatch(/if \(fields\.visibility && fields\.visibility !== "public" && existing\.visibility === "public"\)/);
+  it("any non-public visibility withdraws a trade's named activity, whatever it was before", () => {
+    const r = read("src/app/api/journal/trades/[id]/route.ts");
+    expect(r).toMatch(/if \(fields\.visibility && fields\.visibility !== "public"\) \{\s*await prisma\.journalActivity\s*\.deleteMany\(\{ where: tradeActivityWhere\(trade\.id, me\.id\) \}\)/);
+    // The Vercel finding: conditioning on the OLD visibility skipped anonymous -> private.
+    expect(r).not.toMatch(/existing\.visibility === "public"\)/);
+  });
+  it("a legacy anonymous trade with a named row: hidden on read and revoked, even though no write path removed it", () => {
+    // Persisted under the old rule: public -> anonymous kept the named row.
+    const rows = [
+      { id: "a1", sourceType: "trade", sourceId: "t-anon" },
+      { id: "a2", sourceType: "trade", sourceId: "t-private" },
+      { id: "a3", sourceType: "trade", sourceId: "t-public" },
+      { id: "a4", sourceType: "challenge", sourceId: "c-community" },
+      { id: "a5", sourceType: "challenge", sourceId: "c-private" },
+      { id: "a6", sourceType: "trade", sourceId: "t-gone" },
+      { id: "a7", sourceType: null, sourceId: null },
+    ];
+    const visibilityOf = new Map([
+      [sourceKey("trade", "t-anon"), "anonymous"],
+      [sourceKey("trade", "t-private"), "private"],
+      [sourceKey("trade", "t-public"), "public"],
+      [sourceKey("challenge", "c-community"), "community"],
+      [sourceKey("challenge", "c-private"), "private"],
+    ]);
+    const { shown, revoke } = sortActivityBySource(rows, visibilityOf);
+    expect(shown.map((r) => r.id)).toEqual(["a3", "a4", "a7"]);
+    expect(revoke).toEqual(["a1", "a2", "a5"]);
+  });
+  it("both public readers of the feed go through the read-time check", () => {
+    const share = read("src/app/api/journal/share/activity/[userId]/route.ts");
+    expect(share).toMatch(/await publicJournalActivity\(params\.userId, 20\)/);
+    expect(share).not.toMatch(/prisma\.journalActivity\.findMany/);
+    expect(read("src/app/u/[username]/page.tsx")).toMatch(/publicJournalActivity\(user\.id, 8\)/);
+    const readers = fg
+      .sync("src/**/*.{ts,tsx}", { ignore: ["src/**/__tests__/**"] })
+      .filter((f) => /journalActivity\s*\.\s*find(Many|First|Unique)/.test(read(f)));
+    expect(readers).toEqual(["src/modules/journal/lib/public-activity.ts"]);
+    const lib = read("src/modules/journal/lib/public-activity.ts");
+    expect(lib).toMatch(/prisma\.trade\.findMany\(\{ where: \{ id: \{ in: tradeIds \}, userId \}/);
+    expect(lib).toMatch(/deleteMany\(\{ where: \{ id: \{ in: revoke \}, userId \} \}\)/);
   });
   it("a DM report can only cite a message the reported member sent, in the reporter's own conversation", () => {
     const r = read("src/app/api/dm/report/route.ts");

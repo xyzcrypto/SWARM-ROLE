@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { NOT_TRASHED } from "@modules/research/lib/post-visibility";
+import { publicJournalActivity } from "@modules/journal/lib/public-activity";
 import type { ComponentType } from "react";
 import { cache } from "react";
 import Link from "next/link";
@@ -116,11 +117,9 @@ export default async function ProfilePage(props: Props) {
     // Follow counts - guarded so an un-migrated DB (no Follow table) shows 0.
     prisma.follow.count({ where: { followingId: user.id } }).catch(() => 0),
     prisma.follow.count({ where: { followerId: user.id } }).catch(() => 0),
-    // Public Journal Activity - guarded so an un-migrated DB (no
-    // JournalActivity table) shows an empty feed rather than erroring.
-    prisma.journalActivity
-      .findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 8, select: { id: true, type: true, title: true, win: true, createdAt: true } })
-      .catch(() => []),
+    // Public Journal Activity, only rows whose source is still public - guarded
+    // so an un-migrated DB (no JournalActivity table) shows an empty feed.
+    publicJournalActivity(user.id, 8).catch(() => []),
     // Community messages this member bookmarked - public, per the owner.
     // Only VISIBLE messages: one hidden by moderation drops off every profile
     // at once. Guarded like the rest: before migration 42 is pushed (e.g. on a

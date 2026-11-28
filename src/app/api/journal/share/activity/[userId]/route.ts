@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { handleError, isCuid } from "@/lib/api";
+import { publicJournalActivity } from "@modules/journal/lib/public-activity";
 
 export const runtime = "nodejs";
 
@@ -28,12 +29,9 @@ export async function GET(_req: Request, props: { params: Promise<{ userId: stri
     const owner = await prisma.user.findUnique({ where: { id: params.userId }, select: { profileVisibility: true } }).catch(() => null);
     if (!owner || owner.profileVisibility === "private") return NextResponse.json({ items: [] }, CACHE);
     try {
-      const items = await prisma.journalActivity.findMany({
-        where: { userId: params.userId },
-        orderBy: { createdAt: "desc" },
-        take: 20,
-        select: { id: true, type: true, title: true, win: true, createdAt: true },
-      });
+      // Only rows whose source trade/challenge is STILL public (checked here,
+      // not trusted from write time - see publicJournalActivity).
+      const items = await publicJournalActivity(params.userId, 20);
       return NextResponse.json({ items }, CACHE);
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && (err.code === "P2021" || err.code === "P2022")) {
