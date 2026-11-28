@@ -34,6 +34,7 @@ import { NEWS_SOURCES } from "@modules/news/lib/news-sources";
 import type { NewsItem } from "@/lib/news";
 import { site } from "@/lib/site";
 import { cn } from "@/lib/utils";
+import { photoFallback, photoSrc } from "@shared/utils/img";
 
 const openXyzAi = () => window.dispatchEvent(new Event(XYZ_AI_OPEN_EVENT));
 
@@ -121,7 +122,7 @@ function Thumb({ src, className }: { src: string | null; className?: string }) {
     <span className={cn("relative block overflow-hidden bg-gradient-to-br from-gold-500/20 via-ink-900 to-ink-950", className)}>
       {src && !failed && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06] group-active:scale-[1.06]" />
+        <img src={photoSrc(src, 240) ?? src} data-orig={src} alt="" loading="lazy" decoding="async" onError={photoFallback(() => setFailed(true))} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06] group-active:scale-[1.06]" />
       )}
     </span>
   );

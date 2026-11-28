@@ -7,6 +7,7 @@ import { ArrowLeft, ExternalLink, Share2, Check } from "lucide-react";
 import { BriefingBlock, type BriefingMeta } from "@/components/BriefingBlock";
 import { timeAgo } from "@/lib/news";
 import type { SharedStory } from "@/lib/news-share";
+import { photoFallback, photoSrc } from "@shared/utils/img";
 
 // Full-page reader for a shared story (rendered on OUR domain). Shows the story
 // + an advanced AI briefing (login-gated) + a link to the original source.
@@ -69,7 +70,7 @@ export function SharedArticle({ story }: { story: SharedStory | null }) {
 
       {story.img && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={story.img} alt="" decoding="async" className="h-52 w-full rounded-2xl object-cover sm:h-72" onError={(e) => ((e.currentTarget as HTMLImageElement).style.display = "none")} />
+        <img src={photoSrc(story.img, 960) ?? story.img} data-orig={story.img} alt="" decoding="async" className="h-52 w-full rounded-2xl object-cover sm:h-72" onError={photoFallback((img) => (img.style.display = "none"))} />
       )}
 
       <div className="flex flex-wrap items-center gap-2 text-[12px] text-zinc-400">

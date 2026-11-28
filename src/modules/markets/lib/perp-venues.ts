@@ -1,4 +1,5 @@
 import { normaliseVenue } from "@modules/points/lib/perp-sources";
+import { iconSrc } from "@shared/utils/img";
 
 /**
  * Perp DEX venues for the Markets leaderboard, from more than one live source.
@@ -44,7 +45,7 @@ export async function llamaSummary(slug: string, revalidate: number): Promise<Ll
       total24h,
       openInterest: Number(j?.openInterestAtEnd ?? j?.openInterest) || 0,
       change1d: Number(j?.change_1d),
-      logo: typeof j?.logo === "string" ? j.logo : null,
+      logo: typeof j?.logo === "string" ? iconSrc(j.logo) : null,
     };
   } catch {
     return null;
@@ -107,7 +108,7 @@ export async function coingeckoDerivativeRows(revalidate: number, btcUsdFallback
         id,
         name,
         key: normaliseVenue(name),
-        logo: typeof r?.image === "string" && r.image.startsWith("https://") ? r.image : null,
+        logo: typeof r?.image === "string" && r.image.startsWith("https://") ? iconSrc(r.image) : null,
         volume24h,
         openInterest: (Number(r?.open_interest_btc) || 0) * btcUsd,
       });

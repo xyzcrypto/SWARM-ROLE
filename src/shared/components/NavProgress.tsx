@@ -2,6 +2,11 @@
 
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
+import { installFetchGuard } from "@shared/utils/fetch-guard";
+
+// Installed at module load, before any component's effects fire their first
+// request: every same-origin /api/ call without its own signal gets a timeout.
+if (typeof window !== "undefined") installFetchGuard();
 
 /**
  * A thin gold bar at the top of the screen from the moment an internal link
@@ -19,6 +24,19 @@ import { usePathname } from "next/navigation";
  * owner was doing by hand ("it gets stuck, I have to refresh"), done for them.
  */
 const STUCK_MS = 10_000;
+/**
+ * On a genuinely slow connection a healthy page can take longer than 10s, and
+ * turning it into a full reload then makes things worse: the reload is the
+ * heavier request. Give 2G/3G-class connections (as the browser reports them)
+ * more time before deciding the navigation is stuck.
+ */
+const SLOW_STUCK_MS = 25_000;
+export function stuckAfter(conn?: { effectiveType?: string; downlink?: number; saveData?: boolean } | null): number {
+  if (!conn) return STUCK_MS;
+  const slow = conn.saveData || /(^|-)2g$|^3g$/.test(conn.effectiveType ?? "") || (typeof conn.downlink === "number" && conn.downlink > 0 && conn.downlink < 1.5);
+  return slow ? SLOW_STUCK_MS : STUCK_MS;
+}
+const stuckMs = () => stuckAfter((navigator as Navigator & { connection?: { effectiveType?: string; downlink?: number; saveData?: boolean } }).connection);
 
 // Router page requests. A Next soft navigation fetches the new page's RSC
 // payload (header `RSC: 1`). Knowing the router actually STARTED loading the
@@ -111,7 +129,7 @@ export function NavProgress() {
     const watchdog = window.setInterval(() => {
       const now = Date.now();
       for (const n of pendingNavs) {
-        if (now - n.at < STUCK_MS) continue;
+        if (now - n.at < stuckMs()) continue;
         pendingNavs.delete(n);
         if (n.path !== window.location.pathname && navigator.onLine !== false && !document.hidden) {
           window.location.assign(n.href);
@@ -147,7 +165,7 @@ export function NavProgress() {
         const stillWaiting = state.current.target === path && window.location.pathname !== path && (navStartedAt.get(path) ?? 0) >= clickedAt;
         finish();
         if (stillWaiting && navigator.onLine !== false) window.location.assign(href);
-      }, STUCK_MS);
+      }, stuckMs());
     };
     const onClick = (e: MouseEvent) => {
       if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;

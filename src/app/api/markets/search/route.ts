@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { CoinRow } from "@/lib/markets";
+import { iconSrc } from "@shared/utils/img";
 
 // Coin search (CoinGecko, keyless): finds ANY coin by name/symbol - not just the
 // top 250 in the main table - and returns it with live market data. Two cached
@@ -39,7 +40,7 @@ export async function GET(req: Request) {
       rank: Number(d.market_cap_rank) || i + 1,
       name: String(d.name ?? "-"),
       symbol: String(d.symbol ?? "").toUpperCase(),
-      image: typeof d.image === "string" ? d.image : null,
+      image: typeof d.image === "string" ? iconSrc(d.image) : null,
       price: Number(d.current_price) || 0,
       change1h: Number(d.price_change_percentage_1h_in_currency) || 0,
       change24h: Number((d.price_change_percentage_24h_in_currency as number) ?? (d.price_change_percentage_24h as number)) || 0,

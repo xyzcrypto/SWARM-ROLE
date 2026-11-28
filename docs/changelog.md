@@ -5,6 +5,50 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-28 (189) — Slow networks: no request can hang, and far fewer bytes per page
+
+Measured first, on a throttled phone (1.6 Mbps, 300ms RTT, 4x CPU), every major page
+cold. Each one downloaded 0.6–1.9 MB: 350–540 KB of JS, 177 KB of fonts on every page,
+and up to 943 KB of images (`/markets`), with a single 1.5 MB photo on `/news`. Then:
+
+- **No site API call can hang for ever** (`shared/utils/fetch-guard.ts`).
+  - About 130 `fetch()` calls in about 40 client files had no timeout: dashboard,
+    news, journal, settings, comments, likes, follow, sign-up and more. A stalled
+    mobile connection left their spinners running until a refresh.
+  - One guard, installed at module load by NavProgress, gives every same-origin
+    `/api/` call without its own signal a timeout: 20s for reads, 30s for writes and
+    2 minutes for uploads. Streams, AI and audio are excluded.
+  - The signal also covers a body that stalls half-way.
+  - Verified in a browser: a request that never answers now fails at 20.0s, and a
+    caller's own signal is respected.
+- **Slow connections get 25s, not 10s, before a navigation counts as stuck.** On 2G/3G,
+  save-data or under 1.5 Mbps (`stuckAfter`), the full reload that NavProgress fell
+  back to was the heavier request.
+- **Right-sized images, at zero Vercel cost** (`shared/utils/img.ts`):
+  - **CoinGecko icons** use `/small/` instead of `/large/` (21 KB → 2 KB each),
+    including the ticker on every page.
+  - **DefiLlama icons** are requested at display size (64 KB → 2.4 KB).
+  - **News and points photos** go through a free resizer (wsrv.nl) as WebP at the
+    shown width. The original stays as a fallback, so a resizer outage only costs
+    bytes.
+  - **Sanity covers** use Sanity's own resizing. Their `&amp;` URL bug, which
+    dropped every parameter, is fixed.
+  - **Certificate card logo:** 339 KB PNG → 11 KB WebP.
+- **Fonts:** the homepage serif (Fraunces, 37 KB) is no longer preloaded on every
+  route (`preload: false`).
+- **Nothing optional competes with the page while it loads**
+  (`shared/hooks/useIdleGate.ts`).
+  - Supabase realtime (about 50 KB plus a WebSocket), the AI widget, the command
+    palette and the customize sheet now start after the page's own load, plus an idle
+    moment (capped at 6s).
+  - A search tap or Ctrl+K before the palette has loaded still opens it.
+- Measured again: fonts went from 177 KB to 140 KB on every page, `/academy` images
+  from 341 KB to 14 KB, and `/markets` images from 943 KB to 512 KB, before the
+  resizer, which this sandbox cannot reach.
+- Tests: `slow-network.test.ts`.
+
+---
+
 ## 2026-11-26 (188) — Profile: tabs, a learning calendar, track mastery and "Challenge @user"
 
 - **Tabs instead of one long scroll** (`ProfileTabs`): Overview · Academy · Journal ·

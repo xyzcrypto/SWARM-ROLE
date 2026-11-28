@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { iconSrc } from "@shared/utils/img";
 
 // Server-side cached proxy for live market data (CoinGecko /coins/markets).
 // Caching => at most one upstream call per `revalidate` window for ALL
@@ -74,7 +75,9 @@ async function fetchFromCoinGecko() {
       name: c.name,
       price: d?.current_price ?? c.seed,
       change: d?.price_change_percentage_24h ?? 0,
-      image: d?.image ?? LOGO[c.symbol],
+      // CoinGecko hands back the 250px /large/ logo; the ticker draws it at
+      // ~20px on every page of the site. /small/ is a tenth of the bytes.
+      image: iconSrc(d?.image) ?? LOGO[c.symbol],
     };
   });
 }

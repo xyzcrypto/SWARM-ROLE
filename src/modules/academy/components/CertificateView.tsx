@@ -49,7 +49,7 @@ export function CertificateCard({ cert, issuer, url, qr }: { cert: Cert; issuer:
         <div className="flex items-center gap-[1cqw]">
           <span className="acad-cert-rule h-px w-[7cqw]" aria-hidden />
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" alt="XYZ Crypto" className="h-[7cqw] w-auto drop-shadow-[0_0.4cqw_1cqw_rgba(176,120,22,0.45)]" />
+          <img src="/logo-192.webp" alt="XYZ Crypto" width={96} height={96} className="h-[7cqw] w-auto drop-shadow-[0_0.4cqw_1cqw_rgba(176,120,22,0.45)]" />
           <span className="acad-cert-rule h-px w-[7cqw]" aria-hidden />
         </div>
         <div className="acad-cert-gold mt-[0.8cqw] text-[1.15cqw] font-bold tracking-[0.42em]">XYZ CRYPTO ACADEMY</div>

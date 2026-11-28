@@ -21,6 +21,12 @@ const fraunces = Fraunces({
   style: ["normal"],
   variable: "--font-fraunces",
   display: "swap",
+  // ⚠️ Not preloaded. Turbopack ships this @font-face in a CSS chunk shared by
+  // every route, so `preload: true` put a <link rel=preload> for a 37 KB serif
+  // on /markets, /news and the rest, where nothing uses it (measured
+  // 2026-11-28). Unpreloaded, the browser fetches it only when the homepage
+  // headline actually asks for the face.
+  preload: false,
 });
 import type { ReactNode } from "react";
 import Link from "next/link";
