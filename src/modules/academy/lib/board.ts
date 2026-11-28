@@ -165,14 +165,32 @@ export async function searchBoard(period: Period, q: string, now = Date.now()) {
     select: userSelect,
     take: 8,
   });
+  // Batched. This used to run myXp, statsFor (4 queries) and rankOf (a full
+  // GROUP BY over the period) one after another for each of up to 8 matches:
+  // ~40 serial queries per public, unauthenticated request, enough for a small
+  // loop to drain the connection pool for the whole site.
+  const ids = users.map((u) => u.id);
+  const xpOf = new Map<string, number>();
+  if (ids.length) {
+    if (period === "alltime") {
+      const rows = await prisma.academyProfile.findMany({ where: { userId: { in: ids } }, select: { userId: true, xp: true } });
+      for (const r of rows) xpOf.set(r.userId, r.xp);
+    } else {
+      const rows = await prisma.academyXp.groupBy({ by: ["userId"], where: { userId: { in: ids }, createdAt: { gte: new Date(b.start), lt: new Date(b.end) } }, _sum: { amount: true } });
+      for (const r of rows) xpOf.set(r.userId, r._sum.amount ?? 0);
+    }
+  }
+  const ranked = users.filter((u) => (xpOf.get(u.id) ?? 0) > 0);
+  const stats = await statsFor(period, b, ranked.map((u) => u.id));
+  const xps = [...new Set(ranked.map((u) => xpOf.get(u.id)!))];
+  const rankByXp = new Map(await Promise.all(xps.map(async (x) => [x, await rankOf(period, b, x)] as const)));
   const out: BoardRow[] = [];
-  for (const u of users) {
-    const xp = await myXp(period, b, u.id);
-    if (xp <= 0) continue;
-    const s = (await statsFor(period, b, [u.id])).get(u.id);
+  for (const u of ranked) {
+    const xp = xpOf.get(u.id)!;
+    const s = stats.get(u.id);
     const lvl = levelFor(s?.xpAll ?? xp, cfg.levels);
     out.push({
-      rank: await rankOf(period, b, xp),
+      rank: rankByXp.get(xp)!,
       userId: u.id,
       name: displayName(u),
       username: u.username,

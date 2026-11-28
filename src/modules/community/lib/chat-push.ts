@@ -40,8 +40,10 @@ export async function dispatchChatPush(created: Created): Promise<void> {
     // Everyone who opted into notifications, except the sender's own devices.
     const subs = await prisma.pushSubscription
       .findMany({
-        where: created.userId ? { userId: { not: created.userId } } : {},
+        // Devices set to "off" are out: this used to notify them anyway.
+        where: { NOT: { notifyMode: "off" }, ...(created.userId ? { userId: { not: created.userId } } : {}) },
         select: { endpoint: true, p256dh: true, auth: true },
+        take: 5000,
       })
       .catch(() => []);
     if (!subs.length) return;
@@ -55,9 +57,13 @@ export async function dispatchChatPush(created: Created): Promise<void> {
       tag: "community-chat", // collapse repeat pings into one notification
     };
 
-    const results = await Promise.all(
-      subs.map((s) => sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload))
-    );
+    // In batches: one Promise.all over every subscriber opened thousands of
+    // outbound requests at once from a single function as the site grows.
+    const results: Awaited<ReturnType<typeof sendPush>>[] = [];
+    for (let i = 0; i < subs.length; i += 50) {
+      const batch = subs.slice(i, i + 50);
+      results.push(...(await Promise.all(batch.map((s) => sendPush({ endpoint: s.endpoint, p256dh: s.p256dh, auth: s.auth }, payload)))));
+    }
 
     // Prune dead endpoints (same as the news dispatcher).
     const gone = subs.filter((_, i) => results[i] === "gone").map((s) => s.endpoint);

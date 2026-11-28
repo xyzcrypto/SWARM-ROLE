@@ -43,7 +43,7 @@ export async function GET(req: Request) {
   try {
     const res = await fetch(
       `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&category=${id}&order=market_cap_desc&per_page=250&page=1`,
-      { headers: { accept: "application/json" }, next: { revalidate } }
+      { signal: AbortSignal.timeout(8000), headers: { accept: "application/json" }, next: { revalidate } }
     );
     if (!res.ok) throw new Error(`category ${res.status}`);
     const data: Array<{ id?: unknown }> = await res.json();

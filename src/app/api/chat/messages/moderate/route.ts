@@ -73,9 +73,12 @@ export async function POST(req: Request) {
       //
       // `restore_ai` is the one you actually want after the classifier
       // misfires. `restore_all` stays, because sometimes you do mean all of it.
+      // Never an author's own delete (`hiddenBy: "author"`): "restore all"
+      // means moderation, not overriding what a member removed themselves.
+      // (`OR` with null because `NOT` alone would also skip legacy null rows.)
       const where = action === "restore_ai"
         ? { status: "hidden", hiddenBy: "ai" }
-        : { status: "hidden" };
+        : { status: "hidden", OR: [{ hiddenBy: null }, { hiddenBy: { not: "author" } }] };
       const { count } = await prisma.chatMessage.updateMany({
         where,
         data: { status: "visible", hiddenBy: null },
@@ -100,7 +103,7 @@ export async function POST(req: Request) {
     if (!id || !isCuid(id)) return fail("Invalid input.", 400);
     const msg = await prisma.chatMessage.findUnique({
       where: { id },
-      select: { id: true, status: true, pinnedAt: true },
+      select: { id: true, status: true, pinnedAt: true, hiddenBy: true },
     });
     if (!msg) return fail("Message not found.", 404);
 
@@ -113,6 +116,8 @@ export async function POST(req: Request) {
     }
 
     const nextStatus = action === "hide" ? "hidden" : "visible";
+    // A message its author deleted is theirs to keep deleted.
+    if (action === "restore" && msg.hiddenBy === "author") return fail("The author deleted this message.", 409);
     if (msg.status !== nextStatus) {
       await prisma.chatMessage.update({
         where: { id },

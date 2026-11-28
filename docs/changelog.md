@@ -5,6 +5,86 @@ changed, components changed, design improvements, performance improvements.
 
 ---
 
+## 2026-11-28 (190) — Security + scale: fixes from a review of all API routes
+
+A read-only review of all 146 API routes found 22 issues: 0 Critical, 6 High, 11 Medium
+and 5 Low. Each fixed finding below was re-verified against the code before changing
+it.
+
+**Privacy and access**
+- **Journal overview share card (High).** It served P&L for private profiles and
+  printed "anonymous" trades under @username. It now shows a data-free card for
+  private profiles and counts public trades only. A trade moving from public to
+  anonymous now also withdraws its named activity row (before, only a move to
+  private did).
+- **Journal activity is checked on read (Low, found by the Vercel security review on
+  this PR).** The first version of the fix above only revoked when the trade had
+  been public. A trade made anonymous under the old rule could still carry its named
+  row, and making it private later left that row public. Now every non-public
+  visibility revokes, whatever it was before. Both readers (the profile page and
+  `/api/journal/share/activity`) also go through `publicJournalActivity()`, which
+  checks each row against its trade or challenge's current visibility. A stale row
+  is hidden at once and deleted. Rows with no recorded source are still shown (see
+  HANDOFF §8), and a row whose source is gone is hidden but kept. Cost: one or two
+  extra lookups by primary key per feed read. Both readers are cached (30s CDN,
+  300s ISR).
+- **Removed admins kept Super Admin (High).** `role: "ADMIN"` was written once at
+  sign-up and never revoked. On session refresh, an ADMIN whose email is no longer
+  in `ADMIN_EMAILS` is demoted. This only applies when the list is configured, so an
+  unset env var can never lock the owner out.
+- **Permission stripping.** A staffer with `users:roles` could remove capabilities
+  they do not hold themselves. Those are now carried over untouched.
+- **DM reports.** A report can only cite a message that the reported member sent, in
+  a conversation the reporter is part of. Before, any DM id was accepted and its text
+  shown to staff.
+- **"Restore all hidden" chat.** It brought back messages that members had deleted
+  themselves. Author deletes are now `hiddenBy: "author"`, and both restore paths
+  skip them.
+- **CSV exports.** The users and subscribers exports used local cell helpers with no
+  formula guard. Both now use the shared `csvCell`, which also catches a leading tab
+  or CR.
+
+**Nothing on the server waits for ever**
+- **Realtime broadcast:** 2.5s timeout. It is awaited on about 26 request paths, so
+  a stalled Realtime API held "send" for minutes over a message already saved.
+- **Upstream calls:** timeouts on every call in the markets (coin, search,
+  protocol, category, defi, chart, global), ticker, chart, gif, email (Resend) and
+  telegram paths.
+- **Web push** has an 8s timeout. **Link preview** has a hard deadline on top of its
+  idle timeout, which a server dripping one byte at a time never tripped.
+
+**Scale**
+- **DM threads over 200 messages lost every new one (High).** The query returned
+  the OLDEST 200, and the client replaces its list with the response. It now returns
+  the newest 200. `readAt` is written only when it moves, not on every 5s poll.
+- **Polled DM inbox and thread** no longer return inline `data:` avatars (up to about
+  930 KB each).
+- **Public leaderboard search** went from about 40 serial queries per request to a
+  few batched ones, with a per-IP limit (20/min).
+- **Live-quiz finalization is resumable (High).** `finalizedAt` used to be set first,
+  so a function timing out mid-payout left the rest of the room unranked and
+  unpaid. Now there is a 60s lease, idempotent steps and batched writes, and
+  `finalizedAt` is written last. Verified end to end: ranks 1 and 2 recorded, XP
+  granted once.
+- **Chat push** skips devices set to "off" and sends in batches of 50.
+- **Indexes:** `ChatMessage(status, pinnedAt)` (the pinned banner scanned every
+  visible message) and `Session(userId)` (the purge on every sign-in scanned the
+  table).
+
+**Not yet done (follow-ups):**
+- research publish fans out notifications inside the request, and the
+  `Notification` table has no retention;
+- the challenge detail aggregates every trade in JS;
+- the public `live/stats` count;
+- inline images in the feedback admin list;
+- chat reports have no staff reader;
+- link-preview cache scope.
+
+Tests: `security-scale-2026-11.test.ts`. `chat-hidden-by` and `journal-share-overview`
+were updated to the new rules.
+
+---
+
 ## 2026-11-28 (189) — Slow networks: no request can hang, and far fewer bytes per page
 
 Measured first, on a throttled phone (1.6 Mbps, 300ms RTT, 4x CPU), every major page

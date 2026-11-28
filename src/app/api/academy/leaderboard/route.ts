@@ -1,7 +1,8 @@
 import { after } from "next/server";
 import { finalizeDuePeriods, getBoard, searchBoard } from "@modules/academy/lib/board";
 import { PERIODS, type Period } from "@modules/academy/lib/engine";
-import { academyError, json, PUBLIC } from "@modules/academy/lib/http";
+import { academyError, json, PRIVATE, PUBLIC } from "@modules/academy/lib/http";
+import { clientIp, rateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,7 +25,13 @@ export async function GET(req: Request) {
     const page = Math.max(1, Math.min(200, Number(url.searchParams.get("page")) || 1));
     const q = (url.searchParams.get("q") ?? "").trim();
     after(() => finalizeDuePeriods().catch((err) => console.error("[academy] finalize", err)));
-    if (q) return json({ period, results: await searchBoard(period, q) }, PUBLIC(5, 10));
+    if (q) {
+      // Search is public and each distinct query misses the edge cache, so it
+      // is limited per IP (it reads several aggregates per call).
+      const { success } = await rateLimit("academySearch", clientIp(req));
+      if (!success) return json({ period, results: [] }, PRIVATE);
+      return json({ period, results: await searchBoard(period, q) }, PUBLIC(5, 10));
+    }
     return json(await getBoard(period, page), PUBLIC(5, 10));
   } catch (err) {
     return academyError(err, "academy:leaderboard");

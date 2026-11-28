@@ -64,7 +64,7 @@ let lastGood: { coins: typeof fallback; ts: number } | null = null;
 async function fetchFromCoinGecko() {
   const ids = COINS.map((c) => c.id).join(",");
   const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids}&price_change_percentage=24h`;
-  const res = await fetch(url, { headers: { accept: "application/json" }, next: { revalidate } });
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000), headers: { accept: "application/json" }, next: { revalidate } });
   if (!res.ok) throw new Error(`coingecko ${res.status}`);
   const data: any[] = await res.json();
   const byId = new Map(data.map((d) => [d.id, d]));
@@ -90,7 +90,7 @@ async function fetchFromCoinGecko() {
 async function fetchFromBinance() {
   const symbols = JSON.stringify(COINS.map((c) => c.binance));
   const url = `https://api.binance.com/api/v3/ticker/24hr?symbols=${encodeURIComponent(symbols)}`;
-  const res = await fetch(url, { headers: { accept: "application/json" }, next: { revalidate } });
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000), headers: { accept: "application/json" }, next: { revalidate } });
   if (!res.ok) throw new Error(`binance ${res.status}`);
   const data: any[] = await res.json();
   const bySymbol = new Map(data.map((d) => [d.symbol, d]));
@@ -116,7 +116,7 @@ async function fetchFromBinance() {
 async function fetchFromCryptoCompare() {
   const fsyms = COINS.map((c) => c.symbol).join(",");
   const url = `https://min-api.cryptocompare.com/data/pricemultifull?fsyms=${fsyms}&tsyms=USD`;
-  const res = await fetch(url, { headers: { accept: "application/json" }, next: { revalidate } });
+  const res = await fetch(url, { signal: AbortSignal.timeout(5000), headers: { accept: "application/json" }, next: { revalidate } });
   if (!res.ok) throw new Error(`cryptocompare ${res.status}`);
   const data = await res.json();
   const raw = data?.RAW ?? {};

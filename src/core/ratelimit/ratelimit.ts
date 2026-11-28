@@ -104,6 +104,7 @@ const limiters = {
   // than playing one: a 20-question quiz is 40 answer/next calls plus a finish.
   academyStart: make(12, 60, "academy_start"), // 12/min per user
   academy: make(120, 60, "academy"), // 120/min per user - answers, next, finish, live answers, joins
+  academySearch: make(20, 60, "academy_search"), // 20/min per IP - public leaderboard name search
   academyAdmin: make(60, 60, "academy_admin"), // 60/min per staff member - content editing
   // AneQue's neural voice for text with no recording. Each MISS renders audio
   // with a paid provider; the edge caches every result for a year, so a real

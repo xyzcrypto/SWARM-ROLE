@@ -24,7 +24,7 @@ const FALLBACK: DefiMarket = {
 };
 
 async function j(url: string, revalidateSec = revalidate) {
-  const res = await fetch(url, { headers: { accept: "application/json" }, next: { revalidate: revalidateSec } });
+  const res = await fetch(url, { signal: AbortSignal.timeout(10000), headers: { accept: "application/json" }, next: { revalidate: revalidateSec } });
   if (!res.ok) throw new Error(`${url} ${res.status}`);
   return res.json();
 }

@@ -49,6 +49,12 @@ export async function broadcastEvent(topic: string, event: string, payload: unkn
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ messages: [{ topic, event, payload, private: false }] }),
+      // ⚠️ Bounded. ~26 request paths `await` this (sending a DM, editing,
+      // reacting, polls, pins...). A broadcast is a nicety on top of a write
+      // that already succeeded, but with no timeout a stalled Realtime API
+      // held each of those requests open until the function's limit: the
+      // member saw "sending..." for minutes over a message that was saved.
+      signal: AbortSignal.timeout(2500),
     });
     if (!res.ok) {
       console.error("[realtime] broadcast failed", res.status, await res.text().catch(() => ""));

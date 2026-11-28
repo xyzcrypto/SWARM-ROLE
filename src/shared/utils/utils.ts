@@ -76,7 +76,9 @@ export function maskEmail(email?: string | null): string {
  */
 export function csvCell(value: unknown): string {
   const s = String(value ?? "").replace(/"/g, '""');
-  const safe = /^[=+\-@]/.test(s) ? `'${s}` : s;
+  // A cell starting with = + - @ (or a tab/CR) is run as a formula by Excel
+  // and Sheets: prefix it so it is shown as text (CSV injection).
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
   return `"${safe}"`;
 }
 

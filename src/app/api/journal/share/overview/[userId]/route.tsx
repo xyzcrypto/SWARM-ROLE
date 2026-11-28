@@ -7,7 +7,9 @@ import { computeStats, type TradeLike } from "@/lib/journal";
 // card.
 //
 // PRIVACY - two independent rules, both required:
-//  1. Only PUBLISHED trades are counted (`visibility` in public/anonymous).
+//  1. Only PUBLIC trades are counted, and only for a non-private profile.
+//     (Anonymous trades are published without a name, so they cannot be
+//     counted on a card that prints one.)
 //     `Trade.visibility` defaults to "private", so the query MUST filter on it.
 //     Without that filter this endpoint disclosed a member's real total P&L to
 //     any unauthenticated caller who knew their userId - and a userId is not a
@@ -32,8 +34,12 @@ function fallbackCard() {
 export async function GET(_req: Request, props: { params: Promise<{ userId: string }> }) {
   const params = await props.params;
   try {
-    const user = await prisma.user.findUnique({ where: { id: params.userId }, select: { name: true, username: true } });
-    if (!user) return fallbackCard();
+    const user = await prisma.user.findUnique({ where: { id: params.userId }, select: { name: true, username: true, profileVisibility: true } });
+    // A private profile shows nothing beyond a name and photo, here too: the
+    // sibling activity route was fixed for exactly this (audit F-04), this card
+    // was not, so a member who went private still had their P&L served to
+    // anyone holding their id (it travels in chat payloads).
+    if (!user || user.profileVisibility === "private") return fallbackCard();
 
     const rows = await prisma.trade
       .findMany({
@@ -43,7 +49,10 @@ export async function GET(_req: Request, props: { params: Promise<{ userId: stri
         // a userId - which is not a secret (it ships in the RSC payload of every
         // public profile). Mirrors the challenge card, which refuses to render
         // anything for a private challenge.
-        where: { userId: params.userId, visibility: { in: ["public", "anonymous"] } },
+        // PUBLIC trades only. "anonymous" means published WITHOUT the member's
+        // name; counting them here printed them under @username, which undid
+        // the anonymity the member chose.
+        where: { userId: params.userId, visibility: "public" },
         select: { side: true, stopLoss: true, takeProfit: true, fills: { select: { kind: true, price: true, size: true, fee: true } } },
       })
       .catch(() => [] as { side: string; stopLoss: number | null; takeProfit: number | null; fills: { kind: string; price: number; size: number; fee: number }[] }[]);

@@ -1,13 +1,14 @@
 import { prisma } from "@/lib/prisma";
 import { ok, fail, handleError, requirePermission } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
+import { csvCell } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 const EXPORT_CAP = 10_000;
 
-const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+// Shared csvCell: quotes every cell and neutralises formulas (CSV injection).
 
 // GET /api/subscribers - the newsletter/waitlist list finally gets a reader
 // (users:manage): cursor-paginated JSON, or ?format=csv for a full export.

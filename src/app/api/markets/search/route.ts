@@ -19,6 +19,7 @@ export async function GET(req: Request) {
   }
   try {
     const sres = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(q)}`, {
+      signal: AbortSignal.timeout(6000),
       headers: { accept: "application/json" },
       next: { revalidate },
     });
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
 
     const mres = await fetch(
       `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=${ids.join(",")}&order=market_cap_desc&price_change_percentage=1h,24h,7d&sparkline=true`,
-      { headers: { accept: "application/json" }, next: { revalidate } }
+      { signal: AbortSignal.timeout(6000), headers: { accept: "application/json" }, next: { revalidate } }
     );
     if (!mres.ok) throw new Error(`markets ${mres.status}`);
     const data: Array<Record<string, unknown>> = await mres.json();

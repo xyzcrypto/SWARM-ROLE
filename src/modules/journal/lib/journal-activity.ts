@@ -74,3 +74,45 @@ export function tradeActivityWhere(tradeId: string, userId: string) {
 export function challengeActivityWhere(challengeId: string) {
   return { sourceType: ACTIVITY_SOURCE.challenge, sourceId: challengeId };
 }
+
+/**
+ * May a row from this source stay on the public feed? Mirrors the write-time
+ * gates: a trade publishes only while "public" ("anonymous" hides the name the
+ * row carries), a challenge while it is anything but "private".
+ */
+export function sourceIsPublic(sourceType: string, visibility: string): boolean {
+  if (sourceType === ACTIVITY_SOURCE.trade) return visibility === "public";
+  if (sourceType === ACTIVITY_SOURCE.challenge) return visibility !== "private";
+  return false;
+}
+
+export type SourcedRow = { id: string; sourceType: string | null; sourceId: string | null };
+
+/** Key for `visibilityOf` in sortActivityBySource. */
+export const sourceKey = (sourceType: string, sourceId: string) => `${sourceType}:${sourceId}`;
+
+/**
+ * Read-time check of every row against its source's CURRENT visibility, so the
+ * feed never depends on every write path having revoked correctly. A row whose
+ * revocation was missed (e.g. a trade made anonymous under the old rule, then
+ * private) is hidden at once and returned in `revoke` for deletion.
+ *
+ *  - no source recorded (pre-2026-07-31): shown, untraceable; see HANDOFF §8
+ *  - source gone: hidden but NOT revoked, the row may outlive an unhooked delete
+ *  - source no longer public: hidden and revoked
+ */
+export function sortActivityBySource<T extends SourcedRow>(rows: T[], visibilityOf: Map<string, string>) {
+  const shown: T[] = [];
+  const revoke: string[] = [];
+  for (const r of rows) {
+    if (!r.sourceType || !r.sourceId) {
+      shown.push(r);
+      continue;
+    }
+    const v = visibilityOf.get(sourceKey(r.sourceType, r.sourceId));
+    if (v === undefined) continue;
+    if (sourceIsPublic(r.sourceType, v)) shown.push(r);
+    else revoke.push(r.id);
+  }
+  return { shown, revoke };
+}

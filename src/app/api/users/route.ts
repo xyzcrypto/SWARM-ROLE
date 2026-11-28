@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 50;
 const EXPORT_CAP = 10_000;
 
-import { publicImageUrl } from "@/lib/utils";
+import { publicImageUrl, csvCell } from "@/lib/utils";
 import { todayKey } from "@/lib/xp";
 import { memberCheckins } from "@/lib/member-checkins";
 
@@ -38,7 +38,7 @@ function whereFor(q: string): Prisma.UserWhereInput {
     : {};
 }
 
-const csvCell = (v: string) => (/[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+// Shared csvCell: quotes every cell and neutralises formulas (CSV injection).
 
 // GET /api/users - paginated, server-side-searchable member list for the
 // dashboard Members panel (`users:manage`). `?q=` searches ALL members by

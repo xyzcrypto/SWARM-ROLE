@@ -25,7 +25,7 @@ export async function GET(req: Request) {
       : `https://api.giphy.com/v1/gifs/trending?limit=24&rating=pg-13&bundle=messaging_non_clips`;
     const url = `${base}&api_key=${env.GIPHY_API_KEY}`;
 
-    const res = await fetch(url, { cache: "no-store" });
+    const res = await fetch(url, { signal: AbortSignal.timeout(6000), cache: "no-store" });
     if (!res.ok) return fail("Couldn't load GIFs. Try again.", 502);
     const json = (await res.json().catch(() => null)) as any;
     const data: any[] = Array.isArray(json?.data) ? json.data : [];

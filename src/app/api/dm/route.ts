@@ -5,6 +5,7 @@ import { ok, fail, handleError, getSessionUser } from "@/lib/api";
 import { rateLimit } from "@/lib/ratelimit";
 import { orderPair, otherOf, isUnread, DM_USER_SELECT } from "@/lib/dm";
 import { normalizeUsername } from "@/lib/profile";
+import { publicImageUrl } from "@/lib/utils";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -64,7 +65,7 @@ export async function GET() {
       const iAmA = c.userAId === me.id;
       return {
         id: c.id,
-        other: other ? { id: other.id, name: other.name || other.username || "Member", username: other.username, image: other.image } : null,
+        other: other ? { id: other.id, name: other.name || other.username || "Member", username: other.username, image: publicImageUrl(other.image, other.id) } : null,
         lastBody: c.lastBody ?? "",
         lastMessageAt: c.lastMessageAt,
         unread: isUnread(c, me.id),

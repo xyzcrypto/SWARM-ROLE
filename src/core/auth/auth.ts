@@ -8,7 +8,7 @@ import TwitterProvider from "next-auth/providers/twitter";
 import * as Sentry from "@sentry/nextjs";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { googleEnabled, githubEnabled, twitterEnabled, isAdminEmail } from "@/lib/env";
+import { googleEnabled, githubEnabled, twitterEnabled, isAdminEmail, adminEmails } from "@/lib/env";
 import { verifyCode } from "@/lib/otp";
 import { rateLimit, clientIpFromHeaders } from "@/lib/ratelimit";
 import { generateUniqueUsername } from "@/lib/username";
@@ -560,7 +560,18 @@ export const authOptions: NextAuthOptions = {
           }
 
           token.uid = dbUser.id;
-          token.role = dbUser.role;
+          // ⚠️ ADMIN_EMAILS is the source of truth for Super Admin, so taking an
+          // email off the list must take the role away. `role: "ADMIN"` is
+          // written to the row once, at sign-up, and is itself read as Super
+          // Admin elsewhere, so a removed admin used to keep every capability
+          // until someone edited the database by hand. Only applied when the
+          // list is configured: an unset env var must never demote the owner.
+          let role = dbUser.role;
+          if (role === "ADMIN" && adminEmails.length > 0 && !isAdminEmail(token.email)) {
+            role = "USER";
+            await prisma.user.update({ where: { id: dbUser.id }, data: { role: "USER" } }).catch(() => null);
+          }
+          token.role = role;
           token.membership = dbUser.membership;
           token.name = dbUser.name;
           token.picture = dbUser.image;

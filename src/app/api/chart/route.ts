@@ -38,7 +38,7 @@ export async function GET(req: Request) {
 
   try {
     const url = `https://api.coingecko.com/api/v3/coins/${coin}/ohlc?vs_currency=usd&days=${days}`;
-    const res = await fetch(url, { headers: { accept: "application/json" }, next: { revalidate: 120 } });
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { accept: "application/json" }, next: { revalidate: 120 } });
     if (!res.ok) throw new Error(`upstream ${res.status}`);
     const raw: number[][] = await res.json(); // [t, o, h, l, c]
     const step = Math.max(1, Math.floor(raw.length / 44));
